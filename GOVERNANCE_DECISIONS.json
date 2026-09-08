@@ -1,0 +1,73 @@
+{
+  "schema_version": "sapote.governance_decisions/1",
+  "_note": "Machine-checkable record of standing governance decisions that change what the bundle discloses or how a gate behaves. A decision carries a signer, a date, a scope and an `invalidates_when` condition that can be evaluated mechanically; a decision whose condition evaluates true is EXPIRED until re-affirmed. Prose elsewhere is not a decision record.",
+  "cut": "v9.7.408",
+  "decisions": [
+    {
+      "id": "GOV-001",
+      "topic": "Strain-identifier disclosure in the public software release",
+      "status": "ACTIVE",
+      "record_type": "REASONED_WITH_EVIDENCE",
+      "decision": "Cohort strain identifiers (the AS- series) may appear in shipped code, tests and documentation. What the software release withholds is: genome assemblies and annotation inputs; unpublished genome-scale novelty determinations tied to a named strain; personal identifiers of people and institutions other than the published author.",
+      "asserted_signer": "Alexander J. Smith (release owner)",
+      "asserted_date": "2026-08-28",
+      "asserted_reaffirmed": "2026-09-04",
+      "rationale": "Verified against the sealed CODE tier before ruling: no cohort genome or assembly ships (synthetic fixtures and public reference seeds only); no host, collection or geolocation detail is paired with any identifier; strain-to-genus is already public through GenBank 16S records; BGC-level statements the engine emits are class-level and judgment-deferred by construction. An identifier that discloses nothing meaningful does not need scrubbing, and blanket identifier rewriting measurably broke the in-tier test suite when tried.",
+      "primary_artifact": "docs/PUBLIC_RELEASE_GUIDE.md (what ships / what is withheld) + tools/public_release_audit.py (the withheld classes are the gate's banned classes) + the owner signature block in this file (2026-09-04 16:20 Pacific)",
+      "current_effect": "AS_SCRUB=0 (identifier rewrite retired); the read-only identifier leak audit still runs and can fail a cut on a genuinely private prefix (AJS-, PENDING-).",
+      "invalidates_when": "a genuinely private cohort (unpublished genomes, or any series the owner marks private) is admitted to a tier that can be published",
+      "condition_currently_true": false,
+      "remediation_available": "Set AS_SCRUB=1 to re-arm the identifier rewrite; the machinery (tools/make_public_tier.sh, tools/redact_public_tier.py) is intact and needs no code change."
+    },
+    {
+      "id": "GOV-002",
+      "topic": "Engine version boundary for Mode B card-structure gate behaviour",
+      "status": "ACTIVE",
+      "record_type": "REASONED_WITH_EVIDENCE",
+      "decision": "The engine integer marks a score-comparability boundary, not a validation boundary. Gate behaviour that changes no scored field, parser or rule ships under a bundle bump only, with a forward-only lineage stanza.",
+      "asserted_signer": "release owner (delegated to the sealing lane)",
+      "asserted_date": "2026-08-12",
+      "rationale": "The card-structure gate is not in the reproducibility fingerprint and no scored field reads its verdict; existing sealed artifacts keep their verdicts.",
+      "invalidates_when": "a gate verdict enters the reproducibility fingerprint or feeds a scored field",
+      "condition_currently_true": false
+    },
+    {
+      "id": "GOV-003",
+      "topic": "Identifier controls: rewrite removed, audit retained",
+      "status": "ACTIVE",
+      "record_type": "REASONED_WITH_EVIDENCE",
+      "decision": "The identifier rewrite pass (which mutates a release) is removed; the identifier leak audit (which observes one) is retained and can fail a cut.",
+      "asserted_signer": "release owner (delegated to the sealing lane)",
+      "asserted_date": "2026-08-12",
+      "rationale": "A mutation nobody runs is dead weight; the observation is the only control that would notice a private identifier entering a public tier.",
+      "invalidates_when": "a genuinely private cohort is introduced and the rewrite must be re-armed",
+      "condition_currently_true": false
+    },
+    {
+      "id": "GOV-004",
+      "topic": "Companion phylogenomics binaries reported by doctor",
+      "status": "ACTIVE",
+      "record_type": "REASONED_WITH_EVIDENCE",
+      "decision": "`mamey doctor` reports GToTree / IQ-TREE / fastANI presence. GToTree is GPL-3 and is never vendored, so its absence must be visible before a run rather than discovered during one.",
+      "asserted_signer": "release owner (delegated to the sealing lane)",
+      "asserted_date": "2026-08-12",
+      "rationale": "Verified unsatisfied before implementing.",
+      "invalidates_when": "the companion-tool and external-data registries are merged",
+      "condition_currently_true": false
+    }
+  ],
+  "signature": {
+    "statement": "Governance record. I hereby SIGN the record. The record is signed by me Alexander Smith, the creator of Sapote Mamey. September 4 2026 Pacific Standard Time 4:20 pm",
+    "signer": "Alexander Smith, creator of Sapote-Mamey (release owner)",
+    "signed_at_local": "2026-09-04 16:20 Pacific (as written by the signer)",
+    "signed_at_iso": "2026-09-04T16:20:00-07:00",
+    "channel": "typed by the signer in the composer session; transcribed verbatim by the composer lane",
+    "covers": [
+      "GOV-001",
+      "GOV-002",
+      "GOV-003",
+      "GOV-004"
+    ],
+    "note": "This block is the primary artifact for the ACTIVE status of GOV-001 in v9.7.408; the 2026-08-28 ruling it affirms is summarised in the record's `decision` and `rationale` fields."
+  }
+}

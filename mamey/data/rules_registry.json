@@ -1,0 +1,193 @@
+{
+  "_comment": "Single source of truth for Sapote-Mamey standing rules, retirements, and exclusions. Edit THIS file; mamey/rules.py loads it and tests/test_rules_registry.py guards it. A rule that lives only in a chat session or a preferences doc can be resurrected by a fresh, thin-context session. A rule that lives here is enforced by the linter.",
+  "schema_version": "1.0",
+  "rules": [
+    {
+      "id": "NAPAA",
+      "label": "NAPAA (Nosema-associated hypothesis)",
+      "status": "neutral",
+      "action": "none",
+      "scope": "none (neutral)",
+      "patterns": [
+        "\\bNAPAA\\b"
+      ],
+      "rationale": "Common and frequently adjacent to genuine BGCs; treated as NEUTRAL \u2014 neither downgraded nor excluded from comparative/ecological claims. (Nosema hypothesis remains retired, but that does not justify excluding NAPAA itself.)",
+      "date": "2026-06",
+      "lead_blocking": false
+    },
+    {
+      "id": "SACCHARIDE",
+      "label": "Saccharide class",
+      "status": "excluded",
+      "action": "downgrade",
+      "scope": "lead prioritization",
+      "patterns": [
+        "\\bsaccharide\\b"
+      ],
+      "rationale": "Permanent exclusion: saccharide-class BGCs are downgraded, never surfaced as discovery leads. RG-03: the \\bsaccharide\\b word boundary already prevents matching inside polysaccharide/lipopolysaccharide (no boundary before the 's'), and aminoglycoside has no 'saccharide' substring, so the former false_positive_guard list never engaged and was removed. The word boundary is what protects these classes.",
+      "reason_code": "OWN_PRODUCT_CLASS_SACCHARIDE",
+      "evidence_distinctions": [
+        "glycosyltransferase=transfer/decorating capacity only",
+        "epimerase=deoxysugar-pathway context only",
+        "deoxysugar_reductase=deoxysugar-pathway context only"
+      ],
+      "date": "2026-05",
+      "lead_blocking": true
+    },
+    {
+      "id": "NI-SIDEROPHORE",
+      "label": "NIS-independent siderophore class",
+      "status": "excluded",
+      "action": "downgrade",
+      "scope": "lead prioritization",
+      "patterns": [
+        "\\bni-siderophore\\b",
+        "\\bNI-siderophore\\b"
+      ],
+      "rationale": "Permanent exclusion (BH-007): NIS-independent siderophore capacity is an iron-acquisition function, not a drug-discovery lead. Downgraded when it is the BGC's own class; a committed NRPS/PKS/RiPP backbone that merely co-carries the siderophore arm keeps its lead via the committed-class guard.",
+      "date": "2026-06",
+      "lead_blocking": true,
+      "false_positive_guard": []
+    },
+    {
+      "id": "NRP-METALLOPHORE",
+      "label": "NRP-metallophore class",
+      "status": "excluded",
+      "action": "downgrade",
+      "scope": "lead prioritization",
+      "patterns": [
+        "\\bnrp-metallophore\\b",
+        "\\bNRP-metallophore\\b"
+      ],
+      "rationale": "Permanent exclusion (BH-007b): the metallophore component is a metal-acquisition function, not a drug lead. Downgraded only when no committed NRPS/PKS backbone is present \u2014 a real NRPS that also chelates metal keeps its lead via the committed-class guard.",
+      "date": "2026-06",
+      "lead_blocking": true,
+      "false_positive_guard": []
+    },
+    {
+      "id": "HGLE-KS-PREV-001",
+      "label": "hglE-KS / PREV-001 / hexacosalactone",
+      "status": "noted",
+      "action": "flag",
+      "scope": "informational",
+      "patterns": [
+        "\\bhglE-?KS\\b",
+        "\\bPREV-001\\b",
+        "\\bhexacosalactone\\b"
+      ],
+      "rationale": "Habitat-non-specific (8 strains / 7 genera / 3 habitats) \u2014 recorded as an informational property, NOT a downgrade. hglE-KS ranks as a normal lead; the \u00a74.3 enediyne-artifact guard in scoring.py is separate and unchanged.",
+      "date": "2026-06",
+      "lead_blocking": false
+    },
+    {
+      "id": "BRYO-HGT-001",
+      "label": "BRYO-HGT-001",
+      "status": "retired",
+      "action": "drop",
+      "scope": "all claims",
+      "patterns": [
+        "\\bBRYO-HGT-001\\b"
+      ],
+      "rationale": "Retired claim. Any reappearance in a verdict is a regression.",
+      "date": "2026-05",
+      "lead_blocking": true
+    },
+    {
+      "id": "ENEDIYNE-KCB",
+      "label": "Enediyne KnownClusterBlast hit",
+      "status": "gate",
+      "action": "flag",
+      "scope": "claim ceiling",
+      "patterns": [
+        "\\benediyne\\b"
+      ],
+      "rationale": "Enediyne KCB is similarity, not identity -> [E-signal] claim downgrade (treat as enediyne candidate; structure NOT confirmed; PREV-001/hglE artifact when only a generic signal co-occurs). No lab-safety/BSL-2 flag is emitted: selective biosafety warnings give false reassurance (cytotoxic polyenes and other hazards go untagged), and chemical handling is governed by lab SOPs.",
+      "date": "2026-05",
+      "lead_blocking": false
+    },
+    {
+      "id": "PRIMARY-METABOLISM",
+      "label": "Primary-metabolism call",
+      "status": "excluded",
+      "action": "drop",
+      "scope": "lead prioritization",
+      "patterns": [
+        "\\bprimary[- ]metabolism\\b",
+        "\\bprimary metabolite\\b"
+      ],
+      "rationale": "Primary-metabolism calls are dropped, never surfaced as natural-product discovery leads.",
+      "date": "2026-05",
+      "lead_blocking": true
+    }
+  ],
+  "routing_policies": {
+    "inventory_bottom_tier": {
+      "id": "AQUARIUS-01-INVENTORY-BOTTOM-TIER",
+      "schema_version": "1.0",
+      "status": "active",
+      "decision_date": "2026-08-04",
+      "decision_owner": "the Developer or User",
+      "scope": "Lead_tier_auto routing only; no AB/AF/novelty mutation",
+      "core_housekeeping_classes": [
+        "saccharide",
+        "terpene",
+        "geosmin",
+        "ectoine",
+        "napaa"
+      ],
+      "housekeeping_classes": [
+        "saccharide",
+        "terpene",
+        "geosmin",
+        "ectoine",
+        "napaa",
+        "fatty_acid",
+        "arylpolyene",
+        "melanin",
+        "butyrolactone",
+        "hserlactone",
+        "hgle-ks",
+        "redox-cofactor",
+        "naggn"
+      ],
+      "neutral_tokens": [
+        "",
+        "unresolved",
+        "other"
+      ],
+      "substring_aliases": [
+        {"contains": "saccharide", "canonical": "saccharide"},
+        {"contains": "geosmin", "canonical": "geosmin"},
+        {"contains": "terpene", "canonical": "terpene"},
+        {"contains": "ectoine", "canonical": "ectoine"},
+        {"contains": "napaa", "canonical": "napaa"},
+        {"contains": "hgle", "canonical": "hgle-ks"}
+      ],
+      "ambiguous_review_tokens": [
+        "2dos",
+        "aminoglycoside",
+        "glycopeptide",
+        "aminocoumarin",
+        "oligosaccharide",
+        "amino-sugar",
+        "aminopolycarboxylic-acid"
+      ],
+      "route_labels": {
+        "specialized_below_medium": "Low",
+        "allow_listed_below_medium": "Inventory",
+        "unresolved_below_medium": "Inventory"
+      },
+      "claim_ceiling": "Routing-prior labels over antiSMASH class annotations; neither Low nor Inventory proves product identity, production, activity, novelty, pathway completeness, ecological function, or biological housekeeping. Judgment deferred.",
+      "review_rule": "Rows containing an ambiguous_review_token or only broadened housekeeping classes require a keyed human disposition before a cohort-level reviewed-Inventory claim."
+    }
+  },
+  "_changelog": [
+    {
+      "date": "2026-06-14",
+      "change": "NAPAA->neutral, HGLE-KS-PREV-001->noted (un-excluded). Lead-blocking removed for both. Saccharide/primary-metabolism/enediyne-gate/bryo-HGT unchanged."
+    },
+    "2026-06-24 v9.7.122: added NI-SIDEROPHORE (BH-007) and NRP-METALLOPHORE (BH-007b) downgrade rules; committed-class guard protects mixed-class leads.",
+    "2026-07-28 RG-03: removed the inert SACCHARIDE false_positive_guard list (the \\bsaccharide\\b word boundary already protects polysaccharide/lipopolysaccharide/aminoglycoside). RG-04: rules.py now validates status/action against the allowed enum sets at load. No behavior change to any live rule.",
+    "2026-08-04 AQUARIUS_01: added the governed inventory_bottom_tier routing policy. It class-gates only the below-Medium label (Low versus Inventory), changes no numeric prior, and carries an explicit claim ceiling and keyed-review rule."
+  ]
+}

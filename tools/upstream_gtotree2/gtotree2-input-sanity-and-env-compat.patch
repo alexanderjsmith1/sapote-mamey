@@ -1,0 +1,246 @@
+diff -ruN --exclude=__pycache__ --exclude=*.pyc --exclude=*.egg-info _gt2_pristine/GToTree-toying-with-whole-rewrite/gtotree/utils/gtdb/get_gtdb_data.py GToTree-2.0.0-src/gtotree/utils/gtdb/get_gtdb_data.py
+--- _gt2_pristine/GToTree-toying-with-whole-rewrite/gtotree/utils/gtdb/get_gtdb_data.py	2026-08-26 13:09:02
++++ GToTree-2.0.0-src/gtotree/utils/gtdb/get_gtdb_data.py	2026-08-26 18:32:32
+@@ -52,9 +52,9 @@
+ 
+ 
+ def check_gtdb_location_var_is_set():
+-    try:
+-        gtdb_data_dir = os.environ['GTDB_DIR']
+-    except KeyError:
++    from gtotree.utils.misc.data_locations import resolve_env_variable
++    gtdb_data_dir, _ = resolve_env_variable('GTDB_DIR')
++    if not gtdb_data_dir:
+         wprint(color_text("The environment variable 'GTDB_DIR' does not seem to be set :(", "red"))
+         wprint("This shouldn't happen, check on things with `gtt data locations check`.")
+         sys.exit(1)
+diff -ruN --exclude=__pycache__ --exclude=*.pyc --exclude=*.egg-info _gt2_pristine/GToTree-toying-with-whole-rewrite/gtotree/utils/misc/data_locations.py GToTree-2.0.0-src/gtotree/utils/misc/data_locations.py
+--- _gt2_pristine/GToTree-toying-with-whole-rewrite/gtotree/utils/misc/data_locations.py	2026-08-26 13:09:02
++++ GToTree-2.0.0-src/gtotree/utils/misc/data_locations.py	2026-08-26 18:32:16
+@@ -14,7 +14,36 @@
+     "Pfam_data_dir",
+ ]
+ 
++# v1.x spelled three of these differently. Someone upgrading from 1.8.x has the right
++# directories already exported under the old names, and without this they get
++# "does not seem to be set :(" for a variable that is, in substance, set -- with nothing
++# to connect the message to the variable they are actually carrying. Honour the old name,
++# say so once, and point at the new one.
++LEGACY_ENV_VARIABLES = {
++    "NCBI_ASSEMBLY_DATA_DIR": "NCBI_assembly_data_dir",
++    "GTDB_DIR": "GTDB_dir",
++}
+ 
++
++def resolve_env_variable(variable):
++    """
++    (path, legacy_name_used_or_None) for a data-location variable.
++
++    Prefers the current name; falls back to the v1.x spelling when only that is set.
++    """
++    path = os.environ.get(variable, "")
++    if path:
++        return path, None
++
++    legacy = LEGACY_ENV_VARIABLES.get(variable)
++    if legacy:
++        legacy_path = os.environ.get(legacy, "")
++        if legacy_path:
++            return legacy_path, legacy
++
++    return "", None
++
++
+ class PathNotWritable(Exception):
+     pass
+ 
+@@ -54,13 +83,28 @@
+ 
+ def check_location_var_is_set_and_writable(variable):
+ 
+-    path = os.environ.get(variable, "")
++    path, legacy_used = resolve_env_variable(variable)
+ 
++    if legacy_used:
++        report_message(
++            "Using '" + legacy_used + "' for '" + variable + "'. That variable was "
++            "renamed in GToTree v2; the old name still works, but setting the new one "
++            "(with `gtt data locations set`) will keep things clear.",
++            "yellow",
++        )
++        print()
++
+     if not path:
+         report_message(
+             "The environment variable '" + variable + "' does not seem to be set :(",
+             "yellow",
+         )
++        legacy = LEGACY_ENV_VARIABLES.get(variable)
++        if legacy:
++            wprint(
++                "If you are coming from GToTree v1.x, this one was called '" + legacy +
++                "' there. Either name works, but neither appears to be set."
++            )
+         wprint("Try to set it with `gtt data locations set`.")
+         print()
+         sys.exit(1)
+@@ -72,7 +116,8 @@
+ 
+ ### set ###
+ def get_variable_path(variable):
+-    return os.environ.get(variable, False)
++    path, _ = resolve_env_variable(variable)
++    return path or False
+ 
+ 
+ def set_variable_path(variable, curr_path):
+diff -ruN --exclude=__pycache__ --exclude=*.pyc --exclude=*.egg-info _gt2_pristine/GToTree-toying-with-whole-rewrite/gtotree/utils/misc/preflight_checks.py GToTree-2.0.0-src/gtotree/utils/misc/preflight_checks.py
+--- _gt2_pristine/GToTree-toying-with-whole-rewrite/gtotree/utils/misc/preflight_checks.py	2026-08-26 13:09:02
++++ GToTree-2.0.0-src/gtotree/utils/misc/preflight_checks.py	2026-08-26 18:43:42
+@@ -507,6 +507,9 @@
+     if args.amino_acid_files:
+         args.amino_acid_files = check_expected_single_column_input(args.amino_acid_files, "-A")
+ 
++    if args.fasta_files:
++        check_input_fasta_sanity(read_single_column_file(args.fasta_files))
++
+     if getattr(args, "exclusion_list", None):
+         if not args.wanted_ref_tax:
+             report_message(
+@@ -520,6 +523,99 @@
+             args.exclusion_list, "--exclusion-list")
+ 
+     return args
++
++
++# A bacterial or archaeal FASTA this small is very unlikely to be a draft genome, whatever
++# its extension says. The two real cases that motivated this: a 37 kb file holding a single
++# gene accession (LC054541) that had been saved under a species name, and a 685 kb
++# single-contig record that went on to recover 5 of 138 SCGs. Free-living bacterial genomes
++# start around 1 Mb and the smallest endosymbionts around 0.11 Mb, so 500 kb is well clear of
++# anything ordinary.
++#
++# This only ever WARNS. Viral genomes are routinely 5-200 kb and GToTree supports them, so a
++# hard exit here would reject a legitimate workflow outright. The point is to put the
++# information in front of the user in the first seconds of a run rather than at the end of it.
++SMALL_GENOME_BP = 500_000
++
++
++def summarize_fasta(path, cap_bp=SMALL_GENOME_BP):
++    """
++    (total_bp, num_seqs, looks_like_fasta) with an early exit once the file is clearly
++    big enough to be a genome. Reading stops at `cap_bp`, so this costs microseconds on a
++    normal input and only reads a small file in full.
++    """
++    total = num_seqs = 0
++    looks_like_fasta = False
++    try:
++        with open(path, "rb") as fh:
++            first = fh.readline()
++            looks_like_fasta = first.startswith(b">")
++            if looks_like_fasta:
++                num_seqs = 1
++            else:
++                return 0, 0, False
++            for line in fh:
++                if line.startswith(b">"):
++                    num_seqs += 1
++                else:
++                    total += len(line.strip())
++                    if total >= cap_bp:
++                        return total, num_seqs, True
++    except OSError:
++        return 0, 0, False
++    return total, num_seqs, looks_like_fasta
++
++
++def check_input_fasta_sanity(fasta_files):
++    """
++    Look inside the input FASTAs before the run starts.
++
++    `check_input_genome_files` already validates the input *list* up front, on the principle
++    in its own docstring: fail before any asset is downloaded or any taxon resolved. But
++    nothing opens the files themselves, so a record that cannot possibly be a genome is
++    accepted, has its genes called, and is searched against every profile in the SCG set
++    before being dropped at the hit-count filter. On a 138-marker set that is the entire
++    per-genome cost of the run, spent to learn something a single read establishes.
++
++    Two different severities, on purpose:
++
++      - a file that doesn't begin with '>' cannot be read as FASTA at all, so it exits;
++      - a file that is merely very small only warns, because viral genomes are legitimately
++        this size and GToTree supports them.
++
++    Deliberately narrow otherwise: it says nothing about assembly quality. Fragmented and
++    contaminated assemblies are real problems too, but their thresholds are taxon-dependent
++    and belong to the user's judgement rather than to a blanket check.
++    """
++    not_fasta, small = [], []
++
++    for path in fasta_files:
++        if not os.path.isfile(path):
++            continue  # existence is already reported by check_inputs_exist()
++        total_bp, num_seqs, looks_like_fasta = summarize_fasta(path)
++        name = os.path.basename(path)
++        if not looks_like_fasta:
++            not_fasta.append(name)
++        elif total_bp < SMALL_GENOME_BP:
++            small.append(f"{name} ({total_bp:,} bp in {num_seqs} sequence(s))")
++
++    if not_fasta:
++        report_message(
++            "These input files don't start with a '>' header, so they can't be read as "
++            f"FASTA:\n\n{bullet_list(not_fasta)}\n", "red")
++        print()
++        report_very_early_exit()
++
++    if small:
++        report_notice(
++            "These inputs are smaller than a typical bacterial or archaeal genome. That is "
++            "expected for viruses, but for anything else it usually means a gene or "
++            "amino-acid record was saved under a genome's name -- and such a file will have "
++            "its genes called and be searched against every profile in the SCG set before "
++            "being dropped at the hit-count filter. Flagging it here so the run isn't spent "
++            "finding out. If you meant to supply amino acids, `-A` is the flag for that."
++            f"\n\n{bullet_list(small)}\n")
++        print()
+ 
+ 
+ def load_previous_run_data(args):
+diff -ruN --exclude=__pycache__ --exclude=*.pyc --exclude=*.egg-info _gt2_pristine/GToTree-toying-with-whole-rewrite/gtotree/utils/ncbi/get_ncbi_assembly_data.py GToTree-2.0.0-src/gtotree/utils/ncbi/get_ncbi_assembly_data.py
+--- _gt2_pristine/GToTree-toying-with-whole-rewrite/gtotree/utils/ncbi/get_ncbi_assembly_data.py	2026-08-26 13:09:02
++++ GToTree-2.0.0-src/gtotree/utils/ncbi/get_ncbi_assembly_data.py	2026-08-26 18:32:40
+@@ -41,13 +41,16 @@
+ def check_ncbi_assembly_info_location_var_is_set():
+ 
+     # making sure there is a NCBI_ASSEMBLY_DATA_DIR env variable
+-    try:
+-        ncbi_assembly_data_dir = os.environ['NCBI_ASSEMBLY_DATA_DIR']
+-    except KeyError:
++    from gtotree.utils.misc.data_locations import resolve_env_variable
++    ncbi_assembly_data_dir, _ = resolve_env_variable('NCBI_ASSEMBLY_DATA_DIR')
++    if not ncbi_assembly_data_dir:
+         wprint(color_text("The environment variable 'NCBI_ASSEMBLY_DATA_DIR' does not seem to be set :(", "yellow"))
+         wprint("This shouldn't happen, check on things with `gtt data locations check`.")
+         print("")
+-        sys.exit(0)
++        # exit non-zero: this is a fatal misconfiguration, and exiting 0 makes it look like a
++        # successful run to any wrapper script or CI step (`check_gtdb_location_var_is_set`,
++        # the sibling of this function, already exits 1 for the same class of problem)
++        sys.exit(1)
+ 
+     return ncbi_assembly_data_dir
+ 
+diff -ruN --exclude=__pycache__ --exclude=*.pyc --exclude=*.egg-info _gt2_pristine/GToTree-toying-with-whole-rewrite/gtotree/utils/ncbi/handle_ncbi_tax_info.py GToTree-2.0.0-src/gtotree/utils/ncbi/handle_ncbi_tax_info.py
+--- _gt2_pristine/GToTree-toying-with-whole-rewrite/gtotree/utils/ncbi/handle_ncbi_tax_info.py	2026-08-26 13:09:02
++++ GToTree-2.0.0-src/gtotree/utils/ncbi/handle_ncbi_tax_info.py	2026-08-26 18:32:45
+@@ -61,7 +61,8 @@
+     if not core_to_input:
+         return {}
+ 
+-    ncbi_path = ncbi_data_table_path(os.environ['NCBI_ASSEMBLY_DATA_DIR'])
++    from gtotree.utils.misc.data_locations import resolve_env_variable
++    ncbi_path = ncbi_data_table_path(resolve_env_variable('NCBI_ASSEMBLY_DATA_DIR')[0])
+ 
+     # Arrow-native filter: read the join column, extract each row's numeric core, keep
+     # only rows whose core is one we want, then materialize just those matched rows.

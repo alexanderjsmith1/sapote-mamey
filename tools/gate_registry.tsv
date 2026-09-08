@@ -1,0 +1,68 @@
+# gate_registry.tsv — every correctness/safety CHECK tool must be classified here.
+# Columns: tool<TAB>status<TAB>reason
+# status WIRED        = must be referenced by a test OR by a *.sh cut/release script (enforced).
+# status OPERATOR_ONLY = intentionally run by hand; reason required (kept out of the cut on purpose).
+# Adding a new check_/verify_/audit_/sync_/*_qa/*_check tool without a row here FAILS the meta-test.
+sync_version	WIRED	version-sync gate: pytest + make_public_tier.sh
+check_md_links	WIRED	portable Markdown link checker exercised by tests/test_check_md_links.py
+patch_queue_composition_audit	WIRED	ordered composition audit covered by tests
+verify_tier_derivation	WIRED	tier-derivation parity gate: make_public_tier.sh 3d
+redact_public_tier	WIRED	leak redaction SSOT: pytest + cut
+sapote_md_preflight	WIRED	markdown preflight: pytest + cut
+audit_public_cut	WIRED	public-cut leak audit: pytest
+audit_modeb_support_card	WIRED	Mode-B BLASTp support-card completeness audit: pytest (test_audit_modeb_support_card)
+signoff_check	WIRED	FA4 analysis sign-off QC gate (advisory, exit 0 always): pytest (test_signoff_check)
+check_antismash_profile	WIRED	antiSMASH profile guard: pytest
+check_no_brace_paths	WIRED	brace-path guard: pytest
+check_schema_drift	WIRED	schema-drift guard: pytest
+evidence_conservation_audit	WIRED	evidence-conservation invariant: pytest
+check_tier_parity	WIRED	cross-tier sameness check: release.sh (post-build, needs all 4 tier zips)
+check_chatgpt_next_paths	OPERATOR_ONLY	ChatGPT handback QA helper; validates exactly-8 next-path blocks, run by operators/assistants rather than release build gate
+assembly_qc_check	OPERATOR_ONLY	per-strain assembly QC; run during analysis, not a release invariant
+check_deliverable_suite	OPERATOR_ONLY	operator deliverable spot-check; not part of the cut
+mamey_package_qa_v2	OPERATOR_ONLY	package QA helper; superseded by wired gates for release
+schema_deployed_audit	OPERATOR_ONLY	one-off deployed-schema diff; manual diagnostic
+check_dangling_refs	WIRED	dangling examples/-ref guard + path-qualified strict scan (--strict-paths, G01): pytest tests/test_no_dangling_tool_paths_v97239.py
+encyclopedia_reground_check	OPERATOR_ONLY	advisory doc-currency checker; run pre-cut by hand, not a build gate
+cohort_scoring_version_gate	WIRED	COH-01: comparative-build engine-uniformity invariant — wired into mamey.cohort_deliverable (_check_engine_uniformity) before cross-strain aggregation; pytest (test_cohort_scoring_version_gate, test_cohort_deliverable)
+cross_strain_denominator_audit	WIRED	cross-strain cohort-size denominator invariant: pytest (test_cross_strain_denominator_audit_v9_7_116)
+compilation_gate	WIRED	v9.7.123: gated compendium PDF (G1–G5 + pre-G2 locator WARN); pytest + runbook step 8
+locator_reconciliation	WIRED	v9.7.123 (SM-P0-003): header/locator reconciliation; pytest + compilation_gate pre-G2
+claim_safety_linter	WIRED	v9.7.123 (SM-P1-004): post-hoc claim-safety CSV report; pytest + mamey claim-safety subcommand
+audit_chatgpt_nextpaths_drift	WIRED	ChatGPT next-path drift audit: pytest (test_chatgpt_nextpaths_drift_audit)
+check_registry_ids_unique	OPERATOR_ONLY	registry uniqueness diagnostic; documented v9.7.141 JSON/CSV parity follow-up, not release-blocking until registry policy is finalized
+generated_surface_ownership	OPERATOR_ONLY	check-only cut-surface phase and owner declaration validator; operator-run, not wired into release.sh, and never rewrites owning generators
+verify_release_identity	WIRED	release identity and LLM bootstrap freshness gate: tools/release.sh
+run_chatgpt_surrogate_gate	OPERATOR_ONLY	fast ChatGPT/Claude surrogate review gate; complements full partitioned pytest and real smoke validation
+check_module_accretion	WIRED	module-accretion gate: pytest test_module_accretion.py runs it against the real tree; fails a cut adding an unjustified mamey/ module (Round 4 Item 6)
+reclass_check	OPERATOR_ONLY	reclass-check (L1): domain-arm class-discrepancy review prompt (capacity-level, not a verdict); operator-run analysis, not a release-blocking gate
+check_provenance_columns	WIRED	Per-BGC CSV/TSV must carry strain + contig+region (or assembly_locator); node+region is the durable BGC anchor. Fail-closed pre-cut gate.
+check_duplicate_dict_keys	WIRED	duplicate dict-literal key gate (silent data loss): pytest tests/test_duplicate_dict_key_gate.py
+check_monolith_freshness	WIRED	monolith anchor honesty + retired-doctrine scan: pytest tests/test_monolith_freshness_v97243.py
+file_atlas	OPERATOR_ONLY	descriptive atlas of every module/tool (orphans, fan-in, test coverage); run before a Bunny Hop session
+check_license_docs	WIRED	every file granted CC-BY in LICENSE-DOCS.txt must ship: pytest tests/test_license_docs_v97247.py
+audit_blastp_zero_alignment	WIRED	zero-alignment batch audit over overlays/XML (P1): pytest tests/test_audit_blastp_zero_alignment_v97250.py
+remediate_phantom_locus	WIRED	strip foreign loci from authored cards: pytest tests/test_remediate_phantom_locus_v97250.py
+check_release_manifest	WIRED	recompute every SOURCE_CHECKSUMS entry + TIER_MANIFEST stamp == BUILD_STAMP: pytest tests/test_release_manifest_gate_v97251.py
+check_command_pointers	WIRED	phantom mamey-command pointer guard: pytest tests/test_command_pointers_guard_v9_7_281.py
+deliverable_citation_audit	WIRED	pre-delivery bare-BGC-ID (every-mention) citation gate for compiled deliverables: pytest test_deliverable_citation_audit
+check_requirements_pyproject_sync	WIRED	requirements.txt <-> pyproject core-dep sync guard: pytest tests/test_requirements_pyproject_sync_v9_7_314.py
+archive_leak_scan	WIRED	private-ID leak guard for archive contents: pytest test_archive_leak_scan
+audit_llm_companion_instructions	WIRED	LLM companion instruction/routing gate (CODEX16): pytest tests/test_llm_companion_instruction_gate.py
+cut_audit	OPERATOR_ONLY	cut-audit + rebase-verify harness (SOURCE_CHECKSUMS/sync_version/zip-SHA verify; base-vs-patched NEW-failure diff); operator-run, not engine-wired
+modeb_evidence_gate	OPERATOR_ONLY	advisory Mode B authoring lint (Codex 2026-08-06 governance state machine); run by the authoring chat before a card may claim promotion, not a release build gate
+check_bgc_naming	OPERATOR_ONLY	portable BGC node-naming checker (BB07, v9.7.354); enforces the AS-strain NODE/contig-token rule; run by operators/CI/validate, not yet wired into the cut build
+tree_sanity_check	OPERATOR_ONLY	HARD pre-render tree gate; run by hand / wired into signoff_check per .355 card
+session_cost_audit	OPERATOR_ONLY	session token/cost ledger auditor (the review lane C07, workhorse-scoped subagent governance); operator-run analysis, not an engine build gate
+modeb_card_guard	OPERATOR_ONLY	identity-vs-STRAIN_CARD.md QC (the review and patch lanes fold, v9.7.370); the 2026-08-17 fabrication backstop, run by hand against the strain_data corpus (--strain AS-XXX), not wired into any test or cut/release .sh script -- was invisible to this file's own orphan-gate tripwire until the .374 _guard-suffix fix, since GATE_NAME only matched _check/_qa/_audit/_gate names
+public_release_audit	WIRED	fail-closed public-release leak audit (roster/AS-id/personal-path/run-dir/exclusions): pytest test_release_audit_fails_closed_v9_7_381 + CI gates job
+check_regex_interpolation	WIRED	unbound interpolated-alternation regex gate (silent branch loss): pytest tests/test_check_regex_interpolation_v97395.py
+strict_source_disclosure_audit	WIRED	opt-in strict pass over python source + tests/ (B-003); fold-ready for the Repair-15 evaluator: pytest tests/test_strict_source_disclosure_audit_v97395.py
+figure_check	WIRED	HARD pre-render FIGURE gate (render-side sibling of tree_sanity_check): marker coverage, category vocabulary, label hygiene/verbosity, declared omissions. Reclassified WIRED in .401 (AMBER_401_figure_check_render_wiring): hooked into tools/render_clean_tree.py before any figure render (FIGCHECK_SKIP=1 is the explicit escape hatch).
+lead_propagation_gate	OPERATOR_ONLY	v9.7.405 lead-propagation audit (every triage-board lead reaches every lead-listing surface); post-seal, advisory unless --strict; unit-tested (test_lead_propagation_gate_v97405), operator-run, not wired into release.sh
+audit_documents_wheelhouse	WIRED	v9.7.405 fail-closed preflight for the documents add-on wheelhouse (pip-resolver wheel availability, no index, no install); referenced by its unit test (test_documents_wheelhouse*); operator-run before an offline install
+ani_caption_check	WIRED	C2 ANI/AAI honesty lock; referenced by tests/test_ani_caption_check.py
+check_manifest_contract	OPERATOR_ONLY	operator CLI front door for the manifest producer/consumer contract (CODEX-407 F01); the engine-wired check is mamey's check_package_contract (validate.py, --manifest-contract flag), unit-tested by test_manifest_contract_checker_v97407
+parked_card_audit	OPERATOR_ONLY	process/QC audit of patch cards that fall out of the cut cadence (AMBER-407); read-only, runs patch --dry-run, never imported by engine code: pytest (test_parked_card_audit)
+check_onboarding_funnel	WIRED	one-door funnel guard (every root read-me routes to `mamey_run.py start` + AGENTS.md): pytest tests/test_onboarding_funnel_guard_v97409.py
+check_patch_lane	WIRED	patch-lane structure + disposition gate (completeness of .patch/PATCH_CARD/test; full v9.7.N naming; mis-filed non-lane detection); companion to patch_packet_preflight: pytest tests/test_410_patch_lane_convention.py

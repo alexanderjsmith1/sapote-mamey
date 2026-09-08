@@ -1,0 +1,954 @@
+{
+  "schema_version": "mamey_calibration_panel_v1",
+  "panel_version": "2026-09-03",
+  "sources": {
+    "reference_bgc_library.json": {
+      "sha256": "d4e11a70cf057bf1db83bdae0fb784b9e00857f54358365515934d07d43c1543",
+      "entries_copied": 75
+    },
+    "BGC_TARGET_REGISTER.tsv": {
+      "sha256": "31ebfd3f02fe1d2ca4f756fb669f01b90adfefbed7fe44ef54a0b036c57fa0bf",
+      "rows_copied": 13,
+      "external_source_role": "provenance_only_not_runtime_dependency"
+    }
+  },
+  "synthetic_cases": [
+    {
+      "case_id": "SYN-CCTT-001",
+      "scan": "cctt",
+      "input": "flavin-dependent halogenase",
+      "expected_call": "T43-HAL_halogenase",
+      "expected_positive": true,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_01",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-001"
+      }
+    },
+    {
+      "case_id": "SYN-CGAD-001",
+      "scan": "cgad",
+      "input": "glycoside hydrolase family 18 chitinase",
+      "expected_call": "GH18",
+      "expected_positive": true,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_02",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-002"
+      }
+    },
+    {
+      "case_id": "SYN-RES-001",
+      "scan": "resistance",
+      "input": "class A beta-lactamase fold enzyme",
+      "expected_call": "Beta_lactamase_fold",
+      "expected_positive": true,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_03",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-003"
+      }
+    },
+    {
+      "case_id": "SYN-RES-002",
+      "scan": "resistance",
+      "input": "erm ribosomal RNA methylase",
+      "expected_call": "Erm_methylase",
+      "expected_positive": true,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_04",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-004"
+      }
+    },
+    {
+      "case_id": "SYN-RES-003",
+      "scan": "resistance",
+      "input": "self resistance immunity protein",
+      "expected_call": "Self_resistance_general",
+      "expected_positive": true,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_05",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-005"
+      }
+    },
+    {
+      "case_id": "SYN-TFBS-001",
+      "scan": "tfbs",
+      "input": "AACCGTCTAGACTT",
+      "expected_call": "BldD_like",
+      "expected_positive": true,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_06",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-006"
+      }
+    },
+    {
+      "case_id": "SYN-UMED-001",
+      "scan": "umed",
+      "input": "LanP peptidase S8",
+      "expected_call": "LanP_S8_protease",
+      "expected_positive": true,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_07",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-007"
+      }
+    },
+    {
+      "case_id": "SYN-BLDA-001",
+      "scan": "blda_tta",
+      "input": "ATGTTAGCC",
+      "expected_call": "TTA_PRESENT",
+      "expected_positive": true,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_08",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-008"
+      }
+    },
+    {
+      "case_id": "SYN-CAS-001",
+      "scan": "cassettes",
+      "input": "flavin dependent halogenase",
+      "expected_call": "halogenation",
+      "expected_positive": true,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_09",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-009"
+      }
+    },
+    {
+      "case_id": "SYN-RG-001",
+      "scan": "rggmci",
+      "input": "shared_reference_pair",
+      "expected_call": "PAIR_PRESENT",
+      "expected_positive": true,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_10",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-010"
+      }
+    },
+    {
+      "case_id": "NEG-CCTT-001",
+      "scan": "cctt",
+      "input": "neutral hypothetical protein sequence context",
+      "expected_call": "NO_CALL",
+      "expected_positive": false,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_11",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-011"
+      }
+    },
+    {
+      "case_id": "NEG-CGAD-001",
+      "scan": "cgad",
+      "input": "neutral hypothetical protein sequence context",
+      "expected_call": "NO_CALL",
+      "expected_positive": false,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_12",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-012"
+      }
+    },
+    {
+      "case_id": "NEG-RESISTANCE-001",
+      "scan": "resistance",
+      "input": "neutral hypothetical protein sequence context",
+      "expected_call": "NO_CALL",
+      "expected_positive": false,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_13",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-013"
+      }
+    },
+    {
+      "case_id": "NEG-TFBS-001",
+      "scan": "tfbs",
+      "input": "neutral hypothetical protein sequence context",
+      "expected_call": "NO_CALL",
+      "expected_positive": false,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_14",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-014"
+      }
+    },
+    {
+      "case_id": "NEG-UMED-001",
+      "scan": "umed",
+      "input": "neutral hypothetical protein sequence context",
+      "expected_call": "NO_CALL",
+      "expected_positive": false,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_15",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-015"
+      }
+    },
+    {
+      "case_id": "NEG-BLDA-TTA-001",
+      "scan": "blda_tta",
+      "input": "neutral hypothetical protein sequence context",
+      "expected_call": "NO_CALL",
+      "expected_positive": false,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_16",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-016"
+      }
+    },
+    {
+      "case_id": "NEG-CASSETTES-001",
+      "scan": "cassettes",
+      "input": "neutral hypothetical protein sequence context",
+      "expected_call": "NO_CALL",
+      "expected_positive": false,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_17",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-017"
+      }
+    },
+    {
+      "case_id": "NEG-RGGMCI-001",
+      "scan": "rggmci",
+      "input": "neutral hypothetical protein sequence context",
+      "expected_call": "NO_CALL",
+      "expected_positive": false,
+      "identity": {
+        "strain": "CAL-SYN",
+        "full_node_or_contig": "synthetic_contig_18",
+        "region": "region001",
+        "bgc_alias": "CAL-BGC-018"
+      }
+    }
+  ],
+  "reference_controls": [
+    {
+      "reference_id": "BGC0000999",
+      "compound": "HSAF",
+      "expected_marker_set": [
+        "T43-PTM"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000115",
+      "compound": "nystatin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000034",
+      "compound": "candicidin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "WEAK"
+    },
+    {
+      "reference_id": "BGC0001584",
+      "compound": "C-1027",
+      "expected_marker_set": [
+        "T43-ENE",
+        "T43-HAL"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000432",
+      "compound": "streptothricin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0002541",
+      "compound": "notonesomycin A",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0001029",
+      "compound": "nostophycin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0003168",
+      "compound": "pekiskomycin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0001619",
+      "compound": "ibomycin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000291",
+      "compound": "A54145",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "WEAK"
+    },
+    {
+      "reference_id": "BGC0001927",
+      "compound": "A-94964",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0001370",
+      "compound": "lipopeptide 8D1",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000951",
+      "compound": "pacidamycin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "WEAK"
+    },
+    {
+      "reference_id": "BGC0001091",
+      "compound": "corallopyronin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "WEAK"
+    },
+    {
+      "reference_id": "BGC0000100",
+      "compound": "monensin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000032",
+      "compound": "A23187",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "MODERATE"
+    },
+    {
+      "reference_id": "PENDING_LIT",
+      "compound": "nocardicin",
+      "expected_marker_set": [
+        "T43-BLA"
+      ],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000851",
+      "compound": "albonoursin",
+      "expected_marker_set": [
+        "T43-DKP"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0002446",
+      "compound": "ionostatin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000830",
+      "compound": "violacein",
+      "expected_marker_set": [
+        "T43-HAL",
+        "T43-IDC"
+      ],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0002096",
+      "compound": "tetrachlorizine",
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0002372",
+      "compound": "marinoterpin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000194",
+      "compound": "actinorhodin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000256",
+      "compound": "pradimicin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0001597",
+      "compound": "fluviricin B2",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0002021",
+      "compound": "fogacin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0002369",
+      "compound": "maduralactomycin",
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000609",
+      "compound": "nocathiacin",
+      "expected_marker_set": [
+        "T43-LAN",
+        "T43-TET",
+        "T43-THA"
+      ],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0002816",
+      "compound": "terpenomycin",
+      "expected_marker_set": [
+        "T43-TET"
+      ],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0002825",
+      "compound": "nocapeptin",
+      "expected_marker_set": [
+        "T43-LASSO"
+      ],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000197",
+      "compound": "aranciamycin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000201",
+      "compound": "auricin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000286",
+      "compound": "viguiepinol",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000381",
+      "compound": "lichenysin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000410",
+      "compound": "pseudomonine",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000423",
+      "compound": "scabichelin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000440",
+      "compound": "teicoplanin",
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0002460",
+      "compound": "loonamycin",
+      "expected_marker_set": [
+        "T43-IDC"
+      ],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0000227",
+      "compound": "granaticin",
+      "expected_marker_set": [
+        "T43-THA"
+      ],
+      "hard_scan_verdict": "UNSET"
+    },
+    {
+      "reference_id": "BGC0002550",
+      "compound": "lobophorin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "PENDING_LIT"
+    },
+    {
+      "reference_id": "BGC0002591",
+      "compound": "aurachin C",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "PENDING_LIT"
+    },
+    {
+      "reference_id": "BGC0002621",
+      "compound": "angustmycin A",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "PENDING_LIT"
+    },
+    {
+      "reference_id": "BGC0002657",
+      "compound": "deoxyhangtaimycin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "PENDING_LIT"
+    },
+    {
+      "reference_id": "not in MIBiG (GenBank MF055656)",
+      "compound": "nikkomycin",
+      "expected_marker_set": [
+        "T43-NUC"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000082",
+      "compound": "kijanimicin",
+      "expected_marker_set": [
+        "T43-TET"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000877",
+      "compound": "polyoxin",
+      "expected_marker_set": [
+        "T43-NUC"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000367",
+      "compound": "gramicidin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000368",
+      "compound": "griseobactin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000375",
+      "compound": "indigoidine",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000382",
+      "compound": "lipstatin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000429",
+      "compound": "skyllamycin A",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000433",
+      "compound": "surfactin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000453",
+      "compound": "valinomycin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000468",
+      "compound": "bottromycin A2",
+      "expected_marker_set": [
+        "T43-THA"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000825",
+      "compound": "staurosporine",
+      "expected_marker_set": [
+        "T43-IDC"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "not in MIBiG (GenBank KJ493330)",
+      "compound": "malayamycin A",
+      "expected_marker_set": [
+        "T43-NUC"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000896",
+      "compound": "D-cycloserine",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000924",
+      "compound": "pyrrolnitrin",
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000935",
+      "compound": "esmeraldin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000956",
+      "compound": "andrimid",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000870",
+      "compound": "mycolic acid",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000958",
+      "compound": "antimycin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000973",
+      "compound": "collismycin A",
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000957",
+      "compound": "mycotrienin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0001002",
+      "compound": "jawsamycin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0001041",
+      "compound": "salinosporamide A",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0001072",
+      "compound": "simocyclinone",
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0001101",
+      "compound": "lienamycin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0001105",
+      "compound": "onnamide A",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0001159",
+      "compound": "marinopyrrole",
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000311",
+      "compound": "balhimycin",
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000445",
+      "compound": "thiocoraline",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0002468",
+      "compound": "anguibactin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0001484",
+      "compound": "2'-chloropentostatin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    },
+    {
+      "reference_id": "BGC0000124",
+      "compound": "piericidin",
+      "expected_marker_set": [],
+      "hard_scan_verdict": "STRONG"
+    }
+  ],
+  "live_targets": [
+    {
+      "target_id": "TRG-001",
+      "priority_role": "compact diagnostic beta-lactone",
+      "strain": "Pseudonocardia broussonetiae",
+      "full_node_or_contig": "NZ_CP053564.1",
+      "region": "region012",
+      "bgc_alias": "BGC012",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "betalactone/other; diagnostic self-protection routing in old engine",
+      "region_member": "NZ_CP053564.1.region012.gbk",
+      "region_member_sha256": "d3249a2a6ee117ec767d55655c5fdcd7a5a9db17e0ff3e4521e173313c5bea0e",
+      "region_member_bytes": "108222",
+      "future_rerun_action": "rerun archive and reassess exact member under current engine",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-002",
+      "priority_role": "complete-chromosome NRPS discrimination",
+      "strain": "Pseudonocardia broussonetiae",
+      "full_node_or_contig": "NZ_CP053564.1",
+      "region": "region003",
+      "bgc_alias": "BGC003",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "NRPS with tetronate/spirotetronate trigger in old engine",
+      "region_member": "NZ_CP053564.1.region003.gbk",
+      "region_member_sha256": "5b13ece7e854d28b78d769d90be26abc434ef1e84cbf8fe4794f61d97260dabc",
+      "region_member_bytes": "273768",
+      "future_rerun_action": "rerun archive and reassess exact member under current engine",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-003",
+      "priority_role": "established NRPS reference example",
+      "strain": "Streptomyces coelicolor",
+      "full_node_or_contig": "CP042324.1",
+      "region": "region021",
+      "bgc_alias": "BGC021",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "NRPS/fatty-acid/halogenated capacity; CDA similarity cue in old engine",
+      "region_member": "CP042324.1.region021.gbk",
+      "region_member_sha256": "168299a7bef7926ca2c74cdfad352810232c001b6f6c6db76d1fc2ed86754392",
+      "region_member_bytes": "446006",
+      "future_rerun_action": "rerun archive and compare current extraction with established source annotations",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-004",
+      "priority_role": "complex hybrid architecture",
+      "strain": "Streptomyces coelicolor",
+      "full_node_or_contig": "CP042324.1",
+      "region": "region055",
+      "bgc_alias": "BGC055",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "NRP-metallophore/NRPS/PKS/T3PKS/terpene hybrid cue in old engine",
+      "region_member": "CP042324.1.region055.gbk",
+      "region_member_sha256": "2fc2dad5c7c5afa86590f833858efada48977a303fea011fc990295b3afa19dd",
+      "region_member_bytes": "312408",
+      "future_rerun_action": "rerun archive and test multi-class architecture handling",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-005",
+      "priority_role": "bee-labelled hybrid example",
+      "strain": "Streptomyces sp. AM-3-1-1",
+      "full_node_or_contig": "NZ_CP119149.1",
+      "region": "region003",
+      "bgc_alias": "BGC003",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "HR-T2PKS/NRPS/PKS cue; source label contains Apis mellifera",
+      "region_member": "NZ_CP119149.1.region003.gbk",
+      "region_member_sha256": "836b27e7f03ce6673264ddce520047179050fda436026e0ed09683a64d1e8fdb",
+      "region_member_bytes": "240025",
+      "future_rerun_action": "rerun archive and reassess hybrid extraction without inferring host ecology",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-006",
+      "priority_role": "bee-labelled RiPP example",
+      "strain": "Streptomyces sp. BBFR2",
+      "full_node_or_contig": "NZ_CP172415.1",
+      "region": "region017",
+      "bgc_alias": "BGC017",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "azole-containing RiPP/thioamitide cue; source label contains Bombus terrestris",
+      "region_member": "NZ_CP172415.1.region017.gbk",
+      "region_member_sha256": "b46d700259608ac66184078266fe635f39a3d53a2e8a0c2ee34f1bf50b2eb46d",
+      "region_member_bytes": "76036",
+      "future_rerun_action": "rerun archive and reassess compact RiPP extraction",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-007",
+      "priority_role": "bee-labelled NRPS-PKS example",
+      "strain": "Streptomyces sp. BBFR2",
+      "full_node_or_contig": "NZ_CP172415.1",
+      "region": "region027",
+      "bgc_alias": "BGC027",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "NRPS/PKS/PKS-like cue; source label contains Bombus terrestris",
+      "region_member": "NZ_CP172415.1.region027.gbk",
+      "region_member_sha256": "e97cd2e4288f667b84ee555048e05809a816a8c37092440463d4df0b958c44f3",
+      "region_member_bytes": "238935",
+      "future_rerun_action": "rerun archive and reassess multi-module extraction",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-008",
+      "priority_role": "already-audited one-BGC demonstration",
+      "strain": "Streptomyces philanthi",
+      "full_node_or_contig": "CP073042.1",
+      "region": "region008",
+      "bgc_alias": "BGC008",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "prior exact-source audit found 22 translated CDS and 22 unique protein hashes",
+      "region_member": "CP073042.1.region008.gbk",
+      "region_member_sha256": "50d65e51795953c1fa9994488e54d41400d9472cb7f19122d40af6d21f9f7e91",
+      "region_member_bytes": "73787",
+      "future_rerun_action": "rerun archive and use as the controlled single-locus regression example",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-009",
+      "priority_role": "domain-rich NRPS-PKS example",
+      "strain": "Amycolatopsis aidingensis",
+      "full_node_or_contig": "NZ_CP076538.1",
+      "region": "region028",
+      "bgc_alias": "BGC028",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "NRPS/NRPS-like/PKS/T1PKS cue in old engine",
+      "region_member": "NZ_CP076538.1.region028.gbk",
+      "region_member_sha256": "dd9978bf0bb49a1a0ecdfffd555ef6d746a04b35d64b6b9c46f468498f10dda5",
+      "region_member_bytes": "562685",
+      "future_rerun_action": "rerun archive and reassess domain/module extraction",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-010",
+      "priority_role": "compact non-actinomycete RiPP control",
+      "strain": "Melissococcus plutonius",
+      "full_node_or_contig": "JBJWRQ010000007.1",
+      "region": "region002",
+      "bgc_alias": "BGC009",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "lanthipeptide-class-IV cue in old engine",
+      "region_member": "JBJWRQ010000007.1.region002.gbk",
+      "region_member_sha256": "91377671fca1a7a75401e9ae74472d1c011fc16c2e68a75045f073b6a734158d",
+      "region_member_bytes": "56001",
+      "future_rerun_action": "rerun archive as a parser/generalization control",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-011",
+      "priority_role": "fragmented-assembly hybrid actinomycete",
+      "strain": "Nocardia rhizosphaerae",
+      "full_node_or_contig": "JBHSBA010000015.1",
+      "region": "region003",
+      "bgc_alias": "BGC030",
+      "boundary_state_historical": "Interior",
+      "historical_discovery_cue": "NRPS/NRPS-like/PKS/T1PKS/halogenated cue in old engine",
+      "region_member": "JBHSBA010000015.1.region003.gbk",
+      "region_member_sha256": "904919618d0cfa85d8f95e54234cd9a3294dbfe5605103430a222a0b354627b0",
+      "region_member_bytes": "305962",
+      "future_rerun_action": "rerun archive and reassess hybrid extraction in a fragmented assembly",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-012",
+      "priority_role": "edge-bound RiPP stress test",
+      "strain": "Actinomadura rubrisoli H3C3",
+      "full_node_or_contig": "SMKU01000059.1",
+      "region": "region001",
+      "bgc_alias": "BGC033",
+      "boundary_state_historical": "Edge",
+      "historical_discovery_cue": "lanthipeptide-class-II cue in old engine",
+      "region_member": "SMKU01000059.1.region001.gbk",
+      "region_member_sha256": "91d6e93afd3f203055ad7ce732b6cf8e74530cd5c40cd13f40bcf3619ccfbf18",
+      "region_member_bytes": "69240",
+      "future_rerun_action": "rerun archive and verify edge-state preservation",
+      "state": "SELECTED_SOURCE_TARGET"
+    },
+    {
+      "target_id": "TRG-013",
+      "priority_role": "full-contig boundary stress test",
+      "strain": "Actinomadura rubrisoli H3C3",
+      "full_node_or_contig": "SMKU01000192.1",
+      "region": "region001",
+      "bgc_alias": "BGC080",
+      "boundary_state_historical": "Full-contig",
+      "historical_discovery_cue": "NRP-metallophore/NRPS/halogenated cue in old engine",
+      "region_member": "SMKU01000192.1.region001.gbk",
+      "region_member_sha256": "7bee547d291d339c89c51e0431d7d3b9d52c528308fa45e6e825466c1878853c",
+      "region_member_bytes": "113149",
+      "future_rerun_action": "rerun archive and verify full-contig/boundary handling",
+      "state": "SELECTED_SOURCE_TARGET"
+    }
+  ],
+  "claim_safety": "Calibration measures deterministic call agreement only; it does not validate product identity, activity, or publication readiness."
+}
+

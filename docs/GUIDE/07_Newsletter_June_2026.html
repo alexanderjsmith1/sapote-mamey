@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sapote–Mamey · June 2026</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --forest:#1a3a2a;--teal:#2a7a5a;--teal-lt:#a8d4c0;
+  --amber:#b8690a;--amber-lt:#fdf0e0;--slate:#5a6a7a;
+  --page:#f7f5f0;--white:#ffffff;--ink:#1c2a22;--rule:#d4d0c8;
+  --serif:'Spectral',Georgia,serif;--sans:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono','Courier New',monospace
+}
+body{font-family:var(--sans);font-size:15px;line-height:1.7;color:var(--ink);background:var(--page)}
+/* MASTHEAD */
+.mh{background:var(--forest);position:relative;overflow:hidden}
+.mh-seq{position:absolute;inset:0;display:flex;flex-wrap:wrap;align-content:flex-start;overflow:hidden;opacity:.07;pointer-events:none;padding:8px;gap:0}
+.mh-seq span{font-family:var(--mono);font-size:11px;color:var(--teal-lt);letter-spacing:.12em;white-space:nowrap;padding:3px 6px}
+.mh-in{position:relative;z-index:2;max-width:660px;margin:0 auto;padding:60px 32px 52px}
+.mh-kick{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-lt);margin-bottom:22px}
+.mh h1{font-family:var(--serif);font-size:52px;font-weight:700;line-height:1.05;color:var(--white);letter-spacing:-.02em;margin-bottom:6px}
+.mh h1 em{font-style:italic;color:var(--teal-lt)}
+.mh-sub{font-size:16px;font-weight:300;color:rgba(255,255,255,.55);margin-top:18px;max-width:480px;line-height:1.55}
+.mh-rule{width:40px;height:2px;background:var(--teal);margin:28px 0 20px}
+.mh-meta{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.28);letter-spacing:.1em;text-transform:uppercase}
+/* PAGE */
+.page{max-width:660px;margin:0 auto;padding:0 32px 72px}
+.sec{margin-top:52px}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:20px;padding-bottom:8px;border-bottom:1.5px solid var(--teal)}
+.sec-head h2{font-family:var(--serif);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--teal)}
+.sec-head .sv{font-family:var(--mono);font-size:10px;color:var(--slate);letter-spacing:.06em}
+/* INTRO */
+.intro p{margin-bottom:14px;font-size:15px;line-height:1.75}
+.intro p:last-child{margin-bottom:0}
+.intro strong{font-weight:600;color:var(--forest)}
+/* WORKFLOW */
+.wf-row{display:grid;grid-template-columns:1px 1fr;gap:0 24px;position:relative}
+.wf-spine{background:var(--teal-lt);position:relative}
+.wf-spine::before{content:'';position:absolute;left:-4px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--teal)}
+.wf-body{padding:2px 0 28px}
+.wf-row:last-child .wf-spine{background:transparent}
+.wf-row:last-child .wf-spine::before{background:var(--amber)}
+.wf-label{font-weight:600;font-size:14px;color:var(--forest);margin-bottom:3px}
+.wf-detail{font-size:13.5px;color:var(--slate);line-height:1.6}
+.wf-gate{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.07em;background:var(--amber-lt);color:var(--amber);padding:2px 8px;margin-top:6px;border-left:2px solid var(--amber)}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:4px}
+.stat{background:var(--white);padding:18px 16px 16px;text-align:center}
+.stat-n{font-family:var(--serif);font-size:30px;font-weight:700;color:var(--teal);letter-spacing:-.03em;line-height:1;margin-bottom:6px}
+.stat-l{font-size:11px;color:var(--slate);line-height:1.35}
+/* FEATURES */
+.fl{margin-top:4px}
+.feat{padding:18px 0;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:1fr auto;gap:0 20px}
+.feat:first-child{border-top:1px solid var(--rule)}
+.ftag{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;display:inline-block;margin-bottom:7px}
+.tnew{background:#e0f0e8;color:var(--teal)}
+.tfix{background:var(--amber-lt);color:var(--amber)}
+.tarch{background:#e8edf2;color:var(--slate)}
+.feat h3{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--forest);margin-bottom:6px;line-height:1.3}
+.feat p{font-size:13.5px;color:#3a4a52;line-height:1.65}
+.feat p+p{margin-top:8px}
+.feat code{font-family:var(--mono);font-size:12px;background:#eceae5;padding:1px 5px;color:var(--teal)}
+.fver{font-family:var(--mono);font-size:10px;color:var(--slate);letter-spacing:.06em;white-space:nowrap;padding-top:4px;text-align:right}
+/* SCIENCE */
+.sci{background:var(--forest);padding:28px 30px;margin-top:4px}
+.sci h3{font-family:var(--serif);font-size:18px;font-weight:600;color:var(--teal-lt);margin-bottom:16px;font-style:italic}
+.sci p{font-size:13.5px;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:12px}
+.sci p:last-child{margin-bottom:0}
+.sl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;background:rgba(42,122,90,.35);color:var(--teal-lt);padding:2px 8px;margin-right:6px;margin-bottom:4px;display:inline-block}
+/* MENU */
+.menu-wrap{background:var(--white);border:1px solid var(--rule);overflow:hidden;margin-top:4px}
+.msh{background:var(--forest);padding:9px 16px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal-lt)}
+.mr{display:grid;grid-template-columns:40px 1fr auto;align-items:baseline;gap:0 12px;padding:10px 16px;border-bottom:1px solid var(--page);font-size:13.5px}
+.mr:last-child{border-bottom:none}
+.mid{font-family:var(--mono);font-size:11px;color:var(--teal);font-weight:500}
+.mn{color:var(--ink);font-weight:500}
+.md{font-weight:300;color:var(--slate);font-size:13px}
+.mc{font-family:var(--mono);font-size:10.5px;color:#9aa8b2;white-space:nowrap}
+/* FOOTER */
+.footer{margin-top:56px;padding-top:20px;border-top:1.5px solid var(--teal);display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px}
+.fl2{font-size:12px;color:var(--slate);line-height:1.6}
+.fl2 strong{color:var(--forest);font-weight:600}
+.fr{font-family:var(--mono);font-size:10px;color:#9aa8b2;text-align:right;letter-spacing:.07em;line-height:1.8}
+@media(max-width:580px){
+  .mh h1{font-size:36px}.page{padding:0 20px 56px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .feat{grid-template-columns:1fr}.fver{text-align:left;margin-bottom:4px}
+  .mr{grid-template-columns:36px 1fr}.mc{display:none}
+  .footer{flex-direction:column;align-items:flex-start}.fr{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<div class="mh">
+  <div class="mh-seq" aria-hidden="true">
+    <span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span><span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span>
+    <span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span><span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span>
+    <span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span><span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span>
+    <span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span><span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span>
+    <span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span><span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span>
+    <span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span><span>[mycofactocin precursor — sequence omitted (unpublished strain)]</span>
+  </div>
+  <div class="mh-in">
+    <div class="mh-kick">Sapote&ndash;Mamey &middot; Issue 1</div>
+    <h1>June 2026<br><em>Newsletter</em></h1>
+    <div class="mh-rule"></div>
+    <p class="mh-sub">First edition. What the pipeline is, how it runs, and everything that shipped across the v9.7.x arc this month.</p>
+    <p class="mh-meta">v9.7.147 &middot; engine 1.9.100 &middot; 2026-06-29</p>
+  </div>
+</div>
+
+<div class="page">
+
+<div class="sec">
+  <div class="sec-head"><h2>What Sapote&ndash;Mamey is</h2></div>
+  <div class="intro">
+    <p><strong>Sapote&ndash;Mamey is a genome-mining pipeline for actinomycete natural product discovery.</strong> It takes antiSMASH output &mdash; ZIP files from the standard BGC detection tool &mdash; and produces prioritised, scientifically grounded, wet-lab-actionable interpretations of every biosynthetic gene cluster in a genome.</p>
+    <p>The pipeline has two layers. <strong>Mamey</strong> is the deterministic Python engine: it parses antiSMASH ZIPs, runs ten source-derived scans, scores every BGC on two axes (antibacterial and antifungal), and emits a sealed package containing the triage board, workbook, strain brief PDF, and figures. <strong>Sapote</strong> is the LLM judgment layer: a structured protocol that applies claim-safe interpretation on top of Mamey&rsquo;s facts &mdash; the Mode B deep dives, ecological hypotheses, BLASTP batch campaigns, and experimental decision trees that turn a BGC score into a research plan.</p>
+    <p>The contract between the two layers is the pipeline&rsquo;s most important design choice. Mamey says what the data says. Sapote says what it might mean. Neither claims more than the evidence supports. Every compound class assignment is capacity-level &mdash; &ldquo;biosynthetic capacity consistent with X&rdquo; &mdash; never a production or identity claim. A KCB hit is similarity, not identity. Bioactivity is extract-level until fractionation.</p>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-head"><h2>How a run works</h2></div>
+  <div class="wf-row">
+    <div class="wf-spine"></div>
+    <div class="wf-body">
+      <div class="wf-label">antiSMASH output</div>
+      <div class="wf-detail">Your genome &rarr; antiSMASH &rarr; a ZIP file with region GenBank files and run JSON. Mamey reads this. It does not run antiSMASH itself.</div>
+    </div>
+  </div>
+  <div class="wf-row">
+    <div class="wf-spine"></div>
+    <div class="wf-body">
+      <div class="wf-label">mamey run</div>
+      <div class="wf-detail">Parses the ZIP, runs 10 scans (KCB sweep, RG-GMCI, CCTT triggers, resistance genes, bldA/TTA, UMED, FLBR, TFBS, compound class, chitinase), scores BGCs, emits triage board + workbook + strain brief PDF + locus maps + sealed package.</div>
+      <div class="wf-gate">&rarr; MAMEY_COMPLETE</div>
+    </div>
+  </div>
+  <div class="wf-row">
+    <div class="wf-spine"></div>
+    <div class="wf-body">
+      <div class="wf-label">Post-MAMEY_COMPLETE handback</div>
+      <div class="wf-detail">Figures, strain brief PDF, locus maps, workbook, and checksums are presented automatically before any prompt-backed deliverables. The Deliverable Menu lists everything available.</div>
+    </div>
+  </div>
+  <div class="wf-row">
+    <div class="wf-spine"></div>
+    <div class="wf-body">
+      <div class="wf-label">Sapote judgment &mdash; Mode B cards</div>
+      <div class="wf-detail">Full &sect;1&ndash;&sect;20 deep dive per high-priority BGC. &sect;28 (evidence provenance ledger) and &sect;30 (experimental decision tree) required for every completed card. &sect;21&ndash;&sect;29 optional extensions available for RiPPs, novel compounds, and isolation candidates.</div>
+      <div class="wf-gate">Mamey-first gate: Mode B refused without sealed package</div>
+    </div>
+  </div>
+  <div class="wf-row">
+    <div class="wf-spine"></div>
+    <div class="wf-body">
+      <div class="wf-label">BLASTP &rarr; fermentation &rarr; isolation</div>
+      <div class="wf-detail">BGC-specific BLASTP batches (3 proteins per batch, nr database), fermentation cards with OSMAC protocols, LC-MS mass targets from the &sect;21 precursor mass ladder. The &sect;30 decision tree specifies which experiments come next and what each answer changes.</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-head"><h2>June 2026 at a glance</h2></div>
+  <div class="stats-grid">
+    <div class="stat"><div class="stat-n">9.7.147</div><div class="stat-l">Current bundle</div></div>
+    <div class="stat"><div class="stat-n">1.9.100</div><div class="stat-l">Engine version</div></div>
+    <div class="stat"><div class="stat-n">&sect;1&ndash;&sect;30</div><div class="stat-l">Mode B depth<br>&sect;28 + &sect;30 required</div></div>
+    <div class="stat"><div class="stat-n">51</div><div class="stat-l">BGCs in AS-XXX<br>(27.0 corrected)</div></div>
+    <div class="stat"><div class="stat-n">4</div><div class="stat-l">Contigs in the<br>polyene megacluster</div></div>
+    <div class="stat"><div class="stat-n">2</div><div class="stat-l">LLMs in the<br>dual-model workflow</div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-head"><h2>New features</h2><span class="sv">v9.7.119 &rarr; v9.7.147</span></div>
+  <div class="fl">
+
+    <div class="feat">
+      <div>
+        <span class="ftag tnew">New</span>
+        <h3>Edge/FC BGC equality in fragmented assemblies</h3>
+        <p>Edge and full-contig BGCs no longer get buried below interior BGCs. In POOR or VERY_POOR assemblies (&lt;45% interior), the interior/edge distinction is mostly an assembly artefact &mdash; it reflects where a contig was cut, not whether the cluster is biologically complete. All detected BGCs now appear in the triage board sorted by score, not by boundary status.</p>
+        <p>Edge BGCs receive full Mode B depth. The boundary caveat belongs in &sect;3 and &sect;19 only. The Wet Lab Matrix &minus;2 edge penalty is suppressed for POOR/VERY_POOR assemblies. The AS-XXX polyene megacluster &mdash; four full-contig fragments forming one pathway &mdash; would have been partially buried under the old rules.</p>
+      </div>
+      <div class="fver">v9.7.147</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tnew">New</span>
+        <h3>&sect;28 Evidence provenance ledger + &sect;30 Experimental decision tree</h3>
+        <p><strong>&sect;28</strong> is a per-claim table in every completed Mode B card. Each factual claim traces to: source file, evidence tier (observed / computed / inferred / assumed), engine version, confidence, and the trigger for updating it. Makes cards surgically updatable when new BLASTP results arrive &mdash; find the rows that change, update them, done.</p>
+        <p><strong>&sect;30</strong> is five open questions, each with the resolution experiment, what the result would change in the card, and the downstream programme consequence. The AS-XXX BGC044 ranthipeptide &sect;30 answered: where is the leader protease, is ctg73_20 a second substrate, does QueE contract the ring, Cl or Br, and is the pathway expressed. Both sections required for every completed card.</p>
+      </div>
+      <div class="fver">v9.7.147</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tarch">Architecture</span>
+        <h3>ChatGPT Execution Slice &mdash; replaces the slim kernel</h3>
+        <p>The <code>SAPOTE_SLIM_JUDGMENT_KERNEL.md</code> was a 379-line compressed version of the pipeline rules for LLMs with tight context windows. It created &ldquo;path of least resistance&rdquo; behaviour: abbreviated rules are easier to satisfy than the full scientific floor.</p>
+        <p>The new <code>CHATGPT_EXECUTION_SLICE_v97147.md</code> has no abbreviated rules. It requires full Mode B depth for every BGC, rank-sorted triage, post-MAMEY_COMPLETE handback, and &sect;28/&sect;30 for every completed card. The slim kernel is retained for backwards compatibility but removed from every default load path.</p>
+      </div>
+      <div class="fver">v9.7.147</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tarch">Architecture</span>
+        <h3>Mamey-first gate</h3>
+        <p>If you ask for Mode B without a sealed Mamey package, the analysis chat refuses and redirects. This fixes a real failure: a Mode B card written from raw antiSMASH GBK files missed the correct Interior boundary (the raw <code>contig_edge=True</code> flag is misleading when the BGC region has 6 kb of flanking buffer on each side), the <code>SMCOG1119</code> halogenase on ctg73_25, the T43-HAL CCTT trigger, WL score of 7, and the KCB hit to <em>S. flava</em>. The same card from the Mamey package got all of these right. The gate enforces the right sequence.</p>
+      </div>
+      <div class="fver">v9.7.146</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tnew">New</span>
+        <h3>Post-MAMEY_COMPLETE handback + Deliverable Menu</h3>
+        <p>After every run the analysis chat presents code-backed outputs before anything else: strain brief PDF, all figures with data CSVs, locus maps, workbook, checksums, issue log. Previously these existed in the package directory but were never surfaced unless explicitly requested &mdash; the machinery was there, the delivery wasn&rsquo;t.</p>
+        <p>The Deliverable Menu is a plain-language list of everything available: triage board, lead sheet, layperson guide, locus maps, BLASTP batches, Mode B deep dives, full strain plate, fermentation card, wet lab matrix, ecological synthesis. Each item has a trigger phrase. You can combine them.</p>
+      </div>
+      <div class="fver">v9.7.146</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tfix">Fix</span>
+        <h3>Checksum integrity &mdash; root cause fixed after three audit cycles</h3>
+        <p>Three consecutive ChatGPT audit cycles found <code>checksums_sha256.txt</code> always stale. The cause: <code>packaging.py</code> hashed every file, then wrote the mutable receipt files (<code>run_phase_receipts.jsonl</code>, <code>package_status.json</code>) after the hashes were already recorded. Every <code>sha256sum -c</code> run failed.</p>
+        <p>v9.7.145c added detection (verify_checksums wired into validate). v9.7.146 addressed the cause: <code>write_manifest()</code> now excludes mutable files from the hash set before computing checksums. A corrupted non-mutable file now correctly causes <code>status: FAIL</code>.</p>
+      </div>
+      <div class="fver">v9.7.145c&nbsp;/ v9.7.146</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tnew">New</span>
+        <h3>Mode B interpretive floor</h3>
+        <p>Per-section minimum depth requirements, defined in <code>docs/MODEB_INTERPRETIVE_FLOOR_v97146.md</code>. The problem: cards were structurally complete (20 sections present) but interpretively thin &mdash; gene tables detailed, findings not flowing forward. &sect;5 named domains without connecting them to structural consequences. &sect;9 listed alternatives without weighing them. &sect;19 restated &sect;11 without arguing the verdict.</p>
+        <p>The floor specifies: &sect;5 must explain what the domain arrangement produces molecularly. &sect;9 must give evidence for and against each alternative and name the most parsimonious hypothesis. &sect;12 must name the host-specific ecological mechanism. &sect;19 must argue through evidence summary &rarr; alternative rejection &rarr; claim ceiling.</p>
+      </div>
+      <div class="fver">v9.7.146</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tnew">New</span>
+        <h3>Locus map SVG renderer</h3>
+        <p>New <code>mamey/figures/locus_map.py</code> generates gene-arrow locus maps as SVG directly from antiSMASH region GBK files. Pure Python, no matplotlib dependency. Produces directional gene arrows colour-coded by biosynthetic role, domain bars (enoylreductase, docking, P450), truncation markers at contig ends, scale bar, legend. Emitted alongside every Mode B card when a GBK is available.</p>
+      </div>
+      <div class="fver">v9.7.145</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tnew">New</span>
+        <h3>BLASTP batch emitter</h3>
+        <p>New <code>mamey/blastp_batch_emitter.py</code> generates ready-to-submit FASTA batches with companion READMEs for NCBI BLASTP. Three proteins per batch (NCBI&rsquo;s practical processing limit), sequential integer numbering always, SIGXFSZ recovery for oversized-sequence rejection. Used for the AS-XXX megacluster campaign: 30 proteins across 9 batches, covering four contigs of a novel polyene PKS pathway.</p>
+      </div>
+      <div class="fver">v9.7.145</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tnew">New</span>
+        <h3>Node notation validator</h3>
+        <p>New <code>mamey/validators/node_notation.py</code> enforces the citation rule that every BGC must be referenced as <code>BGC028 (NODE_32_length_60747_cov_53 &middot; region001)</code> at first mention in each section. A bare BGC number is unciteable &mdash; the node is the assembly locator. Fixed four edge cases: bare NODE references without region, BGC IDs in headings not checked, per-section seen-set not resetting across headings, and an overzealous inline-citation regex.</p>
+      </div>
+      <div class="fver">v9.7.145</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tarch">Governance</span>
+        <h3>Engine lineage governance</h3>
+        <p>New <code>docs/ENGINE_LINEAGE.md</code> records every engine version bump with reason, affected bundle, and whether scoring semantics changed. <code>sync_version.py --check</code> exits non-zero if the current engine has no entry. Motivated by the undocumented 1.9.99&rarr;1.9.100 bump at v9.7.142, which was invisible until audited months later.</p>
+      </div>
+      <div class="fver">v9.7.145</div>
+    </div>
+
+    <div class="feat">
+      <div>
+        <span class="ftag tarch">Architecture</span>
+        <h3>Trigger routing table</h3>
+        <p>New <code>docs/TRIGGER_ROUTING.md</code> is the single authoritative table for what happens when any named trigger fires. Previously routing was distributed across five documents with no conflict resolution for the OFFLINE_EVIDENCE_ALLOWED vs WISE_PKS_QUEUE_DETECTED conflict. All trigger constants are now in one place with explicit guards.</p>
+      </div>
+      <div class="fver">v9.7.145</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-head"><h2>The Deliverable Menu</h2></div>
+  <div class="menu-wrap">
+    <div class="msh">Quick orders &mdash; under an hour</div>
+    <div class="mr"><div class="mid">#1</div><div><span class="mn">Triage Board</span> <span class="md">&mdash; all BGCs ranked, edge/FC at natural position</span></div><div class="mc">&ldquo;Triage board&rdquo;</div></div>
+    <div class="mr"><div class="mid">#2</div><div><span class="mn">Lead Sheet</span> <span class="md">&mdash; top 3&ndash;5 leads, one paragraph each</span></div><div class="mc">&ldquo;Lead sheet&rdquo;</div></div>
+    <div class="mr"><div class="mid">#3</div><div><span class="mn">Layperson Guide</span> <span class="md">&mdash; plain English, for PI or lab meeting</span></div><div class="mc">&ldquo;Layperson guide&rdquo;</div></div>
+    <div class="mr"><div class="mid">#4</div><div><span class="mn">Locus Maps</span> <span class="md">&mdash; SVG gene-arrow diagrams</span></div><div class="mc">&ldquo;Locus maps for BGC___&rdquo;</div></div>
+    <div class="mr"><div class="mid">#5</div><div><span class="mn">BLASTP Batches</span> <span class="md">&mdash; ready-to-submit FASTA + README</span></div><div class="mc">&ldquo;BLASTP batches for BGC___&rdquo;</div></div>
+    <div class="msh">Full meals &mdash; complete analysis sessions</div>
+    <div class="mr"><div class="mid">#6</div><div><span class="mn">Mode B Deep Dive</span> <span class="md">&mdash; &sect;1&ndash;&sect;30 for one BGC</span></div><div class="mc">&ldquo;Full Mode B for BGC___ (NODE___)&rdquo;</div></div>
+    <div class="mr"><div class="mid">#7</div><div><span class="mn">Full Strain Plate</span> <span class="md">&mdash; everything for one strain</span></div><div class="mc">&ldquo;Full plate for [strain]&rdquo;</div></div>
+    <div class="msh">Sides &mdash; add to any order</div>
+    <div class="mr"><div class="mid">S1</div><div><span class="mn">Fermentation Card</span> <span class="md">&mdash; media, OSMAC protocol, LC-MS targets</span></div><div class="mc">&ldquo;Fermentation card&rdquo;</div></div>
+    <div class="mr"><div class="mid">S2</div><div><span class="mn">Wet Lab Decision Matrix</span> <span class="md">&mdash; per-BGC action scores</span></div><div class="mc">&ldquo;Wet lab matrix&rdquo;</div></div>
+    <div class="mr"><div class="mid">S3</div><div><span class="mn">Metabolomics Readiness</span> <span class="md">&mdash; mass targets, extraction guide</span></div><div class="mc">&ldquo;Metabolomics readiness&rdquo;</div></div>
+    <div class="mr"><div class="mid">S4</div><div><span class="mn">Ecological Synthesis</span> <span class="md">&mdash; host-association narrative</span></div><div class="mc">&ldquo;Ecological synthesis&rdquo;</div></div>
+    <div class="mr"><div class="mid">S5</div><div><span class="mn">Reviewer Attack</span> <span class="md">&mdash; adversarial claim review</span></div><div class="mc">&ldquo;Reviewer attack&rdquo;</div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-head"><h2>Science spotlight &mdash; AS-XXX</h2></div>
+  <div class="sci">
+    <h3>Saccharopolyspora sp. AS-XXX &middot; Apis mellifera &middot; Ontario, Canada</h3>
+    <p>The primary analysis strain for June. 51 detected BGCs (27.0 corrected), POOR assembly (53% interior, 339 contigs, GC 69.6%), antiSMASH strictness LOOSE. Three priority leads characterised this month:</p>
+    <p><span class="sl">BGC028/046/011/002</span> <strong style="color:rgba(255,255,255,.9)">Polyene PKS megacluster</strong> &mdash; four contigs forming one pathway. 22 KS domains, tripartite chromophore from three ER-active modules (M4/M11/M20, distinct from nystatin and amphotericin&nbsp;B), three P450 tailoring enzymes, ABC self-resistance pair. Estimated 38&ndash;44-membered ring polyene macrolide, no MIBiG match. BGC002 reference is <em>S. endophytica</em>, ecologically connected to the honeybee via the Kim et&nbsp;al.&nbsp;2019 plant&ndash;pollinator&ndash;microbe mutualism model.</p>
+    <p><span class="sl">BGC005 + BGC050</span> <strong style="color:rgba(255,255,255,.9)">Novel fatty acid-derived antibiotic</strong> &mdash; Hybrid-KS loading, dual TIGR03860 luciferase-like oxygenases (zeamine-family class, not zeamine), PhyH dioxygenase, 4&times; O-methyltransferases, Dock_N receiver. No MIBiG hit for either contig. BLASTP pending &mdash; ctg94_18 Hybrid-KS is the priority query that will determine compound family.</p>
+    <p><span class="sl">BGC044</span> <strong style="color:rgba(255,255,255,.9)">Halogenated glycosylated ranthipeptide</strong> &mdash; Interior, Arch A, WL=7 (joint highest in genome), triage rank 6th overall. TIGR03997 BS=1,009 (genome&rsquo;s highest TIGRFAM bitscore). Halogenase confirmed (T43-HAL CCTT trigger, ctg73_25). QueE ring-contraction domain alongside SPASM on the radical SAM maturase &mdash; predicts bicyclic topology not seen in any characterised ranthipeptide. Glycosyltransferase co-clustered. No MIBiG match. Full &sect;1&ndash;&sect;30 card completed.</p>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="fl2">
+    <strong>Sapote&ndash;Mamey</strong><br>
+    Hamilton, Ontario, Canada<br>
+    <span style="font-size:11px;color:#8a9aaa">Covers June 2026 arc, v9.7.119&ndash;v9.7.147. PRIVATE &mdash; AS-series data: PRIVATE.</span>
+  </div>
+  <div class="fr">
+    v9.7.147 / engine 1.9.100<br>
+    build 20260629v97147a<br>
+    2026-06-29 &middot; Issue 1
+  </div>
+</div>
+
+</div>
+</body>
+</html>

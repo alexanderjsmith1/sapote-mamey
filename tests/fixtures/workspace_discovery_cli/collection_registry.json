@@ -1,0 +1,15 @@
+{
+  "schema_version": "sapote-source-collection-registry-v1",
+  "default_strain_regex": "(?<![A-Za-z0-9])STRAIN[-_]\\d{3}(?![A-Za-z0-9])",
+  "unclassified_max_depth": 1,
+  "rules": [
+    {
+      "collection_type": "ASSAY_TABLE",
+      "directory_regex": "(?:^|/)assays(?:/|$)",
+      "root_segment_regex": "assays",
+      "material_file_regex": ".*\\.tsv$",
+      "coverage_parser": "DELIMITED_COLUMN",
+      "coverage_column": "strain_id"
+    }
+  ]
+}

@@ -1,0 +1,223 @@
+{
+ "unique_pmids": 7648,
+ "pdfs": 46,
+ "fts5": true,
+ "with_abstract": 4658,
+ "per_file": {
+  "abstract-actinomyce-set (1).txt": {
+   "query": "abstract-actinomyce-set (1).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (10).txt": {
+   "query": "abstract-actinomyce-set (10).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (11).txt": {
+   "query": "abstract-actinomyce-set (11).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (12).txt": {
+   "query": "abstract-actinomyce-set (12).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (13).txt": {
+   "query": "abstract-actinomyce-set (13).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (14).txt": {
+   "query": "abstract-actinomyce-set (14).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (15).txt": {
+   "query": "abstract-actinomyce-set (15).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (16).txt": {
+   "query": "abstract-actinomyce-set (16).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (2).txt": {
+   "query": "abstract-actinomyce-set (2).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (3).txt": {
+   "query": "abstract-actinomyce-set (3).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (4).txt": {
+   "query": "abstract-actinomyce-set (4).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (5).txt": {
+   "query": "abstract-actinomyce-set (5).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (6).txt": {
+   "query": "abstract-actinomyce-set (6).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (7).txt": {
+   "query": "abstract-actinomyce-set (7).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (8).txt": {
+   "query": "abstract-actinomyce-set (8).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set (9).txt": {
+   "query": "abstract-actinomyce-set (9).txt",
+   "entries_parsed": 200
+  },
+  "abstract-actinomyce-set.txt": {
+   "query": "abstract-actinomyce-set.txt",
+   "entries_parsed": 200
+  },
+  "actinomycete biosynthesis - Search Results - PubMed.pdf": {
+   "query": "actinomycete biosynthesis",
+   "entries_parsed": 200
+  },
+  "actinophytocola - Search Results - PubMed.pdf": {
+   "query": "actinophytocola",
+   "entries_parsed": 33
+  },
+  "bee streptomyces - Search Results - PubMed.pdf": {
+   "query": "bee streptomyces",
+   "entries_parsed": 24
+  },
+  "hsaf - Search Results - PubMed.pdf": {
+   "query": "hsaf",
+   "entries_parsed": 115
+  },
+  "micromonospora - Search Results - PubMed 2.pdf": {
+   "query": "micromonospora",
+   "entries_parsed": 200
+  },
+  "micromonospora - Search Results - PubMed 3.pdf": {
+   "query": "micromonospora",
+   "entries_parsed": 200
+  },
+  "micromonospora - Search Results - PubMed 4.pdf": {
+   "query": "micromonospora",
+   "entries_parsed": 200
+  },
+  "micromonospora - Search Results - PubMed 5.pdf": {
+   "query": "micromonospora",
+   "entries_parsed": 200
+  },
+  "micromonospora - Search Results - PubMed.pdf": {
+   "query": "micromonospora",
+   "entries_parsed": 200
+  },
+  "nocardia - Search Results - PubMed.pdf": {
+   "query": "nocardia",
+   "entries_parsed": 200
+  },
+  "saccharopolyspora - Search Results - PubMed 2.pdf": {
+   "query": "saccharopolyspora",
+   "entries_parsed": 200
+  },
+  "saccharopolyspora - Search Results - PubMed 3.pdf": {
+   "query": "saccharopolyspora",
+   "entries_parsed": 200
+  },
+  "saccharopolyspora - Search Results - PubMed 4.pdf": {
+   "query": "saccharopolyspora",
+   "entries_parsed": 200
+  },
+  "saccharopolyspora - Search Results - PubMed.pdf": {
+   "query": "saccharopolyspora",
+   "entries_parsed": 200
+  },
+  "streptomyces - Search Results - PubMed 10.pdf": {
+   "query": "streptomyces",
+   "entries_parsed": 200
+  },
+  "streptomyces - Search Results - PubMed 2.pdf": {
+   "query": "streptomyces",
+   "entries_parsed": 199
+  },
+  "streptomyces - Search Results - PubMed 3.pdf": {
+   "query": "streptomyces",
+   "entries_parsed": 200
+  },
+  "streptomyces - Search Results - PubMed 4.pdf": {
+   "query": "streptomyces",
+   "entries_parsed": 200
+  },
+  "streptomyces - Search Results - PubMed 5.pdf": {
+   "query": "streptomyces",
+   "entries_parsed": 201
+  },
+  "streptomyces - Search Results - PubMed 6.pdf": {
+   "query": "streptomyces",
+   "entries_parsed": 200
+  },
+  "streptomyces - Search Results - PubMed 7.pdf": {
+   "query": "streptomyces",
+   "entries_parsed": 200
+  },
+  "streptomyces - Search Results - PubMed 8.pdf": {
+   "query": "streptomyces",
+   "entries_parsed": 200
+  },
+  "streptomyces - Search Results - PubMed 9.pdf": {
+   "query": "streptomyces",
+   "entries_parsed": 200
+  },
+  "streptomyces - Search Results - PubMed.pdf": {
+   "query": "streptomyces",
+   "entries_parsed": 199
+  },
+  "streptomyces candida - Search Results - PubMed 2.pdf": {
+   "query": "streptomyces candida",
+   "entries_parsed": 100
+  },
+  "streptomyces candida - Search Results - PubMed.pdf": {
+   "query": "streptomyces candida",
+   "entries_parsed": 100
+  },
+  "streptomyces lasso peptide - Search Results - PubMed.pdf": {
+   "query": "streptomyces lasso peptide",
+   "entries_parsed": 40
+  },
+  "streptomyces ptm - Search Results - PubMed.pdf": {
+   "query": "streptomyces ptm",
+   "entries_parsed": 45
+  },
+  "verrucosispora - Search Results - PubMed.pdf": {
+   "query": "verrucosispora",
+   "entries_parsed": 74
+  }
+ },
+ "queries": [
+  "abstract-actinomyce-set (1).txt",
+  "abstract-actinomyce-set (10).txt",
+  "abstract-actinomyce-set (11).txt",
+  "abstract-actinomyce-set (12).txt",
+  "abstract-actinomyce-set (13).txt",
+  "abstract-actinomyce-set (14).txt",
+  "abstract-actinomyce-set (15).txt",
+  "abstract-actinomyce-set (16).txt",
+  "abstract-actinomyce-set (2).txt",
+  "abstract-actinomyce-set (3).txt",
+  "abstract-actinomyce-set (4).txt",
+  "abstract-actinomyce-set (5).txt",
+  "abstract-actinomyce-set (6).txt",
+  "abstract-actinomyce-set (7).txt",
+  "abstract-actinomyce-set (8).txt",
+  "abstract-actinomyce-set (9).txt",
+  "abstract-actinomyce-set.txt",
+  "actinomycete biosynthesis",
+  "actinophytocola",
+  "bee streptomyces",
+  "hsaf",
+  "micromonospora",
+  "nocardia",
+  "saccharopolyspora",
+  "streptomyces",
+  "streptomyces candida",
+  "streptomyces lasso peptide",
+  "streptomyces ptm",
+  "verrucosispora"
+ ]
+}

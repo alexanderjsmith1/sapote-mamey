@@ -1,0 +1,15 @@
+accession,known_product,mamey_class,kcb_top_hit,verdict
+KY089035.1,"(accession-only, no name in ",saccharide,gougerotin,n/a (no named GT — KCB=gougerotin)
+MF055656.1,"(accession-only, no name in ",NRPS; NRPS-like; betalac,neopolyoxin C,n/a (no named GT — KCB=neopolyoxin C)
+KP410250.1,trioxacarcin A,PKS; PKS-like; T2PKS; be,trioxacarcin A,CORRECT
+LN849060.1,"(accession-only, no name in ",NRPS; NRPS-like; PKS; T1,conglobatin,n/a (no named GT — KCB=conglobatin)
+HQ111437.1,tunicamycin,nucleoside; other; sacch,tunicamycin B1,CORRECT
+LC529898.1,"(accession-only, no name in ",PKS; T1PKS,desertomycin B/desertomy,n/a (no named GT — KCB=desertomycin B/desertomycin A/desertomycin G)
+EU158805.1,Polyoxin,nucleoside; other,polyoxin A/polyoxin H,CORRECT
+DQ351275.1,Meridamycin Streptomyces sp.,NRPS; PKS; T1PKS,meridamycin,CORRECT
+MN396889.1,lobophorin cr4,PKS; T1PKS; fatty_acid; ,lobophorin CR4,CORRECT
+KE504122.1,"(accession-only, no name in ",saccharide,?,n/a (no named GT — KCB=?)
+JN674503.1,Polyoxin,nucleoside; other,polyoxin A/polyoxin H,CORRECT
+JX827252.1,tetramycin b,NRPS; NRPS-like; PKS; T1,tetramycin B,CORRECT
+MT361594.1,venturicidin,NRPS; PKS; T1PKS; saccha,venturicidin D/venturici,CORRECT
+MN305320.1,"(accession-only, no name in ",saccharide,Pyrazofurin,n/a (no named GT — KCB=Pyrazofurin)

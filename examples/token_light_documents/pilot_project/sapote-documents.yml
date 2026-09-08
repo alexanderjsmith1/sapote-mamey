@@ -1,0 +1,116 @@
+schema_version: sapote-document-project-1.0
+authority: SYNTHETIC_PILOT_NOT_SCIENTIFIC_VALIDATION_NOT_RELEASE_READY
+defaults:
+  audience: Sapote-Mamey users and scientific reviewers
+  authority: Synthetic document-factory pilot; not a biological result
+  claim_safety_footer: Synthetic fixture only; rendering integrity does not validate
+    scientific content.
+  output_format: both
+documents:
+- id: guide_quickstart
+  source: templates/guide.md
+  document_type: human_guide
+  title: Five-Minute Quickstart
+  subtitle: Shared defaults, one short body template
+  variables:
+    topic: Start With the Manifest
+    lead: Validate the sealed evidence handoff before interpretation.
+    next_action: Open the package manifest and gate report.
+- id: guide_claims
+  source: templates/guide.md
+  document_type: human_guide
+  title: Claim Ceilings at a Glance
+  subtitle: A second guide from the same body
+  variables:
+    topic: Keep Capacity Separate From Production
+    lead: A clean software gate is not a biological result.
+    next_action: Record unsupported conclusions as typed holds.
+- id: guide_install
+  source: templates/guide.md
+  document_type: human_guide
+  title: Installation Choices
+  subtitle: Core, figures, and documents profiles
+  variables:
+    topic: Choose Only the Add-ons You Need
+    lead: The documents profile adds governed Word and PDF output.
+    next_action: Verify platform-matched wheels before an offline run.
+- id: report_evidence
+  source: templates/report.md
+  document_type: analysis_report
+  title: Evidence-State Report
+  subtitle: Synthetic figure-rich batch document
+  variables:
+    topic: Evidence Streams
+    caption: Four evidence streams remain visually and semantically separate.
+    decision: Inspect each source channel before drawing a conclusion.
+- id: report_comparison
+  source: templates/report.md
+  document_type: analysis_report
+  title: Comparison-State Report
+  subtitle: Template reuse without prose duplication
+  variables:
+    topic: Comparator Coverage
+    caption: Synthetic comparator coverage is presented as workflow state.
+    decision: Do not translate unreturned evidence into biological absence.
+- id: report_context
+  source: templates/report.md
+  document_type: analysis_report
+  title: Context-State Report
+  subtitle: Third report from the same source body
+  variables:
+    topic: Context Boundaries
+    caption: Synthetic context values do not establish ecology.
+    decision: Keep ecological statements explicitly hypothesis-level.
+- id: modeb_alpha
+  source: templates/modeb.md
+  document_type: mode_b_card
+  title: Synthetic Mode B Alpha
+  authority: TRUE_DRAFT_NOT_PARENT_AUDITED_NOT_SHELF_PROMOTABLE; synthetic fixture
+  claim_safety_footer: TRUE DRAFT; synthetic fixture; capacity is not production and
+    missing evidence is not biological absence.
+  exact_locus:
+    strain: DEMO-ALPHA
+    node_or_contig: demo_contig_alpha_length_80000
+    region: region001
+    bgc_alias: BGC001
+  variables:
+    core_gene: alpha_001
+    tailoring_gene: alpha_002
+    transport_gene: alpha_003
+- id: modeb_beta
+  source: templates/modeb.md
+  document_type: mode_b_card
+  title: Synthetic Mode B Beta
+  authority: TRUE_DRAFT_NOT_PARENT_AUDITED_NOT_SHELF_PROMOTABLE; synthetic fixture
+  claim_safety_footer: TRUE DRAFT; synthetic fixture; capacity is not production and
+    missing evidence is not biological absence.
+  exact_locus:
+    strain: DEMO-BETA
+    node_or_contig: demo_contig_beta_length_91000
+    region: region002
+    bgc_alias: BGC002
+  variables:
+    core_gene: beta_101
+    tailoring_gene: beta_102
+    transport_gene: beta_103
+- id: modeb_gamma
+  source: templates/modeb.md
+  document_type: mode_b_card
+  title: Synthetic Mode B Gamma
+  authority: TRUE_DRAFT_NOT_PARENT_AUDITED_NOT_SHELF_PROMOTABLE; synthetic fixture
+  claim_safety_footer: TRUE DRAFT; synthetic fixture; capacity is not production and
+    missing evidence is not biological absence.
+  exact_locus:
+    strain: DEMO-GAMMA
+    node_or_contig: demo_contig_gamma_length_102000
+    region: region003
+    bgc_alias: BGC003
+  variables:
+    core_gene: gamma_201
+    tailoring_gene: gamma_202
+    transport_gene: gamma_203
+- id: report_tree
+  source: templates/tree_report.md
+  document_type: analysis_report
+  title: Phylogenetic Tree Presentation
+  subtitle: Caption, methods, source, and interpretation hold

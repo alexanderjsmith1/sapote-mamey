@@ -1,0 +1,31 @@
+{
+  "_meta": {
+    "schema_version": "locus_role_palette/1.0",
+    "description": "Ordered gene-role palette for deterministic locus maps (v9.7.90). Each entry: {regex, role, color, is_core}. The regex is matched (case-insensitive) against the antiSMASH gene_functions + sec_met_domain + note blob for a CDS; first hit wins. Unknown genes fall to the default 'other / hypothetical'. is_core controls whether the gene gets a bold short-label on the arrow.",
+    "claim_safety_note": "Roles are antiSMASH rule/smCOG annotations, not BLASTP-confirmed identities. Capacity-level, never a product claim."
+  },
+  "default_role": {"role": "other / hypothetical", "color": "#D5DBDB", "is_core": false},
+  "short_labels": [
+    ["PepM", "PepM"], ["Ppd", "Ppd"], ["aminotransferase", "AT"], ["PLP", "PLP"],
+    ["AurF", "AurF"], ["aldehyde", "Aldedh"], ["NRPS", "NRPS"], ["PKS", "PKS"],
+    ["RiPP", "RiPP"], ["halogenase", "Hal"], ["methyltransferase", "MT"]
+  ],
+  "palette": [
+    {"regex": "PEP_mutase", "role": "PepM — PEP mutase (committed step 1)", "color": "#C0392B", "is_core": true},
+    {"regex": "TPP_enzyme", "role": "Ppd — phosphonopyruvate decarboxylase (step 2)", "color": "#E67E22", "is_core": true},
+    {"regex": "Aminotran", "role": "aminotransferase", "color": "#2980B9", "is_core": true},
+    {"regex": "\\bPALP\\b", "role": "PLP enzyme (tailoring)", "color": "#8E44AD", "is_core": false},
+    {"regex": "AurF", "role": "AurF-like N-oxygenase (tailoring)", "color": "#1ABC9C", "is_core": false},
+    {"regex": "Aldedh", "role": "aldehyde dehydrogenase (tailoring)", "color": "#16A085", "is_core": false},
+    {"regex": "Condensation|AMP-binding|PP-binding|Epimerization|Thioesterase|NRPS", "role": "NRPS module", "color": "#34495E", "is_core": true},
+    {"regex": "PKS_KS|PKS_AT|PKS_KR|PKS_DH|PKS_ER|Ketoacyl|trans-AT|PKS", "role": "PKS module", "color": "#2C3E50", "is_core": true},
+    {"regex": "YcaO|Lant|LanB|LanC|RiPP|precursor|protease", "role": "RiPP machinery", "color": "#9B59B6", "is_core": true},
+    {"regex": "Methyltransf|rSAM|radical.?SAM|\\bB12\\b", "role": "methyltransferase (tailoring)", "color": "#7D3C98", "is_core": false},
+    {"regex": "[Hh]alogenase|Trp_halogenase", "role": "halogenase (tailoring)", "color": "#48C9B0", "is_core": false},
+    {"regex": "P450|oxidoreductase|dehydrogenase|monooxygenase|dioxygenase|reductase|oxidase", "role": "redox/tailoring", "color": "#5D6D7E", "is_core": false},
+    {"regex": "Glycos|Glyco_tran|sugar", "role": "glycosyltransferase / sugar", "color": "#A569BD", "is_core": false},
+    {"regex": "NTP_transf", "role": "NTP transferase / adenylation (activation)", "color": "#7F8C8D", "is_core": false},
+    {"regex": "transport|permease|\\bABC\\b|\\bMFS\\b|efflux", "role": "transport", "color": "#95A5A6", "is_core": false},
+    {"regex": "regulat|sigma|TetR|LuxR|sensor|kinase", "role": "regulation", "color": "#283747", "is_core": false}
+  ]
+}

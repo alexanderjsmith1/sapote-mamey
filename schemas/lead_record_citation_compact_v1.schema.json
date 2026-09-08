@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sapote-Mamey Lead Record Citation-Compact v1",
+  "type": "object",
+  "required": [
+    "lead_id",
+    "strain_id",
+    "lead_priority",
+    "interpretation_scope",
+    "evidence_basis",
+    "citation_basis",
+    "uncertainty_flags",
+    "next_experiment"
+  ],
+  "properties": {
+    "lead_id": {
+      "type": "string"
+    },
+    "strain_id": {
+      "type": "string"
+    },
+    "bgc_id": {
+      "type": "string"
+    },
+    "stable_locus": {
+      "type": "string"
+    },
+    "lead_priority": {
+      "enum": [
+        "EXCEPTIONAL",
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "INVENTORY"
+      ]
+    },
+    "interpretation_scope": {
+      "type": "string"
+    },
+    "evidence_basis": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "citation_basis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "citation_id",
+          "source_status",
+          "citation_label"
+        ],
+        "properties": {
+          "citation_id": {
+            "type": "string"
+          },
+          "source_status": {
+            "enum": [
+              "verified",
+              "citation_needed",
+              "not_applicable",
+              "operator_supplied"
+            ]
+          },
+          "citation_label": {
+            "type": "string"
+          },
+          "supports": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "uncertainty_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_experiment": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

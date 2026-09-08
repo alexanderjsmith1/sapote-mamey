@@ -1,0 +1,19 @@
+id	kind	source	old	new	tests	consequence
+RULE:SACCHARIDE	standing-rule	mamey/data/rules_registry.json	"id": "SACCHARIDE"	"id": "SACCHARIDE_DISABLED"	tests/test_standing_rules_b1.py	lead-prioritization exclusion
+RULE:NI-SIDEROPHORE	standing-rule	mamey/data/rules_registry.json	"id": "NI-SIDEROPHORE"	"id": "NI-SIDEROPHORE_DISABLED"	tests/test_standing_rules_b1.py	iron-acquisition lead exclusion
+RULE:NRP-METALLOPHORE	standing-rule	mamey/data/rules_registry.json	"id": "NRP-METALLOPHORE"	"id": "NRP-METALLOPHORE_DISABLED"	tests/test_standing_rules_b1.py	metal-acquisition lead exclusion
+FUNC:mamey/scoring.py:standing_rule_for	standing-rule-admission	mamey/scoring.py	text = own_products_text if rule.id.upper() in _OWN_PRODUCTS_ONLY else full_text	text = full_text	tests/test_standing_rules_b1.py	own-product rule must not be triggered by similarity anchors
+SCORING:PRIMARY_METABOLISM	guard	mamey/scoring.py	primary_flag = bool(pm_families) and bool(own_classes) and own_classes <= WEAK_OVERCALL_CLASSES and not tier1_diag	primary_flag = False	tests/test_primary_metabolism_gate.py	primary-metabolism false-positive suppression
+SCORING:MOBILE_ELEMENT	guard	mamey/scoring.py	mobile_flag = mobile_dominant and not tier1_diag	mobile_flag = False	tests/test_mobile_element_guard.py	mobile-element/ICE false-positive suppression
+SCORING:RESISTANCE_CARGO	guard	mamey/scoring.py	t1_self_protection = False	t1_self_protection = True	tests/test_mobile_element_guard.py	mobile cargo must not rescue a lead
+SCORING:AMINOGLYCOSIDE_MISANCHOR	guard	mamey/scoring.py	if mis.get("aminoglycoside_misanchor"):	if False:	tests/test_misanchor_guards.py	anchor-derived antibacterial credit clamp
+SCORING:POLYENE_MISANCHOR	guard	mamey/scoring.py	if mis.get("polyene_misanchor"):	if False:	tests/test_misanchor_guards.py	anchor-derived antifungal credit clamp
+RGGMCI:PRODUCT_CLASS	gate	mamey/rggmci.py	if not sa or not sb:	if False:	tests/test_rggmci_v9741_precision.py	cross-class convergence demotion
+RGGMCI:R1_DROP	gate	mamey/rggmci.py	if _is_drop_only(products_a) and _is_drop_only(products_b):	if False:	tests/test_rggmci_r1r2r3.py	drop-class pair demotion
+RGGMCI:R2_STRONG_REFERENCE	gate	mamey/rggmci.py	if strong_supporting_references < 1:	if False:	tests/test_rggmci_r1r2r3.py	weak-reference pair demotion
+RGGMCI:R3_NOISE	gate	mamey/rggmci.py	if _is_noise_only(products_a) and _is_noise_only(products_b):	if False:	tests/test_rggmci_r1r2r3.py	noise-class pair demotion
+RGGMCI:HUB_DEGREE	guard	mamey/rggmci.py	if r["rggmci_confidence"] == "HIGH_RG_GMCI_RESCUE" and d > RGGMCI_MAX_HUB_DEGREE:	if False:	tests/test_rggmci_v9742_degree_guard.py	promiscuous graph-hub demotion
+RGGMCI:GEOMETRY	gate	mamey/rggmci.py	if confidence == "HIGH_RG_GMCI_RESCUE" and good_geometry_references < 2:	if False:	tests/test_rggmci_v9741_precision.py	minimum geometry evidence for high rescue
+VALIDATE:RGGMCI_PARSE_ERROR	gate	mamey/validate.py	if rg_status == "NULL_NO_RGGMCI_PAIRS" and _rg_parse_errs > 0:	if False:	tests/test_v9_7_338_verdict_gates.py::test_no_pairs_with_parse_errors_fails_the_gate	unparseable reference evidence must fail closed
+VALIDATE:MODEB_STUB_CONTENT	gate	mamey/validate.py	if len(_sections) < _MIN_MODEB_SECTIONS or _authored_chars < _MIN_MODEB_AUTHORED_CHARS:	if False:	tests/test_gold_lexical_floor_behavior.py::test_missing_sections_not_rescued_by_varied_body	sectionless cards with lexically varied bodies must not satisfy gold completeness
+VALIDATE:DEPTH_FLOOR	gate	mamey/validate.py	depth_assigned == bgc_rows	True	tests/test_validate_depth_floor_bites_v97407.py	all inventory rows require a depth assignment

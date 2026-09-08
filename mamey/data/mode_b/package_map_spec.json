@@ -1,0 +1,1010 @@
+{
+  "_meta": {
+    "spec_name": "package_map_spec",
+    "spec_version": "0.6-VALIDATED",
+    "purpose": "Single source of truth mapping every sealed-package artifact to its purpose, granularity, availability mode, and the Mode B sections that consume it. Rendered per-package into PACKAGE_MAP.json at seal time, and per-bundle into the execution-slice read-guidance. This file is the SSOT; nothing else hand-maintains the artifact->section relationship.",
+    "authoring_note": "v0.3 by Claude (Round 8): validated every artifact name against a REAL modern gold package I ran this session. Six corrections from v0.2: (1) node_citation_map.json does NOT exist \u2014 the triage board carries Contig/Node_ID/antiSMASH_Region columns and is the real node-citation source; (2) locus maps are .svg not .png; (3) the domain_*.csv files are conditional (domain_level path) \u2014 the same per-domain data (2938 hits) lives in deep_data.json[domain_hits], now the \u00a74/5/6 primary; (4) added gene_data.json (domain_arch/substrates/ripp/tfbs \u2014 the substrate source); (5) \u00a715 missingness + \u00a717 metabolomics live INSIDE manifest.json as top-level keys, not standalone files; (6) figure index real name is figures/figure_manifest.csv. 21 spec artifacts confirmed present with real names; the rest validated as conditional/external/tool with reasons. | v0.4: Citation_Ledger.json corrected to conditional (citation-compact only; confirmed absent on standard gold). \u00a728 GAP was a spec error, now MODE_GATED; flagged the mandatory-section/conditional-evidence tension. | v0.5: added always_since_engine to every 'always' artifact so the read-gate can distinguish a LEGACY_ABSENT (package predates the artifact) from a real GAP (modern run failed to emit an artifact its engine version should produce). Values grounded in two real packages: 6 artifacts confirmed present in a v1.9.3-era reference package (always_since=1.9.3); the rest absent there but present in a v1.9.104 package (S. laurentii, public) (always_since=post-1.9.3, exact intro version undetermined \u2014 honest placeholder, not a fabricated number). | v0.6: scrubbed a real unpublished strain identifier from always_since_basis notes and the authoring note \u2014 replaced with generic version descriptors so the public spec is clean at source, not reliant on the tier redactor. S. laurentii references retained (public reference genome).",
+    "generated_targets": [
+      "PACKAGE_MAP.json (per-package, at seal time)",
+      "execution-slice read-guidance block (per-bundle, at cut time)"
+    ],
+    "confidence_legend": {
+      "observed": "artifact name / availability / section title verified in code or contract JSON this round",
+      "inferred": "the artifact->section assignment is my reading of what the section needs; [DEV-CONFIRM]"
+    },
+    "validated_against": "Real v9.7.158 gold package: Streptomyces laurentii AP017424.1, 44 BGCs, GOOD assembly, 135 files, run this session by Claude (smoke->validate->gold, front-door workflow)."
+  },
+  "availability_modes": {
+    "always": "emitted on every run including --mode smoke",
+    "gold": "emitted only under --mode gold (deep_data, domain figure suite, gene-level figures)",
+    "conditional": "emitted only when a trigger fires (RGGMCI pairs, EFLS pairs, directed PKS study, BLASTP round ingested, etc.)",
+    "external": "not engine-emitted; produced by an LLM/web step (NCBI BLASTP) and ingested back into the package"
+  },
+  "artifacts": {
+    "{strain}_gene_context.jsonl": {
+      "layer": "deep",
+      "granularity": "per_cds",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Per-CDS rows for every gene in every BGC: locus_tag, contig/node, start/end, strand, aa_length, product, sec_met_domains, gene_kind, tta_codons. The observed fact grid for gene-by-gene work.",
+      "fields_note": "Emitted unconditionally (cli.py:974, write_gene_context). Already read by emit-modeb-template _gene_rows_for_bgc for section 4.",
+      "consumed_by_sections": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "primary_for_sections": [
+        4
+      ],
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    },
+    "{strain}_gene_by_gene_all_bgcs.csv": {
+      "layer": "deep",
+      "granularity": "per_gene",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Role-enriched per-gene table (gene_by_gene.py): adds gene_function_inference (role via _infer_role) on top of gene_context fields. NOTE: documented thin-CSV risk (gene_functions can degrade to placeholder 'biosynthetic context'); gene_context.jsonl is the authoritative rich source. Use for the role-inference column, not as primary \u00a74 read.",
+      "consumed_by_sections": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "primary_for_sections": [
+        4
+      ],
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    },
+    "{strain}_gene_by_gene_top_leads.csv": {
+      "layer": "deep",
+      "granularity": "per_gene",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Per-gene table restricted to lead BGCs.",
+      "consumed_by_sections": [
+        4,
+        5
+      ],
+      "primary_for_sections": [],
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    },
+    "domain_rows_long.csv": {
+      "layer": "deep",
+      "granularity": "per_domain",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "Per-domain evidence table (domain_level.py build_domain_rows): every antiSMASH domain call, long form. Feeds architecture/complexity/role-counts/claim rows. NOT a BLASTP artifact \u2014 not \u00a716. NOTE: emitted by the domain_level path (needs GBK re-parse), NOT present in a standard gold run \u2014 the same per-domain data lives in deep_data.json[domain_hits]. Prefer deep_data.json.",
+      "fields_note": "Written by domain_level.py; part of the gold domain suite (domain_level_receipt lists it).",
+      "consumed_by_sections": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "primary_for_sections": [
+        5,
+        6
+      ]
+    },
+    "ordered_domain_architectures_by_bgc.csv": {
+      "layer": "deep",
+      "granularity": "per_bgc",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "Domain architecture strings per BGC (the KS-AT-DH-KR-ACP ordering for PKS, C-A-PCP for NRPS, etc.). NOTE: emitted by the domain_level path (needs GBK re-parse), NOT present in a standard gold run \u2014 the same per-domain data lives in deep_data.json[domain_hits]. Prefer deep_data.json.",
+      "consumed_by_sections": [
+        5,
+        6
+      ],
+      "primary_for_sections": [
+        5
+      ]
+    },
+    "domain_role_counts_by_bgc.csv": {
+      "layer": "deep",
+      "granularity": "per_bgc",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "Domain role counts per BGC (biosynthetic/tailoring/transport role tallies). NOTE: emitted by the domain_level path (needs GBK re-parse), NOT present in a standard gold run \u2014 the same per-domain data lives in deep_data.json[domain_hits]. Prefer deep_data.json.",
+      "consumed_by_sections": [
+        5,
+        6,
+        7
+      ],
+      "primary_for_sections": [
+        5
+      ]
+    },
+    "domain_complexity_metrics_by_bgc.csv": {
+      "layer": "deep",
+      "granularity": "per_bgc",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "Complexity metrics per BGC (module counts, domain diversity). NOTE: emitted by the domain_level path (needs GBK re-parse), NOT present in a standard gold run \u2014 the same per-domain data lives in deep_data.json[domain_hits]. Prefer deep_data.json.",
+      "consumed_by_sections": [
+        5,
+        24
+      ],
+      "primary_for_sections": [],
+      "MAINTAINER_CONFIRM": "Mapped complexity metrics to section 24 scaffold-novelty (conditional). Right home, or drop the 24 link?"
+    },
+    "domain_safe_unsafe_claims.csv": {
+      "layer": "deep",
+      "granularity": "per_domain",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "Domain-level claim-safety table (which domain-based claims are safe vs over-reaching). NOTE: emitted by the domain_level path (needs GBK re-parse), NOT present in a standard gold run \u2014 the same per-domain data lives in deep_data.json[domain_hits]. Prefer deep_data.json.",
+      "consumed_by_sections": [
+        5,
+        6,
+        14
+      ],
+      "primary_for_sections": [
+        14
+      ]
+    },
+    "deep_data.json": {
+      "layer": "deep",
+      "granularity": "per_bgc",
+      "availability": "gold",
+      "confidence": "observed",
+      "purpose": "Gold deep bank (ALWAYS in gold): domain_hits (per-domain: locus, domain, pfam, evalue, bitscore, tier1 \u2014 2938 rows on S_laurentii), bgc_profile (per-BGC domain counts: NRPS_A/C/T, PKS_KS/AT/KR/DH/ER, TE, Transporter, Regulator, Oxidoreductase, tta_codons, resistance_tier, umed_verdict, cctt_triggers), active_sites, class_pred. THE authoritative per-domain source for \u00a74/5/6 \u2014 not the domain_*.csv files.",
+      "consumed_by_sections": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "primary_for_sections": [
+        5,
+        6
+      ]
+    },
+    "{strain}_4A2_ClusterBlast_per_gene.csv": {
+      "layer": "deep",
+      "granularity": "per_gene",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "Per-gene ClusterBlast hits (which genes hit which reference clusters).",
+      "consumed_by_sections": [
+        8,
+        16
+      ],
+      "primary_for_sections": [
+        8
+      ]
+    },
+    "{strain}_4A2_ClusterBlast_gene_map.json": {
+      "layer": "deep",
+      "granularity": "per_gene",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "ClusterBlast gene->reference map (structured form of per-gene ClusterBlast).",
+      "consumed_by_sections": [
+        8
+      ],
+      "primary_for_sections": [
+        8
+      ]
+    },
+    "{strain}_4_triage_board.csv": {
+      "layer": "core",
+      "granularity": "per_bgc",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Triage board: rank, corrected_rank, boundary status, AB/AF scores, novelty_auto, CCTT_triggers, KCB_top, Two_Pathway_Flag, Misanchor_Flag, Primary_metab_flag, Standing_rule per BGC. The spine of every card. CARRIES node/region citation columns directly (Contig, Node_ID, antiSMASH_Region, Composite_region) \u2014 this is the SOURCE for the node/contig-on-every-BGC standing rule, NOT a separate node_citation_map.json (which this engine version does not emit). v9.7.350 adds three UNCONDITIONAL region-structure columns - Protocluster_count (the true antiSMASH protocluster-feature count), Single_protocluster_count, and Chemical_hybrid - because Composite_region only fires at >=3 single-kind cand_clusters, so a TWO-protocluster merge was indistinguishable from a clean single-protocluster region. Structural capacity descriptors only; a chemical_hybrid region is a genuinely FUSED pathway and its merged product string must NOT be de-inflated.",
+      "consumed_by_sections": [
+        1,
+        2,
+        3,
+        8,
+        9,
+        10,
+        11,
+        13,
+        19,
+        20
+      ],
+      "primary_for_sections": [
+        1,
+        2,
+        3
+      ],
+      "always_since_engine": "1.9.3",
+      "always_since_basis": "observed: present in a v1.9.3-era reference gold package"
+    },
+    "{strain}_2_inventory.csv": {
+      "layer": "core",
+      "granularity": "per_bgc",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "BGC inventory: product classes, region, contig, boundary flags, sizes.",
+      "consumed_by_sections": [
+        1,
+        2,
+        3,
+        11
+      ],
+      "primary_for_sections": [
+        2
+      ],
+      "always_since_engine": "1.9.3",
+      "always_since_basis": "observed: present in a v1.9.3-era reference gold package"
+    },
+    "{strain}_2b_bgc_crosswalk.csv": {
+      "layer": "core",
+      "granularity": "per_bgc",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "BGC ID crosswalk (antiSMASH region <-> BGC id <-> node/contig).",
+      "consumed_by_sections": [
+        1,
+        3
+      ],
+      "primary_for_sections": [],
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    },
+    "{strain}_1_intake.json": {
+      "layer": "core",
+      "granularity": "per_strain",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Strain metadata: strain_id, display_name, taxonomy, source/host, release tier. Read this instead of asking the user for metadata.",
+      "consumed_by_sections": [
+        1,
+        12
+      ],
+      "primary_for_sections": [
+        1
+      ],
+      "always_since_engine": "1.9.3",
+      "always_since_basis": "observed: present in a v1.9.3-era reference gold package"
+    },
+    "manifest.json": {
+      "layer": "core",
+      "granularity": "per_strain",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Authoritative run snapshot: assembly (n50, contigs, tier), bgc_counts (raw/corrected), source_scans (the eight genome-wide scans), context (mode), files inventory. Also carries top-level: missingness (\u00a715), metabolomics_targets (\u00a717), resistance_gene_summary (\u00a77), hallucination_traps_triggered (\u00a79), wet_lab_priorities, split_pathway_candidates (\u00a710), recommended_next_steps (\u00a720). Confirmed against real package.",
+      "consumed_by_sections": [
+        1,
+        3,
+        8,
+        9,
+        10,
+        12,
+        15,
+        17,
+        20
+      ],
+      "primary_for_sections": [],
+      "always_since_engine": "1.9.3",
+      "always_since_basis": "observed: present in a v1.9.3-era reference gold package"
+    },
+    "manifest.json#source_scans": {
+      "layer": "scan",
+      "granularity": "per_strain",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Genome-wide scans embedded in manifest.json['source_scans']. REAL keys confirmed in gold package (23): chitinase, tfbs, blda_tta, regulators, transporters, resistance, cctt, flbr, cassettes, umed, efls, domain_architecture, resistance_tiers, wetlab_rows, qs_signals, glycosylation_arms, per_bgc_dss, rggmci, primary_metabolism, misanchor_guards, concordance_per_bgc, clusterblast_genes, functional_profiles.",
+      "consumed_by_sections": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        12,
+        17
+      ],
+      "primary_for_sections": [
+        9
+      ],
+      "scan_to_section": {
+        "chitin_glycan_ecology+TFBS(DasR)+QS": "12 bee-niche ecology",
+        "resistance+transporters+bldA": "7 transport/resistance/regulation",
+        "UMED": "6 tailoring/maturation",
+        "FLBR+domain_architecture": "5 core biosynthetic logic",
+        "CCTT+KCB": "8 comparator/KCB",
+        "primary_metabolism+hallucination_trap": "9 alternatives/claim-calibration"
+      },
+      "always_since_engine": "1.9.3",
+      "always_since_basis": "observed: present in a v1.9.3-era reference gold package"
+    },
+    "{strain}_4A_RGGMCI_ranked_pairs.csv": {
+      "layer": "core",
+      "granularity": "per_pair",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "RGGMCI ranked resistance-gene/megasynthase co-incidence pairs (self-resistance evidence).",
+      "consumed_by_sections": [
+        7,
+        27
+      ],
+      "primary_for_sections": [
+        27
+      ]
+    },
+    "{strain}_4A_RGGMCI_evidence.csv": {
+      "layer": "core",
+      "granularity": "per_pair",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "RGGMCI supporting evidence rows.",
+      "consumed_by_sections": [
+        7,
+        27
+      ],
+      "primary_for_sections": []
+    },
+    "{strain}_4B_two_model_decomp.csv": {
+      "layer": "core",
+      "granularity": "per_bgc",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Two-model/two-pathway decomposition (two_pathway.py, KCB-independent): flags a single-class antiSMASH label hiding a 2nd core engine (PKS/NRPS/RiPP/terpene) at 8-60kb gap, per-BGC only. Primarily \u00a710 co-capture; informs \u00a75.",
+      "consumed_by_sections": [
+        10,
+        5
+      ],
+      "primary_for_sections": [
+        10
+      ],
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    },
+    "{strain}_4c_AB_lead_board.csv": {
+      "layer": "core",
+      "granularity": "per_bgc",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Antibacterial lead board (DAPR AB axis).",
+      "consumed_by_sections": [
+        13
+      ],
+      "primary_for_sections": [
+        13
+      ],
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    },
+    "{strain}_4c_AF_lead_board.csv": {
+      "layer": "core",
+      "granularity": "per_bgc",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Antifungal lead board (DAPR AF axis).",
+      "consumed_by_sections": [
+        13
+      ],
+      "primary_for_sections": [
+        13
+      ],
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    },
+    "EFLS_Linkage_Table.csv": {
+      "layer": "deep",
+      "granularity": "per_pair",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "EFLS edge-fragment linkage (which edge BGCs may be fragments of one cluster).",
+      "consumed_by_sections": [
+        10
+      ],
+      "primary_for_sections": [
+        10
+      ],
+      "availability_note": "VALIDATED ABSENT in base gold run \u2014 conditional: EFLS pairs present"
+    },
+    "BLASTP_top_hits_by_query_all_rounds.csv": {
+      "layer": "external",
+      "granularity": "per_gene",
+      "availability": "external",
+      "confidence": "observed",
+      "purpose": "Cumulative BLASTP top hits across rounds (from the NCBI-web BLASTP ingested back via blastp_evidence_store).",
+      "consumed_by_sections": [
+        8,
+        16
+      ],
+      "primary_for_sections": [
+        16
+      ],
+      "availability_note": "VALIDATED ABSENT in base gold run \u2014 external: only after NCBI BLASTP ingested"
+    },
+    "BLASTP_BGC_summary_all_rounds.csv": {
+      "layer": "external",
+      "granularity": "per_bgc",
+      "availability": "external",
+      "confidence": "observed",
+      "purpose": "Per-BGC BLASTP evidence summary across rounds.",
+      "consumed_by_sections": [
+        8,
+        16
+      ],
+      "primary_for_sections": [
+        16
+      ],
+      "availability_note": "VALIDATED ABSENT in base gold run \u2014 external: only after NCBI BLASTP ingested"
+    },
+    "{strain}_5b_manual_blastp_worklist.csv": {
+      "layer": "external",
+      "granularity": "per_gene",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "The worklist of proteins the user should BLASTP next (the emission side of the external BLASTP loop).",
+      "consumed_by_sections": [
+        16
+      ],
+      "primary_for_sections": [
+        16
+      ],
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    },
+    "{strain}_5_workbook.xlsx": {
+      "layer": "core",
+      "granularity": "per_strain",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Master workbook: E1_Mode_B_Index, B4_Cross_Strain_Scans, F1_Ecology_Readiness, triage sheets. Cross-strain and index home.",
+      "consumed_by_sections": [
+        12,
+        29
+      ],
+      "primary_for_sections": [],
+      "always_since_engine": "1.9.3",
+      "always_since_basis": "observed: present in a v1.9.3-era reference gold package"
+    },
+    "{strain}_deepdives_section.md": {
+      "layer": "deep",
+      "granularity": "per_bgc",
+      "availability": "gold",
+      "confidence": "observed",
+      "purpose": "Pre-rendered gene-by-gene deep-dive prose scaffold per BGC (tools/build_modeb_deepdive).",
+      "consumed_by_sections": [
+        4,
+        5,
+        6
+      ],
+      "primary_for_sections": [],
+      "availability_note": "VALIDATED ABSENT in base gold run \u2014 conditional: build_modeb_deepdive"
+    },
+    "{strain}_8_strain_brief.pdf": {
+      "layer": "figure",
+      "granularity": "per_strain",
+      "availability": "gold",
+      "confidence": "observed",
+      "purpose": "13-figure strain brief PDF (the 8a..8n figure pack).",
+      "consumed_by_sections": [
+        18
+      ],
+      "primary_for_sections": [],
+      "availability_note": "VALIDATED ABSENT in base gold run \u2014 gold+brief: suppressed under --brief none"
+    },
+    "Citation_Ledger.json": {
+      "layer": "core",
+      "granularity": "per_strain",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "Citation-compact provenance ledger (operator_supplied vs citation_needed rows).",
+      "consumed_by_sections": [
+        28
+      ],
+      "primary_for_sections": [
+        28
+      ],
+      "availability_note": "VALIDATED: emitted only under --token-budget citation-compact, NOT in a standard gold run. Confirmed absent on S_laurentii gold package."
+    },
+    "Literature_Search_WorkOrder.json": {
+      "layer": "core",
+      "granularity": "per_strain",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "Literature-search handoff (search instruction, NOT verified fact) for a separate web session.",
+      "consumed_by_sections": [
+        28,
+        30
+      ],
+      "primary_for_sections": [],
+      "availability_note": "VALIDATED ABSENT in base gold run \u2014 conditional: literature handoff path"
+    },
+    "{strain}_cds_table.csv": {
+      "layer": "deep",
+      "granularity": "per_cds",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Flat per-CDS table written alongside gene_context.jsonl by the SAME write_gene_context call (v9.7.88-K0): bgc_id, contig, locus_tag, order, start, end, strand, length_bp, length_aa, product, sec_met_domains, gene_functions, tta_codons. CSV projection of the authoritative gene_context data.",
+      "consumed_by_sections": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "primary_for_sections": [],
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    },
+    "{strain}_structured_evaluator_report.csv": {
+      "layer": "deep",
+      "granularity": "per_cassette",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "B2 structured-evaluator cassette calls: cassette_id, status (SUPPORT/CAUTION/SUPPORT_WITH_CAUTION), support_flags, caution_flags, evidence_loci, evidence_terms, claim_ceiling. Deterministic support/caution per registry cassette; does NOT alter scoring or claim identity \u2014 bounds what can be claimed.",
+      "consumed_by_sections": [
+        5,
+        14
+      ],
+      "primary_for_sections": [],
+      "availability_note": "VALIDATED ABSENT in base gold run \u2014 conditional: cassette evaluator path"
+    },
+    "{strain}_Metabolomics_Readiness.csv": {
+      "layer": "deliverable",
+      "granularity": "per_bgc",
+      "availability": "conditional",
+      "confidence": "observed",
+      "purpose": "Metabolomics Readiness deliverable (tools/build_metabolomics_readiness.py): per-BGC LC-MS/metabolomics screening readiness. Tool-generated, not in base sealed package.",
+      "consumed_by_sections": [
+        17
+      ],
+      "primary_for_sections": [
+        17
+      ],
+      "availability_note": "VALIDATED ABSENT in base gold run \u2014 tool deliverable: build_metabolomics_readiness"
+    },
+    "locus_maps/{bgc}_locus_map.svg": {
+      "layer": "figure",
+      "granularity": "per_bgc",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Per-BGC locus map SVG (+ companion _locus_map_data.csv). Real filename: locus_maps/{BGC}_locus_map.svg (SVG, not PNG).",
+      "consumed_by_sections": [
+        18
+      ],
+      "primary_for_sections": [
+        18
+      ],
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    },
+    "gene_data.json": {
+      "layer": "deep",
+      "granularity": "per_bgc",
+      "availability": "gold",
+      "confidence": "observed",
+      "purpose": "Gold gene-level bank: domain_arch (per-BGC domain architecture, 44 rows), substrates (A-domain/AT substrate predictions), ripp (RiPP precursor data), tfbs (regulator binding). The substrate-prediction source the pasted failure mentioned.",
+      "consumed_by_sections": [
+        4,
+        5,
+        6,
+        21
+      ],
+      "primary_for_sections": []
+    },
+    "figures/figure_manifest.csv": {
+      "layer": "figure",
+      "granularity": "per_strain",
+      "availability": "always",
+      "confidence": "observed",
+      "purpose": "Figure manifest. Real path: figures/figure_manifest.csv (+ gold_figures/*_data.csv companions). Confirmed.",
+      "consumed_by_sections": [
+        18
+      ],
+      "primary_for_sections": [],
+      "availability_note": "VALIDATED ABSENT in base gold run \u2014 present as figures/figure_manifest.csv in this version",
+      "always_since_engine": "post-1.9.3",
+      "always_since_basis": "observed: ABSENT in a v1.9.3-era package; present in a v1.9.104 package (S. laurentii, public) \u2014 introduced somewhere in between"
+    }
+  },
+  "sections": {
+    "1": {
+      "title": "Identity and node/region",
+      "required": "always",
+      "required_reads": [
+        "{strain}_1_intake.json",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "{strain}_2b_bgc_crosswalk.csv"
+      ],
+      "confidence": "observed"
+    },
+    "2": {
+      "title": "Why this BGC was selected",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4_triage_board.csv",
+        "{strain}_2_inventory.csv"
+      ],
+      "optional_reads": [],
+      "confidence": "observed"
+    },
+    "3": {
+      "title": "Boundary and assembly status",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4_triage_board.csv",
+        "manifest.json"
+      ],
+      "optional_reads": [
+        "{strain}_2b_bgc_crosswalk.csv"
+      ],
+      "confidence": "observed",
+      "note": "n50/contigs/tier live in manifest.json[assembly] on vintage packages; boundary status in triage board. See the compile_report fallback."
+    },
+    "4": {
+      "title": "Gene-by-gene interpretation",
+      "required": "always",
+      "required_reads": [
+        "{strain}_gene_context.jsonl",
+        "{strain}_cds_table.csv",
+        "{strain}_4_triage_board.csv",
+        "deep_data.json"
+      ],
+      "optional_reads": [
+        "{strain}_gene_by_gene_all_bgcs.csv",
+        "domain_rows_long.csv",
+        "ordered_domain_architectures_by_bgc.csv",
+        "{strain}_deepdives_section.md",
+        "gene_data.json"
+      ],
+      "confidence": "observed",
+      "note": "PASTED-FAILURE SECTION \u2014 VALIDATED AGAINST REAL GOLD PACKAGE. Authoritative reads: gene_context.jsonl + cds_table.csv (per-CDS, always) AND deep_data.json[domain_hits] (2938 per-domain rows in gold). The chat that failed had ALL of these in the package and read none. gene_by_gene_all_bgcs.csv adds role inference (thin-CSV caveat). This is the section the whole map exists to fix."
+    },
+    "5": {
+      "title": "Core biosynthetic logic",
+      "required": "always",
+      "required_reads": [
+        "ordered_domain_architectures_by_bgc.csv",
+        "domain_role_counts_by_bgc.csv",
+        "{strain}_gene_context.jsonl",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "domain_rows_long.csv",
+        "domain_complexity_metrics_by_bgc.csv",
+        "{strain}_4B_two_model_decomp.csv",
+        "deep_data.json",
+        "{strain}_structured_evaluator_report.csv",
+        "gene_data.json"
+      ],
+      "confidence": "observed",
+      "note": "Cassette structured-evaluator report is SUPPORTING (claim_ceiling), not required. FLBR+domain_architecture (source_scans) + ordered_domain_architectures drive the core-logic read."
+    },
+    "6": {
+      "title": "Tailoring and maturation logic",
+      "required": "always",
+      "required_reads": [
+        "domain_rows_long.csv",
+        "domain_role_counts_by_bgc.csv",
+        "manifest.json#source_scans",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "ordered_domain_architectures_by_bgc.csv",
+        "deep_data.json",
+        "gene_data.json"
+      ],
+      "confidence": "observed",
+      "note": "source_scans UMED = maturation-enzyme detection (scan_umed, confirmed)."
+    },
+    "7": {
+      "title": "Transport, resistance, and regulation",
+      "required": "always",
+      "required_reads": [
+        "manifest.json#source_scans",
+        "domain_role_counts_by_bgc.csv",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "{strain}_4A_RGGMCI_ranked_pairs.csv",
+        "{strain}_4A_RGGMCI_evidence.csv",
+        "deep_data.json"
+      ],
+      "confidence": "observed",
+      "note": "source_scans resistance (APH/Van/Erm) + bldA/TTA (confirmed)."
+    },
+    "8": {
+      "title": "Comparator/KCB interpretation",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4_triage_board.csv",
+        "{strain}_4A2_ClusterBlast_per_gene.csv",
+        "manifest.json#source_scans"
+      ],
+      "optional_reads": [
+        "{strain}_4A2_ClusterBlast_gene_map.json",
+        "BLASTP_BGC_summary_all_rounds.csv",
+        "deep_data.json"
+      ],
+      "confidence": "observed",
+      "note": "KCB=similarity standing rule applies. source_scans KCB sweep + per-gene ClusterBlast are the comparator evidence."
+    },
+    "9": {
+      "title": "Alternative hypotheses",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4_triage_board.csv",
+        "manifest.json#source_scans"
+      ],
+      "optional_reads": [],
+      "confidence": "observed",
+      "note": "source_scans primary_metabolism (DROP primary-metab) + hallucination-trap/claim-calibration -> alternative-hypothesis discipline (confirmed)."
+    },
+    "10": {
+      "title": "Fragmentation and co-capture risks",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4_triage_board.csv",
+        "{strain}_4B_two_model_decomp.csv"
+      ],
+      "optional_reads": [
+        "EFLS_Linkage_Table.csv"
+      ],
+      "confidence": "observed"
+    },
+    "11": {
+      "title": "Product-family interpretation",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4_triage_board.csv",
+        "{strain}_2_inventory.csv"
+      ],
+      "optional_reads": [
+        "BLASTP_BGC_summary_all_rounds.csv"
+      ],
+      "confidence": "observed",
+      "note": "Triage KCB_top column is primary product-family signal (KCB=similarity). ClusterBlast/BLASTP optional enrichment, not required."
+    },
+    "12": {
+      "title": "Bee/microbe ecological interpretation",
+      "required": "always",
+      "required_reads": [
+        "{strain}_1_intake.json",
+        "manifest.json#source_scans",
+        "{strain}_5_workbook.xlsx",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [],
+      "confidence": "observed",
+      "note": "source_scans chitin_glycan_ecology (GH18/DasR) + QS + workbook F1_Ecology_Readiness = bee-niche read (confirmed)."
+    },
+    "13": {
+      "title": "Antibacterial/antifungal relevance",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4c_AB_lead_board.csv",
+        "{strain}_4c_AF_lead_board.csv",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [],
+      "confidence": "observed",
+      "note": "Extract-level bioactivity standing rule: never antifungal/antibacterial-negative; contrast by mechanism."
+    },
+    "14": {
+      "title": "What cannot be claimed",
+      "required": "always",
+      "required_reads": [
+        "domain_safe_unsafe_claims.csv",
+        "{strain}_4_triage_board.csv",
+        "{strain}_structured_evaluator_report.csv"
+      ],
+      "optional_reads": [],
+      "confidence": "inferred",
+      "note": "domain_safe_unsafe_claims is gold-only; on smoke this section reads from triage flags + standing rules only. The read-gate must not demand the gold file on a smoke card."
+    },
+    "15": {
+      "title": "Missing evidence",
+      "required": "always",
+      "required_reads": [
+        "manifest.json",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [],
+      "confidence": "observed",
+      "note": "missingness data is manifest.json['missingness'] (top-level key), not a standalone file. Confirmed in real package (empty list on S_laurentii \u2014 honest blank)."
+    },
+    "16": {
+      "title": "BLASTP/HMMER next steps",
+      "required": "always",
+      "required_reads": [
+        "{strain}_5b_manual_blastp_worklist.csv",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "BLASTP_top_hits_by_query_all_rounds.csv",
+        "BLASTP_BGC_summary_all_rounds.csv"
+      ],
+      "confidence": "observed",
+      "note": "The pasted failure also mentioned BLASTP results out \u2014 section 16 is where the external BLASTP loop is authored. worklist required; ingested hits optional (may not exist yet)."
+    },
+    "17": {
+      "title": "LC-MS / fermentation implications",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4_triage_board.csv",
+        "manifest.json#source_scans",
+        "manifest.json"
+      ],
+      "optional_reads": [
+        "{strain}_Metabolomics_Readiness.csv"
+      ],
+      "confidence": "observed",
+      "note": "metabolomics_targets is manifest.json['metabolomics_targets']; Metabolomics_Readiness.csv is the richer tool deliverable when present. Confirmed."
+    },
+    "18": {
+      "title": "Figure/locus-map notes",
+      "required": "always",
+      "required_reads": [
+        "locus_maps/{bgc}_locus_map.svg",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "{strain}_8_strain_brief.pdf",
+        "figures/figure_manifest.csv"
+      ],
+      "confidence": "observed",
+      "note": "locus map is always emitted; the 8-figure brief is gold-only."
+    },
+    "19": {
+      "title": "Final Mode B judgement",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [],
+      "confidence": "observed",
+      "note": "Synthesis section; reads the card's own prior sections + triage rank. Boundary caveat belongs here + section 3 only (edge-BGC-equality rule)."
+    },
+    "20": {
+      "title": "Next actions",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "{strain}_5b_manual_blastp_worklist.csv"
+      ],
+      "confidence": "observed"
+    },
+    "21": {
+      "title": "Precursor mass ladder",
+      "required": "conditional",
+      "condition_key": "is_ripp",
+      "required_reads": [
+        "{strain}_gene_context.jsonl",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "domain_rows_long.csv"
+      ],
+      "confidence": "observed",
+      "note": "No dedicated precursor/mass-ladder artifact; RiPP precursor from gene_context leader/core-peptide CDS. Thin map correct."
+    },
+    "22": {
+      "title": "RiPP database search",
+      "required": "conditional",
+      "condition_key": "is_ripp",
+      "required_reads": [
+        "{strain}_5b_manual_blastp_worklist.csv",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [],
+      "confidence": "observed",
+      "note": "RiPP DB search via BLASTP worklist loop; no dedicated artifact."
+    },
+    "23": {
+      "title": "Heterologous expression",
+      "required": "conditional",
+      "condition_key": "maturation_gap",
+      "required_reads": [
+        "manifest.json#source_scans",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "deep_data.json"
+      ],
+      "confidence": "observed",
+      "note": "Heterologous expression from source_scans (maturation gaps) + deep_data; no dedicated artifact."
+    },
+    "24": {
+      "title": "Scaffold novelty score",
+      "required": "conditional",
+      "condition_key": "novel_or_no_mibig",
+      "required_reads": [
+        "{strain}_4_triage_board.csv",
+        "domain_complexity_metrics_by_bgc.csv"
+      ],
+      "optional_reads": [
+        "ordered_domain_architectures_by_bgc.csv"
+      ],
+      "confidence": "inferred",
+      "note": "novelty_auto lives in triage board; complexity metrics gold-only."
+    },
+    "25": {
+      "title": "Genome neighbourhood",
+      "required": "conditional",
+      "condition_key": "isolation_worthy",
+      "required_reads": [
+        "{strain}_gene_context.jsonl",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "{strain}_4A2_ClusterBlast_gene_map.json"
+      ],
+      "confidence": "observed",
+      "note": "Genome neighbourhood from gene_context + ClusterBlast gene map; no dedicated artifact."
+    },
+    "26": {
+      "title": "OSMAC protocol",
+      "required": "conditional",
+      "condition_key": "fermentation_selected",
+      "required_reads": [
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [],
+      "confidence": "observed",
+      "note": "OSMAC/fermentation from triage; ferm card is separate deliverable, not a base-package read."
+    },
+    "27": {
+      "title": "Self-resistance assessment",
+      "required": "conditional",
+      "condition_key": "antimicrobial_candidate",
+      "required_reads": [
+        "{strain}_4A_RGGMCI_ranked_pairs.csv",
+        "manifest.json#source_scans",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "{strain}_4A_RGGMCI_evidence.csv"
+      ],
+      "confidence": "observed",
+      "note": "RGGMCI is the self-resistance evidence; source_scans resistance genes support."
+    },
+    "28": {
+      "title": "Evidence provenance ledger",
+      "required": "always",
+      "required_reads": [
+        "manifest.json",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "Literature_Search_WorkOrder.json",
+        "Citation_Ledger.json"
+      ],
+      "confidence": "observed",
+      "note": "MANDATORY section, but Citation_Ledger.json is conditional (citation-compact mode only) and a standard gold manifest carries no provenance key. On a default gold package \u00a728 is authored from the card's own inline evidence tags (observed/computed/inferred/assumed). KNOWN TENSION: mandatory section, mode-gated evidence artifact \u2014 flagged Round 8, not fixed in Cut A."
+    },
+    "29": {
+      "title": "Cross-cluster interactions",
+      "required": "conditional",
+      "condition_key": "multi_bgc_strain",
+      "required_reads": [
+        "{strain}_5_workbook.xlsx",
+        "{strain}_4_triage_board.csv"
+      ],
+      "optional_reads": [
+        "EFLS_Linkage_Table.csv"
+      ],
+      "confidence": "observed",
+      "note": "Cross-cluster from workbook cross-strain sheets + EFLS linkage; no dedicated per-card artifact."
+    },
+    "30": {
+      "title": "Experimental decision tree",
+      "required": "always",
+      "required_reads": [
+        "{strain}_4_triage_board.csv",
+        "{strain}_5b_manual_blastp_worklist.csv"
+      ],
+      "optional_reads": [
+        "Literature_Search_WorkOrder.json"
+      ],
+      "confidence": "inferred"
+    }
+  }
+}

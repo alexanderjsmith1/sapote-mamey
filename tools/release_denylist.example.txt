@@ -1,0 +1,42 @@
+# release_denylist.example.txt — TEMPLATE for defining your own private terms.
+#
+# WHY THIS FILE EXISTS
+# The real denylist, tools/release_denylist.txt, is deliberately STRIPPED from
+# every public tier so your private terms never ship. That left a downstream
+# user with no starting point. This .example template DOES ship (its name does
+# not match the strip pattern) and contains only placeholders, so you have
+# something to copy.
+#
+# HOW TO USE
+#   1. Copy this file:   cp tools/release_denylist.example.txt tools/release_denylist.txt
+#   2. Add one private term per line (see format below).
+#   3. Cut a public tier:  tools/make_public_tier.sh code <src> <out>
+#
+# WHAT EACH TERM DOES on a public / non-merged tier cut (see tools/make_public_tier.sh):
+#   1. It is removed from the CONTENT of every shipped text file
+#      (.md .csv .py .cff .txt .json .sh .yaml .yml .html).
+#   2. Any file whose NAME contains the term is DROPPED from the tier.
+#   3. A fail-closed LEAK CHECK re-greps the staged tree for every term; if one
+#      still appears anywhere, the cut is REFUSED (exit 1). You cannot ship a
+#      bundle that still contains a denylisted term.
+#
+# FORMAT
+#   - One term per line. Blank lines are ignored.
+#   - Matching is literal and case-sensitive (grep -F). "ACME" does not match "acme".
+#   - Put the most specific terms first.
+#   - Do NOT list terms you actually want to keep — every match is scrubbed.
+#
+# NOTE ON STRAIN IDS
+#   Strain identifiers (AS-###/AJS-###/PENDING-###) have their own redaction
+#   path controlled by AS_SCRUB (see docs/CUSTOM_PRIVACY_TIERS.md), separate
+#   from this denylist. Use this file for names, codenames, and free-text terms.
+#
+# ---------------------------------------------------------------------------
+# Replace the placeholders below with your own private terms, then rename to
+# tools/release_denylist.txt. These example lines are commented out so this
+# template ships inert.
+# ---------------------------------------------------------------------------
+# MyLabInternalCodename
+# ACME-PRIVATE-
+# unpublished-collaborator-surname
+# ProjectMoonshot

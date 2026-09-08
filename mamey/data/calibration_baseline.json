@@ -1,0 +1,60 @@
+{
+  "authority": "Stored detector-behavior baseline; not scientific validation or release approval.",
+  "baseline_version": "2026-09-03",
+  "calls": {
+    "NEG-BLDA-TTA-001": false,
+    "NEG-CASSETTES-001": false,
+    "NEG-CCTT-001": false,
+    "NEG-CGAD-001": false,
+    "NEG-RESISTANCE-001": false,
+    "NEG-RGGMCI-001": false,
+    "NEG-TFBS-001": false,
+    "NEG-UMED-001": false,
+    "SYN-BLDA-001": true,
+    "SYN-CAS-001": true,
+    "SYN-CCTT-001": true,
+    "SYN-CGAD-001": true,
+    "SYN-RES-001": true,
+    "SYN-RES-002": true,
+    "SYN-RES-003": true,
+    "SYN-RG-001": true,
+    "SYN-TFBS-001": true,
+    "SYN-UMED-001": true
+  },
+  "panel_sha256": "e4adcd12e9ab17adabe5419ebded4e5585735f0005a4c142f37d0e93fc58e700",
+  "per_scan": {
+    "blda_tta": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "cassettes": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "cctt": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "cgad": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "resistance": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "rggmci": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "tfbs": {
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "umed": {
+      "precision": 1.0,
+      "recall": 1.0
+    }
+  },
+  "schema_version": "mamey_calibration_baseline_v1"
+}

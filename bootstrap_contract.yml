@@ -1,0 +1,215 @@
+schema_version: 1
+owners:
+  project: Sapote–Mamey
+  engine: Mamey
+  affiliation: Sapote-Mamey
+version_sources:
+  bundle_version: pyproject.toml:[tool.sapote].bundle_version
+  engine_version: pyproject.toml:[project].version
+  build_stamp: BUILD_STAMP.txt:build
+read_proof:
+  sentence: The sky is not red, it is blue, just like the ocean.
+  purpose: Human-visible proof that ChatGPT loaded the current operating contract.
+  required_before:
+  - Sapote–Mamey run
+  - Bunny Hop audit
+  - patch review
+  - strain processing
+  - release/debug handback
+challenge_response:
+  canonical_instruction_file: CHATGPT_START_HERE.md
+  emit_initiation_prompt_on:
+  - Are you following ChatGPT Mamey?
+  - Please find ChatGPT rules
+  - find your ChatGPT instructions
+  - You are ChatGPT running Sapote–Mamey
+  - ChatGPT Mamey check
+  - confirm Mamey mode
+  - initiation prompt
+  - what color is the sky?
+  - sky color
+  - did you read your instructions?
+  - prove you read the ChatGPT files
+  failure_mode: If CHATGPT_START_HERE.md or this contract cannot be read, say so plainly and stop.
+workflow:
+  display_lines:
+  - doctor → inspect → run(gold + --capped-session) → validate
+  - → list-bgcs → mode-b → render-figures → ingest-receipts
+  first_run_default:
+    command: python -m mamey run --mode gold --capped-session --json-evidence off ...
+    rationale: Gold is the only analysis mode and runs directly (~1 min on a typical genome). Smoke was removed v9.7.161 — its triage-only package could not support DAPR, lead boards, or comparison.
+  stages:
+  - id: doctor
+    command: python -m mamey doctor
+    required_before: inspect
+  - id: inspect
+    command: python -m mamey inspect <antiSMASH.zip>
+    required_before: gold_run
+  - id: gold_run
+    command: python -m mamey run --mode gold --capped-session --json-evidence off ...
+    required_before: validate
+  - id: validate
+    command: python -m mamey validate <package>
+    required_before: interpretation
+  - id: list_bgcs
+    command: python -m mamey list-bgcs <package> --axis ab/af --top 10
+  - id: mode_b
+    command: python -m mamey mode-b --package <package> --top-n <N> --outdir mode_b/
+  - id: render_figures
+    command: python -m mamey render-figures --package <package> --outdir figures/ --top-n 10
+  - id: ingest_receipts
+    command: python -m mamey ingest-receipts --package <package> --receipt mode_b_receipt.json --master <master.xlsx>
+bootstrap_surfaces:
+- path: CHATGPT_START_HERE.md
+  role: canonical_chatgpt_contract
+  status: canonical
+  required: true
+  generated_from_contract: partial
+  scanner_authority: true
+  scanner_severity: hard_fail
+  purpose: Authoritative ChatGPT operating contract.
+- path: CLAUDE_START_HERE.md
+  role: canonical_claude_contract
+  status: canonical_other_assistant
+  required: true
+  generated_from_contract: version_probe_only
+  scanner_authority: true
+  scanner_severity: hard_fail
+  purpose: Claude front door; ChatGPT should not follow Claude-specific instructions.
+- path: 000_READ_ME_FIRST_CHATGPT_CLAUDE.md
+  role: cross_assistant_router
+  status: canonical_router
+  required: true
+  generated_from_contract: partial
+  scanner_authority: true
+  scanner_severity: hard_fail
+  purpose: Root-level upload front door routing ChatGPT and Claude to their contracts.
+- path: CHATGPT_READ_ME_FIRST.md
+  role: correctly_spelled_chatgpt_alias
+  status: generated_mirror
+  required: true
+  generated_from_contract: full
+  scanner_authority: false
+  scanner_severity: warning_if_missing
+  purpose: Correctly spelled convenience mirror pointing to CHATGPT_START_HERE.md.
+- path: CHATGTP_READ_ME_FIRST.md
+  role: accidental_chatgtp_transposition_rescue
+  status: optional_typo_rescue_alias
+  required: false
+  generated_from_contract: full
+  scanner_authority: false
+  scanner_severity: none_if_missing_warn_if_divergent
+  purpose: Optional rescue for accidental ChatGPT→ChatGTP transposition, especially in scientific contexts where GTP is a
+    familiar acronym. Must redirect to CHATGPT_START_HERE.md and must never be canonical.
+- path: README.md
+  role: package_reader_banner
+  status: generated_mirror
+  required: true
+  generated_from_contract: partial
+  scanner_authority: false
+  scanner_severity: warning_if_stale
+  purpose: Normal package reader banner; should route assistants to canonical contracts.
+- path: README_START_HERE.md
+  role: reviewer_operator_banner
+  status: generated_mirror
+  required: true
+  generated_from_contract: partial
+  scanner_authority: false
+  scanner_severity: warning_if_stale
+  purpose: Reviewer/operator start page; should route assistants to canonical contracts.
+- path: BOOTSTRAP_FILE_AUDIT.md
+  role: generated_bootstrap_map
+  status: generated_report
+  required: true
+  generated_from_contract: full
+  scanner_authority: false
+  scanner_severity: warning_if_missing
+  purpose: Human-readable audit of canonical files, generated mirrors, compatibility aliases, and obsolete surfaces.
+generated_markdown:
+  initiation_prompt:
+    target: CHATGPT_START_HERE.md
+    replacement_marker: initiation_prompt
+  known_gotchas_section:
+    target: CHATGPT_START_HERE.md
+    replacement_marker: known_gotchas_section
+  bootstrap_surface_map:
+    target: 000_READ_ME_FIRST_CHATGPT_CLAUDE.md
+    replacement_marker: bootstrap_surface_map
+  chatgpt_readme_alias:
+    target: CHATGPT_READ_ME_FIRST.md
+    replacement_marker: full_file
+  bootstrap_audit_report:
+    target: BOOTSTRAP_FILE_AUDIT.md
+    replacement_marker: full_file
+  chatgtp_typo_rescue_alias:
+    target: CHATGTP_READ_ME_FIRST.md
+    replacement_marker: full_file
+known_gotchas:
+- id: blastp_hit_table_csv_shape
+  status: active
+  severity: high
+  applies_to: BLASTP evidence store
+  show_in_initiation: true
+  initiation_text: BLASTP Hit Table CSV may be headerless and query titles may contain commas
+  detail: Store raw Hit Table CSV/XML2 in blastp_evidence_store before summarizing; do not parse comma-bearing query titles
+    with a naive split.
+- id: public_single_region_intake
+  status: active
+  severity: medium
+  applies_to: public accession antiSMASH ZIP intake
+  show_in_initiation: true
+  initiation_text: single-region public accession ZIPs are valid intake targets, but assembly-tier warnings are expected
+  detail: When inspect passes, do not treat VERY_POOR / 0% interior warnings as full-genome failure for single-region public
+    accession inputs.
+- id: bootstrap_contract_generation
+  status: active
+  severity: medium
+  applies_to: assistant bootstrap and release checks
+  show_in_initiation: true
+  initiation_text: bootstrap surfaces are generated from bootstrap_contract.yml; CHATGTP is an optional accidental-typo rescue
+    alias, not scanner authority
+  detail: CHATGPT_START_HERE.md is canonical. CHATGTP_READ_ME_FIRST.md may remain as an optional rescue for accidental ChatGPT→ChatGTP
+    transposition, including ATP/GTP-context slips, but scanners/tests must not make the typo authoritative or require it
+    as the only discovery target.
+- id: mode_b_top_n_cumulative
+  status: active
+  severity: medium
+  applies_to: mode-b CLI batching
+  show_in_initiation: false
+  detail: 'mode-b --top-n is cumulative, not sliced: --top-n 3 covers ranks 1–3. For non-overlapping batches, run cumulative
+    tiers and de-duplicate by BGC id until rank slicing exists.'
+- id: timing_breakdown_partial_runs
+  status: active
+  severity: low
+  applies_to: timing outputs
+  show_in_initiation: false
+  detail: '*_timing_breakdown.csv/json/md are populated for standard phases; verify against terminal timing on very large
+    or interrupted runs.'
+- id: json_evidence_off_is_lightest
+  status: active
+  severity: medium
+  applies_to: evidence mode selection
+  show_in_initiation: false
+  detail: --json-evidence off is correct for the lightest capped ChatGPT sessions; use bounded when evidence arrays are needed
+    for class calls or diagnosis.
+- id: manifest_summary_nested
+  status: active
+  severity: low
+  applies_to: package manifest readers
+  show_in_initiation: false
+  detail: manifest.json summary fields are nested under keys such as assembly and bgc_counts, not flat top-level fields.
+- id: mode_b_corrective_protocol_section_lock
+  status: active
+  severity: high
+  applies_to: Mode B BGC card writing
+  show_in_initiation: false
+  detail: Full Mode B must use the exact §1–§30 corrective-protocol section titles (§28 + §30 mandatory, §21–§27/§29 conditional); LLMs must not invent/rename sections;
+    §7 is transport/resistance/regulation and BLASTP/HMMER belongs in §16; tables/PDFs/character counts are supporting artifacts,
+    not the card.
+- id: mode_b_length_and_comparator_context
+  status: active
+  severity: medium
+  applies_to: Mode B BGC workups
+  show_in_initiation: false
+  detail: Preserve protein_length_aa in the same table as BLASTP/function evidence; flag huge small-enzyme-labelled proteins;
+    repeated external-strain hits should trigger comparator next-step guidance rather than identity claims.

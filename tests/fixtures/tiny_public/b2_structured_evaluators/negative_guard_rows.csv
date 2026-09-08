@@ -1,0 +1,8 @@
+fixture,bgc_id,locus_tag,product,class_context,expected_no_support,expected_caution
+nucleoside_missing_marker,NEG001,nuc0,generic oxidoreductase,nucleoside,SMC-001,
+phosphonate_missing_pepm,NEG002,pho0,generic kinase,phosphonate,SMC-002,
+aph_aac_sugar_context_negative,NEG003,res0,APH aminoglycoside phosphotransferase near glycogen trehalose sugar kinase context,primary metabolism sugar kinase,SMC-004;SMC-016,SMC-004;SMC-016
+tetronate_mobile_caution,NEG004,tet0,FkbH glyceryl transferase 3-phosphoglycerate loading enzyme,tetronate mobile element ICE transposase,,SMC-009
+tetronate_mobile_caution,NEG004,tet1,dedicated ACP acyl carrier protein,tetronate mobile element ICE transposase,,SMC-009
+thioamitide_ycao_only_negative,NEG005,thi0,YcaO cyclodehydratase enzyme,RiPP thioamide,SMC-013,
+self_protection_mobile_negative,NEG006,res1,Erm 23S rRNA methyltransferase resistance gene near transposase integrase mobile element,mobile element ICE,SMC-016,SMC-016

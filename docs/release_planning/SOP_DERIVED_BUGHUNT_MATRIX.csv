@@ -1,0 +1,13 @@
+bug_id,sop,target,test_input,expected,failure_to_prevent,severity,status_or_action
+BH-001,SOP-01,Archive type classification,Upload KY089035.1.zip,raw antiSMASH single-region accession run,Must not call it failed full genome,HIGH,REV5 claims fixed; keep regression
+BH-002,SOP-02,Smoke-first ChatGPT path,Unknown raw antiSMASH ZIP,doctor -> inspect -> smoke -> validate,No gold/full before smoke in ChatGPT,HIGH,Add to start docs
+BH-003,SOP-04,BLASTP panel batch size,AS-XXX antiSMASH ZIP,~30 first-pass proteins and safe residue cap,No all-protein default,HIGH,REV5/Claude patch stream
+BH-004,SOP-04,Giant NRPS/PKS handling,BLASTP panel with >1000 aa proteins,flag isolate/domain follow-up,No casual giant batching when NCBI limits hit,MEDIUM,Test with AS-XXX BGC003/008
+BH-005,SOP-05,Headerless hit table,40WGV6PM016 HitTable,first row retained,No dropped row,HIGH,REV3/REV4 test
+BH-006,SOP-05,Comma-bearing query titles,40XGC38A016 HitTable,identity parsed correctly,No 0 identity from shifted CSV,BLOCKER,REV4 fixed; keep test
+BH-007,SOP-05,>10 hits/query,40XGC38A016 HitTable,all rows preserved,Do not assume exactly 10,MEDIUM,REV4 docs
+BH-008,SOP-05,Missing XML2,HitTable only,triage outputs still produced,XML2 optional,HIGH,Need explicit test
+BH-009,SOP-13,Compound identity boundary,KCB/BLASTP positive,supported class/function language only,No 'produces compound X',BLOCKER,Add claim-safety grep
+BH-010,SOP-08,C5 deliverable placeholders,Production deliverables,no SID-XXX placeholders,Loud fail if no real targets,HIGH,C5/C7 REV2
+BH-011,SOP-09,Public/private redaction,Public workbook/export,no private AS/SID leak,Public-safe outputs clean,BLOCKER,C5/C7 REV2 + full scan
+BH-012,SOP-15,Patch packet completeness,Patch handoff ZIP,diffs/tests/logs included,No report-only fix claims,MEDIUM,Packet audit checklist

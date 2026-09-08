@@ -1,0 +1,2 @@
+step_id,timestamp,task,governing_instruction_id,command_or_action,input_paths,output_paths,exit_status,elapsed_seconds,receipt_file,interpretation,next_action
+R-0001,,AS-XXX redo audit,I-0001,Open ChatGPT/Sapote start files and extract instructions.,,instruction_compliance_matrix.csv,,,,,

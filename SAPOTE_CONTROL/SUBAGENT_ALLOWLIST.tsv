@@ -1,0 +1,15 @@
+# SUBAGENT ALLOWLIST — only the Developer or User edits this file.
+#
+# Subagents (the Agent / Task tool) are DENIED for every chat in this project by default.
+# Enforced by .claude/hooks/block_subagent_spawn.py. Every attempt, allowed or denied, is
+# appended to SAPOTE_CONTROL/SUBAGENT_ATTEMPTS.tsv.
+#
+# WHY: a subagent's transcript is not persisted. On 2026-08-10 one analyst lane's 42
+# subagents left only their final reports, so when the Developer or User asked why the lane had spent so many
+# tokens the answer was unrecoverable. Lanes that read in-session cost ~0.57-0.60M tokens per
+# delivered analysis; the heaviest delegators cost ~3.1-3.3M.
+#
+# TO GRANT AN EXCEPTION: add one session id per line (the hook prints the requesting session's
+# id in its denial message). The literal word ALL disables the block entirely.
+# Lines starting with # are ignored. An empty file means NOBODY is allowed — which is the
+# intended default.

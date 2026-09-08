@@ -1,0 +1,398 @@
+{
+  "schema_version": "modeb_corrective_full48_v1",
+  "status": "current",
+  "filename_provenance": "SSOT NOTE: this file is named 'modeb_full30_corrective_contract.json' for historical continuity — the structure gate (mamey/modeb_structure_gate.py), the template emitter, tools/regen_modeb_contract_docs.py, and several tests load it by that exact filename. The filename count ('full30') is stale; the authoritative section count is carried by schema_version ('modeb_corrective_full48_v1') and the sections[] list below, which define the §1–§48 finished-deliverable contract. When filename and schema_version disagree, schema_version wins. Do not read '30' from the filename as a section ceiling. A physical rename is deferred because code and tests bind to this name; see docs/CURRENT_DOCS_INDEX.md for the canonical section doc.",
+  "source_protocol": "docs/MODEB_CORRECTIVE_PROTOCOL.md + docs/CHATGPT_EXECUTION_SLICE_v97147.md §9",
+  "supersedes": "modeb_corrective_full20_v1 (which omitted §21–§30 entirely)",
+  "section_policy": "Expanded publication-candidate profile requires §1–§48 in exact order. A section may contain a reasoned NOT_APPLICABLE disposition, but it may not be omitted. LLMs must not invent, rename, reorder, or substitute section titles. Legacy conditional/optional flags remain only for backward-compatible non-publication linting.",
+  "artifact_drift_policy": {
+    "card_body": "prose-first scientific interpretation",
+    "evidence_tables": "supporting appendix/index only; never a substitute for the card body",
+    "bulk_scaling": "one BGC must pass the quality gate before all-BGC scaling",
+    "pdf_export": "PDF/export is downstream packaging after Markdown/card text passes the gate",
+    "character_counts": "progress metadata only; never acceptance evidence",
+    "blastp_hmmer": "belongs in section 16 or appendices, not section 7"
+  },
+  "sections": [
+    {
+      "number": 1,
+      "title": "Identity and node/region",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 2,
+      "title": "Why this BGC was selected",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 3,
+      "title": "Boundary and assembly status",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 4,
+      "title": "Gene-by-gene interpretation",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 5,
+      "title": "Core biosynthetic logic",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards.",
+      "sub_questions": [
+        "Committed-step audit: is the class's committed/necessary gateway enzyme actually present (per the class-believability engine, LQ-PATH-01), or is this the named false-positive superfamily the class label over-calls into?",
+        "Minimal-gene-set completeness: is the minimal gene set for this scaffold complete ON THIS CONTIG, or is a core piece most likely an off-contig fragment (fragmentation — cross-check RG-GMCI)?"
+      ]
+    },
+    {
+      "number": 6,
+      "title": "Tailoring and maturation logic",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 7,
+      "title": "Transport, resistance, and regulation",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 8,
+      "title": "Comparator/KCB interpretation",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 9,
+      "title": "Alternative hypotheses",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards.",
+      "sub_questions": [
+        "Named-FP alternative: state the specific superfamily / primary-metabolism mis-call this class label is prone to (from the registry / LQ-PATH-01), and weigh it explicitly.",
+        "Fragment alternative: is the more parsimonious reading that this region is a FRAGMENT of a larger known pathway captured mid-cluster? Weigh against RG-GMCI (4A_*)."
+      ]
+    },
+    {
+      "number": 10,
+      "title": "Fragmentation and co-capture risks",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 11,
+      "title": "Product-family interpretation",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 12,
+      "title": "Bee/microbe ecological interpretation",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 13,
+      "title": "Antibacterial/antifungal relevance",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards.",
+      "sub_questions": [
+        "Class in Actinobacteria: how common / characterized is this compound CLASS among actinobacterial natural products? (NP Atlas npclassifier class-frequency, LQ-NPATLAS-01 — organism-independent, aggregate only.)",
+        "Class in this genus: what is reported for this class in this genus? — tagged `inferred`/`assumed` and grounded in literature, NOT asserted from NP Atlas isolation provenance (which records origin, not taxonomic distribution)."
+      ]
+    },
+    {
+      "number": 14,
+      "title": "What cannot be claimed",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 15,
+      "title": "Missing evidence",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 16,
+      "title": "BLASTP/HMMER next steps",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 17,
+      "title": "LC-MS / fermentation implications",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 18,
+      "title": "Figure/locus-map notes",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 19,
+      "title": "Final Mode B judgement",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 20,
+      "title": "Next actions",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards."
+    },
+    {
+      "number": 21,
+      "title": "Precursor mass ladder",
+      "required": "conditional",
+      "condition_key": "is_ripp",
+      "condition_human": "Any RiPP BGC."
+    },
+    {
+      "number": 22,
+      "title": "RiPP database search",
+      "required": "conditional",
+      "condition_key": "is_ripp",
+      "condition_human": "Any RiPP BGC."
+    },
+    {
+      "number": 23,
+      "title": "Heterologous expression",
+      "required": "conditional",
+      "condition_key": "maturation_gap_or_novel_class",
+      "condition_human": "MATURATION_GAP present or novel compound class."
+    },
+    {
+      "number": 24,
+      "title": "Scaffold novelty score",
+      "required": "conditional",
+      "condition_key": "novel_or_no_mibig",
+      "condition_human": "Novel compound / no MIBiG hit."
+    },
+    {
+      "number": 25,
+      "title": "Genome neighbourhood",
+      "required": "conditional",
+      "condition_key": "isolation_worthy",
+      "condition_human": "Any isolation-worthy BGC (lead tier HIGH or PRIORITY ISO)."
+    },
+    {
+      "number": 26,
+      "title": "OSMAC protocol",
+      "required": "conditional",
+      "condition_key": "fermentation_selected",
+      "condition_human": "Any fermentation-selected BGC."
+    },
+    {
+      "number": 27,
+      "title": "Self-resistance assessment",
+      "required": "conditional",
+      "condition_key": "antimicrobial_candidate",
+      "condition_human": "Any antimicrobial candidate (default for AB/AF leads)."
+    },
+    {
+      "number": 28,
+      "title": "Evidence provenance ledger",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards, mandatory. Claim-by-claim source tracing: observed/computed/inferred/assumed."
+    },
+    {
+      "number": 29,
+      "title": "Cross-cluster interactions",
+      "required": "conditional",
+      "condition_key": "strain_gt_3_high_priority",
+      "condition_human": "Strain has >3 high-priority BGCs."
+    },
+    {
+      "number": 30,
+      "title": "Experimental decision tree",
+      "required": "always",
+      "condition_key": null,
+      "condition_human": "All cards, mandatory. Open questions → experiments → programme consequences."
+    },
+    {
+      "number": 31,
+      "title": "Region CDS census",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    },
+    {
+      "number": 32,
+      "title": "Assembly-line inventory",
+      "required": "conditional",
+      "condition_key": "has_measured_assembly_line",
+      "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token)."
+    },
+    {
+      "number": 33,
+      "title": "Module programming readout",
+      "required": "conditional",
+      "condition_key": "has_measured_assembly_line",
+      "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token)."
+    },
+    {
+      "number": 34,
+      "title": "Initiation & release logic",
+      "required": "conditional",
+      "condition_key": "has_measured_assembly_line",
+      "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token)."
+    },
+    {
+      "number": 35,
+      "title": "Protocluster decomposition",
+      "required": "conditional",
+      "condition_key": "multi_protocluster",
+      "condition_human": "the region decomposes into more than one protocluster."
+    },
+    {
+      "number": 36,
+      "title": "Boundary status + overmerge/locus-splitting adjudication (merged)",
+      "required": "conditional",
+      "condition_key": "boundary_or_overmerge_flag",
+      "condition_human": "the region touches a contig edge, is truncated, or carries an overmerge/split flag."
+    },
+    {
+      "number": 37,
+      "title": "Partner & accessory proteins",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    },
+    {
+      "number": 38,
+      "title": "Co-located resistance & efflux",
+      "required": "conditional",
+      "condition_key": "has_resistance_signal",
+      "condition_human": "a co-located resistance/efflux signal is bound for this region."
+    },
+    {
+      "number": 39,
+      "title": "Cross-strain sequence identity",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    },
+    {
+      "number": 40,
+      "title": "BiG-SCAPE family / cohort placement",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    },
+    {
+      "number": 41,
+      "title": "Protein / domain phylogeny",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    },
+    {
+      "number": 42,
+      "title": "Horizontal transfer evidence",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    },
+    {
+      "number": 43,
+      "title": "Split-pathway / cross-contig (RG-GMCI)",
+      "required": "conditional",
+      "condition_key": "has_4a_rows",
+      "condition_human": "the region is a member of at least one ABOVE-BAR RG-GMCI ranked pair (confidence above LOW_SHARED_REFERENCE_SIGNAL)."
+    },
+    {
+      "number": 44,
+      "title": "Within-cohort prevalence & tier",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    },
+    {
+      "number": 45,
+      "title": "Supervisor / university cohort comparison",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    },
+    {
+      "number": 46,
+      "title": "Type / reference strain comparison",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    },
+    {
+      "number": 47,
+      "title": "Host-matched unrelated reference",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    },
+    {
+      "number": 48,
+      "title": "Cross-cohort synthesis & claim ceiling",
+      "required": "optional",
+      "condition_key": null,
+      "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced."
+    }
+  ],
+  "quality_gate": [
+    "Every first BGC mention includes node/region.",
+    "Expanded owner-review candidates contain §1–§48 in exact order; reasoned NOT_APPLICABLE replaces omission.",
+    "§28 (Evidence provenance ledger) is present.",
+    "§30 (Experimental decision tree) is present.",
+    "Every conditional §21–§27 / §29 that applies to this BGC is present.",
+    "Section 4 contains prose interpretation, not only tables.",
+    "Important genes include protein_length_aa where available.",
+    "Section 4 contains one contiguous named-match table with exactly one row per independently supplied canonical displayed gene.",
+    "Sections 5–7 satisfy the explicit scientific-reasoning scaffold; character counts are diagnostics only.",
+    "Every section §1–§48 has a completeness row naming evidence and predecessor-content disposition.",
+    "All 14 supporting streams have typed dispositions and historical content loss is reconciled explicitly.",
+    "Comparator/KCB is treated as similarity, not identity.",
+    "At least two plausible alternative interpretations are named when evidence permits.",
+    "Exact product claims are avoided.",
+    "The next experiment or analysis is specific.",
+    "A scientist can understand the BGC without opening the CSV.",
+    "Every first BGC mention uses the four-field display: strain / full node-or-contig / region / BGC alias.",
+    "Character counts are progress metadata only; never acceptance evidence.",
+    "Mechanical validation cannot claim release or publication readiness (cap: EVIDENCE_MATRIX_VALIDATED)."
+  ],
+  "extends": {
+    "prior_schema_version": "modeb_corrective_full30_v1",
+    "note": "Codex review #7 (2026-08-12): this file now carries 48 rows. Keeping schema_version 'modeb_corrective_full30_v1' made version-aware consumers unable to distinguish the extended contract from the §1-§30 original. The §1-§30 core rows are unchanged and their required-tiers are untouched; §31-§48 are all `optional`."
+  },
+  "profiles": {
+    "MODEB_SCAFFOLD": "mechanically populated evidence-routing artifact; never a card",
+    "MODEB_CANDIDATE_30": "legacy conditional §1–§30 candidate contract (backward compatibility)",
+    "FINISHED_FULL48_CURRENT_EVIDENCE": "§§1–48 exactly once, in numeric order; every section carries locus-specific interpretation or a reasoned not-applicable/hold statement; complete channel-separated named-match gene matrix; 48-row section-accountability matrix; 14-stream typed dispositions; historical source-loss reconciliation; appendices only after §48",
+    "EXPERIMENTALLY_ADJUDICATED": "separate future state; never implied by a finished current-evidence card"
+  },
+  "profile_note": "v9.7.372: never the unqualified word 'full'. Full Mode B means the FINISHED_FULL48_CURRENT_EVIDENCE profile; §1–§30 survives only as MODEB_CANDIDATE_30."
+}

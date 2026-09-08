@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sapote-Mamey Literature Search Work Order v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "tasks"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "literature_search_workorder_v1"
+    },
+    "bundle_version": {
+      "type": "string"
+    },
+    "strain_id": {
+      "type": "string"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "task_id",
+          "strain_id",
+          "bgc_id",
+          "stable_locus",
+          "candidate_class",
+          "evidence_basis",
+          "citation_need",
+          "search_instruction",
+          "must_find",
+          "do_not_infer",
+          "output_format",
+          "source_status"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "strain_id": {
+            "type": "string"
+          },
+          "bgc_id": {
+            "type": "string"
+          },
+          "stable_locus": {
+            "type": "string"
+          },
+          "candidate_class": {
+            "type": "string"
+          },
+          "evidence_basis": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "citation_need": {
+            "type": "string"
+          },
+          "search_instruction": {
+            "type": "string"
+          },
+          "must_find": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "do_not_infer": {
+            "type": "string"
+          },
+          "output_format": {
+            "type": "string"
+          },
+          "source_status": {
+            "const": "citation_needed"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

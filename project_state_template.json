@@ -1,0 +1,52 @@
+{
+  "_comment": "Sapote-Mamey project state file. One per project. Update after every session. See SAPOTE_MAMEY_BUNDLE_MONOLITH_v9.2.md \u00a7-2.6.",
+  "project_id": "",
+  "project_name": "",
+  "active_monolith": "SAPOTE_MAMEY_BUNDLE_MONOLITH_v9.2",
+  "bundle_version": "sapote-mamey-v9.7.414",
+  "schema_version": "workbook_schema_v1.0",
+  "master_workbook": "",
+  "last_handoff_zip": "",
+  "last_updated": "",
+  "affiliation": "",
+  "pi": "",
+  "analyst": "Alexander J. Smith",
+  "orcid": "0000-0002-7987-1460",
+  "strain_summary": {
+    "total_strains": 0,
+    "completed": 0,
+    "deferred": 0,
+    "failed": 0,
+    "not_started": 0
+  },
+  "completed_strains": [],
+  "deferred_strains": [
+    {
+      "strain_id": "",
+      "reason": "",
+      "recovery_inputs_needed": "",
+      "responsible_tier": "Mamey | Sapote"
+    }
+  ],
+  "failed_strains": [
+    {
+      "strain_id": "",
+      "failure_code": "",
+      "reason": "",
+      "recovery_inputs_needed": ""
+    }
+  ],
+  "project_bundle_status": {
+    "cross_strain_ab_rankings": "not_started | in_progress | complete",
+    "cross_strain_af_rankings": "not_started | in_progress | complete",
+    "rg_gmci_statistics": "not_started | in_progress | complete",
+    "cassette_statistics": "not_started | in_progress | complete",
+    "ecology_comparisons": "not_started | in_progress | complete",
+    "master_literature_index": "not_started | in_progress | complete",
+    "qualified_null_report": "not_started | in_progress | complete",
+    "completion_audit": "not_started | in_progress | complete",
+    "project_manifest": "not_started | in_progress | complete"
+  },
+  "next_action": "",
+  "session_notes": ""
+}

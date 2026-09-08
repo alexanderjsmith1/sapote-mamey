@@ -1,0 +1,34 @@
+event	matcher	runner	hook	type	scope	purpose
+PreToolUse	Bash	bash	block_seal_commands.sh	deny	bundle	Block seal/cut commands — only the Developer or User seals a cut.
+PreToolUse	Bash	bash	block_top_level_release_folder.sh	deny	bundle	Block creating release/cut folders at the project top level.
+PreToolUse	Bash	bash	full_suite_before_package.sh	deny	bundle	Require the full pytest suite to pass before packaging a cut.
+PreToolUse	Bash	bash	check_local_assets_before_download.sh	deny	bundle	Block re-downloading an asset already registered in ASSET_REGISTRY.
+PreToolUse	Bash	bash	block_heavy_compute.sh	deny	bundle	Block querying the LIVE blastp.sqlite and detaching/backgrounding compute without approval (heredoc-body-safe as of 2026-08-19).
+PreToolUse	Bash	python3	block_out_of_bounds_writes.py	deny	bundle	Block Write/Edit and Bash writes whose target resolves outside the allowed roots (this project + .claude + tmp).
+PreToolUse	Write|Edit|MultiEdit|NotebookEdit	python3	block_out_of_bounds_writes.py	deny	bundle	Block Write/Edit and Bash writes whose target resolves outside the allowed roots (this project + .claude + tmp).
+PreToolUse	Write|Edit|MultiEdit|NotebookEdit	bash	block_sealed_tree_edits.sh	deny	bundle	Block edits to a sealed bundle tree.
+PreToolUse	Write|Edit|MultiEdit|NotebookEdit	python3	overclaim_guard.py	warn	bundle	Flag overclaiming / missing claim-safety language in written deliverables.
+PreToolUse	Agent|Task	python3	block_subagent_spawn.py	deny	bundle	Block Agent/Task subagent spawn in workhorse chats (subagent ban).
+UserPromptSubmit	*	inline	INLINE	context	bundle	Inject the standing response contract (Next-paths + recommendation + version guard) into every prompt.
+UserPromptSubmit	*	python3	sapote_version_guard.py	context	bundle	Inject the current-engine version guard (don't build from stale-engine cards).
+UserPromptSubmit	*	python3	bgc_gene_level_guard.py	context	bundle	Inject the gene-based-not-cluster-based governing reminder.
+UserPromptSubmit	*	python3	verify_before_assert_contract.py	context	bundle	Inject the verify-before-assert contract (observed-vs-told; check the cheap thing before asserting a fact/count/negative).
+UserPromptSubmit	*	python3	recommendation_contract.py	context	workspace	Inject the recommendation contract (state a position, not a menu).
+SessionStart	*	bash	sapote_session_start.sh	context	bundle	Inject bundle front-door + file-home/color-chat/asset house rules at session start.
+SessionStart	*	python3	c10_tool_drift.py	log	workspace	Baseline/check external tool-version drift vs the Tool Inventory.
+Stop	*	bash	signoff_stop.sh	stop-check	bundle	Analysis sign-off gate (outgroup/ANI/label checks) on trees before hand-off.
+Stop	*	python3	link_check.py	stop-check	bundle	Verify markdown links in deliverables resolve.
+Stop	*	python3	chat_link_check.py	stop-check	bundle	Flag broken/directory/outside-workspace/unencoded markdown links in the chat reply (distinct surface from link_check.py's folder-registration and md_link_check.sh's written-.md check).
+Stop	*	bash	guardrails_stop.sh	stop-check	bundle	Summarize guardrail state at Stop.
+Stop	*	bash	deliverable_docx_warn.sh	warn	bundle	Flag a .docx deliverable produced without a card.
+Stop	*	python3	deliverable_markdown_reminder.py	warn	bundle	Flag a deliverable markdown produced without a patch card.
+Stop	*	bash	save_transcript_stop.sh	log	workspace	Save the session transcript at Stop.
+Stop	*	python3	state_save_reminder.py	warn	workspace	Remind to update sessions/<color>/STATE.md so continuity survives compaction.
+Stop	*	python3	c10_tool_drift.py	log	workspace	Baseline/check external tool-version drift vs the Tool Inventory.
+Stop	*	python3	session_cost_ledger.py	log	workspace	Record session token/cost to the ledger.
+PostToolUse	Write|Edit|MultiEdit|NotebookEdit	bash	provenance_log.sh	log	workspace	Append a provenance line for each file write.
+PostToolUse	Write|Edit|MultiEdit|NotebookEdit	bash	patch_hygiene_warn.sh	warn	bundle	Warn on build cruft (.bak/__pycache__/.DS_Store) in a patch queue.
+PostToolUse	Write|Edit|MultiEdit|NotebookEdit	bash	claim_safety_posttool.sh	warn	bundle	Claim-safety reminder after writing a deliverable.
+PostToolUse	Write|Edit|MultiEdit|NotebookEdit	bash	bgc_node_name_guard.sh	warn	bundle	Enforce the BGC node-naming rule on AS-strain BGC files.
+PostToolUse	Write|Edit|MultiEdit|NotebookEdit	bash	md_link_check.sh	warn	bundle	Markdown link check after a write.
+PostToolUse	Write|Edit|MultiEdit|NotebookEdit	bash	bundle_staging_reminder.sh	warn	bundle	Remind to stage workspace hook/tool/registry edits into the bundle patch queue (3x-the Developer or User rule).

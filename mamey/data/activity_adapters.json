@@ -1,0 +1,82 @@
+{
+  "schema_version": "sapote.activity_adapters/1",
+  "_comment": "DECLARED, not BUNDLED. No model weights or third-party runtimes ship in this cut. Every adapter is core_tier_influence=NO: external activity predictions never change ab_score/af_score/ab_recall/af_recall/lead tier/the sealed triage board. Predicted activity is not measured activity. Per the Developer or User's v9.7.348 verdict (2026-08-02).",
+  "cut": "v9.7.348",
+  "governance": "interface/schema only; experimental, non-scoring contract; not an operational feature",
+  "adapters": [
+    {
+      "model_id": "walker_clardy_npfunction",
+      "display_name": "Walker-Clardy Natural-Product-Function",
+      "family": "RF / SVM / logistic ensemble over antiSMASH Pfam/smCOG/CDS-motif + optional CARD-RGI",
+      "primary_reference_doi": "10.1021/acs.jcim.0c01304",
+      "license": "MIT",
+      "upstream_commit": "7f86fbc26db47f741a641d5d23470b45bc9c87af",
+      "disposition": "BEST_FIRST_ADAPTER",
+      "runnable_now": "conditional (pin antiSMASH-8 no-RGI model + environment)",
+      "core_tier_influence": "NO",
+      "caveats": ["AF standalone weak (missing-annotation-as-negative training)", "joblib load only from hashed source", "homolog CV-leakage risk"],
+      "required_provenance": ["model_sha256", "environment_sha256", "feature_schema_sha256", "input_package_sha256"]
+    },
+    {
+      "model_id": "deepbgc_pfam_rf",
+      "display_name": "DeepBGC PFAM random-forest (reimplemented)",
+      "family": "random forest over Pfam presence/absence",
+      "primary_reference_doi": "10.1093/nar/gkz654",
+      "license": "MIT",
+      "upstream_commit": "4cd5bb72c885cb279d360b3cc0afbb14ae14e996",
+      "disposition": "REIMPLEMENT_DO_NOT_SHIP_OBSOLETE_RUNTIME",
+      "runnable_now": "no (legacy Py/TF env obsolete; reimplement with current libs + versioned training ledger)",
+      "core_tier_influence": "NO",
+      "caveats": ["370-cluster MIBiG-1.4 training set", "scores can reflect BGC-class composition"],
+      "required_provenance": ["model_sha256", "environment_sha256", "feature_schema_sha256", "input_package_sha256"]
+    },
+    {
+      "model_id": "npbdetect",
+      "display_name": "NPBDetect v1.1.0",
+      "family": "neural net over 1131 features (715 Pfam + 16 nt k-mer + 400 protein / first-50-CDS)",
+      "primary_reference_doi": "10.1021/acs.jcim.5c00465",
+      "pmid": "40524326",
+      "license": "MIT",
+      "upstream_commit": "073886bd4a3bbe88839a7afa6a1f3bef091be193",
+      "model_version": "1.1.0",
+      "weight_sha256": "102e17c8e582b0045156e9a290c513047725b39d7765ed9329b61e01ee0a900a",
+      "alt_weight_sha256": "96b4ed377941d95d26024901ca15f7ae313e5d99eae63c3cb09eca0bfbd577cb",
+      "scaler_sha256": "de66b3026f1401c742577a580a39bf4b9f5703a0b329dca42bfc9e3e1d1b91db",
+      "architecture_status": "released_fc1_bypass",
+      "disposition": "DO_NOT_ADMIT_PREDICTIONS",
+      "runnable_now": "no (predictions non-admissible: rows must be OUT_OF_DOMAIN/FAILED)",
+      "core_tier_influence": "NO",
+      "required_warning_codes": ["NPB_FC1_BYPASS", "UPSTREAM_EXAMPLE_MISMATCH"],
+      "caveats": ["released fc1/layer1 computed then discarded (perturbation delta 0.0, no gradients)", "checked-in BGC0000004 example does not reproduce (antibacterial 1->0)", "first-50-CDS representation is order/boundary-sensitive", "HC is a display subset of ORG, not a stronger threshold"],
+      "required_provenance": ["input_gbk_sha256", "antismash_version", "model_sha256", "environment_sha256", "feature_schema_sha256", "input_package_sha256"]
+    },
+    {
+      "model_id": "bgc_mlm",
+      "display_name": "BGC-MLM (research-only)",
+      "family": "transformer masked-LM, multi-label sigmoid, 6 bioactivity outputs",
+      "primary_reference_doi": "10.64898/2026.07.05.736569",
+      "license": "MIT (code) / CC-BY (preprint)",
+      "upstream_commit": "1ca3239f48b71432c2ef378fa7edda635e2ddbcb",
+      "checkpoint_sha256": "d47612cb1f9d948888efa548ce14299aef6eb1008119bfde4db1eedd0d3bc8a1",
+      "architecture": "vocab 7204 / d_model 768 / 2 layers / 6 outputs; both transformer layers used; strict-load clean; 7204-token vocab reconstructed from 897008 public training records",
+      "disposition": "RESEARCH_ONLY",
+      "runnable_now": "reproducibly loads/runs, but NOT for AB/AF prioritization",
+      "core_tier_influence": "NO",
+      "caveats": ["padding-sensitive: probability delta up to 0.653 on short/fragment BGCs", "public release omits some parameters + calibrated thresholds", "tokenizer targets older antiSMASH/PFAM conventions", "contig_edge=True regions omitted; over-length handling inconsistent", "uncalibrated on AS/SID cohort"],
+      "required_warning_codes": ["FRAGMENT_UNRELIABLE"],
+      "required_provenance": ["model_sha256", "environment_sha256", "feature_schema_sha256", "input_package_sha256"]
+    },
+    {
+      "model_id": "prism4_qpsar",
+      "display_name": "PRISM 4 QPSAR",
+      "family": "structure-fingerprint SVM (chemistry-informed)",
+      "primary_reference_doi": "10.1038/s41467-020-19986-1",
+      "license": "web-platform terms unresolved",
+      "disposition": "USER_SUPPLIED_ONLY",
+      "runnable_now": "no (do not bundle or automate the web service; ingest user-supplied results only)",
+      "core_tier_influence": "NO",
+      "caveats": ["structure errors propagate into activity", "record structure-confidence + whether AB/AF came from predicted structure vs Pfam baseline"],
+      "required_provenance": ["feature_schema_sha256", "input_package_sha256"]
+    }
+  ]
+}

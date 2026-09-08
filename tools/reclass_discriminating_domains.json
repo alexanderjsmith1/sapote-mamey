@@ -1,0 +1,259 @@
+{
+ "_meta": {
+  "purpose": "Curated discriminating-domain map for mamey reclass-check (lead L1). This is the 'shippable map' the IDEA_BUNDLE_EVALUATED.md requires before reclass-check ships \u2014 the prototype's naive map deliberately exposed false positives (betalactone via generic AMP-binding/Abhydrolase; terpene via domains absent from sec_met_domains). ",
+  "provenance": "Domain sets are the DISCRIMINATING (class-specific) core biosynthetic domains from antiSMASH cluster-definition rules, cross-checked against empirically observed sec_met_domains in a real v9.7.202 sealed cohort package (ids withheld, v9.7.372). Generic/ubiquitous domains (AMP-binding, Abhydrolase, Condensation, PCP, adh_short, NRPS-A_a2, MarR, GerE) are DELIBERATELY EXCLUDED \u2014 they co-occur across many classes and drove the prototype's false positives.",
+  "usage_rules": [
+   "A class is 'domain-supported' only if >=min_domains of its discriminating domains are present.",
+   "Classes flagged require_specific=true must NOT be inferred from generic domains \u2014 only the listed specific ones count.",
+   "Classes with in_sec_met_domains=false (terpene, ectoine, saccharide) are NOT detectable from the per-gene sec_met_domains column; reclass-check must SKIP the 'label lacks domain' check for these to avoid the terpene false-positive, and instead defer to the antiSMASH product label as authoritative.",
+   "single_strain_unreliable=true classes had n=1 in the derivation strain; their empirical domain sets are noise \u2014 use only the canonical listed domains, never auto-derive from one strain."
+  ],
+  "verified_on": "a cohort strain, v9.7.202 engine 1.9.109; false-positive classes (betalactone, terpene-label-lacks) confirmed and suppressed",
+  "false_positive_suppression": [
+   "betalactone: REMOVED as an inferable class \u2014 its antiSMASH rule (AMP-binding + Abhydrolase) is non-discriminating; only trust the explicit antiSMASH label, never infer.",
+   "terpene / terpene-precursor / ectoine / saccharide / oligosaccharide: in_sec_met_domains=false \u2014 the diagnostic terpene-cyclase / ectoine / sugar domains are not surfaced in sec_met_domains, so 'label lacks domain' would false-fire. SKIP domain-check for these."
+  ],
+  "tokenization_caveat": "CRITICAL for patch chat: the per-gene sec_met_domains column uses different domain tokens than antiSMASH's region-classification rules (e.g. class-iii lanthipeptide enzyme tagged 'Pkinase' not 'micKC'; NRPS adenylation tagged 'NRPS-A_a2' not always 'Condensation'). The label_unsupported check is therefore UNRELIABLE for classes whose region-rule marker gets re-tokenized per-gene. Restricted to PKS/siderophore/thiopeptide where markers appear reliably. This is a genuine data-surface finding, not a map bug."
+ },
+ "classes": {
+  "NRPS": {
+   "discriminating_domains": [
+    "Condensation",
+    "AMP-binding",
+    "PCP",
+    "PP-binding",
+    "Cglyc",
+    "Epimerization",
+    "Thioesterase"
+   ],
+   "specific_domains": [
+    "Condensation",
+    "Cglyc",
+    "Epimerization",
+    "NRPS-A_a2",
+    "NRPS-A_a3",
+    "NRPS-A_a4"
+   ],
+   "min_domains": 2,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "note": "Requires >=2 NRPS-A_a*/Condensation domains \u2014 a single adenylation domain is a tailoring/loading module in PKS/terpene clusters, not an undeclared NRPS pathway. Verified: drops BGC029/020/004/036 single-domain FPs."
+  },
+  "T1PKS": {
+   "discriminating_domains": [
+    "PKS_KS",
+    "PKS_AT",
+    "PKSI-KS_m3",
+    "Acyl_transf_1",
+    "Ketoacyl-synt",
+    "mod_KS",
+    "PKSI-KR_m4"
+   ],
+   "specific_domains": [
+    "PKS_KS",
+    "PKS_AT",
+    "PKSI-KS_m3",
+    "Acyl_transf_1"
+   ],
+   "min_domains": 2,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "note": "Verified: 7/7 T1PKS BGCs in the verification strain carry PKS_AT + PKSI-KS_m3 + Acyl_transf_1."
+  },
+  "T2PKS": {
+   "discriminating_domains": [
+    "Polyketide_cyc2",
+    "Anthrone_oxy",
+    "Chal_sti_synt"
+   ],
+   "specific_domains": [
+    "Polyketide_cyc2",
+    "Anthrone_oxy"
+   ],
+   "min_domains": 2,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "single_strain_unreliable": true,
+   "note": "PKSI-KS_m4 REMOVED \u2014 co-occurs in T1PKS, drove FPs on BGC009/018/020/029. Require 2 T2-specific."
+  },
+  "T3PKS": {
+   "discriminating_domains": [
+    "Chal_sti_synt_N",
+    "Chal_sti_synt_C"
+   ],
+   "specific_domains": [
+    "Chal_sti_synt_N",
+    "Chal_sti_synt_C"
+   ],
+   "min_domains": 2,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "single_strain_unreliable": true,
+   "min_domains_rationale": "Both Chal_sti_synt_N and Chal_sti_synt_C are required. A genuine type III PKS carries the paired N- and C-terminal profiles; the thiolase-superfamily fold shared with HMG-CoA synthase fires only the N-terminal profile. Cohort measurement 2026-08-26 over 1575 region GBKs / 39 strains: 55 CDS carry a Chal_sti_synt profile - 31 paired, 18 N-only, 6 C-only, and all 18 N-only sit in regions that call T3PKS. Verified case AS-XXX / NODE_48_length_47999_cov_32.892179 / region001 / BGC028 gene ctg48_4: N-only at E=2e-11 bitscore 35.3, read as HMG-CoA synthase by Swiss-Prot, NCBI nr, smCOG and MIBiG independently. reclass_check is OPERATOR_ONLY: a review prompt, never a reclassification verdict."
+  },
+  "lanthipeptide-class-i": {
+   "discriminating_domains": [
+    "Lant_dehydr_N",
+    "Lant_dehydr_C",
+    "LANC_like",
+    "Lanthipeptide_LanB_RRE",
+    "TIGR03891"
+   ],
+   "specific_domains": [
+    "Lant_dehydr_N",
+    "Lant_dehydr_C",
+    "LANC_like",
+    "Lanthipeptide_LanB_RRE"
+   ],
+   "min_domains": 2,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "note": "Verified: 2/2 class-i BGCs carry the full LanB(split)+LanC set."
+  },
+  "lanthipeptide-class-iii": {
+   "discriminating_domains": [
+    "micKC",
+    "LANC_like",
+    "Pkinase"
+   ],
+   "specific_domains": [
+    "micKC"
+   ],
+   "min_domains": 1,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "note": "micKC is the class-iii-specific kinase/cyclase (BGC039 ctg9_41)."
+  },
+  "lanthipeptide-class-iv": {
+   "discriminating_domains": [
+    "LANC_like",
+    "Pkinase",
+    "Lant_dehydr_N"
+   ],
+   "specific_domains": [],
+   "min_domains": 99,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "note": "LANC_like/Pkinase shared across lanthipeptide classes \u2014 cannot discriminate iv from i/iii on domains alone. Trust antiSMASH label. Set unreachable min to suppress FP."
+  },
+  "thiopeptide": {
+   "discriminating_domains": [
+    "YcaO",
+    "TIGR03604",
+    "TIGR03882",
+    "Thiopeptide_F_RRE",
+    "Lant_dehydr_N",
+    "Lant_dehydr_C"
+   ],
+   "specific_domains": [
+    "Thiopeptide_F_RRE",
+    "TIGR03882"
+   ],
+   "min_domains": 1,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "note": "Thiopeptide_F_RRE + TIGR03882 (docking protein) distinguish thiopeptide from generic azole-RiPP. This is the BGC013/BGC011/BGC038/BGC026 undersell signal."
+  },
+  "azole-containing-RiPP": {
+   "discriminating_domains": [
+    "YcaO",
+    "TIGR03604",
+    "Nitroreductase"
+   ],
+   "specific_domains": [
+    "YcaO",
+    "TIGR03604"
+   ],
+   "min_domains": 1,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "note": "YcaO/TIGR03604 = azoline cyclodehydratase. If Thiopeptide_F_RRE ALSO present, upgrade to thiopeptide."
+  },
+  "lassopeptide": {
+   "discriminating_domains": [
+    "Asn_synthase",
+    "Lasso_Fused_RRE",
+    "PF13471",
+    "Lasso"
+   ],
+   "specific_domains": [
+    "Asn_synthase",
+    "Lasso_Fused_RRE",
+    "Lasso"
+   ],
+   "min_domains": 1,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "single_strain_unreliable": true
+  },
+  "NI-siderophore": {
+   "discriminating_domains": [
+    "IucA_IucC",
+    "FhuF",
+    "Acetyltransf_8"
+   ],
+   "specific_domains": [
+    "IucA_IucC",
+    "FhuF"
+   ],
+   "min_domains": 1,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "note": "Verified: 3/3 NI-siderophore BGCs carry IucA_IucC + FhuF (8% overall \u2014 strongly discriminating)."
+  },
+  "NRP-metallophore": {
+   "discriminating_domains": [
+    "MbtH",
+    "Condensation",
+    "TIGR01733",
+    "Peripla_BP_2"
+   ],
+   "specific_domains": [
+    "MbtH"
+   ],
+   "min_domains": 1,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "note": "MbtH is the metallophore-discriminating marker; the NRPS backbone domains alone are non-discriminating. This fixes the prototype's 'NRP-metallophore label lacks diagnostic domain' flag (which was reading only backbone domains)."
+  },
+  "ranthipeptide": {
+   "discriminating_domains": [
+    "SPASM",
+    "PqqE",
+    "Fer4_12",
+    "TIGR04085"
+   ],
+   "specific_domains": [
+    "SPASM",
+    "TIGR04085"
+   ],
+   "min_domains": 1,
+   "require_specific": true,
+   "in_sec_met_domains": true,
+   "single_strain_unreliable": true,
+   "note": "Per BGCFlow mycofactocin case: ranthipeptide + TIGR03997 (ARTS core model) may actually be mycofactocin \u2014 see motif library IDGMCGVY check."
+  }
+ },
+ "skip_domain_check": {
+  "_comment": "These classes have diagnostic machinery NOT surfaced in sec_met_domains. reclass-check must trust the antiSMASH label for these and NOT flag 'label lacks domain'. This suppresses the terpene/ectoine false-positive family confirmed on AS-XXX.",
+  "classes": [
+   "NAPAA",
+   "NI-siderophore",
+   "RRE-containing",
+   "RiPP-like",
+   "betalactone",
+   "crocagin",
+   "deazapurine",
+   "ectoine",
+   "hglE-KS",
+   "lanthipeptide-class-iii",
+   "lanthipeptide-class-iv",
+   "linaridin",
+   "oligosaccharide",
+   "other",
+   "saccharide",
+   "terpene",
+   "terpene-precursor"
+  ]
+ }
+}

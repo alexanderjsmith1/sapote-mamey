@@ -1,0 +1,203 @@
+{
+  "_comment": "Tailoring-enzyme family registry (VGP-399 card 2/3). data-driven: adding a family is data, not code. `tags` are EXACT sec_met_domain names verified present in this project's real antiSMASH region GBKs (survey 2026-09-01, initial 400-GBK sample, extended 2026-09-01 by a FULL-cohort survey of 16,049 region GBKs in the project corpus); counts in `_seen`. Exact-tag matching only \u2014 substring matching replicates the ks_phylogeny 'pks' bug. length_window = whole-CDS aa sanity bounds (fragment/fusion flags, not biology police). Claim-safety: family membership = capacity context (diagnostic-gene-capacity-not-identity), never a modification claim.",
+  "halogenase": {
+    "tags": [
+      "Trp_halogenase"
+    ],
+    "pfam": [
+      "PF04820"
+    ],
+    "length_window": [
+      300,
+      700
+    ],
+    "_seen": {
+      "Trp_halogenase": 18
+    },
+    "notes": "flavin-dependent tryptophan halogenases; Flavoprotein (PF01494) is halogenase CONTEXT, not membership"
+  },
+  "p450": {
+    "tags": [
+      "p450",
+      "atropopeptide_p450"
+    ],
+    "pfam": [
+      "PF00067"
+    ],
+    "length_window": [
+      300,
+      600
+    ],
+    "_seen": {
+      "p450": 71,
+      "atropopeptide_p450": 2
+    },
+    "notes": "cytochrome P450 oxidative tailoring"
+  },
+  "glycosyltransferase": {
+    "tags": [
+      "Glycos_transf_1",
+      "Glycos_transf_2",
+      "Glycos_transf_4",
+      "MGT"
+    ],
+    "pfam": [
+      "PF00534",
+      "PF00535",
+      "PF13439"
+    ],
+    "length_window": [
+      250,
+      700
+    ],
+    "_seen": {
+      "Glycos_transf_2": 61,
+      "MGT": 32,
+      "Glycos_transf_1": 28,
+      "Glycos_transf_4": 3
+    },
+    "notes": "GT-A/GT-B sugar-transfer tailoring incl. macrolide GTs (MGT)"
+  },
+  "methyltransferase": {
+    "tags": [
+      "Methyltransf_3",
+      "TP_methylase",
+      "Bottromycin_Methyltransferase_RRE"
+    ],
+    "pfam": [
+      "PF13489"
+    ],
+    "length_window": [
+      150,
+      600
+    ],
+    "_seen": {
+      "TP_methylase": 4,
+      "Methyltransf_3": 2,
+      "Bottromycin_Methyltransferase_RRE": 3
+    },
+    "notes": "O-/N-/C-methyltransferases; RiPP MT-RREs kept as their own tag"
+  },
+  "sugar_aminotransferase": {
+    "tags": [
+      "DegT_DnrJ_EryC1",
+      "Aminotran_1_2",
+      "Aminotran_3",
+      "Aminotran_5"
+    ],
+    "pfam": [
+      "PF01041"
+    ],
+    "length_window": [
+      300,
+      600
+    ],
+    "_seen": {
+      "Aminotran_1_2": 40,
+      "DegT_DnrJ_EryC1": 39,
+      "Aminotran_3": 30,
+      "Aminotran_5": 26
+    },
+    "notes": "PLP-dependent aminotransferases incl. the DegT/DnrJ/EryC1 deoxysugar family \u2014 the saccharide-reality-check counterexample class (real deoxysugar tailoring vs housekeeping)"
+  },
+  "monooxygenase": {
+    "tags": [
+      "Orn_monoox",
+      "Lys_monoox"
+    ],
+    "pfam": [
+      "PF13434"
+    ],
+    "length_window": [
+      300,
+      600
+    ],
+    "_seen": {
+      "Orn_monoox": 156,
+      "Lys_monoox": 47
+    },
+    "notes": "N-hydroxylating flavin monooxygenases (ornithine/lysine; siderophore-type tailoring)"
+  },
+  "epimerase": {
+    "tags": [
+      "Epimerase_2"
+    ],
+    "pfam": [
+      "PF02350"
+    ],
+    "length_window": [
+      250,
+      700
+    ],
+    "_seen": {
+      "Epimerase_2": 4
+    },
+    "notes": "sugar epimerases in deoxysugar pathways"
+  },
+  "prenyltransferase": {
+    "tags": [
+      "PT_FPPS_like",
+      "PT_HPP"
+    ],
+    "pfam": [],
+    "length_window": [
+      200,
+      600
+    ],
+    "_seen": {
+      "PT_FPPS_like": 1342,
+      "PT_HPP": 262
+    },
+    "notes": "prenyl-transfer tailoring; PT_phytoene_like deliberately EXCLUDED (phytoene/squalene synthase = terpene CORE, not tailoring)"
+  },
+  "2OG_Fe_oxygenase": {
+    "tags": [
+      "TauD"
+    ],
+    "pfam": [
+      "PF02668"
+    ],
+    "length_window": [
+      200,
+      500
+    ],
+    "_seen": {
+      "TauD": 608
+    },
+    "notes": "2-oxoglutarate/Fe(II)-dependent oxygenases (TauD/TfdA family) \u2014 hydroxylation-type tailoring capacity"
+  },
+  "deoxysugar_reductase": {
+    "tags": [
+      "RmlD_sub_bind"
+    ],
+    "pfam": [
+      "PF04321"
+    ],
+    "length_window": [
+      200,
+      500
+    ],
+    "_seen": {
+      "RmlD_sub_bind": 2988
+    },
+    "notes": "dTDP-sugar reductase/epimerase family (RmlD-like) \u2014 deoxysugar pathway tailoring; pairs with sugar_aminotransferase + epimerase for the saccharide-reality-check read"
+  },
+  "radical_SAM": {
+    "tags": [
+      "triceptide_rSAM",
+      "SAM_SPASM_FxsB",
+      "TIGR04085"
+    ],
+    "pfam": [],
+    "length_window": [
+      200,
+      700
+    ],
+    "_seen": {
+      "triceptide_rSAM": 38,
+      "SAM_SPASM_FxsB": 23,
+      "TIGR04085": 178
+    },
+    "notes": "radical-SAM tailoring (SPASM/twitch incl. TIGR04085 4Fe-4S-binding); RiPP-adjacent but distinct from core maturation. Lant_dehydr_*/YcaO deliberately EXCLUDED \u2014 RiPP core maturation is the UMED scan's territory, not tailoring"
+  }
+}

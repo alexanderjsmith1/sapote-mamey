@@ -1,0 +1,19 @@
+{
+  "hard_excluded": [
+    "AS-920",
+    "AS-921"
+  ],
+  "raw_assembly_void": [
+    "AS-922"
+  ],
+  "strain_of_record": {
+    "AS-922": "synthetic_strain_of_record"
+  },
+  "qc_hold_audit_only": [
+    "AS-923"
+  ],
+  "governed": {
+    "strains": 9,
+    "regions": 99
+  }
+}

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="979" height="126" viewBox="0 0 979 126" font-family="Arial,Helvetica,sans-serif">
+<rect width="979" height="126" fill="#FFFFFF"/>
+<text x="16" y="30" font-size="16" font-weight="bold" fill="#1A2F4A">Sapote–Mamey — workflow status + results (detailed)</text>
+<text x="16" y="48" font-size="10" fill="#666">0 strains · stages = Parse·Scans·RG-GMCI·Boards·ModeB·Banked (left→right) · results from the run · PRIVATE</text>
+<text x="16" y="82" font-size="10" font-weight="bold" fill="#1A2F4A">strain</text>
+<text x="126" y="82" font-size="10" font-weight="bold" fill="#1A2F4A">source file</text>
+<text x="336" y="82" font-size="10" font-weight="bold" fill="#1A2F4A">stages</text>
+<text x="511" y="82" font-size="10" font-weight="bold" fill="#1A2F4A">corr</text>
+<text x="567" y="82" font-size="10" font-weight="bold" fill="#1A2F4A">tier</text>
+<text x="659" y="82" font-size="10" font-weight="bold" fill="#1A2F4A">top AB lead</text>
+<text x="809" y="82" font-size="10" font-weight="bold" fill="#1A2F4A">top AF lead</text>
+</svg>

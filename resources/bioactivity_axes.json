@@ -1,0 +1,149 @@
+{
+  "_comment": "Deterministic chemistry -> bioactivity-axis lookup. Converts 'the model knows nikkomycin/HSAF are antifungal' into a table any runner applies. Matched against (modeb_class + note + KCB anchor), lowercased; axes are checked in the order listed (most specific bioactivity first). Extend the keyword lists rather than relying on a model to recognise a chemistry. KCB anchors are similarity, not identity; axis is a class-level functional hypothesis.",
+  "axes_in_priority_order": [
+    {
+      "axis": "antifungal (Candida)",
+      "rationale": "polyenes, chitin-synthase-inhibitor nucleosides (nikkomycin/polyoxin), and polycyclic tetramate macrolactams (HSAF family) are antifungal even though their class names do not contain 'antifungal'",
+      "keywords": [
+        "antifung",
+        "candida",
+        "polyene",
+        "arylpolyene",
+        "nikkomycin",
+        "polyoxin",
+        "chitin-synthase",
+        "chitin synthase",
+        "hsaf",
+        "heat-stable antifungal",
+        "dihydromaltophilin",
+        "maltophilin",
+        "frontalamide",
+        "ikarugamycin",
+        "clifednamide",
+        "combamide",
+        "alteramide",
+        "polycyclic tetramate",
+        "tetramate macrolactam",
+        "potem",
+        "amphotericin",
+        "nystatin",
+        "pimaricin",
+        "natamycin",
+        "candicidin",
+        "filipin",
+        "fungichromin",
+        "rimocidin",
+        "echinocandin",
+        "pneumocandin",
+        "aculeacin",
+        "sampangine",
+        "griseofulvin",
+        "ambruticin",
+        "jerangolid",
+        "soraphen",
+        "aurafuron",
+        "mediomycin",
+        "eco-02301",
+        "neocidin",
+        "sgr ptm",
+        "ptm compound",
+        "capsimycin",
+        "pactamide",
+        "heronamide"
+      ]
+    },
+    {
+      "axis": "anticancer",
+      "keywords": [
+        "enediyne",
+        "antitumour",
+        "antitumor",
+        "spirotetronate",
+        "spiroteta",
+        "indolocarbazole",
+        "staurosporine",
+        "rebeccamycin",
+        "at2433",
+        "pyrroloindoline",
+        "bleomycin",
+        "mitomycin",
+        "duocarmycin",
+        "anthracycline",
+        "trioxacarcin",
+        "tartrolon",
+        "leinamycin"
+      ]
+    },
+    {
+      "axis": "anti-MRSA / anti-Gram-positive",
+      "keywords": [
+        "mrsa",
+        "merochlorin",
+        "glycopeptide",
+        "vancomycin",
+        "teicoplanin",
+        "anthracimycin",
+        "daptomycin",
+        "pleuromutilin",
+        "mannopeptimycin",
+        "ramoplanin",
+        "friulimicin",
+        "phenazine",
+        "streptophenazine",
+        "lugdunin",
+        "thiopeptide",
+        "lantibiotic",
+        "nisin"
+      ]
+    },
+    {
+      "axis": "antiparasitic",
+      "keywords": [
+        "avermectin",
+        "milbemycin",
+        "ivermectin",
+        "nemadectin",
+        "antiparasit",
+        "parasit"
+      ]
+    },
+    {
+      "axis": "metallophore",
+      "keywords": [
+        "metallophore",
+        "siderophore",
+        "desferrioxamine",
+        "coelibactin",
+        "enterobactin",
+        "yersiniabactin"
+      ]
+    }
+  ],
+  "default_axis": "antibacterial (general)",
+  "compound_rules": [
+    {
+      "id": "nucleoside_chitin_antifungal",
+      "when": "product class includes 'nucleoside' OR CCTT trigger T43-NUC_nucleoside",
+      "and_context": "strain/region carries a chitin-axis marker (CGAD CBM_CHITIN or GlcNAc, or a chitin-synthase/chitinase domain)",
+      "then_axis": "antifungal (Candida)",
+      "label": "chitin-synthase-inhibitor nucleoside (nikkomycin / polyoxin class) \u2014 candidate, verify by HRMS + Candida chitin-synthase panel",
+      "rationale": "the antifungal nucleosides in actinomycetes are the chitin-synthase inhibitors; the KCB anchor is often only a genome match named 'nucleoside' with no compound name, so name-matching fails \u2014 gate on the chitin context instead.",
+      "without_context_axis": "nucleoside-antibiotic candidate (axis uncertain) \u2014 do not default to antibacterial"
+    }
+  ],
+  "_audit_note": "Keywords must match strings antiSMASH/KCB actually emit (genome-match descriptions, MIBiG product fields), NOT textbook chemistry names. Audit new keywords against real anchors before trusting them.",
+  "priority_policy": {
+    "never_drop_axes": [
+      "antifungal (Candida)",
+      "anti-MRSA / anti-Gram-positive",
+      "antibacterial (general)",
+      "nucleoside-antibiotic candidate (axis uncertain)"
+    ],
+    "_never_drop_meaning": "A BGC mapping to any of these axes is ALWAYS delivered in every lead output. If it falls below the top-lead cutoff it is emitted in a 'Low-priority / adjacent' partition, never omitted. No ranking cutoff silently removes a chemistry-relevant lead (this is the BGC008 fix: AF_auto 23.7 dropped it from a top-AF-first list).",
+    "priority_floor": {
+      "nucleoside": "high",
+      "_meaning": "Nucleoside-class BGCs (product 'nucleoside' OR CCTT T43-NUC) are rare and high-value \u2014 chitin-synthase-inhibitor antifungals (nikkomycin/polyoxin) and polar antibiotics. Floor their lead priority to HIGH regardless of AF_auto/AB_auto score. The floor governs RANKING only; the bioactivity AXIS is still set by the gated chitin rule (high priority does not assert antifungal, it asserts 'screen this')."
+    },
+    "af_auto_scorer_rule": "After Lead_tier_auto is assigned: (1) if product is nucleoside/T43-NUC -> Lead_tier_auto = max(current,'High'); (2) when emitting any antifungal or antibacterial track, do NOT truncate at a score cutoff \u2014 partition into 'Primary' (above cutoff) and 'Low-priority / adjacent' (below), so every chemistry-relevant lead is shown."
+  }
+}

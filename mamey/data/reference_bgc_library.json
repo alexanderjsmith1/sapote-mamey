@@ -1,0 +1,2798 @@
+{
+  "schema_version": "1.0",
+  "library_version": "0.10.0",
+  "generated": "2026-06-13",
+  "marker_vocabulary": "mamey CCTT T43-* trigger prefixes (see mamey/mamey_markers.py)",
+  "provenance_legend": {
+    "found_*": "observed (engine)",
+    "class/genus/bioactivity": "seed (curated)",
+    "expected_marker_set": "seed if class-definitional else PENDING_LIT",
+    "mibig_accession/expected_size_kb": "PENDING_LIT (ChatGPT punch card)"
+  },
+  "note": "Seeded from the v9.7.20 validation set. PENDING_LIT fields are filled by the LIT_Reference_Concordance sheet. Genus-targeted toward Nocardia/Actinomadura as references are added.",
+  "entries": [
+    {
+      "compound": "HSAF",
+      "aliases": [
+        "heat-stable antifungal factor",
+        "hsaf"
+      ],
+      "class": "PTM/tetramate-polyketide",
+      "genus": "Lysobacter",
+      "accession": "EF028635",
+      "mibig_accession": "BGC0000999",
+      "expected_size_kb": 20.3,
+      "found_size_kb": 20.3,
+      "found_markers": [
+        "T43-PTM"
+      ],
+      "expected_marker_set": [
+        "T43-PTM"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antifungal",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "PTM-HSAF / tetramic-acid polycyclic macrolactam (hybrid PKS-NRPS)",
+      "core_genes": "hsaf/ord hybrid PKS-NRPS; ox1; ox2; ox3; ox4; sterol desaturase-like; ferredoxin reductase-like; arginase-like",
+      "expected_bioactivity_lit": "antifungal",
+      "source_doi": "10.1128/AAC.00931-06",
+      "gene_symbol_concordance": "5/5",
+      "domain_motif_concordance": "1/1",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "hybrid PKS-NRPS",
+        "ox1",
+        "ox2",
+        "ox3",
+        "ox4",
+        "arginase-like"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; PKS; T1PKS",
+        "pks_ks": 1,
+        "nrps_c": 1,
+        "nrps_a": 1,
+        "markers": [
+          "T43-PTM"
+        ],
+        "size_kb": 20.3,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "nystatin",
+      "aliases": [
+        "nystatin",
+        "nystatin a1"
+      ],
+      "class": "polyene",
+      "genus": "Streptomyces",
+      "accession": "AF263912",
+      "mibig_accession": "BGC0000115",
+      "expected_size_kb": 123.6,
+      "found_size_kb": 123.6,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "antifungal",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "polyene macrolide / polyene",
+      "core_genes": "nysA; nysB; nysC; nysI; nysJ; nysK; nysL; nysN; nysDI; nysDII; nysDIII",
+      "expected_bioactivity_lit": "antifungal",
+      "source_doi": "10.1016/S1074-5521(00)00120-4",
+      "gene_symbol_concordance": "8/8",
+      "domain_motif_concordance": "—",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "nysA",
+        "nysB",
+        "nysC",
+        "nysI",
+        "nysL",
+        "nysDI",
+        "nysDII",
+        "nysDIII"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS; saccharide",
+        "pks_ks": 19,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 123.6,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "candicidin",
+      "aliases": [
+        "candicidin"
+      ],
+      "class": "polyene",
+      "genus": "Streptomyces",
+      "accession": "MH400164",
+      "mibig_accession": "BGC0000034",
+      "expected_size_kb": 138.2,
+      "found_size_kb": 185.8,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "antifungal",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "polyene macrolide / aromatic heptaene",
+      "core_genes": "fscA; fscB; fscC; fscD; fscE; fscF; fscMI; fscMII; fscMIII; fscP; pabAB; pabC",
+      "expected_bioactivity_lit": "antifungal",
+      "source_doi": "10.1016/j.chembiol.2003.10.007",
+      "gene_symbol_concordance": "0/8",
+      "domain_motif_concordance": "—",
+      "hard_scan_verdict": "WEAK",
+      "augment_flag": "gene-symbol-only LIT set + WEAK match — add domain/motif markers (biology present, symbols diverge)",
+      "lit_diagnostic_genes": [
+        "fscA",
+        "fscB",
+        "fscC",
+        "fscD",
+        "fscE",
+        "fscF",
+        "fscMIII",
+        "fscP"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS",
+        "pks_ks": 54,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 185.8,
+        "edge": "Interior"
+      }
+    },
+    {
+      "compound": "C-1027",
+      "aliases": [
+        "c-1027"
+      ],
+      "class": "enediyne",
+      "genus": "Streptomyces",
+      "accession": "KU597647",
+      "mibig_accession": "BGC0001584",
+      "expected_size_kb": 73.1,
+      "found_size_kb": 73.1,
+      "found_markers": [
+        "T43-ENE",
+        "T43-HAL"
+      ],
+      "expected_marker_set": [
+        "T43-ENE",
+        "T43-HAL"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "cytotoxic/antitumor",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "enediyne antitumor antibiotic",
+      "core_genes": "enediyne PKS cassette (E/E3/E4/E5/E10 homologs); apoprotein; C-methyltransferase; epoxide hydrolase; anthranilate synthase I/II; chlorophenol monooxygenase/halogenating tailoring; glycosyltransferase; beta-amino-acid NRPS-like tailoring genes",
+      "expected_bioactivity_lit": "cytotoxic / antitumor; antibacterial at extract level",
+      "source_doi": "10.1128/mBio.02104-16",
+      "gene_symbol_concordance": "—",
+      "domain_motif_concordance": "4/5",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "enediyne PKS",
+        "E3/E4/E5/E10 accessory cassette",
+        "apoprotein",
+        "halogenating/monooxygenase tailoring",
+        "glycosyltransferase"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; PKS; T1PKS; halogenated; other; saccharide",
+        "pks_ks": 1,
+        "nrps_c": 1,
+        "nrps_a": 3,
+        "markers": [
+          "T43-ENE",
+          "T43-HAL"
+        ],
+        "size_kb": 73.1,
+        "edge": "Full-contig"
+      },
+      "marker_divergence_note": "RESOLVED 2026-06-14: scan T43-HAL confirmed real. The C-1027 BGC encodes a halogenase (sgcC3) that chlorinates the (S)-3-chloro-beta-tyrosine unit of the enediyne chromophore; expected_marker_set widened to include T43-HAL."
+    },
+    {
+      "compound": "streptothricin",
+      "aliases": [
+        "streptothricin",
+        "streptothricin f"
+      ],
+      "class": "streptothricin",
+      "genus": "Streptomyces",
+      "accession": "AB684619",
+      "mibig_accession": "BGC0000432",
+      "expected_size_kb": 34.1,
+      "found_size_kb": 34.1,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "antibacterial",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "streptothricin / nucleoside-beta-lysine peptide antibiotic",
+      "core_genes": "streptothricin acetyltransferase; stand-alone adenylation domain ORF5; ORF18 PCP-C didomain; ORF19 stand-alone adenylation domain; carbamoyltransferase; glycosyltransferase; PLP aminotransferase; oxidoreductase",
+      "expected_bioactivity_lit": "antibacterial",
+      "source_doi": "10.1038/nchembio.1040",
+      "gene_symbol_concordance": "—",
+      "domain_motif_concordance": "5/5",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "ORF5 A-domain",
+        "ORF18 PCP-C",
+        "ORF19 A-domain",
+        "streptothricin acetyltransferase",
+        "carbamoyltransferase"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like; saccharide",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 3,
+        "markers": [],
+        "size_kb": 34.1,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "notonesomycin A",
+      "aliases": [
+        "notonesomycin a"
+      ],
+      "class": "oligosaccharide-macrolide",
+      "genus": "Streptomyces",
+      "accession": "MN586816",
+      "mibig_accession": "BGC0002541",
+      "expected_size_kb": 153.2,
+      "found_size_kb": 153.2,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "antibacterial",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "32-membered glycosylated macrolactone / type I PKS",
+      "core_genes": "Nbc modular type I PKS genes; nbc20; nbc21; nbc48 sulfotransferase; glycosyltransferase; cytochrome P450; acyl-CoA-carboxylase/extender-unit genes; thioesterase; nbc14 SARP regulator",
+      "expected_bioactivity_lit": "antifungal",
+      "source_doi": "10.1186/s12934-020-01328-x",
+      "gene_symbol_concordance": "—",
+      "domain_motif_concordance": "4/5",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "type I modular PKS",
+        "glycosyltransferase",
+        "nbc48 sulfotransferase",
+        "P450 oxygenase",
+        "thioesterase"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS; saccharide",
+        "pks_ks": 19,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 153.2,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "nostophycin",
+      "aliases": [
+        "nostophycin"
+      ],
+      "class": "NRPS-PKS (cyanobacterial)",
+      "genus": "Nostoc",
+      "accession": "KP761740",
+      "mibig_accession": "BGC0001029",
+      "expected_size_kb": 55.5,
+      "found_size_kb": 46.0,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "cytotoxic",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "cyclic lipopeptide / hybrid PKS-NRPS",
+      "core_genes": "canonical MIBiG reference locus is JF430079.1, not KP761740; npnA hybrid PKS/NRPS; npnB hybrid PKS/NRPS; npnC NRPS",
+      "expected_bioactivity_lit": "cytotoxic / cyanobacterial peptide bioactivity",
+      "source_doi": "10.1128/AEM.05993-11",
+      "gene_symbol_concordance": "0/3",
+      "domain_motif_concordance": "2/2",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "npnA",
+        "npnB",
+        "npnC",
+        "PKS KS/AT/ACP domains",
+        "NRPS A/C/E domains"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; PKS; T1PKS",
+        "pks_ks": 1,
+        "nrps_c": 3,
+        "nrps_a": 3,
+        "markers": [],
+        "size_kb": 46.0,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "pekiskomycin",
+      "aliases": [
+        "pekiskomycin"
+      ],
+      "class": "glycopeptide",
+      "genus": "Streptomyces",
+      "accession": "KC688274",
+      "mibig_accession": "BGC0003168",
+      "expected_size_kb": 85.7,
+      "found_size_kb": 69.0,
+      "found_markers": [
+        "T43-HAL"
+      ],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "antibacterial",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "glycopeptide antibiotic",
+      "core_genes": "pek18 NRPS modules 1-3; pek20 NRPS modules 4-6; pek21 NRPS module 7; pek23/pek24/pek26 P450/monooxygenases; pek25 sulfotransferase; pek27 halogenase; pek28 glycosyltransferase; pek30 N-methyltransferase; pek31/pek35/pek37 aromatic amino-acid precursor genes",
+      "expected_bioactivity_lit": "antibacterial",
+      "source_doi": "10.1038/nbt.2685",
+      "gene_symbol_concordance": "0/4",
+      "domain_motif_concordance": "3/3",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "pek18",
+        "pek20",
+        "pek21",
+        "pek23/pek24/pek26 oxygenases",
+        "pek27 halogenase",
+        "pek28 glycosyltransferase",
+        "pek25 sulfotransferase"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like; PKS; T3PKS; halogenated; other; saccharide",
+        "pks_ks": 0,
+        "nrps_c": 6,
+        "nrps_a": 8,
+        "markers": [
+          "T43-HAL"
+        ],
+        "size_kb": 69.0,
+        "edge": "Full-contig"
+      },
+      "marker_divergence_note": "PENDING 2026-06-14: scan fired T43-HAL; curator listed none. Halogenation not confirmed from available evidence — held as candidate false-positive awaiting literature/wet confirmation; expected_marker_set unchanged. Claim-safe: not asserted non-halogenated."
+    },
+    {
+      "compound": "ibomycin",
+      "aliases": [
+        "ibomycin"
+      ],
+      "class": "macrolide-polyketide",
+      "genus": "Streptomyces",
+      "accession": "KJ159185",
+      "mibig_accession": "BGC0001619",
+      "expected_size_kb": 146.4,
+      "found_size_kb": 145.2,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "UNRESOLVED",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "complex glycosylated macrolactone / type I PKS",
+      "core_genes": "ibomycin BGC is marked partial in MIBiG; modular PKS core including ibo19/PKS annotation; glycosyltransferase(s); P450/oxygenase tailoring; methyltransferase; acyltransferase/extender-unit genes; thioesterase",
+      "expected_bioactivity_lit": "antifungal (Cryptococcus neoformans) / membrane-trafficking phenotype",
+      "source_doi": "10.1016/j.chembiol.2016.08.015",
+      "gene_symbol_concordance": "—",
+      "domain_motif_concordance": "5/6",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "modular type I PKS",
+        "ibo19/PKS marker",
+        "glycosyltransferase",
+        "P450/oxygenase",
+        "methyltransferase",
+        "thioesterase"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS; oligosaccharide; saccharide",
+        "pks_ks": 18,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 145.2,
+        "edge": "Interior"
+      }
+    },
+    {
+      "compound": "A54145",
+      "aliases": [
+        "a54145"
+      ],
+      "class": "lipopeptide",
+      "genus": "Streptomyces",
+      "accession": "A54145",
+      "mibig_accession": "BGC0000291",
+      "expected_size_kb": 126.9,
+      "found_size_kb": 90.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "antibacterial",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "calcium-dependent acidic lipopeptide / NRPS",
+      "core_genes": "lptEF acyl-CoA ligase; lptA; lptB; lptC; lptD; lptH thioesterase; lptK O-methyltransferase; lptI methyltransferase; lptM/lptN ABC transporter",
+      "expected_bioactivity_lit": "antibacterial (Gram-positive)",
+      "source_doi": "10.1007/s10295-005-0028-5",
+      "gene_symbol_concordance": "0/7",
+      "domain_motif_concordance": "—",
+      "hard_scan_verdict": "WEAK",
+      "augment_flag": "gene-symbol-only LIT set + WEAK match — add domain/motif markers (biology present, symbols diverge)",
+      "lit_diagnostic_genes": [
+        "lptEF",
+        "lptA",
+        "lptB",
+        "lptC",
+        "lptD",
+        "lptH",
+        "lptK"
+      ]
+    },
+    {
+      "compound": "A-94964",
+      "aliases": [
+        "a-94964"
+      ],
+      "class": "polyketide (detail UNRESOLVED)",
+      "genus": "Streptomyces",
+      "accession": "LC431526",
+      "mibig_accession": "BGC0001927",
+      "expected_size_kb": 27.7,
+      "found_size_kb": 27.7,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "antibacterial",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "nucleoside antibiotic / uridine-derived PKS-nucleoside",
+      "core_genes": "anb1 dehydrogenase; anb2 FAD monooxygenase; anb6-anb9 type I PKS genes; anb11 aminoglycoside phosphotransferase; anb13 deacetylase; anb14 methyltransferase; anb15 glycosyltransferase; sulfotransferase; PAPS 3'-phosphatase",
+      "expected_bioactivity_lit": "antibacterial",
+      "source_doi": "10.1039/C8OB02765J",
+      "gene_symbol_concordance": "0/7",
+      "domain_motif_concordance": "1/1",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "anb6",
+        "anb7",
+        "anb8",
+        "anb9",
+        "anb2",
+        "anb14",
+        "anb15",
+        "sulfotransferase"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS; T3PKS",
+        "pks_ks": 2,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 27.7,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "lipopeptide 8D1",
+      "aliases": [
+        "lipopeptide 8d1",
+        "lipopeptide 8d1-1"
+      ],
+      "class": "lipopeptide",
+      "genus": "Streptomyces",
+      "accession": "KT362047",
+      "mibig_accession": "BGC0001370",
+      "expected_size_kb": 79.9,
+      "found_size_kb": 77.4,
+      "found_markers": [
+        "T43-HAL"
+      ],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "UNRESOLVED",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "linear lipopeptide / NRPS",
+      "core_genes": "cda2PSI; cda2PS2; cda2PS3; MbtH-like protein; aminotransferase; oxidase/oxygenase; KASIII; KASII; acyl-CoA oxidase; ACP",
+      "expected_bioactivity_lit": "antibacterial / bioactive lipopeptide (functional genome mining)",
+      "source_doi": "10.1128/AEM.01383-16",
+      "gene_symbol_concordance": "0/3",
+      "domain_motif_concordance": "4/4",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "cda2PSI",
+        "cda2PS2",
+        "cda2PS3",
+        "NRPS A/C/T domains",
+        "KASII/KASIII",
+        "ACP",
+        "acyl-CoA oxidase"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; fatty_acid; other; polyhalogenated-pyrrole",
+        "pks_ks": 1,
+        "nrps_c": 11,
+        "nrps_a": 11,
+        "markers": [
+          "T43-HAL"
+        ],
+        "size_kb": 77.4,
+        "edge": "Full-contig"
+      },
+      "marker_divergence_note": "PENDING 2026-06-14: scan fired T43-HAL; curator listed none. Halogenation not confirmed from available evidence — held as candidate false-positive awaiting literature/wet confirmation; expected_marker_set unchanged. Claim-safe: not asserted non-halogenated."
+    },
+    {
+      "compound": "pacidamycin",
+      "aliases": [
+        "pacidamycin",
+        "pacidamycin 1"
+      ],
+      "class": "nucleoside-peptide (antibacterial)",
+      "genus": "Streptomyces",
+      "accession": "GU938463",
+      "mibig_accession": "BGC0000951",
+      "expected_size_kb": 30.3,
+      "found_size_kb": 32.2,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "antibacterial",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "nucleoside-AF / uridyl peptide antibiotic",
+      "core_genes": "canonical MIBiG locus is HM855229.1; user GU938463 is the Rackham pacidamycin cluster; pacD condensation; pacE aminotransferase; pacF Fe(II)/2OG oxygenase; pacH thiolation; pacI condensation; pacL/pacN/pacP peptide synthetases; pacO/pacU adenylases; pacV methyltransferase",
+      "expected_bioactivity_lit": "antibacterial (translocase I/MraY inhibitor)",
+      "source_doi": "10.1002/cbic.201000200",
+      "gene_symbol_concordance": "0/8",
+      "domain_motif_concordance": "—",
+      "hard_scan_verdict": "WEAK",
+      "augment_flag": "gene-symbol-only LIT set + WEAK match — add domain/motif markers (biology present, symbols diverge)",
+      "lit_diagnostic_genes": [
+        "pacD",
+        "pacH",
+        "pacI",
+        "pacL",
+        "pacN",
+        "pacP",
+        "pacO/pacU",
+        "pacV"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like",
+        "pks_ks": 0,
+        "nrps_c": 2,
+        "nrps_a": 4,
+        "markers": [],
+        "size_kb": 32.2,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "corallopyronin",
+      "aliases": [
+        "corallopyronin"
+      ],
+      "class": "alpha-pyrone (RNAP inhibitor)",
+      "genus": "Corallococcus",
+      "accession": "HM071004",
+      "mibig_accession": "BGC0001091",
+      "expected_size_kb": 79.4,
+      "found_size_kb": 79.4,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "antibacterial",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "alpha-pyrone / trans-AT PKS-NRPS hybrid",
+      "core_genes": "corA; corB; corC; corD; corE; corF; corG; corH; corI; corJ; corK; corL",
+      "expected_bioactivity_lit": "antibacterial (RNA polymerase inhibitor)",
+      "source_doi": "10.1002/cbic.201000085",
+      "gene_symbol_concordance": "1/1",
+      "domain_motif_concordance": "1/3",
+      "hard_scan_verdict": "WEAK",
+      "lit_diagnostic_genes": [
+        "corI loading module",
+        "corJ/corK/corL trans-AT PKS-NRPS assembly",
+        "beta-branching cassette",
+        "corA-corF tailoring"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like; PKS; PKS-like; fatty_acid; other; transAT-PKS",
+        "pks_ks": 14,
+        "nrps_c": 0,
+        "nrps_a": 1,
+        "markers": [],
+        "size_kb": 79.4,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "monensin",
+      "aliases": [
+        "monensin"
+      ],
+      "class": "polyether ionophore",
+      "genus": "Streptomyces",
+      "accession": "AF440781",
+      "mibig_accession": "BGC0000100",
+      "expected_size_kb": 97.0,
+      "found_size_kb": 103.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "ionophore",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "polyether ionophore / type I PKS",
+      "core_genes": "monAI-monAVIII modular PKS; monAIX; monAX; monBI; monBII; monCI; monCII; monT exporter",
+      "expected_bioactivity_lit": "ionophore; antibacterial/anticoccidial",
+      "source_doi": "10.1046/j.1365-2958.2003.03571.x",
+      "gene_symbol_concordance": "0/5",
+      "domain_motif_concordance": "1/1",
+      "hard_scan_verdict": "STRONG",
+      "lit_diagnostic_genes": [
+        "monAI-monAVIII PKS",
+        "monBI",
+        "monBII",
+        "monCI",
+        "monCII",
+        "monT"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS",
+        "pks_ks": 14,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 103.5,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "A23187",
+      "aliases": [
+        "a23187"
+      ],
+      "class": "ionophore (benzoxazole)",
+      "genus": "Streptomyces",
+      "accession": "HM452329",
+      "mibig_accession": "BGC0000032",
+      "expected_size_kb": 68.3,
+      "found_size_kb": 68.3,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "lit_genes_separate",
+      "expected_bioactivity": "ionophore",
+      "source": "validation_set_v9.7.20",
+      "class_lit": "pyrrole polyether ionophore (calcimycin/A23187)",
+      "core_genes": "cal modular type I PKS genes; CoA ligase; oxidoreductase; pyrrole-forming enzymes; epoxidase/cyclase tailoring; P450/oxygenases; transport/resistance genes",
+      "expected_bioactivity_lit": "ionophore (divalent-cation); antibacterial/cytotoxic assay uses",
+      "source_doi": "10.1128/AAC.01130-10",
+      "gene_symbol_concordance": "—",
+      "domain_motif_concordance": "2/5",
+      "hard_scan_verdict": "MODERATE",
+      "lit_diagnostic_genes": [
+        "cal type I PKS",
+        "pyrrole-forming gene set",
+        "epoxidase/cyclase",
+        "P450/oxygenase",
+        "ionophore tailoring genes"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS",
+        "pks_ks": 7,
+        "nrps_c": 0,
+        "nrps_a": 2,
+        "markers": [],
+        "size_kb": 68.3,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "nocardicin",
+      "aliases": [
+        "nocardicin",
+        "nocardicin a"
+      ],
+      "class": "beta-lactam (monocyclic)",
+      "genus": "Nocardia",
+      "accession": "AY541063",
+      "mibig_accession": "PENDING_LIT",
+      "expected_size_kb": null,
+      "found_size_kb": 33.5,
+      "found_markers": [
+        "T43-BLA"
+      ],
+      "expected_marker_set": [
+        "T43-BLA"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antibacterial",
+      "source": "validation_set_v9.7.20",
+      "architecture_signature": {
+        "region": "NRPS",
+        "pks_ks": 0,
+        "nrps_c": 4,
+        "nrps_a": 5,
+        "markers": [
+          "T43-BLA"
+        ],
+        "size_kb": 33.5,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "albonoursin",
+      "aliases": [
+        "albonoursin"
+      ],
+      "class": "diketopiperazine / CDPS",
+      "genus": "Streptomyces",
+      "accession": "BGC0000851",
+      "mibig_accession": "BGC0000851",
+      "expected_size_kb": 4.5,
+      "found_size_kb": 4.5,
+      "found_markers": [
+        "T43-DKP"
+      ],
+      "expected_marker_set": [
+        "T43-DKP"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antibacterial/antifungal",
+      "core_genes": "albA; albB; albC; albD",
+      "source": "reference_BGC0000851",
+      "gene_symbol_concordance": "n/a",
+      "domain_motif_concordance": "T43-DKP present",
+      "hard_scan_verdict": "STRONG",
+      "note": "CDPS-diketopiperazine class anchor; photopiperazine (AJS-XXX BGC001) is the same class via T43-DKP",
+      "lit_diagnostic_genes": [
+        "T43-DKP",
+        "CDPS (albC)",
+        "cyclodipeptide oxidase (albA/albB)"
+      ],
+      "architecture_signature": {
+        "region": "CDPS; NRPS",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-DKP"
+        ],
+        "size_kb": 4.5,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "ionostatin",
+      "aliases": [
+        "ionostatin"
+      ],
+      "class": "linear polyether polyketide",
+      "genus": "Streptomycetaceae (AJS-XXX)",
+      "accession": "BGC0002446",
+      "mibig_accession": "BGC0002446",
+      "expected_size_kb": 101.1,
+      "found_size_kb": 101.1,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "cytotoxic",
+      "source": "reference_BGC0002446",
+      "architecture_signature": {
+        "region": "PKS; T1PKS",
+        "pks_ks": 16,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 101.1,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "violacein",
+      "aliases": [
+        "violacein"
+      ],
+      "class": "bisindole pigment",
+      "genus": "Chromobacterium/Streptomyces",
+      "accession": "BGC0000830",
+      "mibig_accession": "BGC0000830",
+      "expected_size_kb": 8.3,
+      "found_size_kb": 8.3,
+      "found_markers": [
+        "T43-HAL",
+        "T43-IDC"
+      ],
+      "expected_marker_set": [
+        "T43-HAL",
+        "T43-IDC"
+      ],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antibacterial/antifungal",
+      "source": "reference_BGC0000830",
+      "architecture_signature": {
+        "region": "indole; other",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-HAL",
+          "T43-IDC"
+        ],
+        "size_kb": 8.3,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "tetrachlorizine",
+      "aliases": [
+        "tetrachlorizine"
+      ],
+      "class": "polyhalogenated-pyrrole PKS",
+      "genus": "Streptomycetaceae (AJS-XXX)",
+      "accession": "BGC0002096",
+      "mibig_accession": "BGC0002096",
+      "expected_size_kb": 53.7,
+      "found_size_kb": 53.7,
+      "found_markers": [
+        "T43-HAL"
+      ],
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "marker_set_source": "none",
+      "expected_bioactivity": "UNRESOLVED",
+      "source": "reference_BGC0002096",
+      "architecture_signature": {
+        "region": "PKS; T1PKS; other; polyhalogenated-pyrrole",
+        "pks_ks": 4,
+        "nrps_c": 0,
+        "nrps_a": 1,
+        "markers": [
+          "T43-HAL"
+        ],
+        "size_kb": 53.7,
+        "edge": "Edge"
+      }
+    },
+    {
+      "compound": "marinoterpin",
+      "aliases": [
+        "marinoterpin"
+      ],
+      "class": "merosesterterpenoid (terpene+TII-PKS)",
+      "genus": "Streptomycetaceae (AJS-XXX)",
+      "accession": "BGC0002372",
+      "mibig_accession": "BGC0002372",
+      "expected_size_kb": 22.9,
+      "found_size_kb": 22.9,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "UNRESOLVED",
+      "source": "reference_BGC0002372",
+      "architecture_signature": {
+        "region": "unknown",
+        "pks_ks": 2,
+        "nrps_c": 0,
+        "nrps_a": 1,
+        "markers": [],
+        "size_kb": 22.9,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "actinorhodin",
+      "aliases": [
+        "actinorhodin"
+      ],
+      "class": "aromatic type II PKS (benzoisochromanequinone)",
+      "genus": "Streptomyces",
+      "accession": "BGC0000194",
+      "mibig_accession": "BGC0000194",
+      "expected_size_kb": 72.6,
+      "found_size_kb": 72.6,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antibacterial",
+      "source": "reference_BGC0000194",
+      "architecture_signature": {
+        "region": "PKS; T2PKS",
+        "pks_ks": 2,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 72.6,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "pradimicin",
+      "aliases": [
+        "pradimicin"
+      ],
+      "class": "aromatic type II PKS (benzonaphthacenequinone)",
+      "genus": "Actinomadura",
+      "accession": "BGC0000256",
+      "mibig_accession": "BGC0000256",
+      "expected_size_kb": 37.1,
+      "found_size_kb": 37.1,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antifungal",
+      "source": "reference_BGC0000256",
+      "architecture_signature": {
+        "region": "PKS; T2PKS",
+        "pks_ks": 2,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 37.1,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "fluviricin B2",
+      "aliases": [
+        "fluviricin b2"
+      ],
+      "class": "macrolactam polyketide",
+      "genus": "Actinomadura",
+      "accession": "BGC0001597",
+      "mibig_accession": "BGC0001597",
+      "expected_size_kb": 71.5,
+      "found_size_kb": 71.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antifungal/antiviral",
+      "source": "reference_BGC0001597",
+      "architecture_signature": {
+        "region": "PKS; T1PKS; transAT-PKS",
+        "pks_ks": 5,
+        "nrps_c": 0,
+        "nrps_a": 2,
+        "markers": [],
+        "size_kb": 71.5,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "fogacin",
+      "aliases": [
+        "fogacin"
+      ],
+      "class": "aromatic type II PKS (angucycline-related)",
+      "genus": "Actinomadura",
+      "accession": "BGC0002021",
+      "mibig_accession": "BGC0002021",
+      "expected_size_kb": 72.5,
+      "found_size_kb": 72.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antibacterial",
+      "source": "reference_BGC0002021",
+      "architecture_signature": {
+        "region": "PKS; PKS-like; T2PKS",
+        "pks_ks": 5,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 72.5,
+        "edge": "Edge"
+      }
+    },
+    {
+      "compound": "maduralactomycin",
+      "aliases": [
+        "maduralactomycin"
+      ],
+      "class": "aromatic type II PKS (polycyclic)",
+      "genus": "Actinomadura",
+      "accession": "BGC0002369",
+      "mibig_accession": "BGC0002369",
+      "expected_size_kb": 72.5,
+      "found_size_kb": 72.5,
+      "found_markers": [
+        "T43-HAL"
+      ],
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antibacterial",
+      "source": "reference_BGC0002369",
+      "architecture_signature": {
+        "region": "PKS; T2PKS",
+        "pks_ks": 2,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-HAL"
+        ],
+        "size_kb": 72.5,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "nocathiacin",
+      "aliases": [
+        "nocathiacin"
+      ],
+      "class": "thiopeptide RiPP",
+      "genus": "Nocardia",
+      "accession": "BGC0000609",
+      "mibig_accession": "BGC0000609",
+      "expected_size_kb": 45.6,
+      "found_size_kb": 45.6,
+      "found_markers": [
+        "T43-LAN",
+        "T43-TET",
+        "T43-THA"
+      ],
+      "expected_marker_set": [
+        "T43-LAN",
+        "T43-TET",
+        "T43-THA"
+      ],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antibacterial",
+      "source": "reference_BGC0000609",
+      "architecture_signature": {
+        "region": "RiPP; azole-containing-RiPP",
+        "pks_ks": 1,
+        "nrps_c": 0,
+        "nrps_a": 1,
+        "markers": [
+          "T43-LAN",
+          "T43-TET",
+          "T43-THA"
+        ],
+        "size_kb": 45.6,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "terpenomycin",
+      "aliases": [
+        "terpenomycin"
+      ],
+      "class": "trans-AT PKS macrolactone",
+      "genus": "Nocardia",
+      "accession": "BGC0002816",
+      "mibig_accession": "BGC0002816",
+      "expected_size_kb": 94.2,
+      "found_size_kb": 94.2,
+      "found_markers": [
+        "T43-TET"
+      ],
+      "expected_marker_set": [
+        "T43-TET"
+      ],
+      "marker_set_source": "none",
+      "expected_bioactivity": "UNRESOLVED",
+      "source": "reference_BGC0002816",
+      "architecture_signature": {
+        "region": "PKS; T1PKS; transAT-PKS",
+        "pks_ks": 15,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-TET"
+        ],
+        "size_kb": 94.2,
+        "edge": "Interior"
+      }
+    },
+    {
+      "compound": "nocapeptin",
+      "aliases": [
+        "nocapeptin"
+      ],
+      "class": "lasso peptide RiPP",
+      "genus": "Nocardia",
+      "accession": "BGC0002825",
+      "mibig_accession": "BGC0002825",
+      "expected_size_kb": 25.4,
+      "found_size_kb": 25.4,
+      "found_markers": [
+        "T43-LASSO"
+      ],
+      "expected_marker_set": [
+        "T43-LASSO"
+      ],
+      "marker_set_source": "none",
+      "expected_bioactivity": "UNRESOLVED",
+      "source": "reference_BGC0002825",
+      "architecture_signature": {
+        "region": "RiPP; lassopeptide",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-LASSO"
+        ],
+        "size_kb": 25.4,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "aranciamycin",
+      "aliases": [
+        "aranciamycin"
+      ],
+      "class": "aromatic type II PKS (anthracycline)",
+      "genus": "Streptomyces",
+      "accession": "BGC0000197",
+      "mibig_accession": "BGC0000197",
+      "expected_size_kb": 35.9,
+      "found_size_kb": 35.9,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antibacterial",
+      "source": "reference_BGC0000197",
+      "architecture_signature": {
+        "region": "PKS; T2PKS",
+        "pks_ks": 2,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 35.9,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "auricin",
+      "aliases": [
+        "auricin"
+      ],
+      "class": "aromatic type II PKS (angucycline)",
+      "genus": "Streptomyces",
+      "accession": "BGC0000201",
+      "mibig_accession": "BGC0000201",
+      "expected_size_kb": 72.5,
+      "found_size_kb": 72.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antibacterial",
+      "source": "reference_BGC0000201",
+      "architecture_signature": {
+        "region": "PKS; T2PKS",
+        "pks_ks": 2,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 72.5,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "viguiepinol",
+      "aliases": [
+        "viguiepinol"
+      ],
+      "class": "diterpenoid (terpene + T3PKS)",
+      "genus": "Streptomyces",
+      "accession": "BGC0000286",
+      "mibig_accession": "BGC0000286",
+      "expected_size_kb": 19.5,
+      "found_size_kb": 19.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "UNRESOLVED",
+      "provenance_note": "",
+      "source": "reference_BGC0000286",
+      "architecture_signature": {
+        "region": "PKS; T3PKS; terpene",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 19.5,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "lichenysin",
+      "aliases": [
+        "lichenysin"
+      ],
+      "class": "cyclic lipopeptide (surfactin family)",
+      "genus": "Bacillus",
+      "accession": "BGC0000381",
+      "mibig_accession": "BGC0000381",
+      "expected_size_kb": 65.4,
+      "found_size_kb": 65.4,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antibacterial/surfactant",
+      "provenance_note": "",
+      "source": "reference_BGC0000381",
+      "architecture_signature": {
+        "region": "NRPS",
+        "pks_ks": 0,
+        "nrps_c": 7,
+        "nrps_a": 7,
+        "markers": [],
+        "size_kb": 65.4,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "pseudomonine",
+      "aliases": [
+        "pseudomonine"
+      ],
+      "class": "siderophore (salicylate NRPS)",
+      "genus": "Pseudomonas",
+      "accession": "BGC0000410",
+      "mibig_accession": "BGC0000410",
+      "expected_size_kb": 16.0,
+      "found_size_kb": 16.0,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "siderophore",
+      "provenance_note": "",
+      "source": "reference_BGC0000410",
+      "architecture_signature": {
+        "region": "NRP-metallophore; NRPS",
+        "pks_ks": 0,
+        "nrps_c": 2,
+        "nrps_a": 1,
+        "markers": [],
+        "size_kb": 16.0,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "scabichelin",
+      "aliases": [
+        "scabichelin"
+      ],
+      "class": "siderophore (hydroxamate NRPS)",
+      "genus": "Streptomyces",
+      "accession": "BGC0000423",
+      "mibig_accession": "BGC0000423",
+      "expected_size_kb": 65.1,
+      "found_size_kb": 65.1,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none",
+      "expected_bioactivity": "siderophore",
+      "provenance_note": "",
+      "source": "reference_BGC0000423",
+      "architecture_signature": {
+        "region": "NRP-metallophore; NRPS",
+        "pks_ks": 0,
+        "nrps_c": 4,
+        "nrps_a": 5,
+        "markers": [],
+        "size_kb": 65.1,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "teicoplanin",
+      "aliases": [
+        "teicoplanin"
+      ],
+      "class": "glycopeptide",
+      "genus": "Actinoplanes",
+      "accession": "BGC0000440",
+      "mibig_accession": "BGC0000440",
+      "expected_size_kb": 89.7,
+      "found_size_kb": 89.7,
+      "found_markers": [
+        "T43-HAL"
+      ],
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antibacterial",
+      "provenance_note": "",
+      "source": "reference_BGC0000440",
+      "architecture_signature": {
+        "region": "NRPS; PKS; T3PKS",
+        "pks_ks": 0,
+        "nrps_c": 6,
+        "nrps_a": 7,
+        "markers": [
+          "T43-HAL"
+        ],
+        "size_kb": 89.7,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "loonamycin",
+      "aliases": [
+        "loonamycin"
+      ],
+      "class": "indolocarbazole alkaloid",
+      "genus": "Nocardiopsis",
+      "accession": "BGC0002460",
+      "mibig_accession": "BGC0002460",
+      "expected_size_kb": 44.1,
+      "found_size_kb": 23.2,
+      "found_markers": [
+        "T43-IDC"
+      ],
+      "expected_marker_set": [
+        "T43-IDC"
+      ],
+      "marker_set_source": "none",
+      "expected_bioactivity": "anticancer",
+      "provenance_note": "raw MIBiG .gbk (no KnownClusterBlast); class identified by T43-IDC marker, not KCB",
+      "source": "reference_BGC0002460",
+      "architecture_signature": {
+        "region": "indole; other",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-IDC"
+        ],
+        "size_kb": 23.2,
+        "edge": "Edge"
+      }
+    },
+    {
+      "compound": "granaticin",
+      "aliases": [
+        "granaticin"
+      ],
+      "class": "aromatic type II PKS (benzoisochromanequinone)",
+      "genus": "Streptomyces",
+      "accession": "BGC0000227",
+      "mibig_accession": "BGC0000227",
+      "expected_size_kb": 19.0,
+      "found_size_kb": 19.0,
+      "found_markers": [
+        "T43-THA"
+      ],
+      "expected_marker_set": [
+        "T43-THA"
+      ],
+      "marker_set_source": "none",
+      "expected_bioactivity": "antibacterial",
+      "provenance_note": "positive control; recognized as aromatic T2PKS by architecture even with KCB UNRESOLVED (replaces retired granaticin MIBiG)",
+      "source": "reference_BGC0000227",
+      "architecture_signature": {
+        "region": "PKS; RiPP; T2PKS; azole-containing-RiPP",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-THA"
+        ],
+        "size_kb": 19.0,
+        "edge": "Edge"
+      }
+    },
+    {
+      "compound": "lobophorin",
+      "aliases": [
+        "lobophorin"
+      ],
+      "class": "spirotetronate (glycosylated T1PKS)",
+      "genus": "Streptomyces",
+      "accession": "BGC0002550",
+      "mibig_accession": "BGC0002550",
+      "found_size_kb": 30.2,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "expected_bioactivity": "antibacterial",
+      "class_lit": "PENDING_LIT",
+      "core_genes": "PENDING_LIT",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "source_doi": "PENDING_LIT",
+      "hard_scan_verdict": "PENDING_LIT",
+      "lit_diagnostic_genes": [],
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "expected_size_kb": null,
+      "marker_set_source": "PENDING_LIT",
+      "source": "reference_panel_2026-06-13",
+      "architecture_signature": {
+        "region": "PKS; T1PKS; oligosaccharide; other; saccharide",
+        "pks_ks": 4,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 30.2,
+        "edge": "Edge"
+      }
+    },
+    {
+      "compound": "aurachin C",
+      "aliases": [
+        "aurachin",
+        "aurachin c"
+      ],
+      "class": "prenylated quinoline alkaloid",
+      "genus": "Streptomyces",
+      "accession": "BGC0002591",
+      "mibig_accession": "BGC0002591",
+      "found_size_kb": 20.2,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "expected_bioactivity": "UNRESOLVED",
+      "class_lit": "PENDING_LIT",
+      "core_genes": "PENDING_LIT",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "source_doi": "PENDING_LIT",
+      "hard_scan_verdict": "PENDING_LIT",
+      "lit_diagnostic_genes": [],
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "expected_size_kb": null,
+      "marker_set_source": "PENDING_LIT",
+      "source": "reference_panel_2026-06-13",
+      "architecture_signature": {
+        "region": "HR-T2PKS; PKS; terpene; terpene-precursor",
+        "pks_ks": 1,
+        "nrps_c": 0,
+        "nrps_a": 1,
+        "markers": [],
+        "size_kb": 20.2,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "angustmycin A",
+      "aliases": [
+        "angustmycin",
+        "angustmycin a",
+        "decoyinine"
+      ],
+      "class": "nucleoside (adenosine analog; non-peptidyl)",
+      "genus": "Streptomyces",
+      "accession": "BGC0002621",
+      "mibig_accession": "BGC0002621",
+      "found_size_kb": 9.2,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "expected_bioactivity": "antibacterial",
+      "class_lit": "PENDING_LIT",
+      "core_genes": "PENDING_LIT",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "source_doi": "PENDING_LIT",
+      "hard_scan_verdict": "PENDING_LIT",
+      "lit_diagnostic_genes": [],
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "expected_size_kb": null,
+      "marker_set_source": "PENDING_LIT",
+      "source": "reference_panel_2026-06-13",
+      "architecture_signature": {
+        "region": "unknown",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 9.2,
+        "edge": "Full-contig"
+      }
+    },
+    {
+      "compound": "deoxyhangtaimycin",
+      "aliases": [
+        "deoxyhangtaimycin"
+      ],
+      "class": "UNRESOLVED (antiSMASH product=unknown)",
+      "genus": "Streptomyces",
+      "accession": "BGC0002657",
+      "mibig_accession": "BGC0002657",
+      "found_size_kb": 80.7,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "expected_bioactivity": "UNRESOLVED",
+      "class_lit": "PENDING_LIT",
+      "core_genes": "PENDING_LIT",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "source_doi": "PENDING_LIT",
+      "hard_scan_verdict": "PENDING_LIT",
+      "lit_diagnostic_genes": [],
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "expected_size_kb": null,
+      "marker_set_source": "PENDING_LIT",
+      "source": "reference_panel_2026-06-13"
+    },
+    {
+      "compound": "nikkomycin",
+      "aliases": [
+        "neopolyoxin c",
+        "nikkomycin"
+      ],
+      "class": "peptidyl-nucleoside (chitin synthase inhibitor)",
+      "class_lit": "peptidyl-nucleoside antibiotic; competitive chitin synthase inhibitor",
+      "genus": "Streptomyces",
+      "accession": "MF055656",
+      "mibig_accession": "not in MIBiG (GenBank MF055656)",
+      "expected_size_kb": null,
+      "found_size_kb": 48.0,
+      "found_markers": [
+        "T43-NUC"
+      ],
+      "expected_marker_set": [
+        "T43-NUC"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antifungal",
+      "expected_bioactivity_lit": "antifungal (chitin synthase inhibition); also insecticidal/acaricidal",
+      "core_genes": "sanA/nikJ radical-SAM (BS 909.3); sanO NRPS; sanG pathway-specific regulator; sanJ/sanK/sanL/sanX nucleoside+peptidyl assembly",
+      "lit_diagnostic_genes": [
+        "sanA/nikJ (radical SAM)",
+        "sanO (NRPS peptide synthetase)",
+        "sanG (pathway-specific regulator)"
+      ],
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "10.1186/1475-2859-9-6",
+      "source": "reference_panel_2026-06-14",
+      "deposit_doi": "10.1007/s11427-017-9119-1",
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like; betalactone; nucleoside; other",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 2,
+        "markers": [
+          "T43-NUC"
+        ],
+        "size_kb": 48.0,
+        "edge": "Edge"
+      }
+    },
+    {
+      "compound": "kijanimicin",
+      "aliases": [
+        "kijanimicin"
+      ],
+      "class": "spirotetronate (glycosylated modular T1PKS)",
+      "class_lit": "spirotetronate-class tetronate-containing modular polyketide",
+      "genus": "Actinomadura",
+      "accession": "BGC0000082",
+      "mibig_accession": "BGC0000082",
+      "expected_size_kb": null,
+      "found_size_kb": 107.6,
+      "found_markers": [
+        "T43-TET"
+      ],
+      "expected_marker_set": [
+        "T43-TET"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antibacterial",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "modular T1PKS (KS x12); tetronate/spirotetronate formation; oligosaccharide tailoring",
+      "lit_diagnostic_genes": [
+        "tetronate synthase module",
+        "modular PKS KS array"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS; oligosaccharide; other; saccharide",
+        "pks_ks": 12,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-TET"
+        ],
+        "size_kb": 107.6,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14"
+    },
+    {
+      "compound": "polyoxin",
+      "aliases": [
+        "polyoxin"
+      ],
+      "class": "peptidyl-nucleoside (chitin synthase inhibitor)",
+      "class_lit": "peptidyl-nucleoside antifungal; competitive chitin synthase inhibitor",
+      "genus": "Streptomyces",
+      "accession": "BGC0000877",
+      "mibig_accession": "BGC0000877",
+      "expected_size_kb": null,
+      "found_size_kb": 32.0,
+      "found_markers": [
+        "T43-NUC"
+      ],
+      "expected_marker_set": [
+        "T43-NUC"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antifungal",
+      "expected_bioactivity_lit": "antifungal (chitin synthase inhibition)",
+      "core_genes": "polyoxin nucleoside + peptidyl assembly (pol genes)",
+      "lit_diagnostic_genes": [
+        "nucleoside-rule genes"
+      ],
+      "architecture_signature": {
+        "region": "nucleoside; other",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-NUC"
+        ],
+        "size_kb": 32.0,
+        "edge": "Edge"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14"
+    },
+    {
+      "compound": "gramicidin",
+      "aliases": [
+        "gramicidin"
+      ],
+      "class": "large NRPS lipopeptide (multimodular)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Brevibacillus",
+      "accession": "BGC0000367",
+      "mibig_accession": "BGC0000367",
+      "expected_size_kb": null,
+      "found_size_kb": 89.3,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected (non-T43 class)",
+      "expected_bioactivity": "antibacterial",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "multimodular NRPS (13 C-domains, 13 A-domains); decapeptide/lipopeptide synthetase",
+      "lit_diagnostic_genes": [
+        "multimodular NRPS (13 C / 13 A)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS",
+        "pks_ks": 0,
+        "nrps_c": 13,
+        "nrps_a": 13,
+        "markers": [],
+        "size_kb": 89.3,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture fingerprint + T43-negative (precision) control"
+    },
+    {
+      "compound": "griseobactin",
+      "aliases": [
+        "griseobactin"
+      ],
+      "class": "NRP-metallophore (catecholate siderophore)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000368",
+      "mibig_accession": "BGC0000368",
+      "expected_size_kb": null,
+      "found_size_kb": 26.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected (non-T43 class)",
+      "expected_bioactivity": "siderophore (iron chelation)",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "NRPS siderophore assembly (2 C / 3 A); catecholate",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRP-metallophore; NRPS",
+        "pks_ks": 0,
+        "nrps_c": 2,
+        "nrps_a": 3,
+        "markers": [],
+        "size_kb": 26.5,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture fingerprint + T43-negative (precision) control"
+    },
+    {
+      "compound": "indigoidine",
+      "aliases": [
+        "indigoidine"
+      ],
+      "class": "single-module NRPS pigment (Gln-derived)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000375",
+      "mibig_accession": "BGC0000375",
+      "expected_size_kb": null,
+      "found_size_kb": 9.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected (non-T43 class)",
+      "expected_bioactivity": "pigment",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "single-module NRPS (bpsA-type, 1 A-domain); blue pigment",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 1,
+        "markers": [],
+        "size_kb": 9.5,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture fingerprint + T43-negative (precision) control"
+    },
+    {
+      "compound": "lipstatin",
+      "aliases": [
+        "lipstatin"
+      ],
+      "class": "beta-lactone lipase inhibitor (NRPS-like)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000382",
+      "mibig_accession": "BGC0000382",
+      "expected_size_kb": null,
+      "found_size_kb": 19.4,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected (non-T43 class)",
+      "expected_bioactivity": "pancreatic lipase inhibitor (orlistat precursor)",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "NRPS-like / beta-lactone assembly (2 A)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 2,
+        "markers": [],
+        "size_kb": 19.4,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture fingerprint + T43-negative (precision) control"
+    },
+    {
+      "compound": "skyllamycin A",
+      "aliases": [
+        "skyllamycin A"
+      ],
+      "class": "hybrid NRPS-PKS cyclic depsipeptide",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000429",
+      "mibig_accession": "BGC0000429",
+      "expected_size_kb": null,
+      "found_size_kb": 80.2,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected (non-T43 class)",
+      "expected_bioactivity": "PENDING_LIT",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "hybrid NRPS-PKS (11 C / 11 A / 2 KS)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; PKS; arylpolyene; terpene; terpene-precursor",
+        "pks_ks": 2,
+        "nrps_c": 11,
+        "nrps_a": 11,
+        "markers": [],
+        "size_kb": 80.2,
+        "edge": "Edge"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture fingerprint + T43-negative (precision) control",
+      "caveat": "edge-truncated reference: domain counts are minima"
+    },
+    {
+      "compound": "surfactin",
+      "aliases": [
+        "surfactin"
+      ],
+      "class": "NRPS lipopeptide biosurfactant (7-module)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Bacillus",
+      "accession": "BGC0000433",
+      "mibig_accession": "BGC0000433",
+      "expected_size_kb": null,
+      "found_size_kb": 41.9,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected (non-T43 class)",
+      "expected_bioactivity": "biosurfactant; antimicrobial lipopeptide",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "7-module NRPS (C7 A7)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS",
+        "pks_ks": 0,
+        "nrps_c": 7,
+        "nrps_a": 7,
+        "markers": [],
+        "size_kb": 41.9,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture fingerprint + T43-negative (precision) control"
+    },
+    {
+      "compound": "valinomycin",
+      "aliases": [
+        "valinomycin"
+      ],
+      "class": "cyclodepsipeptide ionophore (NRPS)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000453",
+      "mibig_accession": "BGC0000453",
+      "expected_size_kb": null,
+      "found_size_kb": 39.3,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected (non-T43 class)",
+      "expected_bioactivity": "ionophore (K+ transport); antimicrobial",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "3-module NRPS (C3 A3)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS",
+        "pks_ks": 0,
+        "nrps_c": 3,
+        "nrps_a": 3,
+        "markers": [],
+        "size_kb": 39.3,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture fingerprint + T43-negative (precision) control"
+    },
+    {
+      "compound": "bottromycin A2",
+      "aliases": [
+        "bottromycin A2"
+      ],
+      "class": "thioamide-containing macrocyclic RiPP",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000468",
+      "mibig_accession": "BGC0000468",
+      "expected_size_kb": null,
+      "found_size_kb": 20.1,
+      "found_markers": [
+        "T43-THA"
+      ],
+      "expected_marker_set": [
+        "T43-THA"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antibacterial",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "RiPP precursor + thioamide/macrocyclization tailoring (no NRPS/PKS modules)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "RiPP; bottromycin",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-THA"
+        ],
+        "size_kb": 20.1,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "T43-THA (thioamide) positive control"
+    },
+    {
+      "compound": "staurosporine",
+      "aliases": [
+        "staurosporine"
+      ],
+      "class": "indolocarbazole alkaloid",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000825",
+      "mibig_accession": "BGC0000825",
+      "expected_size_kb": null,
+      "found_size_kb": 23.0,
+      "found_markers": [
+        "T43-IDC"
+      ],
+      "expected_marker_set": [
+        "T43-IDC"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "kinase inhibitor; cytotoxic",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "indolocarbazole core assembly (StaO/StaD/StaP-type); no NRPS/PKS modules",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "indole; other",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-IDC"
+        ],
+        "size_kb": 23.0,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "kcb_anchor_observed": "staurosporine",
+      "ref_role": "T43-IDC (indolocarbazole) positive control"
+    },
+    {
+      "compound": "malayamycin A",
+      "aliases": [
+        "malayamycin A"
+      ],
+      "class": "uracil C-nucleoside antifungal",
+      "class_lit": "antifungal uracil C-nucleoside (Hong et al. 2019, Cell Chem Biol)",
+      "genus": "Streptomyces",
+      "accession": "KJ493330",
+      "mibig_accession": "not in MIBiG (GenBank KJ493330)",
+      "expected_size_kb": null,
+      "found_size_kb": 24.7,
+      "found_markers": [
+        "T43-NUC"
+      ],
+      "expected_marker_set": [
+        "T43-NUC"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antifungal",
+      "expected_bioactivity_lit": "antifungal (uracil C-nucleoside)",
+      "core_genes": "mal cluster; C-nucleoside formation via MalO (3'-enoylpyruvyltransferase on 5'-pseudouridine-MP)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "nucleoside; other",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-NUC"
+        ],
+        "size_kb": 24.7,
+        "edge": "Edge"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "10.1016/j.chembiol.2018.12.004",
+      "source": "reference_panel_2026-06-14",
+      "kcb_anchor_observed": "polyoxin A/polyoxin H",
+      "caveat": "edge-truncated (counts are minima); KCB polyoxin = similarity, malayamycin is a distinct C-nucleoside; filename 'mayalamycin' was a typo",
+      "ref_role": "T43-NUC positive control #3 (C-nucleoside; mechanistically distinct from peptidyl-nucleosides)"
+    },
+    {
+      "compound": "D-cycloserine",
+      "aliases": [
+        "D-cycloserine"
+      ],
+      "class": "D-amino-acid antibiotic (non-canonical small pathway)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000896",
+      "mibig_accession": "BGC0000896",
+      "expected_size_kb": null,
+      "found_size_kb": 20.7,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected (non-T43 class)",
+      "expected_bioactivity": "antibacterial (antitubercular)",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "D-cycloserine biosynthesis (1 A-domain); antiSMASH region unresolved",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "unknown",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 1,
+        "markers": [],
+        "size_kb": 20.7,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture/negative reference (region unresolved)"
+    },
+    {
+      "compound": "pyrrolnitrin",
+      "aliases": [
+        "pyrrolnitrin"
+      ],
+      "class": "halogenated phenylpyrrole antifungal",
+      "class_lit": "PENDING_LIT",
+      "genus": "Pseudomonas",
+      "accession": "BGC0000924",
+      "mibig_accession": "BGC0000924",
+      "expected_size_kb": null,
+      "found_size_kb": 5.7,
+      "found_markers": [
+        "T43-HAL"
+      ],
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antifungal",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "tryptophan-derived dichlorinated phenylpyrrole (prnABCD); FAD halogenases",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "other",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [
+          "T43-HAL"
+        ],
+        "size_kb": 5.7,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "kcb_anchor_observed": "pyrrolnitrin",
+      "ref_role": "T43-HAL (halogenase) positive control — antifungal"
+    },
+    {
+      "compound": "esmeraldin",
+      "aliases": [
+        "esmeraldin"
+      ],
+      "class": "phenazine-derived pigment (PKS/phenazine)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000935",
+      "mibig_accession": "BGC0000935",
+      "expected_size_kb": null,
+      "found_size_kb": 26.2,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected (non-T43 class)",
+      "expected_bioactivity": "pigment",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "phenazine + T1PKS tailoring (KS1, A2)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "PKS; PKS-like; T1PKS; other; phenazine",
+        "pks_ks": 1,
+        "nrps_c": 0,
+        "nrps_a": 2,
+        "markers": [],
+        "size_kb": 26.2,
+        "edge": "Edge"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "caveat": "architecture_capacity heuristic misclassified as 'small NRPS peptide (beta-lactam/nucleoside/siderophore)'; OBSERVED region = phenazine/T1PKS is authoritative. edge-truncated (counts are minima).",
+      "ref_role": "architecture reference (phenazine/PKS)",
+      "architecture_capacity": "KNOWN_MISFIRE",
+      "architecture_capacity_note": "Heuristic misfires on the phenazine-dimer architecture class; flagged machine-visible (audit Worst #14). Not used as a positive control."
+    },
+    {
+      "compound": "andrimid",
+      "aliases": [
+        "andrimid"
+      ],
+      "class": "hybrid NRPS-PKS antibiotic",
+      "class_lit": "PENDING_LIT",
+      "genus": "Pantoea",
+      "accession": "BGC0000956",
+      "mibig_accession": "BGC0000956",
+      "expected_size_kb": null,
+      "found_size_kb": 25.3,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "antibacterial",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "hybrid NRPS-PKS (KS3, C1, A3); acetyl-CoA carboxylase inhibitor",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like; PKS; arylpolyene",
+        "pks_ks": 3,
+        "nrps_c": 1,
+        "nrps_a": 3,
+        "markers": [],
+        "size_kb": 25.3,
+        "edge": "Edge"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture fingerprint + T43-negative control"
+    },
+    {
+      "compound": "mycolic acid",
+      "aliases": [
+        "mycolic acid"
+      ],
+      "class": "cell-envelope lipid (PRIMARY METABOLISM)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Mycobacterium",
+      "accession": "BGC0000870",
+      "mibig_accession": "BGC0000870",
+      "expected_size_kb": null,
+      "found_size_kb": 3.9,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "none (structural lipid)",
+      "expected_bioactivity_lit": "n/a",
+      "core_genes": "mycolic acid biosynthesis (cell-wall lipid); not a natural-product pathway",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "unknown",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 3.9,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "caveat": "PRIMARY METABOLISM (mycolic acid = mycobacterial cell-envelope lipid). Included deliberately as a TRUE-NEGATIVE control for test rounds; a marker hit here = false-positive to investigate. NOT a discovery lead; DROP if surfaced as an NP candidate.",
+      "ref_role": "primary-metabolism TRUE-NEGATIVE control (expected to fire NO markers)"
+    },
+    {
+      "compound": "antimycin",
+      "aliases": [
+        "antimycin"
+      ],
+      "class": "antimycin depsipeptide (hybrid NRPS-PKS)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000958",
+      "mibig_accession": "BGC0000958",
+      "expected_size_kb": null,
+      "found_size_kb": 52.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "antifungal (cytochrome bc1 inhibitor)",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "hybrid NRPS-PKS (KS1 C3 A2)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; PKS; T1PKS",
+        "pks_ks": 1,
+        "nrps_c": 3,
+        "nrps_a": 2,
+        "markers": [],
+        "size_kb": 52.5,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "kcb_anchor_observed": "antimycin",
+      "caveat": "antifungal but T43-SILENT: mechanism (electron-transport inhibition) is not a T43 rare-class. True-negative for the antifungal-relevant T43 markers (NUC/PTM).",
+      "ref_role": "antifungal-but-T43-silent negative control"
+    },
+    {
+      "compound": "collismycin A",
+      "aliases": [
+        "collismycin A"
+      ],
+      "class": "halogenated bipyridine (hybrid NRPS-PKS)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000973",
+      "mibig_accession": "BGC0000973",
+      "expected_size_kb": null,
+      "found_size_kb": 40.1,
+      "found_markers": [
+        "T43-HAL"
+      ],
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antibacterial/antifungal",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "hybrid NRPS-PKS (KS1 C2 A5); FAD halogenase",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; PKS; T1PKS",
+        "pks_ks": 1,
+        "nrps_c": 2,
+        "nrps_a": 5,
+        "markers": [
+          "T43-HAL"
+        ],
+        "size_kb": 40.1,
+        "edge": "Edge"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "T43-HAL (halogenase) positive control"
+    },
+    {
+      "compound": "mycotrienin",
+      "aliases": [
+        "mycotrienin"
+      ],
+      "class": "ansamycin (triene) polyketide",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000957",
+      "mibig_accession": "BGC0000957",
+      "expected_size_kb": null,
+      "found_size_kb": 26.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "antifungal/antitumor",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "ansamycin PKS (KS1, A2)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "2dos; NRPS; NRPS-like; PKS; T1PKS; other",
+        "pks_ks": 1,
+        "nrps_c": 0,
+        "nrps_a": 2,
+        "markers": [],
+        "size_kb": 26.5,
+        "edge": "Edge"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "caveat": "edge-truncated (counts are minima)",
+      "ref_role": "architecture reference (ansamycin)"
+    },
+    {
+      "compound": "jawsamycin",
+      "aliases": [
+        "jawsamycin"
+      ],
+      "class": "polycyclopropane nucleoside antifungal (PKS region)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0001002",
+      "mibig_accession": "BGC0001002",
+      "expected_size_kb": null,
+      "found_size_kb": 25.1,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "antifungal",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "PKS/T1PKS cyclopropane-polyketide + nucleoside moiety",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS",
+        "pks_ks": 1,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 25.1,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "caveat": "RECALL-BOUNDARY: jawsamycin (FR-900848) is a NUCLEOSIDE antifungal, but the deposited region is PKS/T1PKS with no nikJ/polyoxin signature, so T43-NUC does NOT fire. Open question for test round: correctly out-of-scope (distinct nucleoside class/mechanism) vs false-negative.",
+      "ref_role": "recall-boundary negative (nucleoside antifungal, T43-NUC silent)"
+    },
+    {
+      "compound": "salinosporamide A",
+      "aliases": [
+        "salinosporamide A"
+      ],
+      "class": "chlorinated beta-lactone-gamma-lactam (hybrid NRPS-PKS)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Salinispora",
+      "accession": "BGC0001041",
+      "mibig_accession": "BGC0001041",
+      "expected_size_kb": null,
+      "found_size_kb": 51.3,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "proteasome inhibitor; antimicrobial",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "hybrid NRPS/transAT-PKS (KS2 C1 A2); SAM-dependent chlorinase",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like; PKS; T1PKS; transAT-PKS-like",
+        "pks_ks": 2,
+        "nrps_c": 1,
+        "nrps_a": 2,
+        "markers": [],
+        "size_kb": 51.3,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "kcb_anchor_observed": "salinosporamide A",
+      "caveat": "chlorinated NP but T43-HAL SILENT here (chlorination chemistry differs from FAD-halogenase signatures). Useful negative.",
+      "ref_role": "chlorinated-but-T43-HAL-silent negative control"
+    },
+    {
+      "compound": "simocyclinone",
+      "aliases": [
+        "simocyclinone"
+      ],
+      "class": "angucyclic T2PKS-aminocoumarin hybrid",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0001072",
+      "mibig_accession": "BGC0001072",
+      "expected_size_kb": null,
+      "found_size_kb": 75.4,
+      "found_markers": [
+        "T43-HAL"
+      ],
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antibacterial",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "HR-T2PKS/T1PKS (KS8); aminocoumarin; FAD halogenase",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "HR-T2PKS; PKS; T1PKS; T2PKS; aminocoumarin; other",
+        "pks_ks": 8,
+        "nrps_c": 1,
+        "nrps_a": 2,
+        "markers": [
+          "T43-HAL"
+        ],
+        "size_kb": 75.4,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "T43-HAL positive control + large T2PKS architecture (KS8)"
+    },
+    {
+      "compound": "lienamycin",
+      "aliases": [
+        "lienamycin"
+      ],
+      "class": "transAT-PKS/NRPS hybrid",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0001101",
+      "mibig_accession": "BGC0001101",
+      "expected_size_kb": null,
+      "found_size_kb": 78.8,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "antitumor",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "hybrid transAT-PKS/NRPS (KS7 C2 A5)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; PKS; transAT-PKS",
+        "pks_ks": 7,
+        "nrps_c": 2,
+        "nrps_a": 5,
+        "markers": [],
+        "size_kb": 78.8,
+        "edge": "Interior"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture reference (large transAT-PKS hybrid; Interior edge-status exemplar)"
+    },
+    {
+      "compound": "onnamide A",
+      "aliases": [
+        "onnamide A"
+      ],
+      "class": "transAT-PKS polyketide",
+      "class_lit": "PENDING_LIT",
+      "genus": "UNRESOLVED",
+      "accession": "BGC0001105",
+      "mibig_accession": "BGC0001105",
+      "expected_size_kb": null,
+      "found_size_kb": 36.5,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "antitumor/antiviral",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "transAT-PKS (KS7); sponge-symbiont metagenomic cluster",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; PKS; T3PKS; transAT-PKS-like",
+        "pks_ks": 7,
+        "nrps_c": 1,
+        "nrps_a": 1,
+        "markers": [],
+        "size_kb": 36.5,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "kcb_anchor_observed": "onnamide A",
+      "caveat": "producer is an uncultured sponge symbiont (Theonella swinhoei); no clean genus -> UNRESOLVED.",
+      "ref_role": "architecture reference (transAT-PKS)"
+    },
+    {
+      "compound": "marinopyrrole",
+      "aliases": [
+        "marinopyrrole"
+      ],
+      "class": "densely halogenated bispyrrole (T1PKS)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0001159",
+      "mibig_accession": "BGC0001159",
+      "expected_size_kb": null,
+      "found_size_kb": 43.1,
+      "found_markers": [
+        "T43-HAL"
+      ],
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antibacterial (anti-MRSA)",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "T1PKS (KS3); multiple FAD halogenases",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS",
+        "pks_ks": 3,
+        "nrps_c": 0,
+        "nrps_a": 1,
+        "markers": [
+          "T43-HAL"
+        ],
+        "size_kb": 43.1,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "kcb_anchor_observed": "marinopyrrole A/B/C/D/E",
+      "ref_role": "T43-HAL positive control (saturated marker)"
+    },
+    {
+      "compound": "balhimycin",
+      "aliases": [
+        "balhimycin"
+      ],
+      "class": "glycopeptide antibiotic (vancomycin-type, halogenated)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Amycolatopsis",
+      "accession": "BGC0000311",
+      "mibig_accession": "BGC0000311",
+      "expected_size_kb": null,
+      "found_size_kb": 66.7,
+      "found_markers": [
+        "T43-HAL"
+      ],
+      "expected_marker_set": [
+        "T43-HAL"
+      ],
+      "marker_set_source": "T43-definitional",
+      "expected_bioactivity": "antibacterial (glycopeptide)",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "large NRPS (C6 A8); FAD halogenase; glycosylation",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like; PKS; T3PKS",
+        "pks_ks": 0,
+        "nrps_c": 6,
+        "nrps_a": 8,
+        "markers": [
+          "T43-HAL"
+        ],
+        "size_kb": 66.7,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "kcb_anchor_observed": "balhimycin",
+      "ref_role": "T43-HAL positive control + glycopeptide-NRPS architecture"
+    },
+    {
+      "compound": "thiocoraline",
+      "aliases": [
+        "thiocoraline"
+      ],
+      "class": "thiodepsipeptide bisintercalator (large NRPS)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Micromonospora",
+      "accession": "BGC0000445",
+      "mibig_accession": "BGC0000445",
+      "expected_size_kb": null,
+      "found_size_kb": 64.7,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "antibacterial/antitumor",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "large NRPS (C6 A10); thioester/quinoline",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRPS; NRPS-like",
+        "pks_ks": 0,
+        "nrps_c": 6,
+        "nrps_a": 10,
+        "markers": [],
+        "size_kb": 64.7,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "kcb_anchor_observed": "thiocoraline",
+      "ref_role": "architecture reference (large NRPS) + T43-negative"
+    },
+    {
+      "compound": "anguibactin",
+      "aliases": [
+        "anguibactin"
+      ],
+      "class": "NRP-metallophore siderophore",
+      "class_lit": "PENDING_LIT",
+      "genus": "Vibrio",
+      "accession": "BGC0002468",
+      "mibig_accession": "BGC0002468",
+      "expected_size_kb": null,
+      "found_size_kb": 43.1,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "siderophore (iron chelation)",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "NRPS siderophore (C1 A1); metallophore",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "NRP-metallophore; NRPS",
+        "pks_ks": 0,
+        "nrps_c": 1,
+        "nrps_a": 1,
+        "markers": [],
+        "size_kb": 43.1,
+        "edge": "Edge"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture reference (siderophore) + T43-negative"
+    },
+    {
+      "compound": "2'-chloropentostatin",
+      "aliases": [
+        "2'-chloropentostatin"
+      ],
+      "class": "chlorinated nucleoside (adenosine deaminase inhibitor)",
+      "class_lit": "PENDING_LIT",
+      "genus": "Actinomadura",
+      "accession": "BGC0001484",
+      "mibig_accession": "BGC0001484",
+      "expected_size_kb": null,
+      "found_size_kb": 36.4,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "enzyme inhibitor (adenosine deaminase)",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "nucleoside biosynthesis + chlorination (region unresolved)",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "unknown",
+        "pks_ks": 0,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 36.4,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "kcb_anchor_observed": "2'-chloropentostatin/2'-amino-2'-deoxyadenosine",
+      "caveat": "chlorinated NUCLEOSIDE but T43-SILENT: neither T43-HAL nor T43-NUC fires (region unresolved; chlorination/nucleoside chemistry not a T43 signature). Honest scope case.",
+      "ref_role": "chlorinated-nucleoside-but-T43-silent negative control"
+    },
+    {
+      "compound": "piericidin",
+      "aliases": [
+        "piericidin",
+        "piericidin A1"
+      ],
+      "class": "pyridine polyketide (modular T1PKS); respiratory-chain inhibitor",
+      "class_lit": "PENDING_LIT",
+      "genus": "Streptomyces",
+      "accession": "BGC0000124",
+      "mibig_accession": "BGC0000124",
+      "expected_size_kb": null,
+      "found_size_kb": 49.4,
+      "found_markers": [],
+      "expected_marker_set": [],
+      "marker_set_source": "none-expected",
+      "expected_bioactivity": "NADH-ubiquinone oxidoreductase (complex I) inhibitor",
+      "expected_bioactivity_lit": "PENDING_LIT",
+      "core_genes": "modular T1PKS (KS8); pyridine ring formation",
+      "lit_diagnostic_genes": [
+        "architecture fingerprint (see architecture_signature)"
+      ],
+      "architecture_signature": {
+        "region": "PKS; T1PKS",
+        "pks_ks": 8,
+        "nrps_c": 0,
+        "nrps_a": 0,
+        "markers": [],
+        "size_kb": 49.4,
+        "edge": "Full-contig"
+      },
+      "domain_motif_concordance": null,
+      "gene_symbol_concordance": null,
+      "hard_scan_verdict": "STRONG",
+      "source_doi": "PENDING_LIT",
+      "source": "reference_panel_2026-06-14",
+      "ref_role": "architecture reference (modular PKS, KS8) + T43-negative"
+    }
+  ],
+  "lit_loaded": "2026-06-13 LIT_Reference_Concordance_v2_enhanced",
+  "concordance_note": "DOMAIN/MOTIF markers are the robust concordance axis (mean 85% across the reference set); literature GENE SYMBOLS are nomenclature-fragile (mean 27%) because deposited records use divergent symbols (candicidin->Mjm) or functional-only product names (A54145, pacidamycin). Express diagnostic_marker_set as domain/motif signatures; augment gene-symbol-heavy entries. | expected_marker_set holds T43-level markers for concordance_check; lit_diagnostic_genes holds the LIT gene/domain set for the hard scan; the architecture layer (class_architecture.py) covers the marker-invisible classes."
+}

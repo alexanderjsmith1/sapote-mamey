@@ -1,0 +1,14 @@
+# Governed document-rendering add-on profile.
+# Build/download platform-matched wheels into the documents wheelhouse.
+# PyYAML and reportlab are also core pyproject.toml dependencies (pulled in on any plain
+# install); they are listed again here on purpose -- this profile is a complete, auditable
+# release-asset contract for the offline documents wheelhouse, not a claim that they should
+# be installed twice. mamey/document_factory.py and mamey/sapote_markdown.py both `import
+# yaml` directly; reportlab backs the documents PDF path (mamey/markdown_pdf.py).
+python-docx>=1.2,<2.0
+lxml>=5.0,<7.0
+PyYAML>=6.0,<7.0
+reportlab>=4.0,<5.0
+pypdf>=5.0,<7.0
+Pillow>=10.0,<13.0
+

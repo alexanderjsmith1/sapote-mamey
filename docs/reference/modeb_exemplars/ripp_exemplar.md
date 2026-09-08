@@ -1,0 +1,86 @@
+<!-- MODE B exemplar | class: RiPP / class-III lanthipeptide | strain: S. amethystogenes subsp. fukuiense | bgc: BGC008 | node: JBHTEE010000001.1 region008 | contract: modeb_full30 | public -->
+
+# Mode B — BGC008 (JBHTEE010000001.1 · region008) — *Streptosporangium amethystogenes* subsp. *fukuiense*
+
+*Public exemplar — RiPP / class-III lanthipeptide class. Authored from store-backed antiSMASH + KnownClusterBlast for the public assembly JBHTEE010000001.1. §4 carries an independent per-gene BLASTp channel: a three-gene panel was run on NCBI nr and offline-ingested (`mamey ingest-blastp`), with results in `blastp_online/BGC008_online_blastp.csv`. Every product statement is capacity language; BLASTp hits are read as similarity, not identity.*
+
+## §1 Identity and node/region
+BGC008 sits on contig JBHTEE010000001.1 · region008 (store-backed) of *Streptosporangium amethystogenes* subsp. *fukuiense*, spanning roughly 774,411–797,048 (~22.64 kb), classed by antiSMASH as a RiPP of the class-III lanthipeptide type. It is an Interior BGC — both flanks are internal to the contig, so no edge/fragmentation correction applies.
+
+## §2 Why this BGC was selected
+It was selected as the public class exemplar for RiPPs because it shows the textbook class-III lanthipeptide architecture: short ribosomal precursor peptides sitting next to a single bifunctional LanKC-type modification enzyme, with leader-cleavage protease, ABC transport, and two-component regulation all co-located. It is a clean teaching case for how a RiPP is recognised from a precursor-plus-maturase pair rather than from a large synthetase.
+
+## §3 Boundary and assembly status
+The region is Interior on the public assembly contig, so edge corrections do not apply and the region is read as a complete locus; its corrected-count contribution is a full Interior 1.0. The three tandem precursor genes fall well inside the region, so there is no risk that a precursor was truncated at a contig edge.
+
+## §4 Gene-by-gene interpretation
+This section reads the antiSMASH Pfam/HMMER domain calls together with an independent per-gene BLASTp channel: a three-gene panel (`bgc-blastp-panel`) was run on public NCBI nr via web BLASTp and offline-ingested (`ingest-blastp`; results in `blastp_online/BGC008_online_blastp.csv`). The set is a canonical class-III lanthipeptide, and BLASTp corroborates the panel calls as similarity, not identity. ctg1_685 (878 aa, LANC_like; Pkinase) is the diagnostic bifunctional class-III synthetase (LanKC-type): the Pkinase domain phosphorylates Ser/Thr and the LanC-like domain installs the (methyl)lanthionine / labionin crosslinks — a single enzyme doing the whole maturation, which is what defines class III; its top BLASTp hit is a class III lanthionine synthetase LanKC (WP_364215112.1, *Streptosporangium* sp. NPDC049644) at 98.5% identity over 100% coverage (E=0.0, 1723 bits), an unusually clean class confirmation. ctg1_682 (43 aa, RamS) is one of three tandem ribosomal precursor peptides (ctg1_682/683/684, the LanA/RamS-type substrates); it hits a SapB/AmfS-family lanthipeptide (WP_433361260.1, *Streptosporangium* sp. CA-115845) at 93.3% / 100% coverage, confirming the RamS/SapB precursor lineage. ctg1_694 (195 aa, TetR_N; TetR_C_24), a co-selected regulator, hits a SACE_7040-family (TetR) transcriptional regulator (WP_084195209.1, *S. amethystogenes*) at 96.9%. The other two precursor copies ctg1_683/684 were outside the three-gene panel and are read from domains. ctg1_679 (664 aa, Peptidase_S9; Peptidase_S9_N) is the prolyl-oligopeptidase-family protease consistent with leader cleavage. ctg1_680 and ctg1_681 (563 and 581 aa, ABC_tran / ABC_membrane) form the ABC exporter that secretes the mature peptide and provides producer self-immunity. ctg1_678 (191 aa, HATPase_c_2) and ctg1_686 (237 aa, HisKA_3) are the histidine-kinase halves of a two-component regulatory system, with ctg1_687 (Peptidase_M50B) as a membrane protease consistent with signal processing. ctg1_676 (Acetyltransf_1) and ctg1_675 (DUF6461) frame accessory tailoring/unknown function.
+
+## §5 Core biosynthetic logic
+The logic is ribosomal-then-post-translational: a gene-encoded precursor (leader + core) is made on the ribosome, the LanKC synthetase phosphorylates and eliminates Ser/Thr to dehydro residues, then its LanC-like domain adds cysteine thiols across those dehydro residues to form lanthionine/labionin rings; the leader is removed by the S9 protease and the mature lanthipeptide is exported by the ABC transporter. No thiotemplate assembly line is involved, which is why RiPPs are read from a precursor-plus-maturase pair.
+
+## §6 Tailoring and maturation logic
+Maturation is concentrated in the single bifunctional LanKC enzyme rather than spread across separate dehydratase and cyclase genes (the class-I arrangement). That makes the maturation gap the key uncertainty: the exact ring topology (how many lanthionine versus labionin bridges, and their connectivity) cannot be read from sequence and needs MS/MS and ideally NMR on the isolated peptide. The Acetyltransf_1 gene may add a further acyl tailoring, which is a hypothesis to test rather than an assigned step.
+
+## §7 Transport, resistance, and regulation
+Regulation is a co-located two-component system (ctg1_678 / ctg1_686), the classic autoregulatory arrangement where the mature peptide or a signal feeds back on its own biosynthesis. Transport and self-immunity are provided by the ABC exporter (ctg1_680 / ctg1_681). This is capacity read from architecture, not a measured regulatory phenotype.
+
+## §8 Comparator/KCB interpretation
+KnownClusterBlast anchors this region to BGC0000501.3 (catenulipeptin) as the top hit with an aggregate score around 1643. Catenulipeptin is a characterised class-III lanthipeptide, so this is a strong class-level anchor. It is similarity, not identity: it supports "capacity consistent with a class-III lanthipeptide of the catenulipeptin type" and does not establish that this strain makes catenulipeptin itself. The precursor sequences differ often enough between related loci that the mature product is expected to be a distinct congener until shown otherwise.
+
+## §9 Alternative hypotheses
+The main alternative is that the mature peptide is a novel class-III congener rather than catenulipeptin, differing in core-peptide sequence and ring pattern. A second alternative is that one of the three RamS copies is a pseudogene or a non-substrate, so the actual product derives from one or two of them. Both are resolved by expressing/isolating the peptide and reading its mass and crosslinks.
+
+## §10 Fragmentation and co-capture risks
+Interior placement on the assembly contig makes fragmentation risk low. The residual risk is that the two-component system and the DUF6461/acetyltransferase genes at the flanks belong to neighbouring metabolism rather than to this RiPP — an interpretation boundary question, not an assembly artefact.
+
+## §11 Product-family interpretation
+The product family is class-III lanthipeptides — ribosomally synthesised, post-translationally modified peptides bearing labionin/(methyl)lanthionine crosslinks installed by a LanKC enzyme. The capacity statement is "consistent with a class-III lanthipeptide"; the specific sequence and ring topology are not assignable from sequence alone.
+
+## §12 Bee/microbe ecological interpretation
+Lanthipeptides frequently act in interbacterial competition and signalling; a class-III lanthipeptide capacity in a soil/host-associated actinomycete is plausibly a competition or morphogenesis-signalling trait (the RamS/SapB lineage includes surfactant morphogens). This is stated as capacity, not an observed ecological role.
+
+## §13 Antibacterial/antifungal relevance
+Some lanthipeptides are antibacterial, but that cannot be assumed here; any antibacterial or antifungal activity for this strain is an extract-level property of the whole strain and is never attributed to this locus as a per-BGC phenotype. Whether the mature peptide is bioactive at all is an isolation-and-assay question.
+
+## §14 What cannot be claimed
+It cannot be claimed that this BGC yields catenulipeptin, that any of the three precursors is the true substrate, that the peptide is expressed under a given condition, or that it is antibacterial. The panel BLASTp hits are similarity, not identity — a 98.5% hit to a LanKC homolog confirms the class-III machinery, not that this locus makes catenulipeptin.
+
+## §15 Missing evidence
+Missing: an independent BLASTp/homology channel on the precursor and LanKC genes; the core-peptide boundary (leader cleavage site) confirmed empirically; expression evidence; and an isolated peptide with MS/MS to read the dehydrations and lanthionine ring pattern. The KCB anchor gives class, not structure, and does not fix the core sequence.
+
+## §16 BLASTP/HMMER next steps
+The three-gene panel (LanKC ctg1_685, precursor ctg1_682, regulator ctg1_694) has been run on NCBI nr and ingested; the results artifact `BGC008_online_blastp.csv` is present and §4 carries the per-gene outcomes. The remaining homology work is the single most informative piece of evidence: run the other two precursor copies ctg1_683/684 and align all three cores to catenulipeptin and related class-III precursors to see how divergent the core is (the §22 question) and fix the leader/core boundary. HMMER over the region should confirm the LANC_like plus Pkinase co-occurrence that distinguishes class III from class I/II. The route to add 683/684 is the same offline path: `bgc-blastp-panel` with a larger `--genes-per-bgc`, then `ingest-blastp --hit-table <hits.csv> --package <package>`.
+
+## §17 LC-MS / fermentation implications
+Detection is harder than for a polyketide because the yield can be low and the peptide small. Culture on a sporulation-promoting solid medium and an aerated liquid medium in parallel, since class-III lanthipeptides in the RamS lineage are often tied to development. For LC-MS, target the predicted core-peptide mass minus the dehydrations (each Ser/Thr → dehydro loses water, roughly −18 Da per ring precursor), and look for the mass being resistant to reduction (thioether crosslinks do not reduce like disulfides). Acquire HR-MS/MS: characteristic b/y ladders that stop at ring boundaries are the readout for lanthionine placement, and a NEM/iodoacetamide non-reactivity test for free cysteine helps confirm the thioethers are formed. Pair with an unmodified-precursor control (heterologous precursor without LanKC) if available. None of this asserts production; it is the detection plan that would test the capacity call.
+
+## §18 Figure/locus-map notes
+The locus map should place the three tandem RamS precursors (ctg1_682/683/684) adjacent to the LanKC synthetase (ctg1_685) as the diagnostic precursor-plus-maturase pair, and shade the ABC exporter and two-component regulator as the transport/immunity and regulation blocks. Marking the single bifunctional maturase distinctly (versus the separate LanB/LanC of class I) makes the class-III call visible at a glance. A short core-peptide cartoon showing candidate ring positions would help lay readers see what "post-translational crosslink" means.
+
+## §19 Final Mode B judgement
+Judgement: a well-supported class-III lanthipeptide locus on a public assembly, with a strong class-level KCB anchor to catenulipeptin and a precursor-plus-LanKC core that an independent BLASTp channel corroborates — the LanKC at 98.5% to a class III lanthionine synthetase and the precursor at 93.3% to a SapB/AmfS lanthipeptide. Confidence in the class call is HIGH; confidence in the exact core sequence and ring topology is LOW pending isolation and the 683/684 precursor alignment.
+
+## §20 Next actions
+Run the BLASTp panel on the LanKC and the three precursors and ingest the hit-table; determine which precursor(s) are genuine substrates by aligning cores to catenulipeptin; express or isolate the peptide and read dehydrations and lanthionine rings by HR-MS/MS; and only then assess bioactivity at the extract level.
+
+## §21 Precursor mass ladder
+The substrates are the 43-aa RamS precursors (ctg1_682/683/684), each a leader plus a short core. The mass ladder to build once the core boundary is set: start from the unmodified core mass, subtract ~18 Da for each dehydrated Ser/Thr (dehydroalanine/dehydrobutyrine), then account for ring closure (thioether formation is mass-neutral relative to the dehydro form). For a class-III peptide expect several dehydrations and the corresponding labionin/lanthionine bridges; the observed apo-peptide mass minus the fully-hydrated core gives the number of net water losses, which is the first quantitative check against the predicted ring count. Because there are three precursor copies, compute a separate ladder for each candidate core and match against the dominant LC-MS feature to identify the true substrate.
+
+## §22 RiPP database search
+Run the precursor cores through a dedicated RiPP predictor (for example BAGEL4 and RiPPMiner) rather than relying on antiSMASH alone, since those tools score the leader motif and predict the class-III ring pattern and the likely core-peptide boundary. Cross-check the LanKC against characterised class-III maturases (catenulipeptin, curvopeptin, SapB/RamS-lineage enzymes) to confirm the bifunctional kinase/cyclase assignment. Record whether the predicted core matches the catenulipeptin core or scores as a novel congener; a divergent core with a conserved LanKC is the signature of a new class-III lanthipeptide and would raise the novelty read for this locus.
+
+## §23 Heterologous expression
+Because a class-III lanthipeptide needs only the precursor plus the single LanKC maturase for the core chemistry, it is a tractable heterologous target: clone one RamS precursor together with ctg1_685 (and, for secretion/immunity, the ABC exporter ctg1_680/681) onto an expression construct and move it into a *Streptomyces* host such as *S. coelicolor* M1152 or *S. albus*. A co-expressed leader-cleavage protease or in-vitro cleavage lets the mature core be recovered. This minimal-set expression both tests which precursor is a genuine substrate and yields peptide for MS/MS ring mapping, decoupling the maturation question from native regulation.
+
+## §24 Scaffold novelty score
+Scaffold novelty: LOW at the scaffold level, with a caveat at the sequence level. The class-III lanthipeptide scaffold is well-precedented, with a strong class-level KnownClusterBlast anchor to catenulipeptin (BGC0000501.3, score ~1643) and a canonical precursor-plus-LanKC architecture — no unusual domain fusions or orphan maturases that would raise the scaffold read. The caveat is that RiPP novelty often lives in the core-peptide sequence rather than the scaffold: if the RamS cores diverge substantially from the catenulipeptin core (a §22 question), the mature peptide could be a novel congener even though the machinery is conventional. So the scaffold score is LOW, but the compound-level novelty is explicitly held open pending the precursor alignment, rather than being asserted either way from architecture alone.
+
+## §27 Self-resistance assessment
+Self-immunity for a lanthipeptide producer is typically the dedicated ABC exporter (ctg1_680 / ctg1_681), which secretes the mature peptide and keeps intracellular concentrations sub-toxic; there is no separate target-modification resistance gene expected for a class-III morphogen-type peptide. The self-resistance signal is therefore transport-mediated rather than target-based, consistent with the NULL antibiotic-resistance-marker read from the region.
+
+## §28 Evidence provenance ledger
+Store-backed: the region call, coordinates, boundary status, gene/domain table (including the three RamS precursors and the LANC_like/Pkinase maturase), and the KnownClusterBlast anchor to catenulipeptin all derive from the antiSMASH package for the public assembly JBHTEE010000001.1. Reconstructed: the leader/core split and ring-topology expectations are inferred from Pfam domains plus the class-III lanthipeptide literature. Operator-supplied: an NCBI web BLASTp of the three-gene panel (hit-table + XML2), offline-ingested; the per-gene BLASTp results in §4 come from `blastp_online/BGC008_online_blastp.csv`. Not run: an independent channel on the other two precursor copies ctg1_683/684.
+
+## §30 Experimental decision tree
+If an unmodified-precursor mass and a dehydrated apo-peptide mass are both detected under expression → count net water losses; if they match the predicted class-III ring count for the catenulipeptin-like core → report "capacity consistent with a catenulipeptin-type class-III lanthipeptide" and proceed to MS/MS ring mapping. If the apo-peptide mass is novel → treat as a new class-III congener and prioritise NMR. If no dehydrated peptide is detected natively → move to heterologous expression (§23) before concluding the locus is silent, since RiPP yields are often condition-dependent. In parallel run the BLASTp panel; if the LanKC and precursors return the expected class-III hits → §4 is upgraded to a per-gene result; if the LanKC lacks the paired kinase/cyclase signal → revisit the class assignment rather than the compound.

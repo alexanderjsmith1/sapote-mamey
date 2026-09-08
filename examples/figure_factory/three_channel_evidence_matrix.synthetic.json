@@ -1,0 +1,73 @@
+{
+  "schema_version": "sapote_mamey.three_channel_evidence_matrix.v1",
+  "figure_title": "Synthetic Evidence Availability Matrix",
+  "channels": [
+    {
+      "channel_id": "reference_a",
+      "channel_name": "Reference Channel A",
+      "display_order": 1
+    },
+    {
+      "channel_id": "reference_b",
+      "channel_name": "Reference Channel B",
+      "display_order": 2
+    },
+    {
+      "channel_id": "curated_local",
+      "channel_name": "Curated Local Channel",
+      "display_order": 3
+    }
+  ],
+  "rows": [
+    {
+      "row_key": "row-030",
+      "row_label": "Synthetic comparison row gamma",
+      "sort_order": 30,
+      "cells": {
+        "reference_a": {"state": "BINDING_HOLD", "observed_count": null, "denominator_count": 8, "detail": "Source binding is incomplete"},
+        "reference_b": {"state": "OBSERVED", "observed_count": 5, "denominator_count": 8, "detail": "Five returned records"},
+        "curated_local": {"state": "WORKFLOW_GAP", "observed_count": null, "denominator_count": 8, "detail": "Result stream was not returned"}
+      }
+    },
+    {
+      "row_key": "row-010",
+      "row_label": "Synthetic comparison row alpha",
+      "sort_order": 10,
+      "cells": {
+        "reference_a": {"state": "OBSERVED", "observed_count": 3, "denominator_count": 5, "detail": "Three returned records"},
+        "reference_b": {"state": "WORKFLOW_GAP", "observed_count": null, "denominator_count": 5, "detail": "Result stream was not returned"},
+        "curated_local": {"state": "BINDING_HOLD", "observed_count": null, "denominator_count": 5, "detail": "Source binding is incomplete"}
+      }
+    },
+    {
+      "row_key": "row-050",
+      "row_label": "Synthetic comparison row epsilon",
+      "sort_order": 50,
+      "cells": {
+        "reference_a": {"state": "WORKFLOW_GAP", "observed_count": null, "denominator_count": 13, "detail": "Result stream was not returned"},
+        "reference_b": {"state": "BINDING_HOLD", "observed_count": null, "denominator_count": 13, "detail": "Source binding is incomplete"},
+        "curated_local": {"state": "NOT_APPLICABLE", "observed_count": null, "denominator_count": 13, "detail": "Channel does not apply to this row"}
+      }
+    },
+    {
+      "row_key": "row-020",
+      "row_label": "Synthetic comparison row beta",
+      "sort_order": 20,
+      "cells": {
+        "reference_a": {"state": "NOT_RUN", "observed_count": null, "denominator_count": 3, "detail": "Channel was not run"},
+        "reference_b": {"state": "NOT_APPLICABLE", "observed_count": null, "denominator_count": 3, "detail": "Channel does not apply to this row"},
+        "curated_local": {"state": "OBSERVED", "observed_count": 2, "denominator_count": 3, "detail": "Two returned records"}
+      }
+    },
+    {
+      "row_key": "row-040",
+      "row_label": "Synthetic comparison row delta",
+      "sort_order": 40,
+      "cells": {
+        "reference_a": {"state": "NOT_APPLICABLE", "observed_count": null, "denominator_count": 21, "detail": "Channel does not apply to this row"},
+        "reference_b": {"state": "NOT_RUN", "observed_count": null, "denominator_count": 21, "detail": "Channel was not run"},
+        "curated_local": {"state": "OBSERVED", "observed_count": 11, "denominator_count": 21, "detail": "Eleven returned records"}
+      }
+    }
+  ]
+}

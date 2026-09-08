@@ -1,0 +1,55 @@
+# ── Sapote–Mamey runtime dependencies ──────────────────────────────────────
+# Core engine (extraction + master-workbook generation):
+openpyxl>=3.1.2,<4.0      # Excel read/write — master workbook + all .xlsx I/O
+ijson>=3.2.0,<4.0         # streaming JSON parser; enables json_mode='bounded'
+                          # (the documented default): RiQ scores, A-domain
+                          # specificities, extended KCB data from antiSMASH JSON.
+                          # Falls back to TXT-only mode if absent.
+PyYAML>=6.0,<7.0         # bootstrap_contract.yml generation/checks (tools/render_bootstrap_contract.py)
+                          # and 3 bootstrap tests import it unconditionally; promoted to core so a
+                          # plain install and the release-identity gate never fail on its absence.
+
+# Figure / plot tools (tools/build_*figure*.py, export_figure_ready.py,
+# render_dapr_boards.py, build_normalization_matrix.py, …):
+# REQUIRED if you generate any figures — FULL ANALYSIS MODE deliverables do.
+# These are HARD imports (no graceful fallback); the figure tools raise
+# ModuleNotFoundError without them.
+matplotlib>=3.7,<4.0
+numpy>=1.24,<3.0          # imported directly by build_figures.py and the cohort SVD figures
+pandas>=2.0,<3.1           # required by mamey-native figure set and workbook-backed plots
+                          # build_normalization_matrix.py (also a matplotlib
+                          # transitive dep, pinned here because it is used directly)
+networkx>=3.0,<4.0        # BiG-SCAPE GCF-network figure (mamey/bigscape_figures.py).
+                          # SOFT: import-guarded — that figure returns SKIPPED_NO_DEPS and
+                          # silently no-ops if absent. Also in the [figures]/[all] extras.
+scipy>=1.10,<2.0          # cohort clustermap ordering (mamey/cohort_figures.py) +
+                          # tools/cluster_relate.py. SOFT: falls back to count-ordering
+                          # (_HAS_SCIPY=False) if absent. Also in the [figures]/[all] extras.
+
+# Biopython — REQUIRED for the online BLASTp channel (mamey blastp-online / blastp-round) and
+# the HMM domain walk, which the Mode B §4 authoring prompt now directs lead-card authors to run.
+# It stays out of the hard core deps because extraction-only runs don't need it (the built-in
+# mamey/_gbk_shim.py handles standard antiSMASH region GBKs). Install it via the `bio` extra
+# (pip install 'sapote-mamey[bio]') or ship the sapote-addons addon, which vendors it.
+# Without it, blastp-online fail-closes with an actionable message (never a bare traceback).
+# biopython>=1.83,<2.0   # provided by the [bio] extra (pyproject) and the sapote-addons addon
+
+# reportlab — REQUIRED. Backs the colorful PDF renderer (tools/render_deliverable_pdf.py),
+# the PRIMARY path in tools/md_to_pdf.sh (pandoc + xelatex is the fallback when the reportlab
+# layout fails or reportlab is absent). Also declared as a core dep in pyproject.toml.
+reportlab>=4.0,<5.0
+
+# ── Optional deliverable-renderer deps (declared; NOT required for extraction) ──────────────
+# Each degrades gracefully when absent: the affected tool emits a one-line, actionable skip
+# message (naming the exact install) and still writes the products that do not need the dep.
+# Wired in pyproject.toml extras — install with `pip install '.[documents]'` / `'.[render]'`.
+#   markdown   — HTML+PDF pass of tools/build_chat_export.py (absent -> HTML+PDF skipped, .md kept)
+# markdown>=3.4,<4.0        # [documents] extra
+#   python-docx — .docx post-processing in build_strain_dossier.py / build_modeb_compilation.py
+# python-docx>=1.2,<2.0     # [documents] extra (absent -> docx skipped, .md kept)
+#   pypdf      — page-count check after tools/bgc_deliverable_pdf.py writes the PDF (absent -> skipped)
+# pypdf>=5.0,<7.0           # [documents] extra
+#   cairosvg   — SVG->PNG in tools/lab_office_render.py (absent -> PNG pass skipped, rc=1, no traceback)
+# cairosvg>=2.7,<3.0        # [render] extra
+# SYSTEM (not pip): pandoc — backs tools/md_to_docx.sh (the md->docx helper). Install via
+#   brew install pandoc / apt-get install pandoc. Absent -> docx export skips gracefully.

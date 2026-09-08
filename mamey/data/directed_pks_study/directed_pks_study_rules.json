@@ -1,0 +1,52 @@
+{
+  "directed_pks_study_mode": {
+    "version": "1.0",
+    "non_duplicate_dependency": "manual_blastp_autoemit_patch",
+    "new_cli": "python -m mamey directed-pks-study",
+    "required_sections_full20": [
+      "Identity and node/region",
+      "Why this BGC was selected",
+      "Boundary and assembly status",
+      "Gene-by-gene interpretation",
+      "Core biosynthetic logic",
+      "Tailoring and maturation logic",
+      "Transport, resistance, and regulation",
+      "Comparator/KCB interpretation",
+      "Alternative hypotheses",
+      "Fragmentation and co-capture risks",
+      "Product-family interpretation",
+      "Bee/microbe ecological interpretation",
+      "Antibacterial/antifungal relevance",
+      "What cannot be claimed",
+      "Missing evidence",
+      "BLASTP/HMMER next steps",
+      "LC-MS / fermentation implications",
+      "Figure/locus-map notes",
+      "Final Mode B judgement",
+      "Next actions"
+    ],
+    "forbidden_claims": [
+      "makes desertomycin",
+      "makes conglobatin",
+      "makes nystatin",
+      "Set A is one BGC",
+      "SetA is one BGC"
+    ],
+    "required_figure_quality_gate": 9,
+    "required_terms": [
+      "interpretation_scope",
+      "comparator_context",
+      "functional_grouping"
+    ],
+    "forbidden_terms": [
+      "claim_scope",
+      "product_identity_without_evidence"
+    ],
+    "private_identifier_policy": {
+      "public_example_strain": "AS-XXX",
+      "private_strain_regex": "(?<![A-Za-z])(?:AJS-\\d{1,4}|PENDING-\\d{1,4}|AS-\\d{2,4})",
+      "public_tier_rule": "Do not ship literal private strain IDs in public-tier scaffold examples."
+    },
+    "modeb_section_policy": "Exact titles from mamey/data/mode_b/modeb_full20_corrective_contract.json; do not invent or rename sections."
+  }
+}

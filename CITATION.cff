@@ -1,0 +1,89 @@
+cff-version: 1.2.0
+message: "If you use Sapote-Mamey, please cite it as below."
+type: software
+title: "Sapote-Mamey: claim-safe interpretive genome mining for actinomycete biosynthetic gene clusters"
+version: 9.7.414
+date-released: "2026-09-07"
+authors:
+  - family-names: "Smith"
+    given-names: "Alexander J."
+    orcid: "https://orcid.org/0000-0002-7987-1460"
+license: "MIT AND CC-BY-4.0"
+license-url: "https://github.com/alexanderjsmith1/sapote-mamey/blob/main/LICENSE"
+repository-code: "https://github.com/alexanderjsmith1/sapote-mamey"
+keywords:
+  - genome mining
+  - biosynthetic gene clusters
+  - antiSMASH
+  - natural products
+  - actinomycetes
+  - LLM-assisted bioinformatics
+  - claim-safety
+  - workbook-centered design
+references:
+  - type: article
+    title: "antiSMASH 8.0: extended gene cluster detection capabilities and analyses of chemistry, enzymology, and regulation"
+    authors:
+      - family-names: "Blin"
+        given-names: "Kai"
+      - family-names: "Shaw"
+        given-names: "Simon"
+      - family-names: "Vader"
+        given-names: "Lisa"
+      - family-names: "Szenei"
+        given-names: "Judit"
+      - family-names: "Reitz"
+        given-names: "Zachary L"
+      - family-names: "Augustijn"
+        given-names: "Hannah E"
+      - family-names: "Cediel-Becerra"
+        given-names: "José D D"
+      - family-names: "de Crécy-Lagard"
+        given-names: "Valérie"
+      - family-names: "Koetsier"
+        given-names: "Robert A"
+      - family-names: "Williams"
+        given-names: "Sam E"
+      - family-names: "Cruz-Morales"
+        given-names: "Pablo"
+      - family-names: "Wongwas"
+        given-names: "Sopida"
+      - family-names: "Segurado Luchsinger"
+        given-names: "Alejandro E"
+      - family-names: "Biermann"
+        given-names: "Friederike"
+      - family-names: "Korenskaia"
+        given-names: "Aleksandra"
+      - family-names: "Zdouc"
+        given-names: "Mitja M"
+      - family-names: "Meijer"
+        given-names: "David"
+      - family-names: "Terlouw"
+        given-names: "Barbara R"
+      - family-names: "van der Hooft"
+        given-names: "Justin J J"
+      - family-names: "Ziemert"
+        given-names: "Nadine"
+      - family-names: "Helfrich"
+        given-names: "Eric J N"
+      - family-names: "Masschelein"
+        given-names: "Joleen"
+      - family-names: "Corre"
+        given-names: "Christophe"
+      - family-names: "Chevrette"
+        given-names: "Marc G"
+      - family-names: "van Wezel"
+        given-names: "Gilles P"
+      - family-names: "Medema"
+        given-names: "Marnix H"
+      - family-names: "Weber"
+        given-names: "Tilmann"
+    journal: "Nucleic Acids Research"
+    year: 2025
+    volume: 53
+    issue: "W1"
+    start: "W32"
+    end: "W38"
+    doi: "10.1093/nar/gkaf334"
+    pmid: "40276974"
+    pmcid: "PMC12230676"

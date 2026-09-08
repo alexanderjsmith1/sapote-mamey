@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sapote-Mamey Citation Ledger v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "citation_ledger_v1"
+    },
+    "bundle_version": {
+      "type": "string"
+    },
+    "strain_id": {
+      "type": "string"
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "citation_id",
+          "scope",
+          "source_status",
+          "citation_label"
+        ],
+        "properties": {
+          "citation_id": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "method",
+              "reference_cluster",
+              "compound_family",
+              "mechanism",
+              "assay",
+              "taxonomy",
+              "other"
+            ]
+          },
+          "source_status": {
+            "enum": [
+              "verified",
+              "citation_needed",
+              "not_applicable",
+              "operator_supplied"
+            ]
+          },
+          "citation_label": {
+            "type": "string"
+          },
+          "doi": {
+            "type": "string"
+          },
+          "pmid": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "mibig_id": {
+            "type": "string"
+          },
+          "accession": {
+            "type": "string"
+          },
+          "supports": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

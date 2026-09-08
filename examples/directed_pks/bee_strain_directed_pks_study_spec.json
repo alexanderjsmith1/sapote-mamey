@@ -1,0 +1,19 @@
+{
+  "study_id": "AS-XXX_polyene_PTM_antifungal",
+  "groups": {
+    "SetA": [
+      "NODE_96",
+      "NODE_107",
+      "NODE_24",
+      "NODE_249"
+    ],
+    "SetB": [
+      "NODE_456",
+      "NODE_58"
+    ]
+  },
+  "excluded_bgcs": {
+    "BGC011": "streptophenazines purified; active antifungal likely elsewhere"
+  },
+  "figure_quality_gate": 9.0
+}

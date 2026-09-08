@@ -1,0 +1,30 @@
+{
+  "schema_version": "sapote.strict_health_waiver/1",
+  "_note": "NC-005: machine-readable, signed exceptions to strict repo-health WARN ceilings. This DOCUMENTS an owned exception; it does NOT raise the ceiling. A waiver stops covering a metric the moment its current count drifts above the signed `observed`. Only strict WARNs are waivable — a hard FAIL is never waivable.",
+  "cut": "v9.7.414",
+  "_resigned_note": "Both waivers EXPIRED BY DESIGN before this cut: silent_swallow drifted 142 (.361) -> 145 (.365) -> 149 (.366), and print_calls drifted 1557 (.361/.365) -> 1600 (.366), each rising above its signed observed and so ceasing to cover its metric. That auto-expiry is the mechanism working, not failing: it forced a conscious owner decision instead of letting drift accumulate silently. The Patch Chat surfaced the expiry during pre-seal verification (P366-03) and correctly refused to re-sign an owner exception in the Developer or User's name from a patch chat. Re-signed at the CURRENT observed counts on the Developer or User Smith's explicit in-session approval, 2026-08-14 ('re-sign waiver at 149/1600'). Ceilings are UNCHANGED at 110 / 1300 — a waiver documents an exception, it never raises a ceiling. These will expire again on the next drift, which is intended.",
+  "waivers": [
+    {
+      "metric": "silent_swallow",
+      "ceiling": 110,
+      "observed": 149,
+      "owner": "the Developer or User Smith (release owner)",
+      "reason": "Pre-existing baseline predating v9.7.347; `except ...: pass` count is a code-hygiene ceiling, not a correctness defect. Re-signed at v9.7.366 after drift 142->149: +3 at .365 (governance/doctor external-data resolution) and +4 at .366 (the 6 new phylo-placement tools and the _4B subtype-partition parse carrying ordinary defensive except blocks). No blocking-path swallow was introduced — the drift is in post-seal tooling and an advisory scan. Reduction tracked as a separate cleanup task; the strict gate is honored via this documented owned exception rather than by raising the ceiling.",
+      "date": "2026-08-14",
+      "prior_observed": 142,
+      "prior_date": "2026-08-11",
+      "approval": "the Developer or User Smith, in-session, 2026-08-14"
+    },
+    {
+      "metric": "print_calls",
+      "ceiling": 1280,
+      "observed": 1323,
+      "owner": "release owner",
+      "reason": "Exact-count hygiene exception for v9.7.414: 1320 inherited terminal-output calls plus 3 in the portable Markdown link checker. Enforced ceiling remains 1280. No headroom for further growth; count above 1323 invalidates this exception. No test, disclosure, or hard-failure gate is waived. This entry supersedes the prior print_calls signature; the root historical note describes earlier signatures only.",
+      "date": "2026-09-07",
+      "prior_observed": 1620,
+      "prior_date": "2026-08-20",
+      "approval": "Explicit in-session release-owner approval on 2026-09-07: Yes—re-sign at the exact final count."
+    }
+  ]
+}

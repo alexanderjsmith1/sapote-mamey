@@ -1,0 +1,44 @@
+# OUTGROUP_REGISTRY.tsv — canonical outgroup reference for actinomycete/bacterial phylogenetic trees.
+# GENERIC engine asset: taxon -> a decided outgroup with a specific type-strain/reference genome + real accession.
+# So any tree is rooted reproducibly, never ad-hoc. Applies to any project; carries no project/collection specifics.
+#
+# THE RULE (why some taxa have two rows): a GENUS tree roots on a SISTER GENUS in the SAME family (one rank out);
+# a FAMILY tree roots OUTSIDE the family, on a sister-family/order genus. Never root on an ingroup member; never on
+# a distant taxon; the outgroup genus must not also appear in the ingroup. This makes the sign-off "outgroup
+# sanity" check pass by construction.
+#
+# All accessions are REAL (GTDB metadata / public NCBI assemblies) — none fabricated, all re-downloadable.
+# status: LOCKED = decided, accession verified; CONFIRM = accession real, verify type-strain representative first.
+# Extend by adding a row (any bacterial family): give the sister taxon + a real GC[AF]_ accession.
+#
+# Columns:
+tree_scope	ingroup_taxon	family	outgroup_genus	outgroup_species_strain	assembly_accession	status	rationale
+# ---------- GENUS-LEVEL trees (root on a sister genus, same family) ----------
+genus	Nocardia	Nocardiaceae	Rhodococcus	Rhodococcus erythropolis	GCF_017656525.1	LOCKED	sister genus, same family
+genus	Micromonospora	Micromonosporaceae	Actinoplanes	Actinoplanes missouriensis	GCF_039528075.1	LOCKED	sister genus; not Verrucosispora (synonymized into Micromonospora)
+genus	Actinomadura	Thermomonosporaceae	Actinocorallia	Actinocorallia herbida	GCF_003751225.1	LOCKED	sister genus; not Spirillospora (nests inside Actinomadura)
+genus	Saccharopolyspora	Pseudonocardiaceae	Actinopolyspora	Actinopolyspora halophila	GCF_000371785.1	LOCKED	sister genus, same family
+genus	Peterkaempfera	Streptomycetaceae	Kitasatospora	Kitasatospora setae KM-6054T	GCF_000269985.1	LOCKED	sister genus (type strain)
+genus	Streptomyces	Streptomycetaceae	Kitasatospora	Kitasatospora setae KM-6054T	GCF_000269985.1	LOCKED	sister genus (type strain); for deep backbones use the family row
+genus	Kitasatospora	Streptomycetaceae	Streptomyces	Streptomyces coelicolor A3(2)	GCF_008386545.1	CONFIRM	sister genus, same family
+genus	Pseudonocardia	Pseudonocardiaceae	Actinosynnema	Actinosynnema mirum DSM 43827	GCA_018139085.1	LOCKED	sister genus, same family
+genus	Amycolatopsis	Pseudonocardiaceae	Actinosynnema	Actinosynnema mirum DSM 43827	GCA_018139085.1	LOCKED	sister genus, same family
+genus	Kribbella	Nocardioidaceae	Nocardioides	Nocardioides albus	GCF_014191915.1	LOCKED	sister genus, same family
+genus	Micromonospora	Micromonosporaceae	Dactylosporangium	Dactylosporangium aurantiacum	GCF_900110485.1	CONFIRM	alternate sister genus
+genus	Gordonia	Nocardiaceae	Rhodococcus	Rhodococcus erythropolis	GCF_017656525.1	LOCKED	sister genus, same family
+genus	Salinispora	Micromonosporaceae	Actinoplanes	Actinoplanes missouriensis	GCF_039528075.1	LOCKED	sister genus (Salinispora is deeply nested in Micromonosporaceae)
+genus	Saccharomonospora	Pseudonocardiaceae	Actinosynnema	Actinosynnema mirum DSM 43827	GCA_018139085.1	LOCKED	sister genus, same family
+genus	Streptacidiphilus	Streptomycetaceae	Kitasatospora	Kitasatospora setae KM-6054T	GCF_000269985.1	LOCKED	sister genus (type strain), same family
+# ---------- FAMILY / BACKBONE trees (root OUTSIDE the family, sister family/order) ----------
+family	Streptomycetaceae	Streptomycetaceae	Actinospica	Actinospica durhamensis CSCA	GCF_018139695.1	LOCKED	sister family Catenulisporaceae; alt Catenulispora acidiphila GCA_042675155.1
+family	Pseudonocardiaceae	Pseudonocardiaceae	Nonomuraea	Nonomuraea pusilla	GCF_001417755.1	LOCKED	sister order Streptosporangiales; not Actinosynnema/Actinopolyspora (inside the family)
+family	Nocardiaceae	Nocardiaceae	Tsukamurella	Tsukamurella paurometabola	GCF_900460355.1	LOCKED	sister family Tsukamurellaceae; not Rhodococcus/Gordonia (inside); avoid M. tuberculosis (fast-evolving)
+family	Micromonosporaceae	Micromonosporaceae	Streptosporangium	Streptosporangium roseum	GCF_040646915.1	LOCKED	sister order Streptosporangiales; alt Nonomuraea pusilla GCF_001417755.1
+family	Thermomonosporaceae	Thermomonosporaceae	Streptosporangium	Streptosporangium roseum	GCF_040646915.1	LOCKED	sister family Streptosporangiaceae; alt Nonomuraea pusilla GCF_001417755.1
+family	Nocardioidaceae	Nocardioidaceae	Aeromicrobium	Aeromicrobium erythreum	GCF_001509405.1	CONFIRM	within-order sister (Propionibacteriales); for deep backbones consider a Propionibacteriaceae outgroup
+genus	Actinacidiphila	Streptomycetaceae	Kitasatospora	Kitasatospora setae KM 6054T	GCF_000269985.1	PROVISIONAL	Eggplant 2026-09-06: Streptomycetaceae sister; Actinacidiphila split from Streptomyces 2022
+genus	Actinomycetospora	Pseudonocardiaceae	Pseudonocardia	Pseudonocardia thermophila	PROVISIONAL_16S_only	PROVISIONAL	Eggplant 2026-09-06: Pseudonocardiaceae sister; genome accession TBD
+genus	Nocardioides	Nocardioidaceae	Aeromicrobium	Aeromicrobium erythreum	GCF_001509405.1	PROVISIONAL	Eggplant 2026-09-06: family sister Nocardioidaceae
+genus	Nocardiopsis	Nocardiopsaceae	Thermobifida	Thermobifida fusca	PROVISIONAL_16S_only	PROVISIONAL	Eggplant 2026-09-06: Nocardiopsaceae/Streptosporangiales sister; genome accession TBD
+genus	Saccharothrix	Pseudonocardiaceae	Actinosynnema	Actinosynnema mirum DSM 43827	GCA_018139085.1	PROVISIONAL	Eggplant 2026-09-06: Pseudonocardiaceae sister
+genus	Streptosporangium	Streptosporangiaceae	Nonomuraea	Nonomuraea pusilla	GCF_001417755.1	PROVISIONAL	Eggplant 2026-09-06: Streptosporangiaceae sister

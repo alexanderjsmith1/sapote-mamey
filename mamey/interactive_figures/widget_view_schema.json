@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/as-widget-view-v1.schema.json",
+  "title": "AS widget frozen publication view",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "recipe", "scope", "parameters", "source_sha256"],
+  "properties": {
+    "schema": {"const": "as_widget_view_v1"},
+    "recipe": {"enum": ["bgc-boundary", "machinery-length"]},
+    "scope": {"type": "string", "minLength": 1},
+    "parameters": {"type": "object"},
+    "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

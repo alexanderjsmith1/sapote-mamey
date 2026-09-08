@@ -1,0 +1,219 @@
+{
+  "cassettes": [
+    {
+      "family": "release_macrocyclization",
+      "registry_id": "MMC-001",
+      "name": "Release and macrocyclization cassette",
+      "tier": "",
+      "detects": "thioesterase, \\bte\\b, cyclase, macrocycl, esterase, reductase release",
+      "description": "Detects chain-release and macrocyclization machinery in modular assembly lines: thioesterase (TE) and 'TE' tokens, cyclase, macrocyclization, esterase, and reductase-release wording. These domains determine how a linear NRPS/PKS chain is offloaded — by hydrolysis, macrolactone/macrolactam cyclization, or reductive release — and so shape final-product topology rather than its chemical class.",
+      "positive_interpretation": "Read as architecture context: supports release/macrocyclization logic when co-located with NRPS/PKS modules, and can hint that a product is cyclic when a TE-cyclase sits at the chain terminus.",
+      "negative_interpretation": "Absence is uninformative. Release/TE wording is near-ubiquitous in modular pathways, so a low or zero count under source-derived scope is not evidence against macrocyclization — it usually reflects annotation gaps.",
+      "claim_safety": "Tier-3 context only: a release/TE token never defines a product class or proves cyclization. Treat as architecture support for an NRPS/PKS lead; confirm topology by LC-MS/MS and curated domain calls."
+    },
+    {
+      "family": "glycosylation",
+      "registry_id": "MMC-002",
+      "name": "Glycosylation cassette",
+      "tier": "",
+      "detects": "glycosyltransferase, glycosyl, sugar, deoxysugar, gt\\b",
+      "description": "Detects sugar-tailoring machinery — glycosyltransferase, glycosyl, sugar, deoxysugar, and 'GT' tokens — that attach (deoxy)sugars to a core scaffold. Glycosylation is common across glycopeptides, macrolides, and aminoglycoside-adjacent metabolites and often modulates solubility, target binding, and bioactivity.",
+      "positive_interpretation": "Supports a glycosylated-product hypothesis and flags sugar-decoration capacity when a glycosyltransferase sits in a PKS/NRPS/RiPP context.",
+      "negative_interpretation": "Absence does not rule out glycosylation; GT annotations are easily missed. A positive call does not specify which sugar, how many, or the linkage.",
+      "claim_safety": "Tier-3 context with the saccharide standing-downgrade in force: glycosyltransferase tokens are widespread and low-specificity. Do not infer a glycoside or a sugar identity without deeper annotation and LC-MS/MS."
+    },
+    {
+      "family": "halogenation",
+      "registry_id": "MMC-003",
+      "name": "Halogenation cassette",
+      "tier": "",
+      "detects": "(?<!de)halogenase, fluorinase, chlorinase, brominase",
+      "description": "Detects halogenating enzymes — halogenase (excluding dehalogenase), fluorinase, chlorinase, brominase — that install Cl/Br/F (and rarely I) onto natural-product scaffolds. Halogenation frequently raises structural novelty and can be important for potency, making it a useful prioritization signal.",
+      "positive_interpretation": "Elevates search priority for halogenated metabolites; a flavin-dependent halogenase in a PKS/NRPS/RiPP context is a credible organohalogen cue.",
+      "negative_interpretation": "Absence is not evidence of an unhalogenated product under source-derived scope. A positive call does not fix the halogen, position, or subclass (FADH2-dependent vs SAM-dependent fluorinase).",
+      "claim_safety": "Tier-2 class-supporting: signals capacity for halogenation, not a specific halogenated product. Confirm by curated halogenase HMM/BLAST and by halogen isotope pattern in MS before any organohalogen claim."
+    },
+    {
+      "family": "phosphonate",
+      "registry_id": "MMC-004",
+      "name": "Phosphonate cassette",
+      "tier": "",
+      "detects": "(?<!carboxy)phosphonate(?!.*transporter)(?!.*utilization)(?!.*c-?p lyase)(?!.*phn[g-m]\\b), pep mutase(?!\\s*family), phosphoenolpyruvate mutase(?!\\s*family), foma, fomb",
+      "description": "Detects C-P-bond (phosphonate) biosynthesis and self-protection: phosphonate wording plus the committed first-step enzyme PEP mutase (PepM) / phosphoenolpyruvate mutase, and FomA/FomB-type resistance markers. Phosphonates (e.g., fosfomycin-, rhizocticin-class) are antibacterial/antifungal antimetabolites of high interest.",
+      "positive_interpretation": "High-value antibacterial/antimetabolite hypothesis when PepM-like biosynthesis and FomA/FomB-like self-resistance are concordant in the same neighbourhood; KCB similarity to rhizocticin/fosfomycin is corroborating, not identity.",
+      "negative_interpretation": "Absence in a source-derived scan is not a true null unless the full proteome was in scope; PepM can sit off the antiSMASH region. A bare 'phosphonate' token without PepM may reflect transport/utilization, not biosynthesis.",
+      "claim_safety": "Tier-1 diagnostic but gated on committed enzymes: require PepM (+ aepY / phosphonopyruvate decarboxylase) confirmation before any phosphonate class claim. The regex already vetoes C-P lyase / phn transporter / utilization false-positives; confirm by HMM/BLAST, ³¹P-NMR, and fractionation."
+    },
+    {
+      "family": "nucleoside",
+      "registry_id": "MMC-005",
+      "name": "Nucleoside cassette",
+      "tier": "",
+      "detects": "peptidyl[- ]nucleoside, nikkomycin, polyoxin, \\bnikj\\b, \\bnikd\\b, \\bnikc\\b, chitin synthase inhibit",
+      "description": "Detects peptidyl-nucleoside antifungal biosynthesis — nikkomycin/polyoxin wording and the diagnostic nikJ/nikD enzymes — for metabolites that inhibit fungal chitin synthase. Narrowed in v9.7.21 to drop the bare 'nucleoside' token, which over-called antifungal capacity on generic nucleoside primary metabolism.",
+      "positive_interpretation": "Strong Candida/antifungal-track cue when Nik/Pol-like committed markers (nikJ/nikD) are confirmed alongside peptide-nucleoside assembly logic.",
+      "negative_interpretation": "Absence is not an antifungal-negative call (no strain is called antifungal-negative; bioactivity is extract-level). A generic nucleoside hit without nikJ/nikD is not a peptidyl-nucleoside lead.",
+      "claim_safety": "Tier-1 diagnostic restricted to the peptidyl-nucleoside class: a true call needs the diagnostic Nik/Pol enzymes, not nucleotide-metabolism wording. Confirm by HMM/BLAST and antifungal fractionation."
+    },
+    {
+      "family": "aminoglycoside_aminocyclitol",
+      "registry_id": "MMC-006",
+      "name": "Aminoglycoside/aminocyclitol cassette",
+      "tier": "",
+      "detects": "aminocyclitol, dois, btrc, 2-deoxy-scyllo-inosose",
+      "description": "Detects aminocyclitol/aminoglycoside biosynthesis and self-protection: aminoglycoside, aminocyclitol, and the committed enzymes DOIS (2-deoxy-scyllo-inosose synthase) and BtrC. This class (e.g., 2-deoxystreptamine aminoglycosides) is antibacterial and clinically significant.",
+      "positive_interpretation": "Antibacterial-track cue when DOIS/BtrC-like committed steps are confirmed within an aminoglycoside neighbourhood.",
+      "negative_interpretation": "Absence is uninformative under partial scope. An 'aminoglycoside' wording hit can reflect a resistance/modifying gene (APH/AAC) rather than biosynthesis, so the bare token is not a producer call.",
+      "claim_safety": "Tier-1 diagnostic anchored on DOIS: the committed 2-deoxy-scyllo-inosose synthase step is the diagnostic, not the class name. Separate biosynthesis from resistance genes; confirm by HMM/BLAST and fractionation."
+    },
+    {
+      "family": "tetronate_spirotetronate",
+      "registry_id": "MMC-007",
+      "name": "Tetronate/spirotetronate cassette",
+      "tier": "",
+      "detects": "tetronate, spirotetronate, fkbh, (?<!acyl)glyceryl",
+      "description": "Detects tetronate/spirotetronate polyketide building-block machinery: tetronate, spirotetronate, the glyceryl-transferase FkbH, and glyceryl (excluding acyl-glyceryl) tokens. Spirotetronates (e.g., chlorothricin-, kijanimicin-class) are architecturally complex polyketides of high novelty interest.",
+      "positive_interpretation": "High-value polyketide-tailoring cue when FkbH and an ACP-glyceryl context sit within a modular PKS, consistent with tetronate unit installation.",
+      "negative_interpretation": "Absence does not exclude a tetronate; FkbH context can be split across contigs. FkbH alone is shared with other glyceryl-using pathways and does not by itself prove a spiro-fused product.",
+      "claim_safety": "Tier-1 diagnostic but topology-gated: calling 'spiro' needs the Diels-Alderase/cyclization context, not just FkbH. Confirm by curated domain analysis and LC-MS/MS."
+    },
+    {
+      "family": "thioamide_ycao",
+      "registry_id": "MMC-008",
+      "name": "Thioamide/YcaO cassette",
+      "tier": "",
+      "detects": "thioamide, ycaO",
+      "description": "Detects YcaO-dependent backbone thioamidation — thioamide and YcaO tokens — a rare amide-to-thioamide modification seen in thioamitide RiPPs and some thiopeptides. It is a strong novelty signal because true thioamidation is uncommon.",
+      "positive_interpretation": "High-novelty cue, especially in NRPS/RiPP contexts, when a YcaO is paired with a TfuA partner and a precursor consistent with thioamide installation.",
+      "negative_interpretation": "Absence is uninformative under source-derived scope. A YcaO hit alone is ambiguous: YcaO also performs azoline cyclodehydration in TOMMs, so a bare YcaO token is not a thioamide call.",
+      "claim_safety": "Tier-1 diagnostic but mechanism-ambiguous: distinguish thioamidating YcaO (needs TfuA / thioamide context) from TOMM cyclodehydratase YcaO before claiming thioamidation. Confirm by HMM/BLAST and MS mass-shift."
+    },
+    {
+      "family": "lanthipeptide",
+      "registry_id": "MMC-009",
+      "name": "Lanthipeptide cassette",
+      "tier": "",
+      "detects": "lanthipeptide, lantibiotic, (?<![A-Za-z])lanc(?![A-Za-z]), (?<![A-Za-z])lanm(?![A-Za-z]), (?<![A-Za-z])lant(?![A-Za-z_]), (?<![A-Za-z])lanp(?![A-Za-z])",
+      "description": "Detects lanthipeptide RiPP biosynthesis and maturation: lanthipeptide wording and the Lan enzymes (LanM, LanC, LanT, LanP). These install (methyl)lanthionine thioether crosslinks (class I LanB/LanC; class II LanM) and handle export/proteolytic maturation, yielding ribosomal antibacterial peptides.",
+      "positive_interpretation": "Supports lanthipeptide lead status when a precursor peptide and class-defining synthetase plus maturation logic are visible; a UMED maturation-gap is corroborating.",
+      "negative_interpretation": "Absence is not antibacterial-negative (bioactivity is extract-level). Transporter/cyclase tokens (LanT/LanC-like) also appear in unrelated contexts, so they do not alone establish a lanthipeptide.",
+      "claim_safety": "Tier-2 class-supporting: require precursor + class-defining synthetase (LanB/LanC or LanM) to call the class. The UMED maturation-gap is a corroborating, not defining, signal; confirm by HMM/BLAST and LC-MS/MS."
+    },
+    {
+      "family": "lassopeptide",
+      "registry_id": "MMC-010",
+      "name": "Lasso peptide cassette",
+      "tier": "",
+      "detects": "lassopeptide, lasso peptide",
+      "description": "Detects lasso-peptide RiPPs — lassopeptide / 'lasso peptide' wording — lariat-knot peptides matured by a cysteine-protease (B) and an ATP-dependent macrolactam synthetase (C), often with an RRE. Their threaded topology confers protease/thermal stability and varied bioactivity.",
+      "positive_interpretation": "High-confidence RiPP cue when the lasso maturation constellation (B1/B2 + C, ± RRE) and a precursor are present together.",
+      "negative_interpretation": "Absence is uninformative under partial scope. A label hit confirms class wording but not the threaded knot or the bioactivity, which still require structural confirmation.",
+      "claim_safety": "Tier-1 diagnostic at the class level only: the antiSMASH lasso label is reliable for class, but topology and activity remain capacity until shown by MS/NMR. Treat as a lasso-peptide capacity call."
+    },
+    {
+      "family": "tomm_azole_ripp",
+      "registry_id": "MMC-011",
+      "name": "TOMM/azole RiPP cassette",
+      "tier": "",
+      "detects": "azole, tomm, cyclodehydratase, dehydrogenase, ripp",
+      "description": "Detects azol(in)e-containing RiPPs / thiazole-oxazole-modified microcins (TOMMs): azole, TOMM, cyclodehydratase, dehydrogenase, and RiPP tokens. A YcaO cyclodehydratase plus a flavin dehydrogenase install thiazole/oxazole heterocycles onto a ribosomal precursor (e.g., microcins, thiopeptides, cyanobactins). Crosswalk note: this is the TOMM/azole cassette (MMC-011) and is distinct from the indolocarbazole T43 trigger.",
+      "positive_interpretation": "MRSA/antibacterial-track cue when a precursor, a YcaO/cyclodehydratase, and oxidation (dehydrogenase) logic are concordant, consistent with azole-heterocycle installation.",
+      "negative_interpretation": "Absence is not antibacterial-negative. 'Dehydrogenase' and 'RiPP' are broad tokens, so a hit without the YcaO cyclodehydratase and a precursor is not a TOMM call.",
+      "claim_safety": "Tier-1 diagnostic but token-broad: require the YcaO cyclodehydratase + precursor to call a TOMM, and keep it separate from indolocarbazole (T43-IDC). Confirm by HMM/BLAST and LC-MS/MS heterocycle mass shifts."
+    },
+    {
+      "family": "polyene_ptm_hsaf",
+      "registry_id": "MMC-012",
+      "name": "Polyene/PTM/HSAF cassette",
+      "tier": "",
+      "detects": "(?<!aryl)polyene, hsaf, maltophilin, tetramate, pks-nrps",
+      "description": "Detects polycyclic tetramate macrolactam (PTM) / HSAF-type antifungals: polyene, HSAF, maltophilin, tetramate, and PKS-NRPS tokens. These hybrid iterative PKS-NRPS systems build tetramate-containing macrolactams with broad antifungal activity, a recurrent mechanism in insect-associated actinomycetes.",
+      "positive_interpretation": "Strong Candida/antifungal-track cue when a hybrid PKS-NRPS architecture with iterative module and tetramate-forming logic is confirmed.",
+      "negative_interpretation": "Absence is not an antifungal-negative call (bioactivity is extract-level). 'Polyene' and 'tetramate' are broad tokens that also hit unrelated PKS contexts, so they are not alone a PTM/HSAF call.",
+      "claim_safety": "Tier-1 diagnostic gated on architecture: the diagnostic is the PTM hybrid PKS-NRPS, not the keyword. Confirm the hybrid architecture by domain analysis and antifungal fractionation before any HSAF/PTM class claim."
+    },
+    {
+      "family": "siderophore_metallophore",
+      "registry_id": "MMC-013",
+      "name": "Siderophore/metallophore cassette",
+      "tier": "",
+      "detects": "siderophore, metallophore, nrp-metallophore, iron, ferric",
+      "description": "Detects iron/metal-acquisition metabolites — siderophore, metallophore, NRP-metallophore, iron, ferric tokens — covering NRPS and NRPS-independent siderophore systems that chelate Fe (and other metals) for nutrient uptake.",
+      "positive_interpretation": "Supports siderophore/metallophore ecology and points to CAS / metal-limitation assays as the natural test; useful for ecological context.",
+      "negative_interpretation": "Absence is uninformative; uptake genes are easily missed. 'Iron/ferric' tokens also hit uptake and regulatory genes unrelated to a biosynthetic siderophore.",
+      "claim_safety": "Tier-2 class-supporting and deliberately low-weight: siderophore capacity is widespread across actinomycetes and ecologically low-discrimination, so down-weight it in comparative and novelty claims. Confirm by HMM/BLAST and CAS assay."
+    },
+    {
+      "family": "transporter_resistance",
+      "registry_id": "MMC-014",
+      "name": "Transporter/resistance cassette",
+      "tier": "",
+      "detects": "transporter, efflux, exporter, resistance, immunity",
+      "description": "Detects export/efflux/self-resistance/immunity wording near BGCs — transporter, efflux, exporter, resistance, immunity. These tokens are near-universal genomic background and are tracked for inventory completeness only.",
+      "positive_interpretation": "Supportive context at most: a class-matched resistance gene beside a cognate BGC can corroborate a self-protection hypothesis, but only with class-specific concordance.",
+      "negative_interpretation": "Absence means nothing — transport/resistance wording is everywhere. Presence equally proves nothing about activity or self-protection on its own.",
+      "claim_safety": "Tier-5 overinterpretation risk, inventory-only: never let this cassette drive a lead or support a self-resistance claim without class-specific, BGC-cognate evidence confirmed by curated HMM/BLAST."
+    },
+    {
+      "family": "chitin_glycan_ecology",
+      "registry_id": "MMC-015",
+      "name": "Chitin/glycan ecology cassette",
+      "tier": "",
+      "detects": "chitinase, gh18, gh19, aa10, lpmo, glcnac, dasr",
+      "description": "Detects chitinolysis and GlcNAc-responsive regulation — chitinase, GH18, GH19, AA10/LPMO, GlcNAc, DasR — markers for chitin utilization and antifungal/insect-ecology hypotheses. Relevant to fungal-cell-wall degradation and to host-associated (e.g., bee/Hymenoptera) defensive ecology.",
+      "positive_interpretation": "Supports antifungal/ecology hypotheses when assessed at whole-proteome scope, since these genes usually sit outside BGCs; DasR/GlcNAc context links the response to chitin sensing.",
+      "negative_interpretation": "Absence under BGC-local-only scope is not a true null — chitinases are typically genome-dispersed, so scope must be confirmed before reading a zero.",
+      "claim_safety": "Tier-2 class-supporting and scope-sensitive: GH18/GH19/AA10 family calls are annotation first-pass and need HMMER/BLAST; any chitin-ecology inference requires confirmed whole-genome scope, not BGC-local counts."
+    }
+  ],
+  "scans": [
+    {
+      "scan": "KCB_sweep",
+      "description": "Known-cluster-blast similarity sweep -> RiQ novelty. KCB is a similarity signal, not a product identification."
+    },
+    {
+      "scan": "RG_GMCI",
+      "description": "Reference-genome-guided multi-cluster integration: detects split-cluster pairs across contig breaks."
+    },
+    {
+      "scan": "FLBR",
+      "description": "Fragment-linked biosynthetic rescue / LMPKS fragment set."
+    },
+    {
+      "scan": "CCTT",
+      "description": "T43 diagnostic class triggers (15 families) feeding AB/AF/novelty."
+    },
+    {
+      "scan": "CGAD",
+      "description": "Chitinase / glycan-active-domain ecology scan."
+    },
+    {
+      "scan": "UMED",
+      "description": "RiPP maturation-machinery scan (proteases / transporters / maturation gaps)."
+    },
+    {
+      "scan": "EFLS",
+      "description": "Evidence-from-linkage scan: candidate co-localized pairs."
+    },
+    {
+      "scan": "resistance",
+      "description": "Self-protection / resistance-tier scan."
+    },
+    {
+      "scan": "bldA_TTA",
+      "description": "bldA-dependent TTA-codon developmental-control scan. NOT_APPLICABLE outside actinomycetes."
+    },
+    {
+      "scan": "TFBS",
+      "description": "Transcription-factor binding-site motif scan (upstream region)."
+    },
+    {
+      "scan": "regulators",
+      "description": "Regulator-family census (cluster-situated + global regulators)."
+    },
+    {
+      "scan": "transporters",
+      "description": "Transporter-family census (ABC / MFS / efflux)."
+    }
+  ]
+}

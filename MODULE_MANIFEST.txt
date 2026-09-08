@@ -1,0 +1,357 @@
+# MODULE_MANIFEST.txt — tracked mamey/ module inventory (accretion gate baseline)
+# Format: <relpath>\t<one-line purpose from module docstring>
+# Regenerated at cut time by tools/check_module_accretion.py --write.
+# The accretion gate fails a cut that ADDS a module not listed here without a
+# Consolidates:/Accretion-justified: line in the CHANGELOG entry.
+
+mamey/__init__.py	(no docstring)
+mamey/__main__.py	Allow `python -m mamey` invocation.
+mamey/_gbk_shim.py	Minimal GenBank parser shim — replaces Biopython SeqIO for antiSMASH region GBKs.
+mamey/_vendor/__init__.py	(no docstring)
+mamey/_vendor/ijson/__init__.py	Iterative JSON parser.
+mamey/_vendor/ijson/adapters.py	(no docstring)
+mamey/_vendor/ijson/backends/__init__.py	(no docstring)
+mamey/_vendor/ijson/backends/_yajl2_ctypes_common.py	Common ctypes routines for yajl library handling
+mamey/_vendor/ijson/backends/python.py	Pure-python parsing backend.
+mamey/_vendor/ijson/backends/yajl.py	Wrapper for YAJL C library version 1.x.
+mamey/_vendor/ijson/backends/yajl2.py	Wrapper for YAJL C library version 2.x.
+mamey/_vendor/ijson/backends/yajl2_c.py	Wrapper for _yajl2 C extension module
+mamey/_vendor/ijson/backends/yajl2_cffi.py	CFFI-Wrapper for YAJL C library version 2.x.
+mamey/_vendor/ijson/benchmark.py	Benchmarking utility for ijson
+mamey/_vendor/ijson/common.py	Backend independent higher level interfaces, common exceptions.
+mamey/_vendor/ijson/compat.py	Python2/Python3 compatibility utilities.
+mamey/_vendor/ijson/dump.py	Dumping command-line utility
+mamey/_vendor/ijson/utils.py	(no docstring)
+mamey/_vendor/ijson/utils35.py	Python3.5+ specific utilities
+mamey/_vendor/ijson/version.py	(no docstring)
+mamey/activity_lead_genes.py	Gene-level biosynthetic foundations for activity-lead routing boards.
+mamey/activity_lead_report.py	Per-strain antibacterial/antifungal activity-lead routing report.
+mamey/activity_predictions.py	External activity-prediction channel — validator + adapter registry (v9.7.348).
+mamey/adjudication.py	adjudication.py — apply the curated adjudication overlay on top of the MIBiG reference base.
+mamey/af_dossier.py	mamey af-dossier — the Antifungal (AF) Lead Dossier, a cohort deliverable.
+mamey/antimicrobial_recall.py	Antimicrobial recall layer (v9.7.120) — boost-only compound-anchor AB/AF capacity.
+mamey/antismash_evidence.py	(no docstring)
+mamey/antismash_input.py	antismash_input.py — recognise an antiSMASH result archive regardless of how it was named.
+mamey/antismash_tables.py	Normalized, report-only antiSMASH evidence tables.
+mamey/architecture_first.py	architecture_first.py — Sapote-Mamey v9.7.107 patch (v2.2)  # version-sync-ok
+mamey/assembly.py	(no docstring)
+mamey/assembly_line.py	assembly_line.py — deterministic PKS/NRPS assembly-line reader (roadmap #6, report layer).
+mamey/authored_verify.py	v9.7.192 — authored-output verification: read the FINISHED deliverable, not the skeleton.
+mamey/b1_normalizer.py	b1_normalizer.py — normalize any divergent B1 source to the canonical frozen v1.1 schema.
+mamey/b2_structured_evaluators.py	B2 Phase 2 structured evaluator framework.
+mamey/background_control.py	Known/purified compound background-control branch.
+mamey/bacterial_pks_marker_debug.py	Conservative bacterial PKS/macrolide marker-debug helpers.
+mamey/bgc_alias_history.py	bgc_alias_history.py — legacy-id history for BGC ids across re-runs (v9.7.405).
+mamey/bgc_blastp_panel.py	BGC BLASTP panel exporter (v9.7.142 starter).
+mamey/bgc_citation_gate.py	Fail-closed node·region citation gate for BGC-level deliverables.
+mamey/bgc_decomp.py	bgc_decomp.py — BGC two-model decomposition analysis (v9.7.131).
+mamey/bgc_draft_queue.py	Build a deterministic, source-bound queue for high-throughput BGC drafts.
+mamey/bgc_figures.py	bgc_figures — publication figures from antiSMASH output + the wheel stack.
+mamey/bgc_guide.py	Layered per-gene BGC Guide deliverable — lay→technical, Structure/Function/BLASTp per gene.
+mamey/bgc_l0_program.py	Portable, config-driven L0 BGC draft program.
+mamey/bgc_report_builder.py	Build refreshable exact-identity BGC evidence reports from SQLite inputs.
+mamey/bgc_walk.py	BGC domain walk — ordered HMM readout along a biosynthetic gene cluster.
+mamey/bigscape_figures.py	BiG-SCAPE GCF network + clinker comparative figures (supporting figures only).
+mamey/bigscape_namespace.py	Single owner for portable BiG-SCAPE GCF identity and admission.
+mamey/bioactivity_metadata.py	Typed, claim-safe bioactivity metadata admission.
+mamey/blast_ledger.py	blast_ledger.py — durable, cross-run contact ledger + fair-use budget for the online BLASTp channels
+mamey/blastp_autoharness.py	blastp_autoharness.py — the resumable automation layer over the NCBI web-BLASTp channel.
+mamey/blastp_availability.py	blastp_availability.py — Central Command BLASTp availability declaration (.345).
+mamey/blastp_batch_emitter.py	BlastpBatchEmitter — sequential NCBI BLASTP batch FASTA emitter (v9.7.145).
+mamey/blastp_channel_triage.py	Fail-closed post-seal comparison of distinct ``nr`` and ``clustered_nr`` evidence.
+mamey/blastp_ebi.py	blastp_ebi.py — formal EBI BLASTp transport (folded from the AS-XXX EBI patch, v9.7.215).
+mamey/blastp_evidence_store.py	Durable BLASTP evidence store for iterative Sapote/Mamey workflows.
+mamey/blastp_followup.py	Iterative BLASTP result ingestion and follow-up batch planning.
+mamey/blastp_gate.py	blastp_gate.py — BLASTp-completeness HARD gate (.344).
+mamey/blastp_ingest.py	blastp_ingest.py (v9.7.163) — ingest NCBI BLASTp output into B5_BLASTp_Hits.
+mamey/blastp_online.py	blastp_online — the missing runner + interpreter for the NCBI web BLASTp channel.
+mamey/boundary_audit.py	mamey.boundary_audit — enforce the deterministic↔judgment contract on real data (W4/W23).
+mamey/boundary_palette.py	boundary_palette.py — single source of truth for BGC boundary-tier colours.
+mamey/canonical_write_guard.py	canonical_write_guard.py — refuse to silently overwrite a canonical dated deliverable.
+mamey/card_verdicts.py	card_verdicts.py — surface the engine's EXISTING per-BGC capacity verdicts onto
+mamey/cell_provenance.py	(no docstring)
+mamey/chatgpt_commands.py	chatgpt_commands.py — ChatGPT-safe Mamey subcommands (v9.7.80 P1 patch).
+mamey/chitin_reference_eval.py	mamey/chitin_reference_eval.py -- whole-genome chitin/GlcNAc reference-capacity evaluation.
+mamey/citation_compact.py	Citation-compact helpers for Sapote-Mamey reports.
+mamey/citations/__init__.py	Sapote-Mamey research patch namespace.
+mamey/citations/resolver.py	Citation Work Order Resolver.
+mamey/claim_safety_gate.py	Package-level claim-safety gate.
+mamey/class_architecture.py	class_architecture.py — architecture-based class-capacity layer (Mamey, deterministic).
+mamey/class_believability.py	mamey.class_believability — committed-step believability engine (LQ-PATH-01).
+mamey/cli.py	Mamey CLI.
+mamey/clusterblast_genes.py	ClusterBlast per-gene correspondence layer (v9.7.100, P-CBG).
+mamey/cnbu.py	cnbu.py — Class-Normalized BGC Units (v9.7.72).
+mamey/cohort_assemble.py	cohort_assemble.py — assemble many sealed packages into ONE cohort table
+mamey/cohort_cards.py	cohort_cards.py — Gap 1: cohort-scale Mode B card orchestrator.
+mamey/cohort_class_heatmap.py	mamey/cohort_class_heatmap.py — cohort biosynthetic-class capacity heatmap.
+mamey/cohort_context.py	mamey.cohort_context — strain-level cohort context for the strain Mode B S5 (LQ-STRAIN-03).
+mamey/cohort_deliverable.py	cohort_deliverable.py -- the `mamey cohort` front-door.
+mamey/cohort_enzyme_neighborhoods.py	Local derived view of existing owner evidence. No scans or database copies.
+mamey/cohort_figures.py	Sapote-Mamey gold gene/domain figure generator v3 (data-only PNG + sidecar CSV).
+mamey/cohort_figures_extended.py	Extended cross-strain / per-BGC figure suite (auto-emit companion to cohort_figures.generate).
+mamey/cohort_leads_ledger.py	cohort_leads_ledger.py — union every sealed package's triage board into ONE
+mamey/cohort_proteins.py	Portable exact-locus AS/SID/reference BGC-protein comparison.
+mamey/cohort_resolver.py	cohort_resolver.py — resolve a strain's cohort and actinomycete status (v9.7.44, F-7/B-1).
+mamey/cohort_synthesis.py	cohort_synthesis.py — Gap 3: deterministic cross-strain synthesis writer.
+mamey/collection_figures.py	collection_figures.py — Metadata-gated cross-strain collection figure bundle.
+mamey/combined_report_builder.py	Portable preservation-first V7 + Mode B BGC report composition.
+mamey/companion_tools.py	Companion-tools registry loader + presence probe (v9.7.331, AMBER).
+mamey/comparative_pairs.py	comparative_pairs.py — E2_Comparative_Pairs populator (v9.7.88, 9.7.88-J).
+mamey/comparator_coverage_scoring.py	Comparator-coverage scoring wire (CAT-01-class feature, D1 / v9.7.338 prototype).
+mamey/comparator_evidence.py	Normalize preliminary MiBIG/KCB and ClusterBlast per-gene evidence.
+mamey/comparators/__init__.py	Sapote-Mamey research patch namespace.
+mamey/comparators/antismash_ingest.py	Comparator antiSMASH / GenBank ingestor with domain parsing.
+mamey/compare.py	compare.py — two-strain comparative layer for Sapote–Mamey (formerly gemini.py, renamed v9.7.191).
+mamey/compat_v941.py	Sapote-Mamey v9.4.1 additive compatibility fields.  version-sync-ok: bundle-compat shim, version is 
+mamey/compile_report.py	compile_report.py — deterministic assembler for the §13 compiled analysis report.
+mamey/compound_class.py	compound_class.py — deterministic compound-class annotation layer (v9.7.86).
+mamey/compound_family_report.py	compound_family_report.py — anchored-BGC -> parent compound family -> AF/AB target class
+mamey/concordance.py	concordance.py — reference-BGC concordance check (Mamey, deterministic).
+mamey/console.py	console.py — the single owner of direct terminal emission for the mamey package.
+mamey/convergence_band.py	convergence_band.py — say how STRONG a per-gene MIBiG convergence is, not just how big.
+mamey/cross_strain_card_context.py	cross_strain_card_context.py — Gap 2: per-card cross-strain context for Mode B cards.
+mamey/cross_strain_figures.py	cross_strain_figures.py — deterministic cross-strain figure emitter for Sapote-Mamey.
+mamey/cross_strain_threads.py	mamey/cross_strain_threads.py — cross-strain shared biosynthetic-thread arc figure (DRAFT v9.7.103).
+mamey/crosswalk.py	BGC-to-contig/node crosswalk helpers for Sapote--Mamey.
+mamey/csv_safety.py	CSV/TSV formula-injection neutraliser (v9.7.409, DEEP_AUDIT2 export-injection;
+mamey/data/literature/_corpus/curate_kb.py	curate_kb.py — derive claim-safe, PMID-cited genus/family KB markdown from literature_corpus.jsonl.
+mamey/data/literature/_corpus/pubmed_ingest.py	pubmed_ingest.py — scalable PubMed search-result PDF → structured, searchable literature corpus.
+mamey/dedup_and_guard.py	Prototypes for: (A) dedup-on-ingest, (B) hardened release guard, (C) fragment claim-ceiling.
+mamey/deep_data.py	deep_data.py — gene-level deep-data extraction + Mode B verdict scaffold (v9.7.46, B-9/F-10).
+mamey/degradation.py	degradation.py — v9.7.367 CANDIDATE (Indigo2 §1, the review lane-ruled 2026-08-15).
+mamey/deliverable_queue.py	deliverable_queue.py — resumable, autonomous strain-deliverable queue (.345).
+mamey/deliverables_registry.py	Registry-backed Sapote-Mamey deliverables menu.
+mamey/diagnostic_rescue.py	Class-aware Diagnostic Rescue layer (v9.7.24).
+mamey/diamond_align.py	diamond_align.py — offline protein alignment via DIAMOND (diamond4py binding).
+mamey/directed_pks_study.py	Directed PKS Study scaffold.
+mamey/directed_studies/__init__.py	Sapote-Mamey research module namespace.
+mamey/directed_studies/cddr_pks.py	CDDR-PKS report type.
+mamey/directed_studies/pks.py	Directed PKS Study Mode.
+mamey/discover.py	mamey discover — orient inside a Mamey workspace and report what's here + what to do next.
+mamey/dkp_cdps.py	DKP/CDPS marker family scanner and claim-safety classifiers.
+mamey/document_export.py	Render governed Sapote Markdown to DOCX and PDF from one canonical model.
+mamey/document_factory.py	Token-light batch authoring for governed Sapote documents.
+mamey/domain_figures.py	domain_figures.py — native domain-level figures (v9.7.89).
+mamey/domain_level.py	domain_level.py — native domain-level Mode B enrichment (v9.7.89).
+mamey/domain_reference.py	domain_reference.py — the Mode-B domain functional-context dictionary (DOMREF-01).
+mamey/domain_tree.py	domain_tree.py — the GATED builder pipeline for BGC-machinery domain trees (VGP-399, card 1/3).
+mamey/dualpass_ledger.py	dualpass_ledger.py — cross-model reproducibility tooling (roadmap #8).
+mamey/ebi_xml_to_outfmt10.py	ebi_xml_to_outfmt10.py — (folded from the AS-XXX EBI patch, v9.7.215) convert an EBI ncbiblast XML r
+mamey/ecology_context.py	Source-bound ecological context for Mode B judgment.
+mamey/efls.py	EFLS Rewire: evidence-first linkage scoring for fragmented BGC groups.
+mamey/enrichment_sections.py	Mamey deterministic enrichment-section generators (Mode B §11-§20).
+mamey/evidence_disagreements.py	Private offline review view over explicit, frozen evidence sources.
+mamey/evidence_registry.py	Validate a portable, heterogeneous strain evidence registry.
+mamey/evidence_roots.py	Portable logical-source resolution for refreshable report builds.
+mamey/exact_identity.py	Fail-closed helpers for the permanent exact-locus display contract.
+mamey/exclusion_gate.py	exclusion_gate.py — leak detector for whole-strain exclusions in GOVERNED output.
+mamey/exclusions.py	exclusions.py — single source of truth (SSOT) for whole-strain exclusions.
+mamey/external_adapters.py	Build the scan_status dict consumed by MameyRun and written to manifest.json.
+mamey/external_data.py	external_data.py — resolve USER-PROVISIONED third-party datasets. Nothing here is redistributed.
+mamey/figure_factory_default_config.py	Synthesize a Figure Factory Next config plus its admitted inputs from a package.
+mamey/figure_factory_next.py	Portable, manifest-governed aggregate evidence figures.
+mamey/figure_policy.py	figure_policy.py — canonical figure-content policy for Sapote-Mamey.
+mamey/figure_review_queue.py	Build a portable, paginated owner-review surface for rendered figures.
+mamey/figure_save.py	Canonical paired figure writer and receipt inventory.
+mamey/figure_theme.py	Governed Sapote-Mamey figure theme and export helpers.
+mamey/figures/__init__.py	Sapote-Mamey research patch namespace.
+mamey/figures/locus_map.py	Locus map SVG renderer — lightweight, no matplotlib dependency (v9.7.145).
+mamey/figures/locus_renderer_v2.py	Publication-grade, evidence-gated vector locus renderer v2.
+mamey/figures_extra.py	figures_extra.py — extended deterministic auto-emit figures for the Mamey package.
+mamey/figures_sapote.py	figures_sapote.py — deterministic Sapote-layer figures for the Mamey package.
+mamey/figures_smoke.py	figures_smoke.py — smoke-mode figure generation from triage + inventory CSVs.
+mamey/figures_split.py	figures_split.py — standalone (loaded by-path in tests, so not a shim).
+mamey/fragment_ceiling.py	fragment_ceiling.py — engine-side fragment claim-ceiling for Mamey.
+mamey/gemini.py	DEPRECATED shim — the two-strain comparison module was renamed to `mamey.compare` (v9.7.191).
+mamey/gene_by_gene.py	gene_by_gene.py — per-gene table for top Mode B leads (v9.7.81).
+mamey/gene_context.py	gene_context.py — normalized per-CDS gene context, sealed into the package (v9.7.88).
+mamey/genome_explore.py	mamey.genome_explore — efficient, question-driven genome exploration mode.
+mamey/genus_appendix.py	mamey genus-appendix — antifungal (AF) & antibacterial (AB) candidate appendices, by genus.
+mamey/genus_reference.py	genus_reference.py — read-only access to shipped genus reference banks (v9.7.99).
+mamey/good_guesses.py	mamey good-guesses — the "Good Guesses" interpretive-priors report (FA7 prototype).
+mamey/handoff.py	Portable handoff bundler (v9.7.199).
+mamey/hmm_blastp_adjudicate.py	hmm_blastp_adjudicate — the intrinsic-structure HMM channel, reconciled with extrinsic BLASTp.
+mamey/id_resolver.py	ID resolver — one row per BGC tying together the identifiers a reader needs to cross-reference.
+mamey/interactive_figures/__init__.py	Interactive-figure bridge for Sapote-Mamey.
+mamey/interactive_figures/bigscape_extension.py	Optional BiG-SCAPE companion extension for the governed Figure Factory.
+mamey/interactive_figures/codex_heatmap_pack.py	Codex-oriented Figure Factory heatmap publication pack.
+mamey/interactive_figures/component_gallery.py	Static, data-free SVG component gallery for Sapote-Mamey reports.
+mamey/interactive_figures/figure_atlas.py	Render and reconcile all implemented Codex Figure Factory tranches.
+mamey/interactive_figures/figure_set_registry.py	Governed 200-set Figure Factory registry for the Codex presentation layer.
+mamey/interactive_figures/figure_set_renderer.py	Dependency-free renderer for Codex Figure Factory registry tranche 1.
+mamey/interactive_figures/figure_set_renderer_tranche2.py	Render 21 source-complete Codex Figure Factory sets (tranche 2).
+mamey/interactive_figures/figure_set_renderer_tranche3.py	Render 28 sealed-evidence Codex Figure Factory sets (tranche 3).
+mamey/interactive_figures/figure_set_renderer_tranche4.py	Render 14 tailoring-like and regulator-like burden sets (tranche 4).
+mamey/interactive_figures/figure_set_renderer_tranche5.py	Render 92 source-backed non-lead figure sets (tranche 5).
+mamey/interactive_figures/figure_set_renderer_tranche6.py	Render 25 ledger-gated lead-context figure sets (tranche 6).
+mamey/interactive_figures/figure_set_renderer_tranche7.py	Provisional, source-bound Figure Factory repair tranche.
+mamey/interactive_figures/figure_source_bundle.py	Build a provenance-rich cohort figure source bundle from sealed packages.
+mamey/interactive_figures/kcb_tertile_figure.py	Source-bound Q-020 KCB cumulative-score cohort-tertile figure.
+mamey/interactive_figures/optional_output.py	Small collision-safe output transaction for explicit optional figure tools.
+mamey/interactive_figures/owner_kept_inputs.py	Build current-data inputs for owner-kept Figure Factory designs.
+mamey/interactive_figures/progress_dashboard.py	Reusable cumulative-plus-interval progress dashboard.
+mamey/interactive_figures/publication_bridge.py	Deterministic AS widget-to-publication figure bridge.
+mamey/interactive_figures/theme_gallery.py	Portable theme-gallery prototype for post-seal Sapote-Mamey figures.
+mamey/interactive_figures/three_channel_evidence_matrix.py	Portable static adapter for a three-channel evidence matrix.
+mamey/interactive_figures/widget_data.py	Build the AS widget-data aggregate FROM sealed Mamey packages.
+mamey/issue_registry.py	Typed, user-visible issue and correction logging for sealed packages.
+mamey/judgment_store.py	judgment_store.py — Persistent judgment register for Sapote Mode B output.
+mamey/kcb_frontpage.py	kcb_frontpage — read the antiSMASH "Most similar known cluster" column, for every region.
+mamey/kcb_locusmap.py	mamey/kcb_locusmap.py — offline KnownClusterBlast / ClusterBlast comparative locus maps.
+mamey/ks_phylogeny.py	ks_phylogeny.py — in-engine home for the module-core (KS) domain phylogeny channel (C06 / P358-003).
+mamey/lab_quest.py	Portable, claim-safe support for the optional local Lab Quest interface.
+mamey/lab_quest_app.py	Accessible optional local interface for receipt-governed Mamey workflows.
+mamey/lab_quest_registry.py	Receipt-backed workflow registry for the optional Lab Quest interface.
+mamey/layperson_guide.py	Claim-safe, package-only layperson guide renderer.
+mamey/lcms/__init__.py	Sapote-Mamey research patch namespace.
+mamey/lcms/handle_registry.py	LC-MS Chemical Handle Registry v2.
+mamey/lead_board.py	lead_board.py — the per-strain Lead Board (Mamey output mode).
+mamey/lead_pages.py	lead_pages.py — Wave B (v9.7.341 follow-up, bundle-only report layer)
+mamey/lead_propagation.py	lead_propagation.py — package-level lead-propagation audit (v9.7.405).
+mamey/legacy_feature_gate.py	Release-level Legacy Feature Matrix Gate.
+mamey/length_weighted.py	Trial-only length-weighted BGC capacity metric (P-LWC).
+mamey/literature_intake.py	Parse PubMed plain-text exports into provenance-bound literature records.
+mamey/literature_lookup.py	literature_lookup.py — retrieve full PubMed abstracts (and search them) from the in-bundle corpus.
+mamey/llm_handoff.py	Dual-LLM handoff receipt gate for ChatGPT and Claude bundles.
+mamey/locus_map.py	mamey/locus_map.py — deterministic gene-arrow locus maps, matplotlib PNG (v9.7.90).
+mamey/locus_map_v8.py	Evidence-dense, package-native locus maps (v8).
+mamey/logging_setup.py	mamey/logging_setup.py — CANDIDATE (Indigo2 JOB-E / TASK-01, 2026-08-15).
+mamey/mamey_cassettes.py	Mamey cassette registry draft.
+mamey/mamey_markers.py	Mamey marker registry draft.
+mamey/mamey_native_figures.py	mamey_native_figures.py — workbook-native Mamey figure set.
+mamey/manifest_schema.py	manifest_schema.py — canonical manifest field names + a fail-loud accessor.
+mamey/markdown_pdf.py	Package-scoped ReportLab renderer for Sapote-Mamey Markdown deliverables.
+mamey/master_figure_atlas.py	master_figure_atlas.py — boss-ready figure atlas from a Sapote–Mamey master workbook.
+mamey/master_workbook.py	Mamey master workbook writer.
+mamey/merge_policy.py	De-duplication / supersedure policy for Sapote–Mamey merges (v9.7.20).
+mamey/mibig_comparator_coverage.py	Two-denominator comparator-coverage evidence layer (FA2).
+mamey/mibig_neighborhoods_api.py	mibig_neighborhoods_api.py — read-only accessor for the packaged MIBiG reference "neighborhoods".
+mamey/mibig_per_gene.py	Rank-uncapped per-gene KnownClusterBlast/MIBiG evidence (P-MPG).
+mamey/mode_b/__init__.py	Mode B evidence-escalation workflow helpers (v9.7.143a).
+mamey/mode_b/availability.py	Portable Mode B evidence-availability audit and writing planner.
+mamey/mode_b/claim_safety.py	Split/composite BGC claim-safety labels for Mode B (v9.7.143a).
+mamey/mode_b/comparator_workflow.py	Comparator workflow detection for Mode B (v9.7.143a).
+mamey/mode_b/evidence_ledgers.py	Mode B evidence and missing-parts ledgers (v9.7.143a).
+mamey/mode_b/gene_first_database.py	Pinned offline database observations for the existing gene-first composer.
+mamey/mode_b/gene_first_explore.py	Optional, offline, exact-locus Mode B gene-first exploration composer.
+mamey/mode_b/gene_first_figure_overlay.py	BGC-summary-only Figure Factory overlay contract for Mode B gene-first v2.
+mamey/mode_b/gene_first_interpret_v2.py	Fast, deterministic interpretation surfaces for a sealed gene-first stage.
+mamey/mode_b/gene_first_layers.py	Three-layer readiness receipts for the Mode B gene-first stage (V4 §5 — successor r5).
+mamey/mode_b/gene_first_stage_v2.py	Content-addressed staging for the Mode B gene-first v2 candidate.
+mamey/mode_b/gene_first_store_bridge.py	Evidence-store bridge for the Mode B gene-first stage (V4 §7 — successor r4).
+mamey/mode_b/guards.py	Mode B interpretation guards (v9.7.143a).
+mamey/mode_b/mibig_evidence_adapter.py	Portable adapter for a hash-bound external MIBiG convergence extension.
+mamey/mode_b/schema.py	Mode B canonical schema and validation helpers (v9.7.143a).
+mamey/mode_b_quality_gate.py	mode_b_quality_gate.py — structural depth enforcement for Mode B cards.
+mamey/mode_b_receipt.py	mode_b_receipt.py — ingest Sapote Mode B judgment back into the durable store.
+mamey/modeb_blastp.py	modeb_blastp.py — deterministic per-BGC BLASTP FASTA emitter (v9.7.148).
+mamey/modeb_cards.py	Mode-B cards — deterministic per-BGC scaffolds, Blue, 2026-07-18.
+mamey/modeb_class_checklist.py	modeb_class_checklist.py (v9.7.164) — class-triggered content expectations for Mode B cards.
+mamey/modeb_domain_phylogeny.py	modeb_domain_phylogeny.py — gate-safe `#### Domain phylogeny` subsection (.360, P360-002).
+mamey/modeb_evidence_packet.py	Candidate adapter: selected database packet -> partial governed section document.
+mamey/modeb_evidence_state.py	Executable lifecycle for externally escalated Mode B evidence.
+mamey/modeb_export.py	modeb_export.py — export an authored Mode B card (§1-§48 markdown) to Word (.docx)
+mamey/modeb_interp_gate.py	mamey.modeb_interp_gate — Mode-B INTERPRETATION gate (FA4 prototype, advisory).
+mamey/modeb_publication_gate.py	Fail-closed publication-candidate checks for expanded Mode B cards.
+mamey/modeb_round.py	modeb_round.py — v9.7.194 contractual Mode B round orchestrator.
+mamey/modeb_structure_gate.py	modeb_structure_gate.py — structural validator for prose-first Mode B cards.
+mamey/modeb_subsections.py	modeb_subsections.py — gate-safe #### subsections for the §1–§48 Mode B card (.344).
+mamey/modeb_template_emitter.py	modeb_template_emitter.py — canonical §1–§48 template emitter.
+mamey/models.py	Mamey data models.
+mamey/nominal_length.py	mamey/nominal_length.py — BGC length reporting + nominal-length normalization (DRAFT v9.7.104).
+mamey/npatlas_provision.py	mamey/npatlas_provision.py — user-provisioned NP Atlas ingestion (v9.7.405, punch-card B7).
+mamey/npatlas_resolver.py	NP Atlas compound-reference resolver (v9.7.186 — NP Atlas incorporation).
+mamey/npatlas_structure.py	npatlas_structure.py — resolve a compound *name* to its known chemical STRUCTURE
+mamey/nrps_predictions.py	mamey/nrps_predictions.py — recover antiSMASH NRPS prediction data the pipeline drops.
+mamey/output_checklist.py	(no docstring)
+mamey/p450_tailoring.py	p450_tailoring.py — cytochrome-P450 oxidative-tailoring classifier (roadmap #11).
+mamey/package_addons.py	package_addons.py — post-package emitters wired into `mamey run` (patches P01 + P02).
+mamey/package_continuity_widgets.py	Read-only package continuity and refusal-explanation widgets.
+mamey/package_inspector.py	package_inspector.py — B4/B6/B7 CLI subcommands for exploring packages without re-running.
+mamey/package_map.py	package_map.py — PACKAGE_MAP.json generator (Cut A candidate).
+mamey/packaging.py	(no docstring)
+mamey/pair_scan_caps.py	pair_scan_caps.py — bound all-vs-all O(n^2) BGC-pair (and O(n^3) ANI) scans.
+mamey/parsers.py	(no docstring)
+mamey/patches/__init__.py	Sapote-Mamey research patch namespace.
+mamey/patches/next_ten_registry.py	Registry for the next-ten Sapote–Mamey patches.
+mamey/pathway_believability.py	mamey.pathway_believability — per-LOCUS committed-step believability prior (FA4 prototype).
+mamey/phylo_evidence.py	Receipt producer for already-built GToTree/IQ-TREE phylogenies.
+mamey/phylogeny_figure_factory.py	Consume existing phylogeny receipts in Figure Factory without a new tree engine.
+mamey/pks_ks_scan.py	pks_ks_scan.py — in-engine PKS ketosynthase (KS) intrinsic clade channel.
+mamey/portable_project_widgets.py	Read-only provenance, recompute, privacy, and budget decision widgets.
+mamey/portfolio_config.py	Bind a portable multi-strain project registry to one explicit project root.
+mamey/pre_sapote/__init__.py	Sapote-Mamey research module namespace.
+mamey/pre_sapote/lite.py	Pre-Sapote Lite annotation gate.
+mamey/precision.py	mamey.precision — kill false precision in reported similarity numbers (W26).
+mamey/prior_report_corpus.py	Parse prior report corpora into source-bound, non-authoritative modules.
+mamey/privacy_profile.py	Portable, user-owned strain privacy profiles.
+mamey/project_catalog.py	Portable catalog and private-handoff utilities for multi-strain projects.
+mamey/project_registry.py	Generic strain privacy, genome-state, and bioassay-scope registry.
+mamey/rare_motif.py	Rare-motif BGC detection — cross-strain.
+mamey/raw_antismash_triage.py	raw_antismash_triage.py — guided pre-extraction genome triage (new, v9.7.233).
+mamey/recovery_status.py	Recovery/package status semantics.
+mamey/reference_dark.py	reference_dark — package-native reference-dark novelty re-projection.
+mamey/reference_dark_prior.py	FA3 / ADD-03 — First-class Reference-Dark novelty prior (per-BGC, NON-RANKING).
+mamey/reference_strain_registry.py	Typed loader for an operator-provisioned reference-strain registry.
+mamey/registry_detector.py	registry_detector.py — B2 Phase 1: registry-backed detector loader.
+mamey/registry_schema.py	Shared registry schema for Sapote/Mamey marker and cassette libraries.
+mamey/release_qa.py	Release QA integration for legacy matrix and dual-LLM handoff gates.
+mamey/render_all_figures.py	render_all_figures.py — post-seal aggregate over every applicable figure module.
+mamey/render_brief.py	render_brief.py — deterministic extraction-layer strain brief for the Mamey package.
+mamey/render_safe.py	render_safe.py — layout-safe rendering helpers for boss-ready Sapote-Mamey outputs.
+mamey/report_card.py	mamey/report_card.py — render the cohesive L0–L1 per-BGC report card from a sealed package.
+mamey/report_from_spec.py	Run the BGC report builder from portable logical-source configuration.
+mamey/report_mode.py	mamey.report_mode — terse by default, legacy compact Mode B scaffold on demand (W7/W24).
+mamey/report_theme.py	Portable Sapote-Mamey report theme tokens.
+mamey/rescue_two_proof.py	rescue_two_proof.py — the CORE join: RG-GMCI (_4A, reference-based) × KS-clade (_4B, reference-free)
+mamey/resistance_dossier.py	resistance_dossier — post-seal per-BGC resistance-focused gene-by-gene writeups.
+mamey/rggmci.py	Reference-Guided Genome Mining Candidate Inference (RG-GMCI).
+mamey/roster_v2.py	roster_v2 — package-native per-BGC, multi-channel gene roster model.
+mamey/rules.py	mamey.rules — load the standing-rules registry and lint verdict text against it.
+mamey/s3_census_generator.py	§3 gene-census deepener — generate a size-proportionate biosynthetic-core section.
+mamey/sapote_cassettes.py	Sapote cassette registry draft.
+mamey/sapote_markdown.py	Constrained Sapote Markdown parser and validator.
+mamey/sapote_markers.py	Sapote diagnostic marker registry draft.
+mamey/sapote_workflow.py	sapote_workflow.py — the mandatory Sapote workflow driver / gate.
+mamey/scan_channel_alias.py	scan_channel_alias.py — resolve v9.7.400 source_scans channel-alias stubs.
+mamey/scoring.py	(no docstring)
+mamey/seal_package.py	seal_package.py — one final-package validator that runs every QC gate together.
+mamey/serialize.py	mamey.serialize — emit the two sides of the deterministic↔judgment boundary as
+mamey/series_common.py	Figure Series — shared loader + palette (Blue, 2026-07-18).
+mamey/session_resume.py	session_resume.py — session-state reducer for Mamey packages.
+mamey/singleton_filter.py	singleton_filter.py — biosynthetic-relevance filter for the genome-unique singleton metric.
+mamey/snapshot_alias.py	snapshot_alias.py — load a Project_Memory_Snapshot, following the v9.7.400 alias stub.
+mamey/source_availability.py	Build logical, exact-locus source-availability tables for report routing.
+mamey/source_provenance.py	source_provenance.py — how strongly is this strain's isolation source evidenced?
+mamey/source_scans.py	Source-derived scanning engine — all pattern dictionaries and scan functions.
+mamey/split_detector.py	Contig-end split detector v2 — with discriminating filters to cut false positives.
+mamey/stage2_overlay.py	Attach hash-bound scientific-review overlays to a locator-first report cohort.
+mamey/strain_data_home.py	strain_data_home.py — canonical per-strain data-home resolver for Sapote-Mamey.
+mamey/strain_identity.py	strain_identity.py — a strain ID must be an identity, not an accession.
+mamey/strain_modeb.py	FULL STRAIN SAPOTE — strain-level Mode B generator
+mamey/structured_domain_motif_extension.py	Index saved Mamey structured exports. No original antiSMASH parser or new scan.
+mamey/tab_reconcile.py	antiSMASH tab reconciliation for one BGC/region.
+mamey/tailoring_extract.py	tailoring_extract.py — tailoring-enzyme extraction for domain trees (VGP-399, card 2/3).
+mamey/timing.py	timing.py — machine-readable timing telemetry for Mamey runs (v9.7.81).
+mamey/tip_label.py	Source-aware display labels; machine tip keys and trees are never changed.
+mamey/tool_database_reader.py	Manifest-bound read-only inspection, separate from ingestion and selection.
+mamey/tool_database_session.py	Candidate session extension of tool_database_reader; no new registry.
+mamey/tree_heatmap_panel.py	Tree-aligned quantitative heatmap panel — Figure Factory × phylogenomics integration.
+mamey/two_pathway.py	two_pathway.py — gene-only multi-pathway detection (v9.7.127).
+mamey/validate.py	(no docstring)
+mamey/validators/__init__.py	Sapote-Mamey research patch namespace.
+mamey/validators/modeb_full20.py	Canonical prose-first Full Mode B §1–§20 validator.
+mamey/validators/node_notation.py	Node notation validator — BGC IDs must cite NODE/contig at first mention (v9.7.145b).
+mamey/wheelhouse.py	wheelhouse.py — CLI for the Wheelhouse/ lab-data store (strains, scanners, validations).
+mamey/widget_deliverable.py	Post-seal interactive widget deliverables for sealed Sapote-Mamey packages.
+mamey/wise_fragmented_pks.py	Wise fragmented PKS/NRPS BLASTP queue workflow (v9.7.144).
+mamey/workbook.py	(no docstring)
+mamey/workbook_dedup.py	workbook_dedup.py — make master-append idempotent (P2).
+mamey/workbook_schema_check.py	workbook_schema_check.py — Validate a Sapote-Mamey master workbook against schema v1.1.
+mamey/workbooks/__init__.py	Sapote-Mamey research patch namespace.
+mamey/workbooks/directed_study_workbook.py	Directed Study Workbook full output.
+mamey/workflow_onboarding.py	Read-only onboarding decision widgets for portable Mamey bundles.
+mamey/workspace_root.py	mamey/workspace_root.py (CANDIDATE, Indigo2 JOB-C) — single home of the workspace-root default.
+mamey/workspace_source_discovery.py	Bounded workspace source discovery and report-preflight gate.
+mamey/xlsx_determinism.py	Canonicalize XLSX container metadata after an atomic openpyxl save.
+mamey/ziputil.py	Shared zip-extraction safety. Single home of the member-path traversal guard

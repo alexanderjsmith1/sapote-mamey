@@ -1,0 +1,184 @@
+{
+  "schema_version": "sapote-source-collection-registry-v1",
+  "default_strain_regex": "(?<![A-Za-z0-9])(?:(?:STRAIN|SAMPLE|ISOLATE)[-_]?\\d{1,6}|(?-i:[A-Z]{2})[-_]\\d{2,6})(?![A-Za-z0-9])",
+  "unclassified_max_depth": 2,
+  "availability_roles": [
+    {
+      "source_role": "ANTISMASH_REGION",
+      "collection_types": ["ANTISMASH_ARCHIVE", "GENE_DOMAIN_LAYER", "BIGSCAPE_REGIONS"],
+      "path_regex": "(?:region\\d{3}.*\\.(?:gbk|gbff|json)|\\.(?:zip))$"
+    },
+    {
+      "source_role": "LOCUS_MAP",
+      "collection_types": ["LOCUS_WIDGETS", "REPORTS_AND_DOSSIERS", "GENE_DOMAIN_LAYER"],
+      "path_regex": "(?:locus|region|bgc).*(?:map|widget|domain).*\\.(?:json|html|svg|png|md)$"
+    },
+    {
+      "source_role": "MODE_B_CARD",
+      "collection_types": ["MODE_B_CARDS", "MODE_B_COMPILATION", "REPORTS_AND_DOSSIERS"],
+      "path_regex": "(?:mode[_-]?b|modeb).*\\.(?:md|json|tsv|csv|docx|pdf)$"
+    },
+    {
+      "source_role": "BLASTP_RECONCILIATION",
+      "collection_types": ["BLASTP_BY_BGC", "BLASTP_AUDIT_MODULE", "NR_MIBIG_READOUT", "GENE_DOMAIN_LAYER"],
+      "path_regex": "(?:blastp|nr[_-]?vs|clusterednr|mibig).*(?:reconcil|per[_-]?(?:gene|bgc)|hit|coverage|readout).*\\.(?:csv|tsv|json|xml|txt|sqlite|db)$"
+    },
+    {
+      "source_role": "MIBIG_OR_KCB_COMPARATOR",
+      "collection_types": ["NR_MIBIG_READOUT", "GENE_DOMAIN_LAYER", "REPORTS_AND_DOSSIERS"],
+      "path_regex": "(?:mibig|knownclusterblast|kcb|clusterblast).*\\.(?:csv|tsv|json|txt|md)$"
+    },
+    {
+      "source_role": "BIGSCAPE_CONTEXT",
+      "collection_types": ["BIGSCAPE_MODULE", "BIGSCAPE_REGIONS"],
+      "path_regex": ".*\\.(?:gbk|json|csv|tsv|html|svg|png)$"
+    },
+    {
+      "source_role": "ASSEMBLY_LINE_CONTEXT",
+      "collection_types": ["ASSEMBLY_LINE_MODULE"],
+      "path_regex": ".*\\.(?:py|md|json|html|svg|png)$"
+    },
+    {
+      "source_role": "OVERMERGE_SPLIT_EVIDENCE",
+      "collection_types": ["OVERMERGE_SPLIT_EVIDENCE", "REPORTS_AND_DOSSIERS"],
+      "path_regex": "(?:overmerge|over[_-]?merge|split[_-]?card|split[_-]?evidence).*\\.(?:md|json|csv|tsv|html|svg|png|pdf)$"
+    },
+    {
+      "source_role": "CROSS_CONTIG_RESCUE_EVIDENCE",
+      "collection_types": ["CROSS_CONTIG_RESCUE_EVIDENCE", "RGGMCI_EVIDENCE", "REPORTS_AND_DOSSIERS"],
+      "path_regex": "(?:rescue|cross[_-]?contig|contig[_-]?link|linkage).*\\.(?:md|json|csv|tsv|html|svg|png|pdf)$"
+    },
+    {
+      "source_role": "RGGMCI_LINKAGE",
+      "collection_types": ["RGGMCI_EVIDENCE", "GENE_DOMAIN_LAYER", "REPORTS_AND_DOSSIERS"],
+      "path_regex": "(?:rggmci|rg[_-]?gmci).*\\.(?:md|json|csv|tsv|html|svg|png|pdf)$"
+    },
+    {
+      "source_role": "HGT_CONTEXT",
+      "collection_types": ["HGT_EVIDENCE", "REPORTS_AND_DOSSIERS"],
+      "path_regex": "(?:hgt|horizontal[_-]?gene[_-]?transfer).*\\.(?:md|json|csv|tsv|html|svg|png|pdf)$"
+    },
+    {
+      "source_role": "PHYLOGENY",
+      "collection_types": ["PHYLOGENY_EVIDENCE", "REPORTS_AND_DOSSIERS"],
+      "path_regex": ".*\\.(?:nwk|newick|tree|faa|fasta|aln|svg|png|pdf|json|tsv|csv)$"
+    },
+    {
+      "source_role": "LITERATURE_LEDGER",
+      "collection_types": ["LITERATURE_EVIDENCE", "REPORTS_AND_DOSSIERS", "MODE_B_COMPILATION"],
+      "path_regex": "(?:literature|citation|reference|doi|pmid).*\\.(?:md|json|csv|tsv|docx|pdf)$"
+    }
+  ],
+  "rules": [
+    {
+      "collection_type": "MODE_B_COMPILATION",
+      "directory_regex": "(?:^|/)mode[_-]?b[_-]?compilation(?:_|-|$)",
+      "root_segment_regex": "mode[_-]?b[_-]?compilation.*",
+      "material_file_regex": "mode[_-]?b[_-]?compilation\\.(?:md|docx|pdf)$"
+    },
+    {
+      "collection_type": "NR_MIBIG_READOUT",
+      "directory_regex": "(?:^|/)nr[_-]?vs[_-]?mibig[_-]?readout(?:_|-|$)",
+      "root_segment_regex": "nr[_-]?vs[_-]?mibig[_-]?readout.*",
+      "material_file_regex": "nr[_-]?vs[_-]?mibig.*\\.(?:csv|tsv)$",
+      "coverage_parser": "DELIMITED_COLUMN",
+      "coverage_column": "strain"
+    },
+    {
+      "collection_type": "MODE_B_CARDS",
+      "directory_regex": "(?:^|/)mode[_-]?b(?:_|-|/)",
+      "root_segment_regex": "mode[_-]?b.*",
+      "material_file_regex": "mode[_-]?b.*\\.(?:md|json|tsv|csv)$"
+    },
+    {
+      "collection_type": "REPORTS_AND_DOSSIERS",
+      "directory_regex": "(?:^|/)(?:reports?|dossiers?|atlas)(?:/|$)",
+      "root_segment_regex": "(?:reports?|dossiers?|atlas)",
+      "material_file_regex": ".*\\.(?:md|docx|pdf|csv|tsv|json)$"
+    },
+    {
+      "collection_type": "BLASTP_BY_BGC",
+      "directory_regex": "(?:^|/)(?:blastp[_-]?by[_-]?bgc|blastp[ _-]?repository)(?:/|$)",
+      "root_segment_regex": "(?:blastp[_-]?by[_-]?bgc|blastp[ _-]?repository)",
+      "material_file_regex": ".*\\.(?:csv|tsv|json|xml|txt)$"
+    },
+    {
+      "collection_type": "BLASTP_AUDIT_MODULE",
+      "directory_regex": "(?:^|/)_?blastp[_-]?audit(?:/|$)",
+      "root_segment_regex": "_?blastp[_-]?audit",
+      "material_file_regex": ".*\\.(?:csv|tsv|json|md|html|svg|png)$"
+    },
+    {
+      "collection_type": "ASSEMBLY_LINE_MODULE",
+      "directory_regex": "(?:^|/)_?assembly[_-]?line[_-]?module(?:/|$)",
+      "root_segment_regex": "_?assembly[_-]?line[_-]?module",
+      "material_file_regex": ".*\\.(?:py|md|json|html|svg|png)$"
+    },
+    {
+      "collection_type": "BIGSCAPE_MODULE",
+      "directory_regex": "(?:^|/)_?bigscape[_-]?module(?:/|$)",
+      "root_segment_regex": "_?bigscape[_-]?module",
+      "material_file_regex": ".*\\.(?:py|md|json|csv|tsv|gbk|html|svg|png)$"
+    },
+    {
+      "collection_type": "LOCUS_WIDGETS",
+      "directory_regex": "(?:^|/)(?:widgets?|locus[_-]?maps?|figures?)(?:/|$)",
+      "root_segment_regex": "(?:widgets?|locus[_-]?maps?|figures?)",
+      "material_file_regex": ".*\\.(?:html|svg|json|png)$"
+    },
+    {
+      "collection_type": "BIGSCAPE_REGIONS",
+      "directory_regex": "(?:^|/)bigscape(?:[_-]?regions?)?(?:/|$)",
+      "root_segment_regex": "bigscape(?:[_-]?regions?)?",
+      "material_file_regex": ".*\\.(?:gbk|json|csv|tsv|html)$"
+    },
+    {
+      "collection_type": "GENE_DOMAIN_LAYER",
+      "directory_regex": "(?:^|/)(?:gene[_-]?layer|domain[_-]?depth)(?:_|-|/|$)",
+      "root_segment_regex": "(?:gene[_-]?layer.*|domain[_-]?depth.*)",
+      "material_file_regex": ".*\\.(?:csv|tsv|json|sqlite|gbk)$"
+    },
+    {
+      "collection_type": "ANTISMASH_ARCHIVE",
+      "directory_regex": "(?:^|/)(?:antismash|anti[_-]?smash)(?:_|-|/|$)",
+      "root_segment_regex": "(?:antismash|anti[_-]?smash).*",
+      "material_file_regex": ".*\\.(?:zip|gbk|gbff|json)$"
+    },
+    {
+      "collection_type": "OVERMERGE_SPLIT_EVIDENCE",
+      "directory_regex": "(?:^|/)(?:overmerge|over[_-]?merge|split[_-]?cards?)(?:_|-|/|$)",
+      "root_segment_regex": "(?:overmerge|over[_-]?merge|split[_-]?cards?).*",
+      "material_file_regex": ".*\\.(?:md|json|csv|tsv|html|svg|png|pdf)$"
+    },
+    {
+      "collection_type": "CROSS_CONTIG_RESCUE_EVIDENCE",
+      "directory_regex": "(?:^|/)(?:contig[_-]?rescue|cross[_-]?contig|rescue[_-]?evidence)(?:_|-|/|$)",
+      "root_segment_regex": "(?:contig[_-]?rescue|cross[_-]?contig|rescue[_-]?evidence).*",
+      "material_file_regex": ".*\\.(?:md|json|csv|tsv|html|svg|png|pdf)$"
+    },
+    {
+      "collection_type": "RGGMCI_EVIDENCE",
+      "directory_regex": "(?:^|/)(?:rggmci|rg[_-]?gmci)(?:_|-|/|$)",
+      "root_segment_regex": "(?:rggmci|rg[_-]?gmci).*",
+      "material_file_regex": ".*\\.(?:md|json|csv|tsv|html|svg|png|pdf)$"
+    },
+    {
+      "collection_type": "HGT_EVIDENCE",
+      "directory_regex": "(?:^|/)(?:hgt|horizontal[_-]?gene[_-]?transfer)(?:_|-|/|$)",
+      "root_segment_regex": "(?:hgt|horizontal[_-]?gene[_-]?transfer).*",
+      "material_file_regex": ".*\\.(?:md|json|csv|tsv|html|svg|png|pdf)$"
+    },
+    {
+      "collection_type": "PHYLOGENY_EVIDENCE",
+      "directory_regex": "(?:^|/)(?:phylogeny|phylogenetic[_-]?trees?|trees?)(?:_|-|/|$)",
+      "root_segment_regex": "(?:phylogeny|phylogenetic[_-]?trees?|trees?).*",
+      "material_file_regex": ".*\\.(?:nwk|newick|tree|faa|fasta|aln|svg|png|pdf|json|tsv|csv)$"
+    },
+    {
+      "collection_type": "LITERATURE_EVIDENCE",
+      "directory_regex": "(?:^|/)(?:literature|citations?|references?)(?:_|-|/|$)",
+      "root_segment_regex": "(?:literature|citations?|references?).*",
+      "material_file_regex": ".*\\.(?:md|json|csv|tsv|docx|pdf)$"
+    }
+  ]
+}

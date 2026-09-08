@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "status": "active",
+  "source_protocol": "BGC Guide layered deliverable (AS-XXX BGC006 prototype)",
+  "section_policy": "all five Parts required; Part 2 suppressible with --audience technical",
+  "sections": [
+    {"id": "P1", "title": "Plain-Language Story", "required": true, "prose": true},
+    {"id": "P2", "title": "Biology Primer", "required": true, "suppressible_by": "audience=technical"},
+    {"id": "P3", "title": "Technical Overview", "required": true},
+    {"id": "P4", "title": "Complete Gene Catalogue", "required": true,
+     "per_gene_blocks": ["header_coords", "lay_summary", "structure", "function", "blastp_readout"],
+     "grouping": ["core", "resistance", "regulation", "mobile_element", "accessory"]},
+    {"id": "P5", "title": "Synthesis and Next Steps", "required": true, "prose": true}
+  ],
+  "per_gene_readout_fields": ["pct_identity","pct_positive","query_coverage","evalue",
+                              "bitscore","subject_accession","evidence_tier","claim_safety"],
+  "quality_gate": {
+    "every_cds_has_section": "ERROR",
+    "every_gene_has_three_readouts": "ERROR",
+    "claim_not_above_blastp_tier": "ERROR",
+    "claim_safety_line_present": "ERROR",
+    "docx_render_absent": "WARN"
+  }
+}

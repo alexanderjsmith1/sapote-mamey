@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DirectedPKSStudySpec",
+  "type": "object",
+  "required": [
+    "study_id",
+    "strain_id",
+    "focus",
+    "groups",
+    "claim_policy",
+    "figure_policy"
+  ],
+  "properties": {
+    "study_id": {
+      "type": "string"
+    },
+    "strain_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "focus": {
+      "type": "object",
+      "properties": {
+        "include_classes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclude_bgcs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclude_reason": {
+          "type": "object"
+        }
+      }
+    },
+    "groups": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "label",
+          "nodes",
+          "interpretation_scope"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "interpretation_scope": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "comparators": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "claim_policy": {
+      "type": "object"
+    },
+    "figure_policy": {
+      "type": "object"
+    }
+  }
+}

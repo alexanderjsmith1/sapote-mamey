@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editor / OS debris — the release gate fails closed on these, keep them out of git too
+.DS_Store
+*.orig
+*.rej
+*.bak
+*~
+*-E
+
+# User-provisioned external datasets (v9.7.362) — never committed, see docs/EXTERNAL_DATA.md
+external-data/
+mamey/data/mibig/
+mamey/data/literature/_corpus/*.jsonl
+Wheelhouse/hmm/
+
+# Local run output — analysis products live outside the engine tree
+runs/
+strains_out/
+*.zip
+!Wheelhouse/**/*.zip
+!tests/fixtures/*.zip
+!examples/**/*.zip
+
+# private maintainer identity ban-list (never publish)
+.identity_banlist

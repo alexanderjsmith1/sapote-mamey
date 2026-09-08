@@ -1,0 +1,60 @@
+{
+  "_meta": {
+    "schema_version": "domain_claim_safety/1.0",
+    "description": "Safe/unsafe claim ceilings derived from domain-level evidence (v9.7.89). A locus is matched to the FIRST rule whose trigger roles are all present (or whose any-of triggers fire). All claims are architecture/family-level capacity statements — never product identity. Aligned with the standing rules: capacity language only, KCB = similarity not identity.",
+    "default_ceiling": "architecture/family-level; not product identity"
+  },
+  "rules": [
+    {
+      "id": "nrps_pks_module_evidence",
+      "trigger_roles_any": ["PKS ketosynthase", "PKS acyltransferase/loading", "NRPS condensation", "NRPS A-domain / loading"],
+      "require_min_core": 2,
+      "safe_claim": "NRPS/PKS assembly-line architecture supported by domain and aSModule evidence",
+      "unsafe_claim": "confirmed product scaffold or monomer sequence without substrate validation",
+      "ceiling": "assembly-line architecture; not product scaffold"
+    },
+    {
+      "id": "siderophore_metallophore",
+      "trigger_roles_any": ["Siderophore uptake/export"],
+      "safe_claim": "siderophore/metallophore-like biosynthetic and uptake/export evidence present",
+      "unsafe_claim": "confirmed named siderophore identity without LC-MS/MS or genetic evidence",
+      "ceiling": "siderophore/metallophore-like; not named identity"
+    },
+    {
+      "id": "lanthipeptide_maturation",
+      "trigger_roles_any": ["Lanthipeptide maturation"],
+      "safe_claim": "lanthipeptide maturation machinery present; candidate lanthipeptide-family locus",
+      "unsafe_claim": "SapB-like/morphogen overcalled as conventional antibiotic, or named lanthipeptide without precursor validation",
+      "ceiling": "lanthipeptide-family; SapB-like context unless antibiotic evidence exists"
+    },
+    {
+      "id": "azole_ripp_tailoring",
+      "trigger_roles_any": ["Azole/crocagin/RiPP tailoring"],
+      "safe_claim": "azole-containing/crocagin-style RiPP tailoring evidence present; candidate RiPP-family locus",
+      "unsafe_claim": "confirmed cacaoidin or named azole-RiPP product without precursor validation",
+      "ceiling": "RiPP-family tailoring; not product identity"
+    },
+    {
+      "id": "ripp_with_maturation",
+      "trigger_roles_any": ["Lasso/RiPP maturation"],
+      "safe_claim": "RiPP maturation/tailoring evidence present",
+      "unsafe_claim": "confirmed RiPP product without precursor validation",
+      "ceiling": "architecture/family-level; not product identity"
+    },
+    {
+      "id": "glycosylated_ripp_cacaoidin_like",
+      "trigger_roles_all": ["Azole/crocagin/RiPP tailoring", "Sugar/glycosyl tailoring"],
+      "safe_claim": "cacaoidin-style glycosylated/azole-containing RiPP comparator",
+      "unsafe_claim": "produces cacaoidin",
+      "ceiling": "glycosylated-RiPP comparator; not product identity"
+    },
+    {
+      "id": "accessory_only",
+      "trigger_roles_any": ["Unknown/repeat/accessory", "Other accessory/domain"],
+      "is_default_floor": true,
+      "safe_claim": "accessory/uncharacterised domain content; no clean biosynthetic-core architecture",
+      "unsafe_claim": "biosynthetic lead based on accessory domains alone",
+      "ceiling": "accessory-only; not a clean architecture call"
+    }
+  ]
+}

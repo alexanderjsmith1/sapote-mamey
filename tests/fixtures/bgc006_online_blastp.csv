@@ -1,0 +1,62 @@
+locus_tag,antismash_domains,blastp_top_def,blastp_accession,organism,pct_identity,query_coverage,evalue
+ctg12_21,Phenol_Hydrox,ferritin family protein [Amycolatopsis sp. NPDC004378],WP_451978898,Amycolatopsis sp. NPDC004378,97,100,0.0
+ctg12_22,Rieske,Rieske 2Fe-2S domain-containing protein [Amycolatopsis sp. SID8362],WP_160698545,Amycolatopsis sp. SID8362,97,100,5.94701e-71
+ctg12_23,Pyr_redox_2; Reductase_C,NAD(P)/FAD-dependent oxidoreductase [Amycolatopsis rubida],WP_093573508,Amycolatopsis rubida,94,100,0.0
+ctg12_24,FeS_assembly_P; Ribosomal_L22,MULTISPECIES: iron-sulfur cluster assembly protein [Amycolatopsis],WP_232791790,Amycolatopsis sp. M39,94,100,1.32545e-159
+ctg12_25,ABM,putative quinol monooxygenase [Amycolatopsis sp. NBC_01488],WP_329045713,Amycolatopsis sp. NBC_01488,98,100,8.18424e-63
+ctg12_26,AraC_N; HTH_18,AraC family transcriptional regulator [Amycolatopsis sp. NBC_01480],WP_329060740,Amycolatopsis sp. NBC_01480,97,100,0.0
+ctg12_27,,no hit,-,-,0,0,0
+ctg12_28,,hypothetical protein [Amycolatopsis solani],WP_290058821,Amycolatopsis solani,64,95,2.66996e-51
+ctg12_29,PA14; TIGR01643; TIGR03696,PA14 domain-containing protein [Amycolatopsis sp. NPDC114503],WP_470265747,Amycolatopsis sp. NPDC114503,85,97,0.0
+ctg12_30,,no hit,-,-,0,0,0
+ctg12_31,,DUF2079 domain-containing protein [Amycolatopsis sp. GA6-003],WP_409463265,Amycolatopsis sp. GA6-003,89,96,1.29768e-84
+ctg12_32,Glyco_hydro_25,GH25 family lysozyme [Amycolatopsis sp. NPDC004079],WP_354739647,Amycolatopsis sp. NPDC004079,85,58,7.97499e-96
+ctg12_33,,hypothetical protein [Amycolatopsis sp. WGS_07],WP_406632119,Amycolatopsis sp. WGS_07,75,99,2.3692e-69
+ctg12_34,,chemotaxis protein [Amycolatopsis sp. NPDC104775],WP_465352147,Amycolatopsis sp. NPDC104775,63,96,2.53198e-42
+ctg12_35,HTH_18,helix-turn-helix domain-containing protein [Streptomyces phaeochromogenes],WP_359943259,Streptomyces phaeochromogenes,85,69,5.67607e-61
+ctg12_36,BTAD; Trans_reg_C,AfsR/SARP family transcriptional regulator [Amycolatopsis sp. NPDC054798],WP_452075193,Amycolatopsis sp. NPDC054798,92,90,2.31075e-164
+ctg12_37,PP-binding,MULTISPECIES: acyl carrier protein [Amycolatopsis],WP_037812007,Amycolatopsis sp. NPDC004079,98,100,1.3181e-49
+ctg12_38,Ketoacyl-synt_C; PKS_KS; ketoacyl-synt,beta-ketoacyl-[acyl-carrier-protein] synthase family protein [Amycolatopsis circi],WP_116202284,Amycolatopsis circi,95,100,0.0
+ctg12_39,ketoacyl-synt,beta-ketoacyl synthase N-terminal-like domain-containing protein [Amycolatopsis sp. NPDC114503],WP_470269950,Amycolatopsis sp. NPDC114503,88,100,0.0
+ctg12_40,PKSI-KR_m1; PKSI-KR_m4; PKS_KR; adh_short_C2,3-oxoacyl-[acyl-carrier-protein] reductase [Amycolatopsis sp. NPDC054798],WP_452075196,Amycolatopsis sp. NPDC054798,92,100,8.00843e-159
+ctg12_41,CPSase_L_D2; PreAtp-grasp,preATP grasp domain-containing protein [Amycolatopsis circi],WP_116202287,Amycolatopsis circi,92,98,0.0
+ctg12_42,OCD_Mu_crystall; TIGR03944,"2,3-diaminopropionate biosynthesis protein SbnB [Amycolatopsis circi]",WP_116202288,Amycolatopsis circi,91,100,0.0
+ctg12_43,PALP; TIGR03945,"MULTISPECIES: 2,3-diaminopropionate biosynthesis protein SbnA [Amycolatopsis]",WP_067591356,Amycolatopsis rubida,89,97,0.0
+ctg12_44,MMPL,MMPL family transporter [Amycolatopsis nivea],WP_451997699,Amycolatopsis nivea,79,95,2.89587e-175
+ctg12_45,ABC_tran; TIGR01188,MULTISPECIES: ATP-binding cassette domain-containing protein [Amycolatopsis],WP_134663254,Amycolatopsis nivea,95,100,0.0
+ctg12_46,MbtH,MULTISPECIES: MbtH family protein [Amycolatopsis],WP_067591365,Amycolatopsis rubida,82,99,2.7201e-32
+ctg12_47,ABC2_membrane,ABC transporter permease [Amycolatopsis sp. NPDC114503],WP_470270113,Amycolatopsis sp. NPDC114503,97,95,6.66221e-170
+ctg12_48,AMP-binding; AMP-binding_C; C1_LCL_004-017; C1_dual_004-017; C1_starter_004-017; C2_DCL_024-062; C2_LCL_024-062; C2_starter_024-063; C3_LCL_132-143; C3_starter_134-155; C4_LCL_164-176; C5_DCL_263-294; C5_LCL_267-296; C5_starter_265-294; C67_DCL_14fromHMM; C67_LCL_14fromHMM; C67_starter_14fromHMM; Condensation; NRPS-A_a10; NRPS-A_a2; NRPS-A_a3; NRPS-A_a6; NRPS-A_a8; NRPS-te1; PCP; PP-binding; TIGR01733; Thioesterase,amino acid adenylation domain-containing protein [Amycolatopsis sp. NPDC054798],WP_452075204,Amycolatopsis sp. NPDC054798,85,100,0.0
+ctg12_49,PALP,"2,3-diaminopropionate biosynthesis protein SbnA [Amycolatopsis sp. NPDC114503]",WP_470269958,Amycolatopsis sp. NPDC114503,82,100,0.0
+ctg12_50,Acyl-CoA_dh_1; Acyl-CoA_dh_M,acyl-CoA dehydrogenase family protein [Amycolatopsis circi],WP_116202296,Amycolatopsis circi,82,100,0.0
+ctg12_51,,DUF2786 domain-containing protein [Amycolatopsis nivea],WP_134732702,Amycolatopsis nivea,76,98,9.85982e-56
+ctg12_52,PP-binding,MULTISPECIES: acyl carrier protein [unclassified Amycolatopsis],WP_409182812,Amycolatopsis sp. GA6-003,94,100,1.06361e-48
+ctg12_53,Amino_oxidase,phytoene desaturase family protein [Amycolatopsis sp. NPDC114484],WP_470231373,Amycolatopsis sp. NPDC114484,85,100,0.0
+ctg12_54,FtsX; MacB_PCD,ABC transporter permease [Amycolatopsis halotolerans],WP_377869562,Amycolatopsis halotolerans,86,100,0.0
+ctg12_55,ABC_tran,MULTISPECIES: ABC transporter ATP-binding protein [unclassified Amycolatopsis],WP_037812034,Amycolatopsis sp. Poz14,87,100,2.40667e-162
+ctg12_56,HisKA_3; Sensor,sensor histidine kinase [Amycolatopsis nivea],WP_451997461,Amycolatopsis nivea,86,100,0.0
+ctg12_57,GerE; Response_reg,LuxR C-terminal-related transcriptional regulator [Amycolatopsis nivea],WP_037812038,Amycolatopsis nivea,97,100,3.11517e-143
+ctg12_58,,beta-ketoacyl-[acyl-carrier-protein] synthase family protein [Amycolatopsis sp. NPDC114503],WP_470269966,Amycolatopsis sp. NPDC114503,81,100,1.82335e-140
+ctg12_59,Orn_Arg_deC_N,type III PLP-dependent enzyme [Amycolatopsis sp. NPDC114484],WP_470231379,Amycolatopsis sp. NPDC114484,91,99,0.0
+ctg12_60,ACP_syn_III_C,3-oxoacyl-ACP synthase [Amycolatopsis sp. Poz14],MCG3757150,Amycolatopsis sp. Poz14,94,95,0.0
+ctg12_61,MDMPI_N; TIGR03083,maleylpyruvate isomerase family mycothiol-dependent enzyme [Streptomyces sp. NPDC002088],WP_351145640,Streptomyces sp. NPDC002088,72,98,1.10165e-97
+ctg12_62,FAA_hydrolase,MULTISPECIES: fumarylacetoacetate hydrolase family protein [unclassified Streptomyces],WP_365294188,Streptomyces sp. NPDC014684,88,100,5.5836e-173
+ctg12_63,Cupin_2,cupin domain-containing protein [Streptomyces fungicidicus],WP_431998047,Streptomyces fungicidicus,89,100,0.0
+ctg12_64,HTH_IclR; IclR,IclR family transcriptional regulator [Streptomyces tendae],WP_365618252,Streptomyces tendae,82,97,2.67768e-140
+ctg12_65,Methyltransf_11,class I SAM-dependent methyltransferase [Streptomyces sp. CT34],WP_043262681,Streptomyces sp. CT34,72,98,3.07285e-121
+ctg12_66,DUF4937,DUF4937 domain-containing protein [Crossiella sp. SN42],WP_252484142,Crossiella sp. SN42,63,98,7.61685e-88
+ctg12_67,GyrI-like,GyrI-like domain-containing protein [Amycolatopsis sp. CA-096443],XWI24008,Amycolatopsis sp. CA-096443,87,100,5.7739e-141
+ctg12_68,Cupin_2,cupin domain-containing protein [Amycolatopsis sp. CA-096443],XWI24006,Amycolatopsis sp. CA-096443,79,100,9.32134e-64
+ctg12_69,MarR_2,MarR family winged helix-turn-helix transcriptional regulator [Amycolatopsis sp. CA-096443],XWI24005,Amycolatopsis sp. CA-096443,92,99,2.43049e-97
+ctg12_70,TetR_C_36,QsdR family transcriptional regulator [Amycolatopsis jejuensis],WP_033290371,Amycolatopsis jejuensis,65,99,1.26601e-81
+ctg12_71,Beta-lactamase,EstA family serine hydrolase [Amycolatopsis jejuensis],WP_033290153,Amycolatopsis jejuensis,78,100,0.0
+ctg12_72,Spermine_synth,spermidine synthase [Amycolatopsis circi],WP_116205761,Amycolatopsis circi,90,100,6.15968e-176
+ctg12_73,AdoMet_dc; Orn_Arg_deC_N; Orn_DAP_Arg_deC; TIGR03330,adenosylmethionine decarboxylase [Amycolatopsis echigonensis],MBB2505092,Amycolatopsis echigonensis,85,100,0.0
+ctg12_74,Antibiotic_NAT,AAC(3) family N-acetyltransferase [Amycolatopsis rhizosphaerihabitans],WP_370939898,Amycolatopsis rhizosphaerihabitans,77,96,1.51042e-113
+ctg12_75,p450,cytochrome P450 [Amycolatopsis dendrobii],WP_182892437,Amycolatopsis dendrobii,72,100,0.0
+ctg12_76,ABC2_membrane,MULTISPECIES: ABC transporter permease [Amycolatopsis],WP_037812077,Amycolatopsis sp. Poz14,89,100,1.26094e-152
+ctg12_77,ABC_tran; DUF4162; TIGR01188,ATP-binding cassette domain-containing protein [Amycolatopsis sp. CA-096443],XWI24001,Amycolatopsis sp. CA-096443,86,100,0.0
+ctg12_78,DUF4097,DUF4097 family beta strand repeat-containing protein [Amycolatopsis sp. GA6-003],WP_409466468,Amycolatopsis sp. GA6-003,79,100,3.32853e-157
+ctg12_79,HicB,YlcI/YnfO family protein [Amycolatopsis sp. CA-096443],XWI23999,Amycolatopsis sp. CA-096443,88,100,5.05473e-85
+ctg12_80,MerR_1,MerR family transcriptional regulator [Amycolatopsis sp. CA-096443],XWI23998,Amycolatopsis sp. CA-096443,81,95,3.61018e-71
+ctg12_81,Dyp_perox; TAT_signal; TIGR01409; TIGR01412; TIGR01413,iron uptake transporter deferrochelatase/peroxidase subunit [Amycolatopsis sp. La24],WP_275292156,Amycolatopsis sp. La24,92,100,0.0

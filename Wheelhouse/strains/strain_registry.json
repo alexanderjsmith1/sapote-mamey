@@ -1,0 +1,20 @@
+{
+  "registry_version": "1.0",
+  "generated": "2026-07-02",
+  "lab": "Sapote-Mamey",
+  "n_strains": 1,
+  "strains": {
+    "HH130629": {
+      "genus": "Pseudonocardia",
+      "host": "attine ant",
+      "assembly": "complete",
+      "status": "validation",
+      "priority": "reference",
+      "known_compounds": [
+        "selvamicin (Region 1.8, KCB HIGH)",
+        "cahuitamycin"
+      ],
+      "note": "selvamicin validates PK01 polyether scanner"
+    }
+  }
+}

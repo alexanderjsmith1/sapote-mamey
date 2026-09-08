@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<EBIApplicationResult xmlns="http://www.ebi.ac.uk/schema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.ebi.ac.uk/Tools/common/schema/ApplicationResult.xsd">
+ <Header>
+  <program name="blastp" version="BLASTP 2.16.0+"/>
+  <commandLine command="singularity exec $APPBIN/singularity/ncbiblast:2.16.0 /ncbiblast/bin/blastp -db &quot;uniprotkb_bacteria&quot; -query ncbiblast-R20260706-170853-0772-86012731-p1m.sequence  -num_threads 32 -outfmt 11 -out ncbiblast-R20260706-170853-0772-86012731-p1m.archive -max_target_seqs 5 -seg no -comp_based_stats F"/>
+  <parameters>
+   <sequences total="1">
+    <sequence number="1" name="ctg_test" type="PROTEIN" length="78"/>
+   </sequences>
+   <databases total="1" sequences="74117321" letters="23919010324">
+    <database number="1" name="uniprotkb_bacteria" type="PROTEIN" created="2026-05-22T01:20:00+01:00"/>
+   </databases>
+   <alignments>5</alignments>
+   <expectationUpper>10.0</expectationUpper>
+   <filter>F</filter>
+   <gapExtension>1.0</gapExtension>
+   <gapOpen>11.0</gapOpen>
+   <matrix>BLOSUM62</matrix>
+   <scores>5</scores>
+  </parameters>
+  <timeInfo start="2026-07-06T17:08:53+01:00" end="2026-07-06T17:09:34+01:00" search="P0Y0M0DT0H0M41.000S"/>
+ </Header>
+ <SequenceSimilaritySearchResult>
+  <hits total="5">
+   <hit number="1" database="TR" id="A0A378ARX6_KLEPO" ac="A0A378ARX6" length="102" description="Asparagine synthetase AsnA OS=Klebsiella pneumoniae subsp. ozaenae OX=574 GN=asnA_3 PE=4 SV=1">
+    <alignments total="1">
+     <alignment number="1">
+      <score>375</score>
+      <bits>149.1</bits>
+      <expectation>1.8e-45</expectation>
+      <identity>96.2</identity>
+      <positives>97.4</positives>
+      <gaps>0</gaps>
+      <strand>none/none</strand>
+      <frame>0/0</frame>
+      <querySeq start="1" end="78">MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKR</querySeq>
+      <pattern>MKTAYIAKQRQISFVKSHFSRQLEE+LGLIEVQAPILSRVGDGTQDNLSG EKAVQVKVK LPDAQFEVVHSLAKWKR</pattern>
+      <matchSeq start="1" end="78">MKTAYIAKQRQISFVKSHFSRQLEEKLGLIEVQAPILSRVGDGTQDNLSGCEKAVQVKVKTLPDAQFEVVHSLAKWKR</matchSeq>
+     </alignment>
+    </alignments>
+   </hit>
+   <hit number="2" database="TR" id="A0A0H3NNB2_SALTS" ac="A0A0H3NNB2" length="330" description="Aspartate--ammonia ligase OS=Salmonella typhimurium (strain SL1344) OX=216597 GN=asnA PE=3 SV=1">
+    <alignments total="1">
+     <alignment number="1">
+      <score>382</score>
+      <bits>151.8</bits>
+      <expectation>9.8e-44</expectation>
+      <identity>98.7</identity>
+      <positives>98.7</positives>
+      <gaps>0</gaps>
+      <strand>none/none</strand>
+      <frame>0/0</frame>
+      <querySeq start="1" end="78">MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKR</querySeq>
+      <pattern>MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSG EKAVQVKVKALPDAQFEVVHSLAKWKR</pattern>
+      <matchSeq start="1" end="78">MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGCEKAVQVKVKALPDAQFEVVHSLAKWKR</matchSeq>
+     </alignment>
+    </alignments>
+   </hit>
+   <hit number="3" database="TR" id="A0ABR8TDC4_9ESCH" ac="A0ABR8TDC4" length="330" description="Aspartate--ammonia ligase OS=Escherichia whittamii OX=2762229 GN=asnA PE=3 SV=1">
+    <alignments total="1">
+     <alignment number="1">
+      <score>382</score>
+      <bits>151.8</bits>
+      <expectation>9.8e-44</expectation>
+      <identity>98.7</identity>
+      <positives>98.7</positives>
+      <gaps>0</gaps>
+      <strand>none/none</strand>
+      <frame>0/0</frame>
+      <querySeq start="1" end="78">MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKR</querySeq>
+      <pattern>MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSG EKAVQVKVKALPDAQFEVVHSLAKWKR</pattern>
+      <matchSeq start="1" end="78">MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGCEKAVQVKVKALPDAQFEVVHSLAKWKR</matchSeq>
+     </alignment>
+    </alignments>
+   </hit>
+   <hit number="4" database="TR" id="A0A1R0FRC5_CITBR" ac="A0A1R0FRC5" length="330" description="Aspartate--ammonia ligase OS=Citrobacter braakii OX=57706 GN=asnA PE=3 SV=1">
+    <alignments total="1">
+     <alignment number="1">
+      <score>382</score>
+      <bits>151.8</bits>
+      <expectation>9.8e-44</expectation>
+      <identity>98.7</identity>
+      <positives>98.7</positives>
+      <gaps>0</gaps>
+      <strand>none/none</strand>
+      <frame>0/0</frame>
+      <querySeq start="1" end="78">MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKR</querySeq>
+      <pattern>MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSG EKAVQVKVKALPDAQFEVVHSLAKWKR</pattern>
+      <matchSeq start="1" end="78">MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGCEKAVQVKVKALPDAQFEVVHSLAKWKR</matchSeq>
+     </alignment>
+    </alignments>
+   </hit>
+   <hit number="5" database="TR" id="A0ABX5TA79_9ENTR" ac="A0ABX5TA79" length="330" description="Aspartate--ammonia ligase OS=Citrobacter tructae OX=2562449 GN=asnA PE=3 SV=1">
+    <alignments total="1">
+     <alignment number="1">
+      <score>382</score>
+      <bits>151.8</bits>
+      <expectation>9.8e-44</expectation>
+      <identity>98.7</identity>
+      <positives>98.7</positives>
+      <gaps>0</gaps>
+      <strand>none/none</strand>
+      <frame>0/0</frame>
+      <querySeq start="1" end="78">MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKR</querySeq>
+      <pattern>MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSG EKAVQVKVKALPDAQFEVVHSLAKWKR</pattern>
+      <matchSeq start="1" end="78">MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGCEKAVQVKVKALPDAQFEVVHSLAKWKR</matchSeq>
+     </alignment>
+    </alignments>
+   </hit>
+  </hits>
+ </SequenceSimilaritySearchResult>
+</EBIApplicationResult>

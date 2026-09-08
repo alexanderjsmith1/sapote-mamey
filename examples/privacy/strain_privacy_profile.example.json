@@ -1,0 +1,16 @@
+{
+  "schema_version": "sapote_privacy_profile_v1",
+  "profile_id": "replace-with-your-project-id",
+  "default_tier": "INTERNAL",
+  "tiers": [
+    {"tier_id": "INTERNAL", "public_export": false, "description": "Owner-only working material."},
+    {"tier_id": "COLLABORATOR_REVIEW", "public_export": false, "description": "Named collaborator review."},
+    {"tier_id": "EMBARGOED", "public_export": false, "description": "Held until an owner-defined release condition."},
+    {"tier_id": "PUBLIC", "public_export": true, "description": "Explicitly cleared for public export."}
+  ],
+  "strain_assignments": [
+    {"strain_id": "isolate-001", "tier_id": "INTERNAL"},
+    {"strain_id": "isolate-002", "tier_id": "COLLABORATOR_REVIEW"},
+    {"strain_id": "isolate-003", "tier_id": "PUBLIC"}
+  ]
+}
