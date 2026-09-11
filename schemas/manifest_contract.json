@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sapote-mamey.invalid/schemas/manifest_contract.json",
+  "title": "Sapote-Mamey package handoff contract",
+  "description": "Observed v9.7.406 producer contract. Package-level table rules use the documented x-package-contract extension.",
+  "$comment": "Root applies the manifest.json shape via $ref so this file validates manifest.json under a standards-compliant JSON Schema validator (draft 2020-12). The bespoke reader in mamey/manifest_schema.py:check_package_contract() reads $defs.manifest and the x-package-contract extension directly and is unaffected by this root reference. Note: mamey/manifest_schema.py enforces only the type/properties/required/items subset; enum/format/pattern keywords, if added, are decorative to that reader.",
+  "$ref": "#/$defs/manifest",
+  "$defs": {
+    "nullableInteger": {"type": ["integer", "null"]},
+    "nullableNumber": {"type": ["number", "null"]},
+    "manifest": {
+      "type": "object",
+      "required": [
+        "strain_id", "display_name", "workflow_version", "analysis_date", "mode",
+        "taxonomy", "source", "source_provenance", "source_provenance_note",
+        "project_privacy", "genome_state", "bioassay_scope", "bioactivity",
+        "assembly", "bgc_counts", "bgcs", "scan_status", "source_scans",
+        "bgc_crosswalk", "top_bgc_targets", "split_pathway_candidates",
+        "hallucination_traps_triggered", "resistance_gene_summary",
+        "wet_lab_priorities", "metabolomics_targets", "missingness",
+        "recommended_next_steps", "cross_strain_context", "issues",
+        "antismash_profile", "reporting_features", "input_zip", "input_zip_sha256",
+        "package_dir", "package_status", "claim_safety_status", "files",
+        "repro_fingerprint", "repro_fingerprint_components", "terminal_status", "issue_count"
+      ],
+      "properties": {
+        "strain_id": {"type": "string"},
+        "display_name": {"type": "string"},
+        "workflow_version": {"type": "string"},
+        "bundle_version": {"type": "string"},
+        "release": {"type": "string"},
+        "privacy_tier": {"type": "string"},
+        "privacy_assignment_state": {"type": "string"},
+        "analysis_date": {"type": "string", "format": "date"},
+        "mode": {"type": "string"},
+        "taxonomy": {"type": "string"},
+        "source": {"type": "string"},
+        "source_provenance": {"type": "string"},
+        "source_provenance_note": {"type": "string"},
+        "project_privacy": {
+          "type": "object",
+          "required": ["project_privacy_tier", "project_privacy_tier_source", "drives_release", "publication_status", "project_registry_sha256"],
+          "properties": {
+            "project_privacy_tier": {"type": "string"},
+            "project_privacy_tier_source": {"type": "string"},
+            "drives_release": {"type": "boolean"},
+            "publication_status": {"type": "string"},
+            "project_registry_sha256": {"type": "string"}
+          }
+        },
+        "genome_state": {"type": "string"},
+        "bioassay_scope": {
+          "type": "object",
+          "required": ["assay_data_state", "assay_record_count"],
+          "properties": {
+            "assay_data_state": {"type": "string"},
+            "assay_record_count": {"type": "integer"}
+          }
+        },
+        "bioactivity": {
+          "type": "object",
+          "required": ["schema_version", "metadata_state", "observation_state", "usage_scope", "assays", "compound_linkage", "warnings"],
+          "properties": {
+            "schema_version": {"type": "string"},
+            "metadata_state": {"type": "string"},
+            "observation_state": {"type": "string"},
+            "usage_scope": {"type": "string"},
+            "assays": {"type": "array"},
+            "compound_linkage": {"type": "string"},
+            "warnings": {"type": "array"}
+          }
+        },
+        "assembly": {
+          "type": "object",
+          "required": ["genome_bp", "contigs", "n50", "gc_pct", "largest_contig", "quality"],
+          "properties": {
+            "genome_bp": {"type": "integer"},
+            "contigs": {"type": "integer"},
+            "n50": {"type": ["integer", "null"]},
+            "gc_pct": {"type": ["number", "null"]},
+            "largest_contig": {"type": ["integer", "null"]},
+            "quality": {
+              "type": "object",
+              "required": ["fragmentation_tier", "contigs", "n50", "genome_bp", "largest_contig", "caveat_required", "caveat", "basis"],
+              "properties": {
+                "fragmentation_tier": {"type": "string"},
+                "contigs": {"type": "integer"},
+                "n50": {"type": ["integer", "null"]},
+                "genome_bp": {"type": "integer"},
+                "largest_contig": {"type": ["integer", "null"]},
+                "caveat_required": {"type": "boolean"},
+                "caveat": {"type": "string"},
+                "basis": {"type": "string"}
+              }
+            }
+          }
+        },
+        "bgc_counts": {
+          "type": "object",
+          "required": ["raw", "interior", "edge", "full_contig", "corrected", "interior_pct", "assembly_tier"],
+          "properties": {
+            "raw": {"type": "integer"},
+            "interior": {"type": "integer"},
+            "edge": {"type": "integer"},
+            "full_contig": {"type": "integer"},
+            "corrected": {"type": "number"},
+            "interior_pct": {"type": ["number", "null"]},
+            "assembly_tier": {"type": "string"}
+          }
+        },
+        "bgcs": {"type": "array", "items": {"type": "object"}},
+        "scan_status": {"type": "object"},
+        "source_scans": {"type": ["object", "null"]},
+        "bgc_crosswalk": {"type": "array", "items": {"type": "object"}},
+        "top_bgc_targets": {"type": "array"},
+        "split_pathway_candidates": {"type": "array"},
+        "hallucination_traps_triggered": {"type": "array"},
+        "resistance_gene_summary": {"type": "object"},
+        "wet_lab_priorities": {"type": "array"},
+        "metabolomics_targets": {"type": "array"},
+        "missingness": {"type": "array"},
+        "recommended_next_steps": {"type": "array"},
+        "cross_strain_context": {"type": "object"},
+        "issues": {"type": "array"},
+        "antismash_profile": {"type": "string"},
+        "reporting_features": {"type": "object"},
+        "input_zip": {"type": "string"},
+        "input_zip_sha256": {"type": ["string", "null"]},
+        "package_dir": {"type": "string"},
+        "package_status": {"type": "string"},
+        "claim_safety_status": {"type": "string"},
+        "files": {"type": "array", "items": {"type": "object"}},
+        "repro_fingerprint": {"type": "string"},
+        "repro_fingerprint_components": {"type": "object"},
+        "terminal_status": {"type": "string"},
+        "issue_count": {"type": "integer"}
+      },
+      "additionalProperties": true
+    },
+    "gate_validation": {
+      "type": "object",
+      "required": [
+        "validator", "file_presence", "missing_required_suffixes", "package_containment",
+        "pks_ks_scan", "manifest_parse", "exclusion_gate", "reporting_v2_gate",
+        "rggmci_gate", "rggmci_note", "citation_compact_gate", "citation_compact",
+        "status", "checksum_integrity", "package_status", "package_status_receipt"
+      ],
+      "properties": {
+        "validator": {"type": "string"},
+        "file_presence": {"type": "string"},
+        "missing_required_suffixes": {"type": "array"},
+        "package_containment": {"type": "string"},
+        "pks_ks_scan": {"type": "string"},
+        "manifest_parse": {"type": "string"},
+        "bioactivity_metadata_gate": {"type": "string"},
+        "bioactivity_metadata_state": {"type": "string"},
+        "exclusion_gate": {"type": "string"},
+        "reporting_v2_gate": {"type": "string"},
+        "reporting_v2": {"type": "object"},
+        "rggmci_gate": {"type": "string"},
+        "rggmci_note": {"type": "string"},
+        "citation_compact_gate": {"type": "string"},
+        "citation_compact": {"type": "object"},
+        "gold_completeness": {"type": "string"},
+        "gold_note": {"type": "string"},
+        "depth_floor_breakdown": {"type": "object"},
+        "status": {"type": "string"},
+        "checksum_integrity": {"type": "string"},
+        "package_status": {"type": "string"},
+        "package_status_receipt": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "project_registry_status": {
+      "type": "object",
+      "required": ["schema_version", "status", "privacy_tier", "genome_state", "assay_data_state", "export_rule", "legacy_compatibility"],
+      "properties": {
+        "schema_version": {"type": "string"},
+        "status": {"type": "string"},
+        "privacy_tier": {"type": "string"},
+        "genome_state": {"type": "string"},
+        "assay_data_state": {"type": "string"},
+        "export_rule": {"type": "string"},
+        "legacy_compatibility": {"type": "string"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "x-package-contract": {
+    "extension_version": 1,
+    "artifacts": [
+      {"suffix": "_1_intake.json", "kind": "json", "required": true, "required_keys": ["strain_id", "display_name", "taxonomy", "source", "source_provenance", "release", "antismash_profile", "antismash_version", "assembly", "bgc_count", "locked_bgc_ids"]},
+      {"suffix": "_2_inventory.csv", "kind": "csv", "required": true, "required_columns": ["BGC_ID", "Release", "Assembly_Locator", "User_Label", "Contig", "Node_ID", "antiSMASH_Region", "Source_GBK", "Region", "Start", "End", "Length_kb", "Boundary", "Products", "Arch", "Arch_rationale", "KCB_top", "KCB_score", "KCB_evidence_state", "KCB_proteins", "RiQ_score", "RiQ_label", "TTA_tier", "CCTT_triggers", "Resistance_tier", "DSS", "QS_routing", "NAPAA_flag", "Depth_floor", "closest_product_provenance", "source_kcb_file", "source_kcb_locator", "kcb_hit_rank", "denominator_type", "parse_confidence", "needs_manual_kcb_check", "product_claim_ceiling", "efls_status", "flank_census_tier1", "flank_census_tier2_todo", "cross_contig_candidate_set", "efls_claim_ceiling", "dkp_rank", "dkp_cdps_evidence", "dkp_oxidase_homology", "dkp_provenance", "dkp_claim_ceiling", "diagnostic_signal_score", "evidence_weight_tier", "claim_confidence", "claim_ceiling", "safe_claim"]},
+      {"suffix": "_2b_bgc_crosswalk.csv", "kind": "csv", "required": true, "required_columns": ["bgc_id", "user_label", "contig", "node_id", "antismash_region", "region_number", "source_gbk", "start", "end", "contig_length", "edge_status", "products", "assembly_locator"]},
+      {"suffix": "_3_scan_states.json", "kind": "json", "required": true, "required_keys": ["scans", "evidence_channels"]},
+      {"suffix": "_3_mibig_per_gene.csv", "kind": "csv", "required": true, "required_columns": ["bgc_id", "query_gene", "subject_gene", "mibig_accession", "mibig_compound", "reference_type", "pct_identity", "pct_coverage", "pct_coverage_interpretation", "coverage_qc_flag", "blast_score", "evalue", "reference_rank", "reference", "source_file"]},
+      {"suffix": "_3_mibig_convergence.csv", "kind": "csv", "required": true, "required_columns": ["bgc_id", "products", "boundary", "mibig_accession", "mibig_compound", "reference_type", "distinct_query_genes", "distinct_subject_genes", "convergence_tier", "claim_safety"]},
+      {"suffix": "_3_antismash_modules.csv", "kind": "csv", "required": true, "required_columns": ["row_id", "bgc_id", "mapping_status", "mapping_method", "contig", "start", "end", "strand", "evidence_type", "feature_type", "locus_tag", "domain", "database", "bitscore", "evalue", "substrate_consensus", "source_file", "source_schema", "source_schema_version", "claim_safety"]},
+      {"suffix": "_3_antismash_motifs.csv", "kind": "csv", "required": true, "required_columns": ["row_id", "bgc_id", "mapping_status", "mapping_method", "contig", "start", "end", "strand", "evidence_type", "feature_type", "locus_tag", "motif", "database", "source_file", "source_schema", "source_schema_version", "claim_safety"]},
+      {"suffix": "_4_triage_board.csv", "kind": "csv", "required": true, "required_columns": ["Rank", "Assembly_Locator", "BGC_ID", "User_Label", "Contig", "Node_ID", "antiSMASH_Region", "Products", "Boundary", "Arch", "Arch_Capacity", "Class_Conf", "AB_auto", "AF_auto", "Novelty_auto", "Lead_tier_auto", "KCB_top", "CCTT_triggers", "RGGMCI_support", "Depth_floor", "Primary_metab_flag", "Standing_rule", "Corrected_rank", "Composite_region", "Protocluster_count", "Single_protocluster_count", "Chemical_hybrid", "Overmerge_state", "Misanchor_Flag", "Two_Pathway_Flag", "Two_Model_Flag", "Concordance", "UMED_gap", "Mobile_element_flag"]},
+      {"suffix": "_4A_RGGMCI_ranked_pairs.csv", "kind": "csv", "required": true, "required_columns": ["pair", "bgc_a", "contig_a", "products_a", "edge_a", "bgc_b", "contig_b", "products_b", "edge_b", "rggmci_score", "rggmci_confidence", "supporting_references", "interpretation_guard"]},
+      {"suffix": "_4B_pks_ks_fragment_scan.csv", "kind": "csv", "required": true, "required_columns": ["strain", "clade_id", "ks_subtype", "n_ks", "n_contigs", "contigs", "loci", "max_cross_contig_containment", "flag", "ks_subtype_partition_version", "claim_note"]},
+      {"suffix": "_4c_AB_lead_board.csv", "kind": "csv", "required": true, "required_columns": ["Board_rank", "BGC_ID", "Contig", "Node_ID", "Products", "AB_score", "Lead_tier", "KCB_top", "Downgrade", "Corrected_rank"]},
+      {"suffix": "_4c_AF_lead_board.csv", "kind": "csv", "required": true, "required_columns": ["Board_rank", "BGC_ID", "Contig", "Node_ID", "Products", "AF_score", "Lead_tier", "KCB_top", "Downgrade", "Corrected_rank"]},
+      {"suffix": "_5_workbook.xlsx", "kind": "xlsx", "required": true, "required_sheets": ["README", "Strain_Summary", "BGC_Crosswalk", "BGC_Inventory", "KCB_RiQ_Sweep", "MIBiG_Per_Gene", "MIBiG_Convergence", "MIBiG_Profile", "antiSMASH_Modules", "antiSMASH_RiPP_Motifs", "antiSMASH_Motifs", "antiSMASH_RREfinder", "antiSMASH_HMM", "P_LWC_Trial", "P_LWC_Summary", "Architecture_Confidence", "Triage_First_Board", "Triage_Board", "WetLab_Decision_Matrix", "Mode_B_Summary", "First_Pass_Scan_Status", "RGGMCI_Ranked", "RGGMCI_Evidence", "RGGMCI_Summary"]}
+    ]
+  }
+}

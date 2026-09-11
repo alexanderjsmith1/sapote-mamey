@@ -1,0 +1,21 @@
+channel	source_precedence	required_receipt	explicit_no_result_state	maximum_claim	forbidden_transfer
+assignment	1	rank; strain; bgc_id; markdown_path; ownership bounds	STOP_OUT_OF_RANGE	write authorization and identity	no cross-rank ownership
+sealed_package	2	manifest; crosswalk; inventory; locus map; hashes when material	UNAVAILABLE	current locus identity and deterministic routing	no judgment completion
+raw_antismash	1	exact ZIP member; coordinates; boundary; CDS translations; domains	UNAVAILABLE	observed encoded architecture and tool predictions	no production or complete-pathway claim from a fragment
+ncbi_nr	3	current-query provenance; accession; description; identity; alignment; coverage; E-value; bitscore	NCBI_NR_UNAVAILABLE or NO_SIGNIFICANT_HIT	protein similarity and role/family context	no exact product or substrate transfer
+ebi	3	current-query provenance; accession; description; identity; alignment; coverage; E-value; bitscore	EBI_UNAVAILABLE or NO_SIGNIFICANT_HIT	protein similarity and role/family context	no reuse of NCBI/local rows
+local_swissprot	3	current-query provenance; curated accession; identity; alignment; coverage; E-value; bitscore	LOCAL_SWISSPROT_UNAVAILABLE or NO_SIGNIFICANT_HIT	curated protein role/family context	no exact product or substrate transfer
+domains_hmms	3	coordinate-resolved domains; PFAM/TIGRFAM; motifs; prediction status	UNRESOLVED	encoded domain capacity and in-silico predictions	no biochemical activity proof
+clusterblast	4	exact raw file; query denominator; subject geometry	CHECKED_NO_LOCUS_RESULT	local homology and neighborhood context	no whole-cluster equivalence
+knownclusterblast	4	exact raw file; accession; rank; query/subject denominators	CHECKED_NO_LOCUS_RESULT	MIBiG similarity anchor	no named product identity
+subclusterblast	4	exact raw file and result	CHECKED_NO_LOCUS_RESULT	subcluster similarity context	no novelty proof
+bigscape_current	5	exact run; cutoff; class; family; member count	NO_CURRENT_FAMILY	cohort recurrence or placement	no identity, novelty, or MIBiG anchoring unless that run contains it
+bigscape_legacy	7	exact legacy run and namespace	NOT_USED	historical context only	no namespace merge or current-state claim
+rggmci	5	exact pair source; candidates; score/confidence; guard	NO_LOCUS_RESULT	split-pathway hypothesis	no physical linkage
+strain_level_capture	6	exact capture files; assembly/boundary metrics; KCB profiles; routing membership	NO_CAPTURE_FOR_STRAIN	secondary aggregation and denominator context	no independent validation, taxonomy transfer, activity, novelty, or linkage
+taxonomy_phylogeny	5	exact ANI/tree/alignment source and support limits	UNAVAILABLE	comparator weighting and strain placement	no product transfer
+ecology	5	exact collection metadata and scope	UNAVAILABLE	collection/host context	no BGC ecological function
+activity	5	exact strain/extract assay source and linkage status	UNAVAILABLE	strain/extract context only	no BGC phenotype without fractionation or genetics
+value_tier	8	one of THESIS_READY; USEFUL_WITH_LIMITATIONS; CONTEXT_ONLY; HOLD	UNRESOLVED	review/use routing	no confidence inflation
+qa	1	denominators; paths; URLs; linter; ledger; write boundary	FAIL	review receipt	no silent identifier or provenance repair
+

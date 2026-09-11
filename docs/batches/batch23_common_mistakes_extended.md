@@ -1,0 +1,230 @@
+# Common Mistakes — Extended Reference
+**11 documented failure modes with context, fixes, and Mode B implications**
+
+**v9.7.149a** | Source: `docs/COMMON_MISTAKES.md` | Last updated: 2026-06-29
+
+---
+
+## About this document
+
+This expands on the 11 failure modes documented in `docs/COMMON_MISTAKES.md` with fuller context, Mode B implications, and connections to the rest of the pipeline. Read the original first; this is the supplement.
+
+---
+
+## Mistake 1: Uploading the wrong ZIP type
+
+**Symptom:** `No antiSMASH regions found in input — bare assembly` or `MAMEY_FAILED, raw_bgcs 0`
+
+**Root cause:** You uploaded a raw genome assembly (FASTA/NCBI download) instead of an antiSMASH output ZIP.
+
+**Fix:**
+```bash
+# Wrong — raw NCBI download
+python mamey_run.py run --input-zip GCA_009862675.fna.gz
+
+# Right — antiSMASH output
+python mamey_run.py run --input-zip AS-XXX_antismash_results.zip
+```
+
+**Mode B implication:** None — Mamey fails cleanly before Mode B is reached. But if someone has run "Mode B" on raw GBK files without a Mamey package, the output lacks: corrected boundary computation, WL/AB/AF scores, CCTT triggers, UMED/FLBR/RGGMCI outputs. It is not a valid Mode B — flag every fact that would change with a real Mamey run.
+
+---
+
+## Mistake 2: Stale antiSMASH exports
+
+**Symptom:** Missing KCB scores, blank `KCB_top` columns, or `KCB/RiQ parser found no antiSMASH JSON/TXT evidence`
+
+**Root cause:** antiSMASH ZIP from an old run (pre-v7) or the internal JSON files were stripped.
+
+**Fix:** Re-run antiSMASH 8+ and download the full output ZIP (not just GBK files). The ZIP must contain `knownclusterblast/*.txt` and ideally the full `*.json` results file.
+
+**Mode B implication:** No KCB data means no compound-class anchor for §2 (KCB interpretation). State `KCB_DARK` explicitly: "No KCB match found. This cluster is class-dark; compound family is unknown." Do not infer a class from the antiSMASH product label alone without KCB support.
+
+---
+
+## Mistake 3: Accession-only strain labels
+
+**Symptom:** Warning: `Strain label 'NZ_QHHY00000000.1' is an NCBI accession (fallback).`
+
+**Root cause:** NCBI accession used as `--strain` argument. Accessions propagate into every file name, report header, and workbook row — making output hard to cross-reference.
+
+**Fix:**
+```bash
+python mamey_run.py run \
+  --strain AS-XXX \
+  --input-zip NZ_QHHY.zip \
+  --taxonomy "Streptomyces sp." \
+  --source "bee-associated"
+```
+
+**Mode B implication:** Every Mode B card header carries the strain ID. Accession-only IDs in headers are harder to cross-reference in multi-strain workbooks. Retroactive rename requires locator reconciliation.
+
+---
+
+## Mistake 4: Missing JSON files (bounded evidence off)
+
+**Symptom:** `ijson✗ bounded→TXT-only`; KCB scores present but RiQ scores blank.
+
+**Root cause:** `ijson` not installed; antiSMASH JSON too large to load fully. Mamey falls back to TXT-only clusterblast parsing.
+
+**Fix option A:** Install ijson (ships vendored in the bundle):
+```bash
+pip install ijson
+```
+
+**Fix option B:** Use `--json-evidence off` explicitly if only KCB (TXT-only) is needed:
+```bash
+python mamey_run.py run --json-evidence off --input-zip ...
+```
+
+**Mode B implication:** Missing RiQ scores reduces evidence for A-domain substrate prediction in NRPS clusters. Note in §3 (domain architecture): "RiQ substrate predictions unavailable (TXT-only mode); A-domain specificity inferred from Stachelhaus code only."
+
+---
+
+## Mistake 5: Running against a v1.2 workbook with `--master`
+
+**Symptom:** `[BLOCKED] --master target is a Schema-v1.2 workbook`
+
+**Root cause:** Pointed `--master` at a workbook built by `tools/build_master.py` (legacy cohort builder). The canonical `--master` writer uses a different sheet schema.
+
+**Fix:** Use the ingest path instead:
+```bash
+python tools/ingest_package.py \
+  --package runs/AS-XXX/package \
+  --ww WWGP0000000 \
+  --merge \
+  --banked-dir cohort
+python tools/build_workbook.py \
+  --workbook Sapote-Mamey_Master.xlsx \
+  --banked-dir cohort \
+  --full
+```
+
+**Mode B implication:** None for individual Mode B cards. But if the workbook is used as the master for cross-strain comparisons, the schema mismatch may produce silent column misalignment in the comparison sheets.
+
+---
+
+## Mistake 6: Expecting a finished analysis from a PASS package
+
+**Symptom:** Package says `MAMEY_COMPLETE` but no Mode B cards, no compound interpretations.
+
+**Root cause:** Mamey is the **extraction layer only** — inventory, scans, scores, and evidence. Interpretive deliverables (Mode B, DAPR, ecology, bench/layperson guides) are the separate **Sapote judgment** step.
+
+**Fix:** Open `OPEN_ME_FIRST.html` inside the package and follow instructions to trigger the judgment layer. Or upload `manifest.json` to Claude: "Run full Sapote analysis on [strain]."
+
+**Mode B implication:** This is the most common user confusion. The Mode B cards are not auto-generated by Mamey — they require a Sapote session with a sealed package.
+
+---
+
+## Mistake 7: Taxonomy as `.` or blank organism
+
+**Symptom:** Display name shows `. strain AS-XXX`
+
+**Root cause:** antiSMASH GBK for some private strains deposit `ORGANISM  .` (no genus), which Mamey normalises to avoid propagating a literal dot.
+
+**Fix:** Always supply `--taxonomy` explicitly:
+```bash
+python mamey_run.py run \
+  --strain AS-XXX \
+  --taxonomy "Streptomyces sp." \
+  --input-zip ...
+```
+
+**Mode B implication:** Taxonomy appears in every Mode B header and in the §12 ecological interpretation. Missing taxonomy means the ecological framing defaults to generic ("actinomycete") instead of genus-specific.
+
+---
+
+## Mistake 8: `openpyxl` not installed
+
+**Symptom:** `openpyxl✗ REQUIRED for workbooks`; no `*_5_workbook.xlsx` in the package.
+
+**Fix:**
+```bash
+pip install openpyxl
+python mamey_run.py doctor  # confirm dependency before re-running
+```
+
+**Mode B implication:** Without the workbook, you lack the E3_DomainArch sheet (gene-by-gene domain detail needed for §3 of Mode B). You can still work from the triage board CSV, but §3 depth is reduced.
+
+---
+
+## Mistake 9: Figures not rendered
+
+**Symptom:** `BRIEF_SKIPPED_TIMEOUT.md` or `NO_FIGURES_RENDERED.md` in package.
+
+**Root cause A:** `numpy` and/or `matplotlib` not installed.
+**Root cause B:** Font-manager cache build timed out (common in restricted environments).
+
+**Fix A:**
+```bash
+pip install numpy matplotlib
+```
+
+**Fix B:** Re-render after cache builds:
+```bash
+python mamey_run.py render-figures --package runs/AS-XXX/package
+```
+Or increase timeout: `MAMEY_RENDER_TIMEOUT_S=300 python mamey_run.py run ...`
+
+**Mode B implication:** Locus maps (gene topology figures) are important reference material for §3 and §18 (figure notes) of full Mode B. Without them, describe gene topology from the E3_DomainArch sheet and note the figures were not rendered.
+
+---
+
+## Mistake 10: Skipping `mamey doctor` before first use
+
+**Fix:**
+```bash
+python mamey_run.py doctor
+```
+Checks Python version, dependencies, write permissions, bundle integrity, and antiSMASH ZIP detection. Run this first after any new install or environment change — it tells you exactly what to fix.
+
+**Mode B implication:** None direct. But environment problems caught here prevent the class of silent failures where Mamey runs but produces degraded output (TXT-only mode, no figures, missing workbook).
+
+---
+
+## Mistake 11: pytest not installed (cut gates blocked)
+
+**Symptom:** `FATAL: public-tier unpublished-ID invariant FAILED` or `No module named pytest`
+
+**Root cause:** Cut gates and the safety test suite require pytest + pluggy + iniconfig. Not bundled (dev dependencies).
+
+**Fix:** Download three wheels on a networked machine, upload into chat:
+```bash
+# On a networked machine:
+pip download pytest pluggy iniconfig -d wheels/
+# Upload the 3 .whl files to the session, then:
+pip install wheels/pytest*.whl wheels/pluggy*.whl wheels/iniconfig*.whl --break-system-packages
+```
+
+**Mode B implication:** None. This is a release-gate issue, not an analysis issue. pytest failures do not affect the quality of Mode B cards written in an analysis session — they affect whether a tier cut can be signed off.
+
+---
+
+## Additional mistake: Mode B without sealing the package
+
+**Symptom:** Mode B cards exist in a chat transcript but not in the package or workbook.
+
+**Root cause:** Mode B cards that live only in a chat window are lost when the session ends. The `ingest-receipts` command commits cards into the durable judgment store.
+
+**Fix:**
+```bash
+# After Mode B session, commit receipts
+python -m mamey ingest-receipts \
+  --package runs/[strain]/package \
+  --receipt mode_b_receipt.json \
+  --master project_master.xlsx
+```
+
+The receipt is `mode_b_receipt.json` with the structure: `{strain_id, session_id, cards:[{bgc_id, mode_b_md, ...}]}`. This command writes the per-BGC `.md`, flips the register to COMPLETE, and reconciles the workbook.
+
+**This is the single most common way analysis work goes missing.**
+
+---
+
+## See also
+
+- **Authoritative source:** `docs/COMMON_MISTAKES.md`
+- **Troubleshooting quick-reference:** `batch04_gotcha_guide.md`
+- **Failure recovery matrix:** `batch11_common_failure_recovery_matrix.md`
+- **Session protocol:** `batch26_session_handoff_protocol.md`
+- **Preflight command:** `python mamey_run.py doctor`

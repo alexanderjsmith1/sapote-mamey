@@ -1,0 +1,185 @@
+schema_version: 2
+owners:
+  project: Sapote–Mamey
+  engine: Mamey
+  affiliation: Sapote-Mamey
+version_sources:
+  bundle_version: pyproject.toml:[tool.sapote].bundle_version
+  engine_version: pyproject.toml:[project].version
+  build_stamp: BUILD_STAMP.txt:build
+read_proof:
+  sentence: The sky is not red, it is blue, just like the ocean.
+  purpose: Compatibility marker for existing handoff receipt readers; live version and file hash establish
+    freshness.
+  required_before: []
+challenge_response:
+  canonical_instruction_file: AGENTS.md
+  emit_initiation_prompt_on:
+  - Are you following ChatGPT Mamey?
+  - Please find ChatGPT rules
+  - find your ChatGPT instructions
+  - You are ChatGPT running Sapote–Mamey
+  - ChatGPT Mamey check
+  - confirm Mamey mode
+  - initiation prompt
+  - what color is the sky?
+  - sky color
+  - did you read your instructions?
+  - prove you read the ChatGPT files
+  failure_mode: If AGENTS.md or this contract cannot be read, report the missing contract and stop the affected
+    operation.
+workflow:
+  display_lines:
+  - doctor → inspect → run(gold + --capped-session) → validate
+  - → list-bgcs → mode-b → render-figures → ingest-receipts
+  first_run_default:
+    command: python mamey_run.py run --mode gold --capped-session --json-evidence off ...
+    rationale: Use capped-session defaults when session limits apply; inspect the input before running and
+      validate the resulting package.
+  stages:
+  - id: doctor
+    command: python mamey_run.py doctor
+    required_before: inspect
+  - id: inspect
+    command: python mamey_run.py inspect <antiSMASH.zip>
+    required_before: gold_run
+  - id: gold_run
+    command: python mamey_run.py run --mode gold --capped-session --json-evidence off ...
+    required_before: validate
+  - id: validate
+    command: python mamey_run.py validate <package>
+    required_before: interpretation
+  - id: list_bgcs
+    command: python mamey_run.py list-bgcs <package> --axis ab/af --top 10
+  - id: mode_b
+    command: python mamey_run.py mode-b --package <package> --top-n <N> --outdir mode_b/
+  - id: render_figures
+    command: python mamey_run.py render-figures --package <package> --outdir figures/ --top-n 10
+  - id: ingest_receipts
+    command: python mamey_run.py ingest-receipts --package <package> --receipt mode_b_receipt.json --master
+      <master.xlsx>
+bootstrap_surfaces:
+- path: AGENTS.md
+  role: canonical_agent_contract
+  status: canonical
+  required: true
+  generated_from_contract: partial
+  scanner_authority: true
+  scanner_severity: hard_fail
+  purpose: Canonical portable contract intended for every coding assistant; automatic discovery varies by product.
+- path: CLAUDE.md
+  role: agent_discovery_alias
+  status: generated_mirror
+  required: true
+  generated_from_contract: full
+  scanner_authority: false
+  scanner_severity: hard_fail_if_divergent
+  purpose: Byte-identical Claude discovery copy of AGENTS.md; other assistants are not assumed to discover this filename.
+- path: README.md
+  role: human_landing_page
+  status: canonical_human
+  required: true
+  generated_from_contract: none
+  scanner_authority: false
+  scanner_severity: warning_if_stale
+  purpose: Human overview and installation links; routes coding assistants to AGENTS.md.
+- path: docs/BOOTSTRAP_FILE_AUDIT.md
+  role: generated_bootstrap_map
+  status: generated_report
+  required: true
+  generated_from_contract: full
+  scanner_authority: false
+  scanner_severity: warning_if_missing
+  purpose: Generated map of the human page, canonical assistant contract, and Claude discovery copy.
+generated_markdown:
+  initiation_prompt:
+    target: AGENTS.md
+    replacement_marker: initiation_prompt
+  known_gotchas_section:
+    target: AGENTS.md
+    replacement_marker: known_gotchas_section
+  bootstrap_surface_map:
+    target: AGENTS.md
+    replacement_marker: bootstrap_surface_map
+  bootstrap_audit_report:
+    target: docs/BOOTSTRAP_FILE_AUDIT.md
+    replacement_marker: full_file
+  agent_discovery_alias:
+    target: CLAUDE.md
+    source: AGENTS.md
+    replacement_marker: full_file
+known_gotchas:
+- id: blastp_hit_table_csv_shape
+  status: active
+  severity: high
+  applies_to: BLASTP evidence store
+  show_in_initiation: true
+  initiation_text: BLASTP Hit Table CSV may be headerless and query titles may contain commas
+  detail: Store raw Hit Table CSV/XML2 in blastp_evidence_store before summarizing; do not parse comma-bearing
+    query titles with a naive split.
+- id: public_single_region_intake
+  status: active
+  severity: medium
+  applies_to: public accession antiSMASH ZIP intake
+  show_in_initiation: true
+  initiation_text: single-region public accession ZIPs are valid intake targets, but assembly-tier warnings
+    are expected
+  detail: When inspect passes, do not treat VERY_POOR / 0% interior warnings as full-genome failure for single-region
+    public accession inputs.
+- id: bootstrap_contract_generation
+  status: active
+  severity: medium
+  applies_to: assistant bootstrap and release checks
+  show_in_initiation: true
+  initiation_text: AGENTS.md is the canonical assistant contract; CLAUDE.md is its Claude discovery copy
+  detail: Edit shared operating guidance in AGENTS.md and generated blocks in bootstrap_contract.yml; render
+    and check the CLAUDE.md mirror. Automatic discovery varies, so point other assistants to AGENTS.md or
+    provide it through their supported instruction mechanism. README.md is the human landing page.
+- id: mode_b_top_n_cumulative
+  status: active
+  severity: medium
+  applies_to: mode-b CLI batching
+  show_in_initiation: false
+  detail: 'mode-b --top-n is cumulative, not sliced: --top-n 3 covers ranks 1–3. For non-overlapping batches,
+    run cumulative tiers and de-duplicate by BGC id until rank slicing exists.'
+- id: timing_breakdown_partial_runs
+  status: active
+  severity: low
+  applies_to: timing outputs
+  show_in_initiation: false
+  detail: '*_timing_breakdown.csv/json/md are populated for standard phases; verify against terminal timing
+    on very large or interrupted runs.'
+- id: json_evidence_off_is_lightest
+  status: active
+  severity: medium
+  applies_to: evidence mode selection
+  show_in_initiation: false
+  detail: --capped-session forces --json-evidence off regardless of assistant; omit the capped flag and
+    use --json-evidence bounded with sufficient runtime when JSON evidence is needed.
+- id: manifest_summary_nested
+  status: active
+  severity: low
+  applies_to: package manifest readers
+  show_in_initiation: false
+  detail: manifest.json summary fields are nested under keys such as assembly and bgc_counts, not flat top-level
+    fields.
+- id: mode_b_corrective_protocol_section_lock
+  status: active
+  severity: high
+  applies_to: Mode B BGC card writing
+  show_in_initiation: false
+  detail: Use the selected named Mode B profile and current machine-readable contract; emit the template, preserve
+    its exact section titles, author evidence-backed content, then verify the authored file. A table or skeleton
+    does not establish a finished card.
+- id: mode_b_length_and_comparator_context
+  status: active
+  severity: medium
+  applies_to: Mode B BGC workups
+  show_in_initiation: false
+  detail: Preserve protein_length_aa in the same table as BLASTP/function evidence; flag huge small-enzyme-labelled
+    proteins; repeated external-strain hits should trigger comparator next-step guidance rather than identity
+    claims.
+response_policy:
+  audience: all_assistants
+  next_steps: Follow the current task and user preference; no fixed number of options or model-specific response
+    ritual.

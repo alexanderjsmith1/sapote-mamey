@@ -1,0 +1,3 @@
+# zip_hygiene_allowlist.tsv — intentionally-large files permitted past the ZIP-size gate.
+# relpath	max_bytes	reason
+./mamey/data/literature/_corpus/literature_corpus.jsonl	12000000	reference literature corpus (mining input); reviewed + intentional

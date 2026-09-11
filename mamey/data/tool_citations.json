@@ -1,0 +1,713 @@
+{
+  "schema": "sapote-mamey/tool_citations@1",
+  "generated": "2026-07-22",
+  "provenance": "Crossref-verified this session (Lab Quest / a contributor lane tool-citation pass). Version-matched to the tools in Tools/TOOL_INVENTORY.md.",
+  "note": "Every external tool/database with a paper of record. Software without one (openpyxl, reportlab, Pillow, pypdf, streamlit, ijson, pytest, pyfamsa, pytrimal, taxopy, gffutils) is cite-as-software: name+version+URL.",
+  "count": 43,
+  "references": [
+    {
+      "key": "prjibelski2020spades",
+      "authors": [
+        "Prjibelski, Andrey",
+        "Antipov, Dmitry",
+        "Meleshko, Dmitry",
+        "Lapidus, Alla",
+        "Korobeynikov, Anton"
+      ],
+      "year": "2020",
+      "title": "Using SPAdes De Novo Assembler",
+      "venue": "Current Protocols in Bioinformatics",
+      "volume": "70",
+      "issue": "1",
+      "pages": "e102",
+      "doi": "10.1002/cpbi.102"
+    },
+    {
+      "key": "blin2025antismash8",
+      "authors": [
+        "Blin, Kai",
+        "Shaw, Simon",
+        "Vader, Louise",
+        "others"
+      ],
+      "year": "2025",
+      "title": "antiSMASH 8.0: extended gene cluster detection capabilities and analyses of chemistry, enzymology, and regulation",
+      "venue": "Nucleic Acids Research",
+      "volume": "53",
+      "issue": "W1",
+      "pages": "W32--W38",
+      "doi": "10.1093/nar/gkaf334"
+    },
+    {
+      "key": "camacho2009blast",
+      "authors": [
+        "Camacho, Christiam",
+        "Coulouris, George",
+        "Avagyan, Vahram",
+        "Ma, Ning",
+        "Papadopoulos, Jason",
+        "Bealer, Kevin",
+        "Madden, Thomas L."
+      ],
+      "year": "2009",
+      "title": "BLAST+: architecture and applications",
+      "venue": "BMC Bioinformatics",
+      "volume": "10",
+      "issue": null,
+      "pages": "421",
+      "doi": "10.1186/1471-2105-10-421"
+    },
+    {
+      "key": "johnson2008ncbiblast",
+      "authors": [
+        "Johnson, Mark",
+        "Zaretskaya, Irena",
+        "Raytselis, Yan",
+        "Merezhuk, Yuri",
+        "McGinnis, Scott",
+        "Madden, Thomas L."
+      ],
+      "year": "2008",
+      "title": "NCBI BLAST: a better web interface",
+      "venue": "Nucleic Acids Research",
+      "volume": "36",
+      "issue": "Web Server",
+      "pages": "W5--W9",
+      "doi": "10.1093/nar/gkn201"
+    },
+    {
+      "key": "madeira2024ebi",
+      "authors": [
+        "Madeira, Fabio",
+        "Madhusoodanan, Nandana",
+        "Lee, Joonheung",
+        "Eusebi, Alberto",
+        "Niewielska, Ania",
+        "Tivey, Adrian R. N.",
+        "Lopez, Rodrigo",
+        "Butcher, Sarah"
+      ],
+      "year": "2024",
+      "title": "The EMBL-EBI Job Dispatcher sequence analysis tools framework in 2024",
+      "venue": "Nucleic Acids Research",
+      "volume": "52",
+      "issue": "W1",
+      "pages": "W521--W525",
+      "doi": "10.1093/nar/gkae241"
+    },
+    {
+      "key": "draisma2026bigscape2",
+      "authors": [
+        "Draisma, Arjan",
+        "Loureiro, Catarina",
+        "Louwen, Nico L. L.",
+        "Kautsar, Satria A.",
+        "Navarro-Mu noz, Jorge C.",
+        "Doering, Drew T.",
+        "Mouncey, Nigel J.",
+        "Medema, Marnix H."
+      ],
+      "year": "2026",
+      "title": "BiG-SCAPE 2.0 and BiG-SLiCE 2.0: scalable, accurate and interactive sequence clustering of metabolic gene clusters",
+      "venue": "Nature Communications",
+      "volume": "17",
+      "issue": null,
+      "pages": "2000",
+      "doi": "10.1038/s41467-026-68733-5"
+    },
+    {
+      "key": "larralde2023pyhmmer",
+      "authors": [
+        "Larralde, Martin",
+        "Zeller, Georg"
+      ],
+      "year": "2023",
+      "title": "PyHMMER: a Python library binding to HMMER for efficient sequence analysis",
+      "venue": "Bioinformatics",
+      "volume": "39",
+      "issue": "5",
+      "pages": "btad214",
+      "doi": "10.1093/bioinformatics/btad214"
+    },
+    {
+      "key": "eddy2011hmmer",
+      "authors": [
+        "Eddy, Sean R."
+      ],
+      "year": "2011",
+      "title": "Accelerated profile HMM searches",
+      "venue": "PLoS Computational Biology",
+      "volume": "7",
+      "issue": "10",
+      "pages": "e1002195",
+      "doi": "10.1371/journal.pcbi.1002195"
+    },
+    {
+      "key": "paysanlafosse2025pfam",
+      "authors": [
+        "Paysan-Lafosse, Typhaine",
+        "Andreeva, Antonina",
+        "Blum, Matthias",
+        "others"
+      ],
+      "year": "2025",
+      "title": "The Pfam protein families database: embracing AI/ML",
+      "venue": "Nucleic Acids Research",
+      "volume": "53",
+      "issue": "D1",
+      "pages": "D523--D534",
+      "doi": "10.1093/nar/gkae997"
+    },
+    {
+      "key": "zdouc2025mibig",
+      "authors": [
+        "Zdouc, Mitja M.",
+        "Blin, Kai",
+        "Louwen, Nico L. L.",
+        "Navarro-Mu noz, Jorge C.",
+        "Loureiro, Catarina",
+        "others"
+      ],
+      "year": "2025",
+      "title": "MIBiG 4.0: advancing biosynthetic gene cluster curation through global collaboration",
+      "venue": "Nucleic Acids Research",
+      "volume": "53",
+      "issue": "D1",
+      "pages": "D678--D690",
+      "doi": "10.1093/nar/gkae1115"
+    },
+    {
+      "key": "gilchrist2021clinker",
+      "authors": [
+        "Gilchrist, Cameron L. M.",
+        "Chooi, Yit-Heng"
+      ],
+      "year": "2021",
+      "title": "clinker and clustermap.js: automatic generation of gene cluster comparison figures",
+      "venue": "Bioinformatics",
+      "volume": "37",
+      "issue": "16",
+      "pages": "2473--2475",
+      "doi": "10.1093/bioinformatics/btab007"
+    },
+    {
+      "key": "hunter2007matplotlib",
+      "authors": [
+        "Hunter, John D."
+      ],
+      "year": "2007",
+      "title": "Matplotlib: a 2D graphics environment",
+      "venue": "Computing in Science & Engineering",
+      "volume": "9",
+      "issue": "3",
+      "pages": "90--95",
+      "doi": "10.1109/MCSE.2007.55"
+    },
+    {
+      "key": "harris2020numpy",
+      "authors": [
+        "Harris, Charles R.",
+        "Millman, K. Jarrod",
+        "van der Walt, St'efan J.",
+        "others"
+      ],
+      "year": "2020",
+      "title": "Array programming with NumPy",
+      "venue": "Nature",
+      "volume": "585",
+      "issue": "7825",
+      "pages": "357--362",
+      "doi": "10.1038/s41586-020-2649-2"
+    },
+    {
+      "key": "hyatt2010prodigal",
+      "authors": [
+        "Hyatt, Doug",
+        "Chen, Gwo-Liang",
+        "LoCascio, Philip F.",
+        "Land, Miriam L.",
+        "Larimer, Frank W.",
+        "Hauser, Loren J."
+      ],
+      "year": "2010",
+      "title": "Prodigal: prokaryotic gene recognition and translation initiation site identification",
+      "venue": "BMC Bioinformatics",
+      "volume": "11",
+      "issue": null,
+      "pages": "119",
+      "doi": "10.1186/1471-2105-11-119"
+    },
+    {
+      "key": "edgar2022muscle5",
+      "authors": [
+        "Edgar, Robert C."
+      ],
+      "year": "2022",
+      "title": "Muscle5: high-accuracy alignment ensembles enable unbiased assessments of sequence homology and phylogeny",
+      "venue": "Nature Communications",
+      "volume": "13",
+      "issue": null,
+      "pages": "6968",
+      "doi": "10.1038/s41467-022-34630-w"
+    },
+    {
+      "key": "capellagutierrez2009trimal",
+      "authors": [
+        "Capella-Guti'errez, Salvador",
+        "Silla-Mart'inez, Jos'e M.",
+        "Gabald'on, Toni"
+      ],
+      "year": "2009",
+      "title": "trimAl: a tool for automated alignment trimming in large-scale phylogenetic analyses",
+      "venue": "Bioinformatics",
+      "volume": "25",
+      "issue": "15",
+      "pages": "1972--1973",
+      "doi": "10.1093/bioinformatics/btp348"
+    },
+    {
+      "key": "wong2026iqtree3",
+      "authors": [
+        "Wong, Thomas K. F.",
+        "Ly-Trong, Nhan",
+        "Ren, Huaiyan",
+        "others",
+        "Minh, Bui Quang"
+      ],
+      "year": "2026",
+      "title": "IQ-TREE 3: phylogenomic inference software using complex evolutionary models",
+      "venue": "Molecular Biology and Evolution",
+      "volume": "43",
+      "issue": "5",
+      "pages": "msag117",
+      "doi": "10.1093/molbev/msag117"
+    },
+    {
+      "key": "kalyaanamoorthy2017modelfinder",
+      "authors": [
+        "Kalyaanamoorthy, Subha",
+        "Minh, Bui Quang",
+        "Wong, Thomas K. F.",
+        "von Haeseler, Arndt",
+        "Jermiin, Lars S."
+      ],
+      "year": "2017",
+      "title": "ModelFinder: fast model selection for accurate phylogenetic estimates",
+      "venue": "Nature Methods",
+      "volume": "14",
+      "issue": "6",
+      "pages": "587--589",
+      "doi": "10.1038/nmeth.4285"
+    },
+    {
+      "key": "hoang2018ufboot2",
+      "authors": [
+        "Hoang, Diep Thi",
+        "Chernomor, Olga",
+        "von Haeseler, Arndt",
+        "Minh, Bui Quang",
+        "Vinh, Le Sy"
+      ],
+      "year": "2018",
+      "title": "UFBoot2: improving the ultrafast bootstrap approximation",
+      "venue": "Molecular Biology and Evolution",
+      "volume": "35",
+      "issue": "2",
+      "pages": "518--522",
+      "doi": "10.1093/molbev/msx281"
+    },
+    {
+      "key": "lee2019gtotree",
+      "authors": [
+        "Lee, Michael D."
+      ],
+      "year": "2019",
+      "title": "GToTree: a user-friendly workflow for phylogenomics",
+      "venue": "Bioinformatics",
+      "volume": "35",
+      "issue": "20",
+      "pages": "4162--4164",
+      "doi": "10.1093/bioinformatics/btz188"
+    },
+    {
+      "key": "jain2018fastani",
+      "authors": [
+        "Jain, Chirag",
+        "Rodriguez-R, Luis M.",
+        "Phillippy, Adam M.",
+        "Konstantinidis, Konstantinos T.",
+        "Aluru, Srinivas"
+      ],
+      "year": "2018",
+      "title": "High throughput ANI analysis of 90K prokaryotic genomes reveals clear species boundaries",
+      "venue": "Nature Communications",
+      "volume": "9",
+      "issue": null,
+      "pages": "5114",
+      "doi": "10.1038/s41467-018-07641-9"
+    },
+    {
+      "key": "oleary2024datasets",
+      "authors": [
+        "O'Leary, Nuala A.",
+        "Cox, Eric",
+        "Holmes, J. Bradley",
+        "others"
+      ],
+      "year": "2024",
+      "title": "Exploring and retrieving sequence and metadata for species across the tree of life with NCBI Datasets",
+      "venue": "Scientific Data",
+      "volume": "11",
+      "issue": "1",
+      "pages": "732",
+      "doi": "10.1038/s41597-024-03571-y"
+    },
+    {
+      "key": "galaxy2024",
+      "authors": [
+        "The Galaxy Community"
+      ],
+      "year": "2024",
+      "title": "The Galaxy platform for accessible, reproducible, and collaborative data analyses: 2024 update",
+      "venue": "Nucleic Acids Research",
+      "volume": "52",
+      "issue": "W1",
+      "pages": "W83--W94",
+      "doi": "10.1093/nar/gkae410"
+    },
+    {
+      "key": "poynton2025npatlas",
+      "authors": [
+        "Poynton, Emily F.",
+        "van Santen, Jeffrey A.",
+        "Pin, Marion",
+        "Macias Contreras, Miguel",
+        "McMann, Emily",
+        "Parra, Jordan",
+        "Showalter, Ben",
+        "Zaroubi, Liana",
+        "Duncan, Katherine R.",
+        "Linington, Roger G."
+      ],
+      "year": "2025",
+      "title": "The Natural Products Atlas 3.0",
+      "venue": "Nucleic Acids Research",
+      "volume": "53",
+      "issue": "D1",
+      "pages": "D691--D699",
+      "doi": "10.1093/nar/gkae1093"
+    },
+    {
+      "key": "uniprot2025",
+      "authors": [
+        "The UniProt Consortium"
+      ],
+      "year": "2025",
+      "title": "UniProt: the Universal Protein Knowledgebase in 2025",
+      "venue": "Nucleic Acids Research",
+      "volume": "53",
+      "issue": "D1",
+      "pages": "D609--D617",
+      "doi": "10.1093/nar/gkae1010"
+    },
+    {
+      "key": "bankevich2012spades",
+      "authors": [
+        "Bankevich, Anton",
+        "Nurk, Sergey",
+        "Antipov, Dmitry",
+        "others",
+        "Pevzner, Pavel A."
+      ],
+      "year": "2012",
+      "title": "SPAdes: a new genome assembly algorithm and its applications to single-cell sequencing",
+      "venue": "Journal of Computational Biology",
+      "volume": "19",
+      "issue": "5",
+      "pages": "455--477",
+      "doi": "10.1089/cmb.2012.0021"
+    },
+    {
+      "key": "navarromunoz2020bigscape",
+      "authors": [
+        "Navarro-Mu noz, Jorge C.",
+        "Selem-Mojica, Nelly",
+        "Mullowney, Michael W.",
+        "others",
+        "Medema, Marnix H."
+      ],
+      "year": "2020",
+      "title": "A computational framework to explore large-scale biosynthetic diversity",
+      "venue": "Nature Chemical Biology",
+      "volume": "16",
+      "issue": "1",
+      "pages": "60--68",
+      "doi": "10.1038/s41589-019-0400-9"
+    },
+    {
+      "key": "madeira2022ebi",
+      "authors": [
+        "Madeira, Fabio",
+        "Pearce, Matt",
+        "Tivey, Adrian R. N.",
+        "Basutkar, Prasad",
+        "Lee, Joonheung",
+        "Edbali, Ossama",
+        "Madhusoodanan, Nandana",
+        "Kolesnikov, Anton",
+        "Lopez, Rodrigo"
+      ],
+      "year": "2022",
+      "title": "Search and sequence analysis tools services from EMBL-EBI in 2022",
+      "venue": "Nucleic Acids Research",
+      "volume": "50",
+      "issue": "W1",
+      "pages": "W276--W279",
+      "doi": "10.1093/nar/gkac240"
+    },
+    {
+      "key": "katoh2013mafft",
+      "authors": [
+        "Katoh, Kazutaka",
+        "Standley, Daron M."
+      ],
+      "year": "2013",
+      "title": "MAFFT multiple sequence alignment software version 7: improvements in performance and usability",
+      "venue": "Molecular Biology and Evolution",
+      "volume": "30",
+      "issue": "4",
+      "pages": "772--780",
+      "doi": "10.1093/molbev/mst010"
+    },
+    {
+      "key": "larralde2022pyrodigal",
+      "authors": [
+        "Larralde, Martin"
+      ],
+      "year": "2022",
+      "title": "Pyrodigal: Python bindings and interface to Prodigal, an efficient method for gene prediction in prokaryotes",
+      "venue": "Journal of Open Source Software",
+      "volume": "7",
+      "issue": "72",
+      "pages": "4296",
+      "doi": "10.21105/joss.04296"
+    },
+    {
+      "key": "larralde2025pyani",
+      "authors": [
+        "Larralde, Martin",
+        "Zeller, Georg",
+        "Carroll, Laura M."
+      ],
+      "year": "2025",
+      "title": "PyOrthoANI, PyFastANI, and Pyskani: a suite of Python libraries for computation of average nucleotide identity",
+      "venue": "NAR Genomics and Bioinformatics",
+      "volume": "7",
+      "issue": "3",
+      "pages": "lqaf095",
+      "doi": "10.1093/nargab/lqaf095"
+    },
+    {
+      "key": "shaw2023skani",
+      "authors": [
+        "Shaw, Jim",
+        "Yu, Yun William"
+      ],
+      "year": "2023",
+      "title": "Fast and robust metagenomic sequence comparison through sparse chaining with skani",
+      "venue": "Nature Methods",
+      "volume": "20",
+      "issue": "11",
+      "pages": "1661--1665",
+      "doi": "10.1038/s41592-023-02018-3"
+    },
+    {
+      "key": "deorowicz2016famsa",
+      "authors": [
+        "Deorowicz, Sebastian",
+        "Debudaj-Grabysz, Agnieszka",
+        "Gudy's, Adam"
+      ],
+      "year": "2016",
+      "title": "FAMSA: fast and accurate multiple sequence alignment of huge protein families",
+      "venue": "Scientific Reports",
+      "volume": "6",
+      "issue": null,
+      "pages": "33964",
+      "doi": "10.1038/srep33964"
+    },
+    {
+      "key": "sukumaran2010dendropy",
+      "authors": [
+        "Sukumaran, Jeet",
+        "Holder, Mark T."
+      ],
+      "year": "2010",
+      "title": "DendroPy: a Python library for phylogenetic computing",
+      "venue": "Bioinformatics",
+      "volume": "26",
+      "issue": "12",
+      "pages": "1569--1571",
+      "doi": "10.1093/bioinformatics/btq228"
+    },
+    {
+      "key": "mckinney2010pandas",
+      "authors": [
+        "McKinney, Wes"
+      ],
+      "year": "2010",
+      "title": "Data structures for statistical computing in Python",
+      "venue": "Proceedings of the 9th Python in Science Conference",
+      "volume": null,
+      "issue": null,
+      "pages": "56--61",
+      "doi": "10.25080/Majora-92bf1922-00a"
+    },
+    {
+      "key": "virtanen2020scipy",
+      "authors": [
+        "Virtanen, Pauli",
+        "Gommers, Ralf",
+        "Oliphant, Travis E.",
+        "others",
+        "SciPy 1.0 Contributors"
+      ],
+      "year": "2020",
+      "title": "SciPy 1.0: fundamental algorithms for scientific computing in Python",
+      "venue": "Nature Methods",
+      "volume": "17",
+      "issue": "3",
+      "pages": "261--272",
+      "doi": "10.1038/s41592-019-0686-2"
+    },
+    {
+      "key": "cock2009biopython",
+      "authors": [
+        "Cock, Peter J. A.",
+        "Antao, Tiago",
+        "Chang, Jeffrey T.",
+        "Chapman, Brad A.",
+        "Cox, Cymon J.",
+        "Dalke, Andrew",
+        "Friedberg, Iddo",
+        "Hamelryck, Thomas",
+        "Kauff, Frank",
+        "Wilczynski, Bartek",
+        "de Hoon, Michiel J. L."
+      ],
+      "year": "2009",
+      "title": "Biopython: freely available Python tools for computational molecular biology and bioinformatics",
+      "venue": "Bioinformatics",
+      "volume": "25",
+      "issue": "11",
+      "pages": "1422--1423",
+      "doi": "10.1093/bioinformatics/btp163"
+    },
+    {
+      "key": "parks2022gtdb",
+      "authors": [
+        "Parks, Donovan H.",
+        "Chuvochina, Maria",
+        "Rinke, Christian",
+        "Mussig, Aaron J.",
+        "Chaumeil, Pierre-Alain",
+        "Hugenholtz, Philip"
+      ],
+      "year": "2022",
+      "title": "GTDB: an ongoing census of bacterial and archaeal diversity through a phylogenetically consistent, rank normalized and complete genome-based taxonomy",
+      "venue": "Nucleic Acids Research",
+      "volume": "50",
+      "issue": "D1",
+      "pages": "D785--D794",
+      "doi": "10.1093/nar/gkab776"
+    },
+    {
+      "key": "chaumeil2022gtdbtk",
+      "authors": [
+        "Chaumeil, Pierre-Alain",
+        "Mussig, Aaron J.",
+        "Hugenholtz, Philip",
+        "Parks, Donovan H."
+      ],
+      "year": "2022",
+      "title": "GTDB-Tk v2: memory friendly classification with the genome taxonomy database",
+      "venue": "Bioinformatics",
+      "volume": "38",
+      "issue": "23",
+      "pages": "5315--5316",
+      "doi": "10.1093/bioinformatics/btac672"
+    },
+    {
+      "key": "nouioui2018actino",
+      "authors": [
+        "Nouioui, Imen",
+        "Carro, Lorena",
+        "Garc'ia-L'opez, Marina",
+        "Meier-Kolthoff, Jan P.",
+        "Woyke, Tanja",
+        "Kyrpides, Nikos C.",
+        "Pukall, R\"udiger",
+        "Klenk, Hans-Peter",
+        "Goodfellow, Michael",
+        "G\"oker, Markus"
+      ],
+      "year": "2018",
+      "title": "Genome-based taxonomic classification of the phylum Actinobacteria",
+      "venue": "Frontiers in Microbiology",
+      "volume": "9",
+      "issue": null,
+      "pages": "2007",
+      "doi": "10.3389/fmicb.2018.02007"
+    },
+    {
+      "key": "guindon2010phyml",
+      "authors": [
+        "Guindon, St'ephane",
+        "Dufayard, Jean-Franc cois",
+        "Lefort, Vincent",
+        "Anisimova, Maria",
+        "Hordijk, Wim",
+        "Gascuel, Olivier"
+      ],
+      "year": "2010",
+      "title": "New algorithms and methods to estimate maximum-likelihood phylogenies: assessing the performance of PhyML 3.0",
+      "venue": "Systematic Biology",
+      "volume": "59",
+      "issue": "3",
+      "pages": "307--321",
+      "doi": "10.1093/sysbio/syq010"
+    },
+    {
+      "key": "haft2003tigrfams",
+      "authors": [
+        "Haft, Daniel H.",
+        "Selengut, Jeremy D.",
+        "White, Owen"
+      ],
+      "year": "2003",
+      "title": "The TIGRFAMs database of protein families",
+      "venue": "Nucleic Acids Research",
+      "volume": "31",
+      "issue": "1",
+      "pages": "371--373",
+      "doi": "10.1093/nar/gkg128"
+    },
+    {
+      "key": "kloosterman2020rrefinder",
+      "authors": [
+        "Kloosterman, Alexander M.",
+        "Shelton, Kaylie E.",
+        "van Wezel, Gilles P.",
+        "Medema, Marnix H.",
+        "Mitchell, Douglas A."
+      ],
+      "year": "2020",
+      "title": "RRE-Finder: a genome-mining tool for class-independent RiPP discovery",
+      "venue": "mSystems",
+      "volume": "5",
+      "issue": "5",
+      "pages": "e00267-20",
+      "doi": "10.1128/mSystems.00267-20"
+    }
+  ]
+}

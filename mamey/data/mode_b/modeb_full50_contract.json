@@ -1,0 +1,249 @@
+{
+  "schema_version": "modeb_current50_v1",
+  "status": "current",
+  "purpose": "Frozen machine-readable reference copy of the 50 section requirements in the bundled Markdown contract. Existing consumers still require their configured Markdown or database inputs; this JSON is not a drop-in replacement.",
+  "supersedes": null,
+  "does_not_supersede": {
+    "path": "mamey/data/mode_b/modeb_full30_corrective_contract.json",
+    "schema_version": "modeb_corrective_full48_v1",
+    "sections": 48,
+    "note": "The 48-section corrective profile remains the governing corrective contract. This 50-section artifact is a different object with a different consumer set. Neither replaces the other; the filename 'full30' is historical and does not describe its 48-section content."
+  },
+  "source_document": {
+    "path": "docs/MODEB_50_SECTION_CONTRACT_CANDIDATE.md",
+    "sha256": "1a27a5070b062bfe671721790f4e56c82028ff4fbd74d53478b932fec8a466a7",
+    "extraction_regex": "^\\| (\\d+) \\| (.*?) \\|$",
+    "note": "Rows copied verbatim with the same regex the consumers use. The source document MUST NOT be edited in place: consumer configs pin it by sha256, so an edit silently invalidates every pinned selection config."
+  },
+  "consumers_requiring_exactly_50": [
+    {
+      "path": "mamey/evidence_disagreements.py",
+      "line": 66,
+      "hold": "CURRENT50_SHAPE_HOLD",
+      "contract_source": "selection config key contract.path, pinned by contract.sha256"
+    },
+    {
+      "path": "mamey/cohort_enzyme_neighborhoods.py",
+      "line": 183,
+      "hold": "CURRENT50_CONTRACT_SHAPE_HOLD",
+      "contract_source": "config key sources.current50_contract, pinned by its sha256"
+    },
+    {
+      "path": "mamey/structured_domain_motif_extension.py",
+      "line": 210,
+      "hold": "FULL50_REQUIRED",
+      "contract_source": "section_relevance table count in the bound database"
+    },
+    {
+      "path": "tools/cohort_tailoring/build_atlas.py",
+      "line": 85,
+      "hold": "CURRENT50_MAPPING_INCOMPLETE",
+      "contract_source": "path arg current50_contract, compared to section_profile.contract_text"
+    }
+  ],
+  "known_hazard": "A caller-supplied path and hash identify a selected input but do not independently establish its authority. Compare the selected Markdown against source_document.sha256 and the recorded requirements. Existing consumer pin, database profile and shape checks remain required.",
+  "claim_safety": "Section requirements are scope statements for what a Mode-B section must address. Presence of a requirement row is not evidence, and this artifact makes no biological claim and admits nothing. Judgment deferred.",
+  "section_count": 50,
+  "sections": [
+    {
+      "section_number": 1,
+      "requirement": "Exact four-part identity; assembly/profile; region interval and sequence/CDS binding; protein-hash/neighborhood identity policy; canonical versus source-local alias distinction."
+    },
+    {
+      "section_number": 2,
+      "requirement": "Evidence-based selection rationale; current triage context; why this exact locus merits attention; no score-as-truth shortcut."
+    },
+    {
+      "section_number": 3,
+      "requirement": "Exact boundary geometry; truncation/overmerge assessment; displayed exact/context denominators; what assembly state permits and prevents."
+    },
+    {
+      "section_number": 4,
+      "requirement": "Short gene-role overview and pointer to §50. Preserve exact/context membership and the core, tailoring, transport, regulator and context distinctions without duplicating the full table."
+    },
+    {
+      "section_number": 5,
+      "requirement": "Exact committed-step genes; reaction-level roles; conditional ordered pathway; minimal-gene-set/on-contig audit; strongest false-positive alternative; evidence for/against; positive and negative claim ceilings."
+    },
+    {
+      "section_number": 6,
+      "requirement": "Direct tailoring candidates separated from broad metabolic context; conditional order; non-diagnostic families; comparator conflicts; coupling evidence; discriminating tests."
+    },
+    {
+      "section_number": 7,
+      "requirement": "Independent transport, resistance, and regulation adjudications; direction/substrate/mechanism/operon holds; no proximity-to-function leap; no exact-bound evidence distinguished from biological absence."
+    },
+    {
+      "section_number": 8,
+      "requirement": "KCB, MIBiG, ClusterBlast, and named comparator convergence/conflict; gene coverage and core-versus-generic-flank distinction; similarity never identity."
+    },
+    {
+      "section_number": 9,
+      "requirement": "At least two locus-specific alternatives when evidence permits; strongest rival model; observations that discriminate each model."
+    },
+    {
+      "section_number": 10,
+      "requirement": "Fragment/co-capture/overmerge risks; exact edge distances; partner-locus possibilities; RG-GMCI claim ceiling; no physical join without nucleotide proof."
+    },
+    {
+      "section_number": 11,
+      "requirement": "Product-family capacity model from core grammar; exact compound held unless independently established; comparator conflicts retained."
+    },
+    {
+      "section_number": 12,
+      "requirement": "Bee/microbe context from verified strain metadata and prevalence; chitin/ecology signals treated as strain context unless exact-locus coupled."
+    },
+    {
+      "section_number": 13,
+      "requirement": "Class-level antibacterial/antifungal relevance; extract phenotype separated from locus attribution; literature claim and organism scope explicit."
+    },
+    {
+      "section_number": 14,
+      "requirement": "Explicit forbidden claims: exact product, production, activity attribution, novelty, ecological function, physical linkage, and expression as applicable."
+    },
+    {
+      "section_number": 15,
+      "requirement": "Typed remaining gaps only after accessible sources are searched; distinguish unavailable, unbound, not run, running, ingest gap, measured-none, and not applicable."
+    },
+    {
+      "section_number": 16,
+      "requirement": "Current BLASTp/HMM/domain evidence plus only unresolved next tests; later nr/ClusteredNR additions are versioned, additive updates rather than a card-wide blocker."
+    },
+    {
+      "section_number": 17,
+      "requirement": "Testable LC-MS/fermentation implications derived from the conditional product-family model; no predicted mass asserted as detected."
+    },
+    {
+      "section_number": 18,
+      "requirement": "Lossless future-map payload requirements: every displayed gene, label, coordinates, strand, domains, selected genes, named matches and holds; V7 comparator preserved. Rendering remains a separate gate."
+    },
+    {
+      "section_number": 19,
+      "requirement": "One integrated judgment and cross-cohort synthesis, preserving support, contradictions, strongest alternative, confidence, final claim ceiling and unresolved discriminating evidence. No publication-ready claim from mechanical checks."
+    },
+    {
+      "section_number": 20,
+      "requirement": "Prioritized bounded actions with decision rules and owners; accessible evidence is obtained/reconciled rather than labeled pending."
+    },
+    {
+      "section_number": 21,
+      "requirement": "For RiPP/NRPS-relevant loci, conditional precursor/monomer ladder with assumptions; otherwise reasoned not-applicable."
+    },
+    {
+      "section_number": 22,
+      "requirement": "RiPP search scope, databases, precursor/maturation evidence and negative-result ceiling; otherwise reasoned not-applicable."
+    },
+    {
+      "section_number": 23,
+      "requirement": "Heterologous-expression rationale, minimum construct and controls, host limitations, and result interpretation; otherwise reasoned not-applicable."
+    },
+    {
+      "section_number": 24,
+      "requirement": "Novelty evidence decomposed into architecture, homology, cohort prevalence and comparator distance; “no hit” is not novelty."
+    },
+    {
+      "section_number": 25,
+      "requirement": "Exact genomic-neighborhood conservation from ClusterBlast/current comparisons; core versus generic conserved context distinguished."
+    },
+    {
+      "section_number": 26,
+      "requirement": "OSMAC plan tied to plausible pathway regulation/product chemistry and measurable outcomes; otherwise reasoned not-applicable."
+    },
+    {
+      "section_number": 27,
+      "requirement": "Mechanism-specific self-resistance evidence, exact gene coupling, alternatives and required validation; broad transporter/family names are insufficient."
+    },
+    {
+      "section_number": 28,
+      "requirement": "Claim-by-claim provenance; 14-stream disposition table; historical source-loss table; 50-row section reconciliation matrix."
+    },
+    {
+      "section_number": 29,
+      "requirement": "Cross-cluster hypotheses with exact four-part partner identities, evidence state and physical-linkage ceiling; otherwise reasoned not-applicable."
+    },
+    {
+      "section_number": 30,
+      "requirement": "Branching experimental decision tree: question, experiment, positive/negative decision rule, and program consequence."
+    },
+    {
+      "section_number": 31,
+      "requirement": "Exact region CDS census plus boundary-context census; independently reconciled denominators; no denominator-difference identity failure."
+    },
+    {
+      "section_number": 32,
+      "requirement": "Assembly-line enzyme/domain inventory from measured architecture; absent modules distinguished from unmeasured modules."
+    },
+    {
+      "section_number": 33,
+      "requirement": "Module programming, substrate/extension/reduction logic and uncertainty; no collinearity assumption without support."
+    },
+    {
+      "section_number": 34,
+      "requirement": "Initiation/loading and release/cyclization logic, candidate genes, alternatives and missing functions."
+    },
+    {
+      "section_number": 35,
+      "requirement": "Per-protocluster decomposition for mixed/overmerged regions; each core and accessory set assigned or held separately."
+    },
+    {
+      "section_number": 36,
+      "requirement": "Boundary, overmerge and locus-splitting adjudication integrated with exact intervals and sequence/CDS evidence."
+    },
+    {
+      "section_number": 37,
+      "requirement": "Partner/accessory proteins classified as direct, plausible, broad context, or unbound; mechanism and coupling evidence stated."
+    },
+    {
+      "section_number": 38,
+      "requirement": "Resistance/efflux signals with exact locus, mechanism specificity, direction, coupling and phenotype ceiling."
+    },
+    {
+      "section_number": 39,
+      "requirement": "Cross-strain identity/coverage on exact orthologous genes/loci with denominators and channels; no alias-only comparison."
+    },
+    {
+      "section_number": 40,
+      "requirement": "BiG-SCAPE family, cutoff, run receipt, cohort/reference membership and private/shared scope; new run may update additively."
+    },
+    {
+      "section_number": 41,
+      "requirement": "Protein/domain phylogeny target, sequence binding, reference set, model limits and supported clade-level inference."
+    },
+    {
+      "section_number": 42,
+      "requirement": "HGT/composition evidence relative to a declared genomic baseline; mobile/context alternatives; GC deviation alone is insufficient."
+    },
+    {
+      "section_number": 43,
+      "requirement": "RG-GMCI/cross-contig candidates with exact partner identity, component signals and explicit “candidate, not nucleotide join” ceiling."
+    },
+    {
+      "section_number": 44,
+      "requirement": "Within-cohort prevalence with exact numerator/denominator, profile/class definition and governed exclusions."
+    },
+    {
+      "section_number": 45,
+      "requirement": "Supervisor/university cohort comparison with declared cohort, comparable denominator and source receipt; otherwise reasoned not-applicable."
+    },
+    {
+      "section_number": 46,
+      "requirement": "Type/reference-strain comparison on exact comparable loci and genes, including Mamey/antiSMASH profile compatibility and divergence."
+    },
+    {
+      "section_number": 47,
+      "requirement": "Host-matched unrelated reference comparison with verified host metadata, comparator rationale and transfer limits."
+    },
+    {
+      "section_number": 48,
+      "requirement": "Biosynthetic gene, domain and machinery citations with explicit relevance to named genes, domain logic, alternatives or experiments; source scope and limits of transfer stated."
+    },
+    {
+      "section_number": 49,
+      "requirement": "Genus secondary-metabolite and broader biological-context citations with explicit relevance; justify broader taxa/topics and distinguish reference phenotype from focal-strain evidence."
+    },
+    {
+      "section_number": 50,
+      "requirement": "Complete contiguous named-match table formerly in §4, with unchanged full gene roster, geometry, protein binding, channel separation, result/admission states and typed holds."
+    }
+  ]
+}

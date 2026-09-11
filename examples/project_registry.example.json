@@ -1,0 +1,54 @@
+{
+  "schema_version": "sapote_project_registry_v1",
+  "public_export_tier": "OPEN",
+  "privacy_tiers": [
+    {"tier_id": "OPEN", "audience_rank": 0, "description": "May be included in an open export."},
+    {"tier_id": "TEAM", "audience_rank": 50, "description": "Project-team access required."},
+    {"tier_id": "OWNER_ONLY", "audience_rank": 100, "description": "Owner authorization required."}
+  ],
+  "strains": [
+    {
+      "strain_id": "STRAIN-001",
+      "display_label": "Project Strain 001",
+      "privacy_tier": "TEAM",
+      "publication_status": "IN_PREPARATION",
+      "genome_state": "ANALYZED",
+      "genome_locator": "inputs/genomes/STRAIN-001.zip"
+    },
+    {
+      "strain_id": "STRAIN-002",
+      "display_label": "Project Strain 002",
+      "privacy_tier": "OPEN",
+      "publication_status": "PUBLISHED",
+      "genome_state": "NOT_PROVIDED"
+    }
+  ],
+  "assays": [
+    {
+      "assay_id": "ASSAY-001",
+      "strain_id": "STRAIN-001",
+      "privacy_tier": "OWNER_ONLY",
+      "material_level": "CRUDE_EXTRACT",
+      "material_id": "EXTRACT-001",
+      "target_ids": ["TARGET-A", "TARGET-B"],
+      "endpoint": "growth_percent",
+      "concentration_or_dose": "100 micrograms_per_milliliter",
+      "replicate_count": 3,
+      "result_state": "OBSERVED_ACTIVITY_AT_RECORDED_CONDITIONS",
+      "recorded_result": "See source table",
+      "source_locator": "inputs/assays/screening.tsv",
+      "publication_status": "UNPUBLISHED"
+    },
+    {
+      "assay_id": "ASSAY-002",
+      "strain_id": "STRAIN-001",
+      "privacy_tier": "TEAM",
+      "material_level": "HPLC_FRACTION",
+      "material_id": "HPLC-FRAC-017",
+      "parent_material_id": "EXTRACT-001",
+      "target_ids": ["TARGET-C"],
+      "result_state": "NOT_RETURNED",
+      "publication_status": "NOT_PROVIDED"
+    }
+  ]
+}

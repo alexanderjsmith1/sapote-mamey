@@ -1,0 +1,10 @@
+strain,short,niche,public,raw_bgcs,corrected_bgcs,assembly_tier,retention_pct,raw_pct,corr_pct,label_pos
+Actinomadura rugatobispora (type),A. rugatobispora,type strain,yes,75,75.0,GOOD,100,99,99,below
+Actinomadura macrotermitis RB68 (ASM960437v1),RB68 (termite symbiont),termite symbiont,yes,60,59.5,GOOD,99,58,98,right
+Micromonospora humida (type),M. humida,type strain,yes,60,51.25,GOOD,85,58,94,below
+Micromonospora sp. WMMA1998,Micromonospora sp. (WMMA1998),marine,yes,42,42.0,GOOD,100,31,83,above
+Streptomyces griseoluteus JCM 4765,S. griseoluteus,soil,yes,44,39.25,GOOD,89,34,81,below
+MAR4 marine Streptomyces (GCF_048656465.1),MAR4,marine,yes,41,37.25,GOOD,91,29,80,left
+symbiont (private),symbiont (private),symbiont,no,64,23.5,VERY_POOR,37,60,41,below
+Streptomyces sp. M56 (GCF_002812405.1),M56,soil,yes,51,50.5,GOOD,31,98,99,right
+Streptomyces spectabilis ATCC 27465 (GCA_008704795.1),S. spectabilis (type),type strain,yes,67,67.0,GOOD,22,100,100,below

@@ -1,0 +1,1023 @@
+{
+ "phosphonate": [
+  {
+   "tag": "PHO_fosfomycin",
+   "aliases": [
+    "fosfomycin"
+   ]
+  },
+  {
+   "tag": "PHO_FR900098_fosmidomycin",
+   "aliases": [
+    "fr-900098",
+    "fosmidomycin",
+    "fr900098"
+   ]
+  },
+  {
+   "tag": "PHO_bialaphos_phosphinothricin",
+   "aliases": [
+    "bialaphos",
+    "phosphinothricin",
+    "phosalacine"
+   ]
+  },
+  {
+   "tag": "PHO_fosfazinomycin",
+   "aliases": [
+    "fosfazinomycin"
+   ]
+  },
+  {
+   "tag": "PHO_dehydrophos",
+   "aliases": [
+    "dehydrophos"
+   ]
+  },
+  {
+   "tag": "PHO_phosphonoglycan",
+   "aliases": [
+    "phosphonoglycan"
+   ]
+  },
+  {
+   "tag": "PHO_unknown_PepM",
+   "aliases": [
+    "phosphonate",
+    "phosphonopeptide",
+    "aminoethylphosphonate"
+   ]
+  }
+ ],
+ "enediyne": [
+  {
+   "tag": "ENE_C1027_lidamycin",
+   "aliases": [
+    "c-1027",
+    "lidamycin"
+   ]
+  },
+  {
+   "tag": "ENE_neocarzinostatin",
+   "aliases": [
+    "neocarzinostatin"
+   ]
+  },
+  {
+   "tag": "ENE_kedarcidin",
+   "aliases": [
+    "kedarcidin"
+   ]
+  },
+  {
+   "tag": "ENE_maduropeptin",
+   "aliases": [
+    "maduropeptin"
+   ]
+  },
+  {
+   "tag": "ENE_calicheamicin",
+   "aliases": [
+    "calicheamicin"
+   ]
+  },
+  {
+   "tag": "ENE_dynemicin",
+   "aliases": [
+    "dynemicin"
+   ]
+  },
+  {
+   "tag": "ENE_uncialamycin_tiancimycin",
+   "aliases": [
+    "uncialamycin",
+    "tiancimycin",
+    "yangpumicin"
+   ]
+  },
+  {
+   "tag": "ENE_PKSE_orphan",
+   "aliases": [
+    "enediyne"
+   ]
+  }
+ ],
+ "T1PKS": [
+  {
+   "tag": "PKS1_polyene_amphotericin",
+   "aliases": [
+    "amphotericin"
+   ]
+  },
+  {
+   "tag": "PKS1_polyene_nystatin",
+   "aliases": [
+    "nystatin"
+   ]
+  },
+  {
+   "tag": "PKS1_polyene_candicidin_FR008",
+   "aliases": [
+    "candicidin",
+    "fr-008",
+    "fr008"
+   ]
+  },
+  {
+   "tag": "PKS1_polyene_natamycin",
+   "aliases": [
+    "natamycin",
+    "pimaricin"
+   ]
+  },
+  {
+   "tag": "PKS1_polyene_filipin",
+   "aliases": [
+    "filipin"
+   ]
+  },
+  {
+   "tag": "PKS1_polyene_orphan",
+   "aliases": [
+    "polyene",
+    "heptaene",
+    "tetramycin",
+    "mediomycin",
+    "rimocidin"
+   ]
+  },
+  {
+   "tag": "PKS1_macrolide_erythromycin",
+   "aliases": [
+    "erythromycin",
+    "pikromycin",
+    "methymycin",
+    "narbomycin"
+   ]
+  },
+  {
+   "tag": "PKS1_macrolide_tylosin",
+   "aliases": [
+    "tylosin",
+    "spiramycin",
+    "josamycin",
+    "mycinamicin",
+    "chalcomycin",
+    "niddamycin"
+   ]
+  },
+  {
+   "tag": "PKS1_macrolide_stambomycin",
+   "aliases": [
+    "stambomycin",
+    "hexacosalactone"
+   ]
+  },
+  {
+   "tag": "PKS1_avermectin",
+   "aliases": [
+    "avermectin",
+    "ivermectin"
+   ]
+  },
+  {
+   "tag": "PKS1_milbemycin",
+   "aliases": [
+    "milbemycin",
+    "nemadectin"
+   ]
+  },
+  {
+   "tag": "PKS1_spinosyn",
+   "aliases": [
+    "spinosyn",
+    "spinosad"
+   ]
+  },
+  {
+   "tag": "PKS1_spirotetronate_chlorothricin",
+   "aliases": [
+    "chlorothricin",
+    "tetronasin",
+    "tetronomycin"
+   ]
+  },
+  {
+   "tag": "PKS1_spirotetronate_kijanimicin",
+   "aliases": [
+    "kijanimicin",
+    "tetrocarcin",
+    "lobophorin",
+    "maklamicin",
+    "abyssomicin",
+    "versipelostatin",
+    "quartromicin"
+   ]
+  },
+  {
+   "tag": "PKS1_ansamycin_rifamycin",
+   "aliases": [
+    "rifamycin"
+   ]
+  },
+  {
+   "tag": "PKS1_ansamycin_geldanamycin",
+   "aliases": [
+    "geldanamycin",
+    "herbimycin",
+    "macbecin",
+    "reblastatin"
+   ]
+  },
+  {
+   "tag": "PKS1_ansamycin_ansamitocin",
+   "aliases": [
+    "ansamitocin",
+    "maytansin",
+    "naphthomycin"
+   ]
+  },
+  {
+   "tag": "PKS1_manumycin_asukamycin",
+   "aliases": [
+    "asukamycin",
+    "manumycin"
+   ]
+  },
+  {
+   "tag": "PKS1_orphan",
+   "aliases": [
+    "notonesomycin",
+    "desulfoclethramycin",
+    "clethramycin",
+    "dudomycin",
+    "q6402"
+   ]
+  }
+ ],
+ "transAT-PKS": [
+  {
+   "tag": "transAT_leinamycin",
+   "aliases": [
+    "leinamycin",
+    "guangnanmycin",
+    "weimingmycin"
+   ]
+  },
+  {
+   "tag": "transAT_kirromycin_elfamycin",
+   "aliases": [
+    "kirromycin",
+    "elfamycin",
+    "factumycin"
+   ]
+  },
+  {
+   "tag": "transAT_thailanstatin",
+   "aliases": [
+    "thailanstatin",
+    "fr901464"
+   ]
+  },
+  {
+   "tag": "transAT_orphan",
+   "aliases": [
+    "trans-at",
+    "bacillaene",
+    "difficidin",
+    "macrolactin",
+    "rhizoxin",
+    "oocydin"
+   ]
+  }
+ ],
+ "T2PKS": [
+  {
+   "tag": "T2PKS_tetracycline",
+   "aliases": [
+    "tetracycline",
+    "oxytetracycline",
+    "sf2575",
+    "chelocardin",
+    "dactylocycline"
+   ]
+  },
+  {
+   "tag": "T2PKS_anthracycline",
+   "aliases": [
+    "daunorubicin",
+    "doxorubicin",
+    "aclacinomycin",
+    "nogalamycin",
+    "cosmomycin",
+    "rhodomycin",
+    "steffimycin",
+    "accramycin"
+   ]
+  },
+  {
+   "tag": "T2PKS_angucycline",
+   "aliases": [
+    "landomycin",
+    "urdamycin",
+    "jadomycin",
+    "gilvocarcin",
+    "kinamycin",
+    "prejadomycin",
+    "rabelomycin",
+    "gaudimycin",
+    "aquayamycin",
+    "saquayamycin",
+    "vineomycin",
+    "grincamycin",
+    "lactonamycin",
+    "oviedomycin"
+   ]
+  },
+  {
+   "tag": "T2PKS_aureolic_mithramycin",
+   "aliases": [
+    "mithramycin",
+    "chromomycin",
+    "olivomycin"
+   ]
+  },
+  {
+   "tag": "T2PKS_actinorhodin",
+   "aliases": [
+    "actinorhodin",
+    "medermycin",
+    "granaticin",
+    "kalafungin",
+    "nanaomycin",
+    "frenolicin"
+   ]
+  },
+  {
+   "tag": "T2PKS_pradimicin_benanomicin",
+   "aliases": [
+    "pradimicin",
+    "benanomicin"
+   ]
+  },
+  {
+   "tag": "T2PKS_fredericamycin_resistomycin",
+   "aliases": [
+    "fredericamycin",
+    "resistomycin",
+    "griseorhodin",
+    "rubromycin",
+    "lomaiviticin"
+   ]
+  },
+  {
+   "tag": "T2PKS_sporepigment",
+   "aliases": [
+    "spore pigment"
+   ]
+  },
+  {
+   "tag": "T2PKS_orphan",
+   "aliases": [
+    "t2pks",
+    "colibrimycin",
+    "14-hydroxyisochainin",
+    "tetrachlorizine"
+   ]
+  }
+ ],
+ "NRPS": [
+  {
+   "tag": "NRPS_glycopeptide",
+   "aliases": [
+    "vancomycin",
+    "teicoplanin",
+    "balhimycin",
+    "chloroeremomycin",
+    "ristocetin",
+    "complestatin",
+    "a40926",
+    "a47934",
+    "kistamicin"
+   ]
+  },
+  {
+   "tag": "NRPS_lipopeptide_CDA",
+   "aliases": [
+    "daptomycin",
+    "calcium-dependent antibiotic",
+    "a54145",
+    "friulimicin",
+    "amphomycin",
+    "laspartomycin",
+    "taromycin",
+    "malacidin"
+   ]
+  },
+  {
+   "tag": "NRPS_lipopeptide_enduracidin",
+   "aliases": [
+    "enduracidin",
+    "ramoplanin",
+    "enramycin"
+   ]
+  },
+  {
+   "tag": "NRPS_siderophore_catecholate",
+   "aliases": [
+    "enterobactin",
+    "bacillibactin",
+    "griseobactin",
+    "coelichelin",
+    "amychelin",
+    "erythrochelin"
+   ]
+  },
+  {
+   "tag": "NRPS_siderophore_mycobactin",
+   "aliases": [
+    "mycobactin",
+    "nocobactin",
+    "exochelin",
+    "scabichelin",
+    "heterobactin"
+   ]
+  },
+  {
+   "tag": "NRPS_aminocoumarin",
+   "aliases": [
+    "novobiocin",
+    "clorobiocin",
+    "coumermycin",
+    "simocyclinone"
+   ]
+  },
+  {
+   "tag": "NRPS_beta_lactam",
+   "aliases": [
+    "cephamycin",
+    "cephalosporin",
+    "clavulanic",
+    "carbapenem",
+    "nocardicin",
+    "thienamycin"
+   ]
+  },
+  {
+   "tag": "NRPS_depsipeptide",
+   "aliases": [
+    "actinomycin",
+    "echinomycin",
+    "triostin",
+    "thiocoraline",
+    "valinomycin",
+    "kutzneride",
+    "himastatin",
+    "skyllamycin",
+    "telomycin",
+    "stenothricin",
+    "rhizomide",
+    "clipibycyclene",
+    "omnipeptin"
+   ]
+  },
+  {
+   "tag": "NRPS_bleomycin",
+   "aliases": [
+    "bleomycin",
+    "phleomycin",
+    "tallysomycin",
+    "zorbamycin"
+   ]
+  },
+  {
+   "tag": "NRPS_lincosamide",
+   "aliases": [
+    "lincomycin",
+    "celesticetin"
+   ]
+  },
+  {
+   "tag": "NRPS_orphan",
+   "aliases": [
+    "nrps"
+   ]
+  }
+ ],
+ "RiPP": [
+  {
+   "tag": "RIPP_lanthipeptide",
+   "aliases": [
+    "nisin",
+    "actagardine",
+    "planosporicin",
+    "microbisporicin",
+    "cinnamycin",
+    "duramycin",
+    "mersacidin",
+    "labyrinthopeptin",
+    "cacaoidin",
+    "informatipeptin",
+    "lanthipeptide",
+    "lipolanthine"
+   ]
+  },
+  {
+   "tag": "RIPP_lasso",
+   "aliases": [
+    "lariatin",
+    "lassomycin",
+    "microcin j25",
+    "capistruin",
+    "siamycin",
+    "chaxapeptin",
+    "streptomonomicin",
+    "sungsanpin",
+    "sviceucin",
+    "aborycin",
+    "lasso"
+   ]
+  },
+  {
+   "tag": "RIPP_thiopeptide",
+   "aliases": [
+    "thiostrepton",
+    "nosiheptide",
+    "ge2270",
+    "thiomuracin",
+    "micrococcin",
+    "siomycin",
+    "thiocillin",
+    "thiopeptide"
+   ]
+  },
+  {
+   "tag": "RIPP_thioamitide",
+   "aliases": [
+    "thioviridamide",
+    "thioholgamide",
+    "saalfelduracin",
+    "thiostreptamide",
+    "thioamitide"
+   ]
+  },
+  {
+   "tag": "RIPP_bottromycin",
+   "aliases": [
+    "bottromycin"
+   ]
+  },
+  {
+   "tag": "RIPP_linaridin",
+   "aliases": [
+    "cypemycin",
+    "grisemycin",
+    "legonaridin",
+    "linaridin"
+   ]
+  },
+  {
+   "tag": "RIPP_lap_tomm",
+   "aliases": [
+    "goadsporin",
+    "plantazolicin",
+    "azol"
+   ]
+  },
+  {
+   "tag": "RIPP_orphan",
+   "aliases": [
+    "ripp",
+    "rre"
+   ]
+  }
+ ],
+ "saccharide": [
+  {
+   "tag": "SAC_aminoglycoside_2DOS",
+   "aliases": [
+    "kanamycin",
+    "neomycin",
+    "ribostamycin",
+    "paromomycin",
+    "tobramycin",
+    "butirosin",
+    "lividomycin",
+    "2-deoxystreptamine"
+   ]
+  },
+  {
+   "tag": "SAC_streptomycin",
+   "aliases": [
+    "streptomycin",
+    "bluensomycin"
+   ]
+  },
+  {
+   "tag": "SAC_gentamicin",
+   "aliases": [
+    "gentamicin",
+    "sisomicin",
+    "fortimicin",
+    "istamycin"
+   ]
+  },
+  {
+   "tag": "SAC_apramycin_hygromycin",
+   "aliases": [
+    "apramycin",
+    "hygromycin",
+    "kasugamycin",
+    "spectinomycin"
+   ]
+  },
+  {
+   "tag": "SAC_validamycin_acarbose",
+   "aliases": [
+    "acarbose",
+    "acarviostatin",
+    "validamycin",
+    "validoxylamine",
+    "salbostatin",
+    "trehazolin"
+   ]
+  },
+  {
+   "tag": "SAC_orthosomycin",
+   "aliases": [
+    "avilamycin",
+    "everninomicin",
+    "evernimicin",
+    "flambamycin",
+    "orthosomycin"
+   ]
+  },
+  {
+   "tag": "SAC_moenomycin",
+   "aliases": [
+    "moenomycin",
+    "bambermycin",
+    "flavomycin"
+   ]
+  },
+  {
+   "tag": "SAC_tunicamycin",
+   "aliases": [
+    "tunicamycin"
+   ]
+  },
+  {
+   "tag": "SAC_liponucleoside",
+   "aliases": [
+    "caprazamycin",
+    "liposidomycin",
+    "muraymycin",
+    "a-503083",
+    "capuramycin",
+    "a-90289"
+   ]
+  },
+  {
+   "tag": "SAC_glycopeptidolipid",
+   "aliases": [
+    "glycopeptidolipid"
+   ]
+  },
+  {
+   "tag": "SAC_orphan",
+   "aliases": [
+    "saccharide",
+    "oligosaccharide"
+   ]
+  }
+ ],
+ "nucleoside": [
+  {
+   "tag": "NUC_nikkomycin_polyoxin",
+   "aliases": [
+    "nikkomycin",
+    "polyoxin"
+   ]
+  },
+  {
+   "tag": "NUC_blasticidin_gougerotin",
+   "aliases": [
+    "blasticidin",
+    "gougerotin",
+    "mildiomycin"
+   ]
+  },
+  {
+   "tag": "NUC_puromycin",
+   "aliases": [
+    "puromycin",
+    "a201a"
+   ]
+  },
+  {
+   "tag": "NUC_toyocamycin_tubercidin",
+   "aliases": [
+    "toyocamycin",
+    "tubercidin",
+    "sangivamycin"
+   ]
+  },
+  {
+   "tag": "NUC_peptidyl_nucleoside",
+   "aliases": [
+    "pacidamycin",
+    "sansanmycin",
+    "mureidomycin",
+    "napsamycin"
+   ]
+  },
+  {
+   "tag": "NUC_orphan",
+   "aliases": [
+    "nucleoside"
+   ]
+  }
+ ],
+ "terpene": [
+  {
+   "tag": "TERP_geosmin",
+   "aliases": [
+    "geosmin"
+   ]
+  },
+  {
+   "tag": "TERP_MIB",
+   "aliases": [
+    "methylisoborneol",
+    "2-mib"
+   ]
+  },
+  {
+   "tag": "TERP_albaflavenone",
+   "aliases": [
+    "albaflavenone"
+   ]
+  },
+  {
+   "tag": "TERP_pentalenolactone",
+   "aliases": [
+    "pentalenolactone",
+    "pentalenene"
+   ]
+  },
+  {
+   "tag": "TERP_carotenoid",
+   "aliases": [
+    "carotenoid",
+    "isorenieratene",
+    "carotene"
+   ]
+  },
+  {
+   "tag": "TERP_hopanoid",
+   "aliases": [
+    "hopene",
+    "hopanoid",
+    "tetrahymanol"
+   ]
+  },
+  {
+   "tag": "TERP_meroterpenoid",
+   "aliases": [
+    "napyradiomycin",
+    "naphterpin",
+    "merochlorin",
+    "furaquinocin",
+    "phenalinolactone",
+    "brasilicardin"
+   ]
+  },
+  {
+   "tag": "TERP_orphan",
+   "aliases": [
+    "terpene"
+   ]
+  }
+ ],
+ "indole_alkaloid": [
+  {
+   "tag": "IND_staurosporine",
+   "aliases": [
+    "staurosporine",
+    "k-252",
+    "k252"
+   ]
+  },
+  {
+   "tag": "IND_rebeccamycin",
+   "aliases": [
+    "rebeccamycin",
+    "tjipanazole"
+   ]
+  },
+  {
+   "tag": "IND_prodiginine",
+   "aliases": [
+    "prodigiosin",
+    "prodiginine",
+    "undecylprodigiosin",
+    "streptorubin"
+   ]
+  },
+  {
+   "tag": "IND_phenazine",
+   "aliases": [
+    "phenazine",
+    "endophenazine",
+    "lomofungin"
+   ]
+  },
+  {
+   "tag": "IND_pyrrolomycin",
+   "aliases": [
+    "pyrrolomycin",
+    "marinopyrrole",
+    "chlorizidine"
+   ]
+  },
+  {
+   "tag": "IND_orphan",
+   "aliases": [
+    "indole",
+    "indolocarbazole"
+   ]
+  }
+ ],
+ "siderophore": [
+  {
+   "tag": "SID_NIS_desferrioxamine",
+   "aliases": [
+    "desferrioxamine",
+    "nocardamine",
+    "ferrioxamine",
+    "deferoxamine"
+   ]
+  },
+  {
+   "tag": "SID_NIS_other",
+   "aliases": [
+    "aerobactin",
+    "rhizobactin",
+    "schizokinen",
+    "staphyloferrin",
+    "achromobactin",
+    "petrobactin"
+   ]
+  },
+  {
+   "tag": "SID_orphan",
+   "aliases": [
+    "siderophore",
+    "metallophore"
+   ]
+  }
+ ],
+ "betalactone": [
+  {
+   "tag": "BLACTONE_lipstatin",
+   "aliases": [
+    "lipstatin",
+    "tetrahydrolipstatin"
+   ]
+  },
+  {
+   "tag": "BLACTONE_ebelactone",
+   "aliases": [
+    "ebelactone"
+   ]
+  },
+  {
+   "tag": "BLACTONE_salinosporamide",
+   "aliases": [
+    "salinosporamide",
+    "cinnabaramide"
+   ]
+  },
+  {
+   "tag": "BLACTONE_orphan",
+   "aliases": [
+    "betalactone",
+    "beta-lactone",
+    "obafluorin"
+   ]
+  }
+ ],
+ "azoxy_NN": [
+  {
+   "tag": "NNO_valanimycin",
+   "aliases": [
+    "valanimycin"
+   ]
+  },
+  {
+   "tag": "NNO_elaiomycin",
+   "aliases": [
+    "elaiomycin"
+   ]
+  },
+  {
+   "tag": "NNO_azoxy",
+   "aliases": [
+    "azoxy",
+    "trioxacarcin",
+    "jietacin"
+   ]
+  },
+  {
+   "tag": "NNO_orphan",
+   "aliases": [
+    "n-n bond",
+    "hydrazide"
+   ]
+  }
+ ],
+ "CDPS": [
+  {
+   "tag": "CDPS_albonoursin",
+   "aliases": [
+    "albonoursin"
+   ]
+  },
+  {
+   "tag": "CDPS_pulcherrimin",
+   "aliases": [
+    "pulcherrimin"
+   ]
+  },
+  {
+   "tag": "CDPS_orphan",
+   "aliases": [
+    "cdps",
+    "diketopiperazine",
+    "cyclodipeptide"
+   ]
+  }
+ ],
+ "other": [
+  {
+   "tag": "OTHER_ectoine",
+   "aliases": [
+    "ectoine"
+   ]
+  },
+  {
+   "tag": "OTHER_melanin",
+   "aliases": [
+    "melanin"
+   ]
+  },
+  {
+   "tag": "OTHER_GBL_butyrolactone",
+   "aliases": [
+    "butyrolactone",
+    "a-factor"
+   ]
+  },
+  {
+   "tag": "OTHER_benzoquinone",
+   "aliases": [
+    "benzoquinone",
+    "menaquinone"
+   ]
+  },
+  {
+   "tag": "OTHER_epsilon_polylysine",
+   "aliases": [
+    "poly-l-lysine",
+    "napaa",
+    "polylysine"
+   ]
+  },
+  {
+   "tag": "OTHER_hydrogen_cyanide",
+   "aliases": [
+    "hydrogen-cyanide",
+    "cyanide"
+   ]
+  },
+  {
+   "tag": "OTHER_hglE_flag",
+   "aliases": [
+    "hgle",
+    "hgld",
+    "heterocyst glycolipid"
+   ]
+  },
+  {
+   "tag": "OTHER_cycloheximide",
+   "aliases": [
+    "cycloheximide",
+    "actiphenol"
+   ]
+  },
+  {
+   "tag": "OTHER_unknown",
+   "aliases": []
+  }
+ ]
+}

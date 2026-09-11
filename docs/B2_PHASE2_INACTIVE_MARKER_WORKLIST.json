@@ -1,0 +1,200 @@
+[
+  {
+    "id": "SMK-RIPP-001",
+    "name": "RiPP maturation enzyme plus credible precursor",
+    "library": "sapote_marker_addenda",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMK-RES-001",
+    "name": "Duplicated target/resistance gene near BGC",
+    "library": "sapote_marker_addenda",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_2_CLASS_SUPPORTING"
+  },
+  {
+    "id": "SMC-001",
+    "name": "Peptidyl-nucleoside antifungal cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-002",
+    "name": "Phosphonate/self-protection cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-003",
+    "name": "Enediyne safety cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-004",
+    "name": "Aminocyclitol/aminoglycoside cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-005",
+    "name": "RiPP production-capacity cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-006",
+    "name": "Flavin-halogenation cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_2_CLASS_SUPPORTING"
+  },
+  {
+    "id": "SMC-007",
+    "name": "XDA/SN2 organohalogen cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-008",
+    "name": "N-N bond/diazo cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-009",
+    "name": "Tetronate/spirotetronate cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-010",
+    "name": "Nitrile-installation cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-011",
+    "name": "Oxidative biaryl/dimerization cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_3_CONTEXT_TAILORING"
+  },
+  {
+    "id": "SMC-012",
+    "name": "Lasso peptide constellation cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-013",
+    "name": "Thioamitide/thioamide cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_1_DIAGNOSTIC"
+  },
+  {
+    "id": "SMC-014",
+    "name": "Lanthipeptide maturation cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_2_CLASS_SUPPORTING"
+  },
+  {
+    "id": "SMC-015",
+    "name": "Cluster-situated regulator cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_2_CLASS_SUPPORTING"
+  },
+  {
+    "id": "SMC-016",
+    "name": "Self-protection concordance cassette",
+    "library": "sapote_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_2_CLASS_SUPPORTING"
+  },
+  {
+    "id": "SMC-017",
+    "name": "Watchlist aryl-C-glycoside cassette",
+    "library": "sapote_watchlist_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_3_CONTEXT_TAILORING"
+  },
+  {
+    "id": "SMC-018",
+    "name": "Watchlist corallorazine cassette",
+    "library": "sapote_watchlist_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_3_CONTEXT_TAILORING"
+  },
+  {
+    "id": "SMC-019",
+    "name": "Watchlist azinomycin/genotoxin cassette",
+    "library": "sapote_watchlist_cassette",
+    "target_types": [
+      "manual"
+    ],
+    "evidence_tier": "TIER_3_CONTEXT_TAILORING"
+  },
+  {
+    "id": "MMK-CCTT-015",
+    "name": "T43-TOMM thiopeptide TOMM trigger",
+    "library": "mamey_cctt",
+    "target_types": [
+      "hmm"
+    ],
+    "evidence_tier": "TIER_2_CLASS_SUPPORTING"
+  }
+]

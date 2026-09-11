@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sapote-mamey.invalid/schema/project_registry_v1.json",
+  "title": "Sapote-Mamey project registry",
+  "type": "object",
+  "required": ["schema_version", "privacy_tiers", "strains"],
+  "properties": {
+    "schema_version": {"const": "sapote_project_registry_v1"},
+    "public_export_tier": {"type": "string"},
+    "privacy_tiers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["tier_id", "audience_rank"],
+        "properties": {
+          "tier_id": {"type": "string", "minLength": 1},
+          "audience_rank": {"type": "integer", "minimum": 0},
+          "description": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "strains": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["strain_id", "privacy_tier"],
+        "properties": {
+          "strain_id": {"type": "string", "minLength": 1},
+          "privacy_tier": {"type": "string", "minLength": 1},
+          "display_label": {"type": "string"},
+          "publication_status": {
+            "enum": ["NOT_PROVIDED", "UNPUBLISHED", "IN_PREPARATION", "SUBMITTED", "IN_PRESS", "PUBLISHED"]
+          },
+          "genome_state": {
+            "enum": ["NOT_PROVIDED", "AVAILABLE_NOT_ANALYZED", "ANALYZED", "UNBOUND"]
+          },
+          "genome_locator": {"type": "string"},
+          "metadata": {"type": "object"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "assays": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assay_id", "strain_id", "privacy_tier", "material_level", "result_state"],
+        "properties": {
+          "assay_id": {"type": "string", "minLength": 1},
+          "strain_id": {"type": "string", "minLength": 1},
+          "privacy_tier": {"type": "string", "minLength": 1},
+          "material_level": {"enum": ["CRUDE_EXTRACT", "FLASH_FRACTION", "HPLC_FRACTION", "PURIFIED_COMPOUND", "OTHER"]},
+          "result_state": {"enum": ["NOT_TESTED", "TESTED_NO_ACTIVITY_AT_RECORDED_CONDITIONS", "OBSERVED_ACTIVITY_AT_RECORDED_CONDITIONS", "INDETERMINATE", "NOT_RETURNED", "UNBOUND"]},
+          "material_id": {"type": "string"},
+          "parent_material_id": {"type": "string"},
+          "fractionation_method": {"type": "string"},
+          "target_ids": {"type": "array", "items": {"type": "string"}},
+          "endpoint": {"type": "string"},
+          "units": {"type": "string"},
+          "concentration_or_dose": {"type": "string"},
+          "replicate_count": {"type": "integer", "minimum": 0},
+          "recorded_result": {"type": "string"},
+          "conditions": {"type": "string"},
+          "protocol_locator": {"type": "string"},
+          "source_locator": {"type": "string"},
+          "source_sha256": {"type": "string"},
+          "publication_status": {"enum": ["NOT_PROVIDED", "UNPUBLISHED", "IN_PREPARATION", "SUBMITTED", "IN_PRESS", "PUBLISHED"]}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

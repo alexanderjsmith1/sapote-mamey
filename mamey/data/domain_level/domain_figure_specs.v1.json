@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "schema_version": "domain_figure_specs/1.0",
+    "description": "Style/parameter settings for domain-level figures (v9.7.89), kept out of code. Colors are role-category -> hex. dpi/figsize are render hints. All figures are data-only PNGs with a companion data CSV per the deliverable standard."
+  },
+  "global": {
+    "dpi": 150,
+    "font_size_base": 8,
+    "node_first_labels": true,
+    "max_strip_domains": 40,
+    "collapse_repeated_accessory": true
+  },
+  "role_palette": {
+    "NRPS A-domain / loading": "#1f77b4",
+    "NRPS condensation": "#2c8fce",
+    "Carrier protein / PP-binding": "#7fb8e0",
+    "ACP / acyl carrier": "#9ecae1",
+    "PKS ketosynthase": "#d62728",
+    "PKS acyltransferase/loading": "#e8623a",
+    "PKS reductive loop": "#f0945f",
+    "PKS cyclase/aromatase": "#f7b787",
+    "Lanthipeptide maturation": "#9467bd",
+    "Lasso/RiPP maturation": "#a87fc9",
+    "Azole/crocagin/RiPP tailoring": "#8338a0",
+    "Sugar/glycosyl tailoring": "#2ca02c",
+    "Redox tailoring": "#52b152",
+    "Methylation/alkylation": "#79c279",
+    "Amino/amide tailoring": "#a0d3a0",
+    "Release/editing hydrolase": "#bcbd22",
+    "Siderophore uptake/export": "#ff7f0e",
+    "Transport/export/uptake": "#ffab51",
+    "Regulatory/sensor": "#7f7f7f",
+    "Resistance/self-protection": "#c49c94",
+    "Unknown/repeat/accessory": "#cccccc",
+    "Other accessory/domain": "#e0e0e0"
+  },
+  "figure_a_heatmap": {
+    "title": "Domain-role burden across top BGCs",
+    "cmap": "YlOrRd",
+    "annotate_cells": true,
+    "min_figsize": [9.0, 5.0]
+  },
+  "figure_b_core_burden": {
+    "title": "Core biosynthetic vs accessory domain burden",
+    "core_color": "#d62728",
+    "accessory_color": "#cccccc",
+    "min_figsize": [8.4, 4.5]
+  },
+  "figure_c_domain_strip": {
+    "title_template": "{strain} {bgc} domain architecture",
+    "arrow_height": 0.6,
+    "min_figsize": [10.0, 2.6]
+  }
+}

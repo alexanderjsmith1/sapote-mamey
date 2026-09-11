@@ -1,0 +1,72 @@
+{
+  "schema_version": "mamey_determinism_inventory_v1",
+  "package_runs": [
+    {
+      "id": "example_smoke",
+      "input": "examples/test_data/smoke_antismash_small.zip",
+      "input_sha256": "d596c88d5c1a526a020997d7c7ab8e7a99f2e7e4d7fa42ee41c1333d04325532",
+      "strain": "DET_EXAMPLE_SMOKE",
+      "mode": "gold",
+      "flags": ["--brief", "none", "--json-evidence", "off", "--locus-maps", "off", "--require-workbook"]
+    },
+    {
+      "id": "domain_level_minimal",
+      "input": "tests/fixtures/domain_level_minimal_antismash.zip",
+      "input_sha256": "e8032a7480d1690393674cee2f21a19501807698ff3f89d2213bfb8cbbf4c5f2",
+      "strain": "DET_DOMAIN_LEVEL_MINIMAL",
+      "mode": "gold",
+      "flags": ["--brief", "none", "--json-evidence", "off", "--locus-maps", "off", "--require-workbook"]
+    },
+    {
+      "id": "micromonospora_humida",
+      "input": "tests/fixtures/micromonospora_humida_JAFEUC01.zip",
+      "input_sha256": "fd70236a1550d2a18c4fcde9ab69b9ed56bb68d23a51c56aba678c913a210949",
+      "strain": "DET_MICROMONOSPORA_HUMIDA",
+      "mode": "gold",
+      "flags": ["--brief", "none", "--json-evidence", "off", "--locus-maps", "off", "--require-workbook"]
+    },
+    {
+      "id": "synthetic_single_contig",
+      "fixture_preparation": "single_contig_full_locus_runtime_v1",
+      "input": "tests/fixtures/synthetic_single_contig_antismash.zip",
+      "input_sha256": "bd6422d403d0b019c14f0d8c13dbfe2898b7e5afb0a4d43bf58fb083fdc9fde8",
+      "strain": "DET_SYNTHETIC_SINGLE_CONTIG",
+      "mode": "gold",
+      "flags": ["--brief", "none", "--json-evidence", "off", "--locus-maps", "off", "--require-workbook"]
+    }
+  ],
+  "probes": [
+    {
+      "id": "synthetic_tigrfam_parser",
+      "input": "tests/fixtures/synthetic_tigrfam_antismash.zip",
+      "input_sha256": "5b916d12bb7548e5ce3d61ebe51fb4a8975efedcf58087a8338265e989cc2bc3",
+      "kind": "pytest",
+      "expected_exit_code": 0,
+      "command": ["-m", "pytest", "tests/test_tigrfam_extraction.py", "-q", "--no-header", "--no-summary"]
+    },
+    {
+      "id": "example_master_schema",
+      "input": "examples/test_data/test_master.xlsx",
+      "input_sha256": "833fdd68c1a6a09828623552abb00b19a058b99e85782a7519bf5f967bcbe812",
+      "kind": "command",
+      "expected_exit_code": 1,
+      "expected_outcome": "EXPECTED_SCHEMA_REFUSAL",
+      "command": ["mamey/workbook_schema_check.py", "examples/test_data/test_master.xlsx"]
+    },
+    {
+      "id": "reference_library_calibration",
+      "input": "mamey/data/reference_bgc_library.json",
+      "input_sha256": "d4e11a70cf057bf1db83bdae0fb784b9e00857f54358365515934d07d43c1543",
+      "kind": "calibration",
+      "expected_exit_code": 0,
+      "command": ["tools/calibration_run.py"]
+    }
+  ],
+  "legitimate_volatile_fields": {
+    "*_judgment_register.json": ["mamey_init_timestamp"],
+    "*_timing_breakdown.csv": ["elapsed_seconds"],
+    "*_timing_breakdown.json": ["start_utc", "end_utc", "start_monotonic_ns", "end_monotonic_ns", "elapsed_seconds", "cpu_user_seconds", "cpu_system_seconds", "peak_rss_kb"],
+    "*_timing_breakdown.md": ["start timestamp", "elapsed durations", "CPU and peak RSS measurements"],
+    "run_phase_receipts.jsonl": ["time", "mono_ns", "pid", "zip_package END compressed bytes"]
+  }
+}

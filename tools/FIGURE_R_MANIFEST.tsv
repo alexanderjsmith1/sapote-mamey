@@ -1,0 +1,33 @@
+figure_id	geometry	schema	cmap	cbar_label	source	notes
+D01_bubble_productclass_size_length	bubble	WIDE_MATRIX	plasma		mamey/cohort_figures.py:1341	
+D02_bubble_rare_triggers	bubble	WIDE_MATRIX	rocket_r|magma_r		mamey/cohort_figures.py:1356	
+D08_bubble_tailoring	bubble	WIDE_MATRIX	rocket_r|magma_r		mamey/cohort_figures.py:1479	
+D09_bubble_regulators	bubble	WIDE_MATRIX	mako_r|viridis		mamey/cohort_figures.py:1488	
+F01_census_zscore_heatmap		WIDE_MATRIX				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+F02_megasynthase_heatmap	heatmap	WIDE_MATRIX		domain count	mamey/cohort_figures.py:867	
+F03_product_class_heatmap	heatmap	WIDE_MATRIX		BGC count	mamey/cohort_figures.py:906	
+F04_tailoring_enzyme_heatmap	heatmap	WIDE_MATRIX	rocket_r|magma_r	domain count	mamey/cohort_figures.py:917	
+F05_cctt_trigger_heatmap	heatmap	WIDE_MATRIX		BGCs w/ trigger	mamey/cohort_figures.py:929	
+F06_resistance_tier_heatmap	heatmap	WIDE_MATRIX		BGCs	mamey/cohort_figures.py:941	
+F07_adomain_substrate_heatmap		WIDE_MATRIX				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+F08_AT_extender_heatmap		WIDE_MATRIX				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+F09_transporter_family_heatmap	heatmap	WIDE_MATRIX	mako_r|viridis	domain count	mamey/cohort_figures.py:961	
+F10_regulator_TF_heatmap	heatmap	WIDE_MATRIX	magma_r	retained occurrences	mamey/cohort_figures.py:968	
+F11_active_site_completeness		TIDY				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+F12_bgc_pca_by_cluster		TIDY				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+F13_strain_ordination_2d		TIDY				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+G01_rare_chemistry_triggers	heatmap	WIDE_MATRIX	rocket_r|magma_r	BGCs w/ trigger	mamey/cohort_figures.py:1616	
+G02_rare_product_classes	heatmap	WIDE_MATRIX	viridis	BGC count	mamey/cohort_figures.py:1630	
+G03_kcb_similarity_strength	heatmap	WIDE_MATRIX	cividis	BGC count	mamey/cohort_figures.py:1660	
+G04_bgc_boundary_status	heatmap	WIDE_MATRIX	magma_r	BGC count	mamey/cohort_figures.py:1672	
+G05_bgc_size_distribution		WIDE_MATRIX				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+G06_domain_richness		WIDE_MATRIX				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+G07_tta_bldA_dependency		WIDE_MATRIX				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+G08_megasynthase_modularity		WIDE_MATRIX				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+G09_strain_similarity_matrix		WIDE_MATRIX				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+G10_product_class_cooccurrence		WIDE_MATRIX				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+G11_ripp_subclass_detail	heatmap	WIDE_MATRIX	viridis	BGC count	mamey/cohort_figures.py:1805	
+G12_productclass_x_resistance		WIDE_MATRIX				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only
+G13_redox_tailoring	heatmap	WIDE_MATRIX	mako_r|viridis	domain count	mamey/cohort_figures.py:1861	
+G14_distinctive_tailoring	heatmap	WIDE_MATRIX	rocket_r|magma_r	domain count	mamey/cohort_figures.py:1872	
+G15_rare_bgc_roster		TIDY				no renderer call found in source (loop-driven id, or drawn by another module); geometry inferred from the sidecar schema only

@@ -1,0 +1,1 @@
+<!-- PURGEABLE for public release. Full open-access PubMed abstract CORPUS (JSONL, one record per unique PMID with the full abstract text). literature_corpus.jsonl is the archive; the per-genus/_families .md files are the curated card-facing index into it. Rebuild the FTS SQLite with pubmed_ingest.py. Class-level literature context; similarity not identity; judgment deferred. -->

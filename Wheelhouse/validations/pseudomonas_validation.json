@@ -1,0 +1,27 @@
+{
+ "strain": "Pseudomonas sp. ICBG1301",
+ "accession": "GCA_016918385.1",
+ "genus": "Pseudomonas (Gram-negative)",
+ "blind_scanner_hits": {
+  "EC01_siderophore": [
+   "r001",
+   "r003",
+   "r009"
+  ],
+  "MD01_betalactone": [
+   "r010"
+  ],
+  "WH02": [
+   "r002"
+  ]
+ },
+ "kcb_anchors": [
+  "orfamide",
+  "viscosin",
+  "pyoverdine"
+ ],
+ "validated": {
+  "pyoverdine": "EC01 siderophore blind hit \u2014 consistent"
+ },
+ "scope_note": "actinomycete-trained scanners; Pseudomonas lipopeptides (orfamide/viscosin) need a new lipopeptide scanner"
+}

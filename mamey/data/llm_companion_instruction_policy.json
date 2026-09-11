@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "authority": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
+  "active_documents": {
+    "docs/LLM_COMPANION_TOOL_PROTOCOL.md": [
+      "resume before rediscovering",
+      "GToTree requires user approval",
+      "At most four one-core tree jobs",
+      "exact completed run ID"
+    ],
+    "docs/BIGSCAPE_GCF_WORKFLOW.md": [
+      "content-addressed",
+      "cohort-only",
+      "never use `max(run.id)`",
+      "Only a user-approved, source-preserving reconciliation"
+    ],
+    "docs/phylogenomics.md": [
+      "at most three related reference genomes",
+      "Surface 60 as the default",
+      "maximum, with the actual user-selected count",
+      "-j 1 -n 1 -M 1",
+      "-T 1",
+      "Do not start GToTree"
+    ],
+    "docs/SOPs/SOP-17_CrossStrain_GCF_Cohort.md": [
+      "Default one core",
+      "cohort-only mode",
+      "Portable join key"
+    ],
+    "docs/companion_tools.md": [
+      "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
+      "https://anaconda.org/bioconda/gtotree",
+      "GToTree -j 1 -n 1 -M 1 -N"
+    ]
+  },
+  "routing_documents": {
+    "AGENTS.md": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
+    "docs/BUNDLE_CAPABILITIES.md": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
+    "docs/START_HERE.md": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
+    "docs/TRIGGER_ROUTING.md": "PHYLOGENOMICS_DETECTED",
+    "docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md": "Companion-tool handoff override",
+    "skills/sapote-mamey/SKILL.md": "Run/resume BiG-SCAPE safely",
+    "CLAUDE.md": "docs/LLM_COMPANION_TOOL_PROTOCOL.md"
+  },
+  "historical_documents": {
+    "docs/AS_batch1_BiGSCAPE_run_guide.md": "HISTORICAL COHORT RECEIPT",
+    "docs/BIGSCAPE_MAMEY_INTEGRATION.md": "LEGACY IMPLEMENTATION NOTE"
+  },
+  "forbidden_active_fragments": {
+    "docs/BIGSCAPE_GCF_WORKFLOW.md": [
+      "setsid bash -c",
+      "python <BIGSCAPE>/bigscape.py",
+      "--mibig --cutoffs",
+      "--ingest-package"
+    ],
+    "docs/phylogenomics.md": [
+      "-j 4 -n 4",
+      "-B best-hit mode is mandatory",
+      "out/Aligned_SCGs.faa"
+    ],
+    "docs/companion_tools.md": [
+      "python -m big_scape cluster",
+      "--mibig --cutoffs"
+    ],
+    "docs/SOPs/SOP-17_CrossStrain_GCF_Cohort.md": [
+      "pass `--ingest-package`",
+      "cards / triage board of the ingest target"
+    ]
+  }
+}

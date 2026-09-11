@@ -1,0 +1,91 @@
+{
+ "_schema": "claims_vocab/v1",
+ "_note": "Canonical enum for cross-model dual-pass ledger reconciliation. Per assertion_type: an ordered list of [substring, canonical] rules applied to a lowercased ledger value (first match wins), a 'default' action for no-match, and the closed 'enum' of allowed canonical outputs. Externalized from reference_impl/dualpass_normalize_vocab.py so vocabulary curation is data, not code. Normalization is lexical only; it moves no tier and makes no claim.",
+ "_provenance": "reference_impl/dualpass_normalize_vocab.py (WHOLE_COHORT_ANALYSIS_2026-07-29). Proven: macrolide pks_category 430/430 agree; RiPP 0->367 agree after enum.",
+ "assertion_types": {
+  "ripp_subclass": {
+   "rules": [
+    ["lasso", "lasso"],
+    ["guanidinotide", "guanidinotide"],
+    ["guanidino", "guanidinotide"],
+    ["thioamitide", "thioamitide"],
+    ["thioamide", "thioamitide"],
+    ["atropopeptide", "atropopeptide"],
+    ["crocagin", "crocagin"],
+    ["linaridin", "linaridin"],
+    ["sactipeptide", "sactipeptide_ranthipeptide"],
+    ["ranthipeptide", "sactipeptide_ranthipeptide"],
+    ["thiopeptide", "thiopeptide_azole"],
+    ["class-v", "lanthipeptide_v"],
+    ["class v", "lanthipeptide_v"],
+    ["classv", "lanthipeptide_v"],
+    ["class-iv", "lanthipeptide_iv"],
+    ["class iv", "lanthipeptide_iv"],
+    ["classiv", "lanthipeptide_iv"],
+    ["class-iii", "lanthipeptide_iii"],
+    ["class iii", "lanthipeptide_iii"],
+    ["classiii", "lanthipeptide_iii"],
+    ["class-ii", "lanthipeptide_ii"],
+    ["class ii", "lanthipeptide_ii"],
+    ["classii", "lanthipeptide_ii"],
+    ["class-i", "lanthipeptide_i"],
+    ["class i", "lanthipeptide_i"],
+    ["classi", "lanthipeptide_i"],
+    ["lanthipeptide", "lanthipeptide_unspec"],
+    ["redox", "redox_cofactor"],
+    ["pqq", "redox_cofactor"],
+    ["mycofactocin", "redox_cofactor"],
+    ["duf692", "redox_cofactor"],
+    ["rre", "rre_containing"],
+    ["ripp-like", "ripp_like_generic"],
+    ["ripp_like", "ripp_like_generic"],
+    ["generic", "ripp_like_generic"]
+   ],
+   "default": "slugify",
+   "enum": ["lasso", "guanidinotide", "thioamitide", "atropopeptide", "crocagin", "linaridin", "sactipeptide_ranthipeptide", "thiopeptide_azole", "lanthipeptide_i", "lanthipeptide_ii", "lanthipeptide_iii", "lanthipeptide_iv", "lanthipeptide_v", "lanthipeptide_unspec", "redox_cofactor", "rre_containing", "ripp_like_generic"],
+   "_note_special": "The reference impl also folds 'azol'+'ripp' and 'lap' into thiopeptide_azole; the module keeps that compound test in code (it is not a single substring)."
+  },
+  "genuine_vs_housekeeping": {
+   "rules": [
+    ["housekeep", "housekeeping"],
+    ["cofactor", "housekeeping"],
+    ["miscall", "housekeeping"],
+    ["structural", "housekeeping"],
+    ["non_sm", "housekeeping"],
+    ["lowconf", "lowconf_generic"],
+    ["low-conf", "lowconf_generic"],
+    ["low_conf", "lowconf_generic"],
+    ["generic", "lowconf_generic"],
+    ["genuine", "genuine"]
+   ],
+   "default": "passthrough",
+   "enum": ["housekeeping", "lowconf_generic", "genuine"]
+  },
+  "lead_flag": {
+   "rules": [
+    ["ripp_lead", "lead"],
+    ["lead", "lead"],
+    ["yes", "lead"],
+    ["true", "lead"]
+   ],
+   "default": "not_lead",
+   "enum": ["lead", "not_lead"],
+   "_note_special": "The reference impl excludes values containing 'not' from the 'lead' bucket; the module keeps that negation guard in code."
+  },
+  "nr_split": {
+   "rules": [
+    ["diverg", "divergent"],
+    ["intermediate", "intermediate"],
+    ["conserv", "genus_conserved"],
+    ["no-nr", "no_nr"],
+    ["no_nr", "no_nr"],
+    ["not-pulled", "no_nr"],
+    ["not_pulled", "no_nr"],
+    ["unresolved", "no_nr"],
+    ["no exact", "no_nr"]
+   ],
+   "default": "passthrough",
+   "enum": ["divergent", "intermediate", "genus_conserved", "no_nr"]
+  }
+ }
+}

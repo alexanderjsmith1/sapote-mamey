@@ -1,0 +1,12 @@
+{
+ "validation": "MIBiG/GenBank reference KCB family-call accuracy",
+ "method": "antiSMASH run on public accession -> Sapote-Mamey gold -> compare KCB top-hit family to known product",
+ "bundle": "v9.7.165",
+ "engine": "1.9.104",
+ "total_clusters": 14,
+ "named_ground_truth": 8,
+ "correct_family_call": 8,
+ "accuracy_named": "8/8",
+ "accession_only_resolved_to_real_product": 6,
+ "note": "KCB=similarity layer validated against characterized chemistry; whole-card blind accuracy is a separate future measurement"
+}

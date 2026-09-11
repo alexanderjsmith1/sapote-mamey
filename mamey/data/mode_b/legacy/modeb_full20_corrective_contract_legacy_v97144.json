@@ -1,0 +1,108 @@
+{
+  "schema_version": "modeb_corrective_full20_v1",
+  "status": "current",
+  "source_protocol": "docs/MODEB_CORRECTIVE_PROTOCOL.md",
+  "section_policy": "exact_numbered_titles_required; LLMs must not invent, rename, reorder, or substitute section titles",
+  "artifact_drift_policy": {
+    "card_body": "prose-first scientific interpretation",
+    "evidence_tables": "supporting appendix/index only; never a substitute for the card body",
+    "bulk_scaling": "one BGC must pass the quality gate before all-BGC scaling",
+    "pdf_export": "PDF/export is downstream packaging after Markdown/card text passes the gate",
+    "character_counts": "progress metadata only; never acceptance evidence",
+    "blastp_hmmer": "belongs in section 16 or appendices, not section 7"
+  },
+  "sections": [
+    {
+      "number": 1,
+      "title": "Identity and node/region"
+    },
+    {
+      "number": 2,
+      "title": "Why this BGC was selected"
+    },
+    {
+      "number": 3,
+      "title": "Boundary and assembly status"
+    },
+    {
+      "number": 4,
+      "title": "Gene-by-gene interpretation"
+    },
+    {
+      "number": 5,
+      "title": "Core biosynthetic logic"
+    },
+    {
+      "number": 6,
+      "title": "Tailoring and maturation logic"
+    },
+    {
+      "number": 7,
+      "title": "Transport, resistance, and regulation"
+    },
+    {
+      "number": 8,
+      "title": "Comparator/KCB interpretation"
+    },
+    {
+      "number": 9,
+      "title": "Alternative hypotheses"
+    },
+    {
+      "number": 10,
+      "title": "Fragmentation and co-capture risks"
+    },
+    {
+      "number": 11,
+      "title": "Product-family interpretation"
+    },
+    {
+      "number": 12,
+      "title": "Bee/microbe ecological interpretation"
+    },
+    {
+      "number": 13,
+      "title": "Antibacterial/antifungal relevance"
+    },
+    {
+      "number": 14,
+      "title": "What cannot be claimed"
+    },
+    {
+      "number": 15,
+      "title": "Missing evidence"
+    },
+    {
+      "number": 16,
+      "title": "BLASTP/HMMER next steps"
+    },
+    {
+      "number": 17,
+      "title": "LC-MS / fermentation implications"
+    },
+    {
+      "number": 18,
+      "title": "Figure/locus-map notes"
+    },
+    {
+      "number": 19,
+      "title": "Final Mode B judgement"
+    },
+    {
+      "number": 20,
+      "title": "Next actions"
+    }
+  ],
+  "quality_gate": [
+    "Every first BGC mention includes node/region.",
+    "All 20 exact sections are present in order.",
+    "Section 4 contains prose interpretation, not only tables.",
+    "Important genes include protein_length_aa where available.",
+    "The card explains how genes work together.",
+    "Comparator/KCB is treated as similarity, not identity.",
+    "At least two plausible alternative interpretations are named when evidence permits.",
+    "Exact product claims are avoided.",
+    "The next experiment or analysis is specific.",
+    "A scientist can understand the BGC without opening the CSV."
+  ]
+}

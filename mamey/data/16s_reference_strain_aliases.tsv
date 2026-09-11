@@ -1,0 +1,3 @@
+alias_group	species	accession	strain_designation	authority_state	evidence_url	evidence_checked_utc	note
+NCBITAXON_202862_TYPE	streptomyces drozdowiczii	NR_116093	NRRL B-24297	OWNER_ACCEPTED	https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=202862&mode=Info	2026-09-10	NCBI Taxonomy lists this designation among the type-strain synonyms.
+NCBITAXON_202862_TYPE	streptomyces drozdowiczii	NR_041424	NBRC 101007	OWNER_ACCEPTED	https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=202862&mode=Info	2026-09-10	NCBI Taxonomy lists this designation among the type-strain synonyms.

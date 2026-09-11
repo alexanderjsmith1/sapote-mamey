@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sapote-mamey:schema:three-channel-evidence-matrix:v1",
+  "title": "Three-Channel Evidence Matrix Input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "figure_title", "channels", "rows"],
+  "properties": {
+    "schema_version": {
+      "const": "sapote_mamey.three_channel_evidence_matrix.v1"
+    },
+    "figure_title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["channel_id", "channel_name", "display_order"],
+        "properties": {
+          "channel_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+          },
+          "channel_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "display_order": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          }
+        }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["row_key", "row_label", "sort_order", "cells"],
+        "properties": {
+          "row_key": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+          },
+          "row_label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "sort_order": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "cells": {
+            "type": "object",
+            "minProperties": 3,
+            "maxProperties": 3,
+            "additionalProperties": {
+              "$ref": "#/$defs/cell"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "observed_count", "denominator_count", "detail"],
+      "properties": {
+        "state": {
+          "enum": ["OBSERVED", "WORKFLOW_GAP", "BINDING_HOLD", "NOT_RUN", "NOT_APPLICABLE"]
+        },
+        "observed_count": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "denominator_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 256
+        }
+      }
+    }
+  }
+}

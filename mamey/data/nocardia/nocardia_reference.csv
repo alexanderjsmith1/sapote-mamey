@@ -1,0 +1,124 @@
+strain_id,accession,organism,species,release_flag,engine_version,strain_total_bgcs,bgc_class,n_bgcs_in_class,ab_max,ab_mean,af_max,af_mean,comparative_eligible
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,NRPS,24,63.0,43.8,58.0,34.9,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,other,15,53.0,32.5,38.0,25.7,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,PKS,13,63.0,40.7,46.0,34.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,terpene,8,45.0,33.8,46.0,33.5,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,saccharide,6,63.0,53.7,58.0,39.3,False
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,RiPP,5,74.0,49.2,36.0,27.2,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,fatty_acid,5,41.0,29.8,38.0,25.2,False
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,beta-lactam/lactone,3,49.0,34.3,32.0,25.3,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,aminopolycarboxylic-acid,2,53.0,43.0,36.0,32.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,quinone_isoprenoid_chain,2,45.0,37.0,42.0,33.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,siderophore/metallophore,2,45.0,45.0,46.0,43.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,linaridin,2,37.0,35.0,24.0,22.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,arylpolyene,2,41.0,37.0,38.0,33.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,terpene-precursor,2,29.0,27.0,30.0,28.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,halogenated,1,37.0,37.0,24.0,24.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,ectoine,1,29.0,29.0,24.0,24.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,butyrolactone,1,29.0,29.0,24.0,24.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,ni-siderophore,1,29.0,29.0,28.0,28.0,True
+NZ_JBKORD000000000_1,NZ_JBKORD000000000.1,Nocardia arseniciresistens,arseniciresistens,PUBLIC,1.9.96,52,hydrogen-cyanide,1,25.0,25.0,20.0,20.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,PKS,13,63.0,43.5,46.0,34.8,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,other,13,51.0,31.8,46.0,26.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,NRPS,10,63.0,47.6,46.0,38.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,fatty_acid,6,29.0,27.7,30.0,23.7,False
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,saccharide,5,63.0,48.6,46.0,32.0,False
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,terpene,4,45.0,36.5,46.0,37.5,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,RiPP,2,49.0,41.0,32.0,26.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,butyrolactone,2,43.0,36.0,38.0,31.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,arylpolyene,2,33.0,31.0,28.0,26.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,ni-siderophore,1,51.0,51.0,46.0,46.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,siderophore/metallophore,1,45.0,45.0,46.0,46.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,halogenated,1,37.0,37.0,24.0,24.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,hgle-ks,1,33.0,33.0,28.0,28.0,False
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,beta-lactam/lactone,1,29.0,29.0,24.0,24.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,resorcinol,1,29.0,29.0,30.0,30.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,ectoine,1,33.0,33.0,20.0,20.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,aminopolycarboxylic-acid,1,25.0,25.0,20.0,20.0,True
+NZ_QCYJ00000000_1,NZ_QCYJ00000000.1,Nocardia aurea,aurea,PUBLIC,1.9.96,33,furan,1,25.0,25.0,20.0,20.0,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,NRPS,12,49.0,41.8,42.0,32.7,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,PKS,10,51.0,39.2,60.0,34.4,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,other,9,33.0,28.1,24.0,22.2,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,terpene,5,43.0,37.4,44.0,36.8,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,saccharide,3,51.0,40.3,60.0,39.3,False
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,fatty_acid,3,29.0,27.7,24.0,22.7,False
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,RiPP,2,49.0,49.0,32.0,32.0,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,redox-cofactor,1,49.0,49.0,32.0,32.0,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,siderophore/metallophore,1,41.0,41.0,42.0,42.0,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,butyrolactone,1,29.0,29.0,24.0,24.0,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,aminopolycarboxylic-acid,1,29.0,29.0,24.0,24.0,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,halogenated,1,33.0,33.0,20.0,20.0,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,ectoine,1,25.0,25.0,20.0,20.0,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,beta-lactam/lactone,1,25.0,25.0,20.0,20.0,True
+NZ_NGAF00000000_1,NZ_NGAF00000000.1,Nocardia cerradoensis,cerradoensis,PUBLIC,1.9.96,32,arylpolyene,1,25.0,25.0,20.0,20.0,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,NRPS,16,63.0,49.1,62.0,39.1,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,other,11,65.0,38.3,46.0,26.9,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,PKS,10,63.0,45.4,52.0,35.8,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,saccharide,6,63.0,54.7,62.0,42.7,False
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,fatty_acid,5,51.0,31.8,42.0,26.0,False
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,RiPP,3,74.0,54.7,36.0,28.0,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,terpene,3,63.0,45.7,52.0,40.7,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,siderophore/metallophore,3,53.0,47.7,62.0,46.7,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,ectoine,2,29.0,27.0,24.0,22.0,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,phosphonate,1,65.0,65.0,20.0,20.0,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,halogenated,1,63.0,63.0,46.0,46.0,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,phenazine,1,51.0,51.0,32.0,32.0,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,hserlactone,1,51.0,51.0,42.0,42.0,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,hgle-ks,1,29.0,29.0,24.0,24.0,False
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,redox-cofactor,1,37.0,37.0,24.0,24.0,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,arylpolyene,1,29.0,29.0,24.0,24.0,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,aminopolycarboxylic-acid,1,29.0,29.0,24.0,24.0,True
+NZ_ARMU00000000_1,NZ_ARMU00000000.1,Nocardia sp. BMG111209,sp.,PUBLIC,1.9.96,30,furan,1,29.0,29.0,24.0,24.0,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,NRPS,19,90.0,50.4,46.0,34.7,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,other,16,82.0,39.7,38.0,27.1,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,PKS,13,90.0,50.5,46.0,34.9,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,RiPP,11,90.0,63.6,42.0,27.8,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,fatty_acid,8,82.0,39.4,34.0,28.2,False
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,saccharide,8,63.0,46.0,46.0,30.8,False
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,terpene,4,86.0,47.2,42.0,36.0,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,halogenated,4,82.0,56.8,38.0,34.5,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,siderophore/metallophore,2,86.0,59.5,42.0,35.0,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,butyrolactone,2,47.0,40.0,34.0,27.0,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,aminopolycarboxylic-acid,2,29.0,29.0,24.0,24.0,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,phosphonate,1,69.0,69.0,24.0,24.0,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,terpene-precursor,1,29.0,29.0,30.0,30.0,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,hgle-ks,1,41.0,41.0,28.0,28.0,False
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,ectoine,1,33.0,33.0,20.0,20.0,True
+NZ_CP029710_1,NZ_CP029710.1,Nocardia sp. CS682,sp.,PUBLIC,1.9.96,44,arylpolyene,1,29.0,29.0,24.0,24.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,NRPS,21,100.0,52.4,52.0,36.4,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,PKS,16,100.0,50.9,52.0,34.1,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,other,16,69.0,39.6,52.0,27.5,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,RiPP,10,100.0,68.4,46.0,31.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,saccharide,10,80.0,47.1,52.0,30.4,False
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,fatty_acid,7,63.0,39.3,52.0,30.0,False
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,halogenated,3,59.0,50.3,38.0,32.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,terpene,3,41.0,34.3,38.0,30.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,butyrolactone,2,59.0,46.0,38.0,29.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,aminopolycarboxylic-acid,2,29.0,29.0,24.0,24.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,phosphonate,1,69.0,69.0,24.0,24.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,redox-cofactor,1,49.0,49.0,32.0,32.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,hydrogen-cyanide,1,45.0,45.0,36.0,36.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,terpene-precursor,1,29.0,29.0,24.0,24.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,hgle-ks,1,41.0,41.0,28.0,28.0,False
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,siderophore/metallophore,1,33.0,33.0,28.0,28.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,ectoine,1,33.0,33.0,20.0,20.0,True
+CP192113_1,CP192113.1,Nocardia suismassiliense,suismassiliense,PUBLIC,1.9.96,45,arylpolyene,1,29.0,29.0,24.0,24.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,other,21,82.0,41.5,48.0,29.7,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,NRPS,19,81.0,50.2,48.0,36.7,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,PKS,17,98.0,52.9,48.0,36.6,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,fatty_acid,13,98.0,41.3,42.0,27.7,False
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,RiPP,8,98.0,60.5,38.0,27.5,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,saccharide,6,65.0,51.0,42.0,30.3,False
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,terpene,4,41.0,32.0,42.0,33.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,butyrolactone,3,51.0,39.0,42.0,30.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,beta-lactam/lactone,2,59.0,55.0,48.0,45.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,siderophore/metallophore,2,41.0,41.0,42.0,39.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,aminopolycarboxylic-acid,2,29.0,29.0,24.0,24.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,rre-containing,1,98.0,98.0,38.0,38.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,phosphonate,1,81.0,81.0,32.0,32.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,oligosaccharide,1,65.0,65.0,36.0,36.0,False
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,halogenated,1,63.0,63.0,46.0,46.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,ectoine,1,33.0,33.0,20.0,20.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,resorcinol,1,29.0,29.0,24.0,24.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,arylpolyene,1,29.0,29.0,24.0,24.0,True
+NZ_BDCI00000000_1__1_,NZ_BDCI00000000.1,Nocardia vulneris,vulneris,PUBLIC,1.9.96,45,furan,1,25.0,25.0,20.0,20.0,True

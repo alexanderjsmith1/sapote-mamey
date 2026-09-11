@@ -1,0 +1,12 @@
+{
+ "compound": "selvamicin",
+ "strain": "Pseudonocardia sp. HH130629-09",
+ "accession": "CP011868.1",
+ "region": "1.8 (CP011868.region008)",
+ "coords": "1,028,011-1,194,708",
+ "chemistry": "polyene macrolide (nystatin-like antifungal)",
+ "kcb": "selvamicin, HIGH confidence",
+ "scanner": "PK01 polyether/large-PKS",
+ "result": "blind HIT confirmed by KCB",
+ "significance": "3rd experimentally-grounded PK01 validation (after ionostatin AS-XXX + 6 MIBiG training BGCs); the source lab strain"
+}

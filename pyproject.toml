@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mamey"
+version = "1.9.163"
+description = "Mamey BGC discovery workflow — extraction layer for Sapote"
+requires-python = ">=3.12"
+dependencies = [
+  "openpyxl>=3.1.2,<4.0",
+  "ijson>=3.2.0,<4.0",
+  "reportlab>=4.0,<5.0",
+  # Promoted from the [dev] extra to core: tools/render_bootstrap_contract.py hard-imports it
+  # and 3 bootstrap tests `import yaml` unconditionally, so a plain install (and the release-
+  # identity gate) must not fail on its absence. Tiny, pure-Python-wheel, ubiquitous.
+  "PyYAML>=6.0,<7.0",
+]
+
+[project.optional-dependencies]
+# Figure / plot tools. matplotlib/numpy/pandas are hard imports — figure generation crashes
+# without them. networkx + scipy are soft-guarded (see below), needed by two figure outputs.
+# Install with: pip install '.[figures]'
+# networkx: BiG-SCAPE GCF-network figure (mamey/bigscape_figures.py); soft-guarded —
+#   returns SKIPPED_NO_DEPS on ImportError, so that one figure silently no-ops if absent.
+# scipy: cohort clustermap ordering (mamey/cohort_figures.py) + tools/cluster_relate.py;
+#   soft-guarded — falls back to count-ordering (_HAS_SCIPY=False) if absent.
+figures = ["matplotlib>=3.7,<4.0", "numpy>=1.24", "pandas>=2.0,<3.1", "networkx>=3.0,<4.0", "scipy>=1.10,<2.0"]
+# Governed DOCX/PDF authoring and render verification. ReportLab remains core.
+# Install with: pip install '.[documents]'
+documents = ["python-docx>=1.2,<2.0", "lxml>=5.0,<7.0", "pypdf>=5.0,<7.0", "Pillow>=10.0,<13.0", "markdown>=3.4,<4.0"]  # markdown backs tools/build_chat_export.py HTML+PDF; absent -> SKIPS with a message (CLAUDE_409_optional_deps_guard)
+# Biopython-backed GBK parsing (built-in shim used when absent). See docs/PREREQUISITES.md.
+bio = ["biopython>=1.83,<2.0"]
+# Back-compat alias: ijson moved to main deps; keeps `pip install '.[json]'` working.
+json = ["ijson>=3.2.0,<4.0"]
+# Convenience: core + figures + bio in one shot. `pip install '.[all]'`
+all = ["matplotlib>=3.7,<4.0", "numpy>=1.24", "pandas>=2.0,<3.1", "networkx>=3.0,<4.0", "scipy>=1.10,<2.0", "biopython>=1.83,<2.0", "cairosvg>=2.7,<3.0", "python-docx>=1.2,<2.0", "lxml>=5.0,<7.0", "pypdf>=5.0,<7.0", "Pillow>=10.0,<13.0", "markdown>=3.4,<4.0"]
+# Back-compat alias: PyYAML moved to core deps (above). Kept so `pip install '.[dev]'` still resolves.
+dev = ["PyYAML>=6.0,<7.0"]
+# SVG->PNG conversion so locus-map SVGs embed in the compiled Boss-Ready PDF (compile_report._svg_to_png).
+# Optional and soft: the render path falls back to dropping SVGs (and can use a system rsvg-convert or
+# inkscape) when this is absent. Installing it makes the SVG-embed path work wherever the PDF is built,
+# not only where cairosvg was pip-installed by hand. Install with: pip install '.[render]'
+render = ["cairosvg>=2.7,<3.0"]
+
+# NOTE: reportlab is a core dependency again — it backs the colorful PDF renderer
+# (tools/render_deliverable_pdf.py), the default path in tools/md_to_pdf.sh. That script
+# falls back to pandoc + xelatex if reportlab is absent or a doc won't fit the reportlab
+# layout (e.g. a table cell taller than one page), so PDF output degrades gracefully.
+
+[project.scripts]
+mamey = "mamey.cli:main"
+sapote-render = "mamey.document_export:main"
+sapote-documents = "mamey.document_factory:main"
+
+[tool.setuptools.packages.find]
+include = ["mamey*"]
+
+[tool.setuptools.package-data]
+# Ship bundled data artifacts (reference-BGC marker library, marker registry) inside the wheel.
+# v9.7.367 (Indigo2 I-53/A8): .tsv/.csv/.faa were unmatched — wheel installs silently lacked
+# outgroup_registry.tsv, strain_genus.csv, nocardia/*.csv, phylo_seeds/*.faa. Added below.
+mamey = ["data/*.json", "data/**/*.json", "data/**/*.md", "data/**/*.yaml", "data/**/*.yml",
+         "data/**/*.tsv", "data/**/*.csv", "data/**/*.faa", "*.html"]
+
+[tool.pytest.ini_options]
+# v9.7.418 (BC2): four unittest suites ship beside the tools they test and were collected by
+# nothing — 48 passing tests, invisible to CI, discovered only because a recursive scan
+# surfaced the directories. tools/cohort_tailoring/test_integration.py is argparse-driven
+# and deliberately standalone; pytest collects nothing from it, so including these
+# directories cannot break the run.
+testpaths = ["tests", "tools", "deliverable_tools"]
+markers = [
+    "slow: slow test (matplotlib figure/plot rendering, cohort builds); deselected unless --run-slow",
+    "network: needs live network; deselected unless --run-network (no test needs this today — the online-BLASTp tests are hermetic/monkeypatched — so this is future-proofing)",
+    "public: hermetic invariants safe for the public GitHub release (no cohort data, no personal paths, no network); select with `pytest -m public`",
+]
+
+[tool.sapote]
+# Single source of truth for the curated BUNDLE version.
+# (engine version lives in [project].version above)
+bundle_version = "9.7.428"

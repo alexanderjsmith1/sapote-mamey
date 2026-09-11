@@ -1,0 +1,77 @@
+CREATE mamey/bgc_decomp.py
+CREATE tests/test_bgc_decomp.py
+MODIFY mamey/diagnostic_rescue.py parse_cb blast_score
+MODIFY mamey/cli.py import bgc_decomp
+MODIFY mamey/cli.py triage header Two_Model_Flag
+MODIFY mamey/cli.py decomp placeholder
+MODIFY mamey/cli.py triage row Two_Model_Flag cell
+MODIFY mamey/cli.py write 4B decomp after all-BGC gene table
+MODIFY mamey/__init__.py bundle version 9.7.129
+MODIFY pyproject.toml bundle_version 9.7.129
+MODIFY TAG bundle version/patch note
+CREATE PATCH_BGC_TWOMODEL_APPLIED_v9_7_129.md
+
+# ---- v9.7.154 (2026-06-30, build 20260630v97154a) ----
+MODIFY mamey/blastp_followup.py — parse_query_id: handle space-delimited key=value headers (PATCH-001); strain left blank for combined BGC###_<gene> token
+MODIFY mamey/blastp_followup.py — merge_hit_xml: truthy-guard fallback match (no None==None cross-query mis-bind) (PATCH-001)
+MODIFY mamey/blastp_followup.py — summarize_results: add top_identical_count / top_positive_count raw columns (PATCH-005 part 1); aa= fallback regex now whitespace-aware
+MODIFY mamey/render_all_figures.py — coerce list-valued res["figures"] to len() before format/accumulator (PATCH-002)
+MODIFY tests/test_blastp_followup_v97142.py — add space-delimited parse, 4-query no-misbind, truthy-guard, raw-count+honest-strain regression tests (PATCH-001/005)
+MODIFY tests/test_bunny_hop_fixes.py — snapshot+restore sys.modules in both pandas-fallback tests (PATCH-004)
+MODIFY mamey/__init__.py — BUNDLE_VERSION 9.7.153 -> 9.7.154
+MODIFY pyproject.toml — [tool.sapote] bundle_version 9.7.153 -> 9.7.154
+MODIFY BUILD_STAMP.txt — version/build/patch -> 9.7.154 / 20260630v97154a (patch line auto-derived from CHANGELOG)
+MODIFY TAG — build: 20260630v97154a
+MODIFY CHANGELOG.md — new v9.7.154 entry
+RUN tools/sync_version.py — propagated 9.7.154 into TAG, docs/BUNDLE_CAPABILITIES.md, CITATION.cff, RELEASE_MANIFEST.md, guide/prompt restatements; --check PASS
+
+# ---- v9.7.155 (2026-06-30, build 20260630v97155a) ----
+MODIFY tools/sync_version.py — add TIER_MANIFEST.txt version= anchor to RULES (was tool-unowned, stale at 9.7.151)
+MODIFY tools/sync_version.py — sync_bootstrap_contract(): fold render_bootstrap_contract --check/--apply into the sync surface
+MODIFY tests/test_version_sync.py — add test_tier_manifest_header_version + test_generated_bootstrap_docs_current_via_sync (close coverage gap)
+MODIFY mamey/__init__.py — BUNDLE_VERSION 9.7.154 -> 9.7.155
+MODIFY pyproject.toml — [tool.sapote] bundle_version 9.7.154 -> 9.7.155
+MODIFY BUILD_STAMP.txt — version/build -> 9.7.155 / 20260630v97155a (patch line auto-derived)
+MODIFY TAG — 9.7.155 / build 20260630v97155a
+MODIFY CHANGELOG.md — new v9.7.155 entry
+RUN tools/sync_version.py — now also propagates TIER_MANIFEST.txt + regenerates docs/BOOTSTRAP_FILE_AUDIT.md; --check PASS
+
+# ---- v9.7.358 fold-2 (2026-08-10, build 20260810v97358b, the patch lane) ----
+MODIFY mamey/bgc_guide.py — _role_of: truth-test -> res.startswith(("t1","t2")); NULL_NO_SOURCE_DERIVED_RESISTANCE no longer mislabeled resistance (C05, the review lane). Verified enum {NULL,T2,T3}; only NULL->accessory changes.
+ADD    tests/test_role_of_resistance_tier.py — C05 regression (NULL negative, T2 resistance, T3 accessory)
+MODIFY tools/locator_reconciliation.py — add _RE_S1_REGION §1 fallback; _parse_header_region + reconcile_heading_only recover region from §1 identity block when header omits it (C01/P358-001)
+ADD    tests/test_locator_region_reparse.py — C01/P358-001 region-recovery regression
+MODIFY mamey/data/source_collection_registry.json — BLASTP_BY_BGC directory_regex/root_segment_regex also match "blastp[ _-]?repository" (P358-002)
+ADD    tools/extract_module_core_domains.py — deterministic module-core aSDomain extractor (P358-003 A.1; PKS_KS=38 on real AS-XXX)
+ADD    tools/domain_phylo_rescue.py — two-proof KS-clade corroborator (P358-003 A.2; DOMAIN_ONLY_HINT never a rescue)
+ADD    mamey/ks_phylogeny.py — ENGINE placement of the KS-phylogeny channel: extract_module_core_domains + domain_fastas + route_domain_only_hints (A.3) + write_adjudication_queue (C06)
+ADD    tests/test_domain_phylo_rescue.py — corroborator two-proof/FAS-excluded/low-support/no-score tests
+ADD    tests/test_ks_phylogeny.py — engine extraction + strain-internal gate + A.3 routing tests
+NOTE   Engine-neutral: __version__ 1.9.119 and BUNDLE_VERSION 9.7.358 UNCHANGED; build sub-tag a->b only.
+NOTE   HARD cut-blockers unchanged: AS-XXX (no decontam antiSMASH rerun; GOVERNED(built)=43/1,701 pending) + 6 GBK-less strains. Build-now-seal-later per the Developer or User 2026-08-10.
+
+# ---- v9.7.359 (2026-08-10, build 20260810v97359a, engine 1.9.120, the patch lane) ----
+# Accretive superset of the parked .358 candidate (all fold-1 + fold-2 carried) + Amber's _4B/_4D ENGINE channel.
+ADD    mamey/pks_ks_scan.py — deterministic offline cross-contig PKS-KS clade scan -> _4B_pks_ks_fragment_scan.csv (phylogenomics-lane P358)
+ADD    mamey/rescue_two_proof.py — join _4A x _4B under C06 two-proof gate -> _4D_two_proof_rescue.csv (phylogenomics-lane P358)
+ADD    tests/test_pks_ks_scan.py + tests/test_rescue_two_proof.py (9 passing)
+MODIFY mamey/models.py — SourceScanBundle: declared new field pks_ks_scan (dict, default_factory)
+MODIFY mamey/cli.py — import run_pks_ks_scan/write_pks_ks_csv; _4B phase after rggmci END (uses _os not os); _4D emitted in _write_package AFTER _4A_RGGMCI_ranked_pairs.csv is written (join reads it from disk)
+MODIFY mamey/packaging.py — DETERMINISM_WHITELIST += _4B_pks_ks_fragment_scan.csv (deterministic; enters repro fingerprint)
+MODIFY mamey/validate.py — advisory NON-BLOCKING pks_ks_scan presence note (PKS_KS_SCAN_MISSING); never flips status
+FIX    (integration, vs Amber standalone APPLY) — (1) _os alias not os; (2) _4D placement moved to post-_4A-write; (3) declared pks_ks_scan field
+MODIFY mamey/__init__.py — __version__ 1.9.119->1.9.120; BUNDLE_VERSION 9.7.358->9.7.359
+MODIFY pyproject.toml — [project].version 1.9.120; [tool.sapote] bundle_version 9.7.359
+ADD    docs/ENGINE_LINEAGE.md — Engine 1.9.120 entry (additive: no score change; _4B/_4D advisory only; fully comparable to 1.9.119)
+MODIFY BUILD_STAMP.txt / TAG / CHANGELOG.md — 9.7.359 / build 20260810v97359a / engine 1.9.120
+RUN    tools/sync_version.py — propagated engine 1.9.120 + bundle 9.7.359; --check PASS
+NOTE   score-neutral engine bump: triage/AB/AF/novelty + all existing gates + _4A byte-identical; only new advisory artifacts added.
+NOTE   HARD cut-blockers unchanged: AS-XXX decontam antiSMASH rerun (the Developer or User), 6 GBK-less strains.
+
+# ---- v9.7.391 (2026-08-30, build 20260830v97391a, engine 1.9.140) ----
+APPLY  CODEX_391_MATPLOTLIB_COLORMAP_DEPRECATION_REPAIR.patch — SHA-256 a9c3b72f09188e6b68918b4a82fdcf928a1140550c0a8bcfe5465e405a269f3e; 2 paths
+APPLY  CODEX_391_PRE_AUDIT_MACOS_METADATA_SCRUB.patch — SHA-256 9cdef59b08321883814b54fd8dfa069d46fd4a1d9a044e266b5c3cfd64bbb6a7; 2 paths
+APPLY  CODEX_391_MODEB_EXACT_TRIAGE_LOCATOR_PREFLIGHT_V2.patch — SHA-256 3d8711a5699597266d28286c09598c1f0891fc0ebcae12da8fe780fed6022cdd; 3 paths
+MODIFY pyproject.toml / BUILD_STAMP.txt / CHANGELOG.md / README.md — candidate identity and current status
+RUN    tools/sync_version.py — propagate bundle 9.7.391, engine 1.9.140, build 20260830v97391a
+NOTE   Candidate-only cut. Broader staged lanes remain excluded; no GitHub promotion or public release authorization.

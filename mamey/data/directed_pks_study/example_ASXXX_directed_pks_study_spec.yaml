@@ -1,0 +1,53 @@
+study_id: ASXXX_polyene_PTM_antifungal
+strain_id: AS-XXX
+title: AS-XXX Polyene/PTM Antifungal Directed PKS Study
+
+focus:
+  include_classes:
+    - T1PKS
+    - transAT-PKS
+    - NRPS-like
+    - polyene
+    - macrolide
+    - macrodiolide
+    - PTM
+  exclude_bgcs:
+    - BGC011
+  exclude_reason:
+    BGC011: "Known/background streptophenazine cluster; active antifungal hypothesis likely maps elsewhere."
+
+groups:
+  SetA:
+    label: "polyene/macrolide-like fragmented candidate space"
+    nodes: ["NODE_96", "NODE_107", "NODE_24", "NODE_249"]
+    interpretation_scope: "functional_grouping only; not physical linkage"
+  SetB:
+    label: "conglobatin/macrodiolide-like fragmented candidate space"
+    nodes: ["NODE_456", "NODE_58"]
+    interpretation_scope: "functional_grouping only; not physical linkage"
+
+comparators:
+  - accession: "LC529898.1"
+    label: "desertomycin BGC"
+    role: "comparator_context for a modular PKS fragment"
+    type: "known_BGC"
+  - accession: "LN849060.1"
+    label: "conglobatin BGC"
+    role: "comparator_context for macrodiolide-like fragments"
+    type: "known_BGC"
+  - accession: "NZ_JBVIGS010000008"
+    label: "homolog neighborhood"
+    role: "comparator_context / homolog-neighborhood support"
+    type: "homolog_neighborhood"
+
+claim_policy:
+  named_product_claims: false
+  use_interpretation_scope: true
+  global_caveat_once: true
+  require_citation_status: true
+
+figure_policy:
+  quality_gate: 9
+  prefer_vector: true
+  require_preflight: true
+  require_self_rating: true

@@ -1,0 +1,11 @@
+{
+  "title": "Bee/wasp-associated Pseudonocardiaceae",
+  "scope": "family",
+  "taxon": "Pseudonocardiaceae",
+  "cohort": "hymenoptera",
+  "outgroup": "OUTGROUP",
+  "min_comparators_per_genus": 1,
+  "marker_set": "Actinobacteria.hmm (138 genes, NCBI-taxonomy, GToTree 1.8.x line)",
+  "created": "2026-08-26",
+  "note": "Declares intent so contents can be checked against it."
+}

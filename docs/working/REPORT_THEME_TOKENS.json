@@ -1,0 +1,17 @@
+{
+  "theme": "sapote-evidence-dossier",
+  "purpose": "presentation-only tokens for evidence-bound reports and Mode B cards",
+  "authority": "TRUE_DRAFT_NOT_PARENT_AUDITED_NOT_SHELF_PROMOTABLE",
+  "colors": {"navy": "17375E", "teal": "007C83", "gold": "DCA73A", "cream": "F5F1E7", "pale_teal": "DDEFEF", "pale_red": "FBE9E7", "ink": "243648", "muted": "556575", "white": "FFFFFF"},
+  "typography": {"family": "Arial", "body_pt": 9.0, "title_pt": 26.0, "heading1_pt": 15.5, "heading2_pt": 11.7, "heading3_pt": 10.5},
+  "layout": {"page": "US Letter portrait", "margin_in": 1.0, "usable_width_dxa": 9360, "tables": "explicit widths, repeating header row"},
+  "status_mapping": {"PASS": "DDEFEF", "PRESENT": "DDEFEF", "WARN": "FBE9E7", "HOLD": "F5F1E7", "NOT_SCORED": "F5F1E7"},
+  "section_roles": {"identity": [1, 2, 3], "evidence": [4, 20, 29, 34, 45, 46], "interpretation": [5, 6, 7, 18, 19, 22, 33, 48], "safety": [8, 27, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 47]},
+  "accessibility": {"status_color_is_not_semantic_alone": true, "foreground": "243648", "minimum_body_pt": 9.0}
+  ,"variants": {
+    "evidence_dossier": {"label": "Evidence Dossier", "best_for": "Mode B cards and technical reports", "density": "balanced", "body_pt": 9.0, "colors": {"navy": "17375E", "teal": "007C83", "gold": "DCA73A", "cream": "F5F1E7", "pale_red": "FBE9E7"}},
+    "field_notebook": {"label": "Field Notebook", "best_for": "ecology synthesis and experiment planning", "density": "airy", "body_pt": 9.5, "colors": {"navy": "284B3B", "teal": "397D76", "gold": "C18A32", "cream": "F3F0E5", "pale_red": "F5E1D9"}},
+    "dark_lab": {"label": "Dark Lab", "best_for": "screen presentations and dashboards", "density": "compact", "body_pt": 9.0, "colors": {"navy": "102A43", "teal": "2CB1BC", "gold": "F0B429", "cream": "E6EEF2", "pale_red": "F7C4C4"}},
+    "minimal_clinical": {"label": "Minimal Clinical", "best_for": "handoffs, review packets, and printing", "density": "quiet", "body_pt": 9.5, "colors": {"navy": "263238", "teal": "356B73", "gold": "9A6B16", "cream": "F7F7F5", "pale_red": "F1DEDA"}}
+  }
+}

@@ -1,0 +1,691 @@
+{
+ "registry_version": "0.3",
+ "generated": "2026-07-02",
+ "n_scanners": 28,
+ "trained_on": "6 MIBiG polyether + AS-XXX (5 compounds) + selvamicin/HH130629; lipopeptide gates from daptomycin/surfactin/orfamide architecture",
+ "scanners": [
+  {
+   "id": "AF01",
+   "name": "Aminocyclitol / acarviostatin",
+   "cls": "saccharide",
+   "target": "antifungal",
+   "gate": [
+    "DHQ_synthase",
+    "2-epi-5-epi-valiolone_synthase"
+   ],
+   "support": [
+    "Alpha-amylase(GH13,secreted)",
+    "RmlD_sub_bind",
+    "Aminotran_3",
+    "NTP_transf_3"
+   ],
+   "rule": "gate AND >=2 support",
+   "trap": "GlgB/GlgE glycogen amylases (TIGR02100/02401) are NOT the acarbose amylase",
+   "pos": [
+    "acarbose",
+    "acarviostatin",
+    "validamycin",
+    "salbostatin"
+   ],
+   "why": "alpha-glucosidase inhibitors; anti-Candida",
+   "test_status": "PASS",
+   "test_note": "0 hits \u2014 correctly confirms no acarviostatin in AS-XXX"
+  },
+  {
+   "id": "AF02",
+   "name": "Polyene macrolide",
+   "cls": "PKS",
+   "target": "antifungal",
+   "gate": [
+    "PKS_KS(x>=6 iterations)"
+   ],
+   "support": [
+    "GDP-mannose/Glycos_transf",
+    "PKS_AT",
+    "Thioesterase",
+    "P450"
+   ],
+   "rule": "gate (large modular PKS) AND sugar-tailoring",
+   "trap": "any large T1PKS; require the polyene chromophore module count + mycosamine sugar",
+   "pos": [
+    "amphotericin",
+    "nystatin",
+    "pimaricin",
+    "candicidin"
+   ],
+   "why": "membrane-ergosterol binding; classic antifungals",
+   "test_status": "TIGHTEN",
+   "test_note": "fired 19 \u2014 gating on generic KS; needs polyene-specific module count + mycosamine sugar"
+  },
+  {
+   "id": "AF03",
+   "name": "HSAF / polycyclic tetramate macrolactam (PTM)",
+   "cls": "NRPS-PKS",
+   "target": "antifungal",
+   "gate": [
+    "PKS-NRPS_hybrid",
+    "Orn_aminotransferase"
+   ],
+   "support": [
+    "FAD_oxidase",
+    "sterol_desaturase-like"
+   ],
+   "rule": "hybrid iterative PKS-NRPS + ornithine aminotransferase",
+   "trap": "generic NRPS-PKS; require the OAT + iterative signature",
+   "pos": [
+    "HSAF",
+    "frontalamide",
+    "maltophilin",
+    "dihydromaltophilin"
+   ],
+   "why": "already recurrent across your bee strains; antifungal",
+   "test_status": "TIGHTEN",
+   "test_note": "fired 34 \u2014 gating on generic NRPS/PKS/aminotran; needs iterative PKS-NRPS + OAT co-occurrence, not OR"
+  },
+  {
+   "id": "AF04",
+   "name": "Echinocandin-like lipopeptide",
+   "cls": "NRPS",
+   "target": "antifungal",
+   "gate": [
+    "NRPS_C-A-PCP(cyclic hexapeptide)"
+   ],
+   "support": [
+    "fatty-acyl-AMP_ligase",
+    "nonheme_halogenase",
+    "P450_hydroxylase"
+   ],
+   "rule": "cyclic NRPS + acyl chain + multiple hydroxylations",
+   "trap": "generic lipopeptide NRPS",
+   "pos": [
+    "echinocandin B",
+    "pneumocandin"
+   ],
+   "why": "beta-1,3-glucan synthase inhibitors; anti-Candida",
+   "test_status": "UNTESTED",
+   "test_note": "no domain-name proxy available; needs HMM to test"
+  },
+  {
+   "id": "AF05",
+   "name": "Antifungal polyketide-polyene (heptaene)",
+   "cls": "PKS",
+   "target": "antifungal",
+   "gate": [
+    "PKS_KS(polyene)",
+    "aminotransferase(mycosamine)"
+   ],
+   "support": [
+    "GT_mycosamine",
+    "P450x2"
+   ],
+   "rule": "polyene PKS + mycosamine biosynthesis",
+   "trap": "carotenoid/isorenieratene polyenes (terpene, not PKS)",
+   "pos": [
+    "candicidin",
+    "trichomycin"
+   ],
+   "why": "distinct from carotenoids; targets fungal membrane",
+   "test_status": "UNTESTED",
+   "test_note": "no domain-name proxy available; needs HMM to test"
+  },
+  {
+   "id": "AB01",
+   "name": "Glycopeptide (vancomycin-family)",
+   "cls": "NRPS",
+   "target": "antibacterial",
+   "gate": [
+    "OxyB_P450",
+    "OxyC_P450(crosslinking)"
+   ],
+   "support": [
+    "nonheme_halogenase",
+    "Glycos_transf",
+    "NRPS_heptapeptide",
+    "Aminotran"
+   ],
+   "rule": "crosslinking P450 pair + halogenase + sugar",
+   "trap": "any P450-carrying NRPS; require the Oxy crosslinking cascade",
+   "pos": [
+    "vancomycin",
+    "teicoplanin",
+    "balhimycin"
+   ],
+   "why": "D-Ala-D-Ala binding; anti-MRSA gold standard",
+   "test_status": "UNTESTED",
+   "test_note": "no domain-name proxy available; needs HMM to test"
+  },
+  {
+   "id": "AB02",
+   "name": "Lanthipeptide subclass discriminator",
+   "cls": "RiPP",
+   "target": "antibacterial",
+   "gate": [
+    "LanB+LanC(I)",
+    "LanM(II)",
+    "LanKC(III)",
+    "LanL(IV)"
+   ],
+   "support": [
+    "LanT_transporter",
+    "LanP_protease",
+    "precursor_LanA"
+   ],
+   "rule": "classify by modification enzyme present (mutually exclusive gates)",
+   "trap": "calling all lanthipeptides one class",
+   "pos": [
+    "nisin(I)",
+    "mersacidin(II)",
+    "labyrinthopeptin(III)"
+   ],
+   "why": "you have I and III; BGC050 divergent LanB matters",
+   "test_status": "PASS",
+   "test_note": "fired only BGC049+BGC050 \u2014 the two known lanthipeptides; discriminates I vs III"
+  },
+  {
+   "id": "AB03",
+   "name": "Thiopeptide",
+   "cls": "RiPP",
+   "target": "antibacterial",
+   "gate": [
+    "YcaO_cyclodehydratase",
+    "Lant_dehydratase(pyridine)"
+   ],
+   "support": [
+    "azol(in)e_heterocycle",
+    "radical_SAM_methyltransferase"
+   ],
+   "rule": "YcaO + dehydratase forming central pyridine",
+   "trap": "generic YcaO (also in other RiPPs)",
+   "pos": [
+    "thiostrepton",
+    "GE2270A",
+    "nosiheptide"
+   ],
+   "why": "50S ribosome / EF-Tu inhibitors; Gram-positive",
+   "test_status": "PASS",
+   "test_note": "0 hits \u2014 no thiopeptide gate present (YcaO absent)"
+  },
+  {
+   "id": "AB04",
+   "name": "Beta-lactam (nocardicin/clavam/cephamycin)",
+   "cls": "NRPS",
+   "target": "antibacterial",
+   "gate": [
+    "ACV_synthetase(tripeptide_NRPS)",
+    "IPNS(isopenicillin_N_synthase)"
+   ],
+   "support": [
+    "cephalosporin_expandase",
+    "DAOCS"
+   ],
+   "rule": "ACVS + IPNS core",
+   "trap": "generic NRPS",
+   "pos": [
+    "cephamycin C",
+    "clavulanate",
+    "nocardicin"
+   ],
+   "why": "cell-wall synthesis inhibitors",
+   "test_status": "UNTESTED",
+   "test_note": "no domain-name proxy available; needs HMM to test"
+  },
+  {
+   "id": "AB05",
+   "name": "Aminoglycoside",
+   "cls": "saccharide",
+   "target": "antibacterial",
+   "gate": [
+    "2-deoxy-scyllo-inosose_synthase(DOIS/BtrC)"
+   ],
+   "support": [
+    "Aminotran_2",
+    "radical_SAM_dehydratase",
+    "Glycos_transf"
+   ],
+   "rule": "DOIS aminocyclitol synthase (distinct from valiolone)",
+   "trap": "confusing with acarbose aminocyclitol (AF01) \u2014 different synthase",
+   "pos": [
+    "streptomycin",
+    "kanamycin",
+    "gentamicin"
+   ],
+   "why": "30S ribosome inhibitors; broad Gram-negative",
+   "test_status": "PASS",
+   "test_note": "0 hits \u2014 no DOIS aminoglycoside synthase"
+  },
+  {
+   "id": "AB06",
+   "name": "Pleuromutilin / diterpene antibiotic",
+   "cls": "terpene",
+   "target": "antibacterial",
+   "gate": [
+    "terpene_cyclase(diterpene)",
+    "GGPP_synthase"
+   ],
+   "support": [
+    "P450x2",
+    "acyltransferase"
+   ],
+   "rule": "diterpene synthase + specific oxidations",
+   "trap": "generic terpene (carotenoid/hopanoid)",
+   "pos": [
+    "pleuromutilin"
+   ],
+   "why": "50S ribosome; the tiamulin/lefamulin scaffold",
+   "test_status": "UNTESTED",
+   "test_note": "no domain-name proxy available; needs HMM to test"
+  },
+  {
+   "id": "WH01",
+   "name": "Enediyne warhead",
+   "cls": "PKS",
+   "target": "antitumor/antibacterial",
+   "gate": [
+    "enediyne_PKSE(SgcE-like)",
+    "TEBC_thioesterase"
+   ],
+   "support": [
+    "deoxysugar",
+    "apoprotein",
+    "P450"
+   ],
+   "rule": "enediyne core PKSE (NOT just the aminosugar)",
+   "trap": "neocarzinostatin SUGAR hit alone (BGC014) does not prove the warhead",
+   "pos": [
+    "calicheamicin",
+    "C-1027",
+    "neocarzinostatin",
+    "dynemicin"
+   ],
+   "why": "DNA-cleaving; extremely potent",
+   "test_status": "PASS",
+   "test_note": "0 hits \u2014 enediyne PKSE absent (BGC014 has the SUGAR only, correctly not flagged as warhead)"
+  },
+  {
+   "id": "WH02",
+   "name": "Nonheme-iron halogenase capacity",
+   "cls": "any",
+   "target": "bioactivity-signal",
+   "gate": [
+    "Trp_halogenase",
+    "Fl-halogenase(nonheme)"
+   ],
+   "support": [
+    "ferredoxin",
+    "flavin_reductase"
+   ],
+   "rule": "presence of nonheme halogenase",
+   "trap": "haloacid dehalogenase (HAD) is NOT a halogenase",
+   "pos": [
+    "pyrrolnitrin",
+    "rebeccamycin"
+   ],
+   "why": "halogenation frequently correlates with bioactivity",
+   "test_status": "PASS",
+   "test_note": "0 hits in AS-XXX \u2014 halogenase absent (present in Amel2 BGC051 per earlier finding)"
+  },
+  {
+   "id": "SG01",
+   "name": "Activated dTDP-deoxysugar hub",
+   "cls": "saccharide",
+   "target": "tailoring-signal",
+   "gate": [
+    "Glucose-1-P_thymidylyltransferase(RmlA/Ep)",
+    "dTDP-glucose_4,6-dehydratase(RmlB)"
+   ],
+   "support": [
+    "RmlC",
+    "RmlD",
+    "sugar_aminotransferase"
+   ],
+   "rule": ">=3 dTDP-sugar pathway genes",
+   "trap": "primary-metabolism nucleotide-sugar genes",
+   "pos": [
+    "streptomycin dihydrostreptose",
+    "mycarose",
+    "desosamine"
+   ],
+   "why": "BGC039 is exactly this; decorates bioactives",
+   "test_status": "PASS",
+   "test_note": "BGC039+BGC001 \u2014 BGC039 is the confirmed deoxysugar hub"
+  },
+  {
+   "id": "SG02",
+   "name": "Aminosugar / nitrogen-sugar",
+   "cls": "saccharide",
+   "target": "tailoring-signal",
+   "gate": [
+    "sugar_aminotransferase(DegT/WecE)"
+   ],
+   "support": [
+    "N-methyltransferase",
+    "NDP-sugar_epimerase"
+   ],
+   "rule": "sugar aminotransferase + N-tailoring",
+   "trap": "amino-acid aminotransferases",
+   "pos": [
+    "desosamine",
+    "daunosamine",
+    "forosamine"
+   ],
+   "why": "aminosugars common on macrolides/anthracyclines",
+   "test_status": "REVIEW",
+   "test_note": "14 hits \u2014 aminotransferase is common; tighten to DegT/WecE-specific HMM, not generic Aminotran"
+  },
+  {
+   "id": "EC01",
+   "name": "Siderophore completeness (NIS vs NRPS)",
+   "cls": "siderophore",
+   "target": "ecology",
+   "gate": [
+    "IucA/IucC_NIS_synthase",
+    "NRPS_siderophore"
+   ],
+   "support": [
+    "Orn_hydroxylase(SidA/IucD)",
+    "MFS_transporter",
+    "FhuF_reductase"
+   ],
+   "rule": "synthase + uptake/reductase = complete iron system",
+   "trap": "calling a partial cluster complete",
+   "pos": [
+    "desferrioxamine",
+    "coelichelin",
+    "scabichelin"
+   ],
+   "why": "conserved in your strains; hive/host fitness",
+   "test_status": "PASS",
+   "test_note": "3 clusters \u2014 siderophore synthases"
+  },
+  {
+   "id": "EC02",
+   "name": "Butyrolactone / gamma-butyrolactone quorum signal",
+   "cls": "butyrolactone",
+   "target": "ecology",
+   "gate": [
+    "AfsA_butenolide_synthase"
+   ],
+   "support": [
+    "reductase",
+    "binding_protein(ArpA)"
+   ],
+   "rule": "AfsA present",
+   "trap": "generic acyltransferase",
+   "pos": [
+    "A-factor",
+    "SCB1"
+   ],
+   "why": "controls secondary-metabolism onset; you have 2, both conserved",
+   "test_status": "PASS",
+   "test_note": "BGC026+BGC037 \u2014 butyrolactone AfsA"
+  },
+  {
+   "id": "EC03",
+   "name": "Melanin / protective pigment",
+   "cls": "melanin",
+   "target": "ecology",
+   "gate": [
+    "Tyrosinase(MelC)",
+    "THN_synthase(RppA/Type_III_PKS)"
+   ],
+   "support": [
+    "laccase",
+    "copper_center"
+   ],
+   "rule": "tyrosinase or THN polyketide route",
+   "trap": "other type-III PKS (flaviolin, alkylresorcinol)",
+   "pos": [
+    "DHN-melanin",
+    "tyrosinase-melanin"
+   ],
+   "why": "UV/oxidative protection in the host niche",
+   "test_status": "PASS",
+   "test_note": "BGC003+BGC060 \u2014 melanin"
+  },
+  {
+   "id": "MD01",
+   "name": "Beta-lactone / reactive electrophile",
+   "cls": "various",
+   "target": "reactivity",
+   "gate": [
+    "beta-lactone_synthetase(OleC-like)"
+   ],
+   "support": [
+    "acyl-CoA_ligase"
+   ],
+   "rule": "beta-lactone forming enzyme",
+   "trap": "generic acyl-CoA ligase",
+   "pos": [
+    "salinosporamide",
+    "belactosin"
+   ],
+   "why": "covalent proteasome/enzyme inhibitors",
+   "test_status": "UNTESTED",
+   "test_note": "no domain-name proxy available; needs HMM to test"
+  },
+  {
+   "id": "MD02",
+   "name": "Phosphonate",
+   "cls": "phosphonate",
+   "target": "antibacterial",
+   "gate": [
+    "PEP_phosphomutase(PepM)"
+   ],
+   "support": [
+    "phosphonopyruvate_decarboxylase"
+   ],
+   "rule": "PepM present (the committed phosphonate step)",
+   "trap": "phosphatases/kinases",
+   "pos": [
+    "fosfomycin",
+    "phosphinothricin"
+   ],
+   "why": "cell-wall / Glu-synthesis inhibitors",
+   "test_status": "REVIEW",
+   "test_note": "3 hits on 'phosph' keyword \u2014 real HMM (PepM) will be far more specific; keyword proxy is loose"
+  },
+  {
+   "id": "PK01",
+   "name": "Polyether / large modular PKS (ionophore/macrolide)",
+   "cls": "PKS",
+   "target": "antibacterial/ionophore",
+   "gate": [
+    "mod_KS(>=5)",
+    "PKS_AT"
+   ],
+   "support": [
+    "Thioesterase",
+    "KR/DH/ER",
+    "Epoxide_hydrolase(polyether)"
+   ],
+   "rule": ">=5 modular KS + AT + TE",
+   "trap": "single-module PKS-like; carotenoid",
+   "pos": [
+    "bafilomycin",
+    "venturicidin",
+    "lobophorin",
+    "meridamycin",
+    "tetramycin",
+    "aristeromycin",
+    "ionostatin(AJS327)"
+   ],
+   "why": "trained on 6 MIBiG polyether/polyene positives; fires on ionostatin in AS-XXX",
+   "test_status": "PASS",
+   "test_note": "fires on c1.1.r014 (ionostatin, 128kb KS=8) + 3 other large-PKS; validated on 6 training BGCs"
+  },
+  {
+   "id": "PK02",
+   "name": "trans-AT PKS (macrolactone)",
+   "cls": "transAT-PKS",
+   "target": "antibacterial",
+   "gate": [
+    "tra_KS",
+    "tra_AT/trans-AT_docking"
+   ],
+   "support": [
+    "Thioesterase",
+    "KS_modules"
+   ],
+   "rule": "trans-AT KS signature (tra_KS) present \u2014 count-independent",
+   "trap": "cis-AT modular PKS (use PK01)",
+   "pos": [
+    "marinolide(AJS327)"
+   ],
+   "why": "trans-AT systems have fewer discrete KS genes; gate on tra_KS motif NOT KS count",
+   "test_status": "PASS",
+   "test_note": "fires on c2.1.r006 (marinolide body, transAT) which PK01's KS>=5 count MISSED \u2014 this is the calibration fix"
+  },
+  {
+   "id": "DK01",
+   "name": "Diketopiperazine (CDPS / albonoursin-like)",
+   "cls": "CDPS",
+   "target": "various",
+   "gate": [
+    "CDPS(cyclodipeptide_synthase)"
+   ],
+   "support": [
+    "cyclodipeptide_oxidase",
+    "P450",
+    "methyltransferase"
+   ],
+   "rule": "CDPS domain present",
+   "trap": "NRPS-made DKPs (different machinery)",
+   "pos": [
+    "albonoursin",
+    "photopiperazine(AJS327)"
+   ],
+   "why": "CDPS is the discriminating tRNA-dependent DKP synthase",
+   "test_status": "PASS",
+   "test_note": "fires on c1.1.r001 (photopiperazine, CDPS) \u2014 clean single-domain gate"
+  },
+  {
+   "id": "HP01",
+   "name": "Halogenated pyrrole (pyrrolnitrin/chlorizidine-type)",
+   "cls": "halogenated",
+   "target": "antifungal/antibacterial",
+   "gate": [
+    "nonheme_halogenase",
+    "pyrrole/PltA-like"
+   ],
+   "support": [
+    "FAD_halogenase",
+    "adenylation",
+    "prolyl-ACP"
+   ],
+   "rule": "halogenase + pyrrole-forming machinery",
+   "trap": "halogenase alone (WH02 catches those broadly)",
+   "pos": [
+    "pyrrolnitrin",
+    "chlorizidine",
+    "tetrachlorizine(AJS327)"
+   ],
+   "why": "pyrrole + poly-halogenation is a defined bioactive scaffold",
+   "test_status": "PASS",
+   "test_note": "fires on c4.1.r003 (tetrachlorizine, polyhalogenated-pyrrole) \u2014 the confirmed known"
+  },
+  {
+   "id": "MT01",
+   "name": "Meroterpenoid (terpene-polyketide hybrid)",
+   "cls": "terpene",
+   "target": "various",
+   "gate": [
+    "terpene_cyclase",
+    "aromatic_prenyltransferase(UbiA/CloQ)"
+   ],
+   "support": [
+    "PKS-like",
+    "P450",
+    "FAD_monooxygenase"
+   ],
+   "rule": "terpene cyclase + aromatic prenyltransferase co-occurrence",
+   "trap": "pure terpene (geosmin, hopanoid); pure PKS",
+   "pos": [
+    "naphterpin",
+    "marinoterpin(AJS327)"
+   ],
+   "why": "mero = terpene fused to polyketide/aromatic; needs the prenyltransferase bridge",
+   "test_status": "REVIEW",
+   "test_note": "terpene regions found (c1.1.r010 etc) but prenyltransferase gate not yet HMM-confirmed; needs the aromatic-PT model"
+  },
+  {
+   "id": "NU01",
+   "name": "Nucleoside antibiotic",
+   "cls": "nucleoside",
+   "target": "antifungal/antibacterial",
+   "gate": [
+    "nucleoside_product",
+    "LipT/uridine-linked_enzymes"
+   ],
+   "support": [
+    "Aminotran",
+    "Glycos_transf",
+    "radical_SAM"
+   ],
+   "rule": "antiSMASH nucleoside class + tailoring",
+   "trap": "purine/pyrimidine primary metabolism",
+   "pos": [
+    "polyoxin",
+    "tunicamycin",
+    "nikkomycin"
+   ],
+   "why": "trained on polyoxin+tunicamycin; anti-chitin/cell-wall antifungals",
+   "test_status": "PASS(training)",
+   "test_note": "validated on polyoxin+tunicamycin training BGCs; AS-XXX has no nucleoside cluster (correct absence)"
+  },
+  {
+   "id": "LP01",
+   "name": "Lipopeptide (acylated NRPS)",
+   "cls": "NRPS",
+   "target": "antibacterial/antifungal",
+   "gate": [
+    "Condensation_starter|FAAL(fatty-acyl-AMP_ligase)"
+   ],
+   "support": [
+    "AMP-binding",
+    "Condensation_LCL/DCL",
+    "PCP",
+    "fatty_acid/FkbH",
+    "TE"
+   ],
+   "rule": "NRPS C-A-PCP modules + N-terminal fatty-acyl loading (starter C or FAAL)",
+   "trap": "plain NRPS with no acyl starter; siderophore NRPS (use EC01)",
+   "pos": [
+    "daptomycin",
+    "surfactin",
+    "friulimicin",
+    "orfamide",
+    "viscosin",
+    "CDA"
+   ],
+   "why": "acyl chain + cyclic peptide = membrane-active; anti-MRSA (daptomycin) & antifungal (iturin)",
+   "test_status": "NEW",
+   "test_note": "to be tested on attine strains"
+  },
+  {
+   "id": "LP02",
+   "name": "Glycolipopeptide / acidic lipopeptide (Ca2+-dependent)",
+   "cls": "NRPS",
+   "target": "antibacterial",
+   "gate": [
+    "Condensation_starter",
+    "Asp/Glu-rich_A-domains"
+   ],
+   "support": [
+    "fatty-acyl",
+    "glycosyltransferase",
+    "TE_cyclization"
+   ],
+   "rule": "acyl-NRPS with acidic residues (Ca-binding) + optional sugar",
+   "trap": "neutral lipopeptides (LP01 covers those)",
+   "pos": [
+    "daptomycin",
+    "A54145",
+    "CDA",
+    "friulimicin"
+   ],
+   "why": "calcium-dependent antibiotics (CDA family); the daptomycin class, anti-Gram-positive",
+   "test_status": "NEW",
+   "test_note": "A54145 was a MIBiG anchor in AS-XXX KCB \u2014 trainable"
+  }
+ ]
+}

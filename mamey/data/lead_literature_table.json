@@ -1,0 +1,48 @@
+{
+  "_README": "Per-class biochemistry crosswalk for §31 of the clean-sheet lead page. Each row: established biochemistry (author-year; DOI to VERIFY against the project library) -> the kind of locus evidence that maps to it -> the allowed (claim-safe) conclusion. Class keys are matched by the generator from CCTT triggers + dominant convergence compound + antiSMASH products. Cite at family-logic level; comparators are similarity, not identity.",
+  "PTM_HSAF": [
+    ["A single hybrid PKS-NRPS loads an ornithine unit and builds the polyene acyl chain; the terminal TE releases the tetramic-acid macrolactam (HSAF, Lysobacter; Yu/Zaleta-Rivera/Du, AAC 2007; Lou et al., JACS 2011).", "hybrid PKS-NRPS core with an Orn-predicted A-domain + TE", "HSAF-type tetramate-macrolactam backbone capacity"],
+    ["The ikarugamycin IkaABC set is the minimal 3-gene PTM system: hybrid PKS-NRPS + two oxidoreductases performing oxidative C-C cyclization (Zhang/Tang-lab ikarugamycin studies).", "tandem FAD Amino_oxidase genes flanking the core", "polycyclic-ring oxidative-cyclization capacity; ring topology unknown"],
+    ["A sterol-desaturase/FA-hydroxylase tailors HSAF ring oxidation, distinguishing HSAF-type from des-oxy congeners.", "FA_hydroxylase adjacent to the oxidoreductase pair", "ring-oxidation tailoring capacity; oxidation state unproven"]
+  ],
+  "GPA_glycopeptide": [
+    ["Glycopeptide (vancomycin/teicoplanin/balhimycin) aglycone assembly requires crosslinking cytochrome-P450 (OxyA/B/C) oxidative phenol couplings on an NRPS heptapeptide (Suessmuth/Robinson reviews).", ">=3 clustered crosslinking Oxy-P450 on an NRPS heptapeptide", "crosslinked-GPA aglycone capacity; exact residues unresolved"],
+    ["Non-proteinogenic residues Dpg (DpgA-D) and Hpg (HmaS/Hmo) are hallmark GPA building blocks.", "Dpg operon + Hpg machinery in-cluster", "GPA building-block supply capacity"],
+    ["VanHAX-type D-Ala-D-Lac remodeling confers producer self-resistance in GPA clusters.", "vanH/vanA/vanX co-located", "target-based self-resistance prior (not a measured phenotype)"]
+  ],
+  "enediyne": [
+    ["Enediyne cores are built by an iterative PKSE (ene_KS) warhead synthase plus a dedicated tailoring/self-resistance cassette (Shen-lab calicheamicin/C-1027 studies).", "ene_KS / PKSE warhead synthase present", "enediyne warhead-class capacity; 9- vs 10-membered unresolved"],
+    ["An apoprotein and self-sacrificing resistance protein co-occur with enediyne warheads.", "co-located apoprotein / resistance gene", "self-protection prior consistent with a cytotoxic warhead"]
+  ],
+  "phosphonate": [
+    ["Phosphonate C-P bonds are committed by PEP mutase (PepM), the diagnostic first step, followed by phosphonopyruvate decarboxylase (fosfomycin/dehydrophos/rhizocticin; Metcalf/van der Donk studies).", "intrinsic PepM (PEP-mutase) core", "C-P-bond phosphonate warhead capacity; product unresolved"],
+    ["Phosphonopeptides (rhizocticin/plumbemycin) target threonine synthase/AHAS (antifungal); phosphono-antibiotics (fosfomycin) target MurA.", "phosphonate core +/- peptide-coupling module", "dual antibacterial/antifungal capacity prior; screen both panels"]
+  ],
+  "PBD_pyrrolobenzodiazepine": [
+    ["Pyrrolobenzodiazepines (tomaymycin/anthramycin/sibiromycin) are NRPS-derived; an anthranilate-processing + dioxygenase/oxidase tailoring set builds the PBD scaffold; tomA is essential (Thomas/Hurley studies).", "NRPS module + anthranilate/PBD-diagnostic tailoring (Amino_oxidase, PhzC-PhzF)", "PBD-scaffold-class capacity (rare class); DNA minor-groove-alkylator family prior"]
+  ],
+  "lanthipeptide": [
+    ["Class I lanthipeptides are matured by LanB (dehydratase) + LanC (cyclase) on a ribosomal LanA precursor; class II by a bifunctional LanM (Van der Donk lanthipeptide studies).", "LanB+LanC (or LanM) with an in-window precursor CDS", "lanthipeptide RiPP maturation capacity; precursor/product unresolved"]
+  ],
+  "thioamitide_thioamide": [
+    ["Thioamitides (thioviridamide-like) install thioamide bonds via a YcaO + TfuA pair on a ribosomal precursor (Mitchell/Truman thioamide studies).", "YcaO + TfuA co-located", "thioamide-RiPP capacity; precursor/product unresolved"]
+  ],
+  "siderophore": [
+    ["Hydroxamate/catecholate siderophores (desferrioxamine/coelichelin/mirubactin) are built by NIS synthetases (IucA/IucC) or NRPS with iron-chelating residues (Challis siderophore studies).", "IucA/IucC (NIS) or NRPS with chelator residues", "iron-chelation siderophore capacity; exact chelator unresolved"]
+  ],
+  "aminoglycoside": [
+    ["2-deoxystreptamine aminoglycosides commit via 2-deoxy-scyllo-inosose synthase (DOIS/BtrC); tailoring aminotransferases/dehydratases follow (Spencer/Llewellyn studies).", "DOIS (2-deoxy-scyllo-inosose synthase) present", "aminoglycoside-class capacity; scaffold unresolved"]
+  ],
+  "modular_PKS_macrolide": [
+    ["Modular type-I PKS assembles polyketides by successive KS-AT-(DH-ER-KR)-ACP modules; a macrolactonizing TE releases macrolides (Cane/Khosla PKS studies).", "multi-module KS-AT-KR-DH-ACP with a TE", "modular polyketide backbone capacity; module count a lower bound if edge-truncated"]
+  ],
+  "NRPS_generic": [
+    ["Modular NRPS activates and condenses amino acids via C-A-PCP modules; A-domain Stachelhaus codes predict substrate at similarity level only (Marahiel/Gulick NRPS studies; Miller & Gulick 2016).", "C-A-PCP module set with A-domain substrate predictions", "nonribosomal peptide backbone capacity; substrate calls are predictions, not biochemistry"]
+  ],
+  "terpene": [
+    ["Terpene skeletons form via a class-I/II terpene cyclase acting on prenyl-diphosphate precursors; many actinomycete terpene loci are housekeeping (hopene/geosmin) (Dickschat terpene studies).", "terpene cyclase +/- prenyl synthase", "terpenoid capacity; default Inventory unless a non-housekeeping tailoring cassette is present"]
+  ],
+  "GENERIC": [
+    ["antiSMASH KnownClusterBlast/MIBiG similarity indicates pathway-family relatedness and does NOT establish production of the named compound; manual verification is required (antiSMASH 7, Blin et al., NAR 2023, DOI:10.1093/nar/gkad344).", "region-level MIBiG/KCB anchor", "class/pathway-family capacity only; not compound identity"]
+  ]
+}

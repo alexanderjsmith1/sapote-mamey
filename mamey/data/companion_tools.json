@@ -1,0 +1,540 @@
+{
+ "_comment": "Machine-readable registry of EXTERNAL companion tools for the Sapote-Mamey analysis workflow. DESIGN DECISION: these tools are DETECTED, not BUNDLED. The Mamey offline core (deterministic extraction, judgment deferred) installs and runs with no network and no companion tool present. This file lets a new user (and `mamey doctor --companions`) discover which optional downstream tools are installed, what each one consumes/produces relative to a sealed Mamey package, and exactly how to obtain it on their platform. It NEVER makes any tool a requirement. Edit THIS file; mamey/companion_tools.py loads it and tests/test_companion_tools_registry.py guards it. Versions/commands were confirmed on macOS-arm64 (miniconda3, Python 3.13) on 2026-07-20; see docs/companion_tools.md for the human-readable guide.",
+ "schema_version": "1.0",
+ "detected_not_bundled": true,
+ "offline_core_preserved": true,
+ "categories": [
+  "upstream-input",
+  "BGC-detection",
+  "GCF-clustering",
+  "synteny",
+  "figure",
+  "phylogenomics"
+ ],
+ "install_method_fields": {
+  "conda": "bioconda / conda-forge channel install",
+  "pip": "PyPI wheel or sdist",
+  "binary": "prebuilt platform binary or source build (not pip/conda)"
+ },
+ "tools": [
+  {
+   "id": "antismash",
+   "name": "antiSMASH",
+   "category": "upstream-input",
+   "requirement": "REQUIRED-upstream",
+   "purpose": "Genome-mining annotation engine that detects biosynthetic gene cluster (BGC) regions; its output ZIP is the primary input to the entire Sapote-Mamey pipeline.",
+   "consumes": "Genome assembly (nucleotide FASTA / GenBank).",
+   "produces": "antiSMASH output ZIP containing per-region GBKs (*.regionNNN.gbk), region JSON, and KnownClusterBlast/RiQ/Pfam/TIGRFAM evidence \u2014 the exact ZIP Mamey `run --input-zip` parses.",
+   "mamey_io": {
+    "feeds_mamey": true,
+    "mamey_input": "run --input-zip AS-XXX.zip",
+    "consumes_mamey_output": null
+   },
+   "install": [
+    {
+     "platform": "linux",
+     "methods": [
+      "conda",
+      "binary"
+     ],
+     "command": "conda install -n antismash -c bioconda antismash && download-antismash-databases",
+     "reference_db": "antiSMASH databases (~9 GB: Pfam/TIGRFAM/ClusterBlast/Resfams)",
+     "notes": "Heavyweight; a Docker image (antismash/standalone) is the common route. Not installable inside the offline Mamey core."
+    },
+    {
+     "platform": "macos-arm64",
+     "methods": [
+      "binary"
+     ],
+     "command": "docker run --rm antismash/standalone-lite <in> <out>  # or use the antiSMASH web server",
+     "reference_db": "bundled in Docker image / downloaded on first run",
+     "notes": "No native osx-arm64 conda build tracked; use Docker or the public web server (https://antismash.secondarymetabolites.org)."
+    }
+   ],
+   "detection": {
+    "command": "antismash --version",
+    "expected_version": "7.x",
+    "version_verified": null,
+    "verify_flag": true
+   },
+   "network_required": true,
+   "reference_db_required": true
+  },
+  {
+   "id": "gecco",
+   "name": "GECCO",
+   "category": "BGC-detection",
+   "requirement": "optional",
+   "purpose": "Conditional-random-field de novo BGC caller; an antiSMASH-independent second opinion that catches novel/fragmented clusters rule-based tools miss.",
+   "consumes": "Genome assembly (nucleotide FASTA or GenBank).",
+   "produces": "Predicted cluster GBKs + a features/clusters TSV; use as a cross-check against Mamey's antiSMASH-derived inventory (2_inventory.csv).",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "genome assembly (same FASTA reconstructable from the antiSMASH JSON in the sealed package); cross-checks 2_inventory.csv"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "pip"
+     ],
+     "command": "pip install gecco-tool",
+     "reference_db": "~40 MB CRF model bundled in the wheel (no external DB)",
+     "notes": "Pulls arm64 wheels for pyhmmer/pyrodigal/scikit-learn/polars \u2014 no compiler needed."
+    }
+   ],
+   "detection": {
+    "command": "gecco --version",
+    "expected_version": "0.10.3",
+    "version_verified": "0.10.3",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": false
+  },
+  {
+   "id": "bigscape",
+   "name": "BiG-SCAPE",
+   "category": "GCF-clustering",
+   "requirement": "optional",
+   "purpose": "Clusters BGC regions into run-specific gene-cluster families (GCFs) and clans for cohort similarity analysis.",
+   "consumes": "Strain-prefixed antiSMASH region GBKs (one file per region).",
+   "produces": "GCF/clan assignments, portable locator-keyed tables, network/tree outputs, and an interactive HTML browser; no identity/activity/novelty claim.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": "additive GCF sidecar only; canonical reconciliation requires separate authorization",
+    "consumes_mamey_output": "antiSMASH region GBKs referenced by a sealed package and staged content-addressably"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "conda"
+     ],
+     "command": "conda create -n sapote-bigscape -c conda-forge -c bioconda bigscape",
+     "reference_db": "Pfam-A HMM database (~1.5 GB, press once with hmmpress); MIBiG reference set optional",
+     "notes": "Networked installation requires approval. Invoke the version-probed `bigscape` console executable directly with the `cluster` subcommand. Hash Pfam assets; MIBiG download/reference use is a separate approved action. Active contract: docs/LLM_COMPANION_TOOL_PROTOCOL.md."
+    }
+   ],
+   "detection": {
+    "command": "bigscape --version",
+    "expected_version": "2.0.3",
+    "version_verified": "2.0.3",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": true
+  },
+  {
+   "id": "cblaster",
+   "name": "cblaster",
+   "category": "GCF-clustering",
+   "requirement": "optional",
+   "purpose": "Finds co-located homologue clusters across genomes (remote NCBI BLAST or local DIAMOND); a targeted \"who else carries this BGC?\" query without a full BiG-SCAPE run.",
+   "consumes": "A query set of BGC protein FASTAs (e.g. a flagship BGC's CDS).",
+   "produces": "A cluster hit table + a session that pipes directly into clinker / plot_clusters for synteny figures.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "per-BGC protein FASTAs derivable from the region GBKs in the sealed package (source_gbk column of *_2b_bgc_crosswalk.csv)"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "pip"
+     ],
+     "command": "pip install cblaster",
+     "reference_db": "none for remote NCBI mode; optional local DIAMOND DB you build yourself",
+     "notes": "Remote mode needs network; local mode needs a DIAMOND DB. Use the cblaster console script (no `python -m cblaster`)."
+    }
+   ],
+   "detection": {
+    "command": "cblaster --version",
+    "expected_version": "1.4.0",
+    "version_verified": "1.4.0",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": false
+  },
+  {
+   "id": "clinker",
+   "name": "clinker",
+   "category": "synteny",
+   "requirement": "optional",
+   "purpose": "Generates gene-cluster synteny/alignment figures across a set of related BGC loci (interactive HTML + SVG).",
+   "consumes": "A directory of region GBKs (from one strain or across a GCF).",
+   "produces": "An interactive HTML synteny plot + static SVG for manuscripts / Mode-B cards.",
+   "mamey_io": {
+    "feeds_mamey": true,
+    "mamey_input": "clinker figures are attached to Mode-B / cohort deliverables (non-blocking, post-seal)",
+    "consumes_mamey_output": "region GBKs referenced by the source_gbk column of *_2b_bgc_crosswalk.csv, or staged via tools/bigscape_prep.py"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "pip"
+     ],
+     "command": "pip install clinker",
+     "reference_db": "none",
+     "notes": "Pure-Python; console script `clinker`."
+    }
+   ],
+   "detection": {
+    "command": "clinker --version",
+    "expected_version": "0.0.32",
+    "version_verified": "0.0.32",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": false
+  },
+  {
+   "id": "pygenomeviz",
+   "name": "pyGenomeViz",
+   "category": "figure",
+   "requirement": "optional",
+   "purpose": "Matplotlib genome/feature-track visualizer for scriptable, reproducible BGC locus figures (SVG/PDF export).",
+   "consumes": "GenBank or GFF (a region GBK, or a whole-genome record).",
+   "produces": "Publication BGC/genome track figures (alternative to hand-tweaking clinker SVGs).",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "region GBKs from the sealed package (source_gbk column of *_2b_bgc_crosswalk.csv)"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "pip"
+     ],
+     "command": "pip install pygenomeviz",
+     "reference_db": "none",
+     "notes": "Pure-Python; imports as `pygenomeviz` (no console-script version flag \u2014 detect by import)."
+    }
+   ],
+   "detection": {
+    "command": "python -c \"import pygenomeviz,sys; print(pygenomeviz.__version__)\"",
+    "expected_version": "1.7.0",
+    "version_verified": "1.7.0",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": false
+  },
+  {
+   "id": "pycirclize",
+   "name": "pyCirclize",
+   "category": "figure",
+   "requirement": "optional",
+   "purpose": "Circular (Circos-style) genome and comparative plots \u2014 whole-genome BGC location maps and cohort comparison rings.",
+   "consumes": "GenBank / tabular genome coordinates.",
+   "produces": "Circular genome figures for cohort and whole-genome BGC maps.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "BGC coordinates from *_2b_bgc_crosswalk.csv / 2_inventory.csv and the genome record"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "pip"
+     ],
+     "command": "pip install pycirclize",
+     "reference_db": "none",
+     "notes": "Pure-Python; imports as `pycirclize` (detect by import)."
+    }
+   ],
+   "detection": {
+    "command": "python -c \"import pycirclize,sys; print(pycirclize.__version__)\"",
+    "expected_version": "1.10.1",
+    "version_verified": "1.10.1",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": false
+  },
+  {
+   "id": "prodigal",
+   "name": "Prodigal",
+   "category": "phylogenomics",
+   "requirement": "optional",
+   "purpose": "Prokaryotic gene prediction; produces the protein/CDS calls that feed marker extraction for MLSA / phylogenomics.",
+   "consumes": "Genome assembly (nucleotide FASTA).",
+   "produces": "Protein FASTA (.faa) + nucleotide CDS (.ffn) used to recover phylogenetic marker loci.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "whole-genome FASTA reconstructed from the antiSMASH JSON inside the sealed package"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "conda",
+      "binary"
+     ],
+     "command": "conda install -c bioconda prodigal",
+     "reference_db": "none",
+     "notes": "Small C binary; also bundled by GToTree. Pure-Python binding available as pyrodigal (already in the Sapote add-ons)."
+    }
+   ],
+   "detection": {
+    "command": "prodigal -v",
+    "expected_version": "2.6.3",
+    "version_verified": "2.6.3",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": false,
+   "workflow_doc": "docs/phylogenomics.md"
+  },
+  {
+   "id": "muscle",
+   "name": "MUSCLE",
+   "category": "phylogenomics",
+   "requirement": "optional",
+   "purpose": "Multiple sequence alignment of marker loci prior to tree inference.",
+   "consumes": "Unaligned marker protein/nucleotide FASTA (e.g. per-locus MLSA sets).",
+   "produces": "A multiple sequence alignment (FASTA/AFA) for concatenation and tree building.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "marker loci extracted downstream of the sealed package (taxonomy layer)"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "conda",
+      "binary"
+     ],
+     "command": "conda install -c bioconda muscle",
+     "reference_db": "none",
+     "notes": "Single binary; bioconda builds osx-arm64."
+    }
+   ],
+   "detection": {
+    "command": "muscle -version",
+    "expected_version": "5.2",
+    "version_verified": "5.2",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": false,
+   "workflow_doc": "docs/phylogenomics.md"
+  },
+  {
+   "id": "iqtree",
+   "name": "IQ-TREE",
+   "category": "phylogenomics",
+   "requirement": "optional",
+   "purpose": "Maximum-likelihood phylogenetic tree inference with model selection and ultrafast bootstrap.",
+   "consumes": "A concatenated multiple sequence alignment (+ optional partition file).",
+   "produces": "A species / MLSA tree (.treefile) for taxonomy placement and cohort context.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "alignment built from marker loci recovered downstream of the sealed package"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "conda",
+      "binary"
+     ],
+     "command": "conda install -c bioconda iqtree",
+     "reference_db": "none",
+     "notes": "Binary invoked as `iqtree3` (or `iqtree`) in the phylo env; bioconda builds osx-arm64."
+    }
+   ],
+   "detection": {
+    "command": "iqtree3 --version",
+    "expected_version": "3.1.2",
+    "version_verified": "3.1.2",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": false,
+   "workflow_doc": "docs/phylogenomics.md"
+  },
+  {
+   "id": "fastani",
+   "name": "fastANI",
+   "category": "phylogenomics",
+   "requirement": "optional",
+   "purpose": "Fast whole-genome Average Nucleotide Identity for species delineation and cohort de-replication.",
+   "consumes": "Two or more genome assemblies (nucleotide FASTA).",
+   "produces": "Pairwise ANI values (%) + aligned fraction \u2014 the numeric basis for the ~95% species boundary.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "whole-genome FASTAs reconstructed from the antiSMASH JSON across a cohort of sealed packages"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "conda",
+      "binary"
+     ],
+     "command": "conda install -c bioconda fastani",
+     "reference_db": "none",
+     "notes": "C++/HDF5 binary; bioconda builds osx-arm64. skani (see below) is the newer, fragmentation-robust alternative."
+    }
+   ],
+   "detection": {
+    "command": "fastANI --version",
+    "expected_version": "1.34",
+    "version_verified": "1.34",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": false,
+   "workflow_doc": "docs/phylogenomics.md"
+  },
+  {
+   "id": "gtotree",
+   "name": "GToTree",
+   "category": "phylogenomics",
+   "requirement": "optional",
+   "purpose": "Turn-key genome phylogenomics: single-copy HMM marker sets to a concatenated species tree.",
+   "consumes": "A bounded, de-replicated set of local whole-genome assemblies; reference downloads are staged separately.",
+   "produces": "A marker alignment and sampled-panel phylogenomic placement; not formal taxonomy or species identity.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "whole-genome assemblies recovered source-preservingly from antiSMASH ZIPs"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "conda"
+     ],
+     "command": "conda create -n sapote-phylo -c conda-forge -c bioconda gtotree iqtree fastani ncbi-datasets-cli",
+     "reference_db": "bundled single-copy HMM sets (small); pulls HMMER/Prodigal/Muscle/etc.",
+     "notes": "Installation/upgrade requires approval and the Bioconda channel can change. Probe the resolved version/help. Run alignment with -j 1 -n 1 -M 1 -N; -B is optional and requires a multiplicity/paralogy audit. GToTree execution begins only after a user-approved size/resource preflight. Active contract: docs/LLM_COMPANION_TOOL_PROTOCOL.md."
+    }
+   ],
+   "detection": {
+    "command": "GToTree -v",
+    "expected_version": ">=1.8.16; verify installed help",
+    "version_verified": "1.8.16",
+    "verify_flag": false
+   },
+   "network_required": false,
+   "reference_db_required": false,
+   "workflow_doc": "docs/phylogenomics.md",
+   "battle_tested": "Used in this cohort's cross-genus core-genome placement (2026-07; confirmatory backbone over 6-locus MLSA)."
+  },
+  {
+   "id": "ncbi_datasets",
+   "name": "NCBI datasets",
+   "category": "phylogenomics",
+   "requirement": "optional",
+   "purpose": "Command-line client to fetch reference genomes/assemblies from NCBI for taxonomy comparison sets.",
+   "consumes": "NCBI accessions / taxon names.",
+   "produces": "Downloaded reference genome FASTAs used as the comparator panel for ANI and phylogenomics.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": null
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "conda",
+      "binary"
+     ],
+     "command": "conda install -c conda-forge ncbi-datasets-cli",
+     "reference_db": "none (fetches from NCBI on demand)",
+     "notes": "Network required at fetch time; the binary itself installs offline from conda-forge."
+    }
+   ],
+   "detection": {
+    "command": "datasets --version",
+    "expected_version": "18.33.1",
+    "version_verified": "18.33.1",
+    "verify_flag": false
+   },
+   "network_required": true,
+   "reference_db_required": false,
+   "workflow_doc": "docs/phylogenomics.md"
+  },
+  {
+   "id": "skani",
+   "name": "skani",
+   "category": "phylogenomics",
+   "requirement": "on-request",
+   "purpose": "Fast, fragmentation-robust ANI + aligned fraction (a fastANI successor) for de-replicating a large strain cohort.",
+   "consumes": "Genome assemblies / contigs (nucleotide FASTA).",
+   "produces": "Pairwise ANI + aligned fraction robust to draft-assembly fragmentation.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "whole-genome FASTAs reconstructed across a cohort of sealed packages"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "conda"
+     ],
+     "command": "conda install -c bioconda skani",
+     "reference_db": "none",
+     "notes": "ON REQUEST. Rust binary (not pip); bioconda now builds osx-arm64."
+    }
+   ],
+   "detection": {
+    "command": "skani --version",
+    "expected_version": "0.2.x",
+    "version_verified": null,
+    "verify_flag": true
+   },
+   "network_required": false,
+   "reference_db_required": false,
+   "workflow_doc": "docs/phylogenomics.md"
+  },
+  {
+   "id": "gtdbtk",
+   "name": "GTDB-Tk",
+   "category": "phylogenomics",
+   "requirement": "on-request",
+   "purpose": "Standardized genome taxonomy classification against the GTDB reference.",
+   "consumes": "Genome assemblies (nucleotide FASTA).",
+   "produces": "GTDB taxonomy assignments for placing novel Streptomyces / Pseudonocardia.",
+   "mamey_io": {
+    "feeds_mamey": false,
+    "mamey_input": null,
+    "consumes_mamey_output": "whole-genome FASTAs reconstructed from sealed packages"
+   },
+   "install": [
+    {
+     "platform": "any",
+     "methods": [
+      "conda"
+     ],
+     "command": "conda install -c bioconda gtdbtk  # then download the GTDB reference DB",
+     "reference_db": "GTDB reference database ~100 GB (HEAVY \u2014 violates the no-big-DB norm; decide before pulling)",
+     "notes": "ON REQUEST / heavy-DB. The tool installs from bioconda but the ~100 GB reference DB is a separate deliberate download."
+    }
+   ],
+   "detection": {
+    "command": "gtdbtk --version",
+    "expected_version": "2.x",
+    "version_verified": null,
+    "verify_flag": true
+   },
+   "network_required": true,
+   "reference_db_required": true,
+   "workflow_doc": "docs/phylogenomics.md"
+  }
+ ]
+}

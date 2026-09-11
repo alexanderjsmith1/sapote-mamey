@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sapote-mamey.local/schemas/optional_activity_predictions.schema.json",
+  "title": "Sapote-Mamey optional external activity predictions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_package_sha256",
+    "predictions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "sapote.optional_activity_predictions/1"
+    },
+    "source_package_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "predictions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/prediction"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "probability": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strain",
+        "bgc_id",
+        "contig_region",
+        "model_id",
+        "model_version",
+        "model_sha256",
+        "environment_sha256",
+        "feature_schema",
+        "feature_schema_sha256",
+        "input_package_sha256",
+        "antibacterial_probability",
+        "antifungal_probability",
+        "reference_threshold",
+        "activity_call",
+        "boundary_status",
+        "applicability_status",
+        "warning_codes",
+        "feature_receipt_sha256",
+        "run_timestamp_utc"
+      ],
+      "properties": {
+        "strain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bgc_id": {
+          "type": "string",
+          "pattern": "^BGC[0-9]+$"
+        },
+        "contig_region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "environment_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "feature_schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feature_schema_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "input_package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "antibacterial_probability": {
+          "$ref": "#/$defs/probability"
+        },
+        "antifungal_probability": {
+          "$ref": "#/$defs/probability"
+        },
+        "reference_threshold": {
+          "$ref": "#/$defs/probability"
+        },
+        "activity_call": {
+          "enum": [
+            "PREDICTED_POSITIVE",
+            "PREDICTED_NEGATIVE",
+            "HOLD"
+          ]
+        },
+        "boundary_status": {
+          "enum": [
+            "Interior",
+            "Edge",
+            "Full-contig",
+            "Unknown"
+          ]
+        },
+        "applicability_status": {
+          "enum": [
+            "IN_DOMAIN",
+            "LIMITED",
+            "OUT_OF_DOMAIN",
+            "FAILED"
+          ]
+        },
+        "warning_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_:-]+$"
+          }
+        },
+        "feature_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "run_timestamp_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "applicability_status": {
+                "enum": ["OUT_OF_DOMAIN", "FAILED"]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "antibacterial_probability": {"type": "null"},
+              "antifungal_probability": {"type": "null"},
+              "activity_call": {"const": "HOLD"}
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+

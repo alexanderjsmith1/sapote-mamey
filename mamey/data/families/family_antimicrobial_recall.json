@@ -1,0 +1,220 @@
+{
+  "schema_version": "family-amr-recall-0.1",
+  "note": "Compound-class family -> antimicrobial RECALL weights. Purpose: find antimicrobial BGCs the keyword scorer misses by using the resolved, own-evidence MIBiG anchor's known activity class. BOOST-ONLY: these weights can only RAISE ab_recall/af_recall above the keyword base, never lower it (see antimicrobial_recall.apply_recall). Non-antimicrobial families (cytotoxic-only, immunosuppressant, siderophore, pigment, signalling) carry ab=0/af=0 -> they contribute no boost and are left at keyword baseline (NOT penalised). ab/af are 0-1 capacity priors for the family's type compounds; the recall layer maps them to score targets. Calibrated against the 12-reference ground-truth panel (Jun 2026).",
+  "by_family": {
+    "polyene_macrolide": {
+      "ab": 0.05,
+      "af": 0.95
+    },
+    "macrolide": {
+      "ab": 0.7,
+      "af": 0.1
+    },
+    "macrolide_polyketide": {
+      "ab": 0.45,
+      "af": 0.3
+    },
+    "aromatic_polyketide_t2": {
+      "ab": 0.55,
+      "af": 0.1
+    },
+    "angucycline": {
+      "ab": 0.5,
+      "af": 0.1
+    },
+    "angucyclinone": {
+      "ab": 0.5,
+      "af": 0.1
+    },
+    "tetracycline": {
+      "ab": 0.9,
+      "af": 0.05
+    },
+    "aminoglycoside": {
+      "ab": 0.9,
+      "af": 0.05
+    },
+    "glycopeptide": {
+      "ab": 0.95,
+      "af": 0.05
+    },
+    "beta_lactam": {
+      "ab": 0.92,
+      "af": 0.0
+    },
+    "lanthipeptide": {
+      "ab": 0.78,
+      "af": 0.1
+    },
+    "lasso_peptide": {
+      "ab": 0.65,
+      "af": 0.1
+    },
+    "thiopeptide": {
+      "ab": 0.88,
+      "af": 0.05
+    },
+    "thioamide_ripp": {
+      "ab": 0.72,
+      "af": 0.1
+    },
+    "phenazine": {
+      "ab": 0.6,
+      "af": 0.45
+    },
+    "prodiginine": {
+      "ab": 0.45,
+      "af": 0.3
+    },
+    "ansamycin": {
+      "ab": 0.8,
+      "af": 0.1
+    },
+    "nucleoside": {
+      "ab": 0.35,
+      "af": 0.82
+    },
+    "aminocoumarin": {
+      "ab": 0.85,
+      "af": 0.05
+    },
+    "pyrrole_bipyrrole": {
+      "ab": 0.55,
+      "af": 0.3
+    },
+    "tetronate": {
+      "ab": 0.72,
+      "af": 0.15
+    },
+    "lipopeptide": {
+      "ab": 0.8,
+      "af": 0.3
+    },
+    "lipopeptide_cda": {
+      "ab": 0.85,
+      "af": 0.1
+    },
+    "benanomicin_aromatic": {
+      "ab": 0.2,
+      "af": 0.8
+    },
+    "aurodox_elfamycin": {
+      "ab": 0.85,
+      "af": 0.05
+    },
+    "hsaf_ptm": {
+      "ab": 0.15,
+      "af": 0.9
+    },
+    "polyether_ionophore": {
+      "ab": 0.8,
+      "af": 0.1
+    },
+    "enediyne": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "anthracycline": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "indolocarbazole": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "indole_alkaloid": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "macrodiolide_oxazole": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "tambjamine_bipyrrole": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "immunosuppressant_macrolide": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "cyclic_depsipeptide_antitumor": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "siderophore": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "isocyanide": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "ectoine": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "melanin": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "carotenoid": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "butyrolactone": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "sesquiterpene": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "diterpene": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "monoterpene": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "triterpene": {
+      "ab": 0.0,
+      "af": 0.0
+    },
+    "benzoxazole": {
+      "ab": 0.85,
+      "af": 0.15
+    },
+    "spirotetronate": {
+      "ab": 0.8,
+      "af": 0.15
+    },
+    "antifungal_macrolide": {
+      "ab": 0.15,
+      "af": 0.85
+    }
+  },
+  "family_overrides_by_accession": {
+    "BGC0001011": "immunosuppressant_macrolide",
+    "BGC0001013": "immunosuppressant_macrolide",
+    "BGC0001012": "immunosuppressant_macrolide",
+    "BGC0001042": "immunosuppressant_macrolide",
+    "BGC0000999": "hsaf_ptm",
+    "BGC0002526": "polyether_ionophore",
+    "BGC0000985": "cyclic_depsipeptide_antitumor",
+    "BGC0002141": "macrodiolide_oxazole",
+    "BGC0001444": "benzoxazole",
+    "BGC0001213": "benzoxazole",
+    "BGC0001292": "benzoxazole",
+    "BGC0002540": "polyene_macrolide",
+    "BGC0002454": "antifungal_macrolide",
+    "BGC0002550": "spirotetronate",
+    "BGC0000028": "antifungal_macrolide"
+  },
+  "pigment_name_markers": [
+    "spore pigment",
+    "whie",
+    "spore-pigment"
+  ]
+}

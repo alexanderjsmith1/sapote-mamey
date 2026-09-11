@@ -1,0 +1,27 @@
+Sapote-Mamey — third-party data notices
+========================================
+
+The Sapote-Mamey code is licensed under the terms in LICENSE (MIT) and the
+documentation under LICENSE-DOCS.txt (CC-BY-4.0). The bundled reference data
+below is redistributed from public sources; none of it imposes a redistribution
+restriction, but attribution and citation are provided as a courtesy and to help
+downstream users cite the original sources in their own work.
+
+1. Curated Pfam HMM set — NOT bundled (operator-provisioned; see docs/EXTERNAL_ASSETS_GUIDE.md)
+   A 35-family subset of Pfam-A (models plus curated gathering cutoffs; see
+   Wheelhouse/hmm/SCANNER_PFAM_MANIFEST.md for the family list and SHA256).
+   Pfam is distributed under the Creative Commons Zero (CC0 1.0) public-domain
+   dedication by EMBL-EBI / InterPro (https://www.ebi.ac.uk/interpro/). No rights
+   reserved. Pfam is powered by the HMMER3 package (Sean Eddy and group, HHMI /
+   Harvard University; https://hmmer.org), which is not distributed here — only
+   the CC0 model data is.
+   If you use Pfam in published work, please cite the current Pfam / InterPro
+   publication (see https://www.ebi.ac.uk/interpro/).
+
+2. Micromonospora humida test fixture — tests/fixtures/micromonospora_humida_JAFEUC01.zip
+   antiSMASH region GenBank output derived from the public Micromonospora humida
+   genome assembly, GenBank/NCBI accession JAFEUC010000000 (contig JAFEUC01).
+   Public genome data; used solely as a class-architecture regression fixture.
+
+No third-party data in this repository is under a copyleft or share-alike license,
+and none requires a fee or permission to redistribute.

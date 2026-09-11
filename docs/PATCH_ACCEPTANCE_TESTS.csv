@@ -1,0 +1,9 @@
+test,expected,details
+top30_over_100k_is_split,PASS,"30 proteins / 128,778 residues must not be emitted as one NCBI web batch"
+batch2_fills_with_rank31_plus,PASS,Batch 2 should continue beyond rank 30 until target residue cap
+hard_cap_100k,PASS,"No emitted NCBI web batch exceeds 100,000 residues"
+default_target_85k,PASS,"Primary batches target about 85,000 residues"
+extra_safe_50k,PASS,Alternative 50k residue batches emitted
+trial_first_readme,PASS,README instructs user to run Batch A first and upload results
+manifest_has_lengths,PASS,Manifest includes protein_length_aa/residue_count/batch_residue_total
+deferred_prospecting,PASS,Later batches are not recommended before first results

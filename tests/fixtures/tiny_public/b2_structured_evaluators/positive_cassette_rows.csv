@@ -1,0 +1,10 @@
+fixture,bgc_id,locus_tag,product,class_context,expected_support,expected_caution
+nucleoside_positive,BGC001,nucA,NikJ-like radical SAM nucleoside biosynthetic enzyme,nucleoside peptidyl-nucleoside polyoxin-like,SMC-001,
+phosphonate_positive,BGC002,phoA,PepM phosphoenolpyruvate mutase,phosphonate,SMC-002,
+phosphonate_positive,BGC002,phoB,FomA phosphonate self-protection kinase,phosphonate self-protection,SMC-002,
+aminocyclitol_positive,BGC003,amcA,BtrC 2-deoxy-scyllo-inosose synthase,aminocyclitol aminoglycoside,SMC-004,
+tetronate_positive,BGC004,tetA,FkbH glyceryl transferase 3-phosphoglycerate loading enzyme,tetronate spirotetronate,SMC-009,
+tetronate_positive,BGC004,tetB,dedicated ACP acyl carrier protein,tetronate spirotetronate,SMC-009,
+thioamitide_positive,BGC005,thiA,YcaO cyclodehydratase enzyme,RiPP thioamitide thioamide,SMC-013,
+thioamitide_positive,BGC005,thiB,TfuA thioamide biosynthesis protein,RiPP thioamitide thioamide,SMC-013,
+self_protection_positive,BGC006,resA,ABC-F ribosomal protection resistance protein,macrolide ribosome-targeting BGC self-protection,SMC-016,

@@ -1,0 +1,15 @@
+# FUNGAL_OUTGROUP_REGISTRY.tsv — decided outgroups for fungal phylogenetic trees, so rooting is reproducible.
+# Sibling of mamey/data/outgroup_registry.tsv (bacterial). THE RULE: a family tree roots on a sister-family
+# genus one rank out; never a distant taxon; the outgroup genus must not also appear in the ingroup.
+# All accessions REAL (NCBI). status: LOCKED = decided/verified; CONFIRM = real accession, verify representativeness.
+tree_scope	ingroup_taxon	order	outgroup_genus	outgroup_species_strain	marker_accession	status	rationale
+family	Trichomeriaceae	Chaetothyriales	Exophiala	Exophiala salmonis CBS 157.67	NG_061119.1	LOCKED	sister family Herpotrichiellaceae (18S/LSU); alt Cyphellophora laciniata NG_064890.1
+family	Herpotrichiellaceae	Chaetothyriales	Cyphellophora	Cyphellophora laciniata MUCL 9569	NG_064890.1	CONFIRM	within-order sister family; alt Trichomeriaceae for reciprocal trees
+order	Chaetothyriales	Chaetothyriales	Dothidea	Dothidea insculpta CBS 189.58	NG_027644.1	CONFIRM	sister class Dothideomycetes (deep outgroup for an order-wide tree)
+# --- v9.7.406: GENOME-scale outgroups (the rows above are rDNA marker accessions; a genome tree
+# --- needs an assembly accession, not an NG_ marker). All verified by use in a real MLSA run.
+genome	Trichomeriaceae	Chaetothyriales	Exophiala	Exophiala dermatitidis NIH/UT8656	GCF_000230625.1	LOCKED	genome-scale sister-family outgroup; compleasm S=98.76%; used to root the Chaetothyriales wasp-comparator MLSA (2026-09-03)
+genome	Trichomeriaceae	Chaetothyriales	Cyphellophora	Cyphellophora europaea CBS 101466	GCF_000365145.1	CONFIRM	alternate genome outgroup; compleasm S=97.81%; NOTE branch was 53% of depth in a 7-taxon test — usable but distant
+genome	Trichomeriaceae	Chaetothyriales	Capronia	Capronia semi-immersa	GCA_016110215.1	CONFIRM	third Herpotrichiellaceae genome; compleasm S=98.41%; NOT a registry-preferred choice, recorded because it was used before the rule below was written
+# --- BANNED comparators: do not use as outgroup or ingroup reference.
+BANNED	-	Chaetothyriales	Coniosporium	[Coniosporium] apollinis CBS 100218	GCF_000281105.1	BANNED	polyphyletic FORM-GENUS (NCBI itself brackets the name). Assembly is excellent (compleasm S=99.58%) but the branch was 0.946 = 79% of tree depth in an 8-taxon test and tripped tree_sanity_check. A high-quality assembly of a taxonomically incoherent genus is still a bad comparator.

@@ -1,0 +1,35 @@
+{
+  "n_domains": 17,
+  "domain_names": [
+    "ACP",
+    "AMP-binding",
+    "Condensation_LCL",
+    "DUF1234",
+    "DUF5678",
+    "FhuD",
+    "IucA_IucC",
+    "LANC_like",
+    "Lant_dehydr_N",
+    "PCP",
+    "PKS_AT",
+    "PKS_DH",
+    "PKS_KR",
+    "PKS_KS",
+    "TPR_2",
+    "TonB",
+    "YcaO"
+  ],
+  "role_counts": {
+    "NRPS A-domain / loading": 1,
+    "NRPS condensation": 1,
+    "Carrier protein / PP-binding": 1,
+    "PKS ketosynthase": 1,
+    "PKS acyltransferase/loading": 1,
+    "PKS reductive loop": 2,
+    "ACP / acyl carrier": 1,
+    "Lanthipeptide maturation": 2,
+    "Azole/crocagin/RiPP tailoring": 1,
+    "Siderophore uptake/export": 3,
+    "Unknown/repeat/accessory": 3
+  }
+}

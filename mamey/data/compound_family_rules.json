@@ -1,0 +1,1253 @@
+{
+ "_schema": "compound_family_rules/v1",
+ "_note": "Ordered substring rule table: first key match (case-insensitive substring of the KCB/MIBiG anchor compound name) wins. target_class is a class-level ENCODED-CAPACITY prior from the family's known literature bioactivity, NEVER a claim the strain makes an active compound. AF=antifungal AB=antibacterial. Judgment deferred.",
+ "_provenance": "externalized from reference_impl/compound_family.py (WHOLE_COHORT_ANALYSIS_2026-07-29) | +42 curated rules (BLIZZARD_BLUE_01 v2, 2026-08-03) rebased on v9.7.348; every added rule carries an `evidence` receipt; shipped 38 preserved verbatim.",
+ "target_class_order": [
+  "AF",
+  "AF/AB",
+  "AF/cytotoxic",
+  "AB",
+  "AB/cytotoxic",
+  "AB(weak)/housekeeping",
+  "cytotoxic/AB",
+  "cytotoxic",
+  "siderophore",
+  "housekeeping",
+  "other"
+ ],
+ "rules": [
+  {
+   "keys": [
+    "nystatin",
+    "candicidin",
+    "filipin",
+    "amphotericin",
+    "pimaricin",
+    "natamycin",
+    "eurocidin",
+    "primycin",
+    "notonesomycin",
+    "neomediomycin",
+    "desertomycin",
+    "niphimycin",
+    "azalomycin",
+    "guanidylfungin",
+    "marinisporolide",
+    "selvamicin",
+    "partricin"
+   ],
+   "family": "Polyene / guanidyl-polyol macrolide",
+   "target_class": "AF",
+   "moa": "binds ergosterol -> membrane permeabilisation / ion leakage (classic antifungal)"
+  },
+  {
+   "keys": [
+    "reveromycin"
+   ],
+   "family": "Reveromycin (spiroketal polyketide)",
+   "target_class": "AF",
+   "moa": "inhibits fungal isoleucyl-tRNA synthetase; osteoclast-active"
+  },
+  {
+   "keys": [
+    "hexacosalactone"
+   ],
+   "family": "Macrolactone (hexacosalactone-type)",
+   "target_class": "AF",
+   "moa": "large-ring polyketide macrolactone; antifungal-leaning family"
+  },
+  {
+   "keys": [
+    "frontalamide",
+    "maltophilin",
+    "heronamide",
+    "ikarugamycin",
+    "HSAF",
+    "clifednamide",
+    "combamide",
+    "capsimycin",
+    "xanthobaccin"
+   ],
+   "family": "Polycyclic tetramate macrolactam (HSAF/PTM)",
+   "target_class": "AF",
+   "moa": "tetramate macrolactam; membrane/heat-shock antifungal chemotype"
+  },
+  {
+   "keys": [
+    "vancomycin",
+    "teicoplanin",
+    "balhimycin",
+    "chloroeremomycin",
+    "A47934",
+    "A40926",
+    "ristocetin",
+    "kistamicin",
+    "complestatin",
+    "corbomycin",
+    "keratinimicin",
+    "UK-68",
+    "pekiskomycin",
+    "feglymycin",
+    "GP6738"
+   ],
+   "family": "Glycopeptide antibiotic (GPA)",
+   "target_class": "AB",
+   "moa": "binds D-Ala-D-Ala of lipid II -> blocks peptidoglycan transglyc/transpeptidation"
+  },
+  {
+   "keys": [
+    "enduracidin",
+    "ramoplanin",
+    "enduracididine"
+   ],
+   "family": "Enduracidin/ramoplanin lipodepsipeptide (GPA-relative)",
+   "target_class": "AB",
+   "moa": "sequesters lipid II / MurG substrate -> cell-wall synthesis block"
+  },
+  {
+   "keys": [
+    "CDA",
+    "A54145",
+    "daptomycin",
+    "glycinocin",
+    "friulimicin",
+    "amphomycin",
+    "laspartomycin",
+    "tsushimycin"
+   ],
+   "family": "Calcium-dependent acidic lipopeptide",
+   "target_class": "AB",
+   "moa": "Ca-dependent membrane insertion/depolarisation (daptomycin-class)"
+  },
+  {
+   "keys": [
+    "paromomycin",
+    "neomycin",
+    "kanamycin",
+    "apramycin",
+    "gentamicin",
+    "streptomycin",
+    "tobramycin",
+    "ribostamycin",
+    "butirosin",
+    "2-deoxystreptamine"
+   ],
+   "family": "Aminoglycoside",
+   "target_class": "AB",
+   "moa": "binds 16S rRNA A-site (30S) -> mistranslation"
+  },
+  {
+   "keys": [
+    "chlortetracycline",
+    "oxytetracycline",
+    "tetracycline",
+    "SF2575",
+    "chelocardin"
+   ],
+   "family": "Tetracycline / atypical tetracycline",
+   "target_class": "AB",
+   "moa": "binds 30S ribosome -> blocks aminoacyl-tRNA (SF2575 also DNA-active)"
+  },
+  {
+   "keys": [
+    "prejadomycin",
+    "rabelomycin",
+    "gaudimycin",
+    "UWM6",
+    "jadomycin",
+    "kinamycin",
+    "frankiamicin",
+    "fluostatin",
+    "dehydrorabelomycin",
+    "gilvocarcin",
+    "chrysomycin",
+    "BE-7585"
+   ],
+   "family": "Angucycline / aromatic type II PKS",
+   "target_class": "AB/cytotoxic",
+   "moa": "aromatic polyketide; DNA-interactive / redox; often antibacterial+antitumour"
+  },
+  {
+   "keys": [
+    "xantholipin",
+    "rishirilide",
+    "napyradiomycin",
+    "merochlorin",
+    "naphthocyclinone",
+    "actinorhodin",
+    "granaticin",
+    "medermycin",
+    "hedamycin",
+    "lomaiviticin"
+   ],
+   "family": "Aromatic PKS / meroterpenoid quinone",
+   "target_class": "AB/cytotoxic",
+   "moa": "quinone/meroterpenoid aromatic PKS; redox-active, DNA-interactive"
+  },
+  {
+   "keys": [
+    "rifamycin",
+    "kendomycin",
+    "mycotrienin",
+    "ansatrienin",
+    "herbimycin",
+    "geldanamycin",
+    "naphthomycin",
+    "trienomycin",
+    "ansamitocin",
+    "divergolide",
+    "hygrocin",
+    "autolytimycin"
+   ],
+   "family": "Ansamycin",
+   "target_class": "AB/cytotoxic",
+   "moa": "macrocyclic ansa polyketide; rifamycin=RNA-pol, benzoquinone-type=Hsp90/cytotoxic"
+  },
+  {
+   "keys": [
+    "neocarzinostatin",
+    "kedarcidin",
+    "C-1027",
+    "calicheamicin",
+    "dynemicin",
+    "maduropeptin",
+    "sporolide",
+    "cyanosporaside",
+    "esperamicin",
+    "uncialamycin",
+    "tiancimycin",
+    "yangpumicin"
+   ],
+   "family": "Enediyne",
+   "target_class": "cytotoxic/AB",
+   "moa": "radical DNA strand cleavage (9- or 10-membered enediyne warhead); potent antitumour antibiotic"
+  },
+  {
+   "keys": [
+    "siomycin",
+    "thiostrepton",
+    "nosiheptide",
+    "GE2270",
+    "thiopeptin",
+    "berninamycin",
+    "micrococcin",
+    "geninthiocin",
+    "radamycin",
+    "nocathiacin"
+   ],
+   "family": "Thiopeptide (azole-containing RiPP)",
+   "target_class": "AB",
+   "moa": "binds 50S/L11 or EF-Tu -> blocks translation (Gram+ selective)"
+  },
+  {
+   "keys": [
+    "aborycin",
+    "microcin J25",
+    "capistruin",
+    "lariatin",
+    "siamycin",
+    "RP-1776",
+    "propeptin"
+   ],
+   "family": "Lasso peptide",
+   "target_class": "AB",
+   "moa": "threaded knot RiPP; RNA-polymerase or membrane inhibition"
+  },
+  {
+   "keys": [
+    "venezuelin",
+    "nisin",
+    "mersacidin",
+    "actagardine",
+    "microbisporicin",
+    "NAI-107",
+    "lanthipeptide",
+    "cinnamycin",
+    "duramycin",
+    "catenulipeptin",
+    "SapB"
+   ],
+   "family": "Lanthipeptide",
+   "target_class": "AB",
+   "moa": "lipid II binding / pore formation (many); SapB=morphogenetic surfactant"
+  },
+  {
+   "keys": [
+    "thiolutin",
+    "holomycin",
+    "aureothricin"
+   ],
+   "family": "Dithiolopyrrolone (pyrrothine)",
+   "target_class": "AB",
+   "moa": "inhibits RNA polymerase; broad-spectrum incl. antifungal"
+  },
+  {
+   "keys": [
+    "nonactin",
+    "monactin",
+    "dinactin",
+    "trinactin",
+    "tetranactin",
+    "tetronasin",
+    "tetronomycin",
+    "monensin",
+    "salinomycin",
+    "nigericin",
+    "lasalocid",
+    "nanchangmycin"
+   ],
+   "family": "Polyether / macrotetrolide ionophore",
+   "target_class": "AB",
+   "moa": "cation transport across membranes; anticoccidial/antibacterial"
+  },
+  {
+   "keys": [
+    "phenazine",
+    "diastaphenazine",
+    "izumiphenazine",
+    "endophenazine",
+    "lomofungin"
+   ],
+   "family": "Phenazine",
+   "target_class": "AB",
+   "moa": "redox cycling -> reactive oxygen; broad antibacterial/antifungal"
+  },
+  {
+   "keys": [
+    "pyrrolomycin",
+    "pyoluteorin",
+    "chlorizidine",
+    "tetrachlorizine",
+    "marinopyrrole",
+    "pentabromo",
+    "chlorizid"
+   ],
+   "family": "Halogenated pyrrole",
+   "target_class": "AB",
+   "moa": "halo-pyrrole; membrane/redox antibacterial"
+  },
+  {
+   "keys": [
+    "lankacidin"
+   ],
+   "family": "Lankacidin (17-membered macrolide)",
+   "target_class": "AB",
+   "moa": "binds 50S peptidyl-transferase; antibacterial+antitumour"
+  },
+  {
+   "keys": [
+    "desulfoclethramycin",
+    "clethramycin",
+    "hangtaimycin",
+    "deoxyhangtaimycin"
+   ],
+   "family": "Polyene aminopolyol (clethramycin/hangtaimycin-type)",
+   "target_class": "AF/AB",
+   "moa": "large polyene aminopolyol; antifungal-leaning"
+  },
+  {
+   "keys": [
+    "pentalenolactone"
+   ],
+   "family": "Pentalenolactone (sesquiterpenoid)",
+   "target_class": "AB",
+   "moa": "irreversible GAPDH inhibitor; antibacterial"
+  },
+  {
+   "keys": [
+    "albaflavenone"
+   ],
+   "family": "Albaflavenone (sesquiterpene)",
+   "target_class": "AB(weak)/housekeeping",
+   "moa": "sesquiterpene antibiotic; standing-rule housekeeping in cohort"
+  },
+  {
+   "keys": [
+    "paulomycin"
+   ],
+   "family": "Paulomycin",
+   "target_class": "AB",
+   "moa": "glycosylated antibiotic; Gram+ active"
+  },
+  {
+   "keys": [
+    "azicemicin"
+   ],
+   "family": "Azicemicin",
+   "target_class": "AB",
+   "moa": "aziridine-containing antibacterial"
+  },
+  {
+   "keys": [
+    "streptamidine",
+    "clipibycyclene"
+   ],
+   "family": "Named NRP antibacterial",
+   "target_class": "AB",
+   "moa": "named NRP with reported antibacterial activity"
+  },
+  {
+   "keys": [
+    "desferrioxamine",
+    "ferrioxamine",
+    "coelibactin",
+    "schizokinen",
+    "peucechelin",
+    "terpenibactin",
+    "speibonoxamine",
+    "scabichelin",
+    "foroxymithine",
+    "griseobactin",
+    "desferri",
+    "enterobactin",
+    "mirubactin",
+    "qinichelins",
+    "legonoxamine",
+    "amychelin",
+    "heterobactin",
+    "salinichelin",
+    "albachelin",
+    "grincamycin?"
+   ],
+   "family": "Siderophore / metallophore",
+   "target_class": "siderophore",
+   "moa": "Fe(III) chelation for iron acquisition (nutritional-immunity relevant, not a direct antibiotic)"
+  },
+  {
+   "keys": [
+    "ectoine"
+   ],
+   "family": "Ectoine (compatible solute)",
+   "target_class": "housekeeping",
+   "moa": "osmolyte / stress protectant; not antimicrobial"
+  },
+  {
+   "keys": [
+    "poly-l-lysine",
+    "poly-L-lysine",
+    "ε-Poly"
+   ],
+   "family": "epsilon-Poly-L-lysine",
+   "target_class": "AB",
+   "moa": "cationic homopolymer; broad membrane-disrupting antibacterial (food preservative); often housekeeping-detected"
+  },
+  {
+   "keys": [
+    "geosmin",
+    "2-methylisoborneol",
+    "isoborneol",
+    "pristinol",
+    "hopene",
+    "hopanoid",
+    "isorenieratene",
+    "carotenoid",
+    "lycopene",
+    "phytoene",
+    "spore pigment",
+    "hopanoids"
+   ],
+   "family": "Terpene / carotenoid / hopanoid (housekeeping)",
+   "target_class": "housekeeping",
+   "moa": "odorant/pigment/membrane terpenoid; NOT an antimicrobial lead"
+  },
+  {
+   "keys": [
+    "naringenin",
+    "flaviolin",
+    "germicidin",
+    "1,3,6,8-tetrahydroxynaphthalene",
+    "THN"
+   ],
+   "family": "Type III PKS pigment/flavonoid (housekeeping)",
+   "target_class": "housekeeping",
+   "moa": "chalcone/naphthol pigment; not antimicrobial"
+  },
+  {
+   "keys": [
+    "sanglifehrin"
+   ],
+   "family": "Sanglifehrin (immunosuppressant)",
+   "target_class": "cytotoxic",
+   "moa": "cyclophilin-binding immunosuppressant"
+  },
+  {
+   "keys": [
+    "lymphostin"
+   ],
+   "family": "Lymphostin",
+   "target_class": "cytotoxic",
+   "moa": "PI3K/mTOR kinase inhibitor"
+  },
+  {
+   "keys": [
+    "pepticinnamin"
+   ],
+   "family": "Pepticinnamin-E-anchored (see interp: arylpolyene PKS-NRPS)",
+   "target_class": "other",
+   "moa": "farnesyltransferase-inhibitor anchor; second-pass reads locus as arylpolyene capacity"
+  },
+  {
+   "keys": [
+    "surugamide",
+    "desotamide"
+   ],
+   "family": "Surugamide/desotamide cyclic NRP",
+   "target_class": "AB",
+   "moa": "cyclic octapeptide; antibacterial + protease modulation"
+  },
+  {
+   "keys": [
+    "echoside"
+   ],
+   "family": "Echoside",
+   "target_class": "cytotoxic",
+   "moa": "pyrrolo-quinoline; topoisomerase-active"
+  },
+  {
+   "keys": [
+    "azodyrecin",
+    "azoxy",
+    "valanimycin",
+    "maniwamycin"
+   ],
+   "family": "Azoxy / azo natural product",
+   "target_class": "AB/cytotoxic",
+   "moa": "azoxy warhead; antibacterial/antitumour"
+  },
+  {
+   "keys": [
+    "SGR PTM",
+    "PTM Compound",
+    "griseus PTM"
+   ],
+   "family": "Polycyclic tetramate macrolactam (HSAF/PTM)",
+   "target_class": "AF",
+   "moa": "SGR-PTM naming for the S. griseus polycyclic tetramate macrolactam; same HSAF/PTM antifungal chemotype (Blodgett 2010 PNAS cross-taxa origin)",
+   "source": "blizzard_blue_2026-07-29_extension",
+   "note": "extends the HSAF/PTM family to the cohort's flagship anchor naming (strain ids withheld, v9.7.372); the named congener stays a SIMILARITY hypothesis until per-gene synteny resolves it",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "SGR-PTM is a naming variant for the S. griseus polycyclic tetramate macrolactam; the HSAF/PTM family is already in the shipped base map (rule 3).",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "capreomycin",
+    "tuberactinomycin",
+    "viomycin"
+   ],
+   "family": "Tuberactinomycin cyclic peptide (capreomycin/viomycin)",
+   "target_class": "AB",
+   "moa": "cyclic peptide; binds ribosome/rRNA, anti-mycobacterial",
+   "source": "blizzard_blue_2026-07-29_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "capreomycin",
+    "pmid": "24424129",
+    "year": "2014",
+    "doi": "10.1016/j.bmcl.2013.12.053",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "atratumycin"
+   ],
+   "family": "Atratumycin cyclic depsipeptide",
+   "target_class": "AB",
+   "moa": "NRPS cyclic depsipeptide with reported anti-Mycobacterium tuberculosis activity",
+   "source": "blizzard_blue_2026-07-29_extension",
+   "evidence": {
+    "tier": "in_bundle_abstract",
+    "matched_key": "atratumycin",
+    "pmid": "32338895",
+    "year": "2020",
+    "doi": "10.1021/acs.jnatprod.0c00194",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)",
+    "caution": "matched the abstract but not the title; this corpus has a known title/abstract mis-join defect, so treat the PMID as indicative"
+   }
+  },
+  {
+   "keys": [
+    "quinolidomicin"
+   ],
+   "family": "Giant macrolide (quinolidomicin-type)",
+   "target_class": "cytotoxic",
+   "moa": "60-membered macrolactone; reported antitumour",
+   "source": "blizzard_blue_2026-07-29_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "quinolidomicin",
+    "pmid": "8645736",
+    "year": "1996",
+    "doi": "10.1128/jb.178.7.1990-1995.1996",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "phosphonoglycan",
+    "phosphonate",
+    "2-aminoethylphosphonate",
+    "dehydrophos",
+    "phosphonoalamide",
+    "fosfomycin",
+    "phosphonoacet"
+   ],
+   "family": "Phosphonate natural product",
+   "target_class": "other",
+   "moa": "C-P bond metabolite; SOME are antibacterial (fosfomycin-class, dehydrophos) but many are cell-surface glycoconjugates of unresolved role — do NOT assume antibiotic without pathway evidence",
+   "source": "blizzard_blue_2026-07-29_extension",
+   "note": "Added 'phosphonoacet' 2026-07-31: 'phosphonoacetic acid' (a cohort anchor) does NOT contain the substring 'phosphonate' and was silently unmapped.",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "phosphonoglycan",
+    "pmid": "24584498",
+    "year": null,
+    "doi": "10.1128/JB.00036-14",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "cyphomycin"
+   ],
+   "family": "Cyphomycin (antifungal macrolide)",
+   "target_class": "AF",
+   "moa": "insect-associated Streptomyces antifungal polyene-type macrolide (Chevrette 2019); active vs drug-resistant fungi",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_abstract",
+    "matched_key": "cyphomycin",
+    "pmid": "33493972",
+    "year": "2021",
+    "doi": "10.1016/j.bmc.2021.116016",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)",
+    "caution": "matched the abstract but not the title; this corpus has a known title/abstract mis-join defect, so treat the PMID as indicative"
+   }
+  },
+  {
+   "keys": [
+    "kutzneride"
+   ],
+   "family": "Kutzneride cyclic depsipeptide",
+   "target_class": "AF",
+   "moa": "halogenated cyclic hexadepsipeptide with reported antifungal activity (Kutzneria)",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "Kutzneride is a chlorinated cyclic depsipeptide of Kutzneria; assigned by family, no primary record in the in-bundle corpus.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "pradimicin",
+    "benanomicin"
+   ],
+   "family": "Pradimicin/benanomicin (mannose-binding antifungal)",
+   "target_class": "AF",
+   "moa": "Ca2+-dependent mannose-binding aromatic polyketide; antifungal",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "pradimicin",
+    "pmid": "31031141",
+    "year": "2019",
+    "doi": "10.1016/j.chembiol.2019.03.013",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "abyssomicin",
+    "neoabyssomicin"
+   ],
+   "family": "Abyssomicin spirotetronate",
+   "target_class": "AB",
+   "moa": "spirotetronate polyketide; inhibits PABA/folate biosynthesis (antibacterial incl. Gram+)",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "abyssomicin",
+    "pmid": "21446696",
+    "year": "2011",
+    "doi": "10.1021/ol103076y",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "colibrimycin"
+   ],
+   "family": "Colibrimycin NRP",
+   "target_class": "AB",
+   "moa": "NRPS peptide with reported antibacterial activity",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "NRP anchor; family assignment only, no in-bundle primary record.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "corynecin"
+   ],
+   "family": "Corynecin (chloramphenicol analogue)",
+   "target_class": "AB",
+   "moa": "chloramphenicol-class amide; binds 50S ribosome -> blocks peptidyl transfer",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "Corynecins are chloramphenicol-class analogues; assigned by family.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "stenothricin"
+   ],
+   "family": "Stenothricin cyclic peptide",
+   "target_class": "AB",
+   "moa": "cyclic peptide affecting cell-wall/membrane; Gram+ antibacterial",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "Cyclic peptide, cell-envelope-acting class; assigned by family.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "istamycin"
+   ],
+   "family": "Aminoglycoside (istamycin/fortimicin-type)",
+   "target_class": "AB",
+   "moa": "pseudodisaccharide aminoglycoside; binds 30S -> mistranslation",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "corpus_text_unattributed",
+    "matched_key": "istamycin",
+    "year": "2025",
+    "doi": "10.1039/d5ob01195g",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)",
+    "caution": "The corpus record for this key is CONTAMINATED: its abstract field contains a second 'Abstract' marker, and our key sits in the leading fragment, which belongs to an adjacent entry. The abstract TEXT supporting this assignment is real and present in the corpus, but PMID 40814772 is NOT the correct citation. Attribution must be re-resolved against PubMed before this rule is cited in a manuscript.",
+    "pmid_unreliable": "40814772"
+   }
+  },
+  {
+   "keys": [
+    "ECO-0501",
+    "ECO-02301"
+   ],
+   "family": "ECO-0501 glycosylated polyene",
+   "target_class": "AB",
+   "moa": "large glycosylated polyketide with anti-Gram+ (incl. MRSA/VRE) activity (Amycolatopsis)",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "Glycosylated polyene macrolactam; assigned by family.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "everninomicin",
+    "avilamycin",
+    "evernimicin"
+   ],
+   "family": "Orthosomycin oligosaccharide antibiotic",
+   "target_class": "AB",
+   "moa": "oligosaccharide antibiotic binding the 50S/ribosomal GTPase centre; Gram+ active",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "everninomicin",
+    "pmid": "40863633",
+    "year": "2025",
+    "doi": "10.3390/md23080316",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "diazaquinomycin"
+   ],
+   "family": "Diazaquinomycin (diazaanthraquinone)",
+   "target_class": "AB",
+   "moa": "diazaanthraquinone; antibacterial / antitubercular",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "diazaquinomycin",
+    "pmid": "30896942",
+    "year": "2019",
+    "doi": null,
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "gausemycin"
+   ],
+   "family": "Gausemycin Ca-dependent lipopeptide",
+   "target_class": "AB",
+   "moa": "calcium-dependent lipoglycopeptide; membrane-targeting Gram+ antibacterial",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_abstract",
+    "matched_key": "gausemycin",
+    "pmid": "41003331",
+    "year": "2025",
+    "doi": "10.3390/md23090362",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)",
+    "caution": "matched the abstract but not the title; this corpus has a known title/abstract mis-join defect, so treat the PMID as indicative"
+   }
+  },
+  {
+   "keys": [
+    "A-47934",
+    "A-40926",
+    "A-42867"
+   ],
+   "family": "Glycopeptide antibiotic (GPA)",
+   "target_class": "AB",
+   "moa": "hyphenated-code GPA variant; binds D-Ala-D-Ala of lipid II -> blocks peptidoglycan crosslinking",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "A-47934 / A-40926 are hyphenated code names for GPAs; the GPA family is already in the shipped base map.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "stambomycin"
+   ],
+   "family": "Stambomycin (glycosylated macrolide)",
+   "target_class": "AB/cytotoxic",
+   "moa": "large glycosylated macrolactone; reported antibacterial + antiproliferative",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "stambomycin",
+    "pmid": "39886430",
+    "year": "2025",
+    "doi": null,
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "showdomycin"
+   ],
+   "family": "Showdomycin (C-nucleoside)",
+   "target_class": "AB/cytotoxic",
+   "moa": "maleimide C-nucleoside antibiotic; alkylates thiols, antibacterial/antitumour",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "C-nucleoside; assigned by family.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "ansacarbamitocin",
+    "carbamitocin",
+    "ansamitomycin"
+   ],
+   "family": "Maytansinoid ansamycin",
+   "target_class": "cytotoxic",
+   "moa": "maytansinoid ansa polyketide; tubulin-binding antimitotic (cytotoxic)",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_abstract",
+    "matched_key": "ansacarbamitocin",
+    "pmid": "41964583",
+    "year": "2026",
+    "doi": "10.1021/acs.jnatprod.6c00002",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)",
+    "caution": "matched the abstract but not the title; this corpus has a known title/abstract mis-join defect, so treat the PMID as indicative"
+   }
+  },
+  {
+   "keys": [
+    "leinamycin",
+    "guangnanmycin",
+    "weishanmycin"
+   ],
+   "family": "Leinamycin-family thiazole PK-NRP",
+   "target_class": "cytotoxic/AB",
+   "moa": "1,3-dioxo-1,2-dithiolane thiazole hybrid; DNA-alkylating/cleaving (antitumour, some antibacterial)",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_abstract",
+    "matched_key": "leinamycin",
+    "pmid": "40488053",
+    "year": "2025",
+    "doi": null,
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)",
+    "caution": "matched the abstract but not the title; this corpus has a known title/abstract mis-join defect, so treat the PMID as indicative"
+   }
+  },
+  {
+   "keys": [
+    "phoslactomycin",
+    "phosphazomycin",
+    "fostriecin",
+    "leustroducsin"
+   ],
+   "family": "Phoslactomycin/fostriecin phosphate polyketide",
+   "target_class": "cytotoxic",
+   "moa": "phosphate-bearing polyketide; protein-phosphatase (PP2A) inhibitor, antitumour with reported antifungal",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "phoslactomycin",
+    "pmid": "23914940",
+    "year": "2013",
+    "doi": "10.1021/np400232j",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "nocobactin",
+    "mycobactin",
+    "formobactin",
+    "nocardimicin",
+    "amamistatin"
+   ],
+   "family": "Mycobactin/nocobactin siderophore",
+   "target_class": "siderophore",
+   "moa": "salicyl-capped mixed-ligand siderophore (Nocardia/Mycobacterium clade); Fe(III) acquisition",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "nocardimicin",
+    "pmid": "39705533",
+    "year": "2025",
+    "doi": "10.1021/acs.jnatprod.4c01140",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "coelichelin"
+   ],
+   "family": "Coelichelin (tris-hydroxamate siderophore)",
+   "target_class": "siderophore",
+   "moa": "NRPS tris-hydroxamate siderophore; Fe(III) chelation",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "corpus_text_unattributed",
+    "matched_key": "coelichelin",
+    "year": "2025",
+    "doi": null,
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)",
+    "caution": "The corpus record for this key is CONTAMINATED: its abstract field contains a second 'Abstract' marker, and our key sits in the leading fragment, which belongs to an adjacent entry. The abstract TEXT supporting this assignment is real and present in the corpus, but PMID 41070399 is NOT the correct citation. Attribution must be re-resolved against PubMed before this rule is cited in a manuscript.",
+    "pmid_unreliable": "41070399"
+   }
+  },
+  {
+   "keys": [
+    "gobichelin",
+    "chelidamic",
+    "tetroazolemycin"
+   ],
+   "family": "Gobichelin-type siderophore",
+   "target_class": "siderophore",
+   "moa": "salicylate/oxazoline mixed-ligand siderophore; Fe(III) acquisition",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "tetroazolemycin",
+    "pmid": "23665958",
+    "year": "2013",
+    "doi": "10.3390/md11051524",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "madurastatin"
+   ],
+   "family": "Madurastatin siderophore",
+   "target_class": "siderophore",
+   "moa": "aziridine/salicyl NRPS siderophore (Actinomadura clade); Fe(III) chelation",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "madurastatin",
+    "pmid": "36056265",
+    "year": "2022",
+    "doi": "10.1038/s41429-022-00557-z",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "SF2768"
+   ],
+   "family": "SF2768 diisonitrile lipopeptide chalkophore",
+   "target_class": "siderophore",
+   "moa": "diisonitrile-containing lipopeptide chalkophore; copper-scavenging metallophore (Wang 2018, doi:10.1021/acschembio.7b00897) — metal acquisition, not a direct antibiotic",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "corrected": "2026-07-31 via a Codex Lane-B cohort card (ids withheld, v9.7.372)",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "SF2768",
+    "pmid": "41873585",
+    "year": "2026",
+    "doi": "10.13345/j.cjb.260050",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "ethylenediaminesuccinic",
+    "hydroxyarginine",
+    "staphyloferrin"
+   ],
+   "family": "Aminocarboxylate metallophore (EDDS/opine-type)",
+   "target_class": "siderophore",
+   "moa": "aminocarboxylate/opine metal chelator; metal acquisition (not a direct antibiotic)",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "hydroxyarginine",
+    "pmid": "29513529",
+    "year": "2018",
+    "doi": "10.1021/acs.jnatprod.7b00882",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "melanin"
+   ],
+   "family": "Melanin pigment (housekeeping)",
+   "target_class": "housekeeping",
+   "moa": "protective polyphenol pigment; not an antimicrobial lead",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "melanin",
+    "pmid": "42061540",
+    "year": "2026",
+    "doi": "10.1016/j.ijbiomac.2026.152272",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "acarviostatin",
+    "acarbose",
+    "validamycin",
+    "pyralomicin"
+   ],
+   "family": "Pseudo-oligosaccharide enzyme inhibitor (acarbose-type)",
+   "target_class": "other",
+   "moa": "aminocyclitol pseudo-sugar; alpha-glucosidase/amylase inhibitor (validamycin=antifungal-agricultural) — not a classical antibiotic",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "acarviostatin",
+    "pmid": "23495161",
+    "year": "2013",
+    "doi": "10.1002/cbdv.201100451",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "chainin",
+    "isochainin"
+   ],
+   "family": "Chainin-named anchor (cohort mis-anchor watch)",
+   "target_class": "other",
+   "moa": "polyene-NAMED anchor frequently carrying the cohort polyene mis-anchor flag (KS<4/ks=0); do NOT read as antifungal capacity without PKS-KS evidence",
+   "source": "blizzard_blue_2026-07-30_extension",
+   "evidence": {
+    "tier": "cohort_guard",
+    "basis": "Routed to `other` NOT antifungal because these anchors carry the cohort's polyene mis-anchor flag with KS=0. Justified by the engine's own guard output, not by literature — this rule exists to STOP an AF inflation, so it cannot inflate one.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "pactamide"
+   ],
+   "family": "Polycyclic tetramate macrolactam (HSAF/PTM)",
+   "target_class": "AF/cytotoxic",
+   "moa": "PTM/HSAF-family tetramate macrolactam — a bioactivity-HETEROGENEOUS family. The family carries antifungal capacity (HSAF = heat-stable antifungal factor), while the named congener pactamide is reported with potent cytotoxicity against human cancer cell lines (PMID 27966343). Both are reported because they are not exclusive: most antifungals carry some cytotoxicity, and dropping either signal loses information a reader needs. Capacity-level, not a measured activity for this strain.",
+   "source": "blizzard_blue_2026-07-31_extension",
+   "evidence": {
+    "tier": "corpus_text_unattributed",
+    "matched_key": "pactamide",
+    "year": "2016",
+    "doi": null,
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)",
+    "caution": "The corpus record for this key is CONTAMINATED: its abstract field contains a second 'Abstract' marker, and our key sits in the leading fragment, which belongs to an adjacent entry. The abstract TEXT supporting this assignment is real and present in the corpus, but PMID 27966343 is NOT the correct citation. Attribution must be re-resolved against PubMed before this rule is cited in a manuscript.",
+    "pmid_unreliable": "27966343",
+    "correction": "target_class AF -> AF/cytotoxic on in-bundle evidence (PMID 27966343). The prior staged version asserted AF alone, which over-claimed; a bare `cytotoxic` was also considered and rejected because it would drop the BGC off antifungal-facing reports entirely. The PTM family is bioactivity-heterogeneous and both signals are reported."
+   }
+  },
+  {
+   "keys": [
+    "planosporicin"
+   ],
+   "family": "Lanthipeptide",
+   "target_class": "AB",
+   "moa": "type-I lantibiotic (Planomonospora); lipid II binding / cell-wall synthesis block",
+   "source": "blizzard_blue_2026-07-31_extension",
+   "evidence": {
+    "tier": "in_bundle_abstract",
+    "matched_key": "planosporicin",
+    "pmid": "19301921",
+    "year": "2009",
+    "doi": "10.1021/np800794y",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)",
+    "caution": "matched the abstract but not the title; this corpus has a known title/abstract mis-join defect, so treat the PMID as indicative"
+   }
+  },
+  {
+   "keys": [
+    "fusaricidin",
+    "LI-F antibiotic"
+   ],
+   "family": "Fusaricidin lipodepsipeptide",
+   "target_class": "AF",
+   "moa": "guanidinylated lipodepsipeptide (Paenibacillus); antifungal-leaning, membrane-active",
+   "source": "blizzard_blue_2026-07-31_extension",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "Lipodepsipeptide, antifungal-leaning class; assigned by family.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "migrastatin",
+    "dorrigocin",
+    "lactimidomycin"
+   ],
+   "family": "Glutarimide polyketide (migrastatin-type)",
+   "target_class": "cytotoxic",
+   "moa": "glutarimide-containing macrolide; cell-migration/translation inhibitor (antimetastatic/cytotoxic), not a classical antibiotic",
+   "source": "blizzard_blue_2026-07-31_extension",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "Glutarimide polyketide; assigned by family.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "AmfS"
+   ],
+   "family": "Morphogenetic lanthipeptide surfactant (AmfS/SapB)",
+   "target_class": "housekeeping",
+   "moa": "class-III lanthipeptide aerial-hyphae morphogen/surfactant; developmental, NOT an antimicrobial lead",
+   "source": "blizzard_blue_2026-07-31_extension",
+   "note": "'SapB' itself is already claimed by the base Lanthipeptide rule (classified AB); left untouched to avoid changing shipped base behaviour. Reclassifying SapB as a morphogen is a candidate future refinement, flagged not forced.",
+   "evidence": {
+    "tier": "family_membership",
+    "basis": "AmfS is the S. griseus morphogenetic surfactant lanthipeptide; assigned by family.",
+    "source": "no primary record in the in-bundle corpus — assignment stated, not cited"
+   }
+  },
+  {
+   "keys": [
+    "kyamicin"
+   ],
+   "family": "Lanthipeptide",
+   "target_class": "AB",
+   "moa": "lantibiotic (class-I lanthipeptide) from an African plant-ant-derived Saccharopolyspora; cell-wall/lipid II-targeting antibacterial",
+   "source": "blizzard_blue_2026-07-31_extension",
+   "evidence": {
+    "tier": "in_bundle_abstract",
+    "matched_key": "kyamicin",
+    "pmid": "31732571",
+    "year": "2020",
+    "doi": null,
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)",
+    "caution": "matched the abstract but not the title; this corpus has a known title/abstract mis-join defect, so treat the PMID as indicative"
+   }
+  },
+  {
+   "keys": [
+    "pristinin",
+    "cacaoidin",
+    "lanthidin"
+   ],
+   "family": "Lanthipeptide (lanthidin / class-V type)",
+   "target_class": "AB",
+   "moa": "glycosylated lantibiotic of the lanthidin RiPP family; antibacterial",
+   "source": "blizzard_blue_2026-07-31_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "cacaoidin",
+    "pmid": "32407589",
+    "year": "2020",
+    "doi": "10.1002/anie.202005187",
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "erythreapeptin",
+    "avermipeptin",
+    "griseopeptin"
+   ],
+   "family": "Lanthipeptide (class III)",
+   "target_class": "AB",
+   "moa": "class-III lantibiotic (Saccharopolyspora erythraea / Streptomyces spp.); class-III lanthipeptides are frequently morphogenetic rather than strongly antibacterial — treat AB as a family-level prior only",
+   "source": "blizzard_blue_2026-07-31_extension",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "erythreapeptin",
+    "pmid": "22556031",
+    "year": "2012",
+    "doi": null,
+    "source": "in-bundle PubMed corpus (mamey/data/literature/_corpus/literature_corpus.jsonl)"
+   }
+  },
+  {
+   "keys": [
+    "albusnodin"
+   ],
+   "family": "Lasso peptide",
+   "target_class": "AB",
+   "moa": "Acetylated lasso peptide from Streptomyces albus; threaded-knot RiPP. Same family as the shipped lasso-peptide rule — added because the congener name was missing, not because a new family was needed.",
+   "source": "blizzard_blue_2026-08-03_tranche2",
+   "evidence": {
+    "tier": "in_bundle_title",
+    "matched_key": "albusnodin",
+    "pmid": "29350227",
+    "source": "in-bundle PubMed corpus",
+    "basis": "title: 'Albusnodin: an acetylated lasso peptide from Streptomyces albus'"
+   }
+  },
+  {
+   "keys": [
+    "lactazole"
+   ],
+   "family": "Thiopeptide (azole-containing RiPP)",
+   "target_class": "AB",
+   "moa": "Lactazole-family thiopeptide; azole-containing RiPP with a promiscuous biosynthetic machinery. Same family as the shipped thiopeptide rule — congener name only.",
+   "source": "blizzard_blue_2026-08-03_tranche2",
+   "evidence": {
+    "tier": "corpus_text_unattributed",
+    "matched_key": "lactazole",
+    "source": "in-bundle PubMed corpus",
+    "basis": "abstract: 'Among thiopeptides, lactazoles possess uniquely promiscuous biosynthetic machinery'",
+    "caution": "Corpus record CONTAMINATED (second 'Abstract' marker; our key sits in the leading foreign fragment). PMID 42396004 is NOT the correct citation for this text. The thiopeptide identity of lactazole is not in doubt, but the attribution must be re-resolved against PubMed before citing.",
+    "pmid_unreliable": "42396004"
+   }
+  }
+ ]
+}

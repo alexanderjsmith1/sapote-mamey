@@ -1,0 +1,261 @@
+{
+  "_meta": {
+    "schema_version": "domain_role_taxonomy/1.0",
+    "description": "Controlled mapping from antiSMASH/PFAM/TIGRFAM domain-name substrings to biosynthetic role categories, for domain-level Mode B (v9.7.89). Matching is case-insensitive substring on the domain name. Categories are ordered: the first category whose any pattern matches wins. Unmatched biosynthetic-looking domains fall to 'Other accessory/domain'; DUF/repeat fall to 'Unknown/repeat/accessory'.",
+    "claim_safety_note": "Role assignment is structural (what the domain IS), never a product/identity claim."
+  },
+  "categories": [
+    {
+      "role": "NRPS A-domain / loading",
+      "patterns": [
+        "AMP-binding",
+        "A-OX",
+        "Adenylation"
+      ]
+    },
+    {
+      "role": "NRPS condensation",
+      "patterns": [
+        "Condensation",
+        "Cglyc",
+        "Heterocyclization",
+        "C_LCL",
+        "C_DCL",
+        "Cstarter"
+      ]
+    },
+    {
+      "role": "Carrier protein / PP-binding",
+      "patterns": [
+        "PP-binding",
+        "PCP",
+        "PKS_PP",
+        "Phosphopant"
+      ]
+    },
+    {
+      "role": "ACP / acyl carrier",
+      "patterns": [
+        "ACP",
+        "Acyl_carrier"
+      ]
+    },
+    {
+      "role": "PKS ketosynthase",
+      "patterns": [
+        "PKS_KS",
+        "ketoacyl-synt",
+        "Ketoacyl-synt"
+      ]
+    },
+    {
+      "role": "PKS acyltransferase/loading",
+      "patterns": [
+        "PKS_AT",
+        "Acyl_transf",
+        "CAL_domain"
+      ]
+    },
+    {
+      "role": "PKS reductive loop",
+      "patterns": [
+        "PKS_KR",
+        "PKS_DH",
+        "PKS_ER",
+        "adh_short",
+        "KR_C",
+        "PKS_DH2"
+      ]
+    },
+    {
+      "role": "PKS cyclase/aromatase",
+      "patterns": [
+        "Cyclase",
+        "Aromatase",
+        "PKS_cyc"
+      ]
+    },
+    {
+      "role": "Release/editing hydrolase",
+      "patterns": [
+        "Thioesterase",
+        "TD.",
+        "Thioester-redct",
+        "Abhydrolase",
+        "Peptidase_S",
+        "Hydrolase",
+        "Esterase"
+      ]
+    },
+    {
+      "role": "Lanthipeptide maturation",
+      "patterns": [
+        "LANC_like",
+        "Lant_dehydr",
+        "LanB",
+        "LanC",
+        "Lanthipeptide",
+        "DUF4135"
+      ]
+    },
+    {
+      "role": "Lasso/RiPP maturation",
+      "patterns": [
+        "Lasso",
+        "Asn_synthase",
+        "PqqD",
+        "RRE",
+        "Transglut_core"
+      ]
+    },
+    {
+      "role": "Azole/crocagin/RiPP tailoring",
+      "patterns": [
+        "YcaO",
+        "TfuA",
+        "crocagin",
+        "azole",
+        "thioamide",
+        "Cytochrome_C",
+        "ThiF"
+      ]
+    },
+    {
+      "role": "Sugar/glycosyl tailoring",
+      "patterns": [
+        "Glycos_transf",
+        "Glyco_transf",
+        "Glyco_hydro",
+        "NDP",
+        "Epimerase",
+        "dTDP",
+        "RmlD"
+      ]
+    },
+    {
+      "role": "Redox tailoring",
+      "patterns": [
+        "FAD",
+        "p450",
+        "P450",
+        "monooxygenase",
+        "Monooxygenase",
+        "dehydrogenase",
+        "Oxidoreductase",
+        "Fer2",
+        "Fer4",
+        "NAD_binding",
+        "Flavin",
+        "Pyr_redox",
+        "Thioredoxin",
+        "2OG-Fe",
+        "DAO"
+      ]
+    },
+    {
+      "role": "Methylation/alkylation",
+      "patterns": [
+        "Methyltransf",
+        "SAM",
+        "Radical_SAM",
+        "MTS",
+        "UbiE"
+      ]
+    },
+    {
+      "role": "Amino/amide tailoring",
+      "patterns": [
+        "Aminotran",
+        "Aminotransferase",
+        "DegT",
+        "Beta_elim_lyase",
+        "PLP",
+        "Orn_Arg_deC",
+        "Glu_synthase",
+        "GCV_H",
+        "GDC-P",
+        "GCV_T",
+        "Glycine_cleav"
+      ]
+    },
+    {
+      "role": "Siderophore uptake/export",
+      "patterns": [
+        "IucA_IucC",
+        "FhuF",
+        "SBP_bac",
+        "TonB",
+        "FecCD",
+        "FhuD",
+        "Fhu",
+        "Peripla_BP",
+        "siderophore"
+      ]
+    },
+    {
+      "role": "Transport/export/uptake",
+      "patterns": [
+        "ABC_tran",
+        "ABC_membrane",
+        "MFS_1",
+        "BPD_transp",
+        "Acr_tran",
+        "MatE",
+        "ABC2_membrane",
+        "OEP",
+        "HlyD",
+        "Membrane"
+      ]
+    },
+    {
+      "role": "Regulatory/sensor",
+      "patterns": [
+        "TetR",
+        "LysR",
+        "GerE",
+        "Response_reg",
+        "HTH",
+        "HAMP",
+        "HisKA",
+        "HATPase",
+        "PAS",
+        "Sigma",
+        "MarR",
+        "LuxR",
+        "Trans_reg",
+        "AraC",
+        "GntR",
+        "Fis",
+        "Crp",
+        "Xre"
+      ]
+    },
+    {
+      "role": "Resistance/self-protection",
+      "patterns": [
+        "beta-lactamase",
+        "Beta-lactamase",
+        "APH",
+        "pentapeptide",
+        "BcrA",
+        "efflux",
+        "Bac_transf",
+        "Aminoglyc"
+      ]
+    }
+  ],
+  "fallback_unknown_repeat": {
+    "role": "Unknown/repeat/accessory",
+    "patterns": [
+      "DUF",
+      "Repeat",
+      "TPR",
+      "WD40",
+      "Ankyrin",
+      "PEP_TPR"
+    ]
+  },
+  "fallback_other": {
+    "role": "Other accessory/domain"
+  }
+}

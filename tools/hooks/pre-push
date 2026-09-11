@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Sapote–Mamey pre-push leak guard. Refuses any push whose tracked files contain a genuinely
+# UNPUBLISHED strain ID. This is a BACKSTOP, not the cut: the public repo should only ever contain
+# CODE/SID-tier content produced by tools/make_public_tier.sh. The hook catches the case where a
+# private ID slips into a tracked file anyway.
+#
+# v9.7.353 (AMBER_PREPUSH_POLICY): aligned to the v9.7.236 PI decision (2026-07-06, Hymenoptera
+# cohort PUBLIC; AS_SCRUB=0). The AS- series is PUBLIC by default, so this hook NO LONGER blocks
+# AS-#### IDs (the old `AS-[0-9]{2,}` regex false-positived on now-public AS IDs and would block
+# every legitimate push). Only genuinely-private prefixes fail safe to PRIVATE and are blocked here,
+# matching mamey.cohort_figures.is_private(): AJS- and PENDING-. The redacted placeholder
+# `PENDING-XXX` is exempt. (Re-arm AS- scrubbing only if AS_SCRUB is re-enabled; see CLAUDE.md.)
+#
+# Install (hooks live in .git/, which is not version-controlled — pick one):
+#   git config core.hooksPath tools/hooks          # point git at the committed hooks dir
+#   # or: cp tools/hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+set -euo pipefail
+# Private-prefix matcher (mirrors is_private): AJS-<digits> or PENDING-<A-Z0-9>, excluding PENDING-XXX.
+LEAKS="$(git grep -InE '(AJS-[0-9]+|PENDING-[A-Z0-9]+)' -- ':!*MERGED*' ':!private/' 2>/dev/null \
+         | grep -vE 'PENDING-XXX([^A-Z0-9]|$)' || true)"
+if [ -n "$LEAKS" ]; then
+  echo "PUSH BLOCKED — unpublished (AJS-/PENDING-) strain IDs in tracked files:" >&2
+  echo "$LEAKS" | head >&2
+  echo "Run tools/make_public_tier.sh to cut a clean tier, or scrub these before pushing." >&2
+  exit 1
+fi
+exit 0

@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "schema_version": "domain_architecture_templates/1.0",
+    "description": "Canonical biosynthetic architecture templates for domain-level Mode B (v9.7.90). A BGC's ordered role sequence is matched against these templates to assign an architecture archetype (e.g. canonical NRPS, hybrid NRPS-PKS, trans-AT PKS, class-I lanthipeptide). Templates are scored by required-role presence; the highest-scoring template above its min_score wins, else 'unclassified architecture'. Architecture is structural — never a product-identity claim.",
+    "claim_safety_note": "An architecture archetype is a capacity/structure statement (what kind of assembly line), not a product or compound claim."
+  },
+  "templates": [
+    {
+      "archetype": "canonical NRPS",
+      "required_roles": ["NRPS A-domain / loading", "NRPS condensation", "Carrier protein / PP-binding"],
+      "forbidden_roles": ["PKS ketosynthase"],
+      "min_required_hits": 2,
+      "note": "adenylation + condensation + carrier, no PKS ketosynthase"
+    },
+    {
+      "archetype": "canonical type-I PKS",
+      "required_roles": ["PKS ketosynthase", "PKS acyltransferase/loading", "Carrier protein / PP-binding"],
+      "forbidden_roles": ["NRPS condensation"],
+      "min_required_hits": 2,
+      "note": "KS + AT + carrier, no NRPS condensation"
+    },
+    {
+      "archetype": "hybrid NRPS-PKS",
+      "required_roles": ["PKS ketosynthase", "NRPS condensation"],
+      "forbidden_roles": [],
+      "min_required_hits": 2,
+      "note": "both PKS ketosynthase and NRPS condensation present"
+    },
+    {
+      "archetype": "trans-AT PKS (AT-deficient)",
+      "required_roles": ["PKS ketosynthase", "PKS reductive loop"],
+      "forbidden_roles": ["PKS acyltransferase/loading"],
+      "min_required_hits": 2,
+      "note": "KS + reductive domains but no in-cluster AT (trans-AT signature)"
+    },
+    {
+      "archetype": "class-I/II lanthipeptide",
+      "required_roles": ["Lanthipeptide maturation"],
+      "forbidden_roles": [],
+      "min_required_hits": 1,
+      "note": "lanthipeptide maturation machinery present"
+    },
+    {
+      "archetype": "azole/YcaO RiPP",
+      "required_roles": ["Azole/crocagin/RiPP tailoring"],
+      "forbidden_roles": [],
+      "min_required_hits": 1,
+      "note": "azole-forming/YcaO RiPP tailoring present"
+    },
+    {
+      "archetype": "lasso/other RiPP",
+      "required_roles": ["Lasso/RiPP maturation"],
+      "forbidden_roles": [],
+      "min_required_hits": 1,
+      "note": "lasso or other RiPP maturation present"
+    },
+    {
+      "archetype": "siderophore/metallophore",
+      "required_roles": ["Siderophore uptake/export"],
+      "forbidden_roles": [],
+      "min_required_hits": 1,
+      "note": "siderophore biosynthesis/uptake machinery present"
+    },
+    {
+      "archetype": "accessory-only / no clean core",
+      "required_roles": ["Other accessory/domain", "Unknown/repeat/accessory"],
+      "forbidden_roles": ["PKS ketosynthase", "NRPS condensation", "Lanthipeptide maturation"],
+      "min_required_hits": 1,
+      "note": "accessory/uncharacterised content, no clean biosynthetic core"
+    }
+  ],
+  "fallback_archetype": "unclassified architecture"
+}

@@ -1,0 +1,11 @@
+task_id,owner,task,success_criteria,when_needed
+T-001,Claude/other chat,Hostile-audit SOP-04 vs BLASTP patch,Does exporter match SOP?,Before candidate
+T-002,Claude/other chat,Hostile-audit SOP-05 parser expectations,Challenge headerless/comma logic,Before candidate
+T-003,This chat,Draft SOP-01/02/07/10/13/15,Included in this workpack,Done draft
+T-004,This chat or patch chat,Wire SOP docs into docs index,Docs linked in release package,Before candidate
+T-005,Patch chat,Apply BLASTP/intake stream to fresh v9.7.141e,Clean apply + tests,Before candidate
+T-006,Patch chat,Apply C5/C7 REV2 after BLASTP stream,Clean apply + tests,Before candidate
+T-007,Any chat,Run 40ZH5P6R014 HitTable through blastp-followup,Parser smoke and edge case notes,Before candidate
+T-008,Any chat,Run KY089035 inspect regression,Single-region message verified,Before candidate
+T-009,Any chat,Run public/private scan on public artifacts,No private AS/SID leaks,Before candidate
+T-010,User,Send Claude feedback on BLASTP patch when available,Reconcile feedback,Before final candidate

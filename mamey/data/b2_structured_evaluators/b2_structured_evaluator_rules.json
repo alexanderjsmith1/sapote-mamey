@@ -1,0 +1,84 @@
+{
+  "schema_version": "b2_structured_evaluator_rules_v1",
+  "phase_policy": {
+    "active_detectors_must_remain": [
+      "regex",
+      "motif"
+    ],
+    "phase2_backends_not_globally_activated": [
+      "pfam",
+      "tigrfam",
+      "hmm",
+      "diamond",
+      "blastp"
+    ],
+    "output_claim_ceiling": "support/caution flags only; no scoring change and no product identity claim"
+  },
+  "first_batch": [
+    {
+      "id": "SMC-001",
+      "name": "Peptidyl-nucleoside antifungal cassette",
+      "requires_any": [
+        "nikj|polh|radical.?sam.*nucleoside|peptidyl.?nucleoside"
+      ],
+      "context_any": [
+        "nucleoside|nikkomycin|polyoxin|uridyl|peptidyl.?nucleoside"
+      ],
+      "claim_ceiling": "peptidyl-nucleoside-like support; primary literature/chemistry needed"
+    },
+    {
+      "id": "SMC-002",
+      "name": "Phosphonate/self-protection cassette",
+      "requires_any": [
+        "pepm|phosphoenolpyruvate mutase|pep mutase"
+      ],
+      "optional_any": [
+        "foma|fomb|fosfomycin resistance|phosphonate self-protection"
+      ],
+      "claim_ceiling": "phosphonate-like biosynthetic support; optional self-protection if class-concordant"
+    },
+    {
+      "id": "SMC-004",
+      "name": "Aminocyclitol/aminoglycoside cassette",
+      "requires_any": [
+        "dois|btrc|2-deoxy-scyllo-inosose|aminocyclitol synthase"
+      ],
+      "negative_context_any": [
+        "glycogen|trehalose|sugar kinase|primary metabolism"
+      ],
+      "claim_ceiling": "aminocyclitol/aminoglycoside-like biosynthetic support; APH/AAC alone is insufficient"
+    },
+    {
+      "id": "SMC-009",
+      "name": "Tetronate/spirotetronate cassette",
+      "requires_all": [
+        "fkbh|glyceryl transferase|3-phosphoglycerate",
+        "dedicated acp|acyl carrier protein|\\bACP\\b"
+      ],
+      "negative_context_any": [
+        "transposase|integrase|mobile element|ICE"
+      ],
+      "claim_ceiling": "tetronate/spirotetronate-like support; mobile-element context triggers caution"
+    },
+    {
+      "id": "SMC-013",
+      "name": "Thioamitide/thioamide cassette",
+      "requires_all": [
+        "ycao",
+        "tfua"
+      ],
+      "claim_ceiling": "thioamitide/thioamide-like RiPP support; YcaO alone is insufficient and TfuA partner is required"
+    },
+    {
+      "id": "SMC-016",
+      "name": "Self-protection concordance cassette",
+      "requires_any": [
+        "erm|abc-f|vanh|vana|vanx|aph|aac|foma|fomb|resistance|target duplication"
+      ],
+      "negative_context_any": [
+        "transposase|integrase|mobile element|ICE|glycogen|trehalose|sugar kinase|topoisomerase|dtmp kinase|primary metabolism"
+      ],
+      "claim_ceiling": "class-concordant self-protection support only; HGT/mobile/primary-metabolism guard required"
+    }
+  ]
+}

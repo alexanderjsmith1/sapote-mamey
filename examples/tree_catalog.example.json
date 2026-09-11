@@ -1,0 +1,21 @@
+{
+  "schema": "sapote.tree-catalog.v1",
+  "defaults": {
+    "views": ["publication", "publication-detailed", "publication-noloc"],
+    "reference_ratios": [1, 2, 3]
+  },
+  "trees": [
+    {
+      "id": "cohort_genus",
+      "run_dir": "../runs/cohort_genus",
+      "group": "ExampleGenus",
+      "cohort_scope": ["cohort_a"],
+      "taxonomic_scope": "ExampleGenus",
+      "reference_panel": "type_only",
+      "host_table": "../metadata/query_metadata.tsv",
+      "ref_source_db": "../metadata/reference_metadata.sqlite",
+      "required_reference_table": "../metadata/query_required_reference_species.tsv",
+      "genus_roster": "../metadata/query_genus_roster.tsv"
+    }
+  ]
+}

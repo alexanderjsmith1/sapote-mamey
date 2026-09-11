@@ -1,0 +1,257 @@
+{
+  "schema_version": 1,
+  "registry_id": "sapote_mamey_deliverables_v1",
+  "title": "The Sapote-Mamey Diner Menu",
+  "purpose": "A claim-safe registry of user-facing outcomes, their real producing commands, required evidence, gates, and authority ceilings.",
+  "identity_contract": "strain / full node-or-contig / region / BGC alias",
+  "global_claim_ceiling": "Similarity is not identity; capacity is not production; missing or unbound evidence is not biological absence. Gate success verifies encoded checks, not biological identity, activity, novelty, acceptance, or publication readiness.",
+  "delivery_classes": {
+    "DETERMINISTIC_BUILT_IN": "Produced by bundled deterministic code from admitted inputs.",
+    "OPTIONAL_LOCAL_ADAPTER": "Available only when the named local tool, database, or result is present and admitted.",
+    "POST_SEAL_JUDGMENT": "A Sapote judgment deliverable built after MAMEY_COMPLETE; it is not deterministic Mamey extraction.",
+    "OPTIONAL_EXTERNAL_WORKFLOW": "May require separately authorized external contact; staging alone does not authorize contact.",
+    "GOVERNANCE_AND_QA": "A validation, provenance, privacy, handoff, or release-control outcome.",
+    "HUMAN_REVIEW_PROTOCOL": "A structured human/LLM review protocol rather than an engine-generated scientific result."
+  },
+  "groups": [
+    {"id": "counter", "title": "The Counter - quick orientation"},
+    {"id": "evidence", "title": "The Evidence Bar - bind before interpreting"},
+    {"id": "meals", "title": "Full Meals - integrated analysis"},
+    {"id": "sides", "title": "Sides - focused additions"},
+    {"id": "governance", "title": "The Check - provenance, QA, and handoff"}
+  ],
+  "deliverables": [
+    {
+      "id": "C01", "label": "#1", "group": "counter", "name": "Triage Board",
+      "question": "What biosynthetic capacity is in this strain?",
+      "summary": "Ranked, source-derived BGC inventory with class calls, routing priors, evidence states, and complete physical locators.",
+      "delivery_class": "DETERMINISTIC_BUILT_IN", "commands": ["run", "explore", "explain"],
+      "requirements": ["antismash_zip"], "optional_inputs": ["admitted_companion_evidence"],
+      "outputs": ["sealed_package", "triage_board"], "detection_globs": ["**/*_4_triage_board.csv"], "gates": ["validate"],
+      "triggers": ["Give me the triage board", "What BGCs are in this strain?"],
+      "claim_ceiling": "Routing priority and biosynthetic-capacity hypothesis only."
+    },
+    {
+      "id": "C02", "label": "#2", "group": "counter", "name": "Lead Sheet",
+      "question": "Which loci deserve attention first?",
+      "summary": "A short, evidence-weighted lead board that names why each exact locus was prioritized and what remains unresolved.",
+      "delivery_class": "POST_SEAL_JUDGMENT", "commands": ["lead-pages", "good-guesses"],
+      "requirements": ["sealed_package"], "optional_inputs": ["admitted_blastp", "admitted_bigscape", "admitted_mibig"],
+      "outputs": ["lead_pages", "lead_board"], "detection_globs": ["**/*lead*page*.md", "**/*lead*board*"], "gates": ["workflow"],
+      "triggers": ["Give me the lead sheet", "What are the top leads?"],
+      "claim_ceiling": "Prioritization, not product identity, production, or activity."
+    },
+    {
+      "id": "C03", "label": "#3", "group": "counter", "name": "Layered BGC Guide",
+      "question": "Explain a locus to both non-specialists and specialists.",
+      "summary": "A layered lay-to-technical per-gene guide with structure, function, evidence-channel separation, and explicit holds.",
+      "delivery_class": "POST_SEAL_JUDGMENT", "commands": ["guide", "verify-guide"],
+      "requirements": ["sealed_package", "exact_locus_identity"], "optional_inputs": ["admitted_blastp"],
+      "outputs": ["bgc_guide"], "detection_globs": ["**/*[Gg]uide*.md"], "gates": ["verify-guide", "verify-citations"],
+      "triggers": ["Write a layered guide for this exact locus"],
+      "claim_ceiling": "Gene-role interpretation remains evidence-weighted and conditional."
+    },
+    {
+      "id": "C04", "label": "#4", "group": "counter", "name": "Locus Map and Atlas",
+      "question": "Show the physical gene neighborhood.",
+      "summary": "Gene-arrow or contig-level views with complete locus identity, visible label-denominator disclosure, and source-data sidecars.",
+      "delivery_class": "OPTIONAL_LOCAL_ADAPTER", "commands": ["figures diagram", "figures atlas", "render-figures"],
+      "requirements": ["sealed_package", "figure_stack"], "optional_inputs": ["source_gbk"],
+      "outputs": ["locus_map", "figure_data_sidecar"], "detection_globs": ["**/*locus*map*.svg", "**/*atlas*.html"], "gates": ["validate"],
+      "triggers": ["Make a locus map for STRAIN-001 / NODE_12_length_48000_cov_30.1 / region001 / BGC007"],
+      "claim_ceiling": "Physical organization and annotation display; not proof of pathway operation."
+    },
+    {
+      "id": "E01", "label": "E1", "group": "evidence", "name": "Mode B Evidence Availability",
+      "question": "Which evidence is physically present and exactly bound before prose?",
+      "summary": "A pre-authoring manifest that separates available, admitted, unbound, absent-in-scope, and superseded evidence streams.",
+      "delivery_class": "GOVERNANCE_AND_QA", "commands": ["modeb-availability"],
+      "requirements": ["sealed_package", "exact_locus_identity"], "optional_inputs": ["source_gbk", "evidence_receipts"],
+      "outputs": ["modeb_availability_manifest"], "detection_globs": ["**/*[Mm]ode[Bb]*[Aa]vailability*.json"], "gates": ["modeb-availability"],
+      "triggers": ["Audit Mode B evidence availability before authoring"],
+      "claim_ceiling": "Availability and binding state only; missing evidence is not a biological negative."
+    },
+    {
+      "id": "E02", "label": "E2", "group": "evidence", "name": "Targeted Protein Evidence",
+      "question": "What do the most informative proteins resemble?",
+      "summary": "Target selection, FASTA staging, result import, and channel-separated availability for full nr, ClusteredNR, and pinned local Swiss-Prot.",
+      "delivery_class": "OPTIONAL_LOCAL_ADAPTER", "commands": ["bgc-blastp-panel", "modeb-blastp", "ingest-blastp", "blastp-availability"],
+      "requirements": ["exact_locus_identity", "exact_protein_sequences"], "optional_inputs": ["local_swissprot", "imported_blastp_results"],
+      "outputs": ["targeted_fasta", "blastp_channel_matrix", "blastp_availability"], "detection_globs": ["**/*BLASTP*AVAILABILITY*.csv", "**/*blastp*matrix*.tsv"], "gates": ["blastp-availability"],
+      "triggers": ["Build the targeted protein evidence panel"],
+      "claim_ceiling": "Named sequence similarity with explicit denominators; never identity or function by resemblance alone."
+    },
+    {
+      "id": "E03", "label": "E3", "group": "evidence", "name": "Optional External BLASTP Workflow",
+      "question": "Prepare or run an explicitly authorized remote protein search.",
+      "summary": "A separately governed remote-search workflow. FASTA preparation does not itself authorize submission, polling, or URL access.",
+      "delivery_class": "OPTIONAL_EXTERNAL_WORKFLOW", "commands": ["blastp-online", "blastp-ebi", "blastp-round"],
+      "requirements": ["exact_protein_sequences", "external_contact_authorization"], "optional_inputs": [],
+      "outputs": ["remote_blastp_receipt", "importable_results"], "detection_globs": ["**/*blastp*receipt*.json"], "gates": ["blastp-status"],
+      "triggers": ["Run the authorized external BLASTP workflow"],
+      "claim_ceiling": "Remote similarity evidence only; authorization is per transaction."
+    },
+    {
+      "id": "E04", "label": "E4", "group": "evidence", "name": "MIBiG, ClusterBlast, and BiG-SCAPE Context",
+      "question": "How does this exact locus compare with reference clusters and the cohort?",
+      "summary": "Keeps source-local ClusterBlast, gene-level MIBiG anchors, whole-locus majority reads, and cutoff-specific BiG-SCAPE families distinct.",
+      "delivery_class": "OPTIONAL_LOCAL_ADAPTER", "commands": ["majority-read", "bigscape", "figures gcf-network"],
+      "requirements": ["sealed_package"], "optional_inputs": ["mibig_rows", "clusterblast_rows", "bigscape_local"],
+      "outputs": ["reference_context", "gcf_context", "comparator_limits"], "detection_globs": ["**/*bigscape*", "**/*mibig*"], "gates": ["workflow"],
+      "triggers": ["Reconcile MIBiG, ClusterBlast, and BiG-SCAPE evidence"],
+      "claim_ceiling": "Comparator navigation and family context; class discordance cannot support product identity or novelty."
+    },
+    {
+      "id": "E05", "label": "E5", "group": "evidence", "name": "Phylogenomics Context",
+      "question": "What is the approved genome-scale comparator context?",
+      "summary": "Approval-gated GToTree/IQ-TREE/ANI context with explicit outgroups, tip cleaning, and source receipts.",
+      "delivery_class": "OPTIONAL_LOCAL_ADAPTER", "commands": ["phylo-run", "clade-deepdive"],
+      "requirements": ["phylogenomics_local", "approved_compute_plan"], "optional_inputs": ["ani_inputs", "bigscape_local"],
+      "outputs": ["phylogeny_context", "ani_context", "signoff_receipt"], "detection_globs": ["**/*.nwk", "**/*phylo*receipt*.json"], "gates": ["signoff"],
+      "triggers": ["Build the approved phylogenomics context"],
+      "claim_ceiling": "Comparator placement and nucleotide/protein similarity; taxonomy and novelty require their own admitted evidence."
+    },
+    {
+      "id": "M01", "label": "#5", "group": "meals", "name": "Mode B 48-Section Deep Dive",
+      "question": "What does all admitted evidence support for one exact locus?",
+      "summary": "A complete 48-section, gene-oriented evidence reconciliation with alternatives, discriminating tests, typed holds, and loss audit.",
+      "delivery_class": "POST_SEAL_JUDGMENT", "commands": ["modeb-availability", "mode-b", "modeb-compile", "verify-modeb", "verify-citations"],
+      "requirements": ["sealed_package", "exact_locus_identity", "canonical_protein_roster", "authored_judgment"],
+      "optional_inputs": ["admitted_blastp", "admitted_bigscape", "admitted_mibig", "phylogenomics_context"],
+      "outputs": ["modeb_48_card", "source_loss_audit", "future_map_payload"], "detection_globs": ["**/*[Mm]ode*[Bb]*.md"],
+      "gates": ["verify-modeb", "verify-citations", "claim-safety"],
+      "triggers": ["Write full Mode B for STRAIN-001 / NODE_12_length_48000_cov_30.1 / region001 / BGC007"],
+      "claim_ceiling": "Candidate interpretation only unless separately accepted; capacity is not production."
+    },
+    {
+      "id": "M02", "label": "#6", "group": "meals", "name": "Full Strain Analysis",
+      "question": "Integrate extraction, lead interpretation, figures, and next actions for one strain.",
+      "summary": "A governed compilation of the sealed package and independently gated post-seal deliverables; unavailable components remain typed rather than silently omitted.",
+      "delivery_class": "POST_SEAL_JUDGMENT", "commands": ["compile-report", "workflow", "report-card"],
+      "requirements": ["sealed_package", "authored_judgment"], "optional_inputs": ["figure_stack", "admitted_companion_evidence"],
+      "outputs": ["compiled_report", "workflow_ledger"], "detection_globs": ["**/*compiled*report*", "**/*workflow*ledger*"], "gates": ["workflow", "validate"],
+      "triggers": ["Build the full strain analysis"],
+      "claim_ceiling": "Compilation does not raise the authority of its component evidence."
+    },
+    {
+      "id": "M03", "label": "#7", "group": "meals", "name": "Split-Pathway and Assembly-Line Reconstruction",
+      "question": "Could measured biosynthetic capacity span boundaries or multiple regions?",
+      "summary": "RG-GMCI, protocluster, over-merge, and domain-architecture views with explicit physical-linkage limits and alternative assignments.",
+      "delivery_class": "POST_SEAL_JUDGMENT", "commands": ["rggmci-widget", "assembly-line-widget", "split-overmerge-cards", "overmerge-widgets"],
+      "requirements": ["sealed_package", "exact_locus_identity"], "optional_inputs": ["source_gbk", "admitted_blastp"],
+      "outputs": ["linkage_assessment", "assembly_line_context"], "detection_globs": ["**/*rggmci*", "**/*assembly*line*"], "gates": ["workflow"],
+      "triggers": ["Reconstruct the measured split pathway"],
+      "claim_ceiling": "Co-occurrence or linkage score is not proof of one biosynthetic product."
+    },
+    {
+      "id": "M04", "label": "#8", "group": "meals", "name": "Cohort and GCF Atlas",
+      "question": "What biosynthetic capacity is shared or strain-private across a governed cohort?",
+      "summary": "Cross-strain synthesis, source-derived cohort tables, and cutoff-specific GCF context with denominator and comparator-composition limits.",
+      "delivery_class": "OPTIONAL_LOCAL_ADAPTER", "commands": ["cohort-precompute", "cohort", "cohort-figures", "bigscape"],
+      "requirements": ["multiple_sealed_packages"], "optional_inputs": ["master_workbook", "bigscape_local", "figure_stack"],
+      "outputs": ["cohort_tables", "cohort_synthesis", "gcf_atlas"], "detection_globs": ["**/*cohort*synthesis*", "**/*gcf*atlas*"], "gates": ["workflow"],
+      "triggers": ["Build the cohort comparison", "Build the cross-strain GCF atlas"],
+      "claim_ceiling": "Measured cohort prevalence and clustering only; sampling and cutoff choices bound interpretation."
+    },
+    {
+      "id": "S01", "label": "S1", "group": "sides", "name": "Domain and Tailoring Review",
+      "question": "Which measured domains and tailoring families change the pathway alternatives?",
+      "summary": "Post-seal domain grammar, P450 context, and assembly-line enrichment kept separate from inferred reaction assignment.",
+      "delivery_class": "OPTIONAL_LOCAL_ADAPTER", "commands": ["domain-level", "hmm-adjudicate", "p450-tailoring", "assembly-line"],
+      "requirements": ["sealed_package"], "optional_inputs": ["source_gbk", "local_hmm_database"],
+      "outputs": ["domain_evidence", "tailoring_context"], "detection_globs": ["**/*domain*level*"], "gates": ["workflow"],
+      "triggers": ["Add the domain and tailoring review"],
+      "claim_ceiling": "Domain capacity and architecture; reaction assignment remains conditional."
+    },
+    {
+      "id": "S02", "label": "S2", "group": "sides", "name": "Reference-Dark and Novelty Shortlist",
+      "question": "Which genes or loci remain poorly anchored to admitted references?",
+      "summary": "Reference-dark and novelty-routing views that preserve missing-channel and comparator-coverage limitations.",
+      "delivery_class": "POST_SEAL_JUDGMENT", "commands": ["reference-dark", "novelty-shortlist", "comparator-coverage"],
+      "requirements": ["sealed_package"], "optional_inputs": ["admitted_blastp", "admitted_mibig", "bigscape_local"],
+      "outputs": ["reference_dark_report", "novelty_shortlist"], "detection_globs": ["**/*reference*dark*", "**/*novelty*shortlist*"], "gates": ["claim-safety"],
+      "triggers": ["Show the reference-dark genes and novelty shortlist"],
+      "claim_ceiling": "Reference darkness is not novelty; missing evidence is not biological absence."
+    },
+    {
+      "id": "S03", "label": "S3", "group": "sides", "name": "Figure Set and Comparative Clinker",
+      "question": "Create source-backed visuals without changing the scientific verdict.",
+      "summary": "Data-sidecar-backed figures, BGC diagrams, GCF networks, and comparative Clinker views generated after the package seal.",
+      "delivery_class": "OPTIONAL_LOCAL_ADAPTER", "commands": ["render-figures", "cohort-figures", "figures clinker", "figures gcf-network"],
+      "requirements": ["figure_stack"], "optional_inputs": ["sealed_package", "bigscape_local", "source_gbk"],
+      "outputs": ["figures", "figure_data_sidecars", "clinker_html"], "detection_globs": ["**/*.png", "**/*.svg", "**/*clinker*.html"], "gates": ["validate"],
+      "triggers": ["Build the source-backed figure set"],
+      "claim_ceiling": "Visualization of admitted measurements; figures do not upgrade inference."
+    },
+    {
+      "id": "S04", "label": "S4", "group": "sides", "name": "Local Literature Context",
+      "question": "What does the pinned local literature corpus say about the named families?",
+      "summary": "Offline lookup and search over the bundled corpus, followed by claim-level citation adjudication in Sapote judgment.",
+      "delivery_class": "OPTIONAL_LOCAL_ADAPTER", "commands": ["literature lookup", "literature search"],
+      "requirements": ["local_literature_corpus"], "optional_inputs": ["authored_judgment"],
+      "outputs": ["literature_context"], "detection_globs": ["**/*literature*context*"], "gates": ["claim-safety"],
+      "triggers": ["Search the local literature corpus for this enzyme family"],
+      "claim_ceiling": "Literature supplies family or comparator context unless exact experimental identity is independently established."
+    },
+    {
+      "id": "S05", "label": "S5", "group": "sides", "name": "Bench Planning Matrix",
+      "question": "What experiments would discriminate the leading pathway alternatives?",
+      "summary": "A judgment-layer fermentation, detection, metabolomics, and wet-lab decision matrix tied to explicit hypotheses and uncertainties.",
+      "delivery_class": "POST_SEAL_JUDGMENT", "commands": [],
+      "requirements": ["authored_judgment", "exact_locus_identity"], "optional_inputs": ["measured_activity", "metabolomics"],
+      "outputs": ["bench_planning_matrix"], "detection_globs": ["**/*bench*matrix*"], "gates": ["claim-safety"],
+      "triggers": ["Build a hypothesis-linked bench planning matrix"],
+      "claim_ceiling": "Experimental planning, not evidence that a compound is produced or active."
+    },
+    {
+      "id": "G01", "label": "G1", "group": "governance", "name": "Workflow and Evidence Receipt",
+      "question": "Which required stages passed, remain pending, or are blocked?",
+      "summary": "A machine-readable Sapote workflow ledger and additive evidence-receipt ingestion without mutating the sealed extraction package.",
+      "delivery_class": "GOVERNANCE_AND_QA", "commands": ["workflow", "ingest-receipts"],
+      "requirements": ["sealed_package"], "optional_inputs": ["evidence_receipts", "authored_deliverables"],
+      "outputs": ["workflow_ledger", "receipt_registry"], "detection_globs": ["**/*workflow*ledger*", "**/*receipt*registry*"], "gates": ["workflow", "validate"],
+      "triggers": ["Show the workflow and evidence receipt status"],
+      "claim_ceiling": "Process state and provenance only."
+    },
+    {
+      "id": "G02", "label": "G2", "group": "governance", "name": "Claim and Citation Audit",
+      "question": "Does the authored interpretation stay within its evidence and identity contract?",
+      "summary": "Post-hoc claim-safety, complete-locus citation, and authored-content gates over finished files.",
+      "delivery_class": "GOVERNANCE_AND_QA", "commands": ["claim-safety", "verify-citations", "verify-modeb", "verify-guide"],
+      "requirements": ["authored_deliverables"], "optional_inputs": ["sealed_package"],
+      "outputs": ["gate_findings"], "detection_globs": ["**/*gate*findings*", "**/*claim*safety*report*"], "gates": ["claim-safety", "verify-citations"],
+      "triggers": ["Audit the claims and exact-locus citations"],
+      "claim_ceiling": "Mechanical and encoded semantic checks; not scientific acceptance."
+    },
+    {
+      "id": "G03", "label": "G3", "group": "governance", "name": "Reproducible Handoff",
+      "question": "Can another operator identify the exact inputs, outputs, and resume point?",
+      "summary": "Fingerprints, manifests, durable state, and a portable handoff that preserves source identity and unresolved holds.",
+      "delivery_class": "GOVERNANCE_AND_QA", "commands": ["fingerprint", "handoff", "resume"],
+      "requirements": ["sealed_package"], "optional_inputs": ["authored_deliverables"],
+      "outputs": ["fingerprint", "handoff_bundle", "resume_state"], "detection_globs": ["**/*fingerprint*", "**/*handoff*"], "gates": ["validate"],
+      "triggers": ["Build the reproducible handoff"],
+      "claim_ceiling": "Reproducibility and custody only; no acceptance or release implication."
+    },
+    {
+      "id": "G04", "label": "G4", "group": "governance", "name": "Release QA and Privacy Review",
+      "question": "Is a candidate mechanically ready for an authorized release decision?",
+      "summary": "Release checks, privacy-tier controls, and sign-off receipts. Passing does not grant release authority.",
+      "delivery_class": "GOVERNANCE_AND_QA", "commands": ["release-qa", "signoff"],
+      "requirements": ["candidate_bundle"], "optional_inputs": ["privacy_policy", "review_receipts"],
+      "outputs": ["release_qa_receipt", "signoff_receipt"], "detection_globs": ["**/*release*qa*", "**/*signoff*receipt*"], "gates": ["release-qa", "signoff"],
+      "triggers": ["Run candidate release QA"],
+      "claim_ceiling": "Mechanical candidate readiness only; owner approval remains separate."
+    },
+    {
+      "id": "G05", "label": "G5", "group": "governance", "name": "Adversarial Patch Review",
+      "question": "What breaks, conflicts, or remains unproven in a proposed change?",
+      "summary": "A bounded source-first review protocol for patch applicability, conflicts, tests, provenance, and claim ceilings.",
+      "delivery_class": "HUMAN_REVIEW_PROTOCOL", "commands": [],
+      "requirements": ["immutable_baseline", "patch_payload"], "optional_inputs": ["prior_review_receipts"],
+      "outputs": ["patch_card", "independent_findings", "application_receipt"], "detection_globs": ["**/*PATCH_CARD*.md", "**/*INDEPENDENT_FINDINGS*.tsv"], "gates": ["zero_fuzz_apply", "named_tests"],
+      "triggers": ["Run an adversarial patch review", "Can we Bunny Hop?"],
+      "claim_ceiling": "Review recommendation only; no integration, acceptance, or release authority."
+    }
+  ]
+}
