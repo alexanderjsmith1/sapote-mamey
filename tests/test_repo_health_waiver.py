@@ -45,6 +45,7 @@ def test_waiver_covers_only_up_to_signed_observed():
 def test_shipped_waiver_is_valid_and_signed():
     rh = _rh()
     w = rh.load_waivers(_ROOT / "STRICT_HEALTH_WAIVER.json")
-    assert {"silent_swallow", "print_calls"} <= set(w)
+    assert "print_calls" in w
+    assert "silent_swallow" not in w
     for e in w.values():
         assert e["owner"] and e["reason"] and isinstance(e["observed"], int)

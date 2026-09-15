@@ -11,6 +11,10 @@ def test_mafft_calls_use_quiet_to_avoid_dev_stderr_wrapper_failure():
 
 
 def test_bumblebee_and_plant_source_colours_are_visually_distinct_hues():
-    source = (ROOT / "tools/ggtree_rect_heatmap.R").read_text(encoding="utf-8")
-    assert '"plant-associated" = "#2E8B57"' in source
-    assert '"bumblebee" = "#0072B2"' in source
+    import csv
+    with (ROOT / "tools/phylo_display_palette.tsv").open(encoding="utf-8") as handle:
+        palette = {(row["field"], row["value"]): row["color"]
+                   for row in csv.DictReader(handle, delimiter="\t")}
+    assert palette[("source", "plant-associated")] == "#228833"
+    assert palette[("source", "bumblebee")] == "#0072B2"
+    assert palette[("source", "plant-associated")] != palette[("source", "bumblebee")]

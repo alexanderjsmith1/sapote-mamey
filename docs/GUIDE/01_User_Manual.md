@@ -1,17 +1,21 @@
 # The Sapote–Mamey User Manual
 
-*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.428 / engine Mamey 1.9.163*
-*· 2026-06-29*
+*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.431 / engine Mamey 1.9.165*
+*Originally assembled 2026-06-29; candidate setup/navigation corrections 2026-09-13. Historical sections retain their stated scope.*
 
 > This Manual tells you **how to run** Sapote–Mamey and **how to read what it gives you**, front to back in the order you actually use it. For *why each part exists and how it relates to the rest*, see the **Encyclopedia** (cross-referenced as → §Vol.Chapter). The Manual is operational; the Encyclopedia is the deep reference behind it. One **Glossary** ([`GLOSSARY.md`](../GLOSSARY.md), with its **Core concepts** section for the load-bearing terms) is the single source for term definitions — this Manual and the Encyclopedia both point to it rather than redefining terms.
 
 ---
 
+For a first run, follow [the maintained walkthrough](../MASTER_WALKTHROUGH.md). For an existing
+package, start with [Read your results](../READING_YOUR_RESULTS.md). This longer manual also
+contains historical case studies; a current bundle stamp is not proof that every example was rerun.
+
 ## 1 · What Sapote–Mamey is
 
 Sapote–Mamey is a **two-layer genome-mining pipeline** for actinomycete (and, increasingly, fungal) natural-product discovery. It is not an environment you work inside; it is a tool you run *on* genomes.
 
-1. **Mamey** is the software: a deterministic Python engine (the `mamey` package). It parses antiSMASH output, builds the BGC inventory, runs the scans, computes the corrected count, and emits the triage board, manifest, briefs, and figures. *Deterministic* means same input → byte-identical output, held by the test suite (the full suite at v9.7.428 (engine 1.9.163)).
+1. **Mamey** is the software: a deterministic Python engine (the `mamey` package). It parses antiSMASH output, builds the BGC inventory, runs the scans, computes the corrected count, and emits the triage board, manifest, briefs, and figures. *Deterministic* describes rule-based extraction under a bound configuration. Whole packages may include timestamps, paths or environment-dependent rendering; byte-identical archives are not guaranteed. Compare the recorded inputs, versions, settings and relevant scientific fields.
 2. **Sapote** is the judgment layer: a structured LLM prompt system that applies **claim-safe interpretation** on top of Mamey's deterministic facts. It writes the Mode B narrative, pathway hypotheses, and claim-safety audits.
 
 Mamey is the factual floor; Sapote is the interpretive ceiling; the contract between them keeps "what the data says" from blurring into "what we think it means." → Encyclopedia Vol I, Vol III.
@@ -23,7 +27,7 @@ Mamey is the factual floor; Sapote is the interpretive ceiling; the contract bet
 ## 2 · Setup and installation
 
 Mamey parses antiSMASH output; it does not run genome detection itself.
-*(engine 1.9.163, bundle v9.7.428)*
+*(engine 1.9.165, bundle v9.7.431)*
 
 ### 2.1 · What you need
 
@@ -35,7 +39,7 @@ Check [RELEASE MANIFEST](../../RELEASE_MANIFEST.md) for the actual version and s
 [INSTALL](../INSTALL.md) for setup. An unsealed candidate is not a signed release.
 
 **antiSMASH output for your input**, as a ZIP containing its region GenBank files and available
-evidence. The default JSON mode is `bounded`; `off` skips JSON evidence. The `full` mode has a
+evidence. The default JSON mode is `bounded`; `off` disables the main JSON walker; independent record-level paths are separate. The `full` mode has a
 size guard and should not be assumed necessary. `--capped-session` forces JSON evidence off,
 even when `bounded` is also requested. Follow the [Quick Guide](02_Quick_Guide.md) for this tradeoff.
 
@@ -56,44 +60,18 @@ are declared in `pyproject.toml`: `openpyxl`, `ijson`, `reportlab`, and `PyYAML`
 Use the local launcher to avoid another installed version. Optional extras and offline
 wheelhouse requirements are described in [INSTALL](../INSTALL.md).
 
-### 2.3 · Install the add-on wheels
+### 2.3 · Optional features and external assets
 
-The pipeline's heavier dependencies (the Gemini comparison stack, the offline HMM engine, and the
-figure-rendering libraries) ship **separately** from the lean Sapote–Mamey bundle, as an add-on of
-vendored wheels. Keeping them out of the bundle means every pipeline cut stays small and loads fast.
+Core Python requirements are declared in pyproject.toml. Install figures, documents or Biopython
+through the named extras in [INSTALL](../INSTALL.md). Some companion workflows additionally need
+external programs or databases; install only those required for the chosen task.
 
-**The add-on can arrive in any shape — the installer accepts them all.** Because a single large zip
-uploads slowly, the add-on is split so the parts load in parallel:
+A supplied add-on archive is a convenience, not a guarantee that every wheel matches the laptop.
+Check operating system, CPU architecture and Python version. Do not alter compatibility tags to
+force an installation. Check the actual database inventory and doctor/scan receipts before
+claiming an HMM panel or companion ran. Historical add-on part sizes and model counts are not
+current capability guarantees.
 
-| Add-on part | Size | Contains | Needed for |
-|---|---|---|---|
-| `sapote-addons-core` | ~27 MB | pyhmmer, pyskani, biopython, pyrodigal, pyfamsa, … | **Everything except figures** — starts runs, BLASTp, HMM, ANI, Gemini |
-| `gemini-figures-part1/2/3` | ~24–34 MB each | scipy, numpy, pandas, matplotlib, logomaker, pycirclize + the 148-family HMM | `mamey figures` (atlas, ANI heatmap, sequence logos) and the extended HMM scan |
-
-Load the **core** part alone to start analysing immediately; add the **figure** parts when you need
-figures. You can attach them as separate zips, as one combined zip, or as loose `.whl` files — the
-installer scans every add-on location, pools whatever wheels it finds, and installs them:
-
-```bash
-bash bundle_support/install_sapote_addons.sh            # auto-discovers every attached add-on part
-bash bundle_support/install_sapote_addons.sh /path/to/wheels   # or point it at an explicit directory
-```
-
-Core dependencies are required and verified; figure dependencies are best-effort — if the figure
-parts were not attached this session, the installer says so and the pipeline runs fully without them
-(only `mamey figures` is unavailable). The 25 most important HMM models ship in the bundle itself, so
-HMM scanning and adjudication work with the core add-on alone; the 148-family set in the figure part
-is an enhancement.
-
-**Biopython filename note.** The wheel filename must use dots, not underscores, in the version and
-platform tags. If your file transfer replaced dots with underscores, rename it before installing:
-
-```
-# rejected:  biopython-1_87-cp312-cp312-manylinux2014_x86_64_manylinux_2_17...whl
-# correct:   biopython-1.87-cp312-cp312-manylinux2014_x86_64.manylinux_2_17...whl
-```
-
-The wheel contents are unchanged — only the filename needs restoring.
 
 ### 2.4 · The right bundle tier
 
@@ -112,7 +90,7 @@ Use CODE for all internal analysis. Never distribute MERGED-PRIVATE.
 
 ```bash
 mamey doctor                          # pre-flight check: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # should report `engine 1.9.163, bundle 9.7.428`
+python3 tools/sync_version.py --check # should report `engine 1.9.165, bundle 9.7.431`
 python3 -m pytest -q                  # green suite = tier is intact (requires pytest wheel)
 ```
 
@@ -185,7 +163,7 @@ DAPR (dual antibacterial/antifungal priority ranking) ranks leads on both axes. 
 
 ### 4.2 · Reading a Mode B card
 
-Mode B is the per-BGC dossier. The finished card is **§1–§48** (`FINISHED_FULL48_CURRENT_EVIDENCE`, gate-enforced since v9.7.369); **§1–§20** is the always-required core subset (never a finished card on its own) and **§1–§30** is the legacy candidate/calibration profile. Every section has a job:
+Mode B is the per-BGC dossier. The existing corrective profile uses **§1–§48** (`FINISHED_FULL48_CURRENT_EVIDENCE`); the separate publication-candidate requirements contain **§1–§50**. Use [the full profile map and workflow](../MODE_B_USER_WALKTHROUGH.md) to select the actual consumer and understand the remaining migration boundary; **§1–§20** is the always-required core subset (never a finished card on its own) and **§1–§30** is the legacy candidate/calibration profile. Every section has a job:
 
 - **§1 Identity and node/region** — BGC id, contig, region, boundary (Interior / Edge / Full-contig). Always cite the node alongside the BGC id; a bare BGC number is unciteable.
 - **§3 Boundary and assembly status** — fragmentation caveats; boundary (Interior / Edge / Full-contig); UMED/FLBR/RGGMCI flags; what is likely off-contig.
@@ -416,7 +394,7 @@ Scores are **not comparable across an engine boundary** without a re-score. The 
 - **1.9.96 → 1.9.97** — data-driven RiPP extraction (v9.7.99): RiPP families beyond the original four are no longer dropped, so any strain carrying a ranthipeptide / linaridin / thioamitide / other extra RiPP family changes; original-four-only strains are byte-identical.
 - **1.9.97 → 1.9.98** — the RG-GMCI contig-rescue overhaul (v9.7.100): new ranked-pair fields and two new package artifacts. This changes rescue *routing* and adds fields but does **not** alter the AB/AF/novelty base scores, so it is the mildest of the four — but it is still an engine boundary for cohort-pooling purposes.
 
-A cohort "re-scored to the current engine" must be re-scored under **1.9.98** specifically — the genus bank is pinned at 1.9.96 and is therefore *two* boundaries behind, so its `assert_comparable_with` will refuse to pool it with a 1.9.98 cohort until it is re-scored. **Re-score any cohort under the current engine (1.9.98) before cross-strain comparison.**
+The boundaries above are historical examples, not a declaration that 1.9.98 is current. For a new comparison, bind each package's actual engine, registry, input profile and settings. Use the current comparison checks and re-score incompatible inputs under the selected common configuration; do not assume a remembered genus-bank version.
 
 ---
 
@@ -424,7 +402,7 @@ A cohort "re-scored to the current engine" must be re-scored under **1.9.98** sp
 
 This chapter is the single reference for every figure Sapote–Mamey produces: what it shows, whether it renders by default or on demand, how to trigger it, and where it lands. Two principles hold across all of them:
 
-1. **Every figure is a data-only PNG with a companion `_data.csv`.** The PNG is for the eye; the CSV is the figure's data, so a figure can always be re-plotted or audited without re-running the pipeline. Strain names display as *Genus species* strain `<ID>`.
+1. **Keep each figure with its actual data and methods sidecars.** Formats vary by renderer; inspect the emitted files rather than assuming a PNG/CSV pair for every workflow. The PNG is for the eye; the CSV is the figure's data, so a figure can always be re-plotted or audited without re-running the pipeline. Strain names display as *Genus species* strain `<ID>`.
 2. **Every figure carries a claim-safe footer.** Capacity-level, not a product claim; KCB = similarity, not identity; gene roles are antiSMASH rule/smCOG annotations, not BLASTP-confirmed. Figures never assert compound identity.
 
 Figures fall into three groups: **default per-strain** (rendered automatically in every run), **default cohort** (rendered when you build the cohort atlas), and **optional/on-demand** (rendered when you ask for them, in-run or post-seal).
@@ -500,7 +478,7 @@ Every figure in every group ships a companion `_data.csv` and is registered in a
 
 ---
 
-*Sapote–Mamey User Manual · current to bundle v9.7.428 / engine Mamey 1.9.163 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
+*Sapote–Mamey User Manual · current to bundle v9.7.431 / engine Mamey 1.9.165 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
 
 
 ---
@@ -552,3 +530,7 @@ Current compact lead tables use `interpretation_scope` for reader-facing scope. 
 ### ChatGPT wrapper timeout after visible PASS
 
 In capped ChatGPT/container sessions, the outer tool wrapper can time out after Mamey has already printed a terminal PASS and written manifest/checksum files. Treat this as an audit condition, not an automatic success. A run may be trusted only when the package validator passes, the package ZIP or run directory opens cleanly, required checksums verify, and `package_status.json` / `run_phase_receipts.jsonl` agree with the terminal status. If the wrapper times out during package sealing and validation cannot be completed, rerun validation or treat the package as incomplete.
+
+## Continue into authored Mode B interpretation
+
+Use [the Mode B user walkthrough](../MODE_B_USER_WALKTHROUGH.md) for package inputs, exact identity, runnable preparation/verification examples, profile differences and the complete 50-section requirement map. The native scaffold is not a universal finished 50-section card.

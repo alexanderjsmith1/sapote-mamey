@@ -95,6 +95,8 @@ generated block" failures that look alarming but are just sequencing, not real d
    actual log so a red or stale suite cannot be restated as passing evidence.
 8. Re-run `sync_version --check`, `render_bootstrap_contract --check`, and `gen_release_manifest
    --check` — all three green before proceeding.
+9. Run `python3 tools/verify_release_identity.py --root . --strict-membership`; the cut must
+   refuse any tracked file omitted from `TIER_MANIFEST.txt`, even when every listed checksum passes.
 
 `sync_version.py` owns all three `TAG` identity lines: bundle, engine, and build stamp. Do not
 freehand the `TAG` build line. A green `sync_version --check` is the governing check; the release

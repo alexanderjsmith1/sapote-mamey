@@ -2,7 +2,7 @@
 
 ### Engine subsystems: triggers, architecture, KCB/RiQ, compound class, rescue, and enrichment
 
-**Version of record:** Mamey engine v1.9.110 · bundle v9.7.319 · compiled 2026-06-23
+**Version of record:** Mamey engine v1.9.164 · bundle v9.7.429 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23)
 **Author:** Alexander J. Smith
 **Companion to:** *The Mathematics of Sapote-Mamey* (Volume I — core counting, assembly tiers, AB/AF/novelty scoring, lead tiers, guards, RG-GMCI, completeness) and *The Plumbing Reference* (CLI, workbook, figures, packaging).
 **Status:** Methods reference. Every formula is transcribed from engine source and cited to `module.py:symbol`; nothing is reconstructed from memory. Each cluster was verified against source before inclusion; corrections made during review are noted inline.
@@ -116,11 +116,11 @@ Default coupling flank: **10,000 bp** for CCTT and most scans. Cassettes and UME
 
 ---
 
-### A.4 The 14 CCTT triggers
+### A.4 The 18 CCTT triggers
 
 **Source:** `source_scans.py:CCTT_PATTERNS`
 
-The CCTT ("cryptic-class trigger table") is a dict of 14 named triggers, each a list of annotation-derived regex patterns. A trigger fires when any of its patterns matches in the haystack of any CDS within 10 kb of a BGC. The table below gives each trigger's stable code key, its registry IDs (from `mamey_markers.py:MAMEY_MARKERS` and `mamey/sapote_markers.py:SAPOTE_MARKERS`), and what it is detecting.
+The CCTT ("cryptic-class trigger table") is a dict of 18 named triggers, each a list of annotation-derived regex patterns. A trigger fires when any of its patterns matches in the haystack of any CDS within 10 kb of a BGC. The table below gives each trigger's stable code key, its registry IDs (from `mamey_markers.py:MAMEY_MARKERS` and `mamey/sapote_markers.py:SAPOTE_MARKERS`), and what it is detecting. *(Original compilation listed 14; T43-NN was already in the dict, and T43-PYE, T43-GPA, T43-BLT were added at v9.7.119 / engine 1.9.99.)*
 
 | Code key | Marker ID | What it detects | Representative patterns |
 |---|---|---|---|
@@ -139,6 +139,9 @@ The CCTT ("cryptic-class trigger table") is a dict of 14 named triggers, each a 
 | `T43-PTM_hsaf_tetramate` | MMK-CCTT-012 | HSAF/PTM polycyclic tetramate macrolactam (PKS-NRPS hybrid antifungal class) | `\bhsaf\b`, `maltophilin`, `dihydromaltophilin`, `heat.?stable.?antifungal`, `tetramate`, `tetramic acid`, `xanthobaccin`, `frontalamide`, `alteramide`, `clifednamide`, `ikarugamycin`, `combamide`, `polycyclic tetramate macrolactam` |
 | `T43-TET_tetronate_spirotetronate` | MMK-CCTT-013 / SMK-TET-001 | Tetronate/spirotetronate polyketide class | `tetronate`, `spirotetronate`, `fkbh`, `(?<!acyl)glyceryl` |
 | `T43-NN_n_n_bond` | MMK-CCTT-014 / SMK-NN-001 | N–N bond/diazo/azoxy/hydrazine chemistry (CreE/CreD-like) | `n-n bond`, `diazo`, `\bcreE\b`, `\bcreD\b`, `azoxy`, `hydrazine` |
+| `T43-PYE_polyene_macrolide` | *(v9.7.119)* | Polyene macrolide antifungal (natamycin/amphotericin class); arylpolyene excluded by negative lookbehind. AF scoring additionally gates on KS-domain count ≥ `_POLYENE_MIN_KS` | `(?<!aryl)polyene macrolide`, `(?<!aryl)polyene antifungal`, `\bnatamycin\b`, `\bpimaricin\b`, `\bcandicidin\b`, `\bamphotericin\b`, `\bnystatin\b`, `\bfilipin\b`, `\brimocidin\b`, `\bfaeriefungin\b`, `\btetramycin\b`, `\blucensomycin\b`, `\bpartricin\b`, `\bperimycin\b`, `\baureofungin\b`, `\bhamycin\b`, `\btrichomycin\b`, `\blevorin\b`, `\bfungichromin\b`, `\bselvamicin\b`, `\breedsmycin\b`, `\btetraene\b`, `\bpentaene\b`, `\bhexaene\b`, `\bheptaene\b` |
+| `T43-GPA_glycopeptide` | *(v9.7.119)* | Glycopeptide antibacterial (vancomycin/teicoplanin class); committed markers are OxyB/OxyA/OxyC oxidative-coupling P450s and non-proteinogenic-AA machinery (DPGS, HPG aminotransferase) | `\boxyB\b`, `\boxyA\b`, `\boxyC\b`, `\bdpgs\b`, `3,5-dihydroxyphenylglycine`, `4-hydroxyphenylglycine`, `\bhpg\b aminotransferase`, `\bglycopeptide\b`, `\bvancomycin\b`, `\bteicoplanin\b`, `\bbalhimycin\b`, `\bchloroeremomycin\b`, `\bpekiskomycin\b`, `\bristocetin\b`, `\bristomycin\b` |
+| `T43-BLT_betalactone` | *(v9.7.119)* | Betalactone (antibacterial; some members cytotoxic — routed AB, chemotype layer flags cytotoxic members). Committed logic = PEP-utilizer + biotin-carboxylase PAIR (architecture_first) | `\bbetalactone\b`, `\bbeta-lactone\b`, `\bsalinosporamide\b`, `\bplatensimycin\b`, `\bplatencin\b`, `\blactacystin\b`, `\bebelactone\b`, `\bovalicin\b` |
 
 **Pattern design notes:**
 - T43-PHO uses four nested negative lookaheads to avoid firing on phosphonate *transporters*, phosphonate *utilization* regulons, C–P *lyase* operons, and `phnG-M` family genes — all contexts where "phosphonate" appears but is metabolic, not biosynthetic-core.
@@ -181,10 +184,13 @@ CCTT_CLASS_COMPAT = {
     "T43-AMC_aminocyclitol":       {"amglyccycl", "aminoglycoside", "aminocyclitol", "saccharide"},
     "T43-ENE_enediyne":            {"pks", "t1pks", "enediyne", "transat"},
     "T43-THA_thioamide":           {"ripp", "nrps", "thioamitides", "lap", "thiopeptide"},
+    "T43-PYE_polyene_macrolide":   {"t1pks", "pks", "transat", "transat-pks", "polyene", "polyketide"},
+    "T43-GPA_glycopeptide":        {"nrps", "nrps-like", "glycopeptide"},
+    "T43-BLT_betalactone":         {"betalactone", "nrps", "pks", "t1pks"},
 }
 ```
 
-Note that `T43-BLA_betalactam` is absent from the corroboration gate code comment's "gated" list but present in `CCTT_CLASS_COMPAT`. Absent triggers (those with no entry in `CCTT_CLASS_COMPAT`) are treated as corroborated (`compat = None → return True`).
+*(PYE, GPA, BLT entries added at v9.7.119 / engine 1.9.99.)* Note that `T43-BLA_betalactam` is absent from the corroboration gate code comment's "gated" list but present in `CCTT_CLASS_COMPAT`. Absent triggers (those with no entry in `CCTT_CLASS_COMPAT`) are treated as corroborated (`compat = None → return True`).
 
 **The corroboration check:**
 
@@ -1140,7 +1146,7 @@ Three JSON evidence modes are available:
 "off"      — TXT clusterblast only; JSON never opened. Default-safe for any genome.
 "bounded"  — Stream JSON with ijson; extract only KCB/RiQ/MIBiG leaves; caps apply.
              Falls back to "off" if ijson unavailable (recorded in json_skipped).
-"full"     — Legacy: json.loads the whole file and flatten. Refuses files > 20 MB.
+"full"     — Legacy: json.loads the whole file and flatten. Refuses files > 80 MB (80,000,000 uncompressed bytes); this is not a process-memory limit.
 ```
 
 The default is `"bounded"` (`JSON_MODE_DEFAULT = "bounded"`).
@@ -1153,7 +1159,7 @@ Capacity constants:
 | `BOUNDED_MAX_RECORDS_STREAMING` | 200,000 | Bounded mode, streaming parser present |
 | `BOUNDED_MAX_JSON_BYTES` | 25,000,000 (25 MB) | Bounded mode, no streaming parser |
 | `BOUNDED_MAX_JSON_BYTES_STREAMING` | 250,000,000 (250 MB) | Bounded mode, streaming parser present |
-| `FULL_MAX_JSON_BYTES` | 20,000,000 (20 MB) | Full mode hard refusal |
+| `FULL_MAX_JSON_BYTES` | 80,000,000 (80 MB) | Full mode hard refusal on uncompressed JSON bytes; not a RAM limit |
 
 The non-streaming caps were sized against the retired 25 MB legacy regime; the streaming caps are sized against real actinomycete JSONs (55–90 MB typical). The record cap in bounded streaming mode (200,000) is sized to never truncate RiQ on large genomes.
 
@@ -2747,6 +2753,6 @@ Cluster G (crosswalk / dedup / merge policy / quality gates) was still in prepar
 | F | Singleton filter, §3 census, enrichment, nominal length | folded, verified |
 | G | Crosswalk, dedup, merge policy, gates | pending |
 
-*The Mathematics of Sapote-Mamey, Volume II · Mamey engine v1.9.110 (frozen; the math tracks the engine, not the rolling bundle) · constants re-verified against source 2026-07-14 Every formula transcribed from engine source; capacity-level language throughout; KCB = similarity, not identity.*
+*The Mathematics of Sapote-Mamey, Volume II · Mamey engine v1.9.164 · bundle v9.7.429 · CCTT trigger table and class-compat re-grounded 2026-09-14 (originally compiled against v1.9.110 / v9.7.319; constants verified 2026-07-14). Every formula transcribed from engine source; capacity-level language throughout; KCB = similarity, not identity.*
 
-> **Engine 1.9.111 note (v9.7.319):** the glycopeptide machinery floor + tailoring-detection widening landed in engine 1.9.111. Volume II's constants were verified against 1.9.110 and have NOT yet been re-verified against 1.9.111 — the scoring *thresholds* are unchanged, but the capacity-class routing now detects tailoring enzymes from gene_functions/SMCOG. A re-verification pass is pending; treat the class-routing sections as ahead of this document until then.
+> **Engine 1.9.99–1.9.164 changes reflected in this re-grounding (v9.7.429):** CCTT_PATTERNS expanded from 14→18 entries (T43-PYE, T43-GPA, T43-BLT added at v9.7.119/1.9.99; T43-NN was already present but mis-counted in the original 14). CCTT_CLASS_COMPAT updated to include compatibility sets for the three new triggers. ADJ_MAX_LOCUS_GAP was already correct (60) in this document. Scoring thresholds and core formulas are unchanged from 1.9.110. The glycopeptide machinery floor + tailoring-detection widening (1.9.111) was already noted; the class-routing sections now reflect the current engine.

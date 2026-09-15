@@ -2,7 +2,7 @@
 
 > **Currency scope:** This volume retains its historical edition and review stamps. Only the checks listed in the [currency record](Encyclopedia-Currency.md) have been refreshed for the current candidate. Other constants, numerical claims, literature interpretations, and worked-run results have not been comprehensively revalidated. A newer bundle does not make those older observations current.
 
-*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (the guard patterns, the derive/resolve release functions and their PUBLIC-refused asymmetry, the four-tier make_public_tier.sh, and the version single-source-of-truth all re-verified against the running release machinery — including a live AS-XXX guard-refusal check) · 2026-06-16*
+*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (the guard patterns, the derive/resolve release functions and their PUBLIC-refused asymmetry, the four-tier make_public_tier.sh, and the version single-source-of-truth all re-verified against the running release machinery — including a live AS-XXX guard-refusal check) · 2026-06-16 · re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (guard patterns, release functions, four-tier system, version sync, test suite (~2518 passed) re-verified against engine 1.9.164)*
 *Chapters VII.1–VII.9. The operations manual: how releases are classified, cut, verified, versioned, handed off,
 and tailored. Grounded in the running engine of this edition.*
 
@@ -136,7 +136,7 @@ corrections (the AB-diagnostic count, the CCTT family roster, the \#28 real-data
 
 1.  **Patch** against the working tree (one incremental, verifiable change — never a rewrite), with a new test that
     fails before and passes after.
-2.  **Suite.** Run the full pytest suite (currently ~1404 passed / ~91 skipped at v9.7.91); a red suite blocks the cut. The
+2.  **Suite.** Run the full pytest suite (currently ~2518 passed at v9.7.429; was ~1404 at v9.7.91); a red suite blocks the cut. The
     version-sync check (`sync_version.py --check`, §VII.5) runs here too — a version-string drift fails rather than
     ships.
 3.  **Conservation audit.** Run the boundary audit (`boundary_audit.py`, §II.7) on every strain touched — the

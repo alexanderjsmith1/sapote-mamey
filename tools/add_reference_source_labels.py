@@ -76,7 +76,15 @@ def enrich(meta, db, output):
                     elif "[" in row["label"]:
                         row["source_label_state"] = "EXISTING_LABEL_RETAINED_REVIEW_SOURCE"
                     else:
-                        _text(value)
+                        try:
+                            _text(value)
+                        except ValueError:
+                            # v9.7.431: one unbalanced-bracket deposited value used to abort the
+                            # whole enrichment run (exit 2). Record the row with a typed state and
+                            # continue; no wrong label is ever added.
+                            row["source_label_state"] = "SOURCE_VALUE_LABEL_VALIDATION_FAILED"
+                            output_rows.append(row)
+                            continue
                         # Preserve the full existing organism/strain/type/accession
                         # label instead of re-parsing the organism or shortening it.
                         marker = row["label"].find(" (T)")

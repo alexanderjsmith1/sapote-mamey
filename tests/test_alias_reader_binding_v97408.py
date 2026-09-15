@@ -126,7 +126,7 @@ def test_payload_change_between_identity_and_observation_refuses(tmp_path):
 
 @pytest.mark.parametrize('channel', ['clusterblast_genes', 'mibig_per_gene', 'rggmci'])
 def test_receipt_preserves_actual_observation_source(channel, tmp_path):
-    from tests.test_modeb_gene_first_explore_v9_7_395 import _package, _run, TOKEN
+    from tests.test_modeb_gene_first_explore_v9_7_395 import _package, _run, VERSIONED_TOKEN
     package = _package(tmp_path)
     path = package / 'manifest.json'
     manifest = json.loads(path.read_text())
@@ -137,7 +137,9 @@ def test_receipt_preserves_actual_observation_source(channel, tmp_path):
     out = tmp_path / 'out'
     out.mkdir()
     result = _run(package, out)
-    persisted = json.loads((out / TOKEN / (TOKEN + '__exploration_receipt.json')).read_text())
+    persisted = json.loads(
+        (out / VERSIONED_TOKEN / (VERSIONED_TOKEN + '__exploration_receipt.json')).read_text()
+    )
     assert persisted['evidence_observations'] == result['evidence_observations']
     expected_channel = {'clusterblast_genes':'clusterblast','mibig_per_gene':'mibig','rggmci':'rggmci'}[channel]
     rows = [row for row in persisted['evidence_observations'] if row['channel'] == expected_channel]

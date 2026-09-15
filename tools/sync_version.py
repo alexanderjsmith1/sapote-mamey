@@ -148,8 +148,8 @@ RULES = [
      re.compile(r"Mamey v\d+(?:\.\d+)*[a-z]*"),
      f"Mamey v{ENGINE}"),
     ("docs/standalone/RUN_MAMEY_IN_CHATGPT.md",
-     re.compile(r"Mamey v\d+(?:\.\d+)*[a-z]*"),
-     f"Mamey v{ENGINE}"),
+     re.compile(r"Documented bundle: v\d+(?:\.\d+)* / engine \d+(?:\.\d+)*"),
+     f"Documented bundle: v{BUNDLE} / engine {ENGINE}"),
     # Co-execution prompt work-order restates the BUNDLE version in three contexts
     # (**Bundle:** vX, Bundle: vX, Sapote-Mamey Bundle vX). Backref preserves each lead-in;
     # historical versions live in separate MAMEY_V*_*.md files and the changelog (untouched).
@@ -223,12 +223,6 @@ RULES = [
     # The Quick Guide's install block is executable release identity, not historical prose.
     # Keep both the unzip and cd examples on the current CODE archive name, and keep the
     # expected sync-version output aligned with the same engine/bundle sources of truth.
-    ("docs/GUIDE/02_Quick_Guide.md",
-     re.compile(r"sapote-mamey-v\d+(?:\.\d+)*[a-z]*-CODE-\d+v\d+[a-z]*"),
-     f"sapote-mamey-v{BUNDLE}-CODE-{STAMP}"),
-    ("docs/GUIDE/02_Quick_Guide.md",
-     re.compile(r"(# → engine )\d+(?:\.\d+)*[a-z]*(, bundle )\d+(?:\.\d+)*[a-z]*"),
-     rf"\g<1>{ENGINE}\g<2>{BUNDLE}"),
     # RUN_DIAGNOSIS prompt states which bundle the ChatGPT side has (current-version pointer).
     ("prompts/RUN_DIAGNOSIS_PROMPT.md",
      re.compile(r"the Sapote\u2013Mamey v\d+(?:\.\d+)*[a-z]* bundle"),
@@ -285,14 +279,11 @@ RULES = [
      re.compile(r"current to bundle v\d+(?:\.\d+)*[a-z]* / engine Mamey \d+(?:\.\d+)*[a-z]*"),
      f"current to bundle v{BUNDLE} / engine Mamey {ENGINE}"),
     ("docs/GUIDE/01_User_Manual.md",
-     re.compile(r"the full suite at v\d+(?:\.\d+)*[a-z]* \(engine \d+(?:\.\d+)*[a-z]*\)"),
-     f"the full suite at v{BUNDLE} (engine {ENGINE})"),
-    ("docs/GUIDE/01_User_Manual.md",
      re.compile(r"should report `engine \d+(?:\.\d+)*[a-z]*, bundle \d+(?:\.\d+)*[a-z]*`"),
      f"should report `engine {ENGINE}, bundle {BUNDLE}`"),
     ("docs/standalone/CHATGPT_BATCH_PROTOCOL.md",
-     re.compile(r"# Mamey v\d+(?:\.\d+)*[a-z]* ChatGPT Batch Protocol"),
-     f"# Mamey v{ENGINE} ChatGPT Batch Protocol"),
+     re.compile(r"Documented bundle: v\d+(?:\.\d+)* / engine \d+(?:\.\d+)*"),
+     f"Documented bundle: v{BUNDLE} / engine {ENGINE}"),
     ("docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md",
      re.compile(r"(\*\*Version:\*\* [\d.]+ \u00b7 Mamey v)\d+(?:\.\d+)*[a-z]*( / Sapote v)\d+(?:\.\d+)*[a-z]*"),
      rf"\g<1>{ENGINE}\g<2>{BUNDLE}"),
@@ -368,6 +359,18 @@ RULES = [
     ("docs/user_guides/operational_reference.md",
      re.compile(r"(sapote-mamey-v\d+(?:\.\d+)*[a-z]*-CODE-)\d+v\d+[a-z]*"),
      rf"\g<1>{STAMP}"),
+    ("docs/user_guides/operational_reference.md",
+     re.compile(r"Bundle v\d+(?:\.\d+)*[a-z]* · Engine \d+(?:\.\d+)*[a-z]*"),
+     f"Bundle v{BUNDLE} · Engine {ENGINE}"),
+    ("docs/user_guides/operational_reference.md",
+     re.compile(r"(sapote-mamey-v)\d+(?:\.\d+)*[a-z]*(-CODE-\d+v\d+[a-z]*)"),
+     rf"\g<1>{BUNDLE}\g<2>"),
+    ("docs/user_guides/operational_reference.md",
+     re.compile(r"(sync_version.py --check # → engine )\d+(?:\.\d+)*[a-z]*(, bundle )\d+(?:\.\d+)*[a-z]*"),
+     rf"\g<1>{ENGINE}\g<2>{BUNDLE}"),
+    ("docs/user_guides/operational_reference.md",
+     re.compile(r"(Version synchronized at cut time · Bundle v)\d+(?:\.\d+)*[a-z]*"),
+     rf"\g<1>{BUNDLE}"),
     # v9.7.199 (F5, anchor-the-rotting-fields): docs/TIER_NOTE_CODE.md restates bundle/engine/build in its H1
     # title + three body lines. Its own text says "regenerate at cut time," but nothing owned it, so it
     # drifted — stale v9.7.144b, then shipped v9.7.197 inside the v9.7.198 cut. The make_public_tier.sh

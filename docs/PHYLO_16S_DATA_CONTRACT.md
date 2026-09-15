@@ -73,3 +73,19 @@ CLI progress and dry-run plans use configured logging on stderr. Importing these
 The focused regression suite uses generic fixtures and simulated service/tool results. Live NCBI retrieval, real BLAST/MAFFT scientific results, production database migration, large-store memory behavior, and full release/integration validation require their own evidence. No focused pass authorizes scientific acceptance or release.
 
 The rich GenBank source-record parser requires optional Biopython. If it is unavailable, parsing returns an explicit dependency failure instead of using the minimal `_gbk_shim` and silently losing required accession or source-qualifier evidence. The ordinary extraction shim remains available for its existing uses.
+# Sequence admission gate
+
+Before MAFFT, reference inference, or EPA-ng placement, prepare a TSV roster and a
+FASTA with identical unique tip IDs, then run `tools/phylo_sequence_admission.py`.
+Every admitted record must carry its organism, expected genus, versioned accession,
+sequence hash, type status, isolation source, collapsed geography, sequence evidence,
+metadata evidence, biological sample ID, and explicit admission state. The gate
+rejects short 16S fragments, cross-genus records, missing metadata, duplicate
+type-species representatives, and identical query sequences from the same biological
+sample. Metadata may travel beside the sequence in the roster; FASTA descriptions are
+convenience labels and are never the sole authority.
+
+The controlled display geography is `US`, `Canada`, or a continent, with `Indian
+Ocean` retained for marine records when that is the best supported location. Raw
+deposited geography remains in the evidence record. A mechanically valid admission
+does not establish species identity.

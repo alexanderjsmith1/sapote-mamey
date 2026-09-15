@@ -11,8 +11,8 @@ def render_case(tmp_path):
     tree=tmp_path/'tree with spaces.nwk';tree.write_text('((REF_A:0.02,REF_B:0.02):0.02,(QUERY_A:0.02,REF_C:0.02):0.02,OUTGROUP_REF:0.02);')
     meta=tmp_path/'labels.tsv'
     with meta.open('w') as f:
-        w=csv.writer(f,delimiter='\t');w.writerow(['tip','label','category','source'])
-        for key in ['REF_A','REF_B','QUERY_A','REF_C','OUTGROUP_REF']:w.writerow([key,key+' [plant] (NR_123456.1)','plant','recorded region'])
+        w=csv.writer(f,delimiter='\t');w.writerow(['tip','label','category','category_raw','source'])
+        for key in ['REF_A','REF_B','QUERY_A','REF_C','OUTGROUP_REF']:w.writerow([key,key+' [plant-associated] (NR_123456.1)','plant-associated','plant','US'])
     def run(**env):
         target=tmp_path/'figure'
         cp=subprocess.run([r,str(ROOT/'tools/ggtree_rect_heatmap.R'),str(tree),str(meta),str(target),'QUERY_A'],capture_output=True,text=True,env=dict(os.environ,SAPOTE_PYTHON=shutil.which('python3'),**env),timeout=120)

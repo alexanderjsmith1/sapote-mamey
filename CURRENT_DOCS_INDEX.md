@@ -1,11 +1,19 @@
-# Current Docs Index — v9.7.428 · engine 1.9.163 · build 20260911v97428a
+# Current Docs Index — v9.7.431 · engine 1.9.165 · build 20260914v97431a
 
-Start with [README](README.md) for the program and [Quick Guide](docs/GUIDE/02_Quick_Guide.md)
-for a first run. [AGENTS](AGENTS.md) is the canonical portable coding-assistant contract. Its
+Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
+For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
+The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) is the compact and advanced command reference. [AGENTS](AGENTS.md) is the canonical portable coding-assistant contract. Its
 generated `CLAUDE.md` copy supports Claude discovery; other assistants must be directed to AGENTS
 or receive it through their supported instruction mechanism.
 
 ## Operating guides
+
+- [Companion Tool Guide](docs/COMPANION_TOOL_GUIDE.md): standalone use, inputs/outputs and actual integration roles.
+
+- [Runtime profiles](docs/ASSISTANT_RUNTIME_PROFILES.md): environment-dependent limits and migration from hosted sessions.
+
+- [Working with an assistant](docs/ASSISTANT_USER_GUIDE.md): choose inputs, task scope, evidence and completion criteria.
+- [Assistant governance](docs/ASSISTANT_GOVERNANCE.md): scope, permissions and conflict rules for project workflows.
 
 - [Installation](docs/INSTALL.md), [prerequisites](docs/PREREQUISITES.md), and
   [external assets](docs/EXTERNAL_DATA.md): environment setup and separately supplied data.
@@ -53,3 +61,11 @@ are not current operating instructions. `docs/QUICK_GUIDE.md` is superseded by t
 Update links when the owning workflow changes. Keep generated command, capability, version and
 release surfaces under their existing generators. Review document content before claiming currency;
 do not turn a version-stamp update into a claim of a full content review.
+
+## Practical help
+
+- [Find the right document](docs/DOCUMENTATION_MAP.md)
+- [Troubleshooting](docs/COMMON_MISTAKES.md)
+- [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
+
+- [Mode B user walkthrough](docs/MODE_B_USER_WALKTHROUGH.md): actual profile boundaries, commands and all 50 requirements.

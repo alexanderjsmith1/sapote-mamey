@@ -23,6 +23,7 @@ import csv
 import json
 import os
 import time
+import sys
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -147,7 +148,7 @@ class TimingRecorder:
                 usage = _resource.getrusage(_resource.RUSAGE_SELF)
                 cpu_user = round(usage.ru_utime, 6)
                 cpu_sys = round(usage.ru_stime, 6)
-                peak_rss = usage.ru_maxrss
+                peak_rss = usage.ru_maxrss / 1024 if sys.platform == "darwin" else usage.ru_maxrss
             except Exception:
                 pass
         return {
@@ -288,7 +289,7 @@ class TimingRecorder:
             f"Start: {proc['start_utc']}  |  Elapsed: **{proc['elapsed_seconds']:.2f}s**",
         ]
         if proc["peak_rss_kb"]:
-            lines.append(f"Peak RSS: {proc['peak_rss_kb']:,} KB  |  "
+            lines.append(f"Peak RSS: {proc['peak_rss_kb']:,} KiB  |  "
                          f"CPU user: {proc.get('cpu_user_seconds', '?')}s  "
                          f"sys: {proc.get('cpu_system_seconds', '?')}s")
         if raw_bgcs is not None:

@@ -95,7 +95,7 @@ Highest-applicable only; LMPKS bonuses do not stack with each other.
 - [ ] Exactly one grade per triggered BGC/fragment set; null result page if no trigger.
 - [ ] Long-read recommendation updated where fragment accumulation/split evidence exists.
 - [ ] Contig-ID locators; no compound named without chemistry; affiliation = .
-- [ ] exactly 8 unique plain-text next-paths.
+- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
 
 ---
 

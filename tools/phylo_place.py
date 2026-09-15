@@ -30,11 +30,12 @@ Pipeline (subcommands):
 Depends on a `placement` conda env (epa-ng, gappa, raxml-ng, mafft) + phylo env (iqtree, muscle).
 Set PLACEMENT_BIN to that env's bin (default below). Nothing here is engine-wired; it is a Tools/ workflow.
 """
-import argparse, json, os, re, shutil, subprocess, sys, datetime
+import argparse, csv, json, os, re, shutil, subprocess, sys, datetime
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # bundle root for `import mamey` (v9.7.367 A10)
 import sys
 from mamey.workspace_root import workspace_root
+from mamey.csv_safety import SafeDictWriter
 try:
     from _console import emit
 except ImportError:  # foreign-cwd import: tools/ not on sys.path
@@ -1145,6 +1146,8 @@ def cmd_report(a):
         if cand and os.path.exists(cand):
             lm = _load_labelmap(cand); break
     _jplace_besthit_tsv(a.jplace, tsv, lm)
+    detailed_tsv = os.path.join(outdir, f"{grp}_placement_alternatives.tsv")
+    _jplace_placements_tsv(a.jplace, detailed_tsv, lm)
     query_names = _jplace_query_names(a.jplace)
     # 4) readable neighborhoods: each query's nearest REFERENCE tip on the grafted tree
     nbtsv = os.path.join(outdir, f"{grp}_neighborhoods.tsv")
@@ -1250,6 +1253,64 @@ def _jplace_besthit_tsv(jplace, tsv, labelmap=None):
         fh.write("query\tbest_edge\tbest_edge_lwr\tpendant_length\tdistal_length\n")
         for r in rows:
             fh.write("\t".join(map(str, r)) + "\n")
+
+
+def _jplace_placements_tsv(jplace, tsv, labelmap=None, reference_names=None):
+    """Export every retained jplace alternative without renormalizing its LWR.
+
+    Field positions come from the jplace ``fields`` array. Both ``n`` names and ``nm``
+    name/multiplicity pairs are preserved. The table describes placement uncertainty; none of
+    its weights are bootstrap support or species probabilities.
+    """
+    labelmap = labelmap or {}; reference_names = set(reference_names or ())
+    data = json.load(open(jplace))
+    fields = data.get("fields") or []
+    required = {"edge_num", "like_weight_ratio", "pendant_length"}
+    if not required <= set(fields):
+        raise ValueError("JPLACE_FIELDS_MISSING:" + ",".join(sorted(required - set(fields))))
+    index = {name: fields.index(name) for name in fields}
+    seen = set(); output = []
+    for placement in data.get("placements", []):
+        if "n" in placement and "nm" in placement:
+            raise ValueError("JPLACE_NAME_ENCODING_CONFLICT")
+        if "nm" in placement:
+            names = [(row[0], row[1]) for row in placement["nm"]]
+        elif "n" in placement:
+            names = [(name, 1) for name in placement["n"]]
+        else:
+            raise ValueError("JPLACE_QUERY_NAME_MISSING")
+        ranked = sorted(placement.get("p", []), key=lambda row: row[index["like_weight_ratio"]], reverse=True)
+        if not ranked:
+            raise ValueError("JPLACE_PLACEMENTS_EMPTY")
+        retained_sum = sum(float(row[index["like_weight_ratio"]]) for row in ranked)
+        best = float(ranked[0][index["like_weight_ratio"]])
+        second = float(ranked[1][index["like_weight_ratio"]]) if len(ranked) > 1 else None
+        for name, multiplicity in names:
+            if not name or name in seen:
+                raise ValueError("JPLACE_QUERY_IDENTITY_DUPLICATE")
+            if name in reference_names:
+                raise ValueError("JPLACE_QUERY_REFERENCE_COLLISION:" + name)
+            seen.add(name)
+            for rank, row in enumerate(ranked, 1):
+                output.append({
+                    "query": labelmap.get(name, name), "query_id": name,
+                    "multiplicity": str(multiplicity), "placement_rank": str(rank),
+                    "edge_num": str(row[index["edge_num"]]),
+                    "likelihood": "" if "likelihood" not in index else str(row[index["likelihood"]]),
+                    "like_weight_ratio": f'{float(row[index["like_weight_ratio"]]):.6f}',
+                    "distal_length": "" if "distal_length" not in index else f'{float(row[index["distal_length"]]):.6f}',
+                    "pendant_length": f'{float(row[index["pendant_length"]]):.6f}',
+                    "retained_lwr_sum": f"{retained_sum:.6f}", "retained_placement_count": str(len(ranked)),
+                    "best_lwr": f"{best:.6f}", "second_best_lwr": "" if second is None else f"{second:.6f}",
+                    "uncertainty_measure": "LWR_NOT_BOOTSTRAP_OR_SPECIES_PROBABILITY",
+                })
+    columns = ["query", "query_id", "multiplicity", "placement_rank", "edge_num", "likelihood",
+               "like_weight_ratio", "distal_length", "pendant_length", "retained_lwr_sum",
+               "retained_placement_count", "best_lwr", "second_best_lwr", "uncertainty_measure"]
+    with open(tsv, "w", newline="", encoding="utf-8") as handle:
+        writer = SafeDictWriter(handle, fieldnames=columns, delimiter="\t", lineterminator="\n")
+        writer.writeheader(); writer.writerows(output)
+    return {"queries": len(seen), "rows": len(output)}
 
 
 

@@ -1,5 +1,7 @@
 # Volume XI — Both Layers Together: *Streptomyces* sp. M56
 
+*Re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (structural framework, scoring model, and claim-safety apparatus re-verified against engine 1.9.164).*
+
 > **Currency scope:** This volume retains its historical edition and review stamps. Only the checks listed in the [currency record](Encyclopedia-Currency.md) have been refreshed for the current candidate. Other constants, numerical claims, literature interpretations, and worked-run results have not been comprehensively revalidated. A newer bundle does not make those older observations current.
 
 Volume X showed what the Mamey extraction layer produces on a complete genome: assembly stats, scan tables, lead board rankings. This volume shows what happens when the Sapote judgment layer runs on top of that output. The subject is *Streptomyces* sp. M56 (GCF_002812405.1), a soil isolate with a single complete chromosome and 51 detected biosynthetic regions. Unlike the spectabilis case in Volume X — where the compound the species is named after was the KCB anchor — M56 produces no named compound with a clean literature trail. It is a discovery-mode strain: rich biosynthetic capacity, substantial novelty signals, and interpretation that requires genuine judgment.

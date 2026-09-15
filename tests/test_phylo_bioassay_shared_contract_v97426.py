@@ -169,3 +169,14 @@ def test_gtotree_figure_consumer_accepts_typed_bioassay_track(tmp_path):
     by_feature = {(r["strain"], r["feature"]): r for r in rows}
     assert by_feature[("SYN-2", "anti_MRSA")]["value"] == 0.0
     assert by_feature[("SYN-2", "anti_Candida")]["state"] == "NOT_MEASURED"
+
+
+def test_epang_bioassay_renderer_uses_shared_readable_display_contract():
+    script = (Path(__file__).resolve().parents[1] / "tools" / "ggtree_placement_bioassay.R").read_text()
+    assert 'color = "black"' in script
+    assert 'color = "#bb0000"' in script
+    assert 'RESULT_SYMBOL <- c(positive = "+", negative = "-"' in script
+    assert 'not_tested = "n.t."' in script
+    assert 'BIOASSAY_REFERENCE_VALUE_PRESENT' in script
+    assert 'geom_text(data = dots' in script
+    assert 'size = 4.2' in script

@@ -53,10 +53,10 @@ def test_unknown_documented_source_is_typed_other_and_blank_stays_missing():
 def test_geography_normalizes_only_explicit_country_forms():
     metadata = _load()
     assert metadata.normalize_geography("USA: Wisconsin") == {
-        "raw": "USA: Wisconsin", "display_location": "USA", "state": "COUNTRY_PREFIX"
+        "raw": "USA: Wisconsin", "display_location": "US", "state": "COUNTRY_PREFIX"
     }
     assert metadata.normalize_geography("Republic of Korea") == {
-        "raw": "Republic of Korea", "display_location": "South Korea", "state": "ALIASED"
+        "raw": "Republic of Korea", "display_location": "Asia", "state": "REGION_NORMALIZED"
     }
     # Unrecognized text is retained rather than guessed into a country.
     assert metadata.normalize_geography("Northwest field site") == {

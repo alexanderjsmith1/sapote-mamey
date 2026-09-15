@@ -19,8 +19,12 @@ from redact_public_tier import private_id_matches  # release-redaction SSOT
 
 #: files that legitimately contain cohort-ID-shaped text: the redaction/disclosure machinery's own
 #: docs and normalisation examples. Mirrors the public_release_audit._ALLOW concept for this layer.
-DETECTOR_FILES = {"redact_public_tier.py", "strict_source_disclosure_audit.py",
-                  "public_release_audit.py", "archive_leak_scan.py", "audit_public_cut.py"}
+DETECTOR_FILES = {"redact_public_tier.py", "public_release_audit.py",
+                  "archive_leak_scan.py", "audit_public_cut.py"}
+
+
+def test_policy_free_compatibility_shim_is_not_exempt():
+    assert "strict_source_disclosure_audit.py" not in DETECTOR_FILES
 
 
 def _scan(root: Path) -> dict[str, list[str]]:

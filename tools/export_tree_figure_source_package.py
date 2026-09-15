@@ -63,6 +63,11 @@ def main():
       # The collaborator-facing editable entry point above remains figure-specific.
       (HERE/"ggtree_rect_heatmap.R","ggtree_rect_heatmap.R"),
       (HERE/"tree_sanity_check.py","tree_sanity_check.py"),
+      (HERE/"tree_annotation_gate.py","tree_annotation_gate.py"),
+      (HERE/"tree_annotation_geometry.R","tree_annotation_geometry.R"),
+      (HERE/"_phylo_metadata.py","_phylo_metadata.py"),
+      (HERE/"phylo_display_contract.py","phylo_display_contract.py"),
+      (HERE/"phylo_display_palette.tsv","phylo_display_palette.tsv"),
       (HERE/"gate_stem_aware.py","gate_stem_aware.py"),
       (HERE/"collapse_near_identical.py","collapse_near_identical.py"),
       (HERE/"_console.py","_console.py"),

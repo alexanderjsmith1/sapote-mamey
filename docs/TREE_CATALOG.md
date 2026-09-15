@@ -115,3 +115,118 @@ its quality criterion. Every record needs a stable accession, sequence hash,
 taxon, type-status evidence, source class, admission state, and provenance.
 Type and selected non-type panels remain separate so a convenient non-type
 sequence cannot silently become a type-strain comparator.
+
+
+## Required series contract and verified completion
+
+Rendering requires an explicit `series_requirements` object with nonempty lists
+`taxonomic_scopes`, `reference_panels`, `reference_ratios`, and `views`. These
+lists describe the requested Cartesian product. Missing, duplicated, or extra
+variants refuse preflight. An older catalog without this object can still be
+inspected with `plan`, but cannot be rendered as a completed series.
+
+Use `[1, 2, 3, 4, "all"]` for the five-level density series. The `"all"` value
+passes `--keep-all-references` to the maintained display producer. Numeric ratios
+are per-query selection quotas before shared-reference deduplication; they are
+not promises of that many unique references per query across the combined tree.
+
+Every tree entry must supply `reference_manifest`: an object with `path` and
+`sha256` for a TSV roster, and `tree` and `sequences` objects, each with a relative
+`path` and `sha256`. The roster columns are `tip`, `role`, `type_status`,
+`accession`, `sequence_sha256`, `evidence`, and `admission`. Roles are `query`,
+`reference`, or `outgroup`; admitted records use `admission=admitted`. Sequence
+hashes describe uppercase, ungapped sequence strings. The bound tree, FASTA and
+roster must have exactly the same unique tip identities. The existing stem-aware
+branch gate runs with the explicitly declared outgroup; it retains terminal and
+other-branch checks and does not offer an unrestricted exemption.
+
+Reference-panel distinctions are enforced:
+
+- `type_only`: every ingroup reference has affirmative type status.
+- `type_plus_selected_non_type`: both affirmative type and affirmative non-type
+  records are present; unknown status cannot be converted into non-type status.
+- `type_plus_selected_additional`: explicitly provisional broader context that
+  can include `unverified` type status. Retain that uncertainty in the labels and
+  methods; it is not a confirmed non-type panel.
+
+The panel designation describes the input backbone. Compact display subsets may
+contain only type references. Render receipts therefore record the actual type,
+non-type, and unverified-reference counts for each delivered variant.
+
+Subprocess success alone is insufficient. Completion requires nonempty Newick,
+metadata, PDF and PNG outputs; exact tree/metadata tip joins; preservation of all
+queries and outgroups; complete backbone retention for `"all"`; and agreement
+with the declared parent tree after pruning and rerooting. Unrooted split-length
+comparisons allow an explicitly reported 0.0001 substitutions/site tolerance for
+legacy decimal serialization; this is not a biological uncertainty estimate.
+Output hashes are recorded. None of these mechanical gates establishes source
+metadata correctness, species identity, biological novelty or release authority.
+
+`read_display_exclusions()` reads only the excluded `tip` and `accession` columns.
+It must never interpret a `retained_accession` representative as another exclusion.
+
+Existing projects must bind their actual reference evidence rather than inventing
+manifest rows to make these checks pass. Additional reference selection and tree
+inference remain separate upstream operations. Keep original failed attempts and
+source authority holds linked to the final series receipt.
+
+### Prepared display series
+
+For externally inferred trees whose display inputs have already been prepared,
+`tools/render_tree_reference_series.py --config series.json --outdir new_results`
+provides an additive render path through the same series and delivery gates.
+Its JSON contains the same `series_requirements` and `trees` contracts, plus
+`display_jobs`. Each job has `job_id`, `tree_id`, `taxonomic_scope`,
+`reference_panel`, `reference_ratio`, `view`, a relative `input_dir`, and
+`input_hashes` for exactly `tree.newick`, `metadata.tsv`, `palette.tsv`,
+`settings.tsv`, and `caption.txt`. An optional filesystem-safe `group` organizes
+output directories. Job IDs must be unique and filesystem-safe.
+
+Each prepared display job also declares an integer `series_index` and a
+descriptive, filesystem-safe `output_stem`. Indices must be contiguous from 1
+through the number of jobs, and output stems must be unique and cannot use
+generic names such as `tree` or `figure`. Delivered filenames begin with the
+zero-padded series index followed by the descriptive stem, so neighboring
+trees remain identifiable after they are copied out of their job folders.
+
+The prepared metadata retains `tip`, `label`, `role`, `accession`, `type_status`,
+`raw_source`, `source_category`, and `geography`. The palette table has `field`,
+`value`, and `color` columns, using `source` and `geography` as field names. The
+settings table has `key` and `value`, including `view` and `title`.
+
+Every displayed query, reference, and outgroup must have a nonempty label plus
+resolved `source_category` and `geography` values. Missingness sentinels such as
+`Not recorded`, `Unknown`, `Unresolved`, and `N/A` fail preflight for every role,
+including when source and geography are both absent. Resolve that metadata or
+remove the reference upstream and record it in the display-exclusion ledger.
+An owner query cannot be removed to make a figure pass; hold the panel instead.
+Missingness categories are also forbidden in the palette, so a gray unknown cell
+cannot appear in an admitted figure or legend.
+
+The renderer admits one shared palette contract across the entire series. A
+source or geography category must keep the same color in every job, and two
+categories in the same field cannot reuse an identical color. Any drift or
+collision fails preflight before a figure is rendered.
+
+Query tip text uses the series-wide red `#bb0000`. The preflight receipt records
+this color together with the per-job complete-metadata counts.
+
+The maintained direct rectangular renderer applies the same red query text and
+the same fixed source-category colors. Its two-strip view requires complete
+source and geography for every displayed tip. A source-only view may hide the
+geography strip, but it cannot invent or display an unknown geography category.
+
+Preflight verifies every input hash and refuses specific bee/wasp source labels
+that contradict the raw source. Rendering copies inputs into a new output root,
+freezes the R renderer and geometry helper, checks input/script hashes around
+execution, audits the actual plotted cells, and binds delivered artifacts. It
+never reuses an existing output directory as evidence of success. Every job gets
+a receipt; the series is complete only when the full requested matrix succeeds.
+This prepared-input consumer does not implement reference discovery or upstream
+sequence admission and does not turn provisional metadata into confirmed facts.
+
+This candidate depends on the separately reviewed annotation-gate patch, which
+supplies `tools/tree_annotation_geometry.R`; apply that dependency first. The
+complete extracted bundle supplies the normalizer, stem-aware gate and its
+`mamey.csv_safety` dependency. A standalone export must retain those dependencies
+rather than relying on an unrelated installed Mamey version.

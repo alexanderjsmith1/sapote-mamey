@@ -1,128 +1,27 @@
-# Sapote-Mamey Workflow Guide
-**Version:** v9.4
+# Workflow guide: choose the next task
 
----
+The maintained first-run instructions are in [MASTER_WALKTHROUGH](MASTER_WALKTHROUGH.md). This page explains the stages and their boundaries. Earlier v9.4 session quotas and manifest-only handoff instructions have been replaced; runtime capacity depends on the environment and requested work.
 
-## Two execution paths
-
-| Path | When to use | Where documented |
-|---|---|---|
-| **Python CLI (recommended)** | You have Python installed locally; processing any number of strains | This guide + README quickstart |
-| **ChatGPT standalone** | No local Python; ChatGPT-only environment | `docs/standalone/` |
-
-**The Python CLI has no session-size limit and requires no API access.** If you can run `python mamey_run.py --help`, use this path.
-
----
-
-## Path 1 — Python CLI (primary, recommended)
-
-### Architecture
-
-The pipeline has three tiers:
-
-| Tier | Where it runs | What it needs | What it produces |
+| Stage | Start with | Finish when | Continue with |
 |---|---|---|---|
-| **Mamey** (Tier 1) | Your machine (Python CLI) | antiSMASH output ZIPs | Sealed JSON/CSV packages per strain |
-| **Sapote-slim** (Tier 2) | Claude (Project) | Mamey packages | Scored workbook, triage, hallucination flags |
-| **Sapote full** (Tier 3) | Claude (Project) | Tier 1+2 outputs | Mode B reports, ecology, cross-strain synthesis |
+| Prepare | Code and compatible Python environment | Loaded version and required capabilities are known | Inspect one input |
+| Inspect | Original antiSMASH result ZIP | Input contents and metadata source are recorded | Explicit extraction settings |
+| Extract | Identified input and output destination | Process exits and output/issue receipts are retained | Validate and explain |
+| Review package | Complete package, not just manifest | Structure, evidence gaps and selected loci are reviewed | A scoped interpretation question |
+| Interpret | Source-bound evidence for the selected question | Authored claims, alternatives, uncertainty and references are reviewable | Owner review and specific follow-up |
+| Extend | Defined missing evidence and permitted tools | Results and their provenance are saved and bound to the correct input | Reassess the original question |
+| Handoff | Complete saved artifacts | Recipient can locate files and verify transferred bytes | Resume from the checkpoint |
 
-### Step 1 — Run antiSMASH on your genomes
+You can perform extraction and review entirely offline with available local inputs. A chat assistant can operate a runtime only if its current environment has the necessary file access and tools. A local command still has memory, time and disk limits. Neither a model name nor a fixed number of strains establishes capacity.
 
-Standard antiSMASH v8+ run. Keep the output ZIP for each strain. No parameter changes needed.
+## Stop points that are useful results
 
-### Step 2 — Run Mamey locally
+A package can be ready for review while interpretation is pending. A missing reference dataset can remain a documented gap. A completed fragment-pair scan can validly contain zero pairs: check the scan's status and schema, not whether the count is positive. Conversely, positive rows do not establish that the scan had complete inputs.
 
-```bash
-# Single strain
-python mamey_run.py run \
-  --strain AS-XXX \
-  --input-zip AS-XXX_antismash.zip \
-  --taxonomy "Streptomyces sp." \
-  --source "bee-associated" \
-  --mode gold
+A source-bound package is the starting point for interpretation, not a substitute for the original antiSMASH archive. Later reparsing, parameter changes or additional evidence extraction may need that archive. Keep it with its provenance.
 
-# Batch (up to 3 per call)
-python mamey_run.py run \
-  --strains AS-XXX.zip AS-XXX.zip AS-XXX.zip \
-  --master project_master.xlsx \
-  --taxonomy "Streptomyces sp.|Streptomyces sp.|Streptomyces sp." \
-  --source "bee-associated|soil|soil" \
-  --mode gold
-```
+## Select follow-up deliberately
 
-Process completes in seconds to minutes depending on genome size. No session limit.
+Use [the companion-tool guide](COMPANION_TOOL_GUIDE.md) to understand optional searches, alignments, trees and figures. State the question, input identities, destination, compute scope and any permitted online submission before execution. No optional online work is implied by reaching the end of an offline extraction.
 
-### Step 3 — Validate
-
-```bash
-python mamey_run.py validate runs/AS-XXX/package
-```
-
-Expect `MAMEY_COMPLETE`. If any scan shows `FAIL`, check `issue_log.md` in the package.
-
-### Step 4 — Upload to Claude (Sapote)
-
-Upload `manifest.json` (the authoritative handoff object) from the package directory to your Claude Project that has `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md` loaded.
-
-Claude does not need the original antiSMASH ZIP — only the Mamey package.
-
-### Step 5 — Request full analysis
-
-```
-Run sapote_standard on AS-XXX. Mamey package: AS-XXX_manifest.json.
-```
-
-Or with the full-delivery profile:
-
-```
-Load Mamey output for AS-XXX. Run full project-wide delivery.
-```
-
----
-
-## Path 2 — ChatGPT standalone
-
-For users without a local Python environment. ChatGPT executes the Mamey Python code directly inside the session. See `docs/standalone/` for the full ChatGPT-specific guides, including:
-
-- `docs/standalone/MAMEY_STANDALONE_CHATGPT_README.md` — what works and what is limited
-- `docs/standalone/RUN_MAMEY_IN_CHATGPT.md` — step-by-step execution guide
-- `docs/standalone/CHATGPT_BATCH_PROTOCOL.md` — batching protocol (4–6 strains per session)
-
-**Key constraint:** ChatGPT can process approximately 4–6 antiSMASH ZIPs per session due to context window limits. Save the checkpoint CSV and per-strain packages before ending each session.
-
----
-
-## Status meanings
-
-| Status | Meaning | Action |
-|---|---|---|
-| `MAMEY_COMPLETE` | All scans finished. Ready for Claude. | Upload to Claude. |
-| `MAMEY_DEFERRED` | Not yet processed (ChatGPT session budget). | Upload in next session. |
-| `MAMEY_FAILED` | A scan failed. See `notes`. | Fix and re-upload this strain only. |
-| `MAMEY_SKIPPED` | Excluded by user instruction. | No action. |
-
-**Legacy note:** Packages from before v1.9.7 may show `PASS_EXTRACTION_JUDGMENT_PENDING`. Treat as `MAMEY_COMPLETE`.
-
----
-
-## What never needs to be re-uploaded
-
-Once a strain has `MAMEY_COMPLETE` status and its package is saved locally, the original antiSMASH ZIP is never needed again. The sealed package contains everything Claude needs for all downstream analysis.
-
----
-
-## Frequently asked questions
-
-**Q: Can I start Claude analysis before all strains are processed?**
-A: Yes. Claude accumulates strains into the master workbook incrementally.
-
-**Q: My ChatGPT session ran out of context mid-batch. Is the work lost?**
-A: Only if you did not save the checkpoint CSV. Re-upload only deferred/failed strains.
-
-**Q: How do I check RGGMCI is complete?**
-A: Run `mamey_run.py validate` and check `rggmci_pairs_total > 0`.
-
----
-
-*· 2026*
-*github.com/alexanderjsmith1/sapote-mamey*
+For practical problems use [Troubleshooting](COMMON_MISTAKES.md). For transferring or reopening results use [Files, storage and handoff](FILES_STORAGE_AND_HANDOFF.md). For biological interpretation use [Reading your results](READING_YOUR_RESULTS.md).

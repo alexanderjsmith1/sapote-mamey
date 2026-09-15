@@ -71,3 +71,7 @@ phylo_outgroup_gate	WIRED	Alignment distance-screen refusal contract exercised b
 tree_trust_audit	WIRED	Explicit artifact hash and metadata admission checks exercised by test_tree_trust_explicit_workflow
 gate_stem_aware	WIRED	Hash-bound display-parent gate exercised by test_tree_display_contract_v97416 and actual renderer tests
 suite_count_census	WIRED	collection and execution accounting covered by tests/test_portable_composition_v97418.py
+
+gtotree_execution_gate	WIRED	Sequence admission tests validate the GToTree preflight.
+tree_annotation_gate	WIRED	Tree annotation tests validate metadata before rendering.
+silent_exit_audit	OPERATOR_ONLY	silent-success-exit inventory over the guard surface: classifies and reports a denominator, does not accuse; run by hand when reviewing hooks, not a cut gate (regression suite: test_silent_exit_audit_v97416)

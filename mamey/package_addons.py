@@ -372,6 +372,7 @@ def write_open_me_first(package_dir: str | Path) -> Path:
             raise ValueError(f"{path.name} must contain a JSON object")
         return value
 
+    from html import escape
     manifest = _read_optional_metadata(root / "manifest.json")
     ms = _read_optional_metadata(root / "manifest_short.json")
 
@@ -386,20 +387,31 @@ def write_open_me_first(package_dir: str | Path) -> Path:
     mode        = ((manifest.get("context") or {}).get("analysis_mode")
                    or manifest.get("mode") or ms.get("mode")
                    or (manifest.get("run_context") or {}).get("mode") or "unknown")
-    status      = ms.get("status") or "unknown"
+    gate = _read_optional_metadata(root / "gate_validation.json")
+    status = manifest.get("terminal_status") or manifest.get("package_status") or ms.get("status") or "UNKNOWN"
+    validation_status = gate.get("status") or "NOT_RECORDED"
+    judgment_status = gate.get("gold_completeness") or "NOT_RECORDED"
+    visibility = gate.get("json_evidence_visibility") or {}
+    evidence_status = visibility.get("status") or "NOT_RECORDED"
+    findings = visibility.get("findings") or []
+    evidence_detail = ", ".join(str(x) for x in findings) or "No advisory findings recorded; completeness is not established."
+    issues = manifest.get("issues") or []
+
     raw_bgcs    = read_manifest_field("raw_bgcs", manifest=manifest, manifest_short=ms, default="?")
     corrected   = read_manifest_field("corrected_bgcs", manifest=manifest, manifest_short=ms, default="?")
     asm_tier    = read_manifest_field("assembly_tier", manifest=manifest, manifest_short=ms, default="unknown")
     mamey_ver   = ms.get("mamey_version") or manifest.get("version") or "?"
 
-    # Status badge
+    # Display pipeline, gate and evidence states separately; success is not inferred from a substring.
     status_upper = str(status).upper()
-    if "COMPLETE" in status_upper or "PASS" in status_upper:
-        badge_cls, badge_txt = "pass", "✅ EXTRACTION COMPLETE"
-    elif "FAIL" in status_upper:
-        badge_cls, badge_txt = "fail", "❌ VALIDATION FAILED"
+    if "FAIL" in status_upper or "FAIL" in str(validation_status).upper():
+        badge_cls, badge_txt = "fail", "VALIDATION OR PIPELINE FAILURE — review before interpretation"
+    elif issues or findings or status_upper == "MAMEY_COMPLETE_WITH_ISSUES":
+        badge_cls, badge_txt = "warn", "EXTRACTION HAS ISSUES — review evidence and issue log"
+    elif status_upper in {"MAMEY_COMPLETE", "PASS"}:
+        badge_cls, badge_txt = "pass", "EXTRACTION RECORDED — interpretation is separate"
     else:
-        badge_cls, badge_txt = "warn", "⚠ UNKNOWN"
+        badge_cls, badge_txt = "warn", "STATUS UNRESOLVED"
 
     # Top leads from manifest_short
     top_ab = ms.get("top_3_ab") or []
@@ -407,13 +419,16 @@ def write_open_me_first(package_dir: str | Path) -> Path:
 
     def _lead_rows(leads, score_key):
         if not leads:
-            return '<tr><td colspan="3">No lead data (run judgment layer)</td></tr>'
+            return '<tr><td colspan="3">No lead data recorded; check extraction and source tables.</td></tr>'
         rows = ""
         for i, lead in enumerate(leads, 1):
             bgc = lead.get("bgc_id","?")
             contig = lead.get("contig","?")
             score = lead.get(score_key, lead.get("ab_score", lead.get("af_score","?")))
-            rows += f"<tr><td>{i}</td><td><code>{bgc}</code> · {contig}</td><td>{score}</td></tr>"
+            records = [x for x in manifest.get("bgcs", []) if x.get("bgc_id") == bgc and x.get("contig") == contig]
+            region = records[0].get("antismash_region") if len(records) == 1 else None
+            identity = f"{strain_id} / {contig} / {region} / {bgc}" if region else f"IDENTITY HOLD: {bgc}; source-bound region unavailable or ambiguous"
+            rows += f"<tr><td>{i}</td><td><code>{escape(identity)}</code></td><td>{escape(str(score))}</td></tr>"
         return rows
 
     # Key files
@@ -461,17 +476,20 @@ def write_open_me_first(package_dir: str | Path) -> Path:
 
 <div class="note">
   <strong>What this is:</strong> A <em>deterministic extraction</em> package produced by Mamey v{mamey_ver}.
-  It contains the inventory, scans, scores, and evidence for every biosynthetic gene cluster
-  antiSMASH detected in this genome. It is <strong>not</strong> a finished analysis —
+  It contains extracted region records, scores, and the evidence available under the selected settings.
+  Some evidence channels may be held, truncated, unavailable, or not requested. It is <strong>not</strong> a finished analysis —
   the interpretive step (Mode B judgment, ecological synthesis, bench guidance) is the separate
-  <strong>Sapote judgment layer</strong>, triggered by uploading this package to a Claude session.
+  <strong>Sapote judgment layer</strong>, which can be undertaken with your chosen assistant and a defined question.
 </div>
 
 <div class="pending">
-  ⏳ <strong>Judgment pending.</strong> To start: upload <code>manifest.json</code> (or the Complete_Package.zip)
-  to your Claude session and type: <em>"Run full Sapote analysis on {strain_id}"</em>
+  <strong>Recorded interpretation state: {escape(str(judgment_status))}.</strong>
+  First review the issue log and evidence status below. Then ask your assistant to explain this
+  package or review selected regions. A manifest alone does not contain every supporting file;
+  retain the complete package. Sharing it with an online service is a separate choice.
 </div>
 
+<p>This page is a generated snapshot. Read manifest.json and gate_validation.json for the latest recorded statuses.</p>
 <h2>At a glance</h2>
 <table>
   <tr><th>Field</th><th>Value</th></tr>
@@ -479,22 +497,26 @@ def write_open_me_first(package_dir: str | Path) -> Path:
   <tr><td>Taxonomy</td><td>{taxonomy}</td></tr>
   <tr><td>Source</td><td>{source}</td></tr>
   <tr><td>Mode</td><td>{mode}</td></tr>
-  <tr><td>Raw BGCs</td><td>{raw_bgcs}</td></tr>
-  <tr><td>Corrected BGCs</td><td>{corrected}</td></tr>
-  <tr><td>Assembly tier</td><td>{asm_tier}</td></tr>
+  <tr><td>Detected region records</td><td>{raw_bgcs}</td></tr>
+  <tr><td>Boundary-weighted count (heuristic)</td><td>{corrected}</td></tr>
+  <tr><td>Region-boundary tier (not assembly contiguity)</td><td>{asm_tier}</td></tr>
   <tr><td>Mamey version</td><td>v{mamey_ver}</td></tr>
-  <tr><td>Extraction status</td><td>{status}</td></tr>
+  <tr><td>Pipeline status</td><td>{escape(str(status))}</td></tr>
+  <tr><td>Validation status</td><td>{escape(str(validation_status))}</td></tr>
+  <tr><td>Evidence visibility</td><td>{escape(str(evidence_status))}</td></tr>
+  <tr><td>Evidence details</td><td>{escape(evidence_detail)}</td></tr>
+  <tr><td>Recorded pipeline issues</td><td>{len(issues)}</td></tr>
 </table>
 
 <h2>Top antibacterial leads</h2>
 <table>
-  <tr><th>#</th><th>BGC · Contig</th><th>AB score</th></tr>
+  <tr><th>#</th><th>Complete source identity</th><th>AB score</th></tr>
   {_lead_rows(top_ab, "ab_score")}
 </table>
 
 <h2>Top antifungal leads</h2>
 <table>
-  <tr><th>#</th><th>BGC · Contig</th><th>AF score</th></tr>
+  <tr><th>#</th><th>Complete source identity</th><th>AF score</th></tr>
   {_lead_rows(top_af, "af_score")}
 </table>
 
@@ -512,7 +534,7 @@ def write_open_me_first(package_dir: str | Path) -> Path:
   <li><strong>Workbook (Excel)</strong> — multi-sheet summary with per-BGC rows, scan results,
       and provenance. Open <code>*_5_workbook.xlsx</code>.</li>
   <li><strong>Lead Boards</strong> — single-axis pre-sorted views: one for antibacterial, one for antifungal.
-      The quickest way to identify the top chemistry.</li>
+      Use these priorities to choose evidence to review; the scores are not assays, probabilities, or chemical identities.</li>
   <li><strong>Issue Log</strong> — any non-blocking issues recorded during extraction (accession labels,
       missing optional files, etc.). A populated issue log does not mean the package failed.</li>
 </ul>

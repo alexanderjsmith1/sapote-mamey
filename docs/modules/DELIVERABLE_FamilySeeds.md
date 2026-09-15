@@ -67,7 +67,7 @@ Run cross-strain BGC family clustering for [class/family].
 - [ ] Threshold checked against the master; CCSM trigger surfaced for any ≥3-strain class.
 - [ ] Five-strain audit rule honored when applicable.
 - [ ] Standing constraints respected (NAPAA not used as a comparative family signal; hglE-KS habitat-non-specific).
-- [ ] Contig-ID locators; affiliation = ; exactly 8 unique next-paths.
+- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
 
 ---
 

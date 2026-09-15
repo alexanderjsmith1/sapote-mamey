@@ -238,7 +238,7 @@ def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None):
             label = re.sub(r"\s+\(outgroup\)\s*$", "", label, flags=re.I)
         normalized = builder._rect_metadata_row(tip, label, category or "", source or "")
         output.append(dict(tip=tip, label=label, role=role, taxon=taxon,
-                           category=normalized[2],
+                           category=normalized[2], category_raw=normalized[4], category_state=normalized[5],
                            source="" if label_style in {"noloc", "publication-noloc"} else normalized[3]))
     from collections import Counter
     reference_taxa = Counter(row["taxon"] for row in output
@@ -652,7 +652,7 @@ def main(argv=None):
         project_accessions_checked = refuse_project_strains_as_references(rows, args.host_table, builder)
         meta = out / "display_input.tsv"
         with meta.open('w', newline='') as handle:
-            writer = _SafeDictWriter(handle, fieldnames=['tip','label','role','taxon','category','source','reference_role','type_strain_of'], delimiter='\t')
+            writer = _SafeDictWriter(handle, fieldnames=['tip','label','role','taxon','category','category_raw','category_state','source','reference_role','type_strain_of'], delimiter='\t')
             writer.writeheader(); writer.writerows(rows)
         aligned = out / 'display_input.fasta'
         # The complete alignment remains the inference record after the display tree is

@@ -1,3 +1,9 @@
+> **Scope and precedence:** Apply this workflow only to the user's selected operation and named
+> profile. `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md` govern permissions, task scope,
+> inspection-only work and conversational output. Package presence is not execution authority.
+> Historical section counts, role assignments and examples below cannot replace a current profile.
+> When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
+
 # ChatGPT Execution Slice — v9.7.147
 **Status:** default ChatGPT/Sapote execution controller.  
 **Replaces default use of:** `docs/SAPOTE_SLIM_JUDGMENT_KERNEL.md`.  
@@ -22,13 +28,13 @@ This document is intentionally not a summary kernel. It is the full-depth ChatGP
 
 ## 1 — Non-negotiable operating rules
 
-- Do not ask for scope confirmation once a sealed package or explicit Mode B target is present.
+- Continue within the user-authorized operation without repeated confirmation. A sealed package supplies evidence, not task authorization. Resolve genuinely missing scope before dependent work.
 - Do not offer abbreviated alternatives to required deliverables.
-- Do not pause between Mode B batches unless the session is at a hard execution limit; emit the current batch, state exactly what remains, and provide the next continuation path.
+- Continue authorized Mode B batches within the agreed limits. Honor user steering, stop requests, permission boundaries, resource limits and evidence holds; save completed work and remaining scope.
 - Do not silently omit a BGC. Every detected BGC must be visible in the triage board and in the treatment ledger.
 - Treat edge/full-contig status as assembly metadata, not an automatic reason for lower scientific visibility.
 - Use claim-safe language: biosynthetic capacity and evidence-supported class hypotheses only; no production, structure, or bioactivity attribution without metabolomics/fractionation/genetic proof.
-- End every substantive ChatGPT handback with exactly 8 distinct plain-text numbered next paths.
+- End every substantive ChatGPT handback with useful next actions within the requested scope, with no fixed count.
 
 ---
 
@@ -45,7 +51,7 @@ BGCs: [raw] raw · [corrected] corrected
 Controller: docs/CHATGPT_EXECUTION_SLICE_v97147.md
 ```
 
-Abort only if the package is invalid or the user asked for extraction in a no-exec environment. Otherwise continue into the handback and judgment workflow.
+For the requested operation, inspect the package status. Hold unsupported interpretation on invalid evidence. Respect user scope, permissions and resource limits; package validity alone does not authorize judgment work.
 
 ---
 
@@ -256,7 +262,7 @@ Before handback, verify:
 - [ ] Every BGC has a treatment status and no silent omissions.
 - [ ] Full Mode B cards use exact §1–§20 titles.
 - [ ] §28 and §30 appear for every completed Mode B card, or a recorded reason explains why not.
-- [ ] Final response ends with exactly 8 distinct numbered next paths.
+- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
 
 ---
 
@@ -536,7 +542,7 @@ BGC007 (NODE_1 · r001)
 
 **Cross-references between sections** (e.g. "BGC007 and BGC027 form a pair"): use the abbreviated form — `BGC007 (NODE_1 · r001)` — not the bare ID.
 
-**Exclusion lists** (e.g. "NAPAA (BGC023)"): append the node — `NAPAA (BGC023 · NODE_4 · r001)`.
+**Exclusion lists** (e.g. "NAPAA (BGC023)"): append the node — `NAPAA candidate: EXAMPLE / NODE_000004_length_50000_cov_30.0 / region001 / BGC023`.
 
 **Locus map file references** (e.g. "BGC007_locus_map.svg"): this is a filename, not a BGC citation — no node required in the filename itself, but the surrounding sentence must carry the node: "Locus map for BGC007 (NODE_1 · r001): BGC007_locus_map.svg."
 
@@ -565,10 +571,10 @@ RiPP BGCs (003/019/022)                 ← bare (also: do not use numeric short
 
 The following are ALWAYS required:
 ```
-BGC007 (NODE_1 · r001) is one of the top leads
-NAPAA (BGC023 · NODE_4 · r001)
-BGC007 (NODE_1 · r001) and BGC027 (NODE_6 · r001) form a siderophore pair
-RiPP BGCs: BGC003 (NODE_15 · r001), BGC019 (NODE_3 · r001), BGC022 (NODE_4 · r002)
+EXAMPLE / NODE_000001_length_50000_cov_30.0 / region001 / BGC007 is one of the top leads
+NAPAA candidate: EXAMPLE / NODE_000004_length_50000_cov_30.0 / region001 / BGC023
+Retain each proposed pair member's full source-bound four-component identity; a proposed pair does not merge loci.
+RiPP example: EXAMPLE / NODE_000015_length_50000_cov_30.0 / region001 / BGC003
 ```
 
 This rule exists because BGC IDs are Mamey-internal bookkeeping. A collaborator reading the report, a reviewer examining the evidence, or a user returning to the report months later cannot locate `BGC007` in the assembly or antiSMASH HTML without the node and region. The node citation is the locus identifier; the BGC number is a convenience alias.
@@ -580,13 +586,11 @@ This rule exists because BGC IDs are Mamey-internal bookkeeping. A collaborator 
 
 **When you have multiple antiSMASH ZIPs, do not run `mamey run` on each strain one at a time by hand.** Use the intake harness, which chains them, appends to a shared master workbook, writes a batch report, and handles timeouts gracefully.
 
-### Step 1 — Install the engine (once per session)
+### Step 1 — Verify the selected environment
 
-```bash
-pip install -e . --break-system-packages
-```
-
-No network required. Works offline from the bundle.
+Use the isolated environment described in `docs/INSTALL.md`; do not reinstall each session.
+Install only for an authorized execution task. Offline setup requires a compatible complete
+wheelhouse and index-disabled installation; missing dependencies remain an explicit hold.
 
 ### Step 2 — Run all strains in one batch
 
@@ -614,7 +618,7 @@ Repeat for each strain. **Do not author Mode B cards from raw antiSMASH GBKs by 
 
 ### Step 5 — Strain metadata is in the package, not the user
 
-Do not ask the user for strain metadata (host, genus, location). All of it is in `<pkg>/_1_intake.json` (strain_id, display_name, release) and `<pkg>/manifest.json`. The triage board has the assembly tier, contig count, corrected BGC count. Read the package first.
+Read the actual intake and manifest metadata first; do not assume every field exists. Ask only for metadata needed by the requested task that remains missing or conflicting, and otherwise preserve uncertainty. The triage board has the assembly tier, contig count, corrected BGC count. Read the package first.
 
 ### What "I have the manifests but not the full package outputs" means
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -84,10 +85,11 @@ def test_declared_fields_do_not_raise():
 
 def _find_real_manifest():
     """Use a real gold package if present in the run tree; else skip."""
-    for base in [Path("/data/mamey-local/laur/runs_wired/S_laurentii/package"),
-                 Path("/data/mamey-local/laur/runs_gold/S_laurentii/package")]:
+    supplied = os.environ.get("SAPOTE_TEST_PACKAGE")
+    bases = [Path(supplied)] if supplied else []
+    for base in bases:
         m = base / "manifest.json"
-        if m.exists():
+        if m.is_file():
             return m
     return None
 

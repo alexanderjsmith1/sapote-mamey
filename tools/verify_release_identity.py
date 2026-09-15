@@ -26,6 +26,7 @@ import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from 
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 from check_release_manifest import checksum_problems as _checksum_problems  # noqa: E402  v9.7.409
+from check_release_manifest import membership_problems as _membership_problems  # noqa: E402  v9.7.430
 
 import argparse
 import json
@@ -191,6 +192,29 @@ def check_content(root: Path) -> list[str]:
     return [f"content: {p}" for p in problems]
 
 
+def check_membership(root: Path) -> list[str]:
+    """Fold the TIER_MANIFEST MEMBERSHIP verdict into this gate (v9.7.430, release-integrity lane).
+
+    v9.7.409 folded in checksum_problems and closed the "a file was EDITED while its version strings
+    stayed current" hole. It did not close the other half of the same v9.7.334 rev-b failure class:
+    a file that is SHIPPED BUT UNLISTED. An unlisted file has no manifest entry, so it has no
+    checksum to mismatch — checksum_problems is structurally blind to it, and this gate printed PASS
+    over a tree carrying an unlisted engine module. That is the exact shape SEAL-01 (v9.7.336) built
+    check 4 to refuse, and check 4 lived only in check_release_manifest.py, which CUT_PROTOCOL.md
+    does not name.
+
+    Advisory by default, ON PURPOSE. Membership legitimately reports drift on an in-place working
+    tree carrying run artifacts (a rendered figure left in the bundle root is "unlisted"), and
+    turning that into a hard failure would train operators to ignore this gate — the very outcome
+    being fixed. So: always VISIBLE, never silent; fail-closed only under --strict-membership, which
+    is what a cut runs against a staged tree.
+    """
+    try:
+        return [f"membership: {p}" for p in _membership_problems(root)]
+    except Exception as exc:  # a reader crash must never masquerade as verified membership
+        return [f"membership: could not verify TIER_MANIFEST membership: {exc!r}"]
+
+
 def _root_marker_errors(root: Path) -> list[str]:
     """Clear, early refusal when --root does not point at a bundle root (v9.7.409).
 
@@ -214,6 +238,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--root", default=str(_BUNDLE_ROOT))  # v9.7.409: sane default, not CWD
     ap.add_argument("--tiers-dir", default=None)
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--strict-membership", action="store_true",
+                    help="treat TIER_MANIFEST membership drift as a FAILURE rather than an "
+                         "advisory (v9.7.430) — use this at cut time against a staged tree")
     ns = ap.parse_args(argv)
     root = Path(ns.root).resolve()
 
@@ -232,18 +259,27 @@ def main(argv: list[str] | None = None) -> int:
     truth = truth_from_root(root)
     errors = check_tree(root, truth)
     errors.extend(check_content(root))  # v9.7.409: content must match the checksum manifest
+    membership = check_membership(root)  # v9.7.430: and the manifest must LIST what the tree ships
+    if ns.strict_membership:
+        errors.extend(membership)
     tier_count = 0
     if ns.tiers_dir:
         for zp in sorted(Path(ns.tiers_dir).glob("*.zip")):
             tier_count += 1
             errors.extend(check_tier_zip(zp, truth))
-    payload = {"status": "PASS" if not errors else "FAIL", "truth": truth, "tier_zips_checked": tier_count, "errors": errors}
+    payload = {"status": "PASS" if not errors else "FAIL", "truth": truth,
+               "tier_zips_checked": tier_count, "errors": errors,
+               "membership_advisories": [] if ns.strict_membership else membership}
     if ns.json:
         emit(json.dumps(payload, indent=2))
     else:
-        emit(f"release identity: {payload['status']} (bundle v{truth['bundle']} / engine {truth['engine']} · build {truth['build']})")
-        for e in errors:
-            emit("  FAIL:", e)
+        lines = [f"release identity: {payload['status']} (bundle v{truth['bundle']} / engine {truth['engine']} · build {truth['build']})"]
+        lines.extend(f"  FAIL: {e}" for e in errors)
+        if not ns.strict_membership:
+            # never silent: the whole defect this closes was invisibility, not leniency
+            lines.extend(f"  ADVISORY: {m} (re-run with --strict-membership to fail on this)"
+                         for m in membership)
+        emit("\n".join(lines))
     return 0 if not errors else 1
 
 

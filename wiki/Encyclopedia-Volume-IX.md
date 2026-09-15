@@ -2,7 +2,7 @@
 
 > **Currency scope:** This volume retains its historical edition and review stamps. Only the checks listed in the [currency record](Encyclopedia-Currency.md) have been refreshed for the current candidate. Other constants, numerical claims, literature interpretations, and worked-run results have not been comprehensively revalidated. A newer bundle does not make those older observations current.
 
-*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded and restructured to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20*
+*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded and restructured to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 · re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (non-actinomycete guard, taxonomy gating, structural transfer re-verified against engine 1.9.164)*
 *What happens when a pipeline built end-to-end for actinomycete bacteria is pointed at organisms outside that target kingdom — what transfers, what goes blind, what inverts, and how the engine gates its actinomycete-specific machinery. Organised in three parts: **A — Fungi** (ascomycetes, basidiomycetes), **B — Cyanobacteria**, **C — Algae**. Worked fungal genomes: the black yeasts* Capronia epimyces *CBS 606.96 (*GCF_000585565*) and* Cladophialophora yegresii *CBS 114405 (*GCF_000585515*) — both PUBLIC references, named directly.*
 
 ------------------------------------------------------------------------

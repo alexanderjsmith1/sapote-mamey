@@ -2,7 +2,7 @@
 
 > **Currency scope:** This volume retains its historical edition and review stamps. Only the checks listed in the [currency record](Encyclopedia-Currency.md) have been refreshed for the current candidate. Other constants, numerical claims, literature interpretations, and worked-run results have not been comprehensively revalidated. A newer bundle does not make those older observations current.
 
-*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (record types, the \_edge_status rule, the twelve scan\_\* functions / ten-scan reporting roster, the corrected-count + tier computation, and the package/validator gates verified against the running engine) · 2026-06-15*
+*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (record types, the \_edge_status rule, the thirteen scan\_\* functions / ten-scan reporting roster, the corrected-count + tier computation, and the package/validator gates verified against the running engine) · 2026-06-15 · re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (thirteen scan_* functions / ten-scan reporting roster (scan_dkp_cdps added), eighteen CCTT families, corrected-count + tier computation, package/validator gates re-verified against engine 1.9.164)*
 *Chapters II.1–II.8. Grounded in the running engine of this edition. Read Volume I first (→ Master Index).*
 
 ------------------------------------------------------------------------
@@ -157,8 +157,8 @@ A conditional eleventh line, **PHO_CLUSTER**, is appended when the phosphonate t
 enough to indicate a dedicated C–P-bond locus, carrying a recommendation for ³¹P-NMR and FomA/FomB follow-up.
 <span class="tag t-engine">\[engine\]</span>
 
-**Scan-function reference (`source_scans.py`; `run_source_scans → SourceScanBundle`).** Twelve `scan_*` functions
-run; the **ten** above are the reporting roster (`scan_status.scans`), the other two are guard scans consumed by
+**Scan-function reference (`source_scans.py`; `run_source_scans → SourceScanBundle`).** Thirteen `scan_*` functions
+run; the **ten** above are the reporting roster (`scan_status.scans`), the other three are guard scans consumed by
 scoring (→ §V): <span class="tag t-engine">\[engine\]</span>
 
 | Function | Role | Reporting? |
@@ -175,6 +175,7 @@ scoring (→ §V): <span class="tag t-engine">\[engine\]</span>
 | `scan_glycosylation_arm_candidates` | glycosylation-arm (saccharide-context) | source-derived |
 | `scan_primary_metabolism` | housekeeping/pigment guard (→ §V.4) | guard |
 | `scan_misanchor_guards` | KCB-anchor-without-class-diagnostic guard (→ §V.4) | guard |
+| `scan_dkp_cdps` (`dkp_cdps.py`) | DKP/CDPS cyclodipeptide-synthase context (feeds CCTT) | source-derived |
 
 (KCB_sweep, RG_GMCI, CGAD, and the resistance/HGT tiering are computed in the evidence/adapters layer, not as a
 `scan_*` in `source_scans.py`; together with the five `scan_*` marked "ten" they make the ten-scan roster.) <span class="tag t-engine">\[engine\]</span>

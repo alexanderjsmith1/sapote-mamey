@@ -1,8 +1,8 @@
 # The Mathematics of Sapote–Mamey: A Complete Reference
 
-**Mamey engine v1.9.110 · bundle v9.7.319**  
+**Mamey engine v1.9.164 · bundle v9.7.429** *(re-grounded 2026-09-14; originally compiled v1.9.110 / v9.7.319, 2026-06-23)*  
 ****  
-**Date:** 2026-06-23
+**Date:** 2026-06-23 (re-grounded 2026-09-14)
 
 This document combines the full general-audience mathematics reference for the Sapote–Mamey biosynthetic gene cluster analysis pipeline. It covers the deterministic extraction engine (Mamey) across two volumes: Volume I documents the core quantitative pipeline (boundary classification, corrected BGC counts, assembly tiers, AB/AF/novelty scoring, lead tiers, guards, RG-GMCI reconstruction, KCB anchor display, the triage rationale, and completeness invariants); Volume II documents the subsystems that feed and surround it, organized into seven clusters (CCTT trigger engine, architecture-first assessment, KCB/RiQ extraction, compound-class annotation, rescue and concordance layers, the Mode B enrichment stack, and the figure system).
 
@@ -129,7 +129,7 @@ The weight tables encode the prior probability that a cluster of each class will
 
 ### The diagnostic marker bonus
 
-Some gene-level evidence is strong enough to establish a compound class independently, even when the cluster's product label and KCB similarity are both uninformative. The 14 CCTT (Chemistry-Class Trigger Tower) triggers are domain-level markers with a high specificity for particular chemotypes. When a corroborated trigger fires, a flat bonus of 25 points is added to the relevant axis:
+Some gene-level evidence is strong enough to establish a compound class independently, even when the cluster's product label and KCB similarity are both uninformative. The 18 CCTT (Chemistry-Class Trigger Tower) triggers are domain-level markers with a high specificity for particular chemotypes. When a corroborated trigger fires, a flat bonus of 25 points is added to the relevant axis:
 
 - **Antifungal triggers:** T43-NUC (nucleoside chitin-synthase inhibitor class) and T43-PTM (HSAF/polycyclic tetramate macrolactam class)
 - **Antibacterial triggers:** T43-LAN (lanthipeptide), T43-LASSO (lassopeptide), T43-THA (thioamide), T43-PHO (phosphonate), T43-AMC (aminoglycoside), T43-BLA (beta-lactam)
@@ -429,9 +429,9 @@ After matching, each hit is spatially coupled to BGC records: a gene hit is assi
 
 ---
 
-### The 14 CCTT triggers
+### The 18 CCTT triggers
 
-The Chemistry-Class Trigger Tower (CCTT) is the pipeline's gene-level diagnostic system. Each trigger is a named chemistry class with a corresponding set of annotation patterns; a trigger fires when any of its patterns matches in the annotation haystack of any gene within 10 kb of a BGC.
+The Chemistry-Class Trigger Tower (CCTT) is the pipeline's gene-level diagnostic system. Each trigger is a named chemistry class with a corresponding set of annotation patterns; a trigger fires when any of its patterns matches in the annotation haystack of any gene within 10 kb of a BGC. *(Original compilation listed 14; T43-TET was present but missing from this table, and T43-PYE, T43-GPA, T43-BLT were added at v9.7.119 / engine 1.9.99.)*
 
 | Trigger | What it detects | Bioactivity relevance |
 |---|---|---|
@@ -449,6 +449,10 @@ The Chemistry-Class Trigger Tower (CCTT) is the pipeline's gene-level diagnostic
 | **T43-IDC** | Indolocarbazole synthase (StaD/RebC family), TIGRFAM TIGR01454 | Indolocarbazole alkaloids (staurosporine class) |
 | **T43-NN** | N–N bond forming enzyme | Nitrogen–nitrogen linked natural products |
 | **T43-DKP** | Cyclodipeptide synthase (CDPS) | Diketopiperazine scaffolds |
+| **T43-TET** | Tetronate/spirotetronate polyketide markers (FkbH, glyceryl) | Tetronate/spirotetronate — antibacterial |
+| **T43-PYE** | Polyene macrolide markers (natamycin/amphotericin/nystatin class) | Polyene antifungal — AF-routed |
+| **T43-GPA** | Glycopeptide oxidative-coupling P450s (OxyB/OxyA/OxyC) and non-proteinogenic-AA machinery | Glycopeptide antibacterial (vancomycin/teicoplanin class) |
+| **T43-BLT** | Betalactone pathway markers (salinosporamide/platensimycin class) | Betalactone — antibacterial; some members cytotoxic |
 
 Note that T43-HAL and T43-XHAL are **tailoring triggers**, not class-defining triggers. A halogenase installs a chlorine or bromine on a scaffold, but the scaffold could belong to any compound class. These two triggers do not grant the Tier-1 floor bonus and do not count as class-defining evidence (see the scoring section of Volume I §6.2). They do play a role in the diagnostic rescue engine (Cluster E), where a halogenase-carrying fragment is the expected tailoring arm of a split pathway whose core biosynthetic genes are on a different contig. All other triggers in the table are class-defining.
 
@@ -1446,4 +1450,4 @@ Taken together, the figure disciplines make a specific promise: every figure is 
 
 ---
 
-*The Mathematics of Sapote–Mamey · Mamey engine v1.9.110 (frozen; the math tracks the engine, not the rolling bundle) · constants re-verified against source 2026-07-14 Every formula and constant cited from engine source. Scores are routing priors, not biological proof; KCB is similarity, not identity; capacity-level language is mandatory downstream of all values in this document.*
+*The Mathematics of Sapote–Mamey · Mamey engine v1.9.164 · bundle v9.7.429 · CCTT trigger table re-grounded 2026-09-14 (originally compiled against v1.9.110 / v9.7.319; constants verified 2026-07-14). Every formula and constant cited from engine source. Scores are routing priors, not biological proof; KCB is similarity, not identity; capacity-level language is mandatory downstream of all values in this document.*

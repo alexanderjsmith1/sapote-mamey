@@ -2,7 +2,7 @@
 
 > **Currency scope:** This volume retains its historical edition and review stamps. Only the checks listed in the [currency record](Encyclopedia-Currency.md) have been refreshed for the current candidate. Other constants, numerical claims, literature interpretations, and worked-run results have not been comprehensively revalidated. A newer bundle does not make those older observations current.
 
-*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (the AB/AF/novelty keyword tables — 18/17/11 terms — the diagnostic subsets, the guard composition order, the TIER1_FLOOR_EXCLUDED_PREFIXES, and the shipped PC-12 cargo-aware concordance gate verified against the running engine) · 2026-06-16*
+*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (the AB/AF/novelty keyword tables — 18/17/11 terms — the diagnostic subsets, the guard composition order, the TIER1_FLOOR_EXCLUDED_PREFIXES, and the shipped PC-12 cargo-aware concordance gate verified against the running engine) · 2026-06-16 · re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (AB/AF/novelty keyword tables — 18/17/11 terms — diagnostic subsets, TIER1_FLOOR_EXCLUDED_PREFIXES, concordance gate re-verified against engine 1.9.164)*
 *Chapters V.1–V.7. The scoring volume. Read Volume III (the Sapote layer) and Volume IV (detection) first.*
 
 This volume documents how the engine turns extracted evidence into a ranked triage board: the three axes and the

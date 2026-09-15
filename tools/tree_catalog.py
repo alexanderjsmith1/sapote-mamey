@@ -15,11 +15,12 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+from tree_series_contract import validate as validate_series, validate_delivery
 
 
 SCHEMA = "sapote.tree-catalog.v1"
 VIEWS = {"publication", "publication-detailed", "publication-noloc", "internal"}
-PANELS = {"type_only", "type_plus_selected_non_type"}
+PANELS = {"type_only", "type_plus_selected_non_type", "type_plus_selected_additional"}
 SAFE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*$")
 
 
@@ -63,7 +64,7 @@ def load_catalog(path):
         ratios = tree.get("reference_ratios", default_ratios)
         if not views or any(view not in VIEWS for view in views):
             raise ValueError("TREE_CATALOG_VIEW")
-        if not ratios or any(type(ratio) is not int or ratio not in (1, 2, 3, 4) for ratio in ratios):
+        if not ratios or any(ratio != "all" and (type(ratio) is not int or ratio not in (1, 2, 3, 4)) for ratio in ratios):
             raise ValueError("TREE_CATALOG_RATIO")
         spotlight = tree.get("spotlight_queries", [])
         if spotlight and (not isinstance(spotlight, list) or
@@ -94,6 +95,8 @@ def load_catalog(path):
                     raise ValueError("TREE_CATALOG_DUPLICATE_JOB")
                 seen.add(job_id)
                 jobs.append(dict(common, job_id=job_id, reference_ratio=ratio, view=view))
+    if data.get("series_requirements") is not None:
+        validate_series(data,jobs,source.parent)
     return source, data, jobs
 
 
@@ -119,6 +122,7 @@ def render(catalog_path, outdir, python=sys.executable, rscript="Rscript"):
     root = Path(outdir).resolve()
     if root.exists():
         raise ValueError("OUTPUT_EXISTS")
+    series_receipt = validate_series(_data,jobs,source.parent)
     root.mkdir(parents=True)
     tool = Path(__file__).with_name("placement_display.py")
     results = []
@@ -127,8 +131,10 @@ def render(catalog_path, outdir, python=sys.executable, rscript="Rscript"):
         command = [python, str(tool), job["run_dir"], "--name", job["job_id"],
                    "--group", job["group"], "--host-table", job["host_table"],
                    "--ref-source-db", job["ref_source_db"], "--neighbors-per-query",
-                   str(job["reference_ratio"]), "--label-style", job["view"],
+                   str(job["reference_ratio"] if job["reference_ratio"] != "all" else 1), "--label-style", job["view"],
                    "--rscript", rscript, "--out", str(destination)]
+        if job["reference_ratio"] == "all":
+            command += ["--keep-all-references"]
         if job["genus_roster"]:
             command += ["--genus-roster", job["genus_roster"]]
         if job["required_reference_table"]:
@@ -145,10 +151,17 @@ def render(catalog_path, outdir, python=sys.executable, rscript="Rscript"):
                         "stdout": result.stdout, "stderr": result.stderr})
         if result.returncode:
             break
+        try:
+            results[-1]["delivery_audit"] = validate_delivery(_data,job,destination,source.parent)
+        except (ValueError,OSError) as exc:
+            results[-1]["returncode"] = 2
+            results[-1]["delivery_error"] = str(exc)
+            break
     receipt = {
         "schema": "sapote.tree-catalog-render.v1",
         "catalog": str(source),
         "catalog_sha256": _digest(source),
+        "series_contract": series_receipt,
         "planned_jobs": len(jobs),
         "completed_jobs": sum(item["returncode"] == 0 for item in results),
         "results": results,

@@ -77,7 +77,7 @@ Last three rows extend §37.3 with classes the SID-XXX run surfaced.
 - [ ] **No exact masses / formulas / structures** unless a named reference cluster with strong evidence supports it (§37.4) — broad ranges only.
 - [ ] Polar/zwitterionic leads carry the C18-insufficient caveat.
 - [ ] Bioassay pairing held at extract level.
-- [ ] Contig-ID locators; affiliation = ; exactly 8 unique next-paths.
+- [ ] Contig-ID locators are bound to source records; affiliation is supplied rather than invented; handback states the result and holds without a fixed next-action count.
 
 ---
 

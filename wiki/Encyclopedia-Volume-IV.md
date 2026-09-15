@@ -2,7 +2,7 @@
 
 > **Currency scope:** This volume retains its historical edition and review stamps. Only the checks listed in the [currency record](Encyclopedia-Currency.md) have been refreshed for the current candidate. Other constants, numerical claims, literature interpretations, and worked-run results have not been comprehensively revalidated. A newer bundle does not make those older observations current.
 
-*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (the fifteen CCTT_PATTERNS families, the 6 AB / 2 AF diagnostic subsets, the 3 promiscuous families, the RG-GMCI constants — gap 30 / span 400 / hub-degree 4 — and the TFBS 300 bp window all re-verified against the running engine; §IV.9 bldA gating corrected) · 2026-06-15*
+*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (the eighteen CCTT_PATTERNS families, the 6 AB / 2 AF diagnostic subsets, the 3 promiscuous families, the RG-GMCI constants — gap 60 / span 400 / hub-degree 4 — and the TFBS 300 bp window all re-verified against the running engine; §IV.9 bldA gating corrected) · 2026-06-15 · re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (eighteen CCTT_PATTERNS families (+PYE, GPA, BLT since v9.7.91), RG-GMCI constants — gap 60 (widened from 30) / span 400 / hub-degree 4, TFBS 300 bp window re-verified against engine 1.9.164)*
 *Chapters IV.1–IV.10. The densest reference volume. Read Volumes I–III first (→ Master Index).*
 *Rev. 2026-06-16: incorporates the encyclopedia-poll corrections (AB-diagnostic set = 6; CCTT triggers = 15 with T43-NN promoted, TOMM/LMPKS/SILENT de-listed; ENE \[E-signal\] not BSL-2; \#28 real-data caveat; RG-GMCI no-FDR).*
 
@@ -215,9 +215,9 @@ suspect a naming-convention gate before trusting the MODERATE ceiling. <span cla
 For each shared reference, the pair's two fragments are classified by how their reference segments relate:
 `OVERLAPPING_REFERENCE_SEGMENTS`, `ADJACENT_OR_NEARBY_REFERENCE_SEGMENTS`, or `DISTANT_ON_REFERENCE_CAUTION`. A
 reference counts toward the pair's `good_geometry_references` only if it is **overlapping or adjacent** — distant
-co-occurrence does not. `ADJACENT` requires the locus gap ≤ `ADJ_MAX_LOCUS_GAP` (**30**) and the spanned range ≤
+co-occurrence does not. `ADJACENT` requires the locus gap ≤ `ADJ_MAX_LOCUS_GAP` (**60**, widened from 30 at engine 1.9.164) and the spanned range ≤
 `ADJ_MAX_SPAN` (**400**). Both constants were set from the 5-strain calibration: genuine adjacency clusters at gap
-≈ 0 (median 0 on all five strains; gap ≤ 30 retains ~95% of adjacent pairs), and the maximum real adjacent span
+≈ 0 (median 0 on all five strains; the original gap ≤ 30 retained ~95% of adjacent pairs; the widened 60 retains more), and the maximum real adjacent span
 observed was 315–400, so the span cap sits exactly at the top of the genuine distribution. <span class="tag t-engine">\[engine\]</span>
 
 ### §IV.4.3 · Two acceptance gates for HIGH **\[v9.7.74\]**
@@ -273,7 +273,7 @@ suffix-sensitivity. Both were normalization gaps — the fix strips the version 
 and both are the kind of silent under-count that the `mibig_good_geometry_references` audit field now makes visible.
 <span class="tag t-engine">\[engine\]</span>
 
-*Grounded against bundle v9.7.74 / engine Mamey 1.9.81, constants re-verified unchanged at v9.7.91 (gap 30 / span 400 / hub-degree 4): the v9.7.38 adjacency guard, v9.7.39
+*Grounded against bundle v9.7.74 / engine Mamey 1.9.81, constants re-verified unchanged at v9.7.91 (gap 60 / span 400 / hub-degree 4): the v9.7.38 adjacency guard, v9.7.39
 locus-number proxy + identity axis, v9.7.40 phantom-coordinate fix, v9.7.74 gg≥2 + product-class gates, v9.7.42
 hub-degree guard + co-cluster exemption + Bug A/B keying fixes, and the v9.7.43 `_blast_hits` locus-tag fix (§IV.4)
 are all shipped.*

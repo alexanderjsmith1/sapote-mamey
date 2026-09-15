@@ -72,7 +72,7 @@ Host-context lookups (TFBS→ecology, bldA→phase, host→pathogen→class) are
 - [ ] Standing constraints enforced; no retired hypotheses revived.
 - [ ] Ecological RAS block appended.
 - [ ] Host-context tables are the user's own categories, not reference-project cells.
-- [ ] Contig-ID locators; affiliation = ; exactly 8 unique next-paths.
+- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
 
 ---
 

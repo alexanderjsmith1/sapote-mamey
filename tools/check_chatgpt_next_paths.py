@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Check ChatGPT handbacks for exactly 8 unique next paths.
+"""Check shared handback format and final SAVE STATE confirmation.
+
+This lexical check does not prove that state or transcripts were written.
 
 Usage:
   python tools/check_chatgpt_next_paths.py HANDOFF.md
@@ -26,7 +28,7 @@ def extract_numbered_items(text: str):
     for line in lines:
         if re.match(r"^\s*\d+\.\s+\S", line):
             cur.append(line.strip())
-        else:
+        elif line.strip():
             if cur:
                 blocks.append(cur); cur=[]
     if cur: blocks.append(cur)
@@ -48,23 +50,26 @@ def main(path: str) -> int:
     text = handoff.read_text(encoding="utf-8", errors="replace")
     items = extract_numbered_items(text)
     errors = []
-    if len(items) != 8:
-        errors.append(f"expected exactly 8 numbered next paths; found {len(items)}")
+    if not 3 <= len(items) <= 8:
+        errors.append(f"expected 3 to 8 numbered next paths; found {len(items)}")
     nums = [int(re.match(r"^\s*(\d+)\.", x).group(1)) for x in items if re.match(r"^\s*(\d+)\.", x)]
-    if nums != list(range(1,9)):
-        errors.append(f"expected numbering 1..8; found {nums}")
+    if nums != list(range(1,len(items)+1)):
+        errors.append(f"expected consecutive numbering starting at 1; found {nums}")
+    if not items or not re.search(r"SAVE STATE.*(?:saved|FAILED)", items[-1], re.I):
+        errors.append("final item must confirm SAVE STATE saved, or explicitly FAILED")
+    if items and re.search(r"SAVE STATE.*saved", items[-1], re.I) and not re.search(r"\[[^]]+\]\([^)]+\)", items[-1]):
+        errors.append("saved confirmation must link its checkpoint")
     norms = [normalize_item(x) for x in items]
     if len(set(norms)) != len(norms):
         errors.append("duplicate/near-duplicate next paths detected by leading action/object")
     too_generic = [x for x,n in zip(items,norms) if n.split()[0:1] and n.split()[0] in GENERIC and len(n.split()) < 4]
     if too_generic:
         errors.append("generic/filler-looking paths: " + " | ".join(too_generic[:3]))
+    report = "NEXT_PATHS_CHECK: FAIL" if errors else "NEXT_PATHS_CHECK: PASS"
     if errors:
-        emit("NEXT_PATHS_CHECK: FAIL")
-        for e in errors: emit("-", e)
-        return 1
-    emit("NEXT_PATHS_CHECK: PASS")
-    return 0
+        report += "\n" + "\n".join("- " + e for e in errors)
+    emit(report)
+    return 1 if errors else 0
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(

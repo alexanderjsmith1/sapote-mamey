@@ -65,7 +65,7 @@ from .parsers import (
     extract_contig_sequences, extract_domain_features,
     parse_antismash_evidence_status,
 )
-from .antismash_evidence import parse_antismash_evidence, apply_evidence_to_bgcs, extract_gbk_pfam_hits, merge_tigrfam_into_pfam_hits
+from .antismash_evidence import FULL_MAX_JSON_BYTES, parse_antismash_evidence, apply_evidence_to_bgcs, extract_gbk_pfam_hits, merge_tigrfam_into_pfam_hits
 from .source_scans import run_source_scans
 from .rggmci import run_rggmci
 from .pks_ks_scan import run_pks_ks_scan, write_pks_ks_csv  # .359 (phylogenomics-lane P358): _4B intrinsic PKS-KS clade scan
@@ -832,10 +832,7 @@ def _emit_gold_figures(package_dir: Path, strain_id: str, mode: str) -> None:
                 series="all",   # v9.7.252 (P8): default was series="F" -> 2 panels, not 21
             )
             _nfig = _fig_res.get("figures", 0)
-            if _nfig:
-                emit(f"  Gold figures: {_nfig} figure(s) + sidecar CSVs → {_gold_fig_out.name}/")
-            else:
-                emit(f"  Gold figures: SKIPPED (no data available or matplotlib not installed)")
+            emit(f'  Gold figures: {_nfig} figure(s) + sidecar CSVs → {_gold_fig_out.name}/' if _nfig else f'  Gold figures: SKIPPED (no data available or matplotlib not installed)')
         except Exception as _fig_exc:
             # Write a note so the user knows figures were skipped but nothing is broken
             try:
@@ -1275,13 +1272,22 @@ def run_one_strain(
     # incident class as the validate.py `"mdata" in locals()` bug).
     _cb_dir = None
 
-    # Admit metadata before creating a run directory or package artifact.  A
-    # malformed object is a workflow hold, never a biological conclusion.
+    # Validate metadata first and emit one typed refusal before any filesystem work.
+    metadata_error = None
     try:
         bioactivity = normalize_bioactivity(bioactivity)
     except BioactivityMetadataError as exc:
-        emit(f"ERROR: {exc.code}: {exc.detail}", file=_sys.stderr, flush=True)
-        return {"status": exc.code, "written": False}
+        metadata_error = (exc.code, exc.detail)
+    if metadata_error is None:
+        taxonomy = str(taxonomy or "").strip() or "not verified"
+        from .cohort_resolver import is_placeholder_taxonomy
+        if is_placeholder_taxonomy(taxonomy):
+            metadata_error = ("TAXONOMY_PLACEHOLDER",
+                              "supply taxonomy bound to the source record, or explicitly use 'not verified' if unresolved.")
+    if metadata_error:
+        code, detail = metadata_error
+        emit(f"ERROR: {code}: {detail}", file=_sys.stderr, flush=True)
+        return {"status": code, "written": False}
 
     out_root   = Path(outdir)
     run_dir    = out_root / strain_id
@@ -2367,12 +2373,7 @@ def run_one_strain(
             _meta_rows, _fig_out,
             source_file=str(_meta_csv_path) if _meta_csv_path else "",
         )
-        if _cf_result["n_generated"] > 0:
-            emit(f"  Collection figures: {_cf_result['n_generated']} generated, "
-                  f"{_cf_result['n_skipped']} skipped — see figures/FIGURE_AVAILABILITY.md")
-        else:
-            emit(f"  Collection figures: 0 generated (no metadata or no eligible fields) "
-                  f"— see figures/FIGURE_AVAILABILITY.md")
+        emit(f"  Collection figures: {_cf_result['n_generated']} generated, {_cf_result['n_skipped']} skipped — see figures/FIGURE_AVAILABILITY.md" if _cf_result['n_generated'] > 0 else f'  Collection figures: 0 generated (no metadata or no eligible fields) — see figures/FIGURE_AVAILABILITY.md')
         for _w in _cf_result.get("warnings", []):
             issues.append(f"collection_figures: {_w}")
     except Exception as _cfe:
@@ -3948,10 +3949,7 @@ def run_batch(
             from .cohort_figures import build_cohort_figures
             cohort_res = build_cohort_figures(results, outdir, logger=emit)
             nfig = cohort_res.get("figure_count", 0)
-            if nfig:
-                emit(f"  Cross-strain figures: {nfig} emitted → {outdir}/cohort_figures/")
-            else:
-                emit(f"  Cross-strain figures: none ({cohort_res.get('status', 'no data')})")
+            emit(f'  Cross-strain figures: {nfig} emitted → {outdir}/cohort_figures/' if nfig else f"  Cross-strain figures: none ({cohort_res.get('status', 'no data')})")
         except Exception as e:
             emit(f"  Cross-strain figures: SKIPPED ({type(e).__name__}: {e})")
 
@@ -3976,11 +3974,7 @@ def run_batch(
                     out=str(Path(outdir) / "cohort_figures_gold"),
                 )
                 _mfig = _multi_res.get("figures", 0)
-                if _mfig:
-                    emit(f"  Gold domain figures: {_mfig} F-series figure(s) "
-                          f"→ {Path(outdir)/'cohort_figures_gold'}/")
-                else:
-                    emit(f"  Gold domain figures: SKIPPED (no gold packages or no data)")
+                emit(f"  Gold domain figures: {_mfig} F-series figure(s) → {Path(outdir) / 'cohort_figures_gold'}/" if _mfig else f'  Gold domain figures: SKIPPED (no gold packages or no data)')
             elif len(_gold_pkgs) == 1 and len(results) > 1:
                 emit(f"  Gold domain figures: SKIPPED — only 1 of {len(results)} strains is gold mode")
         except Exception as _mf_exc:
@@ -4358,13 +4352,7 @@ def ingest_blastp_command(args) -> int:
               f"(the <query-title> still carries the BGC token), or re-submit from the "
               f"bgc_blastp_panel/ FASTA.", file=_sys.stderr, flush=True)
     ov = res.get("overlay")
-    if ov:
-        emit(f"[ingest-blastp] nr overlay: {ov['genes']} gene(s) across {ov['bgcs']} BGC(s) "
-              f"-> {ov['outdir']} (arms conservation_median_id / NOVELTY_CONTRADICTION)", flush=True)
-    else:
-        emit("[ingest-blastp] NOTE: no --package given, so no nr overlay was written. "
-              "conservation_median_id will fall back to ClusterBlast and the "
-              "NOVELTY_CONTRADICTION lint stays disarmed for these genes.", flush=True)
+    emit(f"[ingest-blastp] nr overlay: {ov['genes']} gene(s) across {ov['bgcs']} BGC(s) -> {ov['outdir']} (arms conservation_median_id / NOVELTY_CONTRADICTION)" if ov else '[ingest-blastp] NOTE: no --package given, so no nr overlay was written. conservation_median_id will fall back to ClusterBlast and the NOVELTY_CONTRADICTION lint stays disarmed for these genes.', flush=True)
     return 0
 
 
@@ -5785,7 +5773,7 @@ def build_parser():
     r.add_argument("--mode", default="gold",
                    choices=["standard", "gold"],
                    help=(
-                       "gold = every BGC gets full Mode B (default and only analysis mode); "
+                       "gold = evidence extraction and ranked outputs (default analysis mode); authored Mode B cards require subsequent interpretation; "
                        "standard = DEPRECATED (retired v9.7.92) — aliased to gold. "
                        "(smoke removed v9.7.161: it produced a non-analyzable triage-only "
                        "package with no ranked board, DAPR, or comparison — a dead end.)"
@@ -5834,7 +5822,7 @@ def build_parser():
     r.add_argument("--brief", default="standard",
                    choices=["none", "minimal", "standard"],
                    help="Render deterministic extraction-layer strain brief (PDF+figures). "
-                        "none = no brief (back-compat); minimal = ~2pp; standard = ~3pp (default)")
+                        "none = no brief (back-compat); minimal and standard select brief profiles; appended figures can increase page count (standard is default)")
     r.add_argument("--token-budget", default="standard", dest="token_budget",
                    choices=["standard", "citation-compact"],
                    help="Output token budget/profile. citation-compact emits Citation_Ledger.csv/json "
@@ -5874,10 +5862,9 @@ def build_parser():
                    help=(
                        "antiSMASH JSON handling. bounded (default) = stream JSON "
                        "with ijson, capped; falls back to off if ijson is absent. "
-                       "off = TXT clusterblast files only, never opens JSON, safe "
-                       "for any genome size. "
-                       "full = legacy full flatten, refuses files >20 MB (hangs on "
-                       "large genomes like the 159 MB rubrisoli JSON). "
+                       "off = main JSON walker disabled; record-level extraction is separate. "
+                       f"full = legacy full flatten, refuses uncompressed JSON files larger than {FULL_MAX_JSON_BYTES / 1_000_000:g} MB (decimal); "
+                       "the file-size cap is not a RAM limit or a completeness guarantee. "
                        "GBK sec_met_domain Pfam extraction runs regardless of this flag."
                    ))
     r.add_argument("--hmm-scan", action="store_true", dest="hmm_scan",
@@ -7892,11 +7879,7 @@ def _domain_level_command(args) -> int:
         top_n=getattr(args, "top_n", 10), outdir=getattr(args, "outdir", None))
     status = receipt.get("status", "?")
     emit(f"  domain-level: {status} (mode={receipt.get('mode','?')})")
-    if status == "OK":
-        emit(f"    {receipt.get('n_domain_rows', 0)} domain rows across "
-              f"{receipt.get('n_bgcs', 0)} BGCs → {receipt.get('files', [])}")
-    else:
-        emit(f"    {receipt.get('reason','')} — core package remains valid")
+    emit(f"    {receipt.get('n_domain_rows', 0)} domain rows across {receipt.get('n_bgcs', 0)} BGCs → {receipt.get('files', [])}" if status == 'OK' else f"    {receipt.get('reason', '')} — core package remains valid")
     if getattr(args, "emit_figures", False):
         try:
             from .domain_figures import render_domain_figures

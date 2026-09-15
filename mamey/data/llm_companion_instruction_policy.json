@@ -4,7 +4,7 @@
   "active_documents": {
     "docs/LLM_COMPANION_TOOL_PROTOCOL.md": [
       "resume before rediscovering",
-      "GToTree requires user approval",
+      "GToTree execution requires approval bound to this preflight",
       "At most four one-core tree jobs",
       "exact completed run ID"
     ],

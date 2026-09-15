@@ -1,62 +1,26 @@
-# Mamey v1.9.163 ChatGPT Batch Protocol
+# Batch execution and continuation
 
-## Batch 0 — Intake smoke test
+Documented bundle: v9.7.431 / engine 1.9.165
 
-- Confirm bundle version.
-- Confirm input ZIPs are antiSMASH outputs.
-- Inspect for region GBKs and clusterblast/knownclusterblast/subclusterblast folders.
-- Confirm or infer strain IDs.
 
-## Batch 1 — Extraction foundation
+A batch is an operational grouping of inputs, not a fixed biological or model limit. Start with one representative input and inspect measured runtime, memory, disk output and evidence gaps before selecting the next group. Do not infer the appropriate batch size from a historical “three strains” or “four to six strains” rule.
 
-- Parse BGC inventory.
-- Compute assembly metrics and edge/fragmentation state.
-- Extract KCB evidence from TXT files.
-- Compute corrected BGC counts and depth-floor flags.
-- Write per-strain workbook and master workbook.
+## Before the first run
 
-## Batch 2 — Source-derived scans
+Confirm the loaded program, actual runtime, input identities, metadata sources and writable destination. Keep original input ZIPs. Select evidence and rendering settings explicitly. State any online scope separately; offline extraction does not authorize searches.
 
-- KCB sweep.
-- RG-GMCI reference-guided gapped multi-contig integration (split-BGC pairing from clusterblast/knownclusterblast TXT files; mandatory for multi-contig genomes).
-- FLBR / large-BGC fragmentation review.
-- CCTT cryptic-class triggers.
-- Chitin/CGAD and glycan/ecology readiness.
-- UMED maturation-enzyme gap review.
-- EFLS edge/flank/linkage readiness from available evidence.
-- Resistance/self-protection scan.
-- bldA/TTA scan.
-- TFBS/regulation scan.
+## After each strain
 
-## Batch 3 — Package and validation
+Retain the exact command, exit status, package path, input hash, issue/validation receipts and file counts/bytes. Review extraction status, evidence coverage and interpretation separately. A source-scan label is not proof that every dependency or input was present. Do not manufacture completion by changing a status label manually.
 
-- Write manifest and project-memory alias.
-- Write issue log and commit receipt.
-- Write `gate_validation.json`.
-- Write checksums.
-- Create per-strain package ZIP.
-- Create combined batch ZIP.
+## Continue or stop
 
-## Batch 4 — Triage/judgment handoff
+If a run completed, preserve its package and proceed only while the environment can support the next input. If it failed, record the failure and diagnose it before retrying into a new destination. Do not assume extraction has a universal resumable checkpoint at every phase. Keep the per-strain packages independent; adding to a master workbook is a separate schema-sensitive action.
 
-- Produce ranked extraction-side triage board.
-- Identify top antibacterial and antifungal leads.
-- Mark `MAMEY_COMPLETE` when extraction is finished and all BGCs have depth-floor assignments. This is the normal end state of a ChatGPT extraction pass — judgment is handled by Claude/Sapote in a separate session.
-- Assign judgment batches.
+A combined ZIP is useful only when it serves the requested handoff. Count its added storage before duplicating already sealed per-strain archives. Save state and available transcripts at each substantive handoff, following the shared policy. Identify transcript gaps explicitly.
 
-## Batch 5+ — Mode B and reader outputs
+## Interpretation handoff
 
-- Full Mode B for all BGCs required by Standard depth floor.
-- In gold/archive mode, full Mode B or ledger for every BGC.
-- Literature deep dives for top antibacterial and antifungal leads.
-- Wet-lab detection/isolation guidance.
-- Reader-facing PDFs and final ZIP when requested.
+Provide complete packages and source-bound locators for the selected questions. Separate ranking from activity and similarity from identity. Choose the current named Mode B profile through [the current index](../../CURRENT_DOCS_INDEX.md); a historical section count does not define every present workflow. Interpretation can remain pending without obscuring a completed extraction.
 
-## Non-negotiables
-
-- Do not reduce depth to fit a session; batch instead.
-- Do not call extraction-only output a completed judgment run.
-- Every BGC must be accounted for by locked ID.
-- Every deferred item must have a reason and next batch assignment.
-- Treat ChatGPT runtime limits as normal operating constraints, not workflow failure.
-
+See [Workflow Guide](../WORKFLOW_GUIDE.md), [Troubleshooting](../COMMON_MISTAKES.md) and [Files, storage and handoff](../FILES_STORAGE_AND_HANDOFF.md).

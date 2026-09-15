@@ -1,3 +1,9 @@
+> **Scope and precedence:** Apply this workflow only to the user's selected operation and named
+> profile. `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md` govern permissions, task scope,
+> inspection-only work and conversational output. Package presence is not execution authority.
+> Historical section counts, role assignments and examples below cannot replace a current profile.
+> When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
+
 # Sapote–Mamey Trigger Routing Table
 **Version:** v9.7.319  **Engine:** Mamey 1.9.111  
 *Single authoritative routing table. Edit here; other docs must not define conflicting trigger behaviour.*

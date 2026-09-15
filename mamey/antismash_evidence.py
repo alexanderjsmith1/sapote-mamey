@@ -132,7 +132,7 @@ def _iter_records(zf: "zipfile.ZipFile", name: str):
 #               document. Falls back to 'off' if ijson is unavailable, or mid-run
 #               if the stream exceeds the wall-clock budget (cli.py logs a WARN).
 #   "full"    — legacy: json.loads the whole file and flatten twice. Refuses
-#               files >20 MB (would hang). Only for small JSON.
+#               files >80 MB. In-memory parsing can use substantially more RAM than file size.
 
 JSON_MODE_DEFAULT = "bounded"   # v9.3.2: bounded when ijson present; falls back to off gracefully
 BOUNDED_MAX_RECORDS = 5000
@@ -143,7 +143,7 @@ BOUNDED_MAX_JSON_BYTES = 25_000_000
 # When a streaming parser (system or vendored ijson) is present, bounded mode reads at flat
 # memory, so a much larger file is safe. Real actinomycete antiSMASH JSONs run 55–90 MB.
 BOUNDED_MAX_JSON_BYTES_STREAMING = 250_000_000
-FULL_MAX_JSON_BYTES = 20_000_000
+FULL_MAX_JSON_BYTES = 80_000_000  # 80 decimal MB of uncompressed JSON; not a RAM limit
 
 # ── Diagnostic Pfam/domain names extracted from antiSMASH sec_met_domain qualifiers ──
 # antiSMASH runs its own HMMER internally; these results live in the GBK files.
@@ -1093,7 +1093,8 @@ def parse_antismash_evidence(zip_path: str | Path,
                   requests can still open JSON through the separate record path.
         bounded — stream JSON with ijson; cap records and size; flat memory.
                   Falls back to 'off' if ijson is unavailable.
-        full    — legacy full flatten; refuses files >20 MB (would hang).
+        full    — legacy full flatten; refuses files >80 MB of uncompressed JSON.
+                  Materialises the document; process RAM can exceed the input-byte cap.
 
     The TXT clusterblast/knownclusterblast files carry KCB cumulative scores,
     protein-hit counts, and MIBiG accessions. JSON adds RiQ region_to_region

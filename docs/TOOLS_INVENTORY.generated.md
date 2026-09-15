@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**349 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**364 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -21,12 +21,13 @@
 | `arts_ingest.py` | ARTS2 → per-BGC self-resistance signal (lead M7, validated against an admitted result fixture). |
 | `assembly_qc_check.py` | deterministic assembly-QC gate (Mamey, runs before lead_board). |
 | `audit_blastp_zero_alignment.py` | find fabricated tested-negatives in BLASTp evidence. |
-| `audit_chatgpt_nextpaths_drift.py` | Audit high-risk ChatGPT/Mamey instruction surfaces for next-path drift. |
+| `audit_chatgpt_nextpaths_drift.py` | Audit selected current assistant surfaces for superseded unconditional rules. |
 | `audit_documents_wheelhouse.py` | Fail-closed preflight for the governed documents add-on wheelhouse. |
 | `audit_llm_companion_instructions.py` | Gate the LLM-facing BiG-SCAPE/GToTree instruction surface. |
 | `audit_modeb_support_card.py` | Audit a Mode B support card and, optionally, its task progress ledger. |
 | `audit_public_cut.py` | workbook-aware public-cut leak guard for merged-master Excel deliverables. |
 | `backfill_reference_signatures.py` | Backfill architecture_signature + refresh observed markers/genus into the reference library from antiSMASH zi… |
+| `bee_review_main_set.py` | Portable exploratory bee figures. Explicit JSON input, no implicit workspace discovery. |
 | `bgc_alias_history.py` | which BGC id did this locus carry in the PRIOR run of the same strain? |
 | `bgc_deliverable_pdf.py` | bgc_deliverable_pdf.py -- assemble a per-BGC deliverable PDF (cover + facts + figures + Mode B). |
 | `bgc_figures.py` | bgc_figures.py -- per-BGC figure set for Sapote-Mamey deliverables. |
@@ -125,7 +126,7 @@
 | `candidate_census.py` | file-count and debris census for a candidate cut tree. |
 | `check_antismash_profile.py` | cross-profile pooling guard. |
 | `check_bgc_naming.py` | portable enforcement of the AS-strain BGC node-naming rule. |
-| `check_chatgpt_next_paths.py` | Check ChatGPT handbacks for exactly 8 unique next paths. |
+| `check_chatgpt_next_paths.py` | Check shared handback format and final SAVE STATE confirmation. |
 | `check_command_pointers.py` | Phantom-command guard (patch 46). |
 | `check_dangling_refs.py` | list references to `examples/<file>` OR tool/module names that don't |
 | `check_deliverable_suite.py` | mechanical enforcement of the Sapote full-run deliverable contract. |
@@ -215,11 +216,14 @@
 | `generated_surface_ownership.py` | fail-closed, check-only cut-surface planner. |
 | `graft_integrity.py` | Read-only metric checks and transactional gappa graft generation. |
 | `gtotree_env.sh` | canonical environment for a GToTree/IQ-TREE phylogenomic run. |
+| `gtotree_execution_gate.py` | Validate a frozen GToTree execution packet before launch or postflight. |
 | `harvest_16s.py` | assemble the 16S inputs for a per-genus EPA-ng placement, ALL FROM LOCAL DATA. |
 | `hub_merge.py` | one-shot hub merge: ingest → schema-gate → normalize → merge → verify. |
 | `ingest_blastp_rollups.py` | fold the per-strain DATED rollup CSVs into blastp.sqlite. |
+| `ingest_field_collection.py` | ingest_field_collection.py -- normalize Alex's field-collection workbook into a per-strain |
 | `ingest_package.py` | map a Mamey package into the cohort banked-JSON entries. |
 | `ingest_swissprot_local.py` | fold the local SwissProt BLASTp CSVs into blastp.sqlite. |
+| `init_project_data_home.py` | Create a portable, pointer-first scientific project data home. |
 | `input_manifest.py` | the "no wrong / no half files" guard (portable, stdlib only). |
 | `intake_harness.py` | multi-strain intake for Sapote-Mamey with performance metrics. |
 | `kcb_confidence.py` | extract antiSMASH's per-region KnownClusterBlast "Similarity Confidence" |
@@ -250,6 +254,7 @@
 | `npatlas_provision.py` | tools/npatlas_provision.py -- operator front door for user-provisioned NP Atlas ingestion |
 | `nrps_substrate.py` | nrps_substrate.py -- predicted peptides + antibiotic-class signatures from A-domain substrates. |
 | `outgroup_registry.py` | the "outgroup generator": genus -> a decided, reproducible outgroup. |
+| `package_screening_figure.py` | Package one screening figure with mandatory standalone reproduction companions. |
 | `panel_receipt_to_aux.py` | Export explicit query accessions from a panel receipt to a new auxiliary TSV. |
 | `panel_split.py` | Split a panel into reference and query FASTAs using its explicit tip-role table. |
 | `parked_card_audit.py` | flag patch-pool cards that silently fell out of the cut cadence. |
@@ -263,6 +268,7 @@
 | `phylo_16s_panel.py` | phylo 16s panel. External inputs remain outside the software bundle. |
 | `phylo_16s_rank.py` | phylo 16s rank. External inputs remain outside the software bundle. |
 | `phylo_autopilot.py` | one front door for "upload 16S and/or genomes -> gated trees". |
+| `phylo_display_contract.py` | Shared, fail-closed display contract for EPA-ng and marker-tree renderers. |
 | `phylo_neighborhood_catalog.py` | Split one EPA-ng placement run into reproducible species-neighborhood subruns. |
 | `phylo_outgroup_gate.py` | Evaluate outgroup and ingroup pairwise alignment identity with explicit missingness. |
 | `phylo_place.py` | reference-backbone phylogenetic PLACEMENT of query 16S (or protein) sequences. |
@@ -270,6 +276,7 @@
 | `phylo_preflight.py` | validate a planned phylogenomic tree BEFORE spending CPU. |
 | `phylo_refset.py` | build a RIGHT-SIZED, DE-DUPLICATED 16S reference set for phylogenetic placement. |
 | `phylo_roster.py` | number the strains in a tree or panel, and edit them by number. |
+| `phylo_sequence_admission.py` | Fail-closed admission gate for 16S placement and whole-genome tree inputs. |
 | `pks_product_class.py` | pks_product_class.py -- predict polyketide product class from per-module reductive loops. |
 | `placement_display.py` | Render a placement run in a new output directory, preserving every input tip. |
 | `placement_figure.py` | a paper-ready companion figure from a phylogenetic-placement grafted tree. |
@@ -286,6 +293,7 @@
 | `public_release_audit.py` | FAIL-CLOSED audit of a tree destined for the public GitHub release. |
 | `query_support_table.py` | query_support_table.py <placement_dir> <refpkg_dir> <out.tsv> |
 | `rank_clusterblast_phylo_candidates.py` | Rank ClusterBlast-derived candidate comparator assemblies for phylogenomics. |
+| `ratchet_delta.py` | What does THIS patch packet cost against the repo-health ratchets? |
 | `reaction_gap_board.py` | Build a private offline RG-GMCI review view using the retained semantic reader. |
 | `realistic_bgc_count.py` | distinct-loci BGC count (advisory report). |
 | `reclass_check.py` | antiSMASH label vs. diagnostic-domain discrepancy (lead L1). |
@@ -293,6 +301,7 @@
 | `reference_bgc_structural_validator.py` | Measure a curated, exact-bound reference-BGC panel with Mamey. |
 | `reference_panel_ledger.py` | characterize the detection panel by separating OBSERVED from COMPUTED. |
 | `refresh_figure_source_manifest.py` | Refresh hashes for files in one exported tree-figure source package. |
+| `refresh_literature_atlas.py` | Refresh legacy strain literature atlases against a governed evidence store. |
 | `regen_modeb_contract_docs.py` | regenerate Mode B contract docs from the JSON. |
 | `register_compute_output.py` | the formal "register after running" step for heavy compute. |
 | `relabel_and_render.py` | Relabel GToTree tip names from genome FASTA headers to a consistent |
@@ -307,8 +316,10 @@
 | `render_deliverable_pdf.py` | Compatibility CLI for the package-scoped ``mamey.markdown_pdf`` renderer. |
 | `render_siderophore_atlas.py` | Render a pinned atlas snapshot into a standalone local evidence drawer. |
 | `render_three_channel_evidence_matrix.py` | Render the static three-channel evidence matrix from generic JSON or TSV. |
+| `render_tree_reference_series.py` | Render a hash-bound series of prepared tree displays using immutable input copies. |
 | `repo_health.py` | one-command repo-health gate for the Sapote-Mamey bundle. |
 | `reroot_postflight_receipt.py` | Reroot a Newick tree on one exact tip and emit a deterministic postflight receipt. |
+| `resolve_reference_metadata.py` | Resolve reference-genome isolation metadata from the deposited NCBI record (strain-level, cited). |
 | `rewrite_release_identity.py` | Rewrite cut-time bundle/build identity without platform-specific ``sed -i``. |
 | `rggmci_cohort_rollup.py` | cross-strain RG-GMCI ranked rollup + confidence tiering (v9.7.117). |
 | `round_ledger.py` | verify a Mode B card and append one audit row to the round ledger. |
@@ -331,20 +342,24 @@
 | `session_checklist.py` | Render a session-close checklist from a governed, portable durability root. |
 | `session_cost_audit.py` | where did a chat's tokens actually go? |
 | `signoff_check.py` | the "would a master's student sign off?" gate, mechanised. |
+| `silent_exit_audit.py` | Inventory of SILENT SUCCESS EXITS in the guard surface. |
 | `strain_bigscape_report.py` | strain_bigscape_report.py -- per-strain BiG-SCAPE report as a standard Sapote-Mamey deliverable. |
 | `strict_source_disclosure_audit.py` | COMPATIBILITY ENTRY POINT. Holds no policy. |
 | `suite_count_census.py` | Measure pytest collection separately from JUnit execution outcomes. |
 | `sync_version.py` | propagate the single source-of-truth version into restated files. |
 | `test_reaction_gap_board.py` | (no docstring) |
+| `test_resolve_reference_metadata.py` | parse, strain-gate, absence, deposit heuristic. |
 | `tier_vocabulary.py` | the single owner of release-tier names, zip labels and aliases. |
 | `tip_label.py` | Figure-label compatibility API backed by the bundled source-aware parser. |
 | `topology_scan.py` | detect inverted (non-co-directional) BGC strand-block topology and |
 | `tracked_file_policy.py` | Single source of truth for the tier tracked-file policy (NC-001/002/003). |
+| `tree_annotation_gate.py` | Reject display categories inconsistent with their retained raw source text. |
 | `tree_bgc_overlay.py` | Hash-bound Figure Factory consumer for existing MLSA/GToTree IQ-TREE outputs. |
 | `tree_catalog.py` | Plan or render a declared catalog of phylogenetic display variants. |
 | `tree_heatmap_panel.py` | CLI front door for the tree-aligned heatmap panel (mamey.tree_heatmap_panel). |
 | `tree_overlay_figure.py` | ONE tree, MANY overlay matrices. |
 | `tree_sanity_check.py` | HARD pre-render gate. A tree must PASS this before it is rendered or shown. |
+| `tree_series_contract.py` | Validate requested tree-series coverage and hash-bound reference rosters. |
 | `tree_trust_audit.py` | Audit explicitly bound tree artifacts; results cover mechanical checks only. |
 | `validate_portfolio_config.py` | Validate and bind a portable multi-strain project configuration to its project_registry.py |
 | `validate_portfolio_registry.py` | Validate portable strain privacy and evidence registries without running Mamey. |

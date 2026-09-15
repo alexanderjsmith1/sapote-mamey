@@ -18,11 +18,17 @@ from unittest.mock import patch, MagicMock
 # ── Return dict structure ─────────────────────────────────────────────────────
 
 
-def test_workbook_status_per_strain_has_state():
-    """_per_wb_status must always have a 'state' key."""
-    # This tests the internal logic by mocking write_per_strain_workbook
+def test_workbook_status_per_strain_has_state(tmp_path, synthetic_single_contig_full_locus_zip):
+    """A real bounded run must report the per-strain workbook state."""
     from mamey.cli import run_one_strain
-    # Just import-check; the integration test above covers the state key
+
+    result = run_one_strain(
+        strain_id="WORKBOOKTEST", display_name="WORKBOOKTEST",
+        input_zip=str(synthetic_single_contig_full_locus_zip), outdir=str(tmp_path / "run"),
+        mode="full", taxonomy="", source="", bioactivity="", json_mode="off",
+    )
+    state = result.get("workbook_status", {}).get("per_strain", {}).get("state")
+    assert state in {"PRODUCED", "FAILED"}
 
 
 # ── Structural checks (import-only, no run needed) ────────────────────────────

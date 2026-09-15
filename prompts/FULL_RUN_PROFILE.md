@@ -1,3 +1,7 @@
+> **Historical compatibility profile — not a default.** Read this only when explicitly comparing
+> or reproducing the legacy workflow. Its former scope/format rules do not govern current work.
+> Use `AGENTS.md`, `docs/ASSISTANT_GOVERNANCE.md`, and the selected current machine profile.
+
 > **DEPRECATED DEFAULT ENTRYPOINT (v9.7.147):** Retain for backwards compatibility, but new ChatGPT/Sapote sessions load `docs/CHATGPT_EXECUTION_SLICE_v97147.md`. That execution slice absorbs this profile's useful full-run rules without the slim-kernel override pattern.
 >
 > **RESTORED v9.4 (2026-06-09):** This profile was marked legacy in v9.2 but contains the authoritative Mode B card template, §57 sub-grade reference, batch-size rules, and full-delivery trigger. Restored as active. See CHANGELOG for rationale. Sections A–H remain operative; the monolith §-1.2/§-1.4 governs run modes, this profile governs per-BGC Mode B card structure and full-delivery batching.

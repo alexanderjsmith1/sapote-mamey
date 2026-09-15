@@ -1,4 +1,10 @@
-# Sapote-Mamey / Mamey Task Brief Template — v9.7.428
+> **Scope and precedence:** Apply this workflow only to the user's selected operation and named
+> profile. `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md` govern permissions, task scope,
+> inspection-only work and conversational output. Package presence is not execution authority.
+> Historical section counts, role assignments and examples below cannot replace a current profile.
+> When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
+
+# Sapote-Mamey / Mamey Task Brief Template — v9.7.431
 
 Fill this template before handing a batch to ChatGPT or another Mamey-tier runner.  
 Remove all square-bracket placeholders before submitting.
@@ -92,7 +98,7 @@ Before declaring batch complete:
 
 ## Required closer — Next-Paths Protocol
 
-End the batch handback with **exactly 8 plain-text numbered next-step paths** specific to the run state (what to bank next, what to retry, what to verify, what to hand to the other tier). Plain text only — no tappable widgets. A handback without exactly eight paths is incomplete. The eight paths must be unique: no repeated "continue analysis" variants, no generic filler, and no overlapping items that differ only by wording. Include the standing Mode B continuation path as #1 whenever any BGC remains without full §1–§48 Mode B. The handback fails QA if it contains 0–7 paths, 9+ paths, duplicate paths, or no grounded current-state details.
+Report completed work, evidence, unresolved holds and the next bounded action when useful. Do not expand the task to populate a menu.
 
 ---
 

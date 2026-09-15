@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.428 stamp=20260911v97428a
+# TIER_MANIFEST tier=code version=9.7.431 stamp=20260914v97431a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -109,6 +109,9 @@
 ./docs/ANTIPATTERN_WORKSPACE_AMBIGUITY.md
 ./docs/ANTISMASH_INPUTS_CONSUMED.md
 ./docs/ANTISMASH_PROFILE.md
+./docs/ASSISTANT_GOVERNANCE.md
+./docs/ASSISTANT_RUNTIME_PROFILES.md
+./docs/ASSISTANT_USER_GUIDE.md
 ./docs/AS_batch1_BiGSCAPE_run_guide.md
 ./docs/B2_PHASE2_INACTIVE_MARKER_WORKLIST.json
 ./docs/B2_REGISTRY_WIRING_SPEC.md
@@ -151,6 +154,7 @@
 ./docs/COMMAND_CATALOG.generated.md
 ./docs/COMMON_MISTAKES.md
 ./docs/COMPANION_FILES.md
+./docs/COMPANION_TOOL_GUIDE.md
 ./docs/COMPARE_RESOURCE_CONTROL.md
 ./docs/CONSOLIDATED_PUNCHCARD_v9.7.254.md
 ./docs/CUSTOM_PRIVACY_TIERS.md
@@ -160,6 +164,7 @@
 ./docs/DELIVERABLE_MENU.md
 ./docs/DELIVERABLE_MENU_v97146.md
 ./docs/DISCOVER_DESIGN_AND_FIGURES.md
+./docs/DOCUMENTATION_MAP.md
 ./docs/DOMAIN_TREE_CONTRACT.md
 ./docs/ENGINE_LINEAGE.md
 ./docs/ENZYME_NEIGHBORHOODS.md
@@ -182,6 +187,7 @@
 ./docs/FIGURE_REPRODUCIBILITY.md
 ./docs/FIGURE_REVIEW_WORKFLOW.md
 ./docs/FIGURE_STYLE.md
+./docs/FILES_STORAGE_AND_HANDOFF.md
 ./docs/FILE_ATLAS.csv
 ./docs/FILE_ATLAS.md
 ./docs/FULL_MODEB_20_SECTION_CONTRACT_v97144.md
@@ -208,6 +214,7 @@
 ./docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md
 ./docs/KCB_SCORE_PROVENANCE.md
 ./docs/LAB_QUEST.md
+./docs/LITERATURE_ATLAS_CURRENT_EVIDENCE_REFRESH.md
 ./docs/LITERATURE_REVIEW_MODES.md
 ./docs/LITERATURE_SEARCH_PROTOCOL.md
 ./docs/LLM_COMPANION_TOOL_PROTOCOL.md
@@ -239,6 +246,7 @@
 ./docs/MODE_B_DOCUMENT_INDEX.md
 ./docs/MODE_B_FULL20_CONTRACT_RECONCILIATION.md
 ./docs/MODE_B_SUPPORT_CARD_CONTRACT.md
+./docs/MODE_B_USER_WALKTHROUGH.md
 ./docs/NEXT_CHAT_HANDOFF_WISE_FRAGMENTED_PKS_WORKFLOW.md
 ./docs/NPATLAS_PROVISIONING.md
 ./docs/NPBDETECT_ADAPTER_GUARD.md
@@ -270,15 +278,18 @@
 ./docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md
 ./docs/PREREQUISITES.md
 ./docs/PREVALENCE_WORKFLOW.md
+./docs/PROJECT_DATA_HOME.md
 ./docs/PROJECT_NAMING.md
 ./docs/PROPOSED_IMPLEMENTATION_RESIDUE_AWARE_BATCHING.md
 ./docs/PUBLIC_RELEASE_DATA.md
 ./docs/PUBLIC_RELEASE_GUIDE.md
 ./docs/QUICK_GUIDE.md
+./docs/READING_YOUR_RESULTS.md
 ./docs/REFERENCE_BGC_STRUCTURAL_VALIDATOR.md
 ./docs/REGISTRY_JSON_CSV_PARITY_NOTE_v9.7.141.md
 ./docs/RELEASE_CHECKLIST_v9.md
 ./docs/RIPP_TREE_OPTIONS.md
+./docs/ROUND2_PUBLIC_STRAIN_WALKTHROUGH.md
 ./docs/R_FIGURE_WORKFLOWS.md
 ./docs/SAPOTE_FULL_PROJECT.md
 ./docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md
@@ -287,6 +298,8 @@
 ./docs/SAPOTE_SLIM_JUDGMENT_KERNEL.md
 ./docs/SAPOTE_WORKFLOW_CONTRACT.md
 ./docs/SCOPE_CLUSTER.md
+./docs/SCREENING_EXPLORATION_R.md
+./docs/SCREENING_INVENTION_REGISTER.md
 ./docs/SHORT_ID_REGISTRY.md
 ./docs/SINGLE_STRAIN_QUICKSTART.md
 ./docs/SOPs/SOP-00_Start_Here_Choosing_Path.md
@@ -330,9 +343,9 @@
 ./docs/TREE_FIGURE_GRAMMAR.md
 ./docs/TRIGGER_ROUTING.md
 ./docs/TWO_STAGE_MODULAR_BGC_REPORTS.md
+./docs/TYPE_STRAIN_WALKTHROUGHS.md
 ./docs/USER_CATALOG.generated.json
 ./docs/USER_CATALOG.generated.md
-./docs/V9_4_1_COMPATIBILITY_PATCH.md
 ./docs/WHATS_NEW_415.md
 ./docs/WIDGET_DELIVERABLES.md
 ./docs/WISE_WORKFLOW_DOCTRINE.md
@@ -383,6 +396,7 @@
 ./docs/history/RELEASE_NOTES_v9.7.22.md
 ./docs/history/TIER_PATCH_RECEIPT_v9.7.144b_CODE.md
 ./docs/history/TIER_PATCH_RECEIPT_v9.7.148c_CODE.md
+./docs/history/V9_4_1_COMPATIBILITY_PATCH.md
 ./docs/history/VERIFICATION_REPORT_v9_7_116_to_audit.md
 ./docs/modules/DELIVERABLE_AssemblyQC.md
 ./docs/modules/DELIVERABLE_ContigRescueReconstruction.md
@@ -817,6 +831,7 @@
 ./mamey/hmm_blastp_adjudicate.py
 ./mamey/id_resolver.py
 ./mamey/interactive_figures/__init__.py
+./mamey/interactive_figures/bee_review_prototypes.py
 ./mamey/interactive_figures/bigscape_extension.py
 ./mamey/interactive_figures/codex_heatmap_pack.py
 ./mamey/interactive_figures/component_gallery.py
@@ -1231,6 +1246,8 @@
 ./tests/test_backfill_curated_preservation_v9_7_116.py
 ./tests/test_backlog_v9748.py
 ./tests/test_batch_residue_budget_v97252.py
+./tests/test_bee_review_main_set.py
+./tests/test_bee_review_prototypes.py
 ./tests/test_bee_wasp_master_figures.py
 ./tests/test_bert_taxonomy_drift.py
 ./tests/test_betalactone_terpene_guard.py
@@ -1681,10 +1698,12 @@
 ./tests/test_flbr_orphan_linkage.py
 ./tests/test_flbr_orphan_motifs.py
 ./tests/test_flbr_rescue_readiness.py
+./tests/test_focal_colour_knob_v97430.py
 ./tests/test_folder_city_bootstrap.py
 ./tests/test_fragment_ceiling.py
 ./tests/test_fragment_concordance.py
 ./tests/test_fragment_concordance_weights_v97253.py
+./tests/test_full_json_cap_80mb.py
 ./tests/test_full_locus_synthetic_fixture_v97410.py
 ./tests/test_g1_module_contracts.py
 ./tests/test_g3b_n50_floor_v97407.py
@@ -1730,6 +1749,7 @@
 ./tests/test_governance_decisions.py
 ./tests/test_graft_integrity_v97412.py
 ./tests/test_group2_sapote_writeback.py
+./tests/test_gtotree_execution_gate_coverage_v97430.py
 ./tests/test_guard_scope_v97418.py
 ./tests/test_guide_external_output_integrity.py
 ./tests/test_guide_gate_crosscheck.py
@@ -1756,6 +1776,7 @@
 ./tests/test_ingest_atomic_merge.py
 ./tests/test_ingest_cohort_v9747.py
 ./tests/test_ingest_coupling.py
+./tests/test_ingest_field_collection_v97431.py
 ./tests/test_ingest_modeb_verdicts_merge.py
 ./tests/test_ingest_one_card.py
 ./tests/test_ingest_resistance_coupling.py
@@ -1763,9 +1784,12 @@
 ./tests/test_inspect_command_gold_only_v97162.py
 ./tests/test_inspector_commands.py
 ./tests/test_inspector_exact_identity.py
+./tests/test_instruction_scope_candidate.py
 ./tests/test_int2_stamp_coverage.py
 ./tests/test_intake_harness_mode_choices.py
+./tests/test_intake_harness_release_forward_v97431.py
 ./tests/test_intake_harness_safe_extract_zip_consolidation_bc2.py
+./tests/test_intake_harness_safe_ids_v97429.py
 ./tests/test_intake_harness_smoke_and_source_binding_v9_7_382.py
 ./tests/test_intake_harness_taxonomy_map.py
 ./tests/test_intake_unique_names.py
@@ -1818,6 +1842,7 @@
 ./tests/test_legacy_feature_gate_atomic_write_bc2_401.py
 ./tests/test_license_docs_v97247.py
 ./tests/test_link_check_deliverable_hub_root_bc2_398.py
+./tests/test_literature_atlas_current_evidence_refresh.py
 ./tests/test_literature_corpus_not_shipped_v9_7_382.py
 ./tests/test_literature_intake.py
 ./tests/test_literature_lookup.py
@@ -1987,6 +2012,7 @@
 ./tests/test_node_notation_case_insensitive_v97395.py
 ./tests/test_node_notation_v97145.py
 ./tests/test_nominal_length.py
+./tests/test_normalize_geography_continent_v97431.py
 ./tests/test_npatlas_alias_map.py
 ./tests/test_npatlas_env_unification_v97405.py
 ./tests/test_npatlas_prefix_eval_p01.py
@@ -2043,9 +2069,12 @@
 ./tests/test_phantom_locus_v97246.py
 ./tests/test_phylo_autopilot.py
 ./tests/test_phylo_bioassay_shared_contract_v97426.py
+./tests/test_phylo_dot_gap_canonical_form_v97430.py
 ./tests/test_phylo_evidence_producer_v97406.py
 ./tests/test_phylo_mafft_quiet_and_palette_v97428.py
 ./tests/test_phylo_metadata_display_contract_v97426.py
+./tests/test_phylo_metadata_georgia_display_v97431.py
+./tests/test_phylo_metadata_gut_collision_v97430.py
 ./tests/test_phylo_neighborhood_catalog_v97428.py
 ./tests/test_phylo_outgroup_rank_guard_v97406.py
 ./tests/test_phylo_place_audit_followon_v97412.py
@@ -2059,6 +2088,7 @@
 ./tests/test_phylo_refset_dedup.py
 ./tests/test_phylo_refset_tier2_fails_closed_v9_7_416.py
 ./tests/test_phylo_roster.py
+./tests/test_phylo_sequence_admission_v97429.py
 ./tests/test_phylo_signoff_receipt_gtotree_v97409.py
 ./tests/test_phylogenomics_patch_integration.py
 ./tests/test_phylogeny_figure_factory.py
@@ -2091,6 +2121,7 @@
 ./tests/test_private_policy_single_source.py
 ./tests/test_professionalism_linter.py
 ./tests/test_progress_dashboard_v97406.py
+./tests/test_project_data_home_initializer_v97429.py
 ./tests/test_project_registry.py
 ./tests/test_promiscuity_cap_v9749.py
 ./tests/test_protocluster_breakdown.py
@@ -2117,6 +2148,7 @@
 ./tests/test_quick_guide_install_anchors.py
 ./tests/test_r_template_parse_v97422.py
 ./tests/test_rank_clusterblast_phylo_candidates.py
+./tests/test_ratchet_delta_v97417.py
 ./tests/test_raw_antismash_triage.py
 ./tests/test_razzle_416_canonical_guard_separators.py
 ./tests/test_razzle_416_degenerate_tree_inputs.py
@@ -2160,6 +2192,7 @@
 ./tests/test_release_blocker_phase_receipts.py
 ./tests/test_release_cut_integrity_p357021.py
 ./tests/test_release_external_validation_receipt_sol10.py
+./tests/test_release_identity_membership_v97430.py
 ./tests/test_release_manifest_checksum_containment_v97410.py
 ./tests/test_release_manifest_count_provenance_v97404.py
 ./tests/test_release_manifest_gate_v97251.py
@@ -2227,6 +2260,10 @@
 ./tests/test_roster_shared_boundary_cds_v9_7_373b.py
 ./tests/test_roster_v2_inventory_freshness_v97397.py
 ./tests/test_round2_audit_fixes.py
+./tests/test_round2_cli_help.py
+./tests/test_round3_results_page.py
+./tests/test_round3_timing_units.py
+./tests/test_round4_admission_and_layout.py
 ./tests/test_round_ledger_empty_preexisting_file_v97395.py
 ./tests/test_rules_registry.py
 ./tests/test_run_hmm_scan_v97406.py
@@ -2256,6 +2293,7 @@
 ./tests/test_scoring_coverage_and_merge_policy.py
 ./tests/test_scoring_cuts_223.py
 ./tests/test_scoring_net.py
+./tests/test_screening_exploration_renderer.py
 ./tests/test_seal01_tier_manifest_membership.py
 ./tests/test_seal02b_gate_validation_mutable.py
 ./tests/test_seal04_empty_checksum_manifest_v97396.py
@@ -2277,6 +2315,7 @@
 ./tests/test_sextant_421b_reference_quality_guards.py
 ./tests/test_sextant_421c_leading_accession.py
 ./tests/test_sextant_421d_reference_strand_orientation.py
+./tests/test_shared_phylo_renderer_contract_v97430.py
 ./tests/test_shared_synthetic_fixture_independent.py
 ./tests/test_sheet_name_length_guard.py
 ./tests/test_siderophore_atlas_projection.py
@@ -2285,6 +2324,7 @@
 ./tests/test_signoff_check_bounded_scan_v97412.py
 ./tests/test_signoff_incomplete_scan.py
 ./tests/test_signoff_outgroup_parity_portable_v97399.py
+./tests/test_silent_exit_audit_v97416.py
 ./tests/test_silent_swallow_inspector_round02.py
 ./tests/test_silent_swallow_metadata_v97420.py
 ./tests/test_silent_swallow_observability.py
@@ -2373,6 +2413,7 @@
 ./tests/test_tracked_file_policy_nested_release_artifact_names_bc2.py
 ./tests/test_tranche5_sensitivity_eligibility_parity_v97408.py
 ./tests/test_transparency_contract.py
+./tests/test_tree_annotation_gates.py
 ./tests/test_tree_bgc_overlay.py
 ./tests/test_tree_bgc_overlay_group_denominators_v97412.py
 ./tests/test_tree_bgc_overlay_margin_repair_v97403.py
@@ -2385,6 +2426,7 @@
 ./tests/test_tree_sanity_exact_outgroup_identity_v97421.py
 ./tests/test_tree_sanity_gate.py
 ./tests/test_tree_sanity_outgroup_aware_vgp_398.py
+./tests/test_tree_series_contract.py
 ./tests/test_tree_trust_explicit_workflow.py
 ./tests/test_triage_protocluster_columns.py
 ./tests/test_trigger_routing_handback_v97147.py
@@ -2490,6 +2532,7 @@
 ./tools/audit_modeb_support_card.py
 ./tools/audit_public_cut.py
 ./tools/backfill_reference_signatures.py
+./tools/bee_review_main_set.py
 ./tools/bgc_alias_history.py
 ./tools/bgc_deliverable_pdf.py
 ./tools/bgc_figures.py
@@ -2688,12 +2731,15 @@
 ./tools/ggtree_rect_heatmap.R
 ./tools/graft_integrity.py
 ./tools/gtotree_env.sh
+./tools/gtotree_execution_gate.py
 ./tools/harvest_16s.py
 ./tools/hooks/pre-push
 ./tools/hub_merge.py
 ./tools/ingest_blastp_rollups.py
+./tools/ingest_field_collection.py
 ./tools/ingest_package.py
 ./tools/ingest_swissprot_local.py
+./tools/init_project_data_home.py
 ./tools/input_manifest.py
 ./tools/intake_harness.py
 ./tools/kcb_confidence.py
@@ -2725,6 +2771,7 @@
 ./tools/npatlas_provision.py
 ./tools/nrps_substrate.py
 ./tools/outgroup_registry.py
+./tools/package_screening_figure.py
 ./tools/panel_receipt_to_aux.py
 ./tools/panel_split.py
 ./tools/parked_card_audit.py
@@ -2738,6 +2785,8 @@
 ./tools/phylo_16s_panel.py
 ./tools/phylo_16s_rank.py
 ./tools/phylo_autopilot.py
+./tools/phylo_display_contract.py
+./tools/phylo_display_palette.tsv
 ./tools/phylo_neighborhood_catalog.py
 ./tools/phylo_outgroup_gate.py
 ./tools/phylo_place.py
@@ -2745,6 +2794,7 @@
 ./tools/phylo_preflight.py
 ./tools/phylo_refset.py
 ./tools/phylo_roster.py
+./tools/phylo_sequence_admission.py
 ./tools/pks_product_class.py
 ./tools/placement_display.py
 ./tools/placement_figure.py
@@ -2761,6 +2811,7 @@
 ./tools/public_release_audit.py
 ./tools/query_support_table.py
 ./tools/rank_clusterblast_phylo_candidates.py
+./tools/ratchet_delta.py
 ./tools/reaction_gap_board.html
 ./tools/reaction_gap_board.py
 ./tools/realistic_bgc_count.py
@@ -2770,6 +2821,7 @@
 ./tools/reference_bgc_structural_validator.py
 ./tools/reference_panel_ledger.py
 ./tools/refresh_figure_source_manifest.py
+./tools/refresh_literature_atlas.py
 ./tools/regen_modeb_contract_docs.py
 ./tools/register_compute_output.py
 ./tools/relabel_and_render.py
@@ -2783,10 +2835,13 @@
 ./tools/render_clean_tree.py
 ./tools/render_dapr_boards.py
 ./tools/render_deliverable_pdf.py
+./tools/render_screening_exploration.R
 ./tools/render_siderophore_atlas.py
 ./tools/render_three_channel_evidence_matrix.py
+./tools/render_tree_reference_series.py
 ./tools/repo_health.py
 ./tools/reroot_postflight_receipt.py
+./tools/resolve_reference_metadata.py
 ./tools/rewrite_release_identity.py
 ./tools/rggmci_cohort_rollup.py
 ./tools/round_ledger.py
@@ -2815,21 +2870,27 @@
 ./tools/session_checklist.py
 ./tools/session_cost_audit.py
 ./tools/signoff_check.py
+./tools/silent_exit_audit.py
 ./tools/strain_bigscape_report.py
 ./tools/strict_source_disclosure_audit.py
 ./tools/suite_count_census.py
 ./tools/sync_version.py
 ./tools/test_reaction_gap_board.py
+./tools/test_resolve_reference_metadata.py
 ./tools/test_synthetic_ids.txt
 ./tools/tier_vocabulary.py
 ./tools/tip_label.py
 ./tools/topology_scan.py
 ./tools/tracked_file_policy.py
+./tools/tree_annotation_gate.py
+./tools/tree_annotation_geometry.R
 ./tools/tree_bgc_overlay.py
 ./tools/tree_catalog.py
 ./tools/tree_heatmap_panel.py
 ./tools/tree_overlay_figure.py
+./tools/tree_reference_series.R
 ./tools/tree_sanity_check.py
+./tools/tree_series_contract.py
 ./tools/tree_trust_audit.py
 ./tools/upstream_gtotree2/NOTE_TO_GTOTREE_AUTHOR.md
 ./tools/upstream_gtotree2/gtotree2-input-sanity-and-env-compat.patch

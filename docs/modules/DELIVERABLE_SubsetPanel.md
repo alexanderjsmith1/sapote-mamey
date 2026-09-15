@@ -54,7 +54,7 @@ of truth for tier assignment = `tier_of()` in `build_subset_panel.py` (shared lo
 - [ ] Every locus row carries strain / region / class / ~KCB anchor / edge-status / SARP / verdict.
 - [ ] Tier palette + legend match `DELIVERABLE_INSTRUCTION_TEMPLATE.md`.
 - [ ] Affiliation ; no retired codenames.
-- [ ] Closes with exactly 8 unique plain-text numbered next-paths.
+- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
 
 ## 6. Tool / knowledge inventory
 | Piece | Owner |

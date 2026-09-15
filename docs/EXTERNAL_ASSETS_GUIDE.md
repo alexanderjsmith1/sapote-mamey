@@ -13,45 +13,32 @@ CANDIDATE — the Developer or User seals. the patch lane, 2026-08-26.*
 > without the user's go-ahead. Nothing here is required to *read* antiSMASH output; the core Tier-1
 > extraction runs on code alone.
 
-## The four acquisition paths — try them in this order
+## Acquire only the assets needed for the selected task
 
-For each asset, work down this list and offer the user the first path that fits:
+1. Check the user-supplied inventory and explicitly permitted project paths first. Do not
+   search the home directory or unrelated projects merely because an asset might be there.
+2. If the asset is already available, point the selected command/configuration to it where
+   supported. Do not move, copy or symlink a shared database automatically.
+3. If a download is needed, identify the source, version, size, license and destination before
+   the authorized transfer. Network availability alone does not authorize downloading assets.
+4. For offline work, use a compatible pre-staged database or wheelhouse and preserve the
+   missing-capability state when the required asset is absent.
 
-1. **Already on disk (find, then place).** The single most common case in a real lab: the file is
-   already somewhere on the machine (a previous project, a conda env, a downloads folder). **Search
-   first.** If a discovery hook is present (`tools/find_asset.py <keyword>` and/or an
-   `ASSET_REGISTRY.tsv`/`ASSETS.local.tsv` the operator supplies), run it. Otherwise search common
-   roots (`find ~ -iname '<pattern>' 2>/dev/null`, conda `share/` dirs). When found, **move or symlink
-   it into the configured root** (below) rather than re-downloading gigabytes.
-2. **LLM fetches it (you have network + tools).** If you can reach the network, download from the
-   upstream **Source** named below, verify the **checksum** the operator pins, and place it. Tell the
-   user the size and license first, and get their go-ahead for large or licensed downloads.
-3. **User fetches it (browser/CLI).** If you cannot reach the network but the user can, give them the
-   exact upstream URL, version, and post-download verify command; they download and point the tool at it.
-4. **Offline / operator pack.** No network anywhere: use a pre-staged operator pack or an offline pip
-   wheelhouse (`pip install --no-index --find-links <wheelhouse> …`). Python-only optional deps have
-   built-in shims, so the engine still runs without them.
+## Where assets belong
 
-## Where acquired assets go: the `Wheelhouse/` drop directory
-
-`Wheelhouse/` (repo root) is the **canonical local home for operator-supplied databases and data** —
-it is deliberately shipped (near-)empty and `.gitignore`d so nothing large or licensed enters Git.
-When you obtain any asset below, **place it under `Wheelhouse/` and point the matching env var at it**;
-if you already have the file elsewhere on the machine, **move or copy it into `Wheelhouse/`** rather
-than leaving it scattered. Suggested layout: `Wheelhouse/hmm/` (Pfam / scanner HMMs),
-`Wheelhouse/blast_db/` (BLAST DBs), `Wheelhouse/mibig/`, `Wheelhouse/gtdb/`, `Wheelhouse/genomes/`,
-`Wheelhouse/wheels/` (offline pip wheels).
-
-**LLM instruction:** once an asset is available (downloaded, or found already on disk), MOVE or COPY it
-into the appropriate `Wheelhouse/` subdirectory and export the env var — do not just read it in place from
-a downloads folder. Prefer copy over move when the source is a shared/system location the user may rely on.
+Preserve the user's established project layout. `Wheelhouse/` is an available convention, not
+an instruction to reorganize existing shared data or duplicate gigabytes into the source tree.
+Record the actual configured path and hash. Distinguish Python package wheels from biological
+reference databases even if a prior directory used one name for both. Use environment variables
+or explicit options supported by the particular command; a generic root helper does not change
+all output destinations. Announce file creation and include it in the session inventory.
 
 ## How the engine finds an asset once it is present
 
 Every external asset is resolved from an **environment variable or a configured root**, never a
 hard-coded path. Set the variable (or the project config) to wherever you placed the file; the guide
-names the variable per asset. If unset, the engine falls back to its documented shim or degrades with a
-clear message — it never crashes on a missing optional asset (that fail-safe is a shipped invariant).
+names the variable per asset. If unset, inspect that workflow's actual error or fallback receipt. Missing optional assets may
+block a selected capability; no blanket no-crash or complete-fallback guarantee is made here.
 
 ---
 

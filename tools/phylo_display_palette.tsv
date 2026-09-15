@@ -1,0 +1,30 @@
+field	value	color
+source	soil/rock/sediment	#8C510A
+source	plant-associated	#228833
+source	bryophyte/lichen-associated	#44AA99
+source	aquatic	#88CCEE
+source	insect-associated	#882255
+source	clinical/animal-associated	#D55E00
+source	honeybee	#E69F00
+source	bumblebee	#0072B2
+source	solitary bee	#CC79A7
+source	other bee	#56B4E9
+source	wasp	#AA4499
+source	attine ant	#117733
+source	fungal-associated	#A6761D
+source	built environment	#999999
+source	other documented	#666666
+geography	US	#009E73
+geography	Canada	#0072B2
+geography	North America	#44AA99
+geography	South America	#D55E00
+geography	Europe	#332288
+geography	Asia	#CC79A7
+geography	Africa	#E69F00
+geography	Oceania	#88CCEE
+geography	Pacific Ocean	#4477AA
+geography	Atlantic Ocean	#66CCEE
+geography	Indian Ocean	#AA4499
+geography	Southern Ocean	#999933
+geography	Arctic Ocean	#BBBBBB
+geography	Other documented	#666666

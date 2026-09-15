@@ -1,20 +1,10 @@
-# COMPANION FILES — what travels alongside this bundle
+# Companion files and optional capabilities
 
-**Read this before telling the user a capability is unavailable.**
+The code bundle does not guarantee that every optional binary, database or biological input is present. Inventory the files actually supplied within the authorized workspace. Distinguish software support from what is installed and from what has been successfully tested.
 
-Sapote–Mamey is never shipped alone. By design it depends on companion files — genome
-FASTAs, antiSMASH result archives, vendored Python wheels, optional binaries, and reference
-clusters — that are **attached separately in the chat, not packed inside this zip.** The most
-common failure mode is: the user forgets to attach one, and the assistant concludes the
-feature "isn't available" when it simply wasn't uploaded (or didn't land).
+If a scoped task requires a missing asset, name the capability and required input, then explain the gap. Ask for its location when needed; do not assume the user forgot an upload or require them to supply optional tools unrelated to their task. Do not search outside the agreed workspace or copy large databases automatically.
 
-## The rule
-
-If a task needs one of the companion files below and you don't see it in the uploads:
-**do NOT report the capability as unavailable or unsupported.** Instead, tell the user
-exactly which file you're missing and ask them to attach it — name the file. Assume "forgot
-to attach" before "doesn't exist." Only after the user confirms a file genuinely isn't
-available should you treat that capability as blocked, and even then say what it would enable.
+Read [the Companion Tool Guide](COMPANION_TOOL_GUIDE.md) for roles and [the external-assets guide](EXTERNAL_ASSETS_GUIDE.md) for discovery and provenance. The inventory below records the distribution design; availability and platform compatibility must be checked for the files actually received.
 
 ## Two bundles travel together
 

@@ -136,7 +136,7 @@ def test_next_paths_valid_handoff_still_evaluates(tmp_path: Path):
     """Behavior-preserved: a well-formed 8-item handback still passes (exit 0)."""
     md = tmp_path / "HANDOFF.md"
     md.write_text(
-        "\n".join(f"{i}. next path number {i} distinct object alpha{i}" for i in range(1, 9)),
+        "\n".join(f"{i}. next path number {i} distinct object alpha{i}" for i in range(1, 8)) + "\n8. SAVE STATE — saved: [checkpoint](SAVE_STATE.md)",
         encoding="utf-8",
     )
     r = _run("check_chatgpt_next_paths.py", str(md))

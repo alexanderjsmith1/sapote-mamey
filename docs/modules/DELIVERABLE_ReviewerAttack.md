@@ -88,7 +88,7 @@ The defence to (1) is the corrected count + edge-status discipline; to (2) the d
 - [ ] Contig-ID locator on any BGC referenced.
 - [ ] Placed correctly (after exec summary / after integrated model).
 - [ ] No retired codenames; affiliation = .
-- [ ] Closes with exactly 8 unique plain-text numbered next-paths.
+- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
 
 ---
 

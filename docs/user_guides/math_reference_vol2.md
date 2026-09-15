@@ -1,7 +1,7 @@
 # Sapote–Mamey: Mathematical Reference — Volume II
 ## Engine Subsystems: Triggers, Architecture, KCB/RiQ, Compound Class, Rescue, Enrichment
-**Source document:** `docs/reference/02_Math_Reference_VolII.md` (Mamey engine v1.9.110 · bundle v9.7.319, 2026-06-23)
-**Compiled for:** bundle v9.7.243 · engine 1.9.110 · 2026-07-09
+**Source document:** `docs/reference/02_Math_Reference_VolII.md` (re-grounded to Mamey engine v1.9.164 · bundle v9.7.429; originally compiled v1.9.110 / v9.7.319, 2026-06-23)
+**Compiled for:** bundle v9.7.429 · engine 1.9.164 · re-grounded 2026-09-14 (originally v9.7.243 / 1.9.110, 2026-07-09)
 
 
 *This document reorganises and extends the Vol II source for cross-session reference. All formulas, constants, and thresholds are transcribed verbatim from source code with `module.py:symbol` citations. No values are reconstructed from memory. Two invariant rules apply throughout: (1) scores are routing priors, not biological proof; (2) KCB = similarity, not identity.*
@@ -60,7 +60,7 @@ def bgc_coupling(bgcs, scan_hits, flank=10000):
 - Cassettes, UMED: **5,000 bp**
 - Primary-metabolism scan: **0 bp** (only genes inside the BGC's own coordinates)
 
-### A.3 The 14 CCTT triggers and their MMK registry IDs
+### A.3 The 18 CCTT triggers and their MMK registry IDs
 
 | Code key | MMK ID | What it detects | Design notes |
 |---|---|---|---|
@@ -79,9 +79,12 @@ def bgc_coupling(bgcs, scan_hits, flank=10000):
 | T43-PTM_hsaf_tetramate | MMK-CCTT-012 | HSAF/PTM polycyclic tetramate macrolactam | Two detection routes (§A.8) |
 | T43-TET_tetronate_spirotetronate | MMK-CCTT-013 / SMK-TET-001 | Tetronate/spirotetronate | — |
 | T43-NN_n_n_bond | MMK-CCTT-014 / SMK-NN-001 | N–N bond/diazo/azoxy/hydrazine (CreE/CreD-like) | — |
+| T43-PYE_polyene_macrolide | *(v9.7.119)* | Polyene macrolide antifungal (natamycin/amphotericin class) | `(?<!aryl)polyene` lookbehind excludes arylpolyene; AF scoring gates on KS count ≥ `_POLYENE_MIN_KS` |
+| T43-GPA_glycopeptide | *(v9.7.119)* | Glycopeptide antibacterial (vancomycin/teicoplanin class) | OxyB/OxyA/OxyC + non-proteinogenic-AA (DPGS, HPG) markers |
+| T43-BLT_betalactone | *(v9.7.119)* | Betalactone (salinosporamide/platensimycin class) | Architecture_first committed logic = PEP-utilizer + biotin-carboxylase PAIR |
 
-**AF diagnostic triggers:** T43-NUC, T43-PTM (grant +25 AF diagnostic bonus when corroborated)
-**AB diagnostic triggers:** T43-LAN, T43-LASSO, T43-THA, T43-PHO, T43-AMC, T43-BLA
+**AF diagnostic triggers:** T43-NUC, T43-PTM, T43-PYE (grant +25 AF diagnostic bonus when corroborated)
+**AB diagnostic triggers:** T43-LAN, T43-LASSO, T43-THA, T43-PHO, T43-AMC, T43-BLA, T43-GPA, T43-BLT
 **NOT diagnostic floor triggers:** T43-HAL, T43-XHAL (tailoring-only; defined in `TIER1_FLOOR_EXCLUDED_PREFIXES`)
 
 ### A.4 Per-trigger BGC-carrying count vs. raw hit count
@@ -471,7 +474,7 @@ The 20 MB threshold separates real genome JSONs (55–130 MB → stream) from te
 | `BOUNDED_MAX_RECORDS_STREAMING` | 200,000 | Bounded, streaming |
 | `BOUNDED_MAX_JSON_BYTES` | 25 MB | Bounded, no streaming |
 | `BOUNDED_MAX_JSON_BYTES_STREAMING` | 250 MB | Bounded, streaming |
-| `FULL_MAX_JSON_BYTES` | 20 MB | Full mode hard refusal |
+| `FULL_MAX_JSON_BYTES` | 80 MB (80,000,000 bytes) | Full mode hard refusal on uncompressed JSON bytes; not a RAM limit |
 
 ### C.3 KCB extraction from TXT
 

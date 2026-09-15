@@ -59,7 +59,7 @@ def _inventory_freshness_key(p):
     except OSError:
         pass
     if best == (-1, -1, -1):
-        for m in _INV_VER_RE.finditer(p):
+        for m in _INV_VER_RE.finditer(os.path.relpath(p, ROOT)):
             t = tuple(int(x) for x in m.groups())
             if t > best: best = t
     return best
@@ -70,7 +70,7 @@ def resolve_inventory(strain):
     first (sibling-package or path token), then home preference, then mtime."""
     cands = []
     for p in glob.glob(f"{ROOT}/**/{strain}_2_inventory.csv", recursive=True):
-        if "/old/" in p: continue
+        if "old" in os.path.relpath(p, ROOT).split(os.sep): continue
         cands.append(p)
     def score(p):
         s = 0

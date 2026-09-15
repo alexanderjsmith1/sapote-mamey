@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Audit high-risk ChatGPT/Mamey instruction surfaces for next-path drift.
+"""Audit selected current assistant surfaces for superseded unconditional rules.
 
-This repository uses a strict handback contract for ChatGPT/Mamey:
-exactly 8 unique numbered next paths. Older "3-10 next paths" wording is allowed
-only in explicitly historical/archive/Claude exploratory contexts, not in active
-Mamey/ChatGPT prompts or deliverable modules.
+The command name is retained for compatibility. This is a lexical regression check,
+not a proof of instruction consistency or assistant behavior. Historical documents
+and the explicitly selected legacy eight-item checker are outside its scope.
 """
 from __future__ import annotations
 
@@ -17,65 +16,49 @@ import argparse
 import re
 import sys
 
-# v9.7.374 fix (AUDIT_374): only one of the ChatGPT-tier prompts living directly in
-# prompts/ was covered here. docs/CHATGPT_EXECUTION_SLICE_v97147.md is the CURRENT canonical
-# ChatGPT/Sapote entrypoint per prompts/FULL_RUN_PROFILE.md's own text ("new ChatGPT/Sapote
-# sessions load docs/CHATGPT_EXECUTION_SLICE_v97147.md") -- the single most load-bearing
-# ChatGPT-facing file in the bundle -- and was entirely outside this gate's scan scope (it sits
-# directly under docs/, not docs/modules/). prompts/MAMEY_CHATGPT_EXECUTION_PROMPT.md,
-# prompts/CHATGPT_TASK_BRIEF_TEMPLATE.md, prompts/RUN_DIAGNOSIS_PROMPT.md ("ChatGPT prompt" per
-# its own header), and prompts/FULL_RUN_PROFILE.md are all explicitly ChatGPT-tier prompts at
-# the same directory level as the one file that WAS covered, with no principled reason to
-# exclude them. All five currently already carry the correct "exactly 8" wording (confirmed live
-# against the .373b source), so adding them does not flip today's PASS to FAIL -- it closes the
-# blind spot so a future regression in any of them is actually caught, matching this gate's own
-# stated purpose of protecting "active Mamey/ChatGPT prompts."
+# Explicitly scoped: extend this list when a current contract adds a new dependency.
 HIGH_RISK_EXACT = {
-    "docs/BUNDLE_CAPABILITIES.md",
-    "prompts/SAPOTE_MAMEY_CO_EXECUTION_PROMPT.md",
+    "AGENTS.md", "CLAUDE.md", "skills/sapote-mamey/SKILL.md",
+    "docs/DELIVERABLE_CONTRACT.md", "docs/SAPOTE_WORKFLOW_CONTRACT.md",
     "docs/CHATGPT_EXECUTION_SLICE_v97147.md",
+    "prompts/SAPOTE_MAMEY_CO_EXECUTION_PROMPT.md",
     "prompts/MAMEY_CHATGPT_EXECUTION_PROMPT.md",
-    "prompts/CHATGPT_TASK_BRIEF_TEMPLATE.md",
-    "prompts/RUN_DIAGNOSIS_PROMPT.md",
-    "prompts/FULL_RUN_PROFILE.md",
+    "prompts/CHATGPT_TASK_BRIEF_TEMPLATE.md", "prompts/RUN_DIAGNOSIS_PROMPT.md",
+    "prompts/CLAUDE_SYSTEM_PROMPT.md",
 }
-HIGH_RISK_PREFIXES = (
-    "prompts/reuse/",
-    "docs/modules/",
-)
-ALLOW_LOW_RISK_PREFIXES = (
-    "docs/archive/",
-    "docs/patch_notes/",
-)
-RANGE_RE = re.compile(r"3\s*[–-]\s*10|3\s+to\s+10|three\s+to\s+ten", re.I)
-NEXT_RE = re.compile(r"next[- ]paths?|next[- ]step\s+paths?|next\s+steps", re.I)
+HIGH_RISK_PREFIXES = ("prompts/reuse/", "docs/modules/")
+RULES = {
+    "fixed_handback_quota": re.compile(r"exactly[ -]+(?:8|eight).*next[ -]|3\s*[–-]\s*10.*next[ -]", re.I),
+    "task_authority_override": re.compile(r"override any conflicting task instruction", re.I),
+    "audit_design_immunity": re.compile(r"do\s+(?:\*\*)?not(?:\*\*)?\s+flag intentional designs", re.I),
+    "system_python_override": re.compile(r"(?:^|`|\s)(?:pip(?:3)?|python[^\n]*?-m pip)\s+install[^\n]*--break-system-packages", re.I),
+}
 
 
 def high_risk(path: str) -> bool:
     return path in HIGH_RISK_EXACT or any(path.startswith(prefix) for prefix in HIGH_RISK_PREFIXES)
 
 
-def low_risk_allowed(path: str) -> bool:
-    return any(path.startswith(prefix) for prefix in ALLOW_LOW_RISK_PREFIXES)
-
-
 def scan(root: Path) -> list[dict[str, str]]:
     hits: list[dict[str, str]] = []
-    for path in root.rglob("*"):
-        if not path.is_file() or path.suffix.lower() not in {".md", ".txt", ".json", ".py"}:
-            continue
-        rel = path.relative_to(root).as_posix()
-        if low_risk_allowed(rel):
-            continue
-        if not high_risk(rel):
-            continue
-        try:
-            text = path.read_text(encoding="utf-8", errors="replace")
-        except Exception:
-            continue
-        for idx, line in enumerate(text.splitlines(), 1):
-            if RANGE_RE.search(line) and NEXT_RE.search(line):
-                hits.append({"path": rel, "line": str(idx), "snippet": line.strip()[:240]})
+    if not root.is_dir():
+        raise ValueError("audit root must be an existing directory")
+    # Do not follow symlinked files or directories from supplied trees.
+    for base, dirs, names in _os.walk(root, followlinks=False):
+        dirs[:] = sorted(d for d in dirs if d != ".git" and not (Path(base) / d).is_symlink())
+        for name in sorted(names):
+            path = Path(base) / name
+            if path.is_symlink() or path.suffix.lower() not in {".md", ".txt", ".json"}:
+                continue
+            rel = path.relative_to(root).as_posix()
+            if not high_risk(rel):
+                continue
+            text = path.read_text(encoding="utf-8")
+            for idx, line in enumerate(text.splitlines(), 1):
+                for rule, pattern in RULES.items():
+                    if pattern.search(line):
+                        hits.append({"path": rel, "line": str(idx), "rule": rule,
+                                     "snippet": line.strip()[:240]})
     return hits
 
 

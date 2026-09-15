@@ -51,4 +51,4 @@ G3_Hallucination_Trap_Audit. Validate against WORKBOOK_SCHEMA on handoff.
 
 ## Handback
 Return the three documents + populated workbook deltas + a deferred ledger (Contract Part D) +
-Project Memory Snapshot. End with exactly 8 unique plain-text numbered next-step paths.
+Project Memory Snapshot. Report the requested result and useful next action without a fixed count.

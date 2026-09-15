@@ -1,6 +1,6 @@
 # Engine Reference Documentation
 
-Two tracks, both current as of bundle v9.7.319:
+Two tracks, re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 (originally compiled at v9.7.319 / 1.9.110):
 
 ## Technical track (source-cited — every formula → `module.py:symbol`)
 - **01_Math_Reference_VolI.md** — core counting, assembly tiers, AB/AF/novelty scoring, lead tiers, floors/guards, RG-GMCI, completeness.
@@ -15,7 +15,7 @@ Two tracks, both current as of bundle v9.7.319:
 ## Authoring guidance
 - **layperson_authoring_guidance.md** — plain-English authoring guidance for the `guide` / `compile-report` layperson slots, distilled from the May-27 AS-XXX/AS-XXX prose: the structural arc, a reusable claim-safe analogy library, and the specific moves that made those guides readable — ported without the pre-gate overclaiming (every "makes/produces/kills" rewritten to capacity language).
 
-Both tracks describe the same engine (Mamey v1.9.110 / bundle v9.7.319). The technical track is the
+Both tracks describe the same engine (Mamey v1.9.164 / bundle v9.7.429; originally compiled at v1.9.110 / v9.7.319). Core formulas are unchanged since 1.9.110; the CCTT trigger table was expanded from 14→18 families at 1.9.99 (v9.7.119). The technical track is the
 verification reference; the general-audience track is the explainer. Where they touch the same
 formula they agree; the technical track is authoritative on exact constants.
 

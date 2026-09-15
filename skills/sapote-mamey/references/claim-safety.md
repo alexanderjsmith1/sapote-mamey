@@ -14,13 +14,13 @@ A BGC's presence is **capacity**, not phenotype. The linter's `_SAFE_AFTER_PRODU
 
 ## Similarity, not identity
 
-- KCB and BLASTp report **similarity**, never identity. "72% identity to subject Y" describes an alignment, not that the query *is* Y.
-- Route every percentage through `mamey.precision` — it coarsens to bands and attaches the "similarity, not identity" disclaimer. Never ship a bare over-precise figure.
+- Keep measured sequence identity distinct from compound identity. "72% identity to subject Y" describes an alignment; it does not establish the product made by the query strain.
+- Preserve exact reported metrics and denominators in evidence records. Use `mamey.precision` for appropriately rounded/banded narrative summaries without replacing the underlying measurements.
 - A KCB hit names a *reference compound the cluster resembles*, not the strain's product.
 
 ## Bioactivity stays at the extract level
 
-- Bioactivity (MRSA / *Candida* inhibition, zones, MICs) is a property of a **crude extract**, never of a single BGC.
+- Bind bioactivity (inhibition, zones, MICs) to the material actually assayed. Strain/extract evidence alone does not support BGC attribution; stronger admitted experimental evidence permits only the specific link it establishes.
 - Never write "BGC008 is responsible for the anti-MRSA activity." The extract inhibits; which BGC is responsible is unknown unless proven.
 
 ## Provenance and citation

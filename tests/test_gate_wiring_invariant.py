@@ -197,6 +197,9 @@ _UNIT_TESTED_OPERATOR_GATES = {
     # operator-run naming checker, not wired into the cut path.
     "check_bgc_naming": "exact-locus filename checker; unit-tested (test_check_bgc_naming_exact_locus), operator-run",
     "file_atlas": "file-atlas import-safety helper; import-tested, not a cut gate",
+    # v9.7.431: new guard-surface auditor (Blizzard Blue). Classifies silent success exits and
+    # reports a denominator rather than accusing, so it is read by a reviewer, not gated on.
+    "silent_exit_audit": "silent-success-exit inventory; branch-scoping unit-tested (test_silent_exit_audit_v97416), operator-run",
     "modeb_evidence_gate": "advisory Mode B authoring lint (v9.7.354, Codex governance state machine); "
                            "adversarial unit tests, run by the authoring chat before promotion, not a cut gate",
     # v9.7.395: gained regression tests via the eco-regex precedence fix (v9.7.395 pool); still an

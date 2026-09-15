@@ -76,16 +76,19 @@ its metadata, then follow the [Quick Guide](GUIDE/02_Quick_Guide.md) for the ext
 validation, and handoff. Supply only known taxonomy and isolation-source metadata; preserve
 uncertainty explicitly instead of inventing it.
 
-## 6. Run the relevant tests
+## 6. Optional: developer tests
 
-Install pytest separately in the same environment, then run:
+You do not need the full developer test suite to read a result package. For code changes, install
+pytest in the selected environment and run the tests relevant to the change:
 
 ```bash
 python -m pip install pytest
-python -m pytest -q --run-slow --run-network
+python -m pytest -q path/to/relevant_test.py
 ```
 
-The full profile above enables the slow/network partitions. Gated skips can remain for optional dependencies and
+Replace the test path with the selected real test file. Full release testing can add
+`--run-slow --run-network` only when that work and network use are intended. These are not routine
+first-run setup steps. The full profile enables the slow/network partitions. Gated skips can remain for optional dependencies and
 external fixtures. A skip is not a passed check. The explicit `--run-slow` and `--run-network`
 flags enable their partitions; external inputs may still be required. Release validation follows
 the [cut protocol](../CUT_PROTOCOL.md) and must retain exact commands, counts, and unresolved

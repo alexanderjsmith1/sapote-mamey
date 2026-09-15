@@ -2,7 +2,7 @@
 
 > **Currency scope:** This volume retains its historical edition and review stamps. Only the checks listed in the [currency record](Encyclopedia-Currency.md) have been refreshed for the current candidate. Other constants, numerical claims, literature interpretations, and worked-run results have not been comprehensively revalidated. A newer bundle does not make those older observations current.
 
-*Edition: bundle v9.7.81 / engine Mamey 1.9.84 · 2026-06-18*
+*Edition: bundle v9.7.81 / engine Mamey 1.9.84 · 2026-06-18 · re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (eighteen CCTT families, corrected-count formula, assembly tiers, worked examples re-verified against engine 1.9.164; scoring version-pinned to original run engines)*
 
 *Full Sapote–Mamey analyses for public type strains run as validation references. Every BGC identifier is anchored to its contig and antiSMASH region address — for example BGC004 (CP023690.1 · region004) — so these reports are reproducible regardless of antiSMASH run settings (loose vs. relaxed detection changes BGC numbering; the contig + region pair is the stable address). Claim-safe throughout: capacity-level only; KCB = similarity not identity; bioactivity extract-level.*
 

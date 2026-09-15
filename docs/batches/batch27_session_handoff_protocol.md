@@ -36,7 +36,7 @@ Before any task, state:
 
 **Step 4: Offer next paths**
 
-Present 3–6 genuinely different next directions as a plain-text numbered list. Never tappable widgets. Paths should be specific to the current state (strain IDs, BGC IDs, package status, named deliverable) — not generic options.
+Follow the shared next-path and automatic SAVE STATE policy in `../../AGENTS.md` and `../ASSISTANT_USER_GUIDE.md`. Paths should be specific to the current state (strain IDs, BGC IDs, package status, named deliverable) — not generic options.
 
 ---
 
@@ -162,15 +162,15 @@ Before ending a session:
 
 2. **Check handoff triggers:** Does a ChatGPT task brief need to be produced? (See trigger conditions in `batch25_claude_chatgpt_handoff_protocol.md`)
 
-3. **Offer CDSW next paths:** 3–6 genuinely different directions, plain-text numbered list, grounded in current state.
+3. **Offer CDSW next paths:** Follow the shared handoff policy; save state before the final confirmation.
 
 4. **State what was completed:** "This session completed: [list]. Remaining: [list]. Recommended first step next session: [specific]."
 
 ---
 
-## ChatGPT-specific: the 8-path rule
+## Shared handoff policy
 
-Every ChatGPT handback must include exactly 8 unique next paths. This is stricter than the Claude/Sapote 3–6 range because ChatGPT-tier runners historically under-fill this closer.
+Use the shared policy in `../../AGENTS.md` and `../ASSISTANT_USER_GUIDE.md` for all assistants. No separate model-specific count applies.
 
 Standing first path when any BGC still lacks full §1–§20 Mode B:
 > 1. Continue deeper Mode B: run next batch (BGC[list]) to full §1–§20

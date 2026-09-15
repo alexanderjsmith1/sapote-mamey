@@ -52,7 +52,8 @@ def panel(tmp_path):
         organism = "Example gamma reference" if role == "outgroup" else "Query isolate Q01" if role == "query" else f"Example organism {key}"
         rows.append(dict(tip=key, label=f"{organism} [source {i}] (NR_12345{i}.1)",
                          role=role, taxon="Example alpha" if key != "REF_D" else "Example beta",
-                         source=f"source {i}", category="plant", accession=f"NR_12345{i}.1"))
+                         source="US", category="plant-associated",
+                         category_raw="plant", accession=f"NR_12345{i}.1"))
     meta = tmp_path / "metadata.tsv"
     meta.write_bytes(collapse.tsv_bytes(list(rows[0]), rows))
     return aln, tree, meta

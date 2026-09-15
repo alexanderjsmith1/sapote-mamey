@@ -83,7 +83,7 @@ def test_readme_bundle_version():
     "docs/standalone/RUN_MAMEY_IN_CHATGPT.md",
 ])
 def test_standalone_engine_version(rel):
-    mentions = re.findall(r"Mamey v(\d+(?:\.\d+)*[a-z]?)", _read(rel))
+    mentions = re.findall(r"(?:Mamey v| / engine )(\d+(?:\.\d+)*[a-z]?)", _read(rel))
     assert mentions, f"{rel} has no 'Mamey v<ver>' mention"
     assert all(m == ENGINE for m in mentions), \
         f"{rel} states Mamey v{set(mentions)}, expected all == {ENGINE}"

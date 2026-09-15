@@ -1,6 +1,6 @@
 # FIGURES_START_HERE — how to make Sapote–Mamey figures (read before plotting anything)
 
-**Current bundle:** Sapote–Mamey v9.7.428 · Mamey engine 1.9.163 (see `BUILD_STAMP.txt`; this line is checked by
+**Current bundle:** Sapote–Mamey v9.7.431 · Mamey engine 1.9.165 (see `BUILD_STAMP.txt`; this line is checked by
 `tools/seal_sweep.py`).
 
 **If you are about to hand-write matplotlib for a Sapote–Mamey figure: stop and read this first.**

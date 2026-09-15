@@ -1,6 +1,6 @@
 # Sapote–Mamey Operational Reference
 ## Workflow, Protocols, and Standard Operating Procedures
-**Bundle v9.7.428 · Engine 1.9.163**
+**Bundle v9.7.431 · Engine 1.9.165**
 Hamilton, Ontario
 
 *Sourced from: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`. All content from source files; no inference.*
@@ -14,8 +14,8 @@ Hamilton, Ontario
 Python 3.12 or later is required. Python 3.12 is recommended for the bundled wheel set. Check: `python3 --version`. The bundle operates from within its own directory.
 
 ```bash
-unzip sapote-mamey-v9.7.428-CODE-20260911v97428a.zip
-cd sapote-mamey-v9.7.428-CODE-20260911v97428a
+unzip sapote-mamey-v9.7.431-CODE-20260914v97431a.zip
+cd sapote-mamey-v9.7.431-CODE-20260914v97431a
 pip install -e .
 # On managed/Debian systems:
 pip install -e . --break-system-packages
@@ -38,7 +38,7 @@ The installer pools all `.whl` files it finds across all named paths and install
 
 ```bash
 mamey doctor                          # pre-flight: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # → engine 1.9.163, bundle 9.7.428
+python3 tools/sync_version.py --check # → engine 1.9.165, bundle 9.7.431
 python3 -m pytest -q                  # run the bundled test suite; use the cut receipt for exact counts
 ```
 
@@ -772,7 +772,7 @@ Class A = CONFIRM + SARP. Class B = one strong axis only. Class C = KCB or weake
 
 *Teicoplanin run conducted 2026-07-09 · BGC0000440 · 53 CDS · 89.7 kb · 18.8 s wall time · 26 figures · MAMEY_COMPLETE · v9.7.241 / engine 1.9.111*
 
-*Last updated: 2026-09-11 · Bundle v9.7.428. Historical run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.431. Historical run facts retain their original version labels.*
 
 ---
 
@@ -844,7 +844,7 @@ Two gates were added to the release path in v9.7.243. The full sequence, in orde
 ```bash
 # 1. Environment and bundle integrity
 python3 -m mamey doctor
-python3 tools/sync_version.py --check              # → engine 1.9.163, bundle 9.7.428
+python3 tools/sync_version.py --check              # → engine 1.9.164, bundle 9.7.429
 
 # 2. Documentation anchors
 python3 tools/check_monolith_freshness.py          # exit 1 on stale anchor or retired doctrine
@@ -915,4 +915,4 @@ The v9.7.246 fabrication passed claim-safety, evidence-presence, citation, and p
 
 ---
 
-*Last updated: 2026-07-09 · v4 additions (Sections 16–18: card verification, release gates, Bunny Hop workflow) · Bundle v9.7.246*
+*Version synchronized at cut time · Bundle v9.7.431. Historical v4 section labels and run facts retain their original version labels.*

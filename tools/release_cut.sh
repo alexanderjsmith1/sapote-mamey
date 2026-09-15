@@ -51,8 +51,8 @@ say "gate: version sync"
 python3 tools/sync_version.py --check | tail -1 | grep -q "OK" || die "version sync gate failed."
 if [[ -f tools/verify_release_identity.py ]]; then
   say "gate: release identity"
-  python3 tools/verify_release_identity.py 2>&1 | tail -3
-  python3 tools/verify_release_identity.py >/dev/null 2>&1 || die "release identity gate failed — a tracked file is missing ver/build."
+  python3 tools/verify_release_identity.py --strict-membership 2>&1 | tail -3
+  python3 tools/verify_release_identity.py --strict-membership >/dev/null 2>&1 || die "release identity gate failed — a tracked file is missing ver/build."
 fi
 mkdir -p "$OUT"
 DEFAULT_PYTEST_LOG="$OUT/pytest_full_suite_${STAMP}.log"

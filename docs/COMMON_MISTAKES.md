@@ -1,175 +1,71 @@
-# Common Mistakes — Sapote–Mamey
+# Troubleshooting a Sapote–Mamey run
 
-A concise reference for the errors collaborators and new users encounter most often.
+Start with the symptom below. Keep the failed attempt, exact command and error message. Change one thing at a time and use a new output folder for a replacement run. An error is useful evidence; repeatedly rerunning over the same folder makes it harder to diagnose.
 
----
+## Collect a useful problem report
 
-## 1. Uploading the wrong ZIP type
+Record the source version (`python mamey_run.py start`), operating system, selected Python (`python --version`), exact input ZIP name and SHA-256, command, output path, exit code and final error. Include `manifest.json`, `issue_log.md` and the relevant validation or phase receipt if they exist. These may contain sample identifiers and paths; review them before sharing. A crash before intake may produce no package, so do not search forever for a missing manifest.
 
-**Symptom:** `No antiSMASH regions found in input — bare assembly` or `MAMEY_FAILED, raw_bgcs 0`
+Run `python mamey_run.py doctor` from the program folder to inspect capabilities. It does not prove every optional workflow works or that your biological input is valid. Start with [the walkthrough](MASTER_WALKTHROUGH.md) if the program has never run successfully.
 
-**Cause:** You uploaded a raw genome assembly (FASTA/NCBI download) instead of an antiSMASH output ZIP.
+## The input is rejected or no regions are found
 
-**Fix:** Run antiSMASH 8 on your genome first (`https://antismash.secondarymetabolites.org`), download the results ZIP, then run Mamey on that ZIP.
+A code ZIP, raw genome FASTA and antiSMASH result ZIP are different inputs. Inspect the actual ZIP with `python mamey_run.py inspect '/path/to/input.zip'`. Check whether it contains region GenBank files and the associated antiSMASH output. No detected regions can also be a real upstream result; do not diagnose every empty inventory as the wrong ZIP. Retain the antiSMASH log and settings. Running antiSMASH is an upstream task, not a hidden step that Mamey performs.
 
-```bash
-# Wrong — raw NCBI download
-python mamey_run.py run --input-zip GCA_009862675.fna.gz
+**Recovery:** obtain the intended full antiSMASH results from the existing source, or arrange an upstream analysis separately. Success means the inspector recognizes the expected records, followed by a reviewed run; a ZIP filename alone is not proof.
 
-# Right — antiSMASH output
-python mamey_run.py run --input-zip AS-XXX_antismash_results.zip
-```
+## Organism is a dot, blank or an unverified placeholder
 
----
+Some public Type Strain archives have `ORGANISM  .` even when the full GenBank DEFINITION identifies the organism. Round 3 encountered ten such inputs. Older candidate code normalized the dot to `sp.`; that prevented a literal dot from spreading but did not resolve taxonomy.
 
-## 2. Stale antiSMASH exports
+**Recovery:** inspect the full-genome DEFINITION and available accession metadata, record the binding source, and supply that taxonomy explicitly. Do not invent a genus from an unrelated folder or use the GenBank SOURCE field as isolation habitat. If taxonomy cannot be resolved, use the explicit `not verified` state and describe the limitation.
 
-**Symptom:** Missing KCB scores, blank `KCB_top` columns, or `KCB/RiQ parser found no antiSMASH JSON/TXT evidence`
+The Round 4 candidate refuses punctuation-only or bare `sp.` taxonomy at run admission with `TAXONOMY_PLACEHOLDER`, before creating a run directory. This checks an obvious placeholder, not taxonomic correctness. Existing packages are not retroactively repaired. A corrected run belongs in a new destination.
 
-**Cause:** The antiSMASH ZIP was exported from an old run (pre-v7) or the internal JSON files were stripped.
+## Missing KCB, RiQ or JSON evidence
 
-**Fix:** Re-run antiSMASH 8+ and download the full output ZIP (not just the GBK files). The ZIP must contain `knownclusterblast/*.txt` and ideally the full `*.json` results file.
+Blank values can reflect unavailable upstream analyses, absent files, parser limits, a failed scan or no retained match. They do not uniquely diagnose an old antiSMASH version. Read the issue log and evidence status before choosing a remedy.
 
----
+**Recovery:** preserve the original full ZIP. Compare its available TXT/JSON evidence with the selected `--json-evidence` mode. `off` deliberately omits JSON parsing; `bounded` limits work and can report truncation; `full` attempts full parsing within its separate guard. The candidate full-JSON cap is **80,000,000 uncompressed bytes per guarded JSON member**, not an 80 MB upload or whole-ZIP limit. Bounded mode has its own limits. Increasing the full cap does not remove them. See [input consumption](ANTISMASH_INPUTS_CONSUMED.md).
 
-## 3. Accession-only strain labels
+If `ijson` is missing, install compatible dependencies in the selected project environment using [INSTALL](INSTALL.md); do not assume a compatible wheel is bundled. Success means a new receipt documents the intended channel and scope. A nonempty score alone is insufficient.
 
-**Symptom:** Warning: `Strain label 'NZ_QHHY00000000.1' is an NCBI accession (fallback). Prefer a strain name.`
+## Missing Python package or wrong Python
 
-**Cause:** You used an NCBI accession as the `--strain` argument. Accessions propagate into every deliverable file name, report header, and workbook row — making the output hard to read and cross-reference.
+`No module named ...` may mean the intended environment is inactive. Confirm the interpreter and program folder before installing anything. Use `python -m pip` in that environment so installation targets the Python running the program. Follow [INSTALL](INSTALL.md) for core requirements and optional extras. No network installation was tested in these offline walkthroughs.
 
-**Fix:** Supply a meaningful strain name via `--strain`:
+**Recovery:** activate the correct environment, check capabilities again, then rerun only the relevant step. A missing optional tree binary does not prevent every extraction. Do not copy a virtual environment from a different laptop as an installation method.
 
-```bash
-# Less ideal
-python mamey_run.py run --strain NZ_QHHY00000000.1 --input-zip NZ_QHHY.zip
+## Command options are rejected
 
-# Better
-python mamey_run.py run --strain AS-XXX --input-zip NZ_QHHY.zip \
-    --taxonomy "Streptomyces sp." --source "bee-associated"
-```
+Check `python mamey_run.py COMMAND --help`, replacing COMMAND with the actual command. Historical docs may show flags from another version. Keep the exact error and compare the loaded source version. A path containing spaces must be quoted. Do not replace working settings with a speculative command from an old release note.
 
----
+## Run appears stalled or was interrupted
 
-## 4. Missing JSON files (bounded evidence off)
+The terminal can be quiet during expensive stages. Check the process and the latest phase receipt before starting another copy. Runtime depends on evidence size, rendering settings, storage and the computer. Round 3's single-run times are observations, not a deadline.
 
-**Symptom:** `ijson✗ bounded→TXT-only` in the dependency banner; KCB scores present but RiQ scores blank.
+**Recovery:** if a process is still running, inspect it before taking action. If it has stopped, retain its logs and partial directory. Start a new attempt in a distinct output location after diagnosing the cause; do not assume general extraction resumes automatically from every interrupted phase. A lock is not proof a process is dead. Do not delete locks or kill processes solely because progress is quiet.
 
-**Cause:** `ijson` is not installed and the antiSMASH JSON is too large to load fully. Mamey falls back to TXT-only clusterblast parsing, which gives KCB but not RiQ.
+## Validation passes but interpretation is unfinished
 
-**Fix (option A):** Install ijson — it ships vendored in the bundle:
-```bash
-pip install ijson
-# or use the offline wheel in offline_deps/
-```
+Execution, package structure, evidence coverage and authored interpretation answer different questions. Read [Reading your results](READING_YOUR_RESULTS.md). `MAMEY_COMPLETE_WITH_ISSUES` deserves issue review; `PASS_STRUCTURE` does not verify literature or product identity. A Mode B scaffold is not a finished interpretation.
 
-**Fix (option B):** Use `--json-evidence off` explicitly if you only need KCB (TXT-only is a supported mode):
-```bash
-python mamey_run.py run --json-evidence off --input-zip ...
-```
+**Recovery:** identify the exact missing evidence or interpretation task, its required files and scope. Ask for a review of a selected locus using its full identity. An upload of `manifest.json` alone does not transmit all the files it names. Do not trigger unrestricted online work simply to remove a pending status.
 
----
+## Workbook missing, incompatible or changed after validation
 
-## 5. Running Mamey against a v1.2 workbook with `--master`
+Retain the workbook warning and check `openpyxl` in the selected environment. Existing master-workbook schemas can differ. Do not force a writer onto an incompatible workbook or edit a sealed workbook silently.
 
-**Symptom:** `[BLOCKED] --master target is a Schema-v1.2 workbook`
+**Recovery:** keep the per-strain package independent, inspect the target schema and use its documented ingestion route. Work on a copy for manual annotation; keep that copy separate from the sealed evidence. Revalidate with the matching source version after a supported package update.
 
-**Cause:** You pointed `--master` at a workbook built by `tools/build_master.py` (the legacy cohort builder). The canonical `--master` writer uses a different sheet schema and will silently drop sheets if forced onto the v1.2 workbook.
+## PDF missing, clipped or confusing
 
-**Fix:** Bank the strain using the ingest path instead:
-```bash
-python tools/ingest_package.py --package runs/AS-XXX/package --ww WWGP0000000 --merge --banked-dir cohort
-python tools/build_master.py --workbook Sapote-Mamey_Master.xlsx
-```
+A rendering timeout, missing library and successful-but-unreadable PDF are different failures. Inspect the render log and open the actual pages. The Round 4 candidate changes the text summary to wrap long content and continue onto additional pages; other appended figure renderers retain their own limitations.
 
----
+**Recovery:** use the CSV/workbook and full identity while diagnosing the figure. Re-render into an explicit review destination; do not overwrite a sealed package casually. Never treat a successfully created PDF as publication-ready without visual review. A variable page count is expected.
 
-## 6. Expecting a finished analysis from a PASS package
+## Package fails after transfer or files seem missing
 
-**Symptom:** Package says `MAMEY_COMPLETE` but there are no Mode B cards, no compound interpretations, no ecology section.
+Compare the transferred ZIP's SHA-256 with the source copy before extraction. Transfer the complete archive, not only the manifest, workbook or PDF. Extract to a fresh folder and validate that package with a compatible program environment. Browser restrictions can affect local HTML navigation without proving data corruption.
 
-**Cause:** Mamey is the **extraction layer only** — inventory, scans, scores, and evidence. The interpretive deliverables (Mode B, DAPR, claim-safe ecology, bench/layperson guides) are the separate **Sapote judgment** step.
-
-**Fix:** Open `OPEN_ME_FIRST.html` (or `START_HERE.md`) inside the package and follow the instructions to trigger the judgment layer:
-> Upload `manifest.json` to Claude and type: **"Run full Sapote analysis on \<strain\>"**
-
----
-
-## 7. Taxonomy as `.` or blank organism
-
-**Symptom:** Display name shows `. strain AS-XXX` or organism field is a bare dot.
-
-**Cause:** The antiSMASH GBK files for some private strains deposit `ORGANISM  .` (no genus), which Mamey normalises to avoid propagating a literal dot.
-
-**Fix:** Always supply `--taxonomy` explicitly:
-```bash
-python mamey_run.py run --strain AS-XXX --taxonomy "Streptomyces sp." --input-zip ...
-```
-
----
-
-## 8. `openpyxl` not installed
-
-**Symptom:** `openpyxl✗ REQUIRED for workbooks` in the dependency banner; no `*_5_workbook.xlsx` in the package.
-
-**Fix:**
-```bash
-pip install openpyxl
-# offline: pip install --no-index offline_deps/openpyxl-*.whl
-```
-Run `python mamey_run.py doctor` to check all dependencies at once.
-
----
-
-## 9. Figures not rendered
-
-**Symptom:** `BRIEF_SKIPPED_TIMEOUT.md` or `NO_FIGURES_RENDERED.md` in the package; no PDF strain brief.
-
-**Cause (A):** `numpy` and/or `matplotlib` are not installed.
-**Cause (B):** The font-manager cache build timed out on first render (common in restricted environments).
-
-**Fix (A):** Install figure dependencies:
-```bash
-pip install numpy matplotlib
-```
-
-**Fix (B):** Re-render after the cache builds:
-```bash
-python mamey_run.py render-figures --package runs/AS-XXX/package
-```
-Or increase the timeout:
-```bash
-MAMEY_RENDER_TIMEOUT_S=300 python mamey_run.py run ...
-```
-
----
-
-## 10. `mamey doctor` — run this first
-
-If you are new to the bundle or hit an unexpected error, run the pre-flight check before anything else:
-
-```bash
-python mamey_run.py doctor
-```
-
-It checks Python version, all dependencies, write permissions, bundle integrity, and antiSMASH ZIP detection in the current directory — and tells you exactly what to fix.
-
----
-
-## 11. pytest not installed (cut gates blocked)
-
-**Symptom:** `FATAL: public-tier unpublished-ID invariant FAILED` during `make_public_tier.sh`, or `No module named pytest` during version cuts.
-
-**Cause:** The cut gates and the 1540-test safety suite require pytest (+ pluggy + iniconfig). These are not bundled because they're dev dependencies, but they're essential for cutting releases.
-
-**Fix:** Download the three wheels from PyPI on any networked machine and upload them into the chat:
-```bash
-# On a networked machine:
-pip download pytest pluggy iniconfig -d wheels/
-# Then upload the 3 files into the Claude/ChatGPT session
-```
-Installation in the session takes under 2 minutes. See `docs/PREREQUISITES.md` and `CUT_PROTOCOL.md` for details.
-
----
-
-*· Sapote–Mamey v9.7.319*
+**Recovery:** preserve both copies, identify the specific checksum/path/schema failure, and recopy from the known source if transfer was incomplete. See [Files, storage and handoff](FILES_STORAGE_AND_HANDOFF.md). Do not reseal a damaged package merely to make checks pass.

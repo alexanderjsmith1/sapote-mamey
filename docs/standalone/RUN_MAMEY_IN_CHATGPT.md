@@ -1,49 +1,22 @@
-# Run Mamey v1.9.163 in ChatGPT
+# Run Mamey through a hosted assistant
 
-## Upload checklist
+Documented bundle: v9.7.431 / engine 1.9.165
 
-Upload:
 
-1. `Mamey_v1.9.98_Standalone_ChatGPT_Bundle.zip`.
-2. One to three antiSMASH ZIPs for the current extraction batch.
-3. An existing Mamey master workbook if this is a continuation; otherwise Mamey will create one.
-4. Optional metadata table with strain ID, taxonomy, source, and assay notes.
+This route requires an assistant session with a working Python runtime, access to the supplied files and sufficient storage. A chat window alone does not guarantee execution. The current environment must be checked; historical model names and batch quotas are not capability guarantees.
 
-## Operator prompt
+Use the actual code bundle you received, not the obsolete `Mamey_v1.9.98_Standalone_ChatGPT_Bundle.zip` filename from earlier instructions. The loaded version comes from the program, not this page's heading.
 
-Copy/paste this after upload:
+## Supply a bounded task
 
-```text
-Run Mamey v1.9.163 Standalone ChatGPT Bundle on the uploaded antiSMASH ZIPs. Use batch mode if needed. Produce the updated master workbook, per-strain complete packages, combined output ZIP, summary CSV/MD, validation status, and clear deferred ledger. Do not call the judgment layer complete unless every BGC has a Mode B card or ledger entry.
-```
+Provide the code location, one antiSMASH result ZIP, known metadata with its source, and the permitted output location. An existing master workbook is optional and requires a compatible ingestion route. Do not attach unrelated private inputs.
 
-## Execution order inside ChatGPT
+> Inspect these files and confirm the runtime before execution. Run one identified strain with bounded JSON evidence, brief none and locus maps off. Do not submit sequences online. Tell me the expected output groups, preserve the original input, validate the resulting package and explain unresolved evidence. Save the portable package and available transcript before the session ends. Report missing capabilities plainly rather than assuming they are installed.
 
-1. Inspect the bundle and input ZIPs.
-2. Run tests or smoke import where practical.
-3. Run extraction batch with `mamey_run.py`.
-4. Validate each per-strain package.
-5. Create or update the master workbook.
-6. Create a combined output ZIP.
-7. Summarize: strain, raw BGCs, corrected BGCs, assembly tier, scan status, top lead, package validation state.
-8. State what remains for the judgment layer.
+Follow [the Master Walkthrough](../MASTER_WALKTHROUGH.md) for the command sequence and expected review steps. Use [runtime profiles](../ASSISTANT_RUNTIME_PROFILES.md) to reason about environment limits. If execution is unavailable, a document review is still possible, but it must not be described as a completed extraction.
 
-## Batch continuation prompt
+## Continue safely
 
-```text
-Continue Mamey v1.9.163 on the next batch. Use the current master workbook and preserve all prior rows. Proceed in batches and package outputs after each batch.
-```
+Save the actual package and checkpoint outside an ephemeral session before leaving it. For a new session, provide the complete saved package and required later evidence, not only its manifest. Confirm access to the files before claiming to resume. Preserve failed attempts; do not automatically rerun an interrupted batch over an existing master workbook.
 
-## Judgment continuation prompt
-
-```text
-Continue from the Mamey manifest(s). Run full Mode B judgment for the next batch of BGCs. Preserve the locked BGC IDs and do not rerun extraction unless the manifest is invalid.
-```
-
-## Practical notes
-
-- Prefer `--json-evidence off` unless a small JSON or bounded JSON requirement is explicit.
-- Do not force many large antiSMASH ZIPs through one execution pass.
-- If a run times out after producing partial strain outputs, rerun the batch cleanly with the same master path or resume from the last validated package.
-- Treat missing full-proteome evidence as a CGAD/cassette confidence limitation, not as a biological absence call.
-
+Choose interpretation separately: specify the question, full locus identity and permitted evidence channels. A template or package status does not complete the authored review. See [batch continuation](CHATGPT_BATCH_PROTOCOL.md) and [storage/handoff](../FILES_STORAGE_AND_HANDOFF.md).

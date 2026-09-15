@@ -47,6 +47,22 @@ PATH_BASELINE = frozenset({
 })
 
 
+def _escapes_the_bundle(reference: str) -> bool:
+    """True for a reference that points OUTSIDE the bundle root, e.g. "../bootstrap.sh".
+
+    v9.7.430: such an entry's dangling-ness depended on where the bundle happened to be extracted.
+    `../bootstrap.sh` resolves whenever the bundle sits next to a workspace copy of bootstrap.sh and
+    does not resolve in a fresh extract — so the two tests below failed in OPPOSITE environments:
+    the ratchet called the entry stale when the neighbour existed, and the gate called it a new
+    dangling reference once the entry was deleted in an environment where it did not.
+
+    Neither outcome is about the bundle. A reference that escapes the root can never be satisfied BY
+    THE BUNDLE, whatever a sibling directory happens to contain, so it is permanently out-of-bundle
+    and the ratchet must not try to retire it on the strength of an accident of layout.
+    """
+    return ".." in pathlib.PurePosixPath(reference).parts
+
+
 def _strict():
     return set(scan_tools(ROOT, strict_paths=True))
 
@@ -72,7 +88,10 @@ def test_no_new_path_qualified_dangling_refs():
 def test_baseline_is_a_ratchet():
     """An entry that no longer dangles must be removed from the baseline."""
     strict = _strict()
-    stale = sorted(PATH_BASELINE - strict)
+    # v9.7.430: out-of-bundle entries are exempt from staleness — see _escapes_the_bundle().
+    # They are still enforced by test_no_new_path_qualified_dangling_refs via PATH_BASELINE.
+    in_bundle_baseline = {r for r in PATH_BASELINE if not _escapes_the_bundle(r)}
+    stale = sorted(in_bundle_baseline - strict)
     assert not stale, f"PATH_BASELINE entries no longer dangle; delete them: {stale}"
 
 

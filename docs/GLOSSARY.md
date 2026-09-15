@@ -16,7 +16,7 @@ must not be copied into a current report without checking the current source.
 Two reading notes before you start:
 
 - **Claim-safe by design.** Throughout the bundle, biosynthetic predictions are written as *capacity* ("consistent with," "candidate," "predicted"), never as production claims. A cluster that *looks like* a vancomycin-class glycopeptide pathway is described as having "biosynthetic capacity consistent with a glycopeptide," not as "producing vancomycin." The glossary keeps that framing.
-- **Similarity is not identity.** Wherever a known compound name appears next to a cluster (usually via a KCB hit), it marks the *nearest known class*, written with a leading "~" in reports (e.g. "~napyradiomycin"). It means "resembles," not "is."
+- **Similarity is not identity.** Wherever a known compound name appears next to a cluster (usually via a KCB hit), it marks a retained reference similarity anchor, written with a leading "~" in reports (e.g. "~napyradiomycin"). It means "resembles," not "is."
 
 ---
 
@@ -52,7 +52,7 @@ Two reading notes before you start:
 - **Definition:** Scores each BGC against the MIBiG database of characterised clusters; a high cumulative score means the cluster resembles a known producer cluster.
 - **Operates on:** antiSMASH KnownClusterBlast output vs MIBiG.
 - **Key fields:** `kcb_top`, `kcb_cumulative`, KCB protein-hit count.
-- **Claim ceiling:** **Similarity, not identity.** A KCB hit marks the *nearest known class*, written with a leading "~" (e.g. "~napyradiomycin") — it means *resembles*, never *is*. KCB never licenses a compound-identity or production claim.
+- **Claim ceiling:** **Similarity, not identity.** A KCB hit marks a retained reference similarity anchor, written with a leading "~" (e.g. "~napyradiomycin") — it means *resembles*, never *is*. KCB never licenses a compound-identity or production claim.
 - **Evidence tier:** Similarity signal; any downstream weight is versioned scoring policy.
 - **Related terms:** MIBiG, RG-GMCI, ~ (tilde), claim ceiling, KCB-dark.
 - **Where you'll see it:** triage board KCB columns; Mode B §KCB; every "~name" in a report.
@@ -67,16 +67,16 @@ Two reading notes before you start:
 - **Full name:** Corrected (truncation-weighted) BGC count.
 - **Aliases:** corrected count; defensible BGC inventory.
 - **Category:** Key metric.
-- **Definition:** The defensible cluster-inventory figure that discounts truncated clusters so a fragmented assembly is not credited with inflated capacity.
+- **Definition:** A boundary-weighted inventory statistic used by the program to discount regions near contig ends; it is not an estimate of the fraction of each pathway recovered.
 - **Operates on:** the `edge_status` of every BGC in the assembly.
 - **Key fields / current engine formula:** **Interior × 1.0 + Edge × 0.5 + Full-contig × 0.25**, rounded to two decimals by `mamey/assembly.py::corrected_bgc_count`. This is a versioned engine rule, not a biological constant.
-- **Claim ceiling:** a count, not a claim — but it is the *only* BGC-count figure permitted in comparative statements; raw counts are not used for cross-strain comparison.
+- **Claim ceiling:** a heuristic summary, not a measured number of distinct pathways. Report it separately from raw region count and boundary distribution; compare only with matched input processing and settings.
 - **Evidence tier:** computed (deterministic rule).
 - **Related terms:** Edge status, interior %, assembly tier, RG-GMCI.
 - **Where you'll see it:** `*_2_inventory.csv`; strain-summary tables; every cohort figure's strain ordering.
 - **Guards:** Edge/Full-contig weights are fixed; do not re-derive the formula in downstream tools.
-- **Caveats:** the rescue layer may later show two Edge fragments are one cluster — the corrected count is a *pre-rescue* defensible floor, not a final biological count.
-- **Plain English:** "Count whole clusters as 1, half-clusters as ½, contig-spanning fragments as ¼ — so a shattered genome can't claim more chemistry than it has."
+- **Caveats:** fragment candidates can overlap, duplicate or belong to different pathways. The weights do not establish a mathematical lower bound on biological pathway count.
+- **Plain English:** "The program gives different weights to boundary categories. A weight of one-half does not mean half a pathway was recovered."
 
 ---
 
@@ -124,7 +124,7 @@ Two reading notes before you start:
 - **Definition:** Two separate descriptors. `assembly_tier` summarizes BGC-boundary recovery from the interior-BGC percentage. `fragmentation_tier` summarizes sequence contiguity from contig count and N50. Neither is a compound-confidence grade.
 - **Operates on:** interior-BGC percentage for `assembly_tier`; contig count and N50 for `fragmentation_tier`.
 - **Key thresholds:** `assembly_tier`: GOOD ≥70% interior, MODERATE ≥45%, POOR ≥20%, VERY_POOR <20%, or UNKNOWN. `fragmentation_tier`: CLOSED, CONTIGUOUS, DRAFT, FRAGMENTED, HIGHLY_FRAGMENTED, or UNKNOWN under the ordered bands in `mamey/assembly.py`.
-- **Claim ceiling:** fragmented or unknown contiguity requires BGC counts to be described as floors and weakens physical-completeness claims. It never licenses compound identity, production, or activity.
+- **Claim ceiling:** fragmented or unknown contiguity weakens physical-completeness claims; raw and weighted counts do not establish a proven biological floor. It never licenses compound identity, production, or activity.
 - **Evidence tier:** computed (deterministic thresholds).
 - **Related terms:** corrected count, interior %, N50, edge status, assembly caveat.
 - **Where you'll see it:** strain summary; the assembly banner on every package.
@@ -818,7 +818,7 @@ or revise the definition here and point other documents here. Keep counts,
 formulas, and status enumerations tied to their code/schema source and keep
 claim-safe framing in every definition.*
 
-*Maintenance note: version-sync marker for the installed engine 1.9.163.*
+*Maintenance note: version-sync marker for the installed engine 1.9.165.*
 
 ---
 

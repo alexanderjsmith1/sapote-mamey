@@ -42,7 +42,7 @@ def test_long_source_display_keeps_raw_metadata_and_accession(tmp_path):
     raw = "marine sediment deposited in a collection with a very long location description"
     sources = m._load_ref_sources(database(tmp_path, [("NR_151944", raw, "Example country")]))
     label = m._ref_label("Example_Example_species_NR_151944_1", "Example", sources)
-    assert label.startswith("E. species [") and label.endswith(" (NR_151944)")
+    assert label.startswith("Example species [") and label.endswith(" (NR_151944)")
     assert len(label.split("[")[1].split("]")[0]) <= m.REF_SOURCE_CHARS
     assert "…" in label and sources["NR151944"] == raw + " · Example country"
 
@@ -145,8 +145,8 @@ def test_optional_deposited_host_keeps_field_identity(tmp_path, isolation, expec
     assert m._reference_source("Example_NR_151944_1", source, True) == ("DEPOSITED_METADATA", expected)
 
 @pytest.mark.parametrize("tip,genus,label", [
- ("Nocardia_colli_strain_KY2_1__NR_170398_1", "Nocardia", "N. colli KY2 1 (NR_170398.1)"),
- ("GCF_000372745.1_Embleya_scabrispora", "Embleya", "E. scabrispora (GCF_000372745.1)"),
+ ("Nocardia_colli_strain_KY2_1__NR_170398_1", "Nocardia", "Nocardia colli KY2 1 (NR_170398.1)"),
+ ("GCF_000372745.1_Embleya_scabrispora", "Embleya", "Embleya scabrispora (GCF_000372745.1)"),
  ("Pseudonocardia_thermophila_ATCC_19285_NR_118886_1", "", "Pseudonocardia thermophila ATCC 19285 (NR_118886.1)"),
 ])
 def test_accession_slot_cannot_be_filled_by_a_strain_code(tip, genus, label):

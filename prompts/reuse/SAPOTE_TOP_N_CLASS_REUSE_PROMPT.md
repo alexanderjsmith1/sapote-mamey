@@ -45,4 +45,4 @@ Sapote layer over sealed package(s). Do not re-run scans. First:
 
 ## Handback
 The ranked top-N table + grouped-frequency block + the confirmed-vs-label-only audit + relevant
-workbook deltas (B-group/C-group by code). End with exactly 8 unique numbered next paths.
+workbook deltas (B-group/C-group by code). Report the requested result and useful next action without a fixed count.

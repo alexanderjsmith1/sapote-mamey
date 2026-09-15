@@ -38,4 +38,4 @@ Sapote layer over a sealed Mamey package. Do not re-run scans. First:
 
 ## Handback
 RG-GMCI promoted-group table (with claim ceilings) + fragment census + LMPKS rescue findings +
-D3 deltas. Note which joins are long-read-confirmable. End with exactly 8 unique numbered next paths.
+D3 deltas. Note which joins are long-read-confirmable. Report the requested result and useful next action without a fixed count.

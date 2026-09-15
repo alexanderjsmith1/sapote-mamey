@@ -170,3 +170,15 @@ def test_distinct_strains_both_counted(tmp_path):
     _write(tmp_path / "AS-901" / "AS-901_4A_RGGMCI_ranked_pairs.csv", 3)
     s = RR.rollup(str(tmp_path))
     assert s["n_high"] == 5
+
+
+def test_scratch_parent_is_allowed_but_nested_backup_is_excluded(tmp_path):
+    root = tmp_path / "scratch" / "packages"
+    live = root / "live" / "TEST_4A_RGGMCI_ranked_pairs.csv"
+    backup = root / "scratch" / "COPY_4A_RGGMCI_ranked_pairs.csv"
+    for path in (live, backup):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("rggmci_score\n30\n")
+    rows = RR.load_ranked_pairs(root)
+    assert len(rows) == 1
+    assert rows[0]["_strain"] == "TEST"

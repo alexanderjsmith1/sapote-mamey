@@ -11,14 +11,14 @@ description: >-
   "audit the pipeline / bunny hop", "cut the tiers", "verify these citations",
   "process the cohort", "make a deliverable for AS-###/SID####", or any mention
   of Sapote, Mamey, antiSMASH, actinomycete/BGC analysis, or the strain banks.
-  Make sure to use this skill for ANY Sapote–Mamey task even when the user
-  doesn't name the skill — it encodes the claim-safety, provenance, CDSW,
-  Mode B, cut, and audit disciplines that keep the science honest.
+  Use the parts relevant to the requested operation. A mention of the project or an
+  uploaded bundle is not authorization to install dependencies, run analysis, or expand scope.
 ---
 
 # Sapote–Mamey
 
-Read the shared `AGENTS.md` contract and run `python mamey_run.py start` from the bundle root.
+Read `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md`. Run the local startup command only
+for an authorized execution task; inspection and audit can remain entirely static.
 `README.md` is the human landing page; `CLAUDE.md` is the generated discovery alias for assistants.
 This bundled skill supplies detailed claim-safety, authoring, and audit discipline. An independently
 installed copy may be older or customized: compare it with the bound bundle instead of assuming
@@ -36,8 +36,8 @@ Your identity shifts with the task: Mode B author, code auditor, release enginee
 This is the non-negotiable that everything else defers to. Before writing a single interpretive sentence, these hold:
 
 - **Capacity, never production.** Write "biosynthetic capacity consistent with a kirromycin-like compound," **never** "produces kirromycin." A BGC's presence is capacity, not phenotype.
-- **Similarity, never identity.** KCB and BLASTp are *similarity*. Never render a % as an identity claim. Coarsen it (`mamey.precision`), and let the "similarity, not identity" disclaimer travel with the number.
-- **Bioactivity is extract-level only.** Never attach a phenotype to a single BGC.
+- **Homology is not compound identity.** Preserve reported sequence identity, coverage and denominators in evidence records. Use `mamey.precision` for reader-facing summaries where appropriate; do not replace source measurements with display bands or infer a compound from sequence identity.
+- **Bind bioactivity to the assayed material.** Do not attribute strain/extract activity to a BGC without admitted experimental evidence supporting that specific link. Stronger evidence permits only the claims it actually establishes.
 - **Display every individual BGC as strain / full node-or-contig / region / BGC alias**, copied from one bound source record. Missing or conflicting components require an identity hold; do not guess or shorten them.
 - **Tag provenance** on every claim: store-backed / reconstructed / corpus.
 - **Reconcile BGC numbering across sources before authoring**, and flag any ID collision. Numbering drifts between antiSMASH, the store, and the corpus — reconcile first.
@@ -49,7 +49,7 @@ The `claim_safety_linter` is wired into the seal path (`tools/claim_safety_linte
 ## The workflow — CDSW
 
 ```
-1. Session start   → read AGENTS.md; run the local start command; bind the actual inputs and scope
+1. Session start   → read AGENTS.md; bind inputs and scope; start only for authorized execution
 2. Find the spec   → locate the ACTUAL contract + the REAL tool before building anything
 3. Compute in Mamey → deterministic facts from the engine; judgment only in the Sapote layer
 4. Verify for real  → read the actual output file; report receipts, not adjectives
@@ -63,15 +63,15 @@ The `claim_safety_linter` is wired into the seal path (`tools/claim_safety_linte
 
 ## Modes — switch deliberately
 
-**Mode B authoring** → choose the named profile from the current machine-readable contract and emitted template. Profiles include `MODEB_CANDIDATE_30` and `FINISHED_FULL48_CURRENT_EVIDENCE`; their names do not replace their current definitions. Preserve exact titles, required evidence fields, channel-separated named matches, and typed stream dispositions. No compact/minimal entries. **Do these three in order BEFORE writing a word — skipping any is the exact failure mode this section exists to stop** (chats authoring cards without the exemplar, without BLASTp, or without asking for the data):
+**Mode B authoring** → choose the named profile from the current machine-readable contract and emitted template. Profiles include `MODEB_CANDIDATE_30` and `FINISHED_FULL48_CURRENT_EVIDENCE`; their names do not replace their current definitions. Preserve exact titles, required evidence fields, channel-separated named matches, and typed stream dispositions. No compact/minimal entries. **Read the relevant exemplar and evidence before authoring; run the gates after writing the actual card.** Missing evidence must have a typed disposition, not invented filler:
 
 1. **Read the matching class exemplar first.** `docs/reference/modeb_exemplars/<class>_exemplar.md` is the gold-standard depth/format target for the BGC's class (`nrps`, `nrps_pks_hybrid`, `t1pks`, `t2pks`, `terpene`, `siderophore`, `ripp` — slot status in `modeb_exemplars/README.md`, policy in `docs/modules/MODE_B_DEPTH_POLICY.md`). **Use its evidence grid together with the selected current profile**, preserving protein lengths, core markers, named references, and a prose walkthrough. Keep nr, ClusteredNR, and local Swiss-Prot evidence separate; an older exemplar does not reduce the current profile requirements. Do NOT infer the bar from an old card.
 2. **Author §4 from the current dated BLASTp snapshot — additive, never a card-wide blocker (v9.7.372, Patch 7).** The §4 table rests on REAL per-gene BLASTp where it exists (region-GBK aa_seq → BLASTp; NCBI, or EBI `mamey/blastp_ebi.py` when NCBI throttles; or DB aa_seq **with** the region→gold tag reconciliation). Missing cells are EXPLICIT typed states — `NO_BOUND_HIT`, `NOT_RUN`, `RUNNING_NOT_YET_INGESTED`, `INGEST_GAP`, `PROVENANCE_HOLD` — never blanks, never zeros, never biological absence. Do not delay a card merely because another BLASTp or BiG-SCAPE run is in progress: later results are admitted as a versioned additive update with a changed-row receipt. Never paper a missing BLASTp over with Pfam prose. Escalation triggers: `docs/MODEB_EVIDENCE_ESCALATION_WORKFLOW_v97143a.md`.
-3. **Run all THREE gates and report their receipts:** `mamey verify-modeb` (structure + depth) · `mamey claim-safety` (claim rules) · `mamey.mode_b_quality_gate.evaluate_card` → tier **FULL** (a card that grades MID/LOW is not done).
+3. **Run all THREE gates and report their receipts:** `mamey verify-modeb` (structure + depth) · `mamey claim-safety` (claim rules) · `mamey.mode_b_quality_gate.evaluate_card` → tier **FULL** (depth outputs are FULL/SHALLOW/STUB; HIGH/MID/LOW are priority labels). A FULL depth result does not verify the truth or completeness of source evidence. Report source binding and scientific-review holds separately.
 
 Contract: `docs/FULL_MODEB_30_SECTION_CONTRACT_v97150.md` + machine form `mamey/data/mode_b/modeb_full30_corrective_contract.json`; titles in `docs/MODE_B_30_SECTION_CANONICAL_TITLES.md`; claim-safety audit in `docs/MODE_B_CARD_CLAIM_SAFETY_AUDIT.md`; **one-page preflight checklist in `docs/MODE_B_AUTHORING_PREFLIGHT.md`**. Filenames must encode the complete **strain / full node-or-contig / region / BGC alias** identity in filesystem-safe form.
 
-**Code / pipeline audit** → the Bunny Hop game (`debugging_modules/BUNNY_HOP_AUDIT_GAME.md`). Random-roll files, play Inspector (3 reasons to change) vs Defender (≥1 to keep), reach a Consensus, and **verify before you flag** — most "findings" dissolve on a grep. Do **not** flag intentional designs: single-source-of-truth, fail-closed gates, intentional brittleness, atomic writes, graceful degradation, regression anchors. Output a patch card (File | Action | Effort). When you find two sources of truth for one vocabulary, the fix is a drift-proofing test.
+**Code / pipeline audit** → choose a method appropriate to the requested scope. Use the Bunny Hop game only when requested. Verify findings against concrete requirements and implementation; design intent is counterevidence, not immunity. Report zero findings when warranted, or any evidence-supported number. Do not invent criticisms to fill a quota. Output actionable findings with evidence, impact, counterarguments, and a bounded repair. Test conflicting rule sources where useful.
 
 **Release / cut** → `CUT_PROTOCOL.md` + `tools/make_public_tier.sh`. Select tiers from the current cut protocol and release manifest, then verify each actual payload. Run every gate: version-sync, leak audit, tier-derivation parity (`public == redact(private)`), checksums. **Never mislabel a tier** — a MERGED/SID zip must actually carry its content, or say plainly that it's an empty scaffold. Bump the version SSOT (`pyproject.toml`) and propagate with `tools/sync_version.py` before cutting; add a CHANGELOG entry with **bold-bullet headlines** (`- **X**: …`) or the patch-line parser fails.
 

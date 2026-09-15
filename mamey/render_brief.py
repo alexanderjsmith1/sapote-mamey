@@ -330,211 +330,138 @@ def _tier_color(tier: str) -> str:
 
 
 def _text_page(pdf, plt, facts, tier, has_lay=False, has_ferm=False):
-    """Page 1: executive summary.
+    """Flow the summary across A4 pages; retain complete source locators.
 
-    PDF-001/PDF-018/PDF-020: progressive disclosure structure:
-      Section 1  Strain identity + assembly quality + corrected count
-      Section 2  Top-10 lead table (rank, BGC, node, tier, AB/AF/Nov, class, KCB anchor)
-      Section 3  Source scan summary (two-column) + bioactivity + resistance
-      Footer     Reading guards + judgment-pending banner
+    Summary pages may grow with metadata, warnings and source-scan details.
+    Figure pages are produced separately and keep their existing contracts.
     """
-    m = facts["manifest"]; a = m.get("assembly", {}); bc = m.get("bgc_counts", {})
-    fig = plt.figure(figsize=(8.27, 11.69))  # A4
+    from matplotlib.font_manager import FontProperties
+    from .figure_policy import is_pure_saccharide
+    m = facts["manifest"]
+    a = m.get("assembly") or {}
+    bc = m.get("bgc_counts") or {}
+    fig = None
+    y = 0.94
+    page = 0
 
-    # Section 1: strain identity
-    fig.text(0.07, 0.96, facts["strain_label"], fontsize=16, fontweight="bold", color=CL["ink"])
-    fig.text(0.07, 0.940,
-             f'{m.get("taxonomy","")} \u00b7 {m.get("source","")} \u00b7 release: {facts["release"]}',
-             fontsize=8.0, color=CL["muted"])
-    fig.text(0.07, 0.924,
-             f'Mamey {m.get("workflow_version","")} \u00b7 {m.get("analysis_date","")}',
-             fontsize=7.0, color=CL["muted"])
-    # AMBER-03-1: `assembly_tier` is derived from interior_pct (BGC boundary status), not from
-    # contigs/N50 \u2014 but it was printed as bare "tier X" directly after the contig count, so a
-    # 7,296-contig assembly (AS-XXX) read as "tier GOOD". Label it BOUNDARY tier and print the
-    # contiguity tier from assembly.quality next to it. Falls back cleanly on older packages.
-    _q = (a.get("quality") or {})
-    _frag = _q.get("fragmentation_tier")
-    asm_text = (
-        f'Assembly: {a.get("genome_bp","?")} bp \u00b7 {a.get("contigs","?")} contigs \u00b7 '
-        f'N50 {a.get("n50","?")} \u00b7 GC {a.get("gc_pct","?")}% \u00b7 '
-        f'contiguity {_frag or "not recorded"} \u00b7 '
-        f'BGC-boundary tier {bc.get("assembly_tier","?")} '
-        f'({_TIER_BAND.get(bc.get("assembly_tier",""), "")})  \u00b7  '
-        f'Corrected BGC count: {bc.get("corrected","?")} ({CORRECTED_FORMULA})'
-    )
-    fig.text(0.07, 0.906, asm_text, fontsize=7.5, color=CL["ink"])
+    def new_page():
+        nonlocal fig, y, page
+        if fig is not None:
+            pdf.savefig(fig)
+            plt.close(fig)
+        page += 1
+        fig = plt.figure(figsize=(8.27, 11.69))
+        y = 0.94
+        fig.text(0.07, 0.035, f"Extraction summary - {page} | Review source tables for complete evidence",
+                 fontsize=8, color=CL["muted"], va="top")
 
-    # W10/W30: judgment-pending banner
-    fig.text(0.5, 0.888,
-             "DETERMINISTIC EXTRACTION COMPLETE  \u00b7  JUDGMENT LAYER PENDING",
-             ha="center", fontsize=9, fontweight="bold", color=CL["exc"],
-             bbox=dict(boxstyle="round,pad=0.35", facecolor="#FBF0D8",
-                       edgecolor=CL["accent"], linewidth=1.0))
+    def write(text, size=9, bold=False, color=None, gap=0.007):
+        nonlocal y
+        # Measure actual glyph widths; break even long contig IDs without dropping characters.
+        prop = FontProperties(family="DejaVu Sans", size=size,
+                              weight="bold" if bold else "normal")
+        renderer = fig.canvas.get_renderer()
+        width = fig.bbox.width * 0.85
+        step = size * 1.55 / 72 / 11.69
+        for paragraph in str(text).splitlines() or [""]:
+            remaining = paragraph.strip()
+            lines = []
+            while remaining:
+                low, high = 1, len(remaining)
+                while low < high:
+                    mid = (low + high + 1) // 2
+                    measured = renderer.get_text_width_height_descent(remaining[:mid], prop, False)[0]
+                    if measured <= width:
+                        low = mid
+                    else:
+                        high = mid - 1
+                cut = low
+                if cut < len(remaining):
+                    space = remaining.rfind(" ", 0, cut + 1)
+                    if space > 0:
+                        cut = space
+                lines.append(remaining[:cut])
+                remaining = remaining[cut:].lstrip()
+            for line in lines or [""]:
+                if y - step < 0.075:
+                    new_page()
+                fig.text(0.07, y, line, fontproperties=prop, color=color or CL["ink"], va="top")
+                y -= step
+        y -= gap
 
-    # ── LS-4: VERY_POOR assembly warning box ─────────────────────────────
-    if facts.get("manifest", {}).get("bgc_counts", {}).get("assembly_tier") == "VERY_POOR":
-        _ip = facts.get("manifest", {}).get("bgc_counts", {}).get("interior_pct", "?")
-        _warn = (
-            f"ASSEMBLY QUALITY: VERY_POOR (interior {_ip}% < 20%\u2009threshold). "
-            "BGC counts are a rough capacity floor only. "
-            "Reassembly or long-read sequencing recommended before finalizing BGC inventory."
-        )
-        fig.text(0.5, 0.874, _warn, fontsize=6.5, color="#b03a3a",
-                 fontweight="bold", va="center", ha="center", wrap=True,
-                 bbox=dict(boxstyle="round,pad=0.35", facecolor="#fff1f2",
-                           edgecolor="#b03a3a", linewidth=1.2))
-        # y is reset to 0.866 at start of Section 2; no y adjustment needed here
-    elif _q.get("caveat_required") and _q.get("caveat"):
-        # AMBER-03-1: a highly fragmented assembly whose BGCs happen to sit interior gets a
-        # non-VERY_POOR boundary tier and therefore no box at all (AS-XXX: 7,296 contigs,
-        # boundary tier GOOD). Print the generated contiguity caveat in the same slot — the
-        # branches are mutually exclusive, so there is no layout collision.
-        fig.text(0.5, 0.874, f"ASSEMBLY CONTIGUITY: {_q.get('caveat')}", fontsize=6.5,
-                 color="#b03a3a", fontweight="bold", va="center", ha="center", wrap=True,
-                 bbox=dict(boxstyle="round,pad=0.35", facecolor="#fff1f2",
-                           edgecolor="#b03a3a", linewidth=1.2))
-
+    new_page()
+    write(facts["strain_label"], 15, True)
+    write(f"Taxonomy: {m.get('taxonomy', 'not recorded')} | Source: {m.get('source', 'not recorded')} | Release: {facts['release']}")
+    write(f"Mamey {m.get('workflow_version', '')} | {m.get('analysis_date', '')}", 8)
+    write("Status snapshot", 11, True)
+    # Report fields rather than asserting completion regardless of the manifest.
+    for field in ("terminal_status", "package_status", "mamey_status", "judgment_status"):
+        write(f"{field}: {m.get(field, 'not recorded')}", 8)
+    write("Execution, evidence coverage and authored interpretation require separate review. See the current manifest, gates and issue log.", 9, color=CL["exc"])
+    q = a.get("quality") or {}
+    write(f"Assembly: {a.get('genome_bp', '?')} bp; {a.get('contigs', '?')} contigs; N50 {a.get('n50', '?')}; GC {a.get('gc_pct', '?')}%.")
+    write(f"Contiguity: {q.get('fragmentation_tier', 'not recorded')}. BGC-boundary tier: {bc.get('assembly_tier', '?')}. Raw regions: {bc.get('raw', '?')}; weighted count: {bc.get('corrected', '?')} ({CORRECTED_FORMULA}).")
+    write("The weighted count is a heuristic statistic, not a measured fraction of pathways or a proven biological lower bound.", 8)
+    if bc.get("assembly_tier") == "VERY_POOR":
+        write(f"BGC-BOUNDARY WARNING: VERY_POOR; interior {bc.get('interior_pct', '?')}%. Review truncation and gene architecture before drawing completeness conclusions.", 9, True, CL["exc"])
+    if q.get("caveat_required") and q.get("caveat"):
+        write(f"ASSEMBLY CONTIGUITY: {q['caveat']}", 9, True, CL["exc"])
+    write("Reading guards", 11, True)
+    for guard in (SCORE_NOTE, KCB_NOTE, "Bioactivity is optional strain-level context; no activity is assigned to a locus without linked evidence.", _gap_note(has_lay, has_ferm)):
+        write(guard, 9)
     if tier == "standard":
-        # Section 2: top-10 lead table
-        y = 0.866
-        fig.text(0.07, y,
-                 "Top auto-priority leads (priority score, not activity \u2014 judgment layer pending):",
-                 fontsize=8.5, fontweight="bold", color=CL["ink"])
-        y -= 0.018
-
-        hdrs = ["Node / contig", "BGC", "Tier", "AB", "AF", "Nov", "Class", "KCB anchor"]
-        xs   = [0.07, 0.205, 0.260, 0.325, 0.370, 0.415, 0.460, 0.665]
-        for hx, hd in zip(xs, hdrs):
-            fig.text(hx, y, hd, fontsize=6.5, fontweight="bold", color=CL["ink"])
-        y -= 0.002
-        ax_div = fig.add_axes([0.07, y, 0.86, 0.001])
-        ax_div.set_facecolor(CL["muted"]); ax_div.axis("off")
-        y -= 0.015
-
-        from .figure_policy import is_pure_saccharide as _ips
-        from .render_safe import shorten_label as _sl, locus_label as _locus
-        import re as _re
-        shown = [r for r in facts["rows"] if not _ips(r.get("products"))][:10]
-        for i, r in enumerate(shown):
-            row_bg = "#F8F8F8" if i % 2 == 0 else "white"
-            ax_row = fig.add_axes([0.07, y - 0.001, 0.86, 0.016])
-            ax_row.set_facecolor(row_bg); ax_row.axis("off")
-            tc = _tier_color(str(r.get("lead_tier", "")))
-            fig.text(xs[0], y + 0.002, _locus(r, max_chars=30), fontsize=6.0, color=CL["ink"])
-            fig.text(xs[1], y + 0.002, str(r.get("bgc_id", "")),
-                     fontsize=6.0, color=CL["muted"])
-            fig.text(xs[2], y + 0.002, str(r.get("lead_tier", "")),
-                     fontsize=6.2, fontweight="bold", color=tc)
-            for x, key in zip(xs[3:6], ("ab", "af", "novelty")):
+        write("Selected triage rows - priority, not measured activity", 11, True)
+        rows = facts.get("rows", [])
+        eligible = [r for r in rows if not is_pure_saccharide(r.get("products"))]
+        shown = eligible[:10]
+        write(f"{len(rows)} total rows; {len(rows)-len(eligible)} pure-saccharide rows omitted from this summary; {max(0, len(eligible)-len(shown))} additional rows not shown. All remain in source data.", 8)
+        for i, r in enumerate(shown, 1):
+            # Keep enough room for a heading and at least one detail line.
+            if y < 0.16:
+                new_page()
+            identity = " / ".join(str(v or "UNBOUND") for v in
+                                  (m.get("strain_id"), r.get("contig"), r.get("region"), r.get("bgc_id")))
+            write(f"{i}. {identity}", 9, True)
+            values = []
+            for key in ("ab", "af", "novelty"):
                 state = r.get(f"{key}_input_state", "MEASURED")
-                shown_value = f'{float(r.get(key, 0)):.0f}' if state == "MEASURED" else state
-                fig.text(x, y + 0.002, shown_value, fontsize=6.0 if state != "MEASURED" else 6.5,
-                         color=CL["exc"] if state != "MEASURED" else CL["ink"])
-            prod_short = _sl(str(r.get("products", ""))[:38], max_chars=38)
-            fig.text(xs[6], y + 0.002, prod_short, fontsize=6.0, color=CL["ink"])
-            kcb_short = _sl(_safe_kcb(r), max_chars=28)
-            fig.text(xs[7], y + 0.002, kcb_short, fontsize=6.0, color=CL["muted"])
-            y -= 0.018
-
-        # v9.7.335: this attributed the WHOLE gap between the total and the 10 shown rows to the
-        # saccharide filter, when most of it is rank truncation. AS-XXX printed "36 pure-saccharide
-        # suppressed" with a true pure-saccharide count of ZERO (AS-XXX: 20 printed / 0 true) — a
-        # reader concluded 78% of the strain was sugar chemistry. Count the two exclusions apart.
-        _n_total = len(facts["rows"])
-        _n_sacch = sum(1 for r in facts["rows"] if _ips(r.get("products")))
-        _n_rank = _n_total - _n_sacch - len(shown)
-        _parts = [f'{_n_total} total BGCs']
-        if _n_sacch:
-            _parts.append(f'{_n_sacch} pure-saccharide excluded')
-        if _n_rank > 0:
-            _parts.append(f'{_n_rank} more not shown (rank)')
-        _parts.append('all retained in data')
-        fig.text(0.07, y - 0.003, ' \u00b7 '.join(_parts),
-                 fontsize=6.5, color=CL["muted"])
-        y -= 0.022
-
-        # Section 3: scan summary (two-column)
-        y -= 0.008
-        fig.text(0.07, y, "Source scans:", fontsize=8.0, fontweight="bold", color=CL["ink"])
-        y -= 0.017
-        scans = m.get("scan_status", {}).get("scans", [])
-        col_xs = [0.07, 0.49]
-        col_i = 0; col_y = [y, y]
-        for s in scans[:10]:
-            name, status, detail = (
-                (list(s) + ["", "", ""])[:3] if isinstance(s, (list, tuple)) else (str(s), "", "")
-            )
-            col = col_i % 2
-            fig.text(col_xs[col], col_y[col],
-                     f'{name}: {status} \u2014 {str(detail)[:34]}',
-                     fontsize=6.2, color=CL["muted"])
-            col_y[col] -= 0.0145; col_i += 1
-        y = min(col_y) - 0.005
-
-        bio = m.get("bioactivity")
-        fig.text(0.07, y,
-                 _bioactivity_text(bio),
-                 fontsize=7.0, color=CL["ink"])
-        y -= 0.018
-        rgs = m.get("resistance_gene_summary", {}).get("counts", {})
-        if rgs:
-            fig.text(0.07, y,
-                     "Self-resistance: " + ", ".join(f"{k} {v}" for k, v in rgs.items() if v),
-                     fontsize=6.8, color=CL["ink"])
-
-    # Footer
-    # ── Special class review (AF-Class-Priority-and-Other-Section-1) ────────
-    # Always emitted even when counts are zero. Arylpolyene guard mandatory.
-    if tier == "standard":
-        _all_rows = facts.get("rows", [])
-        # Nucleoside BGCs
-        _nuc_bgcs = [r for r in _all_rows if "nucleoside" in (r.get("products","") or "").lower()]
-        # Polyene/PTM/HSAF: T1PKS with polyene/HSAF in KCB context
-        def _is_polyene_cand(r):
-            p = (r.get("products","") or "").lower()
-            k = (r.get("kcb_top","") or "").lower()
-            return ("hsaf" in k or "polyene" in k or "ptm" in k or
-                    ("t1pks" in p and any(x in k for x in ("polyene","macrolide","cyphomycin","desertomycin"))))
-        def _is_arylp(r):
-            return "arylpolyene" in (r.get("products","") or "").lower()
-        _poly_bgcs = [r for r in _all_rows if _is_polyene_cand(r) and not _is_arylp(r)]
-        _arylp_bgcs = [r for r in _all_rows if _is_arylp(r)]
-        # Other-token rows: products are ONLY 'other'
-        def _is_other_only(r):
-            prods = [p.strip().lower() for p in (r.get("products","") or "").split(";") if p.strip()]
-            return bool(prods) and all(p in ("other","") for p in prods)
-        _other_bgcs = [r for r in _all_rows if _is_other_only(r)]
-
-        if y > 0.24:  # only emit if space remains on page
-            y -= 0.01
-            fig.text(0.07, y, "Special class review:", fontsize=7.5, fontweight="bold",
-                     color=CL["ink"]); y -= 0.015
-            nuc_ids = ", ".join(r.get("bgc_id","") for r in _nuc_bgcs[:4]) or "none"
-            fig.text(0.09, y, f"Nucleoside BGCs: {len(_nuc_bgcs)}  ({nuc_ids}{'\u2026' if len(_nuc_bgcs)>4 else ''})",
-                     fontsize=6.5, color=CL["ink"]); y -= 0.013
-            poly_ids = ", ".join(r.get("bgc_id","") for r in _poly_bgcs[:4]) or "none"
-            fig.text(0.09, y, f"Polyene/PTM/HSAF candidates: {len(_poly_bgcs)}  ({poly_ids}{'\u2026' if len(_poly_bgcs)>4 else ''})",
-                     fontsize=6.5, color=CL["ink"]); y -= 0.013
-            if _arylp_bgcs:
-                fig.text(0.09, y, f"Arylpolyene BGCs ({len(_arylp_bgcs)}) \u2014 arylpolyene \u2260 antifungal polyene macrolide evidence.",
-                         fontsize=6.0, color=CL["exc"]); y -= 0.013
-            oth_ids = ", ".join(r.get("bgc_id","") for r in _other_bgcs[:4]) or "none"
-            fig.text(0.09, y, f"antiSMASH 'other'-class BGCs: {len(_other_bgcs)}  ({oth_ids}{'\u2026' if len(_other_bgcs)>4 else ''}) \u2014 manual inspection required.",
-                     fontsize=6.5, color=CL["muted"]); y -= 0.013
-
-    fig.text(0.07, 0.11, "Reading guards:", fontsize=8.0, fontweight="bold", color=CL["ink"])
-    for i, line in enumerate([
-        SCORE_NOTE,
-        KCB_NOTE + "; product strings are antiSMASH labels (capacity-level, not 'produces')",
-        "Bioactivity metadata is optional strain-level context; no strain is called antifungal/antibacterial-negative",
-        _gap_note(has_lay, has_ferm),
-    ]):
-        fig.text(0.07, 0.096 - i * 0.015, "\u2022 " + line, fontsize=6.5, color=CL["muted"])
-    fig.text(0.07, 0.025,
-             f"Judgment-layer slots ({', '.join(JUDGMENT_SLOTS)}) are pending a Sapote pass and are not rendered here.",
-             fontsize=6.0, color=CL["muted"])
-    pdf.savefig(fig); plt.close(fig)
+                value = f"{float(r.get(key, 0)):.0f}" if state == "MEASURED" else state
+                values.append(f"{key.upper()}: {value}")
+            write(f"Tier: {r.get('lead_tier', '')}; boundary: {r.get('boundary', '')}; " + "; ".join(values), 8)
+            write(f"Class: {r.get('products', '')}; KCB similarity anchor: {_safe_kcb(r)}", 8)
+        write("Source scans", 11, True)
+        scans = (m.get("scan_status") or {}).get("scans", [])
+        if not scans:
+            write("No scan rows recorded here; consult the package evidence receipts.")
+        for scan in scans:
+            if isinstance(scan, (list, tuple)):
+                write(" | ".join(str(v) for v in scan), 8)
+            else:
+                write(str(scan), 8)
+        write(_bioactivity_text(m.get("bioactivity")), 9)
+        counts = (m.get("resistance_gene_summary") or {}).get("counts", {})
+        if counts:
+            write("Resistance summary: " + ", ".join(f"{k}: {v}" for k, v in counts.items()), 8)
+        write("Special class review", 11, True)
+        def polyene_candidate(r):
+            products = (r.get("products") or "").lower()
+            anchor = (r.get("kcb_top") or "").lower()
+            return "arylpolyene" not in products and (any(x in anchor for x in ("hsaf", "polyene", "ptm")) or
+                ("t1pks" in products and any(x in anchor for x in ("polyene", "macrolide", "cyphomycin", "desertomycin"))))
+        def is_other_only(r):
+            tokens = [x.strip().lower() for x in (r.get("products") or "").split(";") if x.strip()]
+            return bool(tokens) and all(x == "other" for x in tokens)
+        groups = {
+            "Nucleoside": [r for r in rows if "nucleoside" in (r.get("products") or "").lower()],
+            "Polyene/PTM/HSAF candidates": [r for r in rows if polyene_candidate(r)],
+            "Arylpolyene": [r for r in rows if "arylpolyene" in (r.get("products") or "").lower()],
+            "Other-only": [r for r in rows if is_other_only(r)],
+        }
+        for label, group in groups.items():
+            write(f"{label}: {len(group)}; " + (", ".join(str(r.get("bgc_id")) for r in group) or "none recorded"), 8)
+        write("Arylpolyene is not antifungal polyene macrolide evidence. These review buckets do not identify a compound.", 8)
+    pdf.savefig(fig)
+    plt.close(fig)
 
 
 def render_brief(pkg, tier="standard", logger=None):

@@ -4,6 +4,8 @@
 
 *This volume is generated from the scanner and the enriched registry via `tools/gen_user_catalog.py`; the canonical machine-readable form is `docs/USER_CATALOG.generated.md`. Cassette counts are capacity/signal, not product or activity; absence of a family is not a negative call.*
 
+*Re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (fifteen cassette families, eighteen CCTT families, compound-class annotation pipeline re-verified against engine 1.9.164).*
+
 ## §XIII.1 · The compound-class annotation layer
 
 v9.7.86 adds a deterministic layer (`compound_class.py`) that records the chemotype a BGC's own evidence is consistent with. It reads antiSMASH's own `t2pks.product_classes` prediction as the primary, machinery-based signal, falling back to the resolved MIBiG product line; it never reads the raw KCB anchor blob, preserving the P-7 contamination fix. Each BGC carries `chemotype`, `pharmacology`, `evidence_source`, `class_evidence`, a `confidence` grade (HIGH/MODERATE/LOW), and a `cytotoxic_flag`. Most chemotypes are **annotation-only** (recorded, no score impact); three well-anchored families carry a scored consequence: polyene-macrolide → AF (antifungal), ionophore → AB (antibacterial), and anthracycline → its own cytotoxic/antitumor category (flagged and routed, not folded into the clean antibacterial board). Arylpolyene and spore pigments, and fungal mycotoxins / primary metabolites, are explicitly excluded.

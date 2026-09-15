@@ -44,3 +44,6 @@ def test_compiled_report_cover_accepts_legacy_metadata_without_status():
               "source": "unknown", "assembly_tier": "unknown", "interior_pct": None,
               "raw_bgcs": "?", "corrected_bgcs": "?", "mamey_version": "?",
               "bundle_version": "?"}
+    cover = _cover(legacy)
+    assert cover.startswith("# TEST-STRAIN — Compiled Analysis Report")
+    assert "Manifest input status" not in cover

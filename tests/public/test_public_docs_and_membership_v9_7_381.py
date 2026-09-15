@@ -47,11 +47,22 @@ def test_package_data_has_no_cohort_roster_or_ids():
     assert not (data / "strain_genus.csv").exists()
     as_id = re.compile(r"\bAS-\d{2,4}\b")
     leaks = []
+    unreadable = []
     for f in data.rglob("*"):
         if f.is_file() and f.suffix in {".csv", ".tsv", ".json"}:
             try:
-                if as_id.search(f.read_text(encoding="utf-8", errors="ignore")):
-                    leaks.append(str(f.relative_to(_MAMEY)))
-            except Exception:
-                pass
+                text = f.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                # v9.7.430 release-integrity: fail CLOSED. This is a PRIVACY guard — it exists to stop
+                # AS-#### cohort identifiers reaching a public tier. `errors="ignore"` already absorbs
+                # decode problems, so this handler can only catch a file the scan could not OPEN, and
+                # swallowing that reported an UNSCANNED file as leak-free. An unscannable shipped data
+                # file must block the tier, not pass it.
+                unreadable.append(str(f.relative_to(_MAMEY)))
+                continue
+            if as_id.search(text):
+                leaks.append(str(f.relative_to(_MAMEY)))
+    assert not unreadable, (
+        "shipped package data this leak scan could not read, so it cannot certify them cohort-ID "
+        f"free: {unreadable}")
     assert not leaks, f"cohort AS-#### identifiers in shipped package data: {leaks}"

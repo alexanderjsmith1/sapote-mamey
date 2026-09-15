@@ -1,5 +1,5 @@
-version=9.7.428
-build=20260911v97428a
-engine=1.9.163
-patch=Portable collaborator figure packages; Reviewed 16S identity exclusions; Placement runtime and display repairs; Species-neighborhood catalogs; Bioassay plate mapping
+version=9.7.431
+build=20260914v97431a
+engine=1.9.165
+patch=Cross-strain namespace safety; Operator intent reaches the engine; Guard-surface tooling; Per-row resilience and case parity in the reference/scrub tools; Metadata resolution and geography; Documentation re-grounding; Engine 1.9.165 (BUMPED — strain-attribution sentinel on peer-lane fix, `mamey/bigscape_namespace.py`; score-neutral, no scoring or extraction file touched → v9.7.430 / v9.7.431 boards poolable); Validation scope
 tier=code

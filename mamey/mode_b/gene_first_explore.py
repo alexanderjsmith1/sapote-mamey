@@ -31,6 +31,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from .. import BUNDLE_VERSION
+
 
 SCHEMA = "mamey.modeb-gene-first-exploration/1"
 CLAIM_CEILING = (
@@ -161,6 +163,16 @@ def _identity_token(identity: Mapping[str, str]) -> str:
             "MODEB_GENE_FIRST_OUTPUT_REFUSED: exact identity is too long for portable artifact names"
         )
     return token
+
+
+def _versioned_identity_token(identity: Mapping[str, str]) -> str:
+    """Complete locus identity followed by the producing Sapote-Mamey version."""
+    version = str(BUNDLE_VERSION or "").strip().lstrip("v")
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise GeneFirstHold(
+            "MODEB_GENE_FIRST_OUTPUT_REFUSED: Sapote-Mamey bundle version is missing or malformed"
+        )
+    return f"{_identity_token(identity)}__SapoteMamey_v{version}"
 
 
 def resolve_identity(
@@ -698,7 +710,7 @@ def run_gene_first_exploration(
         raise GeneFirstHold(
             "MODEB_GENE_FIRST_OUTPUT_REFUSED: --out must be an existing additive output root"
         )
-    token = _identity_token(identity)
+    token = _versioned_identity_token(identity)
     outdir = out_parent / token
     names = (
         f"{token}__MODEB_GENE_FIRST_EXPLORATION.md",
@@ -722,6 +734,8 @@ def run_gene_first_exploration(
     receipt = {
         "schema": SCHEMA,
         "status": "ENGINEERING_EXPLORATION_ONLY",
+        "sapote_mamey_bundle_version": str(BUNDLE_VERSION),
+        "source_package_bundle_version": manifest.get("bundle_version"),
         "exact_identity": identity,
         "inputs": {
             "manifest": {"locator": "package://manifest.json", "sha256": manifest_sha},
@@ -758,7 +772,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--evidence-index", default=None, help="Optional normalized, exact-locus TSV")
     parser.add_argument(
         "--out", required=True,
-        help="Existing additive output root; a four-field exact-identity child is created",
+        help=("Existing additive output root; a four-field exact-identity child with the "
+              "producing Sapote-Mamey version is created"),
     )
 
 

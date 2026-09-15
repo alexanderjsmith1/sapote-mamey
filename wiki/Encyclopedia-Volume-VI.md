@@ -2,7 +2,7 @@
 
 > **Currency scope:** This volume retains its historical edition and review stamps. Only the checks listed in the [currency record](Encyclopedia-Currency.md) have been refreshed for the current candidate. Other constants, numerical claims, literature interpretations, and worked-run results have not been comprehensively revalidated. A newer bundle does not make those older observations current.
 
-*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (strain_display_label(), the cap-40 figure_policy SSOT, the v9.7.45 4c AB/AF lead boards, the v9.7.46 Mode B deep-dive machinery — build_modeb_deepdive.py / deep_data.py with the CONFIRM/DOWNGRADE/DROP verdicts — and the v9.7.46/47 ingest_package.py merge with its mandatory schema gate all re-verified against the running engine) · 2026-06-15*
+*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (strain_display_label(), the cap-40 figure_policy SSOT, the v9.7.45 4c AB/AF lead boards, the v9.7.46 Mode B deep-dive machinery — build_modeb_deepdive.py / deep_data.py with the CONFIRM/DOWNGRADE/DROP verdicts — and the v9.7.46/47 ingest_package.py merge with its mandatory schema gate all re-verified against the running engine) · 2026-06-15 · re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (deliverables, figure registry, lead boards, Mode B deep-dive machinery re-verified against engine 1.9.164)*
 *Chapters VI.1–VI.10. Read Volumes I–III first (→ Master Index).*
 
 > **Tag note for this volume.** Alongside <span class="tag t-engine">\[engine\]</span> (ships today) and <span class="tag t-concept">\[concept\]</span> (framing), this volume uses

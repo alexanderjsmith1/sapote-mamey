@@ -1,12 +1,16 @@
 # Sapote-Mamey Deliverable Contract — v9.4
 
-This document is the canonical source for what the bundle must produce. It is referenced by `CLAUDE_SYSTEM_PROMPT.md` (§4, §5), `MAMEY_CHATGPT_EXECUTION_PROMPT.md` (§3, §5), and `RELEASE_CHECKLIST_v9.md`. If any other document conflicts with this contract, this document takes precedence (except for the active parent monolith, which supersedes all).
+This document is the canonical source for what the bundle must produce. It is referenced by `CLAUDE_SYSTEM_PROMPT.md` (§4, §5), `MAMEY_CHATGPT_EXECUTION_PROMPT.md` (§3, §5), and `RELEASE_CHECKLIST_v9.md`. This document defines artifacts within the selected workflow. `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md` govern task scope, permissions and conflicts; no parent or legacy template expands them.
 
 **Status:** `SCHEMA_BACKED` for workbook sheets; `PROMPT_BACKED` for interpretation documents; `CODE_BACKED` for Python scan outputs.
 
 ---
 
-## Deliverable Offer Protocol (default behavior — non-negotiable)
+## Deliverable selection within the authorized task
+
+The following full-suite offer applies when the user requests strain analysis. A supplied package
+or completed extraction does not authorize unrelated analysis, all-BGC authoring, external
+submissions, or publication. For a bounded question, deliver the requested result directly.
 
 The deep-dive deliverables are the bundle's primary value. A user must never have to know they exist in order to receive them. At the point any strain reaches analysis-complete (all A1 extraction outputs present), Sapote must not end its turn without doing ONE of:
 
@@ -17,12 +21,12 @@ Default delivery format is a **single consolidated PDF** containing all of the a
 
 **Generation-time requirements (non-negotiable; verify before any deliverable is handed over).** Every generated deliverable — in tables, prose, headers, and chat — MUST satisfy both:
 
-1. **No internal/personal codenames.** The project name is "Actinomycetes Project" and the affiliation is . Retired internal/personal codenames must never appear in any deliverable. If a codename would otherwise be pulled from project context or memory, substitute the public name. Run a codename scan on every deliverable before release.
-2. **Contig-ID locator on every BGC (per §4 Contig-ID Mandate).** A bare `BGC###` is meaningless because it does not locate the cluster. The first time a BGC appears in any section, give at minimum `BGC_ID (contig · regionXXX)`; thereafter `BGC_ID (regionXXX)` is acceptable within that section. This applies to layperson guides, technical reports, bench guides, fermentation cards, gene-by-gene tables, and chat — not just Layer B tables. The package already carries this as the `User_Label` field; carry it through, never strip it.
+1. **Publication metadata and privacy.** Use the user-selected release profile and source-bound project/affiliation metadata. Leave unknown fields explicitly unresolved. Do not invent affiliations or silently rename the project. Check private identifiers before an authorized public export; a historical assertion that a cohort is public is not authorization to publish new data.
+2. **Contig-ID locator on every BGC (per §4 Contig-ID Mandate).** A bare `BGC###` is meaningless because it does not locate the cluster. Display each individual BGC as `strain / full node-or-contig / region / BGC alias`, bound to one source record. An identity hold blocks that unsupported attribution, not unrelated work. This applies to layperson guides, technical reports, bench guides, fermentation cards, gene-by-gene tables, and chat — not just Layer B tables. The package already carries this as the `User_Label` field; carry it through, never strip it.
 
-A deliverable that contains a codename or a bare un-located BGC reference is non-conformant and must be regenerated before hand-over.
+A deliverable with unsupported locus attribution or metadata contrary to its selected privacy/release profile requires correction before the affected handoff. Preserve source truth when correcting it.
 
-**Next-Paths Protocol (every response and every handback, all runners — Sapote/Claude AND ChatGPT/Mamey).** Every substantive response, batch handback, and completed deliverable ends with plain-text numbered next-step paths — concrete, specific to the current state, and chooseable (e.g. "1. Bank SID-XXX to exercise the ansamycin diagnostic"). Plain text only; never tappable widgets, buttons, or UI elements. This is a hard closer: a handback without next-paths is incomplete. **ChatGPT/Mamey rule: exactly 8 unique next paths, numbered 1–8, for every substantive response or handback.** The legacy 3–10 range remains acceptable only for non-ChatGPT Sapote/Claude contexts. ChatGPT-tier runners historically omit or underfill this closer; therefore the ChatGPT execution prompt, startup files, and task-brief template all carry the stricter 8-path rule so the behaviour is inherited, auditable, and not optional. A ChatGPT handback with fewer than eight paths, more than eight paths, duplicate/filler paths, or no paths is non-conformant and must be regenerated before delivery.
+**Handback:** deliver the requested result, relevant evidence and unresolved holds. Add useful next actions when needed; no fixed count or assistant-specific closer is required.
 
 ---
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from mamey import BUNDLE_VERSION
 from mamey.mode_b.gene_first_explore import (
     CHANNELS,
     GeneFirstHold,
@@ -17,6 +18,7 @@ NODE = "NODE_7_length_120000_cov_42.5"
 REGION = "region002"
 ALIAS = "BGC007"
 TOKEN = f"{STRAIN}__{NODE}__{REGION}__{ALIAS}"
+VERSIONED_TOKEN = f"{TOKEN}__SapoteMamey_v{BUNDLE_VERSION}"
 
 
 def _sha(text: str) -> str:
@@ -87,10 +89,11 @@ def test_synthetic_offline_rehearsal_emits_exact_identity_and_separate_channels(
     out_root = tmp_path / "out"
     out_root.mkdir()
     receipt = _run(package, out_root)
-    out = out_root / TOKEN
+    out = out_root / VERSIONED_TOKEN
     assert receipt["status"] == "ENGINEERING_EXPLORATION_ONLY"
+    assert receipt["sapote_mamey_bundle_version"] == BUNDLE_VERSION
     assert receipt["exact_identity"]["exact_identity"] == f"{STRAIN} / {NODE} / {REGION} / {ALIAS}"
-    channels = list(csv.DictReader((out / f"{TOKEN}__evidence_channels.tsv").open(), delimiter="\t"))
+    channels = list(csv.DictReader((out / f"{VERSIONED_TOKEN}__evidence_channels.tsv").open(), delimiter="\t"))
     assert [row["channel"] for row in channels] == [channel for channel, _label in CHANNELS]
     status = {row["channel"]: row["status"] for row in channels}
     assert status["domain"] == "BOUND"
@@ -98,13 +101,15 @@ def test_synthetic_offline_rehearsal_emits_exact_identity_and_separate_channels(
     assert status["clusterblast"] == "BOUND"
     assert status["rggmci"] == "BOUND"
     assert status["nr"] == "MISSING"
-    genes = list(csv.DictReader((out / f"{TOKEN}__important_genes.tsv").open(), delimiter="\t"))
+    genes = list(csv.DictReader((out / f"{VERSIONED_TOKEN}__important_genes.tsv").open(), delimiter="\t"))
     assert genes[0]["locus_tag"] == "gene_core"
     assert genes[0]["exact_identity"] == f"{STRAIN} / {NODE} / {REGION} / {ALIAS}"
     assert receipt["highest_information_next_analysis"]["analysis_id"] == "FILL_NR_GAP"
     assert set(path.name for path in out.iterdir()) == {
-        f"{TOKEN}__MODEB_GENE_FIRST_EXPLORATION.md", f"{TOKEN}__important_genes.tsv",
-        f"{TOKEN}__evidence_channels.tsv", f"{TOKEN}__exploration_receipt.json",
+        f"{VERSIONED_TOKEN}__MODEB_GENE_FIRST_EXPLORATION.md",
+        f"{VERSIONED_TOKEN}__important_genes.tsv",
+        f"{VERSIONED_TOKEN}__evidence_channels.tsv",
+        f"{VERSIONED_TOKEN}__exploration_receipt.json",
     }
 
 
@@ -162,9 +167,9 @@ def test_historical_card_is_lead_only_and_never_channel_support(tmp_path):
     out_root = tmp_path / "out"
     out_root.mkdir()
     receipt = _run(package, out_root, evidence_index=index)
-    out = out_root / TOKEN
+    out = out_root / VERSIONED_TOKEN
     assert receipt["historical_lead_count"] == 1
-    genes = list(csv.DictReader((out / f"{TOKEN}__important_genes.tsv").open(), delimiter="\t"))
+    genes = list(csv.DictReader((out / f"{VERSIONED_TOKEN}__important_genes.tsv").open(), delimiter="\t"))
     assert "historical_card" not in genes[0]["bound_gene_channels"]
-    text = (out / f"{TOKEN}__MODEB_GENE_FIRST_EXPLORATION.md").read_text(encoding="utf-8")
+    text = (out / f"{VERSIONED_TOKEN}__MODEB_GENE_FIRST_EXPLORATION.md").read_text(encoding="utf-8")
     assert "Historical cards registered as leads only: 1" in text

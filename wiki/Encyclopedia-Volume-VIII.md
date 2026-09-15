@@ -2,7 +2,7 @@
 
 > **Currency scope:** This volume retains its historical edition and review stamps. Only the checks listed in the [currency record](Encyclopedia-Currency.md) have been refreshed for the current candidate. Other constants, numerical claims, literature interpretations, and worked-run results have not been comprehensively revalidated. A newer bundle does not make those older observations current.
 
-*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (the three denominator_type values, all nine KCB BGCRecord fields, the bundle_support/registry_inventory_v1.9.4.json SSOT + the \_NON_REGISTRY parity set, and the \_RULE_FLAG / \_OWN_PRODUCTS_ONLY standing-rule map all re-verified against the running engine; §VII.9 relocated to Volume VII and §VIII.7 brought inside this volume) · 2026-06-16*
+*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (the three denominator_type values, all nine KCB BGCRecord fields, the bundle_support/registry_inventory_v1.9.4.json SSOT + the \_NON_REGISTRY parity set, and the \_RULE_FLAG / \_OWN_PRODUCTS_ONLY standing-rule map all re-verified against the running engine; §VII.9 relocated to Volume VII and §VIII.7 brought inside this volume) · 2026-06-16 · re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (denominator_type values, KCB BGCRecord fields, registry SSOT, standing-rule map, eighteen CCTT families re-verified against engine 1.9.164)*
 *Chapters VIII.1–VIII.7. The back-of-book apparatus: glossary, KCB denominator reference, registry/catalog
 parity, the standing-rules registry, version-history known-traps, the literature spine, and the module index.*
 
@@ -17,7 +17,7 @@ parity, the standing-rules registry, version-history known-traps, the literature
 | **KCB / KnownClusterBlast** | similarity of a region to *characterized* MIBiG reference clusters — the anchor; similarity, **not** identity |
 | **ClusterBlast** | similarity of a region to *other* antiSMASH regions; scaffolds RG-GMCI + a fallback denominator (§IV.1) |
 | **MIBiG** | the curated repository of experimentally characterized BGCs; the KCB reference set |
-| **CCTT / T43** | the class-corroborating trigger framework — 15 gene-signature families (§IV.3) |
+| **CCTT / T43** | the class-corroborating trigger framework — 18 gene-signature families (§IV.3) |
 | **corroboration gate** | a trigger earns credit only if it fired on a class-compatible locus; else **uncorroborated** (§V.3) |
 | **diagnostic bonus** | `+25` to an axis when a corroborated diagnostic trigger fires (§V.2) |
 | **RG-GMCI** | reference-guided gapped multi-contig integration — the cross-contig reconstruction adjudicator (§IV.4) |

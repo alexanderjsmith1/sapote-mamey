@@ -19,6 +19,7 @@ try:
     from .csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter  # v9.7.410 CSV formula-cell guard (CLAUDE_410_csv_writer_coverage)
 except ImportError:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+from .render_safe import FigureCanvasTooLargeError, max_figure_edge_px
 from pathlib import Path
 from typing import Any
 
@@ -45,7 +46,7 @@ _PUBLICATION_DPI = 300
 
 def _browser_safe_raster_dpi(fig_width: float, fig_height: float,
                              requested_dpi: int = _PUBLICATION_DPI,
-                             max_edge_px: int = _BROWSER_SAFE_MAX_EDGE_PX) -> int:
+                             max_edge_px: int | None = None) -> int:
     """Return a browser-safe companion-raster DPI without changing print output.
 
     Chromium-family renderers can display a large PNG's first tiles while painting
@@ -54,9 +55,22 @@ def _browser_safe_raster_dpi(fig_width: float, fig_height: float,
     longest estimated edge stays below a conservative limit.  A 72-DPI floor keeps
     labels usable; figures still exceeding the limit at that floor must be panelled by
     the caller rather than silently described as browser-reviewed.
+
+    The default is the stricter of the browser limit and the shared operator ceiling,
+    so lowering MAMEY_MAX_FIGURE_EDGE_PX also constrains the companion raster.
     """
+    if max_edge_px is None:
+        max_edge_px = min(_BROWSER_SAFE_MAX_EDGE_PX, max_figure_edge_px())
     longest_inches = max(float(fig_width), float(fig_height), 0.01)
-    return max(72, min(int(requested_dpi), int(max_edge_px // longest_inches)))
+    max_dpi = int(max_edge_px // longest_inches)
+    if max_dpi < 72:
+        raise FigureCanvasTooLargeError(
+            f"{FigureCanvasTooLargeError.code}: browser-companion raster is {fig_width:.1f}x"
+            f"{fig_height:.1f} in; even 72 dpi needs {int(longest_inches * 72):,} px on the "
+            f"longest edge, over the {max_edge_px:,} px ceiling. Panel/split this figure "
+            "instead of rendering a companion that would exceed the safe raster limit."
+        )
+    return max(72, min(int(requested_dpi), max_dpi))
 
 
 def _read_b2(workbook_path) -> list[dict]:

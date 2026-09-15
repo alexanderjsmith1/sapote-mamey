@@ -1,4 +1,10 @@
-# Sapote-Mamey / Mamey Execution Prompt — v9.7.428
+> **Scope and precedence:** Apply this workflow only to the user's selected operation and named
+> profile. `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md` govern permissions, task scope,
+> inspection-only work and conversational output. Package presence is not execution authority.
+> Historical section counts, role assignments and examples below cannot replace a current profile.
+> When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
+
+# Sapote-Mamey / Mamey Execution Prompt — v9.7.431
 
 **Role:** Mamey deterministic extraction/scoring layer.  
 **Active controller:** `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`  
@@ -269,10 +275,10 @@ strain or cohort is sealed:
 
 ## Next-Paths Protocol — MANDATORY closer (do not skip)
 
-End **every** substantive ChatGPT response and every batch handback with **exactly 8 plain-text numbered next-step paths** — concrete and specific to the current run state, each one chooseable (e.g. "2. Retry SID-XXX in gold mode now that the assembly caveat is logged"). Plain text only — no tappable buttons or UI widgets. A handback without exactly eight paths is incomplete. (This mirrors the Sapote-layer closer but uses a stricter ChatGPT rule because ChatGPT-tier runs historically omit or underfill it.) **Standing paths, listed first when applicable:** if any BGC in the strain lacks full §1–§48 Mode B, path #1 is "Continue deeper Mode B: run the next batch (BGC[list]) to full §1–§48" (the most-missed path — never drop it while BGCs remain); when figures would help, consult `prompts/figure_prompts/_INDEX.md` and offer specific figures by name.
+Report completed work, evidence, unresolved holds and the next bounded action when useful. Do not expand the task to populate a menu.
 
 **8-path uniqueness gate:** the eight paths must be genuinely different, not wording variants. Cover distinct downstream goals when possible: (1) continue/run the next batch, (2) deep-dive a named lead/BGC, (3) cross-strain comparison or merge action, (4) figures/visual deliverable, (5) wet-lab/metabolomics/literature follow-up, (6) package/checksum/manifest handoff, (7) patch/debug/validation improvement, (8) documentation/release or public-facing artifact. Ground every item in the current state (strain, BGC, package status, validation, or file name). If fewer than eight seem available, split by genuinely different user goals; do not pad with generic filler. Before final delivery, self-check: exactly 1–8, no duplicate lead verbs/objects, no "ask me what next" without the menu.
 
 ---
 
-*Sapote-Mamey Bundle v9.7.428 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md | Release profile: PUBLIC_RELEASE*
+*Sapote-Mamey Bundle v9.7.431 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md | Release profile: PUBLIC_RELEASE*

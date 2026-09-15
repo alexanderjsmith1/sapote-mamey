@@ -2,7 +2,7 @@
 > **SUPERSEDED SNAPSHOT.** Retained for provenance and drift review only. It contains version-bound formulas, module descriptions, commands, and cohort-specific statements that may be stale or conflicting. Do not extend it and do not use it as term authority. Current reader-facing definitions live in the canonical [`docs/GLOSSARY.md`](../GLOSSARY.md); current formulas, enumerations, commands, and schemas live in their named code or schema sources.
 
 # Superseded Sapote–Mamey Comprehensive Program Glossary Snapshot
-**Bundle v9.7.428 · Engine 1.9.163 · build 20260911v97428a**
+**Bundle v9.7.431 · Engine 1.9.165 · build 20260914v97431a**
 *Every entry derived from direct source inspection: module docstrings, formula transcription from `docs/reference/01_Math_Reference_VolI.md`, pattern tables from `docs/MARKER_CATALOG.generated.md`, schema from `docs/WORKBOOK_SCHEMA.md`, and contract docs. No entries inferred from general knowledge.*
 
 ---

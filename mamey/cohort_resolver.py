@@ -149,6 +149,16 @@ def derive_strain_id(current_label: str, organism: str = "", filename: str = "")
                      f"(convention: Genus_species_Designation, not an LLM abbreviation)")
 
 
+def is_placeholder_taxonomy(taxonomy: str) -> bool:
+    """Reject punctuation-only labels and bare genus placeholders.
+
+    Explicit uncertainty ('not verified') remains supported. This function does
+    not infer taxonomy or reject valid unfamiliar/candidate organism names.
+    """
+    value = str(taxonomy or "").strip()
+    return bool(value) and (not any(c.isalpha() for c in value) or value.casefold() in {"sp", "sp.", "spp", "spp."})
+
+
 def normalize_taxonomy(taxonomy: str) -> str:
     """F-6: the AS GBKs deposit `ORGANISM  .` (no genus), so an organism string lifted from them is the literal
     ".". A taxonomy with no leading alphabetic genus token is normalized to the safe placeholder "sp." (genus

@@ -66,16 +66,16 @@ Extract and read the full source. For files over ~200 lines, read the first 130�
 ### 2. Write a brief description
 One short paragraph: what the file IS, what it does, approximate line count, key design features.
 
-### 3. Inspector gives 3 reasons to CHANGE or REMOVE the file
+### 3. Inspector reports supported reasons to CHANGE or REMOVE the file
 These can be:
 - Correctness concerns (could produce wrong output)
 - Design concerns (fragile, unmaintainable, inconsistent with pipeline conventions)
 - Redundancy concerns (this file could be deleted or merged)
 - Safety concerns (public-tier leakage risk, claim-safety violation, etc.)
 
-Inspector must give exactly **3 reasons**. Not 2, not 4.
+Inspector reports only evidence-supported reasons, including zero when appropriate. The heading describes the historical game format, not a findings quota.
 
-### 4. Defender gives ≥1 reason to KEEP the file as-is
+### 4. Defender examines the strongest supported case to KEEP the file as-is
 Defender argues the strongest case for the current design. Defender must engage honestly with the Inspector's points, not just restate "it works."
 
 If the Defender's argument is strong, the Inspector can concede on some points.
@@ -150,11 +150,11 @@ Previous sessions have identified recurring design patterns across the pipeline.
 
 ## Notes for the Auditing Chat
 
-- You are Claude (Sapote judgment layer), auditing Mamey (the deterministic Python extraction engine).
+- Adopt the audit role requested by the user; the game does not assign a model identity or authorize additional agents.
 - **Claim-safe language always.** Even in audit notes: "BGC" not "compound," "biosynthetic capacity" not "produces."
 - If you find a BGC referenced in a file, always note the node or contig alongside it.
 - **Never make a public-tier claim based on auditing the PRIVATE code tier.** If you audit `make_public_tier.sh`, describe what it does — don't infer what the public tier contains.
-- If you encounter a file that appears to reference unpublished strain data (AS-series IDs), flag it with 🔴 LEAK RISK before proceeding.
+- Assess disclosure against the current user-selected privacy profile and actual source metadata. A strain prefix alone does not establish private or public status; hold uncertain public export without blocking unrelated review.
 - Inspector and Defender are both you. Play both roles honestly. Don't let Defender capitulate easily; don't let Inspector be contrarian for its own sake.
 
 ---

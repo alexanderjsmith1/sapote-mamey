@@ -86,3 +86,13 @@ def test_header_gate_still_enforced(tmp_path, monkeypatch):
 def test_none_when_no_inventory(tmp_path, monkeypatch):
     monkeypatch.setattr(roster_v2, "ROOT", str(tmp_path))
     assert roster_v2.resolve_inventory(STRAIN) is None
+
+
+def test_parent_version_and_old_directory_do_not_override_workspace(tmp_path, monkeypatch):
+    root = str(tmp_path / "old" / "workspace-v99.0.0")
+    _write_inventory(os.path.join(root, "mamey_packages", "run_v9.7.339", "package"))
+    new_dir = os.path.join(root, "current", STRAIN)
+    _sibling_package_zip(new_dir, "9.7.376")
+    new = _write_inventory(os.path.join(new_dir, "package"))
+    monkeypatch.setattr(roster_v2, "ROOT", root)
+    assert roster_v2.resolve_inventory(STRAIN) == new

@@ -1,11 +1,33 @@
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.428 / engine Mamey 1.9.163
+**Version:** v9.7.431 / engine Mamey 1.9.165
 
 Mamey extracts deterministic evidence from antiSMASH output. Sapote uses validated evidence
 packages for governed interpretation. Start at the [README](../../README.md); coding assistants
 use the shared [AGENTS contract](../../AGENTS.md). The same workflow applies across assistants.
 Check the [release manifest](../../RELEASE_MANIFEST.md) for the exact bundle's status.
+
+For a first-time walkthrough with plain-language setup and recovery steps, use
+[Your first analysis](../MASTER_WALKTHROUGH.md). For an existing package, use
+[Read your results](../READING_YOUR_RESULTS.md). This page is the compact/advanced reference.
+
+## Start with the question you need answered
+
+This guide has two paths: a first validated extraction and optional follow-on analysis. You do
+not need every optional tool to inspect the bundle or run core extraction. For a decision-oriented
+walkthrough, see [Working with an assistant](../ASSISTANT_USER_GUIDE.md).
+
+| Your situation | First useful action | What you should receive |
+|---|---|---|
+| Code ZIP or repository only | Review files; install only if execution is requested | Capability and setup assessment, not a strain result |
+| One antiSMASH result ZIP | Inspect, bind metadata, then run and validate | Inventory, evidence package, workbook and explicit missing/deferred states |
+| Existing validated package | Read manifest, issues and available evidence first | The requested summary/card/figure; no automatic rerun |
+| Genome or 16S FASTA only | Select the appropriate sequence workflow | A scoped placement/genome plan; not an invented antiSMASH package |
+| Several strains | Identify authoritative inputs and master workbook | A resumable batch with per-strain outcomes and preserved prior master |
+
+Choose the evidence/runtime budget in §2 **before** running §1. Bounded JSON is the documented
+default; capped mode trades evidence and rendered outputs for a shorter run. A code bundle alone
+contains software, not your biological results. Commands below are examples, not background jobs.
 
 ## 0. Install
 
@@ -14,16 +36,26 @@ current release manifest; substitute the actual archive and extracted directory 
 with a renamed download or an unsealed candidate. The bundle root contains `mamey_run.py`.
 
 ```bash
-mkdir -p sapote-mamey
-unzip sapote-mamey-v9.7.428-CODE-20260911v97428a.zip -d sapote-mamey
-cd sapote-mamey
+unzip path/to/code-bundle.zip -d path/to/extracted-code
+# Locate pyproject.toml and mamey_run.py together; GitHub ZIPs add a nested directory.
+cd path/to/extracted-code/actual-bundle-root
+python3 --version  # must be 3.12 or newer before creating the environment
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e .
+python -m pip install -e '.[figures,bio]'
 python mamey_run.py start
 python mamey_run.py doctor
-python3 tools/sync_version.py --check # → engine 1.9.163, bundle 9.7.428
+python tools/sync_version.py --check # checks version consistency, not candidate release acceptance
 ```
+
+The example installs core plus figure and Biopython extras. For core extraction only, use
+`python -m pip install -e .` and expect optional rendering capabilities to differ. Neither choice
+installs every external companion database or program. Read doctor warnings by capability; an
+optional tree tool missing does not by itself prevent core extraction.
+
+Run setup only when you intend to execute the software. A documentation review does not require
+installation. The pip commands may download packages; use the documented offline procedure when
+network access is not authorized. Keep the environment and outputs inside your permitted root.
 
 See [INSTALL](../INSTALL.md) for Windows activation, optional extras, offline wheel compatibility,
 and test setup. Do not override system Python protections or alter wheel compatibility tags.
@@ -38,15 +70,33 @@ python mamey_run.py inspect path/to/antismash_result.zip
 python mamey_run.py run --strain EXAMPLE \
   --input-zip path/to/antismash_result.zip \
   --taxonomy 'Genus sp.' --source 'recorded isolation source' \
-  --mode gold --outdir ../analysis/runs/
-python mamey_run.py validate ../analysis/runs/EXAMPLE/package
-python mamey_run.py explain ../analysis/runs/EXAMPLE/package
+  --mode gold --json-evidence bounded --brief none --locus-maps off \
+  --release PRIVATE --outdir analysis/runs/
+python mamey_run.py validate analysis/runs/EXAMPLE/package
+python mamey_run.py explain analysis/runs/EXAMPLE/package
 ```
+
+This first run deliberately defers the brief and locus maps. `PRIVATE` labels the local artifacts;
+it is not a claim that the public source genome is private. Choose another release tag only when
+appropriate for your output. If isolation metadata are missing, `--source 'not supplied'` preserves
+that gap; the archive's GenBank `SOURCE` organism label is not the isolation habitat.
 
 Read the actual package path and status in the output. Stop interpretation on validation failure;
 record and resolve the reported issue. A successful structural gate is not scientific acceptance.
 
 ## 2. Choose the evidence and runtime budget
+
+| Choice | Main JSON behavior | What to report |
+|---|---|---|
+| `--json-evidence bounded` | Streams with byte/leaf limits | Truncation, fallback and unresolved completeness |
+| `--json-evidence full` | Candidate cap: 80,000,000 uncompressed bytes per file | Size hold if over cap; admitted files may still require several GB RAM |
+| `--json-evidence off` | Disables the main walker; record-level paths are separate | Which evidence channels actually ran |
+| `--capped-session` | Overrides the main walker to off and suppresses selected outputs | Deferred evidence and deliverables |
+
+The original v9.7.428 full-mode cap is 20 MB; 80 MB requires the reviewed candidate patch.
+ZIP download size is not uncompressed JSON size. More CPU threads cannot bypass this hard-coded
+size check. Full mode is not a completeness certificate. See the
+[Round 2 walkthrough](../ROUND2_PUBLIC_STRAIN_WALKTHROUGH.md) for examples on both sides of 80 MB.
 
 Gold is the analysis mode. For time-limited execution, add `--capped-session` to the run command.
 It forces JSON evidence off and `--brief none`, requires the workbook, and disables automatic
@@ -63,6 +113,33 @@ Keep the input ZIP, its checksum, the run configuration, the package manifest, a
 Check the inventory, triage board, workbook, and validation result. Report any missing or deferred
 briefs, figures, locus maps, or evidence streams. Do not promise an artifact merely because the
 command supports it. Preserve sealed inputs and use documented post-seal commands for follow-on work.
+
+### Know which kind of completion you have
+
+| State | Meaning | Still not established |
+|---|---|---|
+| Doctor completed | Environment diagnostics were produced | Successful extraction or scientific correctness |
+| Extraction and validation completed | Encoded package gates ran; inspect actual statuses and issues | Every optional evidence channel or requested narrative is finished |
+| `MAMEY_COMPLETE_WITH_ISSUES` | Pipeline completed with recorded issues | That every warning is resolved |
+| Validator says `MAMEY_COMPLETE` | Validator completed its encoded checks | That pipeline issues or judgment pending disappeared |
+| A template was emitted | A writing scaffold exists | An authored or verified Mode B card |
+| Structure/depth checks passed | The particular encoded checks passed | Factual source binding, literature verification or product identity |
+| Requested deliverable reviewed | The selected files and their evidence were checked | Publication, new release or permission to distribute private material |
+
+### Recover without losing provenance
+
+| Symptom | Next check | Safe recovery |
+|---|---|---|
+| Wrong Python or import failure | Interpreter version and selected environment | Use Python 3.12+ and the documented extras; do not bypass system protections |
+| `inspect` rejects a ZIP | Archive type and required antiSMASH contents | Obtain/fix the input; do not pass the code ZIP as biological data |
+| Timeout/interruption | Last log event and partial output status | Preserve the attempt; resume through the documented intake workflow or start a separately named run |
+| Validation failure | Actual failed gate and issue details | Hold affected interpretation; diagnose before declaring the package complete |
+| Figure or homology result missing | Requested mode, dependencies and recorded channel status | Complete only the needed follow-on work; absence of a file is not negative biology |
+| Ambiguous locus or master workbook | Source-bound identity, hashes and prior receipts | Hold the disputed join/update; continue independent review |
+
+The example run writes under `analysis/runs/` inside the bundle working directory. Keep a new
+output directory for changed inputs or parameters. Do not overwrite a previous run merely to make
+the latest command succeed. Keep original inputs immutable and record which output supersedes which.
 
 ## 4. Process a cohort
 
@@ -119,7 +196,7 @@ For a strain-wide plan, `blastp-round` defaults to full coverage of the top thre
 and one representative protein from each remaining region. Planning does not submit searches:
 
 ```bash
-python mamey_run.py blastp-round --package runs/EXAMPLE/package \
+python mamey_run.py blastp-round --package analysis/runs/EXAMPLE/package \
   --outdir analysis/blastp_plan
 ```
 
@@ -132,7 +209,7 @@ For saved NCBI hit tables, import into an existing project master and the matchi
 ```bash
 python mamey_run.py ingest-blastp --master path/to/project_master.xlsx \
   --strain EXAMPLE --hit-table analysis/hits.csv --xml analysis/alignments.xml \
-  --package runs/EXAMPLE/package
+  --package analysis/runs/EXAMPLE/package
 ```
 
 Retain a copy of the master before updating it. Review the import diagnostics and query mappings.
@@ -167,7 +244,7 @@ GBKs. Install the external BiG-SCAPE toolchain and provide the pressed Pfam data
 
 ```bash
 python mamey_run.py doctor --companions
-python mamey_run.py bigscape --runs-dir runs/ --out analysis/bigscape \
+python mamey_run.py bigscape --runs-dir analysis/runs/ --out analysis/bigscape \
   --bigscape /absolute/path/to/bigscape --pfam /absolute/path/to/Pfam-A.hmm \
   --cpus 1 --dry-run
 ```
@@ -280,8 +357,8 @@ Use the validated package with the command you need. Begin with its `--help` and
 command, input identity, diagnostics, and resulting files. For the example package above:
 
 ```bash
-python mamey_run.py list-bgcs runs/EXAMPLE/package
-python mamey_run.py render-all-figures runs/EXAMPLE/package
+python mamey_run.py list-bgcs analysis/runs/EXAMPLE/package
+python mamey_run.py render-all-figures analysis/runs/EXAMPLE/package
 python mamey_run.py emit-modeb-template --help
 python mamey_run.py verify-modeb --help
 ```

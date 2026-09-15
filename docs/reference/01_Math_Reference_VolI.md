@@ -2,7 +2,7 @@
 
 ### Counting, scoring, and reconstruction formulae in the deterministic extraction engine
 
-**Version of record:** Mamey engine v1.9.110 (the math tracks the engine, which is frozen at 1.9.110 through the current bundle) · constants last verified against engine source 2026-07-13 · bundle at that time v9.7.319
+**Version of record:** Mamey engine v1.9.164 · bundle v9.7.429 · re-grounded 2026-09-14 (core formulas unchanged since v1.9.110; CCTT trigger roster expanded 14→18 at v1.9.99; constants last verified against engine source 2026-07-13)
 **Author:** Alexander J. Smith
 **Status:** Methods reference. Every formula below is transcribed from the engine source and cited to its module; nothing here is reconstructed from memory.
 
@@ -218,8 +218,8 @@ if a corroborated AF trigger fired:  base_AF += 25
 if a corroborated AB trigger fired:  base_AB += 25
 ```
 
-- **AF triggers:** `T43-NUC` (nucleoside chitin-synthase inhibitors), `T43-PTM` (HSAF/PTM macrolactams).
-- **AB triggers:** `T43-LAN`, `T43-LASSO`, `T43-THA`, `T43-PHO`, `T43-AMC`, `T43-BLA` (lanthi/lasso/thioamide, phosphonate, aminoglycoside, β-lactam).
+- **AF triggers:** `T43-NUC` (nucleoside chitin-synthase inhibitors), `T43-PTM` (HSAF/PTM macrolactams), `T43-PYE` (polyene macrolide antifungals; v1.9.99).
+- **AB triggers:** `T43-LAN`, `T43-LASSO`, `T43-THA`, `T43-PHO`, `T43-AMC`, `T43-BLA`, `T43-GPA` (glycopeptide; v1.9.99), `T43-BLT` (betalactone; v1.9.99).
 
 This fixes the failure mode where a KCB-dark cluster labelled only "nucleoside; other" but carrying the NikJ diagnostic is a definitive antifungal whose evidence was computed and then dropped before it reached the tier gate. Only **corroborated** triggers grant the bonus — see §6.1.
 
@@ -570,4 +570,4 @@ needs_multibatch  =  raw > 25
 
 ---
 
-*Sapote–Mamey · Mamey engine v1.9.110 (frozen; the math tracks the engine, not the rolling bundle version) · constants last verified against engine source 2026-07-13. Every formula transcribed from engine source. Scores are routing priors, not biological proof; KCB is similarity, not identity; capacity-level language is mandatory downstream.*
+*Sapote–Mamey · Mamey engine v1.9.164 · bundle v9.7.429 · re-grounded 2026-09-14 (core formulas unchanged since v1.9.110; CCTT trigger roster expanded at v1.9.99; constants verified 2026-07-13). Every formula transcribed from engine source. Scores are routing priors, not biological proof; KCB is similarity, not identity; capacity-level language is mandatory downstream.*

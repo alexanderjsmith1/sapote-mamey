@@ -76,16 +76,15 @@ def test_outgroup_label_is_not_a_doubled_genus_with_a_severed_accession():
     assert not lab.rstrip().endswith("NR"), f"truncated mid-accession: {lab}"
 
 
-def test_normal_reference_label_is_unchanged():
-    """Guard the guard: the ordinary case must keep its existing shape."""
+def test_normal_reference_label_keeps_full_genus():
+    """The shared display contract keeps the full genus in ordinary reference labels."""
     m = _mod()
     lab = m._ref_label("NR_149213_1_Kribbella_soli_strain_FMN22_16S_ribosomal_RNA_partial_sequence",
                        "Kribbella")
     # v9.7.418 (accession fix): the accession now keeps its namespace underscore (NR_149213.1,
     # not NR149213.1) because that is the form a reader can paste into NCBI. The old concatenation
     # was a formatting error — it dropped the prefix separator.
-    assert lab == "K. soli FMN22 (NR_149213)"
+    assert lab == "Kribbella soli FMN22 (NR_149213)"
 
 
 # ---- the multi-table join -----------------------------------------------------------------------
-

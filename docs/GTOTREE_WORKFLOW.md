@@ -216,3 +216,13 @@ Hyatt et al. (2010) *BMC Bioinf* 11:119 · BLAST+ — Camacho et al. (2009) *BMC
 — Jain et al. (2018) *Nat Commun* 9:5114 · ncbi-datasets-cli — NCBI Datasets docs + access date.
 *Quote the exact installed versions (`mamey doctor --companions`); the Tool Master supplies
 version-matched strings.*
+# Frozen execution identity
+
+Production GToTree packets must pass `tools/gtotree_execution_gate.py` before launch.
+The packet binds GToTree 1.8.19, the exact executable SHA-256, the HMM file SHA-256,
+every genome SHA-256, one unique working directory and output directory per panel,
+and a maximum of four concurrent jobs. Each process runs from its own panel directory;
+shared working directories are prohibited. Postflight repeats the gate and refuses
+silent loss of any approved tip before downstream inference. GToTree v2 requires a
+separate controlled migration because its marker set is not assumed comparable with
+the established 138-marker Actinobacteria workflow.

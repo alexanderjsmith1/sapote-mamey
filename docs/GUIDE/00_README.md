@@ -1,8 +1,10 @@
 # User guides and reference reading
 
-*Included with bundle v9.7.428 / engine Mamey 1.9.163. Packaging version; content scope is described below.*
+*Included with bundle v9.7.431 / engine Mamey 1.9.165. Packaging version; content scope is described below.*
 
-For a first analysis, read the [Quick Guide](02_Quick_Guide.md). Use the
+For a first analysis, read [Your first analysis](../MASTER_WALKTHROUGH.md).
+For a completed package, use [Read your results](../READING_YOUR_RESULTS.md).
+The [Quick Guide](02_Quick_Guide.md) is the compact and advanced reference. Use the
 [User Manual](01_User_Manual.md) for the wider workflow and [Common Mistakes](../COMMON_MISTAKES.md)
 when diagnosing a run. [Glossary](../GLOSSARY.md) is the canonical term reference.
 The [current document index](../../CURRENT_DOCS_INDEX.md) links specialist workflows.

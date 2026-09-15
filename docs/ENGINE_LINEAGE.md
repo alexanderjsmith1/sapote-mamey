@@ -1,5 +1,21 @@
 # Mamey Engine Lineage
 
+## Engine 1.9.165 — first bundle: v9.7.431
+
+Strain attribution from staged BiG-SCAPE filenames now returns the `"?"` sentinel when a name
+carries a `_NODE_` contig token but no parseable strain prefix, instead of falling through to a
+contig-bearing stem. The sentinel itself is not new — `stem.strip() or "?"` already covered the
+empty case — but it now also covers the contig-bearing case, so an input that previously emitted a
+contig-derived stem as a strain identity emits `"?"`, which is countable and visible as an anomaly
+rather than silently becoming a phantom strain. This is a changed emitted identity value, which is
+why the engine bumps: two trees both stamped 1.9.164 must not disagree on attribution for identical
+input. No scoring or extraction file is touched — scoring formulas, triage thresholds, source scans
+and sealed-package schemas are unchanged, and v9.7.430 / v9.7.431 boards remain poolable.
+
+## Engine 1.9.164 — first bundle: v9.7.429
+
+Input admission now refuses obvious taxonomy placeholders and preserves absent taxonomy as explicit unknown. The full-JSON guard is 80 decimal MB; bounded-mode limits are unchanged. Entry-page status/identity reporting, summary PDF layout and Darwin memory units are corrected. Post-seal tree admission, metadata, series completeness and portable artifact handling incorporate reconciled incoming candidates. Scoring formulas and triage thresholds are unchanged; evidence availability can differ when the larger full-JSON guard admits additional inputs. Prior benchmark observations remain bound to their original engine/configuration.
+
 ## Engine 1.9.163 — first bundle: v9.7.428
 
 Post-seal phylogeny tooling now exports a complete standalone collaborator package for every

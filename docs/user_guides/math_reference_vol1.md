@@ -1,8 +1,8 @@
 # Sapote–Mamey — Volume I — Plain-Language Companion
 ## Counting, Scoring, and Reconstruction in the Deterministic Extraction Engine
-**Source document:** `docs/reference/01_Math_Reference_VolI.md` (Mamey engine v1.9.110 · bundle v9.7.319)
+**Source document:** `docs/reference/01_Math_Reference_VolI.md` (re-grounded to Mamey engine v1.9.164 · bundle v9.7.429; originally compiled v1.9.110 / v9.7.319)
 > **This is the plain-language companion.** The canonical Volume I is `docs/reference/01_Math_Reference_VolI.md`; it holds the authoritative §10 constants table verified against the engine. Constants shown below are illustrative for the prose — if one ever disagrees with the canonical file, the canonical file wins (this companion carries no authoritative constants).
-**Constants re-verified against:** bundle v9.7.250 · engine 1.9.110 · 2026-07-09
+**Constants re-verified against:** bundle v9.7.429 · engine 1.9.164 · re-grounded 2026-09-14 (core formulas unchanged since v1.9.110; CCTT trigger roster expanded at v1.9.99)
 
 
 *Volume I covers the engine's core quantitative pipeline: how BGCs are counted, how an assembly is graded, how the three routing scores are built, how the guards suppress them, and how fragmented clusters are reconstructed. Volume II covers the subsystems that feed and surround it (CCTT triggers, architecture-first assessment, KCB/RiQ extraction, compound-class annotation, rescue, enrichment, and — from v9.7.250 — Cluster G).*
@@ -161,8 +161,8 @@ DIAGNOSTIC_BONUS = 25
 
 Added to the relevant axis when a **corroborated** class-defining CCTT trigger fires (corroboration: §6.1).
 
-- **AF triggers:** `T43-NUC`, `T43-PTM`
-- **AB triggers:** `T43-LAN`, `T43-LASSO`, `T43-THA`, `T43-PHO`, `T43-AMC`, `T43-BLA`
+- **AF triggers:** `T43-NUC`, `T43-PTM`, `T43-PYE` (polyene macrolide; v1.9.99)
+- **AB triggers:** `T43-LAN`, `T43-LASSO`, `T43-THA`, `T43-PHO`, `T43-AMC`, `T43-BLA`, `T43-GPA` (glycopeptide; v1.9.99), `T43-BLT` (betalactone; v1.9.99)
 - **Excluded from the tier floor:** `TIER1_FLOOR_EXCLUDED_PREFIXES = ("T43-HAL_", "T43-XHAL_")` — halogenases are *tailoring* modifications, not class calls. A lone halogenase does not floor a tier.
 
 ### 4.4 KCB and RiQ novelty adjustments

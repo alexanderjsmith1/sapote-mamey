@@ -183,3 +183,36 @@ def test_refusal_is_coded_when_even_the_floor_will_not_fit() -> None:
         assert FigureCanvasTooLargeError.code in str(exc.value)
     finally:
         plt.close(fig)
+
+
+def test_browser_companion_dpi_honors_operator_ceiling(monkeypatch) -> None:
+    from mamey.cohort_class_heatmap import _browser_safe_raster_dpi
+    from mamey.render_safe import FigureCanvasTooLargeError
+
+    monkeypatch.setenv("MAMEY_MAX_FIGURE_EDGE_PX", "5000")
+    with pytest.raises(FigureCanvasTooLargeError):
+        _browser_safe_raster_dpi(150.0, 4.0)
+
+
+def test_browser_companion_dpi_clamps_when_floor_fits(monkeypatch) -> None:
+    from mamey.cohort_class_heatmap import _browser_safe_raster_dpi
+
+    monkeypatch.setenv("MAMEY_MAX_FIGURE_EDGE_PX", "12000")
+    dpi = _browser_safe_raster_dpi(150.0, 4.0)
+    assert dpi == 80
+    assert 150 * dpi <= 12000
+
+
+def test_browser_companion_dpi_default_is_unchanged(monkeypatch) -> None:
+    from mamey.cohort_class_heatmap import _browser_safe_raster_dpi
+
+    monkeypatch.delenv("MAMEY_MAX_FIGURE_EDGE_PX", raising=False)
+    assert _browser_safe_raster_dpi(150.0, 4.0) == 93
+
+
+def test_browser_companion_explicit_ceiling_is_honored() -> None:
+    from mamey.cohort_class_heatmap import _browser_safe_raster_dpi
+
+    dpi = _browser_safe_raster_dpi(150.0, 4.0, max_edge_px=20000)
+    assert dpi == 133
+    assert 150 * dpi <= 20000

@@ -60,7 +60,7 @@ state that registration — not hand-editing — is the single source of truth.>
 - [ ] Canonical numbers match the knowledge modules; no retired figures.
 - [ ] Contig-ID locator on every BGC reference (§4 Contig-ID Mandate).
 - [ ] No retired internal/personal codenames; affiliation = .
-- [ ] Closes with **exactly 8 unique plain-text numbered next-paths**, never widgets (Next-Paths Protocol).
+- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
 
 ---
 

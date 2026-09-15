@@ -389,7 +389,7 @@ def scrub(public, out, private=None, replacement="the held research cohort"):
         held_cohorts = set(prv_coh) - set(pub_coh)
         held_strains = prv_strains - pub_strains
     tokens = _held_tokens(held_cohorts, held_strains)
-    pats = [re.compile(re.escape(t)) for t in tokens]
+    pats = [re.compile(re.escape(t), re.I) for t in tokens]
     pats.append(HELD_PHRASES)
     pats.append(RESEARCH_STRAIN)
     pats.append(AJS_STRAIN)

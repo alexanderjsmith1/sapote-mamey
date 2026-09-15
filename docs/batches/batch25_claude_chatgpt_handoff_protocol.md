@@ -147,9 +147,9 @@ Do not mix the two. A literature work order is not a task brief; a task brief do
 
 ## CDSW next-paths rule
 
-**Claude (Sapote, non-ChatGPT):** 3–6 genuinely different next paths at the end of every substantive response.
-
-**ChatGPT (Mamey tier):** Exactly 8 unique next paths, numbered 1–8, for every substantive response or handback. No fewer, no more, no duplicates. A ChatGPT handback with <8 paths, >8 paths, duplicate paths, or no paths is non-conformant and must be regenerated.
+Follow the shared next-path, automatic SAVE STATE and transcript policy in
+[AGENTS](../../AGENTS.md) and [the Assistant User Guide](../ASSISTANT_USER_GUIDE.md).
+The same policy applies across assistants; no model-specific count overrides it.
 
 ---
 

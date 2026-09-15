@@ -68,7 +68,7 @@ for TIER in "${TIERS[@]}"; do
 done
 
 echo "== post-build gate: release identity / LLM bootstrap freshness =="
-python3 "$SOURCE_TOOLS/verify_release_identity.py" --root "$SRC" --tiers-dir "$OUT" \
+python3 "$SOURCE_TOOLS/verify_release_identity.py" --root "$SRC" --tiers-dir "$OUT" --strict-membership \
   || { echo "FATAL: release identity / LLM bootstrap freshness FAILED — do not publish this build." >&2; exit 8; }
 
 echo "== post-build gate: cross-tier parity (check_tier_parity) =="

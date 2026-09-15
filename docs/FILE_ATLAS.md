@@ -503,7 +503,7 @@ A module nothing imports, no CLI verb reaches, and no test names. Some are legit
 | `tools/candidate_census.py` | 125 | 0 | 0 | 2 | candidate_census.py — file-count and debris census for a candidate cut tree. |
 | `tools/check_antismash_profile.py` | 67 | 0 | 1 | 2 | check_antismash_profile.py — cross-profile pooling guard. |
 | `tools/check_bgc_naming.py` | 220 | 0 | 1 | 3 | check_bgc_naming.py — portable enforcement of the AS-strain BGC node-naming rule |
-| `tools/check_chatgpt_next_paths.py` | 73 | 0 | 1 | 5 | Check ChatGPT handbacks for exactly 8 unique next paths. |
+| `tools/check_chatgpt_next_paths.py` | 73 | 0 | 1 | 5 | Check shared handback format and final SAVE STATE confirmation. |
 | `tools/check_command_pointers.py` | 111 | 0 | 2 | 2 | Phantom-command guard (patch 46). |
 | `tools/check_dangling_refs.py` | 224 | 0 | 1 | 5 | check_dangling_refs.py — list references to `examples/<file>` OR tool/module nam |
 | `tools/check_deliverable_suite.py` | 108 | 1 | 1 | 4 | check_deliverable_suite.py — mechanical enforcement of the Sapote full-run deliv |

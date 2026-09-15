@@ -164,7 +164,7 @@ def test_internal_label_adds_bound_experiment_and_sample_only_to_query():
     labels = [row["label"] for row in display.display_rows(rows, "internal")]
     assert labels == [
         "Streptomyces sp. AS-633 [bumblebee · New Jersey; Exp 55 #64] (PX558893)",
-        "Streptomyces sampsonii [plant · China] (NR_025870)",
+            "Streptomyces sampsonii [plant · Asia] (NR_025870)",
     ]
 
 

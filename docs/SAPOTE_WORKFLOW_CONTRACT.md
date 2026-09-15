@@ -1,3 +1,9 @@
+> **Scope and precedence:** Apply this workflow only to the user's selected operation and named
+> profile. `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md` govern permissions, task scope,
+> inspection-only work and conversational output. Package presence is not execution authority.
+> Historical section counts, role assignments and examples below cannot replace a current profile.
+> When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
+
 # Sapote Workflow Contract — the mandatory set format
 
 **Version:** v9.7.319
@@ -40,7 +46,7 @@ order) collapsed onto the artifacts and gates that actually exist in a sealed pa
 | **W7** | Compiled report (readiness gate) | M | strict compile | `<ID>_compiled_report.md`, zero open slots (`mamey compile-report --strict`) |
 | **W8** | 13-item deliverable suite contract | M | suite gate | filled `DELIVERABLE_MANIFEST_<ID>.md` → `tools/check_deliverable_suite.py` rc=0 |
 | **W9** | Judgment receipt | M | receipt gate | manifest no longer carries `JUDGMENT_PENDING` (`tools/sapote_judgment_receipt.py`) |
-| **W10** | Session close + exactly-8 next-paths | M | behavioral | `tools/session_checklist.py` + exactly 8 numbered next-paths |
+| **W10** | Session close and scoped handoff | M | behavioral | `tools/session_checklist.py`; completed work, evidence, holds and next bounded action; no option-count requirement |
 
 **Req:** M = mandatory (blocks downstream and fails `--strict`); cond = conditional
 (fires when the predicate holds — e.g. W5 only when a Guide is requested — and never blocks).

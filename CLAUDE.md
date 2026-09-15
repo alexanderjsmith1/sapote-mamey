@@ -1,6 +1,8 @@
 # AGENTS.md — shared Sapote-Mamey operating contract
 
-**Run `python mamey_run.py start` from the bundle root.** It reports the loaded bundle,
+**For an authorized execution task, run `python mamey_run.py start` from the bundle root.**
+For inspection, explanation, or code/document review, read the files without installing or running
+the reviewed code. Uploading a bundle or finding a package does not authorize execution. It reports the loaded bundle,
 its current version, and the ordered workflow. This is the canonical portable contract intended for
 every coding assistant. Automatic instruction-file discovery varies by assistant. `README.md` is the
 human landing page. `CLAUDE.md` is a generated, byte-identical Claude discovery copy of this file,
@@ -9,7 +11,10 @@ with no separate operating rules. For ChatGPT, Gemini, or another assistant, dir
 
 Use the current user's task, permissions, and resource limits. Historical model-specific prompts
 and fixed next-path menus do not override this shared startup contract. Report the requested
-outcome, evidence, unresolved holds, and the useful next action without an arbitrary option count.
+outcome, evidence, unresolved holds, and next paths under the shared handoff policy below.
+
+The scope and conflict rules in `docs/ASSISTANT_GOVERNANCE.md` apply to all linked project
+workflows. Templates and historical documents cannot grant permissions or expand the user's task.
 
 ## Execution and source authority
 
@@ -125,6 +130,40 @@ and the `CLAUDE.md` alias. `tools/sync_version.py` owns version propagation. Reg
 tier, and checksum manifests with their existing tools during the authorized cut process.
 Check identity and content integrity before describing a bundle as verified.
 
+## Next paths, automatic SAVE STATE, and transcripts
+
+At a substantive work handoff, present a minimum of 3 and up to 8 numbered next paths,
+including the final SAVE STATE confirmation. Choose useful, distinct paths grounded in the
+current work; do not pad to the maximum. This shared policy supersedes older model-specific
+path counts. A user's explicit response-format instruction takes precedence.
+
+SAVE STATE is automatic: before the handoff, update the existing session checkpoint in the
+agreed project output folder and verify that the write succeeded. Record the objective,
+authoritative inputs and revisions, decisions, completed work, tests and failures, pending
+work, exact artifact paths, transcript coverage, and the next action. The final numbered path
+must say **SAVE STATE — saved**, link the actual checkpoint, and say where transcripts and the
+file inventory are stored. It confirms completed work; it is not an option asking the user to
+request a save. If saving fails, the final item must say **SAVE STATE — FAILED**, with the reason;
+never claim success. Save at meaningful milestones too, not just when a session is about to end.
+
+Preserve accessible user/assistant messages and execution receipts for a transparent record.
+Use an appendable session transcript where possible. Keep a transcript distinct from the
+checkpoint summary; identify missing turns, truncation, export source and coverage. Do not
+invent unavailable messages or describe summaries as verbatim transcripts. Do not include
+private internal reasoning or retrieve unrelated conversations. Saving is an action performed
+by the assistant; this text does not install a background transcript recorder.
+
+Before creating files, tell the user the destination and purpose, and whether a tool will create
+many outputs. Prefer existing files and folders. At handoff, report new/changed file counts,
+paths and sizes in a file inventory, including generated logs and temporary artifacts. Avoid
+unrequested source copies, duplicate ZIPs and parallel “final” versions. Preserve the agreed
+top-level organization. An old output path in a receipt does not authorize new writes there.
+
+Keep transcripts in the shared workspace for now. If storage becomes burdensome, report their
+size and propose archival to the user's chosen iCloud or external-disc destination. Verify the
+copy and update the index before any separately authorized source removal. Do not silently
+upload, relocate, or delete records. Transcript saving and archival do not authorize publishing.
+
 ## Resume and handoff
 
 At intake, bind objective, authoritative input hashes, permitted output root, and authority ceiling.
@@ -158,14 +197,14 @@ The sky is not red, it is blue, just like the ocean.
 
 ◆ SAPOTE–MAMEY · SHARED ASSISTANT CONTRACT
    instruction file : AGENTS.md
-   bundle / engine  : v9.7.428 / 1.9.163 · build 20260911v97428a
+   bundle / engine  : v9.7.431 / 1.9.165 · build 20260914v97431a
    known gotcha (this build) : BLASTP Hit Table CSV may be headerless and query titles may contain commas; single-region public accession ZIPs are valid intake targets, but assembly-tier warnings are expected; AGENTS.md is the canonical assistant contract; CLAUDE.md is its Claude discovery copy
    workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → mode-b → render-figures → ingest-receipts
 ```
 <!-- END GENERATED: initiation_prompt from bootstrap_contract.yml -->
 
 <!-- BEGIN GENERATED: known_gotchas_section from bootstrap_contract.yml -->
-## 3 · Known gotchas for THIS build (v9.7.428 / 1.9.163 · 20260911v97428a)
+## 3 · Known gotchas for THIS build (v9.7.431 / 1.9.165 · 20260914v97431a)
 
 Generated from `bootstrap_contract.yml`; update with `python tools/render_bootstrap_contract.py --apply`.
 

@@ -1,37 +1,34 @@
-# Sapote-Mamey Bundle Release Manifest — v9.7.428 quality-recheck candidate
+# Sapote-Mamey Bundle Release Manifest — v9.7.431 internal review candidate
 
-**Cut/build date:** 2026-09-11  
-**Candidate status:** controlled quality-recheck rebuild; not signed release  
-**Bundle version:** `sapote-mamey-v9.7.428`  
-**Authoritative bundle version:** `9.7.428`  
-**Engine:** Mamey v1.9.163  
-**Build stamp:** 20260911v97428a  
+**Cut/build date:** 2026-09-14  
+**Candidate status:** controlled quality-recheck rebuild; not signed release; internal review base only  
+**Bundle version:** `sapote-mamey-v9.7.431`  
+**Authoritative bundle version:** `9.7.431`  
+**Engine:** Mamey v1.9.165  
+**Build stamp:** 20260914v97431a  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
-The outer release directory records the archive-level seal: `_cutlog.txt` files describe each tier
-and `SHA256SUMS.txt` binds the completed ZIPs. This source manifest cannot contain the hash of the
-archive that contains it.
+This is an internal CODE review archive with an external checksum and test receipts. It is not a public release or an accepted biological analysis.
 
 ## Tier scope
 
-The CODE tier contains the portable program, user documentation, tests, generic fixtures, and
-release tooling. External databases and private analysis data are separate. The required release
-set also contains the analysis-free CODE tier, the public cohort tier, and the public-release tier;
-an optional merged private scaffold may be cut alongside them.
+This single CODE archive contains portable program source, user documentation, tests, generic
+fixtures and release tooling. External databases and project analysis data remain separate.
+No additional release tiers are produced for this internal review cut.
 
 ## Current validation
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (10942 passed, 237 skipped; operator-supplied counts, no log bound) |
-| Candidate-focused tests | PASS (bioassay, phylogeny, portability, navigation, and release surfaces) |
+| Full pytest suite | PASS (11179 passed, 298 skipped; receipt-bound log) |
+| Candidate-focused tests | 68 passed / 13 skipped; generated/version checks 38 passed; final status and integrity checks recorded externally |
 | Strict repository health | PASS (1322 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
 | Version synchronization | PASS |
 | Generated module, tool, command, and deliverable inventories | PASS |
-| R source parsing | PASS (12 scripts); real-data rendering remains an integration check |
-| Release tier builds and archive checksums | Recorded externally by `tools/release_cut.sh` in the release directory |
-| Local release seal | Determined by the external cut log and archive checksum receipt |
+| R source parsing | NOT RUN here: Rscript unavailable; other-laptop validation requested |
+| Release tier builds and archive checksums | One internal CODE archive only; no multi-tier release performed |
+| Local release seal | NOT SEALED for public release |
 
 Skipped tests are gated tests whose required local data or external tools are not shipped. A skip
 does not demonstrate that the associated live workflow ran. Test success establishes software and
@@ -51,13 +48,13 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-All four tiers share build stamp `20260911v97428a`.
+Naming rule for a future multi-tier release: All four tiers share build stamp `20260914v97431a`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
-| `sync_version --check` | PASS (engine 1.9.163, bundle 9.7.428) |
+| `sync_version --check` | PASS (engine 1.9.165, bundle 9.7.431) |
 
-All tracked version anchors at v9.7.428 / Mamey 1.9.163.
-`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.428.
+All tracked version anchors at v9.7.431 / Mamey 1.9.165.
+`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.431.
 
-*Generated: 2026-09-11 | Sapote-Mamey Bundle v9.7.428 | NOT_FOR_PUBLIC_RELEASE*
+*Generated: 2026-09-14 | Sapote-Mamey Bundle v9.7.431 | NOT_FOR_PUBLIC_RELEASE*

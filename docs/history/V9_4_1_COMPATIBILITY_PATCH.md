@@ -1,3 +1,7 @@
+> Historical migration note, 10 June 2026. Retained for development provenance;
+> this is not the current installation procedure or complete field specification.
+> See the [Quick Guide](../GUIDE/02_Quick_Guide.md) for current operation.
+
 # Sapote–Mamey v9.4.1 Compatibility Patch
 
 Date: 2026-06-10

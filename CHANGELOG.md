@@ -1,3 +1,31 @@
+# v9.7.431 · 2026-09-14 · build 20260914v97431a · engine 1.9.165
+
+- **Cross-strain namespace safety:** sanitize unsafe characters in staged strain identifiers before BiG-SCAPE staging and log the rename, and return a visible `?` sentinel instead of a contig-bearing stem when a `_NODE_` name carries no parseable strain prefix, so a duplicate-copy staging artifact can no longer split one strain into phantom strains unnoticed.
+- **Operator intent reaches the engine:** forward the intake harness's parsed `--release` to the `mamey run` subprocess so the registry row and the package manifest cannot record the same fact differently; the engine's non-bypassable private guard still governs what the answer may be.
+- **Guard-surface tooling:** add a silent-success-exit auditor that classifies per branch rather than folding `if`/`else` scopes, and a ratchet delta tool that reads the target tree's own qualified-emission helper instead of a second drifting copy.
+- **Per-row resilience and case parity in the reference/scrub tools:** record a typed `SOURCE_VALUE_LABEL_VALIDATION_FAILED` state and continue when one deposited value fails label validation instead of aborting the enrichment run, and apply case-insensitive matching to derived held tokens in the public-cut scrub so `audit()` and `scrub()` agree.
+- **Metadata resolution and geography:** add a strain-gated reference-metadata resolver and a field-collection ingester (both new, additive, with offline tests), admit `Georgia` as a known country, and expose a continent bin that resolves the country name independently of the already-collapsed display field.
+- **Documentation re-grounding:** re-ground the reference math/plumbing docs, the general-audience edition, the wiki glossary and all thirteen Encyclopedia volumes against the current engine (CCTT trigger families 15 → 18, RG-GMCI locus gap 30 → 60, thirteen `scan_*` functions), and replace the stale manual tools inventory with a routing table to the generated, drift-checked surfaces.
+- **Engine 1.9.165 (BUMPED — strain-attribution sentinel on peer-lane fix, `mamey/bigscape_namespace.py`; score-neutral, no scoring or extraction file touched → v9.7.430 / v9.7.431 boards poolable):** score-neutrality is what makes boards poolable across a bump, not what avoids one; a changed emitted identity value requires the engine stamp to move so two trees at one version cannot disagree on attribution for identical input.
+- **Validation scope:** engineering and release-gate evidence is recorded with this cut. The `_COUNTRY_TO_DISPLAY` treatment of Georgia, the AS-cohort release-class question, and the `published_registry` population remain separately governed decisions and are not settled here.
+
+# v9.7.430 · 2026-09-14 · build 20260914v97430a · engine 1.9.164
+
+- **Shared phylogeny display contract:** use one bundled source/geography palette across EPA-ng and GToTree renderers, retain full-genus single-line labels, reserve the declared tree area, distinguish assay missingness from not-tested results, and export portable provenance, settings, methods, and layout receipts.
+- **Placement uncertainty:** export every retained JPLACE alternative using its declared field order, preserve `n` and `nm` multiplicity, and report LWR explicitly without presenting it as bootstrap support or species probability.
+- **Release and rendering gates:** require strict tier-manifest membership at both cut entry points, fail closed on unreadable guard inputs, honor the shared figure-edge ceiling, and retire the inactive `silent_swallow` waiver while retaining the active bounded `print_calls` waiver.
+- **Regression and documentation alignment:** regenerate governed tool inventories, migrate reference-label tests to the full-genus contract, strengthen behavior and concurrency checks, and keep versioned operational guidance synchronized.
+- **Validation scope:** engineering and release-gate evidence is recorded with the internal cut. Biological metadata, reference selection, individual placement panels, and publication acceptance remain separately governed scientific decisions.
+
+# v9.7.429 · 2026-09-13 · build 20260913v97429a · engine 1.9.164
+
+- **Reconciled incoming candidates and local audits:** dependency-ordered tree, sequence admission, intake, project data home, literature refresh, exploratory figures and plate-map fixes; newer supersets retained.
+- **User documentation and workflow clarity:** deeper first-run, evidence, troubleshooting, storage, companion-tool and Mode B routes; historical and current profiles distinguished.
+- **Engine 1.9.164:** explicit taxonomy admission, 80 MB full-JSON guard, status/identity reporting, paginated summary text and corrected macOS memory units; scoring thresholds unchanged.
+- **Validation:** release-gate results are recorded in the generated manifest and accompanying logs; pending scientific/data-specific acceptance is disclosed separately.
+
+Accretion-justified: bee_review_prototypes.py — portable bee review prototype module uses explicit supplied JSON, remains opt-in and has no default scientific acceptance. Its admission and rendering tests remain part of the suite.
+
 # v9.7.428 · 2026-09-11 · build 20260911v97428a · engine 1.9.163
 
 - **Portable collaborator figure packages** — automatically place descriptive PNG and PDF figures, source and display Newick trees, aligned FASTA, annotation TSV, full caption, methods, standalone R renderer, rerender command, and checksum manifest beside every accepted placement display.

@@ -22,7 +22,9 @@ suppressPackageStartupMessages({
 })
 
 RESULT_COLOR <- c(positive = "#2e8b57", negative = "#d9d9d9", not_tested = "#ffffff", not_recorded = "#9ebcda")
-RESULT_LABEL <- c(positive = "positive", negative = "negative", not_tested = "not tested", not_recorded = "not recorded")
+RESULT_LABEL <- c(positive = "positive (+)", negative = "negative (-)",
+                  not_tested = "not tested (n.t.)", not_recorded = "not recorded (n.r.)")
+RESULT_SYMBOL <- c(positive = "+", negative = "-", not_tested = "n.t.", not_recorded = "n.r.")
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 3) stop("Usage: ggtree_placement_bioassay.R <nwk> <tsv> <out_prefix> [withloc|noloc]")
@@ -34,6 +36,13 @@ ann <- read.delim(tsv, sep = "\t", quote = "", stringsAsFactors = FALSE, check.n
 if (!all(c("bioassay_status", "anti_candida", "anti_mrsa") %in% names(ann))) {
   stop(paste0("BIOASSAY_ANNOTATION_MISSING: annotation TSV has no bioassay_status/anti_candida/",
               "anti_mrsa columns -- re-run build_placement_ggtree_inputs.py with --bioassay-table (v9.7.423+)."))
+}
+non_query <- tolower(trimws(ann$kind)) != "query"
+for (field in c("anti_candida", "anti_mrsa")) {
+  value <- trimws(ifelse(is.na(ann[[field]]), "", ann[[field]]))
+  if (any(non_query & nzchar(value)))
+    stop(paste0("BIOASSAY_REFERENCE_VALUE_PRESENT: ", field,
+                " must be blank for reference/outgroup tips"))
 }
 
 qcol <- if (locmode == "noloc") "label_noloc" else "label_withloc"
@@ -75,18 +84,21 @@ if (length(q_ids) > 0) {
 }
 
 p <- ggtree(tr, size = 0.32) %<+% ann +
-  geom_tiplab(aes(label = lab_r), color = "#1f4e79", size = lsize, na.rm = TRUE,
+  geom_tiplab(aes(label = lab_r), color = "black", size = lsize, na.rm = TRUE,
               align = FALSE, linesize = 0, offset = r_off) +
-  geom_tiplab(aes(label = lab_q), color = "#c00000", fontface = "bold", size = lsize,
+  geom_tiplab(aes(label = lab_q), color = "#bb0000", fontface = "plain", size = lsize,
               na.rm = TRUE, align = FALSE, linesize = 0, offset = q_off) +
   ggtree::hexpand(0.58)
 
 if (nrow(dots) > 0) {
   tipxy <- p$data[match(dots$tip, p$data$label), c("x", "y")]
-  dots$x <- tipxy$x + dots$off * (0.018 * xr)
+  dots$x <- tipxy$x + dots$off * (0.024 * xr)
   dots$y <- tipxy$y
-  p <- p + geom_point(data = dots, aes(x = x, y = y, fill = result), shape = 22, size = 2.6,
-                       color = "grey40", stroke = 0.25, inherit.aes = FALSE) +
+  dots$symbol <- unname(RESULT_SYMBOL[dots$result])
+  p <- p + geom_point(data = dots, aes(x = x, y = y, fill = result), shape = 22, size = 4.2,
+                       color = "grey35", stroke = 0.3, inherit.aes = FALSE) +
+    geom_text(data = dots, aes(x = x, y = y, label = symbol), size = 3.0,
+              fontface = "bold", color = "black", inherit.aes = FALSE) +
     scale_fill_manual(name = "Bioassay result",
       values = RESULT_COLOR, labels = RESULT_LABEL, breaks = names(RESULT_COLOR))
 }

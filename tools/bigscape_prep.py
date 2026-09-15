@@ -164,6 +164,18 @@ def main():
     for it in items:
         strain = strain_from(it)
         strain = re.sub(r"_SapoteMamey.*$", "", strain)  # normalize package names -> strain id
+        # v9.7.431: sanitise unsafe filename characters before staging. A duplicate-copy artifact
+        # like "AS-XXX (1).zip" would otherwise prefix all of its regions with "AS-XXX (1)_",
+        # which strain_from_gbk_name() cannot parse -- it returns the full stem, creating phantom
+        # strains. Strip the " (N)" / " copy" duplicate suffix first, then map any remaining
+        # non-safe chars (spaces, parens) to "_". Log the rename so it is visible in the staging
+        # run log and in the STRICTNESS_MANIFEST (the strain column shows the sanitised id).
+        _orig_strain = strain
+        strain = re.sub(r"\s+\(\d+\)$", "", strain)             # strip " (N)" duplicate-copy suffix
+        strain = re.sub(r"\s+copy$", "", strain, flags=re.I)        # strip " copy" duplicate suffix
+        strain = re.sub(r"[^A-Za-z0-9._-]", "_", strain)            # map remaining unsafe chars to "_"
+        if strain != _orig_strain:
+            emit(f"  [sanitized strain id] {_orig_strain!r} -> {strain!r}", file=sys.stderr)
         is_dir = os.path.isdir(it)
         if not is_dir and not it.lower().endswith(".zip"):
             continue

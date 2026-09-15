@@ -41,7 +41,7 @@ def test_reference_label_preserves_post_16s_strain_designation():
 
     label = module._ref_label(tip, "Example")
 
-    assert label == "E. species IFM 10428 (AB123456)"
+    assert label == "Example species IFM 10428 (AB123456)"
     assert "gene for" not in label
 
 
@@ -88,13 +88,13 @@ def test_explicit_deposited_fields_reach_optional_renderer_metadata(tmp_path):
     assert annotation[tip]["reference_country"] == "Japan"
     assert rectangle[tip] == {
         "tip": tip,
-        "label": "E. species IFM 10428 [patient · Japan] (AB123456)",
+            "label": "Example species IFM 10428 [patient · Asia] (AB123456)",
         "category": "clinical/animal-associated",
-        "source": "Japan",
+            "source": "Asia",
         "category_raw": "patient",
         "category_state": "RULE_NORMALIZED",
         "source_raw": "Japan",
-        "source_state": "AS_RECORDED",
+            "source_state": "REGION_NORMALIZED",
     }
     assert rectangle["outgroup_X"]["category"] == ""
     assert rectangle["outgroup_X"]["source"] == ""
@@ -110,7 +110,7 @@ def test_unmatched_reference_stays_typed_and_blank(tmp_path):
         "Example_species_AB654321_1", fields, True
     )
 
-    assert combined["AB123456"] == "patient · Japan"
+    assert combined["AB123456"] == "patient · Asia"
     assert fields["AB123456"] == {"category": "patient", "location": "Japan"}
     assert (status, category, location) == ("ACCESSION_UNMATCHED", "", "")
 

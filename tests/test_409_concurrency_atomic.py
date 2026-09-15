@@ -244,9 +244,14 @@ def test_c1_master_lost_update():
         staging.mkdir()
         _make_master(master)
         _run_master_workers(master, staging, use_lock=False)
-        survivors_old = _read_strains(master)
-        print(f"  OLD copy2 + no lock : {len(survivors_old)}/{N_WRITERS} strains survived "
-              f"-> {sorted(survivors_old)}")
+        try:
+            survivors_old = _read_strains(master)
+        except Exception as exc:  # the unsafe publisher may corrupt the ZIP container outright
+            survivors_old = []
+            print(f"  OLD copy2 + no lock : unreadable workbook ({type(exc).__name__})")
+        else:
+            print(f"  OLD copy2 + no lock : {len(survivors_old)}/{N_WRITERS} strains survived "
+                  f"-> {sorted(survivors_old)}")
         assert len(survivors_old) < N_WRITERS, (
             "FAIL-BEFORE did not reproduce: expected lost updates, all rows survived")
 

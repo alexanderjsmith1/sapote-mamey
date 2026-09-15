@@ -51,21 +51,21 @@ def test_real_truncation_offenders_keep_their_collection_number(tip, modal, must
     assert must_contain in lab, f"collection number lost: {lab}"
 
 
-def test_the_ordinary_short_label_is_unchanged():
-    """Guard the guard: raising a cap must not restyle labels that never hit it."""
+def test_the_ordinary_short_label_keeps_full_genus():
+    """The shared display contract keeps the full genus in ordinary labels."""
     lab = _mod()._ref_label(
         "NR_149213_1_Kribbella_soli_strain_FMN22_16S_ribosomal_RNA_partial_sequence", "Kribbella")
-    assert lab == "K. soli FMN22 (NR_149213)"
+    assert lab == "Kribbella soli FMN22 (NR_149213)"
 
 
-def test_the_cap_is_derived_and_overridable(monkeypatch):
+def test_legacy_cap_does_not_truncate_reference_identity(monkeypatch):
     m = _mod()
-    assert m.REF_LABEL_CHARS == 48, "48 = longest abbreviated subsp.-subsp. binomial"
+    assert m.REF_LABEL_CHARS == 48
     monkeypatch.setenv("GG_REF_LABEL_CHARS", "20")
     m2 = _mod()
     assert m2.REF_LABEL_CHARS == 20
     lab = m2._ref_label("NR_044855_1_Saccharothrix_mutabilis_subsp_capreolus_DSM_40225_16S", "X")
-    assert len(lab.split(" (")[0]) <= 20
+    assert lab == "Saccharothrix mutabilis subsp capreolus DSM 40225 (NR_044855)"
 
 
 def test_truncation_still_happens_on_a_word_boundary():

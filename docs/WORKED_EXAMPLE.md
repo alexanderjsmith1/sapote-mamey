@@ -1,3 +1,6 @@
+<!-- SAPOTE_DOC_STATE: HISTORICAL_REFERENCE -->
+> **Dated worked example, not a current acceptance baseline.** The commands and numbers below describe v9.7.363. Round 4 did not download or rerun that accession. Use [the current Type Strain cases](TYPE_STRAIN_WALKTHROUGHS.md) for locally measured v9.7.428 candidate results and [the Master Walkthrough](MASTER_WALKTHROUGH.md) for the first-run procedure. Differences from historical numbers require investigation, not an automatic conclusion that your setup is wrong.
+
 # Worked example — run the pipeline end to end on a public genome
 
 **Engine:** Sapote-Mamey v9.7.363, engine 1.9.120

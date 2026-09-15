@@ -44,6 +44,15 @@ display_note <- sub("^DISPLAY_NOTE: ", "", display_note)
 if (nzchar(display_receipt) && any(file.exists(paste0(out, c(".pdf", ".png", ".session.txt", ".render_receipt.json", ".methods.txt")))))
   stop("Bound display render outputs already exist; use a new output prefix")
 
+source(file.path(script_dir, "tree_annotation_geometry.R"))
+if (Sys.getenv("GG_STRIPS", "0") != "0") {
+  annotation_gate <- file.path(script_dir, "tree_annotation_gate.py")
+  annotation_args <- c(shQuote(annotation_gate),shQuote(tsv))
+  if (Sys.getenv("GG_STRIPS", "0") == "2") annotation_args <- c(annotation_args,"--require-geography")
+  annotation_out <- suppressWarnings(system2(python,annotation_args,stdout=TRUE,stderr=TRUE))
+  annotation_rc <- attr(annotation_out,"status")
+  if (!is.null(annotation_rc) && annotation_rc != 0) stop(paste(annotation_out,collapse="\n"))
+}
 tr <- read.tree(nwk)
 md <- read.delim(tsv, sep = "\t", quote = "", stringsAsFactors = FALSE, check.names = FALSE)
 if (!all(c("tip", "label") %in% names(md))) stop("Metadata requires tip and label columns")
@@ -75,28 +84,21 @@ md <- md[md$tip %in% tr$tip.label, , drop = FALSE]
 norm <- function(z) toupper(gsub("[-_ ]","",z)); md$focal <- norm(md$tip) %in% norm(focal)
 n <- length(tr$tip.label)
 
-cat_fixed <- c("soil/rock/sediment" = "#8c6d31", "plant-associated" = "#2E8B57",
-               "bryophyte/lichen-associated" = "#66c2a5", "aquatic" = "#4aa3c7",
-               "insect-associated" = "#8856a7", "clinical/animal-associated" = "#d94801",
-               "honeybee" = "#E69F00", "bumblebee" = "#0072B2",
-               "solitary bee" = "#CC79A7", "other bee" = "#56B4E9", "wasp" = "#6F4C9B",
-               "fungal-associated" = "#a6761d", "built environment" = "#6a51a3",
-               "other documented" = "#969696")
-base_cols <- c("#f4a6a0","#d6d64a","#c5b0d5","#808000","#ffd8a8","#d9d9d9","#2ca25f","#f5c2f5",
-               "#3a7d3a","#4aa3c7","#a6e6e6","#a1d99b","#c8b89a","#8B0000","#e6842a","#111111",
-               "#f7e08a","#dcb0f2","#7fb069","#b5651d","#6a51a3","#e7298a","#66c2a5","#fc8d62")
-recycle <- function(vals, offset = 0) setNames(
-  base_cols[((seq_along(vals) - 1 + offset) %% length(base_cols)) + 1], vals)
+palette_file <- file.path(script_dir, "phylo_display_palette.tsv")
+if (!file.exists(palette_file)) stop("Shared phylogeny palette unavailable")
+shared_palette <- read.delim(palette_file, quote="", stringsAsFactors=FALSE, check.names=FALSE)
+cat_fixed <- setNames(shared_palette$color[shared_palette$field=="source"], shared_palette$value[shared_palette$field=="source"])
+geo_fixed <- setNames(shared_palette$color[shared_palette$field=="geography"], shared_palette$value[shared_palette$field=="geography"])
 
 cat_vals <- sort(unique(md$category[!is.na(md$category) & md$category != ""]))
 cat_unknown <- setdiff(cat_vals, names(cat_fixed))
-cat_pal <- c(cat_fixed, if (length(cat_unknown)) recycle(cat_unknown, 11) else NULL)
-if (length(cat_unknown))
-  cat(sprintf("[strip1] %d value(s) outside the fixed isolation-source vocabulary, coloured automatically: %s\n",
-              length(cat_unknown), paste(cat_unknown, collapse = ", ")))
+if (length(cat_unknown)) stop(paste0("ANNOTATION_SOURCE_PALETTE_UNSUPPORTED: ",paste(cat_unknown,collapse=", ")))
+cat_pal <- cat_fixed
 
 src_vals <- sort(unique(md$source[!is.na(md$source) & md$source != ""]))
-src_pal <- recycle(src_vals)
+src_unknown <- setdiff(src_vals,names(geo_fixed))
+if (length(src_unknown)) stop(paste0("ANNOTATION_GEOGRAPHY_PALETTE_UNSUPPORTED: ",paste(src_unknown,collapse=", ")))
+src_pal <- geo_fixed
 
 lsize <- if (n > 120) 1.7 else if (n > 60) 2.0 else 2.4
 if (nzchar(Sys.getenv("GG_LABEL_SIZE"))) lsize <- as.numeric(Sys.getenv("GG_LABEL_SIZE"))
@@ -133,9 +135,10 @@ p <- ggtree(tr, size = tree_size, ladderize = TRUE) %<+% md +
                  linesize = 0.4, offset = 0.08 * max(1, Ntip(tr) / 60)) +
   ggtree::hexpand(hexp)
 if (any(md$focal)) {
-focal_face <- Sys.getenv("GG_FOCAL_FACE", "plain")
+focal_face   <- Sys.getenv("GG_FOCAL_FACE", "plain")
+focal_colour <- Sys.getenv("GG_FOCAL_COLOUR", "#000000")
   p <- p + geom_tiplab(aes(label = ifelse(focal, disp, NA)), align = TRUE,
-                       linetype = NA, linesize = 0, colour = "#c00000",
+                       linetype = NA, linesize = 0, colour = focal_colour,
                        fontface = focal_face, size = lsize, offset = lab_off, na.rm = TRUE, parse = parse_labels)
 }
 
@@ -152,6 +155,13 @@ mk_strip <- function(col, pal, title) {
 s_cat <- mk_strip("category", cat_pal, Sys.getenv("GG_STRIP1_TITLE", "Isolation source"))
 s_src <- mk_strip("source",   src_pal, Sys.getenv("GG_STRIP2_TITLE", "Strain class"))
 
+tree_tip_y <- p$data$y[match(tip_order,p$data$label)]
+if (anyNA(tree_tip_y) || any(abs(tree_tip_y-seq_along(tip_order))>1e-8))
+  stop("ANNOTATION_TREE_ALIGNMENT: strip order differs from plotted tree tips")
+category_audit <- validate_annotation_strip(s_cat,tip_order,md$category[match(tip_order,md$tip)],cat_pal)
+source_audit <- validate_annotation_strip(s_src,tip_order,md$source[match(tip_order,md$tip)],src_pal)
+write.table(data.frame(category_audit,geography=source_audit$value,geography_fill=source_audit$fill),
+            paste0(out,".annotation_audit.tsv"),sep="\t",quote=FALSE,row.names=FALSE)
 n_strips <- Sys.getenv("GG_STRIPS", "0")
 if (!n_strips %in% c("0", "1", "2")) stop("GG_STRIPS must be 0, 1 or 2")
 combined <- if (n_strips == "0") {

@@ -349,7 +349,10 @@ def _load_ref_source_bundle(db_path):
             bits = []
             for field in ("isolation_source", "host", "country"):
                 if cleaned[field]:
-                    bits.append(("host: " if field == "host" else "") + cleaned[field])
+                    value = cleaned[field]
+                    if field == "country":
+                        value = _phylo_meta.normalize_geography(value)["display_location"]
+                    bits.append(("host: " if field == "host" else "") + value)
             text = " · ".join(bits)
             structured = {
                 "category": cleaned["isolation_source"] or cleaned["host"],
@@ -435,13 +438,9 @@ def _ref_label(name, modal, src_map=None):
     toks = rest.split()
     if len(toks) >= 2 and toks[0].lower() == toks[1].lower():
         toks.pop(0)
-    if toks and modal and toks[0].lower() == modal.lower():
-        toks[0] = toks[0][0] + "."
     lab = " ".join(toks)
     if designation and designation.lower() not in lab.lower():
         lab = " ".join((lab, designation))
-    if len(lab) > REF_LABEL_CHARS:
-        lab = lab[:REF_LABEL_CHARS].rsplit(" ", 1)[0]
     src = (src_map or {}).get(_acckey(acc), "") if acc else ""
     if src:
         if len(src) > REF_SOURCE_CHARS:

@@ -158,13 +158,13 @@ def load_ranked_pairs(packages_dir: str | Path) -> list[dict]:
     # collect candidates per strain, with their path depth (for shallowest-wins)
     by_strain: dict[str, str] = {}
     for fp in sorted(glob.glob(pat, recursive=True)):
-        parts = Path(fp).parts
+        parts = Path(fp).relative_to(packages_dir).parts
         if any(seg in _SKIP_DIRS for seg in parts):
             continue
         sid = os.path.basename(fp).split("_4A_RGGMCI_ranked_pairs.csv")[0]
         depth = len(parts)
         prev = by_strain.get(sid)
-        if prev is None or depth < len(Path(prev).parts):
+        if prev is None or depth < len(Path(prev).relative_to(packages_dir).parts):
             by_strain[sid] = fp
     pooled = []
     for sid, fp in sorted(by_strain.items()):

@@ -2,7 +2,7 @@
 
 > **Currency scope:** This volume retains its historical edition and review stamps. Only the checks listed in the [currency record](Encyclopedia-Currency.md) have been refreshed for the current candidate. Other constants, numerical claims, literature interpretations, and worked-run results have not been comprehensively revalidated. A newer bundle does not make those older observations current.
 
-*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (assembly tiers, corrected-count weights, the ten-scan set, the \[E-signal\]/no-BSL-2 doctrine, and the public/private guard verified against the running engine) · rev. 2026-06-16 (poll-corrected: §I.6 \[E-signal\], §I.7 WW- public)*
+*Edition: bundle v9.7.33 / engine Mamey 1.9.41 · re-grounded to bundle v9.7.91 / engine Mamey 1.9.91 on 2026-06-20 (assembly tiers, corrected-count weights, the ten-scan set, the \[E-signal\]/no-BSL-2 doctrine, and the public/private guard verified against the running engine) · rev. 2026-06-16 (poll-corrected: §I.6 \[E-signal\], §I.7 WW- public) · re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 on 2026-09-14 (assembly tiers, corrected-count formula, ten-scan reporting roster, \[E-signal\]/no-BSL-2 doctrine, public/private guard all re-verified against engine 1.9.164)*
 *Chapters I.1–I.7. Read this volume before the technical ones (→ Master Index).*
 
 ------------------------------------------------------------------------
@@ -33,8 +33,8 @@ Sapote–Mamey is built around three commitments that recur in every later volum
     statement the pipeline emits is disciplined to that distinction. (→ §I.3.)
 
 The name is a pair of fruits. **Mamey** is the deterministic extraction engine (a Python program, versioned
-independently, e.g. engine 1.9.91). **Sapote** is the judgment layer that reads Mamey's extraction and applies
-interpretation under contract. The two are versioned together as a **bundle** (e.g. v9.7.91) but are
+independently, e.g. engine 1.9.164). **Sapote** is the judgment layer that reads Mamey's extraction and applies
+interpretation under contract. The two are versioned together as a **bundle** (e.g. v9.7.429) but are
 conceptually distinct, and keeping them distinct is the single most important idea in the system (→ §I.2). The
 target users are microbial-ecology and natural-product researchers; the methods paper targets venues such as
 *NAR Genomics & Bioinformatics*.
@@ -261,7 +261,7 @@ lead-ranking claims; it does **not** necessarily erase a separate structural-nov
   case is downgraded, and a genuine enediyne carries a neutral **`[E-signal]` claim-safety note** routing it to
   cytotoxicity/self-protection review — <span class="tag t-engine">\[engine\]</span>. The engine emits **no per-cluster BSL-2 lab-safety flag**:
   a selective flag would falsely imply the *unflagged* clusters are safe, and chemical handling is governed by
-  standard lab SOPs, not a per-cluster gate — <span class="tag t-concept">\[concept\]</span>. (Verified at v9.7.91: a grep of `mamey/`
+  standard lab SOPs, not a per-cluster gate — <span class="tag t-concept">\[concept\]</span>. (Verified at v9.7.429: a grep of `mamey/`
   for `bsl`/`biosafety` returns only no-flag affirmations — `rules.py` and `scoring.py` state
   explicitly that no lab-safety/BSL-2 warning is emitted; the engine has no selective biosafety flag. The
   `[E-signal]` / non-selective-handling reframe is settled doctrine and per-BGC BSL-2 flagging is retired. A

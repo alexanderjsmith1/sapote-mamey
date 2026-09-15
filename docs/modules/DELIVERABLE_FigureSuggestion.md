@@ -65,7 +65,7 @@ A `Recommended Figures` section in the strain report (the recommendations) + any
 - [ ] Each recommendation has all six template fields, including the claim-safety note.
 - [ ] Only figures with existing data are recommended (skip-not-fake).
 - [ ] Rendered figures defer to `FIGURE_STYLE.md`/`FIGURE_REPRODUCIBILITY.md`; not restated here.
-- [ ] Contig-ID locators on any BGC referenced; affiliation = ; exactly 8 unique next-paths.
+- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
 
 ---
 

@@ -30,16 +30,16 @@ Tabs are required. Every row must carry the same complete exact identity. `BOUND
 
 The ten evidence families remain separate: nr, ClusteredNR, local Swiss-Prot, MIBiG/KnownClusterBlast, ClusterBlast, BiG-SCAPE, RG-GMCI, cohort comparison, domain/HMM, and literature context. No channel substitutes for another.
 
-The `--out` root must already exist. The command creates one child directory and four files whose names all carry the complete filesystem-safe identity in permanent order:
+The `--out` root must already exist. The command creates one child directory and four files whose names all carry the complete filesystem-safe identity in permanent order, followed by the producing Sapote-Mamey bundle version:
 
-`STRAIN__NODE_7_length_120000_cov_42.5__region002__BGC007`
+`STRAIN__NODE_7_length_120000_cov_42.5__region002__BGC007__SapoteMamey_v<bundle-version>`
 
 ## Outputs
 
-- `<complete-identity>__MODEB_GENE_FIRST_EXPLORATION.md` — concise, claim-capped synthesis and exactly one next analysis.
-- `<complete-identity>__important_genes.tsv` — deterministic review order with the complete identity on every row.
-- `<complete-identity>__evidence_channels.tsv` — channel-separated availability; missing is a workflow gap, not biological absence.
-- `<complete-identity>__exploration_receipt.json` — content-addressed input and output receipt.
+- `<complete-identity>__SapoteMamey_v<version>__MODEB_GENE_FIRST_EXPLORATION.md` — concise, claim-capped synthesis and exactly one next analysis.
+- `<complete-identity>__SapoteMamey_v<version>__important_genes.tsv` — deterministic review order with the complete identity on every row.
+- `<complete-identity>__SapoteMamey_v<version>__evidence_channels.tsv` — channel-separated availability; missing is a workflow gap, not biological absence.
+- `<complete-identity>__SapoteMamey_v<version>__exploration_receipt.json` — content-addressed input and output receipt recording both the producing and source-package bundle versions.
 
 The gene order is an inspection order based on an explicit role category, then bound gene-channel count, coordinates, and locus tag. It is not a biological-importance score. Outputs remain engineering exploration artifacts pending separate scientific review.
 

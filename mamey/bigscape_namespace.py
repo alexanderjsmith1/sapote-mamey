@@ -78,6 +78,13 @@ def strain_from_gbk_name(name: str) -> str:
     generic = re.match(r"^([A-Za-z0-9-]+)_NODE_", b, re.I)
     if generic:
         return generic.group(1)
+    # v9.7.431: if the name contains _NODE_ (SPAdes contig indicator) but no strain prefix
+    # matched, a staging defect exists -- unsafe chars in the staged filename broke the prefix.
+    # Return "?" (visible sentinel) instead of the full stem: a "?" bucket is countable and
+    # will surface as an anomaly downstream, whereas a stem containing the contig name silently
+    # creates phantom strains. Reference genome GBKs are safe: no _NODE_ token in their names.
+    if re.search(r"_NODE_", b, re.I):
+        return "?"
     stem = re.sub(r"\.region\d+\.gbk$", "", b, flags=re.I)
     stem = _ACCESSION_TAIL.sub("", stem)
     return stem.strip() or "?"

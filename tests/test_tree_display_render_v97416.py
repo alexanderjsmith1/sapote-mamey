@@ -42,7 +42,14 @@ def render(rscript, tmp_path, case, **override):
 
 @pytest.mark.parametrize("strips,prune", [("0", False), ("2", True)])
 def test_receipted_display_renders_named_figures_and_binds_outputs(rscript, tmp_path, strips, prune):
-    case = make_display(tmp_path, prune_outgroup=prune)
+    # v9.7.430: group_label="representative" is required when GG_STRIPS != "0". The annotation
+    # gate (tools/tree_annotation_gate.py, new in .429) requires every display row to carry a
+    # non-empty category consistent with its category_raw; the default group_label="group"
+    # clears category on a collapsed representative (collapse_near_identical.py:211-215), which
+    # the gate refuses as ANNOTATION_SOURCE_INCOMPLETE. The "0" leg keeps the default so the
+    # un-annotated path stays covered.
+    group_label = "representative" if strips != "0" else "group"
+    case = make_display(tmp_path, prune_outgroup=prune, group_label=group_label)
     cp, prefix = render(rscript, tmp_path, case, GG_STRIPS=strips)
     assert cp.returncode == 0, cp.stdout + cp.stderr
     receipt = json.loads(Path(str(prefix) + ".render_receipt.json").read_text())

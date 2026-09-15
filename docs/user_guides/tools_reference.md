@@ -1,337 +1,41 @@
 # Sapote–Mamey Tools Directory Reference
-## Complete Inventory of tools/ Scripts
-**Bundle v9.7.263 · Engine 1.9.111** *(subcommand CLI synced v9.7.262 — includes compile-report `--pdf` / `--allow-unfilled-pdf`; the tools/ script inventory below retains its last-verified stamp)*
-Hamilton, Ontario
 
-*Sourced from: direct inspection of `tools/` directory, module docstrings via `python3 -c "import ast"` extraction, `docs/HOW_TO_USE.md`, `docs/RELEASE_CHECKLIST_v9.md`. 107 scripts inventoried.*
-
----
-
-## Section 1: Primary Workflow Tools
-
-These are the scripts the standard operating procedure uses directly.
-
-**`mamey_intake.py`** — One-step cohort intake. Combines `ingest_package.py` + `build_workbook.py --full` in sequence. Takes `--packages <dir>` (parent of package directories), `--banked-dir <dir>`, `--workbook <out.xlsx>`. The recommended first step after running `mamey run` for a cohort. Source: `tools/mamey_intake.py`.
-
-**`ingest_package.py`** — Ingests one sealed Mamey package into the cohort bank. Writes `bgc_data.json`, `deep_data.json`, `gene_data.json` into `--banked-dir`. Takes `--package <pkg>`, `--ww <WWxxxxxxxx>` (accession), `--merge` flag. Works with or without `--ww` depending on release tier. Source: `tools/ingest_package.py`.
-
-**`build_workbook.py`** — Builds the master cross-strain workbook from the banked cohort. `--full` runs the complete pipeline: deep-data bank → marker bank → `build_master` → cross-strain overlays → DAPR boards → D5/Activity_Ref → Lead_Board. Takes `--workbook <out.xlsx>`, `--banked-dir <dir>`. Source: `tools/build_workbook.py`.
-
-**`build_master.py`** — The internal master workbook writer called by `build_workbook.py --full`. Writes A1–A4, B1–B4, and related sheets from the banked cohort. Do not call directly — use `build_workbook.py` which orchestrates it correctly. Source: `tools/build_master.py`.
-
-**`sapote_workflow.py`** — W0–W10 Sapote workflow gate driver. `--strict` exits non-zero if any mandatory step is incomplete. `--json` outputs machine-readable status. The official gate for verifying judgment layer completeness before delivery. Source: `mamey/sapote_workflow.py` (also mirrored in tools). Source: `tools/sapote_workflow.py`.
-
-**`sapote_judgment_receipt.py`** — Flips `gold_completeness` from asserted to verified in the package manifest. Reads the completed deliverable manifest and validates all 13 items. Exits 0 only when judgment is genuinely complete. Source: `tools/sapote_judgment_receipt.py`.
-
-**`check_deliverable_suite.py`** — Validates the 13-item per-strain deliverable contract. Reads `DELIVERABLE_MANIFEST_<strain>.md`; fails closed on unfilled items, under-justified items, and JUDGMENT_PENDING gold gate violations. Source: `tools/check_deliverable_suite.py`.
-
-**`claim_safety_linter.py`** — Scans Sapote interpretive text for claim-safety violations: production claims, structure assertions, per-BGC bioactivity claims. Returns violations with line numbers. Invoked by `mamey write-narrative` (exit 3 on violation) and available standalone. Source: `tools/claim_safety_linter.py`.
-
----
-
-## Section 2: Figure Generation Tools
-
-**`build_figures.py`** — Cohort-level figure generation from the banked data. Calls the per-strain and cohort figure modules. Takes `--banked-dir`, `--out <figure_dir>`, `--strains` (optional filter). Source: `tools/build_figures.py`.
-
-**`build_cross_strain_figures.py`** — Cross-strain figure set: class prevalence, BGC distribution, habitat comparisons. Source: `tools/build_cross_strain_figures.py`.
-
-**`build_master_figures.py`** — Master workbook–sourced figure set. Reads directly from the `*.xlsx` master workbook sheets. Source: `tools/build_master_figures.py`.
-
-**`build_master_figure_atlas.py`** — Produces the boss-ready figure atlas PDF from the master workbook. Source: `tools/build_master_figure_atlas.py`.
-
-**`build_overview_figures.py`** — Project-level overview figures: cohort size, assembly tier distribution, lead tier distribution. Source: `tools/build_overview_figures.py`.
-
-**`build_panel_figure.py`** — Configurable multi-panel figure builder. Takes a YAML layout spec. Source: `tools/build_panel_figure.py`.
-
-**`build_subset_panel.py`** — Panel figure for a subset of strains (e.g. top leads, one habitat). Source: `tools/build_subset_panel.py`.
-
-**`build_cohort_html.py`** — Builds the browsable BGC atlas HTML from cohort data. Source: `tools/build_cohort_html.py`.
-
-**`build_thesis_diagrams.py`** / **`build_thesis_vignettes.py`** — Thesis-chapter-ready figure generation. Source: `tools/build_thesis_*.py`.
-
-**`build_workflow_figure.py`** — Schematic diagram of the Sapote-Mamey pipeline workflow. Source: `tools/build_workflow_figure.py`.
-
-**`build_validation_panel.py`** — Validation control figure set (known compound recovery, class calibration). Source: `tools/build_validation_panel.py`.
-
-**`build_punchcard.py`** — Punchcard-style BGC presence/absence visualization across the cohort. Source: `tools/build_punchcard.py`.
-
-**`plot_examples.py`** — Reference plotting examples using the figure-ready tidy CSVs: fragmentation-loss gradient, class prevalence, class×strain heatmap. Source: `tools/plot_examples.py`.
-
----
-
-## Section 3: BGC Analysis and Scoring
-
-**`build_dapr_rescue_sheets.py`** — Deterministic builder for C1/C2 DAPR sheets and the D5 Fragment_Rescue_Tiers sheet. Regenerates the `Activity_Ref` column from the DAPR class framework citation map. Idempotent — preserves judgment columns (Rank, AN_Score, WL_Score, Rationale). Source: `tools/build_dapr_rescue_sheets.py`.
-
-**`build_lead_tiers.py`** — Computes lead tier assignments across the cohort. Source: `tools/build_lead_tiers.py`.
-
-**`build_lead_detail.py`** — Per-lead detail compilation for the Lead_Board sheet. Source: `tools/build_lead_detail.py`.
-
-**`build_priority_leads.py`** — Priority lead selection and ranking logic. Source: `tools/build_priority_leads.py`.
-
-**`build_genelevel_triage.py`** — Gene-level triage board (individual CDS, not just BGC level). Source: `tools/build_genelevel_triage.py`.
-
-**`lead_board.py`** — Lead_Board sheet builder with RG-GMCI rescue flags and Mode B verdict fold. Source: `tools/lead_board.py`.
-
-**`apply_dapr_boards.py`** — Applies DAPR board content to a master workbook. Source: `tools/apply_dapr_boards.py`.
-
-**`render_dapr_boards.py`** — Renders DAPR boards as formatted output. Source: `tools/render_dapr_boards.py`.
-
-**`build_saccharide_triage.py`** — Splits saccharide regions into CANDIDATE_PRODUCT / UNCHARACTERIZED_STANDALONE / TAILORING / MACHINERY categories. Writes the Saccharide_Triage sheet. Source: `tools/build_saccharide_triage.py`.
-
-**`build_size_profile.py`** — BGC size profile by class. Source: `tools/build_size_profile.py`.
-
-**`dark_gene_scan.py`** — Scans for genes with no Pfam annotation ("dark genes") within BGCs. Dark genes in a core locus are novelty signals. Source: `tools/dark_gene_scan.py`.
-
-**`scan_cctt_class_compat.py`** — Verifies CCTT trigger–class compatibility across the cohort. Source: `tools/scan_cctt_class_compat.py`.
-
-**`reclass_check.py`** — Checks for BGCs that scored above a lead threshold under one class but would score differently under a corrected class assignment. Source: `tools/reclass_check.py`.
-
-**`kcb_confidence.py`** — KCB confidence score computation and reporting. Source: `tools/kcb_confidence.py`.
-
----
-
-## Section 4: Cross-Strain and Cohort Analysis
-
-**`cohort_blastp_driver.py`** — Drives multi-BGC BLASTp campaigns across a scoped set of BGCs (leads / modular / all). `--plan-only` prints scale before running. Receipt is the overlay file on disk, not the exit code. Source: `tools/cohort_blastp_driver.py`.
-
-**`build_cohort_precompute.py`** — Precomputes the cohort-wide domain matrix and prevalence statistics. Source: `tools/build_cohort_precompute.py`.
-
-**`build_domain_matrix.py`** — Builds the strain × domain count matrix. Input to gold figures F11 (clustermap). Source: `tools/build_domain_matrix.py`.
-
-**`build_normalization_matrix.py`** — Builds the fragmentation-robust normalization matrix (ectoine+NAPAA denominator). Source: `tools/build_normalization_matrix.py`.
-
-**`build_family_map.py`** — BGC family mapping across the cohort (pan-genome family assignment). Source: `tools/build_family_map.py`.
-
-**`build_pangenome.py`** — Pan-genome construction from BGC protein sets. Source: `tools/build_pangenome.py`.
-
-**`build_gcf_tags.py`** — Gene Cluster Family (GCF) tag assignment. Source: `tools/build_gcf_tags.py`.
-
-**`cross_strain_denominator_audit.py`** — Audits cross-strain comparison denominators for fragmentation sensitivity. Reports the correlation table from HOW_TO_USE §Fragmentation-Robust Normalization. Source: `tools/cross_strain_denominator_audit.py`.
-
-**`cohort_scoring_version_gate.py`** — Verifies that all strains in the cohort were scored under the same engine version. Version-mixed cohorts require a re-score before cross-strain comparisons. Source: `tools/cohort_scoring_version_gate.py`.
-
-**`rggmci_cohort_rollup.py`** — Rolls up RG-GMCI evidence across the cohort. Ranks by subject-tiling verdict (COMPLEMENTARY_SPLIT > TERMINUS_TRUNCATION > MIXED > INSUFFICIENT). Source: `tools/rggmci_cohort_rollup.py`.
-
-**`add_xstrain_sheets.py`** — Adds cross-strain overlay sheets to the master workbook: `Cross_Strain_Class_Prevalence`, `Cross_Strain_Findings`, `Strain_Cohort_Context`. Called by `build_workbook.py --full`. Source: `tools/add_xstrain_sheets.py`.
-
-**`cohort_concordance_summary.py`** — Summary of reference-BGC concordance across the cohort. Source: `tools/cohort_concordance_summary.py`.
-
-**`rare_motif.py`** → `mamey/rare_motif.py` — Cross-strain rare BGC motif detection (see module listing).
-
----
-
-## Section 5: BLASTp Campaign Management
-
-**`blastp_campaign.py`** — High-level BLASTp campaign orchestrator. Manages batch submission, polling, and result collection across multiple BGCs. Source: `tools/blastp_campaign.py`.
-
-**`build_bgc_markers.py`** — Builds BGC marker sets for the BLASTp priority queue. Source: `tools/build_bgc_markers.py`.
-
-**`round_ledger.py`** — Tracks BLASTp round submissions and results for reproducibility. RID (Request ID) ledger that allows re-fetching results within the 24-hour RID lifetime. Source: `tools/round_ledger.py`.
-
-**`run_directed_pks_study.py`** — Directed PKS/NRPS study runner for focused BLASTp of megasynthase domains. Source: `tools/run_directed_pks_study.py`.
-
-**`edge_fasta_export.py`** — Exports FASTA files for Edge and Full-contig BGC proteins (priority for BLASTp when assembly is POOR/VERY_POOR). Source: `tools/edge_fasta_export.py`.
-
----
-
-## Section 6: Ecology and Regulatory Analysis
-
-**`build_chitinase_screen.py`** — Computes fragmentation-robust chitinase prevalence: `chit_per_unit = chitinase / (ectoine + NAPAA)`. Flags outliers (|z| > 1.3), marks `no_norm_ref` when denominator is absent. Source: `tools/build_chitinase_screen.py`.
-
-**`build_tfbs_profile.py`** — Builds the TFBS_Profile sheet: per-strain regulator-family counts + per-Mbp density, sorted by SARP density. Source: `tools/build_tfbs_profile.py`.
-
-**`mamey_habitat_map.py`** — Maps strains to their habitat classification (bee, wasp, moss, attine, marine, benchmark). Source: `tools/mamey_habitat_map.py`.
-
-**`topology_scan.py`** — Scans BGC gene topology (orientation, spacing, cluster compactness). Source: `tools/topology_scan.py`.
-
-**`build_causemap.py`** — Builds the causal map of habitat → chemistry → evidence chains. Source: `tools/build_causemap.py`.
-
-**`build_metabolomics_readiness.py`** — Per-strain metabolomics readiness scoring: predicted masses, extraction handles, detection windows. Source: `tools/build_metabolomics_readiness.py`.
-
-**`gene_topology.py`** — Per-gene topology analysis (synteny, orientation relative to BGC). Source: `tools/gene_topology.py`.
-
----
-
-## Section 7: Release and Quality Assurance
-
-**`make_public_tier.sh`** — Cuts the public tier (SID-public) from the MERGED-PRIVATE scaffold. Runs the full pytest suite in the staged tier, refuses to zip on any failure. Scrubs `__pycache__`, `*.pyc`, `.pytest_cache` before checksum+zip. Source: `tools/make_public_tier.sh`.
-
-**`sync_version.py`** — Synchronises version strings across all tracked files. `--check` validates consistency; `--apply` updates all files to the current version. **Critical:** regex must use `[a-z]*` suffix to handle letter-suffix versions (see ISSUES VERSYNC-1). Source: `tools/sync_version.py`.
-
-**`redact_public_tier.py`** — Scrubs AS-/AJS-/PENDING- strain IDs from a directory tree for public tier release. Idempotent (scrubbing already-scrubbed output produces no further changes). Source: `tools/redact_public_tier.py`.
-
-**`check_tier_parity.py`** — Verifies that all four release tiers have identical registry files, identical pytest pass rates, zero cache files, and zero AS-strain ID leaks. Required before tag/push. Source: `tools/check_tier_parity.py`.
-
-**`verify_release_identity.py`** — Verifies bundle identity: checksums, version strings, file manifest. Source: `tools/verify_release_identity.py`.
-
-**`verify_tier_derivation.py`** — Verifies that each tier was correctly derived from the scaffold (no extra files, no missing files, correct redactions). Source: `tools/verify_tier_derivation.py`.
-
-**`run_chatgpt_surrogate_gate.py`** — The surrogate gate: runs 22 pytest files and reports PASS/FAIL with timing. The fast pre-validation gate before full suite. Source: `tools/run_chatgpt_surrogate_gate.py`.
-
-**`release.sh`** — Full release script: runs tier parity check, surrogate gate, full pytest, builds tiers, computes checksums, emits the release manifest. Source: `tools/release.sh`.
-
-**`build_all_deliverables.sh`** — Builds the complete deliverable set for a strain from a sealed package. Source: `tools/build_all_deliverables.sh`.
-
-**`emit_release_sums.sh`** — Emits SHA-256 checksums for all release files. Source: `tools/emit_release_sums.sh`.
-
-**`log_release.py`** — Logs a release event to the release history. Source: `tools/log_release.py`.
-
-**`gen_release_manifest.py`** — Generates `RELEASE_MANIFEST.md` from the current bundle state. Source: `tools/gen_release_manifest.py`.
-
----
-
-## Section 8: Audit and Validation
-
-**`audit_public_cut.py`** — Audits a public-tier cut for AS-strain ID leaks, stale version strings, and disallowed content. Source: `tools/audit_public_cut.py`.
-
-**`audit_chatgpt_nextpaths_drift.py`** — Checks whether ChatGPT handback responses are correctly providing exactly 8 next-paths. Source: `tools/audit_chatgpt_nextpaths_drift.py`.
-
-**`bunny_hop_audit_game.py`** — Not a standalone script — the Bunny Hop game is documented in `docs/BUNNY_HOP_AUDIT_GAME.md` and triggered conversationally. Source: trigger phrase "bunny hop."
-
-**`evidence_conservation_audit.py`** — Audits the evidence conservation property: checks that every BGC in the input appears in every downstream output. Catches silent drops during merges or workbook builds. Source: `tools/evidence_conservation_audit.py`.
-
-**`compilation_gate.py`** — Gate that verifies the compiled report is complete before delivery. Source: `tools/compilation_gate.py`.
-
-**`session_checklist.py`** — Generates the per-session checklist for a strain analysis session. Source: `tools/session_checklist.py`.
-
-**`workflow_status.py`** — Reports the current workflow status for a strain (which W-steps are PASS/PENDING/BLOCKED). Source: `tools/workflow_status.py`.
-
-**`mamey_package_qa_v2.py`** — Package QA check v2: validates all required files, checksums, and schema compliance against the current frozen schema. Source: `tools/mamey_package_qa_v2.py`.
-
-**`check_antismash_profile.py`** — Validates an antiSMASH ZIP against the expected profile (version, JSON presence, KCB text present). Source: `tools/check_antismash_profile.py`.
-
-**`preflight_zip_hygiene.py`** — Pre-flight check for antiSMASH ZIPs: macOS resource forks, nested ZIPs, minimal file set. Source: `tools/preflight_zip_hygiene.py`.
-
-**`sapote_md_preflight.py`** — Pre-flight check for Sapote-authored Markdown files before PDF rendering: bare BGC IDs, double section breaks, overclaims, stale placeholders. Source: `tools/sapote_md_preflight.py`.
-
----
-
-## Section 9: Schema and Registry Management
-
-**`workflow_status.py`** — Reports A4_Completeness_Audit status for a master workbook. Source: tools directory.
-
-**`schema_deployed_audit.py`** — Compares the WORKBOOK_SCHEMA.md definition against the actual deployed columns in a master workbook. Reports MATCHED / MAPPED / SCHEMA-ONLY / DEPLOYED-ONLY per sheet. Source: `tools/schema_deployed_audit.py`.
-
-**`regen_modeb_contract_docs.py`** — Regenerates the Mode B contract documentation from `modeb_full30_corrective_contract.json`. `--check` enforces no drift between the JSON and derived docs in CI. Source: `tools/regen_modeb_contract_docs.py`.
-
-**`build_id_resolver.py`** — Builds the `node_citation_map.json` (BGC ID → NODE · region locator) for a package. Source: `tools/build_id_resolver.py`.
-
-**`locator_reconciliation.py`** — Reconciles BGC locators across multiple sessions/versions of the same package. Source: `tools/locator_reconciliation.py`.
-
-**`check_registry_ids_unique.py`** — Validates that all BGC IDs in the cassette/marker registry are unique. Source: `tools/check_registry_ids_unique.py`.
-
-**`check_schema_drift.py`** — Detects schema drift between the code and the deployed workbook. Source: `tools/check_schema_drift.py`.
-
-**`check_provenance_columns.py`** — Validates that all provenance/citation-ledger columns are correctly populated. Source: `tools/check_provenance_columns.py`.
-
-**`check_dangling_refs.py`** — Checks for references to BGC IDs or strain IDs that do not exist in the current package/workbook. Source: `tools/check_dangling_refs.py`.
-
-**`check_module_accretion.py`** — Tracks the history of when each mamey/ module was added. Prevents unintentional module removal between cuts. Source: `tools/check_module_accretion.py`.
-
-**`check_no_brace_paths.py`** — Validates that no `{variable}` brace-path expressions appear unresolved in generated deliverables. Source: `tools/check_no_brace_paths.py`.
-
-**`check_duplicate_dict_keys.py`** — Checks JSON files for duplicate keys (which Python's json.loads silently ignores, taking the last value). Source: `tools/check_duplicate_dict_keys.py`.
-
-**`check_chatgpt_next_paths.py`** — Validates that ChatGPT handback text includes exactly 8 next-paths. Source: `tools/check_chatgpt_next_paths.py`.
-
-**`gen_marker_catalog.py`** — Regenerates `docs/MARKER_CATALOG.generated.md` and `docs/MARKER_CATALOG.generated.json` from the live pattern tables in `mamey/source_scans.py`. `--check` verifies the on-disk catalog matches the live tables. Run in CI to prevent catalog drift. Source: `tools/gen_marker_catalog.py`.
-
-**`gen_tools_inventory.py`** — Generates a machine-readable inventory of all tools/ scripts. Source: `tools/gen_tools_inventory.py`.
-
-**`gen_user_catalog.py`** — Generates the user-facing catalog of available deliverables. Source: `tools/gen_user_catalog.py`.
-
----
-
-## Section 10: Data Export and Literature
-
-**`export_figure_ready.py`** — Exports the master workbook as tidy CSVs for downstream plotting. Produces `figure_ready/` folder: `strain_summary.csv`, `bgc_inventory.csv`, `bgc_class_long.csv`, `class_by_strain.csv`, `class_prevalence.csv`, `diagnostics_long.csv`, `cross_strain_findings.csv` + `DATA_DICTIONARY.md`. Column names and types are versioned with the bundle. Source: `tools/export_figure_ready.py`.
-
-**`build_deep_data.py`** — Extracts deep workbook sheet data (Gene_NRPS_PKS_Substrates, Gene_Active_Sites, Gene_RiPP_Cores, BGC_Class_Predictions) from banked packages. Tags `Source = GBK-offline` vs `bounded-json` per field. Reports `OFFLINE-LIMITED` for strains that need re-running for fine sheet data. Source: `tools/build_deep_data.py`.
-
-**`arts_ingest.py`** — Ingests ARTS (Antibiotic Resistance Target Seeker) output alongside Mamey packages. Source: `tools/arts_ingest.py`.
-
-**`hub_merge.py`** — Hub-level merge of multiple sub-project workbooks into a master project workbook. Source: `tools/hub_merge.py`.
-
-**`merge_workbooks.py`** — Merges two or more master workbooks without duplicating strains. Uses the `workbook_dedup.py` idempotent append mechanism. Source: `tools/merge_workbooks.py`.
-
-**`build_card_workbook.py`** — Builds a per-BGC analysis card workbook (one sheet per lead BGC). Source: `tools/build_card_workbook.py`.
-
-**`build_chat_export.py`** — Exports session chat history in a format suitable for archiving. Source: `tools/build_chat_export.py`.
-
----
-
-## Section 11: Specialist and Research Tools
-
-**`build_reconstruction.py`** — Fragment-rescue reconstruction builder: integrates RG-GMCI HIGH pairs into reconstructed cluster groups. Source: `tools/build_reconstruction.py`.
-
-**`fragment_concordance_scorer.py`** — Scores RG-GMCI fragment pair concordance using the subject-tiling criterion. Source: `tools/fragment_concordance_scorer.py`.
-
-**`run_efls_rewire.py`** — Runs the EFLS (Edge-Flank Linkage Scoring) rewire pass. Source: `tools/run_efls_rewire.py`.
-
-**`build_wetlab_matrix.py`** — Builds the Wet-Lab Decision Matrix deliverable. Source: `tools/build_wetlab_matrix.py`.
-
-**`build_modeb_deepdive.py`** — Batch Mode B deep-dive builder. Takes `--targets <ID>:BGC04,<ID>:BGC13` or reads from `cohort/modeb_verdicts.csv`. Source: `tools/build_modeb_deepdive.py`.
-
-**`run_comparator_antismash_ingest.py`** — Runs antiSMASH comparator ingest for benchmark/validation strains. Source: `tools/run_comparator_antismash_ingest.py`.
-
-**`backfill_reference_signatures.py`** — Backfills MIBiG reference signatures for BGCs that were processed before the reference index was complete. Source: `tools/backfill_reference_signatures.py`.
-
-**`seed_reference_library.py`** — Seeds the curated reference BGC library from MIBiG and validated accessions. Source: `tools/seed_reference_library.py`.
-
-**`build_first_pass_scans.py`** — Standalone first-pass scan runner (without running the full engine). Source: `tools/build_first_pass_scans.py`.
-
-**`reference_panel_ledger.py`** — Maintains the reference panel ledger (known-compound positive controls and their expected outputs). Source: `tools/reference_panel_ledger.py`.
-
-**`cluster_alignment.py`** — Aligns BGC protein sets across strains for comparative analysis. Source: `tools/cluster_alignment.py`.
-
-**`comparative_pairs.py`** → `mamey/comparative_pairs.py` — see module listing.
-
-**`build_finer_from_gbk.py`** — Extracts fine workbook sheet data (Gene_NRPS_PKS_Substrates, Gene_Active_Sites, BGC_Class_Predictions) directly from region GBKs without needing bounded-mode JSON. Source: `tools/build_finer_from_gbk.py`.
-
-**`reclass_discriminating_domains.json`** — Registry of domain combinations that discriminate between antiSMASH class calls (e.g., CDPS vs ent-CDPS, ranthipeptide vs mycofactocin). Read by `reclass_check.py`. Source: `tools/reclass_discriminating_domains.json`.
-
-**`gate_registry.tsv`** — Machine-readable registry of all pipeline gates with their descriptions, source modules, and test coverage status. Source: `tools/gate_registry.tsv`.
-
-**`test_synthetic_ids.txt`** — Synthetic strain ID list for testing the release guard (unpublished ID detection). Source: `tools/test_synthetic_ids.txt`.
-
----
-
-## Section 12: Document Generation
-
-**`md_to_docx.sh`** — Converts Markdown to DOCX via pandoc. Used for deliverable document generation. Source: `tools/md_to_docx.sh`.
-
-**`md_to_pdf.sh`** — Converts Markdown to PDF via pandoc + xelatex. The authorised PDF path — do not use wkhtmltopdf. Source: `tools/md_to_pdf.sh`.
-
-**`render_bootstrap_contract.py`** — Renders the bootstrap contract (session start document) for a new analysis chat. Source: `tools/render_bootstrap_contract.py`.
-
-**`build_chat_export.py`** — Archives session content in a structured format. Source: `tools/build_chat_export.py`.
-
----
-
-## Section 13: Validation Helpers
-
-**`assembly_qc_check.py`** — Assembly quality control check: GC%, N50, contig count, contamination flags. Standalone version of the assembly_sanity_check logic. Source: `tools/assembly_qc_check.py`.
-
-**`check_tier_parity.py`** — Cross-tier parity check. See Section 7. Source: `tools/check_tier_parity.py`.
-
-**`intake_harness.py`** — Test harness for the antiSMASH intake pipeline. Runs a batch of antiSMASH ZIPs through intake and validates outputs. Source: `tools/intake_harness.py`.
-
-**`reference_bgc_structural_validator.py`** — Exact-bound structural measurement of a locally curated reference-BGC panel. This deterministic operator tool reports locus size, feature counts, and scoped detector observations; it does not perform biological validation and does not emit one row per gene. Source: `tools/reference_bgc_structural_validator.py`.
-
-**`validate_timing_receipt_parity.py`** — Validates that run_phase_receipts.jsonl contains timing entries for every phase in the expected sequence. Source: `tools/validate_timing_receipt_parity.py`.
-
-**`encyclopedia_reground_check.py`** — Checks that the Encyclopedia (03_Technical_Manual_Encyclopedia.html) cross-references remain valid after source changes. Source: `tools/encyclopedia_reground_check.py`.
-
-**`SLIM_KERNEL_PATCHES_v1.9.7.md`** — Patch notes for the Slim Kernel → Execution Slice transition, v1.9.7 series. Source: `tools/SLIM_KERNEL_PATCHES_v1.9.7.md`.
-
----
-
-*Source: direct directory listing of `tools/` plus docstring extraction. 107 scripts inventoried. Compiled 2026-07-09 · bundle v9.7.241.*
+**Bundle v9.7.430 · Engine 1.9.164** — re-grounded 2026-09-14 (Eggplant lane).
+
+> **The per-script inventory that used to live here has been retired, not lost.**
+> It is now generated, not hand-maintained:
+>
+> | What you want | Where it lives now | How it stays current |
+> |---|---|---|
+> | Every script in `tools/` + its docstring | [`docs/TOOLS_INVENTORY.generated.md`](../TOOLS_INVENTORY.generated.md) — **359 tools** | `tools/gen_tools_inventory.py`; `--check` verifies sync |
+> | Every `mamey_run.py` subcommand | [`docs/COMMAND_CATALOG.generated.md`](../COMMAND_CATALOG.generated.md) — **115 commands** | `tools/gen_command_catalog.py`; `--check` fails the build when stale |
+> | External tools (antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes) | [`docs/EXTERNAL_TOOL_INVENTORY.md`](../EXTERNAL_TOOL_INVENTORY.md) | manual, versions + citations |
+>
+> **Why the change.** The inventory formerly in this file was compiled by hand on 2026-07-09 at
+> bundle v9.7.241 and listed **107 scripts**. `tools/` now contains **359**. A hand-maintained
+> copy of a machine-derivable list drifts silently and was already covering under a third of the
+> directory; the generated surfaces are gated by their own `--check` and cannot drift unnoticed.
+> Both were confirmed in sync at v9.7.430 before this edit.
+>
+> **Do not re-add a manual script list here.** Check the generated inventory *before* writing a
+> new tool, as its own header instructs.
+
+## What remains in this file
+
+Sections 14 onward: material a docstring generator cannot produce — real execution receipts,
+gate semantics, the card readiness state machine, and the toolchain notes. These are human
+observations about *behaviour*, not descriptions of *existence*.
 
 ---
 
 ## Section 14: Live Tools Verification — What Actually Runs
+
+> **Currency note (added 2026-09-14):** the verification receipts in this section were recorded
+> against **bundle v9.7.241 on 2026-07-09** and have **not** been re-executed since. They are
+> retained as a historical receipt of what ran at that version, not as a claim about v9.7.430.
+> Re-running this matrix is tracked as an open item; until then, treat the "Confirmed" column as
+> "confirmed at v9.7.241".
+
 
 *Commands verified to run successfully in bundle v9.7.241, 2026-07-09. All outputs are from real execution against the teicoplanin calibration package.*
 

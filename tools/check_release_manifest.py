@@ -205,29 +205,23 @@ def checksum_problems(root: pathlib.Path) -> tuple[list[str], dict[str, int]]:
     return problems, {"n_ok": n_ok, "n_bad": n_bad, "n_missing": n_missing}
 
 
-def check(root: pathlib.Path, quiet: bool = False) -> int:
-    # --- 1 + 2: checksums recompute, and every entry exists -------------------------------
-    problems, _stats = checksum_problems(root)
-    n_ok, n_bad, n_missing = _stats["n_ok"], _stats["n_bad"], _stats["n_missing"]
+def membership_problems(root: pathlib.Path) -> list[str]:
+    """Assertion 4 only: does TIER_MANIFEST's FILE LIST actually describe the tree?
 
-    # --- 3: TIER_MANIFEST stamp == BUILD_STAMP build ------------------------------------
+    v9.7.430 (release-integrity lane): lifted out of check() VERBATIM, for the same reason
+    checksum_problems was lifted at v9.7.409 - so verify_release_identity.py can surface this
+    verdict instead of being structurally blind to it. An UNLISTED file has no checksum entry, so
+    checksum_problems can never see it; only this check can, and it is exactly the half of the
+    v9.7.334 rev-b failure class (a manifest omitting 13 engine modules) that identity still
+    could not see.
+
+    Deliberately still SEPARATE from checksum_problems: this check legitimately reports drift on an
+    in-place working tree carrying run artifacts, which must not be conflated with a content
+    mismatch. The caller decides whether that is advisory (working tree) or fail-closed (cut time).
+    Returns problems and emits nothing; check() below is the emitting wrapper.
+    """
+    problems: list[str] = []
     tier = root / "TIER_MANIFEST.txt"
-    stamp = root / "BUILD_STAMP.txt"
-    tier_stamp = build_stamp = ""
-    if tier.is_file():
-        m = re.search(r"stamp=(\S+)", tier.read_text(encoding="utf-8", errors="ignore"))
-        tier_stamp = m.group(1) if m else ""
-    if stamp.is_file():
-        m = re.search(r"^build=(\S+)", stamp.read_text(encoding="utf-8", errors="ignore"), re.M)
-        build_stamp = m.group(1) if m else ""
-    if tier.is_file() and stamp.is_file():
-        if not tier_stamp:
-            problems.append("TIER_MANIFEST.txt has no stamp= field")
-        elif tier_stamp != build_stamp:
-            problems.append(f"TIER_MANIFEST stamp={tier_stamp} but BUILD_STAMP build={build_stamp} — "
-                            f"the bundle asserts two different builds, and verify_release_identity.py "
-                            f"reads only the latter")
-
     # --- 4: TIER_MANIFEST MEMBERSHIP (SEAL-01, v9.7.336) ---------------------------------
     # Checks 1-3 verify the checksum manifest and the stamp. Nothing verified that
     # TIER_MANIFEST's FILE LIST actually describes the tree — so a bundle could ship a manifest
@@ -276,6 +270,34 @@ def check(root: pathlib.Path, quiet: bool = False) -> int:
         if phantom:
             problems.append(f"TIER_MANIFEST names {len(phantom)} file(s) absent from the tree "
                             f"(first: {', '.join(phantom[:5])})")
+    return problems
+
+
+def check(root: pathlib.Path, quiet: bool = False) -> int:
+    # --- 1 + 2: checksums recompute, and every entry exists -------------------------------
+    problems, _stats = checksum_problems(root)
+    n_ok, n_bad, n_missing = _stats["n_ok"], _stats["n_bad"], _stats["n_missing"]
+
+    # --- 3: TIER_MANIFEST stamp == BUILD_STAMP build ------------------------------------
+    tier = root / "TIER_MANIFEST.txt"
+    stamp = root / "BUILD_STAMP.txt"
+    tier_stamp = build_stamp = ""
+    if tier.is_file():
+        m = re.search(r"stamp=(\S+)", tier.read_text(encoding="utf-8", errors="ignore"))
+        tier_stamp = m.group(1) if m else ""
+    if stamp.is_file():
+        m = re.search(r"^build=(\S+)", stamp.read_text(encoding="utf-8", errors="ignore"), re.M)
+        build_stamp = m.group(1) if m else ""
+    if tier.is_file() and stamp.is_file():
+        if not tier_stamp:
+            problems.append("TIER_MANIFEST.txt has no stamp= field")
+        elif tier_stamp != build_stamp:
+            problems.append(f"TIER_MANIFEST stamp={tier_stamp} but BUILD_STAMP build={build_stamp} — "
+                            f"the bundle asserts two different builds, and verify_release_identity.py "
+                            f"reads only the latter")
+
+    # --- 4: TIER_MANIFEST MEMBERSHIP (SEAL-01, v9.7.336) — body lifted to membership_problems().
+    problems.extend(membership_problems(root))
 
     if not quiet:
         emit(f"release manifest: {n_ok} verified | {n_bad} mismatched | {n_missing} missing | "

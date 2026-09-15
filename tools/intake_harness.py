@@ -74,6 +74,7 @@ except Exception:
     _HAVE_PSUTIL = False
 
 _SUFFIX = re.compile(r"(_loose|_copy)?(_GC[AF]_[0-9.]+)?(_ASM[0-9A-Za-z]+)?(_genomic)?(_1)?$")
+_UNSAFE_ID = re.compile(r"[^A-Za-z0-9._-]+")
 BENCH_FIXTURE = os.path.join(ROOT, "examples", "test_data", "smoke_antismash_small.zip")
 
 
@@ -90,6 +91,14 @@ def assembly_tag(fname: str) -> str | None:
     return m.group(1) if m else None
 
 
+def _safe_id(name: str) -> str:
+    """Normalize a derived label to the engine's safe strain-ID grammar."""
+    value = _UNSAFE_ID.sub("_", str(name)).strip("._-")
+    if not value or not value[0].isalnum():
+        value = "S_" + value
+    return value[:60]
+
+
 def assign_unique_names(zips):
     """clean_name strips assembly boilerplate, so multiple assemblies of one species collapse to the same
     base (e.g. four Melissospora_conviva_ASM#### -> 'Mconviva'), which would overwrite packages and collide
@@ -97,13 +106,24 @@ def assign_unique_names(zips):
     from collections import Counter
     bases = {zp: clean_name(zp) for zp in zips}
     counts = Counter(bases.values())
-    out = {}
+    proposed = {}
     for i, (zp, b) in enumerate(bases.items()):
         if counts[b] > 1:
             tag = assembly_tag(zp) or f"v{i+1}"
-            out[zp] = f"{b}_{tag}"[:60]
+            proposed[zp] = _safe_id(f"{b}_{tag}")
         else:
-            out[zp] = b
+            proposed[zp] = _safe_id(b)
+    # Sanitization can merge distinct labels. Resolve that collision here, before
+    # any output directory or registry key is created.
+    out, used = {}, set()
+    for zp, base in proposed.items():
+        candidate, n = base, 2
+        while candidate in used:
+            suffix = f"_{n}"
+            candidate = base[:60-len(suffix)] + suffix
+            n += 1
+        used.add(candidate)
+        out[zp] = candidate
     return out
 
 
@@ -357,6 +377,14 @@ def main():
         rc, wall, mem, log = run_monitored(
             [sys.executable, "-m", "mamey", "run", "--input-zip", izip, "--strain", name,
              "--taxonomy", org or "sp.", "--source", a.source, "--mode", a.mode,
+             # v9.7.431: --release was PARSED and used for the private-name guard and the registry
+             # TSV row, but never FORWARDED here -- so the engine fell back to its own strain-ID
+             # derivation (dedup_and_guard.derive_release) and the package could disagree with the
+             # registry row written from the same variable. Unrecognized-shape reference strains
+             # derive PRIVATE, so an operator's explicit --release PUBLIC was silently dropped.
+             # The engine still refuses an unsafe PUBLIC override (resolve_release's private guard
+             # is not operator-bypassable), so forwarding cannot widen exposure.
+             "--release", a.release,
              "--json-evidence", "bounded", "--brief", "none", "--outdir", a.outdir], env=env)
         pkg = os.path.join(a.outdir, name, "package")
         if rc != 0 or not os.path.isdir(pkg):

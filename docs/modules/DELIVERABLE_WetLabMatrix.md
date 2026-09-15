@@ -133,7 +133,7 @@ Registration into the workbook schema (not hand-editing) is the single source of
 - [ ] Contig-ID locator on every BGC (`BGC_ID (contig · regionXXX)`) — never a bare `BGC###`.
 - [ ] Bioactivity terms held at **extract level**; no BGC→activity causal claim.
 - [ ] No retired codenames; affiliation = .
-- [ ] Closes with exactly 8 unique plain-text numbered next-paths.
+- [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
 
 ---
 
