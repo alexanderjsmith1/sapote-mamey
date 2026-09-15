@@ -1,6 +1,6 @@
 # External tool & database inventory
 
-**Bundle v9.7.431 · engine Mamey 1.9.165 · compiled 2026-09-14**
+**Bundle v9.7.432 · engine Mamey 1.9.166 · compiled 2026-09-15**
 
 The external bioinformatics tools and reference databases the Sapote-Mamey workflow
 depends on, with the version of record, the run-defining parameters, and a
@@ -26,7 +26,7 @@ establish which version produced an older result.
 |---|---|---|---|---|---|
 | 1 | Assembly | **SPAdes** (via Galaxy / usegalaxy.org) | 4.2.0 (confirmed for AS-XXX; confirm per strain from its Galaxy history) | `--isolate --cov-cutoff off`, error-correction off, k=21,33,55,77 | Prjibelski 2020, *Curr Protoc Bioinformatics* 70:e102; Galaxy Community 2024, *NAR* 52(W1):W83–W94, 10.1093/nar/gkae410 |
 | 2 | BGC detection | **antiSMASH** | 8.0.4 (core cohort) | `--taxon bacteria`, detection strictness = **loose**; KnownClusterBlast + ClusterBlast + Pfam-domain + RRE-finder enabled (schema 4) | Blin 2023 (antiSMASH 7), plus the antiSMASH 8 paper of record — cite the version actually run |
-| 3 | Extraction + triage | **Sapote-Mamey (Mamey)** | engine 1.9.142 / bundle 9.7.400 (verified: the sealed 45-package AS estate, uniform by filename stamp; per-package stamp is authoritative) | `run --mode gold` | historical package snapshot; inspect the actual package manifest |
+| 3 | Extraction + triage | **Sapote-Mamey (Mamey)** | engine 1.9.163 / bundle 9.7.428 (verified 2026-09-15: all **42** AS packages in the sealed package store (`<store>/AS-*/package/manifest.json`) carry `workflow_version: Mamey v1.9.163` + `bundle_version: 9.7.428`, uniform, read from the manifests themselves — not filename stamps; per-package stamp remains authoritative) | `run --mode gold` | historical package snapshot; inspect the actual package manifest |
 | 4a | Homology — curated, local | **BLAST+ `blastp`** vs Swiss-Prot | record successful `blastp -version` / `blastn -version` for the run | default protein search | Camacho 2009, *BMC Bioinformatics* 10:421 |
 | 4b | Homology — comprehensive, remote | **NCBI BLAST (web)** vs **nr** | web service (nr is rolling/unversioned) | record per-run access date | Sayers 2024 (NCBI resources) |
 | 4c | Homology — curated, remote | **EBI Job Dispatcher** vs **UniProtKB** | remote service (UniProtKB release not locally stamped — record access date) | default | Madeira 2024, *NAR* 52(W1):W521–W525, 10.1093/nar/gkae241 |

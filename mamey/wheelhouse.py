@@ -37,29 +37,60 @@ def _load_json(path: Path):
         return json.load(fh)
 
 
-def resolve_hmm_database(bundle_root: Path | None = None) -> dict:
-    """Locate the best available Pfam HMM database across the three reference tiers, per the
-    scanner three-tier model. Prefers the larger 148-family set (addon) when present, falls
-    back to the 35-family core (bundle Wheelhouse). Returns {path, n_models_hint, tier, reason}.
-    The engine degrades gracefully to whatever is present.
+_HMM_FILENAMES = (("scanner_pfam_150.hmm", 148), ("scanner_pfam.hmm", 35))
 
-    Tiers:
-      1. bundle Wheelhouse/hmm/scanner_pfam.hmm      — 35 core models (always in the bundle)
-      2. addon sapote_addons/hmm/scanner_pfam_150.hmm — 148 empirical families (heavy, in the addon)
+
+def _default_bundle_root() -> Path:
+    return Path(__file__).resolve().parent.parent
+
+
+def _hmm_in_dir(dirpath: str | os.PathLike) -> tuple[str, int] | None:
+    """First scanner HMM file found in an operator-provisioned directory (148 preferred), or None."""
+    d = Path(dirpath).expanduser()
+    for name, n in _HMM_FILENAMES:
+        p = d / name
+        if p.is_file():
+            return str(p.resolve()), n
+    return None
+
+
+def resolve_hmm_database(bundle_root: Path | None = None) -> dict:
+    """Locate the best available Pfam HMM database. Returns {path, n_models_hint, tier, reason};
+    `tier == "none"` (path None) when nothing is found. The engine degrades gracefully to
+    whatever is present. Prefers the larger 148-family set over the 35-family core within a tier.
+
+    Precedence (first hit wins; v9.7.432 added the two directory env vars so this resolver and
+    `mamey doctor` — which reports the `hmm` dataset via external_data.resolve("hmm"), itself a
+    thin wrapper over this function — can never disagree about provisioning):
+      1. SM_HMM_DB          — explicit FILE path (wins over everything when set and present)
+      2. MAMEY_HMM_DIR      — operator DIRECTORY holding scanner_pfam_150.hmm or scanner_pfam.hmm
+      3. $MAMEY_DATA_ROOT/hmm — the one-root convention, same filenames
+      4. bundle-local Wheelhouse/hmm/scanner_pfam_150.hmm (a bundle carrying its own 148 set)
+      5. addon sapote_addons/hmm/scanner_pfam_150.hmm (documented side-by-side layout)
+      6. bundle-local Wheelhouse/hmm/scanner_pfam.hmm — 35-model core (not shipped in the public tier)
     """
     if bundle_root is None:
-        bundle_root = Path(__file__).resolve().parent.parent
+        bundle_root = _default_bundle_root()
     here = Path(bundle_root).resolve()
-    # An explicit override wins (set when the addon lives somewhere non-standard).
+    # 1. An explicit file override wins (set when the addon lives somewhere non-standard).
     env = os.environ.get("SM_HMM_DB")
     if env and os.path.exists(env):
         n = 148 if "150" in os.path.basename(env) else 35
         return {"path": env, "n_models_hint": n, "tier": "env-override", "reason": f"SM_HMM_DB={env}"}
-    # Resolution order (predictable, self-contained-bundle-first):
-    #   1. SM_HMM_DB env override
-    #   2. bundle-local 148 (a bundle carrying its own large set is authoritative)
-    #   3. addon 148 (documented side-by-side layout)
-    #   4. bundle-local 35 core (always shipped)
+    # 2./3. Operator-provisioned directories (the external_data.py contract for the `hmm` dataset).
+    env_dir = os.environ.get("MAMEY_HMM_DIR")
+    if env_dir:
+        hit = _hmm_in_dir(env_dir)
+        if hit:
+            return {"path": hit[0], "n_models_hint": hit[1], "tier": "env-dir",
+                    "reason": f"MAMEY_HMM_DIR={env_dir}"}
+    data_root = os.environ.get("MAMEY_DATA_ROOT")
+    if data_root:
+        hit = _hmm_in_dir(Path(data_root) / "hmm")
+        if hit:
+            return {"path": hit[0], "n_models_hint": hit[1], "tier": "env-dir",
+                    "reason": f"MAMEY_DATA_ROOT={data_root} (hmm/ subdir)"}
+    # 4.-6. In-tree tiers (predictable, self-contained-bundle-first).
     p = here / "Wheelhouse" / "hmm" / "scanner_pfam_150.hmm"
     if p.exists():
         return {"path": str(p.resolve()), "n_models_hint": 148, "tier": "wheelhouse-148",
@@ -90,7 +121,8 @@ def resolve_hmm_database(bundle_root: Path | None = None) -> dict:
         return {"path": str(p.resolve()), "n_models_hint": 35, "tier": "wheelhouse-35",
                 "reason": "using wheelhouse-35 core HMM database"}
     return {"path": None, "n_models_hint": 0, "tier": "none",
-            "reason": "no Pfam HMM database found (attach the addon or check Wheelhouse/hmm/)"}
+            "reason": "no Pfam HMM database found (set SM_HMM_DB or MAMEY_HMM_DIR, attach the addon, "
+                      "or check Wheelhouse/hmm/)"}
 
 
 def wheelhouse_command(args) -> int:

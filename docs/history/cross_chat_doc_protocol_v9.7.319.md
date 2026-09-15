@@ -1,3 +1,5 @@
+> Historical record (bundle v9.7.319). Not current operating instructions; kept for provenance.
+
 # Sapote–Mamey Documentation Protocol
 ## Instructions for Contributing Claude Instances
 **Bundle v9.7.319 · Engine 1.9.111**

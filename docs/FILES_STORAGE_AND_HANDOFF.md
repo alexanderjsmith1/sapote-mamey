@@ -1,50 +1,88 @@
 # Files, storage and handoff
 
-A run produces a collection of evidence, not one self-contained spreadsheet. Keep the collection understandable without creating a new top-level folder system: use your existing project location and record the paths in a checkpoint.
+A run produces a folder of evidence, not one spreadsheet. Keep that folder together, keep the
+original input beside it, and write down where both are.
 
-## Know which object you have
+## What each file is for
 
-| Object | Purpose | Keep or regenerate? |
+| File or folder | What it is | Keep it? |
 |---|---|---|
-| Original code ZIP or source revision | Identifies the program used | Keep the exact source/revision and candidate patch chain |
-| Original antiSMASH result ZIP | Upstream evidence for reparsing and new analyses | Keep unchanged, with hash and provenance |
-| Genome FASTA / reference inputs | May support separately requested workflows | Keep when used; the extraction package is not guaranteed to contain them |
-| Expanded `package/` directory | Working view of the delivered evidence | Preserve as a coherent unit |
-| `Complete_Package.zip` | Portable archive created by the run | Verify its actual contents and hash; it may precede later additions |
-| `manifest.json` | Package index, metadata and status | Keep within the package; not a replacement for indexed files |
-| CSV evidence and workbook | Tables used for review | Preserve originals; annotate a separate review copy |
-| PDFs, PNGs and figure sidecars | Presentations of selected evidence | Some can be regenerated, but need source, configuration and renderer version |
-| Logs, phase/validation receipts | Explain what ran and what failed | Keep with the attempt, including failures |
-| Authored cards, notes and transcripts | Interpretation and decision history | Preserve with scope and coverage; they may live outside the extraction ZIP |
-| Python environment and caches | Machine-specific runtime support | Recreate from a dependency record; do not treat as portable research evidence |
+| The code ZIP or git revision you ran | Identifies the program version | Yes. Note the version and hash. |
+| The original antiSMASH result ZIP | The upstream evidence. Every later step reads from it. | Yes, unchanged. Record its SHA-256. |
+| Genome FASTA and other reference inputs | Needed for companion workflows (BLAST, trees, ANI) | Yes, if you used them. The package does not contain them. |
+| `runs/<ID>/package/` | The delivered evidence, expanded | Yes, as one unit. Do not pick files out of it. |
+| `Complete_Package.zip` | The same package, zipped by the run | Yes. It is made at seal time, so anything authored later is not inside it. |
+| `manifest.json` | Index of the package: versions, counts, status | Yes, inside the package. |
+| CSV tables and the workbook | The evidence tables you review | Yes. Annotate a copy, not the original. |
+| PDFs, PNGs and figure sidecars | Renderings of selected evidence | Regenerable from the package with the same renderer version. Keep them anyway; re-rendering is slow. |
+| Logs and phase or validation receipts | What ran, what failed, how long it took | Yes, including failed attempts. |
+| Authored cards, notes, transcripts | Your interpretation | Yes. These usually live outside the package. |
+| The Python environment and caches | Machine-specific | No. Recreate from the dependency record. |
 
-Do not delete a file simply because it is absent from this table. Specialized workflows add artifacts with their own contracts. Some files are intentionally mutable after sealing. Check the manifest and the producing workflow before deciding what is redundant.
+A file missing from this table is not therefore disposable. Check `manifest.json` and the
+workflow that wrote it before deleting anything.
 
 ## Open a saved run without rerunning it
 
-1. Find the complete saved ZIP and its checkpoint. Retain the original archive, then extract it to a chosen review folder.
-2. Open `OPEN_ME_FIRST.html` if present; use the file browser if the browser blocks local links. Then read `manifest.json`, the issue log, workbook and triage table as described in [Reading your results](READING_YOUR_RESULTS.md).
-3. Record the program version and input hash. Use the compatible source environment for `validate` and `explain`, and retain their new receipts in the review record. These commands can write validation-related artifacts; they are not guaranteed to leave every package byte unchanged.
-4. Locate later authored work separately. A ZIP made before that work cannot contain it. Confirm membership, not just a reassuring filename.
+1. Find the ZIP and its checkpoint. Keep the ZIP; extract a copy into a review folder.
+2. Open `OPEN_ME_FIRST.html` if it is there. If the browser blocks local links, use the file browser.
+   Then read `manifest.json`, the issue log, the workbook and the triage table. See
+   [Reading your results](READING_YOUR_RESULTS.md).
+3. Note the program version and the input hash from the manifest.
+4. Run `validate` and `explain` with the same program version. Both may add receipt files to the
+   package. Keep those receipts.
+5. Anything authored after the ZIP was sealed is not in it. Look for it separately and confirm
+   by opening the file, not by trusting a filename.
 
-## Move a result to another laptop
+## Move a result to another computer
 
-Choose a destination inside that laptop's existing project layout. Copy the complete archive plus any later authored work, checkpoint and required external-input references. Compare SHA-256 before and after transfer. On macOS/Linux, `shasum -a 256 '/path/to/archive.zip'` prints a content fingerprint. Matching hashes show matching bytes; they do not certify the biological analysis.
+Copy the ZIP, the checkpoint, any authored work, and the original antiSMASH input. Compare the
+SHA-256 on both machines:
 
-Extract into a fresh directory. Recreate a compatible Python environment if execution is needed; reading a PDF or CSV does not require installing every companion tool. Run the compatible validator and inspect issues. Absolute source-machine paths in historical receipts will not automatically point to files on the receiving laptop. Record the new locations in the handoff without rewriting original provenance.
+```bash
+shasum -a 256 '/path/to/archive.zip'
+```
 
-For patch transfer, a review ZIP contains candidate patches and docs, not necessarily the analysis datasets. Apply only missing patches in order on a separate source copy; preserve the original checkout. Do not mix code installation with data extraction.
+Matching hashes mean the bytes are identical. They say nothing about whether the analysis is right.
 
-## Why storage grows
+On the new machine, extract into a fresh folder. Absolute paths in old receipts point at the old
+machine and will not resolve; record the new locations in your checkpoint without editing the
+old receipts. Reading a PDF or CSV needs no Python. Running `validate` or anything else needs a
+compatible environment; see [INSTALL.md](INSTALL.md).
 
-A run can retain an expanded package and a compressed copy; detailed figures add many files. In Round 3, nine corrected standard-brief/locus-map runs produced **5,539 package files, 1,212,092,351 bytes** before counting their separate ZIPs and logs. The entire Round 3 scratch area, including broader attempts and runtime support, occupied approximately **4.76 GB across 18,463 files** at handoff. Those are observed settings-specific costs, not universal per-strain predictions.
+A patch ZIP contains code and docs, not analysis data. Apply it to a separate copy of the source
+and keep the original checkout.
 
-Start with explicit `--brief none --locus-maps off` when those presentations are not needed. This limits optional rendering; it does not promise a tiny package or stop required evidence output. Announce the intended file groups before a run and count them afterward.
+## Why the output is large
 
-## Archive without losing the record
+One run keeps both the expanded package and its ZIP, so the package exists twice on disk. The
+standard brief and the locus maps add one figure file set per BGC. On a strain with dozens of
+BGCs that is hundreds of files and over a hundred megabytes per run. Nine such runs can pass a
+gigabyte before their ZIPs and logs are counted.
 
-Before moving files to a chosen external disk or iCloud destination, list the proposed files, total size and what will remain locally. Copy first, verify hashes and readability, and update the location index. Removal of the originals is a separate decision. An external drive can be disconnected and cloud files may be downloaded only on demand; check availability before starting a dependent analysis. No automatic archival or deletion is installed by this guide.
+If you do not need the brief or the locus maps, turn them off:
 
-## A useful checkpoint
+```bash
+python mamey_run.py run ... --brief none --locus-maps off
+```
 
-Record the objective; input/source hashes and versions; exact output locations; completed and failed stages; selected settings; unresolved evidence; next action; transcript coverage; and file counts/bytes. Keep a transcript distinct from a summary. If an assistant cannot export a complete transcript, state which turns or exports are missing. See [the shared save-state policy](ASSISTANT_USER_GUIDE.md#next-paths-automatic-save-state-and-transcripts).
+`--capped-session` already sets both. This removes optional rendering only. The evidence tables
+and the workbook are always written.
+
+## Archive to an external disk or iCloud
+
+1. List what will move, its total size, and what stays local.
+2. Copy. Verify the hashes and open one file from the copy.
+3. Update your location index.
+4. Only then decide, separately, whether to delete the local original.
+
+External disks get unplugged and cloud files may be placeholders until downloaded. Check that the
+files are actually present before starting an analysis that depends on them. Nothing in this
+program archives or deletes anything on its own.
+
+## What a checkpoint records
+
+Objective; input and code hashes and versions; exact output paths; which stages completed and
+which failed; the settings used; unresolved evidence; the next action; and, if an assistant
+kept a transcript, which turns it covers. A transcript is not a summary; keep both. See
+[the shared save-state policy](ASSISTANT_USER_GUIDE.md#next-paths-automatic-save-state-and-transcripts).

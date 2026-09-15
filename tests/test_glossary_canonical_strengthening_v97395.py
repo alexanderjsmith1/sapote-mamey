@@ -84,7 +84,7 @@ def test_glossary_cross_document_links_resolve():
 
 
 def test_historical_documentation_protocol_routes_terms_to_canonical_glossary():
-    protocol = _text(ROOT / "docs" / "user_guides" / "cross_chat_doc_protocol.md")
+    protocol = _text(ROOT / "docs" / "history" / "cross_chat_doc_protocol_v9.7.319.md")
     assert "SUPERSEDED ROUTING NOTICE" in protocol
     assert "A new or corrected reader-facing term | `../GLOSSARY.md`" in protocol
     assert "do not update the superseded wheel snapshot" in protocol

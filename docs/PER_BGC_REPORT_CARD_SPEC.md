@@ -63,7 +63,7 @@ Two distinct questions; the pipeline is currently strong on the first, weak on t
 | **NP Atlas (structure)** | is the *predicted structure* near a known NP? | KNOWN | ⚠️ present but **name-keyed only**; no RDKit/Tanimoto → add SMILES→Tanimoto (rdkit now available) |
 | **BiG-SCAPE vs MIBiG** | which known family / GCF | KNOWN | ❌ external — integrate |
 | **antiSMASH ClusterBlast (all-GenBank)** | similar to *uncharacterised* clusters in other genomes | NOVEL | ⚠️ ingested but used **only for RGGMCI** (57 refs, mostly `rggmci.py`) → surface as a novelty axis: "N hits to prediction-only clusters, 0 to MIBiG = conserved-but-cryptic" |
-| **per-gene BLASTp → nr** | closest relatives + are they characterised? | NOVEL | ✅ works (this session: giant NRPS → uncharacterised *Nocardia*); systematize once Patch B fixed |
+| **per-gene BLASTp → nr** | closest relatives + are they characterised? | NOVEL | ✅ works (observed on one run: a giant NRPS whose closest relatives were uncharacterised *Nocardia* proteins); systematize once Patch B fixed |
 | **BiG-FAM / BiG-SLICE** | how novel vs *all sequenced* bacteria (GCF membership) | NOVEL | ❌ external — **highest-value integration**; quantifies novelty against the whole universe, not the MIBiG sliver |
 | **ARTS** | is it likely bioactive *and* novel (resistance-guided) | NOVEL+activity | ❌ external — integrate; strong prioritiser |
 | **BiG-SCAPE on cohort + refs** | cohort-conserved-but-MIBiG-absent families | NOVEL (cohort) | ❌ external — integrate for the cohort view |

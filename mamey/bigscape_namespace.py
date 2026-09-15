@@ -73,6 +73,14 @@ def strain_from_gbk_name(name: str) -> str:
         return "MIBiG"
     m = _STRAIN_ID.match(b)
     if m:
+        # v9.7.432 (EGGPLANT_432_bigscape_variant_overmerge, cross-checked by a second lane): a variant
+        # suffix between the strain prefix and the SPAdes contig token (`<strain>_second_NODE_10_…`)
+        # used to be discarded, merging a second assembly into the canonical strain. Over-merging is
+        # not recoverable by inspection, so the variant is now its own visible id (`<strain>_second`).
+        # `<strain>_NODE_…` has nothing between prefix and `_NODE_` and resolves exactly as before.
+        node = re.search(r"_NODE_", b, re.I)
+        if node and node.start() > m.end() - 1:
+            return b[:node.start()]
         return m.group(1)
     # Preserve portable strain prefixes across multiple SPAdes contigs.
     generic = re.match(r"^([A-Za-z0-9-]+)_NODE_", b, re.I)

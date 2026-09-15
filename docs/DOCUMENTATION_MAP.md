@@ -19,6 +19,6 @@ START_HERE and HOW_TO_USE are routing pages. WORKFLOW_GUIDE explains stage bound
 
 Historical version numbers in a title do not by themselves prove a document is obsolete: some named contracts remain referenced by current code. Check inbound references and ownership before moving or deleting one. Generated command/capability catalogs should be refreshed through their generator during the appropriate maintenance step, not edited as prose to manufacture agreement.
 
-## Maintenance decisions in Round 4
+## Maintenance rules
 
-No bulk moves or deletions were made. Misleading onboarding text was replaced in place, and the older worked example received an explicit historical notice. The review package contains a file-by-file proposed classification and exact duplicate-content groups. Classification is navigation triage, not a claim that every scientific statement was independently validated. Specialist scientific and historical claims still need scoped reviews against their implementations and evidence.
+Do not bulk-move or delete documents. Replace misleading onboarding text in place. Mark an older worked example with an explicit historical notice rather than deleting it. Classification is navigation triage, not a claim that every scientific statement was independently validated. Specialist scientific and historical claims need scoped reviews against their implementations and evidence.

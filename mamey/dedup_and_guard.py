@@ -27,7 +27,7 @@ AJS_PATTERN     = re.compile(r'\bAJS-?\d+\b')   # v9.7.409 (BC hostile audit H1)
 PENDING_PATTERN = re.compile(r'\bPENDING\b', re.I)
 PUBLIC_PATTERN  = re.compile(r'^(SID\d+|PSEUDO|AGLAU|ACITR|AGRAE|MHUMI|SPHIL|SCLAV|SDROZ)$')
 
-def derive_release(strain, private_registry=frozenset(), published_registry=frozenset()):
+def derive_release(strain, private_registry=frozenset(), published_registry=None):
     """Fail-safe to PRIVATE. PUBLIC only if a known-cleared shape AND no private guard trips.
 
     v9.7.236 (PI decision): AS-series is PUBLIC as of the 2026 Hymenoptera paper — same basis as the
@@ -38,8 +38,12 @@ def derive_release(strain, private_registry=frozenset(), published_registry=froz
     tell a *published* AS strain (in the 2026 Hymenoptera set) from one that is unpublished on PI word
     only (e.g. AS-XXX: no deposited 16S, not in the n=181 accession table). When an explicit
     `published_registry` is supplied, only AS strains listed in it stay PUBLIC; any other AS strain
-    fails safe to PRIVATE. `published_registry` empty (the default) preserves the v9.7.236 behavior
-    exactly, so no run changes unless an operator opts in with an explicit, auditable allowlist.
+    fails safe to PRIVATE. (v9.7.432) the roster is keyed on *configured vs not*,
+    NOT on truthiness. `None` (the default) means NOT CONFIGURED and preserves v9.7.236 exactly, so
+    no existing run changes. Any supplied set -- INCLUDING AN EMPTY ONE -- means CONFIGURED, and an
+    AS strain absent from it is PRIVATE. That is what lets an operator express "nothing in the
+    cohort is published yet" (owner ruling 2026-09-15). Previously an empty roster was falsy and
+    returned PUBLIC, so the mechanism failed OPEN against this function's own fail-safe contract.
     AJS-/PENDING-/private_registry remain unconditionally PRIVATE regardless of the allowlist."""
     s = str(strain)
     if (AJS_PATTERN.search(s) or PENDING_PATTERN.search(s)
@@ -50,7 +54,7 @@ def derive_release(strain, private_registry=frozenset(), published_registry=froz
     if AS_PATTERN.search(s):
         # AS-series PUBLIC by the v9.7.236 PI decision; an explicit published_registry narrows PUBLIC
         # to the enumerated published set so an unpublished AS strain cannot ride the blanket rule.
-        if published_registry and s not in published_registry:
+        if published_registry is not None and s not in published_registry:
             return "PRIVATE"
         return "PUBLIC"
     return "PRIVATE"   # unrecognized -> never leak
@@ -62,7 +66,7 @@ def _trips_private_guard(strain, private_registry=frozenset()):
                 or s in private_registry)
 
 
-def resolve_release(strain, override=None, private_registry=frozenset(), published_registry=frozenset()):
+def resolve_release(strain, override=None, private_registry=frozenset(), published_registry=None):
     """Release tag with an optional operator override (the `--release` flag).
 
     Fail-safe default (override=None) is derive_release. An operator may assert PUBLIC on an UNRECOGNIZED
@@ -73,7 +77,9 @@ def resolve_release(strain, override=None, private_registry=frozenset(), publish
 
     v9.7.331: when an explicit `published_registry` is supplied, a PUBLIC override is ALSO refused for an
     AS strain not enumerated in it — the operator cannot blanket-force an unpublished AS strain public.
-    With the default empty registry this branch never trips, so existing override behavior is unchanged.
+    v9.7.432: `None` (the default) means NOT CONFIGURED and leaves override behavior unchanged; any
+    supplied set -- including an empty one -- arms the refusal, so an operator cannot force PUBLIC on
+    an AS strain once the roster declares nothing published.
     """
     if override is None:
         return derive_release(strain, private_registry, published_registry), False
@@ -83,7 +89,8 @@ def resolve_release(strain, override=None, private_registry=frozenset(), publish
     if o == "PUBLIC":
         if _trips_private_guard(strain, private_registry):
             return "PRIVATE", True   # guard wins; operator cannot force a private-identifier strain public
-        if published_registry and AS_PATTERN.search(str(strain)) and str(strain) not in published_registry:
+        if (published_registry is not None and AS_PATTERN.search(str(strain))
+                and str(strain) not in published_registry):
             return "PRIVATE", True   # unpublished AS strain: not in the enumerated published allowlist
         return "PUBLIC", False
     # unknown override value -> ignore, fall back to derived (fail-safe)

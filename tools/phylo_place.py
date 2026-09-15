@@ -534,6 +534,24 @@ def _load_reference_identity_metadata(path, fasta_tips):
     return rows
 
 
+def _split_merged_deflines(recs):
+    """Split any header carrying several '>'-joined definitions (the BLAST-DB multi-defline shape).
+
+    Returns (records with single-definition headers, [(trailing_definition, kept_header), ...]).
+    The sequence stays with the FIRST definition; trailing definitions carry no sequence of their
+    own and are handed back so the caller can report them instead of re-emitting them."""
+    out, merged = [], []
+    for h, s in recs:
+        if ">" in h:
+            parts = [p.strip() for p in re.split(r"\s*>\s*", h) if p.strip()]
+            if not parts:
+                raise ValueError("REFERENCE_HEADER_EMPTY_AFTER_DEFLINE_SPLIT")
+            h = parts[0]
+            merged.extend((extra, h) for extra in parts[1:])
+        out.append((h, s))
+    return out, merged
+
+
 def _dedup_reference(src, dst, report_path, one_per_species=False, one_per_genus=False,
                      strain_aliases=DEFAULT_STRAIN_ALIAS_REGISTRY, reference_metadata=""):
     """Collapse redundant reference entries BEFORE tree inference. Returns (n_kept, n_dropped).
@@ -552,6 +570,15 @@ def _dedup_reference(src, dst, report_path, one_per_species=False, one_per_genus
         raise ValueError("REFERENCE_DENSITY_MODES_CONFLICT")
     alias_registry = _load_strain_alias_registry(strain_aliases)
     recs = _read_fasta_pairs(src)
+    # TREES_432 (Amycolatopsis refpkg, two headers on one line): a BLAST DB stores ONE sequence that
+    # was deposited under several accessions as one entry with several deflines joined by " >", and
+    # `blastdbcmd -entry` prints them on a single header line (verified 2026-09-15 on the local
+    # ncbi_16S_RefSeq DB: NR_109504.1 / NR_118259.1, both Amycolatopsis dongchuanensis YIM 75904).
+    # A harvester that copies that line verbatim hands this writer a header containing '>'; the old
+    # writer re-emitted it, producing a record the admission gate then refuses. Keep the FIRST
+    # definition as the record's header and record every trailing definition in the report as a
+    # dropped merged-defline row (its sequence is the kept record's — it was never a second read).
+    recs, merged_deflines = _split_merged_deflines(recs)
     identities = _load_reference_identity_metadata(
         reference_metadata, [header.split()[0] for header, _seq in recs])
     info = []
@@ -594,9 +621,27 @@ def _dedup_reference(src, dst, report_path, one_per_species=False, one_per_genus
         _collapse(info, lambda r: _genus_key(r["h"]) if r["action"] == "kept" else None,
                   "dropped:one-per-genus")
 
+    # Trailing definitions from a merged defline: reported, never emitted, never a collapse key.
+    by_header = {r["h"]: r for r in info}
+    for extra, kept_h in merged_deflines:
+        rep = by_header.get(kept_h)
+        same_strain = bool(rep) and (rep["sp"], rep["strain"]) == (_species_key(extra), _strain_key(extra)) \
+            and bool(rep["strain"])
+        if not same_strain:
+            sys.stdout.write((f"[build-ref] WARN merged defline is NOT provably the same strain as its "
+                              f"kept record — review: {extra[:90]}  (kept: {kept_h[:60]})") + "\n")
+        info.append({"h": extra, "seq": "", "len": 0, "md5": "",
+                     "sp": _species_key(extra), "strain": _strain_key(extra),
+                     "acc": _accession(extra).upper().split(".", 1)[0], "alias_group": "",
+                     "action": ("dropped:merged-defline-same-strain" if same_strain
+                                else "dropped:merged-defline-unresolved"),
+                     "rep": kept_h})
+
     kept = [r for r in info if r["action"] == "kept"]
     with open(dst, "w") as out:
         for r in kept:
+            if ">" in r["h"]:
+                raise ValueError("REFERENCE_HEADER_MULTIPLE_DEFINITIONS:" + r["h"][:100])
             out.write(f">{r['h']}\n{r['seq']}\n")
     with open(report_path, "w") as rep:
         rep.write("action\tspecies\tstrain\taccession\tstrain_alias_group\tlen\tmd5\theader\trepresentative\n")
@@ -853,6 +898,14 @@ def cmd_build_ref(a):
     if getattr(a, "add_outgroup", ""):
         if prot:
             sys.exit("--add-outgroup pulls a 16S sequence; it applies only to a nucleotide (16S) reference set.")
+        # TREES_432: rooting (below) needs Biopython. Refuse at START rather than after MAFFT and
+        # RAxML have run — the `placement` conda env has no Bio; Tools/bin/python3 and the phylo env do.
+        import importlib.util as _ilu
+        if _ilu.find_spec("Bio") is None:
+            sys.exit("BACKBONE_ROOTING_UNAVAILABLE: --add-outgroup roots the backbone with Biopython, "
+                     "which this interpreter does not have (`import Bio` fails). Re-run phylo_place.py "
+                     "with an interpreter that has Biopython (Tools/bin/python3 or the phylo env), not "
+                     "the placement env. Nothing was built.")
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         try:
             import outgroup_registry as OG
@@ -1121,6 +1174,65 @@ def cmd_place(a):
 
 
 # ---------------------------------------------------------------- report
+def _color_strips_deliverable(a, outdir, grp, display_tree, labelmap_path):
+    """Build the colour-strip panel inputs from the gated display tree and render both label variants.
+
+    Writes <outdir>/color_strips/<grp>/ (inputs, provenance and omitted-tip receipts, figures) or
+    <outdir>/color_strips/COLOR_STRIPS_NOT_RENDERED.txt naming exactly what was missing. Never raises:
+    the report's tables and the diagnostic figure stand on their own.
+    """
+    cs_dir = os.path.join(outdir, "color_strips")
+    os.makedirs(cs_dir, exist_ok=True)
+    note = os.path.join(cs_dir, "COLOR_STRIPS_NOT_RENDERED.txt")
+    here = os.path.dirname(os.path.abspath(__file__))
+    renderer = os.path.join(here, "render_placement_COLOR_STRIPS.R")
+    owner = list(getattr(a, "owner_table", []) or [])
+    if not owner:
+        open(note, "w").write("colour-strip figure not rendered: no --owner-table given. The query rows' host, geography, "
+                              "sample id and assay cells come only from the owner table; supply it and rerun report.\n")
+        sys.stdout.write("[report] colour-strip figure skipped: no --owner-table\n"); return None
+    if not labelmap_path or not os.path.exists(labelmap_path):
+        open(note, "w").write("colour-strip figure not rendered: labelmap.tsv not found beside the jplace or refpkg.\n")
+        sys.stdout.write("[report] colour-strip figure skipped: no labelmap.tsv\n"); return None
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("build_placement_panel_inputs", os.path.join(here, "build_placement_panel_inputs.py"))
+    bpi = importlib.util.module_from_spec(spec); spec.loader.exec_module(bpi)
+    argv = ["--genus", grp, "--tree", display_tree, "--labelmap", labelmap_path, "--out", cs_dir, "--query-prefix", getattr(a, "query_prefix", "AS")]
+    for t in owner: argv += ["--owner-table", t]
+    for t in getattr(a, "owner_table_original", []) or []: argv += ["--owner-table-original", t]
+    for t in getattr(a, "reference_metadata", []) or []: argv += ["--resolved", t]
+    for t in getattr(a, "reviewed", []) or []: argv += ["--reviewed", t]
+    for t in getattr(a, "query_override", []) or []: argv += ["--query-override", t]
+    try:
+        built = bpi.main(argv)
+    except Exception as e:
+        open(note, "w").write(f"colour-strip inputs not built: {e}\n")
+        sys.stdout.write(f"[report] colour-strip inputs not built: {e}\n"); return None
+    panel = built["dir"]
+    if built["kept"] == 0:
+        open(note, "w").write("colour-strip figure not rendered: no tip has both a source and a geography category; see OMITTED_TIPS.tsv.\n")
+        return built
+    if not os.path.exists(renderer):
+        open(note, "w").write(f"colour-strip figure not rendered: renderer missing at {renderer}\n"); return built
+    import shutil
+    shutil.copy2(renderer, os.path.join(panel, "render_placement_COLOR_STRIPS.R"))
+    rscript = _which(getattr(a, "rscript", "Rscript") or "Rscript", "") or shutil.which(getattr(a, "rscript", "Rscript") or "Rscript")
+    if not rscript:
+        open(note, "w").write("colour-strip figure not rendered: Rscript not found (needs R with ape, ggtree, ggplot2, patchwork); "
+                              f"inputs are ready in {panel}; run `Rscript render_placement_COLOR_STRIPS.R` there.\n")
+        sys.stdout.write("[report] colour-strip inputs written; Rscript not found so the figure was not rendered\n"); return built
+    log = os.path.join(panel, "render_both.log")
+    with open(log, "w") as lh:
+        rc = subprocess.call([rscript, "render_placement_COLOR_STRIPS.R"], cwd=panel, stdout=lh, stderr=subprocess.STDOUT)
+    if rc != 0:
+        open(note, "w").write(f"colour-strip figure not rendered: Rscript exit {rc}; see {log}\n")
+        sys.stdout.write(f"[report] colour-strip render failed (exit {rc}); see {log}\n"); return built
+    if os.path.exists(note):
+        os.remove(note)
+    sys.stdout.write(f"[report] colour-strip figures: {panel}/EPAng_{grp}_R04_{{concise,experiment_id}}.png (kept {built['kept']}, omitted {built['omitted']})\n")
+    return built
+
+
 def cmd_report(a):
     gappa = _which("gappa", PLACEMENT_BIN)
     if not gappa:
@@ -1162,6 +1274,13 @@ def cmd_report(a):
             sys.stdout.write((f"[report] figure skipped: {e}") + "\n"); fig_png = None
     else:
         fig_png = None
+    # 5b) the required deliverable: colour-strip figure in both label variants (render_placement_COLOR_STRIPS.R)
+    if os.path.exists(graft):
+        lm_path = next((c for c in (os.path.join(os.path.dirname(a.jplace), "labelmap.tsv"),
+                                    os.path.join(a.refpkg or "", "labelmap.tsv") if a.refpkg else "",
+                                    os.path.join(os.path.dirname(a.jplace), "..", "refpkg", "labelmap.tsv")) if c and os.path.exists(c)), "")
+        gated = os.path.splitext(fig_png or os.path.join(outdir, f"{grp}_placement_tree.png"))[0] + ".rooted_split.newick"
+        _color_strips_deliverable(a, outdir, grp, gated if os.path.exists(gated) else graft, lm_path)
     # 6) METHODS CAPTION for the figure (self-explanatory; not just program names)
     cap_path = os.path.join(outdir, f"{grp}_placement_FIGURE_CAPTION.txt")
     try:
@@ -1181,7 +1300,7 @@ def cmd_report(a):
                 try:
                     lwrs.append(float(c[2]))
                 except ValueError:
-                    pass
+                    continue  # header or non-numeric LWR cell
         res = (f"{len(lwrs)} {grp} query sequences placed onto the reference backbone "
                f"(LWR {min(lwrs):.2f}-{max(lwrs):.2f})." if lwrs else None)
         params = {"molecule": prov.get("molecule", "16S"), "model": prov.get("model", ""),
@@ -1227,7 +1346,8 @@ def cmd_report(a):
     if n_nb:
         sys.stdout.write((f"[report] {nbtsv}  ({n_nb} queries → named nearest reference / neighborhood)") + "\n")
     if fig_png:
-        sys.stdout.write((f"[report] {fig_png}  (figure: queries red, outgroup grey, refs blue)") + "\n")
+        sys.stdout.write((f"[report] {fig_png}  (figure: queries red, outgroup grey, NR_ type refs blue, "
+                          "other refs teal)") + "\n")
     if cap_path:
         sys.stdout.write((f"[report] {cap_path}  (methods caption — paste under the figure)") + "\n")
     sys.stdout.write((f"[report] {readme}\n[report] grafted tree + gappa outputs in {outdir}") + "\n")
@@ -1368,6 +1488,68 @@ def _graft_sane(graft_newick, outgroup=None):
     return _tsc.check(graft_newick, outgroup=outgroup)
 
 
+_LEADING_ACCESSION = re.compile(r"^\s*(?:(?:REF|OUTGROUP)[\s_]+)?[A-Z]{1,2}_?\d{5,}(?:[._]\d+)?[\s_]+")
+
+
+def _organism_genus(label):
+    """Genus read from the ORGANISM name, never from a leading accession token.
+
+    TREES_432: the old figure code took the first alphabetic run of the labelmap string, and
+    NCBI 16S titles LEAD with the accession, so every reference's "genus" was `NR`, `FJ`, `PQ`…
+    The modal "genus" became `NR` and every non-NR_ reference was drawn as an OUTGROUP."""
+    s = _LEADING_ACCESSION.sub("", (label or "").strip())
+    m = re.match(r"([A-Za-z]+)", s)
+    return m.group(1) if m else ""
+
+
+def _is_type_reference_label(label):
+    """Display class only: the record's own leading identifier is an NR_ accession (NCBI 16S RefSeq
+    targeted loci, which NCBI curates from type material). Not an Assembly `fromtype` check and never
+    a `[Type]` label claim — it picks a colour, nothing more."""
+    return re.match(r"^\s*(?:REF[\s_]+)?NR_\d{5,}", label or "") is not None
+
+
+def _classify_outgroup_tips(ref_tips, pretty):
+    """Return (og_tips, gate_hint, source) for the placement figure.
+
+    OUTGROUP is a registry/labelmap ROLE: a tip whose key or labelmap string carries the bounded
+    `outgroup` token that outgroup_registry.get_16s writes (tree_sanity_check recognises the same
+    token). Only when no such tip exists does the legacy modal-organism-genus heuristic run, and
+    then the gate hint is the single minority genus name (or None when there are several) exactly
+    as before. `gate_hint` for the registry case is the list of exact outgroup tip identities."""
+    from tools.tree_sanity_check import _is_outgroup_tip
+    og_tips = [x for x in ref_tips if _is_outgroup_tip(x.name) or _is_outgroup_tip(pretty(x.name))]
+    if og_tips:
+        return og_tips, [x.name for x in og_tips], "registry_outgroup_token"
+    import collections as _c
+    genus = {x.name: _organism_genus(pretty(x.name)) for x in ref_tips}
+    genera = _c.Counter(g for g in genus.values() if g)
+    modal = genera.most_common(1)[0][0] if genera else ""
+    og_tips = [x for x in ref_tips if genus[x.name] and genus[x.name] != modal]
+    og_genera = {genus[x.name] for x in og_tips}
+    return og_tips, (next(iter(og_genera)) if len(og_genera) == 1 else None), "modal_genus_heuristic"
+
+
+def _display_root_on_outgroup(tree, og_tips):
+    """Root `tree` in place on the registry outgroup and split the outgroup separation evenly across
+    the two root children. Same topology, same total branch length; only where the root sits on the
+    outgroup edge changes (the standard display convention). Returns a small receipt dict."""
+    before = tree.total_branch_length()
+    tree.root_with_outgroup(*og_tips, outgroup_branch_length=0.0)
+    root = tree.root
+    if len(root.clades) != 2:
+        raise ValueError(f"DISPLAY_ROOT_NOT_BIFURCATING:{len(root.clades)}")
+    a, b = root.clades
+    sep = (a.branch_length or 0.0) + (b.branch_length or 0.0)
+    a.branch_length = b.branch_length = sep / 2.0
+    after = tree.total_branch_length()
+    if abs(after - before) > 1e-9 * max(1.0, before):
+        raise ValueError(f"DISPLAY_ROOT_LENGTH_DRIFT:{before}->{after}")
+    return {"convention": "outgroup separation split evenly across the two root children",
+            "outgroup_tips": [x.name for x in og_tips], "outgroup_separation": sep,
+            "each_root_child": sep / 2.0, "total_branch_length": after}
+
+
 def _placement_display_labels(tips, labelmap, og_names, *, tip_fields=None, width=58,
                               query_names=None):
     """Reuse exact labelmap keys and existing query/outgroup owners for display only.
@@ -1419,41 +1601,59 @@ def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
     def lab(x):
         return labels[x.name]["label"] if x.name else ""
 
-    def genus(x):
-        m = re.match(r"([A-Za-z]+)", pretty(x.name) or "")
-        return m.group(1) if m else ""
-
     t = Phylo.read(graft_newick, "newick")
     tips = t.get_terminals()
     ref_tips = [x for x in tips if not query_role(x)]
-    # outgroup = reference tips whose genus differs from the cohort's MODAL reference genus
-    import collections as _c
-    genera = _c.Counter(genus(x) for x in ref_tips if genus(x))
-    modal = genera.most_common(1)[0][0] if genera else ""
-    og_tips = [x for x in ref_tips if genus(x) and genus(x) != modal]
+    og_tips, og_hint, og_source = _classify_outgroup_tips(ref_tips, pretty)
     og_names = {x.name for x in og_tips}
-    # HARD pre-render gate: refuse a pathological graft before drawing. Pass the outgroup genus (when
-    # a single non-modal genus) so tree_sanity exempts the designated outgroup. cmd_report wraps this
-    # call and reports "figure skipped: <reason>" — a FAILing placement tree never reaches a figure.
-    _og_genera = {genus(x) for x in og_tips if genus(x)}
-    _ok, _msg = _graft_sane(graft_newick, next(iter(_og_genera)) if len(_og_genera) == 1 else None)
+    roles = {x.name: ("query" if query_role(x) else "outgroup" if x.name in og_names else
+                      "reference_type" if _is_type_reference_label(pretty(x.name)) else
+                      "reference_nontype") for x in tips}
+    # HARD pre-render gate: refuse a pathological graft before drawing. cmd_report wraps this call
+    # and reports "figure skipped: <reason>" — a FAILing placement tree never reaches a figure.
+    # TREES_432 (card: report gate ignores ingroup stem): a backbone rooted on its registry outgroup
+    # carries the WHOLE outgroup separation on the root-to-ingroup branch (Biopython leaves the
+    # outgroup pendant at 0.0), so the plain gate flags that ingroup stem as DOMINATING on every
+    # small panel with a distant outgroup. Gate the DISPLAY tree instead: re-root on the registry
+    # outgroup with the separation split evenly across the two root children (same topology, same
+    # total length), write it beside the figure as a receipt, and pass the exact outgroup tip
+    # identities. With no registry outgroup the plain gate on the graft file is unchanged.
+    display_rooting = None
+    if og_source == "registry_outgroup_token":
+        try:
+            display_rooting = _display_root_on_outgroup(t, og_tips)
+        except Exception as _e:
+            display_rooting = None
+            sys.stdout.write(f"[report] NOTE display re-rooting on the registry outgroup failed ({_e}); "
+                             "gating the graft file as written\n")
+    if display_rooting is not None:
+        gated_newick = os.path.splitext(png)[0] + ".rooted_split.newick"
+        Phylo.write(t, gated_newick, "newick", format_branch_length="%.10g")
+        _ok, _msg = _graft_sane(gated_newick, og_hint)
+    else:
+        gated_newick = graft_newick
+        _ok, _msg = _graft_sane(graft_newick, og_hint)
     if not _ok:
         raise RuntimeError("tree_sanity_check FAILED — refusing to render placement figure:\n" + _msg)
-    try:
-        if len(og_tips) == 1:
-            t.root_with_outgroup(og_tips[0])
-        elif og_tips:
-            t.root_with_outgroup(*og_tips)
-        else:
-            t.root_at_midpoint()
-    except Exception:
+    rooting_error = ""
+    if display_rooting is None:
         try:
-            t.root_at_midpoint()
+            if len(og_tips) == 1:
+                t.root_with_outgroup(og_tips[0])
+            elif og_tips:
+                t.root_with_outgroup(*og_tips)
+            else:
+                t.root_at_midpoint()
         except Exception:
-            pass
+            try:
+                t.root_at_midpoint()
+            except Exception as exc:
+                rooting_error = f"unrooted: {exc}"  # recorded in the labels receipt below
     t.ladderize()
     labels = _placement_display_labels(t.get_terminals(), labelmap, og_names,
                                        tip_fields=tip_fields, query_names=query_names)
+    for _key, _rec in labels.items():
+        _rec["role"] = roles.get(_key, "reference_nontype")
     n = len(t.get_terminals())
     fig, ax = plt.subplots(figsize=(11, max(5, n * 0.34)))
     Phylo.draw(t, axes=ax, do_show=False, label_func=lab, show_confidence=False)
@@ -1471,10 +1671,13 @@ def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
             txt.set_color("#d62728"); txt.set_fontweight("bold")
         elif x.name in og_names:
             txt.set_color("#7f7f7f")
+        elif roles.get(x.name) == "reference_nontype":
+            txt.set_color("#2a9d8f")   # TREES_432: non-type reference = its own colour, never outgroup grey
         else:
             txt.set_color("#1f4e79")
         txt.set_fontsize(8)
-    ax.set_title(f"{group} 16S — AS strains (red) PLACED on reference backbone (blue); outgroup grey\n"
+    ax.set_title(f"{group} 16S — AS strains (red) PLACED on reference backbone "
+                 "(NR_ type-material refs blue; other refs teal); outgroup grey\n"
                  "EPA-ng placement; 16S = anchor, not a species call; neighborhood only; judgment deferred",
                  fontsize=8.5)
     for s in ("top", "right", "left"):
@@ -1490,6 +1693,16 @@ def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
         "schema": "placement_display_labels/1",
         "tree_sha256": hashlib.sha256(Path(graft_newick).read_bytes()).hexdigest(),
         "labelmap": labelmap, "records": list(labels.values()),
+        "roles": roles,
+        "role_basis": {
+            "outgroup": og_source,
+            "reference_type": "record's own leading identifier is an NR_ accession (NCBI 16S RefSeq "
+                              "targeted loci, curated from type material); display class only — not an "
+                              "NCBI Assembly fromtype check and not a [Type] label claim",
+            "reference_nontype": "any other reference accession"},
+        "gated_tree": os.path.basename(gated_newick),
+        "display_rooting": display_rooting,
+        "rooting_error": rooting_error,
         "topology_changes_by_label_helper": False,
         "authority": "Display source fields only; accession existence and sequence identity unverified"
     }, indent=2, sort_keys=True))
@@ -1551,6 +1764,15 @@ def main():
 
     r = sub.add_parser("report", allow_abbrev=False, help="grafted tree + neighborhood table + claim-safe README")
     r.add_argument("--refpkg"); r.add_argument("--jplace", required=True); r.add_argument("--outdir")
+    r.add_argument("--owner-table", action="append", default=[], metavar="TSV",
+                   help="owner query table(s) for the colour-strip deliverable (see build_placement_panel_inputs.py); "
+                        "without one the required figure is not rendered and COLOR_STRIPS_NOT_RENDERED.txt says why")
+    r.add_argument("--owner-table-original", action="append", default=[], metavar="TSV")
+    r.add_argument("--reference-metadata", action="append", default=[], metavar="TSV", help="resolve_reference_metadata.py output(s)")
+    r.add_argument("--reviewed", action="append", default=[], metavar="TSV")
+    r.add_argument("--query-override", action="append", default=[], metavar="TSV")
+    r.add_argument("--query-prefix", default="AS")
+    r.add_argument("--rscript", default="Rscript")
     r.add_argument("--taxonomy", action="store_true", help="also run gappa examine assign (needs a taxonomy file)")
     r.set_defaults(func=cmd_report)
 

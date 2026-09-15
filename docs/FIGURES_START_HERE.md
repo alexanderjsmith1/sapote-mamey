@@ -1,6 +1,6 @@
 # FIGURES_START_HERE — how to make Sapote–Mamey figures (read before plotting anything)
 
-**Current bundle:** Sapote–Mamey v9.7.431 · Mamey engine 1.9.165 (see `BUILD_STAMP.txt`; this line is checked by
+**Current bundle:** Sapote–Mamey v9.7.432 · Mamey engine 1.9.166 (see `BUILD_STAMP.txt`; this line is checked by
 `tools/seal_sweep.py`).
 
 **If you are about to hand-write matplotlib for a Sapote–Mamey figure: stop and read this first.**
@@ -40,6 +40,32 @@ diagnostics_long, other_breakdown, cross_strain_findings`.
 - **Prompt route (when you want a specific figure or are an LLM):** open the figure's `.md` spec,
   follow its Data + Plot blocks, inherit `FIGURE_CONVENTIONS.md`. Emit a clean PNG **plus** the
   companion `_data.csv` and a caption line in a `*_Captions.md`.
+- **Tree figures (required default, colour-strip layout):** two standalone R scripts in `tools/`
+  are the only sanctioned renderers for phylogenetic panels. Each reads plain files from one
+  folder, so a figure can be adjusted by editing the script or the metadata table and re-running.
+  Every panel ships in two label variants: `concise` (organism, strain, accession) and
+  `experiment_id` (the same tips with the owner's experiment or sample identifiers bound to the
+  query rows). Running a script with no variant renders both; that is the default deliverable.
+  Naming one variant renders only that one.
+  - Core-genome (GToTree + IQ-TREE) panels: `Rscript tools/render_tree_COLOR_STRIPS.R <panel_dir> [concise|experiment_id|both]`.
+    The panel folder holds `tree.treefile`, `tree.iqtree` and `figure_metadata.tsv` (one row per
+    tip: label_concise, label_experiment, role, reference_class, source and geography categories,
+    Candida, MRSA).
+  - 16S placement (EPA-ng) panels: run `Rscript render_placement_COLOR_STRIPS.R [concise|experiment_id|both]`
+    from inside the panel folder, which holds `tree_input.newick`, `metadata.tsv` (tip, label,
+    sample_id, role, source_category, geography_category, Candida, MRSA, type_display),
+    `outgroup.txt` and `exclude_tips.txt`. The experiment-ID variant appends `{sample_id}` to
+    each query label.
+  Both scripts share one source and geography palette, draw AS queries in red, put isolation
+  source and geography as colour strips beside the labels, and show assay calls only on query
+  rows exactly as recorded. A tip with no deposited source or geography is omitted and listed,
+  never coloured by guess.
+- **Gene-cluster family figure (tree beside gene arrows):** `python tools/render_gcf_synteny_tree.py
+  --db <bigscape.db> --family <id> --gbk-dir <regions> --gbk-dir <mibig_gbk> --identity <strain>_2_inventory.csv … --out <stem>`
+  (or `--newick` plus `--gbk LABEL:file.gbk`). Rows are labelled `strain / contig / region / BGC alias`
+  from the package inventory, with an identity hold where no alias is bound; arrows are coloured by
+  antiSMASH-derived gene role and neighbouring rows are joined by dotted homology links. Shared genes
+  are homology, never compound identity.
 
 ## The non-negotiable house rules (from FIGURE_CONVENTIONS.md + FIGURE_STYLE.md)
 - **Palette is LOCKED (blues-led):** primary `#2c6fbb` (blue); secondary/categorical green family
@@ -69,11 +95,14 @@ diagnostics_long, other_breakdown, cross_strain_findings`.
 **Prompt library:** `prompts/figure_prompts/` — `_INDEX.md`, `FIGURE_CONVENTIONS.md`, `HOW_TO_USE.md`,
 + category folders cohort/ per_strain/ novelty/ ecological/ tables/ and deliverable_maps/.
 
-**Render modules (`mamey/`):** `cohort_figures`, `cohort_figures_d` (dot/bubble), `cohort_figures_g`
-(rarity/novelty/architecture), `cohort_class_heatmap`, `cohort_figures_bridge` (auto-fire after a
-multi-strain run), `cross_strain_figures`, `domain_figures`, `mamey_native_figures` (DAPR/RG-GMCI/
+**Render modules (`mamey/`):** `cohort_figures` (also carries the former `cohort_figures_d`
+dot/bubble series, `cohort_figures_g` rarity/novelty series, `cohort_figure_captions` and the
+`cohort_figures_bridge` auto-fire after a multi-strain run — those four are merged sections of this
+one file, not separate modules), `cohort_figures_extended` (auto-emit companion: census, PKS length,
+archetype, KCB novelty, CCTT, boundary, domain co-occurrence, resistance, TTA/bldA),
+`cohort_class_heatmap`, `cross_strain_figures`, `domain_figures`, `mamey_native_figures` (DAPR/RG-GMCI/
 ecology/completeness set), `master_figure_atlas`, `collection_figures` (metadata-gated),
-`figures_sapote`, `figures_extra`, `figures_split`, `figure_policy`, `cohort_figure_captions`,
+`figures_sapote`, `figures_extra`, `figures_split`, `figure_policy`,
 `kcb_locusmap` (v9.7.338 — offline KnownClusterBlast query-vs-MIBiG comparative locus map,
 `figures kcb-locusmap`; PNG + SVG + `_data.csv`, similarity not identity), `bigscape_figures`
 (GCF network + clinker supporting figures).

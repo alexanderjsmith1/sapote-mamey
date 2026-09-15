@@ -634,7 +634,7 @@ Permanent rules, learned across many strains, that override case-by-case interpr
 
 | Constraint | Rule |
 |---|---|
-| NAPAA | NAPAA (poly-amino-acid class) | Registry-neutral: listed but not interpreted, neither downgraded nor lead-blocking (rules registry `status: neutral`). Common and frequently adjacent to genuine BGCs, so it carries no comparative weight on its own. The Nosema/glucocerebrosidase hypothesis is retired. |
+| NAPAA (poly-amino-acid class) | Registry-neutral: listed but not interpreted, neither downgraded nor lead-blocking (rules registry `status: neutral`). Common and frequently adjacent to genuine BGCs, so it carries no comparative weight on its own. The Nosema/glucocerebrosidase hypothesis is retired. |
 | hglE-KS-PREV-001 | The hglE-KS glycolipid domain is prevalent and habitat-non-specific (confirmed across many strains, multiple genera, all three habitats). Habitat-specific claims are retired; its structural novelty (zero KCB) still stands. |
 | Saccharide-gating null | Pure-saccharide clusters (carbohydrate machinery with no specialist warhead) are omitted from comparative counts; the polysaccharide-gating signal was confirmed null in the bryophyte and attine sets. |
 | Multi-siderophore flag | Carrying several siderophore systems recurs across many strains; treated as an iron-economy observation, not a per-strain distinction. |
@@ -792,7 +792,7 @@ text. This note explains old output and is not a current-version label.*
 | CCTT / T43 | Class-trigger framework | The versioned T43 trigger set in `mamey/source_scans.py::CCTT_PATTERNS`. When a class-defining trigger is corroborated on a compatible locus it may drive the current diagnostic bonus and Medium floor; tailoring-only/promiscuous triggers do not receive that floor by themselves. Query the current registry for families and weights. |
 | Standing-rule downgrade | Permanent-exclusion cap | A rule that downgrades or excludes a non-informative class from comparative claims: saccharide and hglE-KS/hexacosalactone (habitat-non-specific). Scores are preserved for audit; the class is simply set aside from cross-strain comparison. (NAPAA is *not* in this set — it is registry-neutral.) |
 | RiQ | Reference-information quotient | A region-mapped novelty signal from the `bounded`/`full` JSON evidence: low RiQ (< 0.5) means the region is distant from its closest MIBiG reference → a small novelty increment. Exempt from the evidence record cap. |
-| RG-GMCI | Reference-guided multi-contig inference | Homology-guided shared-reference linkage across contigs — proposes two fragments on different contigs are one split pathway when they share MIBiG references. **Does not join contigs at the nucleotide level.** Its bonus (HIGH +8 / MODERATE +4) is routing priority, not claim confidence; promiscuous-hub and distant-reference pairs are down-weighted. |
+| RG-GMCI | Reference-Guided Genome Mining Candidate Inference | Homology-guided shared-reference linkage across contigs — proposes two fragments on different contigs are one split pathway when they share MIBiG references. **Does not join contigs at the nucleotide level.** Its bonus (HIGH +8 / MODERATE +4) is routing priority, not claim confidence; promiscuous-hub and distant-reference pairs are down-weighted. |
 | Edge penalty | (removed v9.7.84) | A score deduction for BGCs on a contig edge, **removed in v9.7.84**. It had no measurement basis (edge BGCs show no truncation signature in their base score) and was burying overlooked edge fragments at the tier threshold. Truncation is now carried as a confidence grade (architecture C/D), not a score deduction. The corrected-count weight (Interior 1.0 / Edge 0.5 / Full-contig 0.25) is separate and unchanged. |
 | Judgment store / register | Mode B persistence layer | The per-package store (`<strain>_judgment_register.json` + `judgment/*_mode_b.md`) that holds Sapote's Mode B cards durably. Without it, a Mode B card lives only in chat and is lost when the session ends. |
 | Mode B receipt | `mode_b_receipt.json` | The JSON a Sapote session emits at the end of a Mode B batch (`{strain_id, session_id, cards:[{bgc_id, mode_b_md, …}]}`). `mamey ingest-receipts` consumes it to persist the cards into the judgment store and reconcile the workbook's E1 sheet. Fail-closed (unknown BGC skipped, never invented) and idempotent. |
@@ -818,7 +818,7 @@ or revise the definition here and point other documents here. Keep counts,
 formulas, and status enumerations tied to their code/schema source and keep
 claim-safe framing in every definition.*
 
-*Maintenance note: version-sync marker for the installed engine 1.9.165.*
+*Maintenance note: version-sync marker for the installed engine 1.9.166.*
 
 ---
 

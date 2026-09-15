@@ -41,19 +41,22 @@ def _rows(path):
 
 
 def test_basic_normalize_and_verbatim_category(tmp_path):
+    # Synthetic identifiers only (the "verified synthetic" block of tools/test_synthetic_ids.txt)
+    # with placeholder locality: GOV-001's rationale rests on no host, collection or geolocation
+    # detail being paired with a real strain identifier in the shipped tree.
     xlsx = _make_xlsx(tmp_path, [
-        ("AS-132", "Exp 34", "#9", "Bombus", "Bee", "Bombus", "New Jersey", "2022"),
-        ("AS 170", "Exp 35", "#1", "Ant", "Ant", "Other/unclear", "New Jersey (clover field)", "2022"),
+        ("AS-900", "Exp 1", "#9", "Bombus", "Bee", "Bombus", "Region A", "2022"),
+        ("AS 901", "Exp 2", "#1", "Ant", "Ant", "Other/unclear", "Region A (field site)", "2022"),
     ])
     out = tmp_path / "coll.tsv"
     r = _run(tmp_path, "--input", str(xlsx), "--out", str(out))
     assert r.returncode == 0, r.stderr
     rows = {x["as_id"]: x for x in _rows(str(out))}
-    assert rows["AS-132"]["category_raw"] == "Bombus"
-    assert rows["AS-132"]["location_raw"] == "New Jersey"
-    # 'AS 170' canonicalizes to AS-170; the awkward raw category is preserved verbatim, not bucketed
-    assert rows["AS-170"]["category_raw"] == "Other/unclear"
-    assert rows["AS-170"]["location_raw"] == "New Jersey (clover field)"
+    assert rows["AS-900"]["category_raw"] == "Bombus"
+    assert rows["AS-900"]["location_raw"] == "Region A"
+    # 'AS 901' canonicalizes to AS-901; the awkward raw category is preserved verbatim, not bucketed
+    assert rows["AS-901"]["category_raw"] == "Other/unclear"
+    assert rows["AS-901"]["location_raw"] == "Region A (field site)"
 
 
 def test_non_strain_rows_skipped(tmp_path):

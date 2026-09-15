@@ -31,7 +31,33 @@ EXTRA_COLS = [
     ("collection_date", "TEXT"),
     ("study_title", "TEXT"), ("fetched_at", "TEXT"),
     ("seq_sha256", "TEXT"),
+    # v9.7.432 (TREES_432_16S_database_provenance): WHICH record supplied host/isolation_source/
+    # geo_loc_name/country. This module writes only the record's OWN source feature
+    # ("record_source_feature:<acc.version>"). A value copied from another record (a genome
+    # assembly of the same species) is a species join and must never sit in these columns
+    # unlabelled; tools/phylo_16s_validate_db.py reports any 'genome*' value as a defect.
+    ("metadata_source", "TEXT"),
 ]
+
+# Metadata written by this module is always the record's own.
+OWN_SOURCE_PREFIX = "record_source_feature:"
+
+
+def organism_binomial(organism):
+    """(binomial, genus) from the deposited ORGANISM line, as deposited.
+
+    The genus is the first token when it is a capitalised word; 'Genus sp.' keeps 'sp.'.
+    Bracketed or 'Candidatus' names yield an empty genus rather than a guess, matching
+    phylo_16s_build_db.parse_title. Nothing is split or corrected here: a concatenated PDF
+    title is replaced wholesale by the record's own organism name.
+    """
+    words = " ".join((organism or "").split()).split()
+    genus = words[0] if words else ""
+    if not re.fullmatch(r"[A-Z][a-z]{2,}", genus):
+        return "", ""
+    sp = words[1] if len(words) > 1 else ""
+    binom = f"{genus} {sp}" if re.fullmatch(r"[a-z-]{2,}|sp\.", sp) else genus
+    return binom, genus
 
 
 def ensure_columns(con):
@@ -246,11 +272,18 @@ def main(argv=None):
                     else:
                         with target.open('x') as handle:
                             handle.write(raw)
+                data['metadata_source'] = OWN_SOURCE_PREFIX + data['acc_version']
                 values = {key: data.get(key) for key, _ in EXTRA_COLS}
                 values.update(acc_version=data['acc_version'], definition=data['definition'], seq=seq,
                               seq_len=len(seq), seq_md5=hashlib.md5(seq.encode()).hexdigest(),
                               seq_sha256=hashlib.sha256(seq.encode()).hexdigest(),
                               strain_qual=data.get('strain'), fetched_at=time.strftime('%Y-%m-%d'))
+                # v9.7.432: the stored binomial/genus came from a harvested title (PDF text can
+                # lose the space: 'Streptomyceszaomyceticus'). The fetched record's own ORGANISM
+                # line replaces it, so the per-genus filters see the deposited genus.
+                binom, genus = organism_binomial(data.get('organism'))
+                if genus:
+                    values.update(binomial=binom, genus=genus)
                 con.execute('UPDATE record SET ' + ','.join(key+'=?' for key in values) +
                             ' WHERE acc_base=?', [*values.values(), base])
                 results.append(dict(request=request, returned=data['acc_version'], status='STORED',

@@ -4285,9 +4285,13 @@ def ingest_blastp_trove_command(args) -> int:
     if not _os.path.isdir(args.trove):
         emit(f"FATAL: trove directory not found: {args.trove}", file=_sys.stderr, flush=True)
         return 2
-    res = ingest_blastp_trove(args.package, args.trove, args.channel, getattr(args, "strain", None))
+    res = ingest_blastp_trove(
+        args.package, args.trove, args.channel, getattr(args, "strain", None),
+        rekey_by_locus=bool(getattr(args, "rekey_by_locus", False)),
+    )
     emit(f"[ingest-blastp-trove] channel={res['channel']} "
-          f"{len(res['bgcs_written'])} BGCs, {res['genes']} genes -> {res['package']}/blastp_online/",
+          f"{len(res['bgcs_written'])} BGCs, {res['genes']} genes, "
+          f"rekey_by_locus={res['rekey_by_locus']} -> {res['package']}/blastp_online/",
           flush=True)
     return 0
 
@@ -6567,6 +6571,11 @@ def build_parser():
     p_trove.add_argument("--package", required=True, help="Sealed Mamey package dir")
     p_trove.add_argument("--channel", required=True, choices=["nr", "clustered_nr", "swissprot", "ebi"])
     p_trove.add_argument("--strain", default=None, help="Restrict to one strain subdir")
+    p_trove.add_argument(
+        "--rekey-by-locus", action="store_true", dest="rekey_by_locus",
+        help=("Resolve each query locus to its current BGC through the selected package's sole "
+              "*cds_table.csv; preserve absent, ambiguous, and length-conflict rows as typed holds."),
+    )
     p_trove.set_defaults(func=ingest_blastp_trove_command)
 
     p_status = sub.add_parser("blastp-status",
@@ -7878,8 +7887,9 @@ def _domain_level_command(args) -> int:
         args.package, source_antismash=getattr(args, "source_antismash", None),
         top_n=getattr(args, "top_n", 10), outdir=getattr(args, "outdir", None))
     status = receipt.get("status", "?")
-    emit(f"  domain-level: {status} (mode={receipt.get('mode','?')})")
-    emit(f"    {receipt.get('n_domain_rows', 0)} domain rows across {receipt.get('n_bgcs', 0)} BGCs → {receipt.get('files', [])}" if status == 'OK' else f"    {receipt.get('reason', '')} — core package remains valid")
+    emit(f"  domain-level: {status} (mode={receipt.get('mode','?')})",
+         f"    {receipt.get('n_domain_rows', 0)} domain rows across {receipt.get('n_bgcs', 0)} BGCs → {receipt.get('files', [])}" if status == 'OK' else f"    {receipt.get('reason', '')} — core package remains valid",
+         sep="\n")
     if getattr(args, "emit_figures", False):
         try:
             from .domain_figures import render_domain_figures

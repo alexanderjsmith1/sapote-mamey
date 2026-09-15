@@ -1,7 +1,7 @@
 # Install Sapote Mamey
 
-Start from the [README](../README.md). This guide covers setup for the bundle you received.
-Check its [release manifest](../RELEASE_MANIFEST.md) for version, tier, and status;
+This guide sets up the bundle you received. Start from the [README](../README.md) if you have
+not read it. The [release manifest](../RELEASE_MANIFEST.md) gives the version, tier and status;
 an unsealed candidate is not a signed public release. External data and some integration-test
 fixtures are provisioned separately.
 
@@ -9,13 +9,14 @@ For the full analysis sequence, see [the Master Walkthrough](MASTER_WALKTHROUGH.
 
 ## 1. Open the bundle root
 
-Extract the ZIP to a writable directory and enter the directory containing `pyproject.toml`
-and `mamey_run.py`. Keep the original ZIP unchanged. Use a separate output directory for analyses.
-Do not assume the archive filename is also its top-level directory name.
+Extract the ZIP to a writable directory and go into the directory that contains
+`pyproject.toml` and `mamey_run.py`. The archive filename is not necessarily its top-level
+directory name, so look. Keep the original ZIP unchanged and use a separate output directory
+for analyses.
 
 ## 2. Create a Python environment
 
-The package requires **Python 3.12 or newer**. These commands use a macOS/Linux shell:
+You need **Python 3.12 or newer**. These commands use a macOS/Linux shell:
 
 ```bash
 python3 --version
@@ -25,12 +26,13 @@ python -m pip install -e .
 ```
 
 On Windows, activate with `.venv\Scripts\Activate.ps1` in PowerShell. If your `python3` is too
-old, select an installed Python 3.12-or-newer interpreter when creating the environment.
-Use an isolated environment rather than overriding protection on a system-managed Python.
+old, point `venv` at an installed Python 3.12-or-newer interpreter. Use an isolated environment
+like this one rather than overriding protection on a system-managed Python.
 
 The editable install reads the core requirements from [pyproject.toml](../pyproject.toml):
-`openpyxl`, `ijson`, `reportlab`, and `PyYAML`. Run the local launcher from this bundle even if
-a `mamey` console command is already installed elsewhere.
+`openpyxl`, `ijson`, `reportlab`, and `PyYAML`. Always run the local launcher
+(`python mamey_run.py`) from this bundle, even if a `mamey` console command is installed
+somewhere else.
 
 ## 3. Add the features you need
 
@@ -39,24 +41,24 @@ a `mamey` console command is already installed elsewhere.
 python -m pip install -e '.[figures,documents,bio]'
 ```
 
-The `figures`, `documents`, and `bio` extras can also be installed individually; `.[all]` is
-the combined convenience extra. Some workflows additionally require system tools or reference
-datasets. Follow [PREREQUISITES](PREREQUISITES.md) and the
-[external assets guide](EXTERNAL_ASSETS_GUIDE.md), then check the selected command's diagnostics.
-Missing HMM evidence or another unavailable evidence channel must remain an explicit missing
-state; a fallback does not establish that the unavailable scan ran.
+The `figures`, `documents`, and `bio` extras can be installed one at a time; `.[all]` is the
+combined convenience extra. Some workflows also need system tools or reference datasets. Follow
+[PREREQUISITES](PREREQUISITES.md) and the [external assets guide](EXTERNAL_ASSETS_GUIDE.md), then
+check the diagnostics of the command you want to use. If HMM evidence or another evidence
+channel is unavailable, it stays recorded as missing; a fallback does not count as that scan
+having run.
 
-For an offline installation, first obtain a complete compatible wheelhouse, including build
-requirements, dependencies, and any selected extras. From the bundle root:
+**Offline install.** First obtain a complete, compatible wheelhouse: build requirements,
+dependencies, and any extras you want. Then, from the bundle root:
 
 ```bash
 python -m pip install --no-index --find-links /path/to/wheels -e .
 ```
 
 If you have the separate Sapote add-on archive, follow its inventory and platform requirements.
-Its optional installer is `bash bundle_support/install_sapote_addons.sh`; it does not replace
-checking the core installation. A Linux x86_64 `cp312` wheel is not a macOS arm64 wheel, and it
-is not suitable for a different Python ABI. Do not rename wheel tags to make them appear compatible.
+Its optional installer is `bash bundle_support/install_sapote_addons.sh`; still check the core
+installation afterwards. A Linux x86_64 `cp312` wheel is not a macOS arm64 wheel, and a wheel for
+one Python ABI does not work on another. Do not rename wheel tags to make them look compatible.
 
 ## 4. Confirm the local version and environment
 
@@ -66,37 +68,36 @@ python mamey_run.py doctor
 python tools/sync_version.py --check
 ```
 
-Read the diagnostics, including missing optional capabilities. A doctor result is an environment
-check, not an analysis or a release approval.
+Read the diagnostics, including which optional capabilities are missing. `doctor` checks the
+environment; it is not an analysis or a release approval.
 
 ## 5. Inspect and run an input
 
-Mamey consumes an antiSMASH result ZIP; it does not run antiSMASH itself. Inspect the ZIP, bind
-its metadata, then follow the [Quick Guide](GUIDE/02_Quick_Guide.md) for the extraction command,
-validation, and handoff. Supply only known taxonomy and isolation-source metadata; preserve
-uncertainty explicitly instead of inventing it.
+Mamey takes an antiSMASH result ZIP; it does not run antiSMASH itself. Inspect the ZIP, bind its
+metadata, then follow the [Quick Guide](GUIDE/02_Quick_Guide.md) for the extraction command,
+validation and handoff. Supply only the taxonomy and isolation source you actually know; if you
+do not know them, say so rather than inventing them.
 
 ## 6. Optional: developer tests
 
-You do not need the full developer test suite to read a result package. For code changes, install
-pytest in the selected environment and run the tests relevant to the change:
+You do not need the test suite to read a result package. For code changes, install pytest in the
+environment and run the tests relevant to the change:
 
 ```bash
 python -m pip install pytest
 python -m pytest -q path/to/relevant_test.py
 ```
 
-Replace the test path with the selected real test file. Full release testing can add
-`--run-slow --run-network` only when that work and network use are intended. These are not routine
-first-run setup steps. The full profile enables the slow/network partitions. Gated skips can remain for optional dependencies and
-external fixtures. A skip is not a passed check. The explicit `--run-slow` and `--run-network`
-flags enable their partitions; external inputs may still be required. Release validation follows
-the [cut protocol](../CUT_PROTOCOL.md) and must retain exact commands, counts, and unresolved
-holds. An interrupted suite is incomplete.
+Replace the path with the real test file. The full release profile adds `--run-slow` and
+`--run-network`, which enable the slow and network partitions; use them only when that work and
+network access are intended. They are not first-run setup steps, and external inputs may still
+be required. Gated skips can remain for optional dependencies and external fixtures; a skip is
+not a passed check, and an interrupted suite is incomplete. Release validation follows the
+[cut protocol](../CUT_PROTOCOL.md) and must keep the exact commands, counts and unresolved holds.
 
 ## Workspace and output locations
 
 `mamey.workspace_root.workspace_root()` resolves `SAPOTE_WORKSPACE_ROOT`, then `SAPOTE_ROOT`,
 then the current working directory. There is no required personal workspace path. Set a root
-only when a workflow needs it, and use each command's explicit input and output options.
-Do not assume this helper changes every command's output directory.
+only when a workflow needs it, and use each command's explicit input and output options. This
+helper does not change every command's output directory.

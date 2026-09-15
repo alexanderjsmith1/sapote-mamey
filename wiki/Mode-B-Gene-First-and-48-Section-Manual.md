@@ -1,6 +1,6 @@
 # Mode B gene-first and 48-section manual
 
-*Current to bundle v9.7.405 · engine Mamey 1.9.145. Authored by Codex (Wiki Revision 03, 2026-08-31) against v9.7.395; admitted to the bundle wiki at v9.7.405 by the Claude Code patch lane after a currency pass. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
+*Current to bundle v9.7.405 · engine Mamey 1.9.145. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
 
 This page does not replace the machine contract, create a Mode B card, or confer scientific, integration, release, or publication authority.
 

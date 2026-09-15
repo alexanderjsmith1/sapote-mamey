@@ -371,6 +371,16 @@ RULES = [
     ("docs/user_guides/operational_reference.md",
      re.compile(r"(Version synchronized at cut time · Bundle v)\d+(?:\.\d+)*[a-z]*"),
      rf"\g<1>{BUNDLE}"),
+    # v9.7.432 (stale version-of-record finding): the five docs/reference volumes state a "Version of record"
+    # (engine + bundle) that nothing owned, so it shipped one or two cuts behind in .430 and .431.
+    # Anchor both halves; the pattern is pinned to that exact line so dated historical notes elsewhere
+    # in the same files ("re-grounded to bundle v…") are untouched.
+    *[(f"docs/reference/{name}",
+       re.compile(r"(\*\*Version of record:\*\* Mamey engine v)\d+(?:\.\d+)*[a-z]*( · bundle v)\d+(?:\.\d+)*[a-z]*"),
+       rf"\g<1>{ENGINE}\g<2>{BUNDLE}")
+      for name in ("01_Math_Reference_VolI.md", "02_Math_Reference_VolII.md", "03_Plumbing_Reference.md")],
+    # 00_README.md and 10_Math_Reference_GeneralAudience.md state a dated re-grounding note instead of
+    # a version-of-record line; dated notes are history and stay as written.
     # v9.7.199 (F5, anchor-the-rotting-fields): docs/TIER_NOTE_CODE.md restates bundle/engine/build in its H1
     # title + three body lines. Its own text says "regenerate at cut time," but nothing owned it, so it
     # drifted — stale v9.7.144b, then shipped v9.7.197 inside the v9.7.198 cut. The make_public_tier.sh

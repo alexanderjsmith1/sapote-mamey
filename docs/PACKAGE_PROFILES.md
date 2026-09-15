@@ -30,7 +30,7 @@ alphabetical = chronological — pick the latest). Plus the patch kit
 | `…-CODE-analysis-free-patched-…` | CODE minus bundled analysis outputs | a lean code-only handoff / smaller upload | **public** (0 AS-###) |
 | `…-SID-public-patched-…` | code + **SID** strain material, AS-### scrubbed to `AS-XXX` | sharing strain context without exposing unpublished AS strains | **public** (leak-audited) |
 | `…-MERGED-PRIVATE-scaffold-patched-…` | merged set **including unpublished AS strains** | internal work only | **PRIVATE — never publish** |
-| `sapote-mamey-DO-FIRST-kit-…` | this session's new/changed files only | apply *over* a full tier, then run tests there | patch layer (not standalone) |
+| `sapote-mamey-DO-FIRST-kit-…` | the new and changed files of one patch round only | apply *over* a full tier, then run tests there | patch layer (not standalone) |
 
 Rule of thumb: publish from **CODE** (or CODE-analysis-free); share strain context from
 **SID-public**; keep **MERGED-PRIVATE** off any public surface (it carries AS-### in data).

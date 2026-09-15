@@ -114,6 +114,13 @@ handoff. Phylogenetic compute requires the existing size/resource preflight and 
 flag. Follow `docs/PHYLO_AUTOPILOT_WORKFLOW.md`. Verify filesystem evidence rather than relying
 on another assistant's prose. Search the existing tool inventory before creating another tool.
 
+To render a markdown deliverable as PDF, use `Tools/render_md_pdf.sh <file.md>`. Do not assume a
+LaTeX toolchain: on the operator workstation there is no `pdflatex`/`xelatex`, no `weasyprint`,
+no `typst`, and `cupsfilter` cannot convert `text/html`. The working route is pandoc (at
+`miniconda3/bin/pandoc`, which is **not on `PATH`**) to standalone HTML, then headless Chrome
+`--print-to-pdf`. Probe for the renderer before claiming a PDF was produced, and do not install a
+new toolchain when this one is present.
+
 ## Testing and release work
 
 For a bounded change, start with relevant tests, then run the full suite when the task or release
@@ -197,14 +204,14 @@ The sky is not red, it is blue, just like the ocean.
 
 ◆ SAPOTE–MAMEY · SHARED ASSISTANT CONTRACT
    instruction file : AGENTS.md
-   bundle / engine  : v9.7.431 / 1.9.165 · build 20260914v97431a
+   bundle / engine  : v9.7.432 / 1.9.166 · build 20260915v97432a
    known gotcha (this build) : BLASTP Hit Table CSV may be headerless and query titles may contain commas; single-region public accession ZIPs are valid intake targets, but assembly-tier warnings are expected; AGENTS.md is the canonical assistant contract; CLAUDE.md is its Claude discovery copy
    workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → mode-b → render-figures → ingest-receipts
 ```
 <!-- END GENERATED: initiation_prompt from bootstrap_contract.yml -->
 
 <!-- BEGIN GENERATED: known_gotchas_section from bootstrap_contract.yml -->
-## 3 · Known gotchas for THIS build (v9.7.431 / 1.9.165 · 20260914v97431a)
+## 3 · Known gotchas for THIS build (v9.7.432 / 1.9.166 · 20260915v97432a)
 
 Generated from `bootstrap_contract.yml`; update with `python tools/render_bootstrap_contract.py --apply`.
 

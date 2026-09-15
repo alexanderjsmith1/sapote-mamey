@@ -7,15 +7,15 @@
 >
 > | What you want | Where it lives now | How it stays current |
 > |---|---|---|
-> | Every script in `tools/` + its docstring | [`docs/TOOLS_INVENTORY.generated.md`](../TOOLS_INVENTORY.generated.md) — **359 tools** | `tools/gen_tools_inventory.py`; `--check` verifies sync |
-> | Every `mamey_run.py` subcommand | [`docs/COMMAND_CATALOG.generated.md`](../COMMAND_CATALOG.generated.md) — **115 commands** | `tools/gen_command_catalog.py`; `--check` fails the build when stale |
+> | Every script in `tools/` + its docstring | [`docs/TOOLS_INVENTORY.generated.md`](../TOOLS_INVENTORY.generated.md) — **364 tools** | `tools/gen_tools_inventory.py`; `--check` verifies sync |
+> | Every `mamey_run.py` subcommand | [`docs/COMMAND_CATALOG.generated.md`](../COMMAND_CATALOG.generated.md) — **113 canonical commands** (2 aliases folded in) | `tools/gen_command_catalog.py`; `--check` fails the build when stale |
 > | External tools (antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes) | [`docs/EXTERNAL_TOOL_INVENTORY.md`](../EXTERNAL_TOOL_INVENTORY.md) | manual, versions + citations |
 >
 > **Why the change.** The inventory formerly in this file was compiled by hand on 2026-07-09 at
-> bundle v9.7.241 and listed **107 scripts**. `tools/` now contains **359**. A hand-maintained
+> bundle v9.7.241 and listed **107 scripts**. The generated inventory now lists **364**. A hand-maintained
 > copy of a machine-derivable list drifts silently and was already covering under a third of the
 > directory; the generated surfaces are gated by their own `--check` and cannot drift unnoticed.
-> Both were confirmed in sync at v9.7.430 before this edit.
+> The counts above are copied from the generated files; run each generator's `--check` before citing them.
 >
 > **Do not re-add a manual script list here.** Check the generated inventory *before* writing a
 > new tool, as its own header instructs.
@@ -76,7 +76,7 @@ observations about *behaviour*, not descriptions of *existence*.
 
 **`mamey render-all-figures`** — non-blocking per module. If one module fails (e.g. domain-level fails because deep_data.json is empty), the others continue. The summary at the end reports per-module results.
 
-**`tools/gen_tools_inventory.py`** — writes a tools inventory to `docs/BUNDLE_CAPABILITIES.md` and also outputs "wrote inventory: N tools" to stdout. The inventory is a structured markdown table of all tools/scripts with docstrings extracted. For a connection-aware review, run `python tools/gen_tools_inventory.py --connections --format tsv --output tool_connections.tsv`. That audit reports exact source hashes, executable interface, source/CLI consumers, tests, path-filtered non-historical documentation references, manifest membership, declared lifecycle, personal-path literals, external-contact markers, and two transparent evidence scores. The scores measure wiring and operational support only; they do not measure scientific value, correctness, acceptance, or release readiness. The marker columns are review cues, not proof that a default is unsafe or that external contact occurs.
+**`tools/gen_tools_inventory.py`** — writes the full tools inventory to `docs/TOOLS_INVENTORY.generated.md`, injects a compact `name — summary` list into the generated block of `docs/BUNDLE_CAPABILITIES.md`, and also outputs "wrote inventory: N tools" to stdout. The inventory is a structured markdown table of all tools/scripts with docstrings extracted. For a connection-aware review, run `python tools/gen_tools_inventory.py --connections --format tsv --output tool_connections.tsv`. That audit reports exact source hashes, executable interface, source/CLI consumers, tests, path-filtered non-historical documentation references, manifest membership, declared lifecycle, personal-path literals, external-contact markers, and two transparent evidence scores. The scores measure wiring and operational support only; they do not measure scientific value, correctness, acceptance, or release readiness. The marker columns are review cues, not proof that a default is unsafe or that external contact occurs.
 
 ---
 
@@ -122,7 +122,7 @@ mamey workflow --package <pkg> --strict   # exit non-zero if any mandatory step 
 # --- COMPILE ---
 mamey compile-report --package <pkg>       # auto-compile report
 mamey compile-report --package <pkg> --strict  # exit non-zero if SAPOTE slots open
-mamey compile-report --package <pkg> --pdf  # also render Boss-Ready PDF via md_to_pdf.sh (refuses on unfilled slots)
+mamey compile-report --package <pkg> --pdf  # also render Boss-Ready PDF via tools/md_to_pdf.sh (refuses on unfilled slots)
 mamey compile-report --package <pkg> --pdf --allow-unfilled-pdf  # render the PDF even with unfilled slots (skeleton)
 
 # --- BANK AND BUILD ---
@@ -209,7 +209,7 @@ python3 tools/file_atlas.py --orphans     # just the orphan list, for the bunny-
 
 Both `_wbio.py` (38 importers, 1 test before v9.7.243) and `crosswalk.py` (fan-in 11) were subsequently hardened — the atlas identified them as the highest-risk files, and the audit went there next. This is the tool doing its job.
 
-**Known limitation, found and fixed before shipping:** the first pass called `verify_release_identity.py` an orphan. It is invoked by `release.sh`, which the AST scanner did not read. Shell and gate-registry invocations now count. Orphan count dropped 42 → 35. The lesson generalises: an AST scan sees Python imports, not shell invocations, not YAML, not a `gate_registry.tsv` row.
+**Known limitation, found and fixed before shipping:** the first pass called `verify_release_identity.py` an orphan. It is invoked by `tools/release.sh`, which the AST scanner did not read. Shell and gate-registry invocations now count. Orphan count dropped 42 → 35. The lesson generalises: an AST scan sees Python imports, not shell invocations, not YAML, not a `gate_registry.tsv` row.
 
 **Output artifacts:** `docs/FILE_ATLAS.csv` (machine-readable, one row per file) and `docs/FILE_ATLAS.md` (four sections: Highest fan-in · Largest files · Orphan candidates · Every file).
 
@@ -270,9 +270,9 @@ mamey verify-modeb --package <sealed_pkg> --bgc BGC001    # loads known_loci aut
 
 `authored_verify` globs `<pkg>/*_cds_table.csv` and `<pkg>/cds_table.csv` to build `bgc_context["known_loci"]`. Without a sealed package there is no CDS table, and **the lint is silent** — it cannot judge what it cannot see, and a false accusation of fabrication is worse than none.
 
-**Severity:** ERROR. Added to `_READINESS_BLOCKING` alongside `NOVELTY_CONTRADICTION`, `INTERNAL_CONTRADICTION`, and `FACT_MISMATCH`. A card citing a foreign locus cannot reach `RELEASE_READY` and therefore cannot be presented.
+**Severity:** ERROR. Added to `_READINESS_BLOCKING` alongside `NOVELTY_CONTRADICTION`, `INTERNAL_CONTRADICTION`, and `FACT_MISMATCH`. A card citing a foreign locus cannot reach `EVIDENCE_MATRIX_VALIDATED` and therefore cannot be presented.
 
-**Verified against the real AS-XXX package:** 758 loci loaded; `ctg12_71` not among them; the leaked sentence raises ERROR and drops `readiness_state` below `RELEASE_READY`. A card citing that strain's real loci passes clean.
+**Verified against the real AS-XXX package:** 758 loci loaded; `ctg12_71` not among them; the leaked sentence raises ERROR and drops `readiness_state` to `DRAFT`. A card citing that strain's real loci passes clean.
 
 **Operational consequence:** the 74 already-authored cards are not repaired by the fix. Re-run `verify-modeb` against them with a sealed package and every one will flag. **Every §4 and §16 paragraph containing `ctg12_71` should be deleted, not reworded** — there is no BLASTp result to reword.
 
@@ -305,25 +305,35 @@ Sibling lint (same file / entry points). Guards the independent-homology channel
 Documented here because `verify-modeb` reports it and no other section covers it. Source: `mamey/modeb_structure_gate.py:readiness_state`.
 
 ```python
-_READINESS_BLOCKING = {"NOVELTY_CONTRADICTION", "INTERNAL_CONTRADICTION",
-                       "FACT_MISMATCH", "PHANTOM_LOCUS"}
+_READINESS_BLOCKING = {"NOVELTY_CONTRADICTION", "INTERNAL_CONTRADICTION", "FACT_MISMATCH",
+                       "PHANTOM_LOCUS"}
 
-def readiness_state(findings, quality_tier=None):
-    if any(f["severity"] == "ERROR" for f in findings):   return "DRAFT"
-    if quality_tier in (None, "STUB", "UNKNOWN"):          return "DRAFT"
-    if {f["code"] for f in findings} & _READINESS_BLOCKING: return "VERIFIED"
-    return "RELEASE_READY"
+
+def readiness_state(findings, quality_tier: Optional[str] = None) -> str:
+    """Return a mechanical validation state, never an owner/release state.
+
+    Character/depth diagnostics and deterministic lints cannot confer scientific
+    acceptance, integration, rendering approval, release approval, or publication approval.
+    """
+    findings = list(findings or [])
+    if any(f.get("severity") == "ERROR" for f in findings):
+        return "DRAFT"
+    if quality_tier in (None, "STUB", "UNKNOWN"):
+        return "DRAFT"
+    if {f.get("code") for f in findings} & _READINESS_BLOCKING:
+        return "STRUCTURE_VALIDATED_WITH_SCIENCE_HOLDS"
+    return "EVIDENCE_MATRIX_VALIDATED"
 ```
 
 | State | Meaning | May be presented? |
 |---|---|---|
 | `DRAFT` | Any ERROR finding, **or** the card is a STUB / depth-unverified | No |
-| `VERIFIED` | Depth is adequate, but a correctness check fails (one of the four blocking codes) | No |
-| `RELEASE_READY` | Depth adequate **and** no correctness block | Yes |
+| `STRUCTURE_VALIDATED_WITH_SCIENCE_HOLDS` | Depth is adequate, but a correctness check fails (one of the four blocking codes) | No |
+| `EVIDENCE_MATRIX_VALIDATED` | Depth adequate **and** no correctness block | Mechanically clear; presentation still needs owner judgment |
 
-**Only `RELEASE_READY` should flow into user-facing documents.** This is the presentation gate. A card that is structurally complete, adequately deep, and claim-safe can still be `VERIFIED` rather than `RELEASE_READY` — because a fact in it contradicts the package, or a locus in it belongs to another organism.
+**Only `EVIDENCE_MATRIX_VALIDATED` should flow into user-facing documents.** This is the mechanical presentation gate, not a release or scientific-acceptance state (the function's own docstring says so). A card that is structurally complete, adequately deep, and claim-safe can still be `STRUCTURE_VALIDATED_WITH_SCIENCE_HOLDS` rather than `EVIDENCE_MATRIX_VALIDATED` — because a fact in it contradicts the package, or a locus in it belongs to another organism.
 
-Note the asymmetry: an ERROR-severity finding drops a card all the way to `DRAFT`; a blocking *code* at WARN severity holds it at `VERIFIED`. `PHANTOM_LOCUS` is emitted at ERROR severity, so a phantom locus produces `DRAFT`.
+Note the asymmetry: an ERROR-severity finding drops a card all the way to `DRAFT`; a blocking *code* at WARN severity holds it at `STRUCTURE_VALIDATED_WITH_SCIENCE_HOLDS`. `PHANTOM_LOCUS` is emitted at ERROR severity, so a phantom locus produces `DRAFT`.
 
 ---
 
@@ -411,8 +421,9 @@ mamey verify-modeb --package <pkg> --bgc BGC### --interp [--interp-strict]  # ad
 - **`good-guesses`** writes `GOOD_GUESSES.{md,csv}` (+ `.docx` / `.pdf` on request). Each notable BGC
   gets ONE best claim-safe read, a tag (solid / rare / remarkable / notable / interesting), a
   confidence, and the resolving experiment; a per-page claim-safety footer is included.
-- **`modeb-export`** — `reportlab` (PDF) is vendored in `Tools/wheelhouse`; `python-docx` is not, so the
-  DOCX path degrades gracefully (`SKIPPED_NO_DOCX`) rather than failing when it is unavailable.
+- **`modeb-export`** — `reportlab` (PDF) is a core dependency in `pyproject.toml`, installed by `pip install -e .`;
+  `python-docx` is only in the `documents` / `all` extras, so the DOCX path degrades gracefully
+  (`SKIPPED_NO_DOCX`) rather than failing when it is unavailable.
 - **`figures kcb-locusmap`** degrades to a clear message + non-zero exit (never a traceback) when
   matplotlib is absent; it reads only a sealed input ZIP (or an extracted txt) and cannot fail a run.
 - **`verify-modeb --interp`** only *adds* WARN-severity `INTERP_*` findings — the structure gate's

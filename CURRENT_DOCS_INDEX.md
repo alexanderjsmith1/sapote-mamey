@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.431 · engine 1.9.165 · build 20260914v97431a
+# Current Docs Index — v9.7.432 · engine 1.9.166 · build 20260915v97432a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -55,6 +55,9 @@ and `docs/patch_notes/` are engineering records, not an alternative user setup s
 preserve dated decisions. Historical commands, counts, results and proposed features in those records
 are not current operating instructions. `docs/QUICK_GUIDE.md` is superseded by the Quick Guide above;
 `docs/user_guides/comprehensive_glossary.md` and `sapote_mamey_wheel_glossary.md` are retained snapshots.
+`docs/user_guides/` now holds `operational_reference.md`, `tools_reference.md`, `sapote_kernel_guide.md`,
+`development_issues_compendium.md`, the two math references, and those two retained glossary snapshots;
+the former cross-chat documentation protocol is archived under `docs/history/`.
 
 ## Maintaining this index
 

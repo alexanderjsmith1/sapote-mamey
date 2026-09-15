@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**364 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**370 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -47,6 +47,7 @@
 | `bigscape_pipeline.py` | bigscape_pipeline.py -- one-command BiG-SCAPE GCF layer for a Mamey cohort. |
 | `bigscape_prep.py` | stage antiSMASH region GBKs into a BiG-SCAPE input dir. |
 | `bigslice_query.py` | bigslice_query.py -- BiG-SLiCE as a second, feature-based GCF opinion (complements BiG-SCAPE). |
+| `bind_panel_metadata.py` | Bind display metadata onto a GToTree panel's figure_metadata.tsv. |
 | `bioassay_plate_map.py` | Map source-plate wells to destination wells with an explicit geometry profile. |
 | `bioassay_to_activity_channel.py` | emit MEASURED fraction-screen data as Sapote-Mamey |
 | `blastp_campaign.py` | headless, resumable, checkpoint-first NCBI BLASTp campaign runner. |
@@ -106,6 +107,7 @@
 | `build_pfam_desc_map.py` | extract Pfam NAME->{acc,desc} from a local Pfam-A.hmm into pfam_desc_map.json. |
 | `build_phylo_panel.py` | Build a bounded, provenance-rich genome panel for GToTree. |
 | `build_placement_ggtree_inputs.py` | the MISSING producer for tools/ggtree_placement.R. |
+| `build_placement_panel_inputs.py` | turn a gated EPA-ng display tree into the inputs of |
 | `build_priority_leads.py` | highest-confidence lead shortlist across independent evidence axes. |
 | `build_punchcard.py` | deterministic literature punch-card, generated IMMEDIATELY |
 | `build_reconstruction.py` | clusterblast-scaffolded split-pathway reconstruction. |
@@ -178,6 +180,7 @@
 | `domain_prevalence.py` | cohort-wide domain-prevalence + host-filterable widget/figures (v9.7.413). |
 | `domain_prevalence_widget.py` | domain_prevalence_widget.py (v9.7.413): host filter + single-strain drill-down + evidence + rare-loci + SVG e… |
 | `edge_fasta_export.py` | Export a FASTA of edge-proximal genes for directed BLASTp. |
+| `emit_modeb_template_full50.py` | emit a §1–§50 Mode B template. |
 | `emit_release_sums.sh` | emit_release_sums.sh -- emit SHA256SUMS.txt over the cut tier zips at the release root (PC-04). |
 | `encyclopedia_reground_check.py` | mechanize per-volume re-grounding of the Encyclopedia. |
 | `evidence_bundle.py` | per-BGC evidence bundle assembled from a SEALED Mamey package (P360-001 / Idea D). |
@@ -253,6 +256,7 @@
 | `modeb_evidence_gate.py` | deterministic Mode B evidence-governance gate (v9.7.354). |
 | `npatlas_provision.py` | tools/npatlas_provision.py -- operator front door for user-provisioned NP Atlas ingestion |
 | `nrps_substrate.py` | nrps_substrate.py -- predicted peptides + antibiotic-class signatures from A-domain substrates. |
+| `omitted_tips_receipt.py` | Machine-readable receipt for tips deliberately left off a GToTree panel. |
 | `outgroup_registry.py` | the "outgroup generator": genus -> a decided, reproducible outgroup. |
 | `package_screening_figure.py` | Package one screening figure with mandatory standalone reproduction companions. |
 | `panel_receipt_to_aux.py` | Export explicit query accessions from a panel receipt to a new auxiliary TSV. |
@@ -267,6 +271,7 @@
 | `phylo_16s_from_genome.py` | Extract BLAST-supported candidate 16S spans with per-locus relative orientation. |
 | `phylo_16s_panel.py` | phylo 16s panel. External inputs remain outside the software bundle. |
 | `phylo_16s_rank.py` | phylo 16s rank. External inputs remain outside the software bundle. |
+| `phylo_16s_validate_db.py` | Read-only validator for a 16S SQLite store: reports the two data-defect classes filed in |
 | `phylo_autopilot.py` | one front door for "upload 16S and/or genomes -> gated trees". |
 | `phylo_display_contract.py` | Shared, fail-closed display contract for EPA-ng and marker-tree renderers. |
 | `phylo_neighborhood_catalog.py` | Split one EPA-ng placement run into reproducible species-neighborhood subruns. |
@@ -314,6 +319,7 @@
 | `render_clean_tree.py` | Shared clean renderer for the GToTree 138-SCG core-genome ML trees. |
 | `render_dapr_boards.py` | render the DAPR antibacterial/antifungal boards and the |
 | `render_deliverable_pdf.py` | Compatibility CLI for the package-scoped ``mamey.markdown_pdf`` renderer. |
+| `render_gcf_synteny_tree.py` | one gene-cluster family as a tree beside gene-arrow tracks. |
 | `render_siderophore_atlas.py` | Render a pinned atlas snapshot into a standalone local evidence drawer. |
 | `render_three_channel_evidence_matrix.py` | Render the static three-channel evidence matrix from generic JSON or TSV. |
 | `render_tree_reference_series.py` | Render a hash-bound series of prepared tree displays using immutable input copies. |

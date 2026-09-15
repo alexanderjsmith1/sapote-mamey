@@ -1,5 +1,5 @@
-version=9.7.431
-build=20260914v97431a
-engine=1.9.165
-patch=Cross-strain namespace safety; Operator intent reaches the engine; Guard-surface tooling; Per-row resilience and case parity in the reference/scrub tools; Metadata resolution and geography; Documentation re-grounding; Engine 1.9.165 (BUMPED — strain-attribution sentinel on peer-lane fix, `mamey/bigscape_namespace.py`; score-neutral, no scoring or extraction file touched → v9.7.430 / v9.7.431 boards poolable); Validation scope
+version=9.7.432
+build=20260915v97432a
+engine=1.9.166
+patch=Landing and guide docs in plain voice; Tree figures are a required default, in two label variants; Gene-cluster family figure; Tree build and placement fixes; Engine 1.9.166 (BUMPED — score-neutral; boards from v9.7.431 remain poolable); BLASTp trove re-key for Mode B; Shipped outgroup registry snapshot; Retired
 tier=code

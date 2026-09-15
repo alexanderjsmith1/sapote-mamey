@@ -541,7 +541,8 @@ _OVERLAY_COLS = ["locus_tag", "aa_length", "antismash_domains", "blastp_top_def"
                  "blastp_accession", "blastp_organism", "pct_identity", "query_coverage",
                  "evalue", "bitscore", "agreement", "channel", "query_strain",
                  "query_bgc", "query_locus", "query_aa_length", "source_channel",
-                 "source_file_sha256", "ingest_date"]
+                 "source_file_sha256", "ingest_date", "source_query_bgc",
+                 "locus_rekey_state"]
 
 # channel precedence: a higher-precedence channel's row wins for the same gene.
 # (v9.7.344) swissprot added between clustered_nr and ebi; relative order of the pre-existing
@@ -580,6 +581,8 @@ _BGC_ALIASES = ("query_bgc", "bgc_id", "BGC_ID")
 _QUERY_ALIASES = ("query_locus", "query_id", "query_gene", "gene", "locus_tag")
 _GUARD_REASONS = (
     "FOREIGN_STRAIN", "FOREIGN_BGC", "NONCURRENT_LOCUS",
+    "LOCUS_ABSENT_FROM_CURRENT_PACKAGE", "LOCUS_AMBIGUOUS_IN_CURRENT_PACKAGE",
+    "CURRENT_AA_LENGTH_AMBIGUOUS_OR_UNAVAILABLE",
     "QUERY_CURRENT_AA_LENGTH_MISMATCH", "ZERO_OR_BLANK_AA_LENGTH",
     "LEGACY_PROVENANCE_HOLD",
     # v9.7.412: manual `ingest-blastp` path (F1/F2/F5-F7)
@@ -588,6 +591,7 @@ _GUARD_REASONS = (
 _QUARANTINE_COLS = [
     "reason", "channel", "package_strain", "destination_bgc", "query_strain",
     "query_bgc", "query_locus", "query_aa_length", "current_aa_length",
+    "source_bgc", "source_query_bgc", "resolved_bgc", "resolution_state",
     "source_file", "source_file_sha256", "source_row_number", "source_row_json",
 ]
 
@@ -937,6 +941,60 @@ def _current_locus_lengths(package: Path) -> dict[str, dict[str, int]]:
     return out
 
 
+def _current_locus_rekey_index(package: Path) -> dict[str, list[dict[str, object]]]:
+    """Load the package-authoritative locus-to-current-BGC map from ``*cds_table.csv``.
+
+    This index is used only by the explicit trove re-key mode.  It retains every distinct
+    current mapping so a locus that occurs under more than one BGC is held as ambiguous rather
+    than resolved by row order.  BGC identity and amino-acid length are separate: a locus can
+    resolve to one BGC while still failing closed because its current length is unavailable.
+    """
+    tables = _package_matches(package, "*cds_table.csv")
+    if len(tables) != 1:
+        raise ValueError(
+            "BLASTP_TROVE_REKEY_REQUIRES_ONE_CDS_TABLE: expected exactly one "
+            f"*cds_table.csv in the selected package; found {len(tables)}"
+        )
+    table = tables[0]
+    index: dict[str, list[dict[str, object]]] = {}
+    try:
+        with table.open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            required = {"bgc_id", "locus_tag"}
+            if not reader.fieldnames or not required.issubset(reader.fieldnames):
+                raise ValueError(
+                    "BLASTP_TROVE_REKEY_CDS_TABLE_SCHEMA_HOLD: required columns are "
+                    "bgc_id and locus_tag"
+                )
+            length_field = "length_aa" if "length_aa" in reader.fieldnames else (
+                "aa_length" if "aa_length" in reader.fieldnames else ""
+            )
+            if not length_field:
+                raise ValueError(
+                    "BLASTP_TROVE_REKEY_CDS_TABLE_SCHEMA_HOLD: required amino-acid length "
+                    "column is length_aa or aa_length"
+                )
+            for row_number, row in enumerate(reader, 2):
+                locus = str(row.get("locus_tag") or "").strip()
+                bgc = str(row.get("bgc_id") or "").strip()
+                if not locus or not bgc:
+                    raise ValueError(
+                        "BLASTP_TROVE_REKEY_CDS_TABLE_SCHEMA_HOLD: blank bgc_id or locus_tag "
+                        f"at {table.name}:{row_number}"
+                    )
+                item = {"bgc": bgc, "aa_length": _positive_int(row.get(length_field))}
+                bucket = index.setdefault(locus, [])
+                if item not in bucket:
+                    bucket.append(item)
+    except (OSError, csv.Error) as exc:
+        raise ValueError(f"BLASTP_TROVE_REKEY_CDS_TABLE_READ_HOLD: {table}") from exc
+    if not index:
+        raise ValueError("BLASTP_TROVE_REKEY_CDS_TABLE_SCHEMA_HOLD: CDS table has no loci")
+    for values in index.values():
+        values.sort(key=lambda item: (str(item["bgc"]), int(item["aa_length"] or 0)))
+    return index
+
+
 def _query_parts(row: dict) -> tuple[str, str, str, str]:
     raw_query = _pick(row, _QUERY_ALIASES)
     query_strain = _pick(row, _STRAIN_ALIASES)
@@ -983,6 +1041,59 @@ def _validate_ingest_row(row: dict, package_strain: str, destination_bgc: str,
     return keys, ""
 
 
+def _validate_rekey_ingest_row(
+        row: dict, package_strain: str, source_bgc: str,
+        current_by_locus: dict[str, list[dict[str, object]]]) -> tuple[dict, str]:
+    """Resolve a trove row by locus tag and validate it against current package truth."""
+    query_strain, source_query_bgc, locus, query_aa = _query_parts(row)
+    keys = {
+        "query_strain": query_strain,
+        "query_bgc": "",
+        "source_query_bgc": source_query_bgc,
+        "source_bgc": source_bgc,
+        "query_locus": locus,
+        "query_aa_length": query_aa,
+        "current_aa_length": "",
+        "resolved_bgc": "",
+        "resolution_state": "",
+    }
+    if not query_strain or not locus:
+        keys["resolution_state"] = "PROVENANCE_INCOMPLETE"
+        return keys, "LEGACY_PROVENANCE_HOLD"
+    if query_strain != package_strain:
+        keys["resolution_state"] = "FOREIGN_STRAIN"
+        return keys, "FOREIGN_STRAIN"
+    matches = current_by_locus.get(locus, [])
+    if not matches:
+        keys["resolution_state"] = "LOCUS_ABSENT_FROM_CURRENT_PACKAGE"
+        return keys, "LOCUS_ABSENT_FROM_CURRENT_PACKAGE"
+    bgcs = sorted({str(item["bgc"]) for item in matches})
+    if len(bgcs) != 1:
+        keys["resolved_bgc"] = ";".join(bgcs)
+        keys["resolution_state"] = "LOCUS_AMBIGUOUS_IN_CURRENT_PACKAGE"
+        return keys, "LOCUS_AMBIGUOUS_IN_CURRENT_PACKAGE"
+    resolved_bgc = bgcs[0]
+    lengths = {int(item["aa_length"]) for item in matches if item["aa_length"] is not None}
+    keys["resolved_bgc"] = resolved_bgc
+    keys["query_bgc"] = resolved_bgc
+    if len(lengths) != 1:
+        keys["resolution_state"] = "CURRENT_AA_LENGTH_AMBIGUOUS_OR_UNAVAILABLE"
+        return keys, "CURRENT_AA_LENGTH_AMBIGUOUS_OR_UNAVAILABLE"
+    current_aa = next(iter(lengths))
+    keys["current_aa_length"] = str(current_aa)
+    aliases = {value for value in (source_bgc, source_query_bgc) if value}
+    if any(value != resolved_bgc for value in aliases):
+        keys["resolution_state"] = "REKEYED_BY_CURRENT_CDS_TABLE"
+    else:
+        keys["resolution_state"] = "CURRENT_ALIAS_CONFIRMED_BY_CDS_TABLE"
+    query_len = _positive_int(query_aa)
+    if query_len is None:
+        return keys, "ZERO_OR_BLANK_AA_LENGTH"
+    if query_len != current_aa:
+        return keys, "QUERY_CURRENT_AA_LENGTH_MISMATCH"
+    return keys, ""
+
+
 def _quarantine_row(reason: str, channel: str, package_strain: str, bgc: str,
                     keys: dict, source_file: str, source_sha: str, row_number: int,
                     row: dict) -> dict:
@@ -992,6 +1103,10 @@ def _quarantine_row(reason: str, channel: str, package_strain: str, bgc: str,
         "query_bgc": keys.get("query_bgc", ""), "query_locus": keys.get("query_locus", ""),
         "query_aa_length": keys.get("query_aa_length", ""),
         "current_aa_length": keys.get("current_aa_length", ""),
+        "source_bgc": keys.get("source_bgc", ""),
+        "source_query_bgc": keys.get("source_query_bgc", keys.get("query_bgc", "")),
+        "resolved_bgc": keys.get("resolved_bgc", ""),
+        "resolution_state": keys.get("resolution_state", ""),
         "source_file": source_file, "source_file_sha256": source_sha,
         "source_row_number": row_number,
         "source_row_json": json.dumps(row, sort_keys=True, separators=(",", ":")),
@@ -1000,7 +1115,8 @@ def _quarantine_row(reason: str, channel: str, package_strain: str, bgc: str,
 
 def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strain: str,
                            sources: list[dict], admitted: dict[str, int],
-                           quarantined: list[dict]) -> tuple[str, str]:
+                           quarantined: list[dict],
+                           rekey_summary: dict | None = None) -> tuple[str, str]:
     """Write deterministic, content-addressed quarantine and receipt artifacts."""
     source_rows = sorted(sources, key=lambda r: (r["bgc"], r["file"], r["sha256"]))
     token_payload = json.dumps(
@@ -1036,7 +1152,8 @@ def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strai
             quarantined_by_bgc.get(row["destination_bgc"], 0) + 1
     all_bgcs = sorted(set(admitted) | set(quarantined_by_bgc))
     receipt = {
-        "schema": "mamey_blastp_five_part_ingest_v1",
+        "schema": ("mamey_blastp_locus_rekey_ingest_v2" if rekey_summary is not None
+                   else "mamey_blastp_five_part_ingest_v1"),
         "package_strain": package_strain,
         "channel": channel,
         "store_kind": kind,
@@ -1050,6 +1167,8 @@ def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strai
         "quarantine_file": qpath.name,
         "quarantine_sha256": hashlib.sha256(qtext.encode("utf-8")).hexdigest(),
     }
+    if rekey_summary is not None:
+        receipt["locus_rekey"] = rekey_summary
     rpath = rdir / f"{channel}_{kind}_{token}_receipt.json"
     rtext = json.dumps(receipt, indent=2, sort_keys=True) + "\n"
     if rpath.exists() and rpath.read_text(encoding="utf-8") != rtext:
@@ -1059,20 +1178,44 @@ def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strai
 
 
 def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str,
-                        strain: str | None = None) -> dict:
+                        strain: str | None = None, *, rekey_by_locus: bool = False) -> dict:
     """Ingest a pre-parsed per-BGC hit trove into <package>/blastp_online/<BGC>_online_blastp.csv.
 
     trove_dir layout: <STRAIN>/<BGC>/<BGC>_top_hit_per_gene.csv (the schema blastp_ingest/
     blastp_followup already emit). Unlike ingest-blastp this needs NO raw NCBI HitTable and NO
     workbook: the trove is already the rank-1 hit per gene. Channel-tagged; higher-precedence
     channels are not overwritten by lower ones. Reader-side, non-scoring.
+
+    ``rekey_by_locus`` is an explicit migration mode for troves whose folder and row BGC aliases
+    predate the selected package.  It resolves each query locus through the package's sole
+    ``*cds_table.csv`` and writes to that current BGC.  Absent/ambiguous loci and length conflicts
+    remain quarantined as distinct typed holds; the strict default path is unchanged.
     """
     if channel not in _CHANNEL_RANK:
         raise ValueError(f"channel must be one of {sorted(_CHANNEL_RANK)}; got {channel!r}")
     pkg = Path(package)
     _recover_fileset_transactions(pkg)
     package_strain = _package_strain(pkg, strain)
-    current = _current_locus_lengths(pkg)
+    if rekey_by_locus:
+        current_by_locus = _current_locus_rekey_index(pkg)
+        # The explicit migration mode is governed by the CDS table alone.  Build the
+        # legacy-shaped map needed to validate any pre-existing overlays from that same
+        # authority rather than requiring a separate gene_context export.  A conflicting
+        # length for one BGC/locus is deliberately omitted so an old overlay cannot be
+        # admitted against an arbitrarily selected length.
+        current: dict[str, dict[str, int]] = {}
+        by_bgc_locus: dict[tuple[str, str], set[int]] = {}
+        for locus, matches in current_by_locus.items():
+            for item in matches:
+                if item["aa_length"] is not None:
+                    key = (str(item["bgc"]), locus)
+                    by_bgc_locus.setdefault(key, set()).add(int(item["aa_length"]))
+        for (bgc, locus), lengths in by_bgc_locus.items():
+            if len(lengths) == 1:
+                current.setdefault(bgc, {})[locus] = next(iter(lengths))
+    else:
+        current = _current_locus_lengths(pkg)
+        current_by_locus = {}
     outdir = pkg / "blastp_online"
     domains = _domains_by_locus(pkg)
     self_binomial = _self_binomial(pkg)
@@ -1089,7 +1232,8 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
     written: dict[str, int] = {}
     rejected: list[dict] = []
     sources: list[dict] = []
-    plans: list[tuple[str, Path, list[dict]]] = []
+    planned_rows: dict[str, dict[str, dict]] = {}
+    rekey_counts: dict[str, int] = {}
     for sdir in strain_dirs:
         for bgc_dir in (p for p in _trove_entries(sdir)
                         if p.is_dir() and p.name.upper().startswith("BGC")):
@@ -1111,13 +1255,26 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
                 continue
             source_sha = _sha256(src)
             source_file = str(src.relative_to(troot))
-            sources.append({"bgc": bgc, "file": source_file, "sha256": source_sha})
-            new_rows = {}
+            file_destinations: set[str] = set()
+            if not rekey_by_locus:
+                # Preserve the strict path's all-rejected stale-overlay cleanup behavior.
+                planned_rows.setdefault(bgc, {})
             for row_number, r in enumerate(csv.DictReader(src.open(newline="", encoding="utf-8")), 2):
-                keys, reason = _validate_ingest_row(r, package_strain, bgc, current)
+                if rekey_by_locus:
+                    keys, reason = _validate_rekey_ingest_row(
+                        r, package_strain, bgc, current_by_locus,
+                    )
+                    state = keys.get("resolution_state", "") or reason
+                    rekey_counts[state] = rekey_counts.get(state, 0) + 1
+                    destination_bgc = keys.get("resolved_bgc", "")
+                    if ";" in destination_bgc or not destination_bgc:
+                        destination_bgc = bgc
+                else:
+                    keys, reason = _validate_ingest_row(r, package_strain, bgc, current)
+                    destination_bgc = bgc
                 if reason:
                     rejected.append(_quarantine_row(
-                        reason, channel, package_strain, bgc, keys, source_file,
+                        reason, channel, package_strain, destination_bgc, keys, source_file,
                         source_sha, row_number, r,
                     ))
                     continue
@@ -1133,7 +1290,7 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
                 # prevent -- see write_nr_overlay's equivalent call, which already passes hit_rank.
                 if _is_self_hit(sci, pid, self_binomial, hit_rank=1):
                     continue
-                new_rows[locus] = {
+                new_row = {
                     "locus_tag": locus,
                     "aa_length": keys["query_aa_length"],
                     "antismash_domains": domains.get(locus, ""),
@@ -1153,14 +1310,26 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
                     "source_channel": channel,
                     "source_file_sha256": source_sha,
                     "ingest_date": _dt.date.today().isoformat(),
+                    "source_query_bgc": keys.get("source_query_bgc", keys["query_bgc"]),
+                    "locus_rekey_state": keys.get("resolution_state", ""),
                 }
-            plans.append((bgc, src, list(new_rows.values())))
-            written[bgc] = len(new_rows)
+                destination_rows = planned_rows.setdefault(destination_bgc, {})
+                # Preserve the established top-hit-per-gene behavior: later rows in the
+                # deterministic source traversal replace earlier rows for the same gene.
+                destination_rows[locus] = new_row
+                file_destinations.add(destination_bgc)
+            sources.append({
+                "bgc": bgc, "file": source_file, "sha256": source_sha,
+                "destination_bgcs": sorted(file_destinations),
+            })
+
+    plans = [(bgc, list(rows.values())) for bgc, rows in sorted(planned_rows.items())]
+    written = {bgc: len(rows) for bgc, rows in sorted(planned_rows.items())}
 
     # Identity and all source-row guards have run before the first channel output is modified.
     overlay_payloads: dict[Path, str] = {}
     overlay_deletions: set[Path] = set()
-    for bgc, _src, new_row_list in plans:
+    for bgc, new_row_list in plans:
         new_rows = {row["locus_tag"]: row for row in new_row_list}
         # merge with any existing overlay, honouring channel precedence
         opath = outdir / f"{bgc}_online_blastp.csv"
@@ -1209,13 +1378,21 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
 
     quarantine_path, receipt_path = _write_guard_artifacts(
         pkg, channel, "overlay", package_strain, sources, written, rejected,
+        ({
+            "enabled": True,
+            "authority": "selected package *cds_table.csv",
+            "resolution_counts": dict(sorted(rekey_counts.items())),
+            "admitted_current_bgcs": dict(sorted(written.items())),
+        } if rekey_by_locus else None),
     )
     _update_ingest_ledger(
         outdir, channel, written, rejected, package_strain, sources, receipt_path,
     )
     return {"package": str(pkg), "channel": channel, "bgcs_written": written,
             "genes": sum(written.values()), "quarantined": len(rejected),
-            "quarantine": quarantine_path, "receipt": receipt_path}
+            "quarantine": quarantine_path, "receipt": receipt_path,
+            "rekey_by_locus": rekey_by_locus,
+            "rekey_resolution_counts": dict(sorted(rekey_counts.items()))}
 
 
 def _load_ingest_ledger(ledger_path: Path) -> dict:
@@ -1257,7 +1434,9 @@ def _update_ingest_ledger(store_dir: Path, channel: str, written: dict,
         rejected_by_bgc[bgc] = rejected_by_bgc.get(bgc, 0) + 1
     source_by_bgc: dict[str, list[str]] = {}
     for source in sources:
-        source_by_bgc.setdefault(source["bgc"], []).append(source["sha256"])
+        destinations = source.get("destination_bgcs") or [source["bgc"]]
+        for bgc in destinations:
+            source_by_bgc.setdefault(bgc, []).append(source["sha256"])
     for bgc in sorted(set(written) | set(rejected_by_bgc)):
         admitted = int(written.get(bgc, 0))
         ch[bgc] = {

@@ -1,33 +1,31 @@
 # Sapote-Mamey
 
-Sapote–Mamey organizes evidence from antiSMASH results so you can investigate microbial
-biosynthetic gene clusters. It is developed primarily around actinomycete genome analysis.
-It combines extracted annotations, evidence tables, prioritization and a separate interpretation
-workflow. A score is a reason to inspect a region, not a measurement of antimicrobial activity.
+Sapote-Mamey turns antiSMASH results into evidence you can inspect: which biosynthetic gene
+clusters (BGCs) a genome carries, what their genes resemble, and which regions deserve a closer
+look. It is built around actinomycete genomes. A score is a reason to inspect a region, not a
+measurement of antimicrobial activity.
 
-**Start with the file you have:** an antiSMASH result ZIP for extraction, an existing
-Complete_Package ZIP for review, or a code ZIP for installation. The first-run walkthrough
-below explains those choices and has a route for working through an assistant. You do not
-need to run every optional workflow to get a useful result.
+Two parts. Mamey is the executable BGC-analysis module: extraction, evidence checks, tables
+and analysis tools. Sapote is the interpretation and writing workflow: it takes those results into gene-by-gene
+Mode B cards and reports. A generated table or template starts that review; it does not write
+the interpretation for you.
 
-The program and documentation are under active development. This candidate has known gaps in
-metadata handling, evidence-completeness reporting and generated-PDF layout. Successful
-execution and package validation do not resolve those gaps or certify a biological conclusion.
+From one antiSMASH result ZIP you can examine the genes and their reference matches, deepen
+uncertain calls with BLASTp, and compare strains. Optional companion workflows add BiG-SCAPE
+gene-cluster families and phylogenetic trees to the same evidence review and figure workflow.
+You do not need every optional workflow to get a useful result.
 
-**Pre-release.** Consult the version footer, release manifest and distributed checksums for this build’s identity and validation status. A prerelease is not a stable-release guarantee.
+**Start with the file you have:**
 
-**From antiSMASH results to protein-level investigation, fragmented-pathway analysis, gene-cluster families, and phylogenetic figures.**
+- An **antiSMASH result ZIP** → [Your first Sapote–Mamey analysis](docs/MASTER_WALKTHROUGH.md). It has a route for working through an assistant and a terminal route.
+- A **Complete_Package ZIP** from an earlier run → [Read your results](docs/READING_YOUR_RESULTS.md).
+- A **code ZIP** → [Install](#install) below.
 
-Sapote-Mamey helps investigate biosynthetic gene clusters in actinomycete genomes. Start with an
-antiSMASH result ZIP, examine the genes and their reference matches, deepen uncertain assignments
-with BLASTp, and compare the results across strains. Optional companion workflows connect BiG-SCAPE
-family analysis and phylogenetic trees to the same evidence review and figure workflow.
-
-Mamey is the executable BGC-analysis module. It runs extraction, evidence checks, tables, and analysis tools. **Sapote** is the interpretation
-and writing workflow: it brings those results together into gene-by-gene Mode B cards and reports.
-A generated table or template starts that review; it does not write the final interpretation for you.
-
-**First time here?** Use [Your first Sapote–Mamey analysis](docs/MASTER_WALKTHROUGH.md), with an assistant-operated route and a terminal route. Already have a result ZIP? Start with [Read your results](docs/READING_YOUR_RESULTS.md).
+**Status.** The program and documentation are under active development. This build has known
+gaps in metadata handling, evidence-completeness reporting and generated-PDF layout. A run that
+finishes and validates does not close those gaps or certify a biological conclusion. This is a
+**pre-release**: check the version footer, the release manifest and the distributed checksums for
+this build's identity and validation status. A prerelease is not a stable-release guarantee.
 
 ## What you can do
 
@@ -40,53 +38,53 @@ A generated table or template starts that review; it does not write the final in
 | How do biosynthetic features vary across a tree? | Route 16S sequences or build a genome tree, then supply matched annotation tracks | Trees with metadata or strain-level heatmap overlays, plus the data and methods needed to reproduce them |
 | What does the combined evidence suggest? | Author and verify a Mode B card | A traceable gene-by-gene interpretation incorporating available protein, domain, cluster-family, and comparative evidence |
 
-## The analysis beyond extraction
+## Beyond extraction
 
-**Protein evidence.** Mamey can extract translated CDS sequences from antiSMASH region GenBank
+**Protein evidence.** Mamey extracts translated CDS sequences from antiSMASH region GenBank
 files. `bgc-blastp-panel` exports representative proteins as FASTA batches for a manual BLASTp
 search. `blastp-online` submits a selected region's proteins to NCBI; `blastp-round` plans broader
-coverage before submission, and `auto-blastp` provides a resumable scheduler. Saved hit tables can
-be ingested with `ingest-blastp`. Compare hit identity, alignment coverage, protein length, domains,
-and neighboring genes before revising a functional interpretation. Keep each search database and
-its provenance attached to the result. See the [protein-search walkthrough](docs/GUIDE/02_Quick_Guide.md#protein-search-and-result-import).
+coverage before submission; `auto-blastp` is a resumable scheduler. Import saved hit tables with
+`ingest-blastp`. Before you revise a functional call, compare hit identity, alignment coverage,
+protein length, domains and neighbouring genes. Keep each search database and its provenance
+with the result. See the [protein-search walkthrough](docs/GUIDE/02_Quick_Guide.md#protein-search-and-result-import).
 
 **Fragmented pathways.** Poor assemblies need more than an edge flag. The built-in RG-GMCI pass
 compares fragments against shared ClusterBlast/KnownClusterBlast references, checks where their
-hits lie, and tests whether they cover complementary parts of the reference pathway. Boundary and
-terminus evidence provide additional context; paralogous overlap and promiscuous links can weaken
-or reject a proposed rescue. Here, rescue means recovering an interpretable candidate pathway
-relationship: it does not join DNA contigs or reconstruct missing sequence. See
+hits fall, and tests whether they cover complementary parts of the reference pathway. Boundary and
+terminus evidence add context; paralogous overlap and promiscuous links can weaken or reject a
+proposed rescue. "Rescue" here means recovering an interpretable candidate pathway relationship.
+It does not join contigs or reconstruct missing sequence. See
 [fragment review](docs/GUIDE/02_Quick_Guide.md#fragmented-pathway-review).
 
 **Cluster families.** `bigscape` stages region GBKs, runs an externally installed BiG-SCAPE 2.x,
-and can chain its results into cohort widgets. This is an integrated command, with the external
-binary and pressed Pfam database supplied separately. Family membership belongs to the selected
-run and cutoff; review it alongside assembly fragmentation and protein evidence. See
+and can chain the results into cohort widgets. The command is integrated; you supply the
+BiG-SCAPE binary and the pressed Pfam database separately. Family membership belongs to that run
+and cutoff; read it alongside assembly fragmentation and protein evidence. See
 [the BiG-SCAPE walkthrough](docs/GUIDE/02_Quick_Guide.md#big-scape-family-analysis).
 
-**Phylogeny and overlays.** `phylo-autopilot` inventories uploads and supports 16S routing and
-placement; `phylo-run` launches an approved GToTree/IQ-TREE genome workflow, with optional ANI
-inputs. Existing tree renderers connect tree tips to metadata and strain-level ANI, BGC, domain,
-Mode B, or assembly tracks. These tracks require an explicit tip-to-strain mapping and their own
-data; they are not inferred from the tree. See [trees and heatmaps](docs/GUIDE/02_Quick_Guide.md#trees-and-heatmap-overlays).
+**Phylogeny and overlays.** `phylo-autopilot` inventories uploads and handles 16S routing and
+placement. `phylo-run` launches an approved GToTree/IQ-TREE genome workflow, with optional ANI
+inputs. The tree renderers join tree tips to metadata and to strain-level ANI, BGC, domain,
+Mode B or assembly tracks. Each track needs an explicit tip-to-strain mapping and its own data;
+nothing is inferred from the tree. See [trees and heatmaps](docs/GUIDE/02_Quick_Guide.md#trees-and-heatmap-overlays).
 
-**Bioassay figures.** The bioassay Figure Factory accepts a hash-bound long-form observation table
-that keeps plate format, well, material lineage, target resolution, time point, replicate, control,
-and inclusion state. It can emit an R/ggplot2 summary without averaging unlike materials or treating
-a missing positive control as valid. Tree overlays require a separate, explicit selection of the
-material, target, time point, and experiments to summarize. See the
+**Bioassay figures.** The bioassay Figure Factory takes a hash-bound long-form observation table
+that keeps plate format, well, material lineage, target resolution, time point, replicate,
+control and inclusion state. It emits an R/ggplot2 summary without averaging unlike materials or
+treating a missing positive control as valid. Tree overlays need a separate, explicit selection
+of material, target, time point and experiments. See the
 [bioassay figure contract](docs/BIOASSAY_FIGURE_FACTORY.md).
 
 ## Install
 
-> **Build status.** This CODE tree is a controlled quality-recheck candidate, not a signed public release; the footer of this file carries the exact bundle and engine versions, sourced from [`pyproject.toml`](pyproject.toml). [`RELEASE_MANIFEST.md`](RELEASE_MANIFEST.md) is the authoritative status source.
+> **Build status.** This CODE tree is a controlled quality-recheck candidate, not a signed public release. The footer of this file carries the exact bundle and engine versions, sourced from [`pyproject.toml`](pyproject.toml). [`RELEASE_MANIFEST.md`](RELEASE_MANIFEST.md) is the authoritative status source.
 >
 > GitHub source users: start with `docs/PUBLIC_RELEASE_GUIDE.md` for what ships, the Pfam HMM you provision yourself, the tool's runtime network behavior, and air-gapped operation. Full step-by-step setup is in `docs/INSTALL.md`.
->
+
 ### Python and dependencies
 
-Use **Python 3.12 or newer**. Run from the extracted directory containing `pyproject.toml`
-and `mamey_run.py`:
+You need **Python 3.12 or newer**. Run these from the extracted directory that contains
+`pyproject.toml` and `mamey_run.py`:
 
 ```bash
 python3 -m venv .venv
@@ -96,10 +94,10 @@ python mamey_run.py start
 python mamey_run.py doctor
 ```
 
-These are macOS/Linux shell examples. On Windows, activate with
-`.venv\Scripts\Activate.ps1` in PowerShell. Core dependencies are declared in
-[pyproject.toml](pyproject.toml): `openpyxl`, `ijson`, `reportlab`, and `PyYAML`.
-Use the local launcher to avoid running another installed version.
+These are macOS/Linux commands. On Windows, activate with `.venv\Scripts\Activate.ps1` in
+PowerShell. The core dependencies are declared in [pyproject.toml](pyproject.toml): `openpyxl`,
+`ijson`, `reportlab`, and `PyYAML`. Always use the local launcher (`python mamey_run.py`) so you
+do not run some other installed version by mistake.
 
 Optional features have named extras:
 
@@ -107,29 +105,29 @@ Optional features have named extras:
 python -m pip install -e '.[figures,documents,bio]'
 ```
 
-Read [INSTALL](docs/INSTALL.md) for the full setup, offline installation, and platform-compatible
-add-ons. See [PREREQUISITES](docs/PREREQUISITES.md) for companion tools and
-[EXTERNAL ASSETS](docs/EXTERNAL_ASSETS_GUIDE.md) for data provision.
-antiSMASH runs separately; supply its result ZIP to Mamey. External databases, system tools,
-and the curated Pfam HMM are not installed by the core Python package.
+[INSTALL](docs/INSTALL.md) has the full setup, offline installation and platform-compatible
+add-ons. [PREREQUISITES](docs/PREREQUISITES.md) covers companion tools and
+[EXTERNAL ASSETS](docs/EXTERNAL_ASSETS_GUIDE.md) covers data provision. antiSMASH runs
+separately; you give its result ZIP to Mamey. The core Python package does not install external
+databases, system tools, or the curated Pfam HMM.
 
 ## Tool downloads and licenses
 
-For a readable description of each tool, standalone use, and its Sapote–Mamey connection,
-see the [Companion Tool Guide](docs/COMPANION_TOOL_GUIDE.md). The table below is the download
-and license reference, not a requirement to install everything.
+The [Companion Tool Guide](docs/COMPANION_TOOL_GUIDE.md) describes each tool, how to use it on
+its own, and how it connects to Sapote–Mamey. The table below is the download and license
+reference. It is not a requirement to install everything: install Python and the core package
+first, then add only the companion tools your analysis needs.
 
-Install Python and the core package first. Add only the companion tools needed for your chosen
-analysis. These links go to the upstream project or installation page, where downloads and full
-license texts are maintained. The listed license applies to the named upstream software; dependencies
-and reference databases have their own terms. Check the license shipped with the version you install.
-
-For practical reading: MIT, BSD, Apache, PSF, and similar permissive licenses generally require
-preserving their copyright and license notices when redistributing the software. GPL and AGPL tools
+The links go to the upstream project or installation page, where downloads and full license
+texts are maintained. The listed license applies to the named upstream software; dependencies
+and reference databases have their own terms. Check the license shipped with the version you
+install. In practice: MIT, BSD, Apache, PSF and similar permissive licenses generally require you
+to keep their copyright and license notices when redistributing the software. GPL and AGPL tools
 carry source and license obligations when redistributed or modified; LGPL has its own linking and
-redistribution conditions. The tools below are installed separately and are not copied into the core
-Sapote-Mamey package. “Public domain” applies to the named software, not automatically to records in
-a database it searches. Follow the linked upstream text for the exact version and distribution you use.
+redistribution conditions. The tools below are installed separately and are not copied into the
+core Sapote-Mamey package. "Public domain" applies to the named software, not automatically to
+records in a database it searches. Follow the linked upstream text for the exact version and
+distribution you use.
 
 | Tool / official download or installation page | Needed for | Upstream license |
 |---|---|---|
@@ -162,17 +160,17 @@ Core Python dependencies install with `python -m pip install -e .`:
 [ijson](https://pypi.org/project/ijson/) (BSD-3-Clause for current upstream; the vendored copy retains its own notice),
 [ReportLab](https://pypi.org/project/reportlab/) (BSD), and
 [PyYAML](https://pypi.org/project/PyYAML/) (MIT).
-The optional Python figures and documents packages install through the extras above; their license
-inventory is in [Third-Party Licenses](docs/THIRD_PARTY_LICENSES.md). This table covers direct
-workflow tools, not every transitive library installed by their package managers.
+The optional Python figures and documents packages install through the extras above; their
+license inventory is in [Third-Party Licenses](docs/THIRD_PARTY_LICENSES.md). This table covers
+direct workflow tools, not every transitive library their package managers install.
 
 ### External reference datasets
 
-The repository includes small, versioned lookup tables and positive-control extracts used by the
-engine. It does not include the full Pfam, MIBiG, UniProt/Swiss-Prot, nr, ClusteredNR, RefSeq, or
-16S collections. Record the exact dataset release, download date, and file hashes used for an
-analysis. A data license governs reuse; a scientific citation documents which resource informed
-the work. Do both when the resource asks for attribution.
+The repository ships small, versioned lookup tables and positive-control extracts used by the
+engine. It does not ship the full Pfam, MIBiG, UniProt/Swiss-Prot, nr, ClusteredNR, RefSeq, or
+16S collections. Record the exact dataset release, download date and file hashes you used. A data
+license governs reuse; a scientific citation documents which resource informed the work. Do both
+when the resource asks for attribution.
 
 | Resource | Used for | What the terms mean for this workflow |
 |---|---|---|
@@ -181,14 +179,15 @@ the work. Do both when the resource asks for attribution.
 | [UniProt / Swiss-Prot](https://www.uniprot.org/help/downloads) | Reviewed protein-reference evidence | [CC BY 4.0](https://www.uniprot.org/help/license/) applies to copyrightable database content: attribution is required. UniProt also notes that patents or other third-party rights may apply to some records. |
 | [NCBI BLAST databases](https://www.ncbi.nlm.nih.gov/books/NBK62345/) | nr, ClusteredNR, RefSeq protein, and 16S reference searches | [BLAST software is public domain](https://blast.ncbi.nlm.nih.gov/doc/blast-help/developerinfo.html). Treat database content separately: retain the exact database name/date and record-level source identifiers, cite the contributing resources, and review the notices supplied with the selected database. |
 
-Keep database versions and hashes with the analysis. Python package installation does not download
-these databases or install the external binaries. Use `python mamey_run.py doctor --companions`
-to check the analysis machine, and the [installation guide](docs/INSTALL.md) for the bundle setup.
+Keep database versions and hashes with the analysis. Installing the Python package does not
+download these databases or install the external binaries. Run
+`python mamey_run.py doctor --companions` to check the analysis machine, and use the
+[installation guide](docs/INSTALL.md) for the bundle setup.
 
 ## Quickstart
 
-Replace the example paths and metadata with values verified from your input. Run from the
-bundle root; the package path below assumes `--strain EXAMPLE` and `--outdir runs/`.
+Replace the example paths and metadata with values you have verified from your input. Run from
+the bundle root. The package path below assumes `--strain EXAMPLE` and `--outdir runs/`.
 
 ```bash
 python mamey_run.py inspect path/to/antismash_result.zip
@@ -200,24 +199,25 @@ python mamey_run.py validate runs/EXAMPLE/package
 python mamey_run.py explain runs/EXAMPLE/package
 ```
 
-Read the actual run status, issue log, and output paths before interpretation. Validation checks
-package structure and encoded evidence gates; it does not establish biological identity,
-production, activity, or owner acceptance.
+Before you interpret anything, read the run status, the issue log and the output paths.
+Validation checks package structure and the encoded evidence gates. It does not establish
+biological identity, production, activity, or owner acceptance.
 
-For a time-limited session, add `--capped-session` to `run`. It forces `--brief none` and
-`--json-evidence off`, requires the workbook, and disables automatic locus maps unless explicitly
-enabled. To retain bounded JSON evidence, omit `--capped-session` and use `--json-evidence bounded`
-with enough runtime. The old `--chatgpt-safe` spelling remains only as a deprecated alias for
-`--capped-session`.
-Render deferred figures from the validated package when the required dependencies are available:
+If your session has a time limit, add `--capped-session` to `run`. It forces `--brief none` and
+`--json-evidence off`, requires the workbook, and turns off automatic locus maps unless you
+enable them. If you want bounded JSON evidence instead, leave out `--capped-session`, use
+`--json-evidence bounded`, and give it enough runtime. The old `--chatgpt-safe` spelling still
+works only as a deprecated alias for `--capped-session`.
+
+Once the package validates, render the deferred figures (needs the figure dependencies):
 
 ```bash
 python mamey_run.py render-all-figures runs/EXAMPLE/package
 ```
 
-The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) covers package review, cohort work, and the
-transition to Mode B. `python mamey_run.py --help` lists the commands. A Mode B template or
-lead table prepares material for Sapote judgment; it is not a finished authored card.
+The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) covers package review, cohort work and the move
+into Mode B. `python mamey_run.py --help` lists the commands. A Mode B template or lead table is
+material for Sapote judgment; it is not a finished authored card.
 
 ## Repository layout
 
@@ -231,12 +231,13 @@ lead table prepares material for Sapote judgment; it is not a finished authored 
 
 ## Using with an AI assistant
 
-The canonical portable operating contract for coding assistants is [AGENTS.md](AGENTS.md). Run
-`python mamey_run.py start` from the extracted bundle to confirm its current version and workflow.
-`CLAUDE.md` is a byte-identical Claude discovery copy; it does not define a separate startup path,
-and other assistants are not assumed to discover that filename. Point ChatGPT, Gemini, or another
-assistant to `AGENTS.md`, or supply it through that product's supported instruction mechanism. The
-`skills/sapote-mamey/SKILL.md` file contains the detailed Mode B and audit disciplines.
+[AGENTS.md](AGENTS.md) is the portable operating contract for coding assistants. Have the
+assistant run `python mamey_run.py start` from the extracted bundle to confirm the current
+version and workflow. `CLAUDE.md` is a byte-identical copy of AGENTS.md for assistants that look
+for that filename; it defines no separate startup path, and other assistants are not assumed to
+find it. Point ChatGPT, Gemini, or any other assistant at `AGENTS.md`, or supply it through that
+product's instruction mechanism. `skills/sapote-mamey/SKILL.md` holds the detailed Mode B and
+audit disciplines.
 
 ## Citation-Compact Provenance and Citation Status
 
@@ -253,9 +254,10 @@ Current compact lead tables use `interpretation_scope` for reader-facing scope.
 
 ## Data availability
 
-Check the exact tier's inventory, release manifest, and disclosure decisions before sharing data.
-A CODE candidate's filename, a strain prefix, or a local test pass does not establish public-release
-authority. Keep private or unpublished material out of public artifacts and preserve source attribution.
+Before you share data, check the exact tier's inventory, the release manifest and the disclosure
+decisions. A CODE candidate's filename, a strain prefix, or a local test pass does not establish
+public-release authority. Keep private or unpublished material out of public artifacts and
+preserve source attribution.
 
 ## Scientific integrity
 
@@ -268,9 +270,6 @@ If you use Sapote-Mamey, please cite it (see `CITATION.cff`) and antiSMASH 8.0 (
 ## License
 
 Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. Documentation is covered by `LICENSE-DOCS.txt`. Bundled third-party code and its licenses are listed in `docs/THIRD_PARTY_LICENSES.md`.
-
----
-*Current bundle: sapote-mamey-v9.7.431 / engine 1.9.165 · build 20260914v97431a · release profile: CODE quality-recheck candidate; not signed public release (see RELEASE_MANIFEST.md)*
 
 ## Practical help
 
@@ -285,3 +284,6 @@ content, BLASTp databases/results and derived analyses outside this bundle. Loca
 databases may be used for private integration tests; they are not portable examples. Use
 synthetic fixtures or independently public reference strains in shared walkthroughs. An old
 cohort/public-export flag does not authorize including undisclosed project data.
+
+---
+*Current bundle: sapote-mamey-v9.7.432 / engine 1.9.166 · build 20260915v97432a · release profile: CODE quality-recheck candidate; not signed public release (see RELEASE_MANIFEST.md)*

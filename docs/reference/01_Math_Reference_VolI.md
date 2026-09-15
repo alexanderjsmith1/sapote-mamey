@@ -2,7 +2,7 @@
 
 ### Counting, scoring, and reconstruction formulae in the deterministic extraction engine
 
-**Version of record:** Mamey engine v1.9.164 · bundle v9.7.429 · re-grounded 2026-09-14 (core formulas unchanged since v1.9.110; CCTT trigger roster expanded 14→18 at v1.9.99; constants last verified against engine source 2026-07-13)
+**Version of record:** Mamey engine v1.9.166 · bundle v9.7.432 · re-grounded 2026-09-14 (core formulas unchanged since v1.9.110; CCTT trigger roster expanded 14→18 at v1.9.99; constants last verified against engine source 2026-07-13)
 **Author:** Alexander J. Smith
 **Status:** Methods reference. Every formula below is transcribed from the engine source and cited to its module; nothing here is reconstructed from memory.
 

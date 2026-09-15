@@ -1,6 +1,6 @@
 # Sapote–Mamey Operational Reference
 ## Workflow, Protocols, and Standard Operating Procedures
-**Bundle v9.7.431 · Engine 1.9.165**
+**Bundle v9.7.432 · Engine 1.9.166**
 Hamilton, Ontario
 
 *Sourced from: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`. All content from source files; no inference.*
@@ -14,8 +14,8 @@ Hamilton, Ontario
 Python 3.12 or later is required. Python 3.12 is recommended for the bundled wheel set. Check: `python3 --version`. The bundle operates from within its own directory.
 
 ```bash
-unzip sapote-mamey-v9.7.431-CODE-20260914v97431a.zip
-cd sapote-mamey-v9.7.431-CODE-20260914v97431a
+unzip sapote-mamey-v9.7.432-CODE-20260915v97432a.zip
+cd sapote-mamey-v9.7.432-CODE-20260915v97432a
 pip install -e .
 # On managed/Debian systems:
 pip install -e . --break-system-packages
@@ -38,7 +38,7 @@ The installer pools all `.whl` files it finds across all named paths and install
 
 ```bash
 mamey doctor                          # pre-flight: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # → engine 1.9.165, bundle 9.7.431
+python3 tools/sync_version.py --check # → engine 1.9.166, bundle 9.7.432
 python3 -m pytest -q                  # run the bundled test suite; use the cut receipt for exact counts
 ```
 
@@ -46,12 +46,15 @@ The startup banner on every `mamey run` prints a dependency line showing which o
 
 ### Bundle tiers
 
+Tier names are defined in `tools/tier_vocabulary.py` (five tiers; `SID-public` is a retired historical label that now resolves to `COHORT-public`):
+
 | Tier | Contents | Use for |
 |---|---|---|
-| CODE | Full engine + docs + analysis tools | Internal working tier — all analysis |
-| CODE-analysis-free | Engine code only | Testing and patching without analysis extras |
-| SID-public | AS-strain identifiers stripped | External sharing |
-| MERGED-PRIVATE-scaffold | Full cross-strain merge scaffold | PRIVATE by construction — never distribute |
+| CODE | Full runnable pipeline: engine, tools, docs, examples, Wheelhouse; private cohort data and internal notes removed | Internal working tier — all analysis |
+| CODE-analysis-free | The code tier with worked strain-by-strain outputs also removed | Testing and patching without analysis extras |
+| COHORT-public | The code tier plus the public reference cohort data banks (keeps `cohort/`) | External sharing with public cohort data |
+| MERGED-PRIVATE-scaffold | Full internal working scaffold including any private tree and real strain identifiers | PRIVATE by construction — never distribute |
+| PUBLIC-RELEASE | Same content as the code tier; an explicit promotion, not part of the standard cut set | The public release artifact |
 
 Use CODE for all internal analysis. `AS-` / `AJS-` / `PENDING-` strains are unpublished and always PRIVATE. `SID-` / `WW-` are public.
 
@@ -65,7 +68,7 @@ The canonical command for a single strain:
 python -m mamey run \
   --input-zip AS-XXX_antismash.zip \
   --strain AS-XXX \
-  --display "Streptomyces sp. AS-XXX" \
+  --display-name "Streptomyces sp. AS-XXX" \
   --taxonomy "Streptomyces sp." \
   --source "Apis mellifera, Ontario" \
   --release PRIVATE \
@@ -104,9 +107,9 @@ python -m mamey render-all-figures --package runs/AS-XXX/package
 
 For one strain, the minimum working sequence:
 
-1. `python -m mamey run --strain <ID> --input-zip <antismash.zip> --mode gold --outdir work/<ID>`
-2. `python -m mamey validate --package work/<ID>`
-3. `mkdir -p cohort && python tools/ingest_package.py --package work/<ID> --banked-dir cohort`
+1. `python -m mamey run --strain <ID> --input-zip <antismash.zip> --mode gold --outdir work` (the sealed package lands at `work/<ID>/package`)
+2. `python -m mamey validate work/<ID>/package`
+3. `mkdir -p cohort && python tools/ingest_package.py --package work/<ID>/package --banked-dir cohort`
 4. `python tools/build_figures.py --banked-dir cohort --out fig/` (if cohort figures needed)
 5. Mode B: `python -m mamey emit-modeb-template --package work/<ID>/package --bgc BGC001`
 
@@ -434,13 +437,13 @@ All report-only; every read is a class-level capacity hypothesis, judgment defer
 - `"Antifungal dossier."` → `mamey af-dossier <root> --out <dir> [--activity-table <csv>]` — AF lead board joined against an optional measured-*Candida* activity crosswalk (`AF_LEAD_DOSSIER.csv`/`.md`)
 - `"Novelty shortlist."` → `mamey novelty-shortlist --package <pkg> --out <dir>` — strongest reference-dark / novelty-prior candidates (a prior, not proof)
 - `"What's the realistic BGC count?"` → `mamey realistic-count <pkg>` — honest corrected denominator (fragments/primary-metabolism/duplicates netted out)
-- `"Export the Mode B cards to Word/PDF."` → `mamey modeb-export --package <pkg> [--bgc <BGC_ID>] --out <dir>` → `.docx` + `.pdf`
+- `"Export the Mode B cards to Word/PDF."` → `mamey modeb-export <card.md|mode_b/> [--outdir <dir>] [--format docx|pdf|both]` → `.docx` + `.pdf`
 - `"Domain reference sheet."` → `mamey domain-reference --package <pkg> --out <dir>` — KS/AT/KR/C/A/PCP… glossary + per-BGC ordered-domain readout for authoring §4/§5
 
 ### Cross-strain / cohort deliverables (v9.7.338)
-- `"Cohort priority leads."` → `mamey cohort-leads --runs-dir <runs_gold> --out <dir>` → `PRIORITY_LEADS.csv` (one ranked lead board across every sealed run)
-- `"Assemble the cohort master."` → `mamey cohort-assemble --runs-dir <runs_gold> --master <cohort_master.xlsx>` — build/refresh the cross-cohort master workbook from sealed gold runs
-- `"Offline KCB locus map for [BGC]."` → `mamey figures kcb-locusmap --package <pkg> --bgc <BGC_ID> --out <png>` — query BGC vs its KCB/MIBiG comparator, zero network
+- `"Cohort priority leads."` → `mamey cohort-leads --runs-dir <runs_gold> [--out COHORT_PRIORITY_LEADS.csv]` → `COHORT_PRIORITY_LEADS.csv` (one ranked lead board across every sealed run)
+- `"Assemble the cohort master."` → `mamey cohort-assemble --runs-dir <runs_gold> [--out COHORT_MASTER.csv] [--xlsx]` — build/refresh the cross-cohort master table from sealed gold runs (sibling `_strain_summary.csv` / `_class_by_strain.csv` alongside; `--xlsx` also emits `COHORT_MASTER.xlsx`)
+- `"Offline KCB locus map for [BGC]."` → `mamey figures kcb-locusmap --zip <zip> --contig <NODE> --out-dir <dir> --strain-id <ID> --bgc-id <BGC_ID>` (or `--kcb-txt <knownclusterblast.txt> --out-dir <dir> --stem <BGC_ID>`) — query BGC vs its KCB/MIBiG comparator, zero network
 - `"Would a master's student sign off on this tree?"` → `mamey signoff <tree.treefile>` (advisory analysis QC gate; also `tools/signoff_check.py`)
 
 ---
@@ -459,7 +462,7 @@ Source: `docs/CALIBRATION_CORPUS_KNOWN_BGCS.md`. 15 known-compound reference BGC
 | BGC0000249 | nogalamycin | T2PKS anthracycline | T2PKS aromatic thematic set |
 | BGC0000263 | ravidomycin | T2PKS benzo[a]naphthacenequinone | T2PKS aromatic thematic set |
 | BGC0000264 | resistomycin | T2PKS pentangular polyphenol | T2PKS aromatic thematic set |
-| BGC0000440/1 | teicoplanin | NRPS glycopeptide | Primary regression fixture |
+| BGC0000440/1 | teicoplanin | NRPS glycopeptide | MIBiG reference; the former teicoplanin regression fixture was retired (v9.7.270) and no longer ships |
 | BGC0000243 | macrotetrolide (nonactin) | non-canonical PKS | 0 antiSMASH core genes — see note |
 | BGC0002573 | phosphoramidon | peptidyl nucleotide | 1 core gene — minimal cluster |
 | JN674503.1 / EU158805.1 | polyoxin | nucleoside antibiotic | Cross-accession consistency test |
@@ -523,146 +526,6 @@ The game produces audit findings suitable for a hostile reviewer, not a friendly
 
 ---
 
-## Section 13: Annotated Live Pipeline Run — Teicoplanin Calibration Strain
-
-*This section documents an actual pipeline run performed in this session on 2026-07-09 using the public MIBiG teicoplanin reference cluster (BGC0000440). All values are from real output files. This run demonstrates every key pipeline behavior in a known-answer context.*
-
-### Input
-
-**Strain:** BGC0000440 — *Actinoplanes teichomyceticus* (teicoplanin glycopeptide producer, MIBiG reference)
-**Input file:** `tests/fixtures/micromonospora_humida_JAFEUC01.zip` (136 KB, public)
-**Contents:** 98 files — `BGC0000440.region001.gbk` (317 KB, 53 CDS), `BGC0000440.gbk`, `BGC0000440.json`, `knownclusterblast/` directory, antiSMASH HTML viewer
-
-**Why this strain:** teicoplanin is a publicly-characterised glycopeptide antibiotic with a known NRPS gene cluster. The VanHAX self-resistance genes, OxyA/B/C halogenases, and DpgABCD 3,5-dihydroxyphenylglycine (HPG) precursor pathway are all documented in the literature. Running this strain verifies that the engine correctly identifies the glycopeptide class, the T43-GPA trigger, and the VanHAX T1 self-resistance.
-
-**Command run:**
-```bash
-python3 -m mamey run \
-  --input-zip tests/fixtures/micromonospora_humida_JAFEUC01.zip \
-  --strain BGC0000440 \
-  --taxonomy "Actinoplanes teichomyceticus" \
-  --source "MIBiG reference BGC; teicoplanin glycopeptide; public calibration strain" \
-  --release PUBLIC \
-  --mode gold \
-  --json-evidence off \
-  --outdir /tmp/teico_run/
-```
-
-**Wall time:** 18.8 seconds (extraction 4.4s, strain brief rendering 14.2s)
-
-### Run output summary
-
-**Assembly:** 89,713 bp · 1 contig · N50 89,713 bp · GC 71.97%
-
-**BGC counts:** raw = 1 · interior = 0 · edge = 0 · full-contig = 1 · corrected = 0.25
-
-**Assembly tier:** VERY_POOR (0.0% interior BGCs)
-
-This is expected for a single-BGC reference cluster — the contig is the BGC itself, so it is Full-contig by definition. This correctly demonstrates the corrected-count discount: a single full-contig cluster counts as 0.25, not 1.0.
-
-**Issues logged (both expected):**
-1. `VERY_POOR assembly (0.0% interior BGCs)` — correct: this is a single-contig BGC fragment
-2. `OVER_MERGE_CANDIDATES: 1 region carries ≥2 protoclusters` — the teicoplanin cluster contains 2 protoclusters (NRPS + PKS), correctly flagged by antiSMASH's own signal
-
-### Triage board output (`BGC0000440_4_triage_board.csv`)
-
-| Field | Value |
-|---|---|
-| BGC_ID | BGC001 |
-| Contig | BGC0000440 |
-| Products | NRPS; PKS; T3PKS |
-| Boundary | Full-contig |
-| Architecture grade | D (full-contig; likely truncated both ends) |
-| Architecture capacity | glycopeptide |
-| Class confidence | HIGH |
-| AB score | 62.0 |
-| AF score | 28.0 |
-| Novelty | 23.0 |
-| Lead tier | Medium |
-| KCB top hit | BGC0000440.5 / Teicoplanin A2-1 through A2-5 |
-| KCB cumulative | 58,408.0 |
-| CCTT triggers | T43-GPA_glycopeptide, T43-HAL_halogenase |
-| Corrected rank | 1 |
-| AB recall | 91.5 |
-
-**Score interpretation:** AB = 62.0 is driven by NRPS (+12) and glycopeptide keyword weights, capped by the Full-contig architecture grade D. The architecture-first assessment correctly identifies the glycopeptide chemotype (class confidence HIGH) from the 4 NRPS modules, halogenases, and VanHAX resistance signature — independently of the KCB anchor. The KCB anchor (BGC0000440 matching itself at 58,408 cumulative) is a self-hit from the MIBiG submission but is informative here as a calibration check.
-
-### Scan states
-
-All ten scans ran on the single BGC:
-
-| Scan | Status | Key finding |
-|---|---|---|
-| KCB sweep | PASS | 1 region parsed; matched itself in MIBiG |
-| RG-GMCI | NULL | 0 pairs (single-contig input; expected) |
-| FLBR | PASS: STRONG | LMPKS_FRAGMENT_SET detected (4 NRPS modules are fragmented megasynthases) |
-| CCTT | PASS | T43-HAL: 1 hit / 1 BGC; T43-GPA: 13 hits / 1 BGC |
-| CGAD | NULL | No chitinase hits (expected for a glycopeptide cluster) |
-| UMED | PASS | No maturation gaps (this is an NRPS, not a RiPP) |
-| EFLS | NULL | 0 candidate pairs (single-contig) |
-| Resistance | PASS | 3 total hits; 1 T1 BGC (VanHAX) |
-| bldA/TTA | PASS | 1 BGC assessed; T4 (no bldA found in single-contig) |
-| TFBS | PASS | 1 motif hit: GBL_AdpA_like |
-
-**Key calibration checks:**
-- T43-GPA fired 13 times (OxyA, OxyB, OxyC, DpgS, the HPG aminotransferases, glycosyltransferases — all correct for a glycopeptide)
-- VanHAX resistance correctly assigned T1 (class-concordant: VanH, VanA, VanX are the classic glycopeptide self-resistance triad)
-- FLBR STRONG is correct — the 4 NRPS genes (CAE53350–53353) are the megasynthase core
-
-### Resistance scan detail (from workbook `Resistance_SelfProtection` sheet)
-
-| Resistance family | Count |
-|---|---|
-| Beta_lactamase_fold | 0 |
-| Erm_methylase | 0 |
-| VanHAX_like | **3** |
-| APH_AAC | 0 |
-| Fosfomycin | 0 |
-| Self_resistance_general | 0 |
-
-VanH (CAE53343), VanA (CAE53344), VanX (CAE53345) — three genes, correctly identified, correctly assigned T1. This is the canonical glycopeptide self-resistance triad.
-
-### Figure outputs (26 total)
-
-The `render-all-figures` command ran 5 figure modules, producing 26 figures:
-- **Root (14 figures):** _8a through _8m landscape, composition, DAPR scatter, AB ranked, AF ranked, funnel, class distribution, CCTT map, length histogram, edge composition, novelty ranked, KCB anchors, genome atlas
-- **Domain level (3):** domain-level Mode B enrichment figures
-- **Figures rendered (2):** additional render-module outputs
-- **Gold figures (2):** cohort-mode F-series (limited at N=1 strain)
-- **Locus maps (2):** `BGC001_BGC0000440_locus.png` and `.svg` — the gene-arrow diagram showing all 53 CDS
-
-### Workflow gate status (W0–W10)
-
-After extraction, the `sapote_workflow.py` reports:
-- W0–W2 PASS (sealed, triage, DAPR boards)
-- W3 PENDING — Mode B templates not yet emitted
-- W4–W10 BLOCKED (pending W3)
-
-Next action required: `mamey emit-modeb-template --package <pkg> --bgc BGC001` to emit the §1–§30 skeleton, then author and verify the card.
-
-### Validation receipt
-
-```
-file_presence: PASS
-checksum_integrity: PASS
-rggmci_gate: PASS (NULL — no pairs expected at N=1)
-gold_completeness: JUDGMENT_PENDING
-status: MAMEY_COMPLETE
-```
-
-The package is complete and sealed. `MAMEY_COMPLETE` means extraction is done and all checksums are verified. `JUDGMENT_PENDING` means Mode B cards have not yet been authored — the standard state after extraction before Sapote judgment begins.
-
-### What the locus map shows
-
-The BGC001 locus map (SVG + PNG) displays all 53 CDS as gene arrows across the 89.7 kb contig. Reading left to right from position 0:
-- Positions 0–15 kb: regulatory flanking genes (AraC regulator, TetR regulator, short-chain dehydrogenase, murF-like, VanH/A/X triad)
-- Positions 20–47 kb: NRPS core (4 large genes CAE53350–53353, totalling 9,069 aa; CAE53352 alone is 4,067 aa — the largest single gene)
-- Positions 48–65 kb: tailoring (MbtH chaperones, mannosyltransferase, ABC transporter, OxyA/B/C halogenases)
-- Positions 65–82 kb: HPG/DHPG precursor biosynthesis (DpgABCD, HpgT, HmaS, Hmo, AroA-type, StrR/LuxR/AfsR regulators)
-- Position 83 kb: thioesterase (canonical TE release domain)
-
----
-
 ## Section 14: Standard Operating Procedures Summary
 
 Source: `docs/SOPs/` directory, 15 SOPs (3 placeholders, 12 complete). Master index: `SOP_MASTER_INDEX.md`.
@@ -701,10 +564,10 @@ Source: `docs/SOPs/` directory, 15 SOPs (3 placeholders, 12 complete). Master in
 ### SOP-15: Cross-Chat Merge and Patch Handoff
 
 Another chat can join an active session by reading these files in order:
-1. `handoff/START_HERE_FOR_OTHER_CHATS.md`
-2. `SOP_MASTER_INDEX.md`
-3. `bug_hunt/SOP_DERIVED_BUGHUNT_MATRIX.csv`
-4. `cut_plan/NEXT_CUT_PLAN.md`
+1. `docs/release_planning/START_HERE_FOR_OTHER_CHATS.md`
+2. `docs/SOPs/SOP_MASTER_INDEX.md`
+3. `docs/release_planning/SOP_DERIVED_BUGHUNT_MATRIX.csv`
+4. `docs/release_planning/V97142_NEXT_CUT_PLAN.md`
 5. Then the SOP relevant to its task
 
 This is the operational form of the multi-chat architecture. The reading order is fixed because later files reference concepts defined in earlier ones.
@@ -713,7 +576,7 @@ This is the operational form of the multi-chat architecture. The reading order i
 
 ## Section 15: Canonical Glossary Extended — Key Terms from GLOSSARY.md
 
-Source: `docs/GLOSSARY.md` (767 lines). This section captures entries from the bundle's own canonical glossary not covered in the comprehensive_glossary document. Structured entries follow the GLOSSARY.md format exactly.
+Source: `docs/GLOSSARY.md`. This section captures entries from the bundle's own canonical glossary not covered in the comprehensive_glossary document. Structured entries follow the GLOSSARY.md format exactly.
 
 **Evidence axes and lead classes (five-axis model):**
 - Mode B verdict = CONFIRM: weight +3
@@ -770,9 +633,7 @@ Class A = CONFIRM + SARP. Class B = one strong axis only. Class C = KCB or weake
 
 ---
 
-*Teicoplanin run conducted 2026-07-09 · BGC0000440 · 53 CDS · 89.7 kb · 18.8 s wall time · 26 figures · MAMEY_COMPLETE · v9.7.241 / engine 1.9.111*
-
-*Version synchronized at cut time · Bundle v9.7.431. Historical run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.432. Historical run facts retain their original version labels.*
 
 ---
 
@@ -800,10 +661,10 @@ mamey verify-modeb --package <sealed_pkg> --bgc BGC001 --interp   # v9.7.338: al
 | State | Cause | Action |
 |---|---|---|
 | `DRAFT` | Any ERROR finding, or the card is a STUB / depth-unverified | Fix the ERROR; re-author thin sections |
-| `VERIFIED` | Depth adequate, but a blocking correctness code fired | Resolve the contradiction; do not present |
-| `RELEASE_READY` | Depth adequate, no blocking code | May be presented |
+| `STRUCTURE_VALIDATED_WITH_SCIENCE_HOLDS` | Depth adequate, but a blocking correctness code fired | Resolve the contradiction; do not present |
+| `EVIDENCE_MATRIX_VALIDATED` | Depth adequate, no blocking code | Mechanically clear for presentation; not a release or scientific-acceptance state |
 
-The four blocking codes are `NOVELTY_CONTRADICTION`, `INTERNAL_CONTRADICTION`, `FACT_MISMATCH`, and `PHANTOM_LOCUS`. Each is a correctness failure, not a style failure. A card that is structurally complete, adequately deep, and claim-safe can still be held at `VERIFIED`.
+The four blocking codes are `NOVELTY_CONTRADICTION`, `INTERNAL_CONTRADICTION`, `FACT_MISMATCH`, and `PHANTOM_LOCUS` (`mamey/modeb_structure_gate.py`, `_READINESS_BLOCKING` / `readiness_state`). Each is a correctness failure, not a style failure. A card that is structurally complete, adequately deep, and claim-safe can still be held at `STRUCTURE_VALIDATED_WITH_SCIENCE_HOLDS`.
 
 ### If `PHANTOM_LOCUS` fires
 
@@ -844,7 +705,7 @@ Two gates were added to the release path in v9.7.243. The full sequence, in orde
 ```bash
 # 1. Environment and bundle integrity
 python3 -m mamey doctor
-python3 tools/sync_version.py --check              # → engine 1.9.164, bundle 9.7.429
+python3 tools/sync_version.py --check # → engine 1.9.166, bundle 9.7.432
 
 # 2. Documentation anchors
 python3 tools/check_monolith_freshness.py          # exit 1 on stale anchor or retired doctrine
@@ -855,7 +716,7 @@ python3 tools/gen_marker_catalog.py --check        # catalog in sync with source
 python3 tools/run_chatgpt_surrogate_gate.py        # 22 pytest files, ~13s
 
 # 4. Full suite
-python3 -m pytest -q                               # 2884 passed / 152 skipped / 0 failed
+python3 -m pytest -q                               # use the cut receipt for exact counts
 
 # 5. Tier parity (before tag/push)
 python3 tools/check_tier_parity.py
@@ -864,7 +725,7 @@ python3 tools/check_tier_parity.py
 python3 tools/preflight_zip_hygiene.py <release.zip>
 ```
 
-**Live receipts on bundle v9.7.246 (this session):**
+**Receipts recorded on bundle v9.7.246 (historical; not re-run on the current bundle):**
 
 ```
 check_monolith_freshness: PASS
@@ -915,4 +776,4 @@ The v9.7.246 fabrication passed claim-safety, evidence-presence, citation, and p
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.431. Historical v4 section labels and run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.432. Historical v4 section labels and run facts retain their original version labels.*

@@ -1,7 +1,7 @@
 # Optional assistant hooks
 
 These scripts are available for explicit installation. Shipping them does not activate them,
-and this cut does not change any user's assistant settings. The current user's instructions
+and the bundle does not change any user's assistant settings. The current user's instructions
 and authorization take precedence over advisory text emitted by a hook.
 
 Set SAPOTE_WORKSPACE_ROOT to the project whose work is being checked. Set SAPOTE_BUNDLE_ROOT

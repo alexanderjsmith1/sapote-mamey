@@ -98,16 +98,27 @@ GToTree -f genome_list.txt -H "${GToTree_HMM_dir}/Actinobacteria.hmm" -N -j "${B
 # shipped. An 18-taxon tree took 11m52s; a 6m40s tool timeout is not enough. Fold the tree step
 # in so the whole build is ONE tracked background task (invoke build_tree.sh with run_in_background)
 # and a partial ML tree can never masquerade as a finished one.
-ALN="gtotree/Aligned_SCGs.faa"
-[ -s "$ALN" ] || { echo "  no alignment produced -- GToTree failed" >&2; exit 1; }
+# GToTree 1.8 writes Aligned_SCGs.faa; GToTree 2.0 writes aligned-SCGs.faa. Accept either.
+ALN=""
+for cand in "gtotree/Aligned_SCGs.faa" "gtotree/aligned-SCGs.faa"; do
+    [ -s "$cand" ] && { ALN="$cand"; break; }
+done
+[ -n "$ALN" ] || { echo "  no alignment produced -- GToTree failed" >&2; exit 1; }
 OG="$(grep '^>' "$ALN" | sed 's/^>//' | grep -i OUTGROUP | head -1)"
 [ -n "$OG" ] || { echo "  no *_OUTGROUP sequence in the alignment -- cannot root" >&2; exit 1; }
-echo "=== IQ-TREE (LG+F+G4, 1000 UFBoot + 1000 SH-aLRT), outgroup ${OG} ==="
-iqtree -s "$ALN" -m LG+F+G4 -B 1000 -alrt 1000 -T "${BUILD_TREE_THREADS:-4}" -o "$OG" --prefix iqtree -redo
-# A completed run writes both the treefile and the consensus tree; the .contree is the marker
-# that the bootstrap actually finished. Refuse to call the build done without it.
-if [ ! -s iqtree.contree ]; then
-    echo "  IQ-TREE did not finish the bootstrap (no iqtree.contree) -- tree has NO support." >&2
+# BUILD_TREE_MODEL / BUILD_TREE_SEED: model selection and RNG seed. Defaults keep the prior
+# behaviour (LG+F+G4, no fixed seed). Set BUILD_TREE_MODEL=MFP to let ModelFinder choose, and
+# BUILD_TREE_SEED=12345 to honour the deterministic-run rule; both are recorded in iqtree.log.
+MODEL="${BUILD_TREE_MODEL:-LG+F+G4}"
+SEED_ARGS=()
+[ -n "${BUILD_TREE_SEED:-}" ] && SEED_ARGS=(--seed "${BUILD_TREE_SEED}")
+echo "=== IQ-TREE (${MODEL}, 1000 UFBoot + 1000 SH-aLRT${BUILD_TREE_SEED:+, seed ${BUILD_TREE_SEED}}), outgroup ${OG} ==="
+iqtree -s "$ALN" -m "$MODEL" -B 1000 -alrt 1000 -T "${BUILD_TREE_THREADS:-4}" -o "$OG" --prefix iqtree -redo "${SEED_ARGS[@]}"
+# A build is complete only when the consensus tree exists, the treefile carries support labels,
+# and the IQ-TREE log says "Total wall-clock time". A bare .treefile means the bootstrap was
+# interrupted. The typed check lives in gtotree_execution_gate.py so every caller agrees.
+if ! "$PY" "${HERE}/gtotree_execution_gate.py" --check-completion iqtree; then
+    echo "  IQ-TREE run is INTERRUPTED (needs iqtree.contree + support labels + 'Total wall-clock time')." >&2
     echo "  Do NOT render or publish iqtree.treefile; re-run to completion." >&2
     exit 1
 fi

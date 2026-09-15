@@ -1,6 +1,8 @@
-# Bundled historical reference snapshot for actinomycete/bacterial phylogenetic trees.
+# Bundled reference snapshot for actinomycete/bacterial phylogenetic trees.
 # BUNDLED_REFERENCE_ONLY: retained row statuses describe this snapshot, not current project authority.
 # Select an explicit governed external registry for outgroup generation. Location is not approval.
+# Verbatim snapshot of OFFICIAL_DATA/OUTGROUP_REGISTRY.tsv taken for bundle v9.7.432 (source sha256 548d4a677a244809fa860b9deef7c4386c3bee1e8c701b66540f07866d9d5b49);
+# the only edit is that owner-workspace folder names inside rationale text read <workspace>/ here.
 # GENERIC engine asset: taxon -> a decided outgroup with a specific type-strain/reference genome + real accession.
 # So any tree is rooted reproducibly, never ad-hoc. Applies to any project; carries no project/collection specifics.
 #
@@ -14,22 +16,23 @@
 # Extend by adding a row (any bacterial family): give the sister taxon + a real GC[AF]_ accession.
 #
 # Columns:
+#
 tree_scope	ingroup_taxon	family	outgroup_genus	outgroup_species_strain	assembly_accession	status	rationale
 # ---------- GENUS-LEVEL trees (root on a sister genus, same family) ----------
 genus	Nocardia	Nocardiaceae	Rhodococcus	Rhodococcus erythropolis	GCF_017656525.1	LOCKED	sister genus, same family
-genus	Micromonospora	Micromonosporaceae	Catellatospora	Catellatospora coxensis JCM 12951	GCF_039528075.1	LOCKED	sister genus; accession organism re-verified 2026-09-10
+genus	Micromonospora	Micromonosporaceae	Actinoplanes	Actinoplanes missouriensis 431	GCF_000284295.1	LOCKED	sister genus; not Verrucosispora (synonymized into Micromonospora). Alex RULED 2026-09-15: the organism name stands; the accession previously in this row (GCF_039528075.1) resolves at NCBI Assembly to Catellatospora coxensis, so it was replaced by the A. missouriensis 431 type-material reference genome (NCBI fromtype = assembly from type material; NBRC 102363; complete genome)
 genus	Actinomadura	Thermomonosporaceae	Actinocorallia	Actinocorallia herbida	GCF_003751225.1	LOCKED	sister genus; not Spirillospora (nests inside Actinomadura)
-genus	Saccharopolyspora	Pseudonocardiaceae	Actinopolyspora	Actinopolyspora halophila	GCF_000371785.1	LOCKED	sister genus, same family
+genus	Saccharopolyspora	Pseudonocardiaceae	Pseudonocardia	Pseudonocardia thermophila ATCC 19285 (NR_118886.1)	16S_local_RefSeq	LOCKED	Alex RULED 2026-09-07: "Saccahropolyspora outgroup: Pseudonocardia". Replaces Actinopolyspora, whose registry row was LOCKED but never REALISED: the name-based fetch returned NR_179169.1, which is Phytoactinopolyspora halophila, NOT Actinopolyspora halophila (NR_044818.1) - a different genus. P. thermophila measures 90.6%/1307nt to the nearest ingroup member vs the ingroup's own most isolated member at 92.9%/1381nt, so it is genuinely outside. Same family (Pseudonocardiaceae) and now CONSISTENT with the Saccharothrix row.
 genus	Peterkaempfera	Streptomycetaceae	Kitasatospora	Kitasatospora setae KM-6054T	GCF_000269985.1	LOCKED	sister genus (type strain)
-genus	Streptomyces	Streptomycetaceae	Kitasatospora	Kitasatospora setae KM-6054T	GCF_000269985.1	LOCKED	sister genus (type strain); for deep backbones use the family row
+genus	Streptomyces	Streptomycetaceae	Gordonia	Gordonia bronchialis DSM 43247 (NR_074529.1)	16S_local_RefSeq	LOCKED	Alex RULED 2026-09-07: Kitasatospora -> Gordonia. Kitasatospora is too close to root Streptomyces at 16S. CORRECTED 2026-09-08: this row previously called it a failure on THREE panels, but bee figures K. setae +0.2 is a gate PASS — outgroup_sanity_gate.py returns exit 0 (PASS, BOUNDARY) for any margin under 1.0, and the footer records K. setae PASS -1.5 on the Streptomyces panel. The ruling rests on TWO measured failures and on Gordonia's clear margins, not three: bee figures K. setae +0.2 is BOUNDARY (216 tips), streptomyces refpkg K. albolonga +1.5 (99.9%/1452nt to a panel member), moss panel K. setae +1.2 (67 tips). All three clear on Gordonia: -5.9, -1.5, -6.6. Out-of-family (Nocardiaceae) but same phylum, which is the right rank for a SINGLE-FAMILY panel; a multi-family panel needs out-of-phylum (see the ladder in the footer).
 genus	Kitasatospora	Streptomycetaceae	Streptomyces	Streptomyces coelicolor A3(2)	GCF_008386545.1	CONFIRM	sister genus, same family
-genus	Pseudonocardia	Pseudonocardiaceae	Actinosynnema	Actinosynnema pretiosum subsp. pretiosum	GCA_018139085.1	LOCKED	sister genus, same family; accession organism re-verified 2026-09-10
-genus	Amycolatopsis	Pseudonocardiaceae	Actinosynnema	Actinosynnema pretiosum subsp. pretiosum	GCA_018139085.1	LOCKED	sister genus, same family; accession organism re-verified 2026-09-10
+genus	Pseudonocardia	Pseudonocardiaceae	Actinosynnema	Actinosynnema mirum DSM 43827	GCF_000023245.1	LOCKED	sister genus, same family. Alex RULED 2026-09-15: the organism name stands; the accession previously in this row (GCA_018139085.1) resolves at NCBI Assembly to Actinosynnema pretiosum subsp. pretiosum, so it was replaced by the A. mirum DSM 43827 type-material reference genome (NCBI fromtype = assembly from type material; complete genome)
+genus	Amycolatopsis	Pseudonocardiaceae	Actinosynnema	Actinosynnema mirum DSM 43827	GCF_000023245.1	LOCKED	sister genus, same family. Alex RULED 2026-09-15: organism name stands; accession corrected from GCA_018139085.1 (= A. pretiosum at NCBI) to the A. mirum DSM 43827 type-material genome
 genus	Kribbella	Nocardioidaceae	Nocardioides	Nocardioides albus	GCF_014191915.1	LOCKED	sister genus, same family
 genus	Micromonospora	Micromonosporaceae	Dactylosporangium	Dactylosporangium aurantiacum	GCF_900110485.1	CONFIRM	alternate sister genus
 genus	Gordonia	Nocardiaceae	Rhodococcus	Rhodococcus erythropolis	GCF_017656525.1	LOCKED	sister genus, same family
-genus	Salinispora	Micromonosporaceae	Catellatospora	Catellatospora coxensis JCM 12951	GCF_039528075.1	LOCKED	sister genus (Salinispora is deeply nested in Micromonosporaceae); accession organism re-verified 2026-09-10
-genus	Saccharomonospora	Pseudonocardiaceae	Actinosynnema	Actinosynnema pretiosum subsp. pretiosum	GCA_018139085.1	LOCKED	sister genus, same family; accession organism re-verified 2026-09-10
+genus	Salinispora	Micromonosporaceae	Actinoplanes	Actinoplanes missouriensis 431	GCF_000284295.1	LOCKED	sister genus (Salinispora is deeply nested in Micromonosporaceae). Alex RULED 2026-09-15: organism name stands; accession corrected from GCF_039528075.1 (= Catellatospora coxensis at NCBI) to the A. missouriensis 431 type-material genome
+genus	Saccharomonospora	Pseudonocardiaceae	Actinosynnema	Actinosynnema mirum DSM 43827	GCF_000023245.1	LOCKED	sister genus, same family. Alex RULED 2026-09-15: organism name stands; accession corrected from GCA_018139085.1 (= A. pretiosum at NCBI) to the A. mirum DSM 43827 type-material genome
 genus	Streptacidiphilus	Streptomycetaceae	Kitasatospora	Kitasatospora setae KM-6054T	GCF_000269985.1	LOCKED	sister genus (type strain), same family
 # ---------- FAMILY / BACKBONE trees (root OUTSIDE the family, sister family/order) ----------
 family	Streptomycetaceae	Streptomycetaceae	Actinospica	Actinospica durhamensis CSCA	GCF_018139695.1	LOCKED	sister family Catenulisporaceae; alt Catenulispora acidiphila GCA_042675155.1
@@ -38,9 +41,29 @@ family	Nocardiaceae	Nocardiaceae	Tsukamurella	Tsukamurella paurometabola	GCF_900
 family	Micromonosporaceae	Micromonosporaceae	Streptosporangium	Streptosporangium roseum	GCF_040646915.1	LOCKED	sister order Streptosporangiales; alt Nonomuraea pusilla GCF_001417755.1
 family	Thermomonosporaceae	Thermomonosporaceae	Streptosporangium	Streptosporangium roseum	GCF_040646915.1	LOCKED	sister family Streptosporangiaceae; alt Nonomuraea pusilla GCF_001417755.1
 family	Nocardioidaceae	Nocardioidaceae	Aeromicrobium	Aeromicrobium erythreum	GCF_001509405.1	CONFIRM	within-order sister (Propionibacteriales); for deep backbones consider a Propionibacteriaceae outgroup
-genus	Actinacidiphila	Streptomycetaceae	Kitasatospora	Kitasatospora setae KM 6054T	GCF_000269985.1	PROVISIONAL	Eggplant 2026-09-06: Streptomycetaceae sister; Actinacidiphila split from Streptomyces 2022
-genus	Actinomycetospora	Pseudonocardiaceae	Pseudonocardia	Pseudonocardia thermophila	PROVISIONAL_16S_only	PROVISIONAL	Eggplant 2026-09-06: Pseudonocardiaceae sister; genome accession TBD
-genus	Nocardioides	Nocardioidaceae	Aeromicrobium	Aeromicrobium erythreum	GCF_001509405.1	PROVISIONAL	Eggplant 2026-09-06: family sister Nocardioidaceae
-genus	Nocardiopsis	Nocardiopsaceae	Thermobifida	Thermobifida fusca	PROVISIONAL_16S_only	PROVISIONAL	Eggplant 2026-09-06: Nocardiopsaceae/Streptosporangiales sister; genome accession TBD
-genus	Saccharothrix	Pseudonocardiaceae	Actinosynnema	Actinosynnema pretiosum subsp. pretiosum	GCA_018139085.1	PROVISIONAL	Eggplant 2026-09-06: Pseudonocardiaceae sister; accession organism re-verified 2026-09-10
-genus	Streptosporangium	Streptosporangiaceae	Nonomuraea	Nonomuraea pusilla	GCF_001417755.1	PROVISIONAL	Eggplant 2026-09-06: Streptosporangiaceae sister
+genus	Actinacidiphila	Streptomycetaceae	Kitasatospora	Kitasatospora setae KM 6054T	16S_local_RefSeq	PROVISIONAL	Eggplant 2026-09-06: family sister (Streptomycetaceae); Actinacidiphila split from Streptomyces 2022; 16S-only outgroup (genome accession TBD)
+genus	Actinomycetospora	Pseudonocardiaceae	Pseudonocardia	Pseudonocardia thermophila	16S_local_RefSeq	PROVISIONAL	Eggplant 2026-09-06: Alex-proposed sister; both Pseudonocardiaceae; 16S-only outgroup (genome accession TBD)
+genus	Nocardioides	Nocardioidaceae	Aeromicrobium	Aeromicrobium erythreum	16S_local_RefSeq	PROVISIONAL	Eggplant 2026-09-06: Alex-proposed sister; family Nocardioidaceae; 16S cached; genome accession TBD
+genus	Nocardiopsis	Nocardiopsaceae	Thermobifida	Thermobifida fusca	16S_local_RefSeq	PROVISIONAL	Eggplant 2026-09-06: Alex-proposed sister; both Nocardiopsaceae/Streptosporangiales; 16S-only outgroup (genome accession TBD)
+genus	Saccharothrix	Pseudonocardiaceae	Pseudonocardia	Pseudonocardia thermophila ATCC 19285 (NR_118886.1)	16S_local_RefSeq	LOCKED	Alex RULED 2026-09-07: "pseudonocardia is a fine outgroup for saccharothrix". Replaces Actinosynnema, which was PROVISIONAL and measured INSIDE the ingroup's diversity: A. mirum 98.0%/1459nt to S. longispora vs the ingroup's own most isolated member S. tharensis at 96.7%/1321nt - a 1.3-point inversion, so it could not root the tree. P. thermophila is the TYPE SPECIES of Pseudonocardia and sits 90.1%/1275nt from the nearest ingroup member: same family (Pseudonocardiaceae, one rank out) and genuinely outside. See September 6 2026/OUTGROUP_PROXIMITY_AUDIT_2026-09-07.md
+genus	Streptosporangium	Streptosporangiaceae	Nonomuraea	Nonomuraea pusilla	16S_local_RefSeq	PROVISIONAL	Eggplant 2026-09-06: Alex-proposed sister; both Streptosporangiaceae; 16S cached; genome accession TBD
+genus	bees	Streptomycetaceae	Gordonia	Gordonia bronchialis DSM 43247 (NR_074529.1)	16S_local_RefSeq	LOCKED	Alex RATIFIED 2026-09-07. BOTH candidates were BUILT and GATED on the real 236-tip panel, not estimated: Gordonia margin -5.9 (~88 nt) PASS; Kitasatospora setae NR_112082.2 margin +0.6 (~9 nt) BOUNDARY-pass, and -1.0 on the pre-build estimate - i.e. indistinguishable from zero either way. Gordonia is PRIMARY for publication because a root that survives by under one percentage point is not one to defend in review. K. setae is RETAINED as the family-consistent comparison (refpkg <workspace>/_PLACEMENT/bees_Kitasatospora_OG/) so the pair can be shown together, which is the arrangement Alex approved for the cohort trees. WHY Kitasatospora is weak here: at 16S it is barely separable from Streptomyces, and the SPECIES matters more than the genus - K. albolonga measures 99.9%/1452nt to a panel member, an ingroup member in all but name.
+group	rare_genera	multi-family	Pseudomonas	Pseudomonas aeruginosa DSM 50071	NR_026078.1	ALEX_RULED_2026-09-08	2026-09-08 ALEX RULING (supersedes the 2026-09-07 NOT_ROOTABLE entry): use a Pseudomonas type strain. VERIFIED by measurement before adoption, like-for-like (blastn, HSPs >=1200 nt, same method both sides): Pseudomonas aeruginosa DSM 50071 NR_026078.1 -> nearest ingroup member 79.0% over 1234 nt; ingroup most-isolated member 85.9% (NR_118774.1). Margin +6.9 pp in the correct direction = PASS. The prior entry's key claim -- that 'a different-phylum outgroup would simply be another taxon inside that spread' -- is FALSIFIED: it was an inference, never measured. Gordonia failed at 96.2% because it is an ACTINOMYCETE, i.e. too CLOSE; Pseudomonas is a Gammaproteobacterium and sits genuinely outside. RESIDUAL RISK, stated: passing the isolation criterion does not make it immune to long-branch attraction -- a 79% outgroup gives a very long stem, so the ingroup-stem exemption (D2 ruling) will apply and the topology near the root should be read with care. Prior analysis: <workspace>/_PLACEMENT/rare_genera_OG/CANNOT_BE_ROOTED.md (its 'this is a backbone, not a figure' point still stands independently).
+group	genus_placement_AS40_162_705	multi-family	Gordonia	Gordonia bronchialis DSM 43247 (NR_074529.1)	16S_local_RefSeq	LOCKED	Alex RATIFIED 2026-09-07. Rebuilt and gated: 17 ingroup + Gordonia bronchialis NR_074529.1, margin -2.4 (~35 nt) PASS. Mixed Streptomycetaceae + Pseudonocardiaceae panel, so an out-of-family root is required.
+
+# RULE ADDED 2026-09-07 — NAME THE SPECIES, NOT JUST THE GENUS. A genus is NOT a sufficient
+# specification for a 16S outgroup. Measured on two independent panels the same night:
+#   Streptomyces panel (34 tips): Kitasatospora ALBOLONGA -> gate FAIL +1.5
+#                                 Kitasatospora SETAE     -> gate PASS -1.5   (a 3.0-point swing)
+#   bee panel (236 tips):         K. albolonga 99.9%/1452nt to a panel member - an ingroup member
+#                                 in all but name; K. setae 96.7%/1426nt.
+# Same genus, opposite verdicts. Every row therefore names a SPECIES and an ACCESSION, and the
+# accession is what the build fetches — resolving the taxon STRING against the database is how the
+# Saccharopolyspora panel came to be rooted on Phytoactinopolyspora halophila (NR_179169.1) while
+# its header claimed Actinopolyspora halophila (NR_044818.1). Fetch by accession; write the tip name
+# from the RECORD, not from the request; refuse on a genus mismatch.
+#
+# AND: a panel that is not a CLADE cannot be rooted at all. If a panel's own members are further
+# from each other than any candidate outgroup is from the panel, no outgroup exists — see the
+# rare_genera row. `scripts/outgroup_sanity_gate.py` measures exactly this.
+#

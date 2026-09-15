@@ -1,5 +1,24 @@
 # Mamey Engine Lineage
 
+## Engine 1.9.166 — first bundle: v9.7.432
+
+Three score-neutral behaviour changes, none in a scoring, extraction or sealed-package-schema file,
+so v9.7.431 and v9.7.432 boards remain poolable. (1) HMM resolution: `SM_HMM_DB` (file),
+`MAMEY_HMM_DIR` (directory) and `$MAMEY_DATA_ROOT/hmm` resolve through one shared precedence in
+`mamey/external_data.py` / `mamey/wheelhouse.py`, and `doctor` reports the path the scanner will
+actually read instead of a different one. (2) `published_registry` in `mamey/dedup_and_guard.py`
+distinguishes "not configured" (`None`, the default; unchanged behaviour) from "configured and
+empty" (every AS strain PRIVATE); no caller passes the parameter yet, so nothing changes at
+runtime until the roster is populated. (3) Strain attribution from staged BiG-SCAPE filenames in
+`mamey/bigscape_namespace.py`: a variant suffix between the strain prefix and the `_NODE_` contig
+token (`<strain>_second_NODE_…`) now yields its own visible id (`<strain>_second`) instead of being
+merged into the canonical strain; clean names and the 1.9.165 `"?"` sentinel are unchanged. The
+third is a changed emitted identity value, which is why the engine bumps. (4) `ingest-blastp-trove`
+in `mamey/blastp_ingest.py` / `mamey/cli.py` gains an explicit, opt-in `--rekey-by-locus` mode that
+resolves stale trove BGC aliases through the package's `*cds_table.csv`; the default strict path,
+the overlay schema of existing rows and every scoring surface are untouched (two columns are
+appended to new overlay rows, and the receipt schema name changes only in that mode).
+
 ## Engine 1.9.165 — first bundle: v9.7.431
 
 Strain attribution from staged BiG-SCAPE filenames now returns the `"?"` sentinel when a name

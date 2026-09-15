@@ -174,37 +174,117 @@ def _pick_accession(idx, out_genus, species_strain):
     return cands[0]
 
 
+_RULED_ACCESSION = re.compile(r"\(?\b((?:NR|NG|NZ|NC)_\d+(?:\.\d+)?)\)?")
+
+
+def split_ruled_accession(species_strain):
+    """Return (species/strain text without any accession token, ruled accession or '').
+
+    TREES_432: registry rows may name the accession Alex ruled on inside `outgroup_species_strain`
+    (e.g. `Gordonia bronchialis DSM 43247 (NR_074529.1)`). That token must not leak into the cache
+    filename or the header a second time, and when present it is what the build fetches."""
+    m = _RULED_ACCESSION.search(species_strain or "")
+    acc = m.group(1) if m else ""
+    name = re.sub(r"\s+", " ", _RULED_ACCESSION.sub("", species_strain or "")).strip()
+    return name, acc
+
+
+def _fetch_entry(bdc, acc):
+    """(accession, title, ungapped sequence) for one 16S DB entry, or None when absent.
+
+    Title comes from `%t` (one line per defline), so a multi-defline BLAST entry never leaks a
+    second `>` into the header this module writes."""
+    meta = subprocess.run([bdc, "-db", DB16S, "-entry", acc, "-outfmt", "%a@@@%t"],
+                          capture_output=True, text=True)
+    if meta.returncode != 0 or "@@@" not in meta.stdout:
+        return None
+    lines = [ln for ln in meta.stdout.splitlines() if "@@@" in ln]
+    chosen = next((ln for ln in lines if ln.split("@@@", 1)[0].strip().split(".")[0] == acc.split(".")[0]),
+                  lines[0])
+    got_acc, title = (x.strip() for x in chosen.split("@@@", 1))
+    seq = subprocess.run([bdc, "-db", DB16S, "-entry", acc], capture_output=True, text=True)
+    if seq.returncode != 0 or not seq.stdout.strip():
+        return None
+    body = "".join(l.strip() for l in seq.stdout.splitlines() if not l.startswith(">"))
+    return got_acc, title, body
+
+
+def header_admissible(fasta_path):
+    """(ok, reason) — does every header in `fasta_path` pass phylo_place's 16S admission screen?
+
+    The registry writer is held to the same gate as the references it is appended to, so a cache
+    file can never again fail the tool that asked for it. Falls back to the structural part of the
+    screen (one '>' per header line) if phylo_place cannot be imported."""
+    try:
+        from tools.phylo_place import screen_reference_definitions
+    except Exception:
+        try:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from phylo_place import screen_reference_definitions
+        except Exception:
+            screen_reference_definitions = None
+    if screen_reference_definitions is None:
+        bad = [ln.strip() for ln in open(fasta_path, encoding="utf-8", errors="replace")
+               if ln.startswith(">") and ln.count(">") != 1]
+        return (not bad, "MULTIPLE_FASTA_DEFINITIONS_OR_ACCESSIONS" if bad else "")
+    rejected = screen_reference_definitions(fasta_path)
+    return (not rejected, rejected[0][1] if rejected else "")
+
+
 def get_16s(genus, scope="genus", out=None, force=False, quiet=False):
     row = find_row(genus, scope)
     if not row:
         sys.exit(f"no registry row for '{genus}' (scope={scope}); add it to {REGISTRY} first")
     og_genus = row["outgroup_genus"]
-    species_strain = row["outgroup_species_strain"]
+    species_strain, ruled_acc = split_ruled_accession(row["outgroup_species_strain"])
     safe = re.sub(r"[^A-Za-z0-9]+", "_", f"{og_genus}_{species_strain}").strip("_")
     os.makedirs(os.path.join(CACHE, "16S"), exist_ok=True)
     cache_fa = os.path.join(CACHE, "16S", f"{safe}.fasta")
+    cache_ok = False
     if os.path.exists(cache_fa) and os.path.getsize(cache_fa) and not force:
-        if not quiet:
-            sys.stdout.write((f"[cache-hit] {cache_fa}") + "\n")
-    else:
-        idx = _title_index()
-        pick = _pick_accession(idx, og_genus, species_strain)
-        if not pick:
-            sys.exit(f"no 16S record found in ncbi_16S_RefSeq for '{og_genus} {species_strain}'. "
-                     "16S DBs are type-strain-sparse — either the species isn't represented, or add its "
-                     "NR_ accession by hand. (Genome track is unaffected.)")
-        score, acc, title = pick
+        cache_ok, why = header_admissible(cache_fa)
+        if cache_ok:
+            if not quiet:
+                sys.stdout.write((f"[cache-hit] {cache_fa}") + "\n")
+        else:
+            sys.stderr.write(f"WARNING: outgroup_registry: cached {os.path.basename(cache_fa)} fails the "
+                             f"16S admission screen ({why}); re-extracting\n")
+    if not cache_ok:
         bdc = _blastdbcmd()
-        seq = subprocess.run([bdc, "-db", DB16S, "-entry", acc], capture_output=True, text=True)
-        if seq.returncode != 0 or not seq.stdout.strip():
-            sys.exit(f"blastdbcmd could not fetch {acc}")
-        # rewrite header to a clean, tree-ready label carrying genus/species/strain + accession
-        body = "".join(l for l in seq.stdout.splitlines()[1:])
-        header = f">{safe}_{acc}  [outgroup for {row['ingroup_taxon']}; {title}]"
+        if not bdc:
+            sys.exit("blastdbcmd not found; set BLAST_BIN or install the 'blast' env")
+        hit = _fetch_entry(bdc, ruled_acc) if ruled_acc else None
+        if ruled_acc and hit is None:
+            sys.stderr.write(f"NOTE: outgroup_registry: ruled accession {ruled_acc} is not in the local 16S "
+                             f"DB; falling back to a name-based pick for '{og_genus} {species_strain}'\n")
+        if hit is None:
+            idx = _title_index()
+            pick = _pick_accession(idx, og_genus, species_strain)
+            if not pick:
+                sys.exit(f"no 16S record found in ncbi_16S_RefSeq for '{og_genus} {species_strain}'. "
+                         "16S DBs are type-strain-sparse — either the species isn't represented, or add its "
+                         "NR_ accession by hand. (Genome track is unaffected.)")
+            _score, acc, _title = pick
+            hit = _fetch_entry(bdc, acc)
+            if hit is None:
+                sys.exit(f"blastdbcmd could not fetch {acc}")
+        acc, title, body = hit
+        # Registry rule (OUTGROUP_REGISTRY.tsv, 2026-09-07): write the tip name from the RECORD, not
+        # from the request; refuse on a genus mismatch.
+        if (title.split() or [""])[0].lower() != og_genus.lower():
+            raise RegistryAuthorityError(
+                f"OUTGROUP_ACCESSION_GENUS_MISMATCH: registry row for '{row['ingroup_taxon']}' names "
+                f"outgroup genus '{og_genus}' but DB record {acc} is titled '{title[:80]}'")
+        # One accession, DB title verbatim, bounded 'outgroup' token for tree_sanity_check.
+        header = f">{acc} {title} [outgroup for {row['ingroup_taxon']}]"
         with open(cache_fa, "w") as fh:
             fh.write(header + "\n")
             for i in range(0, len(body), 80):
                 fh.write(body[i:i + 80] + "\n")
+        ok, why = header_admissible(cache_fa)
+        if not ok:
+            os.remove(cache_fa)
+            raise RegistryAuthorityError(f"OUTGROUP_HEADER_INADMISSIBLE: {why}: {header[:100]}")
         if not quiet:
             sys.stdout.write((f"[cached] {og_genus} {species_strain} -> {acc}\n         {cache_fa}") + "\n")
     if out:
@@ -268,7 +348,8 @@ def cmd_cache16s(a):
         if key in seen:
             continue
         seen.add(key)
-        pick = _pick_accession(idx, r["outgroup_genus"], r["outgroup_species_strain"])
+        species_name, ruled_acc = split_ruled_accession(r["outgroup_species_strain"])
+        pick = (None, ruled_acc, "") if ruled_acc else _pick_accession(idx, r["outgroup_genus"], species_name)
         if not pick:
             miss.append(f"{r['ingroup_taxon']} -> {r['outgroup_genus']} {r['outgroup_species_strain']} (no 16S in RefSeq)")
             continue

@@ -4,7 +4,7 @@
 > Historical section counts, role assignments and examples below cannot replace a current profile.
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
-# Claude / Sapote-Tier System Prompt — v9.7.431
+# Claude / Sapote-Tier System Prompt — v9.7.432
 
 **Role:** Sapote interpretation layer. Mamey is the deterministic extraction source of truth. Claude reads Mamey outputs and produces all deliverables below.  
 **Active controller:** `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`  
@@ -339,4 +339,4 @@ One piece of the reference's *evergreen* advice is also rejected — on values g
 
 ---
 
-*Sapote-Mamey Bundle v9.7.431 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*
+*Sapote-Mamey Bundle v9.7.432 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*

@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.431 stamp=20260914v97431a
+# TIER_MANIFEST tier=code version=9.7.432 stamp=20260915v97432a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -398,6 +398,7 @@
 ./docs/history/TIER_PATCH_RECEIPT_v9.7.148c_CODE.md
 ./docs/history/V9_4_1_COMPATIBILITY_PATCH.md
 ./docs/history/VERIFICATION_REPORT_v9_7_116_to_audit.md
+./docs/history/cross_chat_doc_protocol_v9.7.319.md
 ./docs/modules/DELIVERABLE_AssemblyQC.md
 ./docs/modules/DELIVERABLE_ContigRescueReconstruction.md
 ./docs/modules/DELIVERABLE_EcologicalSynthesis.md
@@ -481,9 +482,7 @@
 ./docs/troubleshooting/README_TROUBLESHOOTING.md
 ./docs/troubleshooting/SINGLE_REGION_ACCESSION_INPUTS.md
 ./docs/user_guides/comprehensive_glossary.md
-./docs/user_guides/cross_chat_doc_protocol.md
 ./docs/user_guides/development_issues_compendium.md
-./docs/user_guides/large_files_reference.md
 ./docs/user_guides/math_reference_vol1.md
 ./docs/user_guides/math_reference_vol2.md
 ./docs/user_guides/operational_reference.md
@@ -1107,6 +1106,7 @@
 ./tests/__init__.py
 ./tests/_fixtures.py
 ./tests/_modeb_card_fixtures.py
+./tests/_trees_432_fakes.py
 ./tests/_uploads_fixture.py
 ./tests/conftest.py
 ./tests/data/type_reference_rerun_targets.tsv
@@ -1195,6 +1195,7 @@
 ./tests/test_413_build_stamp_engine_owner.py
 ./tests/test_413_detect_strictness_per_member_isolation.py
 ./tests/test_428_phylo16s_pdf_candidate_ingest.py
+./tests/test_432_bigscape_variant_suffix_visible.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_activity_fragment_gate.py
 ./tests/test_activity_lead_genes_v9_7_385.py
@@ -1333,6 +1334,7 @@
 ./tests/test_blastp_store_importers.py
 ./tests/test_blastp_stub_guards.py
 ./tests/test_blastp_trove_defline_v9_7_340.py
+./tests/test_blastp_trove_locus_rekey_v97432.py
 ./tests/test_blastp_worklist_v9791.py
 ./tests/test_blastp_zero_alignment_batch_v97250.py
 ./tests/test_blda_not_applicable_p9.py
@@ -1764,6 +1766,7 @@
 ./tests/test_heatmap_text_contrast_bc2_398.py
 ./tests/test_hermetic_env_guard_v97404.py
 ./tests/test_hmm_blastp_adjudicate.py
+./tests/test_hmm_env_precedence_432.py
 ./tests/test_hooks_jqless_path_v97402.py
 ./tests/test_hooks_workspace_portability.py
 ./tests/test_hostile_gates_round2_v97409.py
@@ -2141,6 +2144,7 @@
 ./tests/test_public_tier_macos_metadata_scrub.py
 ./tests/test_public_tier_strip_v9_7_267.py
 ./tests/test_publication_quality_repair_v9_7_372.py
+./tests/test_published_registry_empty_roster_v97432.py
 ./tests/test_purple_428_accession_shaped_strain_codes.py
 ./tests/test_pye_ksgate_clamp_v1999.py
 ./tests/test_pyproject_all_extras_consistency_v97395.py
@@ -2428,6 +2432,23 @@
 ./tests/test_tree_sanity_outgroup_aware_vgp_398.py
 ./tests/test_tree_series_contract.py
 ./tests/test_tree_trust_explicit_workflow.py
+./tests/test_trees_432_16S_database_provenance_and_genus_string_defects.py
+./tests/test_trees_432_amycolatopsis_refpkg_two_headers_one_line.py
+./tests/test_trees_432_assay_columns_never_bound_by_panel_binder.py
+./tests/test_trees_432_build_completion_gate_requires_contree.py
+./tests/test_trees_432_color_strips_report_deliverable.py
+./tests/test_trees_432_gcf_synteny_tree.py
+./tests/test_trees_432_native_gtotree_v2_hmm_path_and_exit_masking.py
+./tests/test_trees_432_omitted_tips_receipt_lacks_reason.py
+./tests/test_trees_432_outgroup_registry_header_fails_own_gate.py
+./tests/test_trees_432_panel_labels_from_deposit_titles_and_unverified_type_tags.py
+./tests/test_trees_432_placement_figure_classifies_nontype_refs_as_outgroup.py
+./tests/test_trees_432_placement_report_gate_ignores_ingroup_stem.py
+./tests/test_trees_432_query_tip_dropped_by_scg_filter_without_failure.py
+./tests/test_trees_432_reference_metadata_resolver_ignores_biosample.py
+./tests/test_trees_432_reference_metadata_resolver_tls_and_silent_row_errors.py
+./tests/test_trees_432_run_planned_tree_incompatible_with_gtotree_v2.py
+./tests/test_trees_432_shipped_outgroup_registry_stale_vs_official_ruling.py
 ./tests/test_triage_protocluster_columns.py
 ./tests/test_trigger_routing_handback_v97147.py
 ./tests/test_two_pathway.py
@@ -2507,6 +2528,7 @@
 ./tests/test_zip_hygiene_allowlist_wiring.py
 ./tests/test_zip_nonregular_member_intake_v97401.py
 ./tests/test_ziputil_safe_extract_v9_7_382.py
+./tests/trees_432_panel_fixture.py
 ./tools/FIGURE_R_MANIFEST.tsv
 ./tools/MANIFEST.json
 ./tools/SLIM_KERNEL_PATCHES_v1.9.7.md
@@ -2552,6 +2574,7 @@
 ./tools/bigscape_pipeline.py
 ./tools/bigscape_prep.py
 ./tools/bigslice_query.py
+./tools/bind_panel_metadata.py
 ./tools/bioassay_plate_map.py
 ./tools/bioassay_to_activity_channel.py
 ./tools/blastp_campaign.py
@@ -2611,6 +2634,7 @@
 ./tools/build_pfam_desc_map.py
 ./tools/build_phylo_panel.py
 ./tools/build_placement_ggtree_inputs.py
+./tools/build_placement_panel_inputs.py
 ./tools/build_priority_leads.py
 ./tools/build_punchcard.py
 ./tools/build_reconstruction.py
@@ -2685,6 +2709,7 @@
 ./tools/domain_prevalence.py
 ./tools/domain_prevalence_widget.py
 ./tools/edge_fasta_export.py
+./tools/emit_modeb_template_full50.py
 ./tools/emit_release_sums.sh
 ./tools/encyclopedia_reground_check.py
 ./tools/evidence_bundle.py
@@ -2770,6 +2795,7 @@
 ./tools/next_evidence_actions.html
 ./tools/npatlas_provision.py
 ./tools/nrps_substrate.py
+./tools/omitted_tips_receipt.py
 ./tools/outgroup_registry.py
 ./tools/package_screening_figure.py
 ./tools/panel_receipt_to_aux.py
@@ -2784,6 +2810,7 @@
 ./tools/phylo_16s_from_genome.py
 ./tools/phylo_16s_panel.py
 ./tools/phylo_16s_rank.py
+./tools/phylo_16s_validate_db.py
 ./tools/phylo_autopilot.py
 ./tools/phylo_display_contract.py
 ./tools/phylo_display_palette.tsv
@@ -2835,9 +2862,12 @@
 ./tools/render_clean_tree.py
 ./tools/render_dapr_boards.py
 ./tools/render_deliverable_pdf.py
+./tools/render_gcf_synteny_tree.py
+./tools/render_placement_COLOR_STRIPS.R
 ./tools/render_screening_exploration.R
 ./tools/render_siderophore_atlas.py
 ./tools/render_three_channel_evidence_matrix.py
+./tools/render_tree_COLOR_STRIPS.R
 ./tools/render_tree_reference_series.py
 ./tools/repo_health.py
 ./tools/reroot_postflight_receipt.py

@@ -190,7 +190,7 @@ Every BGC in every strain must carry one of these treatment status values:
 | `full Mode B` | Full prose-first §1–§20 corrective-protocol Mode B report produced |
 | `candidate card` | Abbreviated candidate card produced (MEDIUM priority) |
 | `minimum candidate card` | Minimum-field interpreted card produced for LOW/DEPRIORITIZED or evidence-thin BGCs; must include locator, class/hypothesis, boundary, KCB/null, one interpretive sentence, and next action |
-| `deferred` | Not analyzed this session; reason and completion path logged |
+| `deferred` | Not analyzed in this run; reason and completion path logged |
 | `not applicable` | BGC is a known housekeeping cluster (e.g., ectoine, epsilon-PL); explicitly excluded from interpretation |
 
 ---

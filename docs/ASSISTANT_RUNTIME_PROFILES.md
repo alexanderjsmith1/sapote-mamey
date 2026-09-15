@@ -1,8 +1,8 @@
 # Separate assistant guidance from runtime limits
 
-Sapote–Mamey's owner reports that early workflows were developed in ChatGPT's web interface and
-Claude.AI in May/June 2026, before migration to local coding agents. Repeated handoffs, capped
-runs and explicit completion menus should be evaluated in that context. A constraint that helped
+Early Sapote–Mamey workflows were developed in hosted chat interfaces before migration to local
+coding agents. Repeated handoffs, capped runs and explicit completion menus come from that
+context and should be evaluated in it. A constraint that helped
 one environment is not automatically suitable as a universal rule for every later environment.
 
 This is operational guidance, not a new configuration feature. No profile-switching command or

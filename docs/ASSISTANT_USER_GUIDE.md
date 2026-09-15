@@ -152,7 +152,7 @@ A real public-strain walkthrough should identify the actual accession/input hash
 environment, commands and results. It should disclose failed/deferred outputs and measured duration.
 One successful input demonstrates that path in that environment, not support for every assembly,
 scientific class or optional tool. Candidate documentation should distinguish tested commands from
-source-inspected examples. Consult the dated walkthrough receipt delivered with the candidate review.
+source-inspected examples. A walkthrough receipt records which commands were actually run.
 
 ## Next paths, automatic SAVE STATE, and transcripts
 

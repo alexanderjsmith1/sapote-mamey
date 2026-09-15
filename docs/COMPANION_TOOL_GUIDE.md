@@ -1,19 +1,15 @@
 # Companion tools: what they do and where Sapote–Mamey uses them
 
 This guide explains the tools in the README's workflow table, plus the web-search and upstream
-services discussed in the recovered project tool explainers. Some are websites, some are local
-programs, and some are libraries used by programs. Downloading a tool from a website does not make
-its analysis an online service. You do not need all of them for a first antiSMASH extraction.
+services they connect to. Some are websites, some are local programs, and some are libraries
+used by programs. Downloading a tool from a website does not make its analysis an online
+service. You do not need all of them for a first antiSMASH extraction.
 
-The integration descriptions are grounded in the local v9.7.428 candidate and its referenced
-protocols. The earlier explainers live outside the downloaded bundle, in the project's
-`docs/tool-explainers/` and `docs/TOOLS_BY_ENVIRONMENT.md`. Those contain useful explanations but
-also dated machine-specific observations. We have not repeated their online or companion-tool
-experiments in Round 3. No BLASTp or online searches were run for the Type Strain walkthroughs.
+The integration descriptions are grounded in this bundle's code and its referenced protocols.
 
 Use the [README download table](../README.md#tool-downloads-and-licenses) for upstream project
-links. External sites, versions, service limits and licenses were not rechecked online for this
-pass. Record the actual installed version and database release when you use a tool.
+links. External sites, versions, service limits and licenses change without notice. Record the
+actual installed version and database release when you use a tool.
 
 ## Choose a stage
 
@@ -145,7 +141,7 @@ of the experiment. A UniProt-based result from this service is not equivalent to
 result, even when both searches use BLASTp. Service limits and required contact information
 must be checked for the actual submission.
 
-**In Sapote–Mamey.** The candidate has a dedicated EBI transport in `mamey/blastp_ebi.py`. It
+**In Sapote–Mamey.** The program has a dedicated EBI transport in `mamey/blastp_ebi.py`. It
 keeps job state so submitted queries can be tracked and requires valid contact information for
 submission. Its batching and provenance are separate from the NCBI runner. Selecting this
 channel should be explicit; the existence of an EBI option does not mean an unavailable NCBI
@@ -594,7 +590,7 @@ run every downstream stage.
 
 ## Hand a selected question to a companion tool
 
-A useful handoff carries a biological question, exact sequence identities, input files and hashes, tool/database version, output destination and interpretation limit. The examples below describe handoff content; Round 4 did not execute these optional searches or trees.
+A useful handoff carries a biological question, exact sequence identities, input files and hashes, tool/database version, output destination and interpretation limit. The examples below describe handoff content, not results.
 
 **Protein similarity:** export the selected protein FASTA with a mapping back to strain, full contig, region and locus tag. Specify whether the task uses local BLAST+/DIAMOND or an online service and which database. Retain raw alignments and query/subject coverage as well as scores. Bring results back through the documented importer for that channel; do not paste an unbound top-hit name into a BGC conclusion.
 

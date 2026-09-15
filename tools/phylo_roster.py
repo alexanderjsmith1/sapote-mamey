@@ -180,11 +180,12 @@ def main(argv=None):
         panel_rows = list(csv.DictReader(open(args.panel), delimiter='\t'))
         roster = roster_from_panel(panel_rows, hosts)
 
-    emit(format_roster(roster))
-    emit(f"\n{len(roster)} entries "
-          f"({sum(r['role']=='QUERY' for r in roster)} QUERY, "
-          f"{sum(r['role']=='REFERENCE' for r in roster)} REFERENCE, "
-          f"{sum(r['role']=='OUTGROUP' for r in roster)} OUTGROUP)")
+    emit(format_roster(roster),
+         f"\n{len(roster)} entries "
+         f"({sum(r['role']=='QUERY' for r in roster)} QUERY, "
+         f"{sum(r['role']=='REFERENCE' for r in roster)} REFERENCE, "
+         f"{sum(r['role']=='OUTGROUP' for r in roster)} OUTGROUP)",
+         sep="\n")
 
     if not args.remove:
         return 0

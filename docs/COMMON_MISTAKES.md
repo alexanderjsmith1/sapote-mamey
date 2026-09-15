@@ -16,23 +16,23 @@ A code ZIP, raw genome FASTA and antiSMASH result ZIP are different inputs. Insp
 
 ## Organism is a dot, blank or an unverified placeholder
 
-Some public Type Strain archives have `ORGANISM  .` even when the full GenBank DEFINITION identifies the organism. Round 3 encountered ten such inputs. Older candidate code normalized the dot to `sp.`; that prevented a literal dot from spreading but did not resolve taxonomy.
+Some public Type Strain archives have `ORGANISM  .` even when the full GenBank DEFINITION identifies the organism. The program normalizes a taxonomy with no alphabetic genus to `sp.`; that prevents a literal dot from spreading but does not resolve taxonomy.
 
 **Recovery:** inspect the full-genome DEFINITION and available accession metadata, record the binding source, and supply that taxonomy explicitly. Do not invent a genus from an unrelated folder or use the GenBank SOURCE field as isolation habitat. If taxonomy cannot be resolved, use the explicit `not verified` state and describe the limitation.
 
-The Round 4 candidate refuses punctuation-only or bare `sp.` taxonomy at run admission with `TAXONOMY_PLACEHOLDER`, before creating a run directory. This checks an obvious placeholder, not taxonomic correctness. Existing packages are not retroactively repaired. A corrected run belongs in a new destination.
+`run` refuses punctuation-only or bare `sp.` taxonomy at admission with `TAXONOMY_PLACEHOLDER`, before creating a run directory. This checks an obvious placeholder, not taxonomic correctness. Existing packages are not retroactively repaired. A corrected run belongs in a new destination.
 
 ## Missing KCB, RiQ or JSON evidence
 
 Blank values can reflect unavailable upstream analyses, absent files, parser limits, a failed scan or no retained match. They do not uniquely diagnose an old antiSMASH version. Read the issue log and evidence status before choosing a remedy.
 
-**Recovery:** preserve the original full ZIP. Compare its available TXT/JSON evidence with the selected `--json-evidence` mode. `off` deliberately omits JSON parsing; `bounded` limits work and can report truncation; `full` attempts full parsing within its separate guard. The candidate full-JSON cap is **80,000,000 uncompressed bytes per guarded JSON member**, not an 80 MB upload or whole-ZIP limit. Bounded mode has its own limits. Increasing the full cap does not remove them. See [input consumption](ANTISMASH_INPUTS_CONSUMED.md).
+**Recovery:** preserve the original full ZIP. Compare its available TXT/JSON evidence with the selected `--json-evidence` mode. `off` deliberately omits JSON parsing; `bounded` limits work and can report truncation; `full` attempts full parsing within its separate guard. The full-JSON cap is **80,000,000 uncompressed bytes per guarded JSON member**, not an 80 MB upload or whole-ZIP limit. Bounded mode has its own limits. Increasing the full cap does not remove them. See [input consumption](ANTISMASH_INPUTS_CONSUMED.md).
 
 If `ijson` is missing, install compatible dependencies in the selected project environment using [INSTALL](INSTALL.md); do not assume a compatible wheel is bundled. Success means a new receipt documents the intended channel and scope. A nonempty score alone is insufficient.
 
 ## Missing Python package or wrong Python
 
-`No module named ...` may mean the intended environment is inactive. Confirm the interpreter and program folder before installing anything. Use `python -m pip` in that environment so installation targets the Python running the program. Follow [INSTALL](INSTALL.md) for core requirements and optional extras. No network installation was tested in these offline walkthroughs.
+`No module named ...` may mean the intended environment is inactive. Confirm the interpreter and program folder before installing anything. Use `python -m pip` in that environment so installation targets the Python running the program. Follow [INSTALL](INSTALL.md) for core requirements and optional extras.
 
 **Recovery:** activate the correct environment, check capabilities again, then rerun only the relevant step. A missing optional tree binary does not prevent every extraction. Do not copy a virtual environment from a different laptop as an installation method.
 
@@ -42,7 +42,7 @@ Check `python mamey_run.py COMMAND --help`, replacing COMMAND with the actual co
 
 ## Run appears stalled or was interrupted
 
-The terminal can be quiet during expensive stages. Check the process and the latest phase receipt before starting another copy. Runtime depends on evidence size, rendering settings, storage and the computer. Round 3's single-run times are observations, not a deadline.
+The terminal can be quiet during expensive stages. Check the process and the latest phase receipt before starting another copy. Runtime depends on evidence size, rendering settings, storage and the computer. A run time from another machine is not a deadline.
 
 **Recovery:** if a process is still running, inspect it before taking action. If it has stopped, retain its logs and partial directory. Start a new attempt in a distinct output location after diagnosing the cause; do not assume general extraction resumes automatically from every interrupted phase. A lock is not proof a process is dead. Do not delete locks or kill processes solely because progress is quiet.
 
@@ -60,7 +60,7 @@ Retain the workbook warning and check `openpyxl` in the selected environment. Ex
 
 ## PDF missing, clipped or confusing
 
-A rendering timeout, missing library and successful-but-unreadable PDF are different failures. Inspect the render log and open the actual pages. The Round 4 candidate changes the text summary to wrap long content and continue onto additional pages; other appended figure renderers retain their own limitations.
+A rendering timeout, missing library and successful-but-unreadable PDF are different failures. Inspect the render log and open the actual pages. The brief's text summary wraps long content and continues onto additional pages; other appended figure renderers retain their own limitations.
 
 **Recovery:** use the CSV/workbook and full identity while diagnosing the figure. Re-render into an explicit review destination; do not overwrite a sealed package casually. Never treat a successfully created PDF as publication-ready without visual review. A variable page count is expected.
 

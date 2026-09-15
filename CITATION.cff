@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use Sapote-Mamey, please cite it as below."
 type: software
 title: "Sapote-Mamey: claim-safe interpretive genome mining for actinomycete biosynthetic gene clusters"
-version: 9.7.431
-date-released: "2026-09-14"
+version: 9.7.432
+date-released: "2026-09-15"
 authors:
   - family-names: "Smith"
     given-names: "Alexander J."

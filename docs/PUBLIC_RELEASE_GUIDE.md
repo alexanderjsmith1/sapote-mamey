@@ -47,9 +47,14 @@ use an environment-level network restriction when a zero-network guarantee is re
 
 To run with zero network access:
 
-1. The Pfam HMM is **not bundled** (see `docs/EXTERNAL_ASSETS_GUIDE.md`); acquire or rebuild it before any HMM step for
-   HMM-based scanning — it works offline out of the box. (Only if you deliberately removed it would you
-   need to carry a copy in, or rely on the regex fallback / antiSMASH `--fullhmmer` output.)
+1. The Pfam HMM (`scanner_pfam.hmm`) is **not bundled** — the public-tier tests forbid it in the tree — so
+   HMM-based scanning does not work out of the box. Before going offline, rebuild it from Pfam-A with
+   the `hmmfetch` recipe in `docs/PUBLIC_RELEASE_DATA.md` (or obtain a copy), carry the file in, and
+   point the engine at it: set `SM_HMM_DB` to the file path, and/or place it at
+   `$MAMEY_DATA_ROOT/hmm/scanner_pfam.hmm` (or set `MAMEY_HMM_DIR` to its folder) so `doctor` reports it
+   (see `docs/EXTERNAL_ASSETS_GUIDE.md`). Without it the scanner uses the regex fallback, or you can
+   supply antiSMASH `--fullhmmer` output instead. `bundle_support/install_sapote_addons.sh` installs the
+   add-on Python stack (`pyhmmer` etc.), not the HMM file itself.
 2. Produce your antiSMASH result ZIP(s) on a connected machine or a local antiSMASH install.
 3. For BLASTp evidence, run BLASTp externally and bring in the Hit Table (CSV) + XML2, then use
    `ingest-blastp` (no network).
@@ -63,8 +68,10 @@ yourself, on your terms, ahead of time.
 
 | Missing | Effect | Fix |
 |---------|--------|-----|
-| `scanner_pfam.hmm` — **not bundled (operator-acquired)** | Only if you removed it: scanner uses regex; HMMER cells report `NEEDS_HMMER_DOMTBLOUT` | Nothing needed; rebuild from Pfam-A (§3) only for a newer Pfam |
+| `scanner_pfam.hmm` — **not bundled (operator-acquired)** | Absent by default: scanner uses regex; HMMER cells report `NEEDS_HMMER_DOMTBLOUT` | Rebuild from Pfam-A per `docs/PUBLIC_RELEASE_DATA.md` (or obtain a copy), then set `SM_HMM_DB` / `MAMEY_HMM_DIR` as in §5 |
 | cairosvg (`render` extra) | Compiled-PDF SVG figures are dropped, not embedded; render still succeeds | `pip install '.[render]'`, or install a system `rsvg-convert`/`inkscape` |
 | figure stack (`matplotlib`/…) | Figure generation is skipped | `pip install '.[figures]'` or `'.[all]'` |
 
 Nothing in this list blocks a run from reaching completion; each is a graceful fallback, not a failure.
+A fallback is not the missing capability, though: HMM-based scanning is unavailable until you provision
+the HMM, and a regex-path result must not be reported as an HMM scan.

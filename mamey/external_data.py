@@ -139,11 +139,33 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def _resolve_hmm_via_scanner() -> Path | None:
+    """v9.7.432: the `hmm` dataset is resolved by the SAME function the scanner uses
+    (mamey.wheelhouse.resolve_hmm_database), so `mamey doctor` can only say "provisioned" when the
+    scanner will actually open a file. Precedence lives there: SM_HMM_DB (file) > MAMEY_HMM_DIR >
+    $MAMEY_DATA_ROOT/hmm > bundle-local 148 > addon 148 > legacy Wheelhouse/hmm/scanner_pfam.hmm.
+    Returns the directory holding the resolved file (this module's contract is a directory).
+    Before this, doctor read MAMEY_HMM_DIR while the scanner read only SM_HMM_DB + in-tree paths, so
+    an operator following docs/PUBLIC_RELEASE_GUIDE.md §5 got a green doctor line and no domain hits."""
+    try:
+        from .wheelhouse import resolve_hmm_database
+    except Exception:
+        return None
+    r = resolve_hmm_database(_repo_root())
+    if r.get("tier") == "none" or not r.get("path"):
+        return None
+    return Path(r["path"]).parent
+
+
 def resolve(key: str) -> Path | None:
-    """Return the directory for `key`, or None if not provisioned. Never raises for an unknown layout."""
+    """Return the directory for `key`, or None if not provisioned. Never raises for an unknown layout.
+    `hmm` delegates to the scanner's own resolver (see _resolve_hmm_via_scanner)."""
     ds = DATASETS.get(key)
     if ds is None:
         raise ValueError(f"unknown dataset {key!r}; known: {sorted(DATASETS)}")
+
+    if key == "hmm":
+        return _resolve_hmm_via_scanner()
 
     env = os.environ.get(ds.env_var)
     if env:

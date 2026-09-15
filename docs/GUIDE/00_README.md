@@ -1,6 +1,6 @@
 # User guides and reference reading
 
-*Included with bundle v9.7.431 / engine Mamey 1.9.165. Packaging version; content scope is described below.*
+*Included with bundle v9.7.432 / engine Mamey 1.9.166. Packaging version; content scope is described below.*
 
 For a first analysis, read [Your first analysis](../MASTER_WALKTHROUGH.md).
 For a completed package, use [Read your results](../READING_YOUR_RESULTS.md).

@@ -465,9 +465,10 @@ def list_bgcs_command(args) -> int:
     emit(f"\nMamey list-bgcs — {len(out)} BGC(s)")
     for row in out:
         # Identity is the first line, unabridged; scores are routing priors.
-        emit(row["exact_locus"])
-        emit(f"  Products: {row['products']} | Boundary: {row['boundary']} | "
+        emit(row["exact_locus"],
+             f"  Products: {row['products']} | Boundary: {row['boundary']} | "
              f"AB: {row['ab_score']:.0f} | AF: {row['af_score']:.0f} | "
-             f"Lead tier: {row['lead_tier']}")
+             f"Lead tier: {row['lead_tier']}",
+             sep="\n")
     emit("\n  Tip: --axis ab|af sorts by score | --json for machine-readable output | --top N to limit")
     return 0

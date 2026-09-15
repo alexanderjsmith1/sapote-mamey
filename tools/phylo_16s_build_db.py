@@ -84,6 +84,77 @@ def parse_title(title):
     return binom, genus, desig, bool(TYPE_HINT.search(title or ""))
 
 
+_EPITHET = re.compile(r"[a-z][a-z-]{3,}")
+
+
+def split_concatenated_genus(word, known_counts, known_binomials=None):
+    """(genus, epithet) for a title token that is a known genus with its epithet glued on.
+
+    PDF text extraction loses the space in a binomial ('Streptomyceszaomyceticus'); parse_title
+    then accepts the whole token as a genus and every per-genus filter drops the record from its
+    own genus. A CANDIDATE split needs a prefix that is a genus already seen MORE often than the
+    glued token and a remainder that is a lowercase epithet of four or more characters; the
+    longest such prefix wins. That rule alone also matches real taxa ('Nostocoides' = Nostoc +
+    oides, 'Pseudonocardiaceae'), so when ``known_binomials`` is given the split is returned only
+    if '<genus> <epithet>' is a binomial already in the store. Callers without a binomial set
+    must corroborate the candidate themselves (the repair pass uses the record's definition).
+    Any other token is returned unchanged with an empty epithet.
+    """
+    if not word:
+        return word, ""
+    own = known_counts.get(word, 0)
+    for cut in range(len(word) - 4, 2, -1):  # longest prefix first; epithet >= 4, genus >= 3
+        g, rest = word[:cut], word[cut:]
+        if known_counts.get(g, 0) > own and _EPITHET.fullmatch(rest):
+            if known_binomials is not None and f"{g} {rest}" not in known_binomials:
+                return word, ""
+            return g, rest
+    return word, ""
+
+
+def genus_counts(con):
+    """Frequency of every non-empty genus string currently in the record table."""
+    return {g: n for g, n in con.execute(
+        "SELECT genus, count(*) FROM record WHERE genus != '' AND genus IS NOT NULL GROUP BY genus")}
+
+
+def known_binomials(con):
+    """Every two-word binomial currently stored (genus + epithet, 'sp.' excluded)."""
+    return {b for (b,) in con.execute(
+        "SELECT DISTINCT binomial FROM record WHERE binomial LIKE '% %' AND binomial NOT LIKE '% sp.'")}
+
+
+def repair_concatenated_genus(con):
+    """Split glued binomials already stored in record.genus, with corroboration.
+
+    Writes the corrected genus/binomial only when the record's own definition starts with the
+    split genus OR '<genus> <epithet>' is already a stored binomial, and logs old->new per record
+    in strain_meta (key genus_repair, source concatenated_genus_split) so the change is
+    reviewable. Returns (repaired, held); held rows carry a candidate split with no
+    corroboration and are left unchanged for the validator to list.
+    """
+    counts = genus_counts(con)
+    binoms = known_binomials(con)
+    repaired = held = 0
+    rows = con.execute("SELECT acc_base, genus, binomial, definition FROM record "
+                       "WHERE genus != '' AND genus IS NOT NULL").fetchall()
+    for acc, genus, binomial, definition in rows:
+        g, ep = split_concatenated_genus(genus, counts)
+        if not ep:
+            continue
+        first = (definition or "").split()[:1]
+        if not (first and first[0] == g) and f"{g} {ep}" not in binoms:
+            held += 1
+            continue
+        new_binomial = f"{g} {ep}"
+        con.execute("UPDATE record SET genus=?, binomial=? WHERE acc_base=?", (g, new_binomial, acc))
+        con.execute("INSERT OR REPLACE INTO strain_meta VALUES (?,?,?,?)",
+                    (f"REC:{acc}", "genus_repair", f"{genus}|{binomial} -> {g}|{new_binomial}",
+                     "concatenated_genus_split"))
+        repaired += 1
+    return repaired, held
+
+
 def collection_ids(text):
     """Normalised culture-collection identifiers found anywhere in the text."""
     return sorted({f"{m.group(1).upper()}{m.group(2).upper()}" for m in COLL_RE.finditer(text or "")})
@@ -357,6 +428,16 @@ def ingest_pdf_candidates(con):
             best[acc] = (subj, pid, r.get("subject_len") or "", version)
         seen_for.setdefault(acc, set()).add(r.get("strain", ""))
     have = {a for (a,) in con.execute("SELECT acc_base FROM record")}
+    # v9.7.432: genus strings already in the store (RefSeq is ingested first) plus the plain
+    # first tokens of this batch, so a glued 'Genusepithet' token can be recognised and split
+    # when '<Genus> <epithet>' is a binomial the store already knows. A PDF-only species stays
+    # as harvested; phylo_16s_fetch later replaces it with the record's own ORGANISM name.
+    known = genus_counts(con)
+    binoms = known_binomials(con)
+    for subj, *_ in best.values():
+        first = (subj or "").split()[:1]
+        if first and re.fullmatch(r"[A-Z][a-z]{2,}", first[0]):
+            known[first[0]] = known.get(first[0], 0) + 1
     rows, meta = [], []
     for acc, (subj, pid, slen, version) in best.items():
         if acc in have:
@@ -367,6 +448,13 @@ def ingest_pdf_candidates(con):
 
 
         title = re.sub(r"([a-z])([A-Z])", r"\1 \2", subj)
+        first = title.split()[:1]
+        if first:
+            g, ep = split_concatenated_genus(first[0], known, binoms)
+            if ep:
+                title = f"{g} {ep}" + title[len(first[0]):]
+                meta.append((f"REC:{acc}", "title_repair", f"{first[0]} -> {g} {ep}",
+                             "pdf_title_genus_split"))
         binom, genus, desig, is_t = parse_title(title)
         rows.append((acc, version, "pdf_candidate", title, binom, genus, desig,
                      json.dumps(collection_ids(title)), None, None,
@@ -584,6 +672,10 @@ def main(argv=None):
             if AS_FA: ingest_as(con)
             if NONTYPE: ingest_nontype(con)
             if PDFHITS: ingest_pdf_candidates(con)
+            repaired, held = repair_concatenated_genus(con)
+            if repaired or held:
+                _LOG.info(f'concatenated genus strings: {repaired} split (logged in strain_meta), '
+                          f'{held} held (definition disagrees)')
         resolve_strains(con)
         audit_merges(con)
         build_sets(con)

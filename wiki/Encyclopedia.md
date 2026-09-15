@@ -29,7 +29,7 @@ The deep reference behind the [User Manual](User-Manual.md). Converted from the 
 
 *A reference work for the Sapote–Mamey natural-product genome-mining pipeline.*
 *Grounded against bundle v9.7.34 / engine Mamey 1.9.42; §IV.4 (RG-GMCI), §II.1 (cohort resolution), and §VI.4–VI.8
-(lead boards, Mode B verdict layer, cross-strain merge) current to bundle v9.7.431 / engine Mamey 1.9.165,
+(lead boards, Mode B verdict layer, cross-strain merge) current to bundle v9.7.432 / engine Mamey 1.9.166,
 Hamilton, Ontario, Canada · 2026-06-19*
 
 *Version & patch state — see the [Patch Notes](#patch-notes) at the end of this document.*

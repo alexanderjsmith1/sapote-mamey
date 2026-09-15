@@ -1,6 +1,17 @@
 """Offline tests for resolve_reference_metadata — parse, strain-gate, absence, deposit heuristic.
 No network: efetch is monkeypatched with a real-shaped GenBank SOURCE fixture. Run: pytest -q."""
+import pytest
 import resolve_reference_metadata as m
+
+
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch):
+    """v9.7.432: resolve() now also consults the BioSample. These tests cover the SOURCE-feature
+    path only, so the BioSample step is stubbed to 'none linked' and any raw HTTP is refused."""
+    monkeypatch.setattr(m, "_http_get", lambda *a, **k: (_ for _ in ()).throw(
+        AssertionError("no network in tests")))
+    monkeypatch.setattr(m, "fetch_biosample_for", lambda *a, **k: {})
+
 
 FIX = (
     "LOCUS       CP129614   1 bp    DNA     linear   BCT\n"
