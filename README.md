@@ -277,6 +277,13 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Troubleshooting](docs/COMMON_MISTAKES.md)
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
+## Internal review and project data
+
+This cut is an internal review base. Keep undisclosed project genomes, protein sequences, BGC
+content, BLASTp databases/results and derived analyses outside this bundle. Local AS-strain
+databases may be used for private integration tests; they are not portable examples. Use
+synthetic fixtures or independently public reference strains in shared walkthroughs. An old
+cohort/public-export flag does not authorize including undisclosed project data.
 
 ---
 *Current bundle: sapote-mamey-v9.7.432 / engine 1.9.166 · build 20260915v97432a · release profile: CODE quality-recheck candidate; not signed public release (see RELEASE_MANIFEST.md)*
