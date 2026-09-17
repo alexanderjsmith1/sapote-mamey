@@ -71,7 +71,8 @@ def test_24_96h_plot_discovers_clnr_lane(tmp_path):
                             env=env, text=True, capture_output=True)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "ClusteredNR" in result.stdout
-    assert "3" in result.stdout
+    assert sum("Trailing 24 h: 1 proteins (1 panels)" in line
+               for line in result.stdout.splitlines()) == 3
     assert (out / "blastp_throughput_proteins_24_96h.svg").exists()
 
 

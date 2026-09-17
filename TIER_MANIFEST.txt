@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.433 stamp=20260917v97433b
+# TIER_MANIFEST tier=code version=9.7.433 stamp=20260917v97433c
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md

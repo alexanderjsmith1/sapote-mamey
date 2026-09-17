@@ -5,7 +5,7 @@
 **Bundle version:** `sapote-mamey-v9.7.433`  
 **Authoritative bundle version:** `9.7.433`  
 **Engine:** Mamey v1.9.167  
-**Build stamp:** 20260917v97433b  
+**Build stamp:** 20260917v97433c  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
@@ -21,7 +21,7 @@ No additional release tiers are included in this CODE archive.
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (11430 passed, 233 skipped; receipt-bound log) |
+| Full pytest suite | PASS (11477 passed, 239 skipped; receipt-bound log) |
 | Focused verification | 40 passed / 2 skipped for identity, version, and inventory; 12 passed for health, BLASTp monitoring, and Figure Factory |
 | Strict repository health | PASS (1324 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
 | Version synchronization | PASS |
@@ -48,7 +48,7 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20260917v97433b`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20260917v97433c`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|

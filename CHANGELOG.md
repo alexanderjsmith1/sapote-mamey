@@ -1,4 +1,4 @@
-# v9.7.433 · 2026-09-17 · build 20260917v97433b · engine 1.9.167 · CODE
+# v9.7.433 · 2026-09-17 · build 20260917v97433c · engine 1.9.167 · CODE
 
 Accretion-justified: unmatched_gene_addendum.py — opt-in unmatched-gene review packets retained from v9.7.432.
 Accretion-justified: blastp_strain_db.py — optional per-strain BLASTp database export bound to the selected package CDS roster, with source aliases retained and channel coverage kept separate.
@@ -8,6 +8,7 @@ Accretion-justified: protein_signature.py — optional FASTA sequence-and-gene s
 - **Assembly protein signatures:** compare gene-labelled protein hashes and sequence multisets before relating saved query sets to a current package; result-to-query receipts remain required for BLASTp admission.
 - **BiG-SCAPE guarded MIBiG route:** the one-command pipeline uses the guarded launcher with a positive loaded-reference count and exact run-ID propagation; unproven chunked runs refuse.
 - **User workflows and handoffs:** repaired guidance for BLASTp, BiG-SCAPE, MLSA, and assistant-to-assistant evidence transfer; current owner edits and external pilots remain review items.
+- **CI verification repair (build c):** install the documents extra for the PDF tree test and count the three BLASTp monitoring lanes explicitly; no engine or scientific-output behavior changed.
 
 - MIBiG pipeline dispatch uses the guarded `-m` launcher; unproven chunked multi-call clustering refuses before writing.
 - The CODE archive carries version/build stamps, checksums, and extracted-artifact validation. Biological interpretation requires separate review.

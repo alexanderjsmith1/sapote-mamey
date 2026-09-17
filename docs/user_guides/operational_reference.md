@@ -14,8 +14,8 @@ Hamilton, Ontario
 Python 3.12 or later is required. Python 3.12 is recommended for the bundled wheel set. Check: `python3 --version`. The bundle operates from within its own directory.
 
 ```bash
-unzip sapote-mamey-v9.7.433-CODE-20260917v97433b.zip
-cd sapote-mamey-v9.7.433-CODE-20260917v97433b
+unzip sapote-mamey-v9.7.433-CODE-20260917v97433c.zip
+cd sapote-mamey-v9.7.433-CODE-20260917v97433c
 pip install -e .
 # On managed/Debian systems:
 pip install -e . --break-system-packages

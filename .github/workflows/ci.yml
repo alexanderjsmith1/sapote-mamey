@@ -25,9 +25,8 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e '.[figures,bio]'  # PACKAGE + matplotlib/numpy/pandas: the figure
-                                       # test modules import them at collection time, so a
-                                       # core-only install fails collection (exit 2), not a defect.
+          pip install -e '.[figures,bio,documents]'  # Figure tests import plotting tools at collection;
+                                                    # the synteny-tree PDF test also imports pypdf.
           pip install pytest build
 
       # No third-party reference data is redistributed (v9.7.362), so the dataset-dependent

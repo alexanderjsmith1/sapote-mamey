@@ -1,6 +1,6 @@
 # Sapote–Mamey v9.7.433 CODE tier
 
-Build stamp: 20260917v97433b  
+Build stamp: 20260917v97433c  
 Engine: Mamey v1.9.167  
 Bundle: v9.7.433
 

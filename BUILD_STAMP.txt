@@ -1,5 +1,5 @@
 version=9.7.433
-build=20260917v97433b
+build=20260917v97433c
 engine=1.9.167
-patch=BLASTp snapshot and current-locus binding; Assembly protein signatures; BiG-SCAPE guarded MIBiG route; User workflows and handoffs
+patch=BLASTp snapshot and current-locus binding; Assembly protein signatures; BiG-SCAPE guarded MIBiG route; User workflows and handoffs; CI verification repair (build c)
 tier=code
