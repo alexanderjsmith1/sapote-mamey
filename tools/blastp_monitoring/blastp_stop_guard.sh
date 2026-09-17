@@ -73,7 +73,7 @@ else
   subs=$(python3 - "$BR" <<'PY'
 import csv,glob,os,datetime,sys
 BR=sys.argv[1]; today=datetime.date.today().isoformat(); t=0
-for led in glob.glob(os.path.join(BR,"_N*RID*","_ledger.csv")):
+for led in glob.glob(os.path.join(BR,"*","_ledger.csv")):
     for r in csv.DictReader(open(led)):
         if (r.get("submit_iso") or "")[:10]==today: t+=1
 print(t)

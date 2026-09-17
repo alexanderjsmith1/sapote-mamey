@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from mamey.figure_factory_next import build
+from tools.figure_factory_demo import stage as stage_demo
 
 
 def _sha(path: Path) -> str:
@@ -119,6 +120,12 @@ def test_manifest_policy_vector_raster_and_deterministic_outputs(tmp_path: Path)
         profile["layout"]["tick_label_data_clearance"]["axis_ids"] == ["main"]
         for profile in first["profiles"]
     )
+    assert all(
+        profile["layout"]["marker_text_clearance"]["status"] == "PASS"
+        and profile["layout"]["marker_text_clearance"]["marked_rows"] == 2
+        and profile["layout"]["marker_text_clearance"]["minimum_px"] >= 2
+        for profile in first["profiles"]
+    )
 
     caption = (output / "figure_factory_next_caption_methods.md").read_text(encoding="utf-8")
     notes = (output / "figure_factory_next_owner_notes.json").read_text(encoding="utf-8")
@@ -186,3 +193,16 @@ def test_csv_sidecar_preserves_tidy_table_and_receipt(tmp_path):
     assert comma_rows == tab_rows
     entry = next(x for x in receipt["outputs"] if x["logical_locator"] == csv_path.name)
     assert entry["sha256"] == hashlib.sha256(csv_path.read_bytes()).hexdigest()
+
+
+def test_portable_synthetic_demo_and_distinct_blastp_channels(tmp_path):
+    project = tmp_path / "demo"
+    config = stage_demo(project)
+    receipt = build(config)
+    plotted = (project / "figure" / "figure_factory_next_data.tsv").read_text()
+    assert "blastp_nr" in plotted and "blastp_clustered_nr" in plotted
+    assert receipt["cohort_policy"]["selected_optional_count"] == 2
+    assert all(item["layout"]["marker_text_clearance"]["status"] == "PASS"
+               for item in receipt["profiles"])
+    with pytest.raises(FileExistsError):
+        stage_demo(project)

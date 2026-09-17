@@ -65,18 +65,11 @@ def _make_fixture(tmp_path):
 
 
 # ── (1) CALLER: the fixed pipeline passes the callee's real contract ───────────────────
-def test_caller_passes_correct_flags_to_batcher():
+def test_caller_holds_unproven_multi_call_clustering():
     src = open(_PIPELINE, encoding="utf-8").read()
-    # isolate the actual run([...]) invocation of the batcher (anchor on the tool() call,
-    # not the docstring mention) and read to the end of the argument list.
-    m = re.search(r'tool\(\s*"bigscape_mibig_batches\.py"\s*\).*?\]\)', src, re.S)
-    assert m, "could not find the bigscape_mibig_batches.py invocation in the pipeline"
-    call = m.group(0)
-    assert "--mibig-gbk-dir" in call, "caller does not pass --mibig-gbk-dir (still broken)"
-    assert "--index-dir" in call, "caller does not pass --index-dir (still broken)"
-    assert "--out" in call and "--batch-size" in call
-    # the pre-fix bug: the batcher call used the bare '--mibig-dir'
-    assert '"--mibig-dir"' not in call, "caller still passes the rejected --mibig-dir to the batcher"
+    assert "CHUNK_MIBIG_UNPROVEN" in src
+    assert 'tool("bigscape_mibig_batches.py")' not in src
+    assert '"-r", batch' not in src
 
 
 # ── (2) CALLEE: accepts the fixed argument list (no argparse error) ───────────────────

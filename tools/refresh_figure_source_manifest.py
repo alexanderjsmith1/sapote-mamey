@@ -12,7 +12,15 @@ def main() -> int:
     prior = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
     files = {}
     for path in sorted(root.rglob("*")):
-        if path.is_file() and path.name != manifest_path.name:
+        relative = path.relative_to(root)
+        if (
+            path.is_file()
+            and not path.is_symlink()
+            and path.name != manifest_path.name
+            and "__pycache__" not in relative.parts
+            and ".pytest_cache" not in relative.parts
+            and path.suffix not in {".pyc", ".pyo"}
+        ):
             files[str(path.relative_to(root))] = {
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                 "bytes": path.stat().st_size,

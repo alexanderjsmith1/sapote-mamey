@@ -35,7 +35,8 @@ synthetic anchored DB *and* verified against the real 36-strain anchored DB.
 ### `tools/bigscape_pipeline.py`  — one command, whole loop
 `prep → cluster+anchor → known_novel + cross_strain → ingest`. Pure orchestration of the shipped
 adapter tools + the external BiG-SCAPE binary; adds no new science. Resumable (`--skip-cluster`),
-and `--chunk-mibig N` routes references through `bigscape_mibig_batches.py` for small-memory hosts.
+and MIBiG anchoring routes through the guarded launcher with an explicit `-m` slot.
+`--chunk-mibig` is held: multiple calls do not yet have a proven combined reference/run identity.
 
 ### `tools/bigslice_query.py`  — BiG-SLiCE as a second opinion
 BiG-SCAPE clusters by pairwise domain alignment against **2,088 MIBiG** references. BiG-SLiCE
@@ -51,10 +52,12 @@ like antiSMASH/Pfam. Treat BiG-SLiCE as an optional prerequisite, not a vendored
 ## Recommended flow
 ```
 # 1-4 in one shot (antiSMASH zips or sealed Mamey packages as --inputs):
+# BIGSCAPE_ENV_BIN points to the active BiG-SCAPE environment bin directory.
+export BIGSCAPE_ENV_BIN=/path/to/bigscape-env/bin
 python tools/bigscape_pipeline.py \
-    --inputs <pkg-or-antismash>... --pfam Pfam-A.hmm --mibig-dir mibig_gbks/ \
-    --workdir bigscape_run/ --chunk-mibig 300 \
-    --ingest-package <MameyPackage/> \
+    --inputs <pkg-or-antismash>... --pfam /path/to/pressed/Pfam-A.hmm \
+    --mibig-dir /path/to/mibig_gbks --mibig-name local_set \
+    --workdir bigscape_run/ --ingest-package <MameyPackage/> \
     --mibig-index mamey/data/mibig/mibig_reference_index.bacterial.json
 
 # optional global-novelty second opinion:
@@ -72,7 +75,7 @@ Bioactivity stays extract-level; nothing here is a per-BGC phenotype claim.
 - **Tested:** `bigscape_ingest_to_mamey.py` (synthetic DB unit test + real 36-strain anchored DB;
   KNOWN/NOVEL split, MIBiG accession+compound resolution, nearest-distance, idempotency, §8
   placement, capacity wording).
-- **Orchestration only (not a new algorithm):** `bigscape_pipeline.py` chains existing verified tools.
+- **Orchestration only (not a new algorithm):** `bigscape_pipeline.py` chains existing tools. Its MIBiG route requires an explicit `-m` slot and a positive loaded-count log. Real small/cohort pilot evidence is still needed before describing this route as scientifically accepted.
 - **CLI-verified but not executed here (external model DB required):** `bigslice_query.py`.
 
 ## Supplement — antiSMASH ↔ BiG-SCAPE reconciliation (`tools/antismash_bigscape_join.py`)

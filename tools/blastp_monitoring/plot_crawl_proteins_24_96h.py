@@ -22,8 +22,9 @@ Usage:
   python3 "tools/blastp_monitoring/plot_crawl_proteins_24_96h.py"
 """
 import os
+import hashlib
 import csv, datetime as dt
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import matplotlib
 if __name__ == "__main__":
     matplotlib.use("Agg")
@@ -36,10 +37,10 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------------
     # AUTO-DISCOVER active lanes (no hardcoded lane map — that map went stale every
     # wave and drew the current run as empty; this was the recurring "you just made
-    # this plot" failure). A lane = one _N*RID*/_ledger.csv with submit OR fetch
+    # this plot" failure). A lane = one direct-child _ledger.csv with submit OR fetch
     # activity inside ACTIVE_WINDOW_H; historical/idle lanes drop off on their own.
-    # Query files are resolved by BASENAME against an index over every _QUERIES*
-    # tree, so no per-lane queries-root needs to be declared.
+    # Query files are resolved by their strain-qualified ledger path, relative
+    # to each _QUERIES* root. A basename alone is not unique across strains.
     # ---------------------------------------------------------------------------
     import argparse as _argparse
     import fnmatch as _fnmatch
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     def _lane_display_name(base: str) -> str:
         # _NR_CLUSTER_RID_CODEX100_s1 -> "ClusteredNR CODEX100 s1"; _NR_RID_CODEX100_s1 -> "nr CODEX100 s1"
         b = base.lstrip("_")
-        kind = "ClusteredNR" if "CLUSTER" in b.upper() else "nr"
+        kind = "ClusteredNR" if any(x in b.upper() for x in ("CLUSTER", "CLNR")) else "nr"
         tail = b.replace("NR_CLUSTER_RID", "").replace("NR_RID", "").strip("_").replace("_", " ")
         return f"{kind} {tail}".strip()
 
@@ -72,7 +73,7 @@ if __name__ == "__main__":
         import matplotlib
         cutoff = NOW - dt.timedelta(hours=window_h)
         found = []
-        for led in sorted(ROOT.glob("_N*RID*/_ledger.csv")):
+        for led in sorted(ROOT.glob("*/_ledger.csv")):
             if not _fnmatch.fnmatch(led.parent.name, _ARGS.lanes):
                 continue
             active = False
@@ -90,7 +91,7 @@ if __name__ == "__main__":
             if active:
                 found.append(led.parent.name)  # RID_BASE dir name
         # nr lanes first, then clustered; stable by name within group
-        found.sort(key=lambda b: ("CLUSTER" in b.upper(), b))
+        found.sort(key=lambda b: (any(x in b.upper() for x in ("CLUSTER", "CLNR")), b))
         import matplotlib.colors as mcolors
         n = max(len(found), 1)
         cmap = matplotlib.colormaps["tab20"].resampled(n)
@@ -101,12 +102,21 @@ if __name__ == "__main__":
         return LEDGERS
 
     def build_query_index():
-        # basename -> path, over every _QUERIES* tree (resolves the ledger 'file' column
-        # regardless of which lane/queries-root it came from). First hit wins.
+        # ledger-relative path -> all copies across _QUERIES* roots.
         idx = {}
-        for faa in ROOT.glob("_QUERIES*/**/*.faa"):
-            idx.setdefault(faa.name, faa)
+        for query_root in sorted(ROOT.glob("_QUERIES*")):
+            for faa in query_root.rglob("*.faa"):
+                idx.setdefault(faa.relative_to(query_root).as_posix(), []).append(faa)
         return idx
+
+    def panel_key(raw):
+        key = (raw or "").replace("\\", "/")
+        parts = PurePosixPath(key).parts
+        return "/".join(parts) if parts and not key.startswith("/") and ".." not in parts else ""
+
+    def digest(path):
+        with path.open("rb") as fh:
+            return hashlib.file_digest(fh, "sha256").digest()
 
     LEDGERS = discover_active_ledgers()
     _QUERY_INDEX = build_query_index()
@@ -139,6 +149,7 @@ if __name__ == "__main__":
 
     data = {}
     missing_files = 0
+    ambiguous_files = 0
     for name, (rel, _qroot, color) in LEDGERS.items():
         f = ROOT / rel
         comps = []  # (fetch_time, n_proteins)
@@ -149,13 +160,21 @@ if __name__ == "__main__":
                     c = parse(row.get("fetch_iso"))
                     if not c:
                         continue
-                    # resolve query file by BASENAME via the _QUERIES* index (lane-agnostic)
-                    fpath = _QUERY_INDEX.get(Path(row.get("file", "")).name)
-                    if fpath is not None and fpath.exists():
-                        n = count_seqs(fpath)
-                    else:
+                    # Full ledger-relative identity prevents cross-strain basename collisions.
+                    candidates = _QUERY_INDEX.get(panel_key(row.get("file", "")), [])
+                    if not candidates:
                         missing_files += 1
                         n = 0
+                    else:
+                        try:
+                            if len({digest(path) for path in candidates}) != 1:
+                                ambiguous_files += 1
+                                n = 0
+                            else:
+                                n = count_seqs(candidates[0])
+                        except OSError:
+                            missing_files += 1
+                            n = 0
                     comps.append((c, n))
         comps.sort()
         data[name] = (comps, color)
@@ -228,7 +247,8 @@ if __name__ == "__main__":
             panels = sum(1 for t, n in comps if t >= since)
             row.append(f"{label}: {total} proteins ({panels} panels)")
         print(f"  {name:32s} " + "   ".join(row))
-    if missing_files:
-        print(f"NOTE: {missing_files} fetched ledger rows referenced a query file that no longer "
-              f"exists on disk (counted as 0 proteins for those rows) -- likely moved/archived panels.")
+    if missing_files or ambiguous_files:
+        print(f"WARNING: {missing_files} fetched ledger rows lack a readable strain-qualified query path; "
+              f"{ambiguous_files} have conflicting copies across query roots. "
+              "Affected protein counts are unknown; plotted totals are lower bounds.")
     print(f'saved: {out_svg}', f'saved: {out_png}', sep="\n")

@@ -67,7 +67,7 @@ def recent_errors(minutes=30):
     transient_pat = re.compile(r"poll ERROR|curl rc=(?:16|56|6|7|18)", re.I)
     ts = re.compile(r"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]")
     throttle = transient = 0
-    for lg in glob.glob(os.path.join(BR, "_NR_*RID*", "_run.log")):
+    for lg in glob.glob(os.path.join(BR, "*", "_run.log")):
         try:
             for line in open(lg, errors="ignore"):
                 is_thr = throttle_pat.search(line)
@@ -95,7 +95,7 @@ def health(start, now):
     inflight = 0
     hits = empty = 0
     today = now.strftime("%Y-%m-%d")
-    for led in glob.glob(os.path.join(BR, "_NR_*RID*", "_ledger.csv")):
+    for led in glob.glob(os.path.join(BR, "*", "_ledger.csv")):
         try:
             rows = list(csv.DictReader(open(led)))
         except Exception:

@@ -1,6 +1,6 @@
 # Sapote–Mamey Operational Reference
 ## Workflow, Protocols, and Standard Operating Procedures
-**Bundle v9.7.432 · Engine 1.9.166**
+**Bundle v9.7.433 · Engine 1.9.167**
 Hamilton, Ontario
 
 *Sourced from: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`. All content from source files; no inference.*
@@ -14,8 +14,8 @@ Hamilton, Ontario
 Python 3.12 or later is required. Python 3.12 is recommended for the bundled wheel set. Check: `python3 --version`. The bundle operates from within its own directory.
 
 ```bash
-unzip sapote-mamey-v9.7.432-CODE-20260915v97432a.zip
-cd sapote-mamey-v9.7.432-CODE-20260915v97432a
+unzip sapote-mamey-v9.7.433-CODE-20260917v97433b.zip
+cd sapote-mamey-v9.7.433-CODE-20260917v97433b
 pip install -e .
 # On managed/Debian systems:
 pip install -e . --break-system-packages
@@ -38,7 +38,7 @@ The installer pools all `.whl` files it finds across all named paths and install
 
 ```bash
 mamey doctor                          # pre-flight: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # → engine 1.9.166, bundle 9.7.432
+python3 tools/sync_version.py --check # → engine 1.9.167, bundle 9.7.433
 python3 -m pytest -q                  # run the bundled test suite; use the cut receipt for exact counts
 ```
 
@@ -633,7 +633,7 @@ Class A = CONFIRM + SARP. Class B = one strong axis only. Class C = KCB or weake
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.432. Historical run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.433. Historical run facts retain their original version labels.*
 
 ---
 
@@ -705,7 +705,7 @@ Two gates were added to the release path in v9.7.243. The full sequence, in orde
 ```bash
 # 1. Environment and bundle integrity
 python3 -m mamey doctor
-python3 tools/sync_version.py --check # → engine 1.9.166, bundle 9.7.432
+python3 tools/sync_version.py --check # → engine 1.9.167, bundle 9.7.433
 
 # 2. Documentation anchors
 python3 tools/check_monolith_freshness.py          # exit 1 on stale anchor or retired doctrine
@@ -776,4 +776,4 @@ The v9.7.246 fabrication passed claim-safety, evidence-presence, citation, and p
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.432. Historical v4 section labels and run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.433. Historical v4 section labels and run facts retain their original version labels.*

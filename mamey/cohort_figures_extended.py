@@ -281,7 +281,8 @@ def fig_enriched_locus(root, sid, bgc, out):
     ax.set_xlabel("position within BGC (kb)", fontsize=10, labelpad=8)
     # BGC-wide resistance / TTA summarised once, in the title
     rtiers = Counter(g.get("resistance_tier", "").split("_")[0] for g in genes if g.get("resistance_tier", ""))
-    tta = min((g.get("bldA_tta_tier", "") for g in genes if g.get("bldA_tta_tier", "")), default="")
+    tta = max((g.get("bldA_tta_tier", "") for g in genes
+               if g.get("bldA_tta_tier", "") in {"T1", "T2", "T3", "T4"}), default="unknown")
     res_txt = rtiers.most_common(1)[0][0] if rtiers else "n/a"
     ax.set_title(f"{sid} · {bgc}  —  {inv.get('Length_kb','?')} kb · {inv.get('Boundary','?')} · "
                  f"{inv.get('Products','?')}  |  arch {inv.get('Arch','?')} · KCB {inv.get('KCB_top','n/a')} "
@@ -508,10 +509,9 @@ def fig_domain_cooccur(root, strains, out, top_n=16):
     plt.tight_layout(); plt.savefig(_png, dpi=_safe_dpi(plt.gcf(), PUBLICATION_RASTER_DPI), bbox_inches="tight", facecolor="white"); plt.close()
 
 
-# ---------------- FIG 10: resistance-marker map (self-resistance = potency tell) ----------------
+# ---------------- FIG 10: source-derived resistance-marker map ----------------
 def fig_resistance_map(root, strains, out):
-    """BGCs by source-derived resistance tier per strain. T1 self-protection / T2 resistance-like are
-    the potency tell (the cluster encodes defence against its own product); T3 is transporter-only routing."""
+    """BGCs by source-derived resistance tier per strain; no potency inference."""
     order = ["T1", "T2", "T3", "none"]
     lab = {"T1": "T1 self-protection", "T2": "T2 resistance-like", "T3": "T3 transporter-only", "none": "no resistance signal"}
     col = {"T1": "#b2182b", "T2": "#e08214", "T3": "#7fb0d3", "none": "#dddddd"}
@@ -538,7 +538,7 @@ def fig_resistance_map(root, strains, out):
         bottom += vals
     ax.set_ylabel("BGC count", fontsize=11); ax.set_ylim(0, bottom.max() * 1.10)
     _finish_strain_axis(ax, strains)
-    ax.set_title("Self-resistance marker map per strain\n(T1/T2 = encodes defence against own product = potency tell)",
+    ax.set_title("Resistance-related source signals per strain\n(T1/T2 require independent mechanism review)",
                  fontweight="bold", fontsize=11)
     ax.legend(fontsize=8.5, frameon=False, loc="upper left", bbox_to_anchor=(1.01, 1.0))
     _png = os.path.join(out, "fig10_resistance_map.png")
@@ -549,17 +549,22 @@ def fig_resistance_map(root, strains, out):
 
 # ---------------- FIG 11: TTA / bldA regulatory-dependency profile ----------------
 def fig_tta_profile(root, strains, out):
-    """BGCs by strongest bldA/TTA dependency tier per strain (min tier across genes). T1 = strongest
-    dependency = developmentally gated / often silent under standard conditions = activation candidates."""
-    order = ["T1", "T2", "T3", "T4"]
-    lab = {"T1": "T1 strong (likely gated/cryptic)", "T2": "T2", "T3": "T3", "T4": "T4 weak / none"}
-    col = {"T1": "#6a51a3", "T2": "#9e9ac8", "T3": "#cbc9e2", "T4": "#eeeeee"}
+    """BGCs by source-derived TTA burden tier; T4 is highest, T1 has no TTA call."""
+    order = ["T1", "T2", "T3", "T4", "unknown", "not applicable"]
+    lab = {"T1": "T1 no TTA detected", "T2": "T2 low (1-2)",
+           "T3": "T3 moderate (3-5)", "T4": "T4 high (6+)",
+           "unknown": "unknown / missing", "not applicable": "not applicable"}
+    col = {"T1": "#eeeeee", "T2": "#cbc9e2", "T3": "#9e9ac8", "T4": "#6a51a3",
+           "unknown": "#999999", "not applicable": "#dddddd"}
     counts = {}
     for sid in strains:
         c = Counter()
         for b, gs in load_genes(root, sid).items():
-            tiers = [g.get("bldA_tta_tier", "") for g in gs if g.get("bldA_tta_tier", "")]
-            c[min(tiers) if tiers else "T4"] += 1
+            tiers = [g.get("bldA_tta_tier", "") for g in gs]
+            valid = [t for t in tiers if t in {"T1", "T2", "T3", "T4"}]
+            category = max(valid) if valid else (
+                "not applicable" if "NOT_APPLICABLE" in tiers else "unknown")
+            c[category] += 1
         counts[sid] = c
     fig, ax = plt.subplots(figsize=(_strain_bar_width(strains), 5.4))
     bottom = np.zeros(len(strains))
@@ -569,11 +574,11 @@ def fig_tta_profile(root, strains, out):
         for i in range(len(strains)):
             if vals[i]:
                 ax.text(i, bottom[i] + vals[i] / 2, f"{int(vals[i])}", ha="center", va="center",
-                        color="white" if k == "T1" else "#333", fontsize=9)
+                        color="white" if k == "T4" else "#333", fontsize=9)
         bottom += vals
     ax.set_ylabel("BGC count", fontsize=11); ax.set_ylim(0, bottom.max() * 1.10)
     _finish_strain_axis(ax, strains)
-    ax.set_title("TTA / bldA regulatory-dependency profile per strain\n(T1 = strongest dependency = activation candidates)",
+    ax.set_title("TTA burden tier per strain\n(T4 = six or more codons; expression unmeasured)",
                  fontweight="bold", fontsize=11)
     ax.legend(fontsize=8.5, frameon=False, loc="upper left", bbox_to_anchor=(1.01, 1.0))
     _png = os.path.join(out, "fig11_tta_profile.png")

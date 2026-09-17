@@ -1,9 +1,44 @@
 # Tree Catalog
 
-The Tree Catalog turns one validated placement analysis into a declared set of
-publication display variants. It is intended for recurring cohort views such as
-bee isolates, moss isolates, attine-ant isolates, combined cohorts, genus-only
-panels, and rare-actinomycete panels.
+## What this tool does
+
+Use the Tree Catalog **after** you have a completed, validated 16S placement
+run. It makes several *views of that same tree*: for example, one, two, or
+three nearby reference tips per query, each with concise source labels or a
+different metadata display. It keeps the tree, reference choices, methods, and
+render receipts together for each view.
+
+The catalog is **not an inventory of tree files on your computer**. It does
+not search the Codex or Claude workspaces, infer a new tree, download reference
+genomes, repair missing metadata, or decide which earlier figure is current.
+Map and review existing assets separately before adding a completed placement
+run to a catalog.
+
+You need the completed placement run, the query metadata table, the reference
+metadata database, and a verified roster binding the tree tips to their
+sequences and source records. Choose the cohort, taxonomic scope, reference
+panel, and desired views. Use `plan` to inspect the resulting jobs; use
+`render` only after the full series requirements and reference manifest below
+are present and pass validation.
+
+For a tree already prepared outside this placement workflow, use the
+[prepared display series](#prepared-display-series) route instead. It consumes
+declared, hashed display inputs; it does not discover or infer trees either.
+
+## Choose the output views
+
+A typical genus run can produce a compact 1:1 query-to-reference view and
+wider 1:2 and 1:3 views. The ratios are selection limits for nearby references,
+not a change to the original placement analysis. A five-level series can also
+include 1:4 and all references when the panel supports them. Select a concise
+publication view, a detailed-source view, a view without a geography strip,
+or an internal specimen-review view. The no-geography view still requires
+resolved geography in the bound metadata; it only hides that strip in the
+figure.
+
+The tool is intended for recurring cohort views such as bee isolates, moss
+isolates, attine-ant isolates, combined cohorts, genus-only panels, and
+rare-actinomycete panels.
 
 Each catalog entry states:
 
@@ -35,7 +70,13 @@ An identical or near-identical marker sequence is not permission to merge
 isolates. Record a proposed collapse separately and require source-registry
 confirmation. Publication views omit these internal identifiers.
 
-## Catalog format
+## Plan a catalog
+
+The following JSON is a **planning sketch**, not a render-ready catalog. It
+omits `series_requirements` and the hash-bound `reference_manifest`; the
+renderer refuses it until those fields and their actual evidence are supplied.
+The shipped example also uses placeholder paths, so replace them with files
+from your own completed run before running `plan`.
 
 ```json
 {
@@ -68,21 +109,26 @@ columns. A declared species must already be admitted to the placement backbone.
 It counts first within that query's 1:1, 1:2, or 1:3 quota; missing species
 refuse the display instead of being replaced silently by another neighbor.
 
-## Plan before rendering
-
 ```bash
 python3 tools/tree_catalog.py plan TREE_CATALOG.json --out tree_catalog_plan.json
 ```
 
-The plan expands every entry across its ratios and views. A three-ratio catalog
-with concise, detailed, and no-geography views therefore creates nine displays
-from one placement analysis. Review the job count,
-scope, reference policy, and paths before starting R.
+The plan expands every entry across its ratios and views. Three ratios times
+three views create nine proposed displays. Inspect the job count, query scope,
+reference policy, and paths. Planning does not prove that the underlying tree,
+metadata, or references are scientifically accepted.
+
+## Render after the inputs pass review
+
+Add the exact `series_requirements` and `reference_manifest` described under
+[Required series contract](#required-series-contract-and-verified-completion).
+Resolve missing source/geography metadata in the source records, then run:
 
 ```bash
 python3 tools/tree_catalog.py render TREE_CATALOG.json --outdir rendered_tree_catalog
 ```
 
+The renderer refuses incomplete series declarations or missing bound inputs.
 `placement_display.py` writes a display-specific Newick and annotation TSV, then
 passes both to the maintained `tools/ggtree_rect_heatmap.R` source script. The R
 script lays out the existing tree and draws labels, metadata strips, scale bar,

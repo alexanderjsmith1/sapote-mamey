@@ -5592,6 +5592,30 @@ def _phylo_run_command(args) -> int:
         emit(f"phylo-run: skipped ({type(exc).__name__}: {exc})", file=_sys.stderr)
         return 1
 
+
+def _phylo_mlsa_command(args) -> int:
+    """Offer a local five-locus MLSA screen from an antiSMASH assembly member."""
+    import importlib.util as _ilu
+    import sys as _sys
+    tool = Path(__file__).resolve().parent.parent / "tools" / "phylo_mlsa_from_antismash.py"
+    if not tool.is_file():
+        _sys.stderr.write("phylo-mlsa: bundled preparation tool is missing\n")
+        return 1
+    spec = _ilu.spec_from_file_location("phylo_mlsa_from_antismash", tool)
+    if spec is None or spec.loader is None:
+        _sys.stderr.write("phylo-mlsa: cannot load bundled preparation tool\n")
+        return 1
+    module = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    argv = ["--input-zip", args.input_zip, "--query-label", args.query_label,
+            "--mode", args.mode, "--min-bp", str(args.min_bp),
+            "--threads", str(args.threads)]
+    if args.references_dir: argv += ["--references-dir", args.references_dir]
+    if args.outdir: argv += ["--outdir", args.outdir]
+    if args.assembly_member: argv += ["--assembly-member", args.assembly_member]
+    if args.bin_dir: argv += ["--bin-dir", args.bin_dir]
+    return module.main(argv)
+
 def _refuse(reason: str) -> bool:
     """One typed stderr refusal line for the run-time input guards (H2 strain id, H10 outdir, H13 lock); one emission site."""
     emit(f"  REFUSED: {reason}", file=_sys.stderr)
@@ -6237,6 +6261,19 @@ def build_parser():
     pr.add_argument("--approved", action="store_true",
                     help="REQUIRED to run. Affirms a human approved this CPU run (tree-approval gate).")
     pr.set_defaults(func=_phylo_run_command)
+
+    pm = sub.add_parser("phylo-mlsa",
+                        help="Plan, stage, or run an optional five-locus MLSA screen from an antiSMASH ZIP")
+    pm.add_argument("--input-zip", required=True, help="antiSMASH ZIP with non-region assembly sequence; verify completeness")
+    pm.add_argument("--query-label", required=True, help="filename-safe query tip label")
+    pm.add_argument("--references-dir", help="local, accession-bound reference genome .fna files")
+    pm.add_argument("--outdir", help="new or empty output directory (required for prepare/run)")
+    pm.add_argument("--assembly-member", help="exact non-region assembly ZIP member if ambiguous")
+    pm.add_argument("--mode", choices=("plan", "prepare", "run"), default="plan")
+    pm.add_argument("--min-bp", type=int, default=1_000_000)
+    pm.add_argument("--threads", type=int, default=4)
+    pm.add_argument("--bin-dir", help="directory containing external MLSA companion binaries")
+    pm.set_defaults(func=_phylo_mlsa_command)
 
     pa = sub.add_parser("phylo-autopilot",
                         help="Plan local 16S/genome inputs, route 16S references, or run an approved EPA-ng placement workflow")

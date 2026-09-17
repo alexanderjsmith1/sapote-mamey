@@ -1,6 +1,6 @@
 # External tool & database inventory
 
-**Bundle v9.7.432 · engine Mamey 1.9.166 · compiled 2026-09-15**
+**Bundle v9.7.433 · engine Mamey 1.9.167 · compiled 2026-09-17**
 
 The external bioinformatics tools and reference databases the Sapote-Mamey workflow
 depends on, with the version of record, the run-defining parameters, and a

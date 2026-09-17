@@ -8,7 +8,7 @@ ceiling inline. Reader-layer; non-scoring.
 Subsections (the Developer or User directive 2026-07-31):
   - catalytic_domain_census   §4 — catalytic/biosynthetic domains present across the BGC (HMM)
   - blastp_channel_evidence   §4 — per-channel BLASTp (nr/cluster_nr/swissprot/ebi): identity + positives
-  - gene_clusterblast         §4 — gene-based ClusterBlast (per-gene MIBiG references)
+  - gene_clusterblast         §4 — gene-based ClusterBlast/KnownClusterBlast references
   - good_guess                §2 — the Good-Guess interpretive prior, folded into the card
   - genus_literature          §5 — genus chemistry/ecology from mamey/data/literature/<Genus>.md
 
@@ -162,12 +162,12 @@ def gene_clusterblast(pkg, bgc_id) -> str:
         except ValueError:
             return 0.0
     ranked = sorted(by_ref.items(), key=lambda kv: (-len(kv[1]), -max(_pid(x) for x in kv[1])))
-    L = ["#### Gene-based ClusterBlast (per-gene MIBiG reference channel)",
+    L = ["#### Gene-based ClusterBlast (per-gene antiSMASH reference channel)",
          "<!-- gate-safe subsection; per-GENE reference hits (distinct from region-level KCB). "
          "Similarity anchors for the class, not identity. -->",
          f"{len(rows)} per-gene hits across {len(by_ref)} reference cluster(s). Top references by "
          "genes shared:", "",
-         "| reference (MIBiG/cluster) | genes | median %id | source |", "|---|--:|--:|---|"]
+         "| reference (accession / cluster) | genes | median %id | source |", "|---|--:|--:|---|"]
     for ref, rs in ranked[:6]:
         pids = sorted(_pid(x) for x in rs)
         med = pids[len(pids) // 2] if pids else 0

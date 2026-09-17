@@ -2,7 +2,7 @@
 """plot_crawl_recent.py (VGP, 2026-08-20) — "what is landing RIGHT NOW", across ALL lanes.
 
 Why this exists: the Wave-1 plot shows only the eight Wave-1 ledgers, so a whole-crawl question cannot
-be answered from it. This one discovers EVERY `_NR_*RID*/_ledger.csv` under `Blastp RESULTS/`, so no
+be answered from it. This one discovers every direct-child `_ledger.csv` under `Blastp RESULTS/`, so no
 lane is invisible.
 
 Measured all-lane throughput (2026-08-20): trailing 7 days 6,661 query proteins = 0.66/min; last 24 h
@@ -19,10 +19,12 @@ Run: Tools/bin/python3 plot_crawl_recent.py            (matplotlib lives in Tool
 import csv
 import datetime
 import glob
+import hashlib
 import os
 import re
 import sys
 from collections import defaultdict
+from pathlib import PurePosixPath
 
 import matplotlib
 matplotlib.use("Agg")
@@ -38,51 +40,77 @@ ROWS_RE = re.compile(r"(\d+)\s*row")
 # the entire gene universe. Throughput is measured in QUERY PROTEINS = the '>' records in the panel
 # .faa that was fetched (mean ~11.3 per panel).
 _SEQ_CACHE: dict[str, int] = {}
-_PANEL_INDEX: dict[str, str] | None = None
+_PANEL_INDEX: dict[str, list[str]] | None = None
+_UNKNOWN_PANELS: dict[str, str] = {}
 
 
-def _index_panels() -> dict[str, str]:
-    """basename -> path, built with ONE walk of the query roots.
+def _panel_key(raw: str) -> str:
+    """Keep the strain/BGC/panel path recorded in the ledger; reject traversal."""
+    key = (raw or "").replace("\\", "/")
+    parts = PurePosixPath(key).parts
+    return "/".join(parts) if parts and not key.startswith("/") and ".." not in parts else ""
+
+
+def _index_panels() -> dict[str, list[str]]:
+    """Relative ledger file path -> candidate query files, built in one walk.
 
     A recursive glob per panel is O(panels x tree) and took minutes over ~2,700 fetched panels;
     indexing once is O(tree) and takes seconds.
     """
-    idx: dict[str, str] = {}
+    idx: dict[str, list[str]] = {}
     for root_dir in glob.glob(os.path.join(BR, "_QUERIES*")):
         for root, _dirs, files in os.walk(root_dir):
             for f in files:
-                if f.endswith(".faa") and f not in idx:
-                    idx[f] = os.path.join(root, f)
+                if f.endswith(".faa"):
+                    path = os.path.join(root, f)
+                    key = os.path.relpath(path, root_dir).replace(os.sep, "/")
+                    idx.setdefault(key, []).append(path)
     return idx
 
 
-def query_proteins(panel_basename: str) -> int:
+def _digest(path: str) -> bytes:
+    with open(path, "rb") as fh:
+        return hashlib.file_digest(fh, "sha256").digest()
+
+
+def query_proteins(panel_file: str) -> int:
     """Number of query proteins in a fetched panel — the real throughput unit."""
     global _PANEL_INDEX
-    if panel_basename in _SEQ_CACHE:
-        return _SEQ_CACHE[panel_basename]
+    key = _panel_key(panel_file)
+    if key in _SEQ_CACHE:
+        return _SEQ_CACHE[key]
     if _PANEL_INDEX is None:
         _PANEL_INDEX = _index_panels()
     n = 0
-    path = _PANEL_INDEX.get(panel_basename)
-    if path:
+    paths = _PANEL_INDEX.get(key, []) if key else []
+    if not paths:
+        _UNKNOWN_PANELS[key or panel_file] = "missing"
+    else:
         try:
-            n = sum(1 for line in open(path) if line.startswith(">"))
-        except Exception:
-            n = 0
-    _SEQ_CACHE[panel_basename] = n
+            digests = {_digest(path) for path in paths}
+            if len(digests) != 1:
+                _UNKNOWN_PANELS[key] = "conflicting copies across query roots"
+            else:
+                with open(paths[0], errors="replace") as fh:
+                    n = sum(1 for line in fh if line.startswith(">"))
+        except OSError:
+            _UNKNOWN_PANELS[key] = "unreadable"
+    _SEQ_CACHE[key] = n
     return n
 
 
 def channel_of(ledger_base: str) -> str:
-    """ClusteredNR ledgers carry CLUSTER in the base name; everything else is full nr."""
-    return "ClusteredNR" if "CLUSTER" in ledger_base.upper() else "nr"
+    """ClusteredNR lanes spell the channel CLUSTER *or* CLNR; everything else is full nr.
+    Matching only CLUSTER filed 23 ClusteredNR lanes (_NR_CLNR_GAP_*, _REDIV_RID_CLNR_*,
+    _STRAINGAP_CLNR_*) under full nr -- two channels that must never be pooled."""
+    b = ledger_base.upper()
+    return "ClusteredNR" if ("CLUSTER" in b or "CLNR" in b) else "nr"
 
 
 def load_fetches():
     """-> list of (fetch_time, n_proteins, channel, lane). Every lane, not a subset."""
     out = []
-    for led in glob.glob(os.path.join(BR, "_NR_*RID*", "_ledger.csv")):
+    for led in glob.glob(os.path.join(BR, "*", "_ledger.csv")):
         lane = os.path.basename(os.path.dirname(led))
         ch = channel_of(lane)
         try:
@@ -93,7 +121,7 @@ def load_fetches():
             if r.get("status") != "fetched" or not r.get("fetch_iso"):
                 continue
             # count QUERY PROTEINS, not returned hit rows (see UNITS WARNING above)
-            n = query_proteins(os.path.basename(r.get("file", "")))
+            n = query_proteins(r.get("file", ""))
             try:
                 t = datetime.datetime.strptime(r["fetch_iso"][:19], "%Y-%m-%d %H:%M:%S")
             except Exception:
@@ -148,6 +176,9 @@ def main():
     for ln in lanes:
         n = sum(1 for f in fetches if f[3] == ln)
         print(f"  {ln:34s} {n:>5} fetched panels")
+    if _UNKNOWN_PANELS:
+        print(f"WARNING: {len(_UNKNOWN_PANELS)} missing or ambiguous strain-qualified query paths; "
+              "protein totals are lower bounds for these fetched rows")
 
     fig, axes = plt.subplots(2, 1, figsize=(13, 9))
     t6, r6 = panel(axes[0], fetches, 6, 15, "Last 6 hours (15-min bins) — ALL lanes")

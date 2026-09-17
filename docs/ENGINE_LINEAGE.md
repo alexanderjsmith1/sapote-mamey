@@ -1,5 +1,16 @@
 # Mamey Engine Lineage
 
+## Engine 1.9.167 — candidate first bundle: v9.7.433 (unsealed)
+
+This candidate corrects cofactor-class markers (TIGR03962 mycofactocin MftC; TIGR02109
+PQQ PqqE), retains antiSMASH domain descriptions, and adds optional post-seal BLASTp
+snapshot/current-locus binding, protein FASTA signatures, BiG-SCAPE guarded MIBiG
+dispatch, and Mode B evidence warnings. The cofactor correction changes class reads
+for affected loci; earlier triage boards should not be treated as directly pooled
+without reconciliation. A matched protein signature identifies a query source, not
+a BLASTp result or a metabolite. This entry records an unsealed engineering
+candidate; release and scientific acceptance remain open.
+
 ## Engine 1.9.166 — first bundle: v9.7.432
 
 Three score-neutral behaviour changes, none in a scoring, extraction or sealed-package-schema file,

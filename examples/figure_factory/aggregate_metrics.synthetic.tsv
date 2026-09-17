@@ -1,0 +1,9 @@
+identity	channel	metric	numerator	denominator	denominator_key
+study-alpha-one	blastp_nr	query_coverage	9	10	declared-proteins
+study-alpha-one	blastp_clustered_nr	query_coverage	8	10	declared-proteins
+study-alpha-two	blastp_nr	query_coverage	7	10	declared-proteins
+study-alpha-two	blastp_clustered_nr	query_coverage	6	10	declared-proteins
+held-alpha-one	blastp_nr	query_coverage	3	5	declared-proteins
+held-alpha-one	blastp_clustered_nr	query_coverage	2	5	declared-proteins
+benchmark-alpha-one	blastp_nr	query_coverage	4	5	declared-proteins
+benchmark-alpha-one	blastp_clustered_nr	query_coverage	4	5	declared-proteins

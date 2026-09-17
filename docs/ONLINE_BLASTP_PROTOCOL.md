@@ -70,6 +70,44 @@ For RiPP analyses, retain the actual precursor sequence and evidence for leader/
 Short or low-complexity sequences require explicit uncertainty; do not calculate a confident
 mature-product mass from an unbound core assignment.
 
+## Optional per-strain BLASTp databases
+
+When two antiSMASH assemblies of one strain carry different labels or contig numbering, compare their complete protein FASTAs before binding saved BLASTp evidence. The optional signature tool records raw FASTA hashes, an order-independent digest of `gene label + protein SHA-256`, and a separate sequence-only multiset digest:
+
+Mamey already writes `<strain>_proteins.faa` and `<strain>_cds_table.csv` into each package. These are **BGC-member proteins**, not every protein in the genome. To make a portable, assembly-specific JSON index of the existing FASTA, including each gene's full contig, region, BGC alias, protein hash, and the antiSMASH input-ZIP hash, run:
+
+```bash
+python -m mamey.protein_signature --package <run>/<strain>/package \
+  --out <analysis>/<strain>-bgc-protein-signature.json
+```
+
+This writes a new file outside the sealed package; it does not alter package contents. Keep the JSON beside BLASTp query and result receipts. A matching BGC-protein signature is not proof that the whole assemblies are identical.
+
+```bash
+python -m mamey.protein_signature <package-A-proteins.faa> <package-B-proteins.faa> \
+  --out analysis/protein-signature-comparison.json
+```
+
+`EXACT_GENE_AND_SEQUENCE` means the normalized FASTA records agree despite row order. `SAME_SEQUENCE_MULTISET_RELABELED` means the proteins agree but gene labels differ. `LEFT_GENE_SEQUENCE_SUBSET` says every protein in the first FASTA occurs under the same gene label in the second, while the second has additional genes; it does not equate whole assemblies. `PARTIAL_OR_DIFFERENT` requires an assembly-level review before carrying results across. Repeated protein sequences remain counted; duplicate gene labels refuse the comparison. The output identifies a compatible **query source**, not whether a saved BLASTp hit came from that query. Full result admission still needs a query/RID receipt that binds each hit to its submitted protein sequence hash.
+
+If you have a saved 22-column BLASTp hits SQLite store, you can export one database per strain. The source can be a cohort store or an existing per-strain database. The source is opened read-only. The selected Mamey package supplies the **current** gene, full contig, region, and BGC-alias roster; the source hit's possibly stale BGC alias remains visible as provenance but is never used to join coverage.
+
+From the extracted bundle root:
+
+```bash
+python -m mamey.blastp_strain_db inspect --db <existing>/<strain>_blastp.db
+python -m mamey.blastp_strain_db build --source-db <saved-hits.db> \
+  --package <runs>/<strain>/package --out <output-root>
+```
+
+For a cohort, pass multiple package directories after `--package` (for example, a shell glob over one package per strain). The command makes **one transactionally consistent SQLite backup**, including committed WAL rows, and reuses that snapshot for every requested strain. It keeps the content-addressed `source_snapshot_<sha256>.sqlite` under the output root so the receipt remains verifiable later. This consumes approximately one extra source-database size of disk space; budget for that when exporting hundreds of strains. The command writes `<output-root>/<strain>_blastp.db`. It refuses duplicate strain packages and existing outputs; `--replace` atomically replaces a strain output only after the new database passes integrity checks. No source database or sealed package is changed.
+
+The package's `manifest.json` strain must match the source hits' strain. If a reviewed package uses a different label, provide a two-column TSV with `package_strain` and `source_strain`, then pass `--strain-map <map.tsv>`. The original hit strain stays in the raw `hits` table and both labels are recorded in `source_receipt`. An unrecognized source strain refuses the whole batch **before any per-strain database is written**; an empty result requires explicit `--allow-empty`. Do not infer a mapping from a version suffix, filename, or changing BGC alias.
+
+The new database retains every raw source row in `hits` and records the selected package's current full contig, region, and BGC alias in `locus_identity`. `hit_binding` gives every row a typed state: `LOCUS_BOUND`, `NONCURRENT_LOCUS`, `ZERO_OR_BLANK_AA_LENGTH`, `QUERY_CURRENT_AA_LENGTH_MISMATCH`, or `PROVENANCE_SUSPECT`. `held_hits` and `unbound_hits` keep rejected rows visible. Only `locus_bound_hits` contributes to separate nr/ClusteredNR/Swiss-Prot columns in `coverage` and to `clustered_gap`. `source_receipt` names and hashes the retained SQLite snapshot and package identity files. A gene with no locus-bound hit is a **missing or held evidence state**, not a tested negative. Length agreement is only a locus-binding check: the 22-column store lacks a query-protein sequence hash, so this export alone does **not** authorize a full Mode B BLASTp admission or a compound claim.
+
+An existing per-strain database may be inspected without rebuilding. To rebind it to a newer package's physical loci, use it as `--source-db` and choose a different output root. Compare `raw_hits`, `locus_bound_hits`, `held_hit_rows`, the per-state hold counts, and the current-gene counts before using it in a report. Source BGC aliases can change across Mamey versions; the source alias is audit data, not the join key. The command does not submit BLASTp queries or infer compound identity.
+
 ## Related workflows
 
 - [Channel-separated BLASTp workflow](BLASTP_NOVELTY_WORKFLOW.md): downstream comparison policy;

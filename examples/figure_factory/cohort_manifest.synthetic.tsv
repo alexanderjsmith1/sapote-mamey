@@ -1,0 +1,5 @@
+identity	role	include_by_default	genus	cohort	assembly_state	assembly_reason
+study-alpha-one	STUDY	true	Genus alpha	BEE	PASS	synthetic complete assembly
+study-alpha-two	STUDY	true	Genus alpha	WASP	FLAG	synthetic fragmented assembly
+held-alpha-one	STUDY	false	Genus alpha	MOSS	DEFAULT_OFF	synthetic default-off sensitivity
+benchmark-alpha-one	EXTERNAL_BENCHMARK	false	Genus alpha	EXTERNAL_BENCHMARK	PASS	synthetic benchmark only

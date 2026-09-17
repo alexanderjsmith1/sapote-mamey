@@ -2,7 +2,7 @@
 
 ### Engine subsystems: triggers, architecture, KCB/RiQ, compound class, rescue, and enrichment
 
-**Version of record:** Mamey engine v1.9.166 · bundle v9.7.432 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23)
+**Version of record:** Mamey engine v1.9.167 · bundle v9.7.433 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23)
 **Author:** Alexander J. Smith
 **Companion to:** *The Mathematics of Sapote-Mamey* (Volume I — core counting, assembly tiers, AB/AF/novelty scoring, lead tiers, guards, RG-GMCI, completeness) and *The Plumbing Reference* (CLI, workbook, figures, packaging).
 **Status:** Methods reference. Every formula is transcribed from engine source and cited to `module.py:symbol`; nothing is reconstructed from memory. Each cluster was verified against source before inclusion; corrections made during review are noted inline.

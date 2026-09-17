@@ -3,6 +3,9 @@
 **Authority:** read `docs/LLM_COMPANION_TOOL_PROTOCOL.md` first. This is the active BiG-SCAPE
 runbook. Cohort-specific guides and older version addenda do not override it.
 
+For a command-by-command cohort example using the bundled launcher and figure tools, see the
+[cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md).
+
 BiG-SCAPE groups antiSMASH region GBKs by domain architecture and related sequence features.
 It is a downstream companion analysis: it does not alter the sealed Mamey run, and its families are
 run-specific similarity groups rather than compound identities.

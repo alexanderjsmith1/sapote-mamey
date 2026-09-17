@@ -1,34 +1,34 @@
-# Sapote-Mamey Bundle Release Manifest — v9.7.432 internal review candidate
+# Sapote-Mamey Bundle Release Manifest — v9.7.433 CODE archive
 
-**Cut/build date:** 2026-09-15  
-**Candidate status:** controlled quality-recheck rebuild; not signed release; internal review base only  
-**Bundle version:** `sapote-mamey-v9.7.432`  
-**Authoritative bundle version:** `9.7.432`  
-**Engine:** Mamey v1.9.166  
-**Build stamp:** 20260915v97432a  
+**Cut/build date:** 2026-09-17
+**Artifact status:** validated CODE archive  
+**Bundle version:** `sapote-mamey-v9.7.433`  
+**Authoritative bundle version:** `9.7.433`  
+**Engine:** Mamey v1.9.167  
+**Build stamp:** 20260917v97433b  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
-This is an internal CODE review archive with an external checksum and test receipts. It is not a public release or an accepted biological analysis.
+This CODE archive carries a checksum and test receipts. Software validation does not establish an accepted biological analysis.
 
 ## Tier scope
 
 This single CODE archive contains portable program source, user documentation, tests, generic
 fixtures and release tooling. External databases and project analysis data remain separate.
-No additional release tiers are produced for this internal review cut.
+No additional release tiers are included in this CODE archive.
 
 ## Current validation
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (11435 passed, 231 skipped; receipt-bound log) |
-| Candidate-focused tests | 68 passed / 13 skipped; generated/version checks 38 passed; final status and integrity checks recorded externally |
-| Strict repository health | PASS (1322 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
+| Full pytest suite | PASS (11430 passed, 233 skipped; receipt-bound log) |
+| Focused verification | 40 passed / 2 skipped for identity, version, and inventory; 12 passed for health, BLASTp monitoring, and Figure Factory |
+| Strict repository health | PASS (1324 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
 | Version synchronization | PASS |
 | Generated module, tool, command, and deliverable inventories | PASS |
-| R source parsing | NOT RUN here: Rscript unavailable; other-laptop validation requested |
-| Release tier builds and archive checksums | One internal CODE archive only; no multi-tier release performed |
-| Local release seal | NOT SEALED for public release |
+| R source parsing | PASS (17 bundled R sources parsed with Rscript); live rendering and external-tool pilots remain separate |
+| Release tier builds and archive checksums | One CODE archive; no additional tiers included |
+| Archive integrity | PASS (ZIP CRC, extracted checksums and identity) |
 
 Skipped tests are gated tests whose required local data or external tools are not shipped. A skip
 does not demonstrate that the associated live workflow ran. Test success establishes software and
@@ -48,13 +48,13 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for a future multi-tier release: All four tiers share build stamp `20260915v97432a`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20260917v97433b`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
-| `sync_version --check` | PASS (engine 1.9.166, bundle 9.7.432) |
+| `sync_version --check` | PASS (engine 1.9.167, bundle 9.7.433) |
 
-All tracked version anchors at v9.7.432 / Mamey 1.9.166.
-`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.432.
+All tracked version anchors at v9.7.433 / Mamey 1.9.167.
+`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.433.
 
-*Generated: 2026-09-15 | Sapote-Mamey Bundle v9.7.432 | NOT_FOR_PUBLIC_RELEASE*
+*Generated: 2026-09-17 | Sapote-Mamey Bundle v9.7.433 | NOT_FOR_PUBLIC_RELEASE*

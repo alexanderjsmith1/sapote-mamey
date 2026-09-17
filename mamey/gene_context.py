@@ -242,7 +242,8 @@ def write_gene_context(package_dir: str | Path, strain_id: str,
             # v9.7.409: lead with the strain/assembly_locator/contig/region anchor (was bgc_id only).
             dw.writerow(["strain", "assembly_locator", "contig", "region",
                          "bgc_id", "locus_tag", "feature_type", "domain", "pfam_acc",
-                         "database", "start", "end", "strand", "bitscore", "evalue", "substrate"])
+                         "database", "start", "end", "strand", "bitscore", "evalue", "substrate",
+                         "description"])
             for d in (domains or []):
                 lt = getattr(d, "locus_tag", "") or ""
                 bid = locus_to_bgc.get(lt)
@@ -250,13 +251,20 @@ def write_gene_context(package_dir: str | Path, strain_id: str,
                     continue  # domain on a non-BGC gene — package is BGC-scoped
                 q = getattr(d, "qualifiers", {}) or {}
                 pfam = next((str(x) for x in q.get("db_xref", []) if str(x).startswith("PF")), "")
+                # antiSMASH writes a human-readable /description on PFAM_domain and on
+                # TIGRFAM aSDomain features ("mycofact_rSAM: mycofactocin radical SAM maturase").
+                # parsers.py already carries the whole qualifier dict onto DomainFeature.qualifiers,
+                # so retain the supplied text. Append the column to preserve the older
+                # fields' positions for downstream readers of existing packages.
+                desc = next((str(x) for x in q.get("description", []) if str(x).strip()), "")
                 _a = _bgc_anchor(bid)
                 dw.writerow([_a["strain"], _a["assembly_locator"], _a["contig"], _a["region"],
                              bid, lt, getattr(d, "feature_type", ""), getattr(d, "domain", ""),
                              pfam, getattr(d, "database", ""), getattr(d, "start", ""),
                              getattr(d, "end", ""), getattr(d, "strand", ""),
                              getattr(d, "bitscore", None) if getattr(d, "bitscore", None) is not None else "",
-                             getattr(d, "evalue", "") or "", getattr(d, "substrate_consensus", "") or ""])
+                             getattr(d, "evalue", "") or "", getattr(d, "substrate_consensus", "") or "",
+                             desc])
                 n_dom += 1
         _os.replace(tmp_d, dpath)
 

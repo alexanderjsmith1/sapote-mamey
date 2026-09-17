@@ -45,7 +45,7 @@ def main():
     now = datetime.datetime.now()
     start = now - datetime.timedelta(hours=HOURS)
     recs = []
-    for led in glob.glob(os.path.join(BR, "_NR_*RID*", "_ledger.csv")):
+    for led in glob.glob(os.path.join(BR, "*", "_ledger.csv")):
         try:
             R = list(csv.DictReader(open(led)))
         except Exception:

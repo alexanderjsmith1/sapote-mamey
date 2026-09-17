@@ -53,7 +53,7 @@ def main():
     os.chdir(ROOT)
 
     fetched, fail_rows = [], []
-    for led in glob.glob(os.path.join(BR, "_NR_*RID*", "_ledger.csv")):
+    for led in glob.glob(os.path.join(BR, "*", "_ledger.csv")):
         lane = lane_name(led)
         try:
             rows = list(csv.DictReader(open(led)))
@@ -73,7 +73,7 @@ def main():
     # recent run.log errors
     cutoff = datetime.datetime.now() - datetime.timedelta(minutes=a.errmins)
     log_errs = []
-    for lg in glob.glob(os.path.join(BR, "_NR_*RID*", "_run.log")):
+    for lg in glob.glob(os.path.join(BR, "*", "_run.log")):
         try:
             for line in open(lg, errors="ignore"):
                 if not ERR_RE.search(line):

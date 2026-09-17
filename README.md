@@ -1,11 +1,14 @@
 # Sapote-Mamey
 
-Sapote-Mamey turns antiSMASH results into evidence you can inspect: which biosynthetic gene
-clusters (BGCs) a genome carries, what their genes resemble, and which regions deserve a closer
-look. It is built around actinomycete genomes. A score is a reason to inspect a region, not a
-measurement of antimicrobial activity.
+Sapote-Mamey is a python-based analysis pipeline for actinomycete genomes created with assistance of LLM (artificial intelligence). The program was developed with actinomycete genomes across most common genera (Streptomyces, Micromonospora, Actinomadura, etc). 
 
-Two parts. Mamey is the executable BGC-analysis module: extraction, evidence checks, tables
+This is a program that is under continuous development but has been found to be useful to the patient user, particularly in running other research tools an.  The program has been developed by providing antiSMASH outputs (downloaded ZIP files) to the LLMs and 
+
+The analysis pipeline primarily works to interpret antiSMASH results into a user-friendly narrative and allows integration of other bioinformatics tools and other data streams provided by the user. The LLM environment gives the user flexibility to explore the antiSMASH output and other data however they choose. This dynamic interaction allows the potential to take the analysis in any direction. 
+
+Common applications include helping the user understand which biosynthetic gene clusters (BGCs) a genome carries, what their genes resemble, and which regions deserve a closerlook. It is built around actinomycete genomes and a user's genome can be compared with reference genomes. The options to do this include downloading related reference genomes and running antiSMASH on them, and a user can ask the LLM for assistance. The user or LLM can find related genomes based on phylogeny (16S blast results), related genomes obtained by clusterblast and knownclusterblast matches, or searching the genus name in NCBI Nucleotide database and ranking by size to find the appropriately sized assemblies (approximately 5 to 11 mb depending on the genus). A score is a reason to inspect a region, not a measurement of antimicrobial activity.
+
+Sapote Mamey has two main components. Mamey is the executable BGC-analysis module: extraction, evidence checks, tables
 and analysis tools. Sapote is the interpretation and writing workflow: it takes those results into gene-by-gene
 Mode B cards and reports. A generated table or template starts that review; it does not write
 the interpretation for you.
@@ -13,7 +16,10 @@ the interpretation for you.
 From one antiSMASH result ZIP you can examine the genes and their reference matches, deepen
 uncertain calls with BLASTp, and compare strains. Optional companion workflows add BiG-SCAPE
 gene-cluster families and phylogenetic trees to the same evidence review and figure workflow.
-You do not need every optional workflow to get a useful result.
+You do not need every optional workflow to get a useful result. The mode b card has optional sections that are designed to integrate some of these other data streams. There is also a 
+
+For a one-page map of the program's parts, inputs, and outputs, see
+[What Sapote-Mamey offers](docs/PRODUCT_MAP.md).
 
 **Start with the file you have:**
 
@@ -23,9 +29,9 @@ You do not need every optional workflow to get a useful result.
 
 **Status.** The program and documentation are under active development. This build has known
 gaps in metadata handling, evidence-completeness reporting and generated-PDF layout. A run that
-finishes and validates does not close those gaps or certify a biological conclusion. This is a
-**pre-release**: check the version footer, the release manifest and the distributed checksums for
-this build's identity and validation status. A prerelease is not a stable-release guarantee.
+finishes and validates does not close those gaps or certify a biological conclusion.
+
+The program was occasionaly tested with other bacterial orders, and several basidiomycetes and ascomycetous fungi. No extensive testing or development has occured other than to establish some degree of functionality with these other microbial groups. The bacterial-specific tools will not work as-is, but many bioinformatics tools are expected to work and the primary Mamey engine will intake antiSMASH zips from these other organisms and produce a validated evidence package.  
 
 ## What you can do
 
@@ -63,8 +69,10 @@ and cutoff; read it alongside assembly fragmentation and protein evidence. See
 [the BiG-SCAPE walkthrough](docs/GUIDE/02_Quick_Guide.md#big-scape-family-analysis).
 
 **Phylogeny and overlays.** `phylo-autopilot` inventories uploads and handles 16S routing and
-placement. `phylo-run` launches an approved GToTree/IQ-TREE genome workflow, with optional ANI
-inputs. The tree renderers join tree tips to metadata and to strain-level ANI, BGC, domain,
+placement. When an antiSMASH ZIP contains a non-region assembly sequence, `phylo-mlsa` can plan or stage an
+an optional five-locus MLSA screen from it. Review assembly completeness separately.
+Local reference genomes and external companion tools are needed to run the screen. `phylo-run` launches an approved GToTree/IQ-TREE genome workflow,
+with optional ANI inputs. The tree renderers join tree tips to metadata and to strain-level ANI, BGC, domain,
 Mode B or assembly tracks. Each track needs an explicit tip-to-strain mapping and its own data;
 nothing is inferred from the tree. See [trees and heatmaps](docs/GUIDE/02_Quick_Guide.md#trees-and-heatmap-overlays).
 
@@ -77,7 +85,7 @@ of material, target, time point and experiments. See the
 
 ## Install
 
-> **Build status.** This CODE tree is a controlled quality-recheck candidate, not a signed public release. The footer of this file carries the exact bundle and engine versions, sourced from [`pyproject.toml`](pyproject.toml). [`RELEASE_MANIFEST.md`](RELEASE_MANIFEST.md) is the authoritative status source.
+> **Build status.** This CODE archive is a validated software artifact. The footer of this file carries the exact bundle and engine versions, sourced from [`pyproject.toml`](pyproject.toml). [`RELEASE_MANIFEST.md`](RELEASE_MANIFEST.md) is the authoritative status source.
 >
 > GitHub source users: start with `docs/PUBLIC_RELEASE_GUIDE.md` for what ships, the Pfam HMM you provision yourself, the tool's runtime network behavior, and air-gapped operation. Full step-by-step setup is in `docs/INSTALL.md`.
 
@@ -277,13 +285,5 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Troubleshooting](docs/COMMON_MISTAKES.md)
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
-## Internal review and project data
-
-This cut is an internal review base. Keep undisclosed project genomes, protein sequences, BGC
-content, BLASTp databases/results and derived analyses outside this bundle. Local AS-strain
-databases may be used for private integration tests; they are not portable examples. Use
-synthetic fixtures or independently public reference strains in shared walkthroughs. An old
-cohort/public-export flag does not authorize including undisclosed project data.
-
 ---
-*Current bundle: sapote-mamey-v9.7.432 / engine 1.9.166 · build 20260915v97432a · release profile: CODE quality-recheck candidate; not signed public release (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.433 / engine 1.9.167 · build 20260917v97433b · release profile: CODE (see RELEASE_MANIFEST.md)*

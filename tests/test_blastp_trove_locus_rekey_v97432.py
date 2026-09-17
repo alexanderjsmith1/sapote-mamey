@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from mamey.blastp_ingest import ingest_blastp_trove
+from mamey import blastp_gate
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -94,6 +95,12 @@ def _csv_rows(path: Path) -> list[dict]:
         return list(csv.DictReader(handle))
 
 
+def _roots(channel: str, trove: Path) -> dict[str, list[Path]]:
+    roots = {name: [] for name in blastp_gate.CHANNEL_TROVE}
+    roots[channel] = [trove]
+    return roots
+
+
 def test_strict_default_still_rejects_stale_alias(tmp_path):
     package = _package(tmp_path)
     trove, _ = _trove(tmp_path, [_row()])
@@ -130,6 +137,106 @@ def test_rekey_routes_rows_from_one_stale_folder_to_multiple_current_bgcs(tmp_pa
     ledger = json.loads((package / "blastp_online" / "_ingest_ledger.json").read_text())
     assert ledger["nr"]["BGC002"]["source_sha256"] == [source_before]
     assert ledger["nr"]["BGC003"]["source_sha256"] == [source_before]
+
+
+def test_gate_uses_receipt_bound_current_destinations_after_rekey(tmp_path):
+    """AS-TEST / synthetic contigs / synthetic regions / synthetic aliases: stale source aliases do not block."""
+    package = _package(tmp_path)
+    trove, _ = _trove(
+        tmp_path,
+        [_row(), _row("ctg201_1", "410", subject_acc="WP_OTHER.1")],
+    )
+    ingest_blastp_trove(package, trove, "nr", "AS-TEST", rekey_by_locus=True)
+
+    result = blastp_gate.gate(package, "AS-TEST", trove_roots=_roots("nr", trove))
+
+    assert result["ok"] is True and result["missing"] == []
+    assert len(result["source_reconciliation"]) == 1
+    source = result["source_reconciliation"][0]
+    assert source["source_bgc"] == "BGC001"
+    assert source["current_bgcs"] == ["BGC002", "BGC003"]
+    assert source["state"] == "REKEYED_SOURCE_WITH_ADMITTED_DESTINATIONS"
+    assert "BGC001 -> BGC002,BGC003" in result["message"]
+
+
+def test_gate_blocks_on_missing_current_destination_and_prescribes_rekey(tmp_path):
+    """A re-key receipt cannot turn an incomplete current-destination ledger into a pass."""
+    package = _package(tmp_path)
+    trove, _ = _trove(tmp_path, [_row()])
+    ingest_blastp_trove(package, trove, "nr", "AS-TEST", rekey_by_locus=True)
+    ledger_path = package / "blastp_online" / "_ingest_ledger.json"
+    ledger = json.loads(ledger_path.read_text())
+    ledger["nr"]["BGC002"]["evidence_complete"] = False
+    ledger["nr"]["BGC002"]["admitted_rows"] = 0
+    ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
+    (package / "blastp_online" / "BGC002_online_blastp.csv").unlink()
+
+    result = blastp_gate.gate(package, "AS-TEST", trove_roots=_roots("nr", trove))
+
+    assert result["ok"] is False
+    assert [(channel, bgc) for channel, bgc, _path in result["missing"]] == [("nr", "BGC002")]
+    assert "--rekey-by-locus" in result["message"]
+
+
+def test_gate_keeps_all_quarantined_rekey_source_as_typed_reconciliation_hold(tmp_path):
+    """Blank query length remains a typed hold and does not resurrect the stale source alias."""
+    package = _package(tmp_path)
+    trove, _ = _trove(tmp_path, [_row(aa_length="")])
+    ingest_blastp_trove(package, trove, "nr", "AS-TEST", rekey_by_locus=True)
+
+    result = blastp_gate.gate(package, "AS-TEST", trove_roots=_roots("nr", trove))
+
+    assert result["ok"] is True and result["missing"] == []
+    source = result["source_reconciliation"][0]
+    assert source["state"] == "REKEYED_SOURCE_WITH_TYPED_HOLDS_ONLY"
+    assert source["current_bgcs"] == ["BGC002"]
+    assert source["admitted_current_bgcs"] == []
+    assert source["held_current_bgcs"] == ["BGC002"]
+    assert source["source_hold_reasons"] == {"ZERO_OR_BLANK_AA_LENGTH": 1}
+    summary = result["rekey_receipt_summaries"][0]
+    assert summary["quarantined_total"] == 1
+    assert summary["hold_reasons"] == {"ZERO_OR_BLANK_AA_LENGTH": 1}
+
+
+def test_gate_does_not_apply_rekey_receipt_after_source_bytes_change(tmp_path):
+    """Receipt authority is content-bound; changed source bytes return to folder-alias blocking."""
+    package = _package(tmp_path)
+    trove, source = _trove(tmp_path, [_row()])
+    ingest_blastp_trove(package, trove, "nr", "AS-TEST", rekey_by_locus=True)
+    with source.open("a", encoding="utf-8") as handle:
+        handle.write("\n")
+
+    result = blastp_gate.gate(package, "AS-TEST", trove_roots=_roots("nr", trove))
+
+    assert result["ok"] is False
+    assert result["source_reconciliation"][0]["state"] == "FOLDER_ALIAS_EXPECTATION"
+    assert [(channel, bgc) for channel, bgc, _path in result["missing"]] == [("nr", "BGC001")]
+
+
+def test_gate_holds_when_rekey_quarantine_no_longer_matches_receipt(tmp_path):
+    """Typed-hold reconciliation remains bound to the immutable quarantine bytes."""
+    package = _package(tmp_path)
+    trove, _ = _trove(tmp_path, [_row(aa_length="")])
+    ingest = ingest_blastp_trove(package, trove, "nr", "AS-TEST", rekey_by_locus=True)
+    with Path(ingest["quarantine"]).open("a", encoding="utf-8") as handle:
+        handle.write("\n")
+
+    with pytest.raises(blastp_gate.BlastpDiscoveryError, match="BLASTP_REKEY_RECEIPT_HOLD"):
+        blastp_gate.gate(package, "AS-TEST", trove_roots=_roots("nr", trove))
+
+
+def test_gate_holds_on_malformed_current_rekey_receipt(tmp_path):
+    """A receipt that claims the v2 schema must satisfy the v2 re-key contract."""
+    package = _package(tmp_path)
+    trove, _ = _trove(tmp_path, [_row()])
+    ingest = ingest_blastp_trove(package, trove, "nr", "AS-TEST", rekey_by_locus=True)
+    receipt_path = Path(ingest["receipt"])
+    receipt = json.loads(receipt_path.read_text())
+    receipt["locus_rekey"]["enabled"] = False
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    with pytest.raises(blastp_gate.BlastpDiscoveryError, match="BLASTP_REKEY_RECEIPT_HOLD"):
+        blastp_gate.gate(package, "AS-TEST", trove_roots=_roots("nr", trove))
 
 
 def test_rekey_uses_cds_table_without_gene_context_and_records_confirmed_alias(tmp_path):

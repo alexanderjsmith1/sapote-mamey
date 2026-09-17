@@ -1,8 +1,10 @@
 # User guides and reference reading
 
-*Included with bundle v9.7.432 / engine Mamey 1.9.166. Packaging version; content scope is described below.*
+*Included with bundle v9.7.433 / engine Mamey 1.9.167. Packaging version; content scope is described below.*
 
 For a first analysis, read [Your first analysis](../MASTER_WALKTHROUGH.md).
+For an overview of the program's parts and optional workflows, read
+[What Sapote-Mamey offers](../PRODUCT_MAP.md).
 For a completed package, use [Read your results](../READING_YOUR_RESULTS.md).
 The [Quick Guide](02_Quick_Guide.md) is the compact and advanced reference. Use the
 [User Manual](01_User_Manual.md) for the wider workflow and [Common Mistakes](../COMMON_MISTAKES.md)

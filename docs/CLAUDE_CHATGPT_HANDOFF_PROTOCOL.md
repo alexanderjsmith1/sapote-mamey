@@ -1,8 +1,10 @@
 # Claude ↔ ChatGPT Handoff Protocol
-**Version:** 1.1 · Mamey v1.9.166 / Sapote v9.7.432  
+**Version:** 1.1 · Mamey v1.9.167 / Sapote v9.7.433  
 **File location:** `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`
 
 ---
+
+This document describes the earlier workbook-specific Claude/ChatGPT loop. For a new assistant-to-assistant task, start with the [general handoff workflow](INTER_AGENT_HANDOFF_WORKFLOW.md) and its template; use the workbook rules below only when that workbook contract is actually in scope.
 
 ## Companion-tool handoff override
 

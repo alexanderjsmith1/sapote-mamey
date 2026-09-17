@@ -1,12 +1,12 @@
 # Command catalog (generated)
 
-*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.432 · engine 1.9.166. Do not edit by hand; `--check` fails the build when stale.*
+*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.433 · engine 1.9.167. Do not edit by hand; `--check` fails the build when stale.*
 
 Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root (the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take `--package <sealed package dir>`; `run` is the only command that creates a package. Claim-safety: every output is a class-level hypothesis with judgment deferred.
 
 ## Recommended front doors
 
-Most users can stay on this path: `start` for orientation, `inspect` then `run` for extraction, `validate` for the package gate, `discover` and `explore` for review, `render-all-figures` for the applicable figure suite, `phylo-autopilot` or `phylo-run` for tree workflows, `mode-b` for the interpretation scaffold, and `workflow` for status. The catalog below includes specialist commands so they remain discoverable; aliases are folded into their canonical command row.
+Most users can stay on this path: `start` for orientation, `inspect` then `run` for extraction, `validate` for the package gate, `discover` and `explore` for review, `render-all-figures` for the applicable figure suite, `phylo-autopilot`, optional `phylo-mlsa`, or `phylo-run` for tree workflows, `mode-b` for the interpretation scaffold, and `workflow` for status. The catalog below includes specialist commands so they remain discoverable; aliases are folded into their canonical command row.
 
 ## Run and seal a strain
 
@@ -139,11 +139,12 @@ _Aggregation across sealed packages._
 
 ## Phylogeny
 
-_Use `phylo-autopilot` for 16S routing and EPA-ng placement; use `phylo-run` for an approved GToTree/IQ-TREE genome workflow._
+_Use `phylo-autopilot` for 16S routing and EPA-ng placement, optional `phylo-mlsa` for a reviewed antiSMASH assembly sequence and local genome panel, or `phylo-run` for an approved GToTree/IQ-TREE genome workflow._
 
 | command | what it does |
 |---|---|
 | `phylo-run` | Run an approved GToTree and IQ-TREE genome workflow, with optional fastANI and tree sign-off |
+| `phylo-mlsa` | Plan, stage, or run an optional five-locus MLSA screen from an antiSMASH ZIP |
 | `phylo-autopilot` | Plan local 16S/genome inputs, route 16S references, or run an approved EPA-ng placement workflow |
 | `signoff` | Analysis sign-off QC gate: objective checks on Newick trees (outgroup/contaminant/label-cruft/support/thin-tree). Advisory, exit 0. |
 
@@ -177,4 +178,4 @@ _Retained for existing scripts and specialized maintenance. They are not additio
 | `codex-bigscape-figure-sets` | Legacy-named Figure Factory command: render the optional BiG-SCAPE figure extension |
 | `codex-heatmaps` | Legacy-named Figure Factory command: convert matrix CSVs into SVG/HTML figure packs |
 
-_113 canonical commands catalogued; 2 aliases folded into those rows._
+_114 canonical commands catalogued; 2 aliases folded into those rows._

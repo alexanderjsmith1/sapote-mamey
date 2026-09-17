@@ -18,6 +18,7 @@ Release 1 is intentionally standalone. It flags missing inputs and tells the use
 - `HMMER_DATA_WORKFLOW.md` - how to generate HMMER `domtblout` evidence.
 - `DIAMOND_DATA_WORKFLOW.md` - how to generate scalable BLASTP-like homolog tables.
 - `MANUAL_BLASTP_SPOTCHECK_WORKFLOW.md` - when NCBI BLASTP is appropriate.
+- `BIGSCAPE_TROUBLESHOOTING.md` - cohort-run setup, reference loading, family labels, and figure problems.
 
 ## Rule
 

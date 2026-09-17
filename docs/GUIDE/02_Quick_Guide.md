@@ -1,6 +1,6 @@
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.432 / engine Mamey 1.9.166
+**Version:** v9.7.433 / engine Mamey 1.9.167
 
 Mamey extracts deterministic evidence from antiSMASH output. Sapote turns a validated evidence
 package into governed interpretation. Start at the [README](../../README.md). If you work through a
@@ -268,21 +268,37 @@ identifiers are local to a run, and a singleton is not automatically a novel pro
 
 ### Trees and heatmap overlays
 
-Supply 16S FASTA for locus-based routing and placement, or whole-genome FASTA for a genome
-phylogeny. An antiSMASH ZIP alone is not the input for a whole-genome tree. Start by inspecting the
-uploads:
+Choose the sequence route that matches your question. A 16S FASTA can be
+placed against a reference backbone. Whole-genome FASTA can support a core-genome
+tree. If your antiSMASH ZIP contains the **full assembly** (not only clipped
+region files), `phylo-mlsa` offers an optional five-protein-coding-gene MLSA
+screen from that assembly. Selection of a non-region sequence member does not
+certify that the assembly is complete; review the member and assembly metrics.
+The screen helps select neighbors for a later core-genome
+analysis; it does not establish species identity. Reference genome
+acquisition remains a separate, reviewed step. Start by inspecting the uploads
+or planning the MLSA input:
 
 ```bash
 python mamey_run.py phylo-autopilot plan path/to/sequence_uploads
 python mamey_run.py phylo-autopilot route --query path/to/16S.fasta \
   --db /absolute/path/to/16S_database_prefix --out analysis/routing.tsv
+python mamey_run.py phylo-mlsa --input-zip path/to/antismash.zip \
+  --query-label QUERY_A --mode plan
 python mamey_run.py phylo-run --help
 ```
 
-The database prefix and the external tools must exist on your machine. Review routing, references,
-outgroup and compute requirements before you build a tree. `run-16s` takes `--approved-by`; the
-genome runner requires `--approved`. The [autopilot guide](../PHYLO_AUTOPILOT_WORKFLOW.md) explains
-the sequence routes.
+For MLSA, supply locally curated `.fna` reference genomes in
+`--references-dir`, with exactly one filename containing `_OUTGROUP` for
+`--mode run`. `--mode prepare --outdir new_directory` stages a source-bound
+genome set; `--mode run` also calls the shipped `build_mlsa.py` driver, which
+requires Prodigal, BLAST+, MUSCLE and IQ-TREE. A ZIP with region GBKs only is
+refused. The database prefix and external tools for 16S placement must exist on
+your machine. Review routing, references, outgroup and compute requirements
+before building a tree. `run-16s` takes `--approved-by`; the core-genome runner
+requires `--approved`. The [autopilot guide](../PHYLO_AUTOPILOT_WORKFLOW.md)
+explains the 16S and core-genome routes; the [GToTree workflow](../GTOTREE_WORKFLOW.md)
+explains MLSA screening and later genome-panel selection.
 
 Building a tree and annotating it are separate steps. The tree overlay tool reads a
 `sapote.tree-figure-factory.v1` configuration that names the tree, alignment, workflow/model/seed

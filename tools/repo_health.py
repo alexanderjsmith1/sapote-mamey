@@ -129,7 +129,15 @@ CLI_TOOL_EXCLUDE_FILES = {"render_all.py", "phylo_preflight.py", "phylo_postflig
                           # v9.7.405: lead-propagation front door (stdout = receipt JSON).
                           "lead_propagation_gate.py",
                           # v9.7.405: alias-history front door (stdout = history JSON receipt).
-                          "bgc_alias_history.py"}
+                          "bgc_alias_history.py",
+                          # v9.7.433: BiG-SCAPE operator front doors. Their five `emit` sites
+                          # report run progress and the locations of generated TSV/figures;
+                          # they are CLI output, not library logging debt.
+                          "bigscape_family_verdicts.py", "bigscape_family_figures.py",
+                          "bigscape_clinker_html.py",
+                          # This operator front door prints only the path of the synthetic
+                          # project it just staged; the path is its CLI result.
+                          "figure_factory_demo.py"}
 # v9.7.403: tools/blastp_channel_triage.py is an operator front door whose stdout IS the
 # deliverable (the triage receipt JSON on stdout, the error line on stderr) — the same family as
 # the phylo launchers above, so it is EXCLUDED BY DESIGN rather than counted as library debt.

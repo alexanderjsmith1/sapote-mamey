@@ -1,6 +1,6 @@
 # The Sapote–Mamey User Manual
 
-*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.432 / engine Mamey 1.9.166*
+*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.433 / engine Mamey 1.9.167*
 *· 2026-06-29*
 
 > This Manual tells you **how to run** Sapote–Mamey and **how to read what it gives you**, front to back in the order you actually use it. For *why each part exists and how it relates to the rest*, see the **Encyclopedia** (cross-referenced as → §Vol.Chapter). The Manual is operational; the Encyclopedia is the deep reference behind it. One **Glossary** ([`GLOSSARY.md`](../docs/GLOSSARY.md), with its **Core concepts** section for the load-bearing terms) is the single source for term definitions — this Manual and the Encyclopedia both point to it rather than redefining terms.
@@ -498,7 +498,7 @@ Every figure in every group ships a companion `_data.csv` and is registered in a
 
 ---
 
-*Sapote–Mamey User Manual · current to bundle v9.7.432 / engine Mamey 1.9.166 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
+*Sapote–Mamey User Manual · current to bundle v9.7.433 / engine Mamey 1.9.167 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
 
 
 ---

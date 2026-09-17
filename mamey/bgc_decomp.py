@@ -145,7 +145,7 @@ _CLASS_DOMAINS: dict[str, set[str]] = {
         "SPASM",       # radical SAM SPASM domain — uniquely marks radical SAM RiPPs
         "TIGR03975",   # sactipeptide radical SAM enzyme
         "TIGR03988",   # ranthipeptide/sactipeptide
-        "TIGR03962",   # ranthipeptide
+        "TIGR03962",   # mycofactocin MftC radical SAM (antiSMASH mycofact_rSAM) — still a RiPP maturase; v9.7.432
     },
     "terpene": {
         "Terpene_synth", "Terpene_synth_C", "SQHop_cyclase", "phytoene_synt",

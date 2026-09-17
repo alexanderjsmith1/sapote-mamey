@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.432 · engine 1.9.166 · build 20260915v97432a
+# Current Docs Index — v9.7.433 · engine 1.9.167 · build 20260917v97433b
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -24,6 +24,7 @@ or receive it through their supported instruction mechanism.
 - [Mode B authoring](wiki/Mode-B-Gene-First-and-48-Section-Manual.md): use the selected machine-readable
   profile and its emitted template; legacy section counts do not replace a named current profile.
 - [BLASTp evidence](docs/ONLINE_BLASTP_PROTOCOL.md): existing results first, optional live submission.
+- [BiG-SCAPE cohort walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md) and [troubleshooting](docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md): stage region files, run a cohort, inspect family verdicts and figures.
 - [Phylogenetic workflow](docs/PHYLO_AUTOPILOT_WORKFLOW.md), [placement](docs/PHYLO_PLACEMENT_WORKFLOW.md),
   and [companion tools](docs/LLM_COMPANION_TOOL_PROTOCOL.md): inputs, resource scope and run receipts.
 - [Figure rendering](docs/FIGURE_FACTORY_NEXT.md) and [figure preflight](wiki/Figure-Factory-Preflight-and-Methods-Manual.md):

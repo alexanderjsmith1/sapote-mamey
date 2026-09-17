@@ -18,9 +18,9 @@ N=$(ps -eo command | grep nr_rid_runner | grep -v grep | grep -v caffeinate | wc
 echo "   => $N lane(s) alive"
 
 echo "-- QUEUE (pending 'to submit', from each lane's latest RUN start) --"
-for base in _NR_RID _NR_CLUSTER_RID _NR_RID_PRIORITY3 _NR_CLUSTER_RID_BULK \
-            _NR_RID_CODEX100_s1 _NR_RID_CODEX100_s2 _NR_RID_CODEX100_s3 _NR_RID_CODEX100_s4 \
-            _NR_CLUSTER_RID_CODEX100_s1 _NR_CLUSTER_RID_CODEX100_s2 _NR_CLUSTER_RID_CODEX100_s3 _NR_CLUSTER_RID_CODEX100_s4; do
+for ledger in "$BR"/*/_ledger.csv; do
+  [ -f "$ledger" ] || continue
+  base=$(basename "$(dirname "$ledger")")
   L="$BR/$base/_run.log"
   [ -f "$L" ] || { printf "   %-24s (no log yet)\n" "$base"; continue; }
   last=$(grep "RUN start" "$L" | tail -1)
@@ -29,7 +29,7 @@ done
 
 echo "-- ERRORS (last 30 min across all lanes) --"
 errs=0
-for L in "$BR"/_NR*/_run.log; do
+for L in "$BR"/*/_run.log; do
   [ -f "$L" ] || continue
   e=$(awk -v cutoff="$(date -v-30M '+%Y-%m-%d %H:%M')" '
     /RUN end|0 failed\/expired/ {next}                       # skip benign summary lines

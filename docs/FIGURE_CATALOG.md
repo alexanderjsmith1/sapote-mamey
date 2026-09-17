@@ -60,11 +60,11 @@ Emitted to the cohort output dir. Each PNG has a sidecar CSV of its underlying v
 - **F08 AT_extender_heatmap** — PKS AT extender-unit selection × strain.
 - **F09 transporter_family_heatmap** — transporter families × strain (export / resistance).
 - **F10 regulator_TF_heatmap** — regulator / transcription-factor families × strain.
-- **F11 domain_clustermap_top40** — top-40 domains clustered across strains (dendrogram both axes).
-- **F12 active_site_completeness** — active-site completeness across the cohort.
-- **F13 bgc_domain_pca_2d** — BGCs in domain-profile PCA space.
-- **F14 bgc_pca_by_cluster** — the same PCA coloured by cluster.
-- **F15 strain_ordination_2d** — strains ordinated by mean BGC domain profile (extended fig3 is the per-BGC scatter complement).
+- **F11 active_site_completeness** — active-site completeness across the cohort. The separately named `F11_domain_clustermap_top40` is held until domain-token source classes and overlap semantics are bound; a HOLD JSON is emitted instead of its artwork.
+- **F12 bgc_pca_by_cluster** — BGCs coloured by architecture cluster.
+- **F13 strain_ordination_2d** — strains ordinated by mean BGC domain profile. Inspect the rendered layout; the three-strain review exposed a label/legend and footer/axis collision. The separately named `F13_bgc_domain_pca_2d` needs a hash-bound cohort manifest and independent denominator registry; absent these, its HOLD JSON is the result, not a figure.
+
+The historical F11–F15 list conflated design names with emitted file IDs. When citing a panel, use the actual filename and receipt, and do not treat a HOLD file as artwork.
 
 ---
 
@@ -85,8 +85,10 @@ Auto-emitted by `cohort-figures` (default; `--no-extended` to skip) and regenera
 - **fig8 boundary_profile** — interior / edge / full-contig BGCs per strain: the assembly-quality lens on every count.
 - **fig9 domain_cooccur** — domain co-occurrence matrix (pooled cohort); which biosynthetic modules travel
   together. Diagonal = domain frequency. **Every domain defined in the caption glossary.**
-- **fig10 resistance_map** — BGCs per strain by self-resistance tier (T1/T2 = potency tell); % in caption.
-- **fig11 tta_profile** — BGCs per strain by strongest bldA/TTA dependency (T1 = likely gated/cryptic = activation candidate); % in caption.
+- **fig10 resistance_map** — BGCs per strain by source-derived resistance-related tier; counts only.
+  The annotation does not measure compound potency or confirm self-protection.
+- **fig11 tta_profile** — BGCs per strain by TTA burden tier (T1 = zero; T4 = six or more);
+  counts only, with explicit unknown and not-applicable bins. Expression is unmeasured.
 
 ---
 
@@ -95,9 +97,9 @@ Some metrics appear in more than one tier by design (a per-strain heatmap in Tie
 count-based cut in Tier 3):
 - **census** → F01 (Tier 2) = fig1 (Tier 3, no tier strip).
 - **CCTT** → F05 (metric × strain heatmap) vs fig7 (BGCs carrying each).
-- **resistance** → F06 (signal heatmap) vs fig10 (per-strain stacked BGC counts, potency framing).
+- **resistance** → F06 (signal heatmap) vs fig10 (per-strain stacked BGC counts).
 - **strain layout** → F15 (strain ordination) vs fig3 (per-BGC size/richness scatter).
-Prefer the Tier-3 cut when you want counts and the potency/novelty/gating framing; prefer Tier 2 when you
+Prefer the Tier-3 cut when you want counts by source-derived tier; prefer Tier 2 when you
 want the fine-grained family × strain matrix.
 
 ## Companion (external) — BiG-SCAPE GCF network

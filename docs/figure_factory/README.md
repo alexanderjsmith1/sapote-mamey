@@ -1,6 +1,6 @@
 # Figure Factory guides
 
-Start with the [aggregate rendering guide](../FIGURE_FACTORY_NEXT.md) for configuration,
+Start with the [aggregate rendering guide](../FIGURE_FACTORY_NEXT.md) for a runnable synthetic example, configuration,
 commands, output files, and R restyling. The [preflight and methods manual](../../wiki/Figure-Factory-Preflight-and-Methods-Manual.md)
 covers figure-specific checks. [Optional gallery tools](../OPTIONAL_FIGURE_FACTORY_TOOLS.md)
 preview themes and components.

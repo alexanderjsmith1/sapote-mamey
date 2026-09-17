@@ -6,9 +6,11 @@ You do not need to read the entire docs directory to run an analysis. It contain
 |---|---|
 | Install and run one input | [Master Walkthrough](MASTER_WALKTHROUGH.md), [INSTALL](INSTALL.md) |
 | Understand results and evidence | [Reading your results](READING_YOUR_RESULTS.md), [Glossary](GLOSSARY.md) |
+| Understand how evidence becomes a claim | [Evidence and interpretation white paper](INGEST_AND_PRINCIPLES_WHITEPAPER.md) |
 | Diagnose a problem | [Troubleshooting](COMMON_MISTAKES.md) |
 | Reopen, move or archive results | [Files, storage and handoff](FILES_STORAGE_AND_HANDOFF.md) |
 | Understand an optional tool | [Companion Tool Guide](COMPANION_TOOL_GUIDE.md) |
+| Compare gene-cluster families across a cohort | [BiG-SCAPE cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md), [troubleshooting](troubleshooting/BIGSCAPE_TROUBLESHOOTING.md) |
 | See actual offline examples | [Type Strain walkthroughs](TYPE_STRAIN_WALKTHROUGHS.md) |
 | Find a specialist workflow | [Current Docs Index](../CURRENT_DOCS_INDEX.md) |
 | Look up a command | [Generated command catalog](COMMAND_CATALOG.generated.md), then the installed command's help |

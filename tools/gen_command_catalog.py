@@ -38,6 +38,7 @@ GROUPS: list[tuple[str, str, tuple[str, ...]]] = [
       # carries the claim-safety footer, not a plot.
       "layperson",
       "emit-modeb-cards", "emit-modeb-template", "emit-strain-modeb", "modeb-availability", "modeb-blastp",
+      "unmatched-gene-addendum",
       "modeb-gene-first", "build-bgc-drafts", "claim-safety", "class-believability")),
     ("Evidence channels (BLASTp / MIBiG / BiG-SCAPE)", "Optional deeper evidence; every channel stays a separate lane.",
      ("tool-database-inspect", "ingest-blastp", "ingest-blastp-trove", "blastp-status", "blastp-online", "blastp-ebi", "blastp-round",
@@ -50,8 +51,9 @@ GROUPS: list[tuple[str, str, tuple[str, ...]]] = [
       "split-overmerge-cards", "compound-families", "p450-tailoring", "assembly-line", "discover", "explore",
       "compare", "activity-leads", "activity-lead-genes", "cddr-pks", "directed-pks-study",
       "wise-fragmented-pks")),
-    ("Phylogeny", "Use `phylo-autopilot` for 16S routing and EPA-ng placement; use `phylo-run` for an "
-     "approved GToTree/IQ-TREE genome workflow.", ("phylo-run", "phylo-autopilot", "ani", "signoff")),
+    ("Phylogeny", "Use `phylo-autopilot` for 16S routing and EPA-ng placement, optional `phylo-mlsa` "
+     "for a reviewed antiSMASH assembly sequence and local genome panel, or `phylo-run` for an approved "
+     "GToTree/IQ-TREE genome workflow.", ("phylo-run", "phylo-mlsa", "phylo-autopilot", "ani", "signoff")),
     ("Workflow, receipts, catalogs", "Non-destructive status and lookups.",
      ("workflow", "deliverables", "deliverable-queue", "ingest-receipts", "validate-finished-review-request", "list-bgcs", "literature", "lookup", "search",
       "lab-quest",
@@ -117,7 +119,7 @@ def render() -> str:
              "## Recommended front doors", "",
              "Most users can stay on this path: `start` for orientation, `inspect` then `run` for extraction, "
              "`validate` for the package gate, `discover` and `explore` for review, `render-all-figures` for "
-             "the applicable figure suite, `phylo-autopilot` or `phylo-run` for tree workflows, `mode-b` for "
+             "the applicable figure suite, `phylo-autopilot`, optional `phylo-mlsa`, or `phylo-run` for tree workflows, `mode-b` for "
              "the interpretation scaffold, and `workflow` for status. The catalog below includes specialist "
              "commands so they remain discoverable; aliases are folded into their canonical command row.", ""]
     for title, blurb, names in GROUPS:

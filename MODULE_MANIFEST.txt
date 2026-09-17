@@ -66,6 +66,7 @@ mamey/blastp_followup.py	Iterative BLASTP result ingestion and follow-up batch p
 mamey/blastp_gate.py	blastp_gate.py — BLASTp-completeness HARD gate (.344).
 mamey/blastp_ingest.py	blastp_ingest.py (v9.7.163) — ingest NCBI BLASTp output into B5_BLASTp_Hits.
 mamey/blastp_online.py	blastp_online — the missing runner + interpreter for the NCBI web BLASTp channel.
+mamey/blastp_strain_db.py	Build per-strain BLASTp databases from a read-only cohort or strain store.
 mamey/boundary_audit.py	mamey.boundary_audit — enforce the deterministic↔judgment contract on real data (W4/W23).
 mamey/boundary_palette.py	boundary_palette.py — single source of truth for BGC boundary-tier colours.
 mamey/canonical_write_guard.py	canonical_write_guard.py — refuse to silently overwrite a canonical dated deliverable.
@@ -291,6 +292,7 @@ mamey/prior_report_corpus.py	Parse prior report corpora into source-bound, non-a
 mamey/privacy_profile.py	Portable, user-owned strain privacy profiles.
 mamey/project_catalog.py	Portable catalog and private-handoff utilities for multi-strain projects.
 mamey/project_registry.py	Generic strain privacy, genome-state, and bioassay-scope registry.
+mamey/protein_signature.py	Content-addressed protein FASTA signatures for assembly and query provenance.
 mamey/rare_motif.py	Rare-motif BGC detection — cross-strain.
 mamey/raw_antismash_triage.py	raw_antismash_triage.py — guided pre-extraction genome triage (new, v9.7.233).
 mamey/recovery_status.py	Recovery/package status semantics.
@@ -343,6 +345,7 @@ mamey/tool_database_reader.py	Manifest-bound read-only inspection, separate from
 mamey/tool_database_session.py	Candidate session extension of tool_database_reader; no new registry.
 mamey/tree_heatmap_panel.py	Tree-aligned quantitative heatmap panel — Figure Factory × phylogenomics integration.
 mamey/two_pathway.py	two_pathway.py — gene-only multi-pathway detection (v9.7.127).
+mamey/unmatched_gene_addendum.py	Build a post-seal evidence packet for genes sparsely represented in named BGC references.
 mamey/validate.py	(no docstring)
 mamey/validators/__init__.py	Sapote-Mamey research patch namespace.
 mamey/validators/modeb_full20.py	Canonical prose-first Full Mode B §1–§20 validator.

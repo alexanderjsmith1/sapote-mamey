@@ -97,7 +97,7 @@ def recent_errors(logpath, now):
 
 def newest_result_hit():
     """open the newest result CSV; return (path, n_rows, sample) or (None,0,None)."""
-    files = glob.glob(os.path.join(BR, "_NR_*RID*", "results", "*", "_gap",
+    files = glob.glob(os.path.join(BR, "*", "results", "*", "_gap",
                                    "_gap_blastp_top10*.csv"))
     if not files:
         return None, 0, None
@@ -136,7 +136,7 @@ def main():
     # ledger: last fetch + today's fetched
     last_fetch = None
     fetched_today = 0
-    for led in glob.glob(os.path.join(BR, "_NR_*RID*", "_ledger.csv")):
+    for led in glob.glob(os.path.join(BR, "*", "_ledger.csv")):
         try:
             rows = list(csv.DictReader(open(led)))
         except Exception:

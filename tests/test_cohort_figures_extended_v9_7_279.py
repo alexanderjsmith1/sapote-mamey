@@ -8,6 +8,7 @@ import pytest
 from mamey.cohort_figures_extended import (
     _discover_strains,
     _strain_bar_width,
+    fig_tta_profile,
     generate_extended,
 )
 
@@ -57,3 +58,27 @@ def test_strain_bar_width_scales_for_dense_cohort_without_dropping_members():
     assert _strain_bar_width(["AS-001", "AS-002"]) == 9.0
     dense = [f"AS-{i:03d}" for i in range(50)]
     assert _strain_bar_width(dense) == pytest.approx(20.5)
+
+
+def test_tta_profile_uses_source_tier_direction_and_preserves_missing(tmp_path):
+    root = tmp_path / "runs"
+    sid = "AS-001"
+    _mini_package(root, sid)
+    gene_csv = root / sid / "package" / f"{sid}_gene_by_gene_all_bgcs.csv"
+    with gene_csv.open(newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    rows[0]["bldA_tta_tier"] = "T1"
+    rows[1]["bldA_tta_tier"] = "T4"
+    missing = dict(rows[0], bgc_id="BGC002", bldA_tta_tier="")
+    with gene_csv.open("w", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=GENE_HEADER)
+        writer.writeheader()
+        writer.writerows([*rows, missing])
+    out = tmp_path / "figs"
+    out.mkdir()
+    fig_tta_profile(str(root), [sid], str(out))
+    with (out / "fig11_tta_profile_data.csv").open(newline="") as fh:
+        counts = {row["bldA_tta_tier"]: int(row["n_bgcs"]) for row in csv.DictReader(fh)}
+    assert counts["T4 high (6+)"] == 1
+    assert counts["T1 no TTA detected"] == 0
+    assert counts["unknown / missing"] == 1

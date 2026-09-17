@@ -19,7 +19,10 @@ import mamey.blastp_availability as ba
 
 def _stub_nothing_available(monkeypatch):
     monkeypatch.setattr(ba._g, "discover_trove_roots", lambda pkg: {})
-    monkeypatch.setattr(ba._g, "available", lambda strain, roots: {})
+    monkeypatch.setattr(
+        ba._g, "availability_expectations",
+        lambda package, strain, roots: ({}, [], []),
+    )
     monkeypatch.setattr(ba._g, "ingested", lambda pkg: {})
 
 
@@ -46,7 +49,10 @@ def test_render_table_shows_na_not_100_percent_v97396(tmp_path, monkeypatch):
 
 def test_genuine_partial_coverage_still_computes_a_real_fraction_no_regression_v97396(tmp_path, monkeypatch):
     monkeypatch.setattr(ba._g, "discover_trove_roots", lambda pkg: {})
-    monkeypatch.setattr(ba._g, "available", lambda strain, roots: {"nr": {"BGC001": {}, "BGC002": {}}})
+    monkeypatch.setattr(
+        ba._g, "availability_expectations",
+        lambda package, strain, roots: ({"nr": {"BGC001": {}, "BGC002": {}}}, [], []),
+    )
     monkeypatch.setattr(ba._g, "ingested", lambda pkg: {"BGC001": {"nr"}})
     runs = tmp_path / "runs" / "AS-001" / "package"
     runs.mkdir(parents=True)

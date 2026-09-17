@@ -16,7 +16,7 @@ import sys
 _STRAIN = re.compile(r"\b(?:AS|AJS|SID|PENDING)-?\d+\b", re.I)
 # Case-insensitive: `bgc016`/`Bgc016` are the same citation as `BGC016` and must not silently
 # bypass the guard (mirrors the mamey/bgc_citation_gate.py fix — same root-cause bug).
-_BGC = re.compile(r"\bBGC\d+\b", re.I)
+_BGC = re.compile(r"\bBGC(?!0\d{5,})\d+\b", re.I)
 _NODE = re.compile(r"NODE_\d+|\bctg\d+_\d+\b|\bregion\d{1,3}\b|\bcontig\b", re.I)
 # only police files that look like a Mode B report/review/card deliverable
 _TARGET = re.compile(r"(mode.?b|modeb|AF_AB|review|report|leads|shortlist|card)", re.I)

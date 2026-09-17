@@ -17,7 +17,7 @@ import re
 _STRAIN_RE = re.compile(r"\b(?:AS|AJS|SID|PENDING)-?\d+\b", re.I)
 # a specific BGC label (BGC012) — NOT the bare word "BGCs". Case-insensitive: `bgc016`/`Bgc016`
 # are the same citation as `BGC016` and must not silently bypass the gate.
-_BGC_RE = re.compile(r"\bBGC\d+\b", re.I)
+_BGC_RE = re.compile(r"\bBGC(?!0\d{5,})\d+\b", re.I)
 # any token that ties the label back to the assembly.
 # v9.7.401 (BC2): the last alternative was a bare `\bcontig\b` -- matched the generic NOUN
 # "contig" with no accompanying number, so a decoy sentence that merely mentions the word

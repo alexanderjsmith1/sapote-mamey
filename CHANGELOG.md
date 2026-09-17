@@ -1,4 +1,20 @@
+# v9.7.433 · 2026-09-17 · build 20260917v97433b · engine 1.9.167 · CODE
+
+Accretion-justified: unmatched_gene_addendum.py — opt-in unmatched-gene review packets retained from v9.7.432.
+Accretion-justified: blastp_strain_db.py — optional per-strain BLASTp database export bound to the selected package CDS roster, with source aliases retained and channel coverage kept separate.
+Accretion-justified: protein_signature.py — optional FASTA sequence-and-gene signature comparison for assembly-aware BLASTp provenance; does not admit hits without query receipts.
+
+- **BLASTp snapshot and current-locus binding:** one consistent SQLite backup per cohort batch, typed held rows, explicit source-strain mapping, and separate nr, ClusteredNR, and Swiss-Prot coverage.
+- **Assembly protein signatures:** compare gene-labelled protein hashes and sequence multisets before relating saved query sets to a current package; result-to-query receipts remain required for BLASTp admission.
+- **BiG-SCAPE guarded MIBiG route:** the one-command pipeline uses the guarded launcher with a positive loaded-reference count and exact run-ID propagation; unproven chunked runs refuse.
+- **User workflows and handoffs:** repaired guidance for BLASTp, BiG-SCAPE, MLSA, and assistant-to-assistant evidence transfer; current owner edits and external pilots remain review items.
+
+- MIBiG pipeline dispatch uses the guarded `-m` launcher; unproven chunked multi-call clustering refuses before writing.
+- The CODE archive carries version/build stamps, checksums, and extracted-artifact validation. Biological interpretation requires separate review.
+
 # v9.7.432 · 2026-09-15 · build 20260915v97432a · engine 1.9.166
+
+Accretion-justified: unmatched_gene_addendum.py — opt-in, post-seal review packets expose genes sparsely represented in selected named-BGC references while preserving separate nr and ClusteredNR evidence lanes and requiring human functional adjudication.
 
 - **Landing and guide docs in plain voice:** rewrite README, MASTER_WALKTHROUGH, READING_YOUR_RESULTS, INSTALL, FILES_STORAGE_AND_HANDOFF, the Quick Guide, the User Manual and the concepts Q&A for a reader opening the repo cold; session-diary prose, round names and assistant-as-actor wording removed from the current docs; factual corrections to tier names, figure file names, flags and environment variables checked against the code; user guides tidied.
 - **Tree figures are a required default, in two label variants:** `tools/render_tree_COLOR_STRIPS.R` (core-genome panels) and `tools/render_placement_COLOR_STRIPS.R` (16S placements) ship as the only sanctioned tree renderers; each renders both the concise and the experiment-ID figure when run without a variant. `tools/build_placement_panel_inputs.py` turns a gated EPA-ng display tree, the owner query table, the deposited-metadata resolution and reviewed collection values into the renderer inputs with a per-cell provenance table and an omitted-tips receipt; `phylo_place.py report` calls it and writes `COLOR_STRIPS_NOT_RENDERED.txt` with the exact reason when an input is missing.

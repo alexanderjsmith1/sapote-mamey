@@ -49,6 +49,22 @@ def test_gene_clusterblast(tmp_path):
     assert "Gene-based ClusterBlast" in b and "examplomycin" in b
 
 
+def test_gene_clusterblast_labels_mixed_antismash_references(tmp_path):
+    pkg = _pkg(tmp_path)
+    with (pkg / "S_4A2_ClusterBlast_per_gene.csv").open("w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(["bgc_id", "query_gene", "pct_identity", "reference", "reference_source"])
+        writer.writerow(["BGC001", "g1", "70", "NZ_CP011492", "complete genome"])
+        writer.writerow(["BGC001", "g2", "60", "BGC0000809.3", "AT2433-A1"])
+    block = ms.gene_clusterblast(pkg, "BGC001")
+    heading = next(line for line in block.splitlines() if line.startswith("####"))
+    column = next(line for line in block.splitlines() if line.startswith("| reference"))
+    assert "antiSMASH reference channel" in heading
+    assert "MIBiG reference channel" not in heading
+    assert "reference (accession / cluster)" in column
+    assert "NZ_CP011492" in block and "BGC0000809.3" in block
+
+
 def test_genus_from_crosswalk(tmp_path, monkeypatch):
     # manifest is generic -> must fall back to the crosswalk. Point the module's data dir logic at
     # a temp crosswalk by writing one next to the real bundle data is not possible here, so assert

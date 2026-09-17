@@ -2,8 +2,8 @@
 
 *Choose by label, name, or plain-language request. This document is generated from `mamey/data/deliverables_registry.json`; do not edit it by hand.*
 
-**Bundle:** Sapote-Mamey v9.7.432  
-**Engine:** Mamey 1.9.166  
+**Bundle:** Sapote-Mamey v9.7.433  
+**Engine:** Mamey 1.9.167  
 **Required exact-locus display:** `strain / full node-or-contig / region / BGC alias`
 
 > Similarity is not identity; capacity is not production; missing or unbound evidence is not biological absence. Gate success verifies encoded checks, not biological identity, activity, novelty, acceptance, or publication readiness.

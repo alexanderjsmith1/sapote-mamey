@@ -1140,14 +1140,34 @@ def emit_modeb_template_command(args) -> int:
 
     bgc = getattr(args, "bgc", None)
     batch = bool(getattr(args, "batch", False))
+    selection_error = None
     if not bgc and not batch:
-        emit("ERROR: either --bgc <BGC_ID> or --batch is required",
-              file=sys.stderr)
+        selection_error = "ERROR: either --bgc <BGC_ID> or --batch is required"
+    elif bgc and batch:
+        selection_error = "ERROR: --bgc and --batch are mutually exclusive"
+    if selection_error:
+        emit(selection_error, file=sys.stderr)
         return 2
-    if bgc and batch:
-        emit("ERROR: --bgc and --batch are mutually exclusive",
-              file=sys.stderr)
-        return 2
+
+    # Emit has no verification JSON receipt, so surface the same typed package-
+    # version finding once at this CLI door before writing a template. Verify
+    # and ingest carry it in their structured findings instead.
+    manifest_path = pkg / "manifest.json"
+    if manifest_path.is_file():
+        from .authored_verify import (
+            _CONTEXT_FINDINGS_KEY as _VERSION_FINDINGS_KEY,
+            _check_package_workflow_version,
+            _read_context_json,
+        )
+        version_context: dict = {}
+        manifest = _read_context_json(version_context, manifest_path, role="package manifest")
+        if manifest is not None:
+            _check_package_workflow_version(version_context, manifest, manifest_path)
+        for finding in version_context.get(_VERSION_FINDINGS_KEY, []):
+            emit(f"{finding['severity']}: {finding['code']}: {finding['message']}",
+                 file=sys.stderr)
+            if finding["severity"] == "ERROR":
+                return 1
 
     # v9.7.344 BLASTp-completeness HARD gate: BLASTp ingestion is a MANDATORY step before Mode B
     # authoring. Refuse (exit 3) if ingestable BLASTp is available on disk but not ingested, unless
@@ -1161,7 +1181,7 @@ def emit_modeb_template_command(args) -> int:
     if _bp["blocked"]:
         emit(_bp["message"], file=sys.stderr)
         return 3
-    if _bp["waived"]:
+    if _bp["message"]:
         emit(f"  {_bp['message']}", file=sys.stderr)
 
     if bgc:

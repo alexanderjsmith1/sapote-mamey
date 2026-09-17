@@ -24,8 +24,10 @@ from mamey.antismash_evidence import DIAGNOSTIC_TIGRFAM  # noqa: E402
 # TIGRFAMs deliberately referenced but NOT extracted. Each needs a reason. Empty this as you resolve them.
 KNOWN_NOT_EXTRACTED = {
     # architecture_first.py uses these for pathway classification, not extraction
-    "TIGR02109",  # mycofactocin radical SAM — architecture_first marker, not Mamey extraction
-    "TIGR03962",  # ranthipeptide — architecture_first marker, not Mamey extraction
+    "TIGR02109",  # PQQ PqqE radical SAM (antiSMASH PQQ_syn_pqqE) — architecture_first marker, not Mamey extraction
+    "TIGR03962",  # mycofactocin MftC radical SAM (antiSMASH mycofact_rSAM) — architecture_first marker, not Mamey extraction
+    "TIGR03967",  # mycofactocin MftB (antiSMASH mycofact_MftB) — architecture_first marker (v9.7.432), not Mamey extraction
+    "TIGR04085",  # SPASM-family model; named in architecture_first comments as NON-diagnostic (occurs in both ranthipeptide and mycofactocin) — not a marker, not extracted
     "TIGR00543",  # chorismate binding — architecture_first siderophore marker
     # singleton_filter.py references these as housekeeping-blocklist classification stems (v9.7.116),
     # never for extraction — they identify primary-metabolism families to DOWN-WEIGHT in the singleton

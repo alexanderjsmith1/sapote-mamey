@@ -1,144 +1,115 @@
-# FIGURES_START_HERE — how to make Sapote–Mamey figures (read before plotting anything)
+# Make and review Mamey figures
 
-**Current bundle:** Sapote–Mamey v9.7.432 · Mamey engine 1.9.166 (see `BUILD_STAMP.txt`; this line is checked by
-`tools/seal_sweep.py`).
+Sapote–Mamey v9.7.433 · Mamey engine 1.9.167
 
-**If you are about to hand-write matplotlib for a Sapote–Mamey figure: stop and read this first.**
-The bundle already has the figure you want, with a stable ID, an exact data source, and a locked
-house style. Re-inventing it produces an off-palette one-off that breaks the coherent set.
+Sapote-Mamey has several figure routes with **different input contracts**. Start with
+the question you want to show, then choose a route below. A finished image is
+not a validated biological interpretation: keep the plotted values, source
+identity, denominator, methods, and any missingness or assembly warning with it.
 
-## The 30-second map
-1. **Catalog of every figure:** `prompts/figure_prompts/_INDEX.md` — the named figures
-   (cohort / per_strain / novelty / ecological / tables) + the deliverable-map recipes. Each row
-   names the figure ID and its exact `figure_ready/` data source.
-2. **Global house rules (read once, inherited by all):** `prompts/figure_prompts/FIGURE_CONVENTIONS.md`
-   — palette, legend placement, no-arrows-on-data rule, typography, claim-safe captions.
-3. **How the workflow runs:** `prompts/figure_prompts/HOW_TO_USE.md`.
-4. **Per-figure spec:** open the matching `.md` in `prompts/figure_prompts/<category>/` — it gives
-   the data file, columns, row filter, plot type, suggested caption, and downstream-overlay notes.
+## Choose the route
 
-## The data contract (do this once per cohort/strain set)
-Every figure plots from tidy `figure_ready/*.csv`, NOT from the workbook directly. Generate them:
+| You want to see | Starting input | Command or guide |
+| --- | --- | --- |
+| One strain's BGC inventory or locus maps | A sealed gold package | Open the Mamey Zip and inspect `package/gold_figures/` and `package/locus_maps/`; regenerate a selected set with `render-figures` below. |
+| The same Mamey feature across several strains | One `<strain>/package/` per strain in a runs directory | `cohort-figures` below; [figure catalog](FIGURE_CATALOG.md) explains F, G, D and extended panels. |
+| A manuscript comparison from a master workbook | A checked workbook with strain registry and BGC master sheets | Export `figure_ready/` tables, then follow a [named figure recipe](../prompts/figure_prompts/_INDEX.md). The recipes are specifications, not an automatic renderer. |
+| A custom aggregate evidence-coverage bar chart | Counted metrics TSV plus an explicit cohort manifest | [Aggregate evidence guide](FIGURE_FACTORY_NEXT.md). This specialized route does not read BLASTp databases itself. |
+| A tree or BiG-SCAPE gene-cluster-family panel | Bound tree/database, tips or regions, and matching metadata | [Tree figure grammar](TREE_FIGURE_GRAMMAR.md) or [BiG-SCAPE walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md). Do not derive host metadata from a strain ID. |
+
+Use the bundle's `mamey_run.py` entry point from the extracted code root so the
+local bundled engine is selected. Commands below are templates: replace each
+path with your real input and choose a **new output directory** for review.
+
+## A single Mamey package
+
+First inspect the package's `manifest.json`, `*_1_intake.json`, existing
+`gold_figures/`, and `locus_maps/`. Record the engine/bundle version,
+antiSMASH source, assembly, strain, region identities, and any figure holds.
+Gold runs may already contain many images; you do not need to rerun extraction
+to view them.
+
+To regenerate the standard figure set from the package:
+
+```bash
+python mamey_run.py render-figures --package /path/to/strain/package \
+  --outdir /path/to/new_review/standard --figure-set standard
 ```
-python tools/export_figure_ready.py <master_workbook.xlsx> [figure_ready/]
+
+Other supported sets include `domain-level`, `locus-maps`, `cohort-class`,
+and `mamey-native`. The last two require `--workbook`; check
+`python mamey_run.py render-figures --help` and the workbook's actual
+sheets before using them. An empty Sapote judgment sheet is not an observed
+negative finding.
+
+## Compare several Mamey packages (cross-strain comparison)
+
+The Mamey package outputs are standardized to enable comparative figure generation across the figure suite. 
+
+The cohort command expects a directory containing `<strain>/package/`
+subdirectories. Specify the strains deliberately; do not let an unrelated
+reference package enter the denominator.
+
+```bash
+python mamey_run.py cohort-figures --runs-dir /path/to/checked_runs \
+  --strains STRAIN_A,STRAIN_B,STRAIN_C \
+  --out /path/to/new_review/cohort --series F --no-extended
 ```
-This needs a master workbook with `A2_Strain_Registry`, `A3_Run_Manifest`, and `B1_BGC_Master`
-sheets. (For an ad-hoc 1–2 strain set without that workbook, emit the CSVs by hand to the same
-column contract — see `_INDEX.md` data-source column lists. `tools/plot_examples.py` is the
-reference renderer that proves the CSVs are plot-ready.)
 
-The tidy CSVs: `strain_summary, bgc_inventory, bgc_class_long, class_by_strain, class_prevalence,
-diagnostics_long, other_breakdown, cross_strain_findings`.
+The standard F series contains domain, class, tailoring, resistance, and
+boundary-related panels; `--series G`, `D`, or `all` changes the set.
+Omit `--no-extended` to request the extended panels too. Some panels have
+extra admission requirements: the separately named `F13_bgc_domain_pca_2d`
+needs a hash-bound cohort manifest and an independent denominator registry;
+without these, read its HOLD receipt rather than treating it as an admitted
+BGC PCA. The rendered `F13_strain_ordination_2d` is a different panel and
+still needs visual review. The [catalog](FIGURE_CATALOG.md)
+describes what each panel counts. Verify output sidecar data and captions for
+every figure you use.
 
-## Rendering — two routes
-- **Engine route (preferred, always house-consistent):**
-  `python -m mamey render-figures --package <pkg> --outdir figures/ --top-n 10`
-  and the dedicated builders in `tools/` (see inventory below). The native DAPR/RG-GMCI set reads
-  the master workbook through a schema adapter (coded `A2_/C1_/C2_/D1_` names + legacy fallbacks);
-  if it returns `NO_DATA` the cohort simply hasn't been through a Sapote scoring pass yet (the DAPR
-  lead sheets are still empty scaffolds), which is distinct from a `NO_FIGURES` read failure.
-- **Prompt route (when you want a specific figure or are an LLM):** open the figure's `.md` spec,
-  follow its Data + Plot blocks, inherit `FIGURE_CONVENTIONS.md`. Emit a clean PNG **plus** the
-  companion `_data.csv` and a caption line in a `*_Captions.md`.
-- **Tree figures (required default, colour-strip layout):** two standalone R scripts in `tools/`
-  are the only sanctioned renderers for phylogenetic panels. Each reads plain files from one
-  folder, so a figure can be adjusted by editing the script or the metadata table and re-running.
-  Every panel ships in two label variants: `concise` (organism, strain, accession) and
-  `experiment_id` (the same tips with the owner's experiment or sample identifiers bound to the
-  query rows). Running a script with no variant renders both; that is the default deliverable.
-  Naming one variant renders only that one.
-  - Core-genome (GToTree + IQ-TREE) panels: `Rscript tools/render_tree_COLOR_STRIPS.R <panel_dir> [concise|experiment_id|both]`.
-    The panel folder holds `tree.treefile`, `tree.iqtree` and `figure_metadata.tsv` (one row per
-    tip: label_concise, label_experiment, role, reference_class, source and geography categories,
-    Candida, MRSA).
-  - 16S placement (EPA-ng) panels: run `Rscript render_placement_COLOR_STRIPS.R [concise|experiment_id|both]`
-    from inside the panel folder, which holds `tree_input.newick`, `metadata.tsv` (tip, label,
-    sample_id, role, source_category, geography_category, Candida, MRSA, type_display),
-    `outgroup.txt` and `exclude_tips.txt`. The experiment-ID variant appends `{sample_id}` to
-    each query label.
-  Both scripts share one source and geography palette, draw AS queries in red, put isolation
-  source and geography as colour strips beside the labels, and show assay calls only on query
-  rows exactly as recorded. A tip with no deposited source or geography is omitted and listed,
-  never coloured by guess.
-- **Gene-cluster family figure (tree beside gene arrows):** `python tools/render_gcf_synteny_tree.py
-  --db <bigscape.db> --family <id> --gbk-dir <regions> --gbk-dir <mibig_gbk> --identity <strain>_2_inventory.csv … --out <stem>`
-  (or `--newick` plus `--gbk LABEL:file.gbk`). Rows are labelled `strain / contig / region / BGC alias`
-  from the package inventory, with an identity hold where no alias is bound; arrows are coloured by
-  antiSMASH-derived gene role and neighbouring rows are joined by dotted homology links. Shared genes
-  are homology, never compound identity.
+Do not combine two assemblies under one strain label. Reconcile package
+input hashes, locus identities and bundle versions before comparing counts.
+Edge and full-contig BGCs can inflate apparent class counts relative to
+interior clusters. A heatmap of predicted biosynthetic capacity does not
+establish expressed chemistry or antimicrobial activity.
 
-## The non-negotiable house rules (from FIGURE_CONVENTIONS.md + FIGURE_STYLE.md)
-- **Palette is LOCKED (blues-led):** primary `#2c6fbb` (blue); secondary/categorical green family
-  `#a8ddb5 / #52a878 / #1d6e44`; sequential-ordinal 3-blue ramp `#cfe0f3 / #7fa9d6 / #3a6ea5`;
-  assembly tiers GOOD `#2a9d5a` / MODERATE `#e0a030` / POOR `#cc4444`; heatmaps `viridis`; binary
-  present/absent `Blues`. Orange is retired as a series color. Don't pick your own colors.
-- **Heatmap normalization:** when one row's max is >5× the median row max, default to row-normalized
-  or log1p and say which in the title — a raw-scale heatmap that saturates on one outlier row hides
-  all its other signal.
-- **No arrows, callouts, circles, or interpretive text on the data.** Overlays are added downstream
-  in PowerPoint / BioRender. Interpretation lives in the caption file, never in the PNG.
-- **Legend in white space OUTSIDE the data area** (below the x-axis or right of the plot). Never
-  overlap a legend with bars/points/cells.
-- **Figure = data only; caption carries the claim.** A figure must be re-labelable without a
-  rebuild. Captions are claim-safe: antiSMASH/KCB calls are class-level hypotheses ("candidate",
-  "consistent with"), never assayed chemistry.
-- **Figure IDs:** stable typable IDs (`COHORT-F1`, `DOT-D6`, `HM-…`, `SCAT-S3`); corner-baked ID is
-  catalog/ordering only, manuscript figures carry the ID in the caption (or use a `--catalog` flag).
-- Font DejaVu Sans (title 13 / axis 11 / tick 9 / value 8); top+right spines off; grid alpha 0.25;
-  `savefig.dpi=200` for slides, also emit `.svg`/`.pdf` at 300 for print.
-- Strain axis order = corrected-BGC rank from `strain_summary.csv`, so panels line up across figures.
-- Exclude the universal classes (saccharide, fatty_acid, other, terpene) from shared/novel
-  comparisons unless the figure is specifically about them.
-- File naming: `fig_<slug>.png/.svg/.pdf`, snake_case, stable across runs.
+## Ecological synthesis needs another join
 
-## Full inventory (so nothing stays an easter egg)
-**Prompt library:** `prompts/figure_prompts/` — `_INDEX.md`, `FIGURE_CONVENTIONS.md`, `HOW_TO_USE.md`,
-+ category folders cohort/ per_strain/ novelty/ ecological/ tables/ and deliverable_maps/.
+A Mamey package can have a generic source string such as a rebuild label.
+For a bee/wasp, host or geography comparison, join each exact strain and
+assembly to an independently checked metadata table with an explicit source
+and missingness state. State which strains were included and excluded,
+whether the unit is a strain or BGC, and the denominator for each group.
+Keep an unknown source unknown. The figure prompt library includes an
+[ecological synthesis recipe](../prompts/figure_prompts/deliverable_maps/map_hymenoptera_crossstrain.md);
+it describes a proposed combination of panels, not proof that the metadata
+are bound or the panels are ready for publication.
 
-**Render modules (`mamey/`):** `cohort_figures` (also carries the former `cohort_figures_d`
-dot/bubble series, `cohort_figures_g` rarity/novelty series, `cohort_figure_captions` and the
-`cohort_figures_bridge` auto-fire after a multi-strain run — those four are merged sections of this
-one file, not separate modules), `cohort_figures_extended` (auto-emit companion: census, PKS length,
-archetype, KCB novelty, CCTT, boundary, domain co-occurrence, resistance, TTA/bldA),
-`cohort_class_heatmap`, `cross_strain_figures`, `domain_figures`, `mamey_native_figures` (DAPR/RG-GMCI/
-ecology/completeness set), `master_figure_atlas`, `collection_figures` (metadata-gated),
-`figures_sapote`, `figures_extra`, `figures_split`, `figure_policy`,
-`kcb_locusmap` (v9.7.338 — offline KnownClusterBlast query-vs-MIBiG comparative locus map,
-`figures kcb-locusmap`; PNG + SVG + `_data.csv`, similarity not identity), `bigscape_figures`
-(GCF network + clinker supporting figures).
+## Master-workbook and prompt figures
 
-**Build tools (`tools/`):** `export_figure_ready.py` (make the CSVs — START HERE), `plot_examples.py`
-(reference renderer), `build_figures.py`, `build_overview_figures.py`, `build_panel_figure.py`,
-`build_cross_strain_figures.py`, `build_master_figures.py` (`build_master_figure_atlas.py` was a
-duplicate CLI shim, retired v9.7.213-audit; use this one — *build_bee_wasp_master_figures.py*,
-previously listed here, does not exist anywhere in the tree and has been removed from this list),
-`build_subset_panel.py`, `build_validation_panel.py`, `build_workflow_figure.py`,
-`generate_bgc_atlas.py`, `build_thesis_diagrams.py`, `build_thesis_vignettes.py`.
+Only the workbook-driven prompt route requires the tidy `figure_ready/*.csv`
+export:
 
-**Tests (`tests/`):** the `test_*figure*` / `test_*cohort*` suite guards layout, overlap, label
-safety, CSV schema, and policy — run them after touching any figure code.
+```bash
+python tools/export_figure_ready.py /path/to/master.xlsx /path/to/new_review/figure_ready
+```
 
-## If you are an LLM and the user asks for a figure
-1. Find the closest ID in `_INDEX.md`. Don't invent a new one if a match exists.
-2. If `figure_ready/` is absent, build it (`export_figure_ready.py` or hand-emit the CSV contract).
-3. Open the figure's `.md`, render per its Data/Plot blocks, inherit `FIGURE_CONVENTIONS.md`.
-4. Emit PNG + `_data.csv` + a caption line. Offer the figure by name as a next-step path.
+The exporter reads `A2_Strain_Registry` and `B1_BGC_Master`;
+`A3_Run_Manifest` supplies corrected counts when present. Inspect the
+exported `DATA_DICTIONARY.md`, `strain_summary.csv`,
+`bgc_inventory.csv`, and the individual recipe's required columns.
+Optional diagnostics or cross-strain findings files depend on workbook
+sheets actually present. Do not manufacture missing fields to satisfy a
+plot recipe. [Prompt usage](../prompts/figure_prompts/HOW_TO_USE.md)
+explains how a human or LLM implements a named figure.
 
-## Panel text and metadata integrity
+## Review before manuscript use
 
-Derive titles, captions, sample counts, and role descriptions from the exact panel being
-rendered. Before drawing, require a one-to-one identity join between tree tips and metadata:
-matching counts alone cannot detect a missing tip replaced by an unrelated row. Refuse duplicate,
-missing, or ambiguous labels. Keep the outgroup organism in its normal tip-label grammar and
-state its role and selection evidence in the caption or Methods.
-
-Read metadata through a verified schema. If an older writer uses misleading column names,
-use an explicit versioned adapter and test the writer and renderer together; never infer column
-meaning from position alone. Inspect the rendered figure as well as automated gate receipts.
-
-Reference-density comparisons must report the sampled panel and the statistic's limitations.
-An MRCA at the root makes the intruder count equal to total tips minus marked tips; that count
-alone does not quantify association. Nearest patristic distance is not necessarily a sister
-relationship. Define tie handling and missing branch-length behavior before interpreting nearest-tip
-summaries, and check invariance to Newick tip ordering. A descriptive ratio is not a significance
-test or evidence that an apparent grouping persists beyond the sampled panels.
+For each candidate figure, preserve the input paths and hashes, plotted
+CSV/TSV, code and package version, caption/methods, and a visual proof at
+the intended size. The caption should state the unit, group sizes,
+exclusions, calculation, source of host labels, and limits of the claim.
+Inspect small text and legends for overlap. Use [Figure style](FIGURE_STYLE.md)
+and [preflight and methods](../wiki/Figure-Factory-Preflight-and-Methods-Manual.md)
+for the corresponding figure family. Keep visual QA, mechanical PASS, and
+scientific acceptance distinct.

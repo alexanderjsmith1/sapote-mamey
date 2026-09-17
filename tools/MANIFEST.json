@@ -12,438 +12,6 @@
       "sha256": "6643efa661c271e62571b96023a6f39a913b19dace6a1d77def8989fd2ee9f1d",
       "bytes": 376
     },
-    "__pycache__/_console.cpython-313.pyc": {
-      "sha256": "ded3d5e7909424a5494e6fbfe4a4610fcc682c0f729824cb7141293c896ee3fe",
-      "bytes": 1808
-    },
-    "__pycache__/_phylo16s.cpython-313.pyc": {
-      "sha256": "46bbfb0ef3b776a0faba9a4b6bc558b33c2f6f19509d97a4389b0d76ce269c2d",
-      "bytes": 33634
-    },
-    "__pycache__/_phylo_metadata.cpython-313.pyc": {
-      "sha256": "b1b7af3267610c7059e2125bf1051b5ea6445e1e769ea330997df06cd5a46cc5",
-      "bytes": 7664
-    },
-    "__pycache__/_safe_walk.cpython-313.pyc": {
-      "sha256": "f17f4e1db84ac632b7d567574a14a5749366409959426984e4a7ef657be9eb02",
-      "bytes": 4701
-    },
-    "__pycache__/_tip_label.cpython-313.pyc": {
-      "sha256": "3137dc5cb09c322625a218cbefce2e6e21922b86c3966e4abf2ca3429853d272",
-      "bytes": 493
-    },
-    "__pycache__/_wbio.cpython-313.pyc": {
-      "sha256": "437a1498da66b6c263a4be90d12f1321caa6992581ff3d92a9482e451f929f72",
-      "bytes": 14156
-    },
-    "__pycache__/ani_caption_check.cpython-313.pyc": {
-      "sha256": "19a45ad86c1c340ff3cd0a6f92ec8baf03ada63c0c5b8843a7038d9414a484a3",
-      "bytes": 9216
-    },
-    "__pycache__/archive_leak_scan.cpython-313.pyc": {
-      "sha256": "1d28eaecba6988aca3c4bb4bdd83ad6d9461e48aaa385f3bbb40a91648ea4ac5",
-      "bytes": 21612
-    },
-    "__pycache__/arts_ingest.cpython-313.pyc": {
-      "sha256": "212faaa92ac87e44092bf4d3ead0904860f5d91aa8f854dfa44540b1b790d4d3",
-      "bytes": 17417
-    },
-    "__pycache__/audit_chatgpt_nextpaths_drift.cpython-313.pyc": {
-      "sha256": "6f22a684ac9875614ca43e8c94b4dc0ec1344e6d1f61e961aae20b219c630ee2",
-      "bytes": 5874
-    },
-    "__pycache__/audit_documents_wheelhouse.cpython-313.pyc": {
-      "sha256": "0dc981ffa585d4fd814489e77fdeb5a791b3eded366b76cb38ef575cb1c77cb3",
-      "bytes": 9206
-    },
-    "__pycache__/audit_modeb_support_card.cpython-313.pyc": {
-      "sha256": "22bc0b926fe44850ee5047a0e3137346355b4fd35c35040e83763a275695afdc",
-      "bytes": 15047
-    },
-    "__pycache__/backfill_reference_signatures.cpython-313.pyc": {
-      "sha256": "d53f561d19f611e3b7a79373742b1c239c85fad8eb9cf99af2b445cf387c809f",
-      "bytes": 12933
-    },
-    "__pycache__/bee_review_main_set.cpython-313.pyc": {
-      "sha256": "cbd80878769e4e19f24a64e419069ea16cb0ed09deab429af152e5d838135dda",
-      "bytes": 29242
-    },
-    "__pycache__/bgc_figures.cpython-313.pyc": {
-      "sha256": "e8fdeaba4032fece232d1559dc2f5c8298028eb552425c63c3e95d253c5a9f34",
-      "bytes": 23739
-    },
-    "__pycache__/bgc_neighbor_layer.cpython-313.pyc": {
-      "sha256": "aca91b15bbf758f0769b25015e307ef8caa012e09e3ed8b74ce4cf51ff408355",
-      "bytes": 8167
-    },
-    "__pycache__/bgc_reconcile.cpython-313.pyc": {
-      "sha256": "ddfeb88dcd98559620bb45947cb8a3df00b49d31bde059293f2e2bde105d4802",
-      "bytes": 41817
-    },
-    "__pycache__/bigscape_blastp_novelty.cpython-313.pyc": {
-      "sha256": "979728726bc8bc62a96f20472f9933ad6650c3c40c060d31bd9a6d92b6844fcc",
-      "bytes": 28521
-    },
-    "__pycache__/bigscape_cross_strain.cpython-313.pyc": {
-      "sha256": "0caa18417cb75a67a3f224344972ef5e4718b305f43adbd8b6d9647515239c61",
-      "bytes": 8505
-    },
-    "__pycache__/bigscape_ingest_to_mamey.cpython-313.pyc": {
-      "sha256": "52f0a031cefccd28534b5178198e46b64e3ec258beaca329bbd5efd655853a9b",
-      "bytes": 27025
-    },
-    "__pycache__/bigscape_mibig_anchors.cpython-313.pyc": {
-      "sha256": "6e9678a1b986d1d557c40317af2a98988a4ab3badb82cecdfdcec489b616df04",
-      "bytes": 8807
-    },
-    "__pycache__/blastp_campaign.cpython-313.pyc": {
-      "sha256": "da9286caf26a22efabd7ca8d5feef8292c5d50d8e81233c335b3a5153337080a",
-      "bytes": 14592
-    },
-    "__pycache__/build_bgc_markers.cpython-313.pyc": {
-      "sha256": "c2bb9f858af2edb1af63e0f9c9a5ddc0733d2c217670eea255873b23f91fed4f",
-      "bytes": 11733
-    },
-    "__pycache__/build_card_workbook.cpython-313.pyc": {
-      "sha256": "bf50f5d9a6edd3bd9ed4151ff1c1e67de9129743dbb6516cb159892142ce464d",
-      "bytes": 15530
-    },
-    "__pycache__/build_domain_explorer.cpython-313.pyc": {
-      "sha256": "e5a6e92402cdaae05f7723af5c629b34207bd75a6e96d1466dc3f73d1375862e",
-      "bytes": 21273
-    },
-    "__pycache__/build_domain_matrix.cpython-313.pyc": {
-      "sha256": "cdeed1f59c7bef59e6b6acc1446a58cf63d17c2f0c527185951ea5fa1405ff48",
-      "bytes": 15574
-    },
-    "__pycache__/build_domain_reference.cpython-313.pyc": {
-      "sha256": "ad89f8ace1f2a984d187d182ff35c43a48e9fdbc6f9745aef72810e773812983",
-      "bytes": 12260
-    },
-    "__pycache__/build_first_pass_scans.cpython-313.pyc": {
-      "sha256": "8be23e79989ef9ca4c4773f033766f2e69252a97a0d26af6f1d866f58d7260ed",
-      "bytes": 26383
-    },
-    "__pycache__/build_lead_tiers.cpython-313.pyc": {
-      "sha256": "3bb470f9ece82d43641b255ccba651105f1128ba90d5338f04db5465f7365c1e",
-      "bytes": 13972
-    },
-    "__pycache__/build_mlsa.cpython-313.pyc": {
-      "sha256": "9cab8527facaa3bf0ba0594d60444f9cd55e9fc15137a3f1031de11b94669472",
-      "bytes": 28600
-    },
-    "__pycache__/build_modeb_deepdive.cpython-313.pyc": {
-      "sha256": "24bfd2bda48dd6248ef9e258ee5176dac046b262f5e7195f11d48f51654c245c",
-      "bytes": 31917
-    },
-    "__pycache__/build_novelty_shortlist.cpython-313.pyc": {
-      "sha256": "474ad880e2db5a90b0fa3f7298b0137da8ca08f542b6f978a2d3f7e35bb29087",
-      "bytes": 17095
-    },
-    "__pycache__/build_phylo_panel.cpython-313.pyc": {
-      "sha256": "fab6f99f9158ea8ca80034de7c0578be1431db7deb35be890526f653d8597622",
-      "bytes": 33537
-    },
-    "__pycache__/build_placement_ggtree_inputs.cpython-313.pyc": {
-      "sha256": "5b0980fa42615cd9edbbf3ac33e365905b5da6d6c400218894cd93928bd57e88",
-      "bytes": 72584
-    },
-    "__pycache__/calibration_run.cpython-313.pyc": {
-      "sha256": "525a8566386f60b9d2a8652b76d1f0ba980487bab797f07fb3a9ca5dd4ca31fd",
-      "bytes": 22226
-    },
-    "__pycache__/candidate_census.cpython-313.pyc": {
-      "sha256": "47e2e2a71bda0acdb2c84bb5ef789a2761f6e5f12a1f53d37479edac6a3ea7d0",
-      "bytes": 6346
-    },
-    "__pycache__/check_dangling_refs.cpython-313.pyc": {
-      "sha256": "810262a051920f1d8e30418b28498ab65fc64e8b6012aa54c6bed73b00556727",
-      "bytes": 13784
-    },
-    "__pycache__/check_deliverable_suite.cpython-313.pyc": {
-      "sha256": "2f856bf9b6f8c8f69d6ca6ebb44d96841d2607839be952afc22a54de381bd898",
-      "bytes": 8405
-    },
-    "__pycache__/check_monolith_freshness.cpython-313.pyc": {
-      "sha256": "75a0213e2d82f58c37ed151663af6fcfd764e8b8299341e537d8d7f81f2b4311",
-      "bytes": 7788
-    },
-    "__pycache__/check_provenance_columns.cpython-313.pyc": {
-      "sha256": "addb4173c335317b9958185b587874a3532f260543520355afc686375b8da5d9",
-      "bytes": 10568
-    },
-    "__pycache__/check_registry_ids_unique.cpython-313.pyc": {
-      "sha256": "551578aa81f591ddb662fa840eda535f060f8a25bd9eef276836178dc9ef9aa7",
-      "bytes": 4337
-    },
-    "__pycache__/check_release_manifest.cpython-313.pyc": {
-      "sha256": "a141a31fccc081f6458de25c66cf070beb11ab588ea554b8dc34fdedafba8a9d",
-      "bytes": 17274
-    },
-    "__pycache__/check_tier_parity.cpython-313.pyc": {
-      "sha256": "ee156f72c1a264db2d33f6d475f36c99372fc8ec494cdc0f6ae16909eed91540",
-      "bytes": 16700
-    },
-    "__pycache__/claim_safety_linter.cpython-313.pyc": {
-      "sha256": "17edfae0487acccff2df6e2a15453f65146b71fc6ba12856d83a4001799dda4c",
-      "bytes": 37322
-    },
-    "__pycache__/cluster_brief.cpython-313.pyc": {
-      "sha256": "6f1baed327fe4cd203e91e5e0d25aca4d8e60cf304f9010ddf226235eac420d1",
-      "bytes": 22289
-    },
-    "__pycache__/cohort_concordance_summary.cpython-313.pyc": {
-      "sha256": "61431e18157cc56312b07c7478c98c70b7a2ccf6eaf0470a4457a78a1f9ee75a",
-      "bytes": 10083
-    },
-    "__pycache__/cohort_scoring_version_gate.cpython-313.pyc": {
-      "sha256": "973d4ff55f120959707cae766f39665ce195a8c2480e6a55b8a9518cba8a1664",
-      "bytes": 7595
-    },
-    "__pycache__/comparator_discovery.cpython-313.pyc": {
-      "sha256": "9fadfb41180e95324fca8e2b1e307c1e9b180d2677772c96a0d79e707796e2bb",
-      "bytes": 16531
-    },
-    "__pycache__/comparator_select.cpython-313.pyc": {
-      "sha256": "c24ce49630d053f857cc61f9cb07ae72a0878f856bbd96deb64f1d7e35f30e23",
-      "bytes": 20133
-    },
-    "__pycache__/compilation_gate.cpython-313.pyc": {
-      "sha256": "607d260cc9e2b49265d21714106bd5ef760ed2a4c686b77b71915e463cfc9a95",
-      "bytes": 19017
-    },
-    "__pycache__/cross_strain_denominator_audit.cpython-313.pyc": {
-      "sha256": "b7b4e6653cdf9f363d40cb055153684dac286216d4eac4708a170f0040c90b6f",
-      "bytes": 10945
-    },
-    "__pycache__/cut_audit.cpython-313.pyc": {
-      "sha256": "4d68fa71d5918945cebf1996c1de9b5dc95f807d373c31a184c945d95568ca48",
-      "bytes": 17303
-    },
-    "__pycache__/deliverable_citation_audit.cpython-313.pyc": {
-      "sha256": "977eaa0ea958550ec0daff8e9691e5c9ad25668eee14fd04b3503471d00e8b3d",
-      "bytes": 34430
-    },
-    "__pycache__/determinism_fingerprint.cpython-313.pyc": {
-      "sha256": "37ad986f853ad7b5abd1463a643dc018504f7f5e7944a36245f742fbfc4d4894",
-      "bytes": 40691
-    },
-    "__pycache__/domain_phylo_rescue.cpython-313.pyc": {
-      "sha256": "80337b445ac1d501aba015eef3d232eaaf2b587c3cdff42f0381048ecfded5a5",
-      "bytes": 15005
-    },
-    "__pycache__/evidence_bundle.cpython-313.pyc": {
-      "sha256": "62e3d58b0070499c158f198c9499f5c94996c086e035beb0dd9b6245dc1dfbd8",
-      "bytes": 19646
-    },
-    "__pycache__/evidence_conservation_audit.cpython-313.pyc": {
-      "sha256": "26c51dce15bb270e20b7a247d363d83e9eb11d7dbcc36eed41c6b41c6f79260f",
-      "bytes": 14690
-    },
-    "__pycache__/fetch_mibig_reference.cpython-313.pyc": {
-      "sha256": "15665105d5762b9a094df79ac576a72eb3946352ec09f7e79c56d04d7b73198c",
-      "bytes": 9318
-    },
-    "__pycache__/figure_check.cpython-313.pyc": {
-      "sha256": "20567d50c7633718ea317e659ee25750977eef6085909620f33dc9c443c032e4",
-      "bytes": 10369
-    },
-    "__pycache__/figure_readiness_board.cpython-313.pyc": {
-      "sha256": "7cf49d15adc6f4845bda449b461e624f3c98cb26d311e35a0addefe2c5e96c0e",
-      "bytes": 8286
-    },
-    "__pycache__/fragment_concordance_scorer.cpython-313.pyc": {
-      "sha256": "be103dfbe03ed5af97a25f117a6f4f48821ecbd43b270a284518d50311b25d58",
-      "bytes": 20188
-    },
-    "__pycache__/gate_mutation_probe.cpython-313.pyc": {
-      "sha256": "e2ba198c731d5fb9bee180f81bb5ec4bebbbf4513b47de98f64a075e16043b82",
-      "bytes": 12347
-    },
-    "__pycache__/gen_cut_receipt.cpython-313.pyc": {
-      "sha256": "7d8a2cacb0a41a432d20d807f5d87379486aa4a14b7f6f13173c842b8d48df77",
-      "bytes": 5121
-    },
-    "__pycache__/gen_marker_catalog.cpython-313.pyc": {
-      "sha256": "74bf9df8e48ad7b8e8270e145aa7122c38ca2deb27e0f469b0669a0bc17e8823",
-      "bytes": 8083
-    },
-    "__pycache__/gen_release_manifest.cpython-313.pyc": {
-      "sha256": "3bf125021b3b205f7768d8cb327b62cc93c3ded00470d7e1417bfe37b3bb40e1",
-      "bytes": 28484
-    },
-    "__pycache__/gen_tier_doc.cpython-313.pyc": {
-      "sha256": "03eddb8bbed64210ca1c478b395a43bf5f13b279afbce5cefbd28446ef602f8e",
-      "bytes": 4113
-    },
-    "__pycache__/gen_tools_inventory.cpython-313.pyc": {
-      "sha256": "68c2ae822e6cf48197e9d4ca6db22dfa0a64c4e931ab93d86a8039e6c0a4a39a",
-      "bytes": 37186
-    },
-    "__pycache__/gene_assembly_line.cpython-313.pyc": {
-      "sha256": "c7246b3c02e550a2f3a09f9b987e96674a0ea6ef0eef86900fe17f9b838a28b3",
-      "bytes": 9222
-    },
-    "__pycache__/gene_modeb_enrichment.cpython-313.pyc": {
-      "sha256": "6987a80aa579d35a7d9e001e25cb3eb0035fb5d6dc5ed44c35d6ad309e8a75f4",
-      "bytes": 23755
-    },
-    "__pycache__/generated_surface_ownership.cpython-313.pyc": {
-      "sha256": "a5972bee05e3aa10da005559d4a5b3de631168967c32ee1f2fd82d9ab3f00275",
-      "bytes": 11659
-    },
-    "__pycache__/graft_integrity.cpython-313.pyc": {
-      "sha256": "d2d869c501d76eb969d99ebf7c94464e0de6c5ad31ee32e2364723950bc4df75",
-      "bytes": 8911
-    },
-    "__pycache__/gtotree_execution_gate.cpython-313.pyc": {
-      "sha256": "d00235415012a3647a72dd95dd4efbd1acd2633e96c0581353044bfc5e2c7d2f",
-      "bytes": 27571
-    },
-    "__pycache__/ingest_package.cpython-313.pyc": {
-      "sha256": "8db838e76e2f0144e58108a2e3c02d8b88e82f517506ab9d85acf65c04b708f6",
-      "bytes": 39756
-    },
-    "__pycache__/intake_harness.cpython-313.pyc": {
-      "sha256": "b94e4e7de93c7e4f7c8db0807eac16a11f91d73637e2dd72d951e6486bb58e8c",
-      "bytes": 30437
-    },
-    "__pycache__/kcb_confidence.cpython-313.pyc": {
-      "sha256": "c627977125dacc1222639a25024fec09f30af6fc92e9bf1c9d67374eb8289ed0",
-      "bytes": 5104
-    },
-    "__pycache__/ks_burden_table.cpython-313.pyc": {
-      "sha256": "d0e438e17cdfda6787d70c308d19597fd5503ad77ebe1db6995690080aa9b546",
-      "bytes": 11857
-    },
-    "__pycache__/ladder_test.cpython-313.pyc": {
-      "sha256": "eaea2f0fc7477bb7c0917358eaae29963b1628005027169f4ecb614e41780989",
-      "bytes": 10700
-    },
-    "__pycache__/lead_board.cpython-313.pyc": {
-      "sha256": "388ef2ad6dc673b32a3bc278973d2f18138cfeb982c4bb8b01621d78d6c00f0f",
-      "bytes": 21579
-    },
-    "__pycache__/llm_trustworthiness.cpython-313.pyc": {
-      "sha256": "10b9a8c02ea16d3a3d352cd8a7d23d0e6edc1b7958d599ab33524bc62896df16",
-      "bytes": 14382
-    },
-    "__pycache__/locator_reconciliation.cpython-313.pyc": {
-      "sha256": "4b65cda1c0db0042b5416bf2a6068b202da34b581f16da14e46b5d51879ed739",
-      "bytes": 21489
-    },
-    "__pycache__/log_release.cpython-313.pyc": {
-      "sha256": "3ea523bf2b0cf7666d83bdd4c5f1a8d653b03efdc02855f0fbcb0e6d5ddff891",
-      "bytes": 4815
-    },
-    "__pycache__/mamey_habitat_map.cpython-313.pyc": {
-      "sha256": "7aebe28878880c29ca40919c2b71e1fcd66060d0904b2ee1f73a45fda6f1a1e2",
-      "bytes": 6772
-    },
-    "__pycache__/marker_candidate_search.cpython-313.pyc": {
-      "sha256": "3bee034f8ac61014c4dcbcdebdea8da8ccc8408f4c50250ab54e2490bcc707ba",
-      "bytes": 16164
-    },
-    "__pycache__/mlsa_outgroup_scan.cpython-313.pyc": {
-      "sha256": "b4ffd47f84440798b3008676defe73151c21cfeb6d88b697c26a4dd728a8b743",
-      "bytes": 14416
-    },
-    "__pycache__/modeb_card_diff.cpython-313.pyc": {
-      "sha256": "57801619adadca20640a15c63b5f0251bcf2bdf8a785c29223c33b3a958f929c",
-      "bytes": 11187
-    },
-    "__pycache__/modeb_evidence_gate.cpython-313.pyc": {
-      "sha256": "a51a0f23e32f81e30cbf39717539db5622d2268d8c7d0c42b42d28e147ad7423",
-      "bytes": 17365
-    },
-    "__pycache__/nrps_substrate.cpython-313.pyc": {
-      "sha256": "d1a56874778ab6577a048cbe08bb77cf08b172829d0e03c16190079ab9463912",
-      "bytes": 7485
-    },
-    "__pycache__/phylo_16s_audit_merges.cpython-313.pyc": {
-      "sha256": "f8c89ddd878604566c3bbf6699c586facf5fc42f7ec31aac813d3a29679ed28f",
-      "bytes": 8537
-    },
-    "__pycache__/phylo_16s_build_db.cpython-313.pyc": {
-      "sha256": "6533030f33996812f301b9b35ed68f28c03df20f831962e205643dd79c3bf398",
-      "bytes": 48961
-    },
-    "__pycache__/phylo_16s_esearch.cpython-313.pyc": {
-      "sha256": "64b49a0315596a08dad64850c8ba6d8e4779472ff8398429b2d0266f75a8d16b",
-      "bytes": 13383
-    },
-    "__pycache__/phylo_16s_fetch.cpython-313.pyc": {
-      "sha256": "8d50f9c929285899548e1686367ffdd8c092bd645d577a51c8a4955bb1ac39a5",
-      "bytes": 21388
-    },
-    "__pycache__/phylo_16s_from_genome.cpython-313.pyc": {
-      "sha256": "84b068ab7b13c0ed8883ea1d981115ca473c538392b3757942af9a48215e81ed",
-      "bytes": 12919
-    },
-    "__pycache__/phylo_16s_panel.cpython-313.pyc": {
-      "sha256": "e1016ceb71017fae89342646cfdc094bcc7de3c7ffe6ec694171dc70d48261dc",
-      "bytes": 38044
-    },
-    "__pycache__/phylo_16s_rank.cpython-313.pyc": {
-      "sha256": "f2e7707de4ccc58234aaf32c8274e217811f25b9d81c947b333220fa48583181",
-      "bytes": 21389
-    },
-    "__pycache__/phylo_place.cpython-313.pyc": {
-      "sha256": "b39a77fdf1782f0eb2b80dce97fe9ce7b3ab82e0abb36de6f759fdc88195af43",
-      "bytes": 130966
-    },
-    "__pycache__/phylo_preflight.cpython-313.pyc": {
-      "sha256": "6380726db9e509e061935c9a9ea1d4840f6661d57585f955c90dfe1ecee4cbef",
-      "bytes": 61164
-    },
-    "__pycache__/pks_product_class.cpython-313.pyc": {
-      "sha256": "f5ea4a3519570d63d02c0894a4d0e9af159207f7a3c2d70a43bcb7eb80482f5d",
-      "bytes": 4600
-    },
-    "__pycache__/public_release_audit.cpython-313.pyc": {
-      "sha256": "fc915c041bb8325db414e1987a5d593b143e2fbfec93ac8ebf13a138847a2a7c",
-      "bytes": 42471
-    },
-    "__pycache__/reclass_check.cpython-313.pyc": {
-      "sha256": "3aa2a04bc09da2719d5d7bb8ab1eb102a7fa062f41b2b882e220df5e498cd1d7",
-      "bytes": 11421
-    },
-    "__pycache__/redact_public_tier.cpython-313.pyc": {
-      "sha256": "00066287e0387648a313ded206cd09760624a0840a63f7470def04550ec72a31",
-      "bytes": 19221
-    },
-    "__pycache__/reference_panel_ledger.cpython-313.pyc": {
-      "sha256": "39a4c1471b04b0104aa59fe2b1b746ba1f1ebf92cf53155f8af1d6f0a1c9a335",
-      "bytes": 9476
-    },
-    "__pycache__/sapote_judgment_receipt.cpython-313.pyc": {
-      "sha256": "99607f74ab6603c0fe9486c9ec1ff2fc0621e9df55eb70956f9fc5cee016a5e4",
-      "bytes": 14074
-    },
-    "__pycache__/sapote_md_preflight.cpython-313.pyc": {
-      "sha256": "f908f3560b8417edebd089ed59026d766e217206f4928072203ee94b8bdc4728",
-      "bytes": 7802
-    },
-    "__pycache__/suite_count_census.cpython-313.pyc": {
-      "sha256": "9debeec7cec6d7f6172c1ce6a2a2612a7745f5ccd0535ae9b2bcc4d67e0a3739",
-      "bytes": 13867
-    },
-    "__pycache__/sync_version.cpython-313.pyc": {
-      "sha256": "5d95065ad180bb06e16bee9ccfbb90e3b3687b612900b0686e9ed09b2c76ea46",
-      "bytes": 30051
-    },
-    "__pycache__/tier_vocabulary.cpython-313.pyc": {
-      "sha256": "1976c0fcba202ea1256a5897979e75c72e0f8c0e3db1f749a50986570dea879d",
-      "bytes": 10118
-    },
-    "__pycache__/tip_label.cpython-313.pyc": {
-      "sha256": "1ab361650e22f3023a337dad7cebd24a5526c9d96f2227aeeeeb79fa8e4d04ea",
-      "bytes": 5651
-    },
-    "__pycache__/tracked_file_policy.cpython-313.pyc": {
-      "sha256": "4b092a3e8811d77d45d52e5642d973a848183c5fce917ff3708b69363953f57b",
-      "bytes": 5770
-    },
     "_console.py": {
       "sha256": "f2a2cd71acb94c0250eef733482d6c8dfe13593c356a683c03f04b32479c0491",
       "bytes": 1410
@@ -560,6 +128,10 @@
       "sha256": "e1d29e61deee3be045e31b1feceefd2c1266a04f578368cfdb89e564f95be2fc",
       "bytes": 20187
     },
+    "bigscape_clinker_html.py": {
+      "sha256": "0c8602dca0f40efb654605a1e6983093d0caac493c72b9eb580d56b9fdea1bcb",
+      "bytes": 23950
+    },
     "bigscape_combined_run.py": {
       "sha256": "28059b438a391b5ce8e9f9ea71160678c66abf95e661ddbc4ce140fcd96cd865",
       "bytes": 11298
@@ -572,6 +144,14 @@
       "sha256": "53a582e6dd9c2d99c01e5c4ad13cf97df882794f93b8760e585107df81bb196f",
       "bytes": 8195
     },
+    "bigscape_family_figures.py": {
+      "sha256": "99342578eeea0c8668ba3bf16112338221fc2377cd1fd32e94bd3556625f91b2",
+      "bytes": 10692
+    },
+    "bigscape_family_verdicts.py": {
+      "sha256": "1daa226e1a900a0e5d88c1dd819b60a9ee00b01ff0eb63f778508585e50f0354",
+      "bytes": 7039
+    },
     "bigscape_figure_labels.py": {
       "sha256": "5e113b73ab3c21774d261dda33b946a873c88fa7e63380b3a4829fb38902887e",
       "bytes": 4722
@@ -583,6 +163,10 @@
     "bigscape_known_novel.py": {
       "sha256": "4d0791e26f0b494b8779e87eb9ad74d3cc812df474c0748c696172340d04f4b8",
       "bytes": 5477
+    },
+    "bigscape_launch.sh": {
+      "sha256": "8c73a57b360684154904fd4d76e3f67b937161c0b07f46cd2c3d28f43eb7bc8b",
+      "bytes": 4903
     },
     "bigscape_merge_anchors.py": {
       "sha256": "ec0105d0eadb2ef80028459646c69aee3e29c68ccbe5738686be6ab073ff3a3a",
@@ -597,8 +181,8 @@
       "bytes": 5541
     },
     "bigscape_pipeline.py": {
-      "sha256": "af701a24a2e864725e4a468ba696c4d8b572c1787014dae10eaa87ee6737e7c1",
-      "bytes": 9393
+      "sha256": "9ad94f9b5f241dec238d9bb83bbf1a4955f688ba39058c5e9021c0e4a65faff1",
+      "bytes": 10015
     },
     "bigscape_prep.py": {
       "sha256": "cabd8bc1344e1742a3dec7d87c0a9ff26bf788c175242776435f53d421412636",
@@ -633,40 +217,40 @@
       "bytes": 14503
     },
     "blastp_monitoring/blastp_dashboard.sh": {
-      "sha256": "78f7da24df46f79b6b444d28629b8faefe4baa06e9e46e24a30148f6fa161859",
-      "bytes": 2693
+      "sha256": "33102ce73c5739f017d762cf626cf12a88bc14bb680aaa0dc7d358f37de0387a",
+      "bytes": 2502
     },
     "blastp_monitoring/blastp_health.py": {
-      "sha256": "e83261e999590664e5d485ffd1490e08149c98c95b00a8c2629be3f7b5dddafe",
-      "bytes": 7765
+      "sha256": "467f688000cbafe369d5d75ab73f95d58cf71fb9a6952c6cd0cd89d1a8c19ac4",
+      "bytes": 7749
     },
     "blastp_monitoring/blastp_last_returns.py": {
-      "sha256": "0bbe79acab871a35b96e7978395a372c9b5de7444b3b3cebc0b28b00ae9752b9",
-      "bytes": 5509
+      "sha256": "e80ed3f747476fc993b3f174304e83d270674b5385d95ec103f1754c009a88ad",
+      "bytes": 5493
     },
     "blastp_monitoring/blastp_stop_guard.sh": {
-      "sha256": "f5300f2fd39925d31e546b6b6969d496a3453392ddb05461766e82cae0888a1d",
-      "bytes": 4406
+      "sha256": "ba6370eb131c42ee02ed9e19e78882b656826578b898aa0ba33b33aef63d34f2",
+      "bytes": 4400
     },
     "blastp_monitoring/plot_crawl_12h_15min.py": {
-      "sha256": "b8f5775bbf1b95627ede05b88c401bceec0f438767c10c47bc55d1a7a1a440c4",
-      "bytes": 9253
+      "sha256": "42f7659e28b5cc55df7a7cfef5856f8b4c2c7469222992751693f57af6055539",
+      "bytes": 9237
     },
     "blastp_monitoring/plot_crawl_cumulative.py": {
       "sha256": "7ad95559ff18f3859ed99e62ca79e04927c12a317b936707711fe1188aa89517",
       "bytes": 4650
     },
     "blastp_monitoring/plot_crawl_proteins_24_96h.py": {
-      "sha256": "6c0d31f0cd7749dcc532af506319322bde8c59092668b7aff50adb0216bf3196",
-      "bytes": 9837
+      "sha256": "23ada8a6183037771954539de46f9a352b8fe1a05c16cd345d9f231641b7f8a4",
+      "bytes": 10737
     },
     "blastp_monitoring/plot_crawl_recent.py": {
-      "sha256": "5d61e1275199101c0be3ffe70a5580e71b83b36f88c98215187295710ad25fe4",
-      "bytes": 6657
+      "sha256": "f212f417e1f6f53904aec03ca6888b73a1892f92bebc0421de79a238eaeff84f",
+      "bytes": 8031
     },
     "blastp_monitoring/plot_usable_6h.py": {
-      "sha256": "780b7139e7bc3ce96189a34eca94edd189e85eeb328209fa72d17e6d8cbbd151",
-      "bytes": 4759
+      "sha256": "1273e71eaf1ecc922cfb6fcb005b0e70952b8201727d5023cd77c1274d2f9163",
+      "bytes": 4751
     },
     "build_all_deliverables.sh": {
       "sha256": "b3c4cb6e7e6c0b549ddaaf1be2e678ba24af66898bf58f1ebf6db845b466c89a",
@@ -1204,6 +788,10 @@
       "sha256": "9231632bbe2448d041fd23191cba2fc1f7a3a8d93f3248e816aacddcddb4f97f",
       "bytes": 6853
     },
+    "figure_factory_demo.py": {
+      "sha256": "ac6c28c1aad3e57282f7bc2013f430a683795abbae76d4d0962eb553e605d707",
+      "bytes": 2178
+    },
     "figure_factory_next.py": {
       "sha256": "7893ad552aeb2e502cb45ee5d66f6ef4ab241302bad1674de6fcdf1daa5311bf",
       "bytes": 1413
@@ -1257,8 +845,8 @@
       "bytes": 9528
     },
     "gen_command_catalog.py": {
-      "sha256": "57022dd3bde38d4ec850bb3083d68117710650ab8abba9dafddcf8b379c97780",
-      "bytes": 9548
+      "sha256": "73f8640a15d80c0c9a1a17cda5f12ed404a0c53fec0965b96730ef099e4970ed",
+      "bytes": 9715
     },
     "gen_cut_receipt.py": {
       "sha256": "40c4b2e40d91b1d5a18d9e6e20a6113e51d2a4319c3351482fe5df54f5f93553",
@@ -1568,6 +1156,10 @@
       "sha256": "0f2a654caf0209b02411b6859c6827a951df05ae826fdb0e77f6d294938924c0",
       "bytes": 875
     },
+    "phylo_mlsa_from_antismash.py": {
+      "sha256": "856d9549f401777df1cae2dd06d4846fc9cbaa1028869b71f9e2d30a2fd177f8",
+      "bytes": 12666
+    },
     "phylo_neighborhood_catalog.py": {
       "sha256": "4e78e1ff9ad60e73e0c300ac5e1c96b1134f469205a4c915737e572e2e1645d3",
       "bytes": 8048
@@ -1701,8 +1293,8 @@
       "bytes": 5945
     },
     "refresh_figure_source_manifest.py": {
-      "sha256": "8dd8531a9feacf18f778e243191e1e123b2a1bc86da30ffe813973835fecde44",
-      "bytes": 884
+      "sha256": "399c7d435eb5160445575a3820c487c73abce4b1028cc8265cea73a416039b76",
+      "bytes": 1158
     },
     "refresh_literature_atlas.py": {
       "sha256": "88503b9cfe63ce93d50be2645730d86ee2d480de8eec787d18767ed6f07e9c96",
@@ -1761,8 +1353,8 @@
       "bytes": 1182
     },
     "render_gcf_synteny_tree.py": {
-      "sha256": "1b1c3aefb1065c14a447e41fbc08c3dd7e0d951ecb38507c858bf3794e86d957",
-      "bytes": 18698
+      "sha256": "6c0b06f814c9d664bf4019d2090751efd068a3c2009012a190be2720ba3ce586",
+      "bytes": 27577
     },
     "render_placement_COLOR_STRIPS.R": {
       "sha256": "7aa27389e3e335a397a7702a4c052de15379883606b57a5819207cb5029120d0",
@@ -1789,8 +1381,8 @@
       "bytes": 10321
     },
     "repo_health.py": {
-      "sha256": "8fcec07f26d78e54a1a57071a61badb0577f069b899ff3739612366933925945",
-      "bytes": 39447
+      "sha256": "140b5ab8307f50173ac02f15c546158106c32ad80476e9e9987bbdcf3ff71c88",
+      "bytes": 40072
     },
     "reroot_postflight_receipt.py": {
       "sha256": "8b6ad66a62ecf0cef8c5278c5e936eddae17aeae11c4bc4c72f5b76a54950ae3",

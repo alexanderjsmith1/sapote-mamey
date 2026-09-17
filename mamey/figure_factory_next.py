@@ -214,11 +214,17 @@ def _render(rows: list[dict[str, Any]], output: Path, title: str, profile: str) 
     width = PUBLICATION_PROFILES[profile]["width_in"]
     height = max(3.4, 0.62 * len(rows) + 1.8)
     wrap = 34 if profile == "SINGLE_COLUMN" else 68
-    labels = [textwrap.fill(
-        ("sensitivity | " if row["group_kind"] == "SENSITIVITY" else "")
-        + f"{row['cohort']} | {row['genus']} | {row['channel']} | {row['metric']}",
-        width=wrap, break_long_words=False,
-    ) for row in rows]
+    common_metric = len({row["metric"] for row in rows}) == 1
+    labels = []
+    for row in rows:
+        parts = []
+        if row["group_kind"] == "SENSITIVITY":
+            parts.append("Sensitivity")
+        parts.extend((row["cohort"].replace("_", " ").title(), row["genus"],
+                      row["channel"].replace("_", " ")))
+        if not common_metric:
+            parts.append(row["metric"].replace("_", " "))
+        labels.append(textwrap.fill(" · ".join(parts), width=wrap, break_long_words=False))
     colors = [COHORT_PALETTE[row["cohort"]] for row in rows]
     fig, axis = plt.subplots(figsize=(width, height), layout="constrained")
     positions = list(range(len(rows)))
@@ -227,28 +233,56 @@ def _render(rows: list[dict[str, Any]], output: Path, title: str, profile: str) 
     axis.set_yticks(positions, labels=labels, fontsize=8)
     axis.tick_params(axis="x", labelsize=8)
     axis.invert_yaxis(); axis.set_xlim(0, 115); axis.set_xticks([0, 20, 40, 60, 80, 100])
-    axis.set_xlabel("Observed / declared denominator (%)", fontsize=8)
-    axis.set_title(title, fontsize=9); axis.grid(axis="x", color="#D9E1E8", linewidth=0.8)
+    axis.set_xlabel("Observed / declared\ndenominator (%)" if profile == "SINGLE_COLUMN"
+                    else "Observed / declared denominator (%)", fontsize=8)
+    axis.set_title(textwrap.fill(title, width=18 if profile == "SINGLE_COLUMN" else 55,
+                                 break_long_words=False), fontsize=9)
+    axis.grid(axis="x", color="#D9E1E8", linewidth=0.8)
     annotations = []
     for position, row in zip(positions, rows):
         annotations.append(axis.text(min(row["percent"] + 1, 103), position,
                                      f"{row['numerator']}/{row['denominator']}",
                                      va="center", fontsize=8))
+    # Place state marks after text has been measured in display coordinates. A
+    # fixed data-unit offset overlaps wider ratios such as 6/10 at 60%.
+    fig.canvas.draw(); renderer = fig.canvas.get_renderer()
+    marker_clearances = []
+    for position, row, annotation in zip(positions, rows, annotations):
         marker = "D" if row["assembly_flagged_metric_rows"] else (
             "x" if row["assembly_default_off_metric_rows"] else None)
+        if marker is None:
+            continue
+        text_right = annotation.get_window_extent(renderer=renderer).x1
+        center_y = axis.transData.transform((0, position))[1]
+        marker_x = min(113, max(row["percent"] + 9,
+                                axis.transData.inverted().transform((text_right + 12, center_y))[0]))
+        marker_left = axis.transData.transform((marker_x, position))[0] - 5
+        clearance = marker_left - text_right
+        if clearance < 2:
+            raise ValueError("FIGURE_MARKER_TEXT_OVERLAP: state mark touches a ratio label")
+        marker_clearances.append(round(clearance, 3))
         if marker == "D":
-            axis.scatter([min(row["percent"] + 9, 111)], [position], marker=marker,
+            axis.scatter([marker_x], [position], marker=marker,
                          s=26, facecolors="none",
                          edgecolors="#D55E00", linewidths=1.1, zorder=4)
         elif marker == "x":
-            axis.scatter([min(row["percent"] + 9, 111)], [position], marker=marker,
+            axis.scatter([marker_x], [position], marker=marker,
                          s=26, color="#D55E00", linewidths=1.1, zorder=4)
     fig.canvas.draw(); renderer = fig.canvas.get_renderer()
+    for item in (axis.title, axis.xaxis.label):
+        box = item.get_window_extent(renderer=renderer)
+        if box.x0 < -0.5 or box.x1 > fig.bbox.width + 0.5:
+            raise ValueError(f"FIGURE_HEADING_CLIPPED: {item.get_text()!r} "
+                             f"bounds {box.x0:.1f}..{box.x1:.1f} outside 0..{fig.bbox.width:.1f}")
     boxes = _boxes(list(axis.get_yticklabels()), renderer, "yticks") + _boxes(annotations, renderer, "annotations")
     layout = validate_layout_rectangles(
         boxes, canvas_width_px=fig.bbox.width, canvas_height_px=fig.bbox.height,
         minimum_gap_px=0.5,
     )
+    layout["marker_text_clearance"] = {
+        "status": "PASS", "marked_rows": len(marker_clearances),
+        "minimum_px": min(marker_clearances) if marker_clearances else None,
+    }
     tick_boxes = _boxes(
         list(axis.get_xticklabels()) + list(axis.get_yticklabels()),
         renderer,

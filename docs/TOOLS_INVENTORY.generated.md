@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**370 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**376 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -35,12 +35,16 @@
 | `bgc_reconcile.py` | pre-authoring cross-channel evidence reconciliation ledger. |
 | `bgc_reference_align.py` | bgc_reference_align.py -- align one BGC's proteins against characterized reference clusters |
 | `bigscape_blastp_novelty.py` | Gene-level protein-homology context against a user-provisioned MIBiG GBK set. |
+| `bigscape_clinker_html.py` | clinker-style within-family gene alignment pages (HTML, optional PDF) from a BiG-SCAPE 2 DB. |
 | `bigscape_combined_run.py` | Sapote-Mamey BiG-SCAPE combined-run tool |
 | `bigscape_cross_strain.py` | Write a deterministic, qualified cross-strain BiG-SCAPE GCF table. |
 | `bigscape_family_domains.py` | bigscape_family_domains.py |
+| `bigscape_family_figures.py` | batch gene-cluster-family figures from a BiG-SCAPE 2 database. |
+| `bigscape_family_verdicts.py` | region-accurate family verdicts from a finished BiG-SCAPE 2 database. |
 | `bigscape_figure_labels.py` | bigscape_figure_labels.py -- canonical node-category labels/colours for BiG-SCAPE figures. |
 | `bigscape_ingest_to_mamey.py` | bigscape_ingest_to_mamey.py -- write BiG-SCAPE GCF context INTO the Mamey layer. |
 | `bigscape_known_novel.py` | Write qualified KNOWN/NOVEL GCF rows from one explicitly selected BiG-SCAPE run. |
+| `bigscape_launch.sh` | run BiG-SCAPE 2 on a staged region-GBK folder with the guards a cohort run needs. |
 | `bigscape_merge_anchors.py` | Validate qualified anchor/base rows, then atomically classify base GCFs. |
 | `bigscape_mibig_anchors.py` | Emit qualified per-run, per-cutoff MIBiG anchoring edges. |
 | `bigscape_mibig_batches.py` | split the MIBiG reference set into small, prokaryote-filtered |
@@ -193,6 +197,7 @@
 | `fetch_mibig_reference.py` | turn a MIBiG accession into a reference GBK from the PUBLIC repo. |
 | `fetch_reference_cluster.py` | reconstruct a cluster GenBank from the BiG-SCAPE DB or NCBI. |
 | `figure_check.py` | HARD pre-render gate for tree FIGURES (the render inputs), sibling to |
+| `figure_factory_demo.py` | Stage an explicitly synthetic, hash-bound Figure Factory example. |
 | `figure_factory_next.py` | Render receipt-bound aggregate evidence figures from an external data root. |
 | `figure_methods.py` | reusable, versioned METHODS-CAPTION library for Sapote-Mamey figure tools. |
 | `figure_readiness_board.py` | Report repair-spec binding and figure-receipt readiness states. |
@@ -274,6 +279,7 @@
 | `phylo_16s_validate_db.py` | Read-only validator for a 16S SQLite store: reports the two data-defect classes filed in |
 | `phylo_autopilot.py` | one front door for "upload 16S and/or genomes -> gated trees". |
 | `phylo_display_contract.py` | Shared, fail-closed display contract for EPA-ng and marker-tree renderers. |
+| `phylo_mlsa_from_antismash.py` | Offer a five-locus MLSA screen from a verified antiSMASH assembly. |
 | `phylo_neighborhood_catalog.py` | Split one EPA-ng placement run into reproducible species-neighborhood subruns. |
 | `phylo_outgroup_gate.py` | Evaluate outgroup and ingroup pairwise alignment identity with explicit missingness. |
 | `phylo_place.py` | reference-backbone phylogenetic PLACEMENT of query 16S (or protein) sequences. |

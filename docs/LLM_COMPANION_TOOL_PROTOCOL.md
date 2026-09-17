@@ -17,6 +17,8 @@ data-disclosure scope and resource ceiling still match. Show updated preflight e
 again only when those conditions materially change or approval explicitly expires. Resource
 defaults below can be replaced by the user's explicitly approved budget, not by agent inference.
 
+For cross-assistant requests, use [the general handoff workflow](INTER_AGENT_HANDOFF_WORKFLOW.md) and [its template](../prompts/INTER_AGENT_HANDOFF_TEMPLATE.md); this run protocol adds the external-tool receipts.
+
 ## The first rule: resume before rediscovering
 
 An agent entering an existing workspace must read, in this order:
@@ -54,7 +56,7 @@ Each companion workspace has one lightweight current pointer and immutable run d
 Input objects are keyed by SHA-256. A friendly filename is a view, never the identity of an object.
 The manifest records original path, archive member when applicable, byte size, SHA-256, strain,
 and biological locator. Never join by a bare BGC number. For BGC regions use
-`(strain, bgc_id, contig·region)`; for genomes use assembly SHA-256 plus the displayed strain label.
+`strain / full node-or-contig / region / BGC alias`; for genomes use assembly SHA-256 plus the displayed strain label.
 
 ## Mandatory preflight shown to the user
 
@@ -133,7 +135,7 @@ look clean; exclude it by explicit completed run ID.
 
 ## Routing
 
-- BiG-SCAPE execution: `docs/BIGSCAPE_GCF_WORKFLOW.md`
+- BiG-SCAPE execution: `docs/BIGSCAPE_GCF_WORKFLOW.md`; [cohort walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md) for the end-to-end run and [troubleshooting](troubleshooting/BIGSCAPE_TROUBLESHOOTING.md) for common failures
 - Cohort GCF interpretation: `docs/SOPs/SOP-17_CrossStrain_GCF_Cohort.md`
 - GToTree, MLSA, ANI, and IQ-TREE: `docs/phylogenomics.md`
 - Optional tool detection and installation: `docs/companion_tools.md`

@@ -54,40 +54,45 @@ together (the PKS block co-occurs; the NRPS block co-occurs; carrier/transport d
 
 ---
 
-## fig10 — Self-resistance marker map per strain
-BGCs per strain classified by **source-derived resistance tier** (the strongest-signal tier present in
-the cluster). The **potency tell** is a T1 or T2 marker: a cluster that encodes defence against its own
-product is more likely to make a genuinely bioactive compound, so these rank higher for follow-up.
+## fig10 — Resistance-related source signals per strain
+BGCs per strain classified by the highest-priority resistance-related tier recorded among their genes
+(T1 before T2 before T3). The panel counts annotation signals; it cannot establish the product's
+target, antimicrobial activity, potency, or a causal self-protection mechanism.
 
-- **T1 — self-protection (source-derived):** a diagnostic self-resistance determinant (e.g. a duplicated
-  or modified copy of the compound's own cellular target) co-located in the cluster. Strongest potency tell.
+- **T1 — diagnostic self-protection candidate:** a source-derived diagnostic resistance group near
+  the cluster. Verify class concordance and gene context before assigning a mechanism.
 - **T2 — resistance-like (source-derived):** a resistance-associated function present but not a clear-cut
   target-duplication self-protection call.
 - **T3 — transporter-only routing:** an efflux/transport function only (e.g. ABC/MFS pump); consistent with
   export but not, on its own, a self-protection signal.
-- **no resistance signal:** no source-derived resistance determinant detected.
+- **no resistance signal:** no qualifying tier recorded in the supplied per-gene table.
 
-"% potency-signal" = fraction of the strain's BGCs with a T1 **or** T2 marker (this session: AS-XXX 24%,
-AS-XXX 11%, AS-XXX 11%, AS-XXX 4%). All calls are capacity signals (mechanism present/absent), not
-confirmed phenotype.
+The generated chart and CSV contain **counts**, not a percentage. If reporting a percentage, calculate
+`100 × (T1 + T2 BGCs) / (all BGCs with rows in this figure's per-gene input)` for each strain and
+state that denominator. This is the fraction with annotated resistance-related signals, not a
+measure of potency or confirmed resistance. Missing gene rows can change the denominator.
 
 ---
 
-## fig11 — TTA / bldA regulatory-dependency profile per strain
-BGCs per strain classified by their **strongest bldA/TTA dependency tier** (the lowest = most-dependent
-tier across the cluster's genes). A TTA (Leu) codon is decoded efficiently only when the *bldA*-encoded
-tRNA is charged, which in streptomycetes happens mainly during development — so TTA-dependent clusters are
-often **silent under standard growth** and are candidates for activation.
+## fig11 — TTA burden tier per strain
+BGCs per strain classified by their highest recorded TTA tier. The source scan assigns tiers from
+the **BGC-wide count of TTA codons in CDS**: T1 is zero; T2 is one or two; T3 is three to five;
+T4 is six or more. A TTA count can motivate follow-up of translational regulation in an
+applicable actinomycete, but this figure cannot establish transcription, protein abundance,
+silencing, or induction conditions.
 
-- **T1 — strongest dependency:** TTA codon(s) in core/essential cluster genes; expression is expected to be
-  tightly bldA-gated (most likely silent under standard conditions → highest-priority activation candidate).
-- **T2 — moderate dependency:** TTA codon(s) present in cluster genes, less central than T1.
-- **T3 — weak dependency:** limited/peripheral TTA involvement.
-- **T4 — negligible / none:** no meaningful TTA/bldA dependency detected.
+- **T1:** no TTA codons detected in BGC CDS.
+- **T2:** one or two TTA codons detected.
+- **T3:** three to five TTA codons detected.
+- **T4:** six or more TTA codons detected.
+- **unknown / missing:** no recognized tier in the per-gene input.
+- **not applicable:** source scan explicitly declined a bldA tier for a non-actinomycete.
 
-The tier is the **minimum** (strongest) tier across the cluster's genes. "% strongly gated" = fraction at
-T1 (this session: AS-XXX 37%, AS-XXX 32%, AS-XXX 55%, AS-XXX 63%). Capacity/regulatory signal, not a
-measured expression level.
+The renderer takes the **maximum recognized tier** among per-gene rows for a BGC. These rows
+repeat a BGC-wide source-scan tier, so disagreement among its rows warrants source-data review.
+The chart and CSV contain counts, not percentages; if reporting a T4 fraction, divide T4 by all
+BGCs represented in the input for that strain, including unknown/not-applicable bins, and give
+both numerator and denominator. Interpret not-applicable separately.
 
 ---
 

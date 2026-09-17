@@ -42,9 +42,10 @@ def strain_availability(package: str | Path, strain: str, trove_roots: dict | No
     overlay from being displayed as ``0`` merely because its source trove is elsewhere.
     """
     roots = trove_roots if trove_roots is not None else _g.discover_trove_roots(package)
-    avail = _g.available(strain, roots)
+    avail, reconciliation, receipt_summaries = _g.availability_expectations(package, strain, roots)
     have = _g.ingested(package)
-    rec = {"strain": strain, "channels": {}}
+    rec = {"strain": strain, "channels": {}, "source_reconciliation": reconciliation,
+           "rekey_receipt_summaries": receipt_summaries}
     total_missing = 0
     for ch in CHANNELS:
         a = set(avail.get(ch, {}).keys())

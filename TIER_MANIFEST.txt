@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.432 stamp=20260915v97432a
+# TIER_MANIFEST tier=code version=9.7.433 stamp=20260917v97433b
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -120,6 +120,7 @@
 ./docs/BGC_DELIVERABLES.md
 ./docs/BGC_FIGURES.md
 ./docs/BGC_size_by_type.md
+./docs/BIGSCAPE_COHORT_WALKTHROUGH.md
 ./docs/BIGSCAPE_FIGURES.md
 ./docs/BIGSCAPE_GCF_WORKFLOW.md
 ./docs/BIGSCAPE_MAMEY_INTEGRATION.md
@@ -211,6 +212,7 @@
 ./docs/INSTALL.md
 ./docs/INSTRUCTIONS_cohort_wide_blastp.md
 ./docs/INTAKE_BATCH_AND_SMALL_N_DIRECTIVES.md
+./docs/INTER_AGENT_HANDOFF_WORKFLOW.md
 ./docs/ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md
 ./docs/KCB_SCORE_PROVENANCE.md
 ./docs/LAB_QUEST.md
@@ -278,6 +280,7 @@
 ./docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md
 ./docs/PREREQUISITES.md
 ./docs/PREVALENCE_WORKFLOW.md
+./docs/PRODUCT_MAP.md
 ./docs/PROJECT_DATA_HOME.md
 ./docs/PROJECT_NAMING.md
 ./docs/PROPOSED_IMPLEMENTATION_RESIDUE_AWARE_BATCHING.md
@@ -474,6 +477,7 @@
 ./docs/status/workflow_status_detailed_PRIVATE.svg
 ./docs/status/workflow_status_matrix_PRIVATE_data.csv
 ./docs/troubleshooting/ANTISMASH_INPUT_WORKFLOW.md
+./docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md
 ./docs/troubleshooting/CELL_STATUS_CODE_GLOSSARY.md
 ./docs/troubleshooting/DIAMOND_DATA_WORKFLOW.md
 ./docs/troubleshooting/HMMER_DATA_WORKFLOW.md
@@ -509,6 +513,8 @@
 ./examples/document_rendering/assets/synthetic_phylogeny.png
 ./examples/document_rendering/build_fixture_images.py
 ./examples/fermentation_card_exemplar.md
+./examples/figure_factory/aggregate_metrics.synthetic.tsv
+./examples/figure_factory/cohort_manifest.synthetic.tsv
 ./examples/figure_factory/three_channel_evidence_matrix.synthetic.json
 ./examples/figure_factory/three_channel_evidence_matrix.synthetic.tsv
 ./examples/judgment_18strain/Lit_Verification_DAPR_New_Leads.md
@@ -666,6 +672,7 @@
 ./mamey/blastp_gate.py
 ./mamey/blastp_ingest.py
 ./mamey/blastp_online.py
+./mamey/blastp_strain_db.py
 ./mamey/boundary_audit.py
 ./mamey/boundary_palette.py
 ./mamey/canonical_write_guard.py
@@ -949,6 +956,7 @@
 ./mamey/privacy_profile.py
 ./mamey/project_catalog.py
 ./mamey/project_registry.py
+./mamey/protein_signature.py
 ./mamey/rare_motif.py
 ./mamey/raw_antismash_triage.py
 ./mamey/recovery_status.py
@@ -1001,6 +1009,7 @@
 ./mamey/tool_database_session.py
 ./mamey/tree_heatmap_panel.py
 ./mamey/two_pathway.py
+./mamey/unmatched_gene_addendum.py
 ./mamey/validate.py
 ./mamey/validators/__init__.py
 ./mamey/validators/modeb_full20.py
@@ -1022,6 +1031,7 @@
 ./prompts/CHATGPT_TASK_BRIEF_TEMPLATE.md
 ./prompts/CLAUDE_SYSTEM_PROMPT.md
 ./prompts/FULL_RUN_PROFILE.md
+./prompts/INTER_AGENT_HANDOFF_TEMPLATE.md
 ./prompts/MAMEY_CHATGPT_EXECUTION_PROMPT.md
 ./prompts/NODE_REGION_SELF_CHECK_PROMPT.md
 ./prompts/RUN_DIAGNOSIS_PROMPT.md
@@ -1271,6 +1281,7 @@
 ./tests/test_bgc_reconcile.py
 ./tests/test_bgc_report_builder.py
 ./tests/test_bgc_report_builder_source_availability.py
+./tests/test_bigscape_433_family_verdicts_and_clinker.py
 ./tests/test_bigscape_blastp_novelty_v9_7_391.py
 ./tests/test_bigscape_bughunt_v9_7_294.py
 ./tests/test_bigscape_chunk_cli.py
@@ -1284,7 +1295,9 @@
 ./tests/test_bigscape_locator_dotted_coverage_v9_7_285.py
 ./tests/test_bigscape_mapping.py
 ./tests/test_bigscape_mibig_batches.py
+./tests/test_bigscape_mibig_loaded_guard_v97433.py
 ./tests/test_bigscape_namespace_guard.py
+./tests/test_bigscape_pipeline_mibig_route_v97433.py
 ./tests/test_bigscape_pipeline_run_id_v97392.py
 ./tests/test_bigscape_prep_exclusions_v97412.py
 ./tests/test_bigscape_reference_strain_resolution_v97412.py
@@ -1325,6 +1338,7 @@
 ./tests/test_blastp_manual_context_failure_v97412.py
 ./tests/test_blastp_manual_length_conflict_v97412.py
 ./tests/test_blastp_monitoring_err_re_parity_bc2_398.py
+./tests/test_blastp_monitoring_lane_discovery_433.py
 ./tests/test_blastp_novelty_workflow_doc.py
 ./tests/test_blastp_online.py
 ./tests/test_blastp_online_locator_similarity_v9_7_293.py
@@ -1332,6 +1346,7 @@
 ./tests/test_blastp_overlay_write_path.py
 ./tests/test_blastp_rollup_merges_same_day_v97416.py
 ./tests/test_blastp_store_importers.py
+./tests/test_blastp_strain_db_v97433.py
 ./tests/test_blastp_stub_guards.py
 ./tests/test_blastp_trove_defline_v9_7_340.py
 ./tests/test_blastp_trove_locus_rekey_v97432.py
@@ -1611,6 +1626,7 @@
 ./tests/test_domain_tree.py
 ./tests/test_domain_tree_contract_v97406.py
 ./tests/test_domain_workbook_v9789.py
+./tests/test_domains_csv_description_v97432.py
 ./tests/test_dualpass_ledger.py
 ./tests/test_duplicate_dict_key_gate.py
 ./tests/test_duplicate_dict_key_gate_coverage_v97395.py
@@ -2078,6 +2094,7 @@
 ./tests/test_phylo_metadata_display_contract_v97426.py
 ./tests/test_phylo_metadata_georgia_display_v97431.py
 ./tests/test_phylo_metadata_gut_collision_v97430.py
+./tests/test_phylo_mlsa_antismash_offer_v97433.py
 ./tests/test_phylo_neighborhood_catalog_v97428.py
 ./tests/test_phylo_outgroup_rank_guard_v97406.py
 ./tests/test_phylo_place_audit_followon_v97412.py
@@ -2127,6 +2144,7 @@
 ./tests/test_project_data_home_initializer_v97429.py
 ./tests/test_project_registry.py
 ./tests/test_promiscuity_cap_v9749.py
+./tests/test_protein_signature_v97433.py
 ./tests/test_protocluster_breakdown.py
 ./tests/test_prov01_engine_version_on_bgc_rows.py
 ./tests/test_provenance_columns_gate_v97218.py
@@ -2189,6 +2207,7 @@
 ./tests/test_reference_source_request_notice.py
 ./tests/test_reference_strain_registry_v97406.py
 ./tests/test_reform_scorer_stays_removed.py
+./tests/test_refresh_figure_source_manifest_cache_v97433.py
 ./tests/test_regen_modeb_contract_docs.py
 ./tests/test_register_compute_output.py
 ./tests/test_registry_formalization.py
@@ -2449,6 +2468,7 @@
 ./tests/test_trees_432_reference_metadata_resolver_tls_and_silent_row_errors.py
 ./tests/test_trees_432_run_planned_tree_incompatible_with_gtotree_v2.py
 ./tests/test_trees_432_shipped_outgroup_registry_stale_vs_official_ruling.py
+./tests/test_trees_433_gcf_synteny_tree_layers_and_pruning.py
 ./tests/test_triage_protocluster_columns.py
 ./tests/test_trigger_routing_handback_v97147.py
 ./tests/test_two_pathway.py
@@ -2457,6 +2477,7 @@
 ./tests/test_typed_contract_codes_exit_as_refusals_v97421.py
 ./tests/test_typed_reporting_fallbacks.py
 ./tests/test_umed_gap_flag.py
+./tests/test_unmatched_gene_addendum_v97433.py
 ./tests/test_user_catalog_generator.py
 ./tests/test_user_doc_citation_provenance_v97136.py
 ./tests/test_v191_contract.py
@@ -2562,12 +2583,16 @@
 ./tools/bgc_reconcile.py
 ./tools/bgc_reference_align.py
 ./tools/bigscape_blastp_novelty.py
+./tools/bigscape_clinker_html.py
 ./tools/bigscape_combined_run.py
 ./tools/bigscape_cross_strain.py
 ./tools/bigscape_family_domains.py
+./tools/bigscape_family_figures.py
+./tools/bigscape_family_verdicts.py
 ./tools/bigscape_figure_labels.py
 ./tools/bigscape_ingest_to_mamey.py
 ./tools/bigscape_known_novel.py
+./tools/bigscape_launch.sh
 ./tools/bigscape_merge_anchors.py
 ./tools/bigscape_mibig_anchors.py
 ./tools/bigscape_mibig_batches.py
@@ -2723,6 +2748,7 @@
 ./tools/fetch_mibig_reference.py
 ./tools/fetch_reference_cluster.py
 ./tools/figure_check.py
+./tools/figure_factory_demo.py
 ./tools/figure_factory_next.py
 ./tools/figure_factory_next_ggplot.R
 ./tools/figure_methods.py
@@ -2814,6 +2840,7 @@
 ./tools/phylo_autopilot.py
 ./tools/phylo_display_contract.py
 ./tools/phylo_display_palette.tsv
+./tools/phylo_mlsa_from_antismash.py
 ./tools/phylo_neighborhood_catalog.py
 ./tools/phylo_outgroup_gate.py
 ./tools/phylo_place.py

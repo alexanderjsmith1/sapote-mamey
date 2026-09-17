@@ -1195,7 +1195,7 @@ def compile_report_command(args) -> int:
     if _bp["blocked"]:
         emit(_bp["message"], file=sys.stderr)
         return 3
-    if _bp["waived"]:
+    if _bp["message"]:
         emit(f"  {_bp['message']}", file=sys.stderr)
     md = build_report(pkg, generate_figures=not getattr(args, "no_figures", False),
                       toc_depth=int(getattr(args, "toc_depth", 1)))

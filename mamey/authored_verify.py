@@ -33,6 +33,7 @@ from typing import Any
 
 from .bgc_guide import verify_authored_guide
 from .modeb_structure_gate import lint_card
+from . import __version__ as _ENGINE_VERSION
 
 # a deliverable whose filename claims to be a Mode B card
 _MODEB_NAME_RE = re.compile(r"mode[\s_\-]?b", re.IGNORECASE)
@@ -111,6 +112,37 @@ def compact_verify_summary_lines(findings: list[dict[str, Any]]) -> list[str]:
 
 
 _CONTEXT_FINDINGS_KEY = "_verification_context_findings"
+_WORKFLOW_VERSION_RE = re.compile(r"(?:Mamey\s+)?v?(\d+)\.(\d+)\.(\d+)")
+
+
+def _check_package_workflow_version(ctx: dict[str, Any], manifest: dict,
+                                    source: Path) -> None:
+    """Report an older package in the same typed channel as other verify findings."""
+    if "workflow_version" not in manifest:
+        return  # The field is optional in older minimal manifests.
+    raw = manifest["workflow_version"]
+    match = _WORKFLOW_VERSION_RE.fullmatch(raw.strip()) if isinstance(raw, str) else None
+    engine = _WORKFLOW_VERSION_RE.fullmatch(_ENGINE_VERSION)
+    if match is None or engine is None:
+        _record_context_finding(
+            ctx, code="VERIFICATION_CONTEXT_MALFORMED", source=source,
+            role="package manifest workflow version")
+        return
+    package_parts = tuple(map(int, match.groups()))
+    engine_parts = tuple(map(int, engine.groups()))
+    if package_parts < engine_parts:
+        finding = {
+            "severity": "WARN",
+            "code": "PACKAGE_WORKFLOW_VERSION_OLDER",
+            "section": None,
+            "message": (
+                f"Package workflow version {raw.strip()} is older than engine {_ENGINE_VERSION}; "
+                "verify evidence bindings before using this result."
+            ),
+        }
+        findings = ctx.setdefault(_CONTEXT_FINDINGS_KEY, [])
+        if finding not in findings:
+            findings.append(finding)
 
 
 def _record_context_finding(ctx: dict[str, Any], *, code: str, source: Path,
@@ -386,6 +418,8 @@ def _bgc_context_from_package(package: str | None, bgc: str | None, _cross: bool
             role="triage context merge")
     man = pkg / "manifest.json"
     _manifest = (_read_context_json(ctx, man, role="package manifest") if man.exists() else None)
+    if _manifest is not None:
+        _check_package_workflow_version(ctx, _manifest, man)
     _manifest_rows = (_manifest_bgc_rows(ctx, _manifest, man)
                       if _manifest is not None else None)
     if not any(k in ctx for k in ("kcb_top", "KCB_top")) and _manifest is not None:

@@ -21,17 +21,11 @@ AUTHORITATIVE_VERSION_RE = re.compile(
     r"\*\*Authoritative bundle version:\*\*\s*`([0-9]+\.[0-9]+\.[0-9]+)`",
     re.IGNORECASE,
 )
-CANDIDATE_STATUS_RE = re.compile(
-    r"\*\*Candidate status:\*\*\s*(.+)",
+ARTIFACT_STATUS_RE = re.compile(
+    r"\*\*Artifact status:\*\*\s*(.+)",
     re.IGNORECASE,
 )
 VERSION_LITERAL_RE = re.compile(r"\bv[0-9]+\.[0-9]+\.[0-9]+\b")
-UNSIGNED_RE = re.compile(
-    r"not\s+a\s+signed\s+public\s+release|not\s+signed\s+release",
-    re.IGNORECASE,
-)
-
-
 def _load_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -58,10 +52,10 @@ def _package_bundle_version(text: str) -> str:
 def _manifest_contract(text: str) -> tuple[str, str]:
     bundle_match = BUNDLE_VERSION_RE.search(text)
     authority_match = AUTHORITATIVE_VERSION_RE.search(text)
-    status_match = CANDIDATE_STATUS_RE.search(text)
+    status_match = ARTIFACT_STATUS_RE.search(text)
     assert bundle_match, "RELEASE_MANIFEST.md lacks the bundle-version anchor"
     assert authority_match, "RELEASE_MANIFEST.md lacks the authoritative-version anchor"
-    assert status_match, "RELEASE_MANIFEST.md lacks the candidate-status anchor"
+    assert status_match, "RELEASE_MANIFEST.md lacks the artifact-status anchor"
     assert bundle_match.group(1) == authority_match.group(1)
     return bundle_match.group(1), status_match.group(1).strip()
 
@@ -70,8 +64,8 @@ def _assert_front_door_contract(text: str, version_locator: str, status_locator:
     match = STATUS_LINE_RE.search(text)
     assert match, "front door lacks the governed status line"
     status_line = match.group("body")
-    assert "controlled quality-recheck candidate" in status_line
-    assert UNSIGNED_RE.search(status_line)
+    assert "validated software artifact" in status_line
+    assert "signed public release" not in status_line.lower()
     assert version_locator in status_line
     assert status_locator in status_line
     assert VERSION_LITERAL_RE.search(status_line) is None, (
@@ -93,8 +87,8 @@ def _assert_release_status_contract(
     assert manifest_version == canonical_version, (
         "RELEASE_MANIFEST.md must match the canonical bundle version"
     )
-    assert "quality-recheck" in manifest_status.lower()
-    assert UNSIGNED_RE.search(manifest_status)
+    assert manifest_status == "validated CODE archive"
+    assert "signed public release" not in manifest_status.lower()
     _assert_front_door_contract(
         start_here_text,
         "[`pyproject.toml`](pyproject.toml)",
@@ -133,12 +127,12 @@ def test_stale_front_door_and_manifest_agreement_cannot_override_pyproject():
         f"`{stale_version}`",
     )
     stale_start = _load_text(ROOT / "README.md").replace(
-        "This CODE tree",
+        "This CODE archive",
         f"This v{stale_version} CODE tree",
         1,
     )
     stale_guide = _load_text(ROOT / "docs" / "PUBLIC_RELEASE_GUIDE.md").replace(
-        "This CODE tree",
+        "This CODE archive",
         f"This v{stale_version} CODE tree",
         1,
     )
@@ -153,9 +147,9 @@ def test_stale_front_door_and_manifest_agreement_cannot_override_pyproject():
         )
 
 
-def test_signed_or_public_release_language_is_not_admitted():
+def test_unsubstantiated_signed_release_language_is_not_admitted():
     manifest = _load_text(ROOT / "RELEASE_MANIFEST.md").replace(
-        "controlled quality-recheck rebuild; not signed release",
+        "validated CODE archive",
         "signed public release",
         1,
     )

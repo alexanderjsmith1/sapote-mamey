@@ -23,10 +23,10 @@ Usage:
       --pfam /path/Pfam-A.hmm --mibig-dir mibig_gbks/ \
       --workdir bigscape_run/ \
       [--cutoffs 0.3,0.5,0.7] [--cores 1] [--ingest-package MameyPkg/] \
-      [--bigscape /path/to/BiG-SCAPE] [--skip-cluster] [--chunk-mibig 300]
+      [--bigscape /path/to/BiG-SCAPE] [--skip-cluster] [--mibig-name local_set]
 
-Memory note: on a small machine the full MIBiG scan OOMs; pass --chunk-mibig to load references
-in batches (uses bigscape_mibig_batches.py). See BIGSCAPE_MAMEY_INTEGRATION.md.
+Memory note: --chunk-mibig is held until multi-call reference and run identity is proven.
+The MIBiG route uses the guarded bigscape_launch.sh with -m, never -r.
 """
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -115,6 +115,7 @@ def main(argv=None):
     ap.add_argument("--inputs", nargs="+", required=True, help="antiSMASH zips and/or Mamey package dirs")
     ap.add_argument("--pfam", required=True)
     ap.add_argument("--mibig-dir", help="dir of MIBiG antiSMASH GBKs (references)")
+    ap.add_argument("--mibig-name", help="explicit BiG-SCAPE -m reference slot name")
     ap.add_argument("--workdir", default="bigscape_run")
     ap.add_argument("--cutoffs", default="0.3,0.5,0.7")
     ap.add_argument("--cores", type=int, default=1)
@@ -144,9 +145,19 @@ def main(argv=None):
             "multi-call clustering requires an explicit run_id or an external exact-run receipt",
         )
 
+    if a.chunk_mibig and a.mibig_dir:
+        raise PipelineRunError(
+            "CHUNK_MIBIG_UNPROVEN",
+            "multi-call MIBiG references are held until loaded counts and exact-run identity are proven",
+        )
+    if a.mibig_dir and not a.skip_cluster and not a.mibig_name:
+        raise PipelineRunError("MIBIG_NAME_REQUIRED", "--mibig-dir requires --mibig-name")
+    if a.mibig_dir and not a.skip_cluster and not os.environ.get("BIGSCAPE_ENV_BIN"):
+        raise PipelineRunError("BIGSCAPE_ENV_REQUIRED", "set BIGSCAPE_ENV_BIN for the guarded MIBiG launcher")
+
     inp = os.path.join(a.workdir, "input")
-    db = os.path.join(a.workdir, "bigscape.db")
     out = os.path.join(a.workdir, "out")
+    db = os.path.join(out, "bigscape.db") if a.mibig_dir else os.path.join(a.workdir, "bigscape.db")
     if not a.skip_cluster and explicit_run_id is None and os.path.lexists(db):
         raise PipelineRunError(
             "RUN_ID_REQUIRED_PREEXISTING",
@@ -170,15 +181,15 @@ def main(argv=None):
             "-p", a.pfam, "--cores", str(a.cores), "--include-singletons", "--gcf-cutoffs", a.cutoffs]
     if not a.skip_cluster:
         emit("[2/4] cluster + MIBiG anchor")
-        if a.chunk_mibig and a.mibig_dir:
-            # batch the references to stay under memory; reuse the same --db-path (each caches)
-            run([sys.executable, tool("bigscape_mibig_batches.py"), "--mibig-gbk-dir", a.mibig_dir,
-                 "--index-dir", a.mibig_index_dir,
-                 "--out", os.path.join(a.workdir, "mibig_batches"), "--batch-size", str(a.chunk_mibig)])
-            for batch in sorted(glob.glob(os.path.join(a.workdir, "mibig_batches", "batch_*"))):
-                run(base + ["-r", batch, "--include-gbk", "*"])
-        elif a.mibig_dir:
-            run(base + ["-r", a.mibig_dir, "--include-gbk", "*"])
+        if a.mibig_dir:
+            # Launcher installs the explicit -m slot, checks dependencies and loaded MIBiG count.
+            # The pipeline never treats -r (generic reference directory) as a MIBiG anchor.
+            env = os.environ.copy()
+            env["PFAM_HMM"] = a.pfam
+            run(["bash", tool("bigscape_launch.sh"), inp, out, "--label", "bigscape",
+                 "--cutoffs", a.cutoffs, "--cores", str(a.cores),
+                 "--mibig-dir", a.mibig_dir, "--mibig-name", a.mibig_name,
+                 "--include-singletons"], env=env)
         else:
             run(base)
 

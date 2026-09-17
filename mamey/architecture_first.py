@@ -40,6 +40,7 @@ class PathwayType(Enum):
     THIOPEPTIDE = "thiopeptide RiPP"
     RANTHIPEPTIDE = "ranthipeptide/SCIFF RiPP"
     MYCOFACTOCIN = "mycofactocin redox-cofactor RiPP"
+    PQQ = "PQQ (pyrroloquinoline quinone) redox-cofactor RiPP"
     DUF692_RIPP = "DUF692-metalloenzyme RiPP"
     OTHER_RIPP = "RiPP (unclassified)"
     TERPENE_CYCLIZED = "cyclized terpene"
@@ -138,7 +139,7 @@ class ArchitectureReport:
     has_indsynth: bool = False         # indolocarbazole synthase
     has_tra_ks: bool = False           # tra_KS trans-AT ketosynthase found
     has_t2pks: bool = False            # T2PKS-specific annotations found
-    has_tigr02109: bool = False        # mycofactocin radical SAM
+    has_tigr02109: bool = False        # PQQ PqqE radical SAM (antiSMASH: TIGR02109 = PQQ_syn_pqqE)
     has_chal_sti_synt: bool = False    # T3PKS
     has_pg_binding_ykud: bool = False  # peptidoglycan → primary metab
     has_pep_utilizer: bool = False     # betalactone
@@ -147,7 +148,9 @@ class ArchitectureReport:
     has_chorismate_bind: bool = False  # DHB → catecholate siderophore
     # v2.2 additions
     has_spasm: bool = False            # ranthipeptide radical SAM
-    has_tigr03962: bool = False        # ranthipeptide-specific TIGR
+    has_tigr03962: bool = False        # mycofactocin MftC radical SAM (antiSMASH: TIGR03962 = mycofact_rSAM)
+    has_tigr03967: bool = False        # mycofactocin MftB (antiSMASH: TIGR03967 = mycofact_MftB)
+    has_mycofactocin_rre: bool = False # RREFam Mycofactocin_RRE
     has_lasso_rre: bool = False        # lassopeptide RRE
     has_nikj: bool = False             # nucleoside (nikkomycin J)
     has_phzb: bool = False             # phenazine biosynthesis
@@ -416,10 +419,10 @@ def assess_architecture(genes: List[Dict],
             report.diagnostic_markers.append(
                 f"indolocarbazole synthase ({lt})")
 
-        # ── NEW: Mycofactocin ──
+        # ── PQQ (v9.7.432: TIGR02109 is PQQ_syn_pqqE per antiSMASH; it was mislabelled mycofactocin) ──
         if 'TIGR02109' in doms:
             report.has_tigr02109 = True
-            report.diagnostic_markers.append(f"mycofactocin radical SAM ({lt})")
+            report.diagnostic_markers.append(f"PqqE radical SAM / PQQ biosynthesis ({lt})")
 
         # ── NEW: T3PKS ──
         if 'Chal_sti_synt' in doms:
@@ -442,9 +445,17 @@ def assess_architecture(genes: List[Dict],
         if 'SPASM' in doms:
             report.has_spasm = True
             report.diagnostic_markers.append(f"SPASM rSAM ({lt})")
+        # ── v9.7.432: TIGR03962 is the mycofactocin MftC maturase (antiSMASH mycofact_rSAM), NOT a
+        #    ranthipeptide marker. Cohort check: 19/19 TIGR03962 loci also carry TIGR03967 + Mycofactocin_RRE.
         if 'TIGR03962' in doms:
             report.has_tigr03962 = True
-            report.diagnostic_markers.append(f"TIGR03962 ranthipeptide ({lt})")
+            report.diagnostic_markers.append(f"TIGR03962 mycofactocin MftC maturase ({lt})")
+        if 'TIGR03967' in doms:
+            report.has_tigr03967 = True
+            report.diagnostic_markers.append(f"TIGR03967 mycofactocin MftB ({lt})")
+        if 'Mycofactocin_RRE' in doms:
+            report.has_mycofactocin_rre = True
+            report.diagnostic_markers.append(f"Mycofactocin_RRE ({lt})")
 
         # ── v2.2: Lassopeptide markers ──
         if 'Stand_Alone_Lasso_RRE' in doms or 'PF13471' in doms:
@@ -596,11 +607,20 @@ def assess_architecture(genes: List[Dict],
             report.reasoning = "YcaO cyclodehydratase = LAP or thiopeptide"
         return _apply_boundary_adjustment(report)
 
-    # ── Ranthipeptide via radical SAM (no YcaO needed) ──
-    if report.has_spasm and report.has_tigr03962:
+    # ── Mycofactocin (v9.7.432): must precede the SPASM ranthipeptide branch. TIGR03962 = MftC.
+    #    SPASM/TIGR04085 occur in both mycofactocin and ranthipeptide pathways and are not diagnostic
+    #    (execution slice §14, PATCH-MYCO-DISAMBIGUATION).
+    if report.has_tigr03962 or (report.has_tigr03967 and report.has_mycofactocin_rre):
+        report.pathway_type = PathwayType.MYCOFACTOCIN
+        report.confidence = "HIGH"
+        report.reasoning = "TIGR03962 MftC maturase and/or TIGR03967 MftB + Mycofactocin_RRE = mycofactocin redox-cofactor biosynthesis (capacity, not an antimicrobial product)"
+        return _apply_boundary_adjustment(report)
+
+    # ── Ranthipeptide via radical SAM (no YcaO needed) — requires the SSF/SCIFF marker ──
+    if report.has_spasm and report.has_ssf:
         report.pathway_type = PathwayType.RANTHIPEPTIDE
         report.confidence = "HIGH"
-        report.reasoning = "SPASM + TIGR03962 radical SAM = ranthipeptide (YcaO-independent)"
+        report.reasoning = "SPASM radical SAM + SSF/SCIFF domain = ranthipeptide (YcaO-independent)"
         return _apply_boundary_adjustment(report)
 
     # ── Lassopeptide (Asn_synthase / Lasso_RRE / Transglut) ──
@@ -615,11 +635,11 @@ def assess_architecture(genes: List[Dict],
         report.reasoning = f"{' + '.join(markers)} = lassopeptide biosynthesis"
         return _apply_boundary_adjustment(report)
 
-    # ── Mycofactocin ──
+    # ── PQQ (v9.7.432: was mislabelled mycofactocin) ──
     if report.has_tigr02109:
-        report.pathway_type = PathwayType.MYCOFACTOCIN
+        report.pathway_type = PathwayType.PQQ
         report.confidence = "HIGH"
-        report.reasoning = "TIGR02109 radical SAM maturase = mycofactocin biosynthesis"
+        report.reasoning = "TIGR02109 PqqE radical SAM = coenzyme PQQ biosynthesis (redox cofactor; capacity, not an antimicrobial product)"
         return _apply_boundary_adjustment(report)
 
     # ── DUF692 metalloenzyme RiPP ──
