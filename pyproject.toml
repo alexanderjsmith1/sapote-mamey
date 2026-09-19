@@ -79,4 +79,4 @@ markers = [
 [tool.sapote]
 # Single source of truth for the curated BUNDLE version.
 # (engine version lives in [project].version above)
-bundle_version = "9.7.433"
+bundle_version = "9.7.434"

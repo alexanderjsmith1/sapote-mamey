@@ -2,11 +2,11 @@
 
 Sapote-Mamey is a python-based analysis pipeline for actinomycete genomes created with assistance of LLM (artificial intelligence). The program was developed with actinomycete genomes across most common genera (Streptomyces, Micromonospora, Actinomadura, etc). 
 
-This is a program that is under continuous development but has been found to be useful to the patient user, particularly in running other research tools an.  The program has been developed by providing antiSMASH outputs (downloaded ZIP files) to the LLMs and 
+Sapote-Mamey is under continuous development and can help users run research tools and interpret their outputs. Its development has involved providing antiSMASH results (downloaded ZIP files) to LLMs and using those results to refine the analysis and reporting workflows.
 
 The analysis pipeline primarily works to interpret antiSMASH results into a user-friendly narrative and allows integration of other bioinformatics tools and other data streams provided by the user. The LLM environment gives the user flexibility to explore the antiSMASH output and other data however they choose. This dynamic interaction allows the potential to take the analysis in any direction. 
 
-Common applications include helping the user understand which biosynthetic gene clusters (BGCs) a genome carries, what their genes resemble, and which regions deserve a closerlook. It is built around actinomycete genomes and a user's genome can be compared with reference genomes. The options to do this include downloading related reference genomes and running antiSMASH on them, and a user can ask the LLM for assistance. The user or LLM can find related genomes based on phylogeny (16S blast results), related genomes obtained by clusterblast and knownclusterblast matches, or searching the genus name in NCBI Nucleotide database and ranking by size to find the appropriately sized assemblies (approximately 5 to 11 mb depending on the genus). A score is a reason to inspect a region, not a measurement of antimicrobial activity.
+Common applications include helping the user understand which biosynthetic gene clusters (BGCs) a genome carries, what their genes resemble, and which regions deserve a closer look. It is built around actinomycete genomes and a user's genome can be compared with reference genomes. The options to do this include downloading related reference genomes and running antiSMASH on them, and a user can ask the LLM for assistance. The user or LLM can find related genomes based on phylogeny (16S blast results), related genomes obtained by clusterblast and knownclusterblast matches, or searching the genus name in NCBI Nucleotide database and ranking by size to find the appropriately sized assemblies (approximately 5 to 11 mb depending on the genus). A score is a reason to inspect a region, not a measurement of antimicrobial activity.
 
 Sapote Mamey has two main components. Mamey is the executable BGC-analysis module: extraction, evidence checks, tables
 and analysis tools. Sapote is the interpretation and writing workflow: it takes those results into gene-by-gene
@@ -16,7 +16,7 @@ the interpretation for you.
 From one antiSMASH result ZIP you can examine the genes and their reference matches, deepen
 uncertain calls with BLASTp, and compare strains. Optional companion workflows add BiG-SCAPE
 gene-cluster families and phylogenetic trees to the same evidence review and figure workflow.
-You do not need every optional workflow to get a useful result. The mode b card has optional sections that are designed to integrate some of these other data streams. There is also a 
+You do not need every optional workflow to get a useful result. Mode B cards have optional sections designed to integrate these additional data streams.
 
 For a one-page map of the program's parts, inputs, and outputs, see
 [What Sapote-Mamey offers](docs/PRODUCT_MAP.md).
@@ -31,7 +31,7 @@ For a one-page map of the program's parts, inputs, and outputs, see
 gaps in metadata handling, evidence-completeness reporting and generated-PDF layout. A run that
 finishes and validates does not close those gaps or certify a biological conclusion.
 
-The program was occasionaly tested with other bacterial orders, and several basidiomycetes and ascomycetous fungi. No extensive testing or development has occured other than to establish some degree of functionality with these other microbial groups. The bacterial-specific tools will not work as-is, but many bioinformatics tools are expected to work and the primary Mamey engine will intake antiSMASH zips from these other organisms and produce a validated evidence package.  
+The program was occasionally tested with other bacterial orders, and several basidiomycetes and ascomycetous fungi. No extensive testing or development has occurred other than to establish some degree of functionality with these other microbial groups. The bacterial-specific tools will not work as-is, but many bioinformatics tools are expected to work and the primary Mamey engine will intake antiSMASH zips from these other organisms and produce a validated evidence package.  
 
 ## What you can do
 
@@ -70,7 +70,7 @@ and cutoff; read it alongside assembly fragmentation and protein evidence. See
 
 **Phylogeny and overlays.** `phylo-autopilot` inventories uploads and handles 16S routing and
 placement. When an antiSMASH ZIP contains a non-region assembly sequence, `phylo-mlsa` can plan or stage an
-an optional five-locus MLSA screen from it. Review assembly completeness separately.
+optional five-locus MLSA screen from it. Review assembly completeness separately.
 Local reference genomes and external companion tools are needed to run the screen. `phylo-run` launches an approved GToTree/IQ-TREE genome workflow,
 with optional ANI inputs. The tree renderers join tree tips to metadata and to strain-level ANI, BGC, domain,
 Mode B or assembly tracks. Each track needs an explicit tip-to-strain mapping and its own data;
@@ -286,4 +286,4 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.433 / engine 1.9.167 · build 20260917v97433c · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.434 / engine 1.9.167 · build 20260918v97434a · release profile: CODE (see RELEASE_MANIFEST.md)*

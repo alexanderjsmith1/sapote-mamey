@@ -1,5 +1,5 @@
-version=9.7.433
-build=20260917v97433c
+version=9.7.434
+build=20260918v97434a
 engine=1.9.167
-patch=BLASTp snapshot and current-locus binding; Assembly protein signatures; BiG-SCAPE guarded MIBiG route; User workflows and handoffs; CI verification repair (build c)
+patch=README repairs and typo cleanup; Missing metadata stays visually absent; Caption governance guard; Engine unchanged
 tier=code

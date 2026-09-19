@@ -1,6 +1,6 @@
 # Make and review Mamey figures
 
-Sapote–Mamey v9.7.433 · Mamey engine 1.9.167
+Sapote–Mamey v9.7.434 · Mamey engine 1.9.167
 
 Sapote-Mamey has several figure routes with **different input contracts**. Start with
 the question you want to show, then choose a route below. A finished image is

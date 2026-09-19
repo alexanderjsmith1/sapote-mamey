@@ -1,3 +1,12 @@
+# v9.7.434 · 2026-09-18 · build 20260918v97434a · engine 1.9.167 · CODE
+
+Accretion-justified: caption_guard.py — additive caption text checker rejects operator-governance prose before publication figure export; it does not alter existing renderers until called.
+
+- **README repairs and typo cleanup:** complete the two truncated introduction sentences and correct the remaining obvious opening-page typographical errors.
+- **Missing metadata stays visually absent:** build tree colour strips only from rows carrying a deposited value, preventing empty cells from rendering as grey tiles.
+- **Caption governance guard:** add a tested caption checker that rejects operator-facing governance phrases while allowing factual methods and thresholds.
+- **Engine unchanged:** bundle-only documentation, renderer and tooling cut; Mamey remains 1.9.167 and no scoring or extraction behavior changes.
+
 # v9.7.433 · 2026-09-17 · build 20260917v97433c · engine 1.9.167 · CODE
 
 Accretion-justified: unmatched_gene_addendum.py — opt-in unmatched-gene review packets retained from v9.7.432.

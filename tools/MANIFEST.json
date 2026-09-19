@@ -508,6 +508,10 @@
       "sha256": "bc8b19094785fc025e6a3b2cc5819db9a2dcf397a875d247e687868a88cd54be",
       "bytes": 4998
     },
+    "caption_guard.py": {
+      "sha256": "3cfba2004c340bdc78084bc27bca720708321bbaae92a0cb0a157770572eeb52",
+      "bytes": 3064
+    },
     "check_antismash_profile.py": {
       "sha256": "481491e71e9640a1bbaf24370987a842d5a06e53c4c1efa6a1d1cbd8c47bd6c8",
       "bytes": 3514
@@ -837,8 +841,8 @@
       "bytes": 3606
     },
     "gate_registry.tsv": {
-      "sha256": "0840efce90f8aad8e4e1eb3de644bcda4cf016b40e7223c70ceda98cf6660324",
-      "bytes": 10530
+      "sha256": "f700212821ab66f3419bc9af134da6dde703f4791e4e9f69fc61731cadcdc8f1",
+      "bytes": 10684
     },
     "gate_stem_aware.py": {
       "sha256": "ec1e56148ad9e61a0dfcbc05fdc4daafae74aafa2366107b539cc7105661a178",
@@ -1373,8 +1377,8 @@
       "bytes": 386
     },
     "render_tree_COLOR_STRIPS.R": {
-      "sha256": "9885d906be64e385195ae958b97cbea9674ef2e1b9c07cb6d667281fd362e085",
-      "bytes": 13085
+      "sha256": "d8040e7b6416e79d649dcbd6f6f9a92053f93ce53bca4719d947b8a556fd357f",
+      "bytes": 13117
     },
     "render_tree_reference_series.py": {
       "sha256": "eef6c075dd3a857f68d6eb1146593c6fe94bdd6760808d34f52d8a172ac657ed",

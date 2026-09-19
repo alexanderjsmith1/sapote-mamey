@@ -75,3 +75,4 @@ suite_count_census	WIRED	collection and execution accounting covered by tests/te
 gtotree_execution_gate	WIRED	Sequence admission tests validate the GToTree preflight.
 tree_annotation_gate	WIRED	Tree annotation tests validate metadata before rendering.
 silent_exit_audit	OPERATOR_ONLY	silent-success-exit inventory over the guard surface: classifies and reports a denominator, does not accuse; run by hand when reviewing hooks, not a cut gate (regression suite: test_silent_exit_audit_v97416)
+caption_guard	WIRED	Caption coherence guard is exercised by tests/test_figures_434_caption_governance_guard.py; optional operator CLI before publication.

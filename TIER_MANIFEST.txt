@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.433 stamp=20260917v97433c
+# TIER_MANIFEST tier=code version=9.7.434 stamp=20260918v97434a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -1704,6 +1704,7 @@
 ./tests/test_figure_theme_gallery_v97392.py
 ./tests/test_figure_theme_visual_modernization.py
 ./tests/test_figure_tranche7_v97406.py
+./tests/test_figures_434_caption_governance_guard.py
 ./tests/test_figures_dapr_anchor.py
 ./tests/test_figures_dispatch_gcfnet_clinker.py
 ./tests/test_figures_embeds_svg.py
@@ -2469,6 +2470,7 @@
 ./tests/test_trees_432_run_planned_tree_incompatible_with_gtotree_v2.py
 ./tests/test_trees_432_shipped_outgroup_registry_stale_vs_official_ruling.py
 ./tests/test_trees_433_gcf_synteny_tree_layers_and_pruning.py
+./tests/test_trees_434_absent_strip_draws_no_tile.py
 ./tests/test_triage_protocluster_columns.py
 ./tests/test_trigger_routing_handback_v97147.py
 ./tests/test_two_pathway.py
@@ -2678,6 +2680,7 @@
 ./tools/build_workflow_figure.py
 ./tools/calibration_run.py
 ./tools/candidate_census.py
+./tools/caption_guard.py
 ./tools/check_antismash_profile.py
 ./tools/check_bgc_naming.py
 ./tools/check_chatgpt_next_paths.py

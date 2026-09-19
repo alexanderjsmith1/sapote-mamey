@@ -1,11 +1,11 @@
-# Sapote-Mamey Bundle Release Manifest — v9.7.433 CODE archive
+# Sapote-Mamey Bundle Release Manifest — v9.7.434 CODE archive
 
-**Cut/build date:** 2026-09-17
+**Cut/build date:** 2026-09-18
 **Artifact status:** validated CODE archive  
-**Bundle version:** `sapote-mamey-v9.7.433`  
-**Authoritative bundle version:** `9.7.433`  
+**Bundle version:** `sapote-mamey-v9.7.434`  
+**Authoritative bundle version:** `9.7.434`  
 **Engine:** Mamey v1.9.167  
-**Build stamp:** 20260917v97433c  
+**Build stamp:** 20260918v97434a  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
@@ -21,7 +21,7 @@ No additional release tiers are included in this CODE archive.
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (11477 passed, 239 skipped; receipt-bound log) |
+| Full pytest suite | PASS (11488 passed, 239 skipped; receipt-bound log) |
 | Focused verification | 40 passed / 2 skipped for identity, version, and inventory; 12 passed for health, BLASTp monitoring, and Figure Factory |
 | Strict repository health | PASS (1324 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
 | Version synchronization | PASS |
@@ -48,13 +48,13 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20260917v97433c`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20260918v97434a`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
-| `sync_version --check` | PASS (engine 1.9.167, bundle 9.7.433) |
+| `sync_version --check` | PASS (engine 1.9.167, bundle 9.7.434) |
 
-All tracked version anchors at v9.7.433 / Mamey 1.9.167.
-`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.433.
+All tracked version anchors at v9.7.434 / Mamey 1.9.167.
+`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.434.
 
-*Generated: 2026-09-17 | Sapote-Mamey Bundle v9.7.433 | NOT_FOR_PUBLIC_RELEASE*
+*Generated: 2026-09-18 | Sapote-Mamey Bundle v9.7.434 | NOT_FOR_PUBLIC_RELEASE*

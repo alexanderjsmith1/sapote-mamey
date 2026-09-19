@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**376 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**377 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -130,6 +130,7 @@
 | `build_workflow_figure.py` | Sapote-Mamey file-structure + data-flow diagram (manuscript Figure 1). |
 | `calibration_run.py` | Run the portable Sapote-Mamey detector calibration panel. |
 | `candidate_census.py` | file-count and debris census for a candidate cut tree. |
+| `caption_guard.py` | Refuse governance prose in a figure caption. |
 | `check_antismash_profile.py` | cross-profile pooling guard. |
 | `check_bgc_naming.py` | portable enforcement of the AS-strain BGC node-naming rule. |
 | `check_chatgpt_next_paths.py` | Check shared handback format and final SAVE STATE confirmation. |
