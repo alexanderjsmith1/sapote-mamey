@@ -1,6 +1,6 @@
 # Command catalog (generated)
 
-*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.434 · engine 1.9.167. Do not edit by hand; `--check` fails the build when stale.*
+*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.435 · engine 1.9.167. Do not edit by hand; `--check` fails the build when stale.*
 
 Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root (the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take `--package <sealed package dir>`; `run` is the only command that creates a package. Claim-safety: every output is a class-level hypothesis with judgment deferred.
 

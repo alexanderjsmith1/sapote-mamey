@@ -98,6 +98,14 @@ def _repo_root(explicit: str | None) -> Path:
 CLI_TOOL_EXCLUDE_DIRS = ("blastp_monitoring",)
 CLI_TOOL_EXCLUDE_FILES = {"render_all.py", "phylo_preflight.py", "phylo_postflight.py",
                           "phylo_place.py",
+                          # Clear Match Finder is an operator front door; stdout is its receipt JSON.
+                          "clear_match_finder.py",
+                          # Definitive BGC Ranker is an operator front door; stdout is its receipt JSON.
+                          "definitive_bgc_ranker.py",
+                          # Functional Logic Workup is an operator front door; stdout is its receipt JSON.
+                          "bgc_functional_logic_workup.py",
+                          # Strain-level BGC Logic is an operator front door; stdout is its receipt JSON.
+                          "strain_level_bgc_logic.py",
                           "relabel_and_render.py", "render_clean_tree.py",
                           "validate_portfolio_registry.py",
                           "blastp_channel_triage.py",

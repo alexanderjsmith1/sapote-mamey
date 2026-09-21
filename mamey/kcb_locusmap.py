@@ -57,6 +57,8 @@ except ImportError:  # direct execution: no parent package to resolve against.
     from mamey.console import emit
 
 import argparse
+import logging
+import textwrap
 import csv
 try:
     from .csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter  # v9.7.410 CSV formula-cell guard (CLAUDE_410_csv_writer_coverage)
@@ -71,6 +73,8 @@ from .ziputil import regular_file_names
 # v9.7.410 (CLAUDE_410 savefig OOM sweep): clamp publication DPI under the Agg pixel
 # ceiling before every raster write. See mamey/render_safe.py::safe_savefig_dpi.
 from .render_safe import safe_savefig_dpi as _safe_dpi
+
+_LOGGER = logging.getLogger(__name__)
 
 try:
     import matplotlib
@@ -291,28 +295,73 @@ def find_kcb_files_in_zip(zip_path: Path) -> list[str]:
                  and "clusters.txt" not in n.lower())
     cb = sorted(n for n in names if "clusterblast/" in n.lower() and "knownclusterblast" not in n.lower()
                 and n.endswith(".txt") and "clusters.txt" not in n.lower())
-    return kcb + cb
+    # KnownClusterBlast is the scientific source this figure advertises. Use
+    # ClusterBlast only as a fallback; returning both creates duplicate cN
+    # candidates for the same region and makes ambiguity diagnostics misleading.
+    return kcb if kcb else cb
 
 
-def _match_member(members: list[str], contig: str) -> Optional[str]:
+def _region_number(region: str) -> Optional[int]:
+    """Normalize ``region002`` / ``c2`` / ``2`` to the antiSMASH cluster number."""
+    if not region:
+        return None
+    match = re.search(r"(\d+)\s*$", str(region))
+    return int(match.group(1)) if match else None
+
+
+def _match_member(members: list[str], contig: str, region: str = "") -> Optional[str]:
+    """Select one KCB member without silently crossing regions on a multi-region contig.
+
+    antiSMASH names these files ``<contig>_c1.txt``, ``..._c2.txt``, etc. A
+    contig prefix alone is therefore not a unique region locator. The historical
+    first-match behaviour could render c1 evidence under a c2 BGC label.
+    """
+    region_no = _region_number(region)
     if not contig:
+        if region_no is not None:
+            suffix = f"_c{region_no}.txt"
+            matches = [m for m in members if Path(m).name.lower().endswith(suffix)]
+            if matches:
+                return matches[0]
+        if len(members) > 1:
+            raise ValueError(
+                "multiple knownclusterblast regions found; pass --contig and --region "
+                "(for example --region region002), or pass --kcb-txt explicitly"
+            )
         return members[0] if members else None
     key = contig.lower()
     exact = [m for m in members if Path(m).name.lower().startswith(key + "_")
              or Path(m).name.lower() == key + ".txt"]
+    if region_no is not None:
+        suffix = f"_c{region_no}.txt"
+        scoped = [m for m in exact if Path(m).name.lower().endswith(suffix)]
+        if scoped:
+            return scoped[0]
+        return None
+    if len(exact) > 1:
+        choices = ", ".join(Path(m).name for m in exact[:5])
+        raise ValueError(
+            f"contig '{contig}' has multiple knownclusterblast regions ({choices}); "
+            "pass --region (for example --region region002), or pass --kcb-txt explicitly"
+        )
     if exact:
         return exact[0]
     loose = [m for m in members if key in m.lower()]
+    if len(loose) > 1:
+        raise ValueError(
+            f"'{contig}' matches multiple knownclusterblast files; pass --region or --kcb-txt"
+        )
     return loose[0] if loose else None
 
 
-def read_kcb_from_zip(zip_path: Path, contig: str = "") -> KCBRegion:
+def read_kcb_from_zip(zip_path: Path, contig: str = "", region: str = "") -> KCBRegion:
     members = find_kcb_files_in_zip(zip_path)
     if not members:
         raise FileNotFoundError(f"No knownclusterblast/clusterblast txt in {zip_path}")
-    member = _match_member(members, contig)
+    member = _match_member(members, contig, region)
     if member is None:
-        raise KeyError(f"No knownclusterblast file matching '{contig}' in {zip_path}")
+        locator = f"{contig} {region}".strip()
+        raise KeyError(f"No knownclusterblast file matching '{locator}' in {zip_path}")
     with zipfile.ZipFile(zip_path) as zf:
         text = zf.read(member).decode("utf-8", errors="replace")
     region = parse_kcb_txt(text)
@@ -455,7 +504,7 @@ def render_region(
     genes_with_hits = {p.query_gene for h in hits for p in h.pairs}
     anchor_hit_genes = {p.query_gene for p in hits[0].pairs} if hits else set()
 
-    fig_h = 2.4 + 1.15 * len(hits)
+    fig_h = 3.0 + 1.15 * len(hits)
     fig, ax = plt.subplots(figsize=(13.2, fig_h), dpi=200)
 
     track_gap = 1.55
@@ -523,11 +572,12 @@ def render_region(
                     ha="center", va="center", zorder=4)
 
     # --- title / legend / caption ---
-    title = f"KnownClusterBlast comparative locus map"
+    title = "KnownClusterBlast comparative locus map"
     ident = " ".join(x for x in [strain_id, bgc_id] if x) or region.contig
+    title_lines = [title, ident]
     if products:
-        ident += f" | {products}"
-    fig.suptitle(f"{title} — {ident}", fontsize=12.5, fontweight="bold", color=INK, y=0.995)
+        title_lines.extend(textwrap.wrap(products, width=115) or [products])
+    fig.suptitle("\n".join(title_lines), fontsize=10.5, fontweight="bold", color=INK, y=0.995)
 
     legend_handles = [
         Patch(facecolor=SELECTED, label="Selected MIBiG-comparison gene"),
@@ -542,7 +592,7 @@ def render_region(
 
     fig.text(0.5, 0.005, CLAIM_CEILING, ha="center", va="bottom", fontsize=6.2,
              color=MUTED, wrap=True)
-    fig.subplots_adjust(left=0.16, right=0.99, top=0.90, bottom=0.16)
+    fig.subplots_adjust(left=0.16, right=0.99, top=0.82, bottom=0.16)
 
     png = out_dir / f"{stem}_kcb_locusmap.png"
     svg = out_dir / f"{stem}_kcb_locusmap.svg"
@@ -583,11 +633,12 @@ def render_from_zip(
     bgc_id: str = "",
     products: str = "",
     stem: str = "",
+    region: str = "",
 ) -> dict[str, Any]:
-    region = read_kcb_from_zip(zip_path, contig)
-    roles = load_gbk_roles(zip_path, {g.gene_id for g in region.query_genes})
-    stem = stem or (bgc_id or region.contig or contig or "region")
-    return render_region(region, out_dir, stem, top_n=top_n, roles=roles,
+    kcb_region = read_kcb_from_zip(zip_path, contig, region)
+    roles = load_gbk_roles(zip_path, {g.gene_id for g in kcb_region.query_genes})
+    stem = stem or (bgc_id or kcb_region.contig or contig or "region")
+    return render_region(kcb_region, out_dir, stem, top_n=top_n, roles=roles,
                          strain_id=strain_id, bgc_id=bgc_id, products=products)
 
 
@@ -614,6 +665,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     src.add_argument("--zip", type=Path, help="Raw antiSMASH ZIP (reads knownclusterblast/*.txt).")
     src.add_argument("--kcb-txt", type=Path, help="A single knownclusterblast/clusterblast .txt file.")
     p.add_argument("--contig", default="", help="Contig/region key, e.g. NODE_106 (ZIP mode).")
+    p.add_argument("--region", default="", help="antiSMASH region locator, e.g. region002 (ZIP mode).")
     p.add_argument("--out-dir", type=Path, required=True)
     p.add_argument("--top-n", type=int, default=6)
     p.add_argument("--strain-id", default="")
@@ -630,9 +682,14 @@ def main(argv: Optional[list[str]] = None) -> int:
               f"Install the figures extra:  pip install -e '.[all]'")
         return 2
     if args.zip:
-        metrics = render_from_zip(
-            args.zip, args.contig, args.out_dir, top_n=args.top_n,
-            strain_id=args.strain_id, bgc_id=args.bgc_id, products=args.products, stem=args.stem)
+        try:
+            metrics = render_from_zip(
+                args.zip, args.contig, args.out_dir, top_n=args.top_n,
+                strain_id=args.strain_id, bgc_id=args.bgc_id, products=args.products,
+                stem=args.stem, region=args.region)
+        except (FileNotFoundError, KeyError, ValueError, zipfile.BadZipFile) as exc:
+            _LOGGER.error("[kcb-locusmap] input selection failed: %s", exc)
+            return 2
     else:
         text = args.kcb_txt.read_text(encoding="utf-8", errors="replace")
         stem = args.stem or args.kcb_txt.stem

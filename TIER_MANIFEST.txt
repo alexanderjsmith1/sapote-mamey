@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.434 stamp=20260918v97434a
+# TIER_MANIFEST tier=code version=9.7.435 stamp=20260920v97435a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -56,10 +56,13 @@
 ./deliverable_tools/assembly_line_pdf.py
 ./deliverable_tools/assembly_line_widget.py
 ./deliverable_tools/backfill_coords_from_antismash.py
+./deliverable_tools/batch_mibig_comparator_context.py
 ./deliverable_tools/bgc_gene_map.py
 ./deliverable_tools/bgc_widget.py
 ./deliverable_tools/bigscape_clinker_widget.py
+./deliverable_tools/bigscape_gene_domain_context.py
 ./deliverable_tools/bigscape_matrix_widget.py
+./deliverable_tools/bigscape_network_widget.py
 ./deliverable_tools/bigscape_run.py
 ./deliverable_tools/build_cohort_index.py
 ./deliverable_tools/build_modeb_compilation.py
@@ -84,6 +87,7 @@
 ./deliverable_tools/ingest_blastp.py
 ./deliverable_tools/insert_tree_into_report.py
 ./deliverable_tools/inventory_audit.py
+./deliverable_tools/mibig_component_context.py
 ./deliverable_tools/overmerge_widget.py
 ./deliverable_tools/rebuild_cohort_comparison.py
 ./deliverable_tools/related_view.html
@@ -91,6 +95,7 @@
 ./deliverable_tools/rggmci_widget.py
 ./deliverable_tools/roster_v2.py
 ./deliverable_tools/split_cards.py
+./deliverable_tools/stacked_locus_map.py
 ./deliverable_tools/strain_portfolio/build_portfolio.py
 ./deliverable_tools/strain_portfolio/portfolio_template.html
 ./deliverable_tools/strain_portfolio/test_portfolio.py
@@ -119,7 +124,10 @@
 ./docs/BGC_BLASTP_PANEL_v9.7.142.md
 ./docs/BGC_DELIVERABLES.md
 ./docs/BGC_FIGURES.md
+./docs/BGC_FUNCTIONAL_LOGIC_WORKUP.md
 ./docs/BGC_size_by_type.md
+./docs/BIGSCAPE_CLASS_GLOSSARY.md
+./docs/BIGSCAPE_COHORT_NETWORK_GUIDE.md
 ./docs/BIGSCAPE_COHORT_WALKTHROUGH.md
 ./docs/BIGSCAPE_FIGURES.md
 ./docs/BIGSCAPE_GCF_WORKFLOW.md
@@ -143,6 +151,7 @@
 ./docs/CITATION_COMPACT_MODE.md
 ./docs/CI_REFERENCE_FIXTURES_GUIDE.md
 ./docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md
+./docs/CLEAR_MATCH_FINDER.md
 ./docs/CLUSTERBLAST_PHYLO_CANDIDATES.md
 ./docs/CLUSTER_COMPLETENESS.md
 ./docs/CLUSTER_DISCOVERY.md
@@ -160,6 +169,7 @@
 ./docs/CONSOLIDATED_PUNCHCARD_v9.7.254.md
 ./docs/CUSTOM_PRIVACY_TIERS.md
 ./docs/DAPR_CLASS_FRAMEWORK.md
+./docs/DEFINITIVE_BGC_RANKER.md
 ./docs/DELIVERABLE_CONTRACT.md
 ./docs/DELIVERABLE_MANIFEST_TEMPLATE.md
 ./docs/DELIVERABLE_MENU.md
@@ -206,7 +216,6 @@
 ./docs/GUIDE/04_Glossary.md
 ./docs/GUIDE/05_RunObservations_TEMPLATE.md
 ./docs/GUIDE/06_Concepts_QandA.md
-./docs/GUIDE/07_Newsletter_June_2026.html
 ./docs/HOW_TO_USE.md
 ./docs/INGEST_AND_PRINCIPLES_WHITEPAPER.md
 ./docs/INSTALL.md
@@ -226,6 +235,7 @@
 ./docs/MARKER_CATALOG.generated.md
 ./docs/MASTER_SCHEMA_FROZEN_v1_1.md
 ./docs/MASTER_WALKTHROUGH.md
+./docs/METHODS_REPORTING_CHECKLIST.md
 ./docs/MODEB_50_SECTION_CONTRACT_CANDIDATE.md
 ./docs/MODEB_CORRECTIVE_PROTOCOL.md
 ./docs/MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md
@@ -291,6 +301,7 @@
 ./docs/REFERENCE_BGC_STRUCTURAL_VALIDATOR.md
 ./docs/REGISTRY_JSON_CSV_PARITY_NOTE_v9.7.141.md
 ./docs/RELEASE_CHECKLIST_v9.md
+./docs/RGGMCI_RESCUE_ATLAS.md
 ./docs/RIPP_TREE_OPTIONS.md
 ./docs/ROUND2_PUBLIC_STRAIN_WALKTHROUGH.md
 ./docs/R_FIGURE_WORKFLOWS.md
@@ -327,6 +338,7 @@
 ./docs/SPECIES_VS_BGC_TREE_COMPARISON.md
 ./docs/START_HERE.md
 ./docs/STRAIN_BIGSCAPE_REPORT.md
+./docs/STRAIN_LEVEL_BGC_LOGIC.md
 ./docs/STRUCTURED_DOMAIN_MOTIF_EXTENSION.html
 ./docs/SUPPORT_CARD_EVIDENCE_MATRIX.tsv
 ./docs/Sapote-Mamey.bib
@@ -388,8 +400,10 @@
 ./docs/batches/batch28_engine_lineage_and_compatibility.md
 ./docs/companion_tools.md
 ./docs/decisions/PROJECT_MEMORY_SNAPSHOT_FORK.md
+./docs/development/METHODS_IMPLEMENTATION_SOURCE_MAP.md
 ./docs/figure_factory/PROGRESS_DASHBOARD_PATTERN.md
 ./docs/figure_factory/README.md
+./docs/guides/DEEP_BGC_TO_THESIS_QUICKSTART.md
 ./docs/history/BUNDLE_PATCH_NOTES_v9.6.21.md
 ./docs/history/BUNDLE_PATCH_NOTES_v9.6.22.md
 ./docs/history/PATCH_APPLIED_v9_7_130_REPORT.md
@@ -402,6 +416,8 @@
 ./docs/history/V9_4_1_COMPATIBILITY_PATCH.md
 ./docs/history/VERIFICATION_REPORT_v9_7_116_to_audit.md
 ./docs/history/cross_chat_doc_protocol_v9.7.319.md
+./docs/modules/ACTIVITY_DECISION_TREES.md
+./docs/modules/DEEP_BGC_REPORT.md
 ./docs/modules/DELIVERABLE_AssemblyQC.md
 ./docs/modules/DELIVERABLE_ContigRescueReconstruction.md
 ./docs/modules/DELIVERABLE_EcologicalSynthesis.md
@@ -422,6 +438,7 @@
 ./docs/modules/MODE_B_DEPTH_POLICY.md
 ./docs/modules/MODE_B_WRITE.md
 ./docs/modules/SAPOTE_LEAD_DETAIL_MODULE.md
+./docs/modules/THESIS_HANDOFF.md
 ./docs/modules/_TEMPLATE_Module.md
 ./docs/patch_notes/DEFECT_TIGRFAM_EXTRACTION_GAP_2026-06-10.md
 ./docs/patch_notes/DOMAIN_LEVEL_MODE_B_NATIVE_v9789.md
@@ -452,6 +469,7 @@
 ./docs/reference/04_RGGMCI_ClusterBlast_Utilization.md
 ./docs/reference/05_VolII_ClusterG_Figure_System.md
 ./docs/reference/10_Math_Reference_GeneralAudience.md
+./docs/reference/METHODS_TECHNICAL_APPENDIX.md
 ./docs/reference/layperson_authoring_guidance.md
 ./docs/reference/modeb_exemplars/README.md
 ./docs/reference/modeb_exemplars/nrps_exemplar.md
@@ -476,6 +494,7 @@
 ./docs/status/workflow_status_PRIVATE.svg
 ./docs/status/workflow_status_detailed_PRIVATE.svg
 ./docs/status/workflow_status_matrix_PRIVATE_data.csv
+./docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md
 ./docs/troubleshooting/ANTISMASH_INPUT_WORKFLOW.md
 ./docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md
 ./docs/troubleshooting/CELL_STATUS_CODE_GLOSSARY.md
@@ -630,6 +649,7 @@
 ./mamey/_vendor/ijson/utils.py
 ./mamey/_vendor/ijson/utils35.py
 ./mamey/_vendor/ijson/version.py
+./mamey/activity_decision_tree.py
 ./mamey/activity_lead_genes.py
 ./mamey/activity_lead_report.py
 ./mamey/activity_predictions.py
@@ -727,6 +747,7 @@
 ./mamey/data/b2_structured_evaluators/PROVENANCE.md
 ./mamey/data/b2_structured_evaluators/b2_structured_evaluator_rules.json
 ./mamey/data/bgc_guide/bgc_guide_contract.json
+./mamey/data/bigscape_class_vocabulary.json
 ./mamey/data/calibration_baseline.json
 ./mamey/data/calibration_panel.json
 ./mamey/data/claims_vocab.json
@@ -779,6 +800,7 @@
 ./mamey/data/three_channel_evidence_matrix.schema.json
 ./mamey/data/tool_citations.json
 ./mamey/dedup_and_guard.py
+./mamey/deep_bgc_report.py
 ./mamey/deep_data.py
 ./mamey/degradation.py
 ./mamey/deliverable_queue.py
@@ -977,6 +999,7 @@
 ./mamey/rescue_two_proof.py
 ./mamey/resistance_dossier.py
 ./mamey/rggmci.py
+./mamey/rggmci_rescue_atlas.py
 ./mamey/roster_v2.py
 ./mamey/rules.py
 ./mamey/s3_census_generator.py
@@ -1003,6 +1026,7 @@
 ./mamey/structured_domain_motif_extension.py
 ./mamey/tab_reconcile.py
 ./mamey/tailoring_extract.py
+./mamey/thesis_handoff.py
 ./mamey/timing.py
 ./mamey/tip_label.py
 ./mamey/tool_database_reader.py
@@ -1207,6 +1231,7 @@
 ./tests/test_428_phylo16s_pdf_candidate_ingest.py
 ./tests/test_432_bigscape_variant_suffix_visible.py
 ./tests/test_ab_diagnostic_triggers.py
+./tests/test_activity_decision_tree_portable.py
 ./tests/test_activity_fragment_gate.py
 ./tests/test_activity_lead_genes_v9_7_385.py
 ./tests/test_activity_lead_report_v9_7_385.py
@@ -1256,6 +1281,7 @@
 ./tests/test_b4_tier_aggregation_pca4.py
 ./tests/test_backfill_curated_preservation_v9_7_116.py
 ./tests/test_backlog_v9748.py
+./tests/test_batch_mibig_comparator_context_v97435.py
 ./tests/test_batch_residue_budget_v97252.py
 ./tests/test_bee_review_main_set.py
 ./tests/test_bee_review_prototypes.py
@@ -1274,6 +1300,7 @@
 ./tests/test_bgc_draft_queue.py
 ./tests/test_bgc_figures.py
 ./tests/test_bgc_figures_figure_save_v97406.py
+./tests/test_bgc_functional_logic_workup_v97434.py
 ./tests/test_bgc_l0_program.py
 ./tests/test_bgc_l0_write_rows_atomic.py
 ./tests/test_bgc_neighbor_layer.py
@@ -1285,9 +1312,12 @@
 ./tests/test_bigscape_blastp_novelty_v9_7_391.py
 ./tests/test_bigscape_bughunt_v9_7_294.py
 ./tests/test_bigscape_chunk_cli.py
+./tests/test_bigscape_cohort_report_and_network_widget_v97435.py
 ./tests/test_bigscape_combined_run.py
+./tests/test_bigscape_comparator_guide_v97435.py
 ./tests/test_bigscape_figure_factory_extension.py
 ./tests/test_bigscape_friendly_v9_7_290.py
+./tests/test_bigscape_gene_domain_context_v97435.py
 ./tests/test_bigscape_identity_canonicalization_v9_7_416.py
 ./tests/test_bigscape_integration.py
 ./tests/test_bigscape_integration_v9_7_291.py
@@ -1364,6 +1394,7 @@
 ./tests/test_boundary_live.py
 ./tests/test_boundary_palette_v97253.py
 ./tests/test_brief_nonblocking_v9752.py
+./tests/test_browser_assistant_entrypoint_docs.py
 ./tests/test_bug1_verify_blastp.py
 ./tests/test_bug2_checksum_pdf_excluded.py
 ./tests/test_bug3_card_context.py
@@ -1469,6 +1500,7 @@
 ./tests/test_claude_409_schemas_contracts.py
 ./tests/test_claude_410_claimsafety_verb_normalize.py
 ./tests/test_clean_install_ci_readiness_v97421.py
+./tests/test_clear_match_finder_v97434.py
 ./tests/test_cli_parser_no_biopython_v9_7_268.py
 ./tests/test_cli_version_flag.py
 ./tests/test_clinker_dark_protein_link_v9_7_384.py
@@ -1584,7 +1616,10 @@
 ./tests/test_cy_domain_core_v9_7_116.py
 ./tests/test_data_root_wiring_v97401.py
 ./tests/test_dedup_gate_v9749.py
+./tests/test_deep_bgc_report_portable.py
+./tests/test_deep_bgc_thesis_docs.py
 ./tests/test_deep_data_v9746.py
+./tests/test_definitive_bgc_ranker_v97434.py
 ./tests/test_deliverable_citation_audit.py
 ./tests/test_deliverable_citation_audit_case_insensitive_v97395.py
 ./tests/test_deliverable_command_exit_code_v97416.py
@@ -1772,6 +1807,7 @@
 ./tests/test_guard_scope_v97418.py
 ./tests/test_guide_external_output_integrity.py
 ./tests/test_guide_gate_crosscheck.py
+./tests/test_guide_newsletter_retirement_v97435.py
 ./tests/test_guide_reads_nr_overlay_v97245.py
 ./tests/test_h002_inspect_version_fallback.py
 ./tests/test_h3_bioactivity_phenotype_linter.py
@@ -1915,7 +1951,9 @@
 ./tests/test_md_preflight_wide_tables.py
 ./tests/test_md_to_pdf_contract.py
 ./tests/test_merge_workbooks.py
+./tests/test_methods_documentation_contract.py
 ./tests/test_mibig_comparator_coverage.py
+./tests/test_mibig_component_context_v97435.py
 ./tests/test_mibig_neighborhoods.py
 ./tests/test_mibig_no_redaction_corruption.py
 ./tests/test_misanchor_flag_column.py
@@ -2262,6 +2300,7 @@
 ./tests/test_rggmci_cohort_rollup_v9_7_117.py
 ./tests/test_rggmci_d2d3_consistency.py
 ./tests/test_rggmci_r1r2r3.py
+./tests/test_rggmci_rescue_atlas.py
 ./tests/test_rggmci_shared_class_substring_collision.py
 ./tests/test_rggmci_split.py
 ./tests/test_rggmci_subject_tiling.py
@@ -2365,6 +2404,7 @@
 ./tests/test_source_availability.py
 ./tests/test_species_dedup_accession_key_v97396.py
 ./tests/test_sprint1_linters.py
+./tests/test_stacked_locus_map_v97435.py
 ./tests/test_stage2_overlay.py
 ./tests/test_stale_exemption_negative_controls_v97421.py
 ./tests/test_standing_rules_b1.py
@@ -2376,6 +2416,7 @@
 ./tests/test_strain_id_derivation.py
 ./tests/test_strain_identity_accession_prefix_v97395.py
 ./tests/test_strain_identity_guard.py
+./tests/test_strain_level_bgc_logic_v97434.py
 ./tests/test_strain_modeb_exact_identity_v97390.py
 ./tests/test_strain_modeb_lq_strain_01.py
 ./tests/test_strain_modeb_native_inventory_trials.py
@@ -2412,6 +2453,7 @@
 ./tests/test_tetronate_cassette.py
 ./tests/test_tetronate_partner_guard_v97406.py
 ./tests/test_tfbs_reverse_strand_guard.py
+./tests/test_thesis_handoff_portable.py
 ./tests/test_third_tranche_gate_hardening.py
 ./tests/test_three_channel_evidence_matrix_adapter_v97392.py
 ./tests/test_tier1_floor_tuning.py
@@ -2581,11 +2623,14 @@
 ./tools/bgc_alias_history.py
 ./tools/bgc_deliverable_pdf.py
 ./tools/bgc_figures.py
+./tools/bgc_functional_logic_workup.py
 ./tools/bgc_neighbor_layer.py
 ./tools/bgc_reconcile.py
 ./tools/bgc_reference_align.py
 ./tools/bigscape_blastp_novelty.py
+./tools/bigscape_class_glossary.py
 ./tools/bigscape_clinker_html.py
+./tools/bigscape_cohort_report.py
 ./tools/bigscape_combined_run.py
 ./tools/bigscape_cross_strain.py
 ./tools/bigscape_family_domains.py
@@ -2616,6 +2661,7 @@
 ./tools/blastp_monitoring/plot_crawl_proteins_24_96h.py
 ./tools/blastp_monitoring/plot_crawl_recent.py
 ./tools/blastp_monitoring/plot_usable_6h.py
+./tools/build_activity_decision_trees.py
 ./tools/build_all_deliverables.sh
 ./tools/build_bgc_markers.py
 ./tools/build_card_workbook.py
@@ -2627,6 +2673,7 @@
 ./tools/build_combined_bgc_report.py
 ./tools/build_cross_strain_figures.py
 ./tools/build_dapr_rescue_sheets.py
+./tools/build_deep_bgc_report.py
 ./tools/build_deep_data.py
 ./tools/build_deliverable_menu_widget.py
 ./tools/build_domain_explorer.py
@@ -2672,6 +2719,7 @@
 ./tools/build_subset_panel.py
 ./tools/build_tfbs_profile.py
 ./tools/build_thesis_diagrams.py
+./tools/build_thesis_handoff.py
 ./tools/build_thesis_vignettes.py
 ./tools/build_tree.sh
 ./tools/build_validation_panel.py
@@ -2705,6 +2753,7 @@
 ./tools/check_tier_parity.py
 ./tools/chitin_reference_eval.py
 ./tools/claim_safety_linter.py
+./tools/clear_match_finder.py
 ./tools/cluster_alignment.py
 ./tools/cluster_brief.py
 ./tools/cluster_completeness.py
@@ -2731,6 +2780,7 @@
 ./tools/cross_strain_denominator_audit.py
 ./tools/cut_audit.py
 ./tools/dark_gene_scan.py
+./tools/definitive_bgc_ranker.py
 ./tools/deliverable_citation_audit.py
 ./tools/determinism_fingerprint.py
 ./tools/domain_phylo_rescue.py
@@ -2904,6 +2954,7 @@
 ./tools/resolve_reference_metadata.py
 ./tools/rewrite_release_identity.py
 ./tools/rggmci_cohort_rollup.py
+./tools/rggmci_rescue_atlas.py
 ./tools/round_ledger.py
 ./tools/run_chatgpt_surrogate_gate.py
 ./tools/run_comparator_antismash_ingest.py
@@ -2932,6 +2983,7 @@
 ./tools/signoff_check.py
 ./tools/silent_exit_audit.py
 ./tools/strain_bigscape_report.py
+./tools/strain_level_bgc_logic.py
 ./tools/strict_source_disclosure_audit.py
 ./tools/suite_count_census.py
 ./tools/sync_version.py

@@ -1,6 +1,6 @@
 # The Sapote–Mamey User Manual
 
-*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.434 / engine Mamey 1.9.167*
+*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.435 / engine Mamey 1.9.167*
 *Historical sections retain their stated scope.*
 
 > This Manual tells you **how to run** Sapote–Mamey and **how to read what it gives you**, in the order you actually use it. For *why each part exists and how it relates to the rest*, see the **Encyclopedia** (cross-referenced as → §Vol.Chapter). The Manual is operational; the Encyclopedia is the deep reference behind it. Term definitions live in one place, the **Glossary** ([`GLOSSARY.md`](../GLOSSARY.md); its **Core concepts** section covers the load-bearing terms). This Manual and the Encyclopedia point to it rather than redefining terms.
@@ -27,7 +27,7 @@ Mamey is the factual floor; Sapote is the interpretive ceiling. The contract bet
 ## 2 · Setup and installation
 
 Mamey parses antiSMASH output; it does not run genome detection itself.
-*(engine 1.9.167, bundle v9.7.434)*
+*(engine 1.9.167, bundle v9.7.435)*
 
 ### 2.1 · What you need
 
@@ -92,7 +92,7 @@ Use CODE for all internal analysis. Never distribute MERGED-PRIVATE.
 
 ```bash
 python mamey_run.py doctor            # pre-flight check: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # should report `engine 1.9.167, bundle 9.7.434`
+python3 tools/sync_version.py --check # should report `engine 1.9.167, bundle 9.7.435`
 python3 -m pytest -q                  # green suite = tier is intact (requires pytest wheel)
 ```
 
@@ -242,7 +242,7 @@ v9.7.338 adds twelve on-demand subcommands that consume an **already-sealed pack
 
 **Evidence / false-positive layer**
 - **`comparator-coverage`** — the two-denominator MIBiG comparator-coverage evidence layer: a named-MIBiG-family "lead" that survives only one of the two coverage denominators is exposed as low-specificity rather than surfaced. This is the main false-positive filter. *Report-only, non-scoring* (its scoring wire is a future, sign-off-gated change and is NOT active).
-  `python mamey_run.py comparator-coverage <package> [--cohort-runs-dir <runs_dir>]`
+  `python mamey_run.py comparator-coverage <package> [--cohort-runs-dir <runs_dir>] [--out <dir>]`
 
 **Antifungal + interpretive deliverables**
 - **`af-dossier`** — the Antifungal Lead Dossier: one row per AF-lead BGC, joining BGC capacity (class-level routing prior) against **optional** measured Candida activity (strain-level context). Capacity and measured columns are kept in separate groups so they never mix; it runs with no wet-lab input, emitting "no measured data" when the crosswalk is absent. *Report-only, non-scoring.*
@@ -258,11 +258,11 @@ v9.7.338 adds twelve on-demand subcommands that consume an **already-sealed pack
 
 **Count / novelty / reference (advisory)**
 - **`domain-reference`** — emit the bundled Mode-B domain functional-context reference dictionary from sealed package(s).
-  `python mamey_run.py domain-reference --package <pkg> [--out FILE]`
+  `python mamey_run.py domain-reference --package <pkg> [--out DIR]`
 - **`realistic-count`** — an honest corrected-denominator BGC count (marginal-drop + HIGH RG-GMCI merge) beside the raw region count.
-  `python mamey_run.py realistic-count --package <pkg> [--out FILE]`
+  `python mamey_run.py realistic-count --package <pkg> [--out DIR]`
 - **`novelty-shortlist`** — a composite multi-signal novelty shortlist (KCB-dark + low recognizability + RG-GMCI + cohort-unique domain).
-  `python mamey_run.py novelty-shortlist --package <pkg> [--top 30] [--out FILE]`
+  `python mamey_run.py novelty-shortlist --package <pkg> [--top 30] [--out DIR]`
 
 **Analysis QC + Mode-B interpretation gates**
 - **`signoff`** — the "would a master's student sign off?" analysis QC gate (§8-style checks mechanised): objective checks on Newick trees — outgroup sanity, contaminant/label-cruft, support/thin-tree. Advisory; always exits 0.
@@ -532,4 +532,4 @@ Use [the Mode B user walkthrough](../MODE_B_USER_WALKTHROUGH.md) for package inp
 
 ---
 
-*Sapote–Mamey User Manual · current to bundle v9.7.434 / engine Mamey 1.9.167 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
+*Sapote–Mamey User Manual · current to bundle v9.7.435 / engine Mamey 1.9.167 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*

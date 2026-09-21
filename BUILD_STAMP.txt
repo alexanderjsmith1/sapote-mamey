@@ -1,5 +1,5 @@
-version=9.7.434
-build=20260918v97434a
+version=9.7.435
+build=20260920v97435a
 engine=1.9.167
-patch=README repairs and typo cleanup; Missing metadata stays visually absent; Caption governance guard; Engine unchanged
+patch=BiG-SCAPE reporting and figures; BGC evidence review; BLASTp routing; Documentation and workflow; Engine unchanged; Deferred from this cut
 tier=code

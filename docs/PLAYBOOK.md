@@ -1,5 +1,5 @@
 # Sapote–Mamey Playbook
-**Version:** v9.7.434 | **Bundle:** sapote-mamey-v9.7.434 | **For:** ChatGPT (single-model or dual-model with Claude)
+**Version:** v9.7.435 | **Bundle:** sapote-mamey-v9.7.435 | **For:** ChatGPT (single-model or dual-model with Claude)
 
 ---
 

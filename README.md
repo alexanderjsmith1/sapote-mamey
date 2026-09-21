@@ -21,6 +21,34 @@ You do not need every optional workflow to get a useful result. Mode B cards hav
 For a one-page map of the program's parts, inputs, and outputs, see
 [What Sapote-Mamey offers](docs/PRODUCT_MAP.md).
 
+## Start in ChatGPT or Claude.ai
+
+Many Sapote-Mamey review and reporting workflows can begin in a browser without a local
+installation. Paste the repository link
+[github.com/alexanderjsmith1/sapote-mamey](https://github.com/alexanderjsmith1/sapote-mamey)
+into a new ChatGPT or Claude.ai conversation, state the analysis you want, and attach one or more
+antiSMASH result ZIPs. For phylogeny, attach the sequence input you actually have, such as 16S
+FASTA, an assembled genome FASTA or GenBank file, and the matching sample metadata. Raw sequencing
+reads first need an appropriate assembly and quality-control route.
+
+Ask the assistant to read `AGENTS.md`, this `README.md`, and
+`skills/sapote-mamey/SKILL.md` before it begins. Tell it whether you authorize inspection only or
+execution of the attached data. For every individual BGC, require the complete identity in the
+order **strain / full node-or-contig / region / BGC alias**, and require source-backed uncertainty
+and claim ceilings. A useful opening prompt is:
+
+> Read the Sapote-Mamey repository instructions and inspect my attached files. I authorize analysis
+> of these inputs. Preserve complete BGC identities and provenance, report evidence gaps, and do not
+> treat similarity as product identity or production. Use the available execution tools for supported
+> workflows; if a required runtime or database is unavailable, identify the exact local step instead
+> of inventing a result.
+
+Browser interfaces differ in file-size limits, runtimes, network access, and session persistence.
+They can inspect inputs, interpret existing evidence, and prepare reports when those capabilities are
+available. The deterministic Mamey engine, external phylogeny programs, large databases, and long
+runs may still require a local Codex or terminal environment. Download the generated reports and
+receipts; a chat response alone is not a validated or sealed Mamey package.
+
 **Start with the file you have:**
 
 - An **antiSMASH result ZIP** → [Your first Sapote–Mamey analysis](docs/MASTER_WALKTHROUGH.md). It has a route for working through an assistant and a terminal route.
@@ -286,4 +314,4 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.434 / engine 1.9.167 · build 20260918v97434a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.435 / engine 1.9.167 · build 20260920v97435a · release profile: CODE (see RELEASE_MANIFEST.md)*

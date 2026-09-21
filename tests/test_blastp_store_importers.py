@@ -107,6 +107,46 @@ def _rollup_csv(root: Path, channel: str = "ncbi_nr") -> Path:
     return path
 
 
+def _single_clnr_csv(root: Path, *, channel: str = "") -> Path:
+    path = (
+        root / "Blastp RESULTS" / "_STRAINGAP_SINGLE_CLNR_SYNTH001" / "results"
+        / "SYNTH-001" / "SYNTH-001_straingap_p001"
+        / "SYNTH-001_straingap_p001_blastp_top10_clustered.csv"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fields = [
+        "strain", "bgc_id", "gene", "aa_length", "role", "domains", "hit_rank",
+        "subject_acc", "subject_organism", "subject_def", "pct_identity", "align_length",
+        "query_coverage", "evalue", "bitscore", "pct_positives",
+    ]
+    if channel:
+        fields.append("channel")
+    row = {
+        "strain": "SYNTH-001",
+        "bgc_id": "SYNTH-001_straingap_p001",
+        "gene": "SYNTH-001__BGC001__ctg1_9 aa=101, note=comma-safe",
+        "aa_length": "101",
+        "role": "",
+        "domains": "",
+        "hit_rank": "1",
+        "subject_acc": "SYNTH_CLUSTERED_1",
+        "subject_organism": "Synthetic organism",
+        "subject_def": "synthetic clustered representative",
+        "pct_identity": "51.0",
+        "align_length": "100",
+        "query_coverage": "99.0",
+        "evalue": "1e-20",
+        "bitscore": "150.0",
+        "pct_positives": "66.0",
+        "channel": channel,
+    }
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerow(row)
+    return path
+
+
 def _swiss_csv(root: Path) -> Path:
     path = (
         root / "Local Blastp RESULTS (SwissProt)" / "SYNTH-001" / "BGC001"
@@ -204,6 +244,33 @@ def test_rollup_execute_is_named_column_atomic_and_idempotent(tmp_path):
 def test_rollup_channel_conflict_refuses_the_entire_transaction(tmp_path):
     db = _make_store(tmp_path)
     _rollup_csv(tmp_path, channel="local_swissprot")
+    before = _sha(db)
+    result = _run(ROLLUP, tmp_path, "--execute", "--source-workspace", "synthetic-import")
+    assert result.returncode != 0
+    assert "BLASTP_ROLLUP_CHANNEL_HOLD" in result.stderr
+    assert _sha(db) == before
+
+
+def test_single_clnr_runner_csv_is_discovered_and_suffix_binds_channel(tmp_path):
+    db = _make_store(tmp_path)
+    _single_clnr_csv(tmp_path)
+    result = _run(ROLLUP, tmp_path, "--execute", "--source-workspace", "synthetic-import")
+    assert result.returncode == 0, result.stderr
+    with sqlite3.connect(db) as con:
+        row = con.execute(
+            "SELECT gene, channel, subject_db, source_file FROM hits"
+        ).fetchone()
+    assert row[:3] == (
+        "SYNTH-001__BGC001__ctg1_9 aa=101, note=comma-safe",
+        "ncbi_clustered_nr",
+        "nr_cluster_seq",
+    )
+    assert "_STRAINGAP_SINGLE_CLNR_SYNTH001/results/" in row[3]
+
+
+def test_single_clnr_explicit_wrong_channel_is_a_typed_hold(tmp_path):
+    db = _make_store(tmp_path)
+    _single_clnr_csv(tmp_path, channel="ncbi_nr")
     before = _sha(db)
     result = _run(ROLLUP, tmp_path, "--execute", "--source-workspace", "synthetic-import")
     assert result.returncode != 0

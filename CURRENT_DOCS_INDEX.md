@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.434 · engine 1.9.167 · build 20260918v97434a
+# Current Docs Index — v9.7.435 · engine 1.9.167 · build 20260920v97435a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -21,10 +21,14 @@ or receive it through their supported instruction mechanism.
 - [Command catalog](docs/COMMAND_CATALOG.generated.md) and [deliverable menu](docs/DELIVERABLE_MENU.md):
   generated command and capability navigation. The menu is maintained by the deliverables registry.
 - [Glossary](docs/GLOSSARY.md): canonical reader-facing terms.
+- [Methods implementation template](docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md) and
+  [reporting checklist](docs/METHODS_REPORTING_CHECKLIST.md): prospective, claim-safe manuscript authoring aids;
+  their presence does not assert that a study or module was run.
 - [Mode B authoring](wiki/Mode-B-Gene-First-and-48-Section-Manual.md): use the selected machine-readable
   profile and its emitted template; legacy section counts do not replace a named current profile.
 - [BLASTp evidence](docs/ONLINE_BLASTP_PROTOCOL.md): existing results first, optional live submission.
 - [BiG-SCAPE cohort walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md) and [troubleshooting](docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md): stage region files, run a cohort, inspect family verdicts and figures.
+- [BiG-SCAPE cohort networks and comparator context](docs/BIGSCAPE_COHORT_NETWORK_GUIDE.md): exact-identity cohort tables, evidence badges and citations, overmerged-region component metrics, interactive/static figures, and additive batch report enrichment.
 - [Phylogenetic workflow](docs/PHYLO_AUTOPILOT_WORKFLOW.md), [placement](docs/PHYLO_PLACEMENT_WORKFLOW.md),
   and [companion tools](docs/LLM_COMPANION_TOOL_PROTOCOL.md): inputs, resource scope and run receipts.
 - [Figure rendering](docs/FIGURE_FACTORY_NEXT.md) and [figure preflight](wiki/Figure-Factory-Preflight-and-Methods-Manual.md):
@@ -49,6 +53,10 @@ every scientific statement or historical experiment was revalidated for that cut
 
 [Engine reference](docs/reference/00_README.md) and [Encyclopedia currency](wiki/Encyclopedia-Currency.md)
 record reference scope. Consult current code and named schemas for numerical behavior.
+[Methods technical appendix](docs/reference/METHODS_TECHNICAL_APPENDIX.md) records release-sensitive
+parameters and failure-state semantics. The developer-facing
+[implementation source map](docs/development/METHODS_IMPLEMENTATION_SOURCE_MAP.md) is regression-tested
+against current implementation and test paths.
 [Figure repair records](docs/figure_factory/README.md), `docs/working/`, `docs/release_planning/`,
 and `docs/patch_notes/` are engineering records, not an alternative user setup sequence.
 

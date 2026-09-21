@@ -388,7 +388,7 @@ mamey cohort-leads    --runs-dir <runs_dir> [--out COHORT_PRIORITY_LEADS.csv]   
 mamey cohort-assemble --runs-dir <runs_dir> [--out COHORT_MASTER.csv] [--xlsx]  # many sealed packages → one master table (+ siblings)
 
 # --- EVIDENCE / FALSE-POSITIVE LAYER ---
-mamey comparator-coverage <package> [--cohort-runs-dir <runs_dir>]  # two-denominator MIBiG comparator coverage (report-only)
+mamey comparator-coverage <package> [--cohort-runs-dir <runs_dir>] [--out <dir>]  # two-denominator MIBiG comparator coverage (report-only)
                                                                      # standalone: python -m mamey.mibig_comparator_coverage <package_dir> [--cohort-runs-dir <dir>]
 
 # --- ANTIFUNGAL + INTERPRETIVE DELIVERABLES ---
@@ -403,9 +403,9 @@ python -m mamey.kcb_locusmap --zip <zip> --contig <NODE> --out-dir <dir> \
                                                                               # or: --kcb-txt <knownclusterblast.txt> --out-dir <dir> --stem BGC###
 
 # --- COUNT / NOVELTY / REFERENCE (advisory) ---
-mamey domain-reference  --package <pkg> [--out FILE]            # bundled Mode-B domain-reference dictionary
-mamey realistic-count   --package <pkg> [--out FILE]            # honest corrected BGC-count denominator
-mamey novelty-shortlist --package <pkg> [--top 30] [--out FILE]  # composite multi-signal novelty shortlist
+mamey domain-reference  --package <pkg> [--out DIR]             # bundled Mode-B domain-reference dictionary
+mamey realistic-count   --package <pkg> [--out DIR]             # honest corrected BGC-count denominator
+mamey novelty-shortlist --package <pkg> [--top 30] [--out DIR]  # composite multi-signal novelty shortlist
 
 # --- ANALYSIS QC + MODE-B INTERPRETATION GATES ---
 mamey signoff [tree.treefile ...] [--minutes N]                          # "would a master's student sign off?" tree QC (advisory, exit 0)
@@ -414,7 +414,7 @@ mamey verify-modeb --package <pkg> --bgc BGC### --interp [--interp-strict]  # ad
 ```
 
 **Notes.**
-- **`comparator-coverage`** emits `<STRAIN>_3b_comparator_coverage.csv` + `_summary.json`. It is the
+- **`comparator-coverage`** emits `<STRAIN>_3b_comparator_coverage.csv` + `_summary.json` in a sibling output directory by default (or `--out <dir>`). It is the
   false-positive killer: a named-MIBiG-family "lead" that survives only one of the two coverage
   denominators is exposed as low-specificity rather than surfaced. Report-only in .338 — its scoring
   wire (suppression-only, guard-gated) is a future sign-off-gated change and is NOT active.

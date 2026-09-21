@@ -24,6 +24,7 @@ mamey/_vendor/ijson/dump.py	Dumping command-line utility
 mamey/_vendor/ijson/utils.py	(no docstring)
 mamey/_vendor/ijson/utils35.py	Python3.5+ specific utilities
 mamey/_vendor/ijson/version.py	(no docstring)
+mamey/activity_decision_tree.py	Generate claim-safe metabolomics and activity decision trees.
 mamey/activity_lead_genes.py	Gene-level biosynthetic foundations for activity-lead routing boards.
 mamey/activity_lead_report.py	Per-strain antibacterial/antifungal activity-lead routing report.
 mamey/activity_predictions.py	External activity-prediction channel — validator + adapter registry (v9.7.348).
@@ -119,6 +120,7 @@ mamey/csv_safety.py	CSV/TSV formula-injection neutraliser (v9.7.409, DEEP_AUDIT2
 mamey/data/literature/_corpus/curate_kb.py	curate_kb.py — derive claim-safe, PMID-cited genus/family KB markdown from literature_corpus.jsonl.
 mamey/data/literature/_corpus/pubmed_ingest.py	pubmed_ingest.py — scalable PubMed search-result PDF → structured, searchable literature corpus.
 mamey/dedup_and_guard.py	Prototypes for: (A) dedup-on-ingest, (B) hardened release guard, (C) fragment claim-ceiling.
+mamey/deep_bgc_report.py	Portable, fail-closed deep BGC report builder.
 mamey/deep_data.py	deep_data.py — gene-level deep-data extraction + Mode B verdict scaffold (v9.7.46, B-9/F-10).
 mamey/degradation.py	degradation.py — v9.7.367 CANDIDATE (Indigo2 §1, the review lane-ruled 2026-08-15).
 mamey/deliverable_queue.py	deliverable_queue.py — resumable, autonomous strain-deliverable queue (.345).
@@ -313,6 +315,7 @@ mamey/report_theme.py	Portable Sapote-Mamey report theme tokens.
 mamey/rescue_two_proof.py	rescue_two_proof.py — the CORE join: RG-GMCI (_4A, reference-based) × KS-clade (_4B, reference-free)
 mamey/resistance_dossier.py	resistance_dossier — post-seal per-BGC resistance-focused gene-by-gene writeups.
 mamey/rggmci.py	Reference-Guided Genome Mining Candidate Inference (RG-GMCI).
+mamey/rggmci_rescue_atlas.py	Portable, claim-safe RG-GMCI complementary-rescue atlas.
 mamey/roster_v2.py	roster_v2 — package-native per-BGC, multi-channel gene roster model.
 mamey/rules.py	mamey.rules — load the standing-rules registry and lint verdict text against it.
 mamey/s3_census_generator.py	§3 gene-census deepener — generate a size-proportionate biosynthetic-core section.
@@ -339,6 +342,7 @@ mamey/strain_modeb.py	FULL STRAIN SAPOTE — strain-level Mode B generator
 mamey/structured_domain_motif_extension.py	Index saved Mamey structured exports. No original antiSMASH parser or new scan.
 mamey/tab_reconcile.py	antiSMASH tab reconciliation for one BGC/region.
 mamey/tailoring_extract.py	tailoring_extract.py — tailoring-enzyme extraction for domain trees (VGP-399, card 2/3).
+mamey/thesis_handoff.py	Build a compact, portable, hash-bound thesis handoff package.
 mamey/timing.py	timing.py — machine-readable timing telemetry for Mamey runs (v9.7.81).
 mamey/tip_label.py	Source-aware display labels; machine tip keys and trees are never changed.
 mamey/tool_database_reader.py	Manifest-bound read-only inspection, separate from ingestion and selection.

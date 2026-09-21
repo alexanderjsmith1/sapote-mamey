@@ -125,6 +125,19 @@ RULES = [
     ("docs/FIGURES_START_HERE.md",
      re.compile(r"Sapote–Mamey v\d+(?:\.\d+)*[a-z]* · Mamey engine \d+(?:\.\d+)*[a-z]*"),
      f"Sapote–Mamey v{BUNDLE} · Mamey engine {ENGINE}"),
+    # Methods documentation carries explicit release-sensitive parameter records. Keep the
+    # prospective template, technical appendix, and developer source map on the selected cut;
+    # this updates only their anchored version lines, not historical or scientific prose.
+    ("docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md",
+     re.compile(r"(?m)^\*\*Version template:\*\* Sapote-Mamey v\d+(?:\.\d+)*[a-z]* / Mamey v\d+(?:\.\d+)*[a-z]*  $"),
+     f"**Version template:** Sapote-Mamey v{BUNDLE} / Mamey v{ENGINE}  "),
+    *[(path,
+       re.compile(r"(?m)^\*\*Version of record:\*\* Mamey engine v\d+(?:\.\d+)*[a-z]* · bundle v\d+(?:\.\d+)*[a-z]*  $"),
+       f"**Version of record:** Mamey engine v{ENGINE} · bundle v{BUNDLE}  ")
+      for path in (
+          "docs/reference/METHODS_TECHNICAL_APPENDIX.md",
+          "docs/development/METHODS_IMPLEMENTATION_SOURCE_MAP.md",
+      )],
     ("CITATION.cff",
      re.compile(r"(?m)^version:\s*\d+(?:\.\d+)*[a-z]*"),
      f"version: {BUNDLE}"),

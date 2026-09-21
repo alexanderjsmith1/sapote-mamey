@@ -46,7 +46,7 @@ This is the non-negotiable that everything else defers to. Before writing a sing
 
 The `claim_safety_linter` is wired into the seal path (`tools/claim_safety_linter.py`, `mamey/claim_safety_gate.py`). **Run it — don't rely on memory that a card is safe.** See `references/claim-safety.md`.
 
-## The workflow — CDSW
+## The workflow
 
 ```
 1. Session start   → read AGENTS.md; bind inputs and scope; start only for authorized execution
@@ -60,6 +60,18 @@ The `claim_safety_linter` is wired into the seal path (`tools/claim_safety_linte
 **Step 1 binds the task to the actual bundle.** Use `docs/BUNDLE_CAPABILITIES.md` as the supporting capability catalog, and `CURRENT_DOCS_INDEX.md` to distinguish current instructions from historical material. Search relevant prior context without treating a remembered version as authority.
 
 **Step 2 is not optional either.** Find the actual spec and the real tool. Don't infer a format from one example; don't hand-roll what an existing command already does. If you haven't found the instructions, say so and go look — don't fill the gap with plausible-sounding inference.
+
+## Next paths at every substantive handoff
+
+Report completed work, evidence, unresolved holds, and the next bounded action. Then give exactly
+eight numbered paths, 1 through 8. The paths must be genuinely different and grounded in the current
+strain, complete BGC identity, package state, validation result, or file. Cover these downstream
+goals when applicable: (1) continue the next batch, (2) deepen a named BGC, (3) compare or merge
+across strains, (4) make a figure or visual deliverable, (5) pursue wet-lab, metabolomics, or
+literature evidence, (6) package a checksum-bound handoff, (7) patch, debug, or improve validation,
+and (8) produce documentation, release material, or another public-facing artifact. Do not pad the
+list with wording variants. Save and verify the current task state before the handoff and include the
+required SAVE STATE confirmation under the shared `AGENTS.md` contract.
 
 ## Modes — switch deliberately
 
@@ -107,7 +119,7 @@ Contract: `docs/FULL_MODEB_30_SECTION_CONTRACT_v97150.md` + machine form `mamey/
 - **No fabricated observations, in any section, ever.** If it isn't in a real result, it isn't in the card — even in the course of filling a template.
 - **Attribution over reproduction.** Cite sources (DOI/PMID/accession); don't reproduce copyrighted text.
 
-## Post-seal deliverables (v9.7.338)
+## Post-seal deliverables
 
 After a sealed package exists, twelve sign-off-gated subcommands emit extra deliverables **without
 re-running the engine, moving a score, or touching a published tier** (non-scoring unless noted;
@@ -130,13 +142,13 @@ invocations: `docs/GUIDE/02_Quick_Guide.md` §10 · `docs/GUIDE/01_User_Manual.m
 | Get the claim-language rules right | `references/claim-safety.md`, `docs/MODE_B_CARD_CLAIM_SAFETY_AUDIT.md`, `tools/claim_safety_linter.py` |
 | Write human-facing prose that doesn't read like an LLM | `references/prose-style.md` (audit pass; claim-safety hedges are exempt) |
 | Compile a deliverable | `docs/DELIVERABLE_CONTRACT.md` |
-| Emit a post-seal deliverable (cohort ledger, AF dossier, good-guesses, Mode-B docx/pdf, KCB locus map, novelty/count/sign-off) — v9.7.338 | `docs/GUIDE/02_Quick_Guide.md` §10, `docs/GUIDE/01_User_Manual.md` §4.3a, `docs/user_guides/tools_reference.md` §20 |
+| Emit a post-seal deliverable (cohort ledger, AF dossier, good-guesses, Mode-B docx/pdf, KCB locus map, novelty/count/sign-off) | `docs/GUIDE/02_Quick_Guide.md` §10, `docs/GUIDE/01_User_Manual.md` §4.3a, `docs/user_guides/tools_reference.md` §20 |
 | Audit the pipeline (bunny hop) | `debugging_modules/BUNNY_HOP_AUDIT_GAME.md` |
 | Cut a release / tiers | `CUT_PROTOCOL.md`, `tools/make_public_tier.sh`, `tools/sync_version.py` |
 | Verify literature citations | `docs/BERT_MODE_PROTOCOL.md` |
 | Run/resume BiG-SCAPE safely | `docs/LLM_COMPANION_TOOL_PROTOCOL.md`, `docs/BIGSCAPE_GCF_WORKFLOW.md`, `docs/SOPs/SOP-17_CrossStrain_GCF_Cohort.md` |
 | Plan/run GToTree + IQ-TREE | `docs/LLM_COMPANION_TOOL_PROTOCOL.md`, `docs/phylogenomics.md` (user-approved preflight; one core/tree; ≤4 total) |
-| Check historical next-path format when specifically required | `tools/check_chatgpt_next_paths.py` (compatibility utility, not a universal reply requirement) |
+| Validate the required eight-path handoff | `tools/check_chatgpt_next_paths.py` and the current shared handoff contract in `AGENTS.md` |
 | Set up / run the engine | `docs/INSTALL.md`, `docs/PREREQUISITES.md`, `python mamey_run.py doctor` |
 
 *The shared assistant entry point is `AGENTS.md`. Unless shown under `references/`, paths in this skill refer to the bundle root. Compare this companion discipline with the current contracts and update it when they diverge.*

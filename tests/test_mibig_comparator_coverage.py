@@ -6,6 +6,10 @@ collision flag on a transport-only comparator, within-BGC specificity
 """
 from __future__ import annotations
 
+import csv
+
+import pytest
+
 from mamey import mibig_comparator_coverage as mcc
 
 
@@ -243,3 +247,28 @@ def test_report_only_contract_and_no_scoring_fields():
     for row in result["rows"]:
         assert banned.isdisjoint(row.keys())
         assert "claim_safety" in row
+
+
+def test_package_runner_writes_outside_sealed_package(tmp_path):
+    package = tmp_path / "package"
+    package.mkdir()
+    with (package / "TEST_3_mibig_per_gene.csv").open("w", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(_hit("BGC_A", "g1", "BGC_CORE")))
+        writer.writeheader()
+        writer.writerow(_hit("BGC_A", "g1", "BGC_CORE"))
+
+    result = mcc.run_for_package(package)
+    written = result["_written"]
+    assert (tmp_path / "TEST_comparator_coverage" / "TEST_3b_comparator_coverage.csv").is_file()
+    assert not (package / "TEST_3b_comparator_coverage.csv").exists()
+    assert str(tmp_path / "TEST_comparator_coverage") in written["csv"]
+
+
+def test_package_runner_refuses_output_inside_sealed_package(tmp_path):
+    package = tmp_path / "package"
+    package.mkdir()
+    (package / "TEST_3_mibig_per_gene.csv").write_text(
+        "bgc_id,query_gene,subject_gene,mibig_accession\n", encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="OUTSIDE the sealed package"):
+        mcc.run_for_package(package, out_dir=package / "reports")

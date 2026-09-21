@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**377 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**387 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -31,11 +31,14 @@
 | `bgc_alias_history.py` | which BGC id did this locus carry in the PRIOR run of the same strain? |
 | `bgc_deliverable_pdf.py` | bgc_deliverable_pdf.py -- assemble a per-BGC deliverable PDF (cover + facts + figures + Mode B). |
 | `bgc_figures.py` | bgc_figures.py -- per-BGC figure set for Sapote-Mamey deliverables. |
+| `bgc_functional_logic_workup.py` | Explain definitive BGC ranks with KCB-blind functional architecture. |
 | `bgc_neighbor_layer.py` | build a SEPARATE labeled tree layer for shared-BGC / BLASTp-neighbor |
 | `bgc_reconcile.py` | pre-authoring cross-channel evidence reconciliation ledger. |
 | `bgc_reference_align.py` | bgc_reference_align.py -- align one BGC's proteins against characterized reference clusters |
 | `bigscape_blastp_novelty.py` | Gene-level protein-homology context against a user-provisioned MIBiG GBK set. |
+| `bigscape_class_glossary.py` | Render the bundled BiG-SCAPE class vocabulary as an undergraduate-facing Markdown key. |
 | `bigscape_clinker_html.py` | clinker-style within-family gene alignment pages (HTML, optional PDF) from a BiG-SCAPE 2 DB. |
+| `bigscape_cohort_report.py` | Build portable, exact-identity-aware BiG-SCAPE cohort tables. |
 | `bigscape_combined_run.py` | Sapote-Mamey BiG-SCAPE combined-run tool |
 | `bigscape_cross_strain.py` | Write a deterministic, qualified cross-strain BiG-SCAPE GCF table. |
 | `bigscape_family_domains.py` | bigscape_family_domains.py |
@@ -66,6 +69,7 @@
 | `tools/blastp_monitoring/plot_crawl_proteins_24_96h.py` | Plot BLASTp crawl cumulative throughput in ACTUAL PROTEINS QUERIED (not |
 | `tools/blastp_monitoring/plot_crawl_recent.py` | "what is landing RIGHT NOW", across ALL lanes. |
 | `tools/blastp_monitoring/plot_usable_6h.py` | USABLE data returned over the last 6 hours, all lanes. |
+| `build_activity_decision_trees.py` | (no docstring) |
 | `build_all_deliverables.sh` | regenerate default Sapote–Mamey deliverables from the banked cohort, |
 | `build_bgc_markers.py` | (no docstring) |
 | `build_card_workbook.py` | cross-strain card workbook. |
@@ -77,6 +81,7 @@
 | `build_combined_bgc_report.py` | Build one portable combined V7 + Mode B BGC dossier. |
 | `build_cross_strain_figures.py` | CLI wrapper for mamey.cross_strain_figures. |
 | `build_dapr_rescue_sheets.py` | deterministic (Mamey-layer) regeneration of the schema-v1.2 |
+| `build_deep_bgc_report.py` | Build one exact-identity deep BGC report from portable inputs. |
 | `build_deep_data.py` | (no docstring) |
 | `build_deliverable_menu_widget.py` | render the self-contained Deliverable Menu widget. |
 | `build_domain_explorer.py` | Read-only projection of the existing architecture owner; no biological scans. |
@@ -122,6 +127,7 @@
 | `build_subset_panel.py` | deterministic cross-cohort / cohort-subset panel (closes DLV-008; drives G2 & G6). |
 | `build_tfbs_profile.py` | per-strain transcription-factor binding-site (TFBS) regulator profile. |
 | `build_thesis_diagrams.py` | chain-of-events and cause-and-effect diagrams for the thesis chapter. |
+| `build_thesis_handoff.py` | (no docstring) |
 | `build_thesis_vignettes.py` | worked thesis vignettes for the Class-A leads. |
 | `build_tree.sh` | the ONLY sanctioned way to build a phylogenomic tree in this project. |
 | `build_validation_panel.py` | corrected-vs-raw percentile scatter for the external-validation panel. |
@@ -155,6 +161,7 @@
 | `check_tier_parity.py` | fail-closed parity gate across the four release tiers. |
 | `chitin_reference_eval.py` | tools/chitin_reference_eval.py -- operator front door for the whole-genome chitin/GlcNAc |
 | `claim_safety_linter.py` | post-hoc claim-safety linter for Sapote interpretive text |
+| `clear_match_finder.py` | Rank package-backed MIBiG matches by top-versus-second separation. |
 | `cluster_alignment.py` | reference-aligned homolog figures for split-pathway BGCs. |
 | `cluster_brief.py` | one-command driver for the comparative chain → a consolidated brief. |
 | `cluster_completeness.py` | is a truncated cluster incomplete by assembly, or by biology? |
@@ -179,6 +186,7 @@
 | `cross_strain_denominator_audit.py` | fail-closed invariant on cohort-size denominators (v9.7.116). |
 | `cut_audit.py` | reproducible sealed-cut audit + card rebase-verify harness. |
 | `dark_gene_scan.py` | Dark-gene rescue scanner for edge/FC BGCs. |
+| `definitive_bgc_ranker.py` | Reciprocal, core-weighted, boundary-aware BGC evidence ranking. |
 | `deliverable_citation_audit.py` | pre-delivery §15 citation + provenance gate for FINISHED deliverables. |
 | `determinism_fingerprint.py` | Run and compare the shipped deterministic-extraction control inventory. |
 | `domain_phylo_rescue.py` | advisory catalytic-domain-phylogeny corroboration for split-pathway rescue. |
@@ -335,6 +343,7 @@
 | `resolve_reference_metadata.py` | Resolve reference-genome isolation metadata from the deposited NCBI record (strain-level, cited). |
 | `rewrite_release_identity.py` | Rewrite cut-time bundle/build identity without platform-specific ``sed -i``. |
 | `rggmci_cohort_rollup.py` | cross-strain RG-GMCI ranked rollup + confidence tiering (v9.7.117). |
+| `rggmci_rescue_atlas.py` | Build the post-seal RG-GMCI complementary-rescue atlas. |
 | `round_ledger.py` | verify a Mode B card and append one audit row to the round ledger. |
 | `run_chatgpt_surrogate_gate.py` | Fast ChatGPT surrogate release gate for Sapote--Mamey. |
 | `run_comparator_antismash_ingest.py` | Run comparator antiSMASH/GBK ingest. |
@@ -357,6 +366,7 @@
 | `signoff_check.py` | the "would a master's student sign off?" gate, mechanised. |
 | `silent_exit_audit.py` | Inventory of SILENT SUCCESS EXITS in the guard surface. |
 | `strain_bigscape_report.py` | strain_bigscape_report.py -- per-strain BiG-SCAPE report as a standard Sapote-Mamey deliverable. |
+| `strain_level_bgc_logic.py` | Build readable per-strain BGC product-logic reports from the CP050 workup. |
 | `strict_source_disclosure_audit.py` | COMPATIBILITY ENTRY POINT. Holds no policy. |
 | `suite_count_census.py` | Measure pytest collection separately from JUnit execution outcomes. |
 | `sync_version.py` | propagate the single source-of-truth version into restated files. |

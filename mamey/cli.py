@@ -4990,7 +4990,15 @@ def comparator_coverage_command(args) -> int:
     Consumes the sealed _3_mibig_* + CDS rows and re-expresses each named MIBiG comparator
     against both locus and defining-core denominators; emits _3b_comparator_coverage.csv."""
     from .mibig_comparator_coverage import run_for_package
-    result = run_for_package(args.package, cohort_runs_dir=getattr(args, "cohort_runs_dir", None))
+    try:
+        result = run_for_package(
+            args.package,
+            cohort_runs_dir=getattr(args, "cohort_runs_dir", None),
+            out_dir=getattr(args, "out", None),
+        )
+    except ValueError as exc:
+        _LOGGER.error("comparator-coverage: %s", exc)
+        return 2
     # v9.7.371 fix: result has no n_rows/csv_path keys (run_for_package returns rows/_written,
     # confirmed against the module own main()) -- this always printed "0 comparator row(s)" and
     # the package dir instead of the real count/path, regardless of the actual result.
@@ -6503,6 +6511,8 @@ def build_parser():
     p_cc.add_argument("package", help="Sealed package dir")
     p_cc.add_argument("--cohort-runs-dir", default=None, dest="cohort_runs_dir",
                       help="Optional runs dir for cohort comparator-prevalence de-weighting.")
+    p_cc.add_argument("--out", default=None,
+                      help="Output directory outside the sealed package (default: sibling directory).")
     p_cc.set_defaults(func=comparator_coverage_command)
 
     # --- domain-reference / realistic-count / novelty-shortlist (D3 orphan-tier tools) ---
@@ -7291,6 +7301,7 @@ def build_parser():
     _fgk_src.add_argument("--zip", dest="kcb_zip", help="Raw antiSMASH ZIP (reads knownclusterblast/*.txt)")
     _fgk_src.add_argument("--kcb-txt", dest="kcb_txt", help="A single knownclusterblast/clusterblast .txt file")
     fgk.add_argument("--contig", default="", help="Contig/region key, e.g. NODE_106 (ZIP mode)")
+    fgk.add_argument("--region", default="", help="antiSMASH region locator, e.g. region002 (ZIP mode)")
     fgk.add_argument("--out-dir", dest="kcb_out_dir", required=True, help="output directory")
     fgk.add_argument("--top-n", dest="kcb_top_n", type=int, default=6)
     fgk.add_argument("--strain-id", dest="kcb_strain_id", default="")
@@ -7300,6 +7311,7 @@ def build_parser():
     fgk.set_defaults(func=lambda a: _kcb_locusmap.main(
         (["--zip", a.kcb_zip] if a.kcb_zip else ["--kcb-txt", a.kcb_txt])
         + (["--contig", a.contig] if a.contig else [])
+        + (["--region", a.region] if a.region else [])
         + ["--out-dir", a.kcb_out_dir, "--top-n", str(a.kcb_top_n)]
         + (["--strain-id", a.kcb_strain_id] if a.kcb_strain_id else [])
         + (["--bgc-id", a.kcb_bgc_id] if a.kcb_bgc_id else [])

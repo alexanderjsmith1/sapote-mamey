@@ -47,6 +47,12 @@ FRONT_FACING_ROOT = [
     ROOT / "docs/PLAYBOOK.md",
 ]
 
+METHODS_DOCS_WITH_VERSION = [
+    ROOT / "docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md",
+    ROOT / "docs/reference/METHODS_TECHNICAL_APPENDIX.md",
+    ROOT / "docs/development/METHODS_IMPLEMENTATION_SOURCE_MAP.md",
+]
+
 
 def test_current_docs_index_header_current():
     """CANDIDATE_251: the docs-index header must restate the CURRENT bundle, engine, and build.
@@ -61,6 +67,17 @@ def test_current_docs_index_header_current():
         f"CURRENT_DOCS_INDEX.md header does not restate bundle v{BUNDLE_VER}: {header!r}")
     assert ENGINE_VER in header, (
         f"CURRENT_DOCS_INDEX.md header does not restate engine {ENGINE_VER}: {header!r}")
+
+
+def test_methods_documentation_version_anchors_current():
+    """Release-sensitive Methods docs must move with the bundle and engine versions."""
+    for path in METHODS_DOCS_WITH_VERSION:
+        assert path.exists(), f"Methods documentation missing: {path.relative_to(ROOT)}"
+        text = path.read_text(encoding="utf-8")
+        assert f"v{BUNDLE_VER}" in text, (
+            f"{path.relative_to(ROOT)} does not restate bundle v{BUNDLE_VER}")
+        assert f"v{ENGINE_VER}" in text, (
+            f"{path.relative_to(ROOT)} does not restate engine v{ENGINE_VER}")
 
 
 def test_no_stale_version_in_root_front_door_files():

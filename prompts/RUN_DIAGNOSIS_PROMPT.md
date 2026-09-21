@@ -4,7 +4,7 @@
 
 ---
 
-You have the Sapote–Mamey v9.7.434 bundle and one or more antiSMASH genome-mining ZIP(s).
+You have the Sapote–Mamey v9.7.435 bundle and one or more antiSMASH genome-mining ZIP(s).
 Run the full pipeline and produce the diagnosis deliverables.
 
 1. **Mamey extraction (deterministic):** run Mamey on each uploaded antiSMASH ZIP. Process every

@@ -38,6 +38,9 @@ from mamey.workspace_root import workspace_root
 PATTERNS = (
     "strain_data/*/blastp_nr_*/*_nr_top10_*.csv",
     "strain_data/*/blastp_clustered_nr_*/*_clustered_nr_top10_*.csv",
+    # nr_rid_runner single-protein ClusteredNR lanes.  The suffix is the durable
+    # channel signal; lane names may change, but the runner owns this filename.
+    "Blastp RESULTS/_STRAINGAP_SINGLE_CLNR_*/results/**/*_blastp_top10_clustered.csv",
 )
 EXCLUDE_STRAINS = {
     value.strip()
@@ -54,9 +57,16 @@ def _num(value, cast=float):
 
 
 def _allowed_channels(path: Path) -> set[str]:
-    if "_clustered_nr_top10_" in path.name:
+    if "_clustered_nr_top10_" in path.name or path.name.endswith("_blastp_top10_clustered.csv"):
         return {"clustered_nr", "ncbi_clustered_nr"}
     return {"nr", "ncbi_nr"}
+
+
+def _implied_channel(path: Path) -> tuple[str, str] | None:
+    """Return suffix-owned channel metadata for runner CSVs that omit it."""
+    if path.name.endswith("_blastp_top10_clustered.csv"):
+        return "ncbi_clustered_nr", "nr_cluster_seq"
+    return None
 
 
 def _arguments(argv=None):
@@ -97,9 +107,12 @@ def main(argv=None) -> int:
     try:
         cursor = connection.cursor()
         have = set(cursor.execute("SELECT strain, channel, gene FROM hits"))
+        ingested_source_files = {
+            str(row[0]) for row in cursor.execute("SELECT DISTINCT source_file FROM hits")
+        }
         files: list[Path] = []
         for pattern in PATTERNS:
-            files.extend(Path(path) for path in glob.glob(str(root / pattern)))
+            files.extend(Path(path) for path in glob.glob(str(root / pattern), recursive=True))
         files = sorted(set(files))
 
         added: defaultdict[str, int] = defaultdict(int)
@@ -108,9 +121,7 @@ def main(argv=None) -> int:
         skipped_files = 0
         for path in files:
             rel = os.path.relpath(path, root)
-            if cursor.execute(
-                "SELECT 1 FROM hits WHERE source_file=? LIMIT 1", (rel,)
-            ).fetchone():
+            if rel in ingested_source_files:
                 skipped_files += 1
                 continue
             mtime = time.strftime(
@@ -123,11 +134,14 @@ def main(argv=None) -> int:
                 emit(f"  ! skip {rel}: {exc}", file=sys.stderr)
                 continue
             allowed = _allowed_channels(path)
+            implied = _implied_channel(path)
             for row_number, row in enumerate(rows, start=2):
                 strain = (row.get("strain") or "").strip()
                 if strain in EXCLUDE_STRAINS:
                     continue
                 channel = (row.get("channel") or "").strip()
+                if not channel and implied:
+                    channel = implied[0]
                 gene = (row.get("gene") or "").strip()
                 if channel not in allowed:
                     raise SystemExit(
@@ -154,7 +168,7 @@ def main(argv=None) -> int:
                         (row.get("subject_acc") or "").strip(),
                         row.get("subject_organism") or "",
                         row.get("subject_def") or "",
-                        row.get("subject_db") or "",
+                        (row.get("subject_db") or (implied[1] if implied else "")),
                         _num(row.get("pct_identity")),
                         _num(row.get("align_length"), int),
                         _num(row.get("query_coverage")),

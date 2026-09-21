@@ -1,6 +1,23 @@
+# v9.7.435 · 2026-09-20 · build 20260920v97435a · engine 1.9.167 · CODE
+
+Accretion-justified: clear_match_finder.py and definitive_bgc_ranking.py — additive, evidence-separated BGC ranking exports retain direct match fraction, strongest-gene support, boundary state, and claim ceilings without changing Tier 1 scoring.
+Accretion-justified: rggmci_rescue_atlas.py — the additive rescue review now has portable paired-contig maps and exact-identity gates; deterministic RG-GMCI confidence remains unchanged.
+Accretion-justified: deep_bgc_report.py, activity_decision_tree.py, and thesis_handoff.py — portable post-seal reporting, experiment planning, and hash-bound thesis packaging remain opt-in and do not assign product identity.
+
+- **BiG-SCAPE reporting and figures:** add portable cohort-network widgets, manuscript-scale static GCF figures, exact-alias admission, class abbreviations with expanded legends, comparator-context components, and stacked locus-map presentation; retire the obsolete newsletter from the current guide path.
+- **BGC evidence review:** add the Clear Match and definitive reciprocal/core-weighted/boundary-aware ranking surfaces, RG-GMCI rescue-atlas tooling, exact-identity KCB presentation, and deeper exact-locus reports with claim-safe activity decision trees and thesis handoffs.
+- **BLASTp routing:** admit the completed SINGLE_CLNR result-routing correction while retaining channel provenance and typed no-binding states; external BLASTp databases and exact-locus result snapshots remain evidence inputs rather than bundled data.
+- **Documentation and workflow:** integrate the current methods suite, browser-assistant entry points, report guidance, comparator provenance fields, figure-caption governance, and missing-metadata rendering correction.
+- **Engine unchanged:** bundle-only post-seal analysis, figure, documentation, and ingest-routing additions; Mamey remains 1.9.167 and deterministic extraction/scoring behavior is unchanged.
+- **Deferred from this cut:** the workspace-only NR RID polling utility has no portable bundle target, and the BLASTp exact-locus additive importer remains a reviewed work order without an admitted implementation patch.
+
 # v9.7.434 · 2026-09-18 · build 20260918v97434a · engine 1.9.167 · CODE
 
 Accretion-justified: caption_guard.py — additive caption text checker rejects operator-governance prose before publication figure export; it does not alter existing renderers until called.
+Accretion-justified: rggmci_rescue_atlas.py — additive post-seal review layer ranks exact-protein complementary tiling without changing deterministic RG-GMCI confidence or assigning a product.
+Accretion-justified: deep_bgc_report.py — portable exact-locus gene/domain report builder with canonical-slice and protein-hash gates.
+Accretion-justified: activity_decision_tree.py — claim-safe metabolomics and activity decision gates bound to exact-locus report receipts.
+Accretion-justified: thesis_handoff.py — hash-bound compact thesis handoff builder with safe relative locators and deterministic ZIP output.
 
 - **README repairs and typo cleanup:** complete the two truncated introduction sentences and correct the remaining obvious opening-page typographical errors.
 - **Missing metadata stays visually absent:** build tree colour strips only from rows carrying a deposited value, preventing empty cells from rendering as grey tiles.

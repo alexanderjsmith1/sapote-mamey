@@ -8,6 +8,7 @@ FEATURE (sign-off), non-scoring figure. These tests cover:
 from __future__ import annotations
 
 import csv
+import zipfile
 
 import pytest
 
@@ -127,3 +128,25 @@ def test_whitespace_delimited_fallback():
     region = kl.parse_kcb_txt(text)
     assert len(region.query_genes) == 4
     assert region.hits and len(region.hits[0].pairs) == 3
+
+
+def test_zip_selection_is_region_aware(tmp_path):
+    archive = tmp_path / "antismash.zip"
+    c2 = SYNTHETIC_KCB.replace("BGC0000001.1", "BGC0000999.1")
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("knownclusterblast/NODE_9_c1.txt", SYNTHETIC_KCB)
+        zf.writestr("knownclusterblast/NODE_9_c2.txt", c2)
+
+    selected = kl.read_kcb_from_zip(archive, "NODE_9", "region002")
+    assert selected.hits[0].bgc_id == "BGC0000999.1"
+    assert selected.source_file.endswith("knownclusterblast/NODE_9_c2.txt")
+
+
+def test_zip_selection_refuses_ambiguous_contig(tmp_path):
+    archive = tmp_path / "antismash.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("knownclusterblast/NODE_9_c1.txt", SYNTHETIC_KCB)
+        zf.writestr("knownclusterblast/NODE_9_c2.txt", SYNTHETIC_KCB)
+
+    with pytest.raises(ValueError, match="multiple knownclusterblast regions"):
+        kl.read_kcb_from_zip(archive, "NODE_9")

@@ -4,7 +4,7 @@
 > Historical section counts, role assignments and examples below cannot replace a current profile.
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
-# Sapote-Mamey / Mamey Task Brief Template — v9.7.434
+# Sapote-Mamey / Mamey Task Brief Template — v9.7.435
 
 Fill this template before handing a batch to ChatGPT or another Mamey-tier runner.  
 Remove all square-bracket placeholders before submitting.

@@ -1,6 +1,6 @@
 # Sapote–Mamey Operational Reference
 ## Workflow, Protocols, and Standard Operating Procedures
-**Bundle v9.7.434 · Engine 1.9.167**
+**Bundle v9.7.435 · Engine 1.9.167**
 Hamilton, Ontario
 
 *Sourced from: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`. All content from source files; no inference.*
@@ -14,8 +14,8 @@ Hamilton, Ontario
 Python 3.12 or later is required. Python 3.12 is recommended for the bundled wheel set. Check: `python3 --version`. The bundle operates from within its own directory.
 
 ```bash
-unzip sapote-mamey-v9.7.434-CODE-20260918v97434a.zip
-cd sapote-mamey-v9.7.434-CODE-20260918v97434a
+unzip sapote-mamey-v9.7.435-CODE-20260920v97435a.zip
+cd sapote-mamey-v9.7.435-CODE-20260920v97435a
 pip install -e .
 # On managed/Debian systems:
 pip install -e . --break-system-packages
@@ -38,7 +38,7 @@ The installer pools all `.whl` files it finds across all named paths and install
 
 ```bash
 mamey doctor                          # pre-flight: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # → engine 1.9.167, bundle 9.7.434
+python3 tools/sync_version.py --check # → engine 1.9.167, bundle 9.7.435
 python3 -m pytest -q                  # run the bundled test suite; use the cut receipt for exact counts
 ```
 
@@ -443,7 +443,7 @@ All report-only; every read is a class-level capacity hypothesis, judgment defer
 ### Cross-strain / cohort deliverables (v9.7.338)
 - `"Cohort priority leads."` → `mamey cohort-leads --runs-dir <runs_gold> [--out COHORT_PRIORITY_LEADS.csv]` → `COHORT_PRIORITY_LEADS.csv` (one ranked lead board across every sealed run)
 - `"Assemble the cohort master."` → `mamey cohort-assemble --runs-dir <runs_gold> [--out COHORT_MASTER.csv] [--xlsx]` — build/refresh the cross-cohort master table from sealed gold runs (sibling `_strain_summary.csv` / `_class_by_strain.csv` alongside; `--xlsx` also emits `COHORT_MASTER.xlsx`)
-- `"Offline KCB locus map for [BGC]."` → `mamey figures kcb-locusmap --zip <zip> --contig <NODE> --out-dir <dir> --strain-id <ID> --bgc-id <BGC_ID>` (or `--kcb-txt <knownclusterblast.txt> --out-dir <dir> --stem <BGC_ID>`) — query BGC vs its KCB/MIBiG comparator, zero network
+- `"Offline KCB locus map for [BGC]."` → `mamey figures kcb-locusmap --zip <zip> --contig <NODE> --region <regionNNN> --out-dir <dir> --strain-id <ID> --bgc-id <BGC_ID>` (or `--kcb-txt <knownclusterblast.txt> --out-dir <dir> --stem <BGC_ID>`) — query BGC vs its KCB/MIBiG comparator, zero network; `--region` prevents ambiguity when one contig has multiple antiSMASH regions
 - `"Would a master's student sign off on this tree?"` → `mamey signoff <tree.treefile>` (advisory analysis QC gate; also `tools/signoff_check.py`)
 
 ---
@@ -633,7 +633,7 @@ Class A = CONFIRM + SARP. Class B = one strong axis only. Class C = KCB or weake
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.434. Historical run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.435. Historical run facts retain their original version labels.*
 
 ---
 
@@ -705,7 +705,7 @@ Two gates were added to the release path in v9.7.243. The full sequence, in orde
 ```bash
 # 1. Environment and bundle integrity
 python3 -m mamey doctor
-python3 tools/sync_version.py --check # → engine 1.9.167, bundle 9.7.434
+python3 tools/sync_version.py --check # → engine 1.9.167, bundle 9.7.435
 
 # 2. Documentation anchors
 python3 tools/check_monolith_freshness.py          # exit 1 on stale anchor or retired doctrine
@@ -776,4 +776,4 @@ The v9.7.246 fabrication passed claim-safety, evidence-presence, citation, and p
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.434. Historical v4 section labels and run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.435. Historical v4 section labels and run facts retain their original version labels.*

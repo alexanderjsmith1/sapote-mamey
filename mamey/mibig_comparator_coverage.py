@@ -747,13 +747,19 @@ def _read_csv(path: Path) -> list[dict[str, Any]]:
         return list(csv.DictReader(fh))
 
 
-def run_for_package(package_dir: str | Path, cohort_runs_dir: str | Path | None = None) -> dict[str, Any]:
+def run_for_package(
+    package_dir: str | Path,
+    cohort_runs_dir: str | Path | None = None,
+    out_dir: str | Path | None = None,
+) -> dict[str, Any]:
     """Run the layer against a sealed package directory and write outputs.
 
     Discovers ``*_3_mibig_per_gene.csv``, ``*_3_mibig_convergence.csv`` and
     ``*_cds_table.csv`` by their strain prefix, emits
     ``<STRAIN>_3b_comparator_coverage.csv`` and
-    ``<STRAIN>_3b_comparator_coverage_summary.json`` alongside them.
+    ``<STRAIN>_3b_comparator_coverage_summary.json`` in a sibling output directory by
+    default. The input is a sealed package, so this report-only reader must not add
+    untracked files inside it.
     """
     package_dir = Path(package_dir)
     per_gene_files = sorted(package_dir.glob("*_3_mibig_per_gene.csv"))
@@ -761,6 +767,15 @@ def run_for_package(package_dir: str | Path, cohort_runs_dir: str | Path | None 
         raise FileNotFoundError(f"no *_3_mibig_per_gene.csv under {package_dir}")
     per_gene_path = per_gene_files[0]
     strain = per_gene_path.name[: -len("_3_mibig_per_gene.csv")]
+
+    package_abs = package_dir.resolve()
+    output_dir = (Path(out_dir).resolve() if out_dir else
+                  package_abs.parent / f"{strain}_comparator_coverage")
+    if output_dir == package_abs or package_abs in output_dir.parents:
+        raise ValueError(
+            f"reader output must be OUTSIDE the sealed package ({package_abs}); "
+            "pass --out <a directory outside the package>"
+        )
 
     per_gene_rows = _read_csv(per_gene_path)
     convergence_rows = _read_csv(package_dir / f"{strain}_3_mibig_convergence.csv")
@@ -787,9 +802,9 @@ def run_for_package(package_dir: str | Path, cohort_runs_dir: str | Path | None 
     )
     if cohort_runs_dir:
         result["summary"]["cohort_evidence_admission"] = cohort_diagnostics
-    csv_path = write_csv(result, package_dir / f"{strain}_3b_comparator_coverage.csv")
+    csv_path = write_csv(result, output_dir / f"{strain}_3b_comparator_coverage.csv")
     json_path = write_summary_json(
-        result, package_dir / f"{strain}_3b_comparator_coverage_summary.json"
+        result, output_dir / f"{strain}_3b_comparator_coverage_summary.json"
     )
     result["_written"] = {"csv": str(csv_path), "summary_json": str(json_path), "strain": strain}
     return result
@@ -842,12 +857,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("package_dir", help="sealed package directory (contains *_3_mibig_per_gene.csv)")
     parser.add_argument(
+        "--out",
+        default=None,
+        help="output directory outside the sealed package (default: sibling <STRAIN>_comparator_coverage)",
+    )
+    parser.add_argument(
         "--cohort-runs-dir",
         default=None,
         help="optional runs dir (*/package/*_3_mibig_per_gene.csv) for cohort comparator prevalence",
     )
     args = parser.parse_args(argv)
-    result = run_for_package(args.package_dir, cohort_runs_dir=args.cohort_runs_dir)
+    try:
+        result = run_for_package(
+            args.package_dir, cohort_runs_dir=args.cohort_runs_dir, out_dir=args.out
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
     written = result["_written"]
     summary = result["summary"]
     emit(f"[FA2] strain={written['strain']} status={result['status']}", f"[FA2] wrote {written['csv']}", f"[FA2] wrote {written['summary_json']}", f"[FA2] summary: {json.dumps(summary)}", sep="\n")
