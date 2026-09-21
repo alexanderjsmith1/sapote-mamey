@@ -92,7 +92,10 @@ def test_a_diff_is_ok_and_card_prose_is_ignored(trees):
     base, queue = trees
     d = queue / "CARD_E"
     d.mkdir()
-    (d / "001_fix.patch").write_text("--- a/x\n+++ b/x\n")
+    (d / "001_fix.patch").write_text(
+        "--- a/tools/fig.R\n+++ b/tools/fig.R\n@@ -1,2 +1,2 @@\n"
+        " keep_me <- 1\n-shared <- 2\n+shared <- 3\n"
+    )
     (d / "PATCH_CARD.md").write_text("# notes\n")
     m = _load()
     rows = m.audit_queue(queue, base)
@@ -179,7 +182,10 @@ def test_diffbuild_scaffolding_is_not_mistaken_for_a_file_drop(trees):
         d = card / "diffbuild" / side / "tools"
         d.mkdir(parents=True)
         (d / "fig.R").write_text("shared <- 2\n")     # drops keep_me vs sealed
-    (card / "fix.patch").write_text("--- a/x\n+++ b/x\n")
+    (card / "fix.patch").write_text(
+        "--- a/tools/fig.R\n+++ b/tools/fig.R\n@@ -1,2 +1,2 @@\n"
+        " keep_me <- 1\n-shared <- 2\n+shared <- 3\n"
+    )
     m = _load()
     codes = {r["code"] for r in m.audit_queue(queue, base) if r["item"] == "CARD_M"}
     assert codes == {m.CODE_DIFF}, f"scaffolding must not be audited as payload: {codes}"

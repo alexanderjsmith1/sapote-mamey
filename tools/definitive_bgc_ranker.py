@@ -32,7 +32,8 @@ except ImportError:
 
 CLAIM = ("Pathway-family prioritization under admitted sequence and annotation evidence; "
          "not proof of exact product, complete pathway, expression, production, activity, "
-         "novelty, physical cross-contig linkage, or scientific acceptance.")
+         "novelty, physical cross-contig linkage, or scientific acceptance. "
+         "Scores are tool-specific: the same assembly fact is weighted differently by each ranking tool, so values are not comparable across tools.")
 GENUINE_TILING = {"COMPLEMENTARY_SPLIT", "TERMINUS_TRUNCATION_SPLIT"}
 CORE_WEIGHTS = {"biosynthetic": 3.0, "biosynthetic-additional": 2.0}
 
@@ -61,7 +62,7 @@ def sha256(path):
 
 
 def read_csv(path):
-    with Path(path).open(newline="", errors="replace") as handle:
+    with Path(path).open(newline="", encoding="utf-8-sig", errors="replace") as handle:
         delimiter = "\t" if Path(path).suffix.lower() == ".tsv" else ","
         return list(csv.DictReader(handle, delimiter=delimiter))
 
@@ -206,7 +207,15 @@ def order_concordance(pairs):
             else:
                 discordant += 1
     total = concordant + discordant
-    return max(concordant, discordant) / total if total else None
+    if not total:
+        return None
+    # Orientation-aware rank agreement is bounded below by 0.5: for any ordering
+    # either the concordant or the discordant count is at least half the pairs.
+    # Rescale that [0.5, 1.0] agreement onto [0.0, 1.0] so the value can be spent
+    # directly as a score fraction -- 0 means "no better than arbitrary order",
+    # 1 means "perfectly collinear in either orientation".
+    agreement = max(concordant, discordant) / total
+    return max(0.0, 2.0 * agreement - 1.0)
 
 
 def greedy_pairs(hits, roster):
@@ -267,7 +276,7 @@ def evidence_tier(metrics):
     sim = metrics["median_effective_similarity"]
     syn = metrics["orientation_aware_order_concordance"]
     boundary = metrics["boundary"]
-    synteny_ok = syn is None or syn >= 0.60
+    synteny_ok = syn is None or syn >= 0.20  # == agreement >= 0.60 pre-rescale
     if n >= 4 and rec >= .60 and core >= .70 and sim >= 60 and synteny_ok and boundary == "Interior":
         return "A_STRONG_PATHWAY_FAMILY_ARCHITECTURE"
     if n >= 3 and rec >= .35 and core >= .40 and sim >= 45 and synteny_ok:
@@ -343,9 +352,15 @@ def analyze(packages, archive, out, clear_dir=None, aliases=None):
             by_ref = defaultdict(list)
             for hit in hits_by_bgc.get(bgc, []): by_ref[norm_accession(hit.get("mibig_accession"))].append(hit)
             candidates = []
+            unresolved_refs = []
             for accession, hits in by_ref.items():
                 roster = rosters.get(accession)
                 if not roster or not roster["genes"]:
+                    # The BGC cites this reference but its roster was never built (absent from the
+                    # archive, unreadable, or carrying no CDS). That is missing evidence, not a
+                    # negative result -- record it so the emitted row can say so.
+                    if accession:
+                        unresolved_refs.append(accession)
                     continue
                 pairs = greedy_pairs(hits, roster)
                 for pair in pairs: pair["query_order"] = qorder.get(pair["query_gene"], 0)
@@ -357,6 +372,15 @@ def analyze(packages, archive, out, clear_dir=None, aliases=None):
                 _, _, _, accession, pairs, roster = candidates[0]
             else:
                 accession, pairs, roster = "", [], {"genes": []}
+            # Three different situations otherwise collapse into one all-zero row.
+            if candidates and pairs:
+                reference_evidence_state = "REFERENCE_MATCHED"
+            elif candidates:
+                reference_evidence_state = "EVALUATED_NO_PAIRS"
+            elif unresolved_refs:
+                reference_evidence_state = "REFERENCE_ROSTER_UNRESOLVED"
+            else:
+                reference_evidence_state = "NO_MIBIG_HITS"
             matched = len(pairs); total_ref = len(roster["genes"])
             qcov = matched / total_query if total_query else 0
             rcov = matched / total_ref if total_ref else 0
@@ -403,6 +427,8 @@ def analyze(packages, archive, out, clear_dir=None, aliases=None):
                 "complete_identity": ident, "strain": strain, "bgc_alias": bgc,
                 "current_antismash_products": inv.get(bgc, {}).get("Products", ""), "boundary": boundary,
                 "dominant_mibig_accession": accession, "dominant_mibig_product": product,
+                "reference_evidence_state": reference_evidence_state,
+                "unresolved_reference_accessions": ";".join(sorted(unresolved_refs)),
                 "evidence_tier": tier, "standalone_biological_evidence_score_0_100": round(biological, 2),
                 "review_priority_score_0_100": round(min(100, biological + rg_bonus), 2),
                 "total_query_cds": total_query, "total_reference_cds": total_ref,
@@ -423,7 +449,7 @@ def analyze(packages, archive, out, clear_dir=None, aliases=None):
                 "claim_ceiling": CLAIM,
             }
             ranking.append(base)
-            reciprocal.append({k: base[k] for k in ["complete_identity", "dominant_mibig_accession", "dominant_mibig_product", "total_query_cds", "total_reference_cds", "matched_gene_pairs", "query_coverage", "reference_coverage", "reciprocal_coverage_f1", "orientation_aware_order_concordance", "claim_ceiling"]})
+            reciprocal.append({k: base[k] for k in ["complete_identity", "dominant_mibig_accession", "dominant_mibig_product", "reference_evidence_state", "unresolved_reference_accessions", "total_query_cds", "total_reference_cds", "matched_gene_pairs", "query_coverage", "reference_coverage", "reciprocal_coverage_f1", "orientation_aware_order_concordance", "claim_ceiling"]})
             core_rows.append({k: base[k] for k in ["complete_identity", "dominant_mibig_accession", "reference_core_weight_total", "matched_reference_core_weight", "reference_core_completeness", "median_effective_similarity", "median_top_vs_second_gap", "clear_specific_gene_count", "claim_ceiling"]})
             rg_rows.append({k: base[k] for k in ["complete_identity", "boundary", "boundary_penalty", "rggmci_partner_identity", "rggmci_confidence", "rggmci_subject_tiling_verdict", "rggmci_score", "rggmci_routing_bonus", "rggmci_interpretation_guard", "claim_ceiling"]})
 
@@ -453,10 +479,17 @@ def analyze(packages, archive, out, clear_dir=None, aliases=None):
         write_tsv(folder / "DEFINITIVE_EVIDENCE_RANK.tsv", subset, rank_fields)
         write_tsv(folder / "RGGMCI_BOUNDARY_EVIDENCE.tsv", [r for r in rg_rows if r["complete_identity"].startswith(strain + " / ")])
     write_tsv(out / "SOURCE_HASHES.tsv", sources)
+    # A reference that was required and never read is a typed condition, not a silent zero.
+    # The counts below already differed in that case; naming the accessions and refusing to
+    # call the run COMPLETE is what makes it actionable. tools/fetch_mibig_reference.py
+    # already reports its own NOT FOUND list -- this keeps that visible through to the consumer.
+    unresolved_accessions = sorted(acc for acc in needed if acc and acc not in rosters)
     receipt = {
-        "schema": "definitive-bgc-ranker-receipt-v1", "status": "COMPLETE",
+        "schema": "definitive-bgc-ranker-receipt-v1",
+        "status": "COMPLETE" if not unresolved_accessions else "COMPLETE_WITH_UNRESOLVED_REFERENCES",
         "packages": len(packages), "bgcs": len(ranking), "strains": len({r["strain"] for r in ranking}),
         "mibig_accessions_required": len(needed), "mibig_rosters_resolved": len(rosters),
+        "mibig_accessions_unresolved": unresolved_accessions,
         "rggmci_linked_units_admitted": len(linked_rows), "claim_ceiling": CLAIM,
         "outputs": {p.name: {"sha256": sha256(p), "bytes": p.stat().st_size} for p in sorted(out.glob("*.tsv"))},
     }

@@ -1,6 +1,6 @@
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.435 / engine Mamey 1.9.167
+**Version:** v9.7.437 / engine Mamey 1.9.167
 
 Mamey extracts deterministic evidence from antiSMASH output. Sapote turns a validated evidence
 package into governed interpretation. Start at the [README](../../README.md). If you work through a

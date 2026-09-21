@@ -1,5 +1,5 @@
-version=9.7.435
-build=20260920v97435a
+version=9.7.437
+build=20260921v97437a
 engine=1.9.167
-patch=BiG-SCAPE reporting and figures; BGC evidence review; BLASTp routing; Documentation and workflow; Engine unchanged; Deferred from this cut
+patch=Printable cohort matrices; Platform credit precision; Documentation currency; Instruction-mirror visibility; Engine unchanged
 tier=code

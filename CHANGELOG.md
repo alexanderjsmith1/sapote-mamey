@@ -1,3 +1,22 @@
+# v9.7.437 · 2026-09-21 · build 20260921v97437a · engine 1.9.167 · CODE
+
+- **Printable cohort matrices:** cap overwide strain-matrix panels at 22 inches, enforce a 4:1 aspect ceiling only after the width cap engages, and taper plus rotate tick labels for large cohorts while preserving historical small-cohort geometry and label orientation.
+- **Platform credit precision:** keep Anthropic and OpenAI at equal 50/50 contribution credit, name Claude Code and Codex symmetrically in the local-workflow route, and state explicitly that the credit does not imply either company's approval.
+- **Documentation currency:** refresh five living wiki entry-page currency stamps after the candidate-specific stale-document audit; historical provenance statements remain unchanged.
+- **Instruction-mirror visibility:** add an explicitly configured, read-only, advisory diagnostic for external `AGENTS.md` and `CLAUDE.md` mirror drift; it infers no parent workspace, writes nothing, and is not a release prerequisite.
+- **Engine unchanged:** deterministic intake, extraction, source scans, triage/scoring, packaging, and validation remain on Mamey 1.9.167; this is a bundle-only figure, documentation, diagnostic-tooling, and test cut.
+
+# v9.7.436 · 2026-09-21 · build 20260921v97436a · engine 1.9.167 · CODE
+
+- **Missing evidence stays unmeasured:** ranker, strain-logic, rescue-atlas, and deep-report outputs now distinguish absent or unverifiable reference evidence from measured zero/negative evidence; rescue tier gates are monotonic and score ceilings state that ranking-tool scales are not interchangeable.
+- **CSV and receipt provenance:** six post-seal readers accept Excel BOM-prefixed CSV/TSV input, deep-report receipts expose protein-hash binding strength and unverifiable supplied hashes, and activity-tree receipt locators fail with typed errors instead of resolving an empty path.
+- **Claim and display guards:** the caption guard keeps legitimate attributive `class-level` captions while blocking governance uses and fails closed on unreadable files; placement geography follows the canonical Georgia-to-Europe ruling.
+- **Robust post-seal figures:** BiG-SCAPE gene/domain figures render domainless and five-plus-member families without losing the receipt, using stable distinct colors for larger families; empty clear-match cohorts return a typed empty result instead of crashing.
+- **Validation and composition:** pytest now collects the post-seal checksum attack suite; the patch-queue auditor checks both `git apply` and strict zero-fuzz `patch`, reports tool disagreement, and its legacy fixtures exercise real diffs.
+- **Optional chitinase confirmation:** an additive HMMER-backed tool writes the existing `cohort/chitinase.json` schema and records catalytic-motif, binding-domain, secretion-screen, and contig-provenance evidence without changing the annotation-derived CGAD scan.
+- **Platform compatibility and equal credit:** the front-page README distinguishes browser, desktop, and local-agent use and credits Anthropic and OpenAI equally (50/50) for AI-assisted development, testing, refinement, and documentation without implying endorsement.
+- **Engine unchanged:** deterministic intake, extraction, source scans, triage/scoring, packaging, and validation remain on Mamey 1.9.167; this is a bundle-only post-seal tooling, reporting, figure, and test cut.
+
 # v9.7.435 · 2026-09-20 · build 20260920v97435a · engine 1.9.167 · CODE
 
 Accretion-justified: clear_match_finder.py and definitive_bgc_ranking.py — additive, evidence-separated BGC ranking exports retain direct match fraction, strongest-gene support, boundary state, and claim ceilings without changing Tier 1 scoring.

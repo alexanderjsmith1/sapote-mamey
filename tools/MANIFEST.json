@@ -453,7 +453,7 @@
       "bytes": 55230
     },
     "build_placement_panel_inputs.py": {
-      "sha256": "dd0260a7911ea9936a3c4f8893b45040a4ccf9d83d4cbf132fafc17413bdef9e",
+      "sha256": "87d58026e983b1cc96bcdc79cdbdd7c83fbea9ba9acd0b7d31908d27f33aa17e",
       "bytes": 19347
     },
     "build_priority_leads.py": {
@@ -533,8 +533,8 @@
       "bytes": 4998
     },
     "caption_guard.py": {
-      "sha256": "3cfba2004c340bdc78084bc27bca720708321bbaae92a0cb0a157770572eeb52",
-      "bytes": 3064
+      "sha256": "a6be8e9a1112547015f86bf43577e13d78ddf1f5a30a81c0b579b3116145f8fe",
+      "bytes": 4918
     },
     "check_antismash_profile.py": {
       "sha256": "481491e71e9640a1bbaf24370987a842d5a06e53c4c1efa6a1d1cbd8c47bd6c8",
@@ -563,6 +563,10 @@
     "check_duplicate_dict_keys.py": {
       "sha256": "d90d474987b4d67f11d7ae67bb10c8564da9df7702062d7d4c2806fb3bbef710",
       "bytes": 10543
+    },
+    "check_instruction_mirror.py": {
+      "sha256": "e0d926ab94c8ddd5f58ebed423e7cab14ec38f9ce39daa215ee486fbb6b6d0ca",
+      "bytes": 4957
     },
     "check_license_docs.py": {
       "sha256": "7eee1abdec8b457984218cafa55559d922d41c49f4c571bde08c77eb704c2700",
@@ -628,13 +632,17 @@
       "sha256": "5c713a4d9aecc173b18c3108a66bd12bc53132b2f99ebe42f2b5d07e3b51f0a3",
       "bytes": 8223
     },
+    "chitinase_hmm_confirm.py": {
+      "sha256": "bae9365a2ab3f005c6fb4257fa6ed57360f9a0d0f6eb5a2c418bc23bcc157a4a",
+      "bytes": 15088
+    },
     "claim_safety_linter.py": {
       "sha256": "ea6a664374de30891fcc2043949a5548184288e2b4f667f9152513dcec87d959",
       "bytes": 44264
     },
     "clear_match_finder.py": {
-      "sha256": "bede89482c490e5427acd31134a386321c01c5156f0abf405f2cea4bbe82424e",
-      "bytes": 26632
+      "sha256": "bbf35605ef083a260915def0efa54e03437b905c7bada5a41525c143343ef391",
+      "bytes": 27401
     },
     "cluster_alignment.py": {
       "sha256": "23e3584caa8a8645d4c02313e91718b353db098e5f4587d71fb5045b4ca37b4c",
@@ -741,8 +749,8 @@
       "bytes": 17436
     },
     "definitive_bgc_ranker.py": {
-      "sha256": "f613186f3f2a1444d9382634e1c0bf028afadec6e0c79d903d9aae4aa3b05d54",
-      "bytes": 24707
+      "sha256": "7e53243931e3a7e2a6d0e9dc021a8dc0f34c8a90c89a1a5ede9cfe11ec548832",
+      "bytes": 27044
     },
     "deliverable_citation_audit.py": {
       "sha256": "f754c426d180015b122d60769000a6fc66da3b1eab0647fa1b6063ab924d24a5",
@@ -873,8 +881,8 @@
       "bytes": 3606
     },
     "gate_registry.tsv": {
-      "sha256": "f700212821ab66f3419bc9af134da6dde703f4791e4e9f69fc61731cadcdc8f1",
-      "bytes": 10684
+      "sha256": "4dc5e28ee7415a5b97431eb742ce98c6a2a48c1a548e856cb79854f875161a27",
+      "bytes": 10814
     },
     "gate_stem_aware.py": {
       "sha256": "ec1e56148ad9e61a0dfcbc05fdc4daafae74aafa2366107b539cc7105661a178",
@@ -1145,8 +1153,8 @@
       "bytes": 6443
     },
     "patch_queue_composition_audit.py": {
-      "sha256": "bb4fbbbab84dac4ccd33439b749274bf589b97eaa420527191d663ba87fe5978",
-      "bytes": 11409
+      "sha256": "85462271e7e26bec556cb4fba4819662cedc14abcd2cce7a5a5bc22539ce9e05",
+      "bytes": 14769
     },
     "phylo_16s_audit_merges.py": {
       "sha256": "d2250680b38336af16e4ac8e71f450ae8911490769cbcc520e99858d73e45f71",
@@ -1417,8 +1425,8 @@
       "bytes": 10321
     },
     "repo_health.py": {
-      "sha256": "82b84c6d922a67d2c4bc822a85e834adbd26b1bf4f2715b63c9224652e0f43ed",
-      "bytes": 40712
+      "sha256": "b5408568994adf2b971d54f225d97694e856619e13cace85c403ee6ef12faa28",
+      "bytes": 40961
     },
     "reroot_postflight_receipt.py": {
       "sha256": "8b6ad66a62ecf0cef8c5278c5e936eddae17aeae11c4bc4c72f5b76a54950ae3",
@@ -1553,8 +1561,8 @@
       "bytes": 15168
     },
     "strain_level_bgc_logic.py": {
-      "sha256": "02afc0d10de05e306dad6c27de656caaaae190d618b829ee19a1b39d5f1f3f83",
-      "bytes": 32729
+      "sha256": "551d0345c27a7218bc007b77b2f041c726ae79acea74e668750eca02e1d849a8",
+      "bytes": 35029
     },
     "strict_source_disclosure_audit.py": {
       "sha256": "d666bac6a71829c9076dc682212e80aa7935f1fb60e352560a51e43fdaa0f254",

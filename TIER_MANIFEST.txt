@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.435 stamp=20260920v97435a
+# TIER_MANIFEST tier=code version=9.7.437 stamp=20260921v97437a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -1236,6 +1236,7 @@
 ./tests/test_activity_lead_genes_v9_7_385.py
 ./tests/test_activity_lead_report_v9_7_385.py
 ./tests/test_activity_predictions.py
+./tests/test_activity_tree_436_locator_guard_is_typed.py
 ./tests/test_add_xstrain_sheets_hardening_v97390.py
 ./tests/test_adjudication.py
 ./tests/test_af_dossier.py
@@ -1427,6 +1428,8 @@
 ./tests/test_canonical_write_guard_v97413.py
 ./tests/test_capabilities_module_stem_v97402.py
 ./tests/test_capped_session_alias_v97152.py
+./tests/test_caption_guard_436_class_level_scope.py
+./tests/test_caption_guard_class_level_scope_v97436.py
 ./tests/test_card_verdicts_surfacing.py
 ./tests/test_card_verdicts_typed_sources.py
 ./tests/test_carotenoid_label_provenance_v97406.py
@@ -1473,6 +1476,7 @@
 ./tests/test_chemical_hybrid_signal.py
 ./tests/test_chitin_gate_h4.py
 ./tests/test_chitin_reference_eval_v97405.py
+./tests/test_chitinase_hmm_confirm_v97436.py
 ./tests/test_circular_edge_p0a_v9787.py
 ./tests/test_citation_compact_runtime_v97136.py
 ./tests/test_citation_compact_v97136.py
@@ -1500,6 +1504,7 @@
 ./tests/test_claude_409_schemas_contracts.py
 ./tests/test_claude_410_claimsafety_verb_normalize.py
 ./tests/test_clean_install_ci_readiness_v97421.py
+./tests/test_clear_match_finder_empty_cohort.py
 ./tests/test_clear_match_finder_v97434.py
 ./tests/test_cli_parser_no_biopython_v9_7_268.py
 ./tests/test_cli_version_flag.py
@@ -1536,6 +1541,7 @@
 ./tests/test_cohort_leads_ledger.py
 ./tests/test_cohort_locator_joinkey.py
 ./tests/test_cohort_master_locator_case_insensitive.py
+./tests/test_cohort_matrix_fig_size_v97437.py
 ./tests/test_cohort_precompute_and_locator.py
 ./tests/test_cohort_precompute_package_fallback_v9_7_286.py
 ./tests/test_cohort_precompute_version_manifest.py
@@ -1619,6 +1625,8 @@
 ./tests/test_deep_bgc_report_portable.py
 ./tests/test_deep_bgc_thesis_docs.py
 ./tests/test_deep_data_v9746.py
+./tests/test_deep_report_436_evidence_hash_unverifiable.py
+./tests/test_deep_report_436_receipt_records_hash_binding.py
 ./tests/test_definitive_bgc_ranker_v97434.py
 ./tests/test_deliverable_citation_audit.py
 ./tests/test_deliverable_citation_audit_case_insensitive_v97395.py
@@ -1840,6 +1848,7 @@
 ./tests/test_inspect_command_gold_only_v97162.py
 ./tests/test_inspector_commands.py
 ./tests/test_inspector_exact_identity.py
+./tests/test_instruction_mirror_436.py
 ./tests/test_instruction_scope_candidate.py
 ./tests/test_int2_stamp_coverage.py
 ./tests/test_intake_harness_mode_choices.py
@@ -2118,6 +2127,7 @@
 ./tests/test_patch_l4_mpg_length_wb.py
 ./tests/test_patch_p_mpg_lwc.py
 ./tests/test_patch_packet_preflight.py
+./tests/test_patch_queue_apply_check_v97436.py
 ./tests/test_patch_queue_composition_audit_v97412.py
 ./tests/test_patch_queue_order_preservation.py
 ./tests/test_patches.py
@@ -2156,6 +2166,7 @@
 ./tests/test_pks_ks_subtype_partition.py
 ./tests/test_placement_bare_label_warning_v97418.py
 ./tests/test_placement_display_dropped_tips_v97426.py
+./tests/test_placement_panel_georgia_geo.py
 ./tests/test_placement_publication_rollback_followup_v97421.py
 ./tests/test_placement_typed_producer_cli_followup_v97421.py
 ./tests/test_plan_gtotree_iqtree_codex19.py
@@ -2167,6 +2178,7 @@
 ./tests/test_portable_privacy_and_evidence_registry_v97391.py
 ./tests/test_portable_project_catalog_v97391.py
 ./tests/test_portable_project_widgets.py
+./tests/test_post_seal_checksums_pytest_v97436.py
 ./tests/test_pqq_primary_metabolism.py
 ./tests/test_precision.py
 ./tests/test_precompute_prefill_partc.py
@@ -2209,12 +2221,14 @@
 ./tests/test_quick_guide_install_anchors.py
 ./tests/test_r_template_parse_v97422.py
 ./tests/test_rank_clusterblast_phylo_candidates.py
+./tests/test_ranker_436_synteny_scale_has_no_floor.py
 ./tests/test_ratchet_delta_v97417.py
 ./tests/test_raw_antismash_triage.py
 ./tests/test_razzle_416_canonical_guard_separators.py
 ./tests/test_razzle_416_degenerate_tree_inputs.py
 ./tests/test_razzle_416_sibling_newick_parsers.py
 ./tests/test_razzle_417_ggtree_label_options.py
+./tests/test_readers_436_bom_safe_csv_intake.py
 ./tests/test_readiness_lints_v97233.py
 ./tests/test_realistic_bgc_count.py
 ./tests/test_receipt_failure_observability.py
@@ -2291,6 +2305,7 @@
 ./tests/test_reporting_evidence_v2.py
 ./tests/test_requirements_pyproject_sync_v9_7_314.py
 ./tests/test_reroot_postflight_receipt.py
+./tests/test_rescue_atlas_436_tier_ladder_is_monotonic.py
 ./tests/test_rescue_two_proof.py
 ./tests/test_rescue_two_proof_mixed_subject_signal.py
 ./tests/test_resistance_dossier.py
@@ -2416,6 +2431,7 @@
 ./tests/test_strain_id_derivation.py
 ./tests/test_strain_identity_accession_prefix_v97395.py
 ./tests/test_strain_identity_guard.py
+./tests/test_strain_level_bgc_logic_missing_reference_evidence_v97436.py
 ./tests/test_strain_level_bgc_logic_v97434.py
 ./tests/test_strain_modeb_exact_identity_v97390.py
 ./tests/test_strain_modeb_lq_strain_01.py
@@ -2736,6 +2752,7 @@
 ./tools/check_dangling_refs.py
 ./tools/check_deliverable_suite.py
 ./tools/check_duplicate_dict_keys.py
+./tools/check_instruction_mirror.py
 ./tools/check_license_docs.py
 ./tools/check_manifest_contract.py
 ./tools/check_md_links.py
@@ -2752,6 +2769,7 @@
 ./tools/check_schema_drift.py
 ./tools/check_tier_parity.py
 ./tools/chitin_reference_eval.py
+./tools/chitinase_hmm_confirm.py
 ./tools/claim_safety_linter.py
 ./tools/clear_match_finder.py
 ./tools/cluster_alignment.py

@@ -27,6 +27,8 @@ import argparse
 import difflib
 import hashlib
 import json
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -44,6 +46,10 @@ CODE_ADDONLY = "FILE_DROP_ADDS_ONLY"
 CODE_WORKTREE = "AUDIT_WORKING_TREE_SKIPPED"
 CODE_DEBRIS = "PAYLOAD_BUILD_DEBRIS"
 CODE_COLLISION = "CROSS_CARD_DROP_COLLISION"
+CODE_DIFF_GIT_INCOMPAT = "DIFF_GIT_APPLY_INCOMPATIBLE"   # git apply rejects the format; patch -p1 still applies
+CODE_DIFF_PATCH_INCOMPAT = "DIFF_PATCH_APPLY_INCOMPATIBLE"  # git applies, but strict patch -p1 rejects
+CODE_DIFF_MALFORMED = "DIFF_MALFORMED"                    # neither git apply nor patch can apply it to --base
+CODE_DIFF_NEEDS_ORDER = "DIFF_DOES_NOT_APPLY_TO_PRISTINE"  # advisory: likely needs an apply-order
 
 # Compiled/binary artefacts are never a meaningful line-diff target: decoding them with
 # errors="replace" invents "removed lines" that mean nothing. They are ALSO a real hygiene
@@ -133,6 +139,49 @@ def looks_like_working_tree(item: Path) -> bool:
     return False
 
 
+def _diff_apply_status(diff: Path, base: Path) -> tuple[str, str, str]:
+    """Verify a unified diff actually applies to the sealed base, and that the two apply
+    tools agree. A diff that classifies as intent-stated is still worthless if it will not
+    apply -- and worse, three patches in this queue's own history were git-apply-incompatible
+    ("corrupt patch at line N") while `patch -p1` accepted them, so whether a patch "applies"
+    depended silently on which tool the composer reached for. This makes that visible.
+
+    Returns (code, severity, note). Advisory only; never raises on a bad patch.
+    """
+    if not shutil.which("git") or not shutil.which("patch"):
+        return CODE_DIFF, "OK", "apply-check skipped: git or patch not on PATH"
+    try:
+        g = subprocess.run(["git", "apply", "--check", str(diff)], cwd=base,
+                           capture_output=True, text=True, timeout=60)
+        with diff.open("rb") as fh:
+            pr = subprocess.run(
+                ["patch", "-p1", "--dry-run", "--batch", "--fuzz=0", "-V", "none"],
+                cwd=base,
+                stdin=fh,
+                capture_output=True,
+                timeout=60,
+            )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return CODE_DIFF, "OK", f"apply-check skipped: {exc}"
+    git_ok, patch_ok = g.returncode == 0, pr.returncode == 0
+    corrupt = "corrupt patch" in (g.stderr or "")
+    if git_ok and patch_ok:
+        return CODE_DIFF, "OK", ""
+    if git_ok and not patch_ok:
+        return (CODE_DIFF_PATCH_INCOMPAT, "WARN",
+                "git apply accepts this patch but strict `patch -p1 --fuzz=0` rejects it; "
+                "the two supported apply tools disagree")
+    if corrupt and patch_ok:
+        return (CODE_DIFF_GIT_INCOMPAT, "WARN",
+                "git apply rejects this patch's format ('corrupt patch') but `patch -p1` applies; "
+                "assemble with patch -p1 or regenerate the diff git-apply-clean")
+    if corrupt and not patch_ok:
+        return (CODE_DIFF_MALFORMED, "WARN",
+                "neither git apply nor patch can apply this diff to --base; malformed or wrong base")
+    return (CODE_DIFF_NEEDS_ORDER, "INFO",
+            "does not apply to the pristine base alone; likely requires an apply-order (another patch first)")
+
+
 def audit_queue(queue: Path, base: Path) -> list[dict]:
     findings: list[dict] = []
     for item in sorted(p for p in queue.iterdir() if p.is_dir()):
@@ -142,8 +191,10 @@ def audit_queue(queue: Path, base: Path) -> list[dict]:
             continue
         for payload in sorted(p for p in item.rglob("*") if p.is_file()):
             if payload.suffix in DIFF_SUFFIXES:
+                dcode, dsev, dnote = _diff_apply_status(payload, base)
                 findings.append({"item": item.name, "path": payload.name,
-                                 "code": CODE_DIFF, "severity": "OK", "removed": 0})
+                                 "code": dcode, "severity": dsev, "removed": 0,
+                                 "sample": [dnote] if dnote else []})
                 continue
             if is_scaffold(payload.relative_to(item)):
                 continue                 # diff-generation scaffolding, not payload
@@ -225,6 +276,10 @@ def main(argv: list[str] | None = None) -> int:
         out.append("  NOTE: REMOVES_SEALED_CONTENT means the drop omits lines the sealed tree has -- that may")
         out.append("        be a deliberate rewrite; ask the lane owner for a diff so intent is legible.")
         out.append("        PAYLOAD_BUILD_DEBRIS means a build artefact sits in a payload dir; strip before handoff.")
+        out.append("        DIFF_GIT_APPLY_INCOMPATIBLE means git apply rejects the patch though patch -p1 accepts it;")
+        out.append("        assemble the queue with patch -p1 (never git apply), or regenerate the diff git-apply-clean.")
+        out.append("        DIFF_PATCH_APPLY_INCOMPATIBLE means git apply accepts the patch but strict")
+        out.append("        patch -p1 --fuzz=0 rejects it; repair the patch before composition.")
     sys.stdout.write("\n".join(out) + "\n")
     return 0
 

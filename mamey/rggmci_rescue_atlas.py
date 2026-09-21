@@ -22,6 +22,7 @@ CLAIM_CEILING = (
     "and complementary protein tiling do not prove physical contig adjacency, "
     "exact product, complete pathway, expression, production, activity, novelty, "
     "or scientific acceptance."
+    "Scores are tool-specific: the same assembly fact is weighted differently by each ranking tool, so values are not comparable across tools."
 )
 
 TIERS = (
@@ -126,7 +127,8 @@ def evidence_tier(row: dict) -> tuple[str, str]:
     if (row["rggmci_confidence"] == "HIGH_RG_GMCI_RESCUE" and both >= 3 and
             row["shared_subjects"] == 0 and row["combined_unique_subjects"] >= 10 and
             row["reference_protein_coverage"] >= .35 and row["max_reference_rank"] <= 3 and
-            row["median_identity"] >= 35 and ordered and boundary and
+            row["median_identity"] >= 35 and row["median_alignment_coverage"] >= 55 and
+            ordered and boundary and
             not row["generic_modular_caution"]):
         return TIERS[0], "Broad, disjoint, boundary-supported tiling by two loci in a high-ranked comparator."
     if (row["rggmci_confidence"] == "HIGH_RG_GMCI_RESCUE" and both >= 2 and
@@ -192,6 +194,10 @@ def build_atlas(pair_rows: list[dict], locus_rows: list[dict], hit_rows: list[di
             sa = {h.get("subject_gene", "") for h in ha if h.get("subject_gene")}
             sb = {h.get("subject_gene", "") for h in hb if h.get("subject_gene")}
             union, overlap = sa | sb, sa & sb
+            # A reference whose roster never loaded has an UNMEASURED denominator, not a zero one.
+            # The numbers below stay as they are so scoring and ranking are untouched; the state
+            # column is what lets a reader tell "covers none of the reference" from "never read it".
+            roster_loaded = ref in rosters
             roster = rosters.get(ref, {"protein_count": 0, "protein_order": {}})
             topology, gap = reference_topology(sa, sb, roster["protein_order"])
             ranks_a = [int(_number(h.get("reference_rank"), 999)) for h in ha]
@@ -205,7 +211,8 @@ def build_atlas(pair_rows: list[dict], locus_rows: list[dict], hit_rows: list[di
                 "unique_subjects_a": len(sa - sb), "unique_subjects_b": len(sb - sa),
                 "subjects_a_total": len(sa), "subjects_b_total": len(sb),
                 "shared_subjects": len(overlap), "combined_unique_subjects": len(union),
-                "subject_disjointness": round(1 - len(overlap) / max(len(union), 1), 4),
+                "subject_disjointness": round(1 - len(overlap) / len(union), 4) if union else 0.0,
+                "reference_roster_state": "LOADED" if roster_loaded else "REFERENCE_ROSTER_NOT_LOADED",
                 "reference_total_proteins": int(roster["protein_count"]),
                 "reference_protein_coverage": round(len(union) / roster["protein_count"], 4) if roster["protein_count"] else 0.0,
                 "median_identity_a": round(_median(h.get("pct_identity") for h in ha), 2),

@@ -24,7 +24,7 @@ def _identity(row: dict[str, Any]) -> tuple[dict[str, str], str]:
     return values, display
 
 def build_activity_decision_trees(leads_tsv: Path, receipt_root: Path, output_dir: Path) -> dict[str, Any]:
-    with leads_tsv.open(newline="", encoding="utf-8") as handle:
+    with leads_tsv.open(newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.DictReader(handle, delimiter="\t"))
     if not rows:
         raise ActivityDecisionTreeError("lead table is empty")
@@ -38,13 +38,19 @@ def build_activity_decision_trees(leads_tsv: Path, receipt_root: Path, output_di
         claim = str(row.get("claim_ceiling", "")).strip()
         if not claim:
             raise ActivityDecisionTreeError(f"missing claim ceiling for {display}")
-        locator = Path(str(row.get("report_receipt", "")).strip())
-        if not locator or locator.is_absolute() or ".." in locator.parts:
+        # Test the raw string, not the Path: Path("") normalises to Path("."),
+        # which is truthy and would clear every guard below.  Mirrors the
+        # reference implementation in mamey/thesis_handoff.py::_safe.
+        raw_locator = str(row.get("report_receipt", "")).strip()
+        locator = Path(raw_locator)
+        if not raw_locator or locator.is_absolute() or ".." in locator.parts:
             raise ActivityDecisionTreeError("report_receipt must be a safe relative locator")
         root = receipt_root.resolve()
         receipt_path = (root / locator).resolve()
         if receipt_path != root and root not in receipt_path.parents:
             raise ActivityDecisionTreeError("report_receipt escapes configured root")
+        if not receipt_path.is_file():
+            raise ActivityDecisionTreeError(f"report_receipt is not a file: {raw_locator}")
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         if receipt.get("identity") != identity:
             raise ActivityDecisionTreeError("report receipt exact identity mismatch")

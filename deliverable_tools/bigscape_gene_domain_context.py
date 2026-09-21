@@ -331,9 +331,14 @@ def render_figure(loci, focal, edges, rbh_by_identity, png_path, pdf_path, famil
         ax_net.plot([x1, x2], [y1, y2], color="#A4B1B3", linewidth=max(.7, 4 * (1 - distance)), zorder=1)
         ax_net.text((x1 + x2) / 2, (y1 + y2) / 2, f"{distance:.3f}", fontsize=6, color="#4F5D61")
     node_colors = ["#D6A72C", "#0B7A75", "#3E6E9E", "#8B5A3C"]
+    # AQUARIUS .436: the fixed 4-color list IndexErrors at >=5 members; a bare index % len
+    # would instead collapse distinct loci onto one node color, making panel B's color key
+    # non-unique. Keep the house 4 for <=4 loci; sample tab20 for larger families so every
+    # locus keeps a unique, stable color.
+    node_palette = node_colors if len(loci) <= len(node_colors) else [plt.cm.tab20(i / max(1, len(loci) - 1)) for i in range(len(loci))]
     for index, locus in enumerate(loci):
         x, y = positions[locus["row"]["record_id"]]
-        color = node_colors[index]
+        color = node_palette[index]
         ax_net.scatter([x], [y], s=180 if locus is focal else 120, color=color, edgecolor="white", linewidth=1.5, zorder=2)
         legend_y = .83 - index * .48
         ax_net.scatter([.25], [legend_y], s=55, color=color, edgecolor="white", linewidth=.8)
@@ -348,7 +353,7 @@ def render_figure(loci, focal, edges, rbh_by_identity, png_path, pdf_path, famil
             if domain not in domain_order:
                 domain_order.append(domain)
     matrix = [[locus["domain_signature"].count(domain) for domain in domain_order] for locus in loci]
-    ax_dom.imshow(matrix, cmap="YlGnBu", vmin=0, vmax=max(max(row) for row in matrix) or 1, aspect="auto")
+    ax_dom.imshow(matrix, cmap="YlGnBu", vmin=0, vmax=max((max(row) for row in matrix if row), default=0) or 1, aspect="auto")
     ax_dom.set_xticks(range(len(domain_order)), domain_order, rotation=45, ha="right", fontsize=7)
     ax_dom.set_yticks(range(len(loci)), [f"L{index + 1}" for index in range(len(loci))], fontsize=7)
     for i, row in enumerate(matrix):

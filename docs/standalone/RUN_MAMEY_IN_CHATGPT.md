@@ -1,6 +1,6 @@
 # Run Mamey through a hosted assistant
 
-Documented bundle: v9.7.435 / engine 1.9.167
+Documented bundle: v9.7.437 / engine 1.9.167
 
 
 This route requires an assistant session with a working Python runtime, access to the supplied files and sufficient storage. A chat window alone does not guarantee execution. The current environment must be checked; historical model names and batch quotas are not capability guarantees.

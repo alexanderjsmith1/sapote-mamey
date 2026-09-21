@@ -17,18 +17,21 @@ from __future__ import annotations
 
 import re
 
-__all__ = ["BLOCKED", "CaptionGovernanceError", "check_caption", "scan_paths"]
+__all__ = ["BLOCKED", "CaptionGovernanceError", "CaptionUnreadableError", "check_caption", "scan_paths"]
 
 
 class CaptionGovernanceError(ValueError):
     """Raised when a caption carries operator-governance prose."""
 
 
+class CaptionUnreadableError(OSError):
+    """Raised when a caption file cannot be read, so it could not be checked."""
+
+
 # Phrase -> why it does not belong in a caption.
 BLOCKED: dict[str, str] = {
     "judgment deferred": "names the operator's review process, not the figure",
     "judgement deferred": "names the operator's review process, not the figure",
-    "class-level": "governance vocabulary; state the actual threshold instead",
     "no compound": "reassurance about what the figure does not prove",
     "structure, or potency": "reassurance about what the figure does not prove",
     "potency claim": "reassurance about what the figure does not prove",
@@ -37,6 +40,19 @@ BLOCKED: dict[str, str] = {
     "claim-safe": "governance vocabulary",
     "judgment is deferred": "names the operator's review process, not the figure",
 }
+
+# "class-level" is legitimate scientific vocabulary when it modifies a following noun
+# ("class-level composition", "class-level phylogenetic placement") but is governance
+# hedging when used as a standalone predicate ("screening signal is class-level;" /
+# "class-level." / "class-level,"). Matched separately from BLOCKED, which is a flat
+# substring check that cannot tell the two apart.
+_CLASS_LEVEL_STANDALONE = re.compile(r"\bclass-level\b(?!\s+[a-z])")
+# The lookahead above exempts ANY following lowercase word, which is right for
+# "class-level distribution" but wrong for governance qualifiers: "class-level only",
+# "class-level hypotheses only", "class-level read only" all survive it. Those are the
+# hedging forms, so they get their own pattern.
+_CLASS_LEVEL_QUALIFIED = re.compile(r"\bclass-level\s+(?:only\b|hypothes\w*|read\b)")
+_CLASS_LEVEL_REASON = "governance vocabulary; state the actual threshold instead"
 
 _WS = re.compile(r"\s+")
 
@@ -49,6 +65,8 @@ def check_caption(text: str, *, raises: bool = True) -> list[tuple[str, str]]:
     """Return [(phrase, reason)] found in `text`. Raise when `raises` and any are found."""
     flat = _normalise(text)
     found = [(p, why) for p, why in BLOCKED.items() if p in flat]
+    if _CLASS_LEVEL_STANDALONE.search(flat) or _CLASS_LEVEL_QUALIFIED.search(flat):
+        found.append(("class-level", _CLASS_LEVEL_REASON))
     # A phrase implied by a longer one is reported once, by the longest match.
     found = [(p, w) for p, w in found if not any(p != q and p in q for q, _ in found)]
     if found and raises:
@@ -57,15 +75,28 @@ def check_caption(text: str, *, raises: bool = True) -> list[tuple[str, str]]:
     return found
 
 
-def scan_paths(paths) -> dict[str, list[tuple[str, str]]]:
-    """Map path -> findings for every caption file that violates the rule."""
+def scan_paths(paths, *, strict: bool = True) -> dict[str, list[tuple[str, str]]]:
+    """Map path -> findings for every caption file that violates the rule.
+
+    A caption that cannot be read has NOT been checked, so it is never reported as clean.
+    With `strict` (the default) an unreadable path raises; otherwise it is returned under the
+    reserved key "__unreadable__" so the caller still sees it. A guard that silently skips its
+    input fails open, which is the failure this checker exists to prevent.
+    """
     out: dict[str, list[tuple[str, str]]] = {}
+    unreadable: list[tuple[str, str]] = []
     for p in paths:
         try:
-            text = open(p, encoding="utf-8", errors="replace").read()
-        except OSError:
+            with open(p, encoding="utf-8", errors="replace") as fh:
+                text = fh.read()
+        except OSError as exc:
+            if strict:
+                raise CaptionUnreadableError(f"CAPTION_UNREADABLE: {p}: {exc}") from exc
+            unreadable.append((str(p), f"unreadable, not checked: {exc}"))
             continue
         hits = check_caption(text, raises=False)
         if hits:
             out[str(p)] = hits
+    if unreadable:
+        out["__unreadable__"] = unreadable
     return out

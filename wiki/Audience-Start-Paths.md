@@ -1,6 +1,6 @@
 # Audience Start Paths
 
-*Current to bundle v9.7.405 · engine Mamey 1.9.145. Authored by Codex (Wiki Revision 03, 2026-08-31) against v9.7.395; admitted to the bundle wiki at v9.7.405 by the Claude Code patch lane after a currency pass. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
+*Current to bundle v9.7.437 · engine Mamey 1.9.167. Authored by Codex (Wiki Revision 03, 2026-08-31) against v9.7.395; admitted to the bundle wiki at v9.7.405 by the Claude Code patch lane after a currency pass. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
 
 
 Choose the path that matches the object in front of you. All commands assume the current directory is the extracted Sapote–Mamey bundle root and use the bundle-local launcher, `python mamey_run.py`, so an older installed copy cannot shadow the bundle.

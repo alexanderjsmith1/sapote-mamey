@@ -783,7 +783,9 @@ def heatmap(mat, rowlabs, order, S, title, fid, OUT, cbar="count", lognorm=True,
         im=ax.imshow(disp,aspect="auto",cmap=cmap,norm=LogNorm(vmin=_vmin,vmax=_vmax))
     else:
         im=ax.imshow(mat,aspect="auto",cmap=cmap)
-    ax.set_xticks(range(len(order))); ax.set_xticklabels([lab(s) for s in order],fontsize=8)
+    ax.set_xticks(range(len(order))); ax.set_xticklabels(
+        [lab(s) for s in order], fontsize=_matrix_label_size(len(order))
+    )
     ax.set_yticks(range(len(rowlabs))); ax.set_yticklabels(rowlabs,fontsize=8.5); ax.tick_params(length=0)
     if annot:
         mx=(np.nanmax(mat) if mat.size and not np.all(np.isnan(mat)) else 0) or 1   # empty/all-NaN-safe (audit follow-on)
@@ -1322,7 +1324,8 @@ def bubble_matrix(rows, order, count_fn, color_fn, title, fid, OUT, clab, slab, 
         # G (heatmap) family. stamp_d keeps the placeholder in the same series as the real figure.
         fname=stamp_d(fig,fid); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
         return
-    fig,ax=plt.subplots(figsize=(max(8,1.5*nx+3),max(3.5,0.5*ny+2.5)),constrained_layout=True)
+    _bw,_bh=_matrix_fig_size(nx,ny,1.5,3.0,0.5,2.5,min_w=8.0,min_h=3.5)
+    fig,ax=plt.subplots(figsize=(_bw,_bh),constrained_layout=True)
     counts=np.array([[count_fn(r,s) for s in order] for r in rows],float)
     cmax=(counts.max() if counts.size else 0) or 1; smax=900.0
     xs,ys,ss,cs=[],[],[],[]
@@ -1333,7 +1336,9 @@ def bubble_matrix(rows, order, count_fn, color_fn, title, fid, OUT, clab, slab, 
             xs.append(j); ys.append(i); ss.append(40+ (c/cmax)*smax)
             cs.append(c if color_is_count else (color_fn(r,s) if color_fn(r,s) is not None else np.nan))
     sc=ax.scatter(xs,ys,s=ss,c=cs,cmap=cmap,edgecolor="#333",linewidth=0.5,alpha=0.9)
-    ax.set_xticks(range(nx)); ax.set_xticklabels([lab(s) for s in order],fontsize=8)
+    ax.set_xticks(range(nx)); ax.set_xticklabels(
+        [lab(s) for s in order], **_matrix_label_kwargs(nx)
+    )
     ax.set_yticks(range(ny)); ax.set_yticklabels(rows,fontsize=8.5); ax.tick_params(length=0)
     ax.set_xlim(-0.6,nx-0.4); ax.set_ylim(ny-0.4,-0.8); ax.grid(alpha=0.15)
     soft_div_x(ax,order,-0.65)
@@ -1577,6 +1582,51 @@ def soft_div(ax, order):
     npriv=sum(1 for s in order if is_private(s)); ndiv=len(order)-npriv
     # v9.7.222: PUBLIC/PRIVATE divider removed — AS cohort public at publication.
 
+# --- v9.7.437 PATCH_07: cap matrix-panel geometry -------------------------------------------------
+# hmap() and bubble_matrix() sized a panel at a fixed number of inches per strain with no upper
+# bound. At a 46-strain cohort that is fig_w = 1.55*46+3.4 = 74.7 inches, and a three-row
+# view lands at an aspect ratio over 20:1 -- G04 rendered 11295x644 px on 2026-07-28. Nothing
+# errors; the image is simply unusable, and no gate notices because a gate checks that the file
+# exists. Below the knee this returns exactly what the old expressions returned, so small cohorts
+# are unchanged.
+MATRIX_MAX_FIG_W = 22.0      # inches; beyond this, columns tighten instead of the page growing
+MATRIX_MAX_ASPECT = 4.0      # width/height ceiling; a 3-row 46-column panel must not be a ribbon
+MATRIX_LABEL_KNEE = 12       # column count past which tick labels taper
+
+
+def _matrix_fig_size(n_cols, n_rows, per_col, pad_w, per_row, pad_h, min_w=8.0, min_h=3.2):
+    """Return (width, height) in inches for a columns-are-strains matrix panel.
+
+    Identical to the historical `max(min_w, per_col*n_cols+pad_w)` below the caps; above them it
+    trades column width for a page that can actually be printed."""
+    w = max(min_w, per_col * max(0, n_cols) + pad_w)
+    h = max(min_h, per_row * max(0, n_rows) + pad_h)
+    if w <= MATRIX_MAX_FIG_W:
+        # Not oversized: return exactly what the historical expressions returned. The aspect
+        # correction is deliberately gated on the width cap so that no figure which renders
+        # acceptably today changes shape -- a 12-strain panel at 22 x 4.76 is fine and must stay.
+        return w, h
+    w = MATRIX_MAX_FIG_W
+    if h > 0 and w / h > MATRIX_MAX_ASPECT:
+        h = w / MATRIX_MAX_ASPECT
+    return w, h
+
+
+def _matrix_label_size(n_cols, base=8.0, floor=5.0):
+    """Taper tick labels once a capped panel has to carry many columns."""
+    if n_cols <= MATRIX_LABEL_KNEE:
+        return base
+    return max(floor, base * (MATRIX_LABEL_KNEE / float(n_cols)) ** 0.35)
+
+
+def _matrix_label_kwargs(n_cols):
+    """Keep small-panel labels unchanged; rotate dense cohort labels to prevent collision."""
+    style = {"fontsize": _matrix_label_size(n_cols)}
+    if n_cols > MATRIX_LABEL_KNEE:
+        style.update({"rotation": 90, "ha": "center", "va": "top"})
+    return style
+# --- end PATCH_07 ---------------------------------------------------------------------------------
+
 def hmap(mat, rowlabs, order, title, fid, OUT, cbar="count", cmap="magma_r", lognorm=True, annot=True, row_raw=None):
     mat=np.array(mat,float)
     if mat.size == 0:
@@ -1589,7 +1639,7 @@ def hmap(mat, rowlabs, order, title, fid, OUT, cbar="count", cmap="magma_r", log
         ax.axis("off")
         fname=stamp_g(fig,fid); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
         return
-    fig_w=max(8.0,1.55*len(order)+3.4); fig_h=max(3.2,0.36*len(rowlabs)+2.6)
+    fig_w,fig_h=_matrix_fig_size(len(order),len(rowlabs),1.55,3.4,0.36,2.6)
     fig,ax=plt.subplots(figsize=(fig_w,fig_h),constrained_layout=True)
     if lognorm:
         disp=np.where(mat<=0,np.nan,mat)
@@ -1600,7 +1650,9 @@ def hmap(mat, rowlabs, order, title, fid, OUT, cbar="count", cmap="magma_r", log
         im=ax.imshow(disp,aspect="auto",cmap=cmap,norm=LogNorm(vmin=_vmin,vmax=_vmax))
     else:
         im=ax.imshow(mat,aspect="auto",cmap=cmap)
-    ax.set_xticks(range(len(order))); ax.set_xticklabels([lab(s) for s in order],fontsize=8)
+    ax.set_xticks(range(len(order))); ax.set_xticklabels(
+        [lab(s) for s in order], **_matrix_label_kwargs(len(order))
+    )
     ax.set_yticks(range(len(rowlabs))); ax.set_yticklabels(rowlabs,fontsize=8.5); ax.tick_params(length=0)
     if annot:
         mx=(np.nanmax(mat) if mat.size and not np.all(np.isnan(mat)) else 0) or 1   # empty/all-NaN-safe (audit follow-on)

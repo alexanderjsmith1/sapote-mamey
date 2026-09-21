@@ -21,6 +21,24 @@ You do not need every optional workflow to get a useful result. Mode B cards hav
 For a one-page map of the program's parts, inputs, and outputs, see
 [What Sapote-Mamey offers](docs/PRODUCT_MAP.md).
 
+## Platform compatibility and equal AI contribution credit
+
+Sapote-Mamey is designed to work across Anthropic and OpenAI platforms. Browser access through
+Claude.ai and ChatGPT works well for inspecting inputs, interpreting existing evidence, and drafting
+bounded reports, subject to each service's upload, runtime, network, and session limits. The desktop
+applications generally provide a stronger file-centered experience. For the fullest experience, the
+project recommends Claude Code or Codex in a local project environment; those agent interfaces offer
+the best compatibility with bundle tools, local data, databases, long-running commands, rendered
+artifacts, and validation receipts.
+
+**Equal AI contribution credit (50/50).** The Sapote-Mamey project credits
+[Anthropic](https://www.anthropic.com/) and [OpenAI](https://openai.com/) as equal contributors—50%
+each—to the AI-assisted development, testing, refinement, and documentation of this bundle.
+Anthropic's contribution was made through Claude and Claude Code; OpenAI's contribution was made
+through ChatGPT and Codex. This credit records the project's development history. It does not imply
+sponsorship, endorsement, approval, ownership, or responsibility for scientific conclusions by
+either company.
+
 ## Start in ChatGPT or Claude.ai
 
 Many Sapote-Mamey review and reporting workflows can begin in a browser without a local
@@ -46,8 +64,8 @@ and claim ceilings. A useful opening prompt is:
 Browser interfaces differ in file-size limits, runtimes, network access, and session persistence.
 They can inspect inputs, interpret existing evidence, and prepare reports when those capabilities are
 available. The deterministic Mamey engine, external phylogeny programs, large databases, and long
-runs may still require a local Codex or terminal environment. Download the generated reports and
-receipts; a chat response alone is not a validated or sealed Mamey package.
+runs may still require a local Claude Code or Codex session, or a terminal environment. Download
+the generated reports and receipts; a chat response alone is not a validated or sealed Mamey package.
 
 **Start with the file you have:**
 
@@ -314,4 +332,4 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.435 / engine 1.9.167 · build 20260920v97435a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.437 / engine 1.9.167 · build 20260921v97437a · release profile: CODE (see RELEASE_MANIFEST.md)*

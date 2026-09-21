@@ -28,7 +28,7 @@ def _safe(root: Path, locator: str) -> Path:
     return resolved
 
 def build_thesis_handoff(index_tsv: Path, input_root: Path, output_dir: Path) -> dict[str, Any]:
-    with index_tsv.open(newline="", encoding="utf-8") as handle:
+    with index_tsv.open(newline="", encoding="utf-8-sig") as handle:
         rows=list(csv.DictReader(handle, delimiter="\t"))
     if not rows: raise ThesisHandoffError("handoff index is empty")
     admitted=[]; seen=set()

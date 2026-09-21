@@ -2,7 +2,7 @@
 
 *A running concepts companion to the GUIDE, written as questions and answers. The answers are direct and say what is observed and what is inferred. This is the conversational "why does it work this way" layer. Short definitions live in the canonical [`GLOSSARY.md`](../GLOSSARY.md) (see its **Core concepts** section for the load-bearing terms), and the deep internals live in the Encyclopedia (`03_Technical_Manual_Encyclopedia.html`).*
 
-*Current to bundle v9.7.435 / engine Mamey 1.9.167.*
+*Current to bundle v9.7.437 / engine Mamey 1.9.167.*
 
 > **On the numbering.** Two series run here. **Q1–Q10** are the original conversational thread (workflow and first-encounter jargon). **Bank N** entries are numbered by position in the 100-question bank (`Sapote-Mamey_QandA_QuestionBank_100.md`) so each maps straight back to its source question — which is why the Bank numbers are not contiguous (gaps are questions not yet written up, not missing content). Cross-references of the form "(Bank N)" point within this document.
 
@@ -552,4 +552,4 @@ The limit to keep honest: not every producer co-localizes its resistance, and no
 
 ---
 
-*Sapote–Mamey Concepts Q&A · current to bundle v9.7.435 / engine Mamey 1.9.167 A running document — concepts are version-stable; inline version references (e.g. "shipped in v9.7.91", "v9.7.97 CODE tier") are historical record, not a currency claim. Companion to `../GLOSSARY.md` (definitions) and `03_Technical_Manual_Encyclopedia.html` (deep internals); Q&A is the conversational "why does it work this way" layer.*
+*Sapote–Mamey Concepts Q&A · current to bundle v9.7.437 / engine Mamey 1.9.167 A running document — concepts are version-stable; inline version references (e.g. "shipped in v9.7.91", "v9.7.97 CODE tier") are historical record, not a currency claim. Companion to `../GLOSSARY.md` (definitions) and `03_Technical_Manual_Encyclopedia.html` (deep internals); Q&A is the conversational "why does it work this way" layer.*

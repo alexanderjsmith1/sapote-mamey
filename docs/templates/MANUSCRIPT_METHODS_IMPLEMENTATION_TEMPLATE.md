@@ -1,7 +1,7 @@
 # Manuscript Methods implementation template
 
 **Template status:** prospective authoring aid; inclusion in the bundle does not assert that any study was run.  
-**Version template:** Sapote-Mamey v9.7.435 / Mamey v1.9.167  
+**Version template:** Sapote-Mamey v9.7.437 / Mamey v1.9.167  
 **Required substitutions:** replace every bracketed field and delete modules that were not used.
 
 ## Scope and reproducibility statement

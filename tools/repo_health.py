@@ -143,6 +143,9 @@ CLI_TOOL_EXCLUDE_FILES = {"render_all.py", "phylo_preflight.py", "phylo_postflig
                           # they are CLI output, not library logging debt.
                           "bigscape_family_verdicts.py", "bigscape_family_figures.py",
                           "bigscape_clinker_html.py",
+                          # Opt-in HMMER operator front door; its two emissions are the explicit
+                          # unavailable-state diagnostic and the generated-evidence receipt line.
+                          "chitinase_hmm_confirm.py",
                           # This operator front door prints only the path of the synthetic
                           # project it just staged; the path is its CLI result.
                           "figure_factory_demo.py"}

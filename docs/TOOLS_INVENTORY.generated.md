@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**387 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**389 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -144,6 +144,7 @@
 | `check_dangling_refs.py` | list references to `examples/<file>` OR tool/module names that don't |
 | `check_deliverable_suite.py` | mechanical enforcement of the Sapote full-run deliverable contract. |
 | `check_duplicate_dict_keys.py` | fail closed on NEW duplicate dict-literal keys. |
+| `check_instruction_mirror.py` | Diagnose drift between this bundle's assistant contract and an explicitly configured mirror. |
 | `check_license_docs.py` | every file granted CC-BY-4.0 in LICENSE-DOCS.txt must actually ship. |
 | `check_manifest_contract.py` | Validate a Mamey package against schemas/manifest_contract.json. |
 | `check_md_links.py` | verify that local file links in Markdown actually resolve on disk. |
@@ -160,6 +161,7 @@
 | `check_schema_drift.py` | check_schema_drift.py  (candidate patch G1) |
 | `check_tier_parity.py` | fail-closed parity gate across the four release tiers. |
 | `chitin_reference_eval.py` | tools/chitin_reference_eval.py -- operator front door for the whole-genome chitin/GlcNAc |
+| `chitinase_hmm_confirm.py` | tools/chitinase_hmm_confirm.py -- HMMER confirmation pass for chitinolytic capacity. |
 | `claim_safety_linter.py` | post-hoc claim-safety linter for Sapote interpretive text |
 | `clear_match_finder.py` | Rank package-backed MIBiG matches by top-versus-second separation. |
 | `cluster_alignment.py` | reference-aligned homolog figures for split-pathway BGCs. |

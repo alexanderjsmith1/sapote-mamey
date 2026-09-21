@@ -2,7 +2,7 @@
 
 ### CLI, workbook, figures, packaging, stores, and parse layer of the Mamey engine
 
-**Version of record:** Mamey engine v1.9.167 · bundle v9.7.435 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23; architecture unchanged — B4 workbook column list may not reflect triggers added at v1.9.99)
+**Version of record:** Mamey engine v1.9.167 · bundle v9.7.437 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23; architecture unchanged — B4 workbook column list may not reflect triggers added at v1.9.99)
 **Author:** Alexander J. Smith
 **Companion to:** *The Mathematics of Sapote-Mamey* (Volumes I & II — the engine's quantitative core and subsystems).
 **Status:** Architecture reference. Every component is transcribed from engine source and cited to `module.py:symbol`; nothing is reconstructed from memory. Each cluster was verified against source; corrections made during review are noted inline.

@@ -35,10 +35,14 @@ RELATION_MODIFIERS = {
     "BOTH_CHANNELS_UNRESOLVED": -15.0,
 }
 BOUNDARY_PENALTIES = {"Interior": 0.0, "Edge": 4.0, "Full-contig": 8.0}
+# The workup already reports these when no dominant reference was selected. A BGC with no
+# reference cannot have sparse support for one, so the reference-derived penalties below
+# must not fire; RELATION_MODIFIERS is the channel that already prices these states.
+NO_REFERENCE_RELATIONS = {"ARCHITECTURE_ONLY_NO_REFERENCE_MATCH", "BOTH_CHANNELS_UNRESOLVED"}
 
 
 def read_tsv(path):
-    with Path(path).open(newline="", encoding="utf-8") as f:
+    with Path(path).open(newline="", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f, delimiter="\t"))
 
 
@@ -56,6 +60,35 @@ def number(value, default=0.0):
 
 
 def integer(value): return int(number(value))
+
+
+def present(row, key):
+    """True when the row actually carries a usable value for key.
+
+    A missing column, an absent key and an empty cell all mean the upstream
+    comparison did not report a result. That is not the same as a reported zero.
+    """
+    value=row.get(key)
+    return value is not None and str(value).strip()!=""
+
+
+def reference_evidence_state(row):
+    """Say whether the dominant-reference comparison produced a usable result.
+
+    Missing evidence is not a negative result, so the caller must be able to
+    tell the two apart before it penalises anything. Three situations otherwise
+    collapse into an identical all-zero row: a reference was compared and matched
+    almost nothing, no reference was ever selected, and the upstream columns are
+    absent entirely.
+    """
+    relation=(row.get("functional_reference_relation") or "").strip()
+    if relation in NO_REFERENCE_RELATIONS: return "NO_REFERENCE_SELECTED"
+    matches=present(row,"genes_matching_dominant_reference")
+    total=present(row,"total_cds")
+    if matches and total: return "REFERENCE_EVALUATED"
+    if matches and not total: return "REFERENCE_DENOMINATOR_MISSING"
+    if total and not matches: return "REFERENCE_SUPPORT_NOT_EVALUATED"
+    return "REFERENCE_NOT_EVALUATED"
 
 
 def strain_of(identity):
@@ -105,8 +138,12 @@ def score_row(row):
     tier=row.get("evidence_tier", "")
     if tier.startswith("A_"): score+=6.0
     elif tier.startswith("B_SUPPORTED_PARTIAL"): score+=3.0
-    matches=integer(row.get("genes_matching_dominant_reference")); total=max(1, integer(row.get("total_cds")))
-    match_fraction=matches/total
+    evidence_state=reference_evidence_state(row)
+    matches=integer(row.get("genes_matching_dominant_reference"))
+    total=integer(row.get("total_cds"))
+    # An absent denominator used to become max(1, 0) == 1, which turned "5 matched"
+    # into a 500% hit fraction and silently suppressed the low-fraction control.
+    match_fraction=(matches/total) if total>0 else None
     generic=generic_assembly_line(row)
     flags=[]
     extra=0.0
@@ -114,10 +151,14 @@ def score_row(row):
         extra+=12.0; flags.append("GENERIC_ASSEMBLY_LINE_FULL_CONTIG")
     elif generic and boundary=="Edge":
         extra+=6.0; flags.append("GENERIC_ASSEMBLY_LINE_EDGE")
-    if generic and matches<4:
+    # Only penalise sparse reference support when the comparison actually reported one.
+    evaluated=evidence_state=="REFERENCE_EVALUATED"
+    if generic and evaluated and matches<4:
         extra+=6.0; flags.append("SPARSE_REFERENCE_GENE_SUPPORT")
-    if generic and match_fraction<0.15:
+    if generic and evaluated and match_fraction is not None and match_fraction<0.15:
         extra+=4.0; flags.append("LOW_REFERENCE_HIT_FRACTION")
+    if generic and evidence_state!="REFERENCE_EVALUATED":
+        flags.append(evidence_state)
     fragment_flag="; ".join(flags) if flags else "NO_EXTRA_FRAGMENT_PENALTY"
     score=max(0.0,min(100.0,score-extra))
     if score>=70 and row.get("functional_reference_relation") not in {"ARCHITECTURE_REFERENCE_DISCORDANT","BOTH_CHANNELS_UNRESOLVED"}:
@@ -143,7 +184,7 @@ def load_coordinates(package_list):
     for package in packages:
         hits=sorted(package.glob("*_cds_table.csv"))
         if len(hits)!=1: raise ValueError(f"{package}: expected one *_cds_table.csv; found {len(hits)}")
-        with hits[0].open(newline="",encoding="utf-8",errors="replace") as f:
+        with hits[0].open(newline="",encoding="utf-8-sig",errors="replace") as f:
             for r in csv.DictReader(f):
                 key=(r.get("strain",""),r.get("bgc_id",""),r.get("locus_tag",""))
                 if not all(key): raise ValueError(f"{hits[0]}: incomplete CDS coordinate key")
@@ -261,7 +302,7 @@ def build(bgc_path, out, gene_path=None, package_list=None):
     enhanced=[]; by_strain=defaultdict(list)
     for r in rows:
         strain=strain_of(r["complete_identity"]); score,band,flag,frac=score_row(r)
-        x=dict(r); x.update({"strain":strain,"potential_product_family_hypothesis":product_label(r),"strain_product_logic_score_0_100":f"{score:.2f}","strain_product_evidence_band":band,"fragment_genericity_flag":flag,"dominant_reference_hit_fraction":f"{frac:.4f}","strain_product_rank":"","claim_ceiling":CLAIM})
+        x=dict(r); x.update({"strain":strain,"potential_product_family_hypothesis":product_label(r),"strain_product_logic_score_0_100":f"{score:.2f}","strain_product_evidence_band":band,"fragment_genericity_flag":flag,"dominant_reference_hit_fraction":("" if frac is None else f"{frac:.4f}"),"strain_logic_reference_evidence_state":reference_evidence_state(r),"strain_product_rank":"","claim_ceiling":CLAIM})
         enhanced.append(x); by_strain[strain].append(x)
     for strain,srows in by_strain.items():
         srows.sort(key=lambda x:(-number(x["strain_product_logic_score_0_100"]),integer(x.get("definitive_rank_within_strain")),x["complete_identity"]))
@@ -283,7 +324,7 @@ def build(bgc_path, out, gene_path=None, package_list=None):
     for r in comparison_rows:cmp_md.append("| "+" | ".join(md_escape(r[k]) for k in ("comparison_family","locus_count","strain_count","best_score","median_score","interior_loci","boundary_limited_loci","best_complete_identity"))+" |")
     cmp_md += ["","## Claim ceiling","",CLAIM,""]
     (out/"CROSS_STRAIN_BGC_COMPARISON.md").write_text("\n".join(cmp_md),encoding="utf-8")
-    fields=["strain","strain_product_rank","strain_product_logic_score_0_100","strain_product_evidence_band","potential_product_family_hypothesis","fragment_genericity_flag","dominant_reference_hit_fraction"]+[k for k in rows[0] if k not in {"claim_ceiling"}]+["claim_ceiling"]
+    fields=["strain","strain_product_rank","strain_product_logic_score_0_100","strain_product_evidence_band","potential_product_family_hypothesis","fragment_genericity_flag","dominant_reference_hit_fraction","strain_logic_reference_evidence_state"]+[k for k in rows[0] if k not in {"claim_ceiling"}]+["claim_ceiling"]
     write_tsv(out/"ALL_BGC_STRAIN_PRODUCT_LOGIC.tsv",enhanced,fields)
     strain_summary=[]; family_summary=[]
     for strain,srows in sorted(by_strain.items()):

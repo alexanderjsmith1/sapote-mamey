@@ -26,7 +26,8 @@ except ImportError:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 
 CLAIM = ("Sequence-similarity prioritization only; no exact product, pathway "
-         "completeness, expression, production, activity, novelty, or scientific acceptance claim.")
+         "completeness, expression, production, activity, novelty, or scientific acceptance claim. "
+         "Scores are tool-specific: the same assembly fact is weighted differently by each ranking tool, so values are not comparable across tools.")
 
 def number(value, default=0.0):
     try: return float(value)
@@ -85,7 +86,7 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 def read_csv(path):
-    with path.open(newline="", errors="replace") as handle:
+    with path.open(newline="", encoding="utf-8-sig", errors="replace") as handle:
         return list(csv.DictReader(handle))
 
 def one_file(package, suffix, required=True):
@@ -198,6 +199,14 @@ def analyze(packages, out, min_id=70, min_cov=80, min_score=100, min_gap=20, min
             meta=inv.get(bgc,{}); boundary=meta.get("Boundary",""); penalty=(8 if boundary and boundary!="Interior" else 0)+(8 if len(current)<5 else 0)
             bgcs.append({"complete_identity":current[0]["complete_identity"],"bgc_clear_match_score_0_100":round(max(0,raw*(.7+.3*breadth)-penalty),2),"boundary_fragment_penalty":penalty,"current_antismash_products":meta.get("Products","") ,"current_boundary":boundary,"total_cds":len(current),"genes_with_mibig_hit":len(hit),"clear_specific_high_genes":len(clear),"dominant_top_mibig_accession":dominant,"dominant_top_mibig_product":dom[0]["top_mibig_product"] if dom else "","genes_top_matching_dominant_cluster":dom_n,"clear_genes_top_matching_dominant_cluster":len(dom_clear),"hit_fraction":round(hf,4),"clear_fraction_among_hit_genes":round(cf,4),"dominant_cluster_fraction_among_hit_genes":round(df,4),"median_top_identity_x_coverage":med(eff),"median_top_minus_second_identity_x_coverage_gap":med(gaps),"evidence_breadth_factor":round(breadth,4),"claim_ceiling":CLAIM})
             top2.append(top_k_summary(current,2)); top3.append(top_k_summary(current,3))
+    if not genes:
+        # Every discovered package had an empty _cds_table.csv, so there is nothing to rank.
+        # The ALL_MIBIG_HITS write below is already empty-guarded, but the gene/bgc/matching
+        # writers index row 0 (genes[0], bgcs[0], matching_counts[0]); without this guard an
+        # empty cohort aborts with an opaque IndexError instead of a clear diagnostic.
+        raise ValueError(
+            f"clear_match_finder: no CDS rows across {len(packages)} package(s); nothing to "
+            "rank (each _cds_table.csv had no data rows). Check package extraction/inputs.")
     order={"CLEAR_SPECIFIC_HIGH":0,"HIGH_NO_DISTINCT_RUNNER_UP":1,"HIGH_BUT_AMBIGUOUS":2,"MODERATE_CLEAR":3,"MATCH_WITHOUT_CLEAR_SEPARATION":4,"NO_MIBIG_HIT_RECORDED":5}
     genes.sort(key=lambda r:(order[r["match_band"]],-number(r["top_identity_x_coverage"]),-number(r["top_minus_second_identity_x_coverage_points"]),r["complete_identity"],number(r["gene_order"])))
     for i,r in enumerate(genes,1): r["gene_clear_match_rank_all_cds"]=i
