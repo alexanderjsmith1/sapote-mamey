@@ -334,4 +334,4 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.440 / engine 1.9.169 · build 20260922v97440a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.440 / engine 1.9.169 · build 20260922v97440b · release profile: CODE (see RELEASE_MANIFEST.md)*

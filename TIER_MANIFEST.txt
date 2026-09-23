@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.440 stamp=20260922v97440a
+# TIER_MANIFEST tier=code version=9.7.440 stamp=20260922v97440b
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -2036,6 +2036,7 @@
 ./tests/test_modeb_full50_identity_v97417.py
 ./tests/test_modeb_gene_first_explore_v9_7_395.py
 ./tests/test_modeb_gene_orientation_quality_v9_7_377.py
+./tests/test_modeb_hash_spacing_v97440.py
 ./tests/test_modeb_heading_regex_v9_7_410.py
 ./tests/test_modeb_interp_gate.py
 ./tests/test_modeb_inventory_reconciliation_v8_v97410.py

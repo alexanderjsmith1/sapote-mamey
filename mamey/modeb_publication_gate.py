@@ -322,6 +322,9 @@ def _prose_only(card_md: str) -> str:
     text = re.sub(r"\]\([^)]*\)", "] ", text)
     text = re.sub(r"<[^>\s]+>", " ", text)
     text = re.sub(r"https?://\S+", " ", text)
+    # Bare receipt digests are identifiers, including ones beginning with abc1.
+    # Match a whole SHA-256 token only; keep partial hashes and prose visible.
+    text = re.sub(r"\b[0-9a-f]{64}\b", " ", text, flags=re.I)
     text = re.sub(r"/[A-Za-z0-9_./ -]{8,}", " ", text)
     return text
 

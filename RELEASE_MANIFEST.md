@@ -1,11 +1,11 @@
 # Sapote-Mamey Bundle Release Manifest — v9.7.440 CODE archive
 
 **Cut/build date:** 2026-09-22
-**Artifact status:** validated CODE archive  
+**Artifact status:** CI correction candidate  
 **Bundle version:** `sapote-mamey-v9.7.440`  
 **Authoritative bundle version:** `9.7.440`  
 **Engine:** Mamey v1.9.169  
-**Build stamp:** 20260922v97440a  
+**Build stamp:** 20260922v97440b  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
@@ -21,8 +21,8 @@ No additional release tiers are included in this CODE archive.
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (12004 passed, 239 skipped; receipt-bound log) |
-| Focused verification | 40 passed / 2 skipped for identity, version, and inventory; 12 passed for health, BLASTp monitoring, and Figure Factory |
+| Full pytest suite | PENDING GitHub CI rerun after receipt-hash spacing correction; previous v9.7.440 local validation does not validate this correction |
+| Focused verification | 117 related tests passed for the correction; extracted b archive verification recorded in the accompanying receipt |
 | Strict repository health | PASS (1306 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
 | Version synchronization | PASS |
 | Generated module, tool, command, and deliverable inventories | PASS |
@@ -48,7 +48,7 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20260922v97440a`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20260922v97440b`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
