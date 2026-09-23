@@ -1,6 +1,6 @@
 # Public release — user guide
 
-> **Current-tree status.** This CODE archive is a validated software artifact. [`pyproject.toml`](../pyproject.toml) and the synced package identity define its canonical bundle version; [`RELEASE_MANIFEST.md`](../RELEASE_MANIFEST.md) defines its current release status.
+> **Current-tree status.** This CODE archive records its validation results in the release manifest. [`pyproject.toml`](../pyproject.toml) and the synced package identity define its canonical bundle version; [`RELEASE_MANIFEST.md`](../RELEASE_MANIFEST.md) defines its current release status.
 
 This supporting guide describes public-release setup and network behavior. Start at [README](../README.md). It covers what the release contains
 (code and small governed data; the Pfam HMM is operator-provisioned, not bundled), how the pipeline uses the network, and how to run it in a sensitive

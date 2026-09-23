@@ -1,6 +1,6 @@
 # Bootstrap file audit — generated from bootstrap_contract.yml
 
-Bundle / engine / build: v9.7.440 / 1.9.169 · 20260922v97440b
+Bundle / engine / build: v9.7.440 / 1.9.169 · 20260922v97440c
 
 ## Bootstrap surface contract
 

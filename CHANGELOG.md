@@ -1,4 +1,4 @@
-# v9.7.440 · 2026-09-22 · build 20260922v97440b · engine 1.9.169 · CODE
+# v9.7.440 · 2026-09-22 · build 20260922v97440c · engine 1.9.169 · CODE
 
 - **Receipt-hash spacing correction.** Whole SHA-256 receipt identifiers no longer trigger prose spacing holds; generic regression tests retain hash tamper detection.
 - **BLASTp empty-discovery diagnostics and retry safety.** Package-trove scans that discover no supported source now explain the scanned layout and channel filenames, and leave no new overlay, ledger or immutable receipt. Sources that contain no admitted rows retain their normal evidence receipts; admission and quarantine rules are unchanged.

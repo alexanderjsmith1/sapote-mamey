@@ -64,7 +64,8 @@ def _assert_front_door_contract(text: str, version_locator: str, status_locator:
     match = STATUS_LINE_RE.search(text)
     assert match, "front door lacks the governed status line"
     status_line = match.group("body")
-    assert "validated software artifact" in status_line
+    assert "records its validation results in the release manifest" in status_line
+    assert "validated software artifact" not in status_line
     assert "signed public release" not in status_line.lower()
     assert version_locator in status_line
     assert status_locator in status_line
@@ -87,7 +88,9 @@ def _assert_release_status_contract(
     assert manifest_version == canonical_version, (
         "RELEASE_MANIFEST.md must match the canonical bundle version"
     )
-    assert manifest_status == "validated CODE archive"
+    assert manifest_status in {"validated CODE archive", "CI correction candidate"}, (
+        "unrecognized artifact status"
+    )
     assert "signed public release" not in manifest_status.lower()
     _assert_front_door_contract(
         start_here_text,
@@ -148,10 +151,10 @@ def test_stale_front_door_and_manifest_agreement_cannot_override_pyproject():
 
 
 def test_unsubstantiated_signed_release_language_is_not_admitted():
-    manifest = _load_text(ROOT / "RELEASE_MANIFEST.md").replace(
-        "validated CODE archive",
-        "signed public release",
-        1,
+    manifest = ARTIFACT_STATUS_RE.sub(
+        "**Artifact status:** signed public release",
+        _load_text(ROOT / "RELEASE_MANIFEST.md"),
+        count=1,
     )
     with pytest.raises(AssertionError):
         _assert_release_status_contract(
@@ -159,5 +162,48 @@ def test_unsubstantiated_signed_release_language_is_not_admitted():
             _load_text(ROOT / "mamey" / "__init__.py"),
             manifest,
             _load_text(ROOT / "README.md"),
+            _load_text(ROOT / "docs" / "PUBLIC_RELEASE_GUIDE.md"),
+        )
+
+
+@pytest.mark.parametrize("status", ["validated CODE archive", "CI correction candidate"])
+def test_front_doors_defer_to_manifest_for_both_artifact_states(status):
+    manifest = ARTIFACT_STATUS_RE.sub(
+        "**Artifact status:** " + status,
+        _load_text(ROOT / "RELEASE_MANIFEST.md"), count=1,
+    )
+    _assert_release_status_contract(
+        _load_text(ROOT / "pyproject.toml"),
+        _load_text(ROOT / "mamey" / "__init__.py"), manifest,
+        _load_text(ROOT / "README.md"),
+        _load_text(ROOT / "docs" / "PUBLIC_RELEASE_GUIDE.md"),
+    )
+
+
+@pytest.mark.parametrize("status", ["", "unknown", "signed public release"])
+def test_unrecognized_artifact_status_is_rejected(status):
+    manifest = ARTIFACT_STATUS_RE.sub(
+        "**Artifact status:** " + status,
+        _load_text(ROOT / "RELEASE_MANIFEST.md"), count=1,
+    )
+    with pytest.raises(AssertionError):
+        _assert_release_status_contract(
+            _load_text(ROOT / "pyproject.toml"),
+            _load_text(ROOT / "mamey" / "__init__.py"), manifest,
+            _load_text(ROOT / "README.md"),
+            _load_text(ROOT / "docs" / "PUBLIC_RELEASE_GUIDE.md"),
+        )
+
+
+def test_front_door_cannot_replace_manifest_with_unconditional_validation_claim():
+    readme = _load_text(ROOT / "README.md").replace(
+        "records its validation results in the release manifest",
+        "is a validated software artifact", 1,
+    )
+    with pytest.raises(AssertionError):
+        _assert_release_status_contract(
+            _load_text(ROOT / "pyproject.toml"),
+            _load_text(ROOT / "mamey" / "__init__.py"),
+            _load_text(ROOT / "RELEASE_MANIFEST.md"), readme,
             _load_text(ROOT / "docs" / "PUBLIC_RELEASE_GUIDE.md"),
         )

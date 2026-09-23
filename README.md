@@ -133,7 +133,7 @@ of material, target, time point and experiments. See the
 
 ## Install
 
-> **Build status.** This CODE archive is a validated software artifact. The footer of this file carries the exact bundle and engine versions, sourced from [`pyproject.toml`](pyproject.toml). [`RELEASE_MANIFEST.md`](RELEASE_MANIFEST.md) is the authoritative status source.
+> **Build status.** This CODE archive records its validation results in the release manifest. The footer of this file carries the exact bundle and engine versions, sourced from [`pyproject.toml`](pyproject.toml). [`RELEASE_MANIFEST.md`](RELEASE_MANIFEST.md) is the authoritative status source.
 >
 > GitHub source users: start with `docs/PUBLIC_RELEASE_GUIDE.md` for what ships, the Pfam HMM you provision yourself, the tool's runtime network behavior, and air-gapped operation. Full step-by-step setup is in `docs/INSTALL.md`.
 
@@ -334,4 +334,4 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.440 / engine 1.9.169 · build 20260922v97440b · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.440 / engine 1.9.169 · build 20260922v97440c · release profile: CODE (see RELEASE_MANIFEST.md)*
