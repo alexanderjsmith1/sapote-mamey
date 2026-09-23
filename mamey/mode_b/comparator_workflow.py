@@ -6,6 +6,7 @@ upload comparator antiSMASH, then perform synteny/missing-gene/domain analysis.
 """
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 COMPARATOR_WORKFLOW_REQUIRED: list[str] = [
@@ -30,8 +31,11 @@ def _accession_series_hint(accessions: list[str]) -> bool:
         if digits:
             try:
                 nums.append(int(digits[-9:]))
-            except Exception:
-                pass
+            except ValueError as exc:
+                sys.stderr.write(
+                    f"comparator_workflow: cannot parse numeric accession series member "
+                    f"{acc!r}; omitting it ({exc})\n"
+                )
     if len(nums) < 3:
         return False
     nums = sorted(set(nums))

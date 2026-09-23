@@ -16,6 +16,7 @@ import glob
 import json
 import os
 import re
+import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 
@@ -150,8 +151,11 @@ def load_package(pkg: str) -> list[BGCRecord]:
         try:
             rr.start = min(rr.start, int(r["bgc_start"]))
             rr.end = max(rr.end, int(r["bgc_end"]))
-        except (ValueError, KeyError):
-            pass
+        except (TypeError, ValueError, KeyError) as exc:
+            sys.stderr.write(
+                f"series_common: invalid BGC coordinates for {b!r}; the record will remain "
+                f"coordinate-incomplete ({type(exc).__name__}: {exc})\n"
+            )
         if (r.get("boundary_flag") or "").strip():
             rr.is_edge = rr.is_edge or ("edge" in r["boundary_flag"].lower()
                                         or "partial" in r["boundary_flag"].lower()
@@ -191,12 +195,18 @@ def load_package(pkg: str) -> list[BGCRecord]:
         if b in rec:
             try:
                 rec[b].ab = float(r.get("AB_auto") or 0)
-            except ValueError:
-                pass
+            except (TypeError, ValueError) as exc:
+                sys.stderr.write(
+                    f"series_common: invalid AB_auto for {b!r}; retaining 0.0 "
+                    f"({type(exc).__name__}: {exc})\n"
+                )
             try:
                 rec[b].af = float(r.get("AF_auto") or 0)
-            except ValueError:
-                pass
+            except (TypeError, ValueError) as exc:
+                sys.stderr.write(
+                    f"series_common: invalid AF_auto for {b!r}; retaining 0.0 "
+                    f"({type(exc).__name__}: {exc})\n"
+                )
             rec[b].novelty = (r.get("Novelty_auto") or "").strip()
             rec[b].lead_tier = (r.get("Lead_tier_auto") or "").strip()
             rec[b].kcb_top = (r.get("KCB_top") or "").strip()

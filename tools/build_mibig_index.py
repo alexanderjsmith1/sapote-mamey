@@ -186,9 +186,10 @@ def main(argv=None):
     a=ap.parse_args(argv)
     idx,cov=build(a.json_dir,a.fasta,a.out,a.taxids_out,a.gbk_dir)
     n=idx["n"]
-    emit(f"  wrote {n} entries -> {a.out}")
     bact=[e for e in idx["entries"] if e["taxonomy"]["domain_of_life"]=="Bacteria"]
-    emit(f"  coverage: class {cov['class']}/{n} · size {cov['size']}/{n} · domain-counts {cov['modules']}/{n} · Bacteria {len(bact)}")
+    emit(f"  wrote {n} entries -> {a.out}",
+         f"  coverage: class {cov['class']}/{n} · size {cov['size']}/{n} · domain-counts {cov['modules']}/{n} · Bacteria {len(bact)}",
+         sep="\n")
     if a.bacterial_out:
         import copy; bidx=dict(idx); bidx["entries"]=bact; bidx["n"]=len(bact); bidx["filter"]="domain_of_life==Bacteria (GBK lineage)"
         atomic_dump_json(bidx, a.bacterial_out, indent=1); emit(f"  wrote {len(bact)} bacterial entries -> {a.bacterial_out}")

@@ -110,6 +110,7 @@ def _make_pkg(root, sid, tier, release, taxonomy, products, n_bgc=4):
     return pkg
 
 
+@pytest.mark.slow  # measured 4.7 s on 2026-09-21
 def test_real_two_strain_cohort_run_renders_without_raising(tmp_path):
     """End-to-end smoke check, mirroring the real repro: a genuine 2-strain cohort run through
     `cf.generate()` must complete and produce the F03 heatmap (the figure the real collision was

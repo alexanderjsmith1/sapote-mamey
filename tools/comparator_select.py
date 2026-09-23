@@ -254,9 +254,10 @@ def main(argv=None):
         q = res["query"]
         emit(f"\n=== {q} ===")
         if not res["picks"]:
-            emit("  no NAMED type in top hits (all sp./environmental)")
             tr = res["top_raw"]
-            emit(f"    top raw hit: {tr['genus']} {tr['sp']} ({tr['pident']:.2f}%, {tr['sacc']}) [UNNAMED]")
+            emit("  no NAMED type in top hits (all sp./environmental)",
+                 f"    top raw hit: {tr['genus']} {tr['sp']} ({tr['pident']:.2f}%, {tr['sacc']}) [UNNAMED]",
+                 sep="\n")
         for rank, n in enumerate(res["picks"], 1):
             emit(f"  #{rank} {n['genus']} {n['sp']}  "
                   f"(16S {n['pident']:.2f}% id, {n['cov']:.0f}% cov, aln {n['aln']}bp, {n['sacc']})")

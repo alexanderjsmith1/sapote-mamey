@@ -37,6 +37,7 @@ import glob
 import os
 import json
 import collections
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -63,8 +64,11 @@ def _strain_of(package_dir: str, domains_csv: str) -> str:
             for k in ("strain", "strain_id", "Strain"):
                 if m.get(k):
                     return str(m[k])
-        except Exception:
-            pass
+        except (OSError, UnicodeError, json.JSONDecodeError, AttributeError) as exc:
+            sys.stderr.write(
+                f"assembly_line: cannot read manifest strain identity; using the domains "
+                f"filename fallback ({type(exc).__name__}: {exc})\n"
+            )
     return os.path.basename(domains_csv).split("_domains.csv")[0]
 
 
@@ -183,8 +187,8 @@ def assembly_line_command(args) -> int:
     emit(f"assembly-line: {res.get('status')} | strain={res.get('strain','?')} | "
           f"BGCs with an assembly line={res.get('bgcs', 0)}")
     if res.get("status") == "ok":
-        emit(f"  class-consistent reads: {res['class_consistent']}")
-        emit("  ->", res["out"])
+        emit(f"  class-consistent reads: {res['class_consistent']}",
+             f"  -> {res['out']}", sep="\n")
     return 0
 
 

@@ -198,8 +198,9 @@ def audit(raw_path, pkg_path):
         emit(f"[{status:7s}] {name}: {kept}/{seen} conserved")
         for d in list(dropped)[:8]:
             emit(f"            lost: {d}")
-    emit(f"\nCategories checked with content: {ran}/{len(CHECKS)}")
-    emit("RESULT:", "FAIL — diagnostic evidence dropped" if failed else "PASS")
+    emit(f"\nCategories checked with content: {ran}/{len(CHECKS)}",
+         f"RESULT: {'FAIL — diagnostic evidence dropped' if failed else 'PASS'}",
+         sep="\n")
     return 1 if failed else 0
 
 

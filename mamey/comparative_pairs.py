@@ -28,6 +28,7 @@ requires sequence alignment and is never asserted here.
 from __future__ import annotations
 
 import json
+import sys
 from itertools import combinations
 from pathlib import Path
 from typing import Any
@@ -161,6 +162,14 @@ def load_bank(bank_path: str | Path) -> dict[str, Any]:
         d = json.loads(p.read_text(encoding="utf-8"))
         if isinstance(d, dict) and "bgcs" in d:
             return d
-    except Exception:
-        pass
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        sys.stderr.write(
+            f"comparative_pairs: cannot read {p}; using an empty comparison bank "
+            f"({type(exc).__name__}: {exc})\n"
+        )
+    else:
+        sys.stderr.write(
+            f"comparative_pairs: {p} is not a bank object with a bgcs field; "
+            "using an empty comparison bank\n"
+        )
     return {"strains": {}, "bgcs": []}

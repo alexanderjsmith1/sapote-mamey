@@ -83,8 +83,8 @@ def recent_errors(minutes=30):
                             throttle += 1
                         else:
                             transient += 1
-                except Exception:
-                    pass
+                except ValueError:
+                    continue
         except Exception:
             continue
     return throttle, transient

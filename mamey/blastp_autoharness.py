@@ -273,10 +273,27 @@ def init_state(package, strain: str, *, priority: str = "af_first", channel: str
                ingest_interval_s: int = DEFAULT_INGEST_INTERVAL_S,
                resume: bool = True) -> dict:
     """Load existing state (resume) or build fresh from the worklist. Interval overrides are
-    applied on resume too, so an operator can change the cadence without losing progress."""
+    applied on resume too, so an operator can change the cadence without losing progress.
+
+    The saved strain and evidence channel are immutable resume identities. Reusing an ``nr``
+    queue while constructing a ``clustered_nr`` transport would mix the requested database with
+    stale state and provenance, so a mismatch (or an unbound legacy state) fails closed before
+    the state is changed.
+    """
     if resume:
         st = load_state(package)
         if st is not None:
+            for field, requested in (("strain", strain), ("channel", channel)):
+                saved = st.get(field)
+                if not isinstance(saved, str) or not saved:
+                    raise ValueError(
+                        f"resume state has no bound {field}; start a new state explicitly"
+                    )
+                if saved != requested:
+                    raise ValueError(
+                        f"resume state {field} mismatch: saved {saved!r}, requested {requested!r}; "
+                        "refusing to mix scheduler identities"
+                    )
             st["submit_interval_s"] = submit_interval_s
             st["ingest_interval_s"] = ingest_interval_s
             return st
@@ -410,13 +427,27 @@ def _live_bo():
     return importlib.import_module("mamey.blastp_online")
 
 
-def default_submit_fn(*, channel: str = DEFAULT_CHANNEL, evalue: str = "1e-5"):
+def default_submit_fn(*, channel: str = DEFAULT_CHANNEL, evalue: str = "1e-5",
+                      confirm_public_upload: bool = False):
     """Real NCBI submit. Reuses blastp_online._submit_batch (which itself uses the anonymous
     `tool=SapoteMamey` Put — no email). Returns {ok, rid, reason}."""
+    if not confirm_public_upload:
+        raise ValueError("outbound disclosure requires explicit public sequence upload acknowledgement")
     database = _CHANNEL_DB.get(channel, "nr")
 
     def _submit(unit):
         batch = [tuple(p) for p in unit["batch"]]
+        import hashlib
+        digest = hashlib.sha256()
+        for name, sequence in batch:
+            digest.update(name.encode("utf-8", "replace") + b"\x00"
+                          + sequence.encode("utf-8", "replace") + b"\n")
+        emit("[auto-blastp] OUTBOUND SEQUENCE DISCLOSURE",
+             f"    endpoint {_live_bo().NCBI_URL}; database {database}",
+             f"    {len(batch)} proteins; {sum(len(sequence) for _, sequence in batch)} aa",
+             f"    sequence sha256 {digest.hexdigest()}",
+             "    classification NOT ESTABLISHED by this tool; explicit upload acknowledgement supplied.",
+             sep="\n")
         r = _live_bo()._submit_batch(batch, database=database, evalue=evalue)
         return {"ok": bool(r.ok and r.rid), "rid": r.rid or "", "reason": r.reason}
     return _submit
@@ -561,18 +592,22 @@ def run(package, strain: str, *, priority: str = "af_first", channel: str = DEFA
         submit_interval_s: int = DEFAULT_SUBMIT_INTERVAL_S,
         ingest_interval_s: int = DEFAULT_INGEST_INTERVAL_S, max_submits: int | None = None,
         submit_fn=None, poll_fn=None, ingest_fn=None, clock=time.time, sleep_fn=time.sleep,
-        poll_gap_s: float = 30.0, resume: bool = True, on_tick=None) -> dict:
+        poll_gap_s: float = 30.0, resume: bool = True, on_tick=None,
+        confirm_public_upload: bool = False) -> dict:
     """Drive the scheduler to completion (or until max_submits Puts have been made).
 
     Real runs leave submit_fn/poll_fn/ingest_fn None -> the NCBI-backed defaults are used. Tests
     pass mocks + a fake `clock`/`sleep_fn`. State is persisted after every tick, so the process can
     be killed and resumed at any point. Returns the final state.
     """
+    if submit_fn is None and not confirm_public_upload:
+        raise ValueError("outbound disclosure requires explicit public sequence upload acknowledgement")
     state = init_state(package, strain, priority=priority, channel=channel,
                        submit_interval_s=submit_interval_s, ingest_interval_s=ingest_interval_s,
                        resume=resume)
     save_state(package, state)
-    submit_fn = submit_fn or default_submit_fn(channel=channel)
+    submit_fn = submit_fn if submit_fn is not None else default_submit_fn(
+        channel=channel, confirm_public_upload=confirm_public_upload)
     poll_fn = poll_fn or default_poll_fn(package)
     ingest_fn = ingest_fn or default_ingest_fn(package, strain, channel=channel)
 
@@ -601,7 +636,8 @@ def run(package, strain: str, *, priority: str = "af_first", channel: str = DEFA
 def auto_blastp_command(args) -> int:
     """CLI: mamey auto-blastp — resumable priority BLASTp scheduler over the NCBI channel.
 
-    --dry-run plans the worklist + schedule with NO network. A live run submits ~1 query / 8 min
+    The default (and --dry-run) plans without network. Live use requires --submit and
+    --confirm-public-sequence-upload. A live run submits ~1 query / 8 min
     (adjustable), polls, and ingests hourly into the package's unmixed channel store. Fail-closed:
     nothing is ever fabricated; state persists to <package>/blastp_online/_autoharness_state.json.
     """
@@ -613,7 +649,13 @@ def auto_blastp_command(args) -> int:
     ii = int(getattr(args, "ingest_interval", DEFAULT_INGEST_INTERVAL_S) or DEFAULT_INGEST_INTERVAL_S)
     max_submits = getattr(args, "max_submits", None)
 
-    if getattr(args, "dry_run", False):
+    dry_run = getattr(args, "dry_run", False)
+    submit = getattr(args, "submit", False)
+    confirmed = getattr(args, "confirm_public_upload", False)
+    if submit and not dry_run and not confirmed:
+        emit("[auto-blastp] REFUSING: --submit requires --confirm-public-sequence-upload. Nothing sent.")
+        return 1
+    if dry_run or not submit:
         rep = dry_run_report(package, strain, priority=priority, channel=channel,
                              submit_interval_s=si, ingest_interval_s=ii)
         emit(f"[auto-blastp] DRY RUN — {rep['strain']} · channel {rep['channel']} · priority {rep['priority']}", f"[auto-blastp] worklist: {rep['n_bgcs']} BGC(s) need BLASTp ({rep['n_proteins']} proteins -> {rep['n_units']} submission unit(s))", f"[auto-blastp] schedule: 1 Put / {si}s (~{si / 60:.0f} min), ingest every {ii}s (~{ii / 60:.0f} min); est. submit span ~{rep['est_submit_span_min']:.0f} min", f'[auto-blastp] NO network contacted (dry run). NO email/personal id on any request. {CLAIM_SAFETY}', sep="\n")
@@ -626,6 +668,7 @@ def auto_blastp_command(args) -> int:
         return 0
 
     state = run(package, strain, priority=priority, channel=channel,
-                submit_interval_s=si, ingest_interval_s=ii, max_submits=max_submits)
+                submit_interval_s=si, ingest_interval_s=ii, max_submits=max_submits,
+                confirm_public_upload=confirmed)
     emit(status_line(state), f"[auto-blastp] done. state -> {state_path(package)}. {CLAIM_SAFETY}", sep="\n")
     return 0

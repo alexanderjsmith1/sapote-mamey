@@ -56,6 +56,19 @@ _HABITAT_ALIASES = {
 }
 
 
+# Keep host recognition in the same order as mamey_habitat_map.RULES.
+# The parity test binds this stdlib-only consumer to the producer vocabulary.
+# Environmental and bare-ant classification policies are unchanged.
+_HOST_RULES = [
+    ('bumblebee|bombus|honey ?bee|\\bapis\\b|\\bbee\\b|bee-assoc', 'bee/wasp'),
+    ('\\bwasp\\b|vespul|polist|\\bvespa\\b|hornet', 'bee/wasp'),
+    ('\\bmoss\\b|bryophyt|sphagnum|liverwort', 'bryophyte'),
+    ('termite|macroterm', 'termite'),
+    ('attine|acromyrmex|\\batta\\b|trachymyrmex|leaf.?cutter|fungus.?grow.*ant|attine ant', 'attine'),
+    ('clinical|homo sapiens|human|sputum|patient|bronch|wound', 'clinical'),
+]
+
+
 def category_of(value, is_mibig=False):
     """Map a source string / habitat / gbk basename to a canonical figure category.
 
@@ -69,8 +82,29 @@ def category_of(value, is_mibig=False):
     # accession-only / type-strain source strings (mirror mamey_habitat_map.classify)
     if re.search(r"gca_|nz_|type strain|reference", s) or not s:
         return TYPE_STRAIN
+    # v9.7.438: this was a bare substring test, `if key in s`. `_HABITAT_ALIASES` contains
+    # "ant" -> attine and "bee" -> bee/wasp, which are substrings of very ordinary words in an
+    # actinomycete corpus. Measured on the shipped rule: "plant root", "rhizosphere of a plant",
+    # "Antarctic soil", "Atlantic sediment", "plantation soil", "elephant dung" and "giant panda
+    # faeces" all returned ATTINE, while "beech forest soil" returned BEE/WASP and the real host
+    # "Apis mellifera" returned UNASSIGNED. On those inputs the rule was close to anti-correlated
+    # with the truth.
+    #
+    # Nothing in the current corpus is mislabelled by it -- a census of the 176-row consolidated
+    # metadata and the 71-row reference registry found every fallthrough assignment correct,
+    # because the deposited strings there are "ant-associated (...)", "moss-associated (...)" and
+    # the like. The defect is latent, and it bites on the next reference genome whose NCBI
+    # isolation source happens to say "plant".
+    #
+    # Match on TOKEN BOUNDARIES instead. "ant-associated" and "attine ant" still match; "plant"
+    # and "Antarctic" no longer do, because `ant` there is not a whole token. Isolation source is
+    # reported as deposited and never inferred, so `unassigned` is the correct answer whenever the
+    # deposited string does not actually name a known habitat.
+    for pattern, category in _HOST_RULES:
+        if re.search(pattern, s):
+            return category
     for key, cat in _HABITAT_ALIASES.items():
-        if key in s:
+        if re.search(rf"(?<![a-z]){re.escape(key)}(?![a-z])", s):
             return cat
     return "unassigned"
 

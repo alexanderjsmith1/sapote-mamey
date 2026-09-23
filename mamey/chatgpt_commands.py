@@ -324,13 +324,15 @@ def _claim_ceiling(row: dict, bgc: dict, n_genes: int = 0) -> str:
     try:
         kcb = float(bgc.get("kcb_cumulative") or row.get("KCB_score") or 0)
     except (TypeError, ValueError):
-        pass
+        sys.stderr.write(f"[chatgpt_commands] KCB score {bgc.get('kcb_cumulative') or row.get('KCB_score')!r} "
+                         "is not numeric; treating as 0.0 for the claim ceiling\n")
     arch = row.get("Arch") or bgc.get("architecture_confidence", "")
     kp = 0
     try:
         kp = int(bgc.get("kcb_protein_hits") or 0)
     except (TypeError, ValueError):
-        pass
+        sys.stderr.write(f"[chatgpt_commands] kcb_protein_hits {bgc.get('kcb_protein_hits')!r} "
+                         "is not an integer; treating as 0 for the claim ceiling\n")
     sr = row.get("Standing_rule", "")
     # CUT A (v9.7.223): reconcile with the ONE coverage rule (antismash_evidence.kcb_*). A product-
     # level ceiling needs a substantial protein-hit count (>=5, and >=~30% of the cluster when the

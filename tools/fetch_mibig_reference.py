@@ -28,6 +28,12 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import sys, os, re, tarfile, argparse, urllib.request
 from pathlib import Path
+try:  # v9.7.438 output-label containment (see mamey/path_safety.py)
+    from mamey.path_safety import contained_output_path
+except ImportError:  # bare-script run: bundle root is one level up
+    import os as _ps_os, sys as _ps_sys
+    _ps_sys.path.insert(0, _ps_os.path.dirname(_ps_os.path.dirname(_ps_os.path.abspath(__file__))))
+    from mamey.path_safety import contained_output_path
 
 _REPO = "https://dl.secondarymetabolites.org/mibig"
 _DEFAULT_CACHE = os.path.expanduser("~/.cache/mibig")
@@ -93,7 +99,9 @@ def _extract_from_tarball(tar_path, specs, version="4.0", outdir="refs", log=lam
                 missing.append(acc)
                 continue
             data = tf.extractfile(member).read()
-            out = os.path.join(outdir, f"{label}.gbk")
+            # v9.7.438: a label carrying `..` or a separator used to resolve outside outdir and
+            # overwrite an existing GBK while still reporting a normal write. Fail closed.
+            out = str(contained_output_path(outdir, label, ".gbk", field=f"label for {acc}"))
             Path(out).write_bytes(data)
             written.append((acc, label, out))
             log(f"{acc} → {out} ({len(data)} bytes)")

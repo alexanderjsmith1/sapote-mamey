@@ -55,7 +55,12 @@ def build_activity_decision_trees(leads_tsv: Path, receipt_root: Path, output_di
         if receipt.get("identity") != identity:
             raise ActivityDecisionTreeError("report receipt exact identity mismatch")
         admitted.append((row, display))
-    output_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        output_dir.mkdir(parents=True, exist_ok=False)
+    except FileExistsError as exc:
+        raise ActivityDecisionTreeError(
+            f"output directory already exists: {output_dir}; choose a new delivery directory"
+        ) from exc
     md = ["# Metabolomics and Activity Decision Trees", "", "These are bounded decision gates, not product or activity claims.", ""]
     decision_rows: list[dict[str, str]] = []
     for row, display in admitted:

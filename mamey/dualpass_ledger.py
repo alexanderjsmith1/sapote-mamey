@@ -230,8 +230,7 @@ def dualpass_command(args) -> int:
     res = merge(args.claude, args.codex, getattr(args, "out", None),
                 normalize=not getattr(args, "no_normalize", False),
                 miscall_file=getattr(args, "miscalls", None))
-    emit(f"dualpass: {res['claims']} claims | AGREE {res['AGREE']} DISAGREE {res['DISAGREE']} CLAUDE_ONLY {res['CLAUDE_ONLY']} CODEX_ONLY {res['CODEX_ONLY']}", f"  auto-resolved by rule: {res['auto_resolved']} | need discussion: {res['needs_discussion']}", sep="\n")
-    emit("  ->", res["out"])
+    emit(f"dualpass: {res['claims']} claims | AGREE {res['AGREE']} DISAGREE {res['DISAGREE']} CLAUDE_ONLY {res['CLAUDE_ONLY']} CODEX_ONLY {res['CODEX_ONLY']}", f"  auto-resolved by rule: {res['auto_resolved']} | need discussion: {res['needs_discussion']}", f"  -> {res['out']}", sep="\n")
     return 0
 
 

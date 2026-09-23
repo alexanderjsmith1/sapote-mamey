@@ -39,8 +39,15 @@ def high_risk(path: str) -> bool:
     return path in HIGH_RISK_EXACT or any(path.startswith(prefix) for prefix in HIGH_RISK_PREFIXES)
 
 
-def scan(root: Path) -> list[dict[str, str]]:
+def scan(root: Path, counts: dict | None = None) -> list[dict[str, str]]:
+    """Collect drift hits. `counts`, when given, receives the TARGET tally.
+
+    v9.7.438: the caller needs to know how many files were actually examined. Without it the
+    verdict `1 if hits else 0` cannot distinguish "43 high-risk files checked and clean" from
+    "zero files were in scope" — and both printed the same PASS line.
+    """
     hits: list[dict[str, str]] = []
+    n_considered = n_selected = 0
     if not root.is_dir():
         raise ValueError("audit root must be an existing directory")
     # Do not follow symlinked files or directories from supplied trees.
@@ -50,15 +57,20 @@ def scan(root: Path) -> list[dict[str, str]]:
             path = Path(base) / name
             if path.is_symlink() or path.suffix.lower() not in {".md", ".txt", ".json"}:
                 continue
+            n_considered += 1
             rel = path.relative_to(root).as_posix()
             if not high_risk(rel):
                 continue
+            n_selected += 1
             text = path.read_text(encoding="utf-8")
             for idx, line in enumerate(text.splitlines(), 1):
                 for rule, pattern in RULES.items():
                     if pattern.search(line):
                         hits.append({"path": rel, "line": str(idx), "rule": rule,
                                      "snippet": line.strip()[:240]})
+    if counts is not None:
+        counts["considered"] = n_considered
+        counts["selected"] = n_selected
     return hits
 
 
@@ -68,17 +80,34 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--json", action="store_true")
     ns = ap.parse_args(argv)
     root = Path(ns.root)
-    hits = scan(root)
+    counts: dict[str, int] = {}
+    hits = scan(root, counts)
+    n_sel = counts.get("selected", 0)
+    # v9.7.438: refuse rather than pass when nothing was in scope. A gate that reports PASS on an
+    # empty target set keeps reporting PASS after a refactor moves the files it watches, which is
+    # the failure that let a workspace doc sit four cuts stale while its check passed every cut.
+    if not hits and n_sel == 0:
+        msg = (f"CHATGPT_NEXTPATHS_DRIFT_AUDIT: REFUSED — 0 high-risk file(s) in scope under "
+               f"{root} ({counts.get('considered', 0)} .md/.txt/.json file(s) considered). "
+               f"Nothing was audited; this is not a PASS.")
+        if ns.json:
+            import json
+            msg = json.dumps({"status": "REFUSED", "reason": "no high-risk targets in scope",
+                              "considered": counts.get("considered", 0), "selected": 0}, indent=2)
+        emit(msg)
+        return 2
     if ns.json:
         import json
-        emit(json.dumps({"status": "PASS" if not hits else "FAIL", "high_risk_hits": hits}, indent=2))
+        emit(json.dumps({"status": "PASS" if not hits else "FAIL", "high_risk_hits": hits,
+                         "considered": counts.get("considered", 0), "selected": n_sel}, indent=2))
     else:
         if hits:
             emit("CHATGPT_NEXTPATHS_DRIFT_AUDIT: FAIL")
             for hit in hits:
                 emit(f"- {hit['path']}:{hit['line']}: {hit['snippet']}")
         else:
-            emit("CHATGPT_NEXTPATHS_DRIFT_AUDIT: PASS")
+            emit(f"CHATGPT_NEXTPATHS_DRIFT_AUDIT: PASS ({n_sel} high-risk file(s) checked, "
+                 f"{counts.get('considered', 0)} considered)")
     return 1 if hits else 0
 
 

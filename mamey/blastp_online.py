@@ -799,12 +799,47 @@ def blastp_round_command(args) -> int:
     if not getattr(args, "run", False):
         est = plan["n_batches"] * 2.5
         emit(f"[blastp-round] DRY RUN. Est. ~{est:.0f} min at ~2.5 min/batch. "
-              f"Re-run with --run to submit (fail-closed; never fabricates).")
+              f"Re-run with --run --confirm-public-sequence-upload to submit "
+              f"(fail-closed; never fabricates).")
         return 0
+
+    # The plan bounds how much sequence would leave the machine; this gate establishes whether
+    # sending that exact plan is authorized. Keep the digest algorithm identical to blastp-online
+    # so receipts from the sibling commands have the same meaning.
+    import hashlib as _hashlib
+    _digest = _hashlib.sha256()
+    _proteins = [protein for batch in plan["batches"] for protein in batch]
+    for _name, _sequence in _proteins:
+        _digest.update(
+            _name.encode("utf-8", "replace")
+            + b"\x00"
+            + (_sequence or "").encode("utf-8", "replace")
+            + b"\n"
+        )
+    _database = getattr(args, "database", "nr")
+    emit(
+        "[blastp-round] OUTBOUND SEQUENCE DISCLOSURE",
+        f"    endpoint        {NCBI_URL}",
+        f"    database        {_database}",
+        f"    records         {len(_proteins)} protein(s), "
+        f"{sum(len(sequence or '') for _, sequence in _proteins)} aa, "
+        f"in {len(plan['batches'])} batch(es)",
+        f"    sequence sha256 {_digest.hexdigest()}",
+        f"    source          {getattr(args, 'package', '?')}",
+        "    classification  NOT ESTABLISHED by this tool. Unpublished, embargoed, proprietary or",
+        "                    otherwise restricted sequence must not be submitted.",
+        sep="\n",
+    )
+    if not getattr(args, "confirm_public_upload", False):
+        emit(
+            "[blastp-round] REFUSING: --run requires --confirm-public-sequence-upload. "
+            "Nothing was sent."
+        )
+        return 1
 
     # --run: submit ALL batches, then poll together (async; ~Nx faster than serial). Fail-closed.
     all_hits, unavailable = [], False
-    results = run_batches_online(plan["batches"], database=getattr(args, "database", "nr"),
+    results = run_batches_online(plan["batches"], database=_database,
                                  evalue=getattr(args, "evalue", "1e-5"))
     for bi, res in enumerate(results, 1):
         if not res.ok:
@@ -1099,16 +1134,70 @@ def blastp_online_command(args) -> int:
     # `--batch-size 10` announced "<= 30/batch". A log that cannot tell you what was submitted made
     # the zero-alignment defect meaningfully harder to see.
     _widest = max((len(b) for b in batches), default=0)
-    emit(f"[blastp-online] {len(proteins)} proteins -> {len(batches)} batch(es) "
-          f"(requested {_bs}/batch, widest batch {_widest}, hard cap {MAX_BATCH}, giants solo). "
-          f"Channel is fail-closed + offline-safe.")
+    _preflight_lines = [
+        f"[blastp-online] {len(proteins)} proteins -> {len(batches)} batch(es) "
+        f"(requested {_bs}/batch, widest batch {_widest}, hard cap {MAX_BATCH}, giants solo). "
+        f"Channel is fail-closed + offline-safe.",
+    ]
     # Token-friendly route reminder: live polling is ~1-2 min/query. If NCBI BLAST results already
     # exist (hit-table CSV [+ Alignment XML]), `mamey ingest-blastp --hit-table … [--xml …] --package …`
     # writes the same <BGC>_online_blastp.csv panel with ZERO network. This live path is for when no
     # pre-run results exist.
-    emit("[blastp-online] note: to skip live polling, pre-run NCBI BLAST and ingest the hit-table "
-          "offline via `mamey ingest-blastp --hit-table <hits.csv> [--xml <aln.xml>] --package <pkg>` "
-          "(same panel, no network wait).")
+    _preflight_lines.append(
+        "[blastp-online] note: to skip live polling, pre-run NCBI BLAST and ingest the hit-table "
+        "offline via `mamey ingest-blastp --hit-table <hits.csv> [--xml <aln.xml>] --package <pkg>` "
+        "(same panel, no network wait)."
+    )
+
+    # ------------------------------------------------------------------ disclosure gate (v9.7.438)
+    # Everything above this line is local. Past it, the selected protein sequences leave the
+    # machine. The scoping and oversized-unscoped guards above bound HOW MUCH is sent; they do not
+    # establish that sending it is authorized. blastp-round has required an explicit flag since
+    # v9.7.180; this is the same gate for the sibling command.
+    #
+    # The digest is the receipt: it identifies exactly which sequences a later submission covered,
+    # so a plan can be compared against what was actually sent.
+    import hashlib as _hashlib
+    _digest = _hashlib.sha256()
+    for _name, _seq in proteins:
+        _digest.update(_name.encode("utf-8", "replace") + b"\x00"
+                       + (_seq or "").encode("utf-8", "replace") + b"\n")
+    _aa = sum(len(s or "") for _, s in proteins)
+    _db = getattr(args, "database", "nr")
+    _preflight_lines.extend([
+        "",
+        "[blastp-online] OUTBOUND SEQUENCE DISCLOSURE",
+        f"    endpoint        {NCBI_URL}",
+        f"    database        {_db}",
+        f"    records         {len(proteins)} protein(s), {_aa} aa, in {len(batches)} batch(es)",
+        f"    sequence sha256 {_digest.hexdigest()}",
+        f"    source          {getattr(args, 'package', '?')}",
+        f"    scope           {'BGC ' + str(_bgc) if _bgc else ('region ' + str(_region)) if _region else 'UNSCOPED'}",
+        "    classification  NOT ESTABLISHED by this tool. Unpublished, embargoed, proprietary or",
+        "                    otherwise restricted sequence must not be submitted.",
+    ])
+    _disclosure_gate_rc = None
+    if not getattr(args, "submit", False):
+        _preflight_lines.extend([
+            "",
+            "[blastp-online] PLAN ONLY — nothing was sent. Re-run with --submit "
+            "--confirm-public-sequence-upload to submit the records listed above.",
+        ])
+        _disclosure_gate_rc = 0
+    elif not getattr(args, "confirm_public_upload", False):
+        _preflight_lines.extend([
+            "",
+            "[blastp-online] REFUSING: --submit given without "
+            "--confirm-public-sequence-upload. The second acknowledgement is deliberate: it is "
+            "the point at which someone states these sequences may be disclosed to a third "
+            "party. Nothing was sent.",
+        ])
+        _disclosure_gate_rc = 1
+    else:
+        _preflight_lines.append("")
+    emit(*_preflight_lines, sep="\n")
+    if _disclosure_gate_rc is not None:
+        return _disclosure_gate_rc
 
     all_hits: list[BlastpHit] = []
     unavailable = False

@@ -20,7 +20,7 @@ Outputs: <strain>_comparators.tsv (ranked), <strain>_comparator_genera.tsv (genu
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-import argparse, csv, os, re, sys, glob, zipfile, tempfile, collections, datetime
+import argparse, csv, os, re, sys, glob, shlex, zipfile, tempfile, collections, datetime
 try:  # v9.7.410 CSV formula-cell guard (CLAUDE_v9.7.410_tools_csv_writer_coverage)
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ImportError:  # bare-script run: bundle root is one level up
@@ -31,6 +31,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 from mamey.ziputil import safe_extract_all
 
 HIT_RE = re.compile(r"^\s*(\d+)\.\s+(\S+)\s+(.*\S)\s*$")
+
+# v9.7.438: the hit accession is parsed as `\S+` and was then written into a generated bash script
+# — unquoted after `-id`, and again inside a double-quoted redirect target — which the script then
+# `chmod 0o755`d. `$(id)` contains no whitespace, so it satisfied `\S+`, was emitted literally, and
+# would be evaluated later when someone ran the documented fetch helper. Parsing looked harmless;
+# execution happened downstream in a step the operator trusts.
+#
+# Two independent controls now, because either alone can be got round:
+#   1. a grammar — a real nucleotide/MIBiG accession is letters, digits, `_`, `.`, `-`. Nothing
+#      that fails this is written to the script at all.
+#   2. shlex.quote on every interpolated value, so even a value that passes the grammar cannot
+#      change the shape of the command.
+ACCESSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{2,63}$")
 
 # v9.7.409 (CLAUDE_409_mibig_comparator_fixes): a MIBiG reference-cluster accession
 # (KnownClusterBlast), e.g. `BGC0001522`/`BGC0001522.5`. These are CHARACTERISED reference
@@ -160,10 +173,34 @@ def main():
         fh.write("# ClusterBlast accessions are nucleotide (NZ_*); map to assembly or efetch the nucleotide.\n")
         fh.write(f"# Top {len(top)} comparators by region-support for {args.strain}.\n\n")
         fh.write("set -euo pipefail\nOUT=comparator_genomes; mkdir -p \"$OUT\"\n\n")
+        rejected = []
         for r in top:
-            fh.write(f"# {r['organism']} — {len(r['regions'])} region(s), best rank {r['best_rank']}\n")
-            fh.write(f"efetch -db nuccore -id {r['accession']} -format fasta > \"$OUT/{r['accession']}.fna\" || echo 'FAILED {r['accession']}'\n")
+            acc = r["accession"]
+            if not ACCESSION_RE.match(acc):
+                rejected.append(acc)
+                continue
+            q = shlex.quote(acc)
+            # the organism description is free text from the hit list and is a COMMENT, but a
+            # newline in it would end the comment and start a command, so flatten it.
+            org = " ".join(str(r["organism"]).split())
+            fh.write(f"# {org} — {len(r['regions'])} region(s), best rank {r['best_rank']}\n")
+            # `$OUT` must still expand, so the redirect target stays double-quoted. That is safe
+            # here and only here: the grammar above has already excluded `$`, backtick, quote and
+            # newline from `acc`, so nothing in it can change the command's shape.
+            fh.write(f'efetch -db nuccore -id {q} -format fasta > "$OUT/{acc}.fna" '
+                     f'|| echo {shlex.quote("FAILED " + acc)}\n')
+        if rejected:
+            fh.write("\n# REFUSED — these hit accessions did not match the accession grammar and\n"
+                     "# were NOT written as commands. Inspect the source hit list before trusting it:\n")
+            for acc in rejected:
+                fh.write("#   " + repr(acc) + "\n")
     os.chmod(fetch, 0o755)
+    if rejected:
+        sys.stderr.write(
+            f"[comparator-discovery] REFUSED {len(rejected)} hit accession(s) that did not match "
+            f"the accession grammar; they are listed as comments in {os.path.basename(fetch)} and "
+            f"were not emitted as commands.\n"
+        )
 
     readme = os.path.join(args.out, f"README_comparator_discovery_{args.strain}.md")
     now = datetime.date.today().isoformat()
@@ -189,8 +226,9 @@ def main():
                  "2. skani/ANIm the strain vs the downloaded comparators.\n"
                  "3. Then a candidate-novel call is meaningful (reliable AF required).\n")
     emit(f"[comparator_discovery] {args.strain}: {n_files} hit-lists -> {len(acc)} genome comparators / "
-         f"{len(genera)} genera; {len(mibig)} MIBiG reference clusters (held separately, not fetched)")
-    emit(f'[comparator_discovery] top genera: ' + (', '.join((f'{g}({n})' for g, n in genera.most_common(6))) or '(none)'), f'[comparator_discovery] -> {comp}', sep="\n")
+         f"{len(genera)} genera; {len(mibig)} MIBiG reference clusters (held separately, not fetched)",
+         f'[comparator_discovery] top genera: ' + (', '.join((f'{g}({n})' for g, n in genera.most_common(6))) or '(none)'),
+         f'[comparator_discovery] -> {comp}', sep="\n")
     if tmp:
         import shutil; shutil.rmtree(tmp, ignore_errors=True)
     return 0

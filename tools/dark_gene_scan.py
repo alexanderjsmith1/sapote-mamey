@@ -201,8 +201,8 @@ def _parse_kcb_hits(zip_path: str, ctg_node: str, region_num: int) -> dict:
                     if l.startswith('Cumulative BLAST score:'):
                         try:
                             score = float(l.split(':')[1].strip())
-                        except Exception:
-                            pass
+                        except (ValueError, IndexError) as exc:
+                            import sys; sys.stderr.write(f"[dark_gene_scan] score parse failed: {exc}\n")
                     parts = l.split('\t')
                     if len(parts) >= 3 and re.match(r'ctg\S+', parts[0]):
                         try:

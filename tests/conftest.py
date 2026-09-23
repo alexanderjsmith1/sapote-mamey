@@ -5,9 +5,19 @@ tests, which dominate wall time (matplotlib renders measured at ~5 s each on v9.
 test_cohort_figures ~5.5 s, test_bee_wasp_master_figures ~5.2 s). CI's tag/dispatch job runs the
 full suite with --run-slow --run-network.
 
-Slow classification (either of):
-  * an explicit @pytest.mark.slow / module-level `pytestmark = pytest.mark.slow`, or
-  * the test module imports matplotlib (figure tests are the slow ones).
+Slow classification (one way only):
+  * an explicit @pytest.mark.slow / module-level `pytestmark = pytest.mark.slow`.
+
+The matplotlib-import probe was RETIRED in v9.7.438. It was the filename hint's mistake wearing a
+different coat: cost stated by a source pattern instead of by measurement. Measured 2026-09-21 on
+the 35 files it captured without an explicit mark: 260 tests, 189.5 s wall. Four tests account for
+128 s of that -- 97.4 s for test_locus_map_v9790::test_in_run_produces_locus_maps alone. Those four
+now carry the explicit mark. The remaining 255 run in 66 s (measured after this change) and had
+been sitting out EVERY default run. Among them were all 9 tests for the v9.7.437 matrix geometry
+cap, which therefore shipped unexercised.
+
+So the trade this makes explicit: about +66 s on a default `pytest -q`, in exchange for 255 tests
+that guard the figure stack actually running. State slowness by measurement, not by import.
 
 The filename hint was RETIRED in v9.7.418. It was a name-based guess at cost and it over-captured
 in both directions: v9.7.416 fixed one half (a hint word appearing in a PARAMETRISATION value
@@ -58,12 +68,10 @@ def hermetic_env(**extra: str) -> dict[str, str]:
     env = {"PYTHONDONTWRITEBYTECODE": "1"}
     env.update({k: str(v) for k, v in extra.items()})
     return env
-import re
-
 import pytest
 
-# _SLOW_FILE_HINTS retired in v9.7.418 -- superseded by explicit pytest.mark.slow (measured).
-_matplotlib_cache: dict[str, bool] = {}
+# _SLOW_FILE_HINTS retired in v9.7.418, the matplotlib-import probe in v9.7.438 --
+# both superseded by explicit pytest.mark.slow, which states cost by measurement.
 
 
 @pytest.fixture(scope="session")
@@ -120,21 +128,6 @@ def pytest_addoption(parser):
                      help="include tests marked @pytest.mark.network (need live network)")
 
 
-def _module_imports_matplotlib(item) -> bool:
-    mod = getattr(item, "module", None)
-    path = getattr(mod, "__file__", None)
-    if not path:
-        return False
-    if path not in _matplotlib_cache:
-        try:
-            src = open(path).read()
-        except OSError:
-            _matplotlib_cache[path] = False
-        else:
-            _matplotlib_cache[path] = bool(re.search(r"^\s*(import matplotlib|from matplotlib)", src, re.M))
-    return _matplotlib_cache[path]
-
-
 def pytest_collection_modifyitems(config, items):
     run_slow = config.getoption("--run-slow")
     run_network = config.getoption("--run-network")
@@ -149,13 +142,11 @@ def pytest_collection_modifyitems(config, items):
         # v9.7.418: the filename hint is gone. It was a NAME-based guess at cost and it
         # over-captured in both directions -- .416 fixed one half (parametrisation values
         # matching a hint word); this removes the other half (fast files whose FILENAME
-        # merely contains one). Slowness is now stated two ways, both behavioural:
-        # an explicit `pytestmark = pytest.mark.slow` on files measured >=2s, and the
-        # matplotlib-import probe as the automatic backstop for anything new.
-        is_slow = (
-            "slow" in item.keywords
-            or _module_imports_matplotlib(item)
-        )
+        # merely contains one). v9.7.438 removed the last inferred signal, the
+        # matplotlib-import probe: it hid 255 cheap tests to avoid four expensive ones.
+        # Slowness is now stated exactly one way, by an explicit mark on a test or
+        # module MEASURED at >=2s. A new slow test must mark itself; nothing infers it.
+        is_slow = "slow" in item.keywords
         if is_slow:
             item.add_marker(pytest.mark.slow)
             if not run_slow:

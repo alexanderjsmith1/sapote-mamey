@@ -21,7 +21,7 @@ from typing import Any, Sequence
 
 from .figure_set_registry import GLOBAL_CLAIM_CEILING, PROFILE, build_registry
 from .figure_set_renderer import (
-    Chart, HOST_ORDER, _host, _load, _median, _pct, _quantile, _sha256,
+    Chart, HOST_ORDER, _host, _load, _median_or_none, _pct, _quantile, _sha256,
     _validate_outputs, _write_rows, render_svg,
 )
 
@@ -104,9 +104,9 @@ def build_charts_3(payload: dict[str, Any], all_ids: Sequence[str], governed: Se
     strain_mibig = []
     for sid in governed:
         rows = [row for row in g_mibig if row["strain"] == sid]
-        strain_mibig.append({"strain": sid, "genes_with_hits": len(rows), "median_distinct_accessions": _median(_n(row["distinct_mibig_accessions"]) for row in rows), "host": _host(strains[sid])})
+        strain_mibig.append({"strain": sid, "genes_with_hits": len(rows), "median_distinct_accessions": _median_or_none(_n(row["distinct_mibig_accessions"]) for row in rows), "host": _host(strains[sid])})
     charts.append(Chart("FS098", "scatter", "Per-gene MIBiG convergence — every governed strain",
-                        "Every governed strain is labelled; strains with no reported per-gene hits remain at observed zero", strain_mibig,
+                        "Every governed strain is labelled; no reported hit genes means no median, so no quantitative point is drawn", strain_mibig,
                         {"x": "genes_with_hits", "y": "median_distinct_accessions", "label": "strain", "x_label": "Query genes with MIBiG hits", "y_label": "Median distinct MIBiG accessions per hit gene", "x_min": 0, "y_min": 0}))
 
     class_conv_counts: Counter[tuple[str, str]] = Counter()
@@ -175,7 +175,7 @@ def build_charts_3(payload: dict[str, Any], all_ids: Sequence[str], governed: Se
     for sid in governed:
         rows = [row for row in g_bgcs if row["strain"] == sid and row["kcb_state"] == "POPULATED"]
         scores = [_n(row["kcb_score"]) for row in rows if str(row["kcb_score"]).strip()]
-        strain_kcb.append({"strain": sid, "anchored_bgcs": len(rows), "median_kcb_score": _median(scores), "host": _host(strains[sid])})
+        strain_kcb.append({"strain": sid, "anchored_bgcs": len(rows), "median_kcb_score": _median_or_none(scores), "host": _host(strains[sid])})
     charts.append(Chart("FS106", "scatter", "KnownClusterBlast anchors — every governed strain",
                         "Every governed strain is labelled; KCB score is a source-derived similarity measure, not product identity", strain_kcb,
                         {"x": "anchored_bgcs", "y": "median_kcb_score", "label": "strain", "x_label": "BGC rows with KCB anchor", "y_label": "Median source KCB score", "x_min": 0, "y_min": 0}))
@@ -239,7 +239,7 @@ def build_charts_3(payload: dict[str, Any], all_ids: Sequence[str], governed: Se
     strain_modules = []
     for sid in governed:
         rows = [row for row in g_modules if row["strain"] == sid and _n(row["module_rows"]) > 0]
-        strain_modules.append({"strain": sid, "bgcs_with_module_evidence": len(rows), "median_distinct_domains": _median(_n(row["distinct_domains"]) for row in rows), "host": _host(strains[sid])})
+        strain_modules.append({"strain": sid, "bgcs_with_module_evidence": len(rows), "median_distinct_domains": _median_or_none(_n(row["distinct_domains"]) for row in rows), "host": _host(strains[sid])})
     charts.append(Chart("FS114", "scatter", "NRPS/PKS module architecture — every governed strain",
                         "Every governed strain is labelled; module evidence is annotation-derived capacity only", strain_modules,
                         {"x": "bgcs_with_module_evidence", "y": "median_distinct_domains", "label": "strain", "x_label": "BGCs with module evidence", "y_label": "Median distinct domains per evidenced BGC", "x_min": 0, "y_min": 0}))
@@ -257,7 +257,7 @@ def build_charts_3(payload: dict[str, Any], all_ids: Sequence[str], governed: Se
     module_boundary = []
     for boundary in ("Edge", "Full-contig", "Interior", "MISSING"):
         values = [_n(row["distinct_domains"]) for row in g_modules if row["boundary"] == boundary]
-        if values: module_boundary.append({"boundary": boundary, "q1": _quantile(values, .25), "median": _median(values), "q3": _quantile(values, .75), "bgcs": len(values)})
+        if values: module_boundary.append({"boundary": boundary, "q1": _quantile(values, .25) if values else None, "median": _median_or_none(values), "q3": _quantile(values, .75) if values else None, "bgcs": len(values)})
     charts.append(Chart("FS116", "dot_range", "NRPS/PKS module complexity by boundary context",
                         "Median and interquartile range of distinct source-reported domains per evidenced BGC", module_boundary,
                         {"category": "boundary", "low": "q1", "mid": "median", "high": "q3", "x_label": "Distinct domains per evidenced BGC"}))
@@ -265,7 +265,7 @@ def build_charts_3(payload: dict[str, Any], all_ids: Sequence[str], governed: Se
     module_host = []
     for group in HOST_ORDER:
         values = [_n(row["distinct_domains"]) for row in g_modules if row["host_group"] == group]
-        module_host.append({"host": group, "q1": _quantile(values, .25), "median": _median(values), "q3": _quantile(values, .75), "bgcs": len(values)})
+        module_host.append({"host": group, "q1": _quantile(values, .25) if values else None, "median": _median_or_none(values), "q3": _quantile(values, .75) if values else None, "bgcs": len(values)})
     charts.append(Chart("FS117", "dot_range", "NRPS/PKS module complexity by host cohort",
                         "Module-domain complexity is descriptive annotation context; no host causality is inferred", module_host,
                         {"category": "host", "low": "q1", "mid": "median", "high": "q3", "x_label": "Distinct domains per evidenced BGC"}))

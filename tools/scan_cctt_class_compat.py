@@ -89,8 +89,7 @@ def main():
         return 2
     mans = _manifests(sys.argv[1:])
     n_strain, fired, uncorr, examples = scan(mans)
-    emit(f"# CCTT-vs-class compatibility scan — {n_strain} strain(s), {len(mans)} manifest(s)\n", f"{'trigger':34s} {'fired':>6s} {'uncorrob.':>10s}  rate", sep="\n")
-    emit("-" * 64)
+    emit(f"# CCTT-vs-class compatibility scan — {n_strain} strain(s), {len(mans)} manifest(s)\n", f"{'trigger':34s} {'fired':>6s} {'uncorrob.':>10s}  rate", "-" * 64, sep="\n")
     total_f = total_u = 0
     for t in sorted(fired, key=lambda x: -uncorr.get(x, 0)):
         f, u = fired[t], uncorr.get(t, 0)
@@ -98,9 +97,10 @@ def main():
         flag = "  <-- class-defining" if t in TRIGGER_COMPAT else "  (promiscuous/ungated)"
         rate = f"{(100*u/f):.0f}%" if f else "-"
         emit(f"{t:34s} {f:6d} {u:10d}  {rate:>4s}{flag if u else ''}")
-    emit("-" * 64)
     total_rate = f"{(100*total_u/total_f):.0f}%" if total_f else "-"
-    emit(f"{'TOTAL (class-defining only)':34s} {total_f:6d} {total_u:10d}  {total_rate}")
+    emit("-" * 64,
+         f"{'TOTAL (class-defining only)':34s} {total_f:6d} {total_u:10d}  {total_rate}",
+         sep="\n")
     if total_u:
         emit("\n## Context-uncorroborated firings (candidate false positives):")
         for t in sorted(examples):

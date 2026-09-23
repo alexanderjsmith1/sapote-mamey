@@ -79,8 +79,9 @@ def _load_strain_meta(explicit):
                 hr  = (row.get("host_raw") or row.get("host_common") or "").strip()
                 meta[tid] = {"host": _host_class(hr),
                              "acc": ("" if acc.upper() in ("", "N/A") else acc)}
-    except Exception:
-        pass
+    except Exception as exc:
+        sys.stderr.write(f"[placement_figure] could not read tip metadata from {path} "
+                         f"({type(exc).__name__}: {exc}); labels fall back to bare tip ids\n")
     return meta
 
 def _dedupe_genus(p):
@@ -246,8 +247,9 @@ def main():
     except Exception:
         try:
             t.root_at_midpoint()
-        except Exception:
-            pass
+        except Exception as exc:
+            sys.stderr.write(f"[placement_figure] outgroup and midpoint rooting both failed "
+                             f"({type(exc).__name__}: {exc}); the tree is drawn unrooted\n")
     t.ladderize()
 
     def lab(x):

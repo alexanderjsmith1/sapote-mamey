@@ -1,5 +1,30 @@
 # Mamey Engine Lineage
 
+## Engine 1.9.169 — first bundle: v9.7.439
+
+Output admission now validates primary artifacts and JSON sidecars before writing and refuses
+activity-tree collisions. Figure and monitoring paths preserve missing tranche summaries,
+undefined denominators, distinct small-range ticks, coincident paired values, quiet BLASTp lanes,
+unique dense-series colors, grouped hourly bars, and runtime-derived timezone labels. Automatic
+BLASTp submission and resume paths bind explicit public-sequence-upload consent, count/digest
+disclosure, strain, and channel. Patch custody reports direction and separates malformed diffs from
+strict-patch-compatible `git apply` rejection. Scoring formulas, biological interpretation, and
+the bare-ant/environmental classification policy are unchanged; output and monitoring behavior can
+differ for fixed inputs, so affected artifacts should be regenerated before version-naive
+comparison. Mechanical validation does not establish biological or release acceptance.
+
+## Engine 1.9.168 — first bundle: v9.7.438
+
+The antiSMASH region parser now accepts GenBank partial-position markers on `Orig. start` and
+`Orig. end`. For linear inputs carrying those markers, a fixed archive can produce a different
+boundary classification and `interior_pct`; affected pre-1.9.168 packages should be regenerated
+before version-naive comparison. The interactive figure-set renderer also omits absent FS042 and
+FS045 measurements instead of encoding them as observed zero, and online BLASTp now plans locally
+unless the operator supplies both submission and public-sequence-upload acknowledgements. Scoring
+formulas and thresholds are unchanged. Report, handoff, deterministic-jitter, path-containment,
+metadata-label, and assurance-gate changes are described in the v9.7.438 changelog. Mechanical
+validation does not establish biological interpretation or scientific acceptance.
+
 ## Engine 1.9.167 — candidate first bundle: v9.7.433 (unsealed)
 
 This candidate corrects cofactor-class markers (TIGR03962 mycofactocin MftC; TIGR02109

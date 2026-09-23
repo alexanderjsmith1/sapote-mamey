@@ -99,7 +99,7 @@ NOVELTY_CONTRADICTION)`. **If you do not see that line, the run did nothing for 
 ### If you must use EBI (prepared panel, no nr)
 
 ```bash
-python3 -m mamey.cli blastp-ebi --fasta <panel>.faa --state <BGC>.state.json --submit  --hits 10 --submit-gap 6
+python3 -m mamey.cli blastp-ebi --fasta <panel>.faa --state <BGC>.state.json --submit --confirm-public-sequence-upload --hits 10 --submit-gap 6
 python3 -m mamey.cli blastp-ebi --fasta <panel>.faa --state <BGC>.state.json --harvest --poll-budget 600
 python3 -m mamey.cli blastp-ebi --fasta <panel>.faa --state <BGC>.state.json --to-outfmt10 <BGC>_hits.csv
 ```

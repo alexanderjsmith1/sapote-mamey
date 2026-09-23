@@ -73,3 +73,36 @@ def test_no_package_no_crosscheck():
     ok, errors, warnings = guide_quality_gate(_guide(n=10))
     assert ok is True
     assert not any("cross-check" in w or "omission" in w for w in warnings)
+
+
+def test_missing_part_is_an_error(tmp_path):
+    """The Parts-completeness branch, pinned. Nothing in this file reached it before.
+
+    ``_guide()`` always sets ``parts_present`` to the full five, so every other test here varies
+    gene_count and leaves the Parts check on its passing path. Measured with the mutation-probe:
+    replacing the Parts condition with ``if False:`` left this whole file green while a guide
+    missing Part 3 passed the structural gate.
+    """
+    _write_sidecar(tmp_path, "BGC005", 10, 0)
+    g = _guide(n=10)
+    g["parts_present"] = ["P1", "P2", "P4", "P5"]          # P3 absent
+    ok, errors, _ = guide_quality_gate(g, package=tmp_path)
+    assert ok is False
+    assert any("missing Parts" in e and "P3" in e for e in errors), errors
+
+
+def test_technical_audience_may_omit_p2_but_not_the_rest(tmp_path):
+    """The documented exemption stays an exemption, and does not become a blanket pass."""
+    _write_sidecar(tmp_path, "BGC005", 10, 0)
+    ok_g = _guide(n=10)
+    ok_g["audience"] = "technical"
+    ok_g["parts_present"] = ["P1", "P3", "P4", "P5"]       # P2 exempt for this audience
+    ok, errors, _ = guide_quality_gate(ok_g, package=tmp_path)
+    assert ok is True, errors
+
+    bad = _guide(n=10)
+    bad["audience"] = "technical"
+    bad["parts_present"] = ["P1", "P3", "P5"]              # P4 still required
+    ok2, errors2, _ = guide_quality_gate(bad, package=tmp_path)
+    assert ok2 is False
+    assert any("missing Parts" in e and "P4" in e for e in errors2), errors2

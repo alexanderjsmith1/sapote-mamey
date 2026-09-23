@@ -49,6 +49,7 @@ CODE_COLLISION = "CROSS_CARD_DROP_COLLISION"
 CODE_DIFF_GIT_INCOMPAT = "DIFF_GIT_APPLY_INCOMPATIBLE"   # git apply rejects the format; patch -p1 still applies
 CODE_DIFF_PATCH_INCOMPAT = "DIFF_PATCH_APPLY_INCOMPATIBLE"  # git applies, but strict patch -p1 rejects
 CODE_DIFF_MALFORMED = "DIFF_MALFORMED"                    # neither git apply nor patch can apply it to --base
+CODE_DIFF_ALREADY_APPLIED = "DIFF_ALREADY_APPLIED"
 CODE_DIFF_NEEDS_ORDER = "DIFF_DOES_NOT_APPLY_TO_PRISTINE"  # advisory: likely needs an apply-order
 
 # Compiled/binary artefacts are never a meaningful line-diff target: decoding them with
@@ -148,6 +149,12 @@ def _diff_apply_status(diff: Path, base: Path) -> tuple[str, str, str]:
 
     Returns (code, severity, note). Advisory only; never raises on a bad patch.
     """
+    # Bind caller-relative paths before either subprocess changes its cwd to
+    # the base tree.  Otherwise git receives a queue path relative to `base`,
+    # while patch reads that same path relative to the caller, and the two
+    # tools appear to disagree for a file git never opened.
+    diff = diff.resolve()
+    base = base.resolve()
     if not shutil.which("git") or not shutil.which("patch"):
         return CODE_DIFF, "OK", "apply-check skipped: git or patch not on PATH"
     try:
@@ -155,7 +162,7 @@ def _diff_apply_status(diff: Path, base: Path) -> tuple[str, str, str]:
                            capture_output=True, text=True, timeout=60)
         with diff.open("rb") as fh:
             pr = subprocess.run(
-                ["patch", "-p1", "--dry-run", "--batch", "--fuzz=0", "-V", "none"],
+                ["patch", "-p1", "--dry-run", "--batch", "--forward", "--fuzz=0", "-V", "none"],
                 cwd=base,
                 stdin=fh,
                 capture_output=True,
@@ -165,15 +172,32 @@ def _diff_apply_status(diff: Path, base: Path) -> tuple[str, str, str]:
         return CODE_DIFF, "OK", f"apply-check skipped: {exc}"
     git_ok, patch_ok = g.returncode == 0, pr.returncode == 0
     corrupt = "corrupt patch" in (g.stderr or "")
+    if not git_ok and not patch_ok and not corrupt:
+        # A dry-run must never silently choose reverse. Check reverse explicitly
+        # only to identify the already-applied state, without changing the base.
+        try:
+            with diff.open("rb") as fh:
+                reverse = subprocess.run(
+                    ["patch", "-p1", "--dry-run", "--batch", "--reverse", "--fuzz=0", "-V", "none"],
+                    cwd=base, stdin=fh, capture_output=True, timeout=60,
+                )
+            if reverse.returncode == 0:
+                return (CODE_DIFF_ALREADY_APPLIED, "WARN",
+                        "forward application fails but strict reverse dry-run succeeds; "
+                        "the patch is already applied to this base; do not apply it again")
+        except (OSError, subprocess.SubprocessError) as exc:
+            return (CODE_DIFF_NEEDS_ORDER, "INFO",
+                    f"forward application failed; reverse check unavailable: {exc}")
     if git_ok and patch_ok:
         return CODE_DIFF, "OK", ""
     if git_ok and not patch_ok:
         return (CODE_DIFF_PATCH_INCOMPAT, "WARN",
                 "git apply accepts this patch but strict `patch -p1 --fuzz=0` rejects it; "
                 "the two supported apply tools disagree")
-    if corrupt and patch_ok:
+    if not git_ok and patch_ok:
+        git_reason = (g.stderr or "git apply rejected the patch").strip().splitlines()[0]
         return (CODE_DIFF_GIT_INCOMPAT, "WARN",
-                "git apply rejects this patch's format ('corrupt patch') but `patch -p1` applies; "
+                f"git apply rejects this patch ({git_reason}) but `patch -p1` applies; "
                 "assemble with patch -p1 or regenerate the diff git-apply-clean")
     if corrupt and not patch_ok:
         return (CODE_DIFF_MALFORMED, "WARN",

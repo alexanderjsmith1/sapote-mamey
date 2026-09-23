@@ -1,11 +1,11 @@
-# Sapote-Mamey Bundle Release Manifest — v9.7.437 CODE archive
+# Sapote-Mamey Bundle Release Manifest — v9.7.440 CODE archive
 
-**Cut/build date:** 2026-09-21
+**Cut/build date:** 2026-09-22
 **Artifact status:** validated CODE archive  
-**Bundle version:** `sapote-mamey-v9.7.437`  
-**Authoritative bundle version:** `9.7.437`  
-**Engine:** Mamey v1.9.167  
-**Build stamp:** 20260921v97437a  
+**Bundle version:** `sapote-mamey-v9.7.440`  
+**Authoritative bundle version:** `9.7.440`  
+**Engine:** Mamey v1.9.169  
+**Build stamp:** 20260922v97440a  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
@@ -21,9 +21,9 @@ No additional release tiers are included in this CODE archive.
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (11714 passed, 239 skipped; receipt-bound log) |
+| Full pytest suite | PASS (12004 passed, 239 skipped; receipt-bound log) |
 | Focused verification | 40 passed / 2 skipped for identity, version, and inventory; 12 passed for health, BLASTp monitoring, and Figure Factory |
-| Strict repository health | PASS (1324 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
+| Strict repository health | PASS (1306 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
 | Version synchronization | PASS |
 | Generated module, tool, command, and deliverable inventories | PASS |
 | R source parsing | PASS (17 bundled R sources parsed with Rscript); live rendering and external-tool pilots remain separate |
@@ -48,13 +48,11 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20260921v97437a`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20260922v97440a`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
-| `sync_version --check` | PASS (engine 1.9.167, bundle 9.7.437) |
+| `sync_version --check` | PASS (engine 1.9.169, bundle 9.7.440) |
 
-All tracked version anchors at v9.7.437 / Mamey 1.9.167.
-`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.437.
-
-*Generated: 2026-09-21 | Sapote-Mamey Bundle v9.7.437 | NOT_FOR_PUBLIC_RELEASE*
+All tracked version anchors at v9.7.440 / Mamey 1.9.169.
+`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.440.

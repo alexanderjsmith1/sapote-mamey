@@ -25,6 +25,7 @@ import glob
 import json
 import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -192,8 +193,9 @@ def _clusterblast_from_per_gene_csvs(pkg: Path) -> tuple[dict, dict]:
                                   "compound": r.get("mibig_compound", ""),
                                   "annotation": r.get("reference_type", "") or "",
                                   "genecluster": r.get("mibig_accession", ""), "_rank": rank}
-        except OSError:
-            pass
+        except OSError as exc:
+            sys.stderr.write(f"[roster_v2] could not read the MIBiG per-gene ClusterBlast CSV "
+                             f"({type(exc).__name__}: {exc}); its rows are absent from the roster\n")
     cb_csv = next(pkg.glob("*_4A2_ClusterBlast_per_gene.csv"), None)
     if cb_csv and cb_csv.is_file():
         try:
@@ -209,8 +211,9 @@ def _clusterblast_from_per_gene_csvs(pkg: Path) -> tuple[dict, dict]:
                                     "subject_gene": r.get("subject_gene", ""),
                                     "compound": "", "annotation": r.get("reference_source", "") or "",
                                     "genecluster": r.get("reference", ""), "_rank": rank}
-        except OSError:
-            pass
+        except OSError as exc:
+            sys.stderr.write(f"[roster_v2] could not read the general per-gene ClusterBlast CSV "
+                             f"({type(exc).__name__}: {exc}); its rows are absent from the roster\n")
     for bucket in (mibig, general):
         for v in bucket.values():
             v.pop("_rank", None)

@@ -20,12 +20,49 @@ result in another by relabelling it.
 
 ```bash
 python mamey_run.py ingest-blastp --help
+python mamey_run.py ingest-blastp-trove --help
+python tools/ingest_blastp_rollups.py --help
 python mamey_run.py blastp-online --help
 python mamey_run.py blastp-round --help
 ```
 
+## Ingesting existing results: choose the destination
+
+| Command | Accepted input | Destination |
+|---|---|---|
+| `tools/ingest_blastp_rollups.py` | Dated per-strain rollup CSVs and supported single-protein ClusteredNR top-10 CSVs | An existing BLASTp SQLite evidence reservoir |
+| `mamey_run.py ingest-blastp-trove` | Per-BGC directories containing the channel's supported per-gene CSV filenames | One selected package's channel-tagged BLASTp overlay |
+| `mamey_run.py ingest-blastp` | NCBI HitTable CSV, with optional alignment XML | Master-workbook `B5_BLASTp_Hits` sheet |
+
+For completed crawl rollups, inspect a dry run against explicit source and database paths:
+
+```bash
+python tools/ingest_blastp_rollups.py --root <source-root> --db <existing-hits.db>
+python tools/ingest_blastp_rollups.py --root <source-root> --db <existing-hits.db> \
+  --execute --source-workspace operator-import
+```
+
+Run the second command only when the displayed sources and destination are the intended ones and
+the ingest is authorized. The tool rescans eligible source files and inserts new hit keys atomically;
+the key includes strain, channel, gene, hit rank and subject accession, preserving multiple hits per
+gene while keeping repeated imports idempotent. Previously stored rows are not overwritten. A source
+path already present in the store does not prove that all its hit ranks were ingested. The tool
+does not create a missing database. Use completed, stable CSVs. Later completed results require
+another dry run; do not assume that a file still being written is a complete evidence source.
+Reservoir insertion alone does not establish exact-sequence or complete-locus admission for a claim.
+
+The package-overlay command accepts `<trove>/<STRAIN>/<BGC...>/` or a single-strain root with
+`BGC...` directories. `--rekey-by-locus` resolves row aliases through the selected package's CDS
+table; it does not make arbitrary gap-panel directory names discoverable. If no supported source
+files are found, the command reports `NO_SOURCES_DISCOVERED`, the directories scanned, a bounded
+sample of skipped names, and accepted filename patterns. It writes no new overlay, ledger,
+quarantine, or receipt for that empty discovery. Correct the layout or command and retry without
+deleting immutable receipts. A discovered source with zero admitted rows still retains its normal
+receipt and quarantine evidence. No discovered source is not a verified no-hit result.
+
 `ingest-blastp` accepts existing hit-table evidence; consult its help for the package and optional
-alignment XML arguments. `blastp-round` supports phased planning; `--run` enables submission.
+alignment XML arguments. `blastp-round` supports phased planning; submission requires both `--run`
+and `--confirm-public-sequence-upload` after reviewing the disclosed sequence count and digest.
 The following live command contacts NCBI when executed, so use it only within the user's authorized
 external-search scope:
 

@@ -133,8 +133,7 @@ def materialize(root: str, strains: list[str], apply: bool) -> None:
         staged += 1
 
     mode = "APPLIED" if apply else "DRY-RUN (no files copied; pass --apply to stage)"
-    emit()
-    emit(f"== {mode} ==", f"   would stage / staged : {staged}", f"   already canonical    : {skipped_exist}", f"   hard-hold skipped    : {skipped_hold}", f"   unresolved           : {unresolved}", sep="\n")
+    emit("", f"== {mode} ==", f"   would stage / staged : {staged}", f"   already canonical    : {skipped_exist}", f"   hard-hold skipped    : {skipped_hold}", f"   unresolved           : {unresolved}", sep="\n")
 
 
 if __name__ == "__main__":

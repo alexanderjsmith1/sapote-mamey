@@ -76,11 +76,20 @@ def _aligner_backend() -> str:
     """
     try:
         from . import diamond_align
-        ok, _ = diamond_align.diamond_available()
-        if ok:
-            return "diamond"
-    except Exception:
-        pass
+    except ImportError:
+        diamond_align = None
+    if diamond_align is not None:
+        try:
+            ok, _ = diamond_align.diamond_available()
+            if ok:
+                return "diamond"
+        except Exception as exc:
+            _warnings.warn(
+                f"compare.py: DIAMOND backend check failed; trying the next backend "
+                f"({type(exc).__name__}: {exc})",
+                RuntimeWarning,
+                stacklevel=2,
+            )
     try:
         import pyswrd  # noqa: F401
         # v9.7.409 (AUDIT_cli_code_bugs #1): an import success is NOT proof of executability. On
@@ -352,28 +361,46 @@ def compute_ani(contigs_a: list[str], contigs_b: list[str]) -> dict[str, Any]:
     # pyskani first — better for fragmented assemblies
     try:
         import pyskani
-        db = pyskani.Database()
-        db.sketch("B", *[s.encode() for s in contigs_b])
-        hits = list(db.query("A", *[s.encode() for s in contigs_a]))
-        if hits:
-            h = hits[0]
-            return {"ok": True, "ani": round(h.identity * 100, 2),
-                    "aligned_fraction": round(h.query_fraction * 100, 1), "backend": "pyskani"}
-    except Exception:
-        pass
+    except ImportError:
+        pyskani = None
+    if pyskani is not None:
+        try:
+            db = pyskani.Database()
+            db.sketch("B", *[s.encode() for s in contigs_b])
+            hits = list(db.query("A", *[s.encode() for s in contigs_a]))
+            if hits:
+                h = hits[0]
+                return {"ok": True, "ani": round(h.identity * 100, 2),
+                        "aligned_fraction": round(h.query_fraction * 100, 1), "backend": "pyskani"}
+        except Exception as exc:
+            _warnings.warn(
+                f"compare.py: pyskani ANI failed; trying pyfastani "
+                f"({type(exc).__name__}: {exc})",
+                RuntimeWarning,
+                stacklevel=2,
+            )
     try:
         import pyfastani
-        sk = pyfastani.Sketch()
-        sk.add_draft("B", [s.encode() for s in contigs_b])
-        mapper = sk.index()
-        hits = list(mapper.query_draft([s.encode() for s in contigs_a]))
-        if hits:
-            h = hits[0]
-            frac = round(100.0 * h.matches / h.fragments, 1) if getattr(h, "fragments", 0) else None
-            return {"ok": True, "ani": round(h.identity, 2),
-                    "aligned_fraction": frac, "backend": "pyfastani"}
-    except Exception:
-        pass
+    except ImportError:
+        pyfastani = None
+    if pyfastani is not None:
+        try:
+            sk = pyfastani.Sketch()
+            sk.add_draft("B", [s.encode() for s in contigs_b])
+            mapper = sk.index()
+            hits = list(mapper.query_draft([s.encode() for s in contigs_a]))
+            if hits:
+                h = hits[0]
+                frac = round(100.0 * h.matches / h.fragments, 1) if getattr(h, "fragments", 0) else None
+                return {"ok": True, "ani": round(h.identity, 2),
+                        "aligned_fraction": frac, "backend": "pyfastani"}
+        except Exception as exc:
+            _warnings.warn(
+                f"compare.py: pyfastani ANI failed; returning no ANI "
+                f"({type(exc).__name__}: {exc})",
+                RuntimeWarning,
+                stacklevel=2,
+            )
     return {"ok": False, "ani": None, "aligned_fraction": None, "backend": "none"}
 
 

@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.437 stamp=20260921v97437a
+# TIER_MANIFEST tier=code version=9.7.440 stamp=20260922v97440a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -965,6 +965,7 @@
 ./mamey/patches/MODEB_COMPARATOR_WORKFLOW_USER_GUIDANCE_v97143a.md
 ./mamey/patches/__init__.py
 ./mamey/patches/next_ten_registry.py
+./mamey/path_safety.py
 ./mamey/pathway_believability.py
 ./mamey/phylo_evidence.py
 ./mamey/phylogeny_figure_factory.py
@@ -1230,11 +1231,16 @@
 ./tests/test_413_detect_strictness_per_member_isolation.py
 ./tests/test_428_phylo16s_pdf_candidate_ingest.py
 ./tests/test_432_bigscape_variant_suffix_visible.py
+./tests/test_440_placeholder_organism_dot_normalized.py
+./tests/test_440_release_manifest_health_metric_is_live.py
+./tests/test_440_run_failed_reason_surfaces_engine_error.py
 ./tests/test_ab_diagnostic_triggers.py
+./tests/test_absent_median_is_not_a_zero_v97438.py
 ./tests/test_activity_decision_tree_portable.py
 ./tests/test_activity_fragment_gate.py
 ./tests/test_activity_lead_genes_v9_7_385.py
 ./tests/test_activity_lead_report_v9_7_385.py
+./tests/test_activity_output_collision_candidate.py
 ./tests/test_activity_predictions.py
 ./tests/test_activity_tree_436_locator_guard_is_typed.py
 ./tests/test_add_xstrain_sheets_hardening_v97390.py
@@ -1254,6 +1260,7 @@
 ./tests/test_archive_leak_scan_depth_truncation_v97395.py
 ./tests/test_archive_policy_profile_sol09.py
 ./tests/test_arts_assembly_guard.py
+./tests/test_arts_genelist_parse_failure_438.py
 ./tests/test_arts_ingest.py
 ./tests/test_as188_ingest_patches_v9_7_152.py
 ./tests/test_as421_patchset_v9_7_240.py
@@ -1272,6 +1279,8 @@
 ./tests/test_authored_verification.py
 ./tests/test_auto_detect_ingest.py
 ./tests/test_autoemit_cohort_leads_ledger_v97410.py
+./tests/test_autoharness_disclosure_candidate.py
+./tests/test_autoharness_resume_binding_candidate.py
 ./tests/test_aux_metadata_counter_v97419.py
 ./tests/test_b2_class_promotion_v97401.py
 ./tests/test_b2_counts_reliability_pca3.py
@@ -1350,12 +1359,15 @@
 ./tests/test_blastp_batch_emitter_v97253.py
 ./tests/test_blastp_bgc_recovery_v97410.py
 ./tests/test_blastp_campaign.py
+./tests/test_blastp_campaign_disclosure_candidate.py
+./tests/test_blastp_campaign_retry_candidate.py
 ./tests/test_blastp_channel_triage.py
 ./tests/test_blastp_cli_e2e_patchB.py
 ./tests/test_blastp_cli_fixes_v9_7_338.py
 ./tests/test_blastp_concurrency_gate_v97416.py
 ./tests/test_blastp_discovery_boundary.py
 ./tests/test_blastp_ebi.py
+./tests/test_blastp_ebi_disclosure_candidate.py
 ./tests/test_blastp_ebi_hits_arg.py
 ./tests/test_blastp_ebi_submit_safety_v9_7_382.py
 ./tests/test_blastp_evidence_store_v97142.py
@@ -1372,14 +1384,18 @@
 ./tests/test_blastp_monitoring_lane_discovery_433.py
 ./tests/test_blastp_novelty_workflow_doc.py
 ./tests/test_blastp_online.py
+./tests/test_blastp_online_disclosure_gate_v97438.py
 ./tests/test_blastp_online_locator_similarity_v9_7_293.py
 ./tests/test_blastp_online_ncbi_cadence_v9_7_382.py
 ./tests/test_blastp_overlay_write_path.py
+./tests/test_blastp_plot_selection_candidate.py
 ./tests/test_blastp_rollup_merges_same_day_v97416.py
+./tests/test_blastp_round_disclosure_candidate.py
 ./tests/test_blastp_store_importers.py
 ./tests/test_blastp_strain_db_v97433.py
 ./tests/test_blastp_stub_guards.py
 ./tests/test_blastp_trove_defline_v9_7_340.py
+./tests/test_blastp_trove_empty_discovery_v97440.py
 ./tests/test_blastp_trove_locus_rekey_v97432.py
 ./tests/test_blastp_worklist_v9791.py
 ./tests/test_blastp_zero_alignment_batch_v97250.py
@@ -1555,11 +1571,13 @@
 ./tests/test_cohort_synthesis.py
 ./tests/test_cohort_synthesis_capacity_csv.py
 ./tests/test_cohort_tree_label_margins_v97422.py
+./tests/test_cohort_version_gate_loader_mutation_candidate.py
 ./tests/test_collapse_requires_taxon_v97417.py
 ./tests/test_collection_figure_availability_report.py
 ./tests/test_collection_figure_layout_safety.py
 ./tests/test_collection_figure_manifest.py
 ./tests/test_collection_figure_metadata_gate.py
+./tests/test_collection_gate_min_rows_candidate.py
 ./tests/test_combined_report_builder.py
 ./tests/test_command_catalog_v97405.py
 ./tests/test_command_pointers_guard_v9_7_281.py
@@ -1567,6 +1585,7 @@
 ./tests/test_comparative_pairs_e2_v9788.py
 ./tests/test_comparator_coverage_scoring.py
 ./tests/test_comparator_discovery.py
+./tests/test_comparator_discovery_accession_grammar_v97438.py
 ./tests/test_comparator_evidence_nan_coverage_v97396.py
 ./tests/test_comparator_resource_hygiene_comp_p07_p09.py
 ./tests/test_comparator_select.py
@@ -1622,6 +1641,8 @@
 ./tests/test_cy_domain_core_v9_7_116.py
 ./tests/test_data_root_wiring_v97401.py
 ./tests/test_dedup_gate_v9749.py
+./tests/test_deep_bgc_pipe_escape.py
+./tests/test_deep_bgc_pipe_escape_callsites_438.py
 ./tests/test_deep_bgc_report_portable.py
 ./tests/test_deep_bgc_thesis_docs.py
 ./tests/test_deep_data_v9746.py
@@ -1704,6 +1725,7 @@
 ./tests/test_exploration_identity_independent.py
 ./tests/test_exploration_native_identity_independent.py
 ./tests/test_export_tree_figure_source_package_v97428.py
+./tests/test_export_tree_source_package_runs_v97439.py
 ./tests/test_external_literature_corpus_guide.py
 ./tests/test_external_tool_inventory_v9_7_383.py
 ./tests/test_extract_cluster.py
@@ -1723,6 +1745,7 @@
 ./tests/test_figure_csv_schema_item18.py
 ./tests/test_figure_data_sidecars.py
 ./tests/test_figure_doc_references_v97422.py
+./tests/test_figure_empty_denominators_candidate.py
 ./tests/test_figure_factory_autoemit_v97409.py
 ./tests/test_figure_factory_default_config_v97409.py
 ./tests/test_figure_factory_gate_separation_codex13.py
@@ -1771,7 +1794,9 @@
 ./tests/test_g3b_n50_floor_v97407.py
 ./tests/test_gate_completeness_v97409.py
 ./tests/test_gate_mutation_probe_v97407.py
+./tests/test_gate_stem_engine_binding_mutation_candidate.py
 ./tests/test_gate_wiring_invariant.py
+./tests/test_gates_refuse_empty_target_set_v97438.py
 ./tests/test_gbk_shim.py
 ./tests/test_gbk_shim_lint_e2.py
 ./tests/test_gen_cut_receipt.py
@@ -1821,7 +1846,9 @@
 ./tests/test_h3_bioactivity_phenotype_linter.py
 ./tests/test_h3_cidal_static_followup.py
 ./tests/test_h5_cross_strain_import.py
+./tests/test_habitat_category_token_boundary_v97438.py
 ./tests/test_habitat_map.py
+./tests/test_habitat_vocabulary_candidate.py
 ./tests/test_harvest_16s_blastdbcmd_exit_v9_7_416.py
 ./tests/test_heading_re_bare_numbered_list_v9_7_152.py
 ./tests/test_heatmap_text_contrast_bc2_398.py
@@ -1849,6 +1876,7 @@
 ./tests/test_inspector_commands.py
 ./tests/test_inspector_exact_identity.py
 ./tests/test_instruction_mirror_436.py
+./tests/test_instruction_mirror_strict_states_438.py
 ./tests/test_instruction_scope_candidate.py
 ./tests/test_int2_stamp_coverage.py
 ./tests/test_intake_harness_mode_choices.py
@@ -2054,6 +2082,8 @@
 ./tests/test_module_accretion_sealed_baseline_v97406.py
 ./tests/test_monolith_freshness_v97243.py
 ./tests/test_multi_channel_hold.py
+./tests/test_mutation_function_pairing_candidate.py
+./tests/test_mutation_probe_evidence_candidate.py
 ./tests/test_native_csv_identity_adapter_independent.py
 ./tests/test_native_csv_producer_anchors_candidate.py
 ./tests/test_native_figure_adapter_v9_7_115.py
@@ -2094,11 +2124,13 @@
 ./tests/test_optional_deps_guard.py
 ./tests/test_optional_hooks_defects_v97416.py
 ./tests/test_optional_hooks_v97415.py
+./tests/test_orig_bounds_partial_marker_v97438.py
 ./tests/test_orphan_membership_tiers.py
 ./tests/test_outgroup_alignment_contract_v97416.py
 ./tests/test_outgroup_gate_parity_v97407.py
 ./tests/test_outgroup_registry.py
 ./tests/test_outgroup_registry_bundle_fallback_v97418.py
+./tests/test_output_label_containment_v97438.py
 ./tests/test_overclaim_guard_strain_data_scope_bc2_398.py
 ./tests/test_overmerge_banner.py
 ./tests/test_overmerge_state_v97406.py
@@ -2112,6 +2144,7 @@
 ./tests/test_package_write_smoke.py
 ./tests/test_packaging_manifest_recovery_v97402.py
 ./tests/test_padding_lint_and_floors.py
+./tests/test_paired_dot_coincident_candidate.py
 ./tests/test_panel_absent_nonresult_v9_7_264.py
 ./tests/test_panel_absent_results_artifact_v9_7_264.py
 ./tests/test_panel_uncultured_guard_v9_7_416.py
@@ -2129,7 +2162,9 @@
 ./tests/test_patch_packet_preflight.py
 ./tests/test_patch_queue_apply_check_v97436.py
 ./tests/test_patch_queue_composition_audit_v97412.py
+./tests/test_patch_queue_direction_candidate.py
 ./tests/test_patch_queue_order_preservation.py
+./tests/test_patch_queue_relative_paths_candidate.py
 ./tests/test_patches.py
 ./tests/test_pathway_believability.py
 ./tests/test_personal_matcher_line_scope_v97407.py
@@ -2296,6 +2331,7 @@
 ./tests/test_render_timeout_subprocess.py
 ./tests/test_replicon_intake_order_v97406.py
 ./tests/test_repo_health_cli_output_classification_v97395.py
+./tests/test_repo_health_collision_gate_mutation_candidate.py
 ./tests/test_repo_health_phylo_place_exclude_v97395.py
 ./tests/test_repo_health_waiver.py
 ./tests/test_report_card.py
@@ -2365,8 +2401,10 @@
 ./tests/test_scan_registry_parity_tool_v97407.py
 ./tests/test_scan_scoring_bugfixes.py
 ./tests/test_scanner_registry_version_select_v9_7_323.py
+./tests/test_scatter_tick_precision_candidate.py
 ./tests/test_schema_drift.py
 ./tests/test_scope_cluster.py
+./tests/test_scope_sidecar_containment_candidate.py
 ./tests/test_scorer_mibig.py
 ./tests/test_scoring_coverage_and_merge_policy.py
 ./tests/test_scoring_cuts_223.py
@@ -2463,12 +2501,14 @@
 ./tests/test_tab_reconcile_patch_chat.py
 ./tests/test_tab_reconcile_region_resolution_v97244.py
 ./tests/test_tailoring_extract.py
+./tests/test_taxonomy_map_value_guard.py
 ./tests/test_terra03_residual_contracts_round04.py
 ./tests/test_terra04_figure_screenshot_001.py
 ./tests/test_terra04_package_map_silent_swallow_round02.py
 ./tests/test_tetronate_cassette.py
 ./tests/test_tetronate_partner_guard_v97406.py
 ./tests/test_tfbs_reverse_strand_guard.py
+./tests/test_thesis_handoff_basename_collision.py
 ./tests/test_thesis_handoff_portable.py
 ./tests/test_third_tranche_gate_hardening.py
 ./tests/test_three_channel_evidence_matrix_adapter_v97392.py
@@ -2493,6 +2533,7 @@
 ./tests/test_tools_source_cohort_id_guard_v97401.py
 ./tests/test_tracked_file_policy.py
 ./tests/test_tracked_file_policy_nested_release_artifact_names_bc2.py
+./tests/test_tranche5_missing_summaries_candidate.py
 ./tests/test_tranche5_sensitivity_eligibility_parity_v97408.py
 ./tests/test_transparency_contract.py
 ./tests/test_tree_annotation_gates.py

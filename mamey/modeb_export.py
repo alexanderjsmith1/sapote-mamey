@@ -317,7 +317,7 @@ def export_card_docx(md_path: Path, out_docx: Path, theme: str = "evidence_dossi
             try:
                 table.style = "Light Grid Accent 1"
             except KeyError:
-                pass
+                pass  # docx template may lack the style; table renders without it
             for ridx, row in enumerate(rows):
                 cells = table.add_row().cells
                 padded = (row + [""] * ncol)[:ncol]

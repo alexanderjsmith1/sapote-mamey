@@ -45,7 +45,7 @@ def _inherit_mode(path, tmp):
         if os.path.exists(path):
             os.chmod(tmp, os.stat(path).st_mode & 0o7777)
     except OSError:
-        pass
+        pass  # best-effort permission carry; write proceeds either way
 
 
 def _discard(tmp):
@@ -54,7 +54,7 @@ def _discard(tmp):
         if os.path.exists(tmp):
             os.remove(tmp)
     except OSError:
-        pass
+        pass  # best-effort cleanup; temp may already be gone
 
 
 def _commit(path, tmp):

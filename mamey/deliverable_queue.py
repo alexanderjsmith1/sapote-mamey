@@ -52,8 +52,8 @@ def _auto_ingest(package: str, strain: str) -> dict:
                 res = install_channel_top10(package, r, ch, strain)
                 if res.get("bgcs"):
                     got[ch] = res["bgcs"]
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as exc:  # noqa: BLE001
+                import sys; sys.stderr.write(f"[deliverable_queue] {ch} channel failed for {strain}: {exc}\n")
     return got
 
 

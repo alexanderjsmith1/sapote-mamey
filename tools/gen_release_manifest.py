@@ -138,7 +138,40 @@ def tier_count_word(count):
         raise ValueError(f"No release-manifest word for tier count {count}") from exc
 
 
-def build_rules(engine, bundle, stamp, passed, skipped, tier_zip_names=()):
+_PRINT_CALLS_RE = re.compile(r"print_calls\s+(\d+) direct terminal-emission calls")
+
+
+def repo_health_print_calls(root: pathlib.Path):
+    """The live `print_calls` count from the bundle's own `tools/repo_health.py`, or None.
+
+    v9.7.440. The strict-repository-health row was the one numeric field in RELEASE_MANIFEST.md
+    that this tool did not derive, and in v9.7.439 it rotted exactly the way the module docstring
+    above describes: the row read "1324 observed direct print calls" while repo_health.py measured
+    1305 on that sealed tree, because the .439 emit-coalescing removed nineteen of them. 1324 is
+    the WAIVER's signed baseline, which is a different fact from what a cut observes, printed in a
+    slot labelled `observed`.
+
+    Returns None rather than raising whenever the measurement cannot be made -- a missing tool, a
+    non-zero exit, an unparseable line, a timeout. A field this tool cannot measure is simply left
+    alone, so `--check` never reports drift it did not observe. `repo_health.py` exits non-zero on
+    a WARN, which is its normal state while the print_calls waiver is open, so the exit code is
+    deliberately not consulted; only the parsed line is.
+    """
+    script = root / "tools" / "repo_health.py"
+    if not script.is_file():
+        return None
+    try:
+        completed = subprocess.run(
+            [sys.executable, str(script)], cwd=str(root),
+            capture_output=True, text=True, timeout=900,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    match = _PRINT_CALLS_RE.search(completed.stdout + completed.stderr)
+    return int(match.group(1)) if match else None
+
+
+def build_rules(engine, bundle, stamp, passed, skipped, tier_zip_names=(), health_print_calls=None):
     """(label, compiled_pattern, replacement) — anchored to self-describing fields only."""
     cut_date = date_from_stamp(stamp)
     rules = [
@@ -166,13 +199,14 @@ def build_rules(engine, bundle, stamp, passed, skipped, tier_zip_names=()):
         ("Gate 2 anchor",
          re.compile(r"(`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v)\d+\.\d+\.\d+[a-z]?(\.)"),
          rf"\g<1>{bundle}\g<2>"),
-        ("footer",
-         re.compile(r"(\| Sapote-Mamey Bundle v)\d+\.\d+\.\d+[a-z]?( \|)"),
-         rf"\g<1>{bundle}\g<2>"),
-        ("generated date",
-         re.compile(r"(\*Generated: )\d{4}-\d{2}-\d{2}( \| Sapote-Mamey Bundle v)"),
-         rf"\g<1>{cut_date}\g<2>"),
     ]
+    if health_print_calls is not None:
+        # Only the leading observed count is rewritten. The rest of the row -- the enforced
+        # ceiling and the waiver's signed baseline -- is prose this tool does not own.
+        rules.append((
+            "strict repository health observed count",
+            re.compile(r"(\| Strict repository health \| PASS \()\d+( observed direct print calls)"),
+            rf"\g<1>{health_print_calls}\g<2>"))
     return rules
 
 
@@ -276,7 +310,8 @@ def apply_manifest_with_counts(root: pathlib.Path, passed: int, skipped: int,
     engine, bundle, stamp = read_truth(root)
     text = manifest.read_text(encoding="utf-8")
     test_bound_text, _canonical_test_row = ensure_test_evidence_row(text, passed, skipped, provenance)
-    rules = build_rules(engine, bundle, stamp, passed, skipped, tier_zip_names)
+    rules = build_rules(engine, bundle, stamp, passed, skipped, tier_zip_names,
+                        health_print_calls=repo_health_print_calls(root))
     new_text = test_bound_text
     for _label, pat, repl in rules:
         new_text = pat.sub(lambda m: m.expand(repl), new_text)
@@ -435,7 +470,8 @@ def main(argv=None):
         except ValueError as exc:
             emit(f"gen_release_manifest: {exc}", file=sys.stderr)
             return 2
-    rules = build_rules(engine, bundle, stamp, passed, skipped, args.tier_zips)
+    rules = build_rules(engine, bundle, stamp, passed, skipped, args.tier_zips,
+                        health_print_calls=repo_health_print_calls(root))
 
     drift, new_text = [], test_bound_text
     if test_bound_text != text:

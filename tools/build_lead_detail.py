@@ -227,9 +227,9 @@ def main():
     result = lead_detail(manifest, rggmci, a.gbk_dir, leads)
     out = a.out or os.path.join(a.package, "lead_detail.json")
     atomic_dump_json(result, out, indent=2)
-    emit("wrote", out)
-    emit("rescue groups:", len(result["rescue_groups"]),
-          "| leads detailed:", len(result["leads"]))
+    emit(f"wrote {out}",
+         f"rescue groups: {len(result['rescue_groups'])} | leads detailed: {len(result['leads'])}",
+         sep="\n")
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ except ImportError:
 import json
 import os
 import re
+import sys
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -422,8 +423,11 @@ def build_gene_by_gene_table(
     for gbk_path in pdir.glob("*.gbk"):
         try:
             gbk_map[gbk_path.stem] = gbk_path.read_text(encoding="utf-8", errors="replace")
-        except Exception:
-            pass
+        except (OSError, UnicodeError) as exc:
+            sys.stderr.write(
+                f"gene_by_gene: cannot read loose GBK {gbk_path}; skipping it "
+                f"({type(exc).__name__}: {exc})\n"
+            )
 
     # Also try reading from the sealed ZIP if GBK files aren't loose
     if not gbk_map:
@@ -435,8 +439,11 @@ def build_gene_by_gene_table(
                         if name.endswith(".gbk") and "region" in name:
                             key = Path(name).stem
                             gbk_map[key] = z.read(name).decode("utf-8", errors="replace")
-            except Exception:
-                pass
+            except (OSError, zipfile.BadZipFile, KeyError, ValueError) as exc:
+                sys.stderr.write(
+                    f"gene_by_gene: cannot read GBKs from sealed ZIP {zp}; trying the next "
+                    f"candidate ({type(exc).__name__}: {exc})\n"
+                )
             if gbk_map:
                 break
 

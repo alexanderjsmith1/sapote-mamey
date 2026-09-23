@@ -88,7 +88,8 @@ def length_kb_of(bgc) -> float:
         try:
             return round(float(lk), 2)
         except (TypeError, ValueError):
-            pass
+            # An invalid explicit value delegates to the coordinate-derived fallback below.
+            lk = None
     s, e = g("start"), g("end")
     try:
         return round(max(0, int(e) - int(s)) / 1000, 2)

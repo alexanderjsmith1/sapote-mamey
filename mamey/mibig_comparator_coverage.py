@@ -702,6 +702,7 @@ def _atomic_open(path: Path, *, newline: str | None = None):
             try:
                 tmp.unlink()
             except OSError:
+                # Best-effort cleanup must not mask the original write failure being re-raised.
                 pass
             raise
         else:

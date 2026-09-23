@@ -40,6 +40,7 @@ except ImportError:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 import json
 import os
+import sys
 import glob
 import collections
 from pathlib import Path
@@ -122,8 +123,9 @@ def _strain_of(package_dir: str, table: str) -> str:
             for k in ("strain", "strain_id", "Strain"):
                 if m.get(k):
                     return str(m[k])
-        except Exception:
-            pass
+        except (OSError, ValueError) as exc:
+            sys.stderr.write(f"[p450_tailoring] manifest.json at {mp} unreadable "
+                             f"({type(exc).__name__}: {exc}); deriving strain from the table name\n")
     return os.path.basename(table).split("_gene_by_gene_all_bgcs")[0]
 
 
@@ -259,8 +261,8 @@ def p450_tailoring_command(args) -> int:
           f"P450 genes={res.get('p450_genes', 0)} in {res.get('bgcs_with_p450', 0)} BGCs")
     if res.get("status") == "ok":
         emit(f"  crosslinker-candidates={res['crosslinker_candidates']} "
-              f"({res['cassette_bgcs']} cassette BGCs)")
-        emit("  ->", res["out_dir"])
+              f"({res['cassette_bgcs']} cassette BGCs)",
+             f"  -> {res['out_dir']}", sep="\n")
     return 0
 
 

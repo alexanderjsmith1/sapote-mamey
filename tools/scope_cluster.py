@@ -24,6 +24,11 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import argparse, json, sys
 from pathlib import Path
+try:  # v9.7.438 output-label containment (see mamey/path_safety.py)
+    from mamey.path_safety import contained_output_path
+except ImportError:  # bare-script run: bundle root is one level up
+    _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+    from mamey.path_safety import contained_output_path
 
 
 def read_protoclusters(rec):
@@ -126,7 +131,10 @@ def write_scoped_gbk(rec, kept, span, category, label, outdir):
     sub.name = sub.id
     sub.description = f"{label} {category} cluster (protocluster-scoped from antiSMASH region)"
     sub.annotations["molecule_type"] = "DNA"
-    p = Path(outdir) / f"{label}_{category}_scoped.gbk"
+    # v9.7.438: --label and --category name the output file; a `..` or separator in either used
+    # to place the scoped GBK outside --outdir. Same class as fetch_mibig_reference.
+    p = contained_output_path(outdir, f"{label}_{category}", "_scoped.gbk",
+                              field="--label/--category")
     SeqIO.write(sub, str(p), "genbank")
     return str(p)
 
@@ -146,8 +154,13 @@ def main(argv=None):
     rec = next(SeqIO.parse(a.gbk, "genbank"))
     report, kept, span = scope(rec, a.category, use_core=a.core)
     Path(a.outdir).mkdir(parents=True, exist_ok=True)
+    # Validate the sidecar before either output: it may already be a symlink
+    # outside outdir even when the GBK path and label are safe.
+    report_path = contained_output_path(
+        a.outdir, f"{a.label}_{a.category}", "_scope.json",
+        field="--label/--category")
     p = write_scoped_gbk(rec, kept, span, a.category, a.label, a.outdir)
-    (Path(a.outdir) / f"{a.label}_{a.category}_scope.json").write_text(json.dumps(report, indent=2))
+    report_path.write_text(json.dumps(report, indent=2))
     emit(f"[scope_cluster] {a.label}/{a.category}: boundary {report['boundary']} "
           f"({report['span_kb']} kb), kept {report['n_kept']} CDS, "
           f"excluded {report['n_excluded']} (merged neighbours) -> {p}")

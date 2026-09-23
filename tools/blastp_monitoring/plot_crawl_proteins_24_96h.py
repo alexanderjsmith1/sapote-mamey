@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Plot BLASTp crawl cumulative throughput in ACTUAL PROTEINS QUERIED (not
-panels/files) over trailing 24h / 96h windows, across all 4 live ledgers.
+panels/files) over trailing 24h / 96h windows, with explicit lane selection receipts.
 
 A "panel" (.faa file) batches a variable number of query protein sequences
 (commonly a handful up to ~10s per file) -- counting panels understates/
@@ -22,6 +22,8 @@ Usage:
   python3 "tools/blastp_monitoring/plot_crawl_proteins_24_96h.py"
 """
 import os
+import json
+import textwrap
 import hashlib
 import csv, datetime as dt
 from pathlib import Path, PurePosixPath
@@ -32,24 +34,28 @@ if __name__ == "__main__":
     import matplotlib.dates as mdates
 
     ROOT = Path(os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())) / "Blastp RESULTS"
-    NOW = dt.datetime.now()
+    _LOCAL_NOW = dt.datetime.now().astimezone()
+    NOW = _LOCAL_NOW.replace(tzinfo=None)
+    TIMEZONE_LABEL = _LOCAL_NOW.tzname() or "local time"
 
     # ---------------------------------------------------------------------------
-    # AUTO-DISCOVER active lanes (no hardcoded lane map — that map went stale every
-    # wave and drew the current run as empty; this was the recurring "you just made
-    # this plot" failure). A lane = one direct-child _ledger.csv with submit OR fetch
-    # activity inside ACTIVE_WINDOW_H; historical/idle lanes drop off on their own.
+    # A lane is one direct-child _ledger.csv. Quiet lanes remain visible by default;
+    # an optional recency filter and explicit archived/completed exclusions are receipted.
     # Query files are resolved by their strain-qualified ledger path, relative
     # to each _QUERIES* root. A basename alone is not unique across strains.
     # ---------------------------------------------------------------------------
     import argparse as _argparse
     import fnmatch as _fnmatch
     _ap = _argparse.ArgumentParser(description="Per-lane BLASTp throughput (auto-discovers active lanes).")
-    _ap.add_argument("--lanes", default="*", help="fnmatch on RID_BASE dir, e.g. '*CODEX100*', '*GAP*', '*' (default: all active)")
-    _ap.add_argument("--active-hours", type=float, default=96,
-                     help="a lane counts as active if it has any submit/fetch within this many hours (default 96)")
+    _ap.add_argument("--lanes", default="*", help="fnmatch on RID_BASE dir, e.g. '*CODEX100*', '*GAP*', '*' (default: matching non-superseded lanes)")
+    _ap.add_argument("--active-hours", type=float, default=None,
+                     help="optional submit/fetch recency filter in hours; omitted keeps quiet lanes")
+    _ap.add_argument("--all", action="store_true", help="include archived bases and fetched SINGLE_CLNR sets")
     _ARGS, _ = _ap.parse_known_args()
     ACTIVE_WINDOW_H = _ARGS.active_hours
+    if ACTIVE_WINDOW_H is not None and (not __import__("math").isfinite(ACTIVE_WINDOW_H) or ACTIVE_WINDOW_H <= 0):
+        _ap.error("--active-hours must be a finite positive number")
+    selection_receipt = []
 
     def _parse_iso(iso):
         iso = (iso or "").strip()
@@ -71,33 +77,50 @@ if __name__ == "__main__":
 
     def discover_active_ledgers(window_h=ACTIVE_WINDOW_H):
         import matplotlib
-        cutoff = NOW - dt.timedelta(hours=window_h)
+        cutoff = NOW - dt.timedelta(hours=window_h) if window_h is not None else None
         found = []
         for led in sorted(ROOT.glob("*/_ledger.csv")):
-            if not _fnmatch.fnmatch(led.parent.name, _ARGS.lanes):
-                continue
-            active = False
+            base = led.parent.name
+            reason = "included"
             try:
-                for row in csv.DictReader(led.open()):
-                    for col in ("fetch_iso", "submit_iso"):
-                        t = _parse_iso(row.get(col))
-                        if t and t >= cutoff:
-                            active = True
-                            break
-                    if active:
-                        break
-            except OSError:
+                with led.open() as handle:
+                    rows = list(csv.DictReader(handle))
+            except (OSError, UnicodeError, csv.Error) as exc:
+                selection_receipt.append({"base": base, "included": False,
+                    "reason": "unreadable ledger", "error": type(exc).__name__})
                 continue
-            if active:
-                found.append(led.parent.name)  # RID_BASE dir name
+            if not _fnmatch.fnmatch(base, _ARGS.lanes):
+                reason = "lane pattern"
+            elif not _ARGS.all and any(marker in base.upper() for marker in
+                                      ("_ARCHIVE_SUPERSEDED_", "_BATCHED_SUPERSEDED_")):
+                reason = "explicit superseded path marker"
+            elif (not _ARGS.all and "SINGLE_CLNR_" in base.upper() and "GAP" not in base.upper()
+                  and rows and all((row.get("status") or "").lower() == "fetched"
+                                   and _parse_iso(row.get("fetch_iso")) for row in rows)):
+                reason = "all ledger rows fetched in SINGLE_CLNR set"
+            elif cutoff is not None and not any(
+                    stamp is not None and stamp >= cutoff
+                    for row in rows for stamp in
+                    (_parse_iso(row.get("fetch_iso")), _parse_iso(row.get("submit_iso")))):
+                reason = "explicit recency filter"
+            included = reason == "included"
+            selection_receipt.append({"base": base, "included": included, "reason": reason,
+                                      "ledger_rows": len(rows)})
+            if included:
+                found.append(base)
         # nr lanes first, then clustered; stable by name within group
         found.sort(key=lambda b: (any(x in b.upper() for x in ("CLUSTER", "CLNR")), b))
         import matplotlib.colors as mcolors
         n = max(len(found), 1)
-        cmap = matplotlib.colormaps["tab20"].resampled(n)
+        # Listed tab20 repeats colours when resampled above its 20 entries.
+        # Keep the familiar palette for smaller runs and use a continuous map
+        # for larger lane sets so every legend entry remains distinguishable.
+        cmap = matplotlib.colormaps["tab20" if n <= 20 else "turbo"].resampled(n)
         LEDGERS = {}
+        labels = [_lane_display_name(base) for base in found]
         for i, base in enumerate(found):
-            LEDGERS[_lane_display_name(base)] = (f"{base}/_ledger.csv", None,
+            label = labels[i] if labels.count(labels[i]) == 1 else f"{labels[i]} [{base}]"
+            LEDGERS[label] = (f"{base}/_ledger.csv", None,
                                                  mcolors.to_hex(cmap(i)))
         return LEDGERS
 
@@ -150,6 +173,7 @@ if __name__ == "__main__":
     data = {}
     missing_files = 0
     ambiguous_files = 0
+    unknown_lanes = set()
     for name, (rel, _qroot, color) in LEDGERS.items():
         f = ROOT / rel
         comps = []  # (fetch_time, n_proteins)
@@ -164,16 +188,19 @@ if __name__ == "__main__":
                     candidates = _QUERY_INDEX.get(panel_key(row.get("file", "")), [])
                     if not candidates:
                         missing_files += 1
+                        unknown_lanes.add(name)
                         n = 0
                     else:
                         try:
                             if len({digest(path) for path in candidates}) != 1:
                                 ambiguous_files += 1
+                                unknown_lanes.add(name)
                                 n = 0
                             else:
                                 n = count_seqs(candidates[0])
                         except OSError:
                             missing_files += 1
+                            unknown_lanes.add(name)
                             n = 0
                     comps.append((c, n))
         comps.sort()
@@ -190,18 +217,26 @@ if __name__ == "__main__":
 
     WINDOWS = [("Trailing 24 h", 24), ("Trailing 96 h", 96)]
 
-    fig, axes = plt.subplots(2, 2, figsize=(15, 9),
+    legend_labels = [textwrap.fill(f"{name} — " + " / ".join(
+        ("≥" if name in unknown_lanes else "") + str(sum(n for t, n in comps if t >= NOW - dt.timedelta(hours=hours)))
+        for _, hours in WINDOWS), width=48) for name, (comps, _) in data.items()]
+    legend_lines = sum(label.count("\n") + 1 for label in legend_labels)
+    fig, axes = plt.subplots(2, 2, figsize=(20, max(9, 0.22 * legend_lines + 2)),
                               gridspec_kw={"height_ratios": [3, 1]})
 
     for col, (title, hours) in enumerate(WINDOWS):
         since = NOW - dt.timedelta(hours=hours)
         ax = axes[0][col]
         axb = axes[1][col]
-        for name, (comps, color) in data.items():
+        lane_count = max(len(data), 1)
+        hour_group_width = (1 / 24.0) * 0.9
+        lane_slot_width = hour_group_width / lane_count
+        lane_bar_width = lane_slot_width * 0.88
+        for lane_index, (name, (comps, color)) in enumerate(data.items()):
             xs, ys = cumulative_proteins(comps, since)
             total = ys[-1] if ys else 0
             if xs:
-                ax.step(xs, ys, where="post", color=color, lw=2.0,
+                ax.step([since, *xs, NOW], [0, *ys, total], where="post", color=color, lw=2.0,
                         label=f"{name} — {total} proteins")
             else:
                 ax.plot([], [], color=color, label=f"{name} — 0 proteins")
@@ -212,12 +247,16 @@ if __name__ == "__main__":
                     binned[b] = binned.get(b, 0) + n
             if binned:
                 bx = sorted(binned)
-                axb.bar(bx, [binned[b] for b in bx], width=(1/24.0)*0.9,
+                grouped_bx = [
+                    b + dt.timedelta(days=lane_slot_width * lane_index)
+                    for b in bx
+                ]
+                axb.bar(grouped_bx, [binned[b] for b in bx], width=lane_bar_width,
                         color=color, alpha=0.55, align="edge")
-        ax.set_title(f"{title}  (as of {NOW:%Y-%m-%d %H:%M} PDT)",
+        ax.set_title(f"{title}  (as of {NOW:%Y-%m-%d %H:%M} {TIMEZONE_LABEL})",
                      fontsize=11, fontweight="bold")
         ax.set_ylabel("cumulative proteins queried & fetched", fontsize=9)
-        ax.legend(loc="upper left", fontsize=8, framealpha=0.9)
+        # One figure-level legend has reserved space outside both data columns.
         ax.grid(True, alpha=0.3)
         ax.set_xlim(since, NOW)
         axb.set_ylabel("proteins/hr", fontsize=8)
@@ -226,17 +265,31 @@ if __name__ == "__main__":
         for a in (ax, axb):
             a.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d\n%H:%M"))
             a.tick_params(axis="both", labelsize=8)
-        axb.set_xlabel("time (PDT)", fontsize=9)
+        axb.set_xlabel(f"time ({TIMEZONE_LABEL})", fontsize=9)
 
     fig.suptitle("Sapote-Mamey BLASTp crawl cumulative throughput — actual proteins queried  "
                  "(completion = results fetched; unmixed channels)",
                  fontsize=13, fontweight="bold")
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    fig.tight_layout(rect=[0, 0.07, 0.68, 0.95])
+    handles, _ = axes[0][0].get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, legend_labels, loc="upper left", bbox_to_anchor=(0.69, 0.92),
+                   fontsize=8, framealpha=0.9, title="Lane — fetched proteins (24 h / 96 h)")
+    excluded = sum(not row["included"] for row in selection_receipt)
+    note = f"Lanes shown: {len(data)}; excluded: {excluded}. Selection details accompany this figure."
+    if missing_files or ambiguous_files:
+        note += f" Protein totals are LOWER BOUNDS: {missing_files} missing and {ambiguous_files} ambiguous query bindings."
+    fig.text(0.04, 0.025, textwrap.fill(note, 155), fontsize=9, va="bottom")
 
     out_svg = os.path.join(os.environ.get("SAPOTE_BLASTP_PLOT_DIR", "."), "blastp_throughput_proteins_24_96h.svg")
     out_png = os.path.join(os.environ.get("SAPOTE_BLASTP_PLOT_DIR", "."), "blastp_throughput_proteins_24_96h.png")
-    fig.savefig(out_svg)
-    fig.savefig(out_png, dpi=220)
+    fig.savefig(out_svg, bbox_inches="tight")
+    fig.savefig(out_png, dpi=220, bbox_inches="tight")
+    receipt_path = Path(out_svg).with_suffix(".selection.json")
+    receipt_path.write_text(json.dumps({"active_hours": ACTIVE_WINDOW_H, "all": _ARGS.all,
+        "lane_pattern": _ARGS.lanes, "lanes": selection_receipt,
+        "timezone": TIMEZONE_LABEL, "hourly_bar_layout": "grouped_by_lane",
+        "missing_query_bindings": missing_files, "ambiguous_query_bindings": ambiguous_files}, indent=2) + "\n")
 
     print("=== crawl completions in ACTUAL PROTEINS (fetch_iso) ===")
     for name, (comps, color) in data.items():

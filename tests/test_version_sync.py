@@ -98,18 +98,12 @@ def test_coexec_prompt_bundle_version():
 
 
 def test_release_manifest_footer_version():
-    import re as _re
-    # The footer's trailing tier token varies by release tier (PUBLIC_RELEASE on a
-    # signed public cut; NOT_FOR_PUBLIC_RELEASE / CODE / CODE_TIER on lower tiers —
-    # v9.7.154 corrected the CODE candidate's token from the false PUBLIC_RELEASE).
-    # This test asserts the footer *restates the bundle version*, not which tier
-    # token follows it, so it matches any non-empty trailing token after the version.
-    foot = _re.findall(
-        r"Sapote-Mamey Bundle v(\d+(?:\.\d+)*[a-z]?) \| [A-Z_]+\*",
-        _read("RELEASE_MANIFEST.md"))
-    assert foot, "RELEASE_MANIFEST.md footer has no bundle-version restatement"
-    assert all(v == BUNDLE for v in foot), \
-        f"RELEASE_MANIFEST.md footer states v{set(foot)}, expected {BUNDLE}"
+    # The optional status footer was removed at the owner's request. Pin the mandatory
+    # authoritative identity instead of requiring a public/internal approval label.
+    versions = re.findall(r"\*\*Authoritative bundle version:\*\* `(\d+(?:\.\d+)*[a-z]?)`",
+                          _read("RELEASE_MANIFEST.md"))
+    assert versions == [BUNDLE], \
+        f"RELEASE_MANIFEST.md authoritative version is {versions}, expected {[BUNDLE]}"
 
 
 def test_task_brief_template_bundle_version():

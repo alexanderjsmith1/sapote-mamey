@@ -21,6 +21,7 @@ import csv
 import glob
 import json
 import os
+import sys
 
 from .modeb_domain_phylogeny import domain_phylogeny  # P360-002 (§41 interim)
 from .source_scans import cctt_trigger_corroborated  # AUDIT_374: honor the CCTT class-compat
@@ -227,8 +228,11 @@ def _strain_id_of(pkg) -> str:
     if man.exists():
         try:
             return json.loads(man.read_text(encoding="utf-8")).get("strain_id", "") or ""
-        except (OSError, json.JSONDecodeError):
-            pass
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            sys.stderr.write(
+                f"modeb_subsections: cannot read {man.name} for strain identity "
+                f"({type(exc).__name__}: {exc})\n"
+            )
     return ""
 
 
@@ -255,8 +259,11 @@ def _genus_of(pkg) -> str:
             tok = tax.strip().split()
             if tok and tok[0].lower() not in _GENERIC_TAX:
                 return tok[0]
-        except (OSError, json.JSONDecodeError):
-            pass
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            sys.stderr.write(
+                f"modeb_subsections: cannot read {man.name} for taxonomy; using the "
+                f"strain-to-genus crosswalk ({type(exc).__name__}: {exc})\n"
+            )
     # fall back to the authoritative strain->genus crosswalk
     return _genus_from_crosswalk(_strain_id_of(pkg))
 

@@ -174,8 +174,10 @@ def main():
         "compatible_pairs": COMPATIBLE_PAIRS,
     }
     emit(f"# Family map: {len(by_acc)} accessions ({src['curated']} curated + {len(by_acc)-src['curated']} "
-          f"derived) across {len(fams)} families, from {total} MIBiG entries.")
-    emit(f"  coverage: {100*len(by_acc)/max(total,1):.1f}% of MIBiG entries now carry a family.", f"  families: {', '.join(fams[:18])}{' …' if len(fams)>18 else ''}", sep="\n")
+          f"derived) across {len(fams)} families, from {total} MIBiG entries.",
+         f"  coverage: {100*len(by_acc)/max(total,1):.1f}% of MIBiG entries now carry a family.",
+         f"  families: {', '.join(fams[:18])}{' …' if len(fams)>18 else ''}",
+         sep="\n")
 
     if a.validate and os.path.exists(a.validate):
         import sys

@@ -205,7 +205,7 @@ def test_rollup_dry_run_is_read_only_and_reports_candidates(tmp_path):
     before = _sha(db)
     result = _run(ROLLUP, tmp_path)
     assert result.returncode == 0, result.stderr
-    assert "NEW (strain,channel,gene) rows to add: 1" in result.stdout
+    assert "NEW (strain,channel,gene,hit_rank,subject_acc) rows to add: 1" in result.stdout
     assert "DRY-RUN" in result.stdout
     assert _sha(db) == before
     with sqlite3.connect(db) as con:
@@ -239,6 +239,67 @@ def test_rollup_execute_is_named_column_atomic_and_idempotent(tmp_path):
         "synthetic-import", "SYNTH-001", IDENTITY, "ctg1_1", "ncbi_nr"
     )
     assert rows[0][5].endswith("SYNTH-001_nr_top10_fixture.csv")
+
+
+def _expand_hit_ranks(path: Path, count: int = 10) -> None:
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fields, first = reader.fieldnames, next(reader)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for rank in range(1, count + 1):
+            row = dict(first)
+            row["hit_rank"] = str(rank)
+            row["subject_acc"] = first["subject_acc"] if rank == 1 else f"SYNTH_HIT_{rank}"
+            writer.writerow(row)
+
+
+@pytest.mark.parametrize("builder", [_rollup_csv, _single_clnr_csv])
+def test_rollup_preserves_all_ten_hits_and_repeated_import_is_idempotent(tmp_path, builder):
+    db = _make_store(tmp_path)
+    path = builder(tmp_path)
+    _expand_hit_ranks(path)
+    for _ in range(2):
+        result = _run(ROLLUP, tmp_path, "--execute", "--source-workspace", "synthetic-import")
+        assert result.returncode == 0, result.stderr
+    with sqlite3.connect(db) as con:
+        assert con.execute("SELECT hit_rank FROM hits ORDER BY hit_rank").fetchall() == [(n,) for n in range(1, 11)]
+
+
+@pytest.mark.parametrize("builder", [_rollup_csv, _single_clnr_csv])
+def test_previously_seen_source_can_add_missing_ranks_without_replacing_old_rows(tmp_path, builder):
+    db = _make_store(tmp_path)
+    path = builder(tmp_path)
+    first = _run(ROLLUP, tmp_path, "--execute", "--source-workspace", "original-import")
+    assert first.returncode == 0, first.stderr
+    _expand_hit_ranks(path)
+    before = _sha(db)
+    dry = _run(ROLLUP, tmp_path)
+    assert dry.returncode == 0, dry.stderr
+    assert "rows to add: 9" in dry.stdout
+    assert _sha(db) == before
+    retry = _run(ROLLUP, tmp_path, "--execute", "--source-workspace", "recovery-import")
+    assert retry.returncode == 0, retry.stderr
+    with sqlite3.connect(db) as con:
+        assert con.execute("SELECT COUNT(*) FROM hits").fetchone()[0] == 10
+        assert con.execute("SELECT workspace FROM hits WHERE hit_rank = 1").fetchone()[0] == "original-import"
+
+
+def test_same_rank_distinct_subject_accessions_are_not_collapsed(tmp_path):
+    db = _make_store(tmp_path)
+    path = _rollup_csv(tmp_path)
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        fields, first = reader.fieldnames, next(reader)
+    with path.open("a", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writerow({**first, "subject_acc": "SYNTH_OTHER_ACCESSION"})
+        writer.writerow(first)  # exact duplicate must still collapse
+    result = _run(ROLLUP, tmp_path, "--execute", "--source-workspace", "synthetic-import")
+    assert result.returncode == 0, result.stderr
+    with sqlite3.connect(db) as con:
+        assert con.execute("SELECT COUNT(*) FROM hits").fetchone()[0] == 2
 
 
 def test_rollup_channel_conflict_refuses_the_entire_transaction(tmp_path):

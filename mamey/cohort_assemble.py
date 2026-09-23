@@ -35,6 +35,7 @@ csv.field_size_limit(min(__import__("sys").maxsize, 2**31 - 1))  # v9.7.409 H12:
 import glob
 import json
 import os
+import sys
 from collections import Counter, defaultdict
 from typing import Any
 from .xlsx_determinism import save_workbook_safely as _save_wb_safely
@@ -185,8 +186,11 @@ def read_package(pkg_dir: str) -> dict | None:
                             "safe_claim": (r.get("safe_claim") or "").strip(),
                         }
                     )
-        except OSError:
-            pass
+        except (OSError, csv.Error) as exc:
+            sys.stderr.write(
+                f"cohort_assemble: cannot read inventory {inv_path}; omitting its BGC rows "
+                f"({type(exc).__name__}: {exc})\n"
+            )
 
     return {
         "strain_summary": strain_summary,

@@ -16,6 +16,10 @@ class DeepBGCReportError(ValueError):
     """Raised before output when identity, gene slice, or evidence is unsafe."""
 
 
+def _cell(value: object) -> str:
+    return str(value).replace("|", "\\|")
+
+
 IDENTITY_KEYS = ("strain", "full_node_or_contig", "region", "bgc_alias")
 
 
@@ -187,11 +191,11 @@ def build_deep_report(locus_json: Path, output_dir: Path, evidence_tsv: Path | N
     if components:
         lines += ["Coherent matched components are reported separately from the whole-region denominator; this preserves boundary uncertainty and does not resolve product identity.", "", "| Component | CDS | Core completeness | Gene order |", "|---|---:|---|---|"]
         for comp in components:
-            lines.append(f"| {comp.get('name','unresolved')} | {comp.get('matched_cds','?')}/{comp.get('local_total_cds','?')} | {comp.get('core_completeness','unresolved')} | {comp.get('gene_order','unresolved')} |")
+            lines.append(f"| {_cell(comp.get('name','unresolved'))} | {comp.get('matched_cds','?')}/{comp.get('local_total_cds','?')} | {_cell(comp.get('core_completeness','unresolved'))} | {_cell(comp.get('gene_order','unresolved'))} |")
         lines.append("")
     lines += ["## Gene and domain architecture", "", "| Gene | Coordinates | Strand | Role | Product | Domains |", "|---|---:|:---:|---|---|---|"]
     for gene in record["genes"]:
-        lines.append(f"| {gene['gene_id']} | {gene['start']}-{gene['end']} | {gene['strand']} | {gene.get('role','unresolved')} | {gene.get('product','unresolved')} | {'; '.join(gene.get('domains', [])) or 'not supplied'} |")
+        lines.append(f"| {_cell(gene['gene_id'])} | {gene['start']}-{gene['end']} | {gene['strand']} | {_cell(gene.get('role','unresolved'))} | {_cell(gene.get('product','unresolved'))} | {_cell('; '.join(gene.get('domains', [])) or 'not supplied')} |")
     lines += ["", "## Evidence channels", "", f"Bound evidence rows: **{len(evidence)}**. Missing channels remain workflow gaps and are not negative findings.", "", "## Comparator interpretation", "", "MIBiG and other reference matches are navigation evidence. A family-level interpretation requires coherent core biosynthetic architecture and supporting context, not an isolated match.", ""]
     report = output_dir / "DEEP_BGC_REPORT.md"
     report.write_text("\n".join(lines), encoding="utf-8")

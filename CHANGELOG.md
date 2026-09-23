@@ -1,3 +1,44 @@
+# v9.7.440 · 2026-09-22 · build 20260922v97440a · engine 1.9.169 · CODE
+
+- **BLASTp empty-discovery diagnostics and retry safety.** Package-trove scans that discover no supported source now explain the scanned layout and channel filenames, and leave no new overlay, ledger or immutable receipt. Sources that contain no admitted rows retain their normal evidence receipts; admission and quarantine rules are unchanged.
+- **Complete rollup hit preservation.** Reservoir imports retain distinct hit-rank and subject-accession keys, rescan previously seen source paths to recover missing ranks, and preserve existing rows and provenance across idempotent retries.
+- **Intake taxonomy and failure reporting.** Normalize placeholder GBK organism values to explicit unresolved taxonomy, reject placeholder entries in taxonomy maps before execution, and surface a bounded engine failure reason without changing the checkpoint CSV schema.
+- **Portable tree-source export.** Import the success-output dependency and quote every value interpolated into the generated rerender helper; retain executable regression coverage for ordinary and shell-sensitive filenames.
+- **Manifest and documentation accuracy.** Derive the observed terminal-emission metric from current source, distinguish the three BLASTp ingest destinations, and escape domain pipes in the Mode B substrate table.
+
+Engine remains 1.9.169: extraction, scoring, evidence admission and scientific thresholds are unchanged. This is a locally validated candidate; public disclosure and publication approval remain separate.
+
+Not included: new assembly-size heuristics, optional reference-genome acquisition, historical vocabulary redesign, workspace database mutation, or relaxation of strict source-disclosure policy. Historical figure-median and matrix-test-discovery findings are already resolved in the baseline.
+
+# v9.7.439 · 2026-09-22 · build 20260922v97439a · engine 1.9.169 · CODE
+
+Accretion-justified: no new runtime module. This cut hardens existing output, figure, patch-custody, BLASTp, and assurance paths and adds focused regression fixtures.
+
+- **Release-manifest closeout is now executable end to end.** The cut entry point refreshes source-stage membership and checksums, measures the stale-manifest baseline, converges the manifest, requires a separate final green suite, binds only that green log, and runs strict identity after the final integrity refresh.
+- **Output containment and collision refusal:** validate both primary and JSON sidecar destinations before writing, including dangling-symlink escapes, and refuse activity-tree output collisions instead of overwriting prior artifacts.
+- **Missing-data and figure fidelity:** preserve absent tranche3/tranche5 summaries and undefined denominators as missing; retain distinct small-range tick labels; show coincident paired values as a ring and core at their true shared coordinate.
+- **Dense BLASTp monitoring:** retain quiet lanes by default, bind selection reasons, keep lane colors unique above 20 series, group hourly bars without overplotting, and derive timezone labels from the runtime locale.
+- **Patch custody:** make queue direction explicit, resolve relative queue/base paths before subprocess working-directory changes, and distinguish malformed diffs from strict-patch-compatible `git apply` rejections.
+- **Habitat labels:** align the figure consumer with the producer's named host vocabulary using token boundaries; bare-ant and environmental classification policy remains unchanged.
+- **Public sequence-upload consent:** require exact count/digest disclosure plus explicit acknowledgement across automatic, round, campaign, and EBI BLASTp submission paths; bind resumed state to strain and channel; retry failed no-RID submissions without duplicating accepted work.
+- **Mutation assurance:** require passing baselines and executed assertion failures, bind exact containing functions, and add detected mutations for collection metadata, hub schema, repository collision status, compilation aggregation, tree-checker binding, cohort version-gate loading, and private-identifier override refusal.
+- **Validation:** all 40 explicit mutations bite; the clean J5-plus-26-patch composition reports 11,786 passing tests, 366 skips, and four passing subtests before cut-time manifest regeneration.
+- **Engine 1.9.169 (BUMPED):** deterministic output and monitoring behavior changes in runtime modules; scoring thresholds and biological interpretation remain unchanged.
+- **Not in this cut:** no release of the 79 still-unpaired mutation inventory entries; no patch-queue integration without a real pre-compose entry point and pristine-base binding; no change to bare-ant/environmental policy.
+
+# v9.7.438 · 2026-09-21 · build 20260921v97438a · engine 1.9.168 · CODE
+
+Accretion-justified: path_safety.py — one stdlib-only containment seam validates output labels and keeps generated artifacts inside the caller-selected output directory; it consolidates the invariant for four previously unguarded tools without changing scientific content.
+
+- **Evidence-state fidelity:** distinguish malformed ARTS Genelist values from genuine no-hit rows, accept antiSMASH partial markers on original region bounds, and omit absent FS042/FS045 measurements instead of plotting them as measured zero.
+- **Outbound and output-path consent:** make online BLASTp planning the default, require a two-step public-sequence-upload acknowledgement before submission, validate and quote generated ClusterBlast fetch accessions, and contain operator- or provenance-derived output labels.
+- **Report and handoff integrity:** escape Markdown table pipes at the rendering call sites and refuse thesis-handoff basename collisions before any artifact can be silently overwritten.
+- **Deterministic and auditable assurance:** replace process-random subset-panel jitter with stable digest jitter; restore 255 inexpensive figure tests to the default partition; require non-empty gate targets and denominators; and extend mutation tests across the assurance layer and three previously unpinned gate purposes.
+- **Metadata and figure correctness:** match habitat aliases on token boundaries so ordinary words cannot imply an ant or bee source, while preserving the measured live-corpus assignments.
+- **Composition corrections:** exclude superseded PATCH_10, replace the non-hermetic ARTS test drop with its in-suite test, add the full-suite-discovered AS-XXX consent fixture update, and coalesce new terminal output so the signed 1324-site emission observation remains flat.
+- **Engine 1.9.168 (BUMPED):** deterministic parsing can now change `interior_pct` for linear antiSMASH inputs whose `Orig. start` or `Orig. end` carries a partial marker; scoring thresholds are unchanged, but affected packages must be regenerated before version-naive comparison. The figure renderer also preserves missing measurements as absent.
+- **Not in this cut:** external instruction-mirror repair; the unpinned tree `_engine_gate` and `hub_merge.schema_gate`; the separate executable-helper interpolation site in the tree-export tool; residual unguarded median callers in tranche3/tranche5; and archive member-budget or upstream-release-digest hardening.
+
 # v9.7.437 · 2026-09-21 · build 20260921v97437a · engine 1.9.167 · CODE
 
 - **Printable cohort matrices:** cap overwide strain-matrix panels at 22 inches, enforce a 4:1 aspect ceiling only after the width cap engages, and taper plus rotate tick labels for large cohorts while preserving historical small-cohort geometry and label orientation.

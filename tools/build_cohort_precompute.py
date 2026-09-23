@@ -275,8 +275,11 @@ def _emit_version_and_manifest(out_dir, counts, n_strains):
         for line in open(os.path.join(here, "BUILD_STAMP.txt"), encoding="utf-8"):
             if line.startswith("version="):
                 ver = line.split("=", 1)[1].strip()
-    except Exception:
-        pass
+    except (OSError, UnicodeError) as exc:
+        sys.stderr.write(
+            f"build_cohort_precompute: cannot read BUILD_STAMP.txt; recording unknown version "
+            f"({type(exc).__name__}: {exc})\n"
+        )
     manifest = []
     for fn in counts:
         p = os.path.join(out_dir, fn)

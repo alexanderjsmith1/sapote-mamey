@@ -23,6 +23,7 @@ import glob
 import hashlib
 import json
 import os
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -75,19 +76,20 @@ def find_workspace_root(package: str | Path, max_up: int = 12) -> Path:
         try:
             if any((p / m).exists() for m in _PROJECT_MARKERS):
                 return p
-        except OSError:
-            pass
+        except OSError as exc:
+            sys.stderr.write(
+                f"blastp_gate: cannot inspect project markers under {p} "
+                f"({type(exc).__name__}: {exc}); continuing toward the package root\n"
+            )
         if p.parent == p:
             break
         p = p.parent
     cwd = Path.cwd().resolve()
     # prefer cwd only if the package lives under it (so we scan the operator's project)
-    try:
-        Path(package).resolve().relative_to(cwd)
+    package_resolved = Path(package).resolve()
+    if package_resolved == cwd or cwd in package_resolved.parents:
         if cwd != home and cwd.parent != cwd:
             return cwd
-    except ValueError:
-        pass
     # Unmarked standalone packages have no authority to scan unrelated ancestors.
     # Wider discovery requires an explicit scan root or a recognized project marker.
     return Path(package).resolve().parent

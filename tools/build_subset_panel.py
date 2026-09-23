@@ -17,7 +17,7 @@ Usage:
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-import argparse, os, json, csv, re
+import argparse, os, json, csv, hashlib, re
 try:  # v9.7.410 CSV formula-cell guard (CLAUDE_v9.7.410_tools_csv_writer_coverage)
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ImportError:  # bare-script run: bundle root is one level up
@@ -35,6 +35,23 @@ def _read_json(_path, *, encoding="utf-8"):
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
+
+JITTER_STEPS = 9  # lane offsets -4..+4
+
+
+def stable_jitter_step(key: str) -> int:
+    """PYTHONHASHSEED-independent replacement for builtin ``hash()``.
+
+    v9.7.438: the jitter used ``hash(sid + region) % 9``. CPython randomises string hashes per
+    process unless PYTHONHASHSEED is pinned, so identical input rows rendered to a different PNG
+    on every invocation -- including ``--replot``, whose whole purpose is to reproduce a figure
+    from a frozen CSV. This module's docstring calls the workflow deterministic and the project's
+    integrity model is checksum-based byte comparison, so the two were in direct conflict.
+    blake2b is stable across processes, interpreters and platforms.
+    """
+    digest = hashlib.blake2b(key.encode("utf-8"), digest_size=8).digest()
+    return int.from_bytes(digest, "big") % JITTER_STEPS
+
 
 TIER={'Confirmed':'#2E7D32','Predicted-functional':'#2E86AB','KCB-anchored':'#E59866','Candidate-novel':'#7F8C8D'}
 
@@ -76,7 +93,7 @@ def plot(rows, title, claim, out):
     fig_h=max(3, 0.5*len(genera)+2)
     fig,ax=plt.subplots(figsize=(11,fig_h))
     for r in rows:
-        y=ylane[r['genus']]+ ( (hash(r['sid']+r['region'])%9)-4)*0.045  # jitter within lane
+        y=ylane[r['genus']]+ (stable_jitter_step(r['sid']+r['region'])-4)*0.045  # stable jitter within lane
         ax.scatter(r['kb'], y, s=70, color=TIER[r['tier']], edgecolor='white', linewidth=0.6, zorder=3)
     ax.set_yticks(range(len(genera))); ax.set_yticklabels(genera, fontsize=9)
     ax.set_xlabel('cluster size (kb)'); ax.set_ylim(-0.6, len(genera)-0.4)

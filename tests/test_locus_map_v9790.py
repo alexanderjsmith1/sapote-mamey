@@ -139,6 +139,7 @@ def test_post_seal_rehydrate_from_sec_met(tmp_path):
 
 
 
+@pytest.mark.slow  # measured 97.4 s on 2026-09-21
 def test_in_run_produces_locus_maps(tmp_path, synthetic_single_contig_full_locus_zip):
     """A gold run writes locus maps into the package's locus_maps/ dir."""
     import subprocess, glob

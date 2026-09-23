@@ -2,7 +2,7 @@
 """Export an editable, portable ggtree source package from one rendered tree folder."""
 from __future__ import annotations
 
-import argparse, hashlib, json, shutil
+import argparse, hashlib, json, shlex, shutil, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -110,20 +110,25 @@ def main():
     # convenience only and uses relative paths, so the package can move between machines.
     receipt_sha = sha(receipt)
     helper_name = f"{figure_stem}_rerender_captioned.sh"
+    # Every interpolated value is shell-quoted. figure_stem comes from a filename and
+    # analysis_name/display_* come from the receipt JSON, so a quote or $() in any of them
+    # would otherwise be executed when an operator runs this helper. shlex.quote keeps the
+    # generated script a data carrier rather than a second place the tool can run code.
+    q = shlex.quote
     (out/helper_name).write_text(f"""#!/bin/sh
 set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$HERE"
-export GG_METHODS="$(cat {figure_stem}_caption.txt)"
+export GG_METHODS="$(cat {q(figure_stem + '_caption.txt')})"
 export GG_FIGID="-"
 export GG_STRIPS="2"
 export GG_ITALIC="1"
 export GG_STRIP1_TITLE="Isolation source"
 export GG_STRIP2_TITLE="Location"
-export GG_GATE_TREE="{analysis_name}"
-export GG_DISPLAY_RECEIPT="{figure_stem}_display_receipt.json"
-export GG_DISPLAY_RECEIPT_SHA256="{receipt_sha}"
-Rscript "{figure_stem}_render_figure.R" "{display_tree_name}" "{display_meta_name}" "{figure_stem}_captioned"
+export GG_GATE_TREE={q(analysis_name)}
+export GG_DISPLAY_RECEIPT={q(figure_stem + '_display_receipt.json')}
+export GG_DISPLAY_RECEIPT_SHA256={q(receipt_sha)}
+Rscript {q(figure_stem + '_render_figure.R')} {q(display_tree_name)} {q(display_meta_name)} {q(figure_stem + '_captioned')}
 python3 refresh_figure_source_manifest.py
 """,encoding="utf-8")
     (out/helper_name).chmod(0o755)

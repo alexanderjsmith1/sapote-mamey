@@ -190,9 +190,8 @@ def main():
     if a.json:
         emit(json.dumps(receipt, indent=2))
     else:
-        emit(f"Tier parity — {'PASS' if ok else 'FAIL'}  ({len(tiers)} tiers)")
         hdr = f"  {'tier':8} {'ver':8} {'cass':5} {'plc':4} {'mark':5} {'reg':4} manifests"
-        emit(hdr)
+        emit(f"Tier parity — {'PASS' if ok else 'FAIL'}  ({len(tiers)} tiers)", hdr, sep="\n")
         for t in tiers:
             emit(f"  {t['tier']:8} {t['version']:8} {t['cassette_real_ids']:<5} {t['cassette_placeholders']:<4} {t['marker_ids']:<5} {('Y' if t['registry_present'] else '-'):4} {'OK' if not t['manifests_missing'] else 'MISSING:'+','.join(t['manifests_missing'])}")
         for f in findings: emit(f"  ✗ {f}")

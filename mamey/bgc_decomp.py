@@ -609,19 +609,23 @@ def run_bgc_decomp(
     if kcb_dir and Path(kcb_dir).is_dir():
         try:
             from .diagnostic_rescue import parse_cb as _parse_cb
+        except ImportError:
+            _parse_cb = None
+        if _parse_cb is not None:
             for txt in Path(kcb_dir).glob("*.txt"):
-                parsed = _parse_cb(str(txt))
-                if not parsed:
-                    continue
-                rank1_acc = max(parsed, key=lambda a: parsed[a]["cum_score"])
-                hits = parsed[rank1_acc]["hits"]
-                stem = txt.stem
-                kcb_by_key[stem] = hits
-                m = re.match(r"(.+)_c(\d+)$", stem)
-                if m:
-                    kcb_by_key[(m.group(1), int(m.group(2)))] = hits
-        except Exception:
-            pass  # KCB is optional
+                try:
+                    parsed = _parse_cb(str(txt))
+                    if not parsed:
+                        continue
+                    rank1_acc = max(parsed, key=lambda a: parsed[a]["cum_score"])
+                    hits = parsed[rank1_acc]["hits"]
+                    stem = txt.stem
+                    kcb_by_key[stem] = hits
+                    m = re.match(r"(.+)_c(\d+)$", stem)
+                    if m:
+                        kcb_by_key[(m.group(1), int(m.group(2)))] = hits
+                except Exception as exc:
+                    import sys; sys.stderr.write(f"[bgc_decomp] KCB file {txt.name} failed: {exc}\n")
 
     def _bgc_kcb_keys(bgc: Any) -> list[Any]:
         keys: list[Any] = []

@@ -23,6 +23,7 @@ try:
 except ImportError:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 import pathlib
+import sys
 from typing import Optional
 
 
@@ -104,8 +105,9 @@ def generate(package_dir, out_subdir: str = "smoke_figures") -> dict:
                     "\n- [SKIP] figures_smoke: matplotlib not available; "
                     "no smoke figures rendered. Install matplotlib + numpy "
                     "(see docs/PREREQUISITES.md) to populate this set.\n")
-        except OSError:
-            pass
+        except OSError as exc:
+            sys.stderr.write(f"[figures_smoke] could not append the matplotlib-missing note to "
+                             f"{pkg / 'issue_log.md'} ({type(exc).__name__}: {exc})\n")
         return {"out": str(out), "figures": 0, "files": [],
                 "skipped_reason": "matplotlib not available"}
 
@@ -118,8 +120,9 @@ def generate(package_dir, out_subdir: str = "smoke_figures") -> dict:
                 _ilf.write(
                     "\n- [SKIP] figures_smoke: no triage or inventory CSV "
                     "found in package; figures_smoke produced 0 figures.\n")
-        except OSError:
-            pass
+        except OSError as exc:
+            sys.stderr.write(f"[figures_smoke] could not append the no-CSV note to "
+                             f"{pkg / 'issue_log.md'} ({type(exc).__name__}: {exc})\n")
         return {"out": str(out), "figures": 0, "files": [],
                 "skipped_reason": "no triage or inventory CSV found"}
 
@@ -397,5 +400,6 @@ def _write_sidecar(path: pathlib.Path, header: list[str],
             w = _SafeWriter(f)
             w.writerow(header)
             w.writerows(rows)
-    except OSError:
-        pass
+    except OSError as exc:
+        sys.stderr.write(f"[figures_smoke] could not write sidecar {path} "
+                         f"({type(exc).__name__}: {exc}); figure provenance is incomplete\n")

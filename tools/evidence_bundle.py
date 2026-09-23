@@ -162,8 +162,9 @@ def _antismash_strictness(package_dir: Path) -> str:
                 v = blob.get(key) if isinstance(blob, dict) else None
                 if v:
                     return str(v)
-        except (json.JSONDecodeError, OSError):
-            pass
+        except (json.JSONDecodeError, OSError) as exc:
+            sys.stderr.write(f"[evidence_bundle] could not read strictness from {mf} "
+                             f"({type(exc).__name__}: {exc}); reporting strictness as UNKNOWN\n")
     return "UNKNOWN"
 
 

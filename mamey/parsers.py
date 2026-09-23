@@ -681,8 +681,17 @@ def _region_orig_bounds_from_zip(zip_path: str | Path) -> dict[str, tuple[int, i
                 continue
             except Exception:
                 continue
-            sm = re.search(r"Orig\.\s*start\s*::\s*(\d+)", text, flags=re.I)
-            em = re.search(r"Orig\.\s*end\s*::\s*(\d+)", text, flags=re.I)
+            # v9.7.438: GenBank marks a partial boundary with `<` or `>` and antiSMASH passes it
+            # through, e.g. `Orig. end :: >247156`. `(\d+)` will not match across the marker, so the
+            # pair was dropped, the caller fell back to the clipped record's LOCAL coordinates
+            # (which restart at 1), and `_edge_status` then saw `start <= flank_bp` and returned
+            # Edge. Observed on a region sitting 180 kb clear of both ends of a 428 kb contig
+            # (N. macrotermitis NZ_WEGK01000006.1 region003). The number after the marker is the
+            # real coordinate -- `>247156` means truncated AT 247156, not unknown -- so accept and
+            # discard the marker. Circular records were unaffected: _edge_status returns Interior
+            # for them before it reads the start coordinate.
+            sm = re.search(r"Orig\.\s*start\s*::\s*[<>]?(\d+)", text, flags=re.I)
+            em = re.search(r"Orig\.\s*end\s*::\s*[<>]?(\d+)", text, flags=re.I)
             if sm and em:
                 out[name] = (int(sm.group(1)), int(em.group(1)))
     return out

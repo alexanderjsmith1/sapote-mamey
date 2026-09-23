@@ -23,6 +23,12 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import argparse, json, sqlite3, sys, urllib.parse, urllib.request
 from pathlib import Path
+try:  # v9.7.438 output-label containment (see mamey/path_safety.py)
+    from mamey.path_safety import contained_output_path
+except ImportError:  # bare-script run: bundle root is one level up
+    import os as _ps_os, sys as _ps_sys
+    _ps_sys.path.insert(0, _ps_os.path.dirname(_ps_os.path.dirname(_ps_os.path.abspath(__file__))))
+    from mamey.path_safety import contained_output_path
 
 # minimal Pfam accession -> short name map for common BGC domains (falls back to the accession)
 PFAM = {
@@ -124,7 +130,8 @@ def genes_to_gbk(genes, label, outdir):
             f.qualifiers["sec_met_domain"] = [g["domains"]]
         f.qualifiers["translation"] = [g["aa"]]
         rec.features.append(f)
-    p = Path(outdir) / f"{label}.gbk"
+    # v9.7.438: same containment guard as fetch_mibig_reference -- the label names the file.
+    p = contained_output_path(outdir, label, ".gbk")
     SeqIO.write(rec, str(p), "genbank")
     return str(p), len(genes), sum(1 for g in genes if g.get("gene"))
 

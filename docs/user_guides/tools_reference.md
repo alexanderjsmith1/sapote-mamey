@@ -352,7 +352,9 @@ With no results at all, the honest read is "antiSMASH Pfam, unverified" — neve
 
 **`mamey blastp-online`** — Per-gene NCBI web BLASTp for a BGC (independent homology channel; fail-closed if biopython/network absent — actionable message, not a traceback). Its banner now points at the offline `ingest-blastp` route to skip live polling.
 
-**`mamey blastp-ebi`** — EBI fallback BLASTp transport (no nr; DB-tagged provenance; coverage-preserving XML path).
+**`mamey blastp-ebi`** — EBI fallback BLASTp transport (no nr; DB-tagged provenance;
+coverage-preserving XML path). Live submission requires a valid EBI contact email plus
+`--confirm-public-sequence-upload`; the sequence count and SHA-256 receipt print before transport.
 
 **`mamey blastp-round`** — Plan/run a phased strain BLASTp round (full top-N + 1 per remaining BGC).
 

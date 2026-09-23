@@ -341,15 +341,19 @@ def build(pkg, bgc, outdir):
     # (Arch_Capacity/Class_Conf + Diagnostic-Rescue), previously never printed here.
     try:
         from . import card_verdicts as _cv
-        _tv = {"arch": g(tt, "Arch"), "arch_capacity": g(tt, "Arch_Capacity"),
-               "class_conf": g(tt, "Class_Conf"), "novelty_auto": g(tt, "Novelty_auto"),
-               "concordance": g(tt, "Concordance"), "misanchor_flag": g(tt, "Misanchor_Flag"),
-               "standing_rule": g(tt, "Standing_rule"), "primary_metab_flag": g(tt, "Primary_metab_flag")}
-        _blk = _cv.render_block(pkg, bgc, triage=_tv)
-        if _blk:
-            W(_blk + "\n")
-    except Exception:
-        pass
+    except ImportError:
+        _cv = None
+    if _cv is not None:
+        try:
+            _tv = {"arch": g(tt, "Arch"), "arch_capacity": g(tt, "Arch_Capacity"),
+                   "class_conf": g(tt, "Class_Conf"), "novelty_auto": g(tt, "Novelty_auto"),
+                   "concordance": g(tt, "Concordance"), "misanchor_flag": g(tt, "Misanchor_Flag"),
+                   "standing_rule": g(tt, "Standing_rule"), "primary_metab_flag": g(tt, "Primary_metab_flag")}
+            _blk = _cv.render_block(pkg, bgc, triage=_tv)
+            if _blk:
+                W(_blk + "\n")
+        except Exception as exc:
+            import sys; sys.stderr.write(f"[lead_pages] card_verdicts.render_block failed: {exc}\n")
 
     # Package evidence table
     W("## Package evidence (file → value)")
@@ -446,8 +450,8 @@ def build(pkg, bgc, outdir):
         if asm and "no ordered" not in asm:
             W(f"- **Predicted assembly (ordered, from `_domains.csv`):** {asm}. antiSMASH Stachelhaus/Minowa "
               "predictions — similarity-level, lower bounds if Edge-truncated; NOT a structure/product claim.")
-    except Exception:
-        pass
+    except Exception as exc:
+        import sys; sys.stderr.write(f"[lead_pages] _asm_line failed: {exc}\n")
     W(f"- **Tailoring/decoration:** {', '.join(tail) if tail else 'no distinct tailoring domains recorded'} — capacity to decorate the scaffold; not a proven modification.")
     W("")
 

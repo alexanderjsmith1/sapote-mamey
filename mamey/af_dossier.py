@@ -224,8 +224,8 @@ def _read_af_leads(pkg_dir: Path) -> list[dict]:
                         "kcb": (r.get("KCB_top") or "").strip(),
                         "corrected_rank": (r.get("Corrected_rank") or "").strip(),
                     })
-        except Exception:
-            pass
+        except (OSError, csv.Error) as exc:
+            import sys; sys.stderr.write(f"[af_dossier] AF lead board parse failed for {af_board}: {exc}\n")
         if leads:
             return leads
     # fallback: triage board AF_auto column
@@ -247,8 +247,8 @@ def _read_af_leads(pkg_dir: Path) -> list[dict]:
                     "kcb": (r.get("KCB_top") or "").strip(),
                     "corrected_rank": (r.get("Corrected_rank") or "").strip(),
                 })
-    except Exception:
-        pass
+    except (OSError, csv.Error) as exc:
+        import sys; sys.stderr.write(f"[af_dossier] triage board parse failed for {board}: {exc}\n")
     return leads
 
 

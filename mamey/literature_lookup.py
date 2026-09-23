@@ -25,6 +25,7 @@ except ImportError:  # direct execution: no parent package to resolve against.
     from mamey.console import emit
 import json
 import re
+import sys
 from functools import lru_cache
 from pathlib import Path
 
@@ -47,11 +48,18 @@ def corpus_path() -> Path:
     """
     try:
         from .external_data import resolve
-        p = resolve("literature")
-        if p is not None:
-            return p / "literature_corpus.jsonl"
-    except Exception:
-        pass
+    except ImportError:
+        resolve = None
+    if resolve is not None:
+        try:
+            p = resolve("literature")
+            if p is not None:
+                return p / "literature_corpus.jsonl"
+        except Exception as exc:
+            sys.stderr.write(
+                f"literature_lookup: external corpus resolution failed; using the legacy "
+                f"in-tree path ({type(exc).__name__}: {exc})\n"
+            )
     return Path(__file__).resolve().parent / _CORPUS_REL
 
 
@@ -132,9 +140,7 @@ def literature_command(args) -> int:
         r = lookup(args.pmid)
         if not r:
             emit(f"PMID {args.pmid}: not in corpus"); return 1
-        emit(f"PMID {r['pmid']} · {r.get('year','')} · {r.get('doi','')}", r.get("title", ""), sep="\n")
-        emit()
-        emit(r.get("abstract", "") or "(no abstract in this export entry)")
+        emit(f"PMID {r['pmid']} · {r.get('year','')} · {r.get('doi','')}", r.get("title", ""), "", r.get("abstract", "") or "(no abstract in this export entry)", sep="\n")
         return 0
     if sub == "search":
         rows = search(args.query, limit=getattr(args, "limit", 20))

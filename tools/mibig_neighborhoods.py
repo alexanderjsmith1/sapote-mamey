@@ -108,11 +108,12 @@ def main():
         for rn in reps:
             if rn in seqd:
                 fh.write(f">{rn}\n{seqd[rn]}\n")
-    emit(f'{a.fam}: {len(tips)} MIBiG domains -> {len(order)} neighborhoods (thresh {a.thresh}); {len(reps)} representatives.', f'  reps -> {od}/{a.fam}_reps.faa ; membership -> {od}/{a.fam}_neighborhoods.tsv', sep="\n")
-    # neighborhood size histogram (top)
     sizes = sorted((len(m) for m in order), reverse=True)
-    emit("  neighborhood sizes (top 10):", sizes[:10])
-    emit("Class-level reference clustering; homology, not activity/production; judgment deferred.")
+    emit(f'{a.fam}: {len(tips)} MIBiG domains -> {len(order)} neighborhoods (thresh {a.thresh}); {len(reps)} representatives.',
+         f'  reps -> {od}/{a.fam}_reps.faa ; membership -> {od}/{a.fam}_neighborhoods.tsv',
+         f"  neighborhood sizes (top 10): {sizes[:10]}",
+         "Class-level reference clustering; homology, not activity/production; judgment deferred.",
+         sep="\n")
 
 
 if __name__ == "__main__":

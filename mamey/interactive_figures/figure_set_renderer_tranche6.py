@@ -82,6 +82,11 @@ def build_charts_6(payload: dict[str, Any], all_ids: Sequence[str], governed: Se
         source = lookup.get(source_id)
         if source is None or source.kind != "scatter":
             raise ValueError(f"lead-context source {source_id} is unavailable or not a scatter")
+        plotted_strains = {
+            str(row.get(source.config["label"]) or "")
+            for row in source.rows
+        }
+        omitted_strains = sorted(set(governed) - plotted_strains)
         rows = []
         for row in source.rows:
             strain = str(row.get(source.config["label"]) or "")
@@ -90,9 +95,21 @@ def build_charts_6(payload: dict[str, Any], all_ids: Sequence[str], governed: Se
                 "lead_context": "YES" if strain in leads else "NO",
                 "declared_lead_scope": "; ".join(leads.get(strain, [])),
             })
+        subtitle = (
+            "The source figure's governed-data eligibility is retained. Only ledger-declared "
+            "leads with source-supported coordinates are ringed and bold; every source-eligible "
+            "peer remains labelled adjacent to its node. Lead status is contextual prioritization, "
+            "not an outlier requirement or biological validation."
+        )
+        if omitted_strains:
+            subtitle += (
+                " Source-missing governed strains are named but not plotted: "
+                + ", ".join(omitted_strains)
+                + "."
+            )
         charts.append(Chart(
             lead_id, "scatter", f"{source.title} — lead context",
-            "The full governed denominator is retained. Only ledger-declared leads are ringed and bold; all peers remain labelled adjacent to their nodes. Lead status is contextual prioritization, not an outlier requirement or biological validation.",
+            subtitle,
             rows, {**source.config, "highlight": "lead_context", "family": family, "source_figure_id": source_id},
         ))
     if tuple(chart.figure_id for chart in charts) != IMPLEMENTED_IDS_6:

@@ -97,9 +97,8 @@ def main():
     # coverage
     n=len(bgcs); dark=tagc['DARK_no_family']; named=sum(v for k,v in tagc.items() if not k.endswith(('_orphan','_unknown','_no_family')))
     orphans=sum(v for k,v in tagc.items() if k.endswith(('_orphan','_unknown')))
-    emit(f"  tagged {n} BGCs -> GCF_Tags.csv", f"  dark (UNRESOLVED, no family): {dark} ({100*dark/n:.0f}%)", f"  resolved to a named GCF family: {named} ({100*named/n:.0f}%)", f"  named anchor but class-orphan: {orphans} ({100*orphans/n:.0f}%)", sep="\n")
     anchored=n-dark
-    emit(f"  of {anchored} anchored BGCs, {named} ({100*named/anchored:.0f}%) got a specific family tag", "  top GCF families:", sep="\n")
+    emit(f"  tagged {n} BGCs -> GCF_Tags.csv", f"  dark (UNRESOLVED, no family): {dark} ({100*dark/n:.0f}%)", f"  resolved to a named GCF family: {named} ({100*named/n:.0f}%)", f"  named anchor but class-orphan: {orphans} ({100*orphans/n:.0f}%)", f"  of {anchored} anchored BGCs, {named} ({100*named/anchored:.0f}%) got a specific family tag", "  top GCF families:", sep="\n")
     for t,c in tagc.most_common(14):
         if t!='DARK_no_family': emit(f"    {c:4}  {t}")
     if a.workbook and os.path.exists(a.workbook):

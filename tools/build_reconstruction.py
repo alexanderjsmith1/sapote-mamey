@@ -265,9 +265,9 @@ def main():
     md = render(strain, frags, ranked, best)
     out = a.out or os.path.join(a.package, "reconstruction.md")
     atomic_write_text(out, md)
-    emit("wrote", out)
-    emit("fragments:", len(frags), "| shared CB refs:", len(ranked),
-          "| best scaffold:", best)
+    emit(f"wrote {out}",
+         f"fragments: {len(frags)} | shared CB refs: {len(ranked)} | best scaffold: {best}",
+         sep="\n")
 
 
 if __name__ == "__main__":

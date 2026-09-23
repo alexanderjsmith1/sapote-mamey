@@ -1234,8 +1234,17 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
     sources: list[dict] = []
     planned_rows: dict[str, dict[str, dict]] = {}
     rekey_counts: dict[str, int] = {}
+    skipped_directory_count = 0
+    skipped_directory_sample: list[str] = []
+    unmatched_bgc_directories = 0
     for sdir in strain_dirs:
-        for bgc_dir in (p for p in _trove_entries(sdir)
+        entries = _trove_entries(sdir)
+        for entry in entries:
+            if entry.is_dir() and not entry.name.upper().startswith("BGC"):
+                skipped_directory_count += 1
+                if len(skipped_directory_sample) < 10:
+                    skipped_directory_sample.append(str(entry.relative_to(troot)))
+        for bgc_dir in (p for p in entries
                         if p.is_dir() and p.name.upper().startswith("BGC")):
             bgc = bgc_dir.name
             bgc_entries = _trove_entries(bgc_dir)
@@ -1252,6 +1261,7 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
                     if p.exists():
                         src = p; break
             if src is None:
+                unmatched_bgc_directories += 1
                 continue
             source_sha = _sha256(src)
             source_file = str(src.relative_to(troot))
@@ -1322,6 +1332,28 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
                 "bgc": bgc, "file": source_file, "sha256": source_sha,
                 "destination_bgcs": sorted(file_destinations),
             })
+
+    if not sources:
+        # Discovery absence is not a tested biological negative or an evidence receipt.
+        # In particular, strict and re-key retries must not collide on an empty source hash.
+        return {
+            "package": str(pkg), "channel": channel, "bgcs_written": {},
+            "genes": 0, "quarantined": 0, "quarantine": None, "receipt": None,
+            "rekey_by_locus": rekey_by_locus, "rekey_resolution_counts": {},
+            "status": "NO_SOURCES_DISCOVERED",
+            "discovery": {
+                "trove_root": str(troot.resolve()),
+                "scanned_directories": [str(p.resolve()) for p in strain_dirs],
+                "skipped_directory_count": skipped_directory_count,
+                "skipped_directory_sample": skipped_directory_sample,
+                "bgc_directories_without_matching_files": unmatched_bgc_directories,
+                "accepted_layout": "<trove>/<STRAIN>/<BGC...>/<channel CSV>",
+                "accepted_filenames": list(_TROVE_FILE_GLOBS.get(channel, ())),
+                "guidance": "Gap/single-protein runner rollups use tools/ingest_blastp_rollups.py; "
+                            "check its accepted patterns and dry run. No sources were read; "
+                            "this is not a verified no-hit result.",
+            },
+        }
 
     plans = [(bgc, list(rows.values())) for bgc, rows in sorted(planned_rows.items())]
     written = {bgc: len(rows) for bgc, rows in sorted(planned_rows.items())}

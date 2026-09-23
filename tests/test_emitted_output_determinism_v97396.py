@@ -17,8 +17,19 @@ Three observed instances on the sealed v9.7.395 tree, all reproduced across hash
      identical tree rooted on a different taxon between runs whenever more than one tip
      matched the hint.  Ambiguity now refuses before any intermediate or final output.
 
+A fourth instance, found on v9.7.437 (added v9.7.438):
+  4. tools/build_subset_panel.py used builtin `hash(sid + region) % 9` for scatter jitter, so the
+     rendered PNG's bytes changed on every invocation of a module whose own docstring calls the
+     workflow deterministic and fully reproducible. Measured: four PYTHONHASHSEED values produced
+     four different SHA-256 digests from one identical row set. `--replot`, whose entire purpose is
+     to reproduce a figure from a frozen CSV, could not reproduce it either.
+
 These tests pin the invariant rather than the instances: run the code under several
 PYTHONHASHSEED values and require identical output.
+
+Scope note (v9.7.438): the ratchets below cover `mamey/`, `tools/` and `deliverable_tools/`.
+Before v9.7.438 the set-iteration ratchet scanned `mamey/` only, and nothing scanned builtin
+`hash()` at all -- the two blind spots that let instance 4 ship in `tools/`.
 """
 from __future__ import annotations
 
@@ -34,12 +45,38 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SEEDS = ("0", "1", "2", "3", "4", "5")
+# v9.7.438: every directory that can emit an artifact, not just the engine package.
+SCAN_ROOTS = ("mamey", "tools", "deliverable_tools")
+
+DECLARED_EMITTING_ROOTS = ("mamey", "tools", "deliverable_tools")
 
 
-def _under_seeds(code: str) -> list[str]:
+def _assert_scan_scope_is_intact():
+    """A scan that examined nothing produces the same empty offender list as a clean scan.
+
+    v9.7.438 widened SCAN_ROOTS from ``("mamey",)`` to all three emitting directories, because
+    `tools/build_subset_panel.py` was calling builtin `hash()` where nothing was looking. Measured:
+    narrowing SCAN_ROOTS back to ``("mamey",)`` and restoring that exact defect left both ratchets
+    below GREEN. The verdict was pinned; the scope was not. Both are the invariant.
+    """
+    counts = {root: sum(1 for _ in (ROOT / root).rglob("*.py")) for root in SCAN_ROOTS}
+    for root in DECLARED_EMITTING_ROOTS:
+        assert root in SCAN_ROOTS, (
+            f"SCAN_ROOTS no longer covers {root!r}; the v9.7.438 widening has been reverted and "
+            f"these ratchets are now blind to it. SCAN_ROOTS={SCAN_ROOTS}")
+        assert counts.get(root, 0) > 0, (
+            f"SCAN_ROOTS names {root!r} but no .py file was found under it — the scan is "
+            f"examining nothing there. counts={counts}")
+
+# Subprocess renders cost ~0.4 s each; three seeds is ample to catch per-process
+# randomisation and keeps these guards inside the fast partition (measured, not named).
+RENDER_SEEDS = ("0", "1", "2")
+
+
+def _under_seeds(code: str, seeds: tuple[str, ...] = SEEDS) -> list[str]:
     """Run `code` once per hash seed in a fresh interpreter; return the stdout of each."""
     outs = []
-    for seed in SEEDS:
+    for seed in seeds:
         env = {**os.environ, "PYTHONHASHSEED": seed}
         r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
                            cwd=str(ROOT), env=env, timeout=120)
@@ -195,11 +232,21 @@ def test_no_bare_set_iteration_in_emitting_engine_paths():
     """Ratchet: the engine must not reintroduce bare `for x in set(...)` where the loop body
     feeds emitted output. Kept as an explicit allowlist so a new instance is a deliberate,
     reviewed decision rather than a silent regression."""
+    _assert_scan_scope_is_intact()
     import ast
     allow = {
         # order never reaches an artifact: every consumer of trigger_bgc_counts reads it by
         # key (external_adapters.py, cli.py), so the Counter's insertion order is not emitted.
         "mamey/source_scans.py",
+        # v9.7.438, checked when the scan widened past mamey/:
+        # plan_gtotree_iqtree.py:317 increments linked_counts, which is pre-seeded at :282 from
+        # the ordered query_ids list -- the set only chooses WHICH existing keys increment, never
+        # insertion order, and :335 reads it by key.
+        "tools/plan_gtotree_iqtree.py",
+        # build_portfolio.py:41 does feed a set's order into the families/tailoring dicts that
+        # reach the rendered portfolio, but that exact path already has a behavioural cross-seed
+        # test (deliverable_tools/strain_portfolio/test_portfolio.py::test_cross_process_hash_seed).
+        "deliverable_tools/strain_portfolio/build_portfolio.py",
     }
 
     def _is_bare_set_call(node) -> bool:
@@ -207,7 +254,7 @@ def test_no_bare_set_iteration_in_emitting_engine_paths():
                 and node.func.id == "set")
 
     offenders = []
-    for py in sorted((ROOT / "mamey").rglob("*.py")):
+    for py in sorted(q for root in SCAN_ROOTS for q in (ROOT / root).rglob("*.py")):
         rel = py.relative_to(ROOT).as_posix()
         if "_vendor" in rel or rel in allow:
             continue
@@ -220,5 +267,94 @@ def test_no_bare_set_iteration_in_emitting_engine_paths():
         for node in ast.walk(tree):
             if isinstance(node, ast.For) and _is_bare_set_call(node.iter):
                 offenders.append(f"{rel}:{node.lineno}")
-    assert not offenders, ("bare set() iteration in engine code — wrap in sorted() if the "
+    assert not offenders, ("bare set() iteration in emitting code — wrap in sorted() if the "
                            f"result reaches output, or allowlist with a reason: {offenders}")
+
+
+# --- v9.7.438: builtin hash() is the other PYTHONHASHSEED dependency -----------------------
+
+_PANEL_ROWS = (
+    "rows = [{'sid': f'AS-{i:03d}', 'region': f'region{i % 4:03d}',\n"
+    "         'genus': 'Streptomyces' if i % 2 else 'Nocardia',\n"
+    "         'kb': 20 + i, 'tier': 'Confirmed'} for i in range(12)]\n"
+)
+
+
+def test_subset_panel_renders_identical_bytes_across_hash_seeds(tmp_path):
+    """The rendered panel's bytes must not depend on the interpreter's hash seed.
+
+    (Named without the word "figure": conftest classifies any node id containing it as slow.
+    The render is deliberately kept here in the fast partition -- it costs ~0.4 s per seed,
+    and a determinism guard that only runs under --run-slow is the defect it is guarding.)
+
+    Reproduced on pristine v9.7.437: four seeds, four different SHA-256 digests from one
+    identical row set. The tool is loaded by path rather than imported, so this module keeps
+    no module-level matplotlib import.
+    """
+    code = (
+        "import importlib.util, hashlib, pathlib, sys\n"
+        f"root = pathlib.Path({str(ROOT)!r})\n"
+        "spec = importlib.util.spec_from_file_location(\n"
+        "    'bsp', root / 'tools' / 'build_subset_panel.py')\n"
+        "mod = importlib.util.module_from_spec(spec)\n"
+        "spec.loader.exec_module(mod)\n"
+        + _PANEL_ROWS +
+        f"out = pathlib.Path({str(tmp_path)!r}) / 'panel.png'\n"
+        "mod.plot(rows, 'determinism probe', 'claim ceiling', str(out))\n"
+        "print(hashlib.sha256(out.read_bytes()).hexdigest())\n"
+    )
+    digests = _under_seeds(code, RENDER_SEEDS)
+    assert len(set(digests)) == 1, (
+        "subset panel PNG bytes vary with PYTHONHASHSEED — jitter must come from a stable "
+        f"digest, not builtin hash(): {sorted(set(d.strip() for d in digests))}")
+
+
+def test_subset_panel_jitter_step_is_stable_and_in_range():
+    """The replacement jitter must be reproducible AND keep the original -4..+4 lane spread."""
+    code = (
+        "import importlib.util, json, pathlib\n"
+        f"root = pathlib.Path({str(ROOT)!r})\n"
+        "spec = importlib.util.spec_from_file_location(\n"
+        "    'bsp', root / 'tools' / 'build_subset_panel.py')\n"
+        "mod = importlib.util.module_from_spec(spec)\n"
+        "spec.loader.exec_module(mod)\n"
+        "keys = [f'AS-{i:03d}region{i % 4:03d}' for i in range(40)]\n"
+        "print(json.dumps([mod.stable_jitter_step(k) for k in keys]))\n"
+    )
+    outs = _under_seeds(code, RENDER_SEEDS)
+    assert len(set(outs)) == 1, f"stable_jitter_step varies with hash seed: {set(outs)}"
+    steps = json.loads(outs[0])
+    assert all(0 <= s < 9 for s in steps), f"jitter step left the 0..8 band: {sorted(set(steps))}"
+    assert len(set(steps)) > 1, "jitter collapsed to a single step — the spread is gone"
+
+
+def test_no_builtin_hash_in_emitting_paths():
+    """Ratchet: builtin `hash()` is per-process randomised for str/bytes and must never reach an
+    emitted coordinate, ordering, filename or receipt. Allowlist entries state why they are safe.
+
+    This is the sibling of the bare-set() ratchet above. Before v9.7.438 neither covered
+    `tools/`, which is where `build_subset_panel.py` had been calling `hash()` on a strain id.
+    """
+    _assert_scan_scope_is_intact()
+    import ast
+    allow = {
+        # hashability PROBE inside a try/except -- the value is discarded, never emitted.
+        # tools/check_duplicate_dict_keys.py:91, `hash(v)` used only to reject unhashable keys.
+        "tools/check_duplicate_dict_keys.py",
+    }
+    offenders = []
+    for py in sorted(q for root in SCAN_ROOTS for q in (ROOT / root).rglob("*.py")):
+        rel = py.relative_to(ROOT).as_posix()
+        if "_vendor" in rel or rel in allow:
+            continue
+        try:
+            tree = ast.parse(py.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError:                       # not our invariant to enforce
+            continue
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id == "hash"):
+                offenders.append(f"{rel}:{node.lineno}")
+    assert not offenders, (
+        "builtin hash() in emitting code — use hashlib (blake2b/sha256) if the value reaches "
+        f"output, or allowlist with a reason: {offenders}")

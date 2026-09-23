@@ -36,6 +36,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 import sys
 from mamey.workspace_root import workspace_root
 from mamey.csv_safety import SafeDictWriter
+from mamey.path_safety import safe_label  # v9.7.438: output-label containment
 try:
     from _console import emit
 except ImportError:  # foreign-cwd import: tools/ not on sys.path
@@ -1241,7 +1242,11 @@ def cmd_report(a):
     grp = "unknown"
     pj = os.path.join(os.path.dirname(a.jplace), "_provenance.json")
     if os.path.exists(pj):
-        grp = json.load(open(pj)).get("group", "unknown")
+        # v9.7.438: `grp` is read from a file on disk, not typed by the operator, and it names
+        # seven outputs below. A group of `../..` placed all seven outside --outdir. Fail closed
+        # on the value rather than silently relocating a placement report.
+        grp = safe_label(json.load(open(pj)).get("group", "unknown"),
+                         field=f"group in {os.path.basename(pj)}")
     # 1) grafted tree: queries attached to the backbone (the picture)
     from tools.graft_integrity import generate_checked_graft
     graft = generate_checked_graft(gappa, a.jplace, outdir, _env(PLACEMENT_BIN))

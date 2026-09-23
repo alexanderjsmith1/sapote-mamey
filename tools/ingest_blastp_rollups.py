@@ -106,7 +106,9 @@ def main(argv=None) -> int:
 
     try:
         cursor = connection.cursor()
-        have = set(cursor.execute("SELECT strain, channel, gene FROM hits"))
+        have = set(cursor.execute(
+            "SELECT strain, channel, gene, hit_rank, COALESCE(subject_acc, '') FROM hits"
+        ))
         ingested_source_files = {
             str(row[0]) for row in cursor.execute("SELECT DISTINCT source_file FROM hits")
         }
@@ -116,14 +118,15 @@ def main(argv=None) -> int:
         files = sorted(set(files))
 
         added: defaultdict[str, int] = defaultdict(int)
-        newkeys: set[tuple[str, str, str]] = set()
+        newkeys: set[tuple[str, str, str, int | None, str]] = set()
         batch: list[tuple[object, ...]] = []
-        skipped_files = 0
+        previously_seen_files = 0
         for path in files:
             rel = os.path.relpath(path, root)
             if rel in ingested_source_files:
-                skipped_files += 1
-                continue
+                # A recorded source path proves at least one row was stored, not that every
+                # hit rank was imported or that a runner has finished adding rows to the file.
+                previously_seen_files += 1
             mtime = time.strftime(
                 "%Y-%m-%d %H:%M:%S", time.localtime(path.stat().st_mtime)
             )
@@ -150,7 +153,9 @@ def main(argv=None) -> int:
                     )
                 if not strain or not gene:
                     continue
-                key = (strain, channel, gene)
+                hit_rank = _num(row.get("hit_rank"), int)
+                subject_acc = (row.get("subject_acc") or "").strip()
+                key = (strain, channel, gene, hit_rank, subject_acc)
                 if key in have or key in newkeys:
                     continue
                 newkeys.add(key)
@@ -164,8 +169,8 @@ def main(argv=None) -> int:
                         _num(row.get("aa_length"), int),
                         row.get("role") or "",
                         row.get("domains") or "",
-                        _num(row.get("hit_rank"), int),
-                        (row.get("subject_acc") or "").strip(),
+                        hit_rank,
+                        subject_acc,
                         row.get("subject_organism") or "",
                         row.get("subject_def") or "",
                         (row.get("subject_db") or (implied[1] if implied else "")),
@@ -182,7 +187,7 @@ def main(argv=None) -> int:
                     )
                 )
 
-        emit(f'rollup files found: {len(files)}  (already-ingested source_files skipped: {skipped_files})', f'NEW (strain,channel,gene) rows to add: {len(batch)}  across {len(added)} strains', sep="\n")
+        emit(f'rollup files found: {len(files)}  (previously seen sources rescanned: {previously_seen_files})', f'NEW (strain,channel,gene,hit_rank,subject_acc) rows to add: {len(batch)}  across {len(added)} strains', sep="\n")
         for strain in sorted(added):
             emit(f"   {strain}: +{added[strain]}")
         if args.execute:

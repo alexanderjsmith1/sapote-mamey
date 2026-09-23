@@ -109,6 +109,9 @@ def _index() -> dict[str, dict[str, Any]]:
             if idx:
                 return idx
         except Exception:
+            # Optional engine resolver first, local index second: this is a fallback chain, not a
+            # dropped error. If the resolver is absent or its private loader changed, fall through
+            # to the local load below, which is the documented behaviour.
             pass
     idx: dict[str, dict[str, Any]] = {}
     for d in _local_npatlas_dirs():
@@ -131,8 +134,11 @@ def _index() -> dict[str, dict[str, Any]]:
                         sk = str(s).strip().lower()
                         if sk and sk not in idx:
                             idx[sk] = c
-                except Exception:
-                    pass
+                except (ValueError, TypeError):
+                    # Malformed synonyms JSON for this one compound: the compound is still indexed
+                    # by its primary name above; only its synonym keys are skipped. Per-compound in
+                    # a large loop, so skip quietly rather than emit thousands of lines.
+                    continue
     return idx
 
 
@@ -151,6 +157,8 @@ def _conservative_lookup(name: str) -> dict[str, Any] | None:
             if rec:
                 return rec
         except Exception:
+            # Fallback chain (vetted engine matcher first, local exact lookup second): a resolver
+            # that is absent or raises falls through to the local lookup below, by design.
             pass
     return _index().get(name.strip().lower())
 

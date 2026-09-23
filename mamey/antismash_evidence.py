@@ -1236,8 +1236,11 @@ def _kcb_recycling_audit(bgcs, evidence: dict[str, Any]) -> None:
             try:
                 if abs(float(m.group(1)) - float(score)) < 1e-6:
                     accession_tail_hits.append(b.bgc_id)
-            except Exception:
-                pass
+            except (TypeError, ValueError) as exc:
+                sys.stderr.write(
+                    f"antismash_evidence: cannot compare accession tail for {b.bgc_id}; "
+                    f"omitting it from the KCB assignment audit ({type(exc).__name__}: {exc})\n"
+                )
 
     evidence["kcb_assignment_audit"] = {
         "assigned_bgcs": total,

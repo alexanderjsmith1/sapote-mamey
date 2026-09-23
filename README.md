@@ -95,7 +95,9 @@ The program was occasionally tested with other bacterial orders, and several bas
 **Protein evidence.** Mamey extracts translated CDS sequences from antiSMASH region GenBank
 files. `bgc-blastp-panel` exports representative proteins as FASTA batches for a manual BLASTp
 search. `blastp-online` submits a selected region's proteins to NCBI; `blastp-round` plans broader
-coverage before submission; `auto-blastp` is a resumable scheduler. Import saved hit tables with
+coverage before submission; `auto-blastp` is a resumable scheduler that defaults to a local plan.
+Live scheduling requires `--submit --confirm-public-sequence-upload`; the acknowledgement states
+that the selected sequences may be disclosed to NCBI. Import saved hit tables with
 `ingest-blastp`. Before you revise a functional call, compare hit identity, alignment coverage,
 protein length, domains and neighbouring genes. Keep each search database and its provenance
 with the result. See the [protein-search walkthrough](docs/GUIDE/02_Quick_Guide.md#protein-search-and-result-import).
@@ -332,4 +334,4 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.437 / engine 1.9.167 · build 20260921v97437a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.440 / engine 1.9.169 · build 20260922v97440a · release profile: CODE (see RELEASE_MANIFEST.md)*

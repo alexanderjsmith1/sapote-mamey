@@ -66,3 +66,36 @@ def test_schema_gate_refuses_unreadable_manifest(tmp_path):
     (package / "manifest.json").write_text("{invalid json", encoding="utf-8")
     with pytest.raises(SystemExit, match="cannot read manifest"):
         ingest._schema_gate(str(package), str(tmp_path / "bank"), force=True)
+
+
+def test_schema_gate_refuses_a_divergent_cohort_version(tmp_path):
+    """The divergence branch — the gate's whole purpose — was never exercised.
+
+    The existing coverage in this file calls ``_schema_gate(..., force=True)`` and only reaches
+    the unreadable-manifest path. Measured with the mutation-probe: replacing
+    ``if banked != incoming:`` with ``if False:`` left every test green while a package banked at
+    one schema version accepted a package built at another. The docstring's promise — "divergent-
+    schema sources can't be silently concatenated" — had nothing holding it.
+    """
+    package = tmp_path / "package"
+    package.mkdir()
+    (package / "manifest.json").write_text(json.dumps({"workflow_version": "9.9.999"}))
+    bank = tmp_path / "bank"
+    bank.mkdir()
+    (bank / "SCHEMA_VERSION").write_text("1.1.111\n")
+
+    with pytest.raises(SystemExit) as excinfo:
+        ingest._schema_gate(str(package), str(bank), force=False)
+    assert excinfo.value.code == 2
+
+
+def test_schema_gate_admits_a_matching_cohort_version(tmp_path):
+    """Guard against an over-eager refusal: an agreeing version must proceed."""
+    package = tmp_path / "package"
+    package.mkdir()
+    (package / "manifest.json").write_text(json.dumps({"workflow_version": "1.1.111"}))
+    bank = tmp_path / "bank"
+    bank.mkdir()
+    (bank / "SCHEMA_VERSION").write_text("1.1.111\n")
+
+    ingest._schema_gate(str(package), str(bank), force=False)   # must not raise

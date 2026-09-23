@@ -94,8 +94,11 @@ def _load_denylist():
                 t = line.strip()
                 if t and not t.startswith("#"):
                     terms.append(t)
-    except FileNotFoundError:
-        pass
+    except FileNotFoundError as exc:
+        sys.stderr.write(
+            f"audit_public_cut: release denylist is absent at {DENYLIST_PATH}; continuing with "
+            f"built-in checks only ({exc})\n"
+        )
     return terms
 
 

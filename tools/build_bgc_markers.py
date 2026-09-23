@@ -136,9 +136,7 @@ def main():
         json.dump(markers, fh)
     os.replace(_tmp, _out)
     covered=set(markers.keys())
-    emit(f"bgc_markers.json: {len(covered)}/{len(all_sids)} strains have per-BGC markers", f"  from packages: {len(from_pkg)} | from bgc_profile fallback: {len(from_profile)}", f"  strains with NO markers: {sorted(all_sids-covered)}", sep="\n")
-    # enediyne sanity
     ene=[(s,b) for s,bb in markers.items() for b,m in bb.items() if 'enediyne' in m['cctt'] or 'enediyne' in m['tigrfam']]
-    emit(f"  enediyne-marked BGCs cohort-wide: {len(ene)} (incl SID-XXX: {[b for s,b in ene if s=='SID-XXX']})")
+    emit(f"bgc_markers.json: {len(covered)}/{len(all_sids)} strains have per-BGC markers", f"  from packages: {len(from_pkg)} | from bgc_profile fallback: {len(from_profile)}", f"  strains with NO markers: {sorted(all_sids-covered)}", f"  enediyne-marked BGCs cohort-wide: {len(ene)} (incl SID-XXX: {[b for s,b in ene if s=='SID-XXX']})", sep="\n")
 
 if __name__=='__main__': main()

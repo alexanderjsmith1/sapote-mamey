@@ -75,7 +75,7 @@ Each item must be ✅ (confirmed) or explicitly documented as a known limitation
 
 ---
 
-*Sapote-Mamey Bundle v9.7.437 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*
+*Sapote-Mamey Bundle v9.7.440 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*
 
 ## Gate — Master Schema Conformance (FROZEN v1.1, added 2026-06-09)
 - [ ] Any artifact identifying as `workbook_type = MASTER_STRAIN_WORKBOOK` conforms to the frozen canonical schema (codes A1–A4, B1–B12, C1–C3, D1–D4, F1–F2, G1–G2, H1–H3; column names per `MASTER_SCHEMA_FROZEN_v1_1.md`). Per-strain (§57) and custom workbooks are EXEMPT.

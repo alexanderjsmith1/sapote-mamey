@@ -73,7 +73,11 @@ def _widget(package_names):
                 "NRPS": {"total": 1, "edge": 1, "full": 0, "interior": 0},
                 "RiPP": {"total": 1, "edge": 0, "full": 0, "interior": 1},
             },
-            "machinery": {"Biosynthetic core": [300], "Regulatory": [300]},
+            "machinery": {
+                "Biosynthetic core": [300],
+                "Biosynthetic additional": [280],
+                "Regulatory": [300],
+            },
             "hostContext": {"group": groups[index], "source": "test" if index == 0 else "", "hostSpecies": "bee" if index == 0 else "", "location": "x" if index == 0 else ""},
         }
     return {"meta": {"sourceRelease": "synthetic"}, "strains": strains}

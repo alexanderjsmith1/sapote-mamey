@@ -15,6 +15,7 @@ from mamey.collection_figures import (
 )
 
 
+@pytest.mark.slow  # measured 2.5 s on 2026-09-21
 def test_manifest_covers_all_registry_figures(tmp_path):
     """Every spec in the registry should appear in the manifest."""
     rows = [{"strain_id": f"AS-{i}", "genus": "Streptomyces",

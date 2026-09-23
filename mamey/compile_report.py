@@ -954,6 +954,7 @@ def _svg_to_pdf(src: "Path", dst: "Path") -> bool:
         cairosvg.svg2pdf(url=str(src), write_to=str(dst))
         return dst.exists() and dst.stat().st_size > 0
     except Exception:
+        # CairoSVG is optional; the converter chain below preserves vector-PDF fallback behavior.
         pass
     for conv in (["rsvg-convert", "-f", "pdf", "-o", str(dst), str(src)],
                  ["inkscape", str(src), "--export-type=pdf", f"--export-filename={dst}"]):

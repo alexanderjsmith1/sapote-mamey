@@ -2529,9 +2529,11 @@ def ingest_receipts_command(args) -> int:
     if auto:
         force_structure = bool(getattr(args, "force_structure", False))
         summary = auto_detect_ingest(pkg, force_structure=force_structure)
-        emit(f"Auto-detect ingest for {summary['strain_id']}:", f"  scanned:           {summary['scanned_count']} *_mode_b.md card(s) in judgment/", sep="\n")
-        emit(f"  recorded:          {len(summary['recorded'])} -> "
-              f"{', '.join(summary['recorded']) or '(none)'}")
+        emit(f"Auto-detect ingest for {summary['strain_id']}:",
+             f"  scanned:           {summary['scanned_count']} *_mode_b.md card(s) in judgment/",
+             f"  recorded:          {len(summary['recorded'])} -> "
+             f"{', '.join(summary['recorded']) or '(none)'}",
+             sep="\n")
         if summary.get("recorded_with_structure_override"):
             emit(f"  recorded w/ override: "
                   f"{', '.join(summary['recorded_with_structure_override'])}  "

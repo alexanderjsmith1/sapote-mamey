@@ -89,10 +89,16 @@ generated block" failures that look alarming but are just sequencing, not real d
 6. `python3 tools/render_bootstrap_contract.py --apply` — **after** step 4, not instead of it; this
    regenerates the "generated block" sections (`AGENTS.md`'s initiation prompt and known-
    gotchas section, `docs/BOOTSTRAP_FILE_AUDIT.md`) that step 4's plain regex substitutions don't reach.
-7. Run the full suite and retain its complete green log. Then run
-   `python3 tools/gen_release_manifest.py --apply --pytest-log <path to that fresh full-suite log>`.
-   The `--tests-passed N --tests-skipped M` flags exist too, but the release-cut path requires the
-   actual log so a red or stale suite cannot be restated as passing evidence.
+   Then regenerate every other version-bearing generated surface with
+   `python3 tools/gen_command_catalog.py`, `python3 tools/generate_deliverables_menu.py --apply`,
+   and `python3 tools/gen_tools_inventory.py`; `release_cut.sh` performs all four regenerations.
+7. Refresh the source-stage `TIER_MANIFEST.txt` and `SOURCE_CHECKSUMS_SHA256.txt`, then run the full
+   suite once to measure the stale-manifest baseline. Run `gen_release_manifest.py --fixed-point`
+   with that run's measured pass/skip counts, refresh source integrity again, and run the complete
+   suite a second time. The second run must be green. Bind only that complete green log with
+   `python3 tools/gen_release_manifest.py --apply --pytest-log <path to final green log>`, then
+   refresh source integrity once more. The first run is a convergence seed and never authorizes a
+   package; `release_cut.sh` performs this sequence automatically.
 8. Re-run `sync_version --check`, `render_bootstrap_contract --check`, and `gen_release_manifest
    --check` — all three green before proceeding.
 9. Run `python3 tools/verify_release_identity.py --root . --strict-membership`; the cut must

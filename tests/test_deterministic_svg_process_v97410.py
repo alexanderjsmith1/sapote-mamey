@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import hashlib
 import json
 import os
@@ -69,6 +70,7 @@ def _run(source_root: Path, output: Path) -> dict:
     return json.loads(completed.stdout)
 
 
+@pytest.mark.slow  # measured 23.4 s on 2026-09-21
 def test_canonical_save_is_byte_stable_across_processes_without_rc_leak(tmp_path: Path) -> None:
     source_root = _source_root()
     left = tmp_path / "left"

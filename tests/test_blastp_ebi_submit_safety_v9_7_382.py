@@ -43,7 +43,8 @@ def test_active_jobs_block_new_transaction(tmp_path):
         "jobs": {"lt0": "ebi-job-123"}, "results": {"lt0": None},
     }))
     with pytest.raises(ValueError, match="already submitted and not yet\\s+harvested"):
-        blastp_ebi.submit_ebi(_fasta(tmp_path, 2), str(state), email="user@institution.edu")
+        blastp_ebi.submit_ebi(_fasta(tmp_path, 2), str(state), email="user@institution.edu",
+                              confirm_public_upload=True)
 
 
 def test_valid_bounded_submission(tmp_path, monkeypatch):
@@ -53,6 +54,7 @@ def test_valid_bounded_submission(tmp_path, monkeypatch):
         return "ebi-job-" + payload["sequence"].split("\n")[0].lstrip(">")
     monkeypatch.setattr(blastp_ebi, "_post", fake_post)
     d = blastp_ebi.submit_ebi(_fasta(tmp_path, 2), str(tmp_path / "s.json"),
-                              email="user@institution.edu", throttle_sleep=lambda _s: None)
+                              email="user@institution.edu", confirm_public_upload=True,
+                              throttle_sleep=lambda _s: None)
     assert sum(1 for j in d["jobs"].values() if j and not str(j).startswith("ERR")) == 2
     assert calls == ["user@institution.edu", "user@institution.edu"]  # real email, never a placeholder

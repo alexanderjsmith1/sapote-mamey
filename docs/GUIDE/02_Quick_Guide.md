@@ -1,6 +1,6 @@
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.437 / engine Mamey 1.9.167
+**Version:** v9.7.440 / engine Mamey 1.9.169
 
 Mamey extracts deterministic evidence from antiSMASH output. Sapote turns a validated evidence
 package into governed interpretation. Start at the [README](../../README.md). If you work through a
@@ -207,8 +207,12 @@ python mamey_run.py blastp-round --package analysis/runs/EXAMPLE/package \
   --outdir analysis/blastp_plan
 ```
 
-Inspect the plan before you add `--run`. For resumable scheduling, start with `auto-blastp --help`
-and its `--dry-run` option. Confirm that the channel you chose is actually reachable; nr,
+Inspect the plan before you add `--run --confirm-public-sequence-upload`; the second flag records
+that the planned sequences may be disclosed to NCBI. For resumable scheduling, start with
+`auto-blastp --help` and its default local plan (`--dry-run` is also supported). Live scheduling requires both
+`--submit` and `--confirm-public-sequence-upload`; only acknowledge sequences you may disclose to
+NCBI. Each submitted batch reports its endpoint, database, protein count, and sequence SHA-256
+before transport. Confirm that the channel you chose is actually reachable; nr,
 ClusteredNR and local Swiss-Prot are separate evidence channels.
 
 To import saved NCBI hit tables into an existing project master and the matching package overlay:

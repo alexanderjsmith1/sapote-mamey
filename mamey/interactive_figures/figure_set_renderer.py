@@ -121,6 +121,24 @@ def _median(values: Iterable[float]) -> float:
     return float(statistics.median(seq)) if seq else 0.0
 
 
+def _median_or_none(values: Iterable[float]):
+    """Median, or None when there is nothing to take a median of.
+
+    v9.7.438. `_median` returns 0.0 for empty input. Wherever the result is plotted next to a
+    COUNT that is also zero the reader can still tell absence from measurement -- a strain at
+    (0 genes, 0) is visibly a no-data strain. Where the count is not carried, that 0.0 becomes a
+    data point at the origin and absence is indistinguishable from a measurement.
+
+    A protein cannot be 0 aa, so every point FS042 drew on an axis was necessarily absent data
+    rendered as present, and an empty FS045 cell read as *shortest* on the colour scale rather
+    than *absent*. Assay-style states do not get coerced into one another anywhere else in this
+    project, and a figure is not an exception.
+
+    Callers that plot a bare median use this and handle None explicitly."""
+    seq = list(values)
+    return float(statistics.median(seq)) if seq else None
+
+
 def _quantile(values: Iterable[float], q: float) -> float:
     seq = sorted(float(v) for v in values)
     if not seq:
@@ -341,15 +359,27 @@ def build_charts(payload: dict[str, Any], all_ids: Sequence[str], governed: Sequ
                         {"series": "role", "value": "length_aa", "x_label": "Protein length (aa)", "max": 3000,
                          "rate_denominator_field": "role_genes", "rate_denominator_unit": "deduplicated machinery-role genes"}))
 
-    median_rows = []
+    median_rows, no_machinery_data = [], []
     for sid in governed:
         machinery = strains[sid].get("machinery") or {}
-        median_rows.append({"strain": sid,
-                            "core_median_aa": _median(machinery.get("Biosynthetic core", [])),
-                            "additional_median_aa": _median(machinery.get("Biosynthetic additional", [])),
-                            "host": _host(strains[sid])})
+        core = _median_or_none(machinery.get("Biosynthetic core", []))
+        extra = _median_or_none(machinery.get("Biosynthetic additional", []))
+        # Both axes are medians and neither carries a count, so a strain missing either role has
+        # no honest position on this plot. It is named in the caption instead of being drawn at
+        # the origin, where it would be indistinguishable from a measured zero.
+        if core is None or extra is None:
+            no_machinery_data.append(sid)
+            continue
+        median_rows.append({"strain": sid, "core_median_aa": core,
+                            "additional_median_aa": extra, "host": _host(strains[sid])})
+    _fs042_note = ("Every strain is labelled; axes show within-strain medians for two declared "
+                   "machinery roles")
+    if no_machinery_data:
+        _fs042_note += (f"; {len(no_machinery_data)} strain(s) have no declared genes for one or "
+                        f"both roles and are omitted rather than drawn at zero "
+                        f"({', '.join(sorted(no_machinery_data))})")
     charts.append(Chart("FS042", "scatter", "Machinery gene length — every governed strain",
-                        "Every strain is labelled; axes show within-strain medians for two declared machinery roles", median_rows,
+                        _fs042_note, median_rows,
                         {"x": "core_median_aa", "y": "additional_median_aa", "label": "strain",
                          "x_label": "Core median length (aa)", "y_label": "Additional median length (aa)"}))
 
@@ -362,14 +392,26 @@ def build_charts(payload: dict[str, Any], all_ids: Sequence[str], governed: Sequ
                         "Median and interquartile range of deduplicated physical CDS lengths", role_ranges,
                         {"category": "role", "low": "q1", "mid": "median", "high": "q3", "x_label": "Protein length (aa)"}))
 
-    host_length_rows = []
+    host_length_rows, omitted_cells = [], []
     for group in HOST_ORDER:
         ids = [sid for sid in governed if _host(strains[sid]) == group]
         for role in ROLE_ORDER:
             values = _role_values(strains, ids, role)
-            host_length_rows.append({"host": group, "role": ROLE_SHORT[role], "median_aa": _median(values), "genes": len(values)})
+            # An empty cell drawn as 0 aa reads as *shortest* on a colour scale, not *absent*.
+            # The renderer fails closed on a missing numeric (FIGURE_DATA_MISSING_VALUE), so the
+            # honest encoding is to OMIT the row: the host/role combination then has no cell at
+            # all, rather than a cell claiming a measurement that was never made.
+            if not values:
+                omitted_cells.append(f"{group}/{ROLE_SHORT[role]}")
+                continue
+            host_length_rows.append({"host": group, "role": ROLE_SHORT[role],
+                                     "median_aa": _median(values), "genes": len(values)})
+    _fs045_note = ("Cells are pooled-gene medians; unresolved host context remains a separate row")
+    if omitted_cells:
+        _fs045_note += (f"; {len(omitted_cells)} host/role combination(s) have no genes and are "
+                        f"left without a cell rather than drawn as zero ({', '.join(omitted_cells)})")
     charts.append(Chart("FS045", "heatmap", "Machinery length by host cohort and role",
-                        "Cells are pooled-gene medians; unresolved host context remains a separate row", host_length_rows,
+                        _fs045_note, host_length_rows,
                         {"row": "host", "column": "role", "value": "median_aa", "legend": "Median protein length (aa)"}))
 
     ceiling_rows = []
@@ -497,6 +539,16 @@ def _ticks(maximum: float, count: int = 5) -> list[float]:
     return [maximum * i / count for i in range(count + 1)]
 
 
+
+def _tick_labels(values: Sequence[float]) -> list[str]:
+    """Use enough significant digits to distinguish distinct tick coordinates."""
+    for precision in range(6, 18):
+        labels = [format(value, f".{precision}g") for value in values]
+        if len(set(labels)) == len(set(values)):
+            return labels
+    return [repr(value) for value in values]
+
+
 def _render_bar(chart: Chart, paired: bool = False) -> str:
     rows = chart.rows
     cat = chart.config["category"]
@@ -538,7 +590,9 @@ def _render_scatter(chart: Chart) -> str:
     left, right, top, bottom = 112, 315, 118, 96
     plot_w, plot_h = width-left-right, height-top-bottom
     xk, yk, labelk = chart.config["x"], chart.config["y"], chart.config["label"]
-    xs = [float(r[xk]) for r in chart.rows]; ys = [float(r[yk]) for r in chart.rows]
+    plotted = [r for r in chart.rows if r[xk] is not None and r[yk] is not None]
+    missing = [r for r in chart.rows if r[xk] is None or r[yk] is None]
+    xs = [float(r[xk]) for r in plotted]; ys = [float(r[yk]) for r in plotted]
     xmin, xmax = min(xs, default=0), max(xs, default=1); ymin, ymax = min(ys, default=0), max(ys, default=1)
     if xmax == xmin: xmax = xmin + 1
     if ymax == ymin: ymax = ymin + 1
@@ -553,11 +607,13 @@ def _render_scatter(chart: Chart) -> str:
     def xp(v): return left + (v-xmin)/(xmax-xmin)*plot_w
     def yp(v): return top + plot_h - (v-ymin)/(ymax-ymin)*plot_h
     parts = [f'<line x1="{left}" y1="{top+plot_h}" x2="{left+plot_w}" y2="{top+plot_h}" stroke="#8c98a4"/><line x1="{left}" y1="{top}" x2="{left}" y2="{top+plot_h}" stroke="#8c98a4"/>']
-    for tick in _ticks(xmax-xmin):
-        value=xmin+tick; x=xp(value); parts.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{top+plot_h}" stroke="#e8ecef"/><text x="{x:.1f}" y="{top+plot_h+20}" text-anchor="middle" font-family="Arial" font-size="9">{value:.0f}</text>')
-    for tick in _ticks(ymax-ymin):
-        value=ymin+tick; y=yp(value); parts.append(f'<line x1="{left}" y1="{y:.1f}" x2="{left+plot_w}" y2="{y:.1f}" stroke="#e8ecef"/><text x="{left-9}" y="{y+3:.1f}" text-anchor="end" font-family="Arial" font-size="9">{value:.0f}</text>')
-    points = sorted([(xp(float(r[xk])), yp(float(r[yk])), str(r[labelk]), r) for r in chart.rows], key=lambda p:(p[0],p[1],p[2]))
+    xvalues = [xmin + tick for tick in _ticks(xmax-xmin)]
+    for value, label in zip(xvalues, _tick_labels(xvalues)):
+        x=xp(value); parts.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{top+plot_h}" stroke="#e8ecef"/><text x="{x:.1f}" y="{top+plot_h+20}" text-anchor="middle" font-family="Arial" font-size="9">{label}</text>')
+    yvalues = [ymin + tick for tick in _ticks(ymax-ymin)]
+    for value, label in zip(yvalues, _tick_labels(yvalues)):
+        y=yp(value); parts.append(f'<line x1="{left}" y1="{y:.1f}" x2="{left+plot_w}" y2="{y:.1f}" stroke="#e8ecef"/><text x="{left-9}" y="{y+3:.1f}" text-anchor="end" font-family="Arial" font-size="9">{label}</text>')
+    points = sorted([(xp(float(r[xk])), yp(float(r[yk])), str(r[labelk]), r) for r in plotted], key=lambda p:(p[0],p[1],p[2]))
     # Reserve every point before placing any label so text does not cover a
     # neighboring node. Labels may sit to the right or left and move only up or
     # down; no leader lines or remote label rails are used.
@@ -604,14 +660,18 @@ def _render_scatter(chart: Chart) -> str:
     if chart.config.get("highlight"):
         parts.append(f'<circle cx="{left+plot_w-205}" cy="{top-26}" r="6" fill="{COLORS[4]}"/><circle cx="{left+plot_w-205}" cy="{top-26}" r="8" fill="none" stroke="{COLORS[4]}" stroke-width="1.8"/><text x="{left+plot_w-191}" y="{top-22}" font-family="Arial" font-size="10" font-weight="700">Ledger-declared lead context</text>')
     parts.extend([f'<text x="{left+plot_w/2}" y="{height-42}" text-anchor="middle" font-family="Arial" font-size="11">{_esc(chart.config["x_label"])}</text>',f'<text x="24" y="{top+plot_h/2}" transform="rotate(-90 24 {top+plot_h/2})" text-anchor="middle" font-family="Arial" font-size="11">{_esc(chart.config["y_label"])}</text>'])
+    for i, row in enumerate(missing):
+        parts.append(f'<text x="{left}" y="{height + 18*i}" font-family="Arial" font-size="10">{_esc(row[labelk])}: missing coordinates; not plotted</text>')
+    if missing:
+        height += 18 * len(missing) + 18
     return _base_svg(chart.title, chart.subtitle, width, height, "".join(parts))
 
 
 def _render_heatmap(chart: Chart, states: bool = False) -> str:
     rk, ck, vk = chart.config["row"], chart.config["column"], chart.config["value"]
     row_labels=list(dict.fromkeys(str(r[rk]) for r in chart.rows)); col_labels=list(dict.fromkeys(str(r[ck]) for r in chart.rows))
-    lookup={(str(r[rk]),str(r[ck])):float(r[vk]) for r in chart.rows}
-    values=list(lookup.values()); vmax=max([v for v in values if v>0],default=1)
+    lookup={(str(r[rk]),str(r[ck])):(None if r[vk] is None else float(r[vk])) for r in chart.rows}
+    values=list(lookup.values()); vmax=max([v for v in values if v is not None and v>0],default=1)
     cell_w=max(68,min(150,780//max(1,len(col_labels)))); cell_h=max(18,min(30,600//max(1,len(row_labels))))
     left,top=235,180; width=left+cell_w*len(col_labels)+150; height=top+cell_h*len(row_labels)+85
     parts=[]
@@ -638,11 +698,15 @@ def _render_heatmap(chart: Chart, states: bool = False) -> str:
 
 def _render_dot_range(chart: Chart) -> str:
     rows=chart.rows; cat=chart.config["category"]; low=chart.config["low"]; mid=chart.config["mid"]; high=chart.config["high"]
-    highs=[float(r[high]) for r in rows]
+    highs=[float(r[high]) for r in rows if r[high] is not None]
     maximum=(max(highs) if highs else 0) or 1; width=1100; left=210; top=105; plot_w=790; row_h=48; height=top+row_h*len(rows)+80
     parts=[]
     for i,row in enumerate(rows):
-        y=top+i*row_h; x1=left+plot_w*float(row[low])/maximum; xm=left+plot_w*float(row[mid])/maximum; x2=left+plot_w*float(row[high])/maximum
+        y=top+i*row_h
+        if any(row[key] is None for key in (low, mid, high)):
+            parts.append(f'<text x="{left-12}" y="{y+5}" text-anchor="end" font-family="Arial" font-size="10">{_esc(row[cat])}</text><text x="{left+8}" y="{y+5}" font-family="Arial" font-size="10" fill="#596672">missing; no interval plotted</text>')
+            continue
+        x1=left+plot_w*float(row[low])/maximum; xm=left+plot_w*float(row[mid])/maximum; x2=left+plot_w*float(row[high])/maximum
         parts.append(f'<text x="{left-12}" y="{y+5}" text-anchor="end" font-family="Arial" font-size="10">{_esc(row[cat])}</text><line x1="{x1:.1f}" y1="{y}" x2="{x2:.1f}" y2="{y}" stroke="{COLORS[0]}" stroke-width="3"/><circle cx="{xm:.1f}" cy="{y}" r="6" fill="{COLORS[0]}"/><text x="{x2+8:.1f}" y="{y+4}" font-family="Arial" font-size="9">{float(row[mid]):.1f}</text>')
     parts.append(f'<text x="{left+plot_w/2}" y="{height-42}" text-anchor="middle" font-family="Arial" font-size="10">{_esc(chart.config["x_label"])}</text>')
     return _base_svg(chart.title,chart.subtitle,width,height,"".join(parts))
@@ -650,15 +714,40 @@ def _render_dot_range(chart: Chart) -> str:
 
 def _render_paired_dot(chart: Chart) -> str:
     rows=chart.rows; cat=chart.config["category"]; ak=chart.config["a"]; bk=chart.config["b"]
-    observed=[max(float(r[ak]),float(r[bk])) for r in rows]
+    observed=[float(r[key]) for r in rows for key in (ak, bk) if r[key] is not None]
     maximum=float(chart.config.get("max") or (max(observed) if observed else 0) or 1)
     width=1220; left=235; top=100; plot_w=875; row_h=max(22,min(35,620//max(1,len(rows)))); height=top+row_h*len(rows)+90
     parts=[]
     for i,row in enumerate(rows):
-        y=top+i*row_h; xa=left+plot_w*float(row[ak])/maximum; xb=left+plot_w*float(row[bk])/maximum
-        parts.append(f'<text x="{left-10}" y="{y+4}" text-anchor="end" font-family="Arial" font-size="9">{_esc(row[cat])}</text><line x1="{xa:.1f}" y1="{y}" x2="{xb:.1f}" y2="{y}" stroke="#b9c2ca" stroke-width="2"/><circle cx="{xa:.1f}" cy="{y}" r="4" fill="{COLORS[0]}"/><circle cx="{xb:.1f}" cy="{y}" r="4" fill="{COLORS[1]}"/>')
+        y=top+i*row_h
+        parts.append(f'<text x="{left-10}" y="{y+4}" text-anchor="end" font-family="Arial" font-size="9">{_esc(row[cat])}</text>')
+        coords = [None if row[key] is None else left+plot_w*float(row[key])/maximum for key in (ak, bk)]
+        if all(x is not None for x in coords):
+            parts.append(f'<line x1="{coords[0]:.1f}" y1="{y}" x2="{coords[1]:.1f}" y2="{y}" stroke="#b9c2ca" stroke-width="2"/>')
+        absent = []
+        coincident = all(x is not None for x in coords) and abs(coords[0] - coords[1]) < 0.05
+        if coincident:
+            # Preserve the true shared coordinate while keeping both series
+            # visible: series A is an outer ring and series B is the core.
+            parts.append(
+                f'<circle cx="{coords[0]:.1f}" cy="{y}" r="6" fill="none" '
+                f'stroke="{COLORS[0]}" stroke-width="2.4" data-series="a" '
+                f'data-coincident="true"><title>{_esc(row[cat])}; '
+                f'{_esc(chart.config["a_label"])}={row[ak]}</title></circle>'
+                f'<circle cx="{coords[1]:.1f}" cy="{y}" r="3.5" fill="{COLORS[1]}" '
+                f'data-series="b" data-coincident="true"><title>{_esc(row[cat])}; '
+                f'{_esc(chart.config["b_label"])}={row[bk]}</title></circle>'
+            )
+        else:
+            for j, x in enumerate(coords):
+                if x is None:
+                    absent.append(str(chart.config["a_label" if j == 0 else "b_label"]) + ": missing")
+                else:
+                    parts.append(f'<circle cx="{x:.1f}" cy="{y}" r="4" fill="{COLORS[j]}" data-series="{("a", "b")[j]}"/>')
+        if absent:
+            parts.append(f'<text x="{left+8}" y="{y+13}" font-family="Arial" font-size="9" fill="#596672">{_esc("; ".join(absent))}</text>')
     for j,(key,label) in enumerate(((ak,chart.config["a_label"]),(bk,chart.config["b_label"]))):
-        parts.append(f'<circle cx="{left+j*190}" cy="{height-52}" r="5" fill="{COLORS[j]}"/><text x="{left+10+j*190}" y="{height-48}" font-family="Arial" font-size="10">{_esc(label)}</text>')
+        parts.append(f'<circle cx="{left+j*190}" cy="{height-52}" r="5" fill="{COLORS[j]}" data-series="{("a", "b")[j]}" data-legend="true"/><text x="{left+10+j*190}" y="{height-48}" font-family="Arial" font-size="10">{_esc(label)}</text>')
     return _base_svg(chart.title,chart.subtitle,width,height,"".join(parts))
 
 

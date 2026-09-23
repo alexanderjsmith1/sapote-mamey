@@ -88,10 +88,20 @@ def analyze(arts_dir, strain="UNSPECIFIED", assembly_tier=None):
         m = _CLUST_RE.match(cl)
         node = f"NODE_{m.group(1)}" if m else cl
         region = f"region{int(m.group(2)):03d}" if m else "?"
+        parse_failed = False
         try:
             hits = ast.literal_eval(row["Genelist"]) if row.get("Genelist") else []
-        except Exception:
+        except (ValueError, SyntaxError, TypeError, MemoryError, RecursionError):
+            # missing evidence is not biological absence: a malformed Genelist must not read as a
+            # genuine no-hit row. Keep the empty fallback but flag it so downstream can tell them apart.
             hits = []
+            parse_failed = True
+        if not isinstance(hits, list):
+            # literal_eval succeeds on a bare string or a dict and raises nothing. The value is
+            # still not a gene list, and the row would otherwise reach the same silent zero the
+            # narrowed except was added to close.
+            hits = []
+            parse_failed = True
         # each hit: [gene_id, model, start, end, Core/DUF, description, function]
         core_hits = [h for h in hits if len(h) > 4 and h[4] == "Core"]
         # self-resistance leads = Core hits whose model is ALSO duplicated (dup + BGC-proximal by construction)
@@ -114,6 +124,7 @@ def analyze(arts_dir, strain="UNSPECIFIED", assembly_tier=None):
             "self_resistance_lead": lead,
             # B1: BGC-proximity confidence — 'low' when the assembly guard fires, else 'standard'
             "lead_confidence": ("low" if bgc_proximity_low_conf else "standard") if lead else "",
+            "genelist_parse_failed": parse_failed,
         })
     # genome-wide resistome (knownhits) — NOT per-BGC unless proximal (checked separately)
     resistome = collections.Counter(r["Description"].strip() for r in known)
@@ -130,6 +141,7 @@ def analyze(arts_dir, strain="UNSPECIFIED", assembly_tier=None):
         "dup_fraction": round(dup_fraction, 3),
         "bgc_proximity_confidence": "low" if bgc_proximity_low_conf else "standard",
         "guard_reason": guard_reason,
+        "n_genelist_parse_failures": sum(1 for b in per_bgc if b["genelist_parse_failed"]),
     }
     return per_bgc, summary
 
@@ -137,7 +149,7 @@ def analyze(arts_dir, strain="UNSPECIFIED", assembly_tier=None):
 def write_outputs(per_bgc, summary, out_csv, out_md):
     cols = ["strain", "node", "region", "arts_cluster", "type", "location", "core_hits",
             "n_dup_proximal", "dup_proximal_core_genes", "n_multi_criteria", "self_resistance_lead",
-            "lead_confidence"]
+            "lead_confidence", "genelist_parse_failed"]
     with open(out_csv, "w", newline="", encoding="utf-8") as f:
         w = _SafeDictWriter(f, fieldnames=cols); w.writeheader()
         for b in sorted(per_bgc, key=lambda x: (-x["n_dup_proximal"], x["node"])):
@@ -198,6 +210,13 @@ def main(argv=None):
     emit(f"{summary['strain']}: {summary['n_bgc_with_arts_hits']} BGCs w/ ARTS hits, "
           f"{summary['n_self_resistance_leads']} self-resistance leads, "
           f"{summary['n_dup_and_proximal_total']} dup+proximal core genes, {summary['n_knownhits']} resistome models")
+    if summary["n_genelist_parse_failures"]:
+        # sys.stderr.write, not emit(): repo_health's print_calls ratchet sits at its signed
+        # observed count (1324), so a new emit() site expires the waiver and turns
+        # `repo_health.py --strict` red. A warning belongs on stderr regardless.
+        _sys.stderr.write(
+            f"  WARNING: {summary['n_genelist_parse_failures']} BGC row(s) had an unparseable ARTS Genelist "
+            "and were ingested with zero gene-level hits -- these are parse failures, NOT genuine no-hit rows.\n")
     return 0
 
 

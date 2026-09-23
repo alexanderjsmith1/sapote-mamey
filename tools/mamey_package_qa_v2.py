@@ -193,13 +193,13 @@ def main():
         sys.exit(1)
     
     emit(f"Mamey Package QA v2 — checking: {batch_dir}", "=" * 60, sep="\n")
-    
+
     results = [
         check_checkpoint(batch_dir),
         check_packages(batch_dir),
         check_no_legacy_status(batch_dir),
     ]
-    
+
     emit("\n" + "=" * 60)
     if all(results):
         emit("RESULT: ALL CHECKS PASS — batch is ready for Claude/Sapote merge.")

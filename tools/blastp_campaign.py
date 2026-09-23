@@ -11,7 +11,8 @@ Fixes the two confirmed failures in the current `blastp-online` workflow (v9.7.2
      compact per-protein top-N hits CSV on disk (~50KB for 492 proteins); the LLM reads the CSV, never XML.
 
 Usage (LLM invokes each once; ZERO LLM-in-the-loop polling):
-  python blastp_campaign.py submit  --batches <dir_of_faa> --out <run_dir>   # submit-all, checkpoint RIDs
+  python blastp_campaign.py submit  --batches <dir_of_faa> --out <run_dir> \
+      --confirm-public-sequence-upload                                      # submit-all, checkpoint RIDs
   python blastp_campaign.py harvest --out <run_dir>                          # resumable: poll+parse ready
   # re-run `harvest` until it reports done; each call is idempotent and appends only new results.
 
@@ -23,7 +24,7 @@ from __future__ import annotations
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-import argparse, csv, glob, json, os, re, sys, time, urllib.parse, urllib.request
+import argparse, csv, glob, hashlib, json, os, re, sys, time, urllib.parse, urllib.request
 try:  # v9.7.410 CSV formula-cell guard (CLAUDE_v9.7.410_tools_csv_writer_coverage)
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ImportError:  # bare-script run: bundle root is one level up
@@ -66,34 +67,76 @@ def _parse_faa(path):
 
 
 def cmd_submit(a):
-    os.makedirs(a.out, exist_ok=True)
     ck = os.path.join(a.out, "rids.json")
-    done = {r["locus"] for r in _read_json(ck, encoding="utf-8")} if os.path.exists(ck) else set()
     recs = _read_json(ck, encoding="utf-8") if os.path.exists(ck) else []
+    # A locus is resumably submitted only after NCBI returns an RID.  Retain
+    # WAITING/DONE rows, while allowing SUBMIT_FAIL and SUBMIT_ERR rows to be
+    # retried on the next invocation.
+    done = {r["locus"] for r in recs if r.get("rid")}
     faas = sorted(glob.glob(os.path.join(a.batches, "**", "*.faa"), recursive=True) or glob.glob(os.path.join(a.batches, "*.faa")))
+    pending = [
+        (locus, seq)
+        for faa in faas
+        for locus, seq in _parse_faa(faa)
+        if locus not in done
+    ]
+    if not pending:
+        emit(f"no new proteins to submit; {len(recs)} records already present in {ck}")
+        return 0
+
+    digest = hashlib.sha256()
+    for locus, sequence in pending:
+        digest.update(
+            locus.encode("utf-8", "replace")
+            + b"\x00"
+            + sequence.encode("utf-8", "replace")
+            + b"\n"
+        )
+    emit(
+        "blastp_campaign OUTBOUND SEQUENCE DISCLOSURE",
+        f"    endpoint        {NCBI}",
+        f"    database        {a.database}",
+        f"    records         {len(pending)} protein(s), "
+        f"{sum(len(sequence) for _, sequence in pending)} aa",
+        f"    sequence sha256 {digest.hexdigest()}",
+        f"    source          {a.batches}",
+        "    classification  NOT ESTABLISHED by this tool. Unpublished, embargoed, proprietary or",
+        "                    otherwise restricted sequence must not be submitted.",
+        sep="\n",
+    )
+    if not getattr(a, "confirm_public_upload", False):
+        emit(
+            "blastp_campaign REFUSING: submit requires "
+            "--confirm-public-sequence-upload. Nothing was sent."
+        )
+        return 1
+
+    os.makedirs(a.out, exist_ok=True)
     n = 0
-    for faa in faas:
-        for locus, seq in _parse_faa(faa):
-            if locus in done:
-                continue
-            try:
-                put = _post({"CMD": "Put", "PROGRAM": "blastp", "DATABASE": a.database,
-                             "QUERY": f">{locus}\n{seq}", "HITLIST_SIZE": str(a.hits)})
-                m = re.search(r"RID = (\w+)", put)
-                rec = {"locus": locus, "rid": m.group(1) if m else None, "status": "WAITING" if m else "SUBMIT_FAIL"}
-            except Exception as exc:
-                rec = {"locus": locus, "rid": None, "status": f"SUBMIT_ERR:{type(exc).__name__}"}
-            recs.append(rec)
-            # v9.7.371 fix: was a bare open(ck,'w') -- this tool's whole stated purpose is
-            # surviving "a timeout mid-poll loses every RID" by checkpointing to disk before
-            # polling; a process killed mid-write on this exact checkpoint left rids.json
-            # truncated/corrupt, so the NEXT submit/harvest invocation raised on json.load and lost
-            # the whole in-flight RID set -- precisely the failure this tool exists to prevent,
-            # just moved one level down into its own recovery file.
-            atomic_dump_json(recs, ck)  # CHECKPOINT AFTER EVERY SUBMIT — never lose a RID
-            n += 1
-            time.sleep(a.submit_gap)
+    for locus, seq in pending:
+        try:
+            put = _post({"CMD": "Put", "PROGRAM": "blastp", "DATABASE": a.database,
+                         "QUERY": f">{locus}\n{seq}", "HITLIST_SIZE": str(a.hits)})
+            m = re.search(r"RID = (\w+)", put)
+            rec = {"locus": locus, "rid": m.group(1) if m else None, "status": "WAITING" if m else "SUBMIT_FAIL"}
+        except Exception as exc:
+            rec = {"locus": locus, "rid": None, "status": f"SUBMIT_ERR:{type(exc).__name__}"}
+        # rids.json is current resumable state, not an append-only attempt log.
+        # Replace the prior failed row so repeated transient failures do not
+        # grow duplicate records or make the total-record count misleading.
+        recs[:] = [r for r in recs if r.get("locus") != locus or r.get("rid")]
+        recs.append(rec)
+        # v9.7.371 fix: was a bare open(ck,'w') -- this tool's whole stated purpose is
+        # surviving "a timeout mid-poll loses every RID" by checkpointing to disk before
+        # polling; a process killed mid-write on this exact checkpoint left rids.json
+        # truncated/corrupt, so the NEXT submit/harvest invocation raised on json.load and lost
+        # the whole in-flight RID set -- precisely the failure this tool exists to prevent,
+        # just moved one level down into its own recovery file.
+        atomic_dump_json(recs, ck)  # CHECKPOINT AFTER EVERY SUBMIT — never lose a RID
+        n += 1
+        time.sleep(a.submit_gap)
     emit(f"submitted {n} new proteins; {len(recs)} total in {ck}")
+    return 0
 
 
 def _top_hits(xml, top_n):
@@ -137,8 +180,12 @@ def cmd_harvest(a):
                         w.writerow({"locus": r["locus"], "hit_rank": i, **h})
                     fh.flush(); r["status"] = "DONE"; seen.add(r["locus"]); pending.remove(r)
                     atomic_dump_json(recs, ck)  # checkpoint status
-            except Exception:
-                pass
+            except Exception as exc:
+                sys.stderr.write(
+                    f"blastp_campaign: poll/retrieval failed for locus {r.get('locus')!r}, "
+                    f"RID {r.get('rid')!r}; leaving it pending "
+                    f"({type(exc).__name__}: {exc})\n"
+                )
             time.sleep(a.poll_gap)
         if pending:
             waited += a.first_delay if waited == 0 else a.poll_interval
@@ -154,6 +201,9 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("submit"); s.add_argument("--batches", required=True); s.add_argument("--out", required=True)
     s.add_argument("--database", default="nr"); s.add_argument("--hits", type=int, default=6)
+    s.add_argument("--confirm-public-sequence-upload", action="store_true", default=False,
+                   dest="confirm_public_upload",
+                   help="acknowledge that pending sequences may be disclosed to NCBI")
     s.add_argument("--submit-gap", type=float, default=3.0, dest="submit_gap"); s.set_defaults(func=cmd_submit)
     h = sub.add_parser("harvest"); h.add_argument("--out", required=True); h.add_argument("--hits", type=int, default=6)
     h.add_argument("--max-wait", type=int, default=240, dest="max_wait")

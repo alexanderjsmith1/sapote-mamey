@@ -120,9 +120,14 @@ def parse_blocks(fp):
             for line in hm.group(1).strip().split("\n"):
                 p=line.split("\t")
                 if len(p)>=5 and not p[0].startswith(">"):
-                    try: hits.append({"q":p[0],"s":p[1],"id":int(p[2]),"score":int(p[3]),
-                                      "cov":float(p[4]),"eval":p[5] if len(p)>5 else ""})
-                    except (ValueError, IndexError): pass
+                    try:
+                        hits.append({"q":p[0],"s":p[1],"id":int(p[2]),"score":int(p[3]),
+                                     "cov":float(p[4]),"eval":p[5] if len(p)>5 else ""})
+                    except (ValueError, IndexError) as exc:
+                        sys.stderr.write(
+                            f"cluster_alignment: skipping malformed hit row for {acc!r} "
+                            f"({type(exc).__name__}: {exc})\n"
+                        )
         if hits: refs[acc]={"name":name.get(acc,""),"type":typ,"hits":hits}
     return qgenes, refs
 

@@ -1,5 +1,5 @@
-version=9.7.437
-build=20260921v97437a
-engine=1.9.167
-patch=Printable cohort matrices; Platform credit precision; Documentation currency; Instruction-mirror visibility; Engine unchanged
+version=9.7.440
+build=20260922v97440a
+engine=1.9.169
+patch=BLASTp empty-discovery diagnostics and retry safety.; Complete rollup hit preservation.; Intake taxonomy and failure reporting.; Portable tree-source export.; Manifest and documentation accuracy.
 tier=code

@@ -295,8 +295,8 @@ def main(argv=None):
     md_path, csv_path = write_board(summary, a.out_prefix)
     emit(f"RG-GMCI cohort rollup: {summary['n_high']} HIGH -> {summary['n_genuine']} genuine "
           f"({summary['n_complementary']} complementary + {summary['n_terminus']} terminus), "
-          f"{summary['n_excluded_paralog']} paralog excluded, {summary['n_review']} review")
-    emit(f"  tiers: {summary['tiers']}", f"  -> {md_path}", f"  -> {csv_path}", sep="\n")
+          f"{summary['n_excluded_paralog']} paralog excluded, {summary['n_review']} review",
+         f"  tiers: {summary['tiers']}", f"  -> {md_path}", f"  -> {csv_path}", sep="\n")
     return 0
 
 

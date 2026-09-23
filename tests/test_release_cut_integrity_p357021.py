@@ -92,6 +92,33 @@ class ReleaseCutIntegrityTests(unittest.TestCase):
         self.assertIn("assert_no_backup_debris", text)
         self.assertIn("-name '*-E'", text)
 
+    def test_release_cut_converges_manifest_before_final_green_suite_and_identity_gate(self):
+        text = (ROOT / "tools" / "release_cut.sh").read_text(encoding="utf-8")
+        baseline = text.index("pytest_manifest_baseline_")
+        fixed_point = text.index("gen_release_manifest.py --fixed-point")
+        final_suite = text.index('say "gate: final full suite"')
+        final_bind = text.index("gen_release_manifest.py --apply --pytest-log")
+        identity = text.index('say "gate: release identity"')
+        tier_cut = text.index('say "cut five tiers')
+        self.assertLess(baseline, fixed_point)
+        self.assertLess(fixed_point, final_suite)
+        self.assertLess(final_suite, final_bind)
+        self.assertLess(final_bind, identity)
+        self.assertLess(identity, tier_cut)
+        self.assertGreaterEqual(text.count("refresh_source_integrity"), 4)
+        self.assertIn("evidence seed only", text)
+        self.assertNotIn("TIER_MANIFEST.txt.tmp", text)
+        self.assertIn('tier_tmp="$(mktemp)"', text)
+        for command in (
+            "gen_command_catalog.py",
+            "generate_deliverables_menu.py --apply",
+            "gen_tools_inventory.py",
+        ):
+            self.assertIn(command, text)
+        self.assertLess(text.index("tools/sync_version.py >/dev/null"),
+                        text.index("gen_command_catalog.py"))
+        self.assertLess(text.index("gen_tools_inventory.py"), baseline)
+
     def test_tier_builder_fails_closed_on_backup_debris_and_excludes_dash_e(self):
         text = (ROOT / "tools" / "make_public_tier.sh").read_text(encoding="utf-8")
         self.assertIn("fail_on_backup_debris", text)
@@ -101,7 +128,7 @@ class ReleaseCutIntegrityTests(unittest.TestCase):
             if "-delete" in line:
                 self.assertNotIn("-name '*-E'", line)
 
-    def test_release_manifest_derives_both_dates_from_build_stamp(self):
+    def test_release_manifest_derives_cut_date_without_status_footer(self):
         module = _load_tool("gen_release_manifest")
         self.assertEqual(module.date_from_stamp("20260809v97357a"), "2026-08-09")
         labels = [
@@ -111,7 +138,8 @@ class ReleaseCutIntegrityTests(unittest.TestCase):
             )
         ]
         self.assertIn("cut/build date", labels)
-        self.assertIn("generated date", labels)
+        self.assertNotIn("generated date", labels)
+        self.assertNotIn("footer", labels)
         self.assertIn("shared tier-count/build-stamp line", labels)
 
         shared_pattern, shared_replacement = next(

@@ -1,4 +1,4 @@
-# PREREQUISITES — Sapote–Mamey v9.7.437
+# PREREQUISITES — Sapote–Mamey v9.7.440
 
 Start with [INSTALL](INSTALL.md) or the [complete walkthrough](MASTER_WALKTHROUGH.md). The package metadata in [pyproject.toml](../pyproject.toml) defines the supported Python version, core requirements and extras. Use the [README tool table](../README.md#tool-downloads-and-licenses) for upstream downloads and licenses.
 

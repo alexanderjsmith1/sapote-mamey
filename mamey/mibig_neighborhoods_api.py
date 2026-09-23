@@ -85,5 +85,7 @@ def summary() -> dict[str, int]:
         try:
             out[fam] = len(load_family(fam))
         except FileNotFoundError:
-            pass
+            # This family is not packaged in this bundle; an absent family is expected, not an
+            # error (the docstring notes summary() skips families not present). Skip it.
+            continue
     return out

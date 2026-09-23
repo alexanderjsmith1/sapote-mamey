@@ -282,6 +282,7 @@ def run_hmm_scan(zip_path: str, bgcs: list, strain_id: str) -> dict[str, Any]:
                     try:
                         os.unlink(tmp_name)
                     except OSError:
+                        # The OS can reclaim this temporary GBK; cleanup failure does not alter scan evidence.
                         pass
     status = "PASS" if rows and all(row["status"] == "PASS" for row in rows) else "PASS_WITH_DEGRADATION"
     return {"schema_version": "mamey_hmm_scan_v1", "status": status,

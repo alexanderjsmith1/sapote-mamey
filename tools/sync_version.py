@@ -169,15 +169,6 @@ RULES = [
     ("prompts/SAPOTE_MAMEY_CO_EXECUTION_PROMPT.md",
      re.compile(r"((?:\*\*Bundle:\*\*|Sapote-Mamey Bundle|Bundle:)\s+)v\d+(?:\.\d+)*[a-z]*"),
      rf"\g<1>v{BUNDLE}"),
-    # RELEASE_MANIFEST footer restates the bundle version in generated text (was stale at v9.5.5);
-    # normalize the version, preserve whatever generation date is present.
-    # v9.7.154: tier token corrected from PUBLIC_RELEASE -> NOT_FOR_PUBLIC_RELEASE on this CODE-tier
-    # artifact (PUBLIC_RELEASE was a false claim on a non-signed CODE cut; see RELEASE_MANIFEST
-    # "Known limits" redaction-blocked bullet). The token is captured in \g<2> so the version still
-    # syncs; if the tier token is changed again, update this literal AND the footer in lockstep.
-    ("RELEASE_MANIFEST.md",
-     re.compile(r"(\*Generated: \d{4}-\d{2}-\d{2} \| Sapote-Mamey Bundle )v\d+(?:\.\d+)*[a-z]*( \| NOT_FOR_PUBLIC_RELEASE\*)"),
-     rf"\g<1>v{BUNDLE}\g<2>"),
     # RELEASE_MANIFEST engine line and build stamp (v9.7.62: previously unpatched, caused drift).
     ("RELEASE_MANIFEST.md",
      re.compile(r"\*\*Engine:\*\* Mamey v\d+(?:\.\d+)*[a-z]*"),

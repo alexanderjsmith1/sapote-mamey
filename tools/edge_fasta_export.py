@@ -174,8 +174,11 @@ def get_kcb_gene_hits(zip_path: str, contig_name: str, region_num: int) -> dict:
                             "pct_id": float(parts[2]),
                             "score": float(parts[3]),
                         })
-                    except (ValueError, IndexError):
-                        pass
+                    except (ValueError, IndexError) as exc:
+                        sys.stderr.write(
+                            f"edge_fasta_export: skipping malformed KCB row in {fname} "
+                            f"({type(exc).__name__}: {exc})\n"
+                        )
     return hits
 
 

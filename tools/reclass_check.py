@@ -144,8 +144,7 @@ def analyze(pkg, cmap):
 
 def render(out, summary, cmap):
     classes = cmap["classes"]; skip = cmap["skip_domain_check"]["classes"]
-    emit(f"# reclass-check (curated map: {len(classes)} classes, {len(skip)} skip-domain)", f"# [store-backed: gene_by_gene_all_bgcs.csv + triage_board.csv | curated map JSON]", f"# LIMIT: motif-on-precursor half (mycofactocin IDGMCGVY) NOT run — needs region-GBK CDS seqs", f"# CLASS_DISCREPANCY = review prompt, capacity-level only, NOT a reclassification verdict", sep="\n")
-    emit()
+    emit(f"# reclass-check (curated map: {len(classes)} classes, {len(skip)} skip-domain)", f"# [store-backed: gene_by_gene_all_bgcs.csv + triage_board.csv | curated map JSON]", f"# LIMIT: motif-on-precursor half (mycofactocin IDGMCGVY) NOT run — needs region-GBK CDS seqs", f"# CLASS_DISCREPANCY = review prompt, capacity-level only, NOT a reclassification verdict", "", sep="\n")
     if summary.get("error"):
         emit("ERROR:", summary["error"], file=sys.stderr); return 1
     for e in out:

@@ -31,7 +31,7 @@ def clean_scalar(value: Any) -> Any:
         try:
             value = item()
         except Exception:
-            pass
+            pass  # exotic numpy/pandas scalar — keep original value
     if isinstance(value, float):
         if math.isnan(value) or math.isinf(value):
             return ""

@@ -149,8 +149,9 @@ class TimingRecorder:
                 cpu_user = round(usage.ru_utime, 6)
                 cpu_sys = round(usage.ru_stime, 6)
                 peak_rss = usage.ru_maxrss / 1024 if sys.platform == "darwin" else usage.ru_maxrss
-            except Exception:
-                pass
+            except (OSError, ValueError) as exc:
+                sys.stderr.write(f"[timing] getrusage failed ({type(exc).__name__}: {exc}); "
+                                 "CPU and peak-RSS fields are left unset for this run\n")
         return {
             "strain_id": self.strain_id,
             "mamey_version": self.mamey_version,

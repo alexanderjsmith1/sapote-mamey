@@ -276,10 +276,11 @@ def main():
     md = render_directed(strains, anchors, cryptic, markers) if a.directed else \
         render(strains, anchors, cryptic, markers)
     atomic_write_text(a.out, md)
-    emit("wrote", a.out)
-    emit("strains:", len(strains), "| named anchors:", len(anchors),
-          "| gene markers:", len(markers), "| cryptic classes:", len(cryptic),
-          "| mode:", "directed" if a.directed else "standard")
+    emit(f"wrote {a.out}",
+         f"strains: {len(strains)} | named anchors: {len(anchors)}"
+         f" | gene markers: {len(markers)} | cryptic classes: {len(cryptic)}"
+         f" | mode: {'directed' if a.directed else 'standard'}",
+         sep="\n")
 
 
 if __name__ == "__main__":

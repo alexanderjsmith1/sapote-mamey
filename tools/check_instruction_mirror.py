@@ -34,6 +34,12 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 MIRRORED = ("AGENTS.md", "CLAUDE.md")
 ENV_VAR = "SAPOTE_INSTRUCTION_MIRROR"
 
+# --strict is an opt-in gate. A configured mirror that is absent or partial is at least as
+# alarming as one that has drifted: it means the check has been passing against nothing.
+# NOT_CONFIGURED stays exit 0 — a standalone bundle with no development workspace is not a
+# failure, which is the documented default.
+STRICT_FAIL_STATES = frozenset({"DRIFT", "MIRROR_MISSING", "INCOMPLETE"})
+
 
 def _sha256(path: pathlib.Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -110,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
                 "  the mirror is what an assistant opening the workspace reads; repairing it is an\n"
                 "  explicit owner action, deliberately not performed here\n")
 
-    return 1 if (a.strict and report["status"] == "DRIFT") else 0
+    return 1 if (a.strict and report["status"] in STRICT_FAIL_STATES) else 0
 
 
 if __name__ == "__main__":

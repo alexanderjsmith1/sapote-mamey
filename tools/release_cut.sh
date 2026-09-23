@@ -6,12 +6,14 @@
 #   2. atomically bump SSOT version + BUILD_STAMP + TIER_MANIFEST stamp
 #   3. sync_version propagates the version everywhere
 #   4. sync the README release footer (verify_release_identity checks README carries ver+build)
-#   5. run and capture the full suite, or bind an existing green log explicitly
-#   6. gen_release_manifest --apply runs after the green suite and binds its counts
-#   7. fail closed if backup/editor debris exists; never silently delete it
-#   8. gates: sync --check, manifest --check, verify_release_identity
-#   9. cut all five tiers (each runs its own leak-audit / parity / checksum gates)
-#  10. emit SHA256SUMS + a per-tier receipt
+#   5. refresh source-stage membership/checksums after all source mutations
+#   6. run the suite once to measure the stale-manifest baseline
+#   7. converge RELEASE_MANIFEST, refresh integrity, then require a final green suite
+#   8. bind the final green log and refresh source integrity one last time
+#   9. fail closed if backup/editor debris exists; never silently delete it
+#  10. gates: sync --check, manifest --check, verify_release_identity
+#  11. cut all five tiers (each runs its own leak-audit / parity / checksum gates)
+#  12. emit SHA256SUMS + a per-tier receipt
 #
 # Usage:  tools/release_cut.sh <bundle_version> <src_dir> <out_dir> [build_letter] [--skip-tests]
 #         --skip-tests additionally requires PYTEST_RECEIPT=/absolute/receipt.json and
@@ -33,6 +35,56 @@ assert_no_backup_debris(){
   [[ -z "$offender" ]] || die "backup/editor debris present: $offender — remove or adjudicate it before cutting."
 }
 
+# Source integrity necessarily becomes stale after a patch, version sync, generated-surface update,
+# or RELEASE_MANIFEST rewrite. Regenerate both records from the tier builder's tracked-file policy;
+# SOURCE_CHECKSUMS includes TIER_MANIFEST, excludes itself, and is written last.
+refresh_source_integrity(){
+  local tier_tmp
+  tier_tmp="$(mktemp)"
+  python3 tools/tracked_file_policy.py --emit-manifest . code "$VER" "$STAMP" > "$tier_tmp"
+  mv "$tier_tmp" TIER_MANIFEST.txt
+  python3 - "$SRC" <<'PY'
+import hashlib
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(root / "tools"))
+from tracked_file_policy import tracked_paths
+
+paths = [p[2:] if p.startswith("./") else p for p in tracked_paths(root)]
+paths.append("TIER_MANIFEST.txt")
+rows = []
+for rel in sorted(set(paths), key=lambda value: value.encode()):
+    digest = hashlib.sha256((root / rel).read_bytes()).hexdigest()
+    rows.append(f"{digest}  ./{rel}\n")
+tmp = root / "SOURCE_CHECKSUMS_SHA256.txt.tmp"
+tmp.write_text("".join(rows), encoding="utf-8")
+tmp.replace(root / "SOURCE_CHECKSUMS_SHA256.txt")
+PY
+  python3 tools/check_release_manifest.py --root . --quiet
+}
+
+pytest_counts(){
+  python3 - "$1" <<'PY'
+import pathlib
+import re
+import sys
+
+text = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace")
+summary = None
+pattern = re.compile(r"\b\d+\s+passed\b.*\bin\s+\d+(?:\.\d+)?s\b")
+for line in text.splitlines():
+    if pattern.search(line):
+        summary = line
+if summary is None:
+    raise SystemExit("pytest log has no complete terminal summary")
+passed = re.search(r"(\d+)\s+passed\b", summary)
+skipped = re.search(r"(\d+)\s+skipped\b", summary)
+print(passed.group(1), skipped.group(1) if skipped else "0")
+PY
+}
+
 say "validate CHANGELOG top entry for v$VER"
 head -1 CHANGELOG.md | grep -q "v$VER" || die "CHANGELOG top entry is not v$VER — write it first."
 awk 'NR>1 && /^# v9/{exit} {print}' CHANGELOG.md | grep -qE '^- \*\*' \
@@ -46,22 +98,38 @@ python3 tools/rewrite_release_identity.py "$VER" "$STAMP" --root .
 
 say "sync_version (propagate)"; python3 tools/sync_version.py >/dev/null
 # (sync_version maintains the README "Current bundle: v… / engine … · build …" footer itself)
+python3 -c "import sys; sys.path.insert(0,'tools'); import sync_version as sv; sv.sync_build_stamp_patch(check=False)"
+python3 tools/render_bootstrap_contract.py --apply >/dev/null
+python3 tools/gen_command_catalog.py >/dev/null
+python3 tools/generate_deliverables_menu.py --apply >/dev/null
+python3 tools/gen_tools_inventory.py >/dev/null
 
 say "gate: version sync"
 python3 tools/sync_version.py --check | tail -1 | grep -q "OK" || die "version sync gate failed."
-if [[ -f tools/verify_release_identity.py ]]; then
-  say "gate: release identity"
-  python3 tools/verify_release_identity.py --strict-membership 2>&1 | tail -3
-  python3 tools/verify_release_identity.py --strict-membership >/dev/null 2>&1 || die "release identity gate failed — a tracked file is missing ver/build."
-fi
 mkdir -p "$OUT"
 DEFAULT_PYTEST_LOG="$OUT/pytest_full_suite_${STAMP}.log"
 if [[ "$SKIP_TESTS" -eq 0 ]]; then
+  BASELINE_PYTEST_LOG="$OUT/pytest_manifest_baseline_${STAMP}.log"
   PYTEST_LOG="${PYTEST_LOG:-$DEFAULT_PYTEST_LOG}"
-  say "gate: full suite (captured before manifest generation)"
+  say "refresh source-stage integrity before manifest convergence"
+  refresh_source_integrity || die "source-stage integrity refresh failed."
+  say "measure full-suite baseline (stale-manifest failures may occur only in this run)"
+  set +e
+  PYTHONPATH=. python3 -m pytest -q -p no:cacheprovider --run-slow --run-network >"$BASELINE_PYTEST_LOG" 2>&1
+  BASELINE_RC=$?
+  set -e
+  read -r BASE_PASSED BASE_SKIPPED < <(pytest_counts "$BASELINE_PYTEST_LOG") \
+    || die "could not extract measured counts from baseline pytest log."
+  echo "  baseline: $(tail -1 "$BASELINE_PYTEST_LOG") (exit $BASELINE_RC; evidence seed only)"
+  say "converge release manifest against its consumer tests"
+  python3 tools/gen_release_manifest.py --fixed-point \
+    --tests-passed "$BASE_PASSED" --tests-skipped "$BASE_SKIPPED" >/dev/null \
+    || die "release manifest fixed-point convergence failed."
+  refresh_source_integrity || die "post-convergence source integrity refresh failed."
+  say "gate: final full suite"
   if ! PYTHONPATH=. python3 -m pytest -q -p no:cacheprovider --run-slow --run-network >"$PYTEST_LOG" 2>&1; then
     tail -20 "$PYTEST_LOG" >&2
-    die "full suite has failures — fix before cutting."
+    die "final full suite has failures — fix before cutting."
   fi
 else
   say "gate: verify exact-source external full-suite receipt"
@@ -87,11 +155,27 @@ echo "  $(tail -1 "$PYTEST_LOG")"
 
 say "generate release manifest from final green suite"
 python3 tools/gen_release_manifest.py --apply --pytest-log "$PYTEST_LOG" >/dev/null
+refresh_source_integrity || die "final source integrity refresh failed."
 python3 tools/gen_release_manifest.py --check --pytest-log "$PYTEST_LOG" >/dev/null \
   || die "release manifest does not match final identity/test log."
+python3 tools/render_bootstrap_contract.py --check >/dev/null \
+  || die "bootstrap generated surfaces drifted after synchronization."
+python3 tools/gen_command_catalog.py --check >/dev/null \
+  || die "generated command catalog drifted after synchronization."
+python3 tools/generate_deliverables_menu.py --check >/dev/null \
+  || die "generated deliverables menu drifted after synchronization."
+python3 tools/gen_tools_inventory.py --check >/dev/null \
+  || die "generated tools inventory drifted after synchronization."
 python3 tools/rewrite_release_identity.py "$VER" "$STAMP" --root . --check >/dev/null \
   || die "cut-owned release identity fields drifted after synchronization."
 assert_no_backup_debris
+
+if [[ -f tools/verify_release_identity.py ]]; then
+  say "gate: release identity"
+  python3 tools/verify_release_identity.py --strict-membership 2>&1 | tail -3
+  python3 tools/verify_release_identity.py --strict-membership >/dev/null 2>&1 \
+    || die "release identity gate failed after final source integrity refresh."
+fi
 
 # NC-004: strict repository health is a hard PRE-PACKAGE gate. It honors the machine-readable, signed
 # STRICT_HEALTH_WAIVER.json (NC-005) — a ceiling breach passes ONLY with a complete, applicable, owned

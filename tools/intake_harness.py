@@ -65,6 +65,7 @@ except Exception:  # pragma: no cover - fallback mirrors the canonical policy ex
         return str(sid).startswith(("AJS-", "PENDING-"))
 import zipfile
 from mamey.diagnostic_rescue import CORE_TRIGGERS  # noqa: E402
+from mamey.cohort_resolver import is_placeholder_taxonomy  # noqa: E402
 
 try:
     import psutil
@@ -142,13 +143,13 @@ def run_monitored(cmd, **kw):
                         try:
                             rss += c.memory_info().rss
                         except psutil.Error:
-                            pass
+                            continue  # Child processes can exit between enumeration and sampling.
                     peak = max(peak, rss)
                 except psutil.Error:
                     break
                 time.sleep(0.03)
         except psutil.Error:
-            pass
+            peak = 0  # The benchmark still runs when the process exits before monitoring attaches.
         out = p.stdout.read() if p.stdout else ""
         p.wait()
         peak_mb = peak / 1e6
@@ -157,6 +158,29 @@ def run_monitored(cmd, **kw):
         p.wait()
         peak_mb = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024.0
     return p.returncode, round(time.perf_counter() - t0, 3), round(peak_mb, 1), out
+
+
+def _run_failed_reason(log, max_len=160):
+    """Best-effort one-line reason for a RUN_FAILED batch row, for the operator's stdout only.
+
+    v9.7.440: RUN_FAILED previously printed only `rc=N` -- the engine's own ERROR line (captured
+    in `log` via run_monitored's merged stdout+stderr) was one line away the whole time and never
+    surfaced. Does not touch the checkpoint CSV schema (_MET_HDR) or any other row shape; this is
+    purely an additional stdout string. Empty string (no suffix printed) if nothing useful is found,
+    so a batch with an unrecognized failure shape still prints the same bare "RUN_FAILED (rc=N)" it
+    always has -- this only ever ADDS information, never removes or replaces the rc.
+    """
+    if not log:
+        return ""
+    for line in reversed(log.splitlines()):
+        line = line.strip()
+        if line.startswith("ERROR"):
+            return " -- " + (line[:max_len] + "..." if len(line) > max_len else line)
+    tail = [ln.strip() for ln in log.splitlines() if ln.strip()]
+    if not tail:
+        return ""
+    last = tail[-1]
+    return " -- " + (last[:max_len] + "..." if len(last) > max_len else last)
 
 
 def _safe_extract_zip(z, dest):
@@ -200,6 +224,8 @@ def detect_and_stage(zip_path, stage_root, name):
             f"preserving unknown taxonomy ({exc})",
             RuntimeWarning,
         )
+    if organism and is_placeholder_taxonomy(organism):
+        organism = None
     input_zip = os.path.join(stage_root, name + ".input.zip")
     with zipfile.ZipFile(input_zip, "w", zipfile.ZIP_DEFLATED) as z:
         for root, _, files in os.walk(gdir):
@@ -281,6 +307,18 @@ def load_taxonomy_map(path):
             isinstance(k, str) and isinstance(v, str) for k, v in taxonomy_map.items()):
         raise SystemExit(f"--taxonomy-map must be a JSON object of {{strain: taxonomy}} "
                           f"string pairs; got {path}")
+    # A value that is empty or a bare rank placeholder ("sp.", "spp.", ".") passes the shape
+    # check above but is exactly what the engine's is_placeholder_taxonomy guard rejects at run
+    # time -- and because "sp." is truthy it also slips past the `org or "not verified"` fallback.
+    # Fail closed here, naming the offending entries, instead of a downstream unexplained rc=1.
+    # Delegate the placeholder decision to the engine (one source of truth); "not verified" is
+    # accepted as the engine's own explicit-uncertainty token.
+    from mamey.cohort_resolver import is_placeholder_taxonomy
+    bad = {k: v for k, v in taxonomy_map.items() if not v.strip() or is_placeholder_taxonomy(v)}
+    if bad:
+        raise SystemExit(f"--taxonomy-map values must be real taxonomy or the explicit token "
+                         f"'not verified'; these are empty or bare placeholders the engine "
+                         f"rejects (TAXONOMY_PLACEHOLDER): {bad}. Map: {path}")
     return taxonomy_map
 
 
@@ -376,7 +414,7 @@ def main():
 
         rc, wall, mem, log = run_monitored(
             [sys.executable, "-m", "mamey", "run", "--input-zip", izip, "--strain", name,
-             "--taxonomy", org or "sp.", "--source", a.source, "--mode", a.mode,
+             "--taxonomy", org or "not verified", "--source", a.source, "--mode", a.mode,
              # v9.7.431: --release was PARSED and used for the private-name guard and the registry
              # TSV row, but never FORWARDED here -- so the engine fell back to its own strain-ID
              # derivation (dedup_and_guard.derive_release) and the package could disagree with the
@@ -388,7 +426,7 @@ def main():
              "--json-evidence", "bounded", "--brief", "none", "--outdir", a.outdir], env=env)
         pkg = os.path.join(a.outdir, name, "package")
         if rc != 0 or not os.path.isdir(pkg):
-            emit(f"  - {name:40} RUN_FAILED (rc={rc})")
+            emit(f"  - {name:40} RUN_FAILED (rc={rc}){_run_failed_reason(log)}")
             met_rows.append({"strain": name, "batch": a.batch_label, "status": "RUN_FAILED",
                              "engine_wall_s": wall, "engine_peak_mb": mem, "rescue_wall_s": "", "n_regions": ""})
             append_rows(a.metrics, [met_rows[-1]], _MET_HDR)

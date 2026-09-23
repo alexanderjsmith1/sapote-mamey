@@ -85,20 +85,25 @@ def _num(value: Any) -> float | None:
         return None
 
 
-def _median(values: Iterable[float]) -> float:
+def _median(values: Iterable[float]) -> float | None:
     seq = list(values)
-    return float(statistics.median(seq)) if seq else 0.0
+    return float(statistics.median(seq)) if seq else None
 
 
-def _quantile(values: Iterable[float], q: float) -> float:
+def _quantile(values: Iterable[float], q: float) -> float | None:
     seq = sorted(float(value) for value in values)
     if not seq:
-        return 0.0
+        return None
     if len(seq) == 1:
         return seq[0]
     position = (len(seq) - 1) * q
     lo, hi = math.floor(position), math.ceil(position)
     return seq[lo] if lo == hi else seq[lo] + (seq[hi] - seq[lo]) * (position - lo)
+
+
+def _percent_or_none(numerator: float, denominator: int) -> float | None:
+    """An empty denominator is undefined, not an observed zero percent."""
+    return 100.0 * numerator / denominator if denominator else None
 
 
 def _top(counter: Counter[str], n: int) -> list[str]:
@@ -210,12 +215,13 @@ def _build_metric_charts(
                     {"series": "boundary", "value": "value", "x_label": metric.unit, "max": ceiling})]
 
     strain_rows = []
+    x_label, y_label = "Physical BGC rows", f"Median {metric.unit}"
     for sid in governed:
         subset = [row for row in rows if row["strain"] == sid]
         values = [float(row["value"]) for row in subset if row["value"] != "" and row["state"] not in {"MISSING", "STRUCTURALLY_UNAVAILABLE"}]
         if metric.code == "PRI":
-            x_values = [float(row["ab_auto"]) for row in subset if row["ab_auto"] != ""]
-            y_values = [float(row["af_auto"]) for row in subset if row["af_auto"] != ""]
+            x_values = [float(row["ab_auto"]) for row in subset if row["ab_auto"] != "" and row["state"] not in {"MISSING", "STRUCTURALLY_UNAVAILABLE"}]
+            y_values = [float(row["af_auto"]) for row in subset if row["af_auto"] != "" and row["state"] not in {"MISSING", "STRUCTURALLY_UNAVAILABLE"}]
             x_value, y_value = _median(x_values), _median(y_values)
             x_label, y_label = "Median AB routing prior", "Median AF routing prior"
         else:
@@ -223,7 +229,7 @@ def _build_metric_charts(
             x_label, y_label = "Physical BGC rows", f"Median {metric.unit}"
         strain_rows.append({"strain": sid, "x_value": x_value, "y_value": y_value, "host": _host(strains[sid]), "populated_bgcs": len(values)})
     charts.append(Chart(ids[1], "scatter", f"{metric.title} — every governed strain",
-                        f"Every governed strain is labelled adjacent to its mark; non-outliers are retained. {metric.note}", strain_rows,
+                        f"Observed strains are labelled adjacent to their marks; missing coordinates are listed without a point. {metric.note}", strain_rows,
                         {"x": "x_value", "y": "y_value", "label": "strain", "x_label": x_label, "y_label": y_label, "x_min": 0, "y_min": 0}))
 
     governed_memberships = [row for row in memberships_all if row["strain"] in governed_set]
@@ -312,7 +318,7 @@ def _build_active_site_charts(
     for sid in governed:
         subset = [row for row in rows if row["strain"] == sid]
         unavailable = sum(row["state"] == "STRUCTURALLY_UNAVAILABLE" for row in subset)
-        strain_rows.append({"strain": sid, "physical_bgcs": len(subset), "structurally_unavailable_pct": 100 * unavailable / max(1, len(subset)), "host": _host(strains[sid])})
+        strain_rows.append({"strain": sid, "physical_bgcs": len(subset), "structurally_unavailable_pct": _percent_or_none(unavailable, len(subset)), "host": _host(strains[sid])})
     charts.append(Chart("FS138", "scatter", "Active-site evidence state — every governed strain",
                         "Every governed strain is labelled; structural unavailability is not interpreted as biological absence.", strain_rows,
                         {"x": "physical_bgcs", "y": "structurally_unavailable_pct", "label": "strain", "x_label": "Physical BGC rows", "y_label": "Structurally unavailable (%)", "x_min": 0, "y_min": 0, "y_max": 100}))
@@ -327,14 +333,14 @@ def _build_active_site_charts(
     state_order = ("POPULATED", "OBSERVED_ZERO", "STRUCTURALLY_UNAVAILABLE", "MISSING")
     charts.append(Chart("FS139", "heatmap", "Active-site evidence state by BGC class",
                         "Cells are percentages of nonexclusive class memberships in each evidence state.",
-                        [{"class": cls, "state": state, "percent": 100 * class_states[(cls, state)] / max(1, class_den[cls])} for cls in classes for state in state_order],
+                        [{"class": cls, "state": state, "percent": _percent_or_none(class_states[(cls, state)], class_den[cls])} for cls in classes for state in state_order],
                         {"row": "class", "column": "state", "value": "percent", "legend": "Class memberships (%)"}))
     for figure_id, title, category, categories, value_getter in (
         ("FS140", "Active-site evidence state by BGC boundary context", "boundary", ("Edge", "Full-contig", "Interior"), lambda row: row["boundary"]),
         ("FS141", "Active-site evidence state by host cohort", "host", HOST_ORDER, lambda row: row["host_group"]),
     ):
         den = Counter(value_getter(row) for row in rows); counts = Counter((value_getter(row), row["state"]) for row in rows)
-        data = [{category: item, "state": state, "percent": 100 * counts[(item, state)] / max(1, den[item])} for item in categories for state in state_order]
+        data = [{category: item, "state": state, "percent": _percent_or_none(counts[(item, state)], den[item])} for item in categories for state in state_order]
         charts.append(Chart(figure_id, "heatmap", title,
                             "Evidence states retain structural unavailability and missingness; no absence claim is made.", data,
                             {"row": category, "column": "state", "value": "percent", "legend": "Physical BGC rows (%)"}))
@@ -352,7 +358,7 @@ def _build_active_site_charts(
     for cls in _top(all_counts, 12):
         def unavailable_pct(source_rows, mapping):
             selected = [row for row in source_rows if cls in mapping.get((row["strain"], row["bgc_id"]), set())]
-            return 100 * sum(row["state"] == "STRUCTURALLY_UNAVAILABLE" for row in selected) / max(1, len(selected))
+            return _percent_or_none(sum(row["state"] == "STRUCTURALLY_UNAVAILABLE" for row in selected), len(selected))
         sensitivity.append({"class": cls, "governed": unavailable_pct(rows, memberships), "all_packaged": unavailable_pct(all_rows, all_memberships)})
     charts.append(Chart("FS143", "paired_dot", "Active-site evidence state — governance sensitivity",
                         "Governed and all-packaged structural-unavailability percentages use the same class denominator.", sensitivity,
@@ -367,7 +373,7 @@ def _cooccurrence_host_chart(bundle: Path, governed: Sequence[str], strains: dic
     pairs = _top(pair_counts, 12)
     host_strains = Counter(_host(strains[sid]) for sid in governed)
     counts = Counter((_host(strains[row["strain"]]), " + ".join(sorted((row["class_a"], row["class_b"])))) for row in rows)
-    data = [{"host": host, "class_pair": pair, "pairs_per_strain": counts[(host, pair)] / host_strains[host] if host_strains[host] else 0.0} for host in HOST_ORDER for pair in pairs]
+    data = [{"host": host, "class_pair": pair, "pairs_per_strain": counts[(host, pair)] / host_strains[host] if host_strains[host] else None} for host in HOST_ORDER for pair in pairs]
     return Chart("FS021", "heatmap", "BGC class co-occurrence by host cohort",
                  "Nonexclusive within-BGC class pairs are normalized per governed strain; host association is context, not causality.", data,
                  {"row": "host", "column": "class_pair", "value": "pairs_per_strain", "legend": "Class-pair memberships per governed strain"})
@@ -392,12 +398,14 @@ def _evidence_charts(bundle: Path, memberships_all: Sequence[dict[str, str]], st
                         "Every governed strain is labelled; completed/pass-like and pending/gated channels are counted separately.", strain_rows,
                         {"x": "complete_channels", "y": "pending_or_gated_channels", "label": "strain", "x_label": "Completed or PASS-like channels", "y_label": "Pending, gated, or unavailable channels", "x_min": 0, "y_min": 0}))
 
-    score = {sid: 100.0 * sum(positive(row["state"]) for row in rows if row["strain"] == sid) / max(1, sum(1 for row in rows if row["strain"] == sid)) for sid in governed}
+    score = {sid: _percent_or_none(sum(positive(row["state"]) for row in rows if row["strain"] == sid), sum(1 for row in rows if row["strain"] == sid)) for sid in governed}
     governed_memberships = [row for row in memberships_all if row["strain"] in governed_set]
     class_counts = Counter(row["product_class"] for row in governed_memberships)
     top_classes = _top(class_counts, 15)
     class_values: dict[str, list[float]] = defaultdict(list)
-    for row in governed_memberships: class_values[row["product_class"]].append(score[row["strain"]])
+    for row in governed_memberships:
+        if score[row["strain"]] is not None:
+            class_values[row["product_class"]].append(score[row["strain"]])
     class_rows = [{"class": cls, "metric": "Median complete/pass-like %", "value": _median(class_values[cls])} for cls in top_classes]
     charts.append(Chart("FS195", "heatmap", "Evidence completeness by BGC class context",
                         "Package-level channel completeness is contextualized by nonexclusive class membership; it is not BGC-level biological evidence.", class_rows,
@@ -409,9 +417,12 @@ def _evidence_charts(bundle: Path, memberships_all: Sequence[dict[str, str]], st
         values: dict[str, list[float]] = defaultdict(list)
         if category == "boundary":
             for row in _read(bundle / "BGC_RECORDS.csv"):
-                if row["strain"] in governed_set: values[row["boundary"]].append(score[row["strain"]])
+                if row["strain"] in governed_set and score[row["strain"]] is not None:
+                    values[row["boundary"]].append(score[row["strain"]])
         else:
-            for sid in governed: values[_host(strains[sid])].append(score[sid])
+            for sid in governed:
+                if score[sid] is not None:
+                    values[_host(strains[sid])].append(score[sid])
         data = [{category: item, "q25": _quantile(values[item], .25), "median": _median(values[item]), "q75": _quantile(values[item], .75)} for item in categories]
         charts.append(Chart(figure_id, "dot_range", title,
                             "Package-level channel states remain engineering/evidence context and are not biological outcomes.", data,
@@ -435,7 +446,7 @@ def _evidence_charts(bundle: Path, memberships_all: Sequence[dict[str, str]], st
     for channel in channels:
         governed_states = [row["state"] for row in rows if row["channel"] == channel]
         all_states = [row["state"] for row in rows_all if row["channel"] == channel]
-        sensitivity.append({"channel": channel, "governed": 100 * sum(map(positive, governed_states)) / max(1, len(governed_states)), "all_packaged": 100 * sum(map(positive, all_states)) / max(1, len(all_states)), "all_strains": len(all_ids)})
+        sensitivity.append({"channel": channel, "governed": _percent_or_none(sum(map(positive, governed_states)), len(governed_states)), "all_packaged": _percent_or_none(sum(map(positive, all_states)), len(all_states)), "all_strains": len(all_ids)})
     charts.append(Chart("FS199", "paired_dot", "Evidence-channel state — governance sensitivity",
                         "The same channel definitions are compared in governed and all-packaged strain denominators.", sensitivity,
                         {"category": "channel", "a": "governed", "b": "all_packaged", "a_label": "Governed", "b_label": "All packaged", "x_label": "Complete/pass-like strains (%)", "max": 100}))

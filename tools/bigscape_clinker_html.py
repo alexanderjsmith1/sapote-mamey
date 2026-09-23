@@ -265,10 +265,16 @@ def to_pdf(html_path, n_tracks, chrome):
     if os.path.exists(pdf):
         try:
             from pypdf import PdfReader
+        except ImportError:
+            return pdf   # pypdf is an optional add-on; without it the PDF cannot be validated, so
+                         # return it unchecked rather than failing the render.
+        try:
             if "ERR_" in (PdfReader(pdf).pages[0].extract_text() or "") or len(PdfReader(pdf).pages) != 1:
                 os.remove(pdf); return None
-        except Exception:
-            pass
+        except Exception as exc:
+            # pypdf IS present, so a failure here is a real read error, not an absent dependency.
+            sys.stderr.write(f"[bigscape_clinker_html] could not validate {pdf} "
+                             f"({type(exc).__name__}: {exc}); returning it unvalidated\n")
         return pdf
     return None
 

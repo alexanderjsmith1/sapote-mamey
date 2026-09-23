@@ -33,6 +33,7 @@ import json
 import os
 import glob
 import collections
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -78,9 +79,16 @@ def _extract_anchor(kcb_top: str) -> str | None:
         return None
     try:  # prefer the vetted engine parser
         from mamey.npatlas_resolver import _extract_compound_name  # type: ignore
-        return _extract_compound_name(kcb_top)
-    except Exception:
-        pass
+    except ImportError:
+        _extract_compound_name = None
+    if _extract_compound_name is not None:
+        try:
+            return _extract_compound_name(kcb_top)
+        except Exception as exc:
+            sys.stderr.write(
+                f"compound_family_report: vetted KCB anchor parser failed; using the "
+                f"manual parser ({type(exc).__name__}: {exc})\n"
+            )
     parts = [p.strip() for p in kcb_top.split("|")]
     if len(parts) < 2:
         return None
@@ -111,8 +119,11 @@ def _strain_of(package_dir: str | os.PathLike, board: str) -> str:
             for k in ("strain", "strain_id", "Strain"):
                 if m.get(k):
                     return str(m[k])
-        except Exception:
-            pass
+        except (OSError, UnicodeError, json.JSONDecodeError, AttributeError) as exc:
+            sys.stderr.write(
+                f"compound_family_report: cannot read manifest strain identity; using the "
+                f"triage filename fallback ({type(exc).__name__}: {exc})\n"
+            )
     return os.path.basename(board).split("_4_triage_board")[0]
 
 

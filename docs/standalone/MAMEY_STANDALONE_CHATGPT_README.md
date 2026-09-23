@@ -1,10 +1,10 @@
-# Mamey v1.9.167 Standalone ChatGPT Bundle
+# Mamey v1.9.169 Standalone ChatGPT Bundle
 
 **Purpose.** This bundle makes Mamey usable as a self-contained ChatGPT batch workflow for uploaded antiSMASH ZIPs. It is a practical execution package: Python performs extraction, workbook writing, scan-state accounting, validation, checksums, and ZIP packaging; the ChatGPT/Sapote-style judgment layer performs narrative Mode B interpretation, literature synthesis, wet-lab planning, and reader-facing PDFs when requested.
 
 ## What "standalone" means here
 
-Mamey v1.9.167 is standalone **inside ChatGPT** when the user uploads this bundle plus antiSMASH ZIPs. The workflow does not depend on a previously installed Mamey package or on hidden project state. The local `mamey_run.py` launcher forces this bundle's `mamey/` package to be used first.
+Mamey v1.9.169 is standalone **inside ChatGPT** when the user uploads this bundle plus antiSMASH ZIPs. The workflow does not depend on a previously installed Mamey package or on hidden project state. The local `mamey_run.py` launcher forces this bundle's `mamey/` package to be used first.
 
 It is not a full external bioinformatics installation. ChatGPT can run included Python code and use files that are uploaded into the session. It cannot assume BLAST, HMMER, antiSMASH, Prodigal, Prokka, or internet access unless those outputs or executables are explicitly present in the uploaded files/environment.
 

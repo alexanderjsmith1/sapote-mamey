@@ -56,6 +56,10 @@ def test_online_panel_neutralises_formula_leading_free_text(tmp_path, monkeypatc
         bgc=None, region=None, crosswalk=None,
         database="nr", evalue="1e-5", batch_size=10,
         outdir=str(tmp_path),
+        # v9.7.438: blastp-online plans by default and only submits with both flags. This test
+        # drives the WRITE path (CSV neutralisation), which lives past the disclosure gate, so it
+        # must opt in. The network call itself is monkeypatched above — nothing leaves the machine.
+        submit=True, confirm_public_upload=True,
     )
 
     rc = bo.blastp_online_command(args)

@@ -27,6 +27,7 @@ from __future__ import annotations
 import csv
 import json
 import re as _re
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -579,7 +580,7 @@ def _section_body(num: int, facts: dict, sect: dict) -> str:
             hdr = ("| locus | domain | substrate prediction | agreement state | confidence | signature |\n"
                    "|---|---|---|---|---|---|\n")
             rows = "\n".join(
-                f"| `{s.get('locus_tag','')}` | {s.get('domain','')[:28]} | {_substrate_display(s)} "
+                f"| `{s.get('locus_tag','')}` | {s.get('domain','')[:28].replace('|', '\\|')} | {_substrate_display(s)} "
                 f"| {s.get('prediction_agreement_state') or 'LEGACY_STACHELHAUS_ONLY'} "
                 f"| {s.get('confidence','—')} | `{s.get('stachelhaus_signature','')}` |"
                 for s in subs)
@@ -775,8 +776,11 @@ def _strain_prefix(pkg: Path) -> str:
     if ms.exists():
         try:
             return json.loads(ms.read_text(encoding="utf-8")).get("strain_id", "") or ""
-        except (OSError, json.JSONDecodeError):
-            pass
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            sys.stderr.write(
+                f"modeb_template_emitter: cannot read {ms.name} for strain identity "
+                f"({type(exc).__name__}: {exc})\n"
+            )
     return ""
 
 
@@ -876,8 +880,11 @@ def _bgc_facts(pkg: Path, bgc_id: str) -> dict:
             facts["strain_id"] = ms.get("strain_id", "?")
             facts["assembly_tier"] = read_manifest_field("assembly_tier", manifest_short=ms, default="—")
             facts["interior_pct"] = read_manifest_field("interior_pct", manifest_short=ms, default="—")
-        except (OSError, json.JSONDecodeError):
-            pass
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            sys.stderr.write(
+                f"modeb_template_emitter: cannot read {ms_path.name}; retaining default "
+                f"manifest-short facts ({type(exc).__name__}: {exc})\n"
+            )
 
     # manifest
     man_path = pkg / "manifest.json"
@@ -897,8 +904,11 @@ def _bgc_facts(pkg: Path, bgc_id: str) -> dict:
                     if isinstance(_pc, int):
                         facts["manifest_protocluster_count"] = _pc
                     break
-        except (OSError, json.JSONDecodeError):
-            pass
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            sys.stderr.write(
+                f"modeb_template_emitter: cannot read {man_path.name}; retaining available "
+                f"package facts ({type(exc).__name__}: {exc})\n"
+            )
 
     # Triage row for this BGC
     triage_rows = _read_triage(pkg)

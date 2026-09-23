@@ -544,13 +544,13 @@ def _render_brief_nonblocking(package_dir, tier, on_issue, timeout_s=None):
             "Re-render: python -m mamey render-figures --package <pkg_dir>\n",
             encoding="utf-8",
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        _sys.stderr.write(f"[cli] could not write skip marker {skip_marker}: {exc}\n")
     try:
         with (pdir / "issue_log.md").open("a") as _il:
             _il.write(f"\n- [WARN] strain brief skipped: {reason}\n")
-    except Exception:
-        pass
+    except Exception as exc:
+        _sys.stderr.write(f"[cli] could not append to issue_log.md: {exc}\n")
     _phase_receipt(pdir, "brief_render", "TIMEOUT" if timed_out else "ERROR",
                    reason=reason, skip_marker=skip_marker)
     return {"status": "SKIPPED", "reason": reason, "files": [], "tier": tier}
@@ -847,8 +847,8 @@ def _emit_gold_figures(package_dir: Path, strain_id: str, mode: str) -> None:
                     f"--out <package_dir>/gold_figures --strains {strain_id}\n",
                     encoding="utf-8",
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                _sys.stderr.write(f"[cli] could not write GOLD_FIGURES_SKIPPED.md: {exc}\n")
             emit(f"  Gold figures: SKIPPED ({type(_fig_exc).__name__}: {_fig_exc})")
     else:
         # Smoke/standard mode — write a note explaining how to get figures
@@ -1920,9 +1920,13 @@ def run_one_strain(
     # the next reader does not mistake it for live boundary-adjustment behavior.
     try:
         from .architecture_first import set_run_assembly_tier
-        set_run_assembly_tier(assembly_tier(interior_pct))
-    except Exception:
-        pass
+    except ImportError:
+        set_run_assembly_tier = None
+    if set_run_assembly_tier is not None:
+        try:
+            set_run_assembly_tier(assembly_tier(interior_pct))
+        except Exception as exc:
+            _sys.stderr.write(f"[cli] set_run_assembly_tier failed: {exc}\n")
 
     # F1: a bare assembly (NO antiSMASH regions parsed) must NOT pass as a 0-BGC strain — that
     # silently banks an empty strain. Fail closed and write no package.
@@ -4289,6 +4293,10 @@ def ingest_blastp_trove_command(args) -> int:
         args.package, args.trove, args.channel, getattr(args, "strain", None),
         rekey_by_locus=bool(getattr(args, "rekey_by_locus", False)),
     )
+    if res.get("status") == "NO_SOURCES_DISCOVERED":
+        emit("[ingest-blastp-trove] NO_SOURCES_DISCOVERED: no ingest artifacts written.\n"
+             + json.dumps(res["discovery"], indent=2), flush=True)
+        return 0
     emit(f"[ingest-blastp-trove] channel={res['channel']} "
           f"{len(res['bgcs_written'])} BGCs, {res['genes']} genes, "
           f"rekey_by_locus={res['rekey_by_locus']} -> {res['package']}/blastp_online/",
@@ -7352,6 +7360,18 @@ def build_parser():
     bo.add_argument("--kcb-coverage-genes", type=int, default=None, dest="kcb_coverage_genes",
                     help="number of cluster genes the KCB anchor covers "
                          "(auto-derived from dominant_distinct_query_genes when omitted)")
+    # v9.7.438: blastp-online submitted the moment it was invoked, while its sibling blastp-round
+    # has had `--run` (default False, "dry-run plan only") since v9.7.180. Two commands that both
+    # send sequence to a third party should not disagree about whether sending is the default.
+    # Planning is now the default here too. Both spellings are accepted so muscle memory from
+    # either command works and neither silently submits.
+    bo.add_argument("--submit", "--run", action="store_true", default=False, dest="submit",
+                    help="actually submit the proteins to NCBI (default: print the disclosure "
+                         "plan and stop without sending anything)")
+    bo.add_argument("--confirm-public-sequence-upload", action="store_true", default=False,
+                    dest="confirm_public_upload",
+                    help="second acknowledgement, required with --submit: the selected sequences "
+                         "may be disclosed to NCBI and are not embargoed or proprietary")
     bo.set_defaults(func=blastp_online_command)
 
     # blastp-ebi (v9.7.215): formal EBI fallback transport for when NCBI nr is unreachable from the run
@@ -7368,6 +7388,10 @@ def build_parser():
     be.add_argument("--email", default=None,
                     help="valid contact email — REQUIRED by EMBL-EBI for --submit (anonymous/placeholder jobs are refused)")
     be.add_argument("--submit", action="store_true", help="submit all sequences as EBI jobs (<=30/transaction; requires --email)")
+    be.add_argument("--confirm-public-sequence-upload", action="store_true", default=False,
+                    dest="confirm_public_upload",
+                    help="required with --submit: acknowledge that FASTA sequences may be "
+                         "disclosed to EMBL-EBI")
     be.add_argument("--harvest", action="store_true", help="poll + retrieve XML for finished jobs")
     be.add_argument("--to-outfmt10", default=None, dest="to_outfmt10",
                     help="convert harvested XML -> this -outfmt 10 CSV (coverage intact) for ingest-blastp")
@@ -7406,6 +7430,10 @@ def build_parser():
     br.add_argument("--round", type=int, default=1, dest="round_num", help="round number")
     br.add_argument("--run", action="store_true", default=False,
                     help="actually submit to NCBI (default: dry-run plan only)")
+    br.add_argument("--confirm-public-sequence-upload", action="store_true", default=False,
+                    dest="confirm_public_upload",
+                    help="required with --run: acknowledge that planned sequences may be "
+                         "disclosed to NCBI")
     br.add_argument("--database", default="nr", choices=["nr", "refseq_protein", "swissprot"])
     br.add_argument("--evalue", default="1e-5")
     br.add_argument("--outdir", default=None)
@@ -7436,6 +7464,10 @@ def build_parser():
                     help="stop after this many Puts (default: run the whole worklist)")
     ab.add_argument("--dry-run", action="store_true", default=False, dest="dry_run",
                     help="plan the worklist + schedule with NO network")
+    ab.add_argument("--submit", action="store_true",
+                    help="submit the worklist; default is a local plan only")
+    ab.add_argument("--confirm-public-sequence-upload", action="store_true", dest="confirm_public_upload",
+                    help="acknowledge that selected sequences may be disclosed to NCBI")
     ab.set_defaults(func=auto_blastp_command)
 
     # blastp-availability (v9.7.345): Central Command "activate at onset + declare availability".

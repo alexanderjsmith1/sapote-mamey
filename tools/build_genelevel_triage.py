@@ -224,8 +224,7 @@ def main():
     out = a.out or os.path.join(a.package, "genelevel_triage.json")
     with atomic_open(out, "w", encoding="utf-8") as _f:
         json.dump(res, _f, indent=2)
-    emit("wrote", out)
-    emit(json.dumps(res["summary"], indent=2))
+    emit(f"wrote {out}", json.dumps(res["summary"], indent=2), sep="\n")
 
 
 if __name__ == "__main__":

@@ -434,6 +434,12 @@ def test_p5_command_backfills_domains_into_the_csv(tmp_path, monkeypatch):
         evalue = "1e-5"
         batch_size = 10
         outdir = str(tmp_path)
+        # v9.7.438 (PATCH_13): blastp-online plans by default and only submits behind an explicit
+        # two-step consent. This test stubs the network and exercises the WRITE path, so it opts in
+        # deliberately. Without these two the command correctly returns 0 having written nothing,
+        # and the assertion below fails on a missing CSV rather than on a domain-backfill defect.
+        submit = True
+        confirm_public_upload = True
     monkeypatch.setattr(bo, "_find_crosswalk", lambda _a: None)
     monkeypatch.setattr(bo, "_scope_feats", lambda *a, **k: feats)
 

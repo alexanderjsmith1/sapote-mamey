@@ -347,6 +347,4 @@ if __name__ == "__main__":
     p = write_package_map(a.package, a.spec, a.out)
     d = json.loads(Path(p).read_text(encoding="utf-8"))
     s = d["summary"]
-    emit(f"PACKAGE_MAP written: {p}", f"  strain: {d['strain_id']}  spec: {d['generated_from_spec']}", f"  artifacts present/absent: {s['artifacts_present']}/{s['artifacts_absent']}", sep="\n")
-    emit(f"  sections complete/mode-gated/gap: "
-          f"{s['sections_complete']}/{s['sections_mode_gated']}/{s['sections_with_gap']}")
+    emit(f"PACKAGE_MAP written: {p}", f"  strain: {d['strain_id']}  spec: {d['generated_from_spec']}", f"  artifacts present/absent: {s['artifacts_present']}/{s['artifacts_absent']}", f"  sections complete/mode-gated/gap: {s['sections_complete']}/{s['sections_mode_gated']}/{s['sections_with_gap']}", sep="\n")

@@ -48,8 +48,7 @@ def main():
     emit(f"# Sapote-Mamey — tier & release explainer (generated)\n", f"> Generated from the release-state record by `gen_tier_doc.py` — do not edit by hand.\n", f"- **Bundle version:** {bun}", f"- **Engine version:** {eng}", sep="\n")
     if nfiles is not None:
         emit(f"- **Sealed source files:** {nfiles}")
-    emit()
-    emit("## Tiers\n", "- **Tier 1 — Mamey** (Python): deterministic extraction. antiSMASH ZIP → sealed JSON/CSV/XLSX package + manifest.", "- **Tier 2 — Sapote-slim** / **Tier 3 — Sapote full**: LLM judgment protocols (Markdown), not executable code.", "\nEngine motto: **deterministic extraction, judgment deferred.** Outputs are class-level hypotheses with", "mandatory claim-safety language — never structural/bioactivity claims.", sep="\n")
+    emit("", "## Tiers\n", "- **Tier 1 — Mamey** (Python): deterministic extraction. antiSMASH ZIP → sealed JSON/CSV/XLSX package + manifest.", "- **Tier 2 — Sapote-slim** / **Tier 3 — Sapote full**: LLM judgment protocols (Markdown), not executable code.", "\nEngine motto: **deterministic extraction, judgment deferred.** Outputs are class-level hypotheses with", "mandatory claim-safety language — never structural/bioactivity claims.", sep="\n")
 
 if __name__ == "__main__":
     main()

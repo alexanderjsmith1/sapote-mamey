@@ -25,6 +25,7 @@ Usage:
       --db cohort.db --mibig-index mibig_reference_index.bacterial.json \
       --outdir figs/
 """
+import sys
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
@@ -43,12 +44,19 @@ def _save_rgb(fig, png):
     fig.savefig(png, dpi=150, bbox_inches="tight", facecolor="white")
     try:
         from PIL import Image
+    except ImportError:
+        return                      # Pillow is an optional add-on; nothing to flatten without it
+    # Pillow IS present, so a failure past this point is a real one. Previously the import and the
+    # work shared one `except Exception: pass`, so a malformed PNG or an unwritable path produced a
+    # figure that silently kept its alpha channel — indistinguishable from "Pillow not installed".
+    try:
         im = Image.open(png)
         if im.mode in ("RGBA", "LA", "P"):
             bg = Image.new("RGB", im.size, "white")
             bg.paste(im, mask=im.convert("RGBA").split()[-1]); bg.save(png)
-    except Exception:
-        pass
+    except (OSError, ValueError) as exc:
+        sys.stderr.write(f"[bgc_figures] could not flatten {png} ({type(exc).__name__}: {exc}); "
+                         f"the figure keeps its alpha channel\n")
 
 ROLE_COLORS = {"core": "#2c7fb8", "tailoring": "#41ab5d", "transport": "#f39c12",
                "regulatory": "#8e6bbf", "other": "#9aa4ad"}

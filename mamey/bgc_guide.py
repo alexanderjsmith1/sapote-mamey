@@ -16,7 +16,7 @@ except ImportError:  # direct execution: no parent package to resolve against.
 # every per-gene claim capped at its BLASTp evidence_tier. All coordinate/domain content comes from
 # the sealed package's gene_by_gene_all_bgcs.csv. The module renders banked data; it does not re-scan.
 
-import csv, json, os, re
+import csv, json, os, re, sys
 from pathlib import Path
 from typing import Any
 
@@ -63,8 +63,11 @@ def _strain_from_package(package: Path) -> str:
             s = m.get("strain") or m.get("strain_id")
             if s:
                 return str(s)
-        except Exception:
-            pass
+        except (OSError, UnicodeError, json.JSONDecodeError, AttributeError) as exc:
+            sys.stderr.write(
+                f"bgc_guide: cannot read {mp.name}; using package-name strain fallback "
+                f"({type(exc).__name__}: {exc})\n"
+            )
     # fall back to a *_gene_by_gene_all_bgcs.csv prefix
     for p in package.glob("*_gene_by_gene_all_bgcs.csv"):
         return p.name.split("_gene_by_gene_all_bgcs.csv")[0]

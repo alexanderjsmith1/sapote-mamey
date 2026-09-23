@@ -27,7 +27,7 @@ except ImportError:  # direct execution: no parent package to resolve against.
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from mamey.console import emit
 import re
-import json, os, sys, time, urllib.request, urllib.parse
+import hashlib, json, os, sys, time, urllib.request, urllib.parse
 
 BASE = "https://www.ebi.ac.uk/Tools/services/rest/ncbiblast"
 # EBI's alignments/scores param is an ENUM, not a free int — posting an off-enum value (e.g. 6) is a
@@ -99,7 +99,8 @@ def _validate_ebi_email(email):
 
 
 def submit_ebi(fasta, state, database="uniprotkb_bacteria", email=None,
-               submit_gap=6.0, hits=6, throttle_sleep=time.sleep):
+               submit_gap=6.0, hits=6, throttle_sleep=time.sleep,
+               confirm_public_upload=False):
     """Submit every sequence in `fasta` (one EBI job each), persisting job ids after each submit.
 
     Fail-closed on EMBL-EBI fair-use: a valid --email is required, a transaction is capped at 30
@@ -110,6 +111,31 @@ def submit_ebi(fasta, state, database="uniprotkb_bacteria", email=None,
     if len(seqs) > _MAX_EBI_BATCH:
         raise ValueError(f"blastp-ebi --submit: EMBL-EBI asks for <= {_MAX_EBI_BATCH} jobs per transaction; "
                          f"this FASTA has {len(seqs)} records. Split it into <= {_MAX_EBI_BATCH}-record batches.")
+    digest = hashlib.sha256()
+    for locus_tag, sequence in seqs:
+        digest.update(
+            locus_tag.encode("utf-8", "replace")
+            + b"\x00"
+            + sequence.encode("utf-8", "replace")
+            + b"\n"
+        )
+    emit(
+        "blastp-ebi OUTBOUND SEQUENCE DISCLOSURE",
+        f"    endpoint        {BASE}",
+        f"    database        {database}",
+        f"    records         {len(seqs)} protein(s), "
+        f"{sum(len(sequence) for _, sequence in seqs)} aa",
+        f"    sequence sha256 {digest.hexdigest()}",
+        f"    source          {fasta}",
+        "    classification  NOT ESTABLISHED by this tool. Unpublished, embargoed, proprietary or",
+        "                    otherwise restricted sequence must not be submitted.",
+        sep="\n",
+    )
+    if seqs and not confirm_public_upload:
+        raise ValueError(
+            "blastp-ebi outbound disclosure requires explicit public sequence upload "
+            "acknowledgement; pass --confirm-public-sequence-upload"
+        )
     d = _load(state)
     if d:
         pending = [lt for lt, j in d.get("jobs", {}).items()
@@ -171,6 +197,9 @@ def harvest_ebi(state, poll_budget=600, poll_gap=8.0, save_xml=True, sleep=time.
                             fh.write(xml)
                     d["results"][lt] = "OK"; _save(state, d); pending.remove(lt)
                 except Exception:
+                    # Transient fetch/write error on a job that just reported FINISHED: leave lt in
+                    # `pending` so the next poll retries it. A persistent failure surfaces when the
+                    # poll loop times out. Emitting here would repeat every poll gap, so stay quiet.
                     pass
             elif st in ("NOT_FOUND", "FAILURE", "ERROR"):
                 d["results"][lt] = st; _save(state, d); pending.remove(lt)
@@ -250,7 +279,15 @@ def blastp_ebi_command(a):
     """
     ran = False
     if getattr(a, "submit", False):
-        d = submit_ebi(a.fasta, a.state, database=a.database, email=getattr(a, 'email', None), submit_gap=a.submit_gap, hits=a.hits)
+        d = submit_ebi(
+            a.fasta,
+            a.state,
+            database=a.database,
+            email=getattr(a, "email", None),
+            submit_gap=a.submit_gap,
+            hits=a.hits,
+            confirm_public_upload=getattr(a, "confirm_public_upload", False),
+        )
         ok = sum(1 for j in d["jobs"].values() if j and not str(j).startswith("ERR"))
         emit(f"blastp-ebi submit [{a.database}]: {ok}/{len(d['jobs'])} jobs submitted -> {a.state}")
         ran = True

@@ -1,6 +1,6 @@
 # The Sapote–Mamey User Manual
 
-*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.437 / engine Mamey 1.9.167*
+*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.440 / engine Mamey 1.9.169*
 *Historical sections retain their stated scope.*
 
 > This Manual tells you **how to run** Sapote–Mamey and **how to read what it gives you**, in the order you actually use it. For *why each part exists and how it relates to the rest*, see the **Encyclopedia** (cross-referenced as → §Vol.Chapter). The Manual is operational; the Encyclopedia is the deep reference behind it. Term definitions live in one place, the **Glossary** ([`GLOSSARY.md`](../GLOSSARY.md); its **Core concepts** section covers the load-bearing terms). This Manual and the Encyclopedia point to it rather than redefining terms.
@@ -27,7 +27,7 @@ Mamey is the factual floor; Sapote is the interpretive ceiling. The contract bet
 ## 2 · Setup and installation
 
 Mamey parses antiSMASH output; it does not run genome detection itself.
-*(engine 1.9.167, bundle v9.7.437)*
+*(engine 1.9.169, bundle v9.7.440)*
 
 ### 2.1 · What you need
 
@@ -92,7 +92,7 @@ Use CODE for all internal analysis. Never distribute MERGED-PRIVATE.
 
 ```bash
 python mamey_run.py doctor            # pre-flight check: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # should report `engine 1.9.167, bundle 9.7.437`
+python3 tools/sync_version.py --check # should report `engine 1.9.169, bundle 9.7.440`
 python3 -m pytest -q                  # green suite = tier is intact (requires pytest wheel)
 ```
 
@@ -500,10 +500,11 @@ These back the three-channel Mode B workflow (§4.2a). All are safe to run on th
 - **`python mamey_run.py blastp-online --package <gbk> --bgc <ID>`** — per-gene NCBI BLASTp for one BGC, with the
   CONFIRM/REFINE/OVERTURN reconciliation and the §9 cluster reads (coherence, function, novelty).
   Fail-closed; batches ≤10 proteins, giant proteins (>2500 aa) solo.
-- **`python mamey_run.py blastp-round --package <pkg> [--full-top 3] [--run]`** — the phased strain plan: full
+- **`python mamey_run.py blastp-round --package <pkg> [--full-top 3] [--run --confirm-public-sequence-upload]`** — the phased strain plan: full
   per-gene BLASTp for the top-N BGCs (so complete evidence is back before their cards are authored)
   plus one representative protein for every other BGC, saccharides included. Dry-run by default:
-  it prints the plan and the submission-time estimate; add `--run` to submit.
+  it prints the plan and the submission-time estimate; add both live-submission flags only after
+  reviewing the exact sequence disclosure receipt.
 - **`python mamey_run.py hmm-adjudicate <region.gbk> [--locus <lt>]`** — the offline domain readout: ordered HMM
   hits per gene, module grammar, and the BLASTp-vs-antiSMASH tie-breaker.
 - **`python mamey_run.py figures {diagram|atlas|ani} …`** — the three publication figures (gene-arrow diagram,
@@ -532,4 +533,4 @@ Use [the Mode B user walkthrough](../MODE_B_USER_WALKTHROUGH.md) for package inp
 
 ---
 
-*Sapote–Mamey User Manual · current to bundle v9.7.437 / engine Mamey 1.9.167 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
+*Sapote–Mamey User Manual · current to bundle v9.7.440 / engine Mamey 1.9.169 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*

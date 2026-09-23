@@ -174,8 +174,10 @@ def main(path):
                 ws.cell(row, col, tag); refreshed += 1
 
     atomic_save(wb, path)
-    emit(f"D5 Fragment_Rescue_Tiers rebuilt ({len(recs)} strains); Activity_Ref refreshed ({refreshed} rows)")
-    emit("tier counts:", {t: sum(1 for r in recs if r[0] == t) for t in "ABCD"})
+    _tier_counts = {t: sum(1 for r in recs if r[0] == t) for t in "ABCD"}
+    emit(f"D5 Fragment_Rescue_Tiers rebuilt ({len(recs)} strains); Activity_Ref refreshed ({refreshed} rows)",
+         f"tier counts: {_tier_counts}",
+         sep="\n")
 
 
 if __name__ == "__main__":

@@ -136,14 +136,16 @@ def write_panel(cands, path, query=None):
 def cmd_plan_blast(a):
     markers = [m.strip() for m in a.markers.split(",") if m.strip()]
     emit("# marker_candidate_search: PLAN ONLY — review, then run with approval "
-          "(reference discovery is a networked step).")
-    emit(f"# query={a.query}  assembly={a.assembly}  channel="
-          f"{'REMOTE NCBI' if a.remote else 'LOCAL DB'}")
+          "(reference discovery is a networked step).",
+         f"# query={a.query}  assembly={a.assembly}  channel="
+         f"{'REMOTE NCBI' if a.remote else 'LOCAL DB'}",
+         sep="\n")
     for m in markers:
         if m in RRNA_MARKERS:
-            emit(f"\n## {m}: extract rRNA (needs barrnap; rRNA cannot be blastp-seeded)")
-            emit(f"barrnap --kingdom bac {a.assembly} | "
-                  f"awk '$3==\"rRNA\" && /16S/' > {a.query}_{m}.gff   # then bedtools getfasta")
+            emit(f"\n## {m}: extract rRNA (needs barrnap; rRNA cannot be blastp-seeded)",
+                 f"barrnap --kingdom bac {a.assembly} | "
+                 f"awk '$3==\"rRNA\" && /16S/' > {a.query}_{m}.gff   # then bedtools getfasta",
+                 sep="\n")
             db = a.db or "<local 16S RefSeq db>"
             if a.remote:
                 emit(f"blastn -query {a.query}_{m}.fna -db nt -remote "
@@ -154,10 +156,12 @@ def cmd_plan_blast(a):
                       f"-outfmt 6 -max_target_seqs 25 -num_threads 4 -out {a.query}_{m}_hits.tsv")
         elif m in MARKER_SEEDS:
             seed = os.path.join(SEEDS_DIR, MARKER_SEEDS[m])
-            emit(f"\n## {m}: protein marker (seed {seed})", f"prodigal -i {a.assembly} -a {a.query}.faa -p single -q   # once per assembly", sep="\n")
             db = a.db or "<local RefSeq protein db>"
-            emit(f"blastp -query {seed} -db {db} "
-                  f"-outfmt 6 -max_target_seqs 25 -num_threads 4 -out {a.query}_{m}_hits.tsv")
+            emit(f"\n## {m}: protein marker (seed {seed})",
+                 f"prodigal -i {a.assembly} -a {a.query}.faa -p single -q   # once per assembly",
+                 f"blastp -query {seed} -db {db} "
+                 f"-outfmt 6 -max_target_seqs 25 -num_threads 4 -out {a.query}_{m}_hits.tsv",
+                 sep="\n")
         else:
             emit(f"# WARN unknown marker '{m}' (known: 16S, {', '.join(MARKER_SEEDS)})")
     emit(f"\n# then: python tools/marker_candidate_search.py to-panel "

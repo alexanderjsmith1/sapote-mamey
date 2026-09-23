@@ -76,12 +76,18 @@ def main():
     if a.workbook and os.path.exists(a.workbook):
         try:
             import openpyxl
-            wb=openpyxl.load_workbook(a.workbook, read_only=True)
-            if 'Fragment_Rescue_Tiers' in wb.sheetnames:
-                rows=list(wb['Fragment_Rescue_Tiers'].iter_rows(values_only=True)); h=list(rows[0]); ix={c:i for i,c in enumerate(h)}
-                for r in rows[1:]:
-                    if r[ix['strain']]: rescue[r[ix['strain']]]={'contigs':r[ix['Contigs']],'frag':r[ix['Frag_Loss']],'tier':r[ix['Tier']]}
-        except Exception: pass
+        except ImportError:
+            openpyxl = None   # optional add-on; without it, fall back to the contig-count rescue below
+        if openpyxl is not None:
+            try:
+                wb=openpyxl.load_workbook(a.workbook, read_only=True)
+                if 'Fragment_Rescue_Tiers' in wb.sheetnames:
+                    rows=list(wb['Fragment_Rescue_Tiers'].iter_rows(values_only=True)); h=list(rows[0]); ix={c:i for i,c in enumerate(h)}
+                    for r in rows[1:]:
+                        if r[ix['strain']]: rescue[r[ix['strain']]]={'contigs':r[ix['Contigs']],'frag':r[ix['Frag_Loss']],'tier':r[ix['Tier']]}
+            except Exception as exc:
+                sys.stderr.write(f"[build_thesis_vignettes] could not read Fragment_Rescue_Tiers from "
+                                 f"{a.workbook} ({type(exc).__name__}: {exc}); using contig-count rescue\n")
     if not rescue:
         sc={}
         for b in bgcs: sc.setdefault(b['sid'],set()).add(b.get('contig'))

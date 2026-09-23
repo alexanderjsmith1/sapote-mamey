@@ -84,7 +84,7 @@ def package_data(row,loci,sources,archive_cache):
  for b in m.get('bgcs',[]):
   alias=b.get('bgc_id');node=b.get('contig');region=b.get('antismash_region');identity=None
   try:identity=exact_locus_display(strain,node,region,alias)
-  except (ValueError,TypeError):pass
+  except (ValueError,TypeError):identity=None  # The explicit hold below records unavailable identity.
   bl=loci.get(identity);holds=[];gs=contexts.get(alias,[]);package_genes=[]
   for g in gs:package_genes.append((g.get('locus_tag'),g.get('start'),g.get('end'),g.get('strand'),proteins.get((alias,g.get('locus_tag')))))
   if not identity:holds.append('COMPLETE_IDENTITY_UNAVAILABLE')

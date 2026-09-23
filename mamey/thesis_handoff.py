@@ -57,6 +57,10 @@ def build_thesis_handoff(index_tsv: Path, input_root: Path, output_dir: Path) ->
     for number,(row,display,receipt,report,locus_map,activity) in enumerate(admitted,1):
         locus_dir=artifacts/f"locus_{number:03d}"; locus_dir.mkdir()
         selected=[receipt,report,locus_map]+([activity] if activity else [])
+        basenames=[s.name for s in selected]
+        if len(basenames)!=len(set(basenames)):
+            dupes=sorted({n for n in basenames if basenames.count(n)>1})
+            raise ThesisHandoffError(f"basename collision in {display}: {', '.join(dupes)}")
         for source in selected:
             target=locus_dir/source.name; shutil.copy2(source,target); copied.append(target)
         index_lines += [f"## {display}", "", f"Report: `artifacts/{locus_dir.name}/{report.name}`", "", f"Locus map: `artifacts/{locus_dir.name}/{locus_map.name}`", "", f"Claim ceiling: {row['claim_ceiling']}", ""]

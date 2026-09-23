@@ -61,6 +61,7 @@ import datetime
 import json
 import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -238,8 +239,13 @@ def _strain_from_pkg(pkg: Path) -> str:
     if manifest.exists():
         try:
             return json.loads(manifest.read_text(encoding="utf-8")).get("strain_id", pkg.name)
-        except Exception:
-            pass
+        except (OSError, ValueError) as exc:
+            # manifest.json is present but unreadable/corrupt. Surface it: the pkg.name fallback
+            # below can diverge from session_resume.py's pkg.parent.name and silently split the
+            # register (see this function's docstring), so a corrupt manifest must not be silent.
+            sys.stderr.write(
+                f"[judgment_store] manifest.json at {manifest} unreadable "
+                f"({type(exc).__name__}: {exc}); falling back to a directory-name strain id\n")
     if pkg.name == "package" and pkg.parent.name:
         return pkg.parent.name
     return pkg.name

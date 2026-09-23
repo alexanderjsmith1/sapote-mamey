@@ -49,13 +49,17 @@ def _inline(t):
 def _flatten_rgb(png):
     try:
         from PIL import Image
+    except ImportError:
+        return png
+    try:
         im = Image.open(png)
         if im.mode in ("RGBA", "LA", "P"):
             bg = Image.new("RGB", im.size, "white")
             bg.paste(im.convert("RGBA"), mask=im.convert("RGBA").split()[-1])
             out = png + ".rgb.png"; bg.save(out); return out
-    except Exception:
-        pass
+    except (OSError, ValueError) as exc:
+        sys.stderr.write(f"[bgc_deliverable_pdf] could not flatten {png} ({type(exc).__name__}: {exc}); "
+                         f"the figure keeps its alpha channel\n")
     return png
 
 def build(args):

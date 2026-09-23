@@ -1540,13 +1540,13 @@ def update_e1_from_judgment(package_dir: str | Path, master_workbook_path: str |
 
 def _strain_from_pkg(pkg: Path) -> str:
     """Infer strain ID from manifest in package dir."""
+    import json as _j
     m = pkg / "manifest.json"
     if m.exists():
         try:
-            import json as _j
             return _j.loads(m.read_text(encoding="utf-8")).get("strain_id", pkg.name)
-        except Exception:
-            pass
+        except (OSError, ValueError) as exc:
+            import sys; sys.stderr.write(f"[master_workbook] manifest parse failed for {m}: {exc}\n")
     return pkg.name
 
 

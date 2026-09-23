@@ -16,6 +16,7 @@ import csv
 import json
 import os
 import re
+import sys
 import zipfile
 from xml.sax.saxutils import escape
 from mamey.xlsx_determinism import save_workbook_safely as _save_wb_safely
@@ -27,6 +28,7 @@ def _discard_tmp(tmp: str) -> None:
         if os.path.exists(tmp):
             os.remove(tmp)
     except OSError:
+        # A stale temp file is non-authoritative; the original write exception remains decisive.
         pass
 
 REQUIRED_SHEETS = [
@@ -177,8 +179,12 @@ def _write_with_openpyxl(tables: dict[str, tuple[list[str], list[list[Any]]]], o
             tab.tableStyleInfo = style
             try:
                 ws.add_table(tab)
-            except Exception:
-                pass
+            except Exception as exc:
+                sys.stderr.write(
+                    f"directed_study_workbook: could not add Excel table {table_name!r} to "
+                    f"{sheet_name!r}; retaining the formatted worksheet "
+                    f"({type(exc).__name__}: {exc})\n"
+                )
 
         for col_idx, column_cells in enumerate(ws.columns, start=1):
             max_len = 0

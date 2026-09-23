@@ -121,7 +121,7 @@ def test_default_submit_fn_uses_no_email(monkeypatch):
         captured.update(data)
         return "RID = ABC123\n"
     monkeypatch.setattr(bo, "_post", fake_post)
-    fn = ah.default_submit_fn(channel="nr")
+    fn = ah.default_submit_fn(channel="nr", confirm_public_upload=True)
     res = fn({"unit_id": "BGC001#0", "bgc_id": "BGC001",
               "batch": [["BGC001_g1", "MKVAAA"]], "batch_index": 0, "n_proteins": 1})
     assert res["ok"] and res["rid"] == "ABC123"

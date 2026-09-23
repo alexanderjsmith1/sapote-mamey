@@ -71,6 +71,7 @@ capture, and it is bounded small so it cannot re-add the KCB channel's weight.
 """
 from __future__ import annotations
 
+import sys
 from math import sqrt
 from typing import Any, Mapping, Optional
 
@@ -139,7 +140,10 @@ def _specificity(cov: Mapping[str, Any]) -> str:
             if int(n_comparators) <= 1:
                 return "UNIQUE"
         except (TypeError, ValueError):
-            pass
+            sys.stderr.write(
+                f"[comparator_coverage_scoring] n_comparators={n_comparators!r} is not an "
+                "integer; skipping the UNIQUE shortcut and deriving specificity from dominance "
+                "geometry instead\n")
     if dominant is True and margin >= 2:
         return "CLEAR"
     if dominant is True and 0 <= margin < 2:

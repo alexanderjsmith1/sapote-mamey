@@ -99,8 +99,8 @@ def _strain_from_manifest(pkg_dir: str, fallback: str) -> str:
             s = m.get("strain_id") or m.get("display_name")
             if s:
                 return str(s).strip()
-        except (OSError, ValueError, json.JSONDecodeError):
-            pass
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            import sys; sys.stderr.write(f"[cohort_leads_ledger] manifest parse failed for {mpath}: {exc}\n")
     return fallback
 
 

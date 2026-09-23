@@ -70,7 +70,7 @@ BARE_EXCEPT_WARN_THRESHOLD = 0
 # `except (ValueError|Exception): pass` -> `continue` (collection_figures.py x3, cohort_figures.py x1,
 # all behavior-identical) + 1 reviewed-intentional handler marked `...` (master_workbook.py NP-Atlas
 # optional). Hold the line at 110 — do not raise without a sweep.
-SILENT_SWALLOW_CEILING = 82  # combined ratchet-down 2026-09-09: 145 -> 125 (measured)  # ratchet-down 2026-09-09: 147 -> 145 (measured)  # ratchet-down 2026-09-07: 148 -> 147 (measured)  # ratchet-down 2026-09-05: 149 -> 148 (measured)  # ratchet-down 2026-09-05: 151 -> 149 (measured)  # ratchet-down 2026-09-04: 152 -> 151 (measured)  # ratchet-down 2026-09-03: 153 -> 152 (measured)  # ratchet-down 2026-09-02: 154 -> 153 (measured)   # REBASELINED 2026-08-26 (v9.7.381) to the measured count — DEBT
+SILENT_SWALLOW_CEILING = 14  # ratchet-down 2026-09-22: 82 -> 14 (measured)  # combined ratchet-down 2026-09-09: 145 -> 125 (measured)  # ratchet-down 2026-09-09: 147 -> 145 (measured)  # ratchet-down 2026-09-07: 148 -> 147 (measured)  # ratchet-down 2026-09-05: 149 -> 148 (measured)  # ratchet-down 2026-09-05: 151 -> 149 (measured)  # ratchet-down 2026-09-04: 152 -> 151 (measured)  # ratchet-down 2026-09-03: 153 -> 152 (measured)  # ratchet-down 2026-09-02: 154 -> 153 (measured)   # REBASELINED 2026-08-26 (v9.7.381) to the measured count — DEBT
                           # REBASELINED, NOT REDUCED. No-regression ceiling; ratchet down, never raise.
 PLACEHOLDER_RE = re.compile(r"XXX")
 

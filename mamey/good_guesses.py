@@ -59,6 +59,7 @@ import argparse
 import csv
 import json
 import math
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -802,8 +803,11 @@ def render_docx(rows: list[GoodGuess], path: Path) -> dict:
         table = doc.add_table(rows=1, cols=len(cols))
         try:
             table.style = "Light Grid Accent 1"
-        except Exception:
-            pass
+        except (KeyError, ValueError) as exc:
+            sys.stderr.write(
+                f"good_guesses: DOCX table style unavailable; using the default style "
+                f"({type(exc).__name__}: {exc})\n"
+            )
         for j, c in enumerate(cols):
             cell = table.rows[0].cells[j]
             cell.text = c

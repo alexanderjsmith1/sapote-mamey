@@ -281,6 +281,7 @@ mamey/pair_scan_caps.py	pair_scan_caps.py — bound all-vs-all O(n^2) BGC-pair (
 mamey/parsers.py	(no docstring)
 mamey/patches/__init__.py	Sapote-Mamey research patch namespace.
 mamey/patches/next_ten_registry.py	Registry for the next-ten Sapote–Mamey patches.
+mamey/path_safety.py	Shared output-containment guard for tools that name a file from a caller-supplied label.
 mamey/pathway_believability.py	mamey.pathway_believability — per-LOCUS committed-step believability prior (FA4 prototype).
 mamey/phylo_evidence.py	Receipt producer for already-built GToTree/IQ-TREE phylogenies.
 mamey/phylogeny_figure_factory.py	Consume existing phylogeny receipts in Figure Factory without a new tree engine.

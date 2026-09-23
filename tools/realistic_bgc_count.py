@@ -173,8 +173,11 @@ def _strain_of(package_dir: str) -> str:
             for k in ("strain_id", "strain", "Strain"):
                 if m.get(k):
                     return str(m[k])
-        except (ValueError, OSError):
-            pass
+        except (ValueError, OSError, UnicodeError, AttributeError) as exc:
+            sys.stderr.write(
+                f"realistic_bgc_count: cannot read manifest strain identity; using the "
+                f"inventory/package fallback ({type(exc).__name__}: {exc})\n"
+            )
     inv = _find_one(package_dir, "_2_inventory.csv")
     if inv:
         base = os.path.basename(inv)
