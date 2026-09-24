@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**389 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**391 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -130,6 +130,7 @@
 | `build_thesis_handoff.py` | (no docstring) |
 | `build_thesis_vignettes.py` | worked thesis vignettes for the Class-A leads. |
 | `build_tree.sh` | the ONLY sanctioned way to build a phylogenomic tree in this project. |
+| `build_tree_tracks.py` | Adapt hash-bound Figure Factory BIOASSAY tracks for exact-tip R rendering. |
 | `build_validation_panel.py` | corrected-vs-raw percentile scatter for the external-validation panel. |
 | `build_wetlab_matrix.py` | deterministic writer for the Wet-Lab Decision Matrix (WLDM). |
 | `build_workbook.py` | canonical master-workbook build orchestrator. |
@@ -374,6 +375,7 @@
 | `sync_version.py` | propagate the single source-of-truth version into restated files. |
 | `test_reaction_gap_board.py` | (no docstring) |
 | `test_resolve_reference_metadata.py` | parse, strain-gate, absence, deposit heuristic. |
+| `tools/tests/test_441_intake_launches_via_bundle_pinned_runner.py` | The harness must launch the engine so the bundle's mamey wins over any stray cwd mamey/. |
 | `tier_vocabulary.py` | the single owner of release-tier names, zip labels and aliases. |
 | `tip_label.py` | Figure-label compatibility API backed by the bundled source-aware parser. |
 | `topology_scan.py` | detect inverted (non-co-directional) BGC strand-block topology and |

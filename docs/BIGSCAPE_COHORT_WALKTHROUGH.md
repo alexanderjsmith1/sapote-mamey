@@ -131,3 +131,14 @@ and the contig-edge flag with every count.
 Do not write: novel, new, rare, unknown compound, bioactive, or any product name from a MIBiG neighbour. A private
 family is a statement about this panel and this reference set. A MIBiG member in the family is architecture
 similarity, not compound identity. Judgment is deferred to the person who signs the card.
+
+
+## Optional input and display scope
+
+`bigscape_prep.py --min-query-genes N --query-strain <exact-id>` filters only the explicitly named query inputs before staging. Repeat `--query-strain` for additional queries; other inputs are never filtered. The default minimum is zero (disabled). Excluded source records, CDS counts and hashes are written to `EXCLUDED_SMALL_QUERY_FRAGMENTS.tsv`, with the exact rule in `QUERY_FILTER.json`. This is an operator-selected input scope, not a statement of biological absence or assembly completeness. Raw archives stay unchanged. These records carry source locators; an unbound BGC alias is explicitly recorded rather than invented.
+
+`bigscape_cross_strain.py --out` takes a TSV filename. `--labels` reads unique exact strain keys and deposited display names, retaining the `strains` join column. `--exclude-products terpene,ectoine` performs an explicit case-insensitive contains match on the dominant product label, writing matching families to `<out>.PARKED.tsv` and the rule/counts to `<out>.FILTER.json`. No exclusion is enabled by default; mixed labels can match a token and must be reviewed when selecting scope.
+
+`bigscape_clinker_html.py --row-order genes|similarity --min-genes N --labels labels.tsv` controls display order, minimum track size and deposited names. Similarity is a deterministic greedy order by shared dominant Pfam domains, not a phylogeny. Hidden tracks remain in the database and exports; the page states the hidden count. `--query-regex` must compile and contain a capture group. Full names remain in the page payload; the gutter bounds their on-page width. These options do not change family assignment, locus identity, product identity or activity claims.
+
+The optional clinker `--chrome` PDF route requires the `documents` extra (`pypdf`). It validates a complete single-page family PDF, then closes its isolated browser process; it refuses an existing PDF instead of reporting stale output as newly rendered.

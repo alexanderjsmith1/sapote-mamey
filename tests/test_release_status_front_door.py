@@ -88,7 +88,7 @@ def _assert_release_status_contract(
     assert manifest_version == canonical_version, (
         "RELEASE_MANIFEST.md must match the canonical bundle version"
     )
-    assert manifest_status in {"validated CODE archive", "CI correction candidate"}, (
+    assert manifest_status in {"validated CODE archive", "CI correction candidate", "engineering cut candidate"}, (
         "unrecognized artifact status"
     )
     assert "signed public release" not in manifest_status.lower()

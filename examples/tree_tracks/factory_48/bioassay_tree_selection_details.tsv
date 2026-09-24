@@ -1,0 +1,5 @@
+strain	aggregation	target	timepoint_hours	final_concentration_ug_ml	requested_material_count	measured_material_count	active_material_count	active_threshold_pct	selected_material_id	selected_value	total_recorded_material_amount_mg	state
+SYN-1	mean_inhibition_pct	Candida species	48	120	1	1			material-1	72.0	12.5	OBSERVED
+SYN-2	mean_inhibition_pct	Candida species	48	120	1	1			material-2	0.0	12.5	OBSERVED
+SYN-3	mean_inhibition_pct	Candida species	48	120	1	1			material-3	-10.0	12.5	OBSERVED
+SYN-4	mean_inhibition_pct	Candida species	48	120	1	0						NOT_MEASURED

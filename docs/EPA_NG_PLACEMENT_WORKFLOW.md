@@ -14,6 +14,23 @@ is a shipped tool.
 16S-only strains (no genome), or a fast neighbourhood read before a genome/MLSA tree. Queries are **placed**
 on a fixed type-strain backbone; they never perturb its topology. For genome trees use `docs/GTOTREE_WORKFLOW.md`.
 
+## Environment (read first)
+
+`miniconda3/`, `blast_dbs/` and `Tools/databases/` are **workspace** assets; the CODE bundle does not
+ship them. Every tool below resolves them through `workspace_root()`, which is the current directory
+unless told otherwise (or, from v9.7.441, the nearest parent that contains `Tools/databases/`,
+`blast_dbs/` or `miniconda3/`). Pin the workspace once per shell:
+
+```bash
+export SAPOTE_WORKSPACE_ROOT="/path/to/your/workspace"      # the folder that contains miniconda3/ and OFFICIAL_DATA/
+export BLAST_BIN="$SAPOTE_WORKSPACE_ROOT/miniconda3/envs/blast/bin"
+export PATH="$SAPOTE_WORKSPACE_ROOT/miniconda3/envs/placement/bin:$PATH"
+python mamey_run.py doctor        # reports blastdbcmd / mafft / raxml-ng / epa-ng / gappa / Rscript
+```
+
+`harvest_16s.py` auto-locates its inputs and yields `query 0/N` rather than refusing when they are
+missing; pass `--authoritative`, `--refseq-db` and `--blastdbcmd` explicitly for a reproducible run.
+
 ## The pipeline (one command per stage)
 
 ```
@@ -29,7 +46,7 @@ tree_sanity_check.py <run>/placement/epa_result.newick --outgroup <OutgroupGenus
 
 build_placement_ggtree_inputs.py --graft <run>/placement/epa_result.newick --group <Genus> \
      --neighbors <N> --host-table <paper strain table> --origin-table <isolation_source.tsv> \
-     --ref-source-db <16S store with record(acc_base, isolation_source, host, country)> \
+     --ref-source-db <16S store with record(acc_base, definition)> \
      --outgroup-substr <OutgroupGenus> --out-prefix <run>/ggtree/<Genus>
      # → <Genus>_pruned.nwk + <Genus>_ggtree_annotation.tsv (host+accession on queries; isolation-source on refs)
      # --ref-source-db has NO default and NO automatic discovery. Omit it and every reference tip is

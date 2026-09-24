@@ -5,7 +5,7 @@
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
 # Sapote–Mamey CO-EXECUTION PROMPT — Claude directs ChatGPT, judgment runs alongside
-**Bundle:** v9.7.440 · **Reviewed:** 2026-09-10 · **Active controller:** `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`
+**Bundle:** v9.7.441 · **Reviewed:** 2026-09-10 · **Active controller:** `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`
 **Use when:** a sealed Mamey package already exists (extraction done, `MAMEY_COMPLETE`/`JUDGMENT_PENDING`)
 and you want Claude to do the Sapote judgment WHILE directing ChatGPT to run the deterministic
 follow-on work the package flagged as `NEEDS_*`. This is a parallel loop, not the sequential
@@ -84,7 +84,7 @@ value. A pending cell stays pending with its status code until real evidence fil
 
 ```text
 MAMEY FOLLOW-ON WORK ORDER  (issued by Claude/Sapote)
-Strain: [StrainID]   Package: [zip name]   Bundle: v9.7.440
+Strain: [StrainID]   Package: [zip name]   Bundle: v9.7.441
 Source of truth: the sealed package you produced; do NOT re-extract or re-run the ten scans.
 
 TASK 1 — Protein FASTA (GATING; everything below blocks on this)
@@ -160,5 +160,5 @@ sign-off QC gate on trees), and `verify-modeb --interp` (Mode-B interpretation g
 class-level capacity — judgment deferred, similarity not identity, no structure/product/activity claim.
 
 ---
-*Sapote-Mamey Bundle v9.7.440 | This prompt orchestrates the parallel loop; the role boundary and
+*Sapote-Mamey Bundle v9.7.441 | This prompt orchestrates the parallel loop; the role boundary and
 claim-safety rules are inherited unchanged from CLAUDE_SYSTEM_PROMPT.md and the Mamey execution prompt.*

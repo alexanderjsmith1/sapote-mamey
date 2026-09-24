@@ -1,0 +1,38 @@
+{
+  "claim_ceiling": "Measured assay observations at the recorded material level; no automatic locus or compound attribution.",
+  "figure_kind": "bioassay_observation_summary_v1",
+  "input": {
+    "bytes": 1535,
+    "logical_locator": "observations.csv",
+    "sha256": "e65b97471bbe5f24c52164b0496c8e84cdd2d58be34b00ccb65da3ff487ba20a"
+  },
+  "outputs": [
+    {
+      "bytes": 1588,
+      "logical_locator": "bioassay_observations_admitted.tsv",
+      "sha256": "b1343fb781d6e8349a3d26702e740019131b8020fba0af08ca6b1ae1f6ab3bd1"
+    },
+    {
+      "bytes": 1063,
+      "logical_locator": "bioassay_summary.tsv",
+      "sha256": "734729d7dfffda6d04d92b2aaaa35b456664b22ea45d9534b7d00dae668a0406"
+    },
+    {
+      "bytes": 198,
+      "logical_locator": "bioassay_tree_track.tsv",
+      "sha256": "ef3b3576f75a267ef7951e7b0eaebb8e378d32487f489e781d4990dd3539abd7"
+    },
+    {
+      "bytes": 561,
+      "logical_locator": "bioassay_tree_selection_details.tsv",
+      "sha256": "f4c70bedec595ac7a8663195a5a9da3d876433931679e494b2fae8cb94c5ffdb"
+    },
+    {
+      "bytes": 967,
+      "logical_locator": "bioassay_caption_methods.json",
+      "sha256": "cd29b9667984c13317a3298c06a256cce5af9939856e1ec816f92c931a6ef7b1"
+    }
+  ],
+  "schema_version": "sapote.bioassay-figure-factory.v1",
+  "status": "PASS_DATA_READY_R_NOT_REQUESTED"
+}

@@ -1,5 +1,5 @@
-version=9.7.440
-build=20260922v97440c
+version=9.7.441
+build=20260924v97441b
 engine=1.9.169
-patch=Receipt-hash spacing correction.; BLASTp empty-discovery diagnostics and retry safety.; Complete rollup hit preservation.; Intake taxonomy and failure reporting.; Portable tree-source export.; Manifest and documentation accuracy.
+patch=Bundle-pinned execution and identity refusal.; Portable placement assets and output containment.; Admitted assay tracks on existing trees.; Re-authored clinker and cohort controls.; Companion setup and documentation.
 tier=code

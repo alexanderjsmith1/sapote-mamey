@@ -66,5 +66,5 @@ def test_private_name_guard_still_precedes_the_run():
     """Forwarding must not be mistaken for relaxing: the harness's own refusal stays upstream."""
     src = HARNESS.read_text()
     guard = src.index("Refusing PUBLIC intake for private-looking strain")
-    run_call = src.index('"-m", "mamey", "run", "--input-zip", izip')
+    run_call = src.index('"mamey_run.py"), "run", "--input-zip", izip')  # v9.7.441: launched via the bundle-pinned runner, not `-m mamey`
     assert guard < run_call, "the PUBLIC-intake refusal must still run before any strain is processed"

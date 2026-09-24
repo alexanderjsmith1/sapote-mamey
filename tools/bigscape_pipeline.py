@@ -51,8 +51,24 @@ class PipelineRunError(RuntimeError):
         super().__init__(f"BIGSCAPE_PIPELINE_ERROR[{code}]: {message}")
 
 
+def interpreter_env(env=None, executable=None):
+    """The launch environment for anything spawned under this interpreter: the interpreter's own
+    bin directory is prepended to PATH so binaries installed beside it (BiG-SCAPE shells out to a
+    BARE `fasttree` during output generation) resolve even though the conda env was never
+    activated. The pipeline is documented to run under the env's python by absolute path, which is
+    exactly the case where PATH does not contain that env. v9.7.441 card EB3DF1EF / 283f1f96."""
+    env = dict(os.environ if env is None else env)
+    bindir = os.path.dirname(executable or sys.executable)
+    parts = [p for p in env.get("PATH", "").split(os.pathsep) if p]
+    if bindir and (not parts or parts[0] != bindir):
+        parts = [bindir] + [p for p in parts if p != bindir]
+    env["PATH"] = os.pathsep.join(parts)
+    return env
+
+
 def run(cmd, **kw):
     emit("  $ " + " ".join(str(c) for c in cmd))
+    kw["env"] = interpreter_env(kw.get("env"))
     return subprocess.run(cmd, check=True, **kw)
 
 

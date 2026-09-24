@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.440 stamp=20260922v97440c
+# TIER_MANIFEST tier=code version=9.7.441 stamp=20260924v97441b
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -17,6 +17,7 @@
 ./README.md
 ./RELEASES_LOG.md
 ./RELEASE_MANIFEST.md
+./RELEASE_NOTES_v9.7.441.md
 ./SAPOTE_CONTROL/SUBAGENT_ALLOWLIST.tsv
 ./SECURITY.md
 ./STRICT_HEALTH_WAIVER.json
@@ -36,6 +37,7 @@
 ./bootstrap.sh
 ./bootstrap_contract.yml
 ./bundle_support/deliverable_menu_widget.html
+./bundle_support/install_r_figure_packages.R
 ./bundle_support/install_sapote_addons.sh
 ./bundle_support/project_state_template.json
 ./bundle_support/registry_inventory_v1.9.4.csv
@@ -352,6 +354,7 @@
 ./docs/TOOLS_INVENTORY.generated.md
 ./docs/TOOL_DATABASE_INSPECTION.md
 ./docs/TOOL_DATABASE_SESSION_CANDIDATE.md
+./docs/TREE_ASSAY_TRACK_RENDERING.md
 ./docs/TREE_BGC_OVERLAY.md
 ./docs/TREE_CATALOG.md
 ./docs/TREE_DISPLAY_RECEIPTS.md
@@ -553,6 +556,26 @@
 ./examples/token_light_documents/pilot_project/templates/report.md
 ./examples/token_light_documents/pilot_project/templates/tree_report.md
 ./examples/tree_catalog.example.json
+./examples/tree_tracks/README.md
+./examples/tree_tracks/factory_48.json
+./examples/tree_tracks/factory_48/bioassay_caption_methods.json
+./examples/tree_tracks/factory_48/bioassay_figure_factory_receipt.json
+./examples/tree_tracks/factory_48/bioassay_observations_admitted.tsv
+./examples/tree_tracks/factory_48/bioassay_summary.tsv
+./examples/tree_tracks/factory_48/bioassay_tree_selection_details.tsv
+./examples/tree_tracks/factory_48/bioassay_tree_track.tsv
+./examples/tree_tracks/factory_72.json
+./examples/tree_tracks/factory_72/bioassay_caption_methods.json
+./examples/tree_tracks/factory_72/bioassay_figure_factory_receipt.json
+./examples/tree_tracks/factory_72/bioassay_observations_admitted.tsv
+./examples/tree_tracks/factory_72/bioassay_summary.tsv
+./examples/tree_tracks/factory_72/bioassay_tree_selection_details.tsv
+./examples/tree_tracks/factory_72/bioassay_tree_track.tsv
+./examples/tree_tracks/grouped.json
+./examples/tree_tracks/metadata.tsv
+./examples/tree_tracks/observations.csv
+./examples/tree_tracks/single.json
+./examples/tree_tracks/tree.newick
 ./hooks/SEAL_GATE_snippet.sh
 ./hooks/bgc_gene_level_guard.py
 ./hooks/bgc_node_name_guard.sh
@@ -1234,6 +1257,14 @@
 ./tests/test_440_placeholder_organism_dot_normalized.py
 ./tests/test_440_release_manifest_health_metric_is_live.py
 ./tests/test_440_run_failed_reason_surfaces_engine_error.py
+./tests/test_441_bigscape_pipeline_env_path.py
+./tests/test_441_doctor_placement_companion_status.py
+./tests/test_441_harvest_16s_splits_merged_deflines.py
+./tests/test_441_intake_harness_taxonomy_fallback_is_not_a_placeholder.py
+./tests/test_441_no_remaining_dash_m_mamey_subprocess_calls.py
+./tests/test_441_phylo16s_bin_refusal_names_search_dirs.py
+./tests/test_441_placement_display_accepts_flat_run_layout.py
+./tests/test_441_workspace_root_walks_to_marker.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_absent_median_is_not_a_zero_v97438.py
 ./tests/test_activity_decision_tree_portable.py
@@ -1526,6 +1557,7 @@
 ./tests/test_cli_version_flag.py
 ./tests/test_clinker_dark_protein_link_v9_7_384.py
 ./tests/test_clinker_figure_cleanup_v9_7_383.py
+./tests/test_clinker_queue_repairs_v97441.py
 ./tests/test_cluster_alignment_label_placement_v9_7_155.py
 ./tests/test_cluster_brief.py
 ./tests/test_cluster_completeness.py
@@ -1879,6 +1911,7 @@
 ./tests/test_instruction_mirror_strict_states_438.py
 ./tests/test_instruction_scope_candidate.py
 ./tests/test_int2_stamp_coverage.py
+./tests/test_intake_harness_engine_mismatch_refusal_v97441.py
 ./tests/test_intake_harness_mode_choices.py
 ./tests/test_intake_harness_release_forward_v97431.py
 ./tests/test_intake_harness_safe_extract_zip_consolidation_bc2.py
@@ -1966,6 +1999,7 @@
 ./tests/test_make_release_tarball_v97400.py
 ./tests/test_mamey_native_figures_policy.py
 ./tests/test_mamey_pipeline.py
+./tests/test_mamey_run_refuses_stale_bytecode_v97441.py
 ./tests/test_mamey_source_cohort_id_guard_v97401.py
 ./tests/test_mandatory_deliverable_gate_v9_7_157.py
 ./tests/test_manifest_a1_a2_a3.py
@@ -2296,6 +2330,8 @@
 ./tests/test_reference_source_request_notice.py
 ./tests/test_reference_strain_registry_v97406.py
 ./tests/test_reform_scorer_stays_removed.py
+./tests/test_refpkg_bundle_containment.py
+./tests/test_refpkg_containment_execution_v97441.py
 ./tests/test_refresh_figure_source_manifest_cache_v97433.py
 ./tests/test_regen_modeb_contract_docs.py
 ./tests/test_register_compute_output.py
@@ -2551,6 +2587,7 @@
 ./tests/test_tree_sanity_gate.py
 ./tests/test_tree_sanity_outgroup_aware_vgp_398.py
 ./tests/test_tree_series_contract.py
+./tests/test_tree_track_adapter_v97441.py
 ./tests/test_tree_trust_explicit_workflow.py
 ./tests/test_trees_432_16S_database_provenance_and_genus_string_defects.py
 ./tests/test_trees_432_amycolatopsis_refpkg_two_headers_one_line.py
@@ -2780,6 +2817,7 @@
 ./tools/build_thesis_handoff.py
 ./tools/build_thesis_vignettes.py
 ./tools/build_tree.sh
+./tools/build_tree_tracks.py
 ./tools/build_validation_panel.py
 ./tools/build_wetlab_matrix.py
 ./tools/build_workbook.py
@@ -3008,6 +3046,8 @@
 ./tools/render_siderophore_atlas.py
 ./tools/render_three_channel_evidence_matrix.py
 ./tools/render_tree_COLOR_STRIPS.R
+./tools/render_tree_bar_groups.R
+./tools/render_tree_one_bar_row.R
 ./tools/render_tree_reference_series.py
 ./tools/repo_health.py
 ./tools/reroot_postflight_receipt.py
@@ -3050,6 +3090,7 @@
 ./tools/test_reaction_gap_board.py
 ./tools/test_resolve_reference_metadata.py
 ./tools/test_synthetic_ids.txt
+./tools/tests/test_441_intake_launches_via_bundle_pinned_runner.py
 ./tools/tier_vocabulary.py
 ./tools/tip_label.py
 ./tools/topology_scan.py
@@ -3063,6 +3104,7 @@
 ./tools/tree_reference_series.R
 ./tools/tree_sanity_check.py
 ./tools/tree_series_contract.py
+./tools/tree_track_render.R
 ./tools/tree_trust_audit.py
 ./tools/upstream_gtotree2/NOTE_TO_GTOTREE_AUTHOR.md
 ./tools/upstream_gtotree2/gtotree2-input-sanity-and-env-compat.patch

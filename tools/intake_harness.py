@@ -66,6 +66,7 @@ except Exception:  # pragma: no cover - fallback mirrors the canonical policy ex
 import zipfile
 from mamey.diagnostic_rescue import CORE_TRIGGERS  # noqa: E402
 from mamey.cohort_resolver import is_placeholder_taxonomy  # noqa: E402
+from mamey import __version__ as _BUNDLE_ENGINE_VERSION  # noqa: E402
 
 try:
     import psutil
@@ -356,7 +357,11 @@ def main():
     os.makedirs(a.outdir, exist_ok=True)
     stage_root = os.path.join(a.outdir, "_stage")
     os.makedirs(stage_root, exist_ok=True)
-    env = dict(os.environ, PYTHONPATH=ROOT)
+    # v9.7.441: launch the engine through the bundle-pinned mamey_run.py (below), never `-m mamey`,
+    # because `-m` puts the child's cwd on sys.path AHEAD of PYTHONPATH -- a stray workspace-root
+    # mamey/ then version-shadows the bundle (it sealed 35 packages as engine 1.9.154). Suppress new
+    # bytecode writes; mamey_run.py separately checks for a stale engine-version import.
+    env = dict(os.environ, PYTHONPATH=ROOT, PYTHONDONTWRITEBYTECODE="1")
 
     zips = []
     for item in a.inputs:
@@ -370,7 +375,7 @@ def main():
     smoke = None
     if getattr(a, 'bench', False) and os.path.exists(BENCH_FIXTURE):
         rc, wall, mem, _ = run_monitored(
-            [sys.executable, "-m", "mamey", "run", "--input-zip", BENCH_FIXTURE, "--strain", "MX_BENCH",
+            [sys.executable, os.path.join(ROOT, "mamey_run.py"), "run", "--input-zip", BENCH_FIXTURE, "--strain", "MX_BENCH",
              "--taxonomy", "Streptomyces sp.", "--source", "bench", "--mode", "gold",
              "--brief", "none", "--outdir", os.path.join(a.outdir, "_bench")], env=env)
         smoke = {"wall_s": wall, "peak_mb": mem, "rc": rc}
@@ -413,7 +418,7 @@ def main():
             continue
 
         rc, wall, mem, log = run_monitored(
-            [sys.executable, "-m", "mamey", "run", "--input-zip", izip, "--strain", name,
+            [sys.executable, os.path.join(ROOT, "mamey_run.py"), "run", "--input-zip", izip, "--strain", name,
              "--taxonomy", org or "not verified", "--source", a.source, "--mode", a.mode,
              # v9.7.431: --release was PARSED and used for the private-name guard and the registry
              # TSV row, but never FORWARDED here -- so the engine fell back to its own strain-ID
@@ -427,6 +432,27 @@ def main():
         pkg = os.path.join(a.outdir, name, "package")
         if rc != 0 or not os.path.isdir(pkg):
             emit(f"  - {name:40} RUN_FAILED (rc={rc}){_run_failed_reason(log)}")
+            met_rows.append({"strain": name, "batch": a.batch_label, "status": "RUN_FAILED",
+                             "engine_wall_s": wall, "engine_peak_mb": mem, "rescue_wall_s": "", "n_regions": ""})
+            append_rows(a.metrics, [met_rows[-1]], _MET_HDR)
+            continue
+
+        # v9.7.441: the child was launched with the bundle root on PYTHONPATH, but `-m mamey`
+        # still puts the child's OWN cwd ahead of PYTHONPATH on sys.path -- a stray mamey/ there
+        # silently seals this package under a different engine (observed: 35 packages sealed at
+        # 1.9.154 against a 1.9.169 bundle, with rc=0 and no warning). Read the version the child
+        # actually used back out of its own sealed manifest and refuse on any mismatch, rather
+        # than trusting rc==0 to mean "used this bundle's engine". (EB3DF1EF, .441)
+        try:
+            _sealed_version = _read_json(os.path.join(pkg, "manifest_short.json")).get("mamey_version")
+        except (OSError, ValueError) as _mv_exc:
+            _sealed_version = None
+            emit(f"  - {name:40} WARN: could not read manifest_short.json to verify engine "
+                 f"version ({type(_mv_exc).__name__})")
+        if _sealed_version is not None and _sealed_version != _BUNDLE_ENGINE_VERSION:
+            emit(f"  - {name:40} RUN_FAILED (ENGINE_MISMATCH: package sealed by mamey "
+                 f"{_sealed_version}, this bundle is {_BUNDLE_ENGINE_VERSION} -- a shadowed "
+                 f"mamey package on the child's sys.path, not this bundle's engine, produced it)")
             met_rows.append({"strain": name, "batch": a.batch_label, "status": "RUN_FAILED",
                              "engine_wall_s": wall, "engine_peak_mb": mem, "rescue_wall_s": "", "n_regions": ""})
             append_rows(a.metrics, [met_rows[-1]], _MET_HDR)

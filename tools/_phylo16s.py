@@ -272,13 +272,17 @@ def _bin(name: str, env_dir: str, *extra_dirs: str) -> str:
     if w:
         return w
     r = root()
+    searched = [f"${env_dir} (unset)", "PATH"]
     for rel in extra_dirs:
         p = r / rel / name
         if p.exists():
             return str(p)
+        searched.append(str(p))
     raise SystemExit(
-        f"{name} not found. Put it on PATH, or set {env_dir} to the directory holding it "
-        f"(this project keeps BLAST+ in a conda env; see docs/PHYLOGENETICS_WORKFLOW.md).")
+        f"{name} not found. Looked in: " + "; ".join(searched) + ". "
+        f"Put it on PATH, set {env_dir} to the directory holding it, or set SAPOTE_WORKSPACE_ROOT "
+        f"to the workspace that contains miniconda3/ (root() currently resolves to {r}; "
+        f"see docs/PHYLOGENETICS_WORKFLOW.md).")
 
 
 def blast_bin(name: str) -> str:

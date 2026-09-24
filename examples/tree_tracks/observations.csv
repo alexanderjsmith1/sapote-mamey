@@ -1,0 +1,7 @@
+observation_id,strain_id,experiment_id,assay_plate_id,plate_format,well,material_id,material_type,parent_material_id,lineage_state,material_amount_mg,dose_state,stock_concentration_mg_ml,delivered_amount_ug,final_concentration_ug_ml,target_raw,target_state,target_canonical,timepoint_hours,replicate_id,replicate_type,inhibition_pct,control_state,inclusion_state,exclusion_reason,source_locator
+obs-48-1,SYN-1,exp-1,plate-1,384,A01,material-1,FLASH_FRACTION,extract-1,VERIFIED,12.5,VERIFIED,10,12,120,Candida species,AMBIGUOUS,,48,rep-1,SINGLETON,72,VALID,INCLUDE,,plates/plate-1.csv
+obs-48-2,SYN-2,exp-1,plate-1,384,A01,material-2,FLASH_FRACTION,extract-1,VERIFIED,12.5,VERIFIED,10,12,120,Candida species,AMBIGUOUS,,48,rep-1,SINGLETON,0,VALID,INCLUDE,,plates/plate-1.csv
+obs-48-3,SYN-3,exp-1,plate-1,384,A01,material-3,FLASH_FRACTION,extract-1,VERIFIED,12.5,VERIFIED,10,12,120,Candida species,AMBIGUOUS,,48,rep-1,SINGLETON,-10,VALID,INCLUDE,,plates/plate-1.csv
+obs-72-1,SYN-1,exp-1,plate-1,384,A01,material-1,FLASH_FRACTION,extract-1,VERIFIED,12.5,VERIFIED,10,12,120,Candida species,AMBIGUOUS,,72,rep-1,SINGLETON,61,VALID,INCLUDE,,plates/plate-1.csv
+obs-72-2,SYN-2,exp-1,plate-1,384,A01,material-2,FLASH_FRACTION,extract-1,VERIFIED,12.5,VERIFIED,10,12,120,Candida species,AMBIGUOUS,,72,rep-1,SINGLETON,5,VALID,INCLUDE,,plates/plate-1.csv
+obs-72-3,SYN-3,exp-1,plate-1,384,A01,material-3,FLASH_FRACTION,extract-1,VERIFIED,12.5,VERIFIED,10,12,120,Candida species,AMBIGUOUS,,72,rep-1,SINGLETON,-3,VALID,INCLUDE,,plates/plate-1.csv

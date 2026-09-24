@@ -17,8 +17,8 @@
       "bytes": 1410
     },
     "_phylo16s.py": {
-      "sha256": "ea6a0293310107ea505a16b3a1ef1e3bf3b3721a6755be2cbc90880eeaaa7566",
-      "bytes": 22428
+      "sha256": "cb444938ad9aa516bd1315b7c32440d5c0c7954bea77e8f60660b5b4adde7322",
+      "bytes": 22633
     },
     "_phylo_metadata.py": {
       "sha256": "6c0b334b2463a841a653ea5a8f58784441e5e13cdd1b3bcc14041d811a9a98cb",
@@ -137,8 +137,8 @@
       "bytes": 3179
     },
     "bigscape_clinker_html.py": {
-      "sha256": "33df7f86d36d18a3dffe882473629f1432bccc7069407518bcc21cbbf2513a01",
-      "bytes": 24430
+      "sha256": "973f28f35d415b8969581a483b36944228d496c825bf14b0e7a928660bf13157",
+      "bytes": 29486
     },
     "bigscape_cohort_report.py": {
       "sha256": "6055bc31db3321dac599f3cbc66129775558bea5e086084f80bd1f8519a4fe4e",
@@ -149,8 +149,8 @@
       "bytes": 11298
     },
     "bigscape_cross_strain.py": {
-      "sha256": "690616e1104304445c72b68b6da14e7e81ec6f4276dbe048515d6af89fb79d13",
-      "bytes": 5696
+      "sha256": "8ed2dc09c0f9d65a4319a02ccda31310aa30d31cbc88c77ccfc93040a7bc4b5a",
+      "bytes": 7798
     },
     "bigscape_family_domains.py": {
       "sha256": "53a582e6dd9c2d99c01e5c4ad13cf97df882794f93b8760e585107df81bb196f",
@@ -193,12 +193,12 @@
       "bytes": 5541
     },
     "bigscape_pipeline.py": {
-      "sha256": "9ad94f9b5f241dec238d9bb83bbf1a4955f688ba39058c5e9021c0e4a65faff1",
-      "bytes": 10015
+      "sha256": "1814abc4b81616dc88771341a28c4458dc18cec56ef6f408ec0b5bde5f485fc5",
+      "bytes": 10941
     },
     "bigscape_prep.py": {
-      "sha256": "cabd8bc1344e1742a3dec7d87c0a9ff26bf788c175242776435f53d421412636",
-      "bytes": 12065
+      "sha256": "c405589a51695824cd418ca875c6eaa86991c0ce843cad3b7c425ec313b18e91",
+      "bytes": 14523
     },
     "bigslice_query.py": {
       "sha256": "4ef2a41e40a710988f950442df94ad6feffe7905678371e8e4f00d0eeeba25eb",
@@ -508,6 +508,10 @@
       "sha256": "76584c866daf13150fb10a4e07e93e3b2bea70cf319c5b0cd7ae902860c00403",
       "bytes": 6179
     },
+    "build_tree_tracks.py": {
+      "sha256": "cfc84fe81360ac2c7c1da1cb01c26d60ed92045ad413a460534c85251f4a7202",
+      "bytes": 8727
+    },
     "build_validation_panel.py": {
       "sha256": "702ebe7940c8e7240b238c61f6ead29edf3f08a2800b93f14cf6fbf29c6c58da",
       "bytes": 6016
@@ -669,8 +673,8 @@
       "bytes": 12213
     },
     "cohort_blastp_driver.py": {
-      "sha256": "62e3f55ff03556be9e65e0ce4944c371b6f806efdf013cda2b1fedf4891b492a",
-      "bytes": 8530
+      "sha256": "78988ea051123bd4d3c0dff6183cca7162431adb25f59ed8c6cb96b45188a55f",
+      "bytes": 8738
     },
     "cohort_concordance_summary.py": {
       "sha256": "bf962e351005a233acd5a0ee00e9629b728f3f3582b6425bdb1eff91bcf35932",
@@ -973,8 +977,8 @@
       "bytes": 18776
     },
     "harvest_16s.py": {
-      "sha256": "f55365d3190a42fcb541f9c2c36a3428454e9a2b69a2d51be9ecd149783dafce",
-      "bytes": 8578
+      "sha256": "56151a8ea8a980eeff00962c9eec320ba21dedce8fa2810e50740d8e7028b07b",
+      "bytes": 9868
     },
     "hooks/pre-push": {
       "sha256": "d1920fb7b876e5aa8c9165eb2b925309e41e99f7b464e634c1ff1da8fafa795b",
@@ -1009,8 +1013,8 @@
       "bytes": 7084
     },
     "intake_harness.py": {
-      "sha256": "e995860d8fead11f737a073a984748872a11384a74e7acc65535d96fafb32777",
-      "bytes": 25166
+      "sha256": "90b1da9a3bd156977b6de542ccd2e734aeb9b9f5379fa6c69833e436b95c6fe4",
+      "bytes": 27266
     },
     "kcb_confidence.py": {
       "sha256": "dd3948957c7ea017d22ee5bce629eddec380b97b8f01506dc4d8b98a85770afa",
@@ -1213,8 +1217,8 @@
       "bytes": 4681
     },
     "phylo_place.py": {
-      "sha256": "01f6ed6728d8b4964fc3893bd08085f339226f2f811614c858b4b735d9d5232b",
-      "bytes": 100527
+      "sha256": "8c56e416c77ebb674e8a5b8f127915e43a94941a38214fafb06b6c55e003e72b",
+      "bytes": 101820
     },
     "phylo_postflight.py": {
       "sha256": "15e2f0c84826d755d2493e081275b665b09aca8447a215a03b27cc65568ea4d1",
@@ -1241,8 +1245,8 @@
       "bytes": 2862
     },
     "placement_display.py": {
-      "sha256": "13b4048d4b067e1fd8bf17bfd77ae5f38af506cd1d8ad1428c4e68daa8bbb74f",
-      "bytes": 41022
+      "sha256": "3f3f7f2f9b707c3c8e2454f9c52110eb6d0b1ace1f3d374100124be8e4e2fcac",
+      "bytes": 41745
     },
     "placement_figure.py": {
       "sha256": "54dc82d3edb786921404217b78a9c0669243759d21a69888a5cdcbc5be818f90",
@@ -1420,6 +1424,14 @@
       "sha256": "d8040e7b6416e79d649dcbd6f6f9a92053f93ce53bca4719d947b8a556fd357f",
       "bytes": 13117
     },
+    "render_tree_bar_groups.R": {
+      "sha256": "e1dd79e9b61f1063f959a6a7f891bee4ec54df8ae118b12c80dd0dd970b4ef3f",
+      "bytes": 293
+    },
+    "render_tree_one_bar_row.R": {
+      "sha256": "8a5e43371810b790e3e8e6f6db9c1cd4dbd175206a3b551f7abfccfe422e9604",
+      "bytes": 300
+    },
     "render_tree_reference_series.py": {
       "sha256": "eef6c075dd3a857f68d6eb1146593c6fe94bdd6760808d34f52d8a172ac657ed",
       "bytes": 10321
@@ -1453,8 +1465,8 @@
       "bytes": 7879
     },
     "run_chatgpt_surrogate_gate.py": {
-      "sha256": "47486a6a32f3cd22a4504f2faddb35c1ed2a4ea6cbc89fda8ab7cb0317361403",
-      "bytes": 9074
+      "sha256": "ff56dedb7209b91f3eeb3641b87002c3b54b328fb977f266725838f955e23fe8",
+      "bytes": 9087
     },
     "run_comparator_antismash_ingest.py": {
       "sha256": "870addb1e18fb61ebacfeed7eaf6a94021fb01782448f9c3a3e66cac32dc3a76",
@@ -1588,6 +1600,10 @@
       "sha256": "afca81577938b78cc4e076867797bac1b9388eba0bbd284b75e9bbd902dbb394",
       "bytes": 4047
     },
+    "tests/test_441_intake_launches_via_bundle_pinned_runner.py": {
+      "sha256": "1a6a7209dd65fd4e2d7ee16490ba5eb2affe75480fc3378e53c9e290f4c71d26",
+      "bytes": 2247
+    },
     "tier_vocabulary.py": {
       "sha256": "b95b1aa21f418cd4b345d51189a50c1e22e64d0a57f4ae022f012f9749f6049a",
       "bytes": 7784
@@ -1639,6 +1655,10 @@
     "tree_series_contract.py": {
       "sha256": "bd823de7b211e335cb0a2bbede55f25418a23550626f3570256d85e98ab5293e",
       "bytes": 8906
+    },
+    "tree_track_render.R": {
+      "sha256": "0409225205bd5c1e2521406ddcc404649794eefaddaaf52132018ba3e93c9ab3",
+      "bytes": 5703
     },
     "tree_trust_audit.py": {
       "sha256": "55749cc2d4c7a42c2575bb2e69c64b35a90fe5ac59f79d5fc228364f0babed07",

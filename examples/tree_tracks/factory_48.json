@@ -1,0 +1,32 @@
+{
+  "schema_version": "sapote.bioassay-figure-factory.v1",
+  "figure_kind": "bioassay_observation_summary_v1",
+  "external_data_root": ".",
+  "observations": {
+    "logical_locator": "observations.csv",
+    "sha256": "e65b97471bbe5f24c52164b0496c8e84cdd2d58be34b00ccb65da3ff487ba20a"
+  },
+  "output_dir": "factory_48",
+  "render_with_r": false,
+  "tree_track_selection": {
+    "selection_id": "selected_48",
+    "target": "Candida species",
+    "target_state": "AMBIGUOUS",
+    "timepoint_hours": 48,
+    "final_concentration_ug_ml": 120,
+    "material_type": "FLASH_FRACTION",
+    "aggregation": "mean_inhibition_pct",
+    "strain_roster": [
+      "SYN-1",
+      "SYN-2",
+      "SYN-3",
+      "SYN-4"
+    ],
+    "material_ids_by_strain": {
+      "SYN-1": "material-1",
+      "SYN-2": "material-2",
+      "SYN-3": "material-3",
+      "SYN-4": "material-4"
+    }
+  }
+}

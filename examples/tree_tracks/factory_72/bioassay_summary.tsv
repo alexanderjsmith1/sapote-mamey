@@ -1,0 +1,7 @@
+strain_id	material_id	material_type	parent_material_id	lineage_state	target	target_state	timepoint_hours	material_amount_mg	dose_state	stock_concentration_mg_ml	delivered_amount_ug	final_concentration_ug_ml	observation_count	experiment_count	replicate_count	mean_inhibition_pct	min_inhibition_pct	max_inhibition_pct
+SYN-1	material-1	FLASH_FRACTION	extract-1	VERIFIED	Candida species	AMBIGUOUS	48	12.5	VERIFIED	10	12	120	1	1	1	72.0	72.0	72.0
+SYN-1	material-1	FLASH_FRACTION	extract-1	VERIFIED	Candida species	AMBIGUOUS	72	12.5	VERIFIED	10	12	120	1	1	1	61.0	61.0	61.0
+SYN-2	material-2	FLASH_FRACTION	extract-1	VERIFIED	Candida species	AMBIGUOUS	48	12.5	VERIFIED	10	12	120	1	1	1	0.0	0.0	0.0
+SYN-2	material-2	FLASH_FRACTION	extract-1	VERIFIED	Candida species	AMBIGUOUS	72	12.5	VERIFIED	10	12	120	1	1	1	5.0	5.0	5.0
+SYN-3	material-3	FLASH_FRACTION	extract-1	VERIFIED	Candida species	AMBIGUOUS	48	12.5	VERIFIED	10	12	120	1	1	1	-10.0	-10.0	-10.0
+SYN-3	material-3	FLASH_FRACTION	extract-1	VERIFIED	Candida species	AMBIGUOUS	72	12.5	VERIFIED	10	12	120	1	1	1	-3.0	-3.0	-3.0

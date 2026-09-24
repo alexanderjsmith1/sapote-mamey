@@ -139,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # High-signal command checks before pytest.
     if not args.skip_doctor:
-        record("doctor", [sys.executable, "-m", "mamey", "doctor"], args.doctor_timeout, "doctor.log")
+        record("doctor", [sys.executable, str(root / "mamey_run.py"), "doctor"], args.doctor_timeout, "doctor.log")
 
     py_targets = _existing(PY_COMPILE_TARGETS, root)
     if py_targets:

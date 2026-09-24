@@ -60,7 +60,7 @@ summary and selection receipt.
 
 - declarative mapping profiles for each raw plate layout and plate-reader export;
 - an in-vivo observation schema with outcome type, unit, subject/time structure, and exclusions;
-- a generalized ggtree renderer for multiple selected quantitative and categorical assay tracks;
+- categorical assay-track rendering beyond the selected numeric BIOASSAY workflow;
 - a reviewed policy for experiment-level versus pooled views and biological versus technical
   replication;
 - visual regression fixtures for tree/heatmap alignment, long labels, and legends;
@@ -71,3 +71,7 @@ Known class-member structures, including nucleoside or indolocarbazole examples,
 resolved and drawn through the NP Atlas/RDKit path described in
 [`NPATLAS_PROVISIONING.md`](NPATLAS_PROVISIONING.md). Figure assembly should label the molecule as a
 reference or comparator and preserve its structure identifier, source record, and license.
+
+## Exact selected assay tracks
+
+The portable [tree assay track workflow](TREE_ASSAY_TRACK_RENDERING.md) uses `build_tree_tracks.py`, `render_tree_one_bar_row.R` and `render_tree_bar_groups.R`. It preserves the Figure Factory selection receipts and exact tip IDs; it does not aggregate across assay scopes.

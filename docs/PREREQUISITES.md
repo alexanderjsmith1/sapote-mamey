@@ -1,4 +1,4 @@
-# PREREQUISITES — Sapote–Mamey v9.7.440
+# PREREQUISITES — Sapote–Mamey v9.7.441
 
 Start with [INSTALL](INSTALL.md) or the [complete walkthrough](MASTER_WALKTHROUGH.md). The package metadata in [pyproject.toml](../pyproject.toml) defines the supported Python version, core requirements and extras. Use the [README tool table](../README.md#tool-downloads-and-licenses) for upstream downloads and licenses.
 
@@ -27,6 +27,14 @@ Install only the toolchain required for the selected workflow, using its upstrea
 Do not equate a full Pfam installation with a scanner-specific HMM panel: follow the consuming command's required panel and registry. Missing external evidence remains missing; a fallback output does not prove that scan ran.
 
 The ReportLab-based PDF path is part of core dependencies. Alternate document routes may need pandoc, TeX, fonts or other native tools. Check the selected renderer's requirements before installing a large toolchain. CairoSVG additionally requires native Cairo; a successful Python import alone is not a conversion test. If PNG conversion is unavailable, preserve the renderer's explicit status and do not claim an unproduced PNG sibling.
+
+## R figure stack
+
+Every renderer under `tools/*.R` (tree heatmaps, placement displays, activity tracks) needs R >= 4.3 and
+these packages: `ggplot2`, `dplyr`, `tidyr`, `scales`, `patchwork`, `ape`, `ggrepel` (CRAN) and
+`ggtree`, `treeio` (Bioconductor). Install with `Rscript bundle_support/install_r_figure_packages.R`
+(`--check` reports readiness without installing). For an offline machine, download the package source archives yourself and run `--from <dir>`; no third-party package source ships in the bundle, and source builds still need their system dependencies. Missing packages produce a nonzero exit. `python mamey_run.py doctor` reports
+whether `Rscript` is found; a missing package surfaces as an R error at render time, never as a figure.
 
 ## Offline and architecture-specific installation
 

@@ -1,6 +1,6 @@
 # Make and review Mamey figures
 
-Sapote–Mamey v9.7.440 · Mamey engine 1.9.169
+Sapote–Mamey v9.7.441 · Mamey engine 1.9.169
 
 Sapote-Mamey has several figure routes with **different input contracts**. Start with
 the question you want to show, then choose a route below. A finished image is
@@ -113,3 +113,7 @@ Inspect small text and legends for overlap. Use [Figure style](FIGURE_STYLE.md)
 and [preflight and methods](../wiki/Figure-Factory-Preflight-and-Methods-Manual.md)
 for the corresponding figure family. Keep visual QA, mechanical PASS, and
 scientific acceptance distinct.
+
+## Selected assay values on an existing tree
+
+Use [Tree assay track rendering](TREE_ASSAY_TRACK_RENDERING.md) for exact tip crosswalks and hash-bound, explicitly selected Figure Factory BIOASSAY tracks. The synthetic example runs without project data.

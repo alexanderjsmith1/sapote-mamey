@@ -126,6 +126,18 @@ def main():
                 keep = False
                 for ln in p.stdout.splitlines():
                     if ln.startswith(">"):
+                        # blastdbcmd -outfmt %f emits REDUNDANT deflines for a sequence deposited
+                        # under several accessions, joined onto ONE header line:
+                        #   >NR_026535.1 Streptomyces odorifer ... >NR_119341.1 Streptomyces ...
+                        # Written verbatim that header fails the shared 16S reference identity
+                        # contract (MULTIPLE_FASTA_DEFINITIONS_OR_ACCESSIONS) and the whole panel
+                        # is refused downstream -- 22 of 1411 Streptomyces records, 2026-09-22.
+                        # One sequence, several names: keep the FIRST accession, drop the rest.
+                        # Header normalisation only -- never a same-strain claim (phylo_place's
+                        # reviewed alias registry is the only place that may assert that).
+                        _merged = re.search(r"\s>\S", ln)
+                        if _merged:
+                            ln = ln[:_merged.start()].rstrip()
                         # genus = first alpha word after the accession token
                         title = re.sub(r"^>\S+\s+", "", ln)
                         keep = title.lower().startswith(a.genus.lower() + " ")
@@ -142,8 +154,11 @@ def main():
         try:
             OG.get_16s(a.genus, scope="genus", quiet=True)
             og_status = "AVAILABLE (registry + cache)"
-        except SystemExit:
-            og_status = "NO registry row / not cached — add a row before building"
+        except SystemExit as e:
+            # The registry module refuses for several reasons (no row, row present but the
+            # sequence could not be fetched/cached, blastdbcmd unresolvable). Relay its own
+            # message; 'add a row' invited a duplicate row when the row already existed.
+            og_status = f"NOT RESOLVED: {str(e).strip() or 'registry refused (no message)'}"
         except Exception as e:
             og_status = f"unresolved ({e})"
     except Exception:

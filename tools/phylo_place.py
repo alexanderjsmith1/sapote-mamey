@@ -890,6 +890,22 @@ def cmd_build_ref(a):
                  "--approved-by <name> to record who authorized this tree (standing tree-approval rule).")
     prot = _is_protein(a.ref_fasta)
     outdir = a.refpkg or f"{ROOT}/strain_data/_PLACEMENT/{a.group}/refpkg"
+    # OUTPUT-CONTAINMENT (v9.7.441): never stamp a refpkg inside the code bundle this tool runs
+    # from. Under the standing "run from the bundle root" rule cwd is the bundle; with no
+    # SAPOTE_WORKSPACE_ROOT set, workspace_root() falls back to cwd, so the default outdir above
+    # resolves INTO the sealed tree -- littering it (12.7 MB observed) and writing trees outside
+    # the workspace tree home. Anchor to THIS tool's own bundle (parents[1]); a stray bundle-shaped
+    # copy elsewhere is irrelevant. Refuse with an actionable message rather than write there.
+    _self_bundle = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    _out_abs = os.path.realpath(outdir)
+    if os.path.isfile(os.path.join(_self_bundle, "BUILD_STAMP.txt")) and (
+            _out_abs == _self_bundle or _out_abs.startswith(_self_bundle + os.sep)):
+        sys.exit(
+            "OUTPUT-CONTAINMENT: refusing to write a refpkg inside the code bundle "
+            f"({_self_bundle}). Phylo output belongs in the workspace tree home, not the sealed "
+            "bundle. Set SAPOTE_WORKSPACE_ROOT to your workspace root, or pass --refpkg with a "
+            "path outside the bundle (e.g. under your configured workspace output directory). "
+            f"Resolved outdir: {_out_abs}")
     os.makedirs(outdir, exist_ok=True)
     mafft = _which("mafft", PLACEMENT_BIN, PHYLO_BIN)
     if not mafft:

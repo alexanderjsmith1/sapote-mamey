@@ -37,7 +37,7 @@ about the strain's biology. Judgment deferred.
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-import argparse, os, re, sys, tempfile, zipfile, shutil, glob, json
+import argparse, os, re, sys, tempfile, zipfile, shutil, glob, json, csv, hashlib
 
 REGION = re.compile(r"region\d+\.gbk$", re.I)
 VALID_STRICTNESS = ("loose", "relaxed", "strict")
@@ -94,29 +94,43 @@ def detect_strictness_dir(d):
     return None
 
 
-def stage_zip(zip_path, out, strain):
+def _stage_region(data, destination, strain, source_locator, minimum, excluded_regions):
+    n_cds = len(re.findall(rb"(?m)^     CDS +", data))
+    if minimum and n_cds < minimum:
+        excluded_regions.append(dict(strain=strain, source_locator=source_locator,
+            source_sha256=hashlib.sha256(data).hexdigest(), n_cds=n_cds,
+            min_query_genes=minimum, identity_state="SOURCE_RECORD_ONLY_ALIAS_UNBOUND"))
+        return 0
+    if os.path.exists(destination):
+        raise ValueError("STAGING_COLLISION: duplicate destination basename")
+    with open(destination, "wb") as handle:
+        handle.write(data)
+    return 1
+
+
+def stage_zip(zip_path, out, strain, min_query_genes=0, excluded_regions=None):
+    excluded_regions = [] if excluded_regions is None else excluded_regions
     n = 0
     with zipfile.ZipFile(zip_path) as z:
-        for m in z.namelist():
-            if os.path.basename(m).startswith("._"):
-                continue  # skip macOS AppleDouble resource forks (non-UTF-8; crash BiG-SCAPE)
-            if REGION.search(m):
-                data = z.read(m)
-                dst = os.path.join(out, f"{strain}_{os.path.basename(m)}")
-                with open(dst, "wb") as fh:
-                    fh.write(data)
-                n += 1
+        for member in z.namelist():
+            if not os.path.basename(member).startswith("._") and REGION.search(member):
+                destination = os.path.join(out, f"{strain}_{os.path.basename(member)}")
+                n += _stage_region(z.read(member), destination, strain, member,
+                                   min_query_genes, excluded_regions)
     return n
 
-def stage_dir(d, out, strain):
+
+def stage_dir(d, out, strain, min_query_genes=0, excluded_regions=None):
+    excluded_regions = [] if excluded_regions is None else excluded_regions
     n = 0
-    for f in glob.glob(os.path.join(d, "**", "*.gbk"), recursive=True):
-        if os.path.basename(f).startswith("._"):
-            continue  # skip macOS AppleDouble resource forks
-        if REGION.search(f):
-            shutil.copy(f, os.path.join(out, f"{strain}_{os.path.basename(f)}"))
-            n += 1
+    for source in sorted(glob.glob(os.path.join(d, "**", "*.gbk"), recursive=True)):
+        if not os.path.basename(source).startswith("._") and REGION.search(source):
+            with open(source, "rb") as handle:
+                data = handle.read()
+            n += _stage_region(data, os.path.join(out, f"{strain}_{os.path.basename(source)}"),
+                               strain, os.path.relpath(source, d), min_query_genes, excluded_regions)
     return n
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -136,7 +150,14 @@ def main():
     ap.add_argument("--allow-excluded", action="store_true",
                     help="stage even ruled hard-excluded strains (OFFICIAL_DATA/exclusions.json). "
                          "Default: they are skipped and reported. Use only with a documented reason.")
+    ap.add_argument("--min-query-genes", type=int, default=0,
+                    help="opt-in minimum CDS count for explicitly named query strains; 0 disables")
+    ap.add_argument("--query-strain", action="append", default=[],
+                    help="exact staged query strain ID; repeat for each query. Other strains are never filtered")
     a = ap.parse_args()
+    if a.min_query_genes < 0 or (a.min_query_genes and not a.query_strain):
+        ap.error("--min-query-genes must be nonnegative and requires explicit --query-strain values")
+    small_regions = []
 
     try:
         excluded = set() if a.allow_excluded else _hard_excluded()
@@ -207,7 +228,8 @@ def main():
                 continue
 
         try:
-            n = stage_dir(it, a.out, strain) if is_dir else stage_zip(it, a.out, strain)
+            minimum = a.min_query_genes if strain in set(a.query_strain) else 0
+            n = (stage_dir if is_dir else stage_zip)(it, a.out, strain, minimum, small_regions)
         except Exception as e:
             manifest.append((strain, detected or "UNKNOWN", f"ERROR:{type(e).__name__}", 0, it))
             emit(f"  {strain}: SKIP ({type(e).__name__}: {e})", file=sys.stderr)
@@ -227,6 +249,15 @@ def main():
         for row in sorted(manifest):
             fh.write("\t".join(str(x) for x in row) + "\n")
 
+    if a.min_query_genes:
+        from mamey.csv_safety import SafeDictWriter
+        with open(os.path.join(a.out, "EXCLUDED_SMALL_QUERY_FRAGMENTS.tsv"), "w", newline="", encoding="utf-8") as handle:
+            writer = SafeDictWriter(handle, ["strain", "source_locator", "source_sha256", "n_cds", "min_query_genes", "identity_state"], delimiter="\t", lineterminator="\n")
+            writer.writeheader(); writer.writerows(small_regions)
+        with open(os.path.join(a.out, "QUERY_FILTER.json"), "w", encoding="utf-8") as handle:
+            json.dump({"query_strains": sorted(set(a.query_strain)), "min_query_genes": a.min_query_genes,
+                       "excluded_source_records": len(small_regions),
+                       "ceiling": "Operator-selected input scope; source archives unchanged; no biological absence claim"}, handle, indent=2)
     emit(f"\nstaged {total} region GBKs -> {a.out}", f"strictness manifest -> {mpath}", sep="\n")
     if len(flavors_staged) > 1:
         emit(f"** WARNING: staged a MIXED-strictness set: {sorted(flavors_staged)}. "

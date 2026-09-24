@@ -1,0 +1,7 @@
+tip	strain	label	role
+tip1	SYN-1	Synthetic query 1	query
+tip2	SYN-2	Synthetic query 2	query
+tip3	SYN-3	Synthetic query 3	query
+tip4	SYN-4	Synthetic query 4	query
+ref		Synthetic reference	reference
+outgroup		Synthetic outgroup	outgroup

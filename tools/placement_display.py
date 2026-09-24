@@ -66,6 +66,24 @@ def root_on_outgroup(newick_in, newick_out, marker="outgroup"):
     return outgroups[0].name
 
 
+def _run_layout(run):
+    """Locate epa_result.newick, ref.aln.fasta and query.aligned.fasta in a placement run.
+
+    `phylo_place.py all --outdir X` writes everything flat into X/ (and the refpkg beside it), while
+    this tool historically required X/report/, X/refpkg/, X/place/. Both layouts are accepted; the
+    first existing candidate wins and a missing file is still refused by name (first candidate)."""
+    run = Path(run)
+    def pick(*rels):
+        for rel in rels:
+            p = run / rel
+            if p.exists():
+                return p
+        return run / rels[0]
+    return (pick("report/epa_result.newick", "epa_result.newick"),
+            pick("refpkg/ref.aln.fasta", "ref.aln.fasta", "../refpkg/ref.aln.fasta"),
+            pick("place/query.aligned.fasta", "query.aligned.fasta"))
+
+
 def refused_reference_tips(newick, builder):
     """Validate all reference accessions. No automatic exclusion is supported."""
     from Bio import Phylo
@@ -578,8 +596,7 @@ def main(argv=None):
         if out.exists():
             raise ValueError("OUTPUT_EXISTS")
         builder = _load("build_placement_ggtree_inputs")
-        src = run / "report/epa_result.newick"
-        refs, queries = run / "refpkg/ref.aln.fasta", run / "place/query.aligned.fasta"
+        src, refs, queries = _run_layout(run)
         inputs = [src, refs, queries, Path(args.host_table), Path(args.ref_source_db)] + [Path(p) for p in args.aux_table]
         if args.required_reference_table:
             inputs.append(Path(args.required_reference_table))

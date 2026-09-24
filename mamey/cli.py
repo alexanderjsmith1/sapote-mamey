@@ -4571,6 +4571,33 @@ def chatgpt_init_command(args) -> int:
     return 0
 
 
+def _placement_and_r_companion_status(env=None):
+    """(found, missing) for the 16S placement binaries and Rscript. Looks at $BLAST_BIN / $MAFFT_BIN
+    (directories), then PATH, then the workspace conda envs this project uses
+    (workspace_root()/miniconda3/envs/<env>/bin) -- the same contract as tools/_phylo16s.py."""
+    import os as _os, shutil as _sh
+    from pathlib import Path as _P
+    from mamey.workspace_root import workspace_root as _wr
+    env = dict(_os.environ if env is None else env)
+    root = _P(env.get("SAPOTE_WORKSPACE_ROOT") or env.get("SAPOTE_ROOT") or _wr())
+    wanted = [("blastdbcmd", "BLAST_BIN", "blast"), ("mafft", "MAFFT_BIN", "placement"),
+              ("raxml-ng", "", "placement"), ("epa-ng", "", "placement"), ("gappa", "", "placement"),
+              ("Rscript", "", "")]
+    found, missing = [], []
+    for name, var, conda_env in wanted:
+        cands = []
+        if var and env.get(var):
+            cands.append(_P(env[var]) / name)
+        w = _sh.which(name, path=env.get("PATH"))
+        if w:
+            cands.append(_P(w))
+        if conda_env:
+            cands.append(root / "miniconda3" / "envs" / conda_env / "bin" / name)
+        hit = next((c for c in cands if c.exists()), None)
+        (found if hit else missing).append(name)
+    return found, missing
+
+
 def doctor_command(args) -> int:
     """B5: mamey doctor — pre-flight environment check for new users.
 
@@ -4780,6 +4807,18 @@ def doctor_command(args) -> int:
             + " — install them in your own environment (GPL-3, never vendored; see "
               "docs/GTOTREE_WORKFLOW.md). Without them `plan_gtotree_iqtree.py` correctly refuses "
               "to authorize a run (HOLD_TOOL_MISSING); trees are NOT MEASURED, not absent.")
+    # 16S placement + R figure companions (v9.7.441 card 283f1f96): the EPA-ng workflow and every
+    # tools/*.R renderer need binaries that doctor never mentioned, so a user got DOCTOR: PASS and
+    # then five environment aborts. Report presence per binary; absence is NOT MEASURED, not failure.
+    _pl_ok, _pl_missing = _placement_and_r_companion_status()
+    if not _pl_missing:
+        ok.append("16S placement + R figure companions ✓ (" + ", ".join(_pl_ok) + ")")
+    else:
+        warn.append(
+            "16S placement / R figure companions not found: " + ", ".join(_pl_missing)
+            + " — set SAPOTE_WORKSPACE_ROOT to the workspace holding miniconda3/envs/{blast,placement}, "
+              "or put them on PATH (docs/EPA_NG_PLACEMENT_WORKFLOW.md, docs/PREREQUISITES.md). "
+              "Placement trees and R figures are NOT MEASURED without them.")
     # DIAMOND fast-path is optional and NOT vendored
     import shutil as _sh
     if _sh.which("diamond"):

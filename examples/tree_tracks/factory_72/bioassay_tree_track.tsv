@@ -1,0 +1,5 @@
+strain	channel	feature	value	state
+SYN-1	BIOASSAY	selected_72	61.0	OBSERVED
+SYN-2	BIOASSAY	selected_72	5.0	OBSERVED
+SYN-3	BIOASSAY	selected_72	-3.0	OBSERVED
+SYN-4	BIOASSAY	selected_72		NOT_MEASURED

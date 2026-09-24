@@ -16,7 +16,7 @@ Homology, not function. Orthogroups are shared dominant Pfam domains, class-leve
 similarity anchors, not identity. Judgment deferred.
 """
 from __future__ import annotations
-import argparse, collections, csv, json, os, re, sqlite3, subprocess, sys
+import argparse, collections, csv, html, json, os, re, sqlite3, subprocess, sys, tempfile, time
 from pathlib import Path
 
 try:
@@ -72,7 +72,7 @@ svg{width:100%;display:block;border-radius:10px;background:var(--panel);border:1
 </div>
 <svg id="map" preserveAspectRatio="xMinYMin meet"></svg>
 <div class="legend" id="leg"></div>
-<div class="foot" id="foot"></div></div><div id="tip"></div>
+<div class="foot" id="hidden">__HIDDEN_NOTE__</div><div class="foot" id="foot"></div></div><div id="tip"></div>
 <script>
 const DATA=__PAYLOAD__;const NS="http://www.w3.org/2000/svg";
 const $=i=>document.getElementById(i);
@@ -91,7 +91,8 @@ function tip(ev,g,t){const el2=$("tip");if(!g){el2.style.opacity=0;return;}
   el2.style.left=Math.min(ev.clientX+14,window.innerWidth-350)+"px";el2.style.top=(ev.clientY+14)+"px";el2.style.opacity=1;}
 function draw(){
   const sv=$("map");sv.innerHTML="";
-  const L=170,R=30,W=1200,rowH=64,top=44;const n=DATA.tracks.length;const H=top+n*rowH+30;
+  const _lab=t=>Math.max(t.strain.length*7.2,(`${t.cls} · ${t.product} · ${t.genes.length} genes${t.flipped?" · shown reverse-complemented":""}`).length*6.0);
+  const L=Math.min(360,Math.max(170,14+Math.ceil(Math.max(...DATA.tracks.map(_lab)))+12)),R=30,W=1200,rowH=64,top=44;const n=DATA.tracks.length;const H=top+n*rowH+30;
   sv.setAttribute("viewBox",`0 0 ${W} ${H}`);sv.style.maxHeight=(H+4)+"px";
   const[mn,mx]=domain();const sx=v=>L+(v-mn)/((mx-mn)||1)*(W-L-R);
   // scale bar (top)
@@ -113,8 +114,8 @@ function draw(){
     const gs=shown(t);if(gs.length){const lo=sx(Math.min(...gs.map(g=>g.x0))+off),hi=sx(Math.max(...gs.map(g=>g.x1))+off);
       sv.appendChild(el("line",{x1:lo,y1:y,x2:hi,y2:y,stroke:"var(--track)","stroke-width":10,"stroke-linecap":"round"}));}
     // label
-    const lab=el("text",{x:14,y:y-6,fill:"var(--tx)","font-size":12.5,"font-weight":600});lab.textContent=t.strain;sv.appendChild(lab);
-    const sub=el("text",{x:14,y:y+11,fill:"var(--mut)","font-size":10.5});sub.textContent=`${t.cls} · ${t.product} · ${gs.length} genes${t.flipped?" · shown reverse-complemented":""}`;sv.appendChild(sub);
+    const lab=el("text",{x:14,y:y-6,fill:"var(--tx)","font-size":12.5,"font-weight":600});lab.textContent=t.strain;sv.appendChild(lab);if(lab.getComputedTextLength()>L-28){lab.setAttribute("textLength",L-28);lab.setAttribute("lengthAdjust","spacingAndGlyphs");}
+    const sub=el("text",{x:14,y:y+11,fill:"var(--mut)","font-size":10.5});sub.textContent=`${t.cls} · ${t.product} · ${gs.length} genes${t.flipped?" · shown reverse-complemented":""}`;sv.appendChild(sub);if(sub.getComputedTextLength()>L-28){sub.setAttribute("textLength",L-28);sub.setAttribute("lengthAdjust","spacingAndGlyphs");}
     // arrows
     gs.forEach(g=>{const a=sx(g.x0+off),b=sx(g.x1+off),w=Math.max(5,b-a),ar=Math.min(9,w*0.5),h=14,col=geneColor(g);
       const up=g.strand>0;const yt=y-h/2,yb=y+h/2;
@@ -150,25 +151,51 @@ init();
 </script></body></html>"""
 
 
-def classify(basename, organism, query_rx, prefixes):
-    """(track label, class) for one gbk row."""
-    org = " ".join((organism or "").split()[:3]) if organism and organism != "." else ""
+def strain_key(basename):
+    """Use the same exact staged strain namespace as the cross-strain export."""
+    from mamey.bigscape_namespace import strain_from_gbk_name
+    return strain_from_gbk_name(basename)
+
+
+def classify(basename, organism, query_rx, prefixes, labels=None):
+    """(track label, class) for one gbk row. Reference label = --labels entry for the strain prefix if given,
+    else the FULL deposited organism string (never truncated: 'Saccharopolyspora spinosa NRRL 18395' used to
+    print as 'Saccharopolyspora spinosa NRRL', and two S. erythraea genomes printed identically)."""
+    org = " ".join((organism or "").split()) if organism and organism != "." else ""
+    lab = (labels or {}).get(strain_key(basename))
+    if lab:
+        org = lab
     if re.match(r"^BGC\d+", basename):
         return f"{basename.split('.')[0]} {org}".strip(), "MIBiG"
     for pre in prefixes:
         if basename.startswith(pre):
             stem = re.sub(r"\.region\d+\.gbk$", "", basename[len(pre):])
-            return (org or stem.replace("_", " "))[:60], pre.rstrip("_")
+            return (org or stem.replace("_", " ")), pre.rstrip("_")
     m = query_rx.match(basename)
     if m:
         return m.group(1), "query"
     if "__" in basename:
-        return (org or basename.split("__", 1)[0].replace("_", " "))[:60], "REF"
-    return (org or re.sub(r"\.region\d+\.gbk$", "", basename))[:60], "REF"
+        return (org or basename.split("__", 1)[0].replace("_", " ")), "REF"
+    return (org or re.sub(r"\.region\d+\.gbk$", "", basename)), "REF"
 
 
-def gbk_index(con, query_rx, prefixes):
-    return {gid: classify(os.path.basename(path or ""), org, query_rx, prefixes) for gid, path, org in con.execute("select id, path, organism from gbk")}
+def load_labels(path):
+    """TSV strain<TAB>label (header row optional); returns {} when no path."""
+    if not path:
+        return {}
+    out = {}
+    with open(path, newline="") as h:
+        for r in csv.reader(h, delimiter="\t"):
+            if r and r[0] == "strain":
+                continue
+            if len(r) != 2 or not all(r) or r[0] in out:
+                raise ValueError("LABELS_REFUSED: exactly two columns and unique nonempty strain keys required")
+            out[r[0]] = r[1]
+    return out
+
+
+def gbk_index(con, query_rx, prefixes, labels=None):
+    return {gid: classify(os.path.basename(path or ""), org, query_rx, prefixes, labels) for gid, path, org in con.execute("select id, path, organism from gbk")}
 
 
 def family_members(con, cutoff, idx):
@@ -196,14 +223,15 @@ def genes_for_gbk(con, gbk_id):
     return genes
 
 
-def build_family(con, fid, cutoff, fam, ref_strain=None):
+def build_family(con, fid, cutoff, fam, ref_strain=None, min_genes=1, row_order="genes"):
     members = fam.get(fid)
     if not members:
         return None
-    tracks, og_members = [], collections.defaultdict(set)
+    tracks, hidden, og_members = [], [], collections.defaultdict(set)
     for mi, m in enumerate(members):
         genes = genes_for_gbk(con, m["gbk_id"])
-        if not genes:
+        if len(genes) < min_genes:
+            hidden.append(dict(strain=m["strain"], record_id=m["record_id"], genes=len(genes)))
             continue
         for g in genes:
             if g["og"]:
@@ -248,40 +276,87 @@ def build_family(con, fid, cutoff, fam, ref_strain=None):
         if common:
             tr["offset"] = sum(refc[og] - tc[og] for og in common) / len(common)
     cls_count = collections.Counter(t["cls"] for t in tracks); prods = collections.Counter(t["product"] for t in tracks)
-    return dict(family_id=fid, cutoff=cutoff, tracks=tracks, orthogroups=orthogroups, n_shared=len(shared),
+    if row_order == "similarity" and len(tracks) > 2:
+        ogs = {id(t): {g["og"] for g in t["genes"] if g.get("og")} for t in tracks}
+        rest = sorted(tracks, key=lambda t: -len(t["genes"])); order = [rest.pop(0)]
+        while rest:
+            last = ogs[id(order[-1])]
+            nxt = max(rest, key=lambda t: (len(ogs[id(t)] & last), len(t["genes"])))
+            rest.remove(nxt); order.append(nxt)
+        tracks = order
+    else:
+        tracks.sort(key=lambda t: -len(t["genes"]))
+    return dict(family_id=fid, cutoff=cutoff, tracks=tracks, orthogroups=orthogroups, n_shared=len(shared), hidden_tracks=hidden, min_genes=min_genes,
                 product_summary="; ".join(f"{p} x{n}" for p, n in prods.most_common()),
-                class_summary=", ".join(f"{c} {n}" for c, n in cls_count.most_common()), private=set(cls_count) == {"query"})
+                class_summary=", ".join(f"{c} {n}" for c, n in cls_count.most_common()), private=all(m["cls"] == "query" for m in members))
 
 
 def to_pdf(html_path, n_tracks, chrome):
+    """Print in an isolated profile; a complete validated PDF is the completion signal.
+
+    Some browser builds retain background services after printing. Stop only the isolated
+    process once its PDF is complete; never treat a stale output or a partial PDF as success.
+    """
+    try:
+        from pypdf import PdfReader
+        from pypdf.errors import PdfReadError
+    except ImportError:
+        sys.stderr.write("CLINKER_PDF_REFUSED: install the documents extra (pypdf) for validated PDF output\n")
+        return None
     height = 44 + n_tracks * 64 + 30 + 320
     src = Path(html_path).read_text(encoding="utf-8")
+    pdf = str(Path(html_path).with_suffix(".pdf"))
+    if Path(pdf).exists():
+        sys.stderr.write("CLINKER_PDF_REFUSED: output already exists\n")
+        return None
     tmp = str(html_path) + ".print.html"
-    Path(tmp).write_text(src.replace("</style>", f"@page{{size:1300px {height}px;margin:10px}}</style>", 1), encoding="utf-8")
-    pdf = re.sub(r"\.html$", ".pdf", str(html_path))
-    subprocess.run([chrome, "--headless=new", "--disable-gpu", "--no-pdf-header-footer", "--virtual-time-budget=4000", f"--print-to-pdf={pdf}", Path(tmp).resolve().as_uri()],
-                   capture_output=True, text=True, timeout=180)
-    os.remove(tmp)
-    if os.path.exists(pdf):
-        try:
-            from pypdf import PdfReader
-        except ImportError:
-            return pdf   # pypdf is an optional add-on; without it the PDF cannot be validated, so
-                         # return it unchecked rather than failing the render.
-        try:
-            if "ERR_" in (PdfReader(pdf).pages[0].extract_text() or "") or len(PdfReader(pdf).pages) != 1:
-                os.remove(pdf); return None
-        except Exception as exc:
-            # pypdf IS present, so a failure here is a real read error, not an absent dependency.
-            sys.stderr.write(f"[bigscape_clinker_html] could not validate {pdf} "
-                             f"({type(exc).__name__}: {exc}); returning it unvalidated\n")
+    Path(tmp).write_text(src.replace("</style>", f"@page{{size:1260px {height}px;margin:10px}}</style>", 1), encoding="utf-8")
+    complete = False
+    try:
+        with tempfile.TemporaryDirectory(prefix="clinker-chrome-") as profile:
+            process = subprocess.Popen([chrome, "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
+                "--virtual-time-budget=4000", "--no-first-run", "--no-default-browser-check",
+                "--disable-extensions", "--disable-background-networking", "--disable-component-update",
+                "--disable-sync", "--disable-features=MediaRouter", f"--user-data-dir={profile}", f"--print-to-pdf={pdf}",
+                Path(tmp).resolve().as_uri()], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            try:
+                deadline = time.monotonic() + 60
+                while time.monotonic() < deadline:
+                    if Path(pdf).is_file():
+                        try:
+                            reader = PdfReader(pdf)
+                            text = reader.pages[0].extract_text() if len(reader.pages) == 1 else ""
+                            complete = bool(text and "GCF family" in text and "ERR_" not in text)
+                        except (PdfReadError, OSError, ValueError, IndexError):
+                            complete = False
+                    if complete or process.poll() is not None:
+                        break
+                    time.sleep(0.2)
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        process.kill(); process.wait(timeout=5)
+    finally:
+        Path(tmp).unlink(missing_ok=True)
+    if complete:
         return pdf
+    sys.stderr.write("CLINKER_PDF_REFUSED: no complete single-page family PDF within the print deadline\n")
     return None
 
 
 def write_page(payload, title, outp):
-    html = TEMPLATE.replace("__PAYLOAD__", json.dumps(payload, separators=(",", ":"))).replace("__TITLE__", title)
-    Path(outp).write_text(html, encoding="utf-8")
+    hidden = payload.get("hidden_tracks", [])
+    note = ""
+    if hidden:
+        note = (f"{len(hidden)} track(s) with fewer than {payload['min_genes']} genes hidden from this view. "
+                "They remain in the database and export; this is a display filter.")
+    encoded = json.dumps(payload, separators=(",", ":")).replace("<", "\\u003c")
+    page = TEMPLATE.replace("__PAYLOAD__", encoded).replace("__TITLE__", html.escape(title))
+    page = page.replace("__HIDDEN_NOTE__", html.escape(note))
+    Path(outp).write_text(page, encoding="utf-8")
 
 
 def strain_family_map(con, strain, cutoff):
@@ -299,11 +374,23 @@ def main(argv=None):
     ap.add_argument("--db", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--cutoff", type=float, default=0.3); ap.add_argument("--fallback-cutoff", type=float, default=None)
     ap.add_argument("--family", type=int, nargs="*", default=None); ap.add_argument("--focus", action="append", default=[])
-    ap.add_argument("--query-regex", default=r"^([A-Za-z]+-\d+)_"); ap.add_argument("--layer-prefix", action="append", default=None)
+    ap.add_argument("--query-regex", default=r"^([A-Za-z]+-\d+)_", help="regex on the staged GBK basename; group 1 becomes the track label. MUST contain one capture group, e.g. '^(SYN-[0-9]+)'")
+    ap.add_argument("--layer-prefix", action="append", default=None)
+    ap.add_argument("--row-order", choices=("genes","similarity"), default="genes")
+    ap.add_argument("--min-genes", type=int, default=1)
     ap.add_argument("--chrome", default=None, help="path to a Chrome/Chromium binary; when given each page is also printed to PDF")
+    ap.add_argument("--labels", default=None, help="TSV strain<TAB>label: track label per staged-GBK strain prefix (deposited organism + strain, [Type] from the assembly-from-type flag)")
     a = ap.parse_args(argv)
-    prefixes = tuple(a.layer_prefix) if a.layer_prefix else ("SID_", "TYPE_"); query_rx = re.compile(a.query_regex)
-    con = sqlite3.connect(a.db); idx = gbk_index(con, query_rx, prefixes)
+    try:
+        query_rx = re.compile(a.query_regex)
+    except re.error as exc:
+        ap.error(f"--query-regex is invalid: {exc}")
+    if a.min_genes < 1:
+        ap.error("--min-genes must be at least 1")
+    if query_rx.groups < 1:
+        ap.error(f"--query-regex {a.query_regex!r} has no capture group; group 1 is the track label (try '^(SYN-[0-9]+)')")
+    prefixes = tuple(a.layer_prefix) if a.layer_prefix else ("SID_", "TYPE_")
+    con = sqlite3.connect(a.db); idx = gbk_index(con, query_rx, prefixes, load_labels(a.labels))
     fams = {a.cutoff: family_members(con, a.cutoff, idx)}
     if a.fallback_cutoff:
         fams[a.fallback_cutoff] = family_members(con, a.fallback_cutoff, idx)
@@ -324,7 +411,7 @@ def main(argv=None):
         d.mkdir(parents=True, exist_ok=True); n_rec = len(rids)
         prods = sorted({(p or "") for (p,) in con.execute(f"select product from bgc_record where id in ({','.join('?'*len(rids)) or 'NULL'})", rids)}) if rids else []
         product = ";".join(p for p in prods if p) or ""
-        payload = build_family(con, fid, cut, fams[cut], ref_strain=strain or None)
+        payload = build_family(con, fid, cut, fams[cut], ref_strain=strain or None, min_genes=a.min_genes, row_order=a.row_order)
         if not payload:
             index[strain].append({"family_id": fid, "cutoff": cut, "status": "skipped: <2 renderable members"}); continue
         prefix = (re.sub(r"[^A-Za-z0-9]+", "-", product).strip("-")[:40] + "__") if product else ""   # product first: a folder sorts by class

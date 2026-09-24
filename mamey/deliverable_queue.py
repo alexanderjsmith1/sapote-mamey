@@ -32,9 +32,12 @@ from . import blastp_gate as _g
 from .blastp_ingest import install_channel_top10
 
 
+# v9.7.441: pin subprocesses to the bundle runner, not `-m mamey` (cwd-shadow risk).
+_RUNNER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mamey_run.py")
+
 def _run(mod_args: list[str], env=None) -> tuple[int, str]:
-    """Invoke `python -m mamey <args>` in-process-safe via subprocess; returns (rc, tail)."""
-    cmd = [sys.executable, "-m", "mamey", *mod_args]
+    """Invoke mamey via the bundle-pinned runner (not `-m mamey`); returns (rc, tail)."""
+    cmd = [sys.executable, _RUNNER, *mod_args]
     try:
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=1800, env=env)
         tail = (p.stdout or p.stderr or "").strip().splitlines()[-1:] or [""]

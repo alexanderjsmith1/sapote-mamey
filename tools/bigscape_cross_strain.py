@@ -5,6 +5,8 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import argparse
 import collections
+import csv
+import io
 import os
 import re
 import sqlite3
@@ -34,7 +36,21 @@ def _dominant(counter):
     return sorted(counter.items(), key=lambda item: (-item[1], item[0]))[0][0]
 
 
-def build_rows(db, run_id, cutoff=None, min_strains=2):
+def load_labels(path):
+    if not path:
+        return {}
+    result = {}
+    with open(path, newline="", encoding="utf-8") as handle:
+        for row in csv.reader(handle, delimiter="\t"):
+            if row and row[0] == "strain":
+                continue
+            if len(row) != 2 or not all(row) or row[0] in result:
+                raise ValueError("LABELS_REFUSED: unique keys and exactly two nonempty columns required")
+            result[row[0]] = row[1]
+    return result
+
+
+def build_rows(db, run_id, cutoff=None, min_strains=2, labels=None):
     selected_run = normalize_run_id(run_id)
     selected_cutoff = normalize_cutoff(cutoff) if cutoff is not None else None
     with sqlite3.connect(db) as connection:
@@ -81,6 +97,7 @@ def build_rows(db, run_id, cutoff=None, min_strains=2):
             "qualified_family_id": identity.qualified_family_id,
             "gcf_namespace": identity.gcf_namespace,
             "n_strains": str(len(data["strains"])), "strains": ",".join(sorted(data["strains"])),
+            "strain_labels": "; ".join(f"{labels[s]} ({s})" if labels and s in labels and labels[s] != s else s for s in sorted(data["strains"])),
             "n_members": str(len(data["locators"])), "bin": data["bin"],
             "dominant_product": _dominant(data["products"]),
             "contains_MIBiG": "yes" if data["mibig"] else "no",
@@ -94,23 +111,41 @@ def build_rows(db, run_id, cutoff=None, min_strains=2):
 
 def render_rows(rows):
     fields = ["cutoff", "family_id", "run_id", "normalized_cutoff", "qualified_family_id",
-              "gcf_namespace", "n_strains", "strains", "n_members", "bin",
+              "gcf_namespace", "n_strains", "strains", "strain_labels", "n_members", "bin",
               "dominant_product", "contains_MIBiG", "members_locators"]
-    return "\t".join(fields) + "\n" + "".join(
-        "\t".join(row[field] for field in fields) + "\n" for row in rows
-    )
+    from mamey.csv_safety import SafeDictWriter
+    buffer = io.StringIO(newline="")
+    writer = SafeDictWriter(buffer, fields, delimiter="\t", lineterminator="\n")
+    writer.writeheader(); writer.writerows(rows)
+    return buffer.getvalue()
+
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", required=True)
-    parser.add_argument("--out", required=True)
+    parser.add_argument("--out", required=True, help="output TSV file, not a directory")
     parser.add_argument("--min-strains", type=int, default=2)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--cutoff", default=None, help="optional exact cutoff; otherwise emit every stored cutoff")
+    parser.add_argument("--labels", help="TSV strain / label; exact keys retained")
+    parser.add_argument("--exclude-products", default="", help="comma-separated case-insensitive label tokens; matches are written to <out>.PARKED.tsv")
     args = parser.parse_args(argv)
+    if os.path.isdir(args.out):
+        parser.error("--out must be a TSV file, not a directory")
     try:
-        rows = build_rows(args.db, args.run_id, args.cutoff, args.min_strains)
+        rows = build_rows(args.db, args.run_id, args.cutoff, args.min_strains, load_labels(args.labels))
+        tokens = [t.strip().lower() for t in args.exclude_products.split(",") if t.strip()]
+        if tokens:
+            parked, kept = [], []
+            for row in rows:
+                (parked if any(t in row["dominant_product"].lower() for t in tokens) else kept).append(row)
+            atomic_write_text(args.out + ".PARKED.tsv", render_rows(parked))
+            atomic_write_text(args.out + ".FILTER.json", __import__("json").dumps({
+                "rule": "case-insensitive contains match on dominant_product", "tokens": tokens,
+                "kept": len(kept), "parked": len(parked), "run_id": args.run_id, "cutoff": args.cutoff,
+                "ceiling": "Explicit display/export scope; no biological absence claim"}, indent=2) + "\n")
+            rows = kept
         atomic_write_text(args.out, render_rows(rows))
     except NamespaceError as error:
         # v9.7.405: sys.stderr.write, not print() — a typed-refusal diagnostic, and the
@@ -118,6 +153,9 @@ def main(argv=None):
         # would have dropped their PRE-EXISTING prints from the count too: a lower
         # measure without paying anything.
         sys.stderr.write(public_error(error) + "\n")
+        return 2
+    except (OSError, ValueError) as error:
+        sys.stderr.write(f"CROSS_STRAIN_REFUSED: {error}\n")
         return 2
     emit(f"wrote {len(rows)} qualified cross-strain families")
     return 0

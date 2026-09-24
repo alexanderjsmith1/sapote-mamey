@@ -1,15 +1,15 @@
-# Sapote-Mamey Bundle Release Manifest — v9.7.440 CODE archive
+# Sapote-Mamey Bundle Release Manifest — v9.7.441 CODE archive
 
-**Cut/build date:** 2026-09-22
-**Artifact status:** CI correction candidate  
-**Bundle version:** `sapote-mamey-v9.7.440`  
-**Authoritative bundle version:** `9.7.440`  
+**Cut/build date:** 2026-09-24
+**Artifact status:** validated CODE archive  
+**Bundle version:** `sapote-mamey-v9.7.441`  
+**Authoritative bundle version:** `9.7.441`  
 **Engine:** Mamey v1.9.169  
-**Build stamp:** 20260922v97440c  
+**Build stamp:** 20260924v97441b  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
-This CODE archive carries a checksum and test receipts. Software validation does not establish an accepted biological analysis.
+This CODE archive carries a checksum and test receipts. A local seal is recorded only by the external SEAL_RECEIPT.json binding the immutable archive hash; this source manifest alone is not a seal. Software validation does not establish an accepted biological analysis.
 
 ## Tier scope
 
@@ -21,14 +21,14 @@ No additional release tiers are included in this CODE archive.
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PENDING GitHub CI rerun after receipt-hash spacing correction; previous v9.7.440 local validation does not validate this correction |
-| Focused verification | 1145 passed / 14 skipped on the corrected b source; c identity and extracted checks recorded in the accompanying receipt |
-| Strict repository health | PASS (1306 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
+| Full pytest suite | PASS (12097 passed, 240 skipped; receipt-bound log) |
+| Focused verification | New portable adapter, identity, containment and clinker regressions pass; exact counts recorded in external candidate receipts |
+| Strict repository health | PASS (1308 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
 | Version synchronization | PASS |
 | Generated module, tool, command, and deliverable inventories | PASS |
-| R source parsing | PASS (17 bundled R sources parsed with Rscript); live rendering and external-tool pilots remain separate |
+| R source parsing | PASS (all bundled R sources parsed); synthetic single/grouped tree-track PDF pages inspected; live experimental integration remains separate |
 | Release tier builds and archive checksums | One CODE archive; no additional tiers included |
-| Archive integrity | PASS (ZIP CRC, extracted checksums and identity) |
+| Archive integrity | ZIP CRC, extracted-suite results and local seal decision are bound by the external SEAL_RECEIPT.json beside the sealed archive |
 
 Skipped tests are gated tests whose required local data or external tools are not shipped. A skip
 does not demonstrate that the associated live workflow ran. Test success establishes software and
@@ -48,11 +48,11 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20260922v97440c`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20260924v97441b`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
-| `sync_version --check` | PASS (engine 1.9.169, bundle 9.7.440) |
+| `sync_version --check` | PASS (engine 1.9.169, bundle 9.7.441) |
 
-All tracked version anchors at v9.7.440 / Mamey 1.9.169.
-`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.440.
+All tracked version anchors at v9.7.441 / Mamey 1.9.169.
+`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.441.

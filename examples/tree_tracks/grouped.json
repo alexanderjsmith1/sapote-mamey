@@ -1,0 +1,28 @@
+{
+  "schema": "sapote.tree-tracks.v1",
+  "input_root": ".",
+  "metadata": {
+    "path": "metadata.tsv",
+    "sha256": "981810c59389718dd2b4145668bd95e60dc1b5c661c7ea222cc0eb42c3a1ac81"
+  },
+  "tracks": [
+    {
+      "column": "value_48",
+      "label": "Selected 48 h",
+      "colour": "#287D8E",
+      "receipt": {
+        "path": "factory_48/bioassay_figure_factory_receipt.json",
+        "sha256": "2a9a4e36ba4de43a70b9343e841cd4d72dd843bf7c10dd51985a45e1bb517683"
+      }
+    },
+    {
+      "column": "value_72",
+      "label": "Selected 72 h",
+      "colour": "#B77B38",
+      "receipt": {
+        "path": "factory_72/bioassay_figure_factory_receipt.json",
+        "sha256": "7730ffdc6b4132741d34b7ab40b03bb225ad03b7c1889b79d9a1962195cfa18c"
+      }
+    }
+  ]
+}

@@ -1,7 +1,7 @@
-"""A10/DEC-02 (.367): mamey.workspace_root is the single home-path resolver.
+"""Workspace discovery: explicit environment overrides, then verified ancestor markers.
 
-Byte-identical fallback when no env var is set (the JOB-C constraint), and env precedence
-SAPOTE_WORKSPACE_ROOT > SAPOTE_ROOT > historical literal.
+The no-marker fallback is the current directory. Marker discovery itself is covered
+by test_441_workspace_root_walks_to_marker.py with generic workspace fixtures.
 """
 import os
 import importlib
@@ -17,7 +17,8 @@ def _clear(monkeypatch):
 
 
 def test_env_unset_returns_cwd(monkeypatch):
-    # v9.7.381 generic-source: no personal-home fallback; env-unset -> cwd
+    # Exercise the no-marker fallback independently of the host ancestor layout.
+    monkeypatch.setattr(wr, "WORKSPACE_MARKERS", ())
     _clear(monkeypatch)
     assert wr.workspace_root() == Path.cwd()
 

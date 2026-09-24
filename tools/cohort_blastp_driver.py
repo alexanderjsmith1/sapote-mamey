@@ -26,6 +26,8 @@ from __future__ import annotations
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
+# v9.7.441: bundle-pinned runner — never `-m mamey`, whose cwd-shadow sealed 35 packages at 1.9.154.
+_BUNDLE_RUNNER = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "mamey_run.py")
 import argparse
 import csv
 try:  # v9.7.410 CSV formula-cell guard (CLAUDE_v9.7.410_tools_csv_writer_coverage)
@@ -132,7 +134,7 @@ def main(argv=None) -> int:
             skipped.append(bgc)
             continue
         emit(f"\n  [{bgc}] {r.get('assembly_locator','')}")
-        rc = run([sys.executable, "-m", "mamey.cli", "blastp-online",
+        rc = run([sys.executable, _BUNDLE_RUNNER, "blastp-online",
                   "--package", str(a.antismash), "--bgc", bgc, "--crosswalk", str(a.package),
                   "--database", a.database, "--evalue", a.evalue,
                   "--batch-size", str(a.batch_size),
@@ -142,7 +144,7 @@ def main(argv=None) -> int:
 
         hits = a.package / "bgc_blastp_panel" / f"{bgc}_online_blastp.csv"
         xml = a.package / "bgc_blastp_panel" / f"{bgc}.xml"
-        cmd = [sys.executable, "-m", "mamey.cli", "ingest-blastp",
+        cmd = [sys.executable, _BUNDLE_RUNNER, "ingest-blastp",
                "--master", str(a.master), "--strain", a.strain,
                "--hit-table", str(hits), "--package", str(a.package)]
         if xml.is_file():          # --xml fills blastp_top_def / blastp_organism (outfmt10 carries neither)
