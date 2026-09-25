@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class _FakeCairoSVG:
     @staticmethod
     def svg2png(*, bytestring, output_width):
-        assert CLAIM_SAFETY.encode() in bytestring
+        assert CLAIM_SAFETY.encode() not in bytestring  # v9.7.442: nothing is added to the page
         assert output_width == 2160
         return b"\x89PNG\r\n\x1a\nsynthetic-raster"
 
@@ -26,7 +26,7 @@ class _FakeCairoSVG:
 def test_native_svg_writes_pair_and_appends_receipt(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, "cairosvg", _FakeCairoSVG)
     package = tmp_path / "package"
-    svg = f'<svg xmlns="http://www.w3.org/2000/svg"><text>{CLAIM_SAFETY}</text></svg>'
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg"><text>synthetic panel</text></svg>'
     receipt = save_figure(
         NativeSvgFigure(svg), figure_id="SYNTHETIC_FIGURE", out_stem=package / "figures" / "one",
         renderer="synthetic-native-svg", package_dir=package, provenance="synthetic fixture",
@@ -59,7 +59,7 @@ def test_unpaired_png_is_legacy_unverified_and_never_regenerated(tmp_path):
 def test_tampered_bound_png_is_legacy_unverified(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, "cairosvg", _FakeCairoSVG)
     package = tmp_path / "package"
-    svg = f'<svg xmlns="http://www.w3.org/2000/svg"><text>{CLAIM_SAFETY}</text></svg>'
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg"><text>synthetic panel</text></svg>'
     save_figure(
         NativeSvgFigure(svg), figure_id="SYNTHETIC_FIGURE", out_stem=package / "one",
         renderer="synthetic-native-svg", package_dir=package, provenance="synthetic fixture",
@@ -71,7 +71,7 @@ def test_tampered_bound_png_is_legacy_unverified(tmp_path, monkeypatch):
     assert audit["figures"] == [{"png": "one.png", "svg": "one.svg", "state": "LEGACY_UNVERIFIED"}]
 
 
-def test_matplotlib_figure_gets_footer_pair_and_receipt(tmp_path):
+def test_matplotlib_figure_gets_pair_and_receipt_without_a_footer(tmp_path):
     plt = pytest.importorskip("matplotlib.pyplot")
     package = tmp_path / "package"
     fig, axis = plt.subplots()
@@ -81,9 +81,9 @@ def test_matplotlib_figure_gets_footer_pair_and_receipt(tmp_path):
             fig, figure_id="SYNTHETIC_MATPLOTLIB", out_stem=package / "mpl",
             renderer="synthetic-matplotlib", package_dir=package, provenance="synthetic fixture",
         )
-        assert {text.get_text() for text in fig.texts} >= {
-            CLAIM_SAFETY, "synthetic fixture | Candidate Only — judgment deferred"
-        }
+        # v9.7.442 (Alex, 2026-09-24): no claim wording on figures. The ceiling lives in the receipt.
+        assert not {text.get_text() for text in fig.texts} & {CLAIM_SAFETY}
+        assert receipt["claim_safety"] == CLAIM_SAFETY
         assert set(receipt["outputs"]) == {"png", "svg"}
         assert audit_figure_outputs(package)["status"] == "PASS"
     finally:
@@ -91,7 +91,7 @@ def test_matplotlib_figure_gets_footer_pair_and_receipt(tmp_path):
 
 
 def test_output_stem_must_be_inside_package(tmp_path):
-    svg = f'<svg xmlns="http://www.w3.org/2000/svg"><text>{CLAIM_SAFETY}</text></svg>'
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg"><text>synthetic panel</text></svg>'
     with pytest.raises(FigureSaveRefusal, match="out_stem must be contained"):
         save_figure(
             NativeSvgFigure(svg), figure_id="SYNTHETIC", out_stem=tmp_path / "outside",
@@ -107,7 +107,7 @@ def test_native_rasterizer_failure_is_typed_and_writes_nothing(tmp_path, monkeyp
 
     monkeypatch.setitem(sys.modules, "cairosvg", BrokenCairoSVG)
     package = tmp_path / "package"
-    svg = f'<svg xmlns="http://www.w3.org/2000/svg"><text>{CLAIM_SAFETY}</text></svg>'
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg"><text>synthetic panel</text></svg>'
     with pytest.raises(FigureSaveRefusal, match="FIGURE_RENDER_FAILED"):
         save_figure(
             NativeSvgFigure(svg), figure_id="SYNTHETIC", out_stem=package / "one",
@@ -137,7 +137,7 @@ def test_output_symlink_is_refused_without_touching_target(tmp_path, monkeypatch
     outside = tmp_path / "outside.png"
     outside.write_bytes(b"keep")
     (package / "one.png").symlink_to(outside)
-    svg = f'<svg xmlns="http://www.w3.org/2000/svg"><text>{CLAIM_SAFETY}</text></svg>'
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg"><text>synthetic panel</text></svg>'
 
     with pytest.raises(FigureSaveRefusal, match="output path is a symlink"):
         save_figure(
@@ -145,3 +145,48 @@ def test_output_symlink_is_refused_without_touching_target(tmp_path, monkeypatch
             renderer="synthetic", package_dir=package, provenance="synthetic fixture",
         )
     assert outside.read_bytes() == b"keep"
+
+
+def test_banned_wording_on_a_native_svg_is_refused_and_writes_nothing(tmp_path, monkeypatch):
+    """The inverse of the old rule: wording that belongs in the receipt is refused on the page."""
+    monkeypatch.setitem(sys.modules, "cairosvg", _FakeCairoSVG)
+    package = tmp_path / "package"
+    svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Counts. Judgment deferred.</text></svg>'
+    with pytest.raises(FigureSaveRefusal, match="FIGURE_TEXT_BANNED"):
+        save_figure(NativeSvgFigure(svg), figure_id="BANNED", out_stem=package / "banned",
+                    renderer="synthetic", package_dir=package, provenance="synthetic fixture")
+    assert not (package / "banned.png").exists()
+    assert not (package / "banned.svg").exists()
+    assert not (package / "figure_receipts.jsonl").exists()
+
+
+def test_banned_wording_in_a_matplotlib_title_is_refused(tmp_path):
+    plt = pytest.importorskip("matplotlib.pyplot")
+    package = tmp_path / "package"
+    fig, axis = plt.subplots()
+    axis.set_title("BGC counts — class-level only")
+    try:
+        with pytest.raises(FigureSaveRefusal, match="FIGURE_TEXT_BANNED"):
+            save_figure(fig, figure_id="BANNED_MPL", out_stem=package / "mpl",
+                        renderer="synthetic-matplotlib", package_dir=package, provenance="synthetic fixture")
+        assert not (package / "figure_receipts.jsonl").exists()
+    finally:
+        plt.close(fig)
+
+
+def test_metadata_and_comments_are_not_page_text():
+    """Only what a reader sees counts. A receipt id in <metadata> is not on the page."""
+    from mamey.figure_policy import svg_visible_text, figure_text_violations
+    svg = ('<svg><metadata>judgment deferred</metadata><!-- not identity -->'
+           '<text>Honeybees</text><text><tspan>Bumblebees</tspan></text></svg>')
+    assert svg_visible_text(svg) == ["Honeybees", "Bumblebees"]
+    assert figure_text_violations(svg_visible_text(svg)) == []
+
+
+def test_ordinary_figure_words_are_not_caught():
+    """Words a real figure needs must pass."""
+    from mamey.figure_policy import figure_text_violations
+    ok = ["Crude extracts — Candida sp. (max of C. albicans, C. auris)", "Fractions", "Honeybees",
+          "Other bees", "Wasps", "isolate from this study", "BGC class", "Identity (%)",
+          "Production medium", "Loose antiSMASH 8.0.4 regions"]
+    assert figure_text_violations(ok) == []

@@ -233,14 +233,22 @@ def write_gene_count_crosscheck(package_dir: str | Path,
 
     # Build a basename -> GBK-text resolver from the input zip (primary) and package glob (fallback).
     zip_gbk: dict[str, str] = {}
+    zip_unreadable: str | None = None
     if input_zip and Path(input_zip).exists():
         try:
             with zipfile.ZipFile(input_zip) as zf:
                 for n in regular_file_names(zf):
                     if n.lower().endswith(".gbk"):
                         zip_gbk[Path(n).name] = zf.read(n).decode("utf-8", "replace")
-        except Exception:
-            pass  # fall through to package glob
+        except Exception as exc:
+            # Was a bare swallow. The input ZIP is the PRIMARY source and region GBKs are not copied
+            # into the sealed package, so the package-glob fallback below usually finds nothing and
+            # every BGC reads "region GBK not found". Record why, so an unreadable ZIP is not mistaken
+            # for missing GBKs and the omission check that reads this file is visibly disabled.
+            zip_unreadable = type(exc).__name__
+            from . import degradation as _degradation
+            _degradation.record("gene_by_gene.write_gene_count_crosscheck.input_zip", exc,
+                                input_zip=str(input_zip))
 
     def _gbk_text(src_name: str) -> str | None:
         if src_name in zip_gbk:
@@ -264,8 +272,11 @@ def write_gene_count_crosscheck(package_dir: str | Path,
         src_name = Path(src).name
         text = _gbk_text(src_name)
         if text is None:
+            note = "region GBK not found"
+            if zip_unreadable:
+                note += f"; input ZIP unreadable ({zip_unreadable})"
             per_bgc[bid] = {"gbk_cds_count": None, "gbk_edge_cds_count": None,
-                            "gbk_source": src_name, "note": "region GBK not found"}
+                            "gbk_source": src_name, "note": note}
             continue
         try:
             cds = _parse_cds_from_gbk(text, src_name)
@@ -286,6 +297,8 @@ def write_gene_count_crosscheck(package_dir: str | Path,
     payload = {"schema": "gene-count-crosscheck-1.0",
                "antismash_version": as_version,
                "per_bgc": per_bgc}
+    if zip_unreadable:
+        payload["input_zip_unreadable"] = zip_unreadable
     out.mkdir(parents=True, exist_ok=True)
     path = out / "gene_count_crosscheck.json"
     # v9.7.374 fix: was a bare path.write_text() -- an interrupted write leaves a truncated/corrupt
@@ -295,7 +308,10 @@ def write_gene_count_crosscheck(package_dir: str | Path,
     _tmp = path.with_name(path.name + ".tmp")
     _tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     _tmp.replace(path)
-    return {"path": str(path), "per_bgc": per_bgc, "antismash_version": as_version}
+    result = {"path": str(path), "per_bgc": per_bgc, "antismash_version": as_version}
+    if zip_unreadable:
+        result["input_zip_unreadable"] = zip_unreadable
+    return result
 
 
 def _edge_overlap_flag(boundary: str, bgc_start: int | None, bgc_end: int | None,

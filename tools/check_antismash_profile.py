@@ -30,6 +30,8 @@ def collect(root: Path) -> dict:
     for mp in sorted(root.rglob("manifest.json")):
         try:
             d = json.loads(mp.read_text(encoding="utf-8"))
+            if not isinstance(d, dict):
+                raise ValueError("manifest is not a JSON object")
         except Exception as exc:
             strain = mp.parent.name
             out[strain] = "unknown"
@@ -37,7 +39,20 @@ def collect(root: Path) -> dict:
                   file=sys.stderr)
             continue
         strain = d.get("strain") or d.get("strain_id") or mp.parent.name
-        out[strain] = d.get("antismash_profile", "unknown")
+        profile = d.get("antismash_profile")
+        if not isinstance(strain, str) or not strain.strip():
+            strain, profile = mp.parent.name, "unknown"
+        if not isinstance(profile, str) or not profile.strip() or profile.strip().lower() in {"unknown", "none", "null", "n/a", "na"}:
+            profile = "unknown"
+        else:
+            profile = profile.strip()
+        if strain in out:
+            # Reusing one strain identity can hide a mixed input by last-write-wins.
+            out[strain] = "unknown"
+            emit(f"  WARNING: duplicate strain {strain!r} in {mp} -- treated as unknown",
+                 file=sys.stderr)
+        else:
+            out[strain] = profile
     return out
 
 def main(argv=None) -> int:

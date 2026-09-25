@@ -145,7 +145,7 @@ def test_emit_template_warns_once_before_writing(tmp_path: Path, monkeypatch, ca
         json.dumps({"workflow_version": "1.9.113"}), encoding="utf-8")
     from mamey import blastp_gate, modeb_template_emitter
     monkeypatch.setattr(blastp_gate, "gate", lambda *_a, **_k: {"blocked": False, "message": ""})
-    monkeypatch.setattr(modeb_template_emitter, "emit_card_template", lambda *_a: "fixture template")
+    monkeypatch.setattr(modeb_template_emitter, "emit_card_template", lambda *_a, **_k: "fixture template")
     output = tmp_path / "template.md"
     args = SimpleNamespace(package=str(package), bgc=BGC, batch=False,
                            blastp_waiver=None, out=str(output))

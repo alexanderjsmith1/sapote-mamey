@@ -36,6 +36,25 @@ def _dominant(counter):
     return sorted(counter.items(), key=lambda item: (-item[1], item[0]))[0][0]
 
 
+# antiSMASH/BiG-SCAPE join hybrid products with "."; "-" and "_" occur inside a single product name
+# (terpene-precursor, NRP-metallophore, fatty_acid), so parking splits on "." only.
+HYBRID_SEPARATOR = "."
+PARK_RULES = {
+    "all-tokens": "park when every '.'-separated product in dominant_product equals a named product (case-insensitive)",
+    "any-token": "park when any '.'-separated product in dominant_product equals a named product (case-insensitive)",
+    "contains": "case-insensitive contains match on dominant_product",
+}
+
+
+def is_parked(product, tokens, mode="all-tokens"):
+    text = (product or "").lower()
+    if mode == "contains":
+        return any(token in text for token in tokens)
+    parts = [part for part in text.split(HYBRID_SEPARATOR) if part]
+    hits = [part in tokens for part in parts]
+    return bool(parts) and (all(hits) if mode == "all-tokens" else any(hits))
+
+
 def load_labels(path):
     if not path:
         return {}
@@ -130,6 +149,10 @@ def main(argv=None):
     parser.add_argument("--cutoff", default=None, help="optional exact cutoff; otherwise emit every stored cutoff")
     parser.add_argument("--labels", help="TSV strain / label; exact keys retained")
     parser.add_argument("--exclude-products", default="", help="comma-separated case-insensitive label tokens; matches are written to <out>.PARKED.tsv")
+    parser.add_argument("--exclude-match", choices=tuple(PARK_RULES), default="all-tokens",
+                        help="all-tokens (default): park only when every product of a hybrid is named; any-token: "
+                             "park when any product is named; contains: legacy substring match, so 'terpene' also "
+                             "parks 'terpene-precursor'")
     args = parser.parse_args(argv)
     if os.path.isdir(args.out):
         parser.error("--out must be a TSV file, not a directory")
@@ -139,10 +162,12 @@ def main(argv=None):
         if tokens:
             parked, kept = [], []
             for row in rows:
-                (parked if any(t in row["dominant_product"].lower() for t in tokens) else kept).append(row)
+                (parked if is_parked(row["dominant_product"], tokens, args.exclude_match) else kept).append(row)
             atomic_write_text(args.out + ".PARKED.tsv", render_rows(parked))
             atomic_write_text(args.out + ".FILTER.json", __import__("json").dumps({
-                "rule": "case-insensitive contains match on dominant_product", "tokens": tokens,
+                "rule": PARK_RULES[args.exclude_match], "match": args.exclude_match, "tokens": tokens,
+                "kept_containing_a_token": sorted({row["dominant_product"] for row in kept
+                                                   if any(t in row["dominant_product"].lower() for t in tokens)})[:5],
                 "kept": len(kept), "parked": len(parked), "run_id": args.run_id, "cutoff": args.cutoff,
                 "ceiling": "Explicit display/export scope; no biological absence claim"}, indent=2) + "\n")
             rows = kept

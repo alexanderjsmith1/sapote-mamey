@@ -1431,7 +1431,7 @@ def build(S, order, OUT):
     else:
         ax.text(0.5,0.5,"no KCB reference hits in this cohort\n(all BGCs novelty-leaning; linear axis)",
                 transform=ax.transAxes,ha="center",va="center",fontsize=10,color="#777")
-    ax.set_xlabel("BGC region length (kb)"); ax.set_ylabel("KCB rank-1 cumulative BLAST score\n(log; unnormalised sum, scales with cluster size; similarity, not identity)")
+    ax.set_xlabel("BGC region length (kb)"); ax.set_ylabel("KCB rank-1 cumulative BLAST score\n(log; unnormalised sum, scales with cluster size)")
     ax.set_title("KCB reference-similarity vs BGC size, by boundary status\n(truncated Edge/Full-contig BGCs trend to weaker / absent hits)",pad=12); ax.grid(alpha=0.2,which="both")
     ax.legend(fontsize=8,title="boundary",title_fontsize=8)
     fn=stamp_d(fig,"scatter_kcb_vs_size"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
@@ -1475,7 +1475,7 @@ def build(S, order, OUT):
         ax.text(0.5,0.5,"no KCB reference hits in this cohort\n(all BGCs novelty-leaning; linear axis)",
                 transform=ax.transAxes,ha="center",va="center",fontsize=10,color="#777")
     ax.set_xticks(range(len(order))); ax.set_xticklabels([lab(s) for s in order],fontsize=8)
-    ax.set_ylabel("KCB rank-1 cumulative BLAST score\n(log; unnormalised sum, scales with cluster size; similarity, not identity)"); ax.tick_params(length=0)
+    ax.set_ylabel("KCB rank-1 cumulative BLAST score\n(log; unnormalised sum, scales with cluster size)"); ax.tick_params(length=0)
     soft_div_x(ax,order,ax.get_ylim()[1])
     ax.set_title("KCB reference-similarity distribution per strain (one dot = one BGC with a hit;\n'no-hit' count noted = novelty-leaning, incl. truncated BGCs)",pad=12); ax.grid(alpha=0.2,axis="y",which="both")
     fn=stamp_d(fig,"strip_kcb_per_strain"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
@@ -1736,7 +1736,7 @@ def batch1(S, order, OUT):
                 kc[bins[0]][s]+=1; continue
             f=float(v); kc[bins[1] if f<q1 else bins[2] if f<q2 else bins[3]][s]+=1
     hmap([[kc[b].get(s,0) for s in order] for b in bins],bins,order,
-         "KCB cumulative-BLAST-score band per strain (BGC counts; KCB = similarity, not identity)\n"
+         "KCB cumulative-BLAST-score band per strain (BGC counts)\n"
          "Bands are COHORT TERTILES of this cohort's own scores, not similarity thresholds. The score is\n"
          "antiSMASH's unnormalised 'Cumulative BLAST score', which grows with cluster size and protein count,\n"
          "so it is not comparable between BGCs of different size. 'No hit' is novelty-leaning, not proof of novelty.",

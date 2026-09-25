@@ -23,5 +23,15 @@ downstream users cite the original sources in their own work.
    genome assembly, GenBank/NCBI accession JAFEUC010000000 (contig JAFEUC01).
    Public genome data; used solely as a class-architecture regression fixture.
 
+3. ijson 3.5.0 — bundled third-party code, mamey/_vendor/ijson/
+   Pure-Python fallback for streaming large antiSMASH JSON files, used only when the
+   ijson package (a core dependency) is not installed. Copyright (c) 2010, Ivan
+   Sagalaev. BSD 3-Clause license; the full license text ships beside the code in
+   mamey/_vendor/ijson/LICENSE.txt. Project: https://github.com/ICRAR/ijson
+
+4. Build wheels — wheels/ (setuptools, wheel, packaging)
+   Unmodified PyPI wheels that let an offline editable install succeed. Licenses,
+   sources and SHA-256 values are listed in wheels/WHEELS_MANIFEST.md.
+
 No third-party data in this repository is under a copyleft or share-alike license,
 and none requires a fee or permission to redistribute.

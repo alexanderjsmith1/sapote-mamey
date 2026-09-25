@@ -380,7 +380,7 @@ def fig_kcb_novelty(root, strains, out):
     ax.set_ylabel("BGC count", fontsize=11)
     ax.set_ylim(0, tot.max() * 1.12)
     _finish_strain_axis(ax, strains)
-    ax.set_title("KCB novelty composition across strains (similarity, not identity)", fontweight="bold", fontsize=12)
+    ax.set_title("KCB novelty composition across strains", fontweight="bold", fontsize=12)
     ax.legend(fontsize=8.5, frameon=False, loc="upper left", bbox_to_anchor=(1.01, 1.0))
     _png = os.path.join(out, "fig6_kcb_novelty.png")
     _sidecar_csv(_png, ["strain", "kcb_tier", "n_bgcs"],

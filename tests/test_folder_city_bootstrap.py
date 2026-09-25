@@ -29,15 +29,42 @@ def test_session_hook_reports_executable_root_and_actual_docs(tmp_path, layout):
     # A newer unselected candidate must not override the versioned bundle.
     if layout != 'direct':
         (tmp_path / 'sapote-mamey-v9.7.1000-CANDIDATE').mkdir()
+    env = hermetic_env(PATH=os.environ['PATH'], SAPOTE_WORKSPACE_ROOT=tmp_path)
+    if layout != 'direct':
+        env['SAPOTE_BUNDLE_ROOT'] = str(bundle)
     proc = subprocess.run(
         ['bash', str(ROOT / 'hooks/sapote_session_start.sh')], text=True, capture_output=True,
-        env=hermetic_env(PATH=os.environ['PATH'], SAPOTE_WORKSPACE_ROOT=tmp_path), check=True,
+        env=env, check=True,
     )
     message = json.loads(proc.stdout)['hookSpecificOutput']['additionalContext']
-    assert f'current bundle root is [{bundle}]' in message
+    assert f'explicitly located code root is [{bundle}]' in message
     assert 'CURRENT_DOCS_INDEX' in message
     for rel in [CHATGPT, CLAUDE]:
         assert (Path(rel).name if layout == 'legacy' else rel) in message
+
+
+def test_session_hook_does_not_promote_later_unbound_folder(tmp_path):
+    bound = tmp_path / 'sapote-mamey-v9.7.441-CODE-20260924v97441b'
+    later = tmp_path / 'sapote-mamey-v9.7.441-CODE-20260925v97441c'
+    for folder in (bound, later):
+        folder.mkdir()
+        for name in ('pyproject.toml', 'mamey_run.py', 'bootstrap_contract.yml'):
+            (folder / name).write_text('fixture\n')
+    hook = ['bash', str(ROOT / 'hooks/sapote_session_start.sh')]
+    env = hermetic_env(PATH=os.environ['PATH'], SAPOTE_WORKSPACE_ROOT=tmp_path)
+    unbound = subprocess.run(hook, env=env, text=True, capture_output=True, check=True)
+    message = json.loads(unbound.stdout)['hookSpecificOutput']['additionalContext']
+    assert 'no valid code root was explicitly located' in message
+    assert str(bound) not in message and str(later) not in message
+    env['SAPOTE_BUNDLE_ROOT'] = str(bound)
+    selected = subprocess.run(hook, env=env, text=True, capture_output=True, check=True)
+    message = json.loads(selected.stdout)['hookSpecificOutput']['additionalContext']
+    assert f'explicitly located code root is [{bound}]' in message
+    assert str(later) not in message
+    env['SAPOTE_BUNDLE_ROOT'] = str(tmp_path / 'missing')
+    invalid = subprocess.run(hook, env=env, text=True, capture_output=True, check=True)
+    message = json.loads(invalid.stdout)['hookSpecificOutput']['additionalContext']
+    assert 'no valid code root was explicitly located' in message
 
 
 def test_relocated_handoff_can_activate_safe_mode():

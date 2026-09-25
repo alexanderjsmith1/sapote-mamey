@@ -326,6 +326,26 @@ def _engine_version(pkg: Path, strain: str) -> str:
     return ""
 
 
+def _antismash_profile(pkg: Path, strain: str) -> str:
+    """Detection strictness from the full manifest; manifest_short does not carry it."""
+    mf = _first(pkg, f"{strain}_manifest.json", "manifest.json")
+    if mf is None:
+        return "unrecorded"
+    try:
+        value = json.loads(mf.read_text(encoding="utf-8")).get("antismash_profile")
+    except (OSError, ValueError):
+        return "unknown"
+    return str(value).strip().lower() if value else "unrecorded"
+
+
+def antismash_profile_counts(records: dict[str, dict[str, Any]], ids: Iterable[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for sid in ids:
+        profile = str(records[sid].get("antismashProfile") or "unrecorded").lower()
+        counts[profile] = counts.get(profile, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 def _package_name(runs_dir: Path, pkg: Path, strain: str, engine_ver: str) -> str:
     zip_hit = _first(runs_dir / strain, "*.zip") or _first(pkg, "*.zip")
     if zip_hit is not None:
@@ -381,6 +401,7 @@ def build_strain_record(
         "classes": classes,
         "machinery": machinery,
         "hostContext": host_context(strain, crosswalk),
+        "antismashProfile": _antismash_profile(pkg, strain),
         "_engineVersion": engine_ver,  # internal; stripped before emit
     }
 
@@ -450,6 +471,7 @@ def build_widget_data(
     strains: Iterable[str] | None = None,
     measured_activity: str | Path = DEFAULT_MEASURED_ACTIVITY,
     strain_genus: str | Path = DEFAULT_STRAIN_GENUS,
+    acknowledge_mixed_antismash_profile: bool = False,
 ) -> dict[str, Any]:
     """Build the {meta, strains} widget-data aggregate from sealed packages."""
     runs_dir = Path(runs_dir)
@@ -500,7 +522,12 @@ def build_widget_data(
         "uniquePhysicalGenesGoverned": sum(
             records[s]["uniquePhysicalGenes"] for s in governed
         ),
+        "antismashProfiles": antismash_profile_counts(records, records),
     }
+    governed_profiles = antismash_profile_counts(records, governed)
+    if acknowledge_mixed_antismash_profile and len(governed_profiles) > 1:
+        # The acknowledgement binds the exact mix; a changed cohort makes it stale.
+        meta["antismashProfileMixAcknowledged"] = governed_profiles
     return {"meta": meta, "strains": records}
 
 
@@ -583,8 +610,12 @@ def run(
     emit_figures: bool = False,
     figures_out: str | Path | None = None,
     scope: str = "GOVERNED",
+    acknowledge_mixed_antismash_profile: bool = False,
 ) -> dict[str, Any]:
-    data = build_widget_data(runs_dir, strains)
+    data = build_widget_data(
+        runs_dir, strains,
+        acknowledge_mixed_antismash_profile=acknowledge_mixed_antismash_profile,
+    )
     problems = validate_widget_data(data)
     out_path = Path(out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -596,6 +627,7 @@ def run(
         "governedStrainCount": data["meta"]["governedStrainCount"],
         "validation": "PASS" if not problems else "FAIL",
         "problems": problems,
+        "antismashProfiles": data["meta"]["antismashProfiles"],
     }
     if emit_figures:
         fig_dir = Path(figures_out) if figures_out else out_path.parent / "figures_publication"
@@ -620,6 +652,9 @@ def main(argv: list[str] | None = None) -> int:
                    help="Output directory for --emit-figures (default: <out>/figures_publication).")
     p.add_argument("--scope", default="GOVERNED",
                    help="publication_bridge scope for --emit-figures (default: GOVERNED).")
+    p.add_argument("--acknowledge-mixed-antismash-profile", action="store_true",
+                   help="Record that governed strains span antiSMASH detection strictness. "
+                        "Without it, cohort figures refuse a mixed-strictness payload.")
     args = p.parse_args(argv)
 
     result = run(
@@ -629,6 +664,7 @@ def main(argv: list[str] | None = None) -> int:
         emit_figures=args.emit_figures,
         figures_out=args.figures_out,
         scope=args.scope,
+        acknowledge_mixed_antismash_profile=args.acknowledge_mixed_antismash_profile,
     )
     emit(json.dumps(result, indent=2))
     return 0 if result["validation"] == "PASS" else 1
@@ -643,6 +679,8 @@ def interactive_figures_command(args: argparse.Namespace) -> int:
         emit_figures=getattr(args, "emit_figures", False),
         figures_out=getattr(args, "figures_out", None),
         scope=getattr(args, "scope", "GOVERNED"),
+        acknowledge_mixed_antismash_profile=getattr(
+            args, "acknowledge_mixed_antismash_profile", False),
     )
     emit(json.dumps(result, indent=2))
     return 0 if result["validation"] == "PASS" else 1

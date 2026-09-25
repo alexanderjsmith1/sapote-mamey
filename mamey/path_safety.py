@@ -22,7 +22,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-__all__ = ["UnsafeOutputLabel", "safe_label", "contained_output_path"]
+__all__ = ["UnsafeOutputLabel", "OutputInsideBundle", "safe_label", "contained_output_path",
+           "running_bundle_root", "assert_output_outside_bundle"]
 
 # Conservative on purpose: MIBiG accessions, compound names and operator labels all fit.
 # Anything outside it is far more likely to be a typo or a traversal than an intended filename.
@@ -72,3 +73,45 @@ def contained_output_path(outdir: str | Path, label: str, suffix: str = "",
     if target.parent != root:
         raise UnsafeOutputLabel(f"OUTPUT_PATH_ESCAPES_OUTDIR: {field}={label!r} -> {target}")
     return target
+
+
+class OutputInsideBundle(ValueError):
+    """Raised when an output ROOT resolves inside the sealed code bundle the tool runs from."""
+
+
+def running_bundle_root(module_file: str | Path) -> Path | None:
+    """Return the code bundle a tool FILE lives in (its ancestor carrying ``BUILD_STAMP.txt``), or None.
+
+    Anchored to the file, never to the current directory, so a stray bundle-shaped copy elsewhere --
+    e.g. a polluted workspace root that also carries a ``BUILD_STAMP.txt`` -- does not cause false
+    positives. Pass ``__file__`` from the calling tool.
+    """
+    p = Path(module_file).resolve()
+    for anc in p.parents:
+        if (anc / "BUILD_STAMP.txt").is_file():
+            return anc
+    return None
+
+
+def assert_output_outside_bundle(path: str | Path, module_file: str | Path,
+                                 *, kind: str = "output") -> Path:
+    """Return ``path``, or raise ``OutputInsideBundle`` if it resolves inside the tool's own bundle.
+
+    Write-side complement of ``contained_output_path``: that stops a label escaping an outdir; this
+    stops the outdir ITSELF landing inside the sealed code tree. ``workspace_root()`` falls back to
+    the current directory and the standing rule is to run tools FROM the bundle root, so a
+    ROOT-relative default (``f"{ROOT}/strain_data/..."``) resolves into the bundle and litters it
+    (observed: a 12.7 MB placement refpkg, and MIBiG neighbourhood trees, written into the sealed
+    directory). If the tool is not running from a recognizable bundle, nothing is protected and
+    ``path`` is returned unchanged.
+    """
+    bundle = running_bundle_root(module_file)
+    if bundle is None:
+        return Path(path)
+    out = Path(path).resolve()
+    if out == bundle or bundle in out.parents:
+        raise OutputInsideBundle(
+            f"OUTPUT_INSIDE_BUNDLE: refusing to write {kind} inside the code bundle ({bundle}). "
+            f"Set SAPOTE_WORKSPACE_ROOT to your workspace root, or pass an explicit path outside the "
+            f"bundle. Resolved: {out}")
+    return Path(path)

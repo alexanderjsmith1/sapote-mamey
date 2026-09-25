@@ -29,7 +29,10 @@ from .boundary_palette import TRAFFIC_LIGHT as _STRAIN_C
 
 
 def _foot(extra=""):
-    return f"Data-only figure \u00b7 {SCORE_NOTE} \u00b7 {KCB_NOTE} \u00b7 capacity-level" + (f" \u00b7 {extra}" if extra else "")
+    # v9.7.442 (Alex, 2026-09-24): no claim wording on figures. The footer keeps only the plot key
+    # each caller passes; SCORE_NOTE and KCB_NOTE still go to the _data.csv provenance row and the
+    # markdown notes, which are the working record.
+    return extra
 
 
 def _save_pair(fig, png_path, *, renderer: str, provenance: str) -> None:
@@ -148,7 +151,7 @@ def _fig_ranked(rows, png_path, strain_label, plt, axis, axis_label, title):
     ax.set_title(title, fontsize=10)
     for sp in ("top", "right", "left"):
         ax.spines[sp].set_visible(False)
-    ax.text(0, -0.06, _foot("priority score, not measured potency"), transform=ax.transAxes,
+    ax.text(0, -0.06, _foot("bar = auto-computed priority score"), transform=ax.transAxes,
             fontsize=6, color=CL["muted"])
     _save_pair(fig, png_path, renderer=f"figures_sapote.ranked_{axis}",
                provenance=f"normalized_triage_rows={len(rows)};displayed={len(pool)}"); plt.close(fig)
@@ -197,7 +200,7 @@ def fig_funnel(rows, png_path, strain_label, plt):
     ax.set_yticks(ys); ax.set_yticklabels([s[0] for s in stages], fontsize=9)
     ax.set_xlabel("BGCs (count, or corrected weight)")
     ax.set_xlim(0, max(raw, 1) * 1.10)
-    ax.set_title(f"Claim-safety funnel \u2014 {strain_label}", fontsize=10)
+    ax.set_title(f"Evidence funnel \u2014 {strain_label}", fontsize=10)
     for sp in ("top", "right"):
         ax.spines[sp].set_visible(False)
     ax.text(0, -0.22, _foot("each step a stated deterministic rule"), transform=ax.transAxes,
@@ -301,7 +304,7 @@ def fig_ab_af_vertical_panels(rows, png_path, strain_label, plt, topn=None):
 
     fig.text(0.01, 0.014,
              f"Data-only · AB/AF = deterministic priority scores, not measured potency · "
-             f"Node/contig-first labels · KCB=similarity not identity",
+             f"Node/contig-first labels",
              fontsize=6.0, color=CL["muted"])  # LS-2: ≥6pt; LS-3: y≥0.012
     # Figure-Key-KCB-Class-1: bottom key table — class + KCB anchor per BGC.
     # Shows similarity/class context, not product identity claims.
@@ -313,7 +316,7 @@ def fig_ab_af_vertical_panels(rows, png_path, strain_label, plt, topn=None):
     if key_rows:
         key_text = "\n".join(key_rows)
         fig.text(0.01, -0.01,
-                 "Class / KCB context (similarity, not identity):  " + "    ·    ".join(key_rows[:3]),
+                 "Class / KCB context:  " + "    ·    ".join(key_rows[:3]),
                  fontsize=6.0, color=CL["muted"], va="top", wrap=True)  # LS-2
     fig.tight_layout(rect=[0, 0.05, 1, 1])
     _save_pair(fig, png_path, renderer="figures_sapote.ab_af_vertical_panels",

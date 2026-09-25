@@ -14,7 +14,7 @@ UserPromptSubmit	*	python3	sapote_version_guard.py	context	bundle	Inject the cur
 UserPromptSubmit	*	python3	bgc_gene_level_guard.py	context	bundle	Inject the gene-based-not-cluster-based governing reminder.
 UserPromptSubmit	*	python3	verify_before_assert_contract.py	context	bundle	Inject the verify-before-assert contract (observed-vs-told; check the cheap thing before asserting a fact/count/negative).
 UserPromptSubmit	*	python3	recommendation_contract.py	context	workspace	Inject the recommendation contract (state a position, not a menu).
-SessionStart	*	bash	sapote_session_start.sh	context	bundle	Inject bundle front-door + file-home/color-chat/asset house rules at session start.
+SessionStart	*	bash	sapote_session_start.sh	context	bundle	Inject bundle front-door + file-home/session-address/asset house rules at session start.
 SessionStart	*	python3	c10_tool_drift.py	log	workspace	Baseline/check external tool-version drift vs the Tool Inventory.
 Stop	*	bash	signoff_stop.sh	stop-check	bundle	Analysis sign-off gate (outgroup/ANI/label checks) on trees before hand-off.
 Stop	*	python3	link_check.py	stop-check	bundle	Verify markdown links in deliverables resolve.

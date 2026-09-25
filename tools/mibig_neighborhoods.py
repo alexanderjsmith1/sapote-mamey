@@ -24,6 +24,10 @@ import os
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # bundle root for `import mamey` (v9.7.367 A10)
 from mamey.workspace_root import workspace_root
+from mamey.path_safety import (
+    assert_output_outside_bundle, contained_output_path,
+    OutputInsideBundle, UnsafeOutputLabel,
+)
 
 ROOT = str(workspace_root())
 PHYLO_BIN = f"{ROOT}/miniconda3/envs/phylo/bin"
@@ -44,7 +48,12 @@ def main():
     ap.add_argument("--from-tree", default=None, help="reuse an existing FastTree newick (skip muscle/FastTree)")
     a = ap.parse_args()
     env = dict(os.environ); env["PATH"] = PHYLO_BIN + ":" + env.get("PATH", "")
-    od = os.path.join(OUT, a.fam); os.makedirs(od, exist_ok=True)
+    try:
+        od = str(contained_output_path(OUT, a.fam, field="fam"))
+        assert_output_outside_bundle(od, __file__, kind="MIBiG neighborhood output")
+    except (UnsafeOutputLabel, OutputInsideBundle) as _e:
+        emit(str(_e)); return 1
+    os.makedirs(od, exist_ok=True)
     from Bio import Phylo
     try:
         from Bio import SeqIO

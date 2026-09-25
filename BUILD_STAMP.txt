@@ -1,5 +1,5 @@
-version=9.7.441
-build=20260924v97441b
+version=9.7.442
+build=20260924v97442a
 engine=1.9.169
-patch=Bundle-pinned execution and identity refusal.; Portable placement assets and output containment.; Admitted assay tracks on existing trees.; Re-authored clinker and cohort controls.; Companion setup and documentation.
+patch=Figures carry no claim text on the canvas.; BiG-SCAPE inputs fail closed.; Region counts refuse mixed antiSMASH strictness.; Mode B template binds full locus identity.; Session hook binds an explicitly located code root.; BLASTp concurrency hook resolves wrapped launchers.; Output containment is one shared helper.; Release tarball excludes AppleDouble members, with a verifier.
 tier=code

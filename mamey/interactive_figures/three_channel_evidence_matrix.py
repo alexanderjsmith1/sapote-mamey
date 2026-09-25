@@ -418,9 +418,6 @@ def render_matrix_svg(model: MatrixModel, theme_id: str = DEFAULT_THEME_ID) -> s
         if pattern:
             parts.append(f'<rect x="{legend_x}" y="{legend_y - 13}" width="16" height="16" rx="3" fill="url(#{pattern})"/>')
         parts.append(_text(legend_x + 22, legend_y, state.replace("_", " ").title(), theme, size=8, weight=700, color=theme.ink))
-    footer_y = height - 18
-    parts.append(f'<line x1="{margin}" y1="{footer_y - 16}" x2="{width - margin}" y2="{footer_y - 16}" stroke="{theme.line}"/>')
-    parts.append(_text(margin, footer_y, CLAIM_SAFETY + " Judgment deferred.", theme, size=8, weight=700, color=theme.muted))
     parts.append(f'<metadata>figure_id={FIGURE_ID}</metadata>')
     parts.append("</svg>")
     return "\n".join(parts)

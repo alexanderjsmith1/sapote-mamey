@@ -39,6 +39,17 @@ BLOCKED: dict[str, str] = {
     "not biological absence": "belongs in the methods text, phrased as what was tested",
     "claim-safe": "governance vocabulary",
     "judgment is deferred": "names the operator's review process, not the figure",
+    # Alex 2026-09-24: claim-safety statements are removed from figures entirely, footers and
+    # internal-notes band included. A key reads "isolate from this study", not "query strain".
+    "query strain": "internal pipeline role; the key reads 'isolate from this study'",
+    "not identity": "reassurance about what the figure does not prove",
+    "not compound identity": "reassurance about what the figure does not prove",
+    "not production": "reassurance about what the figure does not prove",
+    "not potency": "reassurance about what the figure does not prove",
+    "not bioactivity": "reassurance about what the figure does not prove",
+    "not novelty": "reassurance about what the figure does not prove",
+    "descriptive screening": "governance vocabulary; state the assay and threshold instead",
+    "claim safety": "governance vocabulary",
 }
 
 # "class-level" is legitimate scientific vocabulary when it modifies a following noun

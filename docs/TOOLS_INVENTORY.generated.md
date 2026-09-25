@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**391 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**399 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -16,6 +16,7 @@
 | `add_xstrain_sheets.py` | Append or refresh the three deterministic cross-strain workbook sheets. |
 | `ani_caption_check.py` | Check that a caption/table names ANI versus AAI honestly and flags boundary values. |
 | `antismash_bigscape_join.py` | antismash_bigscape_join.py -- reconcile antiSMASH per-BGC output with BiG-SCAPE GCF families. |
+| `antismash_strictness_census.py` | say which antiSMASH detection strictness each result used, before anyone compares |
 | `apply_dapr_boards.py` | re-apply the Sapote-layer DAPR judgment boards (C1/C2) to a workbook. |
 | `archive_leak_scan.py` | private-ID leak guard for the *contents* of committed archives. |
 | `arts_ingest.py` | ARTS2 → per-BGC self-resistance signal (lead M7, validated against an admitted result fixture). |
@@ -46,6 +47,7 @@
 | `bigscape_family_verdicts.py` | region-accurate family verdicts from a finished BiG-SCAPE 2 database. |
 | `bigscape_figure_labels.py` | bigscape_figure_labels.py -- canonical node-category labels/colours for BiG-SCAPE figures. |
 | `bigscape_ingest_to_mamey.py` | bigscape_ingest_to_mamey.py -- write BiG-SCAPE GCF context INTO the Mamey layer. |
+| `bigscape_input_decontam_guard.py` | refuse BiG-SCAPE input regions that sit on contigs a decontamination removed. |
 | `bigscape_known_novel.py` | Write qualified KNOWN/NOVEL GCF rows from one explicitly selected BiG-SCAPE run. |
 | `bigscape_launch.sh` | run BiG-SCAPE 2 on a staged region-GBK folder with the guards a cohort run needs. |
 | `bigscape_merge_anchors.py` | Validate qualified anchor/base rows, then atomically classify base GCFs. |
@@ -137,6 +139,7 @@
 | `build_workflow_figure.py` | Sapote-Mamey file-structure + data-flow diagram (manuscript Figure 1). |
 | `calibration_run.py` | Run the portable Sapote-Mamey detector calibration panel. |
 | `candidate_census.py` | file-count and debris census for a candidate cut tree. |
+| `caption_band.py` | add a croppable caption band to a figure image, and keep the caption beside it. |
 | `caption_guard.py` | Refuse governance prose in a figure caption. |
 | `check_antismash_profile.py` | cross-profile pooling guard. |
 | `check_bgc_naming.py` | portable enforcement of the AS-strain BGC node-naming rule. |
@@ -211,8 +214,10 @@
 | `figure_check.py` | HARD pre-render gate for tree FIGURES (the render inputs), sibling to |
 | `figure_factory_demo.py` | Stage an explicitly synthetic, hash-bound Figure Factory example. |
 | `figure_factory_next.py` | Render receipt-bound aggregate evidence figures from an external data root. |
+| `figure_house_rules.py` | House rules for publication figures: one place for the rules, and a checker that applies them. |
 | `figure_methods.py` | reusable, versioned METHODS-CAPTION library for Sapote-Mamey figure tools. |
 | `figure_readiness_board.py` | Report repair-spec binding and figure-receipt readiness states. |
+| `figure_render_qc.py` | Check rendered figures before anyone uses them. |
 | `file_atlas.py` | describe every Python file in the bundle, from the source, with receipts. |
 | `finalize_public_archive.py` | Fail-closed, no-replace final archive transaction. |
 | `find_asset.py` | locate a big/shared local asset BEFORE downloading or re-deriving it. |
@@ -326,6 +331,7 @@
 | `refresh_figure_source_manifest.py` | Refresh hashes for files in one exported tree-figure source package. |
 | `refresh_literature_atlas.py` | Refresh legacy strain literature atlases against a governed evidence store. |
 | `regen_modeb_contract_docs.py` | regenerate Mode B contract docs from the JSON. |
+| `region_table_one_setting.py` | One table of antiSMASH regions across genomes, all from ONE detection strictness. |
 | `register_compute_output.py` | the formal "register after running" step for heavy compute. |
 | `relabel_and_render.py` | Relabel GToTree tip names from genome FASTA headers to a consistent |
 | `release.sh` | single fail-closed build entrypoint for a Sapote-Mamey release (v9.7.97). |
@@ -368,6 +374,7 @@
 | `session_cost_audit.py` | where did a chat's tokens actually go? |
 | `signoff_check.py` | the "would a master's student sign off?" gate, mechanised. |
 | `silent_exit_audit.py` | Inventory of SILENT SUCCESS EXITS in the guard surface. |
+| `sixteen_s_similarity_check.py` | do the deposited 16S similarity values reproduce from the sequences on file? |
 | `strain_bigscape_report.py` | strain_bigscape_report.py -- per-strain BiG-SCAPE report as a standard Sapote-Mamey deliverable. |
 | `strain_level_bgc_logic.py` | Build readable per-strain BGC product-logic reports from the CP050 workup. |
 | `strict_source_disclosure_audit.py` | COMPATIBILITY ENTRY POINT. Holds no policy. |
@@ -393,6 +400,7 @@
 | `validate_timing_receipt_parity.py` | compare timing phases to run_phase_receipts.jsonl. |
 | `verify_external_validation_receipt.py` | Verify a structured full-suite receipt before a release cut reuses external validation. |
 | `verify_release_identity.py` | fail-closed release identity + LLM bootstrap freshness gate. |
+| `verify_release_tarball.py` | Refuse a release tarball unless it carries exactly the sealed CODE ZIP's files, byte for byte. |
 | `verify_tier_derivation.py` | assert that a public tier is an exact redaction-view |
 | `workflow_status.py` | Workflow status: where each strain sits in the pipeline. Emits a stage-matrix CSV + an SVG progress graphic. |
 | `zip_hygiene_allowlist.py` | a checksum/path-bound allowlist for intentionally-large shipped files. Generic. |

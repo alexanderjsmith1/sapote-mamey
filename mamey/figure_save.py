@@ -12,7 +12,9 @@ import json
 from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
-from .figure_theme import CLAIM_SAFETY, add_claim_safety_footer, save_figure_pair
+from .figure_theme import CLAIM_SAFETY, save_figure_pair
+from .figure_policy import (FigureTextRefusal, assert_no_banned_figure_text,
+                            matplotlib_visible_text, svg_visible_text)
 
 
 RECEIPT_SCHEMA = "sapote_mamey.figure_save_receipt.v1"
@@ -68,11 +70,14 @@ def save_figure(
     provenance: str,
     binding_state: str = "BOUND",
 ) -> dict[str, object]:
-    """Write a PNG/SVG pair, add claim safety, and append a bound receipt row.
+    """Write a PNG/SVG pair and append a bound receipt row.
 
-    Matplotlib figures use :func:`add_claim_safety_footer`. Native SVG producers
-    use ``NativeSvgFigure`` and must already carry the same visible claim-safety
-    text; CairoSVG creates the raster sibling from those exact SVG bytes.
+    v9.7.442: nothing is added to the page. The claim ceiling and authority are
+    recorded in the receipt row only, and the figure is refused if its visible
+    text carries wording that belongs there instead (see
+    ``figure_policy.FIGURE_BANNED_TEXT``). This used to be the reverse: a footer
+    was drawn on every matplotlib figure and a native SVG was refused unless it
+    carried one.
     """
     root = Path(package_dir)
     stem = Path(out_stem)
@@ -88,8 +93,10 @@ def save_figure(
     if png.is_symlink() or svg.is_symlink():
         raise FigureSaveRefusal("FIGURE_SAVE_REFUSED: output path is a symlink")
     if isinstance(fig, NativeSvgFigure):
-        if CLAIM_SAFETY not in fig.svg:
-            raise FigureSaveRefusal("FIGURE_SAVE_REFUSED: native SVG lacks the claim-safety footer")
+        try:
+            assert_no_banned_figure_text(svg_visible_text(fig.svg), figure_id=figure_id)
+        except FigureTextRefusal as exc:
+            raise FigureSaveRefusal(f"FIGURE_SAVE_REFUSED: {exc}") from exc
         svg_bytes = fig.svg.encode("utf-8")
         try:
             import cairosvg
@@ -109,11 +116,12 @@ def save_figure(
         png.write_bytes(png_bytes)
         authority = "Candidate Only"
     else:
-        add_claim_safety_footer(
-            fig, provenance=provenance, authority="Candidate Only — judgment deferred"
-        )
+        try:
+            assert_no_banned_figure_text(matplotlib_visible_text(fig), figure_id=figure_id)
+        except FigureTextRefusal as exc:
+            raise FigureSaveRefusal(f"FIGURE_SAVE_REFUSED: {exc}") from exc
         png, svg = save_figure_pair(fig, stem, profile="manuscript")
-        authority = "Candidate Only — judgment deferred"
+        authority = "Candidate Only"
 
     outputs = {
         kind: {"logical_locator": _locator(path, root), "sha256": _sha(path), "bytes": path.stat().st_size}

@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.441 stamp=20260924v97441b
+# TIER_MANIFEST tier=code version=9.7.442 stamp=20260924v97442a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -196,6 +196,7 @@
 ./docs/FIGURES_START_HERE.md
 ./docs/FIGURE_CATALOG.md
 ./docs/FIGURE_FACTORY_NEXT.md
+./docs/FIGURE_HOUSE_RULES.md
 ./docs/FIGURE_OWNER_REVIEW_WORKFLOW.md
 ./docs/FIGURE_REPRODUCIBILITY.md
 ./docs/FIGURE_REVIEW_WORKFLOW.md
@@ -579,6 +580,7 @@
 ./hooks/SEAL_GATE_snippet.sh
 ./hooks/bgc_gene_level_guard.py
 ./hooks/bgc_node_name_guard.sh
+./hooks/blastp_launch_probe.py
 ./hooks/block_blastp_overconcurrency.sh
 ./hooks/block_heavy_compute.sh
 ./hooks/block_out_of_bounds_writes.py
@@ -1265,6 +1267,11 @@
 ./tests/test_441_phylo16s_bin_refusal_names_search_dirs.py
 ./tests/test_441_placement_display_accepts_flat_run_layout.py
 ./tests/test_441_workspace_root_walks_to_marker.py
+./tests/test_442_caption_band_and_page_text.py
+./tests/test_442_gene_count_crosscheck_unreadable_zip.py
+./tests/test_442_operator_tsv_formula_guard_codex.py
+./tests/test_442_stack_ratchet_repayment.py
+./tests/test_442_verify_release_tarball.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_absent_median_is_not_a_zero_v97438.py
 ./tests/test_activity_decision_tree_portable.py
@@ -1286,6 +1293,8 @@
 ./tests/test_antismash_hmm_table.py
 ./tests/test_antismash_input_recognition.py
 ./tests/test_antismash_profile.py
+./tests/test_antismash_profile_ambiguity_codex_v97442.py
+./tests/test_antismash_strictness_census_v97442.py
 ./tests/test_architecture_first.py
 ./tests/test_archive_leak_scan.py
 ./tests/test_archive_leak_scan_depth_truncation_v97395.py
@@ -1356,10 +1365,13 @@
 ./tests/test_bigscape_cohort_report_and_network_widget_v97435.py
 ./tests/test_bigscape_combined_run.py
 ./tests/test_bigscape_comparator_guide_v97435.py
+./tests/test_bigscape_decontam_fail_closed_codex_v97442.py
+./tests/test_bigscape_drop_contigs_zero_guard_codex_v97442.py
 ./tests/test_bigscape_figure_factory_extension.py
 ./tests/test_bigscape_friendly_v9_7_290.py
 ./tests/test_bigscape_gene_domain_context_v97435.py
 ./tests/test_bigscape_identity_canonicalization_v9_7_416.py
+./tests/test_bigscape_input_decontam_guard_v97442.py
 ./tests/test_bigscape_integration.py
 ./tests/test_bigscape_integration_v9_7_291.py
 ./tests/test_bigscape_integration_v9_7_292.py
@@ -1370,7 +1382,9 @@
 ./tests/test_bigscape_namespace_guard.py
 ./tests/test_bigscape_pipeline_mibig_route_v97433.py
 ./tests/test_bigscape_pipeline_run_id_v97392.py
+./tests/test_bigscape_prep_drop_contigs_v97442.py
 ./tests/test_bigscape_prep_exclusions_v97412.py
+./tests/test_bigscape_product_parking_tokens_v97442.py
 ./tests/test_bigscape_reference_strain_resolution_v97412.py
 ./tests/test_bigscape_strain_token_match.py
 ./tests/test_bigscape_widget_mibig_row_v9_7_417.py
@@ -1409,6 +1423,7 @@
 ./tests/test_blastp_ingest_overlay_v9_7_241.py
 ./tests/test_blastp_ingest_panel_header_v9_7_266.py
 ./tests/test_blastp_ingest_v97163.py
+./tests/test_blastp_launcher_paths_codex_v97442.py
 ./tests/test_blastp_manual_context_failure_v97412.py
 ./tests/test_blastp_manual_length_conflict_v97412.py
 ./tests/test_blastp_monitoring_err_re_parity_bc2_398.py
@@ -1584,6 +1599,7 @@
 ./tests/test_cohort_figures_extended_v9_7_279.py
 ./tests/test_cohort_figures_manifest_short_fallback_v9_7_155.py
 ./tests/test_cohort_figures_product_class_case_insensitive_bc2_399.py
+./tests/test_cohort_figures_refuse_mixed_antismash_strictness_v97442.py
 ./tests/test_cohort_figures_v9792.py
 ./tests/test_cohort_figures_v9793.py
 ./tests/test_cohort_leads_ledger.py
@@ -1777,12 +1793,15 @@
 ./tests/test_figure_csv_schema_item18.py
 ./tests/test_figure_data_sidecars.py
 ./tests/test_figure_doc_references_v97422.py
+./tests/test_figure_draw_text_sites_v97442.py
 ./tests/test_figure_empty_denominators_candidate.py
 ./tests/test_figure_factory_autoemit_v97409.py
 ./tests/test_figure_factory_default_config_v97409.py
 ./tests/test_figure_factory_gate_separation_codex13.py
 ./tests/test_figure_factory_next.py
 ./tests/test_figure_factory_optional_tools_integration_v97392.py
+./tests/test_figure_house_rules_doc_v97442.py
+./tests/test_figure_house_rules_v97442.py
 ./tests/test_figure_import_guards.py
 ./tests/test_figure_layout.py
 ./tests/test_figure_overlap_fixes_v9787.py
@@ -1791,6 +1810,7 @@
 ./tests/test_figure_publication_dpi_producers.py
 ./tests/test_figure_readiness_board_v97406.py
 ./tests/test_figure_render_e2e.py
+./tests/test_figure_render_qc_v97442.py
 ./tests/test_figure_repair_specs_retired_v97426.py
 ./tests/test_figure_review_queue.py
 ./tests/test_figure_save_v97406.py
@@ -2025,6 +2045,7 @@
 ./tests/test_methods_documentation_contract.py
 ./tests/test_mibig_comparator_coverage.py
 ./tests/test_mibig_component_context_v97435.py
+./tests/test_mibig_neighborhood_output_label_codex_v97442.py
 ./tests/test_mibig_neighborhoods.py
 ./tests/test_mibig_no_redaction_corruption.py
 ./tests/test_misanchor_flag_column.py
@@ -2039,6 +2060,7 @@
 ./tests/test_mode_b_receipt.py
 ./tests/test_modeb_availability_engine_headers.py
 ./tests/test_modeb_availability_v9_7_370.py
+./tests/test_modeb_bigscape_strain_identity_codex_v97442.py
 ./tests/test_modeb_card_diff_v97406.py
 ./tests/test_modeb_card_guard_eco_regex_v97395.py
 ./tests/test_modeb_card_surface_gate_v97412.py
@@ -2109,6 +2131,7 @@
 ./tests/test_modeb_subsections.py
 ./tests/test_modeb_surface_table_boundaries.py
 ./tests/test_modeb_synthesis_stub_v9_7_339.py
+./tests/test_modeb_template_cross_source_prefill.py
 ./tests/test_modeb_template_emitter.py
 ./tests/test_modeb_uniformity_advisory.py
 ./tests/test_modeb_verify_actionable_diagnostics_v97390.py
@@ -2334,6 +2357,8 @@
 ./tests/test_refpkg_containment_execution_v97441.py
 ./tests/test_refresh_figure_source_manifest_cache_v97433.py
 ./tests/test_regen_modeb_contract_docs.py
+./tests/test_region_table_identity_and_zero_drop_codex_v97442.py
+./tests/test_region_table_one_setting_v97442.py
 ./tests/test_register_compute_output.py
 ./tests/test_registry_formalization.py
 ./tests/test_relabel_as_underscore_portable_v97399.py
@@ -2428,6 +2453,7 @@
 ./tests/test_sapote_figures_v9750.py
 ./tests/test_sapote_markdown_document_export.py
 ./tests/test_sapote_md_preflight_fallback_nan_case_bc2.py
+./tests/test_sapote_pub_layout_v97442.py
 ./tests/test_sapote_workflow_driver.py
 ./tests/test_save_transcript_chat_dir_convention_bc2_398.py
 ./tests/test_saved_package_scan_states.py
@@ -2462,6 +2488,7 @@
 ./tests/test_serialize_kcb_boundary_round02.py
 ./tests/test_session_cost_audit_identify_v97395.py
 ./tests/test_session_cost_ledger_identify_convention_bc2_398.py
+./tests/test_session_hook_retired_colour_marker_v97442.py
 ./tests/test_session_resume.py
 ./tests/test_sextant_421_cumulative_short_sequence_refusal.py
 ./tests/test_sextant_421_nontype_sources.py
@@ -2487,6 +2514,7 @@
 ./tests/test_single_outgroup_gate_ships_v97418.py
 ./tests/test_single_region_accession_intake_v97142.py
 ./tests/test_singleton_filter.py
+./tests/test_sixteen_s_similarity_check_v97442.py
 ./tests/test_slow_partition_keys_on_file_path_v97416.py
 ./tests/test_snapshot_alias_stub_v97400.py
 ./tests/test_sol02_authored_context_and_numeric_inputs.py
@@ -2703,6 +2731,7 @@
 ./tools/add_xstrain_sheets.py
 ./tools/ani_caption_check.py
 ./tools/antismash_bigscape_join.py
+./tools/antismash_strictness_census.py
 ./tools/apply_dapr_boards.py
 ./tools/archive_leak_scan.py
 ./tools/arts_ingest.py
@@ -2733,6 +2762,7 @@
 ./tools/bigscape_family_verdicts.py
 ./tools/bigscape_figure_labels.py
 ./tools/bigscape_ingest_to_mamey.py
+./tools/bigscape_input_decontam_guard.py
 ./tools/bigscape_known_novel.py
 ./tools/bigscape_launch.sh
 ./tools/bigscape_merge_anchors.py
@@ -2824,6 +2854,7 @@
 ./tools/build_workflow_figure.py
 ./tools/calibration_run.py
 ./tools/candidate_census.py
+./tools/caption_band.py
 ./tools/caption_guard.py
 ./tools/check_antismash_profile.py
 ./tools/check_bgc_naming.py
@@ -2902,8 +2933,11 @@
 ./tools/figure_factory_demo.py
 ./tools/figure_factory_next.py
 ./tools/figure_factory_next_ggplot.R
+./tools/figure_house_rules.py
 ./tools/figure_methods.py
+./tools/figure_ocr.swift
 ./tools/figure_readiness_board.py
+./tools/figure_render_qc.py
 ./tools/file_atlas.py
 ./tools/finalize_public_archive.py
 ./tools/find_asset.py
@@ -3028,6 +3062,7 @@
 ./tools/refresh_figure_source_manifest.py
 ./tools/refresh_literature_atlas.py
 ./tools/regen_modeb_contract_docs.py
+./tools/region_table_one_setting.py
 ./tools/register_compute_output.py
 ./tools/relabel_and_render.py
 ./tools/release.sh
@@ -3067,6 +3102,7 @@
 ./tools/sapote_locus_map.R
 ./tools/sapote_matrix_figure.R
 ./tools/sapote_md_preflight.py
+./tools/sapote_pub_layout.R
 ./tools/sapote_strain_figure.R
 ./tools/sapote_tidy_figure.R
 ./tools/sapote_workflow.py
@@ -3082,6 +3118,7 @@
 ./tools/session_cost_audit.py
 ./tools/signoff_check.py
 ./tools/silent_exit_audit.py
+./tools/sixteen_s_similarity_check.py
 ./tools/strain_bigscape_report.py
 ./tools/strain_level_bgc_logic.py
 ./tools/strict_source_disclosure_audit.py
@@ -3113,6 +3150,7 @@
 ./tools/validate_timing_receipt_parity.py
 ./tools/verify_external_validation_receipt.py
 ./tools/verify_release_identity.py
+./tools/verify_release_tarball.py
 ./tools/verify_tier_derivation.py
 ./tools/workflow_status.py
 ./tools/zip_hygiene_allowlist.py

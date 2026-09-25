@@ -77,7 +77,7 @@ def test_all_typed_states_and_denominators_are_visible() -> None:
         assert state.replace("_", " ").title() in svg
     for count in ("3 / 5", "2 / 3", "5 / 8", "11 / 21", "Denom 13"):
         assert count in svg
-    assert CLAIM_SAFETY in svg
+    assert CLAIM_SAFETY not in svg  # v9.7.442: no claim wording on figures; it is in the receipt
 
 
 def test_missing_or_malformed_channels_fail_closed() -> None:
@@ -181,7 +181,7 @@ def test_cli_writes_portable_receipt_and_deterministic_svg(tmp_path: Path) -> No
     assert receipt["svg_locator"] == "three_channel_evidence_matrix.svg"
     assert receipt["figure_id"] == FIGURE_ID
     assert receipt["claim_safety_footer"].startswith(CLAIM_SAFETY)
-    assert CLAIM_SAFETY in svg_first.decode("utf-8")
+    assert CLAIM_SAFETY not in svg_first.decode("utf-8")  # v9.7.442: receipt only
     assert f"figure_id={FIGURE_ID}" in svg_first.decode("utf-8")
     assert receipt["ordered_row_keys"] == ["row-010", "row-020", "row-030", "row-040", "row-050"]
     assert "/Users/" not in receipt_text
@@ -216,7 +216,7 @@ def test_optional_png_is_rendered_from_the_same_svg_and_hash_bound(tmp_path: Pat
     class FakeCairoSVG:
         @staticmethod
         def svg2png(*, bytestring, output_width):
-            assert CLAIM_SAFETY.encode("utf-8") in bytestring
+            assert CLAIM_SAFETY.encode("utf-8") not in bytestring  # v9.7.442
             assert output_width == 2160
             return b"\x89PNG\r\n\x1a\nsynthetic-raster"
 

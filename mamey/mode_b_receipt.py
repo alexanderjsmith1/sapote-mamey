@@ -1184,10 +1184,12 @@ def emit_modeb_template_command(args) -> int:
     if _bp["message"]:
         emit(f"  {_bp['message']}", file=sys.stderr)
 
+    sources = {k: getattr(args, k, None) for k in
+               ("cohort_dir", "reference_dir", "strain_metadata", "bigscape_regions_dir")}
     if bgc:
         try:
             from . import modeb_template_emitter as _emit
-            card = _emit.emit_card_template(pkg, bgc)
+            card = _emit.emit_card_template(pkg, bgc, sources=sources)
         except FileNotFoundError as e:
             emit(f"ERROR: {e}", file=sys.stderr)
             return 1
@@ -1204,7 +1206,7 @@ def emit_modeb_template_command(args) -> int:
     top_n = getattr(args, "top_n", None)
     try:
         from . import modeb_template_emitter as _emit
-        res = _emit.emit_batch(pkg, scope=scope, top_n=top_n)
+        res = _emit.emit_batch(pkg, scope=scope, top_n=top_n, sources=sources)
     except FileNotFoundError as e:
         emit(f"ERROR: {e}", file=sys.stderr)
         return 1

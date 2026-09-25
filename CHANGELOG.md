@@ -1,3 +1,25 @@
+# v9.7.442 · 2026-09-24 · build 20260924v97442a · engine 1.9.169 · CODE
+
+- Accretion-justified: mamey/figure_policy.py — one shared check for text drawn on figures, used by the figure save path.
+
+- **Figures carry no claim text on the canvas.** The shared save path stops drawing the claim footer and refuses banned wording; claim guards stay in the figure receipt and caption. Adds a caption band tool, a render QC that reads the text drawn on figures, an R publication-layout helper and a one-page figure house-rules document. The KCB novelty title drops its claim wording; the house-rules page now says which saves the check covers, and a test keeps the list of remaining draw sites from growing.
+- **BiG-SCAPE inputs fail closed.** Staging can drop decontaminated contigs and refuses a drop list that matches nothing; a decontamination guard refuses missing region roots and manifests; product parking matches hybrid tokens.
+- **Region counts refuse mixed antiSMASH strictness.** A one-setting region table validates identity, duplicates, headers and corrupt ZIPs; the profile checker marks ambiguous or blank profiles unknown; cohort figures refuse mixed strictness.
+- **Mode B template binds full locus identity.** Cross-source prefill and identity-bearing filenames; a BiG-SCAPE lookup now requires strain, contig and region.
+- **Session hook binds an explicitly located code root.** It no longer calls the highest versioned folder current, and no longer tells chats to write the retired shared colour marker.
+- **BLASTp concurrency hook resolves wrapped launchers.** Interpreter, env, nohup, caffeinate and chained launches are recognized.
+- **Output containment is one shared helper.** MIBiG neighborhood output adopts it and refuses path-bearing labels.
+- **Release tarball excludes AppleDouble members, with a verifier.** The R installer honors dependency order and refuses online fallback for an offline route.
+- **Silent failures now leave breadcrumbs.** An unreadable antiSMASH input ZIP no longer silently disables the gene-count cross-check; an unreadable intake file no longer drops the antiSMASH profile unrecorded; silent swallows fall from 14 to 13. Five new operator front doors join the terminal-output exemption; two tools with importable helpers stay counted.
+- Adds a deposited 16S similarity check tool.
+- The decontamination guard and one-setting region table no longer carry strain IDs or per-strain BGC detail in their docstrings.
+- Operator TSV outputs from the four new count and QC tools go through the shared safe writers; three new operator gates are registered.
+- NOTICE now credits the bundled ijson fallback (BSD 3-Clause) and the three build wheels.
+
+Engine remains 1.9.169: extraction, scoring, evidence admission and scientific thresholds are unchanged. This is a locally validated candidate; public disclosure and publication approval remain separate.
+
+Not included: the runner bytecode-cache guards (they refused every run after an ordinary import; moved to a later cut), the public-tier contig-name scan (privacy policy pending), the installed workspace session hook, privacy tiers, and the output-containment adoption for the outgroup registry.
+
 # v9.7.441 · 2026-09-24 · build 20260924v97441b · engine 1.9.169 · CODE
 
 Build b removes `bundle_support/vendor/ggrepel-master.zip` (5.8 MB), which build a shipped: ggrepel is GPL-3 and this CODE tier is MIT, and no bundle code needs it at runtime. The R installer's offline route now takes an operator-supplied `--from <dir>`. No other change from build a.

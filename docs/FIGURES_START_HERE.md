@@ -1,6 +1,8 @@
 # Make and review Mamey figures
 
-Sapote–Mamey v9.7.441 · Mamey engine 1.9.169
+Sapote–Mamey v9.7.442 · Mamey engine 1.9.169
+
+Whatever route you take, the figure must meet the [figure house rules](FIGURE_HOUSE_RULES.md).
 
 Sapote-Mamey has several figure routes with **different input contracts**. Start with
 the question you want to show, then choose a route below. A finished image is
@@ -73,6 +75,27 @@ Edge and full-contig BGCs can inflate apparent class counts relative to
 interior clusters. A heatmap of predicted biosynthetic capacity does not
 establish expressed chemistry or antimicrobial activity.
 
+Compare region or class counts only within one antiSMASH detection
+strictness. Loose runs call more regions than default runs, saccharide above
+all, so a table that mixes them makes the loose genomes look richer. For
+packages, run `python tools/check_antismash_profile.py <runs_dir>`. For a
+count table built from antiSMASH zips, build it with the tool that refuses
+mixed input, and name the strictness in the caption:
+
+```bash
+python tools/region_table_one_setting.py --zips /path/to/zips --strictness loose \
+  --out /path/to/new_review/regions_loose.tsv \
+  --drop-contigs STRAIN=/path/to/STRAIN_removed_contigs.tsv
+```
+
+`--drop-contigs` removes regions on contigs that a decontamination took out.
+Its receipt records each zip's sha256 and how many listed contigs matched.
+The first TSV column may be headed `contig`, `record`, or `record_id`; that header is not counted.
+Empty or duplicate strain drop-list options are refused. Zero matching regions are refused by default. After confirming the list and assembly IDs,
+pass `--allow-zero-drop STRAIN` for an expected zero and retain the receipt. Duplicate
+region filenames within one ZIP are refused because they would count the same region twice.
+Unreadable ZIPs also cause a reported refusal rather than a partial table.
+
 ## Ecological synthesis needs another join
 
 A Mamey package can have a generic source string such as a rebuild label.
@@ -108,11 +131,54 @@ explains how a human or LLM implements a named figure.
 For each candidate figure, preserve the input paths and hashes, plotted
 CSV/TSV, code and package version, caption/methods, and a visual proof at
 the intended size. The caption should state the unit, group sizes,
-exclusions, calculation, source of host labels, and limits of the claim.
+exclusions, calculation, source of host labels, thresholds, and which
+material was tested (crude extracts, fractions, or pooled). State limits as
+what was measured. Do not print governance wording ("judgment deferred",
+"not identity", "not production", "query strain", "class-level only") on the
+figure, its footer, its key or its notes band; that belongs in the analysis
+record. `tools/caption_guard.py` holds the phrase list.
+
+Run the render check on every folder of finished figures before anyone uses
+them:
+
+```bash
+python tools/figure_render_qc.py /path/to/figures --out /path/to/figures [--bioassay]
+```
+
+It reads the text drawn in each figure (from its SVG, or by macOS OCR of the
+PNG) and flags governance wording, raw markup, literal `\n`, NA labels,
+near-blank images, and missing `_plot_only.png`, PDF or caption files.
+Wording drawn on the figure is an error. The same wording in a caption file
+is a warning: the file is not the page, but its caption gets pasted into
+manuscripts. `--bioassay` also requires crude, fraction or pooled in the file
+name. For a review folder of numbered copies, pass `--manifest MANIFEST.tsv`
+so companion files are checked beside each source figure; a manifest note
+containing "DO NOT USE" is reported as an error. A figure whose text could
+not be read is listed as not checked, never as clean. Exit 2 means at least
+one figure must not be used yet.
+
 Inspect small text and legends for overlap. Use [Figure style](FIGURE_STYLE.md)
 and [preflight and methods](../wiki/Figure-Factory-Preflight-and-Methods-Manual.md)
 for the corresponding figure family. Keep visual QA, mechanical PASS, and
 scientific acceptance distinct.
+
+## Publication layout for R figures
+
+`tools/sapote_pub_layout.R` gives every R figure the house page: the figure, white space, the public
+caption, a thin rule, then small grey internal notes. `save_pub()` writes the captioned PNG and PDF, a
+`_plot_only.png` for slides, and the caption file. `theme_pub()` renders markdown in titles, axes and
+legends, so genus names can be italic.
+
+```r
+source("tools/sapote_pub_layout.R")
+p <- ggplot(d, aes(genus, n)) + geom_col() + theme_pub()
+save_pub(p, "FIG_035c_bgc_count_by_genus", "caption_public.md", "caption_internal.md",
+         w = 7.5, h_body = 5, outdir = "FIG_035c_bgc_count_by_genus")
+```
+
+The public caption is plain scientific English. Tool versions, cutoffs, rulings, exclusions and paths go
+in the internal notes. Neither carries governance wording. `save_pub()` refuses to overwrite a caption
+file that belongs to another figure. Run `tools/figure_render_qc.py` on the folder afterwards.
 
 ## Selected assay values on an existing tree
 

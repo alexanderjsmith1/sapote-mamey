@@ -39,6 +39,14 @@ from .manifest_schema import read_manifest_field
 # Public entry points
 # ---------------------------------------------------------------------------
 
+def _pct_or_none(value):
+    """A percent identity as a float, or None when the cell is blank or not a number."""
+    try:
+        return float(value or "")
+    except ValueError:
+        return None
+
+
 def _section_floor_for(num: int, facts: dict) -> int:
     """Resolve the depth-gate char floor for section `num`, mirroring
     modeb_structure_gate's own logic so the emitted header comment matches what
@@ -117,7 +125,8 @@ def _precompute_facts(pc_dir: str, join_locator: str, strain: str = "", bgc_id: 
 def emit_card_template(package_dir: str | Path,
                        bgc_id: str,
                        contract: Optional[dict] = None,
-                       precompute_dir: Optional[str] = None) -> str:
+                       precompute_dir: Optional[str] = None,
+                       sources: Optional[dict] = None) -> str:
     """Return a Mode B card template string for one BGC.
 
     Pre-fills:
@@ -153,6 +162,8 @@ def emit_card_template(package_dir: str | Path,
         _join = _cohort_locator({"Contig": facts.get("contig", ""), "antiSMASH_Region": facts.get("region", "")})
         facts.update(_precompute_facts(precompute_dir, _join,
                                        strain=facts.get("strain_id", ""), bgc_id=facts.get("bgc_id", "")))
+    facts["_sources"] = {k: v for k, v in (sources or {}).items() if v}
+    facts["_pkg_dirname"] = pkg.resolve().parent.name
     predicates = _build_predicates(facts)
 
     lines: list[str] = []
@@ -193,6 +204,7 @@ def emit_batch(package_dir: str | Path,
                top_n: Optional[int] = None,
                scope: str = "all",
                precompute_dir: Optional[str] = None,
+               sources: Optional[dict] = None,
                out_subdir: str = "mode_b_templates") -> dict:
     """Emit a batch of Mode B card templates for a strain.
 
@@ -203,11 +215,14 @@ def emit_batch(package_dir: str | Path,
       - "pending" — every BGC not yet COMPLETE in the judgment register
 
     Output:
-        <pkg>/mode_b_templates/<BGC_ID>_template.md
+        <pkg>/mode_b_templates/<strain>__<full contig>__<region>__<BGC_ID>_template.md
         <pkg>/mode_b_templates/_INDEX.md  (a one-screen catalogue)
+    A triage row missing strain, contig or region is written as
+    <BGC_ID>__IDENTITY_HOLD_template.md and listed under "identity_holds".
 
     Returns:
-        {"out": <str>, "emitted": [bgc_id, ...], "skipped": {bgc_id: reason}}
+        {"out": <str>, "emitted": [bgc_id, ...], "paths": {bgc_id: <str>},
+         "identity_holds": [bgc_id, ...], "skipped": {bgc_id: reason}}
 
     Never raises. Per-BGC failures degrade gracefully.
     """
@@ -226,28 +241,62 @@ def emit_batch(package_dir: str | Path,
     bgc_ids = _select_scope(pkg, triage_rows, scope, top_n)
 
     emitted: list[str] = []
+    paths: dict[str, str] = {}
+    identity_holds: list[str] = []
     skipped: dict[str, str] = {}
+    rows_by_id = {(r.get("BGC_ID") or r.get("bgc_id") or "").strip(): r for r in triage_rows}
+    strain_fallback = _strain_prefix(pkg)
     for bgc_id in bgc_ids:
         try:
-            card = emit_card_template(pkg, bgc_id, contract=contract, precompute_dir=precompute_dir)
+            card = emit_card_template(pkg, bgc_id, contract=contract, precompute_dir=precompute_dir,
+                                      sources=sources)
             # v9.7.374: write to a .tmp sibling then Path.replace() into place, so a process killed
             # mid-write (SIGKILL/OOM/power loss) -- including on a re-run over an out_dir that
             # already carries a valid prior template for this BGC -- cannot truncate a previously
             # valid deliverable to zero/partial bytes.
-            _tmpl_path = out_dir / f"{bgc_id}_template.md"
+            _name = _identity_filename(rows_by_id.get(bgc_id, {}), bgc_id, strain_fallback)
+            if _name is None:
+                _name = f"{_safe_name_part(bgc_id)}__IDENTITY_HOLD_template.md"
+                identity_holds.append(bgc_id)
+            _tmpl_path = out_dir / _name
             _tmpl_tmp = _tmpl_path.with_name(_tmpl_path.name + ".tmp")
             _tmpl_tmp.write_text(card, encoding="utf-8")
             _tmpl_tmp.replace(_tmpl_path)
             emitted.append(bgc_id)
+            paths[bgc_id] = str(_tmpl_path)
         except Exception as e:
             skipped[bgc_id] = f"{type(e).__name__}: {e}"
             continue
 
     # Index file — gives the chat a single-glance map of the batch
-    _write_index(out_dir, pkg, emitted, skipped, scope, top_n)
+    _write_index(out_dir, pkg, emitted, skipped, scope, top_n, paths=paths)
 
-    return {"out": str(out_dir), "emitted": emitted, "skipped": skipped,
+    return {"out": str(out_dir), "emitted": emitted, "paths": paths,
+            "identity_holds": identity_holds, "skipped": skipped,
             "skipped_reason": None}
+
+
+_UNSAFE_NAME_CHARS = _re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def _safe_name_part(value: str) -> str:
+    return _UNSAFE_NAME_CHARS.sub("_", value.strip())
+
+
+def _identity_filename(row: dict, bgc_id: str, strain_fallback: str = "") -> Optional[str]:
+    """Four-component template filename: strain__full-contig__region__BGC.
+
+    `__` separates fields because full contig names carry single underscores. The contig is
+    the full triage `Contig` value, never a shortened node label. Returns None when any
+    component is missing so the caller writes an identity-hold name instead of guessing.
+    """
+    strain = (row.get("Strain") or strain_fallback or "").strip()
+    contig = (row.get("Contig") or "").strip()
+    region = (row.get("antiSMASH_Region") or "").strip()
+    if not (strain and contig and region and bgc_id):
+        return None
+    parts = [_safe_name_part(p) for p in (strain, contig, region, bgc_id)]
+    return "__".join(parts) + "_template.md"
 
 
 # ---------------------------------------------------------------------------
@@ -380,6 +429,363 @@ def _substrate_display(row: dict) -> str:
     if state == "BOTH_SUBSTRATE_PREDICTIONS_UNINFORMATIVE":
         return "unresolved in both predictor streams"
     return stachelhaus or consensus or str(row.get("substrate") or "—")
+
+
+# ---------------------------------------------------------------------------
+# Cross-source pre-fill (§25 §40 §41 §44 §46 §47)
+#
+# Every value below is read from a file the caller named or from the package itself. Nothing is
+# inferred: missing sources produce a named hold, never a silent blank and never a guess. Product
+# classes match on exact antiSMASH product tokens, not substrings ("NRPS" does not match
+# "NRPS-like"). Counts carry their denominator and the antiSMASH profile mix, because loose and
+# strict runs produce different region counts.
+# ---------------------------------------------------------------------------
+
+_FULL_CLASS_ROW_CAP = 30
+
+
+def _md_cell(value) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ")
+
+
+def _product_tokens(products: str) -> frozenset:
+    return frozenset(t.strip().lower() for t in _re.split(r"[;,|]", products or "") if t.strip())
+
+
+def _first_genus_word(text: str) -> str:
+    """Leading capitalised word of a taxon string; '' for placeholders such as 'sp.'."""
+    word = (text or "").strip().split(" ")[0].split("_")[0]
+    return word if word[:1].isupper() and word.lower() not in ("sp.", "sp", "unknown") else ""
+
+
+def _read_csv_rows(path: Path) -> list[dict]:
+    try:
+        with open(path, newline="", encoding="utf-8") as fh:
+            return list(csv.DictReader(fh))
+    except (OSError, UnicodeError, csv.Error):
+        return []
+
+
+_PACKAGE_SCAN_CACHE: dict[str, list[dict]] = {}
+
+
+def _scan_package_root(root: str) -> list[dict]:
+    """Index `<root>/<name>/package/*_2_inventory.csv` one level deep.
+
+    Directories starting with '_' or '.' are skipped by design (e.g. `_variants_excluded`), and
+    nested collections such as `<root>/REFERENCE/` have no `package/` child, so they are not
+    silently merged into a cohort denominator.
+    """
+    key = str(Path(root).resolve())
+    if key in _PACKAGE_SCAN_CACHE:
+        return _PACKAGE_SCAN_CACHE[key]
+    out: list[dict] = []
+    base = Path(root)
+    if base.is_dir():
+        for d in sorted(p for p in base.iterdir() if p.is_dir()):
+            if d.name.startswith(("_", ".")):
+                continue
+            pkg = d / "package"
+            invs = sorted(pkg.glob("*_2_inventory.csv")) if pkg.is_dir() else []
+            if not invs:
+                continue
+            intake: dict = {}
+            for ij in sorted(pkg.glob("*_1_intake.json")):
+                try:
+                    intake = json.loads(ij.read_text(encoding="utf-8"))
+                except (OSError, UnicodeError, json.JSONDecodeError):
+                    intake = {}
+                break
+            display = intake.get("display_name") or d.name
+            out.append({
+                "name": d.name,
+                "display": display,
+                "genus": (_first_genus_word(intake.get("taxonomy", ""))
+                          or _first_genus_word(display) or _first_genus_word(d.name)),
+                "profile": intake.get("antismash_profile") or "unrecorded",
+                "rows": _read_csv_rows(invs[0]),
+            })
+    _PACKAGE_SCAN_CACHE[key] = out
+    return out
+
+
+def _full_class_hits(pkg_entry: dict, tokens: frozenset) -> list[dict]:
+    return [r for r in pkg_entry["rows"] if tokens and tokens <= _product_tokens(r.get("Products", ""))]
+
+
+def _read_strain_metadata(path: str) -> list[dict]:
+    """Tab-separated table with at least `strain`; optional `genus`, `host`, `excluded`,
+    `exclusion_reason`. Values are used exactly as deposited."""
+    try:
+        with open(path, newline="", encoding="utf-8") as fh:
+            return list(csv.DictReader(fh, delimiter="\t"))
+    except (OSError, UnicodeError, csv.Error):
+        return []
+
+
+def _metadata_row(facts: dict, rows: list[dict]) -> tuple[Optional[dict], str]:
+    for key in (facts.get("strain_id") or "", facts.get("_pkg_dirname") or ""):
+        for r in rows:
+            if key and (r.get("strain") or "").strip() == key:
+                return r, key
+    return None, ""
+
+
+def _excluded_names(meta_rows: list[dict]) -> dict:
+    return {(r.get("strain") or "").strip(): (r.get("exclusion_reason") or r.get("excluded") or "").strip()
+            for r in meta_rows if (r.get("excluded") or "").strip()}
+
+
+def _source_hold(flag: str, what: str) -> str:
+    return (f"**Source not supplied:** {what} was not given to the emitter "
+            f"(pass `{flag}`). This is a workflow gap, not evidence of absence.\n\n")
+
+
+def _hit_table(hits: list[tuple[str, dict]], focal: tuple[str, str, str]) -> list[str]:
+    lines = ["| Strain | Node / contig | Region | BGC | Products | KCB top |",
+             "|---|---|---|---|---|---|"]
+    for who, r in hits[:_FULL_CLASS_ROW_CAP]:
+        mark = " (this locus)" if (r.get("Contig"), r.get("antiSMASH_Region"), r.get("BGC_ID")) == focal else ""
+        lines.append(f"| {_md_cell(who)} | {_md_cell(r.get('Contig') or '—')} | "
+                     f"{_md_cell(r.get('antiSMASH_Region') or '—')} | {_md_cell(r.get('BGC_ID') or '—')}{mark} | "
+                     f"{_md_cell(r.get('Products') or '—')} | {_md_cell(r.get('KCB_top') or '—')} |")
+    if len(hits) > _FULL_CLASS_ROW_CAP:
+        lines.append(f"\n*{len(hits) - _FULL_CLASS_ROW_CAP} further rows not shown; counts above are complete.*")
+    return lines
+
+
+def _body_25_neighbourhood(facts: dict) -> str:
+    contig = facts.get("contig") or ""
+    bgc = facts.get("bgc_id") or ""
+    out: list[str] = []
+    same = [r for r in facts.get("_triage_rows", [])
+            if (r.get("Contig") or "") == contig and (r.get("BGC_ID") or "") != bgc]
+    out.append(f"**Other regions on the same full contig** (`{contig or '—'}`, from the triage board):\n")
+    if same:
+        out += ["| BGC | Region | Products | Boundary | KCB top |", "|---|---|---|---|---|"]
+        for r in same:
+            out.append(f"| {r.get('BGC_ID')} | {r.get('antiSMASH_Region') or '—'} | "
+                       f"{_md_cell(r.get('Products') or '—')} | {r.get('Boundary') or '—'} | "
+                       f"{_md_cell(r.get('KCB_top') or '—')} |")
+    else:
+        out.append("*No other antiSMASH region on this contig.*")
+    pkg = Path(facts.get("_pkg", ""))
+    cb_files = sorted(pkg.glob("*_4A2_ClusterBlast_per_gene.csv"))
+    out.append("\n**Neighbourhood conservation (ClusterBlast per-gene, package file "
+               f"`{cb_files[0].name if cb_files else '*_4A2_ClusterBlast_per_gene.csv'}`):**\n")
+    rows = [r for r in _read_csv_rows(cb_files[0]) if r.get("bgc_id") == bgc] if cb_files else []
+    if not cb_files:
+        out.append("*ClusterBlast per-gene file absent from the package: conservation not assessed.*")
+    elif not rows:
+        out.append("*No ClusterBlast per-gene rows for this BGC.*")
+    else:
+        by_ref: dict[str, dict] = {}
+        for r in rows:
+            ref = r.get("reference") or "—"
+            e = by_ref.setdefault(ref, {"genes": set(), "ids": [], "src": r.get("reference_source") or "—"})
+            e["genes"].add(r.get("query_gene"))
+            pid = _pct_or_none(r.get("pct_identity"))
+            if pid is not None:
+                e["ids"].append(pid)
+        n_locus = len(facts.get("gene_rows") or []) or "?"
+        out += ["| Reference | Source | Query genes hit | Median % identity |", "|---|---|---:|---:|"]
+        ranked = sorted(by_ref.items(), key=lambda kv: (-len(kv[1]["genes"]), kv[0]))
+        for ref, e in ranked[:8]:
+            ids = sorted(e["ids"])
+            med = f"{ids[len(ids) // 2]:.0f}" if ids else "—"
+            out.append(f"| {_md_cell(ref)} | {_md_cell(e['src'])} | {len(e['genes'])} of {n_locus} | {med} |")
+        out.append(f"\n*{len(by_ref)} references in total. Shared gene order is similarity context, "
+                   "not product identity.*")
+    out.append("\n<!-- Author: separate the conserved core from generic conserved context, and say what the "
+               "neighbouring regions do or do not add to this locus's interpretation. -->")
+    return "\n".join(out)
+
+
+def _body_40_bigscape(facts: dict) -> str:
+    src = facts["_sources"].get("bigscape_regions_dir")
+    strain = facts.get("strain_id") or ""
+    contig = facts.get("contig") or ""
+    region = facts.get("region") or ""
+    head = ""
+    if not src:
+        head = _source_hold("--bigscape-regions-dir", "a BiG-SCAPE region-GBK directory")
+    else:
+        d = Path(src)
+        gbks = sorted(d.glob("*.gbk")) if d.is_dir() else []
+        expected = f"{strain}_{contig}.{region}.gbk" if strain not in ("", "?") and contig and region else ""
+        exact = [g for g in gbks if expected and g.name == expected]
+        if exact:
+            head = ("**Region GBK bound on the exact full contig and region for the same strain:**\n"
+                    + "\n".join(f"- `{g.name}`" for g in exact) + "\n\n")
+        elif gbks:
+            node = contig.split("_length_")[0] if "_length_" in contig else ""
+            same_node = [g.name for g in gbks if node and f"{node}_length_" in g.name]
+            head = (f"**IDENTITY HOLD:** `{d}` holds {len(gbks)} region GBK(s), none on the exact "
+                    f"strain `{strain}` / full contig `{contig}` / region `{region}`.")
+            if same_node:
+                if any(name.endswith(f"_{contig}.{region}.gbk") for name in same_node):
+                    head += " A region GBK has the same full contig and region under another strain; do not join across strains."
+                else:
+                    head += (f" {len(same_node)} carry the same node number with a different full contig name "
+                             f"(e.g. `{same_node[0]}`), which indicates a different assembly. Do not join on "
+                             "node number.")
+            head += "\n\n"
+        else:
+            head = f"**No region GBKs found in** `{d}`.\n\n"
+    return (head + "**BiG-SCAPE run receipt:** none bound to this template. GCF membership, cutoff and "
+            "cohort/reference co-membership are not stated here.\n\n"
+            "<!-- Author: cite the BiG-SCAPE run receipt (version, cutoff, input set) before naming a family. -->")
+
+
+_PHYLO_TARGET_KINDS = ("biosynthetic", "biosynthetic-additional")
+
+
+def _body_41_phylogeny_targets(facts: dict) -> str:
+    rows = [r for r in (facts.get("gene_rows") or [])
+            if (r.get("gene_kind") or "").lower() in _PHYLO_TARGET_KINDS]
+    if not rows:
+        return ("*No CDS with antiSMASH `gene_kind` biosynthetic or biosynthetic-additional in "
+                "`gene_context.jsonl`: no phylogeny target can be named.*\n\n"
+                "<!-- Author: state why no target applies, or bind the gene roster first. -->")
+    out = ["**Candidate phylogeny targets** (antiSMASH `gene_kind` biosynthetic / biosynthetic-additional, "
+           "from `gene_context.jsonl`):\n",
+           "| Locus tag | gene_kind | aa | sec_met domains | Translation in package |", "|---|---|---:|---|:---:|"]
+    for r in sorted(rows, key=lambda r: ((r.get("gene_kind") or "") != "biosynthetic", r.get("start") or 0)):
+        doms = r.get("sec_met_domains") or []
+        doms_s = ", ".join(doms) if isinstance(doms, list) and doms else "—"
+        tr = "yes" if r.get("has_translation") else ("no" if r.get("has_translation") is False else "—")
+        out.append(f"| `{r.get('locus_tag') or '—'}` | {r.get('gene_kind')} | {r.get('aa_length') or '—'} | "
+                   f"{_md_cell(doms_s)} | {tr} |")
+    out.append("\n**Phylogeny:** none bound. No tree, alignment or reference set is attached to this template.\n")
+    out.append("<!-- Author: pick the target(s), name the reference set and model, and state the clade-level "
+               "inference the tree could support. -->")
+    return "\n".join(out)
+
+
+def _body_44_prevalence(facts: dict) -> str:
+    src = facts["_sources"].get("cohort_dir")
+    tokens = _product_tokens(facts.get("products") or "")
+    if not src:
+        return (_source_hold("--cohort-dir", "a cohort package root") +
+                "<!-- Author: state numerator, denominator and exclusions once the cohort root is bound. -->")
+    if not tokens:
+        return "*This locus has no antiSMASH product tokens: prevalence class undefined.*"
+    pkgs = _scan_package_root(src)
+    meta = _read_strain_metadata(facts["_sources"]["strain_metadata"]) if facts["_sources"].get("strain_metadata") else []
+    excl = _excluded_names(meta)
+    kept = [p for p in pkgs if p["name"] not in excl]
+    dropped = [p for p in pkgs if p["name"] in excl]
+    profiles: dict[str, int] = {}
+    for p in kept:
+        profiles[p["profile"]] = profiles.get(p["profile"], 0) + 1
+    focal = (facts.get("contig"), facts.get("region"), facts.get("bgc_id"))
+    hits = [(p["name"], r) for p in kept for r in _full_class_hits(p, tokens)]
+    carriers = sorted({n for n, _ in hits})
+    tok_s = ", ".join(f"`{t}`" for t in sorted(tokens))
+    out = [f"**Class definition:** loci whose antiSMASH product tokens include all of {tok_s} "
+           "(exact token match, case-insensitive).",
+           f"**Denominator:** {len(kept)} packages with an inventory under `{src}` "
+           f"(antiSMASH profile: {', '.join(f'{k} ×{v}' for k, v in sorted(profiles.items()))}).",
+           f"**Numerator:** {len(hits)} loci in {len(carriers)} of {len(kept)} packages."]
+    if len(profiles) > 1:
+        out.append("**Profile mix:** loose and strict runs call different regions; treat the ratio as "
+                   "mixed-strictness.")
+    if dropped:
+        out.append("**Governed exclusions removed from the denominator:** " + "; ".join(
+            f"{p['name']} ({_md_cell(excl[p['name']])})" for p in dropped) + ".")
+    elif not meta:
+        out.append("**Exclusions:** no strain-metadata table supplied (`--strain-metadata`), so none applied.")
+    out.append("")
+    out += _hit_table(hits, focal) if hits else ["*No locus in the cohort matches this class.*"]
+    out.append("\n<!-- Author: interpret the prevalence tier. Same product tokens do not mean the same "
+               "chemistry: compare KCB anchors and per-gene MIBiG tiers before grouping. -->")
+    return "\n".join(out)
+
+
+def _focal_genus(facts: dict) -> tuple[str, str]:
+    path = facts["_sources"].get("strain_metadata")
+    if path:
+        row, _ = _metadata_row(facts, _read_strain_metadata(path))
+        if row and _first_genus_word(row.get("genus") or ""):
+            return _first_genus_word(row["genus"]), "strain metadata"
+    g = _first_genus_word(facts.get("taxonomy") or "")
+    return (g, "package manifest") if g else ("", "")
+
+
+def _body_46_reference(facts: dict) -> str:
+    src = facts["_sources"].get("reference_dir")
+    if not src:
+        return (_source_hold("--reference-dir", "a reference package root") +
+                "<!-- Author: compare against type/reference loci once references are bound. -->")
+    genus, genus_src = _focal_genus(facts)
+    if not genus:
+        return ("**Genus unresolved:** the package manifest taxonomy is a placeholder and no strain-metadata "
+                "genus was supplied (`--strain-metadata`). Reference comparison held.\n")
+    tokens = _product_tokens(facts.get("products") or "")
+    refs = [p for p in _scan_package_root(src) if p["genus"] == genus]
+    focal_profile = (facts.get("antismash_profile") or "unrecorded")
+    out = [f"**Focal genus:** *{genus}* (from {genus_src}). **Focal antiSMASH profile:** {focal_profile}.",
+           f"**Reference packages of this genus under** `{src}`: {len(refs)}.\n"]
+    if not refs:
+        out.append("*None found.*")
+        return "\n".join(out)
+    out += ["| Reference (deposited name) | antiSMASH profile | Loci matching this class |", "|---|---|---:|"]
+    hits: list[tuple[str, dict]] = []
+    for p in refs:
+        h = _full_class_hits(p, tokens)
+        hits += [(p["display"], r) for r in h]
+        out.append(f"| {_md_cell(p['display'])} | {p['profile']} | {len(h)} |")
+    if any(p["profile"] != focal_profile for p in refs):
+        out.append("\n**Profile compatibility:** at least one reference ran under a different antiSMASH "
+                   "profile from the focal strain; region calls are not directly comparable.")
+    if hits:
+        out += ["", "**Matching reference loci:**", ""] + _hit_table(hits, ("", "", ""))
+    out.append("\n<!-- Author: compare the exact comparable loci and genes. A shared class label is not a "
+               "shared locus; name divergence in core genes. -->")
+    return "\n".join(out)
+
+
+def _body_47_host_matched(facts: dict) -> str:
+    path = facts["_sources"].get("strain_metadata")
+    if not path:
+        return (_source_hold("--strain-metadata", "a strain-metadata table (strain, genus, host)") +
+                "<!-- Author: host-matched comparison needs verified host metadata. -->")
+    meta = _read_strain_metadata(path)
+    row, key = _metadata_row(facts, meta)
+    if not row or not (row.get("host") or "").strip():
+        return (f"**Host unresolved:** no host value for this strain in `{path}`. Comparison held.\n")
+    host = row["host"].strip()
+    genus = _first_genus_word(row.get("genus") or "")
+    excl = _excluded_names(meta)
+    matched = [r for r in meta if (r.get("host") or "").strip() == host
+               and (r.get("strain") or "").strip() != key
+               and _first_genus_word(r.get("genus") or "") != genus]
+    out = [f"**Host (as deposited):** {_md_cell(host)} — strain-metadata row `{key}`.",
+           f"**Host-matched strains of a different genus:** {len(matched)}.\n"]
+    if not matched:
+        return "\n".join(out)
+    pkgs = {p["name"]: p for p in _scan_package_root(facts["_sources"]["cohort_dir"])} \
+        if facts["_sources"].get("cohort_dir") else {}
+    tokens = _product_tokens(facts.get("products") or "")
+    out += ["| Strain | Genus (as deposited) | Governed exclusion | Loci matching this class |", "|---|---|---|---:|"]
+    for r in sorted(matched, key=lambda r: r.get("strain") or ""):
+        s = (r.get("strain") or "").strip()
+        n = str(len(_full_class_hits(pkgs[s], tokens))) if s in pkgs else "no package"
+        out.append(f"| {s} | {_md_cell(r.get('genus') or '—')} | {_md_cell(excl.get(s, '—'))} | {n} |")
+    if not pkgs:
+        out.append("\n*Locus counts need `--cohort-dir`.*")
+    out.append("\n<!-- Author: justify the comparator choice and the limits of transfer across genera. -->")
+    return "\n".join(out)
+
+
+_CROSS_SOURCE_BODIES = {
+    25: _body_25_neighbourhood,
+    40: _body_40_bigscape,
+    41: _body_41_phylogeny_targets,
+    44: _body_44_prevalence,
+    46: _body_46_reference,
+    47: _body_47_host_matched,
+}
 
 
 def _section_body(num: int, facts: dict, sect: dict) -> str:
@@ -716,6 +1122,11 @@ def _section_body(num: int, facts: dict, sect: dict) -> str:
                 "Q[i] → E[i] → C[i] (consequence). Standing rule: the next "
                 "experiment or analysis must be specific. -->")
 
+    if num in _CROSS_SOURCE_BODIES:
+        facts.setdefault("_sources", {})
+        facts.setdefault("_triage_rows", [])
+        return _CROSS_SOURCE_BODIES[num](facts)
+
     # Generic fallback — bare prompt
     return f"<!-- Author: §{num} {sect['title']}. {sect['condition_human']} -->"
 
@@ -953,6 +1364,17 @@ def _bgc_facts(pkg: Path, bgc_id: str) -> dict:
                in ("HIGH", "PRIORITY ISO", "PRIORITY_ISO",
                    "HIGH SEQ", "HIGH_SEQ"))
     facts["strain_high_priority_count"] = n_hp
+    facts["_triage_rows"] = triage_rows
+    facts["_sources"] = {}
+    for _ij in sorted(pkg.glob("*_1_intake.json")):
+        try:
+            facts["antismash_profile"] = json.loads(_ij.read_text(encoding="utf-8")).get("antismash_profile") or ""
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            # Was a bare swallow. The profile feeds the antiSMASH strictness guards, so an unreadable
+            # intake file must leave a breadcrumb rather than look like a package with no profile.
+            from . import degradation as _degradation
+            _degradation.record("modeb_template_emitter.antismash_profile.intake_json", exc, path=str(_ij))
+        break
 
     # v9.7.155: per-CDS gene rows for this BGC, from the sealed gene_context.jsonl
     # (the durable normalized per-gene source: locus_tag, coords, strand, aa_length,
@@ -1040,9 +1462,10 @@ def _select_scope(pkg: Path, triage_rows: list[dict],
 
 def _write_index(out_dir: Path, pkg: Path, emitted: list[str],
                  skipped: dict[str, str], scope: str,
-                 top_n: Optional[int]) -> None:
+                 top_n: Optional[int], paths: Optional[dict] = None) -> None:
     triage_rows = {r.get("BGC_ID") or r.get("bgc_id"): r
                    for r in _read_triage(pkg)}
+    paths = paths or {}
     lines = [f"# Mode B template batch — {pkg.parent.name}",
              "",
              f"Scope: `{scope}`" + (f", top {top_n}" if top_n else ""),
@@ -1050,16 +1473,18 @@ def _write_index(out_dir: Path, pkg: Path, emitted: list[str],
              "",
              "## Card index (work in this order)",
              "",
-             "| Rank | BGC | Node | Class | Lead | KCB top |",
+             "| Rank | Strain / full contig / region / BGC | Class | Lead | KCB top | File |",
              "|---|---|---|---|---|---|"]
     for bgc_id in emitted:
         r = triage_rows.get(bgc_id, {})
-        node = r.get("Node_ID") or r.get("Contig") or "—"
+        ident = " / ".join([r.get("Strain") or "—", r.get("Contig") or "—",
+                            r.get("antiSMASH_Region") or "—", bgc_id])
+        fname = Path(paths[bgc_id]).name if bgc_id in paths else "—"
         lines.append(
             f"| {r.get('Corrected_rank') or '—'} | "
-            f"{bgc_id} | {node} | {r.get('Products') or '—'} | "
+            f"{_md_cell(ident)} | {_md_cell(r.get('Products') or '—')} | "
             f"{r.get('Lead_tier_auto') or '—'} | "
-            f"{r.get('KCB_top') or '—'} |"
+            f"{_md_cell(r.get('KCB_top') or '—')} | `{fname}` |"
         )
     if skipped:
         lines.append("")

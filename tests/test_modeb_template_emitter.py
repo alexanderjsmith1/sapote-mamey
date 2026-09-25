@@ -160,7 +160,8 @@ def test_emit_batch_all_scope(tmp_path):
     res = emit_batch(pkg, scope="all")
     assert set(res["emitted"]) == {"BGC033", "BGC020", "BGC005"}
     out_dir = pathlib.Path(res["out"])
-    assert (out_dir / "BGC033_template.md").exists()
+    assert (out_dir / "AS-XXX__ctg7__r001__BGC033_template.md").exists()
+    assert res["paths"]["BGC033"] == str(out_dir / "AS-XXX__ctg7__r001__BGC033_template.md")
     assert (out_dir / "_INDEX.md").exists()
 
 
@@ -197,10 +198,10 @@ def test_emit_batch_returns_skipped_on_unreadable_card(tmp_path, monkeypatch):
     pkg = _make_pkg(tmp_path)
     original = mte.emit_card_template
 
-    def flaky(pkg, bgc_id, contract=None, precompute_dir=None):
+    def flaky(pkg, bgc_id, **kwargs):
         if bgc_id == "BGC020":
             raise RuntimeError("simulated")
-        return original(pkg, bgc_id, contract=contract, precompute_dir=precompute_dir)
+        return original(pkg, bgc_id, **kwargs)
 
     monkeypatch.setattr(mte, "emit_card_template", flaky)
     res = mte.emit_batch(pkg, scope="all")

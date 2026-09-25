@@ -229,6 +229,10 @@ _UNIT_TESTED_OPERATOR_GATES = {
     # Ships with its own unit tests (test_parked_card_audit); read-only, runs patch --dry-run,
     # never imported by engine code and not wired into release.sh -- operator-run, not a cut gate.
     "parked_card_audit": "parked patch-card cadence auditor (AMBER-407); unit-tested (test_parked_card_audit), operator-run",
+    # v9.7.442: three new operator front doors. Each ships unit tests; no staging, release or cut script calls it yet.
+    "bigscape_input_decontam_guard": "BiG-SCAPE input decontamination refusal; unit-tested, run by hand before a BiG-SCAPE run",
+    "sixteen_s_similarity_check": "deposited 16S similarity recompute report; unit-tested, operator-run",
+    "verify_release_tarball": "release tarball vs sealed CODE ZIP check; unit-tested, run by hand before publishing a tarball",
 }
 
 

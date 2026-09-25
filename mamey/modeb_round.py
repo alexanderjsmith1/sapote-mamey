@@ -84,8 +84,7 @@ def run_round(package_dir: str | Path, top_n: int = 10,
     out_dir = Path(res["out"])
     entries = []
     for bgc_id in res["emitted"]:
-        # emit_batch writes <BGC>_template.md
-        tmpl = out_dir / f"{bgc_id}_template.md"
+        tmpl = Path(res.get("paths", {}).get(bgc_id) or out_dir / f"{bgc_id}_template.md")
         state = S_TRIAGE
         scaffold_errs: list[str] = []
         if tmpl.exists():

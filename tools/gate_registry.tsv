@@ -77,3 +77,6 @@ gtotree_execution_gate	WIRED	Sequence admission tests validate the GToTree prefl
 tree_annotation_gate	WIRED	Tree annotation tests validate metadata before rendering.
 silent_exit_audit	OPERATOR_ONLY	silent-success-exit inventory over the guard surface: classifies and reports a denominator, does not accuse; run by hand when reviewing hooks, not a cut gate (regression suite: test_silent_exit_audit_v97416)
 caption_guard	WIRED	Caption coherence guard is exercised by tests/test_figures_434_caption_governance_guard.py; optional operator CLI before publication.
+bigscape_input_decontam_guard	OPERATOR_ONLY	refuses BiG-SCAPE input regions on contigs a decontamination removed; run by hand before a BiG-SCAPE run, no staging or cut script calls it yet (regression suite: test_bigscape_input_decontam_guard_v97442, test_bigscape_decontam_fail_closed_codex_v97442)
+sixteen_s_similarity_check	OPERATOR_ONLY	recomputes deposited 16S similarity against a local 16S database and flags differences; an operator report, not a cut gate (regression suite: test_sixteen_s_similarity_check_v97442)
+verify_release_tarball	OPERATOR_ONLY	refuses a release tarball that differs from the sealed CODE ZIP; run by hand before publishing a tarball, release_cut.sh does not call it yet (regression suite: test_442_verify_release_tarball)

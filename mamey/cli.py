@@ -6037,6 +6037,10 @@ def build_parser():
         help="Output dir for --emit-figures (default: <out>/figures_publication)")
     ifg.add_argument("--scope", default="GOVERNED",
         help="publication_bridge scope for --emit-figures (default: GOVERNED)")
+    ifg.add_argument("--acknowledge-mixed-antismash-profile", action="store_true",
+        dest="acknowledge_mixed_antismash_profile",
+        help="Record that governed strains span antiSMASH detection strictness; "
+             "without it, cohort figures refuse a mixed-strictness payload")
     ifg.set_defaults(func=_interactive_figures_command)
 
     # codex-heatmaps: optional post-seal presentation pack for Figure Factory
@@ -7634,6 +7638,16 @@ def build_parser():
                     help="Override the v9.7.344 BLASTp-completeness HARD gate with a logged reason "
                          "(recorded to manifest provenance). Without this, emission is REFUSED when "
                          "ingestable BLASTp is available on disk but not ingested.")
+    et.add_argument("--cohort-dir", default=None, dest="cohort_dir",
+                    help="Package root laid out as <dir>/<strain>/package/*_2_inventory.csv; "
+                         "pre-fills §44 prevalence (and §47 locus counts)")
+    et.add_argument("--reference-dir", default=None, dest="reference_dir",
+                    help="Reference package root, same layout; pre-fills §46 for the focal genus")
+    et.add_argument("--strain-metadata", default=None, dest="strain_metadata",
+                    help="TSV with strain/genus/host/excluded/exclusion_reason columns, used as "
+                         "deposited; supplies genus (§46), host (§47) and exclusions (§44)")
+    et.add_argument("--bigscape-regions-dir", default=None, dest="bigscape_regions_dir",
+                    help="Directory of region GBKs; §40 binds only on the exact full contig + region")
     et.set_defaults(func=emit_modeb_template_command)
     # --- v9.7.194: contractual Mode B round orchestrator (emit + scaffold-verify + worklist) ---
     from .modeb_round import modeb_round_command

@@ -29,10 +29,17 @@ done
 
 mkdir -p "$outdir"
 tarball="$outdir/$name.tar.gz"
-# COPYFILE_DISABLE: keep macOS AppleDouble (._*) files out of the archive.
+# COPYFILE_DISABLE stops tar from GENERATING AppleDouble (._*) entries. It does not stop tar from
+# archiving ._* files that already exist on disk (a tree copied through exFAT/SMB has thousands),
+# and Linux tar extracts those as real files that fail --strict-membership. Exclude them, then check.
 COPYFILE_DISABLE=1 tar -czf "$tarball" -C "$(dirname "$src")" \
-  --exclude '.DS_Store' --exclude '__pycache__' --exclude '.pytest_cache' \
+  --exclude '.DS_Store' --exclude '__pycache__' --exclude '.pytest_cache' --exclude '._*' \
   "$name"
+if tar -tzf "$tarball" | awk -F/ '{print $NF}' | grep -q '^\._'; then
+  rm -f "$tarball"
+  echo "REFUSED: AppleDouble (._*) entries reached $name.tar.gz; rebuild from a fresh extraction of the sealed ZIP" >&2
+  exit 2
+fi
 # Relative-name sidecar (BC4 .400 seal-gate review, delta h): an awk-$2 sidecar truncated the
 # recorded path at the first space, so `shasum -c` failed on spaced outdirs — which the
 # workspace's release folders are. Relative name = space-safe AND portable across machines.

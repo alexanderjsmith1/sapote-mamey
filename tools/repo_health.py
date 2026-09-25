@@ -70,7 +70,7 @@ BARE_EXCEPT_WARN_THRESHOLD = 0
 # `except (ValueError|Exception): pass` -> `continue` (collection_figures.py x3, cohort_figures.py x1,
 # all behavior-identical) + 1 reviewed-intentional handler marked `...` (master_workbook.py NP-Atlas
 # optional). Hold the line at 110 — do not raise without a sweep.
-SILENT_SWALLOW_CEILING = 14  # ratchet-down 2026-09-22: 82 -> 14 (measured)  # combined ratchet-down 2026-09-09: 145 -> 125 (measured)  # ratchet-down 2026-09-09: 147 -> 145 (measured)  # ratchet-down 2026-09-07: 148 -> 147 (measured)  # ratchet-down 2026-09-05: 149 -> 148 (measured)  # ratchet-down 2026-09-05: 151 -> 149 (measured)  # ratchet-down 2026-09-04: 152 -> 151 (measured)  # ratchet-down 2026-09-03: 153 -> 152 (measured)  # ratchet-down 2026-09-02: 154 -> 153 (measured)   # REBASELINED 2026-08-26 (v9.7.381) to the measured count — DEBT
+SILENT_SWALLOW_CEILING = 13  # ratchet-down 2026-09-25: 14 -> 13 (measured)  # ratchet-down 2026-09-22: 82 -> 14 (measured)  # combined ratchet-down 2026-09-09: 145 -> 125 (measured)  # ratchet-down 2026-09-09: 147 -> 145 (measured)  # ratchet-down 2026-09-07: 148 -> 147 (measured)  # ratchet-down 2026-09-05: 149 -> 148 (measured)  # ratchet-down 2026-09-05: 151 -> 149 (measured)  # ratchet-down 2026-09-04: 152 -> 151 (measured)  # ratchet-down 2026-09-03: 153 -> 152 (measured)  # ratchet-down 2026-09-02: 154 -> 153 (measured)   # REBASELINED 2026-08-26 (v9.7.381) to the measured count — DEBT
                           # REBASELINED, NOT REDUCED. No-regression ceiling; ratchet down, never raise.
 PLACEHOLDER_RE = re.compile(r"XXX")
 
@@ -148,7 +148,13 @@ CLI_TOOL_EXCLUDE_FILES = {"render_all.py", "phylo_preflight.py", "phylo_postflig
                           "chitinase_hmm_confirm.py",
                           # This operator front door prints only the path of the synthetic
                           # project it just staged; the path is its CLI result.
-                          "figure_factory_demo.py"}
+                          "figure_factory_demo.py",
+                          # v9.7.442: five operator front doors landed with the .442 composition.
+                          # caption_band and figure_render_qc expose importable helpers with
+                          # terminal emissions, so they stay counted under the signed waiver.
+                          "antismash_strictness_census.py", "bigscape_input_decontam_guard.py",
+                          "region_table_one_setting.py", "sixteen_s_similarity_check.py",
+                          "verify_release_tarball.py"}
 # v9.7.403: tools/blastp_channel_triage.py is an operator front door whose stdout IS the
 # deliverable (the triage receipt JSON on stdout, the error line on stderr) — the same family as
 # the phylo launchers above, so it is EXCLUDED BY DESIGN rather than counted as library debt.

@@ -15,6 +15,7 @@ the specialist set, so the omission is identical everywhere.
 from __future__ import annotations
 
 import math
+import re
 import struct
 from collections import Counter
 from pathlib import Path
@@ -913,3 +914,65 @@ def omit_saccharides(bgcs, get_products=lambda b: b.get("products"), enabled: bo
     if not enabled:
         return list(bgcs)
     return [b for b in bgcs if not is_pure_saccharide(get_products(b))]
+
+
+# v9.7.442. Wording that must not appear on a rendered figure (Alex, 2026-09-24): "remove the claim
+# safety statements from figures entirely". Footers and internal-notes bands count. Provenance and
+# guard text belong in the receipt, the caption sidecar and the report, not on the page. This is
+# the fail-closed check the 2026-09-24 publication builder ran on its SVG copies, made reusable so
+# the bundle's own save path applies it instead of each figure set cleaning afterwards.
+FIGURE_BANNED_TEXT = re.compile(
+    r"similarity is not identity|not identity|not production|not bioactivity|not potency"
+    r"|judg(?:e)?ment deferred|class-level|descriptive screening|query strain|claim[- ]safety"
+    r"|no host causality|not product (?:identity|structure)|capacity is not production",
+    re.I,
+)
+
+
+class FigureTextRefusal(ValueError):
+    """Typed refusal when banned wording is found on a figure."""
+
+    code = "FIGURE_TEXT_BANNED"
+
+
+def figure_text_violations(texts: Iterable[str]) -> list[str]:
+    """Return every banned phrase found in the given on-page strings, in order found."""
+    found: list[str] = []
+    for text in texts:
+        for match in FIGURE_BANNED_TEXT.finditer(str(text or "")):
+            found.append(match.group(0))
+    return found
+
+
+def svg_visible_text(svg: str) -> list[str]:
+    """Text a reader sees on an SVG: <text>/<tspan> content, not metadata or comments."""
+    body = re.sub(r"<metadata\b.*?</metadata>|<!--.*?-->|<title\b.*?</title>|<desc\b.*?</desc>",
+                  "", svg, flags=re.S | re.I)
+    return [re.sub(r"<[^>]+>", "", chunk) for chunk in re.findall(r"<text\b.*?</text>", body, flags=re.S)]
+
+
+def matplotlib_visible_text(fig: Any) -> list[str]:
+    """Every string a matplotlib figure will draw: suptitle, figure texts, titles, labels, ticks."""
+    out: list[str] = []
+    for artist in getattr(fig, "texts", []):
+        out.append(artist.get_text())
+    sup = getattr(fig, "_suptitle", None)
+    if sup is not None:
+        out.append(sup.get_text())
+    for ax in getattr(fig, "axes", []):
+        out.extend([ax.get_title(loc) for loc in ("left", "center", "right")])
+        out.extend([ax.get_xlabel(), ax.get_ylabel()])
+        out.extend(t.get_text() for t in ax.texts)
+        legend = ax.get_legend()
+        if legend is not None:
+            out.extend(t.get_text() for t in legend.get_texts())
+    return [t for t in out if t]
+
+
+def assert_no_banned_figure_text(texts: Iterable[str], *, figure_id: str = "") -> None:
+    found = figure_text_violations(texts)
+    if found:
+        where = f" in {figure_id}" if figure_id else ""
+        raise FigureTextRefusal(
+            f"FIGURE_TEXT_BANNED{where}: {sorted(set(f.lower() for f in found))} — move this wording to "
+            "the receipt or the caption sidecar; it does not go on the figure")

@@ -16,6 +16,11 @@ def test_boundary_weights_match_corrected_count():
     assert fs._BW == {"Interior": 1.0, "Edge": 0.5, "Full-contig": 0.25}
 
 
-def test_footer_is_claim_safe():
-    foot = fs._foot()
-    assert "capacity-level" in foot
+def test_footer_draws_no_claim_wording():
+    # v9.7.442 ruling: no claim wording on figures. The footer keeps only the plot key the caller
+    # passes; SCORE_NOTE / KCB_NOTE stay in the _data.csv provenance row.
+    from mamey.figure_policy import FIGURE_BANNED_TEXT
+    assert fs._foot() == ""
+    foot = fs._foot("dashed line = lead threshold")
+    assert foot == "dashed line = lead threshold"
+    assert "capacity-level" not in foot and not FIGURE_BANNED_TEXT.search(foot)

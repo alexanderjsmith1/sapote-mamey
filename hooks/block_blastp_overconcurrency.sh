@@ -9,19 +9,19 @@ except (ValueError, AttributeError, TypeError):
     pass' 2>/dev/null)
 [ -z "$cmd" ] && exit 0
 
-printf '%s' "$cmd" | grep -qE 'nr_rid_runner\.py[[:space:]]+run' || exit 0
-
 # Exempt INSPECTION commands, decided by what the command actually RUNS, not by whether an
 # inspection word appears anywhere in it. Matching `grep`/`cat `/`kill ` as substrings let a real
 # launch walk straight past the cap the moment it was piped or chained -- `... run --lane 3 | grep RID`
 # and `... run --lane 3 && cat out.log` were both exempted while the bare launch was denied.
 # Leading VAR=value assignments are skipped so `SAPOTE_BLASTP_MAX_LANES=12 python3 ...` is still a launch.
-head_word=$(printf '%s' "$cmd" | python3 -c '
+# The existing head-token parser retains the inspection-command exemption. Launcher file
+# discovery is handled separately by blastp_launch_probe.py below.
+head_info=$(printf '%s' "$cmd" | python3 -c '
 import shlex, sys, os
 try:
     source = sys.stdin.read()
     if "$(" in source or "`" in source or "\n" in source:
-        sys.stdout.write("compound")
+        print("compound"); print("")
         raise SystemExit(0)
     lexer = shlex.shlex(source, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
@@ -35,19 +35,52 @@ try:
             else: commands[-1].append(tok)
         inspectors = {"ps", "pgrep", "pkill", "grep", "egrep", "rg", "kill", "tail", "cat", "head", "less", "wc", "awk", "sed"}
         safe = all(c and os.path.basename(c[0]) in inspectors for c in commands)
-        sys.stdout.write("ps" if safe else "compound")
+        print("ps" if safe else "compound"); print("")
         raise SystemExit(0)
 except ValueError:
     parts = []
+raw = ""
 for tok in parts:
     if "=" in tok and not tok.startswith(("-", "/")) and tok.split("=", 1)[0].replace("_", "").isalnum():
         continue          # leading environment assignment
-    sys.stdout.write(os.path.basename(tok))
+    raw = tok
     break
+print(os.path.basename(raw) if raw else "")
+print(raw)
 ' 2>/dev/null)
+head_word=$(printf '%s\n' "$head_info" | sed -n '1p')
+
+direct_match=0
+printf '%s' "$cmd" | grep -qE 'nr_rid_runner\.py[[:space:]]+run' && direct_match=1
+
+# v9.7.442: the typed command can name a wrapper script instead of the runner. Resolve local
+# script operands of direct, interpreter, env/nohup/caffeinate, and simple chained commands.
+# The helper only lists files that a command segment would execute; it never runs them.
+indirect_match=0
+via_indirection=0
+script_to_check=""
+if [ "$direct_match" -eq 0 ]; then
+  while IFS= read -r -d '' script_candidate; do
+    if [ -f "$script_candidate" ] && [ -r "$script_candidate" ] && \
+       grep -qE 'nr_rid_runner\.py[[:space:]]+run' "$script_candidate" 2>/dev/null; then
+      indirect_match=1
+      via_indirection=1
+      script_to_check="$script_candidate"
+      break
+    fi
+  done < <(python3 "$(dirname "$0")/blastp_launch_probe.py" "$cmd" 2>/dev/null)
+fi
+
+[ "$direct_match" -eq 1 ] || [ "$indirect_match" -eq 1 ] || exit 0
+
 case "$head_word" in
   ps|pgrep|pkill|grep|egrep|rg|kill|tail|cat|head|less|wc|awk|sed) exit 0;;
 esac
+
+if [ "$via_indirection" -eq 1 ]; then
+  # Visible, not silent: the earlier bypass produced zero output on all eight launches it missed.
+  echo "block_blastp_overconcurrency.sh: evaluating '$script_to_check' as a BLASTp launcher (runner token found inside it, not in the typed command)" >&2
+fi
 
 CAP="${SAPOTE_BLASTP_MAX_LANES:-10}"
 case "$CAP" in *[!0-9]*|"") echo "Invalid BLASTp lane cap" >&2; exit 2;; esac

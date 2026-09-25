@@ -108,23 +108,36 @@ def _stage_region(data, destination, strain, source_locator, minimum, excluded_r
     return 1
 
 
-def stage_zip(zip_path, out, strain, min_query_genes=0, excluded_regions=None):
+def _record_id(name):
+    """antiSMASH names region files <record id>.regionNNN.gbk."""
+    return re.sub(r"\.region\d+\.gbk$", "", os.path.basename(name))
+
+
+def stage_zip(zip_path, out, strain, min_query_genes=0, excluded_regions=None, drop_contigs=None, dropped=None):
     excluded_regions = [] if excluded_regions is None else excluded_regions
     n = 0
     with zipfile.ZipFile(zip_path) as z:
         for member in z.namelist():
             if not os.path.basename(member).startswith("._") and REGION.search(member):
+                if drop_contigs and _record_id(member) in drop_contigs:
+                    if dropped is not None:
+                        dropped.append((strain, _record_id(member), member))
+                    continue
                 destination = os.path.join(out, f"{strain}_{os.path.basename(member)}")
                 n += _stage_region(z.read(member), destination, strain, member,
                                    min_query_genes, excluded_regions)
     return n
 
 
-def stage_dir(d, out, strain, min_query_genes=0, excluded_regions=None):
+def stage_dir(d, out, strain, min_query_genes=0, excluded_regions=None, drop_contigs=None, dropped=None):
     excluded_regions = [] if excluded_regions is None else excluded_regions
     n = 0
     for source in sorted(glob.glob(os.path.join(d, "**", "*.gbk"), recursive=True)):
         if not os.path.basename(source).startswith("._") and REGION.search(source):
+            if drop_contigs and _record_id(source) in drop_contigs:
+                if dropped is not None:
+                    dropped.append((strain, _record_id(source), os.path.relpath(source, d)))
+                continue
             with open(source, "rb") as handle:
                 data = handle.read()
             n += _stage_region(data, os.path.join(out, f"{strain}_{os.path.basename(source)}"),
@@ -154,7 +167,27 @@ def main():
                     help="opt-in minimum CDS count for explicitly named query strains; 0 disables")
     ap.add_argument("--query-strain", action="append", default=[],
                     help="exact staged query strain ID; repeat for each query. Other strains are never filtered")
+    ap.add_argument("--drop-contigs", action="append", default=[], metavar="STRAIN=TSV",
+                    help="drop this strain's regions on contigs listed in TSV (first column = record id), "
+                         "e.g. contigs removed by a decontamination; repeat per strain. Written to DROPPED_CONTIG_REGIONS.tsv")
+    ap.add_argument("--allow-zero-drop", action="append", default=[], metavar="STRAIN",
+                    help="explicitly permit zero matching regions for this drop-list strain after review")
     a = ap.parse_args()
+    drop = {}
+    for spec in a.drop_contigs:
+        d_strain, sep, d_path = spec.partition("=")
+        if not d_strain or not sep or not os.path.isfile(d_path):
+            ap.error(f"--drop-contigs needs STRAIN=existing.tsv, got {spec!r}")
+        if d_strain in drop:
+            ap.error(f"duplicate --drop-contigs strain {d_strain!r}; provide one list per strain")
+        with open(d_path, encoding="utf-8", errors="replace") as fh:
+            drop[d_strain] = {ln.split("\t", 1)[0].strip() for ln in fh
+                              if ln.strip() and not ln.startswith("#")}
+        if not drop[d_strain]:
+            ap.error(f"--drop-contigs for {d_strain!r} has no contig IDs")
+    if set(a.allow_zero_drop) - set(drop):
+        ap.error("--allow-zero-drop requires a matching --drop-contigs strain")
+    dropped = []
     if a.min_query_genes < 0 or (a.min_query_genes and not a.query_strain):
         ap.error("--min-query-genes must be nonnegative and requires explicit --query-strain values")
     small_regions = []
@@ -229,7 +262,8 @@ def main():
 
         try:
             minimum = a.min_query_genes if strain in set(a.query_strain) else 0
-            n = (stage_dir if is_dir else stage_zip)(it, a.out, strain, minimum, small_regions)
+            n = (stage_dir if is_dir else stage_zip)(it, a.out, strain, minimum, small_regions,
+                                                     drop.get(strain), dropped)
         except Exception as e:
             manifest.append((strain, detected or "UNKNOWN", f"ERROR:{type(e).__name__}", 0, it))
             emit(f"  {strain}: SKIP ({type(e).__name__}: {e})", file=sys.stderr)
@@ -248,6 +282,28 @@ def main():
         fh.write("strain\tdetected_strictness\tstate\tn_regions\tsource\n")
         for row in sorted(manifest):
             fh.write("\t".join(str(x) for x in row) + "\n")
+
+    if drop:
+        with open(os.path.join(a.out, "DROPPED_CONTIG_REGIONS.tsv"), "w", encoding="utf-8") as fh:
+            fh.write("strain\trecord\tsource_member\n")
+            for row in dropped:
+                fh.write("\t".join(row) + "\n")
+        staged = {row[0] for row in manifest if str(row[2]).startswith("STAGED")}
+        for d_strain in sorted(drop):
+            hits = sum(1 for row in dropped if row[0] == d_strain)
+            emit(f"  {d_strain}: dropped {hits} region(s) on {len(drop[d_strain])} listed contig(s)", file=sys.stderr)
+        missing = sorted(set(drop) - staged)
+        if missing:
+            emit(f"** --drop-contigs named strain(s) that were not staged: {missing}. "
+                 f"Check the strain id; nothing was dropped for them. **", file=sys.stderr)
+            return 2
+        zero = sorted(s for s in drop if s in staged and not any(row[0] == s for row in dropped)
+                      and s not in a.allow_zero_drop)
+        if zero:
+            emit(f"** ZERO_DROP_REFUSED: no regions matched removed contigs for {zero}. "
+                 "Check assembly and contig IDs, or pass --allow-zero-drop STRAIN after review. **",
+                 file=sys.stderr)
+            return 2
 
     if a.min_query_genes:
         from mamey.csv_safety import SafeDictWriter

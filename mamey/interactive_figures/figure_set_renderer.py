@@ -150,6 +150,34 @@ def _quantile(values: Iterable[float], q: float) -> float:
     return seq[lo] if lo == hi else seq[lo] + (seq[hi] - seq[lo]) * (pos - lo)
 
 
+def _require_single_antismash_profile(payload: dict[str, Any], governed: Sequence[str]) -> None:
+    """Cross-strain region and class counts are comparable only under one strictness."""
+    strains = payload["strains"]
+    profiles = {sid: str(strains[sid].get("antismashProfile") or "unrecorded").lower()
+                for sid in governed}
+    if all(p == "unrecorded" for p in profiles.values()):
+        return  # payload predates the field; nothing recorded to compare
+    counts: dict[str, int] = {}
+    for p in profiles.values():
+        counts[p] = counts.get(p, 0) + 1
+    counts = dict(sorted(counts.items()))
+    if len(counts) == 1 and next(iter(counts)) in {"strict", "relaxed", "loose"}:
+        return
+    acknowledged = (payload.get("meta") or {}).get("antismashProfileMixAcknowledged")
+    if acknowledged == counts:
+        return
+    detail = "; ".join(
+        f"{p}: {n} ({', '.join(sorted((s for s, q in profiles.items() if q == p), key=_strain_key)[:5])}"
+        f"{', ...' if n > 5 else ''})" for p, n in counts.items())
+    raise FigurePolicyError(
+        "FIGURE_ANTISMASH_PROFILE_MIXED",
+        "governed strains span antiSMASH detection strictness, so region and class counts "
+        f"are not comparable: {detail}. Rebuild the widget data from one strictness, or "
+        "rebuild with --acknowledge-mixed-antismash-profile and name the mix in the caption"
+        + ("" if acknowledged is None else f" (the recorded acknowledgement {acknowledged} is stale)"),
+    )
+
+
 def _load_with_benchmarks(
     path: str | Path,
     external_benchmark_ids: Sequence[str] = (),
@@ -196,6 +224,7 @@ def _load_with_benchmarks(
     ]
     if not governed:
         raise ValueError("widget data has no GOVERNED strains")
+    _require_single_antismash_profile(payload, governed)
     return source, payload, all_ids, governed, benchmark_ids, requested
 
 

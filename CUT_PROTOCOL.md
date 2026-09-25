@@ -136,6 +136,23 @@ SHA-256. `tools/release.sh` applies the same receipt gate before honoring
 If a public tier **REFUSES** (leak audit) or **FATALs** (parity gate), that is the gate working. Do not
 force past it — fix the source (allowlist a genuine synthetic token; redact a real ID) and re-cut.
 
+## Release tarball (only when one is published)
+
+The sealed ZIP is the validated artifact. A `.tar.gz` for a release page is a repackaging, and the
+gates above never see it. Build it only from a fresh extraction of the sealed ZIP, with the bundle
+tool, then prove it carries exactly the sealed files:
+
+```bash
+python3 -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" <sealed.zip> <tmp>/<bundle-dir-name>
+bash tools/make_release_tarball.sh <tmp>/<bundle-dir-name> <OUT>
+python3 tools/verify_release_tarball.py <OUT>/<bundle-dir-name>.tar.gz --zip <sealed.zip>
+```
+
+Publish only on `release tarball: PASS`, and quote the `.tar.gz.sha256` the tool wrote. Never
+hand-build or copy the tarball through another volume. A tree that crossed exFAT, FAT or SMB
+carries macOS `._*` files that Linux extracts as real files; at v9.7.441 that broke pytest
+collection and failed `--strict-membership`.
+
 ## The per-tier disclosure block (paste, fill, never skip)
 
 ```
