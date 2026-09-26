@@ -43,8 +43,9 @@ def _stage(tmp_path, *, crosswalk_rows, matrix_rows, matrix_header, overlays=Non
             fh.write("\t".join(str(x) for x in r) + "\n")
     cfg = {"tree": "t.nwk", "outgroup_substring": "OUTGROUP", "crosswalk": "cw.tsv",
            "out_dir": "out", "out_stem": "T", "figure_title": "t", "tree_caption": "c",
-           "claim_footer": footer,
            "overlays": overlays or [{"id": "m", "title": "M", "matrix": "m.tsv"}]}
+    if footer is not None:
+        cfg["claim_footer"] = footer
     (tmp_path / "c.json").write_text(json.dumps(cfg))
     return tmp_path / "c.json"
 
@@ -98,12 +99,53 @@ def test_omit_unprofiled_flag(tmp_path):
     assert r["n_profiled"] == 2  # still reports profiled honestly; drawing drops the rest
 
 
-def test_blank_footer_is_rejected(tmp_path):
+def _drawn_text(monkeypatch):
+    """Record the text of every figure the tool saves (house rule 3: no claim wording on the page)."""
+    from matplotlib.figure import Figure
+    from mamey.figure_policy import matplotlib_visible_text
+    seen: list[str] = []
+    real = Figure.savefig
+
+    def spy(self, *a, **k):
+        seen.extend(matplotlib_visible_text(self))
+        return real(self, *a, **k)
+
+    monkeypatch.setattr(Figure, "savefig", spy)
+    return seen
+
+
+def test_config_without_claim_footer_renders(tmp_path):
     mod = _load()
     cfg = _stage(tmp_path, crosswalk_rows=_FULL_CW,
-                 matrix_header=["tip", "PKS"], matrix_rows=[["A_study", 3]], footer="short")
-    with pytest.raises(mod.OverlayHold):
+                 matrix_header=["tip", "PKS"], matrix_rows=[["A_study", 3]], footer=None)
+    r = mod.build(cfg)[0]
+    assert r["claim_footer"] == ""
+    assert (tmp_path / "out" / r["outputs"][0]).is_file()
+
+
+def test_claim_footer_goes_to_the_receipt_not_the_page(tmp_path, monkeypatch):
+    from mamey.figure_policy import figure_text_violations
+    drawn = _drawn_text(monkeypatch)
+    mod = _load()
+    cfg = _stage(tmp_path, crosswalk_rows=_FULL_CW,
+                 matrix_header=["tip", "PKS"], matrix_rows=[["A_study", 3]])
+    r = mod.build(cfg)[0]
+    assert r["claim_footer"] == FOOTER
+    assert drawn, "the spy saw no figure"
+    assert FOOTER not in drawn
+    assert figure_text_violations(drawn) == []
+
+
+def test_claim_wording_in_a_title_is_held_before_writing(tmp_path):
+    mod = _load()
+    cfg = _stage(tmp_path, crosswalk_rows=_FULL_CW,
+                 matrix_header=["tip", "PKS"], matrix_rows=[["A_study", 3]],
+                 overlays=[{"id": "m", "title": "PKS depth (class-level; judgment deferred)",
+                            "matrix": "m.tsv"}])
+    with pytest.raises(mod.OverlayHold) as e:
         mod.build(cfg)
+    assert "claim wording" in str(e.value)
+    assert not list((tmp_path / "out").glob("*.png"))
 
 
 def test_invalid_role_is_rejected(tmp_path):

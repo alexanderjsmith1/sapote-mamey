@@ -14,6 +14,7 @@ the specialist set, so the omission is identical everywhere.
 """
 from __future__ import annotations
 
+from html import unescape
 import math
 import re
 import struct
@@ -921,12 +922,65 @@ def omit_saccharides(bgcs, get_products=lambda b: b.get("products"), enabled: bo
 # guard text belong in the receipt, the caption sidecar and the report, not on the page. This is
 # the fail-closed check the 2026-09-24 publication builder ran on its SVG copies, made reusable so
 # the bundle's own save path applies it instead of each figure set cleaning afterwards.
+#
+# v9.7.443: this is the one list. tools/caption_guard.py (captions, render QC, figure_house_rules)
+# reads FIGURE_BANNED_PHRASES from here, so the save path and the QC tools refuse the same text.
+# Phrases are lower case; a space matches any run of whitespace, so a line break inside a title
+# does not hide a phrase.
+_REASSURANCE = "reassurance about what the figure does not prove"
+_PROCESS = "names the operator's review process, not the figure"
+_GOVERNANCE = "governance vocabulary; state what was measured instead"
+FIGURE_BANNED_PHRASES: dict[str, str] = {
+    "judgment deferred": _PROCESS,
+    "judgement deferred": _PROCESS,
+    "judgment is deferred": _PROCESS,
+    "judgement is deferred": _PROCESS,
+    "claim-safe": _GOVERNANCE,
+    "claim safety": _GOVERNANCE,
+    "claim-safety": _GOVERNANCE,
+    "descriptive screening": _GOVERNANCE,
+    "query strain": "internal pipeline role; the key reads 'isolate from this study'",
+    "similarity is not identity": _REASSURANCE,
+    "capacity is not production": _REASSURANCE,
+    "not identity": _REASSURANCE,
+    "not compound identity": _REASSURANCE,
+    "not product identity": _REASSURANCE,
+    "not product structure": _REASSURANCE,
+    "not production": _REASSURANCE,
+    "not bioactivity": _REASSURANCE,
+    "not potency": _REASSURANCE,
+    "not novelty": _REASSURANCE,
+    "no compound": _REASSURANCE,
+    "structure, or potency": _REASSURANCE,
+    "potency claim": _REASSURANCE,
+    "claim is implied": _REASSURANCE,
+    "no host causality": _REASSURANCE,
+    "not biological absence": "belongs in the methods text, phrased as what was tested",
+}
+
+
+def _phrase_pattern(phrase: str) -> str:
+    return r"\s+".join(re.escape(word) for word in phrase.split(" "))
+
+
 FIGURE_BANNED_TEXT = re.compile(
-    r"similarity is not identity|not identity|not production|not bioactivity|not potency"
-    r"|judg(?:e)?ment deferred|class-level|descriptive screening|query strain|claim[- ]safety"
-    r"|no host causality|not product (?:identity|structure)|capacity is not production",
+    "|".join(_phrase_pattern(p) for p in sorted(FIGURE_BANNED_PHRASES, key=len, reverse=True)),
     re.I,
 )
+
+# "class-level" is ordinary vocabulary before a noun ("class-level composition") and governance
+# hedging on its own ("the signal is class-level") or as a qualifier ("class-level only",
+# "class-level hypotheses"). v9.7.436 ruling, pinned by tests/test_caption_guard_436_*. A flat
+# phrase list cannot tell the two apart, so the rule is a function both surfaces share.
+_CLASS_LEVEL_STANDALONE = re.compile(r"\bclass-level\b(?!\s+[a-z])")
+_CLASS_LEVEL_QUALIFIED = re.compile(r"\bclass-level\s+(?:only\b|hypothes\w*|read\b)")
+CLASS_LEVEL_REASON = "governance vocabulary; state the actual threshold instead"
+
+
+def class_level_hedge(text: str) -> bool:
+    """True when "class-level" is used as a hedge rather than to describe a noun."""
+    flat = re.sub(r"\s+", " ", str(text or "")).lower()
+    return bool(_CLASS_LEVEL_STANDALONE.search(flat) or _CLASS_LEVEL_QUALIFIED.search(flat))
 
 
 class FigureTextRefusal(ValueError):
@@ -939,8 +993,12 @@ def figure_text_violations(texts: Iterable[str]) -> list[str]:
     """Return every banned phrase found in the given on-page strings, in order found."""
     found: list[str] = []
     for text in texts:
-        for match in FIGURE_BANNED_TEXT.finditer(str(text or "")):
+        # SVG entities and line breaks can render as ordinary word spacing.
+        visible = " ".join(unescape(str(text or "")).split())
+        for match in FIGURE_BANNED_TEXT.finditer(visible):
             found.append(match.group(0))
+        if class_level_hedge(visible):
+            found.append("class-level")
     return found
 
 
@@ -963,9 +1021,21 @@ def matplotlib_visible_text(fig: Any) -> list[str]:
         out.extend([ax.get_title(loc) for loc in ("left", "center", "right")])
         out.extend([ax.get_xlabel(), ax.get_ylabel()])
         out.extend(t.get_text() for t in ax.texts)
-        legend = ax.get_legend()
-        if legend is not None:
-            out.extend(t.get_text() for t in legend.get_texts())
+        for axis in (getattr(ax, "xaxis", None), getattr(ax, "yaxis", None),
+                     getattr(ax, "zaxis", None)):
+            if axis is not None:
+                out.extend(t.get_text() for t in axis.get_ticklabels())
+                out.extend(t.get_text() for t in axis.get_ticklabels(minor=True))
+                offset = getattr(axis, "get_offset_text", None)
+                if callable(offset):
+                    out.append(offset().get_text())
+    # Every legend, not only ax.get_legend(): a second legend kept with ax.add_artist() and a
+    # figure-level legend draw too, and so does each legend's title.
+    from matplotlib.legend import Legend
+    findobj = getattr(fig, "findobj", None)
+    for legend in (findobj(Legend) if findobj else []):
+        out.append(legend.get_title().get_text())
+        out.extend(t.get_text() for t in legend.get_texts())
     return [t for t in out if t]
 
 

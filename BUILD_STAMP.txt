@@ -1,5 +1,5 @@
-version=9.7.442
-build=20260924v97442a
-engine=1.9.169
-patch=Figures carry no claim text on the canvas.; BiG-SCAPE inputs fail closed.; Region counts refuse mixed antiSMASH strictness.; Mode B template binds full locus identity.; Session hook binds an explicitly located code root.; BLASTp concurrency hook resolves wrapped launchers.; Output containment is one shared helper.; Release tarball excludes AppleDouble members, with a verifier.
+version=9.7.443
+build=20260926v97443a
+engine=1.9.170
+patch=Adjacent-cluster pairs report MODULAR_CONTINUATION.; Deliverable PDFs embed their fonts.; Release tarball verification is receipt-bound.; Figure text is checked where it is drawn.; Writes stay out of the code bundle.; Bioassay inputs and contig rosters fail closed.; Runner and provenance bind what they run.; Mode B reports true reasons and numeric identities.
 tier=code

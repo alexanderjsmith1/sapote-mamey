@@ -79,7 +79,7 @@ python mamey_run.py run --json-evidence off --input-zip ...
 **Fix:** Bank the strain using the ingest path instead:
 ```bash
 python tools/ingest_package.py --package runs/AS-XXX/package --ww WWGP0000000 --merge --banked-dir cohort
-python tools/build_master.py --workbook Sapote-Mamey_Master.xlsx
+python tools/build_master.py --banked-dir cohort --out Sapote-Mamey_Master.xlsx   # legacy v1.2 builder (deprecated)
 ```
 
 ---

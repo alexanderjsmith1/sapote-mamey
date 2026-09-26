@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 import re as _re
 import sys
 from pathlib import Path
@@ -40,11 +41,12 @@ from .manifest_schema import read_manifest_field
 # ---------------------------------------------------------------------------
 
 def _pct_or_none(value):
-    """A percent identity as a float, or None when the cell is blank or not a number."""
+    """A finite 0–100 percent identity, or None for missing or invalid cells."""
     try:
-        return float(value or "")
-    except ValueError:
+        pct = float(value)
+    except (TypeError, ValueError, OverflowError):
         return None
+    return pct if math.isfinite(pct) and 0 <= pct <= 100 else None
 
 
 def _section_floor_for(num: int, facts: dict) -> int:
@@ -513,6 +515,24 @@ def _full_class_hits(pkg_entry: dict, tokens: frozenset) -> list[dict]:
     return [r for r in pkg_entry["rows"] if tokens and tokens <= _product_tokens(r.get("Products", ""))]
 
 
+# antiSMASH 8.0.4 categories (`detection/hmm_detection/data/categories.json`) that are ALSO product-rule
+# names. `parsers._feature_products` has written each region's /category into the same `Products` column
+# as its /product, so in those packages these four tokens can mean the product, the category, or both.
+# The other categories (PKS, RiPP, alkaloid) are never product names and cannot widen a match.
+_CATEGORY_AMBIGUOUS_TOKENS = frozenset({"nrps", "terpene", "saccharide", "other"})
+
+
+def _category_caveat(tokens: frozenset) -> str:
+    shared = sorted(tokens & _CATEGORY_AMBIGUOUS_TOKENS)
+    if not shared:
+        return ""
+    return ("**Category tokens:** " + ", ".join(f"`{t}`" for t in shared) + " are antiSMASH category names "
+            "as well as product names. A package `Products` column can carry a region's category beside its "
+            "product, so a row can match on its category alone and the counts here are an upper bound for this "
+            "class. Packages built after the product/category separation carry products only; mixing builds "
+            "can move a count either way. Confirm class membership from each region GBK's `/product`.")
+
+
 def _read_strain_metadata(path: str) -> list[dict]:
     """Tab-separated table with at least `strain`; optional `genus`, `host`, `excluded`,
     `exclusion_reason`. Values are used exactly as deposited."""
@@ -539,6 +559,47 @@ def _excluded_names(meta_rows: list[dict]) -> dict:
 def _source_hold(flag: str, what: str) -> str:
     return (f"**Source not supplied:** {what} was not given to the emitter "
             f"(pass `{flag}`). This is a workflow gap, not evidence of absence.\n\n")
+
+
+def _supplied_source_hold(flag: str, what: str) -> str:
+    return (f"**SOURCE HOLD:** `{flag}` was supplied, but {what}. "
+            "This is missing input evidence, not evidence of absence.\n\n")
+
+
+# The four cross-source inputs read by §25 §40 §44 §46 §47. Defined once so every route that emits
+# templates (emit-modeb-template, modeb-round, deliverable-queue) takes the same flags; a route that
+# lacks them emits six "Source not supplied" holds on every card.
+SOURCE_FLAGS = (
+    ("cohort_dir", "--cohort-dir",
+     "Package root laid out as <dir>/<strain>/package/*_2_inventory.csv; "
+     "pre-fills §44 prevalence (and §47 locus counts)"),
+    ("reference_dir", "--reference-dir",
+     "Reference package root, same layout; pre-fills §46 for the focal genus"),
+    ("strain_metadata", "--strain-metadata",
+     "TSV with strain/genus/host/excluded/exclusion_reason columns, used as "
+     "deposited; supplies genus (§46), host (§47) and exclusions (§44)"),
+    ("bigscape_regions_dir", "--bigscape-regions-dir",
+     "Directory of region GBKs; §40 binds only on the exact strain + full contig + region"),
+)
+
+
+def add_source_arguments(parser) -> None:
+    for dest, flag, help_text in SOURCE_FLAGS:
+        parser.add_argument(flag, default=None, dest=dest, help=help_text)
+
+
+def sources_from_args(args) -> dict:
+    return {dest: getattr(args, dest, None) for dest, _flag, _help in SOURCE_FLAGS}
+
+
+def source_argv(sources: Optional[dict]) -> list[str]:
+    """The supplied sources as emit-modeb-template CLI arguments, for routes that shell to it."""
+    argv: list[str] = []
+    for dest, flag, _help in SOURCE_FLAGS:
+        value = (sources or {}).get(dest)
+        if value:
+            argv += [flag, str(value)]
+    return argv
 
 
 def _hit_table(hits: list[tuple[str, dict]], focal: tuple[str, str, str]) -> list[str]:
@@ -609,32 +670,60 @@ def _body_40_bigscape(facts: dict) -> str:
     head = ""
     if not src:
         head = _source_hold("--bigscape-regions-dir", "a BiG-SCAPE region-GBK directory")
+    elif not Path(src).is_dir():
+        head = _supplied_source_hold("--bigscape-regions-dir", "the region-GBK directory is unavailable")
     else:
         d = Path(src)
-        gbks = sorted(d.glob("*.gbk")) if d.is_dir() else []
+        gbks = sorted(d.glob("*.gbk"))
         expected = f"{strain}_{contig}.{region}.gbk" if strain not in ("", "?") and contig and region else ""
         exact = [g for g in gbks if expected and g.name == expected]
         if exact:
             head = ("**Region GBK bound on the exact full contig and region for the same strain:**\n"
                     + "\n".join(f"- `{g.name}`" for g in exact) + "\n\n")
         elif gbks:
-            node = contig.split("_length_")[0] if "_length_" in contig else ""
-            same_node = [g.name for g in gbks if node and f"{node}_length_" in g.name]
             head = (f"**IDENTITY HOLD:** `{d}` holds {len(gbks)} region GBK(s), none on the exact "
                     f"strain `{strain}` / full contig `{contig}` / region `{region}`.")
-            if same_node:
-                if any(name.endswith(f"_{contig}.{region}.gbk") for name in same_node):
-                    head += " A region GBK has the same full contig and region under another strain; do not join across strains."
-                else:
-                    head += (f" {len(same_node)} carry the same node number with a different full contig name "
-                             f"(e.g. `{same_node[0]}`), which indicates a different assembly. Do not join on "
-                             "node number.")
+            tail = f"{contig}.{region}.gbk" if contig and region else ""
+            same_region = [g.name for g in gbks
+                           if tail and g.name.endswith(tail)
+                           and (g.name == tail or g.name[:-len(tail)].endswith("_"))]
+            node = contig.split("_length_")[0] if "_length_" in contig else ""
+            same_contig = [g.name for g in gbks if contig and _re.search(
+                rf"(?:^|_){_re.escape(contig)}\.region\d+\.gbk$", g.name, _re.I)]
+            same_node = [g.name for g in gbks if node and _re.search(
+                rf"(?:^|_){_re.escape(node)}_length_", g.name, _re.I)]
+            if same_region:
+                # The full contig and region match; only the filename's strain prefix differs. Say why
+                # the file is not bound instead of calling it a different assembly or another strain.
+                head += " " + _same_region_hold_reason(same_region[0], tail)
+            elif same_contig:
+                head += (f" A region GBK has the same full contig but a different region "
+                         f"(e.g. `{same_contig[0]}`); do not join across regions.")
+            elif same_node:
+                head += (f" {len(same_node)} carry the same node number with a different full contig name "
+                         f"(e.g. `{same_node[0]}`), which indicates a different assembly. Do not join on "
+                         "node number.")
             head += "\n\n"
         else:
             head = f"**No region GBKs found in** `{d}`.\n\n"
     return (head + "**BiG-SCAPE run receipt:** none bound to this template. GCF membership, cutoff and "
             "cohort/reference co-membership are not stated here.\n\n"
             "<!-- Author: cite the BiG-SCAPE run receipt (version, cutoff, input set) before naming a family. -->")
+
+
+def _same_region_hold_reason(name: str, tail: str) -> str:
+    """Why a GBK on the exact full contig and region is still not bound to this strain."""
+    from .bigscape_namespace import strain_from_gbk_name
+    prefix = name[:-len(tail)].rstrip("_")
+    if not prefix:
+        return (f"`{name}` has the same full contig and region but no strain prefix, so the file "
+                "cannot be attributed to a strain. Restage it with the strain prefix before binding.")
+    staged = strain_from_gbk_name(name)
+    if staged == "?":
+        return (f"`{name}` has the same full contig and region, but its prefix `{prefix}` is not a "
+                "parseable strain id (a staging defect). Restage it before binding.")
+    return (f"`{name}` has the same full contig and region staged under a different strain id "
+            f"`{staged}`; do not join across strains.")
 
 
 _PHYLO_TARGET_KINDS = ("biosynthetic", "biosynthetic-additional")
@@ -668,10 +757,16 @@ def _body_44_prevalence(facts: dict) -> str:
     if not src:
         return (_source_hold("--cohort-dir", "a cohort package root") +
                 "<!-- Author: state numerator, denominator and exclusions once the cohort root is bound. -->")
+    if not Path(src).is_dir():
+        return _supplied_source_hold("--cohort-dir", "the cohort package root is unavailable")
     if not tokens:
         return "*This locus has no antiSMASH product tokens: prevalence class undefined.*"
     pkgs = _scan_package_root(src)
+    if not pkgs:
+        return _supplied_source_hold("--cohort-dir", "no package inventories were found")
     meta = _read_strain_metadata(facts["_sources"]["strain_metadata"]) if facts["_sources"].get("strain_metadata") else []
+    if facts["_sources"].get("strain_metadata") and not meta:
+        return _supplied_source_hold("--strain-metadata", "the metadata table is unavailable or empty")
     excl = _excluded_names(meta)
     kept = [p for p in pkgs if p["name"] not in excl]
     dropped = [p for p in pkgs if p["name"] in excl]
@@ -687,6 +782,8 @@ def _body_44_prevalence(facts: dict) -> str:
            f"**Denominator:** {len(kept)} packages with an inventory under `{src}` "
            f"(antiSMASH profile: {', '.join(f'{k} ×{v}' for k, v in sorted(profiles.items()))}).",
            f"**Numerator:** {len(hits)} loci in {len(carriers)} of {len(kept)} packages."]
+    if _category_caveat(tokens):
+        out.append(_category_caveat(tokens))
     if len(profiles) > 1:
         out.append("**Profile mix:** loose and strict runs call different regions; treat the ratio as "
                    "mixed-strictness.")
@@ -717,18 +814,27 @@ def _body_46_reference(facts: dict) -> str:
     if not src:
         return (_source_hold("--reference-dir", "a reference package root") +
                 "<!-- Author: compare against type/reference loci once references are bound. -->")
+    if not Path(src).is_dir():
+        return _supplied_source_hold("--reference-dir", "the reference package root is unavailable")
+    if facts["_sources"].get("strain_metadata") and not _read_strain_metadata(facts["_sources"]["strain_metadata"]):
+        return _supplied_source_hold("--strain-metadata", "the metadata table is unavailable or empty")
+    scanned = _scan_package_root(src)
+    if not scanned:
+        return _supplied_source_hold("--reference-dir", "no package inventories were found")
     genus, genus_src = _focal_genus(facts)
     if not genus:
         return ("**Genus unresolved:** the package manifest taxonomy is a placeholder and no strain-metadata "
                 "genus was supplied (`--strain-metadata`). Reference comparison held.\n")
     tokens = _product_tokens(facts.get("products") or "")
-    refs = [p for p in _scan_package_root(src) if p["genus"] == genus]
+    refs = [p for p in scanned if p["genus"] == genus]
     focal_profile = (facts.get("antismash_profile") or "unrecorded")
     out = [f"**Focal genus:** *{genus}* (from {genus_src}). **Focal antiSMASH profile:** {focal_profile}.",
            f"**Reference packages of this genus under** `{src}`: {len(refs)}.\n"]
     if not refs:
         out.append("*None found.*")
         return "\n".join(out)
+    if _category_caveat(tokens):
+        out += [_category_caveat(tokens), ""]
     out += ["| Reference (deposited name) | antiSMASH profile | Loci matching this class |", "|---|---|---:|"]
     hits: list[tuple[str, dict]] = []
     for p in refs:
@@ -751,6 +857,11 @@ def _body_47_host_matched(facts: dict) -> str:
         return (_source_hold("--strain-metadata", "a strain-metadata table (strain, genus, host)") +
                 "<!-- Author: host-matched comparison needs verified host metadata. -->")
     meta = _read_strain_metadata(path)
+    if not meta:
+        return _supplied_source_hold("--strain-metadata", "the metadata table is unavailable or empty")
+    cohort_src = facts["_sources"].get("cohort_dir")
+    if cohort_src and (not Path(cohort_src).is_dir() or not _scan_package_root(cohort_src)):
+        return _supplied_source_hold("--cohort-dir", "the cohort root has no usable package inventories")
     row, key = _metadata_row(facts, meta)
     if not row or not (row.get("host") or "").strip():
         return (f"**Host unresolved:** no host value for this strain in `{path}`. Comparison held.\n")
@@ -767,6 +878,8 @@ def _body_47_host_matched(facts: dict) -> str:
     pkgs = {p["name"]: p for p in _scan_package_root(facts["_sources"]["cohort_dir"])} \
         if facts["_sources"].get("cohort_dir") else {}
     tokens = _product_tokens(facts.get("products") or "")
+    if pkgs and _category_caveat(tokens):
+        out += [_category_caveat(tokens), ""]
     out += ["| Strain | Genus (as deposited) | Governed exclusion | Loci matching this class |", "|---|---|---|---:|"]
     for r in sorted(matched, key=lambda r: r.get("strain") or ""):
         s = (r.get("strain") or "").strip()

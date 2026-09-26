@@ -157,5 +157,12 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(); ap.add_argument("--strain", required=True)
     ap.add_argument("--outdir", default=f"{ROOT}/sapote_deliverables/widgets"); ap.add_argument("--per-bgc", action="store_true")
     a = ap.parse_args()
+    # v9.7.443: ROOT falls back to the current directory; refuse output inside the code bundle.
+    _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+    from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle
+    try:
+        assert_output_outside_bundle(a.outdir, __file__, kind="BGC widgets")
+    except OutputInsideBundle as _e:
+        _sys.exit(str(_e))
     made,nb,ng = build(a.strain, a.outdir, a.per_bgc)
     emit(f"{a.strain}: {nb} BGCs, {ng} genes -> {len(made)} html file(s); main={made[0]}")

@@ -1,5 +1,10 @@
 # Literature Verification — Routed-Out Classes (DAPR §2.5)
 
+> **Locator note.** The locators in this record (for example `SID-XXX BGC050`) are a redacted strain plus a
+> bare BGC alias. They predate the exact-locus rule in `AGENTS.md`: every BGC reference is
+> `strain / full node-or-contig / region / BGC alias`. Keep this file as a literature-verification record; do
+> not copy its locator form into a new deliverable.
+
 **Actinomycetes Project** · Sapote judgment layer
 Purpose: citation-back the **routed-out** decisions — the classes deliberately *not* scored as antibacterial/antifungal leads — so the exclusions are as evidenced as the leads (`Lit_Verification_DAPR_New_Leads`). Feeds `G1_Literature_Index`.
 

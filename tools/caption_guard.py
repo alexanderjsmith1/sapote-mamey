@@ -16,6 +16,8 @@ Usage:
 from __future__ import annotations
 
 import re
+import sys
+from pathlib import Path
 
 __all__ = ["BLOCKED", "CaptionGovernanceError", "CaptionUnreadableError", "check_caption", "scan_paths"]
 
@@ -28,42 +30,18 @@ class CaptionUnreadableError(OSError):
     """Raised when a caption file cannot be read, so it could not be checked."""
 
 
-# Phrase -> why it does not belong in a caption.
-BLOCKED: dict[str, str] = {
-    "judgment deferred": "names the operator's review process, not the figure",
-    "judgement deferred": "names the operator's review process, not the figure",
-    "no compound": "reassurance about what the figure does not prove",
-    "structure, or potency": "reassurance about what the figure does not prove",
-    "potency claim": "reassurance about what the figure does not prove",
-    "claim is implied": "reassurance about what the figure does not prove",
-    "not biological absence": "belongs in the methods text, phrased as what was tested",
-    "claim-safe": "governance vocabulary",
-    "judgment is deferred": "names the operator's review process, not the figure",
-    # Alex 2026-09-24: claim-safety statements are removed from figures entirely, footers and
-    # internal-notes band included. A key reads "isolate from this study", not "query strain".
-    "query strain": "internal pipeline role; the key reads 'isolate from this study'",
-    "not identity": "reassurance about what the figure does not prove",
-    "not compound identity": "reassurance about what the figure does not prove",
-    "not production": "reassurance about what the figure does not prove",
-    "not potency": "reassurance about what the figure does not prove",
-    "not bioactivity": "reassurance about what the figure does not prove",
-    "not novelty": "reassurance about what the figure does not prove",
-    "descriptive screening": "governance vocabulary; state the assay and threshold instead",
-    "claim safety": "governance vocabulary",
-}
+# Phrase -> why it does not belong in a caption. One list for every figure surface: the figure
+# save path (mamey/figure_save.py) refuses the same phrases, so a figure cannot pass one check
+# and fail the other. Edit the list in mamey/figure_policy.py, not here.
+# "class-level" follows the same shared rule: refused as a hedge, allowed before a noun.
+_BUNDLE_ROOT = str(Path(__file__).resolve().parents[1])
+if _BUNDLE_ROOT not in sys.path:
+    sys.path.insert(0, _BUNDLE_ROOT)
+from mamey.figure_policy import (  # noqa: E402
+    CLASS_LEVEL_REASON, FIGURE_BANNED_PHRASES, class_level_hedge,
+)
 
-# "class-level" is legitimate scientific vocabulary when it modifies a following noun
-# ("class-level composition", "class-level phylogenetic placement") but is governance
-# hedging when used as a standalone predicate ("screening signal is class-level;" /
-# "class-level." / "class-level,"). Matched separately from BLOCKED, which is a flat
-# substring check that cannot tell the two apart.
-_CLASS_LEVEL_STANDALONE = re.compile(r"\bclass-level\b(?!\s+[a-z])")
-# The lookahead above exempts ANY following lowercase word, which is right for
-# "class-level distribution" but wrong for governance qualifiers: "class-level only",
-# "class-level hypotheses only", "class-level read only" all survive it. Those are the
-# hedging forms, so they get their own pattern.
-_CLASS_LEVEL_QUALIFIED = re.compile(r"\bclass-level\s+(?:only\b|hypothes\w*|read\b)")
-_CLASS_LEVEL_REASON = "governance vocabulary; state the actual threshold instead"
+BLOCKED: dict[str, str] = dict(FIGURE_BANNED_PHRASES)
 
 _WS = re.compile(r"\s+")
 
@@ -76,8 +54,8 @@ def check_caption(text: str, *, raises: bool = True) -> list[tuple[str, str]]:
     """Return [(phrase, reason)] found in `text`. Raise when `raises` and any are found."""
     flat = _normalise(text)
     found = [(p, why) for p, why in BLOCKED.items() if p in flat]
-    if _CLASS_LEVEL_STANDALONE.search(flat) or _CLASS_LEVEL_QUALIFIED.search(flat):
-        found.append(("class-level", _CLASS_LEVEL_REASON))
+    if class_level_hedge(flat):
+        found.append(("class-level", CLASS_LEVEL_REASON))
     # A phrase implied by a longer one is reported once, by the longest match.
     found = [(p, w) for p, w in found if not any(p != q and p in q for q, _ in found)]
     if found and raises:
@@ -98,9 +76,9 @@ def scan_paths(paths, *, strict: bool = True) -> dict[str, list[tuple[str, str]]
     unreadable: list[tuple[str, str]] = []
     for p in paths:
         try:
-            with open(p, encoding="utf-8", errors="replace") as fh:
+            with open(p, encoding="utf-8") as fh:
                 text = fh.read()
-        except OSError as exc:
+        except (OSError, UnicodeError) as exc:
             if strict:
                 raise CaptionUnreadableError(f"CAPTION_UNREADABLE: {p}: {exc}") from exc
             unreadable.append((str(p), f"unreadable, not checked: {exc}"))

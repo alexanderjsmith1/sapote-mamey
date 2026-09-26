@@ -28,7 +28,7 @@ before writing any archive data.
 |---|---|
 | `bounded` | **Default** for `run`. Streams the JSON with ijson, extracting only KCB / RiQ / TIGRFAM keys under record + byte caps. Never materialises the whole document. Falls back to `off` if ijson is missing, or **mid-run if the stream exceeds the wall-clock budget** (a `[WARN]` is logged). |
 | `off` | Never opens the JSON. KCB comes from the TXT clusterblast files; **TIGRFAM is unavailable** (JSON-only). Fastest; safe for any genome size. Forced in capped / ChatGPT-safe runs. |
-| `full` | Legacy: loads the whole JSON. Refuses files > 20 MB. Only for small JSON. |
+| `full` | Legacy: loads the whole JSON. Refuses files over 80,000,000 bytes (`FULL_MAX_JSON_BYTES`). Only for small JSON. |
 
 ## Bounded RiQ record identity
 

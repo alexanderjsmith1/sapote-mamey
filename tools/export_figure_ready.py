@@ -62,11 +62,14 @@ def main(wb_path, out=None):
     for r in A2:
         strain=r.get('strain')
         a3=corr_by_strain.get(strain, {})
-        raw=num(a3.get('raw')); raw=raw if raw is not None else (num(r.get('bgc_count')) or 0)
-        corr=num(a3.get('corrected')); corr=corr if corr is not None else 0
+        # A missing count stays blank. Reading it as 0 turned a strain with no A3 correction into
+        # a loss equal to its whole raw count. An observed 0 is still written as 0.
+        raw=num(a3.get('raw')); raw=raw if raw is not None else num(r.get('bgc_count'))
+        corr=num(a3.get('corrected'))
+        loss=round(raw-corr,2) if raw is not None and corr is not None else None
         ss.append([strain, r.get('taxonomy'), genus_of(r.get('taxonomy')), r.get('ecology_source'),
                    r.get('assembly_tier'), r.get('contigs'), r.get('n50'), r.get('assembly_bp'),
-                   r.get('gc_pct'), r.get('interior_pct'), raw, corr, round((raw or 0)-(corr or 0),2)])
+                   r.get('gc_pct'), r.get('interior_pct'), raw, corr, loss])
     # v9.7.374: named so DATA_DICTIONARY.md below can quote the REAL header instead of a
     # hand-typed copy -- a hand-typed copy is exactly how "sid"/"organism"/"host_source"/
     # "genome_bp" (none of which this function has ever written) ended up in the shipped
@@ -144,7 +147,8 @@ Columns (exact CSV header): {', '.join(ss_hdr)}.
 # ("assembly_tier"/"assembly_grade") without a wider audit of the rest of this string.
 strain (id), taxonomy, genus, ecology_source, assembly_tier (GOOD/MOD/POOR), contigs (int),
 n50 (bp), assembly_bp (bp), gc_pct (%), interior_pct (%), raw_bgcs (int), corrected_bgcs
-(Interior + 0.5*Edge + 0.25*FullContig), fragmentation_loss (raw - corrected).
+(Interior + 0.5*Edge + 0.25*FullContig), fragmentation_loss (raw - corrected; blank when either
+count is missing, never 0).
 
 ## bgc_inventory.csv  ({n2} rows — one per BGC)
 Columns (exact CSV header): {', '.join(inv_hdr)}.

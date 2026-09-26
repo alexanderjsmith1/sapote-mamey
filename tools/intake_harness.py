@@ -177,6 +177,15 @@ def _run_failed_reason(log, max_len=160):
         line = line.strip()
         if line.startswith("ERROR"):
             return " -- " + (line[:max_len] + "..." if len(line) > max_len else line)
+    # mamey_run.py refuses before the engine starts, with a multi-line message whose first line
+    # names the refusal (`STALE_BYTECODE_REFUSED: ...`) and whose last line is its remediation or
+    # "Nothing has been deleted for you." The tail fallback below would report that closing line as
+    # the reason, so every input in a refused batch read "-- Nothing has been deleted for you."
+    for line in log.splitlines():
+        line = line.strip()
+        head = line.split(":", 1)[0]
+        if head.endswith("_REFUSED") and head.replace("_", "").isalpha() and head.isupper():
+            return " -- " + (line[:max_len] + "..." if len(line) > max_len else line)
     tail = [ln.strip() for ln in log.splitlines() if ln.strip()]
     if not tail:
         return ""
@@ -475,7 +484,32 @@ def main():
 
     if a.batch_report:
         _write_report(a.batch_report, a.batch_label, reg_rows, met_rows, smoke)
-    emit(f"[intake] registry -> {a.registry} | metrics -> {a.metrics}")
+    status, summary = _batch_exit_status(met_rows)
+    emit(f"[intake] registry -> {a.registry} | metrics -> {a.metrics}", summary, sep="\n")
+    return status
+
+
+def _batch_exit_status(met_rows):
+    """0 when every input this pass attempted finished; 1 when any RUN_FAILED.
+
+    Before v9.7.443 main() returned None, so a batch in which every input failed exited 0 and was
+    indistinguishable, to a shell or a scheduler, from one in which every input succeeded. The
+    per-input lines were printed, but nothing that checks an exit status could see them.
+    NEEDS_ANTISMASH is a triage state, not a failure: those inputs are recorded in the registry and
+    need an antiSMASH run first. SKIP (--resume) rows are not in met_rows at all. RUN_FAILED rows
+    stay out of the registry on purpose, so a later --resume retries them.
+
+    Returns (exit status, summary text). Pure, so the caller prints once and it is testable.
+    """
+    failed = [m["strain"] for m in met_rows if m.get("status") == "RUN_FAILED"]
+    triage = sum(1 for m in met_rows if m.get("status") == "NEEDS_ANTISMASH")
+    ok = sum(1 for m in met_rows if m.get("status") == "OK")
+    summary = (f"[intake] attempted {len(met_rows)}: OK {ok}, RUN_FAILED {len(failed)}, "
+               f"NEEDS_ANTISMASH {triage}")
+    if not failed:
+        return 0, summary
+    return 1, (summary + f"\n[intake] BATCH_INCOMPLETE: {len(failed)} of {len(met_rows)} attempted "
+               f"input(s) failed; re-run with --resume to retry them: {', '.join(failed)}")
 
 
 def _write_report(path, label, reg, met, smoke):
@@ -520,4 +554,4 @@ def _write_report(path, label, reg, met, smoke):
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

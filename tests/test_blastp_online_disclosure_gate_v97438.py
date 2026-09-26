@@ -79,11 +79,13 @@ def test_submit_alone_is_refused(no_network, capsys):
     assert no_network == []
 
 
-def test_both_flags_reach_the_network_call(no_network):
+def test_both_flags_reach_the_network_call(no_network, tmp_path):
     """The gate must open when it is supposed to, or it is not a gate, it is a wall."""
+    # v9.7.443: a submitting run needs an output dir outside the bundle (see
+    # test_blastp_online_outdir_outside_bundle_v97443.py); tests run from the bundle root.
     with pytest.raises(AssertionError, match="run_batches_online was reached"):
         blastp_online.blastp_online_command(
-            _args(submit=True, confirm_public_upload=True))
+            _args(submit=True, confirm_public_upload=True, outdir=str(tmp_path)))
 
 
 def test_digest_is_stable_and_follows_the_sequences(no_network, capsys, monkeypatch):

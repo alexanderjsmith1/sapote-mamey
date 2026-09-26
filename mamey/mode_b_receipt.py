@@ -1184,8 +1184,8 @@ def emit_modeb_template_command(args) -> int:
     if _bp["message"]:
         emit(f"  {_bp['message']}", file=sys.stderr)
 
-    sources = {k: getattr(args, k, None) for k in
-               ("cohort_dir", "reference_dir", "strain_metadata", "bigscape_regions_dir")}
+    from .modeb_template_emitter import sources_from_args
+    sources = sources_from_args(args)
     if bgc:
         try:
             from . import modeb_template_emitter as _emit

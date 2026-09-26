@@ -1,9 +1,9 @@
-# Figure: Cross-strain findings table (claim-tagged)
+# Figure: Findings across isolates findings table (claim-tagged)
 
 - **id:** `fig_cross_strain_findings_table`
 - **category:** tables
 - **audience:** manuscript + presentation
-- **output:** `fig_cross_strain_findings_table.png` (slides, ≥200 dpi) + `.svg`/`.pdf` for print
+- **output:** `fig_cross_strain_findings_table.png` (slides, ≥300 dpi) + `.svg`/`.pdf` for print
 
 ## Data
 - **source:** `figure_ready/cross_strain_findings.csv`
@@ -23,7 +23,9 @@ annotation: axis labels, legend, title, colorbar, and value labels flush at bar 
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-> Cross-strain findings with explicit claim status, including the two standing findings that do not reproduce on this set.
+Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+
+> Findings across isolates with explicit claim status, including the two standing findings that do not reproduce on this set.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Color-code claim_status consistently with the deck theme.

@@ -35,7 +35,7 @@ Auto-append a `Recommended Figures from This Analysis` section near the end of e
 
 `PROMPT_BACKED` recommendation → hand to the matching builder tool for rendering:
 ```bash
-python tools/build_figures.py --package-dir <pkg> --figure <type> --out-dir <dir>   # honors --replot --dpi
+python tools/build_figures.py --banked-dir <cohort_dir> --workbook <master.xlsx> --out-dir <dir>   # add --replot to re-render from edited CSVs
 ```
 Rendering rules (DPI, palette, fonts, reproducibility manifest) are owned by `FIGURE_STYLE.md` / `FIGURE_REPRODUCIBILITY.md` — this module does not restate them.
 

@@ -34,15 +34,29 @@ tarball="$outdir/$name.tar.gz"
 # and Linux tar extracts those as real files that fail --strict-membership. Exclude them, then check.
 COPYFILE_DISABLE=1 tar -czf "$tarball" -C "$(dirname "$src")" \
   --exclude '.DS_Store' --exclude '__pycache__' --exclude '.pytest_cache' --exclude '._*' \
-  "$name"
-if tar -tzf "$tarball" | awk -F/ '{print $NF}' | grep -q '^\._'; then
-  rm -f "$tarball"
-  echo "REFUSED: AppleDouble (._*) entries reached $name.tar.gz; rebuild from a fresh extraction of the sealed ZIP" >&2
+  -- "$name"
+if ! python3 - "$tarball" <<'PY'
+import sys
+import tarfile
+
+try:
+    with tarfile.open(sys.argv[1], mode="r|gz") as archive:
+        for member in archive:
+            if member.name.rsplit("/", 1)[-1].startswith("._"):
+                print(f"APPLEDOUBLE_MEMBER: {member.name}", file=sys.stderr)
+                sys.exit(2)
+except (OSError, tarfile.TarError) as exc:
+    print(f"TARBALL_INSPECTION_REFUSED: {exc}", file=sys.stderr)
+    sys.exit(2)
+PY
+then
+  rm -f -- "$tarball" "$tarball.sha256"
+  echo "REFUSED: AppleDouble (._*) member or unreadable tarball; rebuild from a fresh extraction of the sealed ZIP" >&2
   exit 2
 fi
 # Relative-name sidecar (BC4 .400 seal-gate review, delta h): an awk-$2 sidecar truncated the
 # recorded path at the first space, so `shasum -c` failed on spaced outdirs — which the
 # workspace's release folders are. Relative name = space-safe AND portable across machines.
-( cd "$outdir" && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256" )
+( cd "$outdir" && shasum -a 256 -- "$name.tar.gz" > "$name.tar.gz.sha256" )
 echo "tarball: $tarball"
 echo "sha256:  $(cut -d' ' -f1 "$tarball.sha256")"

@@ -31,6 +31,8 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     Flowable,
     Image,
@@ -84,7 +86,7 @@ def inline(text: str) -> str:
     text = re.sub(r"(?<![\w*])\*(?!\s)([^*\n]+?)(?<!\s)\*(?![\w*])", r"<i>\1</i>", text)
     return re.sub(
         r"\x00(\d+)\x00",
-        lambda match: f'<font face="Courier" size=9>{spans[int(match.group(1))]}</font>',
+        lambda match: f'<font face="{MONO}" size=9>{spans[int(match.group(1))]}</font>',
         text,
     )
 
@@ -97,17 +99,82 @@ def P(text: str, style, **kwargs):
         return Paragraph(html.escape(text), style, **kwargs)
 
 
+# v9.7.443: embed the text faces. ReportLab's built-in Helvetica/Courier are never embedded, so a
+# compiled PDF carrying them fails the embedded-font QA (compile_report FIGURE_EMBED_FONT_NOT_EMBEDDED).
+# Resolve one TrueType family from a short search list; if none is found, render() refuses and the
+# md_to_pdf.sh caller falls back to pandoc+xelatex, which embeds its fonts. Never write an unembedded
+# PDF from render(). SAPOTE_PDF_FONT_DIR, when set, is searched first.
+class EmbeddedFontUnavailable(RuntimeError):
+    code = "PDF_EMBEDDED_FONT_UNAVAILABLE"
+
+
+_FONT_DIRS = [d for d in (
+    os.environ.get("SAPOTE_PDF_FONT_DIR", ""),
+    "/usr/share/fonts/truetype/liberation", "/usr/share/fonts/truetype/liberation2",
+    "/usr/share/fonts/liberation-sans", "/usr/share/fonts/liberation-mono",
+    "/usr/share/fonts/truetype/dejavu", "/usr/share/fonts/dejavu",
+    "/System/Library/Fonts/Supplemental", "/Library/Fonts",
+    os.path.expanduser("~/Library/Fonts"), r"C:\Windows\Fonts",
+) if d]
+# (regular, bold, italic, bold-italic); the first family with all four files in one folder wins.
+_SANS_CANDIDATES = (
+    ("LiberationSans-Regular.ttf", "LiberationSans-Bold.ttf", "LiberationSans-Italic.ttf", "LiberationSans-BoldItalic.ttf"),
+    ("Arial.ttf", "Arial Bold.ttf", "Arial Italic.ttf", "Arial Bold Italic.ttf"),
+    ("arial.ttf", "arialbd.ttf", "ariali.ttf", "arialbi.ttf"),
+    ("DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSans-Oblique.ttf", "DejaVuSans-BoldOblique.ttf"),
+)
+_MONO_CANDIDATES = ("LiberationMono-Regular.ttf", "Courier New.ttf", "cour.ttf", "DejaVuSansMono.ttf")
+
+
+def _find_family(candidates):
+    for names in candidates:
+        for folder in _FONT_DIRS:
+            paths = [os.path.join(folder, n) for n in names]
+            if all(os.path.isfile(x) for x in paths):
+                return paths
+    return None
+
+
+def _register_embedded_fonts():
+    """Register SapoteSans{,-Bold,-Italic,-BoldItalic} and SapoteMono; return (ok, reason)."""
+    sans = _find_family(_SANS_CANDIDATES)
+    mono = _find_family(tuple((n,) for n in _MONO_CANDIDATES))
+    if not sans or not mono:
+        return False, "no embeddable TrueType " + ("sans family" if not sans else "monospace face") + \
+            f" found in {_FONT_DIRS}"
+    try:
+        for name, path in zip(("SapoteSans", "SapoteSans-Bold", "SapoteSans-Italic", "SapoteSans-BoldItalic"), sans):
+            pdfmetrics.registerFont(TTFont(name, path))
+        pdfmetrics.registerFont(TTFont("SapoteMono", mono[0]))
+        pdfmetrics.registerFontFamily("SapoteSans", normal="SapoteSans", bold="SapoteSans-Bold",
+                                      italic="SapoteSans-Italic", boldItalic="SapoteSans-BoldItalic")
+        pdfmetrics.registerFontFamily("SapoteMono", normal="SapoteMono", bold="SapoteMono",
+                                      italic="SapoteMono", boldItalic="SapoteMono")
+    except Exception as exc:  # a present but unreadable font file is a real failure; say which
+        return False, f"could not register embeddable fonts ({type(exc).__name__}: {exc})"
+    return True, ""
+
+
+FONTS_EMBEDDED, FONT_UNAVAILABLE_REASON = _register_embedded_fonts()
+if FONTS_EMBEDDED:
+    SANS, SANS_BOLD, SANS_ITALIC, SANS_BOLD_ITALIC, MONO = (
+        "SapoteSans", "SapoteSans-Bold", "SapoteSans-Italic", "SapoteSans-BoldItalic", "SapoteMono")
+else:  # render() refuses below; in-process callers keep the pre-.443 base-14 faces
+    SANS, SANS_BOLD, SANS_ITALIC, SANS_BOLD_ITALIC, MONO = (
+        "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique", "Courier")
+
 styles = getSampleStyleSheet()
-BODY = ParagraphStyle("body", parent=styles["Normal"], fontName="Helvetica", fontSize=10.5,
+BODY = ParagraphStyle("body", parent=styles["Normal"], fontName=SANS, fontSize=10.5,
                       leading=15, textColor=INK, spaceAfter=6)
-H2 = ParagraphStyle("h2", fontName="Helvetica-Bold", fontSize=15, leading=18, textColor=INDIGO,
+H2 = ParagraphStyle("h2", fontName=SANS_BOLD, fontSize=15, leading=18, textColor=INDIGO,
                     spaceBefore=16, spaceAfter=2, leftIndent=10)
-H3 = ParagraphStyle("h3", fontName="Helvetica-Bold", fontSize=12, leading=15, textColor=TEAL,
+H3 = ParagraphStyle("h3", fontName=SANS_BOLD, fontSize=12, leading=15, textColor=TEAL,
                     spaceBefore=10, spaceAfter=2, leftIndent=10)
-H4 = ParagraphStyle("h4", fontName="Helvetica-BoldOblique", fontSize=10.5, leading=13,
+H4 = ParagraphStyle("h4", fontName=SANS_BOLD_ITALIC, fontSize=10.5, leading=13,
                     textColor=INDIGO, spaceBefore=8, spaceAfter=2, leftIndent=10)
-BULLET = ParagraphStyle("bullet", parent=BODY, leftIndent=22, bulletIndent=10, spaceAfter=3)
-CODE = ParagraphStyle("code", parent=styles["Code"], fontName="Courier", fontSize=8.5,
+BULLET = ParagraphStyle("bullet", parent=BODY, leftIndent=22, bulletIndent=10, spaceAfter=3,
+                        bulletFontName=SANS)  # ReportLab defaults bullet glyphs to base-14 Helvetica
+CODE = ParagraphStyle("code", parent=styles["Code"], fontName=MONO, fontSize=8.5,
                      leading=11, textColor=INK)
 CALLOUT = ParagraphStyle("callout", parent=BODY, textColor=INK, spaceAfter=0, leading=14)
 
@@ -147,6 +214,7 @@ def callout(text_lines, tint=PERI, bar=INDIGO):
         rows.extend([[paragraph(chunk)] for chunk in chunks])
     table = Table(rows, colWidths=[6.6 * inch])
     table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, -1), SANS),  # Table sets its cell font on the canvas; default is base-14
         ("BACKGROUND", (0, 0), (-1, -1), tint),
         ("LEFTPADDING", (0, 0), (-1, -1), 12),
         ("RIGHTPADDING", (0, 0), (-1, -1), 12),
@@ -161,6 +229,7 @@ def code_block(code_lines):
     pre = Preformatted("\n".join(code_lines) or " ", CODE, maxLineLength=95)
     table = Table([[pre]], colWidths=[6.7 * inch])
     table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, -1), SANS),  # Table sets its cell font on the canvas; default is base-14
         ("BACKGROUND", (0, 0), (-1, -1), CODEBG),
         ("LEFTPADDING", (0, 0), (-1, -1), 10),
         ("RIGHTPADDING", (0, 0), (-1, -1), 10),
@@ -177,8 +246,8 @@ def md_table(rows):
         return Spacer(1, 1)
     header, body = rows[0], rows[1:]
     n = len(header)
-    th = ParagraphStyle("th", fontName="Helvetica-Bold", fontSize=9, leading=11, textColor=colors.white)
-    td = ParagraphStyle("td", fontName="Helvetica", fontSize=9, leading=11, textColor=INK)
+    th = ParagraphStyle("th", fontName=SANS_BOLD, fontSize=9, leading=11, textColor=colors.white)
+    td = ParagraphStyle("td", fontName=SANS, fontSize=9, leading=11, textColor=INK)
     data = [[P(cell, th) for cell in header]]
     for row in body:
         row = (row + [""] * n)[:n]
@@ -186,6 +255,7 @@ def md_table(rows):
     width = 6.9 * inch
     table = Table(data, colWidths=[width / n] * n, repeatRows=1)
     style = [
+        ("FONTNAME", (0, 0), (-1, -1), SANS),  # Table sets its cell font on the canvas; default is base-14
         ("BACKGROUND", (0, 0), (-1, 0), INDIGO),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#c8cbe0")),
@@ -312,7 +382,7 @@ def _wrap(text, size, max_width=6.4):
     words, output, current = text.split(), [], ""
     for word in words:
         trial = (current + " " + word).strip()
-        if stringWidth(trial, "Helvetica-Bold", size) < max_width * inch:
+        if stringWidth(trial, SANS_BOLD, size) < max_width * inch:
             current = trial
         else:
             output.append(current)
@@ -326,19 +396,23 @@ def cover(canvas, title, subtitle):
     width, height = letter
     canvas.setFillColor(INDIGO); canvas.rect(0, height - 3.1 * inch, width, 3.1 * inch, fill=1, stroke=0)
     canvas.setFillColor(TEAL); canvas.rect(0, height - 3.25 * inch, width, 0.15 * inch, fill=1, stroke=0)
-    canvas.setFillColor(colors.white); canvas.setFont("Helvetica-Bold", 26)
+    canvas.setFillColor(colors.white); canvas.setFont(SANS_BOLD, 26)
     title_box = canvas.beginText(0.9 * inch, height - 1.6 * inch)
     for line in _wrap(title, 26):
         title_box.textLine(line)
     canvas.drawText(title_box)
-    canvas.setFont("Helvetica", 13); canvas.setFillColor(colors.HexColor("#c8cbe0"))
+    canvas.setFont(SANS, 13); canvas.setFillColor(colors.HexColor("#c8cbe0"))
     canvas.drawString(0.9 * inch, height - 2.7 * inch, subtitle[:110])
-    canvas.setFillColor(GREY); canvas.setFont("Helvetica", 9)
+    canvas.setFillColor(GREY); canvas.setFont(SANS, 9)
     canvas.drawString(0.9 * inch, 0.7 * inch, _footer_line())
 
 
 def render(md_path, out_path, title=None, subtitle=""):
-    """Render a Markdown file to a PDF; retained for the legacy CLI wrapper."""
+    """Render a Markdown file to a PDF; retained for the legacy CLI wrapper.
+
+    Refuses (EmbeddedFontUnavailable) rather than write a PDF with unembedded base-14 fonts."""
+    if not FONTS_EMBEDDED:
+        raise EmbeddedFontUnavailable(FONT_UNAVAILABLE_REASON)
     markdown_path = Path(md_path)
     md = markdown_path.read_text(encoding="utf-8")
     if title is None:
@@ -346,7 +420,8 @@ def render(md_path, out_path, title=None, subtitle=""):
         title = match.group(1).strip() if match else markdown_path.stem
     flow = [Spacer(1, 3.2 * inch)] + parse(md, str(markdown_path.resolve().parent))
     doc = SimpleDocTemplate(str(out_path), pagesize=letter, topMargin=0.7 * inch, bottomMargin=0.7 * inch,
-                            leftMargin=0.9 * inch, rightMargin=0.8 * inch, title=title)
+                            leftMargin=0.9 * inch, rightMargin=0.8 * inch, title=title,
+                            initialFontName=SANS)  # else every page carries base-14 Helvetica
     first, footer = [True], _footer_line()
 
     def on_page(canvas, document):
@@ -354,7 +429,7 @@ def render(md_path, out_path, title=None, subtitle=""):
             cover(canvas, title, subtitle)
             first[0] = False
         else:
-            canvas.setFillColor(GREY); canvas.setFont("Helvetica", 8)
+            canvas.setFillColor(GREY); canvas.setFont(SANS, 8)
             canvas.drawRightString(letter[0] - 0.8 * inch, 0.5 * inch, str(document.page))
             canvas.drawString(0.9 * inch, 0.5 * inch, footer)
             canvas.setStrokeColor(INDIGO); canvas.setLineWidth(0.5)

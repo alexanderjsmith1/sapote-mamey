@@ -1,5 +1,8 @@
 # Iterative BGC BLASTP Panel Exporter — v9.7.142 starter
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 Purpose: emit NCBI-web-safe protein FASTA panels from Mamey/antiSMASH evidence so users can investigate all BGCs efficiently without BLASTing every protein or whole contigs at once.
 
 ## Default workflow
@@ -20,7 +23,7 @@ If NCBI reports a CPU usage limit, timeout, or very large output file, reduce th
 ## Standalone command
 
 ```bash
-python -m mamey bgc-blastp-panel \
+python mamey_run.py bgc-blastp-panel \
   --input-zip AS-XXX.zip \
   --strain AS-XXX \
   --outdir AS-XXX_bgc_blastp_panel \
@@ -59,4 +62,4 @@ The FASTA panel is an evidence-gathering artifact only. BLASTP hits are sequence
 
 ## Result ingest and follow-up
 
-After running NCBI BLASTP, use `python -m mamey blastp-followup` to parse the Hit Table CSV and optional XML2 file. The importer writes normalized hit tables, per-query decisions, and—when given the previous panel manifest plus FASTA folder—a next NCBI-safe follow-up FASTA. See `docs/BLASTP_FOLLOWUP_v9.7.142.md`.
+After running NCBI BLASTP, use `python mamey_run.py blastp-followup --hit-table <hits.csv> --outdir <new-review-dir>` to parse the Hit Table CSV and optional XML2 file. The importer writes normalized hit tables, per-query decisions, and—when given the previous panel manifest plus FASTA folder—a next NCBI-safe follow-up FASTA. See `docs/BLASTP_FOLLOWUP_v9.7.142.md`.

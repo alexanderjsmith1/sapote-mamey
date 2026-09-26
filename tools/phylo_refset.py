@@ -203,17 +203,18 @@ def dedup(recs, identity=99.5, min_cov=90.0, report=None, verbose=True):
                     clusters.setdefault(find(sid), []).append(sid)
                 kept = []
                 for root, members in clusters.items():
-                    recs_m = [idmap[m] for m in members]
-                    recs_m_sorted = sorted(recs_m, key=_rep_score, reverse=True)
-                    keep = recs_m_sorted[0]
+                    ranked = sorted(members, key=lambda m: _rep_score(idmap[m]), reverse=True)
+                    keep_sid = ranked[0]
+                    keep = idmap[keep_sid]
                     kept.append(keep)
-                    for drop in recs_m_sorted[1:]:
-                        # find an identity to quote
-                        ids = [v for k, v in pair_ident.items()]
-                        collapses.append({"tier": 2, "kept": keep[0], "dropped": drop[0],
+                    for drop_sid in ranked[1:]:
+                        # Quote the identity measured for this kept/dropped pair. A member joined only
+                        # through a third record has no direct measurement, so it stays blank.
+                        pid = pair_ident.get(tuple(sorted((keep_sid, drop_sid))))
+                        collapses.append({"tier": 2, "kept": keep[0], "dropped": idmap[drop_sid][0],
                                           "reason": "same species, 16S-indistinguishable (same strain under a different "
                                                     "culture-collection ID, or a con-specific duplicate); redundant tip",
-                                          "identity": f"{max(ids):.2f}" if ids else ""})
+                                          "identity": f"{pid:.2f}" if pid is not None else ""})
                 tier1 = kept
 
     kept = tier1

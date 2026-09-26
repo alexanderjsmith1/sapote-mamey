@@ -21,6 +21,9 @@
 # Date:   pinned via RELEASE_DATE=YYYYMMDD (defaults to today) so a rolled clock can't desync a cut.
 # Example: RELEASE_DATE=20260710 tools/release_cut.sh 9.7.258 . ../cut258 a
 set -euo pipefail
+# pytest writes bytecode during collection before tests/conftest.py can set the
+# child-process environment. Start every cut phase with the parent disabled too.
+export PYTHONDONTWRITEBYTECODE=1
 
 VER="${1:?bundle version, e.g. 9.7.258}"; SRC="${2:?source tree root}"; OUT="${3:?output dir}"
 LETTER="${4:-a}"; SKIP_TESTS=0; [[ "${5:-}" == "--skip-tests" ]] && SKIP_TESTS=1

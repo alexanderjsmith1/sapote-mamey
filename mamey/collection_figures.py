@@ -48,6 +48,7 @@ from typing import Any
 # v9.7.410 (CLAUDE_410 savefig OOM sweep): clamp publication DPI under the Agg pixel
 # ceiling before every raster write. See mamey/render_safe.py::safe_savefig_dpi.
 from .render_safe import safe_savefig_dpi as _safe_dpi
+from .figure_policy import assert_no_banned_figure_text, matplotlib_visible_text
 
 try:
     import matplotlib; matplotlib.use("Agg")
@@ -367,13 +368,17 @@ def _dynamic_height(n_rows: int, row_pitch: float = 0.38, base: float = 1.8) -> 
 
 
 def _prov_footer(ax, source_name: str, n: int, version: str, date_str: str) -> None:
-    """FB-6: small provenance footer on every figure."""
+    """FB-6: small provenance footer on every figure.
+
+    v9.7.442: provenance only. Claim wording stays off the page (Alex, 2026-09-24); it lives in
+    the _data.csv sidecar. The footer sits below the x-axis label instead of over the tick labels.
+    """
     txt = (f"Source: {source_name or 'supplied metadata'} · n={n} strains · "
-           f"Sapote–Mamey {version} · {date_str} · "
-           "Claim-safe: activity=observation; capacity≠production; KCB=similarity not identity")
+           f"Sapote–Mamey {version} · {date_str}")
     _fs = max(6.0, MIN_FONT_PT - 0.5)  # LS-8: respect module constant floor
-    ax.figure.text(0.01, 0.014, txt, fontsize=_fs, color=PAL["muted"],
-                   va="bottom", wrap=True)  # LS-3: y≥0.012
+    ax.annotate(txt, xy=(0, 0), xycoords="axes fraction", xytext=(0, -42),
+                textcoords="offset points", ha="left", va="top", fontsize=_fs,
+                color=PAL["muted"], annotation_clip=False)
 
 
 def _write_sidecar(png_path: str, header: list[str], rows: list[list]) -> None:
@@ -388,6 +393,11 @@ def _write_sidecar(png_path: str, header: list[str], rows: list[list]) -> None:
 
 
 def _save(fig, png_path: str) -> None:
+    try:
+        assert_no_banned_figure_text(matplotlib_visible_text(fig), figure_id=Path(png_path).name)
+    except ValueError:
+        plt.close(fig)
+        raise
     fig.savefig(png_path, bbox_inches="tight", dpi=_safe_dpi(fig, 160))
     plt.close(fig)
 
@@ -863,10 +873,10 @@ _GENERATORS: dict[str, Any] = {
     "fig_genus_relative_abundance": _gen_genus_relative_abundance,
     "fig_candida_counts":     lambda rows,od,m,v,d: _gen_activity_counts(
         rows,od,m,v,d,"candida_call","candida_tested","fig_candida_counts",
-        "Candida activity — tested and positive (observation, not compound identity)"),
+        "Candida activity — tested and positive"),
     "fig_mrsa_counts":        lambda rows,od,m,v,d: _gen_activity_counts(
         rows,od,m,v,d,"mrsa_call","mrsa_tested","fig_mrsa_counts",
-        "MRSA activity — tested and positive (observation, not compound identity)"),
+        "MRSA activity — tested and positive"),
     "fig_activity_rate":            _gen_activity_rate,
     "fig_activity_pattern":         _gen_activity_pattern,
     "fig_genus_source_matrix":      _gen_genus_source_matrix,

@@ -1,0 +1,16 @@
+# Renderers that still draw claim wording on the figure, measured by rendering them in the tests.
+# One site per line: <path from the bundle root>::<function that calls savefig>.
+# This list only shrinks. When a renderer stops drawing the wording, delete its line.
+# A new renderer that draws the wording fails its test; do not add it here, fix it.
+mamey/bigscape_figures.py::gcf_network
+mamey/cohort_class_heatmap.py::render_cohort_class_heatmap
+mamey/cross_strain_figures.py::_save
+mamey/figures_extra.py::fig_class_distribution
+mamey/kcb_locusmap.py::render_region
+mamey/locus_map.py::render_locus_map
+mamey/locus_map_v8.py::render_bgc_v8
+mamey/master_figure_atlas.py::_save
+mamey/render_brief.py::_text_page
+mamey/render_brief.py::fig_landscape
+mamey/render_brief.py::new_page
+tools/cluster_alignment.py::render

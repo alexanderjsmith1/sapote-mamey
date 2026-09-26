@@ -6,7 +6,7 @@ Use labels derived from explicit, hash-bound panel metadata. Display style does 
 
 Query labels may show strain, deposited host or collection location, and accession. Reference labels may show the organism, deposited isolation source and country, and accession. Keep collection origin distinct from later handling location. Do not invent values or turn a missing database into biological absence.
 
-Use parentheses for accessions and brackets for deposited source text. Extract accessions before interpreting organism text; culture collection codes are not accessions. Preserve complete accession strings outside the organism-text budget. Repeated copies of one accession are redundant; different accessions on one tip require reconciliation.
+Use brackets for accessions, including reference-tip accessions, following `FIGURE_HOUSE_RULES.md` rule 6. Put separately labeled deposited source text in parentheses or in the caption; do not confuse it with the accession. Extract accessions before interpreting organism text; culture collection codes are not accessions. Preserve complete accession strings outside the organism-text budget. Repeated copies of one accession are redundant; different accessions on one tip require reconciliation.
 
 `tools/build_placement_ggtree_inputs.py` accepts explicit host, auxiliary and reference SQLite inputs. Its annotation and receipt distinguish unrequested metadata, unbound accessions, unmatched accessions, empty deposited fields and populated deposited metadata. The configurable `GG_REF_LABEL_CHARS` budget controls organism text; it does not validate label uniqueness or guarantee that every canvas is wide enough.
 

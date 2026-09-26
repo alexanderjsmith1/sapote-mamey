@@ -1,19 +1,19 @@
-# Figure: Per-strain BGC ranking (spotlight)
+# Figure: Per isolate BGC ranking (spotlight)
 
 - **id:** `fig_per_strain_bgc_ranking`
 - **category:** per_strain
 - **audience:** presentation
-- **output:** `fig_per_strain_bgc_ranking.png` (slides, ≥200 dpi) + `.svg`/`.pdf` for print
+- **output:** `fig_per_strain_bgc_ranking.png` (slides, ≥300 dpi) + `.svg`/`.pdf` for print
 
 ## Data
 - **source:** `figure_ready/bgc_inventory.csv`
-- **columns used:** sid, bgc_id, region, length_kb, edge_status
-- **row filter:** sid == <SID>; top 10 by length_kb
+- **columns used:** strain, bgc_id, region, length_kb, boundary
+- **row filter:** strain == <SID>; top 10 by length_kb
 - **derived fields:** label = bgc_id (region)
 
 ## Plot
 - **type:** horizontal bar
-- **x:** length_kb   **y:** bgc_id (region)   **color:** edge_status
+- **x:** length_kb   **y:** bgc_id (region)   **color:** boundary
 - **order:** by length_kb desc   **scales:** linear
 
 ## Style

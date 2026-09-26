@@ -1,5 +1,5 @@
 # Sapote–Mamey Playbook
-**Version:** v9.7.442 | **Bundle:** sapote-mamey-v9.7.442 | **For:** ChatGPT (single-model or dual-model with Claude)
+**Version:** v9.7.443 | **Bundle:** sapote-mamey-v9.7.443 | **For:** ChatGPT (single-model or dual-model with Claude)
 
 ---
 
@@ -48,7 +48,7 @@ hypothesis** — judgment deferred, similarity not identity, no structure/produc
 | Command | What it does | Output |
 |---|---|---|
 | `good-guesses` | Single best claim-safe interpretive read per notable BGC (capacity hypothesis + confidence + resolving experiment) | `GOOD_GUESSES.md/.csv/.docx/.pdf` |
-| `modeb-export` | Export an authored Mode B §1–§30 card (or a `mode_b/` dir) to Word + PDF | `<card>.docx` + `<card>.pdf` (real tables, per-page claim-safety footer) |
+| `modeb-export` | Export an authored Mode B Markdown card (or a `mode_b/` dir) to Word + PDF; export does not select or verify its section profile | `<card>.docx` + `<card>.pdf` (real tables, per-page claim-safety footer) |
 | `figures kcb-locusmap` | Offline clinker-style KCB comparative locus map (query over top-N MIBiG refs, ribbons shaded by %identity) | `*_kcb_locusmap.png/.svg/.csv` |
 | `af-dossier` | Antifungal Lead Dossier: AF lead board × measured Candida activity (capacity vs measured kept in separate columns) | `AF_LEAD_DOSSIER.csv/.md` |
 | `cohort-leads` | Union every sealed triage board into one ranked cross-strain priority-leads ledger | `COHORT_PRIORITY_LEADS.csv` |

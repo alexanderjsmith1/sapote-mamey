@@ -3,11 +3,11 @@
 - **id:** `fig_top_antibacterial_leads`
 - **category:** tables
 - **audience:** presentation
-- **output:** `fig_top_antibacterial_leads.png` (slides, ≥200 dpi) + `.svg`/`.pdf` for print
+- **output:** `fig_top_antibacterial_leads.png` (slides, ≥300 dpi) + `.svg`/`.pdf` for print
 
 ## Data
 - **source:** `workbook sheet C1_DAPR_Antibacterial (Sapote judgment) — provisional render seeds from bgc_inventory + bgc_class_long`
-- **columns used:** sid, bgc_id (contig·region), class basis, edge_status, length_kb
+- **columns used:** inspect the selected workbook schema. Canonical C1/C2 uses strain, BGC_ID, contig, products, score, lead_tier and boundary; region and length_kb require a source-bound B1_BGC_Master or bgc_inventory join. Legacy judgment sheets use a different schema and need an explicit mapping.
 - **row filter:** DAPR antibacterial tier (Sapote). Provisional seed = BGCs in antibacterial-associated classes (thiopeptide, lanthipeptide*, azole-RiPP, blactam, glycopeptide, amglyccycl), ranked Interior-first then length
 - **derived fields:** REQUIRES the C1_DAPR_Antibacterial judgment sheet for the real ranking; the rendered contact-sheet version is a PROVISIONAL class-association seed only. Typed bioactivity metadata may be absent and is never a per-BGC assay claim.
 
@@ -23,7 +23,9 @@ annotation: axis labels, legend, title, colorbar, and value labels flush at bar 
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-> Top antibacterial candidate leads with full BGC locators (n = 18). Class-level hypotheses; DAPR antibacterial ranking is a Sapote judgment step — provisional until populated.
+Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+
+> Top antibacterial candidate leads with full BGC locators (n = <admitted_isolate_n> isolates). Class-level hypotheses; DAPR antibacterial ranking is a Sapote judgment step — provisional until populated.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Mark the wet-lab-prioritised row(s) on the slide once DAPR is run.
@@ -31,3 +33,5 @@ annotation: axis labels, legend, title, colorbar, and value labels flush at bar 
 ## Build note
 Reproducible from the tidy export (`tools/export_figure_ready.py`) following the
 `tools/plot_examples.py` pattern. Keep the slug and column names stable so decks don't break.
+
+For canonical C1/C2 rows, bind region and length through the same source record using strain, BGC_ID and full contig, retaining the original workbook/package provenance. Do not shorten the displayed four-part locus identity. Source-derived score/rank is not a completed Sapote judgment; retain status_note and distinguish admitted author judgment from provisional class seeds.

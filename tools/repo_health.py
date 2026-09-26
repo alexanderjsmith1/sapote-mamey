@@ -96,6 +96,10 @@ def _repo_root(explicit: str | None) -> Path:
 # BY DESIGN — a status dashboard is supposed to print. Explicit + named so nothing else can hide here.
 # (v9.7.382: the blastp-monitoring fleet + phylo preflight/postflight/render launchers were folded in.)
 CLI_TOOL_EXCLUDE_DIRS = ("blastp_monitoring",)
+# v9.7.443: tools/ folders whose stdout IS the operator log, exempt from print_calls ONLY. Unlike
+# CLI_TOOL_EXCLUDE_DIRS they stay in every other check (silent_swallow, bare_except, syntax ...):
+# the BLASTp crawl carries ledger and RID logic, and a swallow there hid a disabled heartbeat.
+PRINT_ONLY_EXCLUDE_DIRS = ("blastp_crawl",)
 CLI_TOOL_EXCLUDE_FILES = {"render_all.py", "phylo_preflight.py", "phylo_postflight.py",
                           "phylo_place.py",
                           # Clear Match Finder is an operator front door; stdout is its receipt JSON.
@@ -154,7 +158,9 @@ CLI_TOOL_EXCLUDE_FILES = {"render_all.py", "phylo_preflight.py", "phylo_postflig
                           # terminal emissions, so they stay counted under the signed waiver.
                           "antismash_strictness_census.py", "bigscape_input_decontam_guard.py",
                           "region_table_one_setting.py", "sixteen_s_similarity_check.py",
-                          "verify_release_tarball.py"}
+                          "verify_release_tarball.py",
+                          # v9.7.443: a check tool; its terminal lines are the site list it exists to print.
+                          "check_no_bundle_write_defaults.py"}
 # v9.7.403: tools/blastp_channel_triage.py is an operator front door whose stdout IS the
 # deliverable (the triage receipt JSON on stdout, the error line on stderr) — the same family as
 # the phylo launchers above, so it is EXCLUDED BY DESIGN rather than counted as library debt.
@@ -364,6 +370,9 @@ def check_print_calls(files: list[Path], root: Path) -> Result:
     """
     total = 0
     for p in files:
+        if (root / "tools") in p.parents and any(x in p.relative_to(root / "tools").parts
+                                                 for x in PRINT_ONLY_EXCLUDE_DIRS):
+            continue  # operator log output; see PRINT_ONLY_EXCLUDE_DIRS
         try:
             tree = ast.parse(p.read_text())
         except SyntaxError:            # already reported by check_syntax; do not double-fail here

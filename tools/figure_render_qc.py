@@ -91,20 +91,21 @@ def find_figures(paths: list[Path]) -> list[Path]:
     return out
 
 
-def read_manifest(path: Path) -> list[tuple[Path, Path, str]]:
-    """Return (png, source_png, note) per row."""
+def read_manifest(path: Path) -> list[tuple[Path, Path, str, str]]:
+    """Return (review PNG, source PNG, note, optional expected SHA-256) per row."""
     base = path.resolve().parent
     units = []
-    for r in csv.DictReader(open(path), delimiter="\t"):
-        if r.get("png"):
-            png = base / r["png"]
-            src = base / (r.get("source") or r["png"])
-        elif r.get("review_file"):
-            png = base / r.get("section", "") / r["review_file"]
-            src = base.parent / r.get("figure_folder", "") / Path(r.get("source_png") or r["review_file"]).name
-        else:
-            raise SystemExit(f"{path}: needs columns png[,source] or section,review_file,figure_folder,source_png")
-        units.append((png, src, r.get("note", "")))
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        for r in csv.DictReader(handle, delimiter="\t"):
+            if r.get("png"):
+                png = base / r["png"]
+                src = base / (r.get("source") or r["png"])
+            elif r.get("review_file"):
+                png = base / r.get("section", "") / r["review_file"]
+                src = base.parent / r.get("figure_folder", "") / Path(r.get("source_png") or r["review_file"]).name
+            else:
+                raise SystemExit(f"{path}: needs columns png[,source] or section,review_file,figure_folder,source_png")
+            units.append((png, src, r.get("note", ""), (r.get("sha256") or "").lower()))
     return units
 
 
@@ -113,13 +114,38 @@ def svg_text(svg: Path) -> list[str] | None:
         root = ET.parse(svg).getroot()
     except (ET.ParseError, OSError):
         return None
-    lines = []
-    for el in root.iter():
+    lines: list[str] = []
+    undrawn = {"defs", "metadata", "title", "desc", "style", "script"}
+
+    def hidden(el: ET.Element) -> bool:
+        name = el.tag.rsplit("}", 1)[-1]
+        style = re.sub(r"\s+", "", el.get("style", "").lower())
+        return (name in undrawn or el.get("display", "").lower() == "none"
+                or el.get("visibility", "").lower() == "hidden"
+                or "display:none" in style or "visibility:hidden" in style)
+
+    def visible_text(el: ET.Element) -> list[str]:
+        chunks = [el.text or ""]
+        for child in el:
+            if not hidden(child):
+                chunks.extend(visible_text(child))
+            chunks.append(child.tail or "")
+        return chunks
+
+    def visit(el: ET.Element) -> None:
+        if hidden(el):
+            return
         if el.tag.rsplit("}", 1)[-1] == "text":
-            t = " ".join(s.strip() for s in el.itertext() if s.strip())
-            if t:
-                lines.append(t)
-    return lines
+            value = " ".join(s.strip() for s in visible_text(el) if s.strip())
+            if value:
+                lines.append(value)
+            return
+        for child in el:
+            visit(child)
+
+    visit(root)
+    # An SVG containing only definitions or metadata does not verify its PNG's text.
+    return lines or None
 
 
 class Ocr:
@@ -162,14 +188,18 @@ class Ocr:
                 by_path.setdefault(p, []).append(t)
             with open(self.cache_file, "a") as fh:
                 for p in batch:
-                    lines = by_path.get(str(p), ["<<no text>>"])
+                    # An empty OCR response or a failed subprocess cannot certify text absence.
+                    lines = by_path.get(str(p), [])
+                    if res.returncode or not lines:
+                        lines = ["<<unreadable>>"]
                     self.cache[pngs[p]] = lines
                     for t in lines:
                         fh.write(f"{pngs[p]}\t{t.replace(chr(9), ' ')}\n")
             print(f"  OCR {min(i + 16, len(todo))}/{len(todo)}", file=sys.stderr)
         for p, h in pngs.items():
             lines = self.cache.get(h) if self.bin else None
-            out[p] = None if lines is None or lines == ["<<unreadable>>"] else [t for t in lines if t != "<<no text>>"]
+            recognized = [t for t in (lines or []) if t.strip() and t not in ("<<no text>>", "<<unreadable>>")]
+            out[p] = recognized if recognized and "<<unreadable>>" not in (lines or []) else None
         return out
 
 
@@ -240,7 +270,11 @@ def check_files(png: Path) -> list[tuple[str, str]]:
     if cap is None:
         flags.append(("warn", "no caption file next to figure"))
         return flags
-    text = cap.read_text(errors="replace")
+    try:
+        text = cap.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        flags.append(("error", f"caption unreadable: {cap.name} ({type(exc).__name__})"))
+        return flags
     gov = check_caption(text, raises=False)
     if gov:
         # Not drawn on the figure (the text checks cover that), so a warning: Alex's 2026-09-24 rule keeps
@@ -257,23 +291,38 @@ def run(paths: list[Path], out: Path, ocr_mode: str = "auto", bioassay: bool = F
         extra_rules: Path | None = None, want_dpi: int = 300,
         manifest: Path | None = None) -> list[tuple[Path, list[tuple[str, str]]]]:
     rules = TEXT_RULES + load_extra_rules(extra_rules)
-    units = read_manifest(manifest) if manifest else [(f, f, "") for f in find_figures(paths)]
+    units = read_manifest(manifest) if manifest else [(f, f, "", "") for f in find_figures(paths)]
     figs = [u[0] for u in units]
     source = {u[0]: u[1] for u in units}
     notes = {u[0]: u[2] for u in units}
+    expected = {u[0]: u[3] for u in units}
     ocr = Ocr(ocr_mode, out / ".figure_qc_cache")
     texts: dict[Path, list[str] | None] = {}
     need_ocr = {}
+    identity_flags: dict[Path, list[tuple[str, str]]] = {}
     for f in figs:
-        svg = next((c for c in (source[f].with_suffix(".svg"), f.with_suffix(".svg")) if c.exists()), None)
+        flags: list[tuple[str, str]] = []
+        review_hash = sha256(f) if f.is_file() else None
+        if manifest:
+            if review_hash is None:
+                flags.append(("error", "review PNG missing"))
+            if not source[f].is_file():
+                flags.append(("error", "source PNG missing"))
+            elif review_hash is not None and sha256(source[f]) != review_hash:
+                flags.append(("error", "review/source PNG mismatch"))
+            if expected[f] and review_hash != expected[f]:
+                flags.append(("error", "manifest SHA-256 mismatch"))
+        identity_flags[f] = flags
+        svg = None if flags else next(
+            (c for c in (source[f].with_suffix(".svg"), f.with_suffix(".svg")) if c.exists()), None)
         texts[f] = svg_text(svg) if svg else None
-        if texts[f] is None:
-            need_ocr[f] = sha256(f)
+        if texts[f] is None and review_hash is not None:
+            need_ocr[f] = review_hash
     texts.update({p: t for p, t in ocr.read(need_ocr).items() if t is not None})
 
     results = []
     for f in figs:
-        flags = []
+        flags = list(identity_flags[f])
         if "DO NOT USE" in notes[f]:
             flags.append(("error", "defect logged: " + notes[f].split("DO NOT USE", 1)[1].strip(" :.")[:160]))
         lines = texts.get(f)
@@ -281,7 +330,8 @@ def run(paths: list[Path], out: Path, ocr_mode: str = "auto", bioassay: bool = F
             flags.append(("not_checked", f"figure text not checked: no SVG next to it, {ocr.reason or 'OCR returned nothing'}"))
         else:
             flags += check_text(lines, rules)
-        flags += check_image(f, want_dpi)
+        if f.is_file():
+            flags += check_image(f, want_dpi)
         flags += check_files(source[f])
         if bioassay:
             if not MATERIAL.search(f.name):

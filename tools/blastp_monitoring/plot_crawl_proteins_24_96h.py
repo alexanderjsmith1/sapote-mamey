@@ -22,6 +22,7 @@ Usage:
   python3 "tools/blastp_monitoring/plot_crawl_proteins_24_96h.py"
 """
 import os
+import re
 import json
 import textwrap
 import hashlib
@@ -72,6 +73,11 @@ if __name__ == "__main__":
         # _NR_CLUSTER_RID_CODEX100_s1 -> "ClusteredNR CODEX100 s1"; _NR_RID_CODEX100_s1 -> "nr CODEX100 s1"
         b = base.lstrip("_")
         kind = "ClusteredNR" if any(x in b.upper() for x in ("CLUSTER", "CLNR")) else "nr"
+        # A lane named for one strain shows just that strain ID; the channel is in the
+        # legend title. nr lanes say so. Anything else keeps the long descriptive name.
+        strain = re.search(r"(?:^|_)AS-?(\d+)(?:_|$)", b.upper())
+        if strain:
+            return f"AS-{strain.group(1)}" + ("" if kind == "ClusteredNR" else " nr")
         tail = b.replace("NR_CLUSTER_RID", "").replace("NR_RID", "").strip("_").replace("_", " ")
         return f"{kind} {tail}".strip()
 
@@ -217,10 +223,11 @@ if __name__ == "__main__":
 
     WINDOWS = [("Trailing 24 h", 24), ("Trailing 96 h", 96)]
 
-    legend_labels = [textwrap.fill(f"{name} — " + " / ".join(
+    # One unwrapped line per lane; the shared channel and units live in the legend title.
+    legend_labels = [f"{name} — " + " / ".join(
         ("≥" if name in unknown_lanes else "") + str(sum(n for t, n in comps if t >= NOW - dt.timedelta(hours=hours)))
-        for _, hours in WINDOWS), width=48) for name, (comps, _) in data.items()]
-    legend_lines = sum(label.count("\n") + 1 for label in legend_labels)
+        for _, hours in WINDOWS) for name, (comps, _) in data.items()]
+    legend_lines = len(legend_labels)
     fig, axes = plt.subplots(2, 2, figsize=(20, max(9, 0.22 * legend_lines + 2)),
                               gridspec_kw={"height_ratios": [3, 1]})
 
@@ -228,11 +235,11 @@ if __name__ == "__main__":
         since = NOW - dt.timedelta(hours=hours)
         ax = axes[0][col]
         axb = axes[1][col]
-        lane_count = max(len(data), 1)
-        hour_group_width = (1 / 24.0) * 0.9
-        lane_slot_width = hour_group_width / lane_count
-        lane_bar_width = lane_slot_width * 0.88
-        for lane_index, (name, (comps, color)) in enumerate(data.items()):
+        # Hourly bars are one full-hour bar per hour, stacked by lane: the bar height is the
+        # total fetched that hour and the colours show which lanes produced it.
+        hour_bar_width = (1 / 24.0) * 0.9
+        stack_bottom = {}
+        for name, (comps, color) in data.items():
             xs, ys = cumulative_proteins(comps, since)
             total = ys[-1] if ys else 0
             if xs:
@@ -247,12 +254,11 @@ if __name__ == "__main__":
                     binned[b] = binned.get(b, 0) + n
             if binned:
                 bx = sorted(binned)
-                grouped_bx = [
-                    b + dt.timedelta(days=lane_slot_width * lane_index)
-                    for b in bx
-                ]
-                axb.bar(grouped_bx, [binned[b] for b in bx], width=lane_bar_width,
-                        color=color, alpha=0.55, align="edge")
+                bottoms = [stack_bottom.get(b, 0) for b in bx]
+                axb.bar(bx, [binned[b] for b in bx], width=hour_bar_width, bottom=bottoms,
+                        color=color, alpha=0.85, align="edge")
+                for b in bx:
+                    stack_bottom[b] = stack_bottom.get(b, 0) + binned[b]
         ax.set_title(f"{title}  (as of {NOW:%Y-%m-%d %H:%M} {TIMEZONE_LABEL})",
                      fontsize=11, fontweight="bold")
         ax.set_ylabel("cumulative proteins queried & fetched", fontsize=9)
@@ -270,25 +276,42 @@ if __name__ == "__main__":
     fig.suptitle("Sapote-Mamey BLASTp crawl cumulative throughput — actual proteins queried  "
                  "(completion = results fetched; unmixed channels)",
                  fontsize=13, fontweight="bold")
-    fig.tight_layout(rect=[0, 0.07, 0.68, 0.95])
     handles, _ = axes[0][0].get_legend_handles_labels()
+    legend_frac = 0.0
     if handles:
-        fig.legend(handles, legend_labels, loc="upper left", bbox_to_anchor=(0.69, 0.92),
-                   fontsize=8, framealpha=0.9, title="Lane — fetched proteins (24 h / 96 h)")
+        channels = {"nr" if name.endswith(" nr") or name.startswith("nr ") else "ClusteredNR"
+                    for name in data}
+        title = ("ClusteredNR lanes" if channels == {"ClusteredNR"} else "Lanes") + \
+            " — fetched proteins (24 h / 96 h)"
+        legend = fig.legend(handles, legend_labels, loc="upper right", bbox_to_anchor=(0.995, 0.92),
+                            fontsize=8, framealpha=0.9, title=title)
+        # Reserve exactly the legend's measured width, so short labels give the data more room.
+        fig.canvas.draw()
+        legend_frac = legend.get_window_extent().width / fig.bbox.width
+    fig.tight_layout(rect=[0, 0.07, max(0.5, 0.985 - legend_frac), 0.95])
     excluded = sum(not row["included"] for row in selection_receipt)
     note = f"Lanes shown: {len(data)}; excluded: {excluded}. Selection details accompany this figure."
     if missing_files or ambiguous_files:
         note += f" Protein totals are LOWER BOUNDS: {missing_files} missing and {ambiguous_files} ambiguous query bindings."
     fig.text(0.04, 0.025, textwrap.fill(note, 155), fontsize=9, va="bottom")
 
-    out_svg = os.path.join(os.environ.get("SAPOTE_BLASTP_PLOT_DIR", "."), "blastp_throughput_proteins_24_96h.svg")
-    out_png = os.path.join(os.environ.get("SAPOTE_BLASTP_PLOT_DIR", "."), "blastp_throughput_proteins_24_96h.png")
+    plot_dir = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", ".")
+    try:
+        from mamey.path_safety import assert_output_outside_bundle
+    except ImportError:  # bare script: the bundle root is two levels above this file
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+        from mamey.path_safety import assert_output_outside_bundle
+    # The default plot folder is the current directory; refuse if that is the code bundle.
+    assert_output_outside_bundle(plot_dir, __file__, kind="BLASTp plot folder")
+    out_svg = os.path.join(plot_dir, "blastp_throughput_proteins_24_96h.svg")
+    out_png = os.path.join(plot_dir, "blastp_throughput_proteins_24_96h.png")
     fig.savefig(out_svg, bbox_inches="tight")
     fig.savefig(out_png, dpi=220, bbox_inches="tight")
     receipt_path = Path(out_svg).with_suffix(".selection.json")
     receipt_path.write_text(json.dumps({"active_hours": ACTIVE_WINDOW_H, "all": _ARGS.all,
         "lane_pattern": _ARGS.lanes, "lanes": selection_receipt,
-        "timezone": TIMEZONE_LABEL, "hourly_bar_layout": "grouped_by_lane",
+        "timezone": TIMEZONE_LABEL, "hourly_bar_layout": "stacked",
         "missing_query_bindings": missing_files, "ambiguous_query_bindings": ambiguous_files}, indent=2) + "\n")
 
     print("=== crawl completions in ACTUAL PROTEINS (fetch_iso) ===")

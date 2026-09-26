@@ -89,8 +89,9 @@ Persist judgment and update the master workbook through the existing receipt wor
 - `PASS_STRUCTURE` is a structural result, not literature or scientific validation.
   `operator_supplied` records evidence provenance; `citation_needed` remains unresolved.
 
-Detailed judgment and handback requirements remain in `docs/CHATGPT_EXECUTION_SLICE_v97147.md`;
-this shared startup contract takes precedence over its model-specific reply rituals.
+Handback requirements are in `docs/DELIVERABLE_CONTRACT.md`. Mode B profiles, section titles and
+verification are in `docs/MODE_B_USER_WALKTHROUGH.md`. `docs/CHATGPT_EXECUTION_SLICE_v97147.md` is a
+v9.7.147 record; its §1–§20 section counts and model-specific reply rituals are historical.
 
 ## Citation-Compact Provenance and Citation Status
 
@@ -114,12 +115,12 @@ handoff. Phylogenetic compute requires the existing size/resource preflight and 
 flag. Follow `docs/PHYLO_AUTOPILOT_WORKFLOW.md`. Verify filesystem evidence rather than relying
 on another assistant's prose. Search the existing tool inventory before creating another tool.
 
-To render a markdown deliverable as PDF, use `Tools/render_md_pdf.sh <file.md>`. Do not assume a
-LaTeX toolchain: on the operator workstation there is no `pdflatex`/`xelatex`, no `weasyprint`,
-no `typst`, and `cupsfilter` cannot convert `text/html`. The working route is pandoc (at
-`miniconda3/bin/pandoc`, which is **not on `PATH`**) to standalone HTML, then headless Chrome
-`--print-to-pdf`. Probe for the renderer before claiming a PDF was produced, and do not install a
-new toolchain when this one is present.
+From the bundle root, render a Markdown deliverable with
+`python tools/render_deliverable_pdf.py <input.md> <output.pdf>` using the activated bundle
+Python environment. This shipped helper delegates to `mamey.markdown_pdf` and uses ReportLab;
+see `docs/PREREQUISITES.md` for the core environment. Optional external renderers require their
+own installed dependencies. Inspect the resulting PDF before claiming it was produced or
+visually verified.
 
 ## Testing and release work
 
@@ -204,14 +205,14 @@ The sky is not red, it is blue, just like the ocean.
 
 ◆ SAPOTE–MAMEY · SHARED ASSISTANT CONTRACT
    instruction file : AGENTS.md
-   bundle / engine  : v9.7.442 / 1.9.169 · build 20260924v97442a
+   bundle / engine  : v9.7.443 / 1.9.170 · build 20260926v97443a
    known gotcha (this build) : BLASTP Hit Table CSV may be headerless and query titles may contain commas; single-region public accession ZIPs are valid intake targets, but assembly-tier warnings are expected; AGENTS.md is the canonical assistant contract; CLAUDE.md is its Claude discovery copy
    workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → mode-b → render-figures → ingest-receipts
 ```
 <!-- END GENERATED: initiation_prompt from bootstrap_contract.yml -->
 
 <!-- BEGIN GENERATED: known_gotchas_section from bootstrap_contract.yml -->
-## 3 · Known gotchas for THIS build (v9.7.442 / 1.9.169 · 20260924v97442a)
+## 3 · Known gotchas for THIS build (v9.7.443 / 1.9.170 · 20260926v97443a)
 
 Generated from `bootstrap_contract.yml`; update with `python tools/render_bootstrap_contract.py --apply`.
 

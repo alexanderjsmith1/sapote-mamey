@@ -210,7 +210,8 @@ def s3_templates(pkg, deliv, ctx):
     cards = glob.glob(os.path.join(d, "*BGC*.md")) if os.path.isdir(d) else []
     ctx["n_templates"] = len(cards)
     if not cards:
-        return PENDING, "no mode_b_templates/ — run `mamey emit-modeb-template --batch`"
+        return PENDING, ("no mode_b_templates/ — run `mamey emit-modeb-template --batch` with --cohort-dir, "
+                         "--reference-dir, --strain-metadata and --bigscape-regions-dir")
     return PASS, f"mode_b_templates/ : {len(cards)} §1–§48 skeletons emitted"
 
 

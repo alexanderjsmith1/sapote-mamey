@@ -12,7 +12,12 @@ the compiled deliverables.
 
 ---
 
-## The §1–§10 card (v9.7.112 — full Mode B contract)
+## The historical §1–§10 card (v9.7.112)
+
+> **Currency note.** This ten-section list is not the current card. Finished cards use the
+> `FINISHED_FULL48_CURRENT_EVIDENCE` profile (§1–§48); the legacy candidate profile is
+> `MODEB_CANDIDATE_30`. Take section titles from the emitted template and
+> `docs/MODE_B_USER_WALKTHROUGH.md`, not from this list. The write-back steps below still apply.
 
 A FULL Mode B card has **all ten sections, written out** — concise, not padded, but complete. §9 and
 §10 were historically omitted; they are now required and gate-checked. "None found in the gene table"

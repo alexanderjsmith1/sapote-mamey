@@ -37,6 +37,7 @@ about the strain's biology. Judgment deferred.
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
+from bigscape_input_decontam_guard import removed_contig_ids  # noqa: E402
 import argparse, os, re, sys, tempfile, zipfile, shutil, glob, json, csv, hashlib
 
 REGION = re.compile(r"region\d+\.gbk$", re.I)
@@ -168,7 +169,8 @@ def main():
     ap.add_argument("--query-strain", action="append", default=[],
                     help="exact staged query strain ID; repeat for each query. Other strains are never filtered")
     ap.add_argument("--drop-contigs", action="append", default=[], metavar="STRAIN=TSV",
-                    help="drop this strain's regions on contigs listed in TSV (first column = record id), "
+                    help="drop this strain's regions on contigs listed in TSV (first column = record id, "
+                         "or clade_decontam.py's contig_bins.tsv keep == 0 rows), "
                          "e.g. contigs removed by a decontamination; repeat per strain. Written to DROPPED_CONTIG_REGIONS.tsv")
     ap.add_argument("--allow-zero-drop", action="append", default=[], metavar="STRAIN",
                     help="explicitly permit zero matching regions for this drop-list strain after review")
@@ -180,9 +182,10 @@ def main():
             ap.error(f"--drop-contigs needs STRAIN=existing.tsv, got {spec!r}")
         if d_strain in drop:
             ap.error(f"duplicate --drop-contigs strain {d_strain!r}; provide one list per strain")
-        with open(d_path, encoding="utf-8", errors="replace") as fh:
-            drop[d_strain] = {ln.split("\t", 1)[0].strip() for ln in fh
-                              if ln.strip() and not ln.startswith("#")}
+        try:
+            drop[d_strain] = removed_contig_ids(d_path)
+        except ValueError as exc:
+            ap.error(str(exc))
         if not drop[d_strain]:
             ap.error(f"--drop-contigs for {d_strain!r} has no contig IDs")
     if set(a.allow_zero_drop) - set(drop):

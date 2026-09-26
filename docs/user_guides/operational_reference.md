@@ -1,6 +1,9 @@
 # Sapote–Mamey Operational Reference
+
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
 ## Workflow, Protocols, and Standard Operating Procedures
-**Bundle v9.7.442 · Engine 1.9.169**
+**Bundle v9.7.443 · Engine 1.9.170**
 Hamilton, Ontario
 
 *Sourced from: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`. All content from source files; no inference.*
@@ -14,8 +17,8 @@ Hamilton, Ontario
 Python 3.12 or later is required. Python 3.12 is recommended for the bundled wheel set. Check: `python3 --version`. The bundle operates from within its own directory.
 
 ```bash
-unzip sapote-mamey-v9.7.442-CODE-20260924v97442a.zip
-cd sapote-mamey-v9.7.442-CODE-20260924v97442a
+unzip sapote-mamey-v9.7.443-CODE-20260926v97443a.zip
+cd sapote-mamey-v9.7.443-CODE-20260926v97443a
 pip install -e .
 # On managed/Debian systems:
 pip install -e . --break-system-packages
@@ -37,12 +40,12 @@ The installer pools all `.whl` files it finds across all named paths and install
 ### Verification
 
 ```bash
-mamey doctor                          # pre-flight: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # → engine 1.9.169, bundle 9.7.442
+python mamey_run.py doctor                          # pre-flight: Python, deps, permissions, bundle integrity
+python3 tools/sync_version.py --check # → engine 1.9.170, bundle 9.7.443
 python3 -m pytest -q                  # run the bundled test suite; use the cut receipt for exact counts
 ```
 
-The startup banner on every `mamey run` prints a dependency line showing which optional stack is available. `ijson(vendored)✓` means the pure-Python bundled copy is active; `ijson(system)✓` means the C-backend system install is active (faster). Both are correct.
+The startup banner on every `python mamey_run.py run` prints a dependency line showing which optional stack is available. `ijson(vendored)✓` means the pure-Python bundled copy is active; `ijson(system)✓` means the C-backend system install is active (faster). Both are correct.
 
 ### Bundle tiers
 
@@ -65,7 +68,7 @@ Use CODE for all internal analysis. `AS-` / `AJS-` / `PENDING-` strains are unpu
 The canonical command for a single strain:
 
 ```bash
-python -m mamey run \
+python mamey_run.py run \
   --input-zip AS-XXX_antismash.zip \
   --strain AS-XXX \
   --display-name "Streptomyces sp. AS-XXX" \
@@ -92,7 +95,7 @@ python -m mamey run \
 
 **Validate immediately after run:**
 ```bash
-python -m mamey validate runs/AS-XXX/package
+python mamey_run.py validate runs/AS-XXX/package
 ```
 
 Status vocabulary: `MAMEY_COMPLETE` (all required files present and checksums valid) · `MAMEY_COMPLETE_WITH_ISSUES` (core valid, peripheral issues logged) · `VALIDATION_FAIL` (do not use — diagnose issue log first).
@@ -100,18 +103,18 @@ Status vocabulary: `MAMEY_COMPLETE` (all required files present and checksums va
 **Post-seal figures:**
 If the run used `--capped-session` or figures were skipped for any reason (`NO_FIGURES_RENDERED.md` present):
 ```bash
-python -m mamey render-all-figures --package runs/AS-XXX/package
+python mamey_run.py render-all-figures --package runs/AS-XXX/package
 ```
 
 ### Single-strain quickstart (abbreviated path)
 
 For one strain, the minimum working sequence:
 
-1. `python -m mamey run --strain <ID> --input-zip <antismash.zip> --mode gold --outdir work` (the sealed package lands at `work/<ID>/package`)
-2. `python -m mamey validate work/<ID>/package`
+1. `python mamey_run.py run --strain <ID> --input-zip <antismash.zip> --mode gold --outdir work` (the sealed package lands at `work/<ID>/package`)
+2. `python mamey_run.py validate work/<ID>/package`
 3. `mkdir -p cohort && python tools/ingest_package.py --package work/<ID>/package --banked-dir cohort`
 4. `python tools/build_figures.py --banked-dir cohort --out fig/` (if cohort figures needed)
-5. Mode B: `python -m mamey emit-modeb-template --package work/<ID>/package --bgc BGC001`
+5. Mode B: `python mamey_run.py emit-modeb-template --package work/<ID>/package --bgc BGC001`
 
 **Single-strain caveats:** cohort-local computations (product-class matrices, cross-strain findings) are degenerate at N=1 — read them as single-strain summaries, not cohort statistics.
 
@@ -432,19 +435,19 @@ Source: `docs/GUIDE/02_Quick_Guide.md`. Every phrase listed here is tested again
 
 ### Interpretive-priors and evidence-hardening deliverables (v9.7.338)
 All report-only; every read is a class-level capacity hypothesis, judgment deferred, no structure/production/activity claim.
-- `"Give me the good guesses for [strain]."` → `mamey good-guesses <root> --out <dir> [--docx] [--pdf]` — the single best claim-safe interpretive read per notable BGC, tagged `solid`/`rare`/`remarkable`/`notable`/`interesting`, each with a confidence band and the resolving experiment (`GOOD_GUESSES.md`/`.csv`/`.docx`/`.pdf`)
-- `"Comparator coverage for [strain]."` → `mamey comparator-coverage <pkg>` — re-expresses every named MIBiG/KCB comparator against **two** denominators (matched/all-locus-genes and matched-core/all-defining-core) so a comparator carried only by transporters/regulators is exposed; the false-positive killer (`<STRAIN>_3b_comparator_coverage.csv`)
-- `"Antifungal dossier."` → `mamey af-dossier <root> --out <dir> [--activity-table <csv>]` — AF lead board joined against an optional measured-*Candida* activity crosswalk (`AF_LEAD_DOSSIER.csv`/`.md`)
-- `"Novelty shortlist."` → `mamey novelty-shortlist --package <pkg> --out <dir>` — strongest reference-dark / novelty-prior candidates (a prior, not proof)
-- `"What's the realistic BGC count?"` → `mamey realistic-count <pkg>` — honest corrected denominator (fragments/primary-metabolism/duplicates netted out)
-- `"Export the Mode B cards to Word/PDF."` → `mamey modeb-export <card.md|mode_b/> [--outdir <dir>] [--format docx|pdf|both]` → `.docx` + `.pdf`
-- `"Domain reference sheet."` → `mamey domain-reference --package <pkg> --out <dir>` — KS/AT/KR/C/A/PCP… glossary + per-BGC ordered-domain readout for authoring §4/§5
+- `"Give me the good guesses for [strain]."` → `python mamey_run.py good-guesses <root> --out <dir> [--docx] [--pdf]` — the single best claim-safe interpretive read per notable BGC, tagged `solid`/`rare`/`remarkable`/`notable`/`interesting`, each with a confidence band and the resolving experiment (`GOOD_GUESSES.md`/`.csv`/`.docx`/`.pdf`)
+- `"Comparator coverage for [strain]."` → `python mamey_run.py comparator-coverage <pkg>` — re-expresses every named MIBiG/KCB comparator against **two** denominators (matched/all-locus-genes and matched-core/all-defining-core) so a comparator carried only by transporters/regulators is exposed; the false-positive killer (`<STRAIN>_3b_comparator_coverage.csv`)
+- `"Antifungal dossier."` → `python mamey_run.py af-dossier <root> --out <dir> [--activity-table <csv>]` — AF lead board joined against an optional measured-*Candida* activity crosswalk (`AF_LEAD_DOSSIER.csv`/`.md`)
+- `"Novelty shortlist."` → `python mamey_run.py novelty-shortlist --package <pkg> --out <dir>` — strongest reference-dark / novelty-prior candidates (a prior, not proof)
+- `"What's the realistic BGC count?"` → `python mamey_run.py realistic-count <pkg>` — honest corrected denominator (fragments/primary-metabolism/duplicates netted out)
+- `"Export the Mode B cards to Word/PDF."` → `python mamey_run.py modeb-export <card.md|mode_b/> [--outdir <dir>] [--format docx|pdf|both]` → `.docx` + `.pdf`
+- `"Domain reference sheet."` → `python mamey_run.py domain-reference --package <pkg> --out <dir>` — KS/AT/KR/C/A/PCP… glossary + per-BGC ordered-domain readout for authoring §4/§5
 
 ### Cross-strain / cohort deliverables (v9.7.338)
-- `"Cohort priority leads."` → `mamey cohort-leads --runs-dir <runs_gold> [--out COHORT_PRIORITY_LEADS.csv]` → `COHORT_PRIORITY_LEADS.csv` (one ranked lead board across every sealed run)
-- `"Assemble the cohort master."` → `mamey cohort-assemble --runs-dir <runs_gold> [--out COHORT_MASTER.csv] [--xlsx]` — build/refresh the cross-cohort master table from sealed gold runs (sibling `_strain_summary.csv` / `_class_by_strain.csv` alongside; `--xlsx` also emits `COHORT_MASTER.xlsx`)
-- `"Offline KCB locus map for [BGC]."` → `mamey figures kcb-locusmap --zip <zip> --contig <NODE> --region <regionNNN> --out-dir <dir> --strain-id <ID> --bgc-id <BGC_ID>` (or `--kcb-txt <knownclusterblast.txt> --out-dir <dir> --stem <BGC_ID>`) — query BGC vs its KCB/MIBiG comparator, zero network; `--region` prevents ambiguity when one contig has multiple antiSMASH regions
-- `"Would a master's student sign off on this tree?"` → `mamey signoff <tree.treefile>` (advisory analysis QC gate; also `tools/signoff_check.py`)
+- `"Cohort priority leads."` → `python mamey_run.py cohort-leads --runs-dir <runs_gold> [--out COHORT_PRIORITY_LEADS.csv]` → `COHORT_PRIORITY_LEADS.csv` (one ranked lead board across every sealed run)
+- `"Assemble the cohort master."` → `python mamey_run.py cohort-assemble --runs-dir <runs_gold> [--out COHORT_MASTER.csv] [--xlsx]` — build/refresh the cross-cohort master table from sealed gold runs (sibling `_strain_summary.csv` / `_class_by_strain.csv` alongside; `--xlsx` also emits `COHORT_MASTER.xlsx`)
+- `"Offline KCB locus map for [BGC]."` → `python mamey_run.py figures kcb-locusmap --zip <zip> --contig <NODE> --region <regionNNN> --out-dir <dir> --strain-id <ID> --bgc-id <BGC_ID>` (or `--kcb-txt <knownclusterblast.txt> --out-dir <dir> --stem <BGC_ID>`) — query BGC vs its KCB/MIBiG comparator, zero network; `--region` prevents ambiguity when one contig has multiple antiSMASH regions
+- `"Would a master's student sign off on this tree?"` → `python mamey_run.py signoff <tree.treefile>` (advisory analysis QC gate; also `tools/signoff_check.py`)
 
 ---
 
@@ -492,7 +495,7 @@ Source: `docs/RELEASE_CHECKLIST_v9.md`. 7 gates, each with mandatory items. Summ
 
 **Gate 3 (Schema verification):** WORKBOOK_SCHEMA.md matches produced workbook columns; scan_states.json schema matches what mamey_run.py emits; checkpoint CSV schema matches engine output.
 
-**Gate 4 (CLI verification):** `mamey --help` matches HOW_TO_USE; `smoke/standard/gold` all documented and functional; failure codes match prompts.
+**Gate 4 (CLI verification):** `python mamey_run.py --help` matches HOW_TO_USE; `smoke/standard/gold` all documented and functional; failure codes match prompts.
 
 **Gate 5 (Test matrix):** Six behavioral tests (see checklist for full list). Note: many are target/Release-2 acceptance tests, not yet implemented in the current suite.
 
@@ -533,10 +536,10 @@ Source: `docs/SOPs/` directory, 15 SOPs (3 placeholders, 12 complete). Master in
 ### SOP-00: Start Here / Choosing the Right Path
 
 **Input classification decision tree:**
-1. AntiSMASH ZIP with many regions → the staged path is `mamey doctor` → `mamey inspect <zip>` → `mamey run --mode gold` (gold is the only analysis mode)
+1. AntiSMASH ZIP with many regions → the staged path is `python mamey_run.py doctor` → `python mamey_run.py inspect <zip>` → `python mamey_run.py run --mode gold` (gold is the only analysis mode)
 2. AntiSMASH ZIP with one region → inspect + interpret warnings carefully (single-region = reference BGC or test, not full genome)
-3. Sealed Mamey package → `mamey validate <pkg>` (do not re-run)
-4. BLASTp Hit Table CSV → `mamey blastp-followup --hit-table <csv>` (do not re-run Mamey)
+3. Sealed Mamey package → `python mamey_run.py validate <pkg>` (do not re-run)
+4. BLASTp Hit Table CSV → `python mamey_run.py blastp-followup --hit-table <csv>` (do not re-run Mamey)
 5. BLASTp XML2 → pair with hit table when possible
 6. Patch packet ZIP → read README/manifest/diffs before applying
 
@@ -633,7 +636,7 @@ Class A = CONFIRM + SARP. Class B = one strong axis only. Class C = KCB or weake
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.442. Historical run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.443. Historical run facts retain their original version labels.*
 
 ---
 
@@ -644,8 +647,8 @@ Before any Mode B card leaves a session, it must be verified against a **sealed 
 ### The command
 
 ```bash
-mamey verify-modeb --package <sealed_pkg> --bgc BGC001
-mamey verify-modeb --package <sealed_pkg> --bgc BGC001 --interp   # v9.7.338: also run the interpretation/judgment gate (WARN-only)
+python mamey_run.py verify-modeb --package <sealed_pkg> --bgc BGC001
+python mamey_run.py verify-modeb --package <sealed_pkg> --bgc BGC001 --interp   # v9.7.338: also run the interpretation/judgment gate (WARN-only)
 ```
 
 **§4 evidence gate now bites (MB-01, v9.7.338).** When the strain carries a BLASTp panel, §4 asserting a `CONFIRM/REFINE/OVERTURN` verdict without the reconciled per-gene closest-match table (or with no authoritative package core count reaching the gate) now raises an `EVIDENCE_GAP` / `COVERAGE_UNVERIFIED` **WARN** — where the pre-fix gate was effectively dead on every card from the supported workflow. The summary can read `OK (§4 coverage NOT verified — no package core count)`; re-run with `--package … --bgc …` so the real-core-count coverage actually gates. WARN-level, never a structural refuse.
@@ -682,11 +685,11 @@ Cards authored before v9.7.246 carry the templated §4 and §16 text. They are *
 
 ```bash
 # For each affected card:
-mamey verify-modeb --package <sealed_pkg> --bgc <BGC_ID>
+python mamey_run.py verify-modeb --package <sealed_pkg> --bgc <BGC_ID>
 # → PHANTOM_LOCUS ERROR, readiness_state: DRAFT
 ```
 
-Delete every §4 and §16 paragraph containing `ctg12_71`. Then re-run `verify-modeb`. If per-gene BLASTp evidence is genuinely wanted for that BGC, produce it — offline-preferred as of v9.7.260: if you already have NCBI results, `mamey ingest-blastp --hit-table <hits.csv> [--xml <aln.xml>] --package <pkg>` (zero network); otherwise `mamey blastp-online --package <pkg> --bgc <BGC_ID>` — then author §4 from the real result.
+Delete every §4 and §16 paragraph containing `ctg12_71`. Then re-run `verify-modeb`. If per-gene BLASTp evidence is genuinely wanted for that BGC, produce it — offline-preferred as of v9.7.260: if you already have NCBI results, `python mamey_run.py ingest-blastp --hit-table <hits.csv> [--xml <aln.xml>] --package <pkg>` (zero network); otherwise `python mamey_run.py blastp-online --package <pkg> --bgc <BGC_ID>` — then author §4 from the real result.
 
 ### If `LOCUS_BGC_MISMATCH` fires (v9.7.256)
 
@@ -704,8 +707,8 @@ Two gates were added to the release path in v9.7.243. The full sequence, in orde
 
 ```bash
 # 1. Environment and bundle integrity
-python3 -m mamey doctor
-python3 tools/sync_version.py --check # → engine 1.9.169, bundle 9.7.442
+python3 -m python mamey_run.py doctor
+python3 tools/sync_version.py --check # → engine 1.9.170, bundle 9.7.443
 
 # 2. Documentation anchors
 python3 tools/check_monolith_freshness.py          # exit 1 on stale anchor or retired doctrine
@@ -776,4 +779,4 @@ The v9.7.246 fabrication passed claim-safety, evidence-presence, citation, and p
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.442. Historical v4 section labels and run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.443. Historical v4 section labels and run facts retain their original version labels.*

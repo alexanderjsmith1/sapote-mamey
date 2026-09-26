@@ -1,4 +1,4 @@
-# PREREQUISITES — Sapote–Mamey v9.7.442
+# PREREQUISITES — Sapote–Mamey v9.7.443
 
 Start with [INSTALL](INSTALL.md) or the [complete walkthrough](MASTER_WALKTHROUGH.md). The package metadata in [pyproject.toml](../pyproject.toml) defines the supported Python version, core requirements and extras. Use the [README tool table](../README.md#tool-downloads-and-licenses) for upstream downloads and licenses.
 
@@ -30,10 +30,15 @@ The ReportLab-based PDF path is part of core dependencies. Alternate document ro
 
 ## R figure stack
 
-Every renderer under `tools/*.R` (tree heatmaps, placement displays, activity tracks) needs R >= 4.3 and
-these packages: `ggplot2`, `dplyr`, `tidyr`, `scales`, `patchwork`, `ape`, `ggrepel` (CRAN) and
-`ggtree`, `treeio` (Bioconductor). Install with `Rscript bundle_support/install_r_figure_packages.R`
-(`--check` reports readiness without installing). For an offline machine, download the package source archives yourself and run `--from <dir>`; no third-party package source ships in the bundle, and source builds still need their system dependencies. Missing packages produce a nonzero exit. `python mamey_run.py doctor` reports
+Use R >= 4.3 for the R figure workflows. The base installer checks `ggplot2`, `dplyr`, `tidyr`, `scales`, `patchwork`, `ape`, `ggrepel` (CRAN) and `ggtree`, `treeio` (Bioconductor). Install that base set with `Rscript bundle_support/install_r_figure_packages.R`; `--check` reports readiness for its listed packages without installing.
+
+Renderer-specific prerequisites extend that list: **`svglite`** supplies the SVG device used by the figure workflows, and **`aplot`** is explicitly loaded by `tools/ggtree_rect_heatmap.R`. Provision them and their dependencies in the same R library used by the renderer. They may arrive transitively, but the base installer's successful check does not explicitly check them. Before choosing those renderers, check:
+
+```bash
+Rscript -e 'p <- c("svglite", "aplot"); ok <- vapply(p, requireNamespace, logical(1), quietly=TRUE); print(ok); if (!all(ok)) quit(status=2)'
+```
+
+This namespace check establishes package availability only; verify a small actual SVG/rectangular output for the selected renderer before scaling up. For an offline machine, download the package source archives yourself and run `--from <dir>`; no third-party package source ships in the bundle, and source builds still need their system dependencies. Missing packages produce a nonzero exit. `python mamey_run.py doctor` reports
 whether `Rscript` is found; a missing package surfaces as an R error at render time, never as a figure.
 
 ## Offline and architecture-specific installation

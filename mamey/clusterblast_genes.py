@@ -291,6 +291,54 @@ FRC_ACCESSORY_CEILING = 0.30      # a fragment with core-fraction <= this is acc
 FRC_CORE_FLOOR = 0.35             # both sides above this (and similar) => both carry a real core => paralog
 
 
+# v9.7.443: MODULAR_CONTINUATION, reported beside functional_rescue_class and never replacing it.
+# The core-fraction rule above reads a modular NRPS/PKS assembly line broken across contigs as BOTH_CORE,
+# because every piece carries core modules. Module-aware reading: two fragments that both carry
+# assembly-line domains, with at most one release domain between them, are consistent with one line in
+# pieces. Two release domains suggest two complete lines. Counts are per CDS: sec_met_domains is a set per
+# gene, so a gene with three condensation domains counts once.
+ASSEMBLY_LINE_DOMAINS = ("Condensation", "AMP-binding", "PCP", "ACP", "PP-binding", "PKS_KS", "PKS_AT",
+                         "Epimerization", "Heterocyclization", "Cglyc", "A-OX")
+RELEASE_DOMAINS = ("Thioesterase", "TD")
+
+
+def modular_profile_from_gene_context(gene_ctx: dict[str, Any]) -> dict[str, dict[str, int]]:
+    """Per-BGC counts of genes carrying assembly-line domains and genes carrying release domains."""
+    out: dict[str, dict[str, int]] = {}
+    for bgc_id, rows in (gene_ctx or {}).items():
+        line = release = 0
+        for r in rows:
+            doms = [str(d) for d in (r.get("sec_met_domains") or [])]
+            if any(d.startswith(ASSEMBLY_LINE_DOMAINS) for d in doms):
+                line += 1
+            if any(d.startswith(RELEASE_DOMAINS) for d in doms):
+                release += 1
+        out[bgc_id] = {"assembly_line_cds": line, "release_cds": release}
+    return out
+
+
+def modular_continuation(prof_a: dict[str, int] | None, prof_b: dict[str, int] | None) -> dict[str, Any]:
+    """Describe whether two fragments read as one modular assembly line in pieces. Never a verdict change.
+
+      MODULAR_CONTINUATION  both carry assembly-line genes; at most one release gene between them
+      MODULAR_TWO_RELEASES  both carry assembly-line genes; each side has its own release gene
+      NOT_MODULAR           at least one side carries no assembly-line gene
+      UNKNOWN_NO_PROFILE    no gene context for one side
+    """
+    if prof_a is None or prof_b is None:
+        return {"modular_continuation": "UNKNOWN_NO_PROFILE"}
+    la, lb = prof_a.get("assembly_line_cds", 0), prof_b.get("assembly_line_cds", 0)
+    ra, rb = prof_a.get("release_cds", 0), prof_b.get("release_cds", 0)
+    if not (la and lb):
+        cls = "NOT_MODULAR"
+    elif ra + rb <= 1:
+        cls = "MODULAR_CONTINUATION"
+    else:
+        cls = "MODULAR_TWO_RELEASES" if (ra and rb) else "MODULAR_CONTINUATION_MULTI_RELEASE_ONE_SIDE"
+    return {"modular_continuation": cls, "a_assembly_line_cds": la, "b_assembly_line_cds": lb,
+            "a_release_cds": ra, "b_release_cds": rb}
+
+
 def rescue_functional_complementarity(prof_a: dict[str, Any], prof_b: dict[str, Any]) -> dict[str, Any]:
     """Assess whether two BGC fragments are functionally complementary for a rescue.
 

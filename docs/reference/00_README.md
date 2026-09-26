@@ -20,4 +20,4 @@ verification reference; the general-audience track is the explainer. Where they 
 formula they agree; the technical track is authoritative on exact constants.
 
 ## Public release
-- **../PUBLIC_RELEASE_GUIDE.md** — the public (GitHub) release user guide: the release ships complete (nothing is stripped; the Pfam HMM and all fixtures are in place), the tool's runtime network behavior (offline by default; only the optional online BLASTp touches the network), and air-gapped operation. Step-by-step setup in ../../docs/INSTALL.md; provenance and optional HMM rebuild in ../PUBLIC_RELEASE_DATA.md.
+- **../PUBLIC_RELEASE_GUIDE.md** — the public (GitHub) release user guide: what ships (code and small governed data; the curated Pfam HMM is operator-provisioned, not bundled), the tool's runtime network behavior (offline by default; only the optional online BLASTp touches the network), and air-gapped operation. Step-by-step setup in ../../docs/INSTALL.md; provenance and optional HMM rebuild in ../PUBLIC_RELEASE_DATA.md.

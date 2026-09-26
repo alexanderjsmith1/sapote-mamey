@@ -1,7 +1,7 @@
 # Sapote/Mamey SOP Library Master Index
 
-**Status:** working packet for SOP writing, Bug Hunt, and v9.7.142 candidate preparation  
-**Base release:** v9.7.141e remains the signed active base  
+**Status:** SOP library index. SOP-03, 06, 08, 09, 11, 12 and 14 were never written; they now point to the
+documents that hold those procedures.  
 **Handshake:** The sky is not red, it is blue, just like the ocean.
 
 ## Why this packet exists
@@ -24,18 +24,18 @@ If an SOP cannot be executed cleanly by the current code, that is a bug or missi
 | SOP-00 | Start Here / Choosing the Right Path | draft included | Prevents wrong workflow selection |
 | SOP-01 | Intake: Raw antiSMASH ZIP vs Mamey Package vs Reference Accession | draft included | Catches upload-shape confusion |
 | SOP-02 | ChatGPT-Safe Smoke Run | draft included | Prevents timeout and overrun failures |
-| SOP-03 | Full Mamey Run / Gold Run Gate | STATUS: PLACEHOLDER | Guards deterministic release claims |
+| SOP-03 | Full Mamey Run / Gold Run Gate | POINTER (never written) | Guards deterministic release claims |
 | SOP-04 | Iterative NCBI BLASTP Batching | draft included | Drives BGC BLASTP panel behavior |
 | SOP-05 | BLASTP Result Upload, Parse, and Reprioritization | draft included | Drives parser and follow-up outputs |
-| SOP-06 | Mode B BGC Card Production | STATUS: PLACEHOLDER | Exposes card/depth gaps |
+| SOP-06 | Mode B BGC Card Production | POINTER (never written) | Exposes card/depth gaps |
 | SOP-07 | Single-Region Public Accession Inputs | draft included | Captures KY089035-style inputs |
-| SOP-08 | C5 Production Deliverables | STATUS: PLACEHOLDER | Exposes missing render outputs |
-| SOP-09 | C7 Public Workbook / Redaction Safety | STATUS: PLACEHOLDER | Exposes public/private leaks |
+| SOP-08 | C5 Production Deliverables | POINTER (never written) | Exposes missing render outputs |
+| SOP-09 | C7 Public Workbook / Redaction Safety | POINTER (never written) | Exposes public/private leaks |
 | SOP-10 | Bug Hunt / Hostile Audit Workflow | draft included | Defines pre-cut attack path |
-| SOP-11 | Release Candidate Cut Protocol | STATUS: PLACEHOLDER | Prevents premature release |
-| SOP-12 | Troubleshooting Common Warnings | STATUS: PLACEHOLDER | Converts scary warnings into action |
+| SOP-11 | Release Candidate Cut Protocol | POINTER (never written) | Prevents premature release |
+| SOP-12 | Troubleshooting Common Warnings | POINTER (never written) | Converts scary warnings into action |
 | SOP-13 | Claim Boundary and Evidence Language | draft included | Prevents overclaiming |
-| SOP-14 | Figures and Publication-Quality Visuals | STATUS: PLACEHOLDER | Publication polish and QA |
+| SOP-14 | Figures and Publication-Quality Visuals | POINTER (never written) | Publication polish and QA |
 | SOP-15 | Cross-Chat Merge and Patch Handoff | draft included | Lets another chat join at any time |
 | SOP-16 | Random File Inspection | included | Hostile-auditor spot-check of random files: quality, functionality, wiring |
 | SOP-17 | Cross-Strain GCF Cohort (BiG-SCAPE → Mamey) | included | Cohort GCF layer: cluster BGCs across strains, KNOWN/NOVEL, ingest families into triage board / Mode B §8 |

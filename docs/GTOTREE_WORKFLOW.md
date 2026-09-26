@@ -1,5 +1,8 @@
 # The Sapote-Mamey GToTree Workflow — execution guide (two-tier MLSA → approved core-genome)
 
+Run engine examples from the selected bundle directory containing `pyproject.toml` and `mamey_run.py`, using its compatible activated Python interpreter; bind external inputs separately.
+
+
 **Version:** rebased onto v9.7.348 for the v9.7.349 line · companion workflow (detected, not bundled)
 **Scope:** downstream of a sealed Mamey package. It **never blocks or alters a core run.**
 **Governance authority:** [`docs/phylogenomics.md`](phylogenomics.md) and, for the LLM contract,
@@ -53,7 +56,7 @@ conda create -n sapote-phylo -c conda-forge -c bioconda \
     gtotree iqtree muscle prodigal blast fastani ncbi-datasets-cli -y
 conda activate sapote-phylo
 GToTree -v && GToTree -h        # never assume 1.8.16 behaviour — check the installed interface
-mamey doctor --companions       # confirm detection
+python mamey_run.py doctor --companions       # confirm detection
 ```
 
 The drivers here find binaries via `--bin-dir`, then `$MAMEY_PHYLO_BIN`, then `PATH` — nothing is
@@ -214,7 +217,7 @@ et al. (2020) *MBE* 37:1530 · ModelFinder — Kalyaanamoorthy et al. (2017) *Na
 UFBoot2 — Hoang et al. (2018) *MBE* 35:518 · MUSCLE 5 — Edgar (2022) *Nat Commun* 13:6968 · Prodigal —
 Hyatt et al. (2010) *BMC Bioinf* 11:119 · BLAST+ — Camacho et al. (2009) *BMC Bioinf* 10:421 · fastANI
 — Jain et al. (2018) *Nat Commun* 9:5114 · ncbi-datasets-cli — NCBI Datasets docs + access date.
-*Quote the exact installed versions (`mamey doctor --companions`); the Tool Master supplies
+*Quote the exact installed versions (`python mamey_run.py doctor --companions`); the Tool Master supplies
 version-matched strings.*
 # Frozen execution identity
 

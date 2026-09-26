@@ -3,13 +3,13 @@
 - **id:** `fig_top_leads_table`
 - **category:** tables
 - **audience:** presentation
-- **output:** `fig_top_leads_table.png` (slides, ≥200 dpi) + `.svg`/`.pdf` for print
+- **output:** `fig_top_leads_table.png` (slides, ≥300 dpi) + `.svg`/`.pdf` for print
 
 ## Data
 - **source:** `figure_ready/diagnostics_long.csv + bgc_inventory.csv`
-- **columns used:** diagnostics_long: sid, diagnostic_name, present; bgc_inventory: sid, bgc_id, contig, region, length_kb, edge_status
-- **row filter:** diagnostics_long.present==1 for high-value diagnostics (e.g. enediyne); join to that strain's candidate BGCs
-- **derived fields:** lead label = bgc_id (contig·region); priority ranked by diagnostic value then length_kb
+- **columns used:** diagnostics_long: strain, diagnostic_name, present; bgc_inventory: strain, bgc_id, contig, region, length_kb, boundary
+- **row filter:** aggregate diagnostics may supply isolate context only. For a locus-ranked lead table, require independently admitted locus-specific diagnostic evidence; hold this rendering if that evidence is unavailable.
+- **derived fields:** join locus-specific evidence on the complete strain / contig / region / bgc_id identity from one bound source record; rank only after that binding. Do not copy an aggregate marker onto every BGC.
 
 ## Plot
 - **type:** formatted table
@@ -23,7 +23,7 @@ annotation: axis labels, legend, title, colorbar, and value labels flush at bar 
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-> Priority candidate leads with full BGC locators and the diagnostic that flagged them; class-level hypotheses pending wet-lab confirmation.
+> Candidate leads with complete source-bound locus identities and admitted locus-specific marker evidence. Isolate-level aggregate diagnostics remain separate context; scores and markers support class-level capacity hypotheses, with activity and expression unconfirmed.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Color-code the diagnostic column consistently with the deck theme.

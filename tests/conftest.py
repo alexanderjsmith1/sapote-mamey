@@ -153,3 +153,35 @@ def pytest_collection_modifyitems(config, items):
                 item.add_marker(skip_slow)
         if "network" in item.keywords and not run_network:
             item.add_marker(skip_network)
+
+
+# v9.7.442: the no-claim-text rule gets a caller in every test that renders a figure.
+# figure_save.py checks the page, but most renderers call Figure.savefig directly. The ratchet
+# wraps savefig for the session; an unlisted renderer that draws banned wording fails its test.
+# See figure_page_text_ratchet.py for what is and is not covered.
+def pytest_configure(config):
+    try:
+        import matplotlib.figure  # noqa: F401
+    except ImportError:
+        return
+    import importlib.util
+    import sys
+
+    spec = importlib.util.spec_from_file_location(
+        "figure_page_text_ratchet", _Path381(__file__).resolve().parent / "figure_page_text_ratchet.py")
+    fpt = importlib.util.module_from_spec(spec)
+    sys.modules["figure_page_text_ratchet"] = fpt  # the ratchet's own tests import it by name
+    spec.loader.exec_module(fpt)
+    config._page_text_ratchet = fpt.PageTextRatchet(fpt.load_known_sites())
+    fpt.install(config._page_text_ratchet)
+
+
+def pytest_terminal_summary(terminalreporter, config):
+    ratchet = getattr(config, "_page_text_ratchet", None)
+    if ratchet is None:
+        return
+    cleared = ratchet.cleared_sites()
+    if cleared:
+        terminalreporter.write_line(
+            "figure page text: these listed sites rendered clean; delete them from "
+            "tests/fixtures/figure_page_text_known_sites.txt: " + ", ".join(cleared))

@@ -2,7 +2,7 @@
 
 ### CLI, workbook, figures, packaging, stores, and parse layer of the Mamey engine
 
-**Version of record:** Mamey engine v1.9.169 · bundle v9.7.442 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23; architecture unchanged — B4 workbook column list may not reflect triggers added at v1.9.99)
+**Version of record:** Mamey engine v1.9.170 · bundle v9.7.443 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23; architecture unchanged — B4 workbook column list may not reflect triggers added at v1.9.99)
 **Author:** Alexander J. Smith
 **Companion to:** *The Mathematics of Sapote-Mamey* (Volumes I & II — the engine's quantitative core and subsystems).
 **Status:** Architecture reference. Every component is transcribed from engine source and cited to `module.py:symbol`; nothing is reconstructed from memory. Each cluster was verified against source; corrections made during review are noted inline.
@@ -429,7 +429,7 @@ The policy switch `FIGURE_OMIT_SACCHARIDE = True` is the global gate. `SPECIALIS
 
 Note: `SPECIALIST_CLASSES` is NOT the same as the lead-board CONFIRM set. Ectoine, redox-cofactor, siderophore, butyrolactone, and others appear here so multi-class BGCs (e.g. `NRPS;ectoine`) plot under their specialist class rather than being dropped. These are still downranked on the DAPR board by the scoring/standing-rule layer.
 
-`cohort_class_heatmap.py` uses a separate centralized exclusion set from `genus_reference.STANDING_EXCLUSIONS` (PC-A5, v9.7.101) rather than SPECIALIST_CLASSES, ensuring all comparative consumers drop identical classes.
+`cohort_class_heatmap.py` uses a local saccharide-only display exclusion, distinct from `SPECIALIST_CLASSES` and the wider genus/BiG-SCAPE `STANDING_EXCLUSIONS`. The former PC-A5 shared exclusion wiring is historical; genome-class and family-comparison displays have different policy scopes.
 
 ---
 
@@ -710,7 +710,7 @@ G-series (`cohort_figures_g.py`) and D-series (`cohort_figures_d.py`) add comple
 
 **Role:** Strain × biosynthetic-class capacity heatmap from the master workbook's `B2_Product_Class_Matrix` sheet. Invoked by `render-figures --figure-set cohort-class --workbook <cohort.xlsx>`.
 
-**Exclusions:** `STANDING_EXCLUSIONS` from `genus_reference` (centralized PC-A5, v9.7.101); `_NON_CLASS_COLS = {"strain", "counts_reliability"}`. NAPAA is explicitly NOT excluded (registry-neutral since v9.7.22). Zero-count class columns are dropped to keep the figure legible.
+**Exclusions:** local `_EXCLUDED_CLASSES = {"saccharide"}` for this genome-class display. Metadata fields (`strain`, `label_provenance`, `counts_reliability`) are not class columns. NAPAA and fatty_acid remain eligible. All-zero/all-missing class columns are omitted for legibility, while missing and observed zero stay distinct within retained columns.
 
 **Outputs:** `cohort_class_capacity_heatmap.png` (viridis colormap, count-annotated cells, white/black text based on cell darkness) + `cohort_class_capacity_heatmap_data.csv`. Footer carries the PRIVATE claim-prefix + the standing disclaimer about NAPAA and saccharide exclusion.
 

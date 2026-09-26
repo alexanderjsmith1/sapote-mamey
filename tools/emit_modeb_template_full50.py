@@ -94,13 +94,19 @@ def load_contract(bundle: Path) -> dict:
     return {"requirements": rows, "contract_sha256": actual, "json_path": str(jpath)}
 
 
-def emit_engine_template(bundle: Path, python: str, package: Path, bgc: str) -> str:
+# The engine's cross-source flags (mamey.modeb_template_emitter.SOURCE_FLAGS), forwarded unchanged.
+# Without them §25 §40 §44 §46 §47 arrive as "Source not supplied" holds.
+SOURCE_FLAGS = ("--cohort-dir", "--reference-dir", "--strain-metadata", "--bigscape-regions-dir")
+
+
+def emit_engine_template(bundle: Path, python: str, package: Path, bgc: str,
+                         source_args: list[str] | None = None) -> str:
     """Shell to the REAL engine emitter. Its BLASTp HARD gate is not bypassed."""
     with tempfile.TemporaryDirectory() as td:
         out = Path(td) / "engine_template.md"
         proc = subprocess.run(
             [python, "mamey_run.py", "emit-modeb-template",
-             "--package", str(package), "--bgc", bgc, "--out", str(out)],
+             "--package", str(package), "--bgc", bgc, "--out", str(out), *(source_args or [])],
             cwd=bundle, capture_output=True, text=True, timeout=1800,
         )
         if proc.returncode != 0 or not out.is_file():
@@ -178,10 +184,11 @@ def extract_matrix(body: list[str]) -> tuple[list[str], list[str]]:
     return body[:start] + body[end:], body[start:end]
 
 
-def build(bundle: Path, python: str, package: Path, bgc: str) -> tuple[str, dict]:
+def build(bundle: Path, python: str, package: Path, bgc: str,
+          source_args: list[str] | None = None) -> tuple[str, dict]:
     contract = load_contract(bundle)
     reqs = contract["requirements"]
-    engine_text = emit_engine_template(bundle, python, package, bgc)
+    engine_text = emit_engine_template(bundle, python, package, bgc, source_args)
     preamble, bodies, order, footer = split_sections(engine_text)
 
     if not order:
@@ -256,6 +263,7 @@ def build(bundle: Path, python: str, package: Path, bgc: str) -> tuple[str, dict
 
     receipt = {
         "profile": "MODEB_FULL50_MIGRATED",
+        "engine_source_args": list(source_args or []),
         "section_count": len(order),
         "sections": order,
         "contract_json": contract["json_path"],
@@ -283,12 +291,26 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--python", default=sys.executable,
                     help="interpreter for the engine call (needs Python >= 3.12)")
     ap.add_argument("--receipt", type=Path, help="write the emission receipt JSON here")
+    for flag in SOURCE_FLAGS:
+        ap.add_argument(flag, type=Path, default=None,
+                        help="forwarded to emit-modeb-template (see its --help)")
     args = ap.parse_args(argv)
 
     if not (args.bundle / "mamey_run.py").is_file():
         raise SystemExit(f"BUNDLE_ROOT_INVALID: no mamey_run.py under {args.bundle}")
 
-    text, receipt = build(args.bundle, args.python, args.package, args.bgc)
+    # The engine subprocess runs with cwd=bundle. Resolve caller-relative inputs
+    # before that cwd changes; output and receipt paths stay in this process.
+    bundle = args.bundle.resolve()
+    package = args.package.resolve()
+    python = (str(Path(args.python).resolve())
+              if "/" in args.python or "\\" in args.python else args.python)
+    source_args: list[str] = []
+    for flag in SOURCE_FLAGS:
+        value = getattr(args, flag.lstrip("-").replace("-", "_"))
+        if value is not None:
+            source_args += [flag, str(value.resolve())]
+    text, receipt = build(bundle, python, package, args.bgc, source_args)
     notes = []
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)

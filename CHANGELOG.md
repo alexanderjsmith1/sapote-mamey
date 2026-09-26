@@ -1,3 +1,23 @@
+# v9.7.443 · 2026-09-26 · build 20260926v97443a · engine 1.9.170 · CODE
+
+Accretion-justified: no new mamey runtime module. New operator surfaces: tools/check_no_bundle_write_defaults.py, tools/make_verified_code_tarball.sh, tools/blastp_crawl/.
+
+- **Adjacent-cluster pairs report MODULAR_CONTINUATION.** The rescue read adds assembly-line and release-gene columns beside functional_rescue_class, never replacing it. Scoring and extraction files are byte-identical to v9.7.442.
+- **Deliverable PDFs embed their fonts.** The shared ReportLab renderer registers a TrueType family and refuses when none is found, so md_to_pdf.sh falls back to pandoc+xelatex; it never writes unembedded base-14 fonts.
+- **Release tarball verification is receipt-bound.** Identity v3 plus membership, mode, streaming, member-count, path and ZIP-snapshot guards; CODE tarballs go through make_verified_code_tarball.sh.
+- **Figure text is checked where it is drawn.** Figure QC binds its review manifest to the images, guards SVG text, and fails closed on OCR errors and invalid UTF-8 captions; a test-time page-text ratchet can only shrink its exemptions.
+- **Writes stay out of the code bundle.** A new check_no_bundle_write_defaults gate (registered WIRED); BLASTp output, deliverable builders, the outgroup cache and crawl plots refuse bundle-internal output.
+- **Bioassay inputs and contig rosters fail closed.** Rulings and source-column inventory with reasons, row-width guards, immutable input snapshots, plan hash binding; one removed-contig reader and strict bin values.
+- **Runner and provenance bind what they run.** Bytecode cache marker bound to source content; run failures name the refusal; provenance logs session identity; intake and queue-resume fail closed.
+- **Mode B reports true reasons and numeric identities.** BiG-SCAPE holds give the actual reason; template sources reach every route; percent identity must be a finite 0-100 value.
+- **BLASTp crawl ships in tools, and says when its heartbeat is off.** RID runner, crawl handoff, health table and plots; runner failures are reported instead of swallowed. The crawl folder is exempt from print_calls only.
+- Documentation: 24 operator-doc corrections, the W380 residual, plot-example wording at 300 dpi, owner-doc delta UD005; v9.7.441 release notes move to docs/history.
+- Cut fixes: the new gate is registered; two test harnesses repaired; two clean figure sites leave the known-sites list; the phylo_place known-sites addendum was dropped.
+
+Engine 1.9.170: emitted-output bump only (new pair columns). Scoring is unchanged and boards stay poolable with 1.9.169.
+
+Not included: product/category separation (deferred by owner decision to a family-count card), held privacy-policy cards, the preliminary card census, superseded seal-binding v2 and AppleDouble guard.
+
 # v9.7.442 · 2026-09-24 · build 20260924v97442a · engine 1.9.169 · CODE
 
 - Accretion-justified: mamey/figure_policy.py — one shared check for text drawn on figures, used by the figure save path.

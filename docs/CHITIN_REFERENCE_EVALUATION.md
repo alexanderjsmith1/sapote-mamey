@@ -98,16 +98,16 @@ a **candidate**, never asserted as a taxonomic confirmation on its own.
 
 ```bash
 # From a sealed package's manifest.json
-Tools/bin/python3 tools/chitin_reference_eval.py \
+python tools/chitin_reference_eval.py \
     --package ./runs/<strain>/package --registry my_reference_registry.tsv
 
 # From a standalone CGAD counts JSON (e.g. testing, or a strain without a full package)
-Tools/bin/python3 tools/chitin_reference_eval.py \
+python tools/chitin_reference_eval.py \
     --cgad-json cgad_counts.json --registry my_reference_registry.tsv \
     --strain-id <id> --taxon <genus>
 
 # TSV row instead of the JSON receipt; also write both to disk
-Tools/bin/python3 tools/chitin_reference_eval.py \
+python tools/chitin_reference_eval.py \
     --package ./runs/<strain>/package --registry my_reference_registry.tsv \
     --format tsv --out-json out.json --out-tsv out.tsv
 ```

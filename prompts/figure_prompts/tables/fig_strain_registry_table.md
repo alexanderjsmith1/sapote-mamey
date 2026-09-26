@@ -3,11 +3,11 @@
 - **id:** `fig_strain_registry_table`
 - **category:** tables
 - **audience:** presentation
-- **output:** `fig_strain_registry_table.png` (slides, ≥200 dpi) + `.svg`/`.pdf` for print
+- **output:** `fig_strain_registry_table.png` (slides, ≥300 dpi) + `.svg`/`.pdf` for print
 
 ## Data
 - **source:** `figure_ready/strain_summary.csv`
-- **columns used:** sid, organism, assembly_grade, contigs, n50, raw_bgcs, corrected_bgcs
+- **columns used:** strain, taxonomy, assembly_tier, contigs, n50, raw_bgcs, corrected_bgcs
 - **row filter:** all strains
 - **derived fields:** —
 
@@ -23,7 +23,9 @@ annotation: axis labels, legend, title, colorbar, and value labels flush at bar 
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-> Strain registry: assembly metrics and BGC counts (n = 18).
+Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+
+> Isolate registry: assembly metrics and BGC counts (n = <admitted_isolate_n> isolates).
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Keep to ≤12 rows per slide; split if more.

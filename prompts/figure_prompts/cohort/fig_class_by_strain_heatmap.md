@@ -1,19 +1,19 @@
-# Figure: Class × strain heatmap
+# Figure: Class × isolate heatmap
 
 - **id:** `fig_class_by_strain_heatmap`
 - **category:** cohort
 - **audience:** manuscript
-- **output:** `fig_class_by_strain_heatmap.png` (slides, ≥200 dpi) + `.svg`/`.pdf` for print
+- **output:** `fig_class_by_strain_heatmap.png` (slides, ≥300 dpi) + `.svg`/`.pdf` for print
 
 ## Data
 - **source:** `figure_ready/class_by_strain.csv`
-- **columns used:** sid, product_class, n_bgcs
+- **columns used:** strain, product_class, n_bgcs
 - **row filter:** top 20 classes by prevalence
 - **derived fields:** pivot class × strain, values = n_bgcs
 
 ## Plot
 - **type:** heatmap (viridis)
-- **x:** sid (strain-rank order)   **y:** product_class   **color:** n_bgcs
+- **x:** strain (strain-rank order)   **y:** product_class   **color:** n_bgcs
 - **order:** strain rank; class prevalence   **scales:** —
 
 ## Style
@@ -23,7 +23,9 @@ annotation: axis labels, legend, title, colorbar, and value labels flush at bar 
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-> BGCs per product class and strain (n = 18; top 20 classes). Colour = BGC count.
+Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+
+> BGCs per product class and isolate (n = <admitted_isolate_n> isolates; top 20 classes). Colour = BGC count.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Box a strain column or class row on the slide to spotlight a case; never bake it in.

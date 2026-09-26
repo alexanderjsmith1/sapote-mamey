@@ -21,8 +21,17 @@ Verdicts: HEALTHY · IDLE (no live lanes) · DEGRADED (some errors, still fetchi
           THROTTLED (many live lanes stuck in submit-failure backoff) ·
           STALLED (live lanes, no fetch in >STALL_MIN AND errors present).
 
-Run: python3 "tools/blastp_monitoring/blastp_health.py"
+Per-lane table (v9.7.443), under the verdict: for every live lane, and with --all every gap lane,
+the RIDs in flight, how many are HELD (older than --hold-after, default 1 h) and the oldest age,
+fetched in the last hour, and errors in the last hour split by type with the commonest curl rc.
+A lane is BLOCKED when its RIDs are all held and fill its slots, so it can submit nothing new.
+--idle lists stopped gap lanes with no held RIDs and work left: the answer to "which lane next".
+A lane is live if its `_runner.pid` names a running process (the bundle runner writes one), or if
+a runner's command line names its RID_BASE.
+
+Run: python3 "tools/blastp_monitoring/blastp_health.py" [--all] [--idle]
 """
+import argparse
 import csv
 import datetime
 import glob
@@ -69,6 +78,108 @@ def live_lanes():
         else:
             bases.add("_NR_RID")  # runner default when no env is set
     return bases, total
+
+
+ERR_TYPES = ("submit failed", "submit ERROR", "poll ERROR", "fetch ERROR")
+RC_RE = re.compile(r"curl rc=(\d+)")
+GAP_LANE_RE = re.compile(r"^_STRAINGAP_SINGLE_CLNR_GAP_AS(\d+)$")
+
+
+def _pid_alive(base_dir):
+    try:
+        pid = int(open(os.path.join(base_dir, "_runner.pid")).read().strip())
+        os.kill(pid, 0)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _ts(s):
+    try:
+        return datetime.datetime.strptime((s or "")[:19], "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
+
+
+def lane_row(base, now, live, hold_after, max_inflight, max_held, bundle_runner):
+    """One lane's slot and error picture from its ledger, query tree and _run.log."""
+    d = os.path.join(BR, base)
+    try:
+        rows = list(csv.DictReader(open(os.path.join(d, "_ledger.csv"), newline="")))
+    except OSError:
+        rows = []
+    by_file = {r.get("file", ""): r for r in rows}
+    ages = sorted(((now - t).total_seconds() for r in rows if r.get("status") == "submitted"
+                   for t in [_ts(r.get("submit_iso"))] if t), reverse=True)
+    held = [a for a in ages if a >= hold_after]
+    fetched_1h = sum(1 for r in rows if r.get("status") == "fetched"
+                     and (_ts(r.get("fetch_iso")) or datetime.datetime.min) >= now - datetime.timedelta(hours=1))
+    runnable = None
+    m = GAP_LANE_RE.match(base)
+    if m:
+        q = os.path.join(BR, f"_QUERIES_GAP_AS-{m.group(1)}_K")
+        if os.path.isdir(q):
+            skip = {"fetched", "submitted", "submit_failed_parked", "unsure"}
+            runnable = sum(1 for f in glob.glob(os.path.join(q, "**", "*.faa"), recursive=True)
+                           if by_file.get(os.path.relpath(f, q), {}).get("status") not in skip)
+    errs = dict.fromkeys(ERR_TYPES, 0)
+    rcs = {}
+    try:
+        tail = open(os.path.join(d, "_run.log"), errors="ignore").read().splitlines()[-2000:]
+    except OSError:
+        tail = []
+    for ln in tail:
+        mt = TS_RE.search(ln)
+        if not mt or (now - _ts(mt.group(1))).total_seconds() > 3600:
+            continue
+        for kind in ERR_TYPES:
+            if kind in ln:
+                errs[kind] += 1
+                rc = RC_RE.search(ln)
+                if rc:
+                    rcs[rc.group(1)] = rcs.get(rc.group(1), 0) + 1
+                break
+    # The bundle runner frees a slot once a RID is held and stops at --max-held; the older
+    # workspace runner lets held RIDs fill --max-inflight.
+    if bundle_runner:
+        blocked = len(held) >= max_held
+    else:
+        blocked = bool(ages) and len(held) == len(ages) and len(ages) >= max_inflight
+    handed_off = os.path.exists(os.path.join(d, "_HANDOFF_OUT.txt"))
+    return dict(base=base, live=live, handed_off=handed_off, in_flight=len(ages), held=len(held),
+                oldest_h=(ages[0] / 3600 if ages else None), fetched_1h=fetched_1h,
+                runnable=runnable, errs=errs, rcs=rcs, blocked=blocked)
+
+
+def _runner_flags():
+    """(max_inflight, max_held, bundle_runner) from the first runner command line, with defaults."""
+    ps = subprocess.run(["ps", "-eo", "command"], capture_output=True, text=True).stdout
+    for line in ps.splitlines():
+        if "nr_rid_runner.py" in line and " run" in line:
+            mi = re.search(r"--max-inflight[= ](\d+)", line)
+            mh = re.search(r"--max-held[= ](\d+)", line)
+            return (int(mi.group(1)) if mi else 2, int(mh.group(1)) if mh else 4,
+                    "blastp_crawl/nr_rid_runner.py" in line)
+    return 2, 4, True
+
+
+def print_lane_table(rows):
+    print(f"{'lane':<40} {'live':>4} {'runnable':>8} {'in flight':>9} {'held (oldest)':>14} "
+          f"{'fetched 1h':>10}  errors 1h (submit failed/submit ERROR/poll/fetch; top rc)")
+    for r in rows:
+        oldest = f"{r['held']} ({r['oldest_h']:.1f} h)" if r["oldest_h"] is not None else "0"
+        rc = max(r["rcs"], key=r["rcs"].get) if r["rcs"] else "-"
+        e = r["errs"]
+        print(f"{r['base']:<40} {'yes' if r['live'] else ('out' if r['handed_off'] else 'no'):>4} "
+              f"{'-' if r['runnable'] is None else r['runnable']:>8} {r['in_flight']:>9} {oldest:>14} "
+              f"{r['fetched_1h']:>10}  {e['submit failed']}/{e['submit ERROR']}/{e['poll ERROR']}/"
+              f"{e['fetch ERROR']}; rc {rc}" + ("   BLOCKED" if r["blocked"] else ""))
+    polls = sum(r["errs"]["poll ERROR"] for r in rows)
+    total = sum(sum(r["errs"].values()) for r in rows)
+    lanes_with_polls = sum(1 for r in rows if r["errs"]["poll ERROR"])
+    if total >= 10 and polls >= 0.6 * total and lanes_with_polls >= 2:
+        print("Errors are mostly failed status checks across lanes: check the local network, and "
+              "whether NCBI is slow for everyone, before stopping lanes.")
 
 
 def recent_errors(logpath, now):
@@ -120,8 +231,17 @@ def newest_result_hit():
 
 
 def main():
+    ap = argparse.ArgumentParser(description="Ground-truth health of the BLASTp crawl.")
+    ap.add_argument("--all", action="store_true", help="table every gap lane, not only live ones")
+    ap.add_argument("--idle", action="store_true",
+                    help="list stopped gap lanes with no held RIDs and work left (which lane next)")
+    ap.add_argument("--hold-after", type=float, default=3600.0,
+                    help="seconds after which a waiting RID counts as held (default 1 h)")
+    a = ap.parse_args()
     now = datetime.datetime.now()
     live, nproc = live_lanes()
+    live |= {os.path.basename(os.path.dirname(p))
+             for p in glob.glob(os.path.join(BR, "*", "_runner.pid")) if _pid_alive(os.path.dirname(p))}
     # per-live-lane run.log errors
     stuck = 0
     err_total = 0
@@ -177,6 +297,24 @@ def main():
     else:
         print("newest result file     : NONE FOUND")
     print("=" * 60)
+    max_inflight, max_held, bundle_runner = _runner_flags()
+    bases = sorted(b for b in live if os.path.isdir(os.path.join(BR, b)))
+    if a.all or a.idle:
+        bases = sorted(set(bases) | {"_STRAINGAP_SINGLE_CLNR_GAP_AS" + re.search(r"AS-(\d+)", q).group(1)
+                                     for q in glob.glob(os.path.join(BR, "_QUERIES_GAP_AS-*_K"))})
+    table = [lane_row(b, now, b in live, a.hold_after, max_inflight, max_held, bundle_runner)
+             for b in bases]
+    if a.idle:
+        out = [r["base"] for r in table if r["handed_off"]]
+        if out:
+            print(f"Handed off to another machine, not listed ({len(out)}): "
+                  + ", ".join(b.replace("_STRAINGAP_SINGLE_CLNR_GAP_", "") for b in out))
+        table = sorted((r for r in table if not r["live"] and not r["handed_off"]
+                        and r["in_flight"] == 0 and r["runnable"]),
+                       key=lambda r: -r["runnable"])
+        print(f"Stopped gap lanes with no RIDs out and work left ({len(table)}), most work first:")
+    if table:
+        print_lane_table(table)
     # nonzero exit if not healthy/idle, so it can gate a restart
     return 0 if verdict.startswith(("HEALTHY", "IDLE")) else 2
 

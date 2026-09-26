@@ -2,8 +2,8 @@
 
 Strain x primary-biosynthetic-class matrix, cell = BGC count, viridis, count-annotated.
 Reproduces the "Core biosynthetic-class capacity by strain" figure. Reads the cohort
-workbook's B2_Product_Class_Matrix sheet. Applies the standing permanent-exclusion rule
-and the claim-safe footer.
+workbook's B2_Product_Class_Matrix sheet. Parks saccharide only, as ruled for genome-class
+figures, and draws the claim-safe footer.
 
 Deterministic extraction-layer figure; no LLM. Publication PNG + companion CSV.
 
@@ -23,19 +23,15 @@ from .render_safe import FigureCanvasTooLargeError, max_figure_edge_px
 from pathlib import Path
 from typing import Any
 
-# PC-A5 (v9.7.101): the comparative-exclusion set is centralized in genus_reference
-# (registry-sourced SSOT) so every comparative consumer drops the same classes and the
-# rule can't be silently skipped or drift per-module. NAPAA is NOT in it (registry-neutral
-# since v9.7.22) — it was previously dropped here as a "standing downgrade", which contradicted
-# the registry; that drop is removed. Non-class B2 columns (e.g. counts_reliability) are skipped too.
-try:
-    from .genus_reference import STANDING_EXCLUSIONS as _COMPARATIVE_EXCLUSIONS
-except Exception:
-    _COMPARATIVE_EXCLUSIONS = frozenset({"saccharide", "fatty_acid"})
+# A per-genome class figure parks saccharide only (owner ruling, 2026-09-24). Fatty acid,
+# terpene and ectoine are shown. genus_reference.STANDING_EXCLUSIONS is the genus-bank and
+# comparative list, and BiG-SCAPE family figures keep their own; neither applies here.
+# NAPAA is registry-neutral and is shown.
+_GENOME_CLASS_PARKED = frozenset({"saccharide"})
 # columns in B2 that are metadata, not biosynthetic classes
 _NON_CLASS_COLS = {"strain", "label_provenance", "counts_reliability"}
 _LABEL_PROVENANCE = frozenset({"RAW_ANTISMASH", "GENE_BACKED"})
-_EXCLUDED_CLASSES = set(_COMPARATIVE_EXCLUSIONS)
+_EXCLUDED_CLASSES = set(_GENOME_CLASS_PARKED)
 _FOOTER = ("Data-only figure · capacity-level, not activity · CCTT/score = biosynthetic-capacity "
            "signal, not confirmed product · KCB = similarity, not identity · "
            "gray = missing; white = observed zero · standing comparative exclusions applied "
@@ -83,8 +79,8 @@ def _read_b2(workbook_path) -> list[dict]:
 
 
 def build_class_matrix(rows: list[dict], label_provenance: str = "RAW_ANTISMASH") -> tuple[list[str], list[str], list[list[int | None]]]:
-    """From B2 rows build (strain_labels, class_labels, matrix). Excludes the standing
-    comparative-exclusion classes and any all-zero class column. Strains in input order."""
+    """From B2 rows build (strain_labels, class_labels, matrix). Parks saccharide and drops
+    any all-zero class column. Strains in input order."""
     label_provenance = str(label_provenance).upper()
     if label_provenance not in _LABEL_PROVENANCE:
         raise ValueError(f"label_provenance must be one of {sorted(_LABEL_PROVENANCE)}")
@@ -213,7 +209,7 @@ def render_cohort_class_heatmap(workbook_path, out_png, out_csv, title=None,
     # v9.7.410: wrap the title to the canvas width — the one-line title over-ran the axes and
     # collided with the colorbar label on narrow (few-class) cohorts.
     _title_text = title or ("Core biosynthetic-class capacity by strain — cohort "
-                            f"[{label_provenance}] (standing comparative exclusions removed; NAPAA retained)")
+                            f"[{label_provenance}] (saccharide parked; NAPAA retained)")
     ax.set_title("\n".join(_tw.wrap(_title_text, width=max(30, int(fig_w * 8.5))) or [_title_text]),
                  fontsize=11.5, pad=14)
     # Annotate raw positive counts.  Choose text colour from the rendered

@@ -864,7 +864,7 @@ Three JSON evidence modes exist:
 
 - **bounded** (default): stream the JSON; extract KCB, RiQ, substrate predictions, TIGRFAM hits, and RiPP core sequences. This is the recommended mode for all normal runs.
 - **off**: ignore the JSON entirely, use only the text KCB files. Always safe, but loses RiQ scores and TIGRFAM diagnostics.
-- **full**: legacy mode that loads the entire JSON at once. Refuses files larger than 20 MB.
+- **full**: legacy mode that loads the entire JSON at once. Refuses files larger than 80 MB (80,000,000 bytes).
 
 All JSON extractions for a given run share a single pass through the file. Rather than opening the JSON four times for four different types of evidence, all four extractors run simultaneously as the streaming parser processes each record. A failure in one extractor (due to an unexpected JSON structure) does not abort the others.
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
 import math
 import os
@@ -53,12 +54,203 @@ class BioassayFigureHold(ValueError):
     """A typed refusal before summarization or rendering."""
 
 
+RULING_FIELDS = (
+    "ruling_id", "assay_plate_id", "well", "strain_id", "field", "from_value", "to_value",
+    "basis", "ruled_by",
+)
+RULABLE_FIELDS = {
+    "material_type": MATERIAL_TYPES, "material_id": None, "parent_material_id": None,
+    "lineage_state": LINEAGE_STATES, "inclusion_state": INCLUSION_STATES,
+}
+
+
+def read_rulings(path: Path, data: bytes | None = None) -> list[dict[str, str]]:
+    """Read an owner rulings table: one row per ruled change to one admitted well.
+
+    A ruling names the well by assay plate, well and strain, the field it changes, the value it expects
+    to find and the value it sets, and who ruled and why. Rulings are data, kept beside the observations,
+    so a correction is applied the same way on every rebuild instead of being re-typed in a figure script.
+    """
+    delimiter = "\t" if path.suffix.lower() in {".tsv", ".tab"} else ","
+    handle = (io.StringIO(data.decode("utf-8-sig"), newline="") if data is not None
+              else path.open(newline="", encoding="utf-8-sig"))
+    with handle:
+        reader = csv.DictReader(handle, delimiter=delimiter)
+        if reader.fieldnames is None or tuple(reader.fieldnames) != RULING_FIELDS:
+            raise BioassayFigureHold(
+                f"BIOASSAY_RULING_SCHEMA_HOLD: expected={','.join(RULING_FIELDS)}"
+            )
+        rulings = []
+        for line, raw in enumerate(reader, 2):
+            if None in raw or any(raw.get(key) is None for key in RULING_FIELDS):
+                raise BioassayFigureHold(f"BIOASSAY_RULING_SCHEMA_HOLD: row {line} has the wrong number of cells")
+            rulings.append({key: (raw[key] or "").strip() for key in RULING_FIELDS})
+    ids: set[str] = set()
+    targets: dict[tuple[str, str, str, str], str] = {}
+    for line, ruling in enumerate(rulings, 2):
+        blank = [key for key in RULING_FIELDS if key not in {"from_value", "to_value"} and not ruling[key]]
+        if blank:
+            raise BioassayFigureHold(f"BIOASSAY_RULING_FIELD_HOLD: row {line}: {','.join(blank)}")
+        if ruling["ruling_id"] in ids:
+            raise BioassayFigureHold(f"BIOASSAY_RULING_DUPLICATE_HOLD: {ruling['ruling_id']}")
+        ids.add(ruling["ruling_id"])
+        if ruling["field"] not in RULABLE_FIELDS:
+            raise BioassayFigureHold(f"BIOASSAY_RULING_FIELD_HOLD: row {line}: {ruling['field']!r} is not rulable")
+        accepted = RULABLE_FIELDS[ruling["field"]]
+        if accepted is not None and ruling["to_value"] not in accepted:
+            raise BioassayFigureHold(f"BIOASSAY_RULING_VALUE_HOLD: row {line}: {ruling['to_value']!r}")
+        if ruling["from_value"] == ruling["to_value"]:
+            raise BioassayFigureHold(f"BIOASSAY_RULING_VALUE_HOLD: row {line}: ruling changes nothing")
+        key = (ruling["assay_plate_id"], ruling["well"], ruling["strain_id"], ruling["field"])
+        if key in targets:
+            raise BioassayFigureHold(
+                f"BIOASSAY_RULING_CONFLICT_HOLD: {targets[key]} and {ruling['ruling_id']} both rule {key}"
+            )
+        targets[key] = ruling["ruling_id"]
+    return rulings
+
+
+INVENTORY_FIELDS = ("column_id", "assay_plate_id", "target_raw", "timepoint_hours", "disposition", "reason")
+DISPOSITIONS = {"ADMIT", "EXCLUDE", "HOLD"}
+
+
+def read_column_inventory(path: Path) -> list[dict[str, object]]:
+    """Read the source-column inventory: every assay column in the raw workbook, with what admission did to it.
+
+    One row per source column (assay plate x target header x time point). ADMIT means its readings must be in the
+    observations table. EXCLUDE and HOLD need a reason. The inventory is written from the raw workbook, not from the
+    admitted table, so a column that admission silently dropped still has a row here.
+    """
+    delimiter = "\t" if path.suffix.lower() in {".tsv", ".tab"} else ","
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle, delimiter=delimiter)
+        if reader.fieldnames is None or tuple(reader.fieldnames) != INVENTORY_FIELDS:
+            raise BioassayFigureHold(f"BIOASSAY_INVENTORY_SCHEMA_HOLD: expected={','.join(INVENTORY_FIELDS)}")
+        entries = [{key: (raw.get(key) or "").strip() for key in INVENTORY_FIELDS} for raw in reader]
+    if not entries:
+        raise BioassayFigureHold("BIOASSAY_INVENTORY_EMPTY_HOLD: no source columns listed")
+    ids: set[str] = set(); keys: dict[tuple[str, str, float], str] = {}
+    for line, entry in enumerate(entries, 2):
+        blank = [key for key in INVENTORY_FIELDS if key != "reason" and not entry[key]]
+        if blank:
+            raise BioassayFigureHold(f"BIOASSAY_INVENTORY_FIELD_HOLD: row {line}: {','.join(blank)}")
+        if entry["column_id"] in ids:
+            raise BioassayFigureHold(f"BIOASSAY_INVENTORY_DUPLICATE_HOLD: {entry['column_id']}")
+        ids.add(entry["column_id"])
+        if entry["disposition"] not in DISPOSITIONS:
+            raise BioassayFigureHold(f"BIOASSAY_INVENTORY_FIELD_HOLD: row {line}: {entry['disposition']!r}")
+        if entry["disposition"] != "ADMIT" and not entry["reason"]:
+            raise BioassayFigureHold(
+                f"BIOASSAY_INVENTORY_REASON_HOLD: {entry['column_id']} is {entry['disposition']} with no reason"
+            )
+        try:
+            hours = float(entry["timepoint_hours"])
+        except ValueError as exc:
+            raise BioassayFigureHold(f"BIOASSAY_INVENTORY_FIELD_HOLD: row {line}: timepoint_hours must be numeric") from exc
+        key = (entry["assay_plate_id"], entry["target_raw"], hours)
+        if key in keys:
+            raise BioassayFigureHold(
+                f"BIOASSAY_INVENTORY_DUPLICATE_HOLD: {keys[key]} and {entry['column_id']} name the same column"
+            )
+        keys[key] = entry["column_id"]
+        entry["timepoint_hours"] = hours
+    return entries
+
+
+def reconcile_column_inventory(rows: list[dict[str, object]], inventory: list[dict[str, object]]
+                               ) -> list[dict[str, object]]:
+    """Check validated observations against the source-column inventory; return one ledger line per column.
+
+    Refuses when an ADMIT column has no observations (a column dropped without a reason), when observations come
+    from a column the inventory excludes or holds, or when observations come from a column the inventory never lists.
+    """
+    counts: dict[tuple[str, str, float], int] = defaultdict(int)
+    for row in rows:
+        counts[(str(row["assay_plate_id"]), str(row["target_raw"]), float(row["timepoint_hours"]))] += 1
+    listed = {(e["assay_plate_id"], e["target_raw"], e["timepoint_hours"]): e for e in inventory}
+    unlisted = sorted(key for key in counts if key not in listed)
+    if unlisted:
+        raise BioassayFigureHold(
+            f"BIOASSAY_INVENTORY_UNLISTED_HOLD: {len(unlisted)} observed column(s) missing from the inventory, "
+            f"first {unlisted[0]}"
+        )
+    missing = [e["column_id"] for e in inventory
+               if e["disposition"] == "ADMIT" and not counts.get((e["assay_plate_id"], e["target_raw"], e["timepoint_hours"]))]
+    if missing:
+        raise BioassayFigureHold(
+            f"BIOASSAY_INVENTORY_MISSING_HOLD: {len(missing)} ADMIT column(s) have no observations: {', '.join(missing[:12])}"
+        )
+    contradicted = [e["column_id"] for e in inventory
+                    if e["disposition"] != "ADMIT" and counts.get((e["assay_plate_id"], e["target_raw"], e["timepoint_hours"]))]
+    if contradicted:
+        raise BioassayFigureHold(
+            f"BIOASSAY_INVENTORY_CONTRADICTION_HOLD: observations present for non-admitted column(s): {', '.join(contradicted[:12])}"
+        )
+    return [{"column_id": e["column_id"], "assay_plate_id": e["assay_plate_id"], "target_raw": e["target_raw"],
+             "timepoint_hours": e["timepoint_hours"], "disposition": e["disposition"], "reason": e["reason"],
+             "observations": counts.get((e["assay_plate_id"], e["target_raw"], e["timepoint_hours"]), 0)}
+            for e in inventory]
+
+
+def apply_rulings(rows: list[dict[str, str]], rulings: list[dict[str, str]]
+                  ) -> tuple[list[dict[str, str]], list[dict[str, object]]]:
+    """Apply rulings to raw observation rows before validation; return new rows and a ledger.
+
+    Every ruling must match at least one row, and every matched row must still hold the ruling's
+    from_value. A ruling that matches nothing, or finds a different value, is stale and refuses the
+    build rather than being skipped. Rows go through validate_rows() afterwards, so a ruling cannot
+    create a row the factory would otherwise refuse.
+    """
+    out = [dict(row) for row in rows]
+    index: dict[tuple[str, str, str], list[dict[str, str]]] = defaultdict(list)
+    for row in out:
+        index[((row.get("assay_plate_id") or "").strip(), (row.get("well") or "").strip(),
+               (row.get("strain_id") or "").strip())].append(row)
+    ledger: list[dict[str, object]] = []
+    for ruling in rulings:
+        field = ruling["field"]
+        matches = index.get((ruling["assay_plate_id"], ruling["well"], ruling["strain_id"]), [])
+        if not matches:
+            raise BioassayFigureHold(
+                f"BIOASSAY_RULING_UNMATCHED_HOLD: {ruling['ruling_id']} matches no observation"
+            )
+        found = sorted({(row.get(field) or "").strip() for row in matches})
+        if found != [ruling["from_value"]]:
+            raise BioassayFigureHold(
+                f"BIOASSAY_RULING_STALE_HOLD: {ruling['ruling_id']} expects {field}={ruling['from_value']!r}, "
+                f"found {found}"
+            )
+        for row in matches:
+            row[field] = ruling["to_value"]
+            if field == "inclusion_state":
+                row["exclusion_reason"] = ("" if ruling["to_value"] == "INCLUDE"
+                                           else f"ruling {ruling['ruling_id']}: {ruling['basis']}")
+        ledger.append({
+            "ruling_id": ruling["ruling_id"], "assay_plate_id": ruling["assay_plate_id"],
+            "well": ruling["well"], "strain_id": ruling["strain_id"], "field": field,
+            "from_value": ruling["from_value"], "to_value": ruling["to_value"],
+            "observations_changed": len(matches), "basis": ruling["basis"], "ruled_by": ruling["ruled_by"],
+        })
+    return out, ledger
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _sha256_file_with_size(path: Path) -> tuple[str, int]:
+    """Hash a potentially large plan input and count the same streamed bytes."""
+    digest = hashlib.sha256()
+    size = 0
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+            size += len(chunk)
+    return digest.hexdigest(), size
 
 
 def build_plan(config_path: Path) -> dict[str, object]:
@@ -91,7 +283,10 @@ def build_plan(config_path: Path) -> dict[str, object]:
         except ValueError as exc:
             raise BioassayFigureHold("BIOASSAY_PLAN_INPUT_LOCATOR_HOLD: input escapes root") from exc
         expected = str(row.get("sha256", "")).lower()
-        if not source.is_file() or not re.fullmatch(r"[0-9a-f]{64}", expected) or sha256_file(source) != expected:
+        if not source.is_file() or not re.fullmatch(r"[0-9a-f]{64}", expected):
+            raise BioassayFigureHold(f"BIOASSAY_PLAN_INPUT_HOLD: {dataset_id} missing or hash mismatch")
+        actual, size = _sha256_file_with_size(source)
+        if actual != expected:
             raise BioassayFigureHold(f"BIOASSAY_PLAN_INPUT_HOLD: {dataset_id} missing or hash mismatch")
         admitted.append({
             "dataset_id": dataset_id, "data_state": data_state, "plate_format": str(row.get("plate_format", "")),
@@ -101,7 +296,7 @@ def build_plan(config_path: Path) -> dict[str, object]:
             "replication": str(row.get("replication", "UNRECORDED")),
             "controls": str(row.get("controls", "UNRECORDED")),
             "material_amounts_available": bool(row.get("material_amounts_available", False)),
-            "logical_locator": locator, "sha256": expected, "bytes": source.stat().st_size,
+            "logical_locator": locator, "sha256": actual, "bytes": size,
         })
     figures = []
     if any(row["data_state"] == "RAW_OD" for row in admitted):
@@ -191,16 +386,23 @@ def _well_ok(well: str, plate_format: str) -> bool:
     return len(row) == 1 and "A" <= row <= last_row and column <= last_column
 
 
-def _read(path: Path) -> list[dict[str, str]]:
+def _read(path: Path, data: bytes | None = None) -> list[dict[str, str]]:
     delimiter = "\t" if path.suffix.lower() in {".tsv", ".tab"} else ","
-    with path.open(newline="", encoding="utf-8-sig") as handle:
+    handle = (io.StringIO(data.decode("utf-8-sig"), newline="") if data is not None
+              else path.open(newline="", encoding="utf-8-sig"))
+    with handle:
         reader = csv.DictReader(handle, delimiter=delimiter)
         if reader.fieldnames is None or tuple(reader.fieldnames) != FIELDS:
             raise BioassayFigureHold(
                 "BIOASSAY_SCHEMA_HOLD: canonical columns and order are required; "
                 f"expected={','.join(FIELDS)}"
             )
-        return list(reader)
+        rows = []
+        for line, raw in enumerate(reader, 2):
+            if None in raw or any(raw.get(key) is None for key in FIELDS):
+                raise BioassayFigureHold(f"BIOASSAY_SCHEMA_HOLD: row {line} has the wrong number of cells")
+            rows.append(raw)
+        return rows
 
 
 def validate_rows(rows: list[dict[str, str]]) -> list[dict[str, object]]:
@@ -481,10 +683,49 @@ def build(config_path: Path) -> dict[str, object]:
     if not source.is_file():
         raise FileNotFoundError(locator)
     expected = str(spec.get("sha256", "")).lower()
-    actual = sha256_file(source)
+    source_data = source.read_bytes()
+    actual = hashlib.sha256(source_data).hexdigest()
     if not re.fullmatch(r"[0-9a-f]{64}", expected) or actual != expected:
         raise BioassayFigureHold("BIOASSAY_INPUT_HASH_HOLD: exact SHA-256 does not match")
-    rows = validate_rows(_read(source)); summary = summarize(rows)
+    raw_rows = _read(source, data=source_data)
+    rulings_input = None; ledger: list[dict[str, object]] = []
+    if config.get("rulings") is not None:
+        rspec = dict(config["rulings"])
+        rlocator = _portable_locator(str(rspec.get("logical_locator", "")), "rulings")
+        rsource = (root / rlocator).resolve()
+        try:
+            rsource.relative_to(root)
+        except ValueError as exc:
+            raise BioassayFigureHold("BIOASSAY_RULING_LOCATOR_HOLD: rulings escape root") from exc
+        if not rsource.is_file():
+            raise FileNotFoundError(rlocator)
+        ruling_data = rsource.read_bytes()
+        rexpected = str(rspec.get("sha256", "")).lower(); ractual = hashlib.sha256(ruling_data).hexdigest()
+        if not re.fullmatch(r"[0-9a-f]{64}", rexpected) or ractual != rexpected:
+            raise BioassayFigureHold("BIOASSAY_RULING_HASH_HOLD: exact SHA-256 does not match")
+        raw_rows, ledger = apply_rulings(raw_rows, read_rulings(rsource, data=ruling_data))
+        rulings_input = {"logical_locator": rlocator, "sha256": ractual, "bytes": len(ruling_data),
+                         "rulings_applied": len(ledger)}
+    rows = validate_rows(raw_rows)
+    inventory_input = None; column_ledger: list[dict[str, object]] = []
+    if config.get("column_inventory") is not None:
+        ispec = dict(config["column_inventory"])
+        ilocator = _portable_locator(str(ispec.get("logical_locator", "")), "column_inventory")
+        isource = (root / ilocator).resolve()
+        try:
+            isource.relative_to(root)
+        except ValueError as exc:
+            raise BioassayFigureHold("BIOASSAY_INVENTORY_LOCATOR_HOLD: inventory escapes root") from exc
+        if not isource.is_file():
+            raise FileNotFoundError(ilocator)
+        iexpected = str(ispec.get("sha256", "")).lower(); iactual = sha256_file(isource)
+        if not re.fullmatch(r"[0-9a-f]{64}", iexpected) or iactual != iexpected:
+            raise BioassayFigureHold("BIOASSAY_INVENTORY_HASH_HOLD: exact SHA-256 does not match")
+        column_ledger = reconcile_column_inventory(rows, read_column_inventory(isource))
+        inventory_input = {"logical_locator": ilocator, "sha256": iactual, "bytes": isource.stat().st_size,
+                           "columns": len(column_ledger),
+                           "admitted": sum(e["disposition"] == "ADMIT" for e in column_ledger)}
+    summary = summarize(rows)
     output = Path(config["output_dir"])
     if not output.is_absolute():
         output = (config_path.parent / output).resolve()
@@ -511,12 +752,24 @@ def build(config_path: Path) -> dict[str, object]:
             tree_state = "EMITTED_EXPLICIT_SELECTION"
         else:
             artifacts = [clean, summary_path]
+        if inventory_input is not None:
+            column_path = stage / "bioassay_column_ledger.tsv"
+            _write_tsv(column_path, column_ledger, ["column_id", "assay_plate_id", "target_raw", "timepoint_hours",
+                                                    "disposition", "reason", "observations"])
+            artifacts.append(column_path)
+        if rulings_input is not None:
+            ledger_path = stage / "bioassay_rulings_applied.tsv"
+            _write_tsv(ledger_path, ledger, ["ruling_id", "assay_plate_id", "well", "strain_id", "field",
+                                             "from_value", "to_value", "observations_changed", "basis", "ruled_by"])
+            artifacts.append(ledger_path)
         caption.write_text(json.dumps({
             "input_sha256": actual,
             "included_observations": sum(row["inclusion_state"] == "INCLUDE" for row in rows),
             "held_observations": sum(row["inclusion_state"] == "HOLD" for row in rows),
             "excluded_observations": sum(row["inclusion_state"] == "EXCLUDE" for row in rows),
             "summary_rows": len(summary),
+            "rulings_applied": len(ledger),
+            "observations_changed_by_rulings": sum(int(entry["observations_changed"]) for entry in ledger),
             "aggregation": "arithmetic mean within exact strain/material/target/timepoint/dose groups; raw range and counts retained",
             "tree_overlay_state": tree_state,
             "tree_track_selection": selection,
@@ -541,11 +794,15 @@ def build(config_path: Path) -> dict[str, object]:
             artifacts.extend(graphics); status = "PASS_FIGURE_FACTORY_RENDERED"
         receipt = {
             "schema_version": SCHEMA, "figure_kind": FIGURE_KIND, "status": status,
-            "input": {"logical_locator": locator, "sha256": actual, "bytes": source.stat().st_size},
+            "input": {"logical_locator": locator, "sha256": actual, "bytes": len(source_data)},
             "outputs": [{"logical_locator": path.name, "sha256": sha256_file(path), "bytes": path.stat().st_size}
                         for path in artifacts],
             "claim_ceiling": "Measured assay observations at the recorded material level; no automatic locus or compound attribution.",
         }
+        if rulings_input is not None:
+            receipt["rulings"] = rulings_input
+        if inventory_input is not None:
+            receipt["column_inventory"] = inventory_input
         receipt_path = stage / "bioassay_figure_factory_receipt.json"
         receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         stage.replace(output)

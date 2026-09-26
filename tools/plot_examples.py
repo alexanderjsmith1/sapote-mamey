@@ -30,12 +30,14 @@ order={'GOOD':0,'MODERATE':1,'MOD':1,'POOR':2}
 grades=sorted({r['assembly_tier'] for r in ss}, key=lambda gx:order.get(gx,9))
 fig,ax=plt.subplots(figsize=(7,4.4))
 for grade in grades:
-    pts=[(float(r['n50']),float(r['fragmentation_loss'])) for r in ss if r['assembly_tier']==grade]
+    pts=[(float(r['n50']),float(r['fragmentation_loss'])) for r in ss
+         if r['assembly_tier']==grade and r['n50'] not in ('',None) and r['fragmentation_loss'] not in ('',None)]
     if pts:
         xs,ys=zip(*pts); ax.scatter(xs,ys,s=60,c=col.get(grade,'#888'),label=grade,edgecolor='k',linewidth=.5,zorder=3)
 ax.set_xscale('log'); ax.set_xlabel('Assembly N50 (bp, log scale)'); ax.set_ylabel('BGC count lost to correction\n(raw − corrected)')
-ax.set_title('Fragmentation-loss gradient (n=%d strains)'%len(ss)); ax.grid(True,alpha=.3,zorder=0); ax.legend(title='Assembly')
-fig.tight_layout(); fig.savefig(os.path.join(d,'fig1_fragmentation_gradient.png'),dpi=150); plt.close(fig)
+n_plotted=sum(1 for r in ss if r['n50'] not in ('',None) and r['fragmentation_loss'] not in ('',None))
+ax.set_title('Fragmentation-loss gradient (n=%d of %d isolates)'%(n_plotted,len(ss))); ax.grid(True,alpha=.3,zorder=0); ax.legend(title='Assembly')
+fig.tight_layout(); fig.savefig(os.path.join(d,'fig1_fragmentation_gradient.png'),dpi=300); plt.close(fig)
 
 # ---- Fig 2: class prevalence (top 16), banded ----
 cp=sorted(load('class_prevalence.csv'),key=lambda r:-int(r['n_strains']))[:16]
@@ -44,23 +46,23 @@ fig,ax=plt.subplots(figsize=(7,5))
 names=[r['product_class'] for r in cp][::-1]; vals=[int(r['n_strains']) for r in cp][::-1]
 cols=[bandcol.get(r['band'],'#bbb') for r in cp][::-1]
 ax.barh(names,vals,color=cols,edgecolor='k',linewidth=.4)
-ax.set_xlabel('Strains carrying class (of %d)'%len(ss)); ax.set_title('Product-class prevalence across the cohort')
+ax.set_xlabel('Isolates carrying class (of %d)'%len(ss)); ax.set_title('Product-class prevalence across the cohort')
 import matplotlib.patches as mp
 ax.legend(handles=[mp.Patch(color=c,label=b) for b,c in bandcol.items()],fontsize=8,title='band')
-fig.tight_layout(); fig.savefig(os.path.join(d,'fig2_class_prevalence.png'),dpi=150); plt.close(fig)
+fig.tight_layout(); fig.savefig(os.path.join(d,'fig2_class_prevalence.png'),dpi=300); plt.close(fig)
 
 # ---- Fig 3: class x strain heatmap (n_bgcs) ----
 cbs=load('class_by_strain.csv')
-sids=[r['sid'] for r in ss]  # keep strain order from summary (corrected-rank)
+sids=[r['strain'] for r in ss]  # keep strain order from summary (corrected-rank); the exporter keys by 'strain'
 classes=[r['product_class'] for r in sorted(load('class_prevalence.csv'),key=lambda r:-int(r['n_strains']))[:20]]
 M=defaultdict(dict)
-for r in cbs: M[r['product_class']][r['sid']]=int(r['n_bgcs'])
+for r in cbs: M[r['product_class']][r['strain']]=int(r['n_bgcs'])
 grid=[[M.get(c,{}).get(s,0) for s in sids] for c in classes]
 fig,ax=plt.subplots(figsize=(9,6))
 im=ax.imshow(grid,aspect='auto',cmap='viridis')
 ax.set_xticks(range(len(sids))); ax.set_xticklabels(sids,rotation=90,fontsize=7)
 ax.set_yticks(range(len(classes))); ax.set_yticklabels(classes,fontsize=8)
-ax.set_title('BGCs per product class x strain (top 20 classes)')
+ax.set_title('BGCs per product class x isolate (top 20 classes)')
 fig.colorbar(im,ax=ax,label='n_BGCs',shrink=.7)
-fig.tight_layout(); fig.savefig(os.path.join(d,'fig3_class_by_strain_heatmap.png'),dpi=150); plt.close(fig)
+fig.tight_layout(); fig.savefig(os.path.join(d,'fig3_class_by_strain_heatmap.png'),dpi=300); plt.close(fig)
 emit('wrote fig1_fragmentation_gradient.png, fig2_class_prevalence.png, fig3_class_by_strain_heatmap.png ->',d)

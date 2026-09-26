@@ -90,6 +90,29 @@ def test_ocr_require_fails_when_ocr_is_unavailable(tmp_path, monkeypatch):
     assert qc.main([str(tmp_path), "--ocr", "auto"]) == 0
 
 
+@pytest.mark.parametrize("stdout,returncode,expected", [
+    ("", 0, None),
+    ("image.png\tJudgment deferred\n", 1, None),
+    ("image.png\t<<unreadable>>\n", 0, None),
+    ("image.png\tJudgment deferred\n", 0, ["Judgment deferred"]),
+])
+def test_ocr_failure_or_missing_output_is_not_checked(tmp_path, monkeypatch, stdout, returncode, expected):
+    ocr = qc.Ocr.__new__(qc.Ocr)
+    ocr.bin = tmp_path / "fake_ocr"
+    ocr.cache_file = tmp_path / "ocr.tsv"
+    ocr.cache = {}
+    png = Path("image.png")
+    monkeypatch.setattr(qc.subprocess, "run", lambda *_a, **_k: qc.subprocess.CompletedProcess([], returncode, stdout, ""))
+    assert ocr.read({png: "image-sha"})[png] == expected
+
+
+def test_legacy_empty_ocr_cache_is_not_checked(tmp_path):
+    ocr = qc.Ocr.__new__(qc.Ocr)
+    ocr.bin = tmp_path / "fake_ocr"
+    ocr.cache = {"image-sha": ["<<no text>>"]}
+    assert ocr.read({Path("image.png"): "image-sha"})[Path("image.png")] is None
+
+
 def test_near_blank_image_is_an_error(tmp_path):
     _png(tmp_path / "fig_blank.png", ink=False)
     _svg(tmp_path / "fig_blank.svg", "Title")

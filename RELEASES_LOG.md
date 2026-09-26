@@ -1,5 +1,9 @@
 # Sapote–Mamey — Releases Log
 
+> **Partial record.** `tools/release_cut.sh`, the current cut route, does not call `tools/log_release.py`, so
+> cuts made through it are not listed. The table has v9.7.428 and then jumps to v9.7.252. v9.7.253 to v9.7.427
+> and v9.7.429 onwards are missing. `CHANGELOG.md` is the complete per-cut record.
+
 Chronology of every stamped release cut, newest first. Filenames follow
 `sapote-mamey-v<version>-<TIER>-<YYYYMMDD>-<HHMMSS>.zip`. All three tiers of a build share one
 build stamp (pass `BUILD_STAMP` to `tools/make_public_tier.sh`). CODE/SID rows are leak-audited

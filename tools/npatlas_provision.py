@@ -7,7 +7,7 @@ and NOT in this tool.
 Subcommands
 -----------
   inspect   -- read-only streamed preview of a source file: hash, bytes, record count, a small
-               sample of records' keys. Never writes anything.
+               sample of records' keys. Leaves the source unchanged; --out-json can persist the report.
   provision -- stream the source, apply a declarative filter, write a content-addressed filtered
                output plus a receipt (source hash, licence, filter rule, counts, output hash).
   doctor    -- report whether streaming (ijson) and structure rendering (rdkit) are available in

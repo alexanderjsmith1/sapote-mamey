@@ -25,6 +25,13 @@ import os
 if __name__ == "__main__":   # v9.7.417 import safety — see tests/test_tools_import_safe_v97250.py
     ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
     OUT=f"{ROOT}/sapote_deliverables/COMPREHENSIVE_clusterblast_both.csv"
+    # v9.7.443: ROOT falls back to the current directory; refuse output inside the code bundle.
+    _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+    from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle
+    try:
+        assert_output_outside_bundle(OUT, __file__, kind="comprehensive ClusterBlast table")
+    except OutputInsideBundle as _e:
+        _sys.exit(str(_e))
 
     def zjson(zf):
         for n in zf.namelist():

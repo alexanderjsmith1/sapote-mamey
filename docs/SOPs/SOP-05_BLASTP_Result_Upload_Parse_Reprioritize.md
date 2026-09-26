@@ -1,5 +1,8 @@
 # SOP-05 — BLASTP Result Upload, Parse, and Reprioritization
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 ## Purpose
 
 This SOP defines how Sapote/Mamey should ingest NCBI BLASTP results and convert them into next-action decisions.
@@ -16,7 +19,7 @@ Accepted inputs:
 ## Standard command
 
 ```bash
-python -m mamey blastp-followup --hit-table <HitTable.csv> --xml2 <Alignment.xml> --outdir <outdir>
+python mamey_run.py blastp-followup --hit-table <HitTable.csv> --xml2 <Alignment.xml> --outdir <outdir>
 ```
 
 XML2 should be optional. Hit Table CSV should be enough for triage.

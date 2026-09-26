@@ -1,5 +1,8 @@
 # SOP-00 — Start Here / Choosing the Right Sapote/Mamey Path
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 ## Purpose
 
 This SOP helps the operator decide what Sapote/Mamey path to run after a file is uploaded. It prevents wasted time, wrong commands, and misleading interpretations.
@@ -12,10 +15,10 @@ Before running analysis, decide what kind of input was uploaded.
 
 | Input shape | Meaning | First action |
 |---|---|---|
-| Raw antiSMASH ZIP with many regions | Full or draft genome antiSMASH output | `python -m mamey inspect <zip>` |
-| Raw antiSMASH ZIP with one region | Single accession / reference BGC / small test | `python -m mamey inspect <zip>` and interpret warnings carefully |
-| Sealed Mamey package | Previous run output | `python -m mamey validate <package_dir>` |
-| BLASTP Hit Table CSV | Follow-up evidence from NCBI | `python -m mamey blastp-followup --hit-table <csv>` |
+| Raw antiSMASH ZIP with many regions | Full or draft genome antiSMASH output | `python mamey_run.py inspect <zip>` |
+| Raw antiSMASH ZIP with one region | Single accession / reference BGC / small test | `python mamey_run.py inspect <zip>` and interpret warnings carefully |
+| Sealed Mamey package | Previous run output | `python mamey_run.py validate <package_dir>` |
+| BLASTP Hit Table CSV | Follow-up evidence from NCBI | `python mamey_run.py blastp-followup --hit-table <csv> --outdir <new-review-dir>` |
 | BLASTP XML2 file | Proof-grade optional follow-up | Pair with hit table when possible |
 | FASTA only | Candidate for BLASTP or intake support | Do not run Mamey directly unless command supports it |
 | Spreadsheet/workbook | Prior run table or manual ledger | Inspect sheet names before interpreting |

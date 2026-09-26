@@ -13,7 +13,7 @@ import ast
 from collections import Counter
 from pathlib import Path
 
-from mamey.figure_policy import FIGURE_BANNED_TEXT
+from mamey.figure_policy import figure_text_violations
 
 ROOT = Path(__file__).resolve().parents[1]
 DRAW = {'set_title', 'suptitle', 'title', 'text', 'figtext', 'annotate', 'set_xlabel',
@@ -25,12 +25,9 @@ KNOWN = Counter({
     ('deliverable_tools/bigscape_gene_domain_context.py', 'text', 'CLAIM_CEILING'): 1,
     ('deliverable_tools/render_mlsa_tree.py', 'text', 'literal'): 1,
     ('mamey/bigscape_figures.py', 'set_title', 'literal'): 1,
-    ('mamey/cross_strain_threads.py', 'legend', 'literal'): 1,
-    ('mamey/cross_strain_threads.py', 'set_title', 'literal'): 1,
     ('mamey/figure_theme.py', 'text', 'CLAIM_SAFETY'): 1,
     ('mamey/kcb_locusmap.py', 'text', 'CLAIM_CEILING'): 1,
     ('mamey/locus_map_v8.py', 'text', 'CLAIM_CEILING'): 1,
-    ('tools/phylo_place.py', 'set_title', 'literal'): 1,
     ('tools/placement_figure.py', 'set_title', 'literal'): 1,
     ('tools/render_clean_tree.py', 'text', 'literal'): 1,
 })
@@ -56,7 +53,7 @@ def _draw_sites():
                 for arg in list(node.args) + [k.value for k in node.keywords]:
                     for sub in ast.walk(arg):
                         if (isinstance(sub, ast.Constant) and isinstance(sub.value, str)
-                                and FIGURE_BANNED_TEXT.search(sub.value)):
+                                and figure_text_violations([sub.value])):
                             kinds.add('literal')
                         ident = getattr(sub, 'id', None) or getattr(sub, 'attr', '')
                         if isinstance(sub, (ast.Name, ast.Attribute)) and ident.startswith('CLAIM'):

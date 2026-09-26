@@ -1,5 +1,14 @@
 # Mamey Engine Lineage
 
+## Engine 1.9.170 — first bundle: v9.7.443
+
+The adjacent-cluster rescue read (`mamey/clusterblast_genes.py`) adds a MODULAR_CONTINUATION
+class with assembly-line and release-gene counts, written as new columns beside
+functional_rescue_class and never replacing it. This is an emitted-output change: scoring,
+extraction, rules and product-class parsing are byte-identical to engine 1.9.169, so triage
+boards remain directly comparable. Packages from 1.9.169 simply lack the new columns.
+Mechanical validation does not establish biological interpretation or scientific acceptance.
+
 ## Engine 1.9.169 — first bundle: v9.7.439
 
 Output admission now validates primary artifacts and JSON sidecars before writing and refuses

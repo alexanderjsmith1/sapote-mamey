@@ -1,5 +1,8 @@
 # External data — what this bundle does NOT ship, and how to provision it
 
+Run engine examples from the selected bundle directory containing `pyproject.toml` and `mamey_run.py`, using its compatible activated Python interpreter; bind external inputs separately.
+
+
 **As of v9.7.362, Sapote-Mamey redistributes no third-party reference datasets.**
 
 The bundle is MIT-licensed **code**. Reference databases carry their own licences, their own citation
@@ -25,7 +28,7 @@ export MAMEY_DATA_ROOT=/path/to/sapote-external-data
 mkdir -p "$MAMEY_DATA_ROOT"/{mibig,mibig/neighborhoods,literature,hmm,npatlas}
 # ... download each dataset into its directory (see below) ...
 
-mamey doctor          # reports which datasets are provisioned and which are missing
+python mamey_run.py doctor          # reports which datasets are provisioned and which are missing
 ```
 
 Per-dataset overrides win over the shared root, if you keep things in different places:

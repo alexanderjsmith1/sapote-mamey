@@ -1,11 +1,14 @@
 # F13 BGC domain-count PCA source-artwork contract
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 F13 is a descriptive source-artwork candidate, not a scientific acceptance or a claim about products, sequences, activity, evolution, or phylogeny. It consumes existing `gene_data.json` `domain_arch` records and never infers a missing identity, source version, roster, or assembly decision.
 
 Run the cohort figure command with all of the following inputs:
 
 ```text
-python -m mamey cohort-figures \
+python mamey_run.py cohort-figures \
   --runs-dir <runs-dir> \
   --out <output-dir> \
   --f13-cohort-manifest <cohort.json> \

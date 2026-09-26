@@ -300,6 +300,47 @@ _as_leak() {   # $1 = message. Fully deactivated when AS_SCRUB=0 (cohort public,
   fi
 }
 FAIL=0
+# v9.7.442 (candidate, session 1246f6ce): assembly contig names are a SEPARATE disclosure class from
+# strain identifiers and this audit has never been able to see them. The two PI decisions that retired
+# the AS-ID guard (v9.7.156, v9.7.219) both reason about IDENTIFIERS -- 16S on GenBank associates
+# strain/genus/host. A SPAdes contig name such as NODE_49_length_57614_cov_34.087283 is assembly
+# metadata: it carries a contig length and a k-mer coverage from a draft assembly, and no sequence.
+# Nobody has ruled on that class, so this scan REPORTS and never fails by default.
+#
+# The bundle cannot tell a real cohort contig from a synthetic test fixture -- it does not ship the
+# cohort inventories. Point CONTIG_ROSTER at a newline-separated list of real contig names (e.g. the
+# Contig column of the AS package *_2_inventory.csv files) and only real matches are reported. With
+# no roster it reports the distinct pattern count only, which is informational, not a leak claim.
+CONTIG_LEAK_SCAN="${CONTIG_LEAK_SCAN:-1}"   # 0 disables entirely
+CONTIG_LEAK_FAIL="${CONTIG_LEAK_FAIL:-0}"   # 1 makes a real-roster match hard-fail the cut
+CONTIG_ROSTER="${CONTIG_ROSTER:-}"
+_contig_leak_scan() {
+  [ "$CONTIG_LEAK_SCAN" = "1" ] || return 0
+  if [ -n "$CONTIG_ROSTER" ] && {
+    [ ! -f "$CONTIG_ROSTER" ] || [ ! -r "$CONTIG_ROSTER" ] ||
+    ! grep -qE '^NODE_[0-9]+_length_[0-9]+_cov_[0-9.]+$' "$CONTIG_ROSTER"
+  }; then
+    echo "LEAK AUDIT REFUSED: explicit CONTIG_ROSTER is missing, unreadable, empty, or has no contig-shaped entries" >&2
+    FAIL=1; return 0
+  fi
+  hits="$(grep -rhIoE 'NODE_[0-9]+_length_[0-9]+_cov_[0-9.]+' "$STAGE" 2>/dev/null | sort -u || true)"
+  [ -z "$hits" ] && return 0
+  n_all="$(printf '%s\n' "$hits" | grep -c . || true)"
+  if [ -z "$CONTIG_ROSTER" ]; then
+    echo "INFO: $n_all distinct assembly-contig-shaped tokens in the staged tier; set CONTIG_ROSTER to a real-contig list to classify them" >&2
+    return 0
+  fi
+  real="$(printf '%s\n' "$hits" | grep -xF -f "$CONTIG_ROSTER" || true)"
+  n_real="$(printf '%s\n' "$real" | grep -c . || true)"
+  [ "$n_real" = "0" ] && { echo "INFO: $n_all contig-shaped tokens, 0 match the roster" >&2; return 0; }
+  printf '%s\n' "$real" | head -20 | sed 's/^/  real cohort contig in staged tier: /' >&2
+  if [ "$CONTIG_LEAK_FAIL" = "1" ]; then
+    echo "$n_real real cohort contig name(s) in the public tier (CONTIG_LEAK_FAIL=1)" >&2; FAIL=1
+  else
+    echo "WARN (unruled disclosure class): $n_real real cohort contig name(s) in the public tier" >&2
+  fi
+}
+_contig_leak_scan
 if [ "$TIER" != "merged" ]; then
   # Non-test files: any AS/AJS/PENDING strain ID is a leak (XXX-redacted placeholders excepted).
   # v9.7.88: matches the scrubber's refined pattern — hyphenated AS-/AJS- (2-4 digits) OR DASHLESS

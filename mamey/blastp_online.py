@@ -1077,6 +1077,7 @@ def blastp_online_command(args) -> int:
     return; prints a clear unavailable banner otherwise (never fabricates)."""
     import os
     from .parsers import extract_cds_features
+    from .path_safety import OutputInsideBundle, assert_output_outside_bundle
 
     # Patch B (v9.7.196 fix): extract_cds_features raises on a sealed package dir (no GenBank protein
     # records). The command needs proteins from a ZIP/region-GBK; a package dir supplies only the
@@ -1199,6 +1200,16 @@ def blastp_online_command(args) -> int:
     if _disclosure_gate_rc is not None:
         return _disclosure_gate_rc
 
+    # v9.7.443: the panel defaults to the current directory, and tools run from the bundle root.
+    # Refuse an in-bundle output here: after the plan-only exit (which writes nothing) and before
+    # any NCBI submission, so a finished web run is never discarded at write time.
+    outdir = getattr(args, "outdir", None) or os.getcwd()
+    try:
+        assert_output_outside_bundle(outdir, __file__, kind="blastp-online panel")
+    except OutputInsideBundle as exc:
+        emit(f"[blastp-online] REFUSING: {exc}\n  Pass --outdir with a folder outside the bundle.")
+        return 1
+
     all_hits: list[BlastpHit] = []
     unavailable = False
     # submit ALL batches, then poll together (async; ~Nx faster than serial). Fail-closed.
@@ -1233,7 +1244,6 @@ def blastp_online_command(args) -> int:
         if not _h.antismash_domains:
             _h.antismash_domains = _dom_by_lt.get(_h.locus_tag, "")
 
-    outdir = getattr(args, "outdir", None) or os.getcwd()
     os.makedirs(outdir, exist_ok=True)
     out_csv = os.path.join(outdir, f"{(getattr(args, 'bgc', None) or getattr(args, 'region', None) or 'region')}_online_blastp.csv")
     with open(out_csv, "w", newline="", encoding="utf-8") as fh:

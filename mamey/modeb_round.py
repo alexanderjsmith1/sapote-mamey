@@ -71,13 +71,16 @@ def _scaffold_ok(card_md: str) -> tuple[bool, list[str]]:
 
 
 def run_round(package_dir: str | Path, top_n: int = 10,
-              scope: str = "top", precompute_dir: str | Path | None = None) -> dict[str, Any]:
+              scope: str = "top", precompute_dir: str | Path | None = None,
+              sources: dict | None = None) -> dict[str, Any]:
     """Emit + scaffold-verify a round of N triage Mode B cards. Returns the worklist dict and
-    writes it to <pkg>/modeb_round_worklist.json. Does NOT author (that is the Sapote step)."""
+    writes it to <pkg>/modeb_round_worklist.json. Does NOT author (that is the Sapote step).
+    `sources` are the cross-source inputs for §25 §40 §44 §46 §47 (see emitter SOURCE_FLAGS)."""
     pkg = Path(package_dir).resolve()
     from . import modeb_template_emitter as _emit
 
-    res = _emit.emit_batch(pkg, scope=scope, top_n=top_n, precompute_dir=precompute_dir)
+    res = _emit.emit_batch(pkg, scope=scope, top_n=top_n, precompute_dir=precompute_dir,
+                           sources=sources)
     if res.get("skipped_reason"):
         return {"ok": False, "error": res["skipped_reason"], "package": str(pkg)}
 
@@ -137,8 +140,10 @@ def modeb_round_command(args) -> int:
     if not (pkg / "manifest.json").exists():
         emit(f"ERROR: no sealed package at {pkg} (manifest.json missing)", file=__import__("sys").stderr)
         return 1
+    from .modeb_template_emitter import sources_from_args
     r = run_round(pkg, top_n=getattr(args, "top_n", 10), scope=getattr(args, "scope", "top"),
-                  precompute_dir=getattr(args, "from_precompute", None))
+                  precompute_dir=getattr(args, "from_precompute", None),
+                  sources=sources_from_args(args))
     if not r.get("ok"):
         emit(f"[modeb-round] ERROR: {r.get('error')}", file=__import__("sys").stderr)
         return 1

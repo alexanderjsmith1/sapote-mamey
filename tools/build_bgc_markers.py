@@ -102,6 +102,13 @@ def tigr_by_bgc(evpath, snap):
 
 def main():
     banked_dir=sys.argv[1] if len(sys.argv)>1 else os.getcwd()
+    # v9.7.443: ROOT falls back to the current directory; refuse output inside the code bundle.
+    _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+    from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle
+    try:
+        assert_output_outside_bundle(banked_dir, __file__, kind="bgc_markers.json")
+    except OutputInsideBundle as _e:
+        _sys.exit(str(_e))
     bgc=_read_json(os.path.join(banked_dir,'bgc_data.json'))
     deep=_read_json(os.path.join(banked_dir,'deep_data.json'))
     all_sids=set(bgc['strains'].keys())

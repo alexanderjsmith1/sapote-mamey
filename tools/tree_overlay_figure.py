@@ -20,6 +20,11 @@ DESIGN INVARIANTS (borrowed from tools/tree_bgc_overlay.py, deliberately):
 Counts/values are whatever the matrix says; this tool renders, it does not compute biology. Any
 antiSMASH product-class matrix is a CLASS-LEVEL capacity inventory, not a function/novelty claim.
 
+Figure text (docs/FIGURE_HOUSE_RULES.md rule 3): no claim-safety wording is drawn. An optional
+`claim_footer` in the config is recorded in each receipt and is not drawn. Before saving, the text the
+figure will draw is checked with mamey.figure_policy; banned wording in a title, caption or label is an
+OverlayHold, and nothing is written.
+
 Usage:  tree_overlay_figure.py <config.json>
 Config schema: see _CONFIG_DOC below and tests/test_tree_overlay_figure.py.
 """
@@ -37,6 +42,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from Bio import Phylo
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from mamey.figure_policy import figure_text_violations, matplotlib_visible_text  # noqa: E402
+
 _CONFIG_DOC = """
 {
   "tree": "iqtree_relabeled.treefile",          # newick; consumed as-is
@@ -46,7 +54,7 @@ _CONFIG_DOC = """
   "out_dir": "figs",                            # where PNG/PDF/receipts are written
   "figure_title": "…",                          # top suptitle, shared by every overlay
   "tree_caption": "Core-genome phylogram · …",  # left-panel heading
-  "claim_footer": "…",                          # mandatory claim-safety line
+  "claim_footer": "…",                          # optional; receipt only, never drawn
   "overlays": [
     {
       "id": "bgc_classdepth",
@@ -198,8 +206,12 @@ def _render(tree, geom, crosswalk, overlay, cfg, out_dir: Path) -> dict:
 
     fig.suptitle(cfg.get("figure_title", ""), fontsize=12.5, fontweight="bold",
                  x=0.02, ha="left", y=0.998)
-    fig.text(0.02, 0.006, cfg["claim_footer"], fontsize=7.0, color="#555", wrap=True)
     fig.subplots_adjust(top=0.925, bottom=0.075, left=0.01, right=0.99)
+    banned = figure_text_violations(matplotlib_visible_text(fig))
+    if banned:
+        plt.close(fig)
+        raise OverlayHold(f"overlay {overlay['id']!r} would draw claim wording "
+                          f"{sorted({b.lower() for b in banned})}; put it in claim_footer (receipt only)")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     prefix = out_dir / f"{cfg.get('out_stem','tree_overlay')}__{overlay['id']}"
@@ -211,7 +223,7 @@ def _render(tree, geom, crosswalk, overlay, cfg, out_dir: Path) -> dict:
         "n_unprofiled": n - len(profiled), "columns": cols,
         "omit_unprofiled": bool(overlay.get("omit_unprofiled")),
         "outputs": [f"{prefix.name}.png", f"{prefix.name}.pdf"],
-        "claim_footer": cfg["claim_footer"],
+        "claim_footer": cfg.get("claim_footer", ""),
     }
     (Path(f"{prefix}_receipt.json")).write_text(json.dumps(receipt, indent=2))
     return receipt
@@ -222,8 +234,6 @@ def build(config_path: str | Path) -> list[dict]:
     cfg = json.loads(config_path.read_text(encoding="utf-8"))
     cfg["_root"] = str(config_path.resolve().parent)
     root = Path(cfg["_root"])
-    if "claim_footer" not in cfg or len(str(cfg["claim_footer"]).strip()) < 20:
-        raise OverlayHold("config must carry a substantive claim_footer")
     tree = Phylo.read(str(Path(root, cfg["tree"])), "newick")
     og = cfg.get("outgroup_substring")
     if og:

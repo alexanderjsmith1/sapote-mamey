@@ -20,6 +20,13 @@ import os
 # body, statement for statement, and by importing the module and asserting no file appears.
 if __name__ == "__main__":   # v9.7.417 import safety — see tests/test_tools_import_safe_v97250.py
     ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd()); RD=f"{ROOT}/sapote_deliverables/roster_v2"
+    # v9.7.443: ROOT falls back to the current directory; refuse output inside the code bundle.
+    _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+    from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle
+    try:
+        assert_output_outside_bundle(f"{ROOT}/sapote_deliverables", __file__, kind="novelty board")
+    except OutputInsideBundle as _e:
+        _sys.exit(str(_e))
     spec=importlib.util.spec_from_file_location("bv3", f"{ROOT}/sapote_deliverables/tools/build_v3.py")
     bv3=importlib.util.module_from_spec(spec); spec.loader.exec_module(bv3)
 

@@ -1,5 +1,8 @@
 # BLASTP Follow-up Ingest — v9.7.142 starter
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 Sapote/Mamey BLASTP support is designed for iterative NCBI web BLASTP, not one giant all-protein query.
 
 ## Recommended loop
@@ -11,7 +14,7 @@ Sapote/Mamey BLASTP support is designed for iterative NCBI web BLASTP, not one g
 5. Ingest results:
 
 ```bash
-python -m mamey blastp-followup \
+python mamey_run.py blastp-followup \
   --hit-table 40WGV6PM016-Alignment-HitTable.csv \
   --xml2 40WGV6PM016-Alignment.xml \
   --outdir AS-XXX_blastp_followup_round001
@@ -20,7 +23,7 @@ python -m mamey blastp-followup \
 6. If a previous panel directory is available, emit the next safe FASTA:
 
 ```bash
-python -m mamey blastp-followup \
+python mamey_run.py blastp-followup \
   --hit-table 40WGV6PM016-Alignment-HitTable.csv \
   --xml2 40WGV6PM016-Alignment.xml \
   --previous-selection AS-XXX_BGC_BLASTP_PANEL_selection_manifest.csv \

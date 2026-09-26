@@ -25,3 +25,9 @@ caption and a separate list of overlay ideas to add downstream.
 ## Modifying for consistency
 Edit `FIGURE_CONVENTIONS.md` to change a rule globally; edit a prompt's **Data**/**Plot** blocks
 to retarget it. Keep slugs and column names stable so downstream decks don't break.
+
+## Export schema and evidence limits
+Read the emitted `DATA_DICTIONARY.md` and actual CSV headers before plotting. CSV keys include `strain`, `assembly_tier`, `assembly_bp` and `boundary`; older recipe names are not aliases accepted by the exporter. Keep schema field names distinct from public isolate wording. `kcb_top_present=0` means no top-hit text was exported; missing and `NOT_APPLICABLE` values also become zero. It does not prove a completed no-match search or new chemistry. Bind search provenance and coverage separately and keep unsearched/unbound cases unknown. `diagnostics_long.csv` is isolate-level context: it has no locus key and cannot identify the diagnostic-bearing BGC. Per-locus attribution needs a source-bound join on `strain / full node-or-contig / region / BGC alias`; do not broadcast aggregate markers to every candidate.
+
+## Numeric completeness for the reference plot set
+`tools/plot_examples.py` needs nonempty strain_summary.csv, class_prevalence.csv and class_by_strain.csv with their actual headers and a bound, unique isolate roster. Every plotted N50 must be finite and positive for the log axis, and the loss/count fields must be finite source-derived values. A workbook header/structural PASS does not establish that these values exist. A missing A3 correction value leaves corrected count and fragmentation loss uncomputed; do not substitute zero. Resolve those holds before this three-figure reference run. Other recipes may handle missingness explicitly, but must report any admitted subset and its denominator.

@@ -106,6 +106,13 @@ def main(argv=None):
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--outdir", default=OUTDIR_DEFAULT)
     a = ap.parse_args(argv)
+    # v9.7.443: ROOT falls back to the current directory; refuse output inside the code bundle.
+    _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+    from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle
+    try:
+        assert_output_outside_bundle(a.outdir, __file__, kind="strain reports")
+    except OutputInsideBundle as _e:
+        _sys.exit(str(_e))
     rows = load_map()
     targets = ([s for s in rows if rows[s].get("has_strain_report_docx") == "yes"]
                if a.all else [a.strain])

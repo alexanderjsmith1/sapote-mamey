@@ -28,7 +28,7 @@ Subcommands:
 The 16S track needs the `blast` conda env (blastdbcmd) + the local ncbi_16S_RefSeq DB. Nothing here is
 engine-wired; it is a Tools/ asset used by phylo_place.py / phylo_refset.py and available standalone.
 """
-import argparse, os, re, subprocess, sys
+import argparse, os, re, shlex, subprocess, sys
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # bundle root for `import mamey` (v9.7.367 A10)
 from mamey.workspace_root import workspace_root
@@ -39,6 +39,7 @@ ROOT = str(workspace_root())
 from mamey.outgroup_registry_path import (
     outgroup_registry_path, shipped_registry_path, registry_binding, RegistryAuthorityError,
 )
+from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle
 
 
 def _shipped_registry_path():
@@ -53,6 +54,24 @@ REGISTRY = _registry_default()
 CACHE = os.environ.get("OUTGROUP_CACHE", f"{ROOT}/OFFICIAL_DATA/outgroup_cache")
 DB16S = os.environ.get("NCBI_16S_DB", f"{ROOT}/Tools/databases/ncbi_16S_RefSeq/16S_ribosomal_RNA")
 BLAST_BIN = os.environ.get("BLAST_BIN", f"{ROOT}/miniconda3/envs/blast/bin")
+
+def _cache_dir(sub):
+    """Create and return CACHE/<sub>, refusing a cache inside this tool's own code bundle.
+
+    CACHE defaults to workspace_root(), which falls back to the current directory. Run from the
+    bundle root with no SAPOTE_WORKSPACE_ROOT or OUTGROUP_CACHE, it would land in the sealed bundle.
+    The refusal is a RegistryAuthorityError so the CLI and every caller already report it cleanly.
+    """
+    d = os.path.join(CACHE, sub)
+    try:
+        assert_output_outside_bundle(d, __file__, kind="outgroup cache")
+    except OutputInsideBundle as e:
+        raise RegistryAuthorityError(
+            f"{e}\n  The cache is OUTGROUP_CACHE, else SAPOTE_WORKSPACE_ROOT/OFFICIAL_DATA/outgroup_cache."
+        ) from e
+    os.makedirs(d, exist_ok=True)
+    return d
+
 
 COLS = ["tree_scope", "ingroup_taxon", "family", "outgroup_genus",
         "outgroup_species_strain", "assembly_accession", "status", "rationale"]
@@ -238,8 +257,7 @@ def get_16s(genus, scope="genus", out=None, force=False, quiet=False):
     og_genus = row["outgroup_genus"]
     species_strain, ruled_acc = split_ruled_accession(row["outgroup_species_strain"])
     safe = re.sub(r"[^A-Za-z0-9]+", "_", f"{og_genus}_{species_strain}").strip("_")
-    os.makedirs(os.path.join(CACHE, "16S"), exist_ok=True)
-    cache_fa = os.path.join(CACHE, "16S", f"{safe}.fasta")
+    cache_fa = os.path.join(_cache_dir("16S"), f"{safe}.fasta")
     cache_ok = False
     if os.path.exists(cache_fa) and os.path.getsize(cache_fa) and not force:
         cache_ok, why = header_admissible(cache_fa)
@@ -308,7 +326,9 @@ def cmd_lookup(a):
 def cmd_get16s(a):
     fa = get_16s(a.genus, a.scope, out=a.out, force=a.force)
     if not a.out:
-        sys.stdout.write((f"\n# 16S FASTA ready: {fa}\n# append to your reference set, or use phylo_refset.py --add-outgroup {a.genus}") + "\n")
+        nxt = (f"phylo_refset.py add-outgroup REFS.fasta --genus {shlex.quote(a.genus)} "
+               f"--scope {shlex.quote(a.scope)} --out REFS_FINAL.fasta")
+        sys.stdout.write((f"\n# 16S FASTA ready: {fa}\n# append to your reference set, or use {nxt}") + "\n")
     return 0
 
 
@@ -319,8 +339,7 @@ def cmd_genome(a):
     acc = row["assembly_accession"]
     sys.stdout.write((f"{row['outgroup_genus']} {row['outgroup_species_strain']}\t{acc}\t(status={row['status']})") + "\n")
     if a.fetch:
-        os.makedirs(os.path.join(CACHE, "genomes"), exist_ok=True)
-        sh = os.path.join(CACHE, "genomes", f"fetch_{re.sub(r'[^A-Za-z0-9]+','_',acc)}.sh")
+        sh = os.path.join(_cache_dir("genomes"), f"fetch_{re.sub(r'[^A-Za-z0-9]+','_',acc)}.sh")
         with open(sh, "w") as fh:
             fh.write("#!/bin/bash\n# Outgroup genome fetch (run with network; download is a permissioned action).\n")
             fh.write("set -euo pipefail\n")

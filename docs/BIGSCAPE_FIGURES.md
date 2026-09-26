@@ -1,5 +1,8 @@
 # BiG-SCAPE GCF network + clinker figures
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 Two supporting figures the pipeline previously did not render (8 tools read the BiG-SCAPE DB; none
 `savefig` a network). Both are SUPPORTING artifacts — never acceptance evidence for a card. GCF
 membership and clinker gene links are **similarity, not identity**; no compound claim follows.
@@ -7,11 +10,11 @@ membership and clinker gene links are **similarity, not identity**; no compound 
 ## Commands
 ```bash
 # GCF network for one strain, from a BiG-SCAPE 2 SQLite DB (run + cutoff are REQUIRED)
-python -m mamey figures gcf-network --db <bigscape.db> --strain <ID> --run <N> --cutoff 0.5 \
+python mamey_run.py figures gcf-network --db <bigscape.db> --strain <ID> --run <N> --cutoff 0.5 \
     --evidence <all_evidence.json> --out net.png
 
 # clinker comparison across >=2 region GBKs (a lead + its RG-GMCI partners, or a GCF family)
-python -m mamey figures clinker <gbk1> <gbk2> ... --out fig.html
+python mamey_run.py figures clinker <gbk1> <gbk2> ... --out fig.html
 ```
 `--evidence` is optional (maps canonical loci to BGC ids and highlights Exceptional/High leads).
 

@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.442 stamp=20260924v97442a
+# TIER_MANIFEST tier=code version=9.7.443 stamp=20260926v97443a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -17,7 +17,6 @@
 ./README.md
 ./RELEASES_LOG.md
 ./RELEASE_MANIFEST.md
-./RELEASE_NOTES_v9.7.441.md
 ./SAPOTE_CONTROL/SUBAGENT_ALLOWLIST.tsv
 ./SECURITY.md
 ./STRICT_HEALTH_WAIVER.json
@@ -415,6 +414,7 @@
 ./docs/history/README.md
 ./docs/history/RELEASE_NOTES_v9.7.142_CANDIDATE.md
 ./docs/history/RELEASE_NOTES_v9.7.22.md
+./docs/history/RELEASE_NOTES_v9.7.441.md
 ./docs/history/TIER_PATCH_RECEIPT_v9.7.144b_CODE.md
 ./docs/history/TIER_PATCH_RECEIPT_v9.7.148c_CODE.md
 ./docs/history/V9_4_1_COMPATIBILITY_PATCH.md
@@ -1170,6 +1170,7 @@
 ./tests/_uploads_fixture.py
 ./tests/conftest.py
 ./tests/data/type_reference_rerun_targets.tsv
+./tests/figure_page_text_ratchet.py
 ./tests/fixtures/bgc006_online_blastp.csv
 ./tests/fixtures/blast_online_sample.xml
 ./tests/fixtures/cohort_pack/exclusions.json
@@ -1180,6 +1181,7 @@
 ./tests/fixtures/domain_level_expected_counts.json
 ./tests/fixtures/domain_level_minimal_antismash.zip
 ./tests/fixtures/ebi_sample.xml
+./tests/fixtures/figure_page_text_known_sites.txt
 ./tests/fixtures/micromonospora_humida_JAFEUC01.zip
 ./tests/fixtures/synthetic_single_contig_antismash.zip
 ./tests/fixtures/synthetic_strainA.fasta
@@ -1267,11 +1269,58 @@
 ./tests/test_441_phylo16s_bin_refusal_names_search_dirs.py
 ./tests/test_441_placement_display_accepts_flat_run_layout.py
 ./tests/test_441_workspace_root_walks_to_marker.py
+./tests/test_442_bioassay_input_snapshot_codex.py
+./tests/test_442_bioassay_observation_row_width_codex.py
+./tests/test_442_bioassay_plan_hash_size_codex.py
+./tests/test_442_bioassay_ruling_row_width_codex.py
+./tests/test_442_blastp_redirection_tokens_codex.py
 ./tests/test_442_caption_band_and_page_text.py
+./tests/test_442_caption_invalid_utf8_codex.py
+./tests/test_442_collection_figures_draw_no_claim_text.py
+./tests/test_442_contig_roster_fail_closed_codex.py
+./tests/test_442_deliverable_queue_source_resume_codex.py
+./tests/test_442_figure_page_text_ratchet.py
+./tests/test_442_figure_qc_manifest_image_binding_codex.py
+./tests/test_442_figure_qc_svg_visible_text_codex.py
+./tests/test_442_full50_relative_source_paths_codex.py
 ./tests/test_442_gene_count_crosscheck_unreadable_zip.py
+./tests/test_442_legend_titles_and_threads_footer_draw_no_claim_text.py
+./tests/test_442_make_release_tarball_appledouble_postbuild_codex.py
+./tests/test_442_make_release_tarball_dash_name_codex.py
+./tests/test_442_make_verified_code_tarball_codex.py
+./tests/test_442_modeb_bigscape_hold_reason_codex.py
+./tests/test_442_modeb_supplied_source_presence_codex.py
+./tests/test_442_one_removed_contig_reader.py
 ./tests/test_442_operator_tsv_formula_guard_codex.py
+./tests/test_442_provenance_session_identity_codex.py
+./tests/test_442_purge_bytecode_reports_what_it_actually_cleared.py
+./tests/test_442_r_installer_zip_root_codex.py
+./tests/test_442_release_tarball_directory_members_codex.py
+./tests/test_442_release_tarball_zip_snapshot_codex.py
 ./tests/test_442_stack_ratchet_repayment.py
+./tests/test_442_unmarked_cache_survives_a_non_runner_import.py
 ./tests/test_442_verify_release_tarball.py
+./tests/test_442_verify_release_tarball_canonical_paths_codex.py
+./tests/test_442_verify_release_tarball_member_bound.py
+./tests/test_442_verify_release_tarball_portable_names_codex.py
+./tests/test_442_verify_release_tarball_streaming.py
+./tests/test_442_verify_release_tarball_tar_stream.py
+./tests/test_442_verify_release_tarball_zip_member_types_codex.py
+./tests/test_442_verify_release_tarball_zip_prefix_collision_codex.py
+./tests/test_443_blastp_crawl_handoff.py
+./tests/test_443_blastp_crawl_runner.py
+./tests/test_443_blastp_health_lane_table.py
+./tests/test_443_cache_marker_binds_source_content.py
+./tests/test_443_crawl_heartbeat_disabled_is_reported.py
+./tests/test_443_dapr_boards_draw_no_claim_text.py
+./tests/test_443_decontam_guard_reads_contig_named_lists.py
+./tests/test_443_intake_harness_exit_status_reports_failed_inputs.py
+./tests/test_443_markdown_pdf_embeds_its_fonts.py
+./tests/test_443_modular_continuation.py
+./tests/test_443_one_figure_wording_list.py
+./tests/test_443_print_only_exemption_keeps_other_checks.py
+./tests/test_443_run_failed_reason_names_the_runner_refusal.py
+./tests/test_443_shipped_data_files_carry_no_cohort_locus_detail.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_absent_median_is_not_a_zero_v97438.py
 ./tests/test_activity_decision_tree_portable.py
@@ -1391,7 +1440,9 @@
 ./tests/test_bigscape_widget_strain_collapse_v9_7_416.py
 ./tests/test_bioactivity_metadata_contract.py
 ./tests/test_bioassay_activity_channel_v97413.py
+./tests/test_bioassay_column_inventory_v97442.py
 ./tests/test_bioassay_figure_factory_v97426.py
+./tests/test_bioassay_material_rulings_v97442.py
 ./tests/test_bioassay_overlay_refusals_v97423.py
 ./tests/test_bioassay_placement_annotation_v97423.py
 ./tests/test_bioassay_plate_map_v97428.py
@@ -1433,6 +1484,7 @@
 ./tests/test_blastp_online_disclosure_gate_v97438.py
 ./tests/test_blastp_online_locator_similarity_v9_7_293.py
 ./tests/test_blastp_online_ncbi_cadence_v9_7_382.py
+./tests/test_blastp_online_outdir_outside_bundle_v97443.py
 ./tests/test_blastp_overlay_write_path.py
 ./tests/test_blastp_plot_selection_candidate.py
 ./tests/test_blastp_rollup_merges_same_day_v97416.py
@@ -1526,6 +1578,7 @@
 ./tests/test_check_module_accretion_unreadable_dir_coverage_bc2_400.py
 ./tests/test_check_monolith_freshness_retired_doctrine_case_bc2.py
 ./tests/test_check_no_brace_paths_unreadable_dir_coverage_bc2_400.py
+./tests/test_check_no_bundle_write_defaults_v97443.py
 ./tests/test_check_provenance_columns_delimiter_extension_mismatch_bc2.py
 ./tests/test_check_regex_interpolation_v97395.py
 ./tests/test_check_registry_ids_unique_empty_csv_v97395.py
@@ -1589,6 +1642,7 @@
 ./tests/test_cohort_bridge_h_i_v9788.py
 ./tests/test_cohort_cards.py
 ./tests/test_cohort_class_heatmap_autoemit_v97410.py
+./tests/test_cohort_class_heatmap_parks_saccharide_only_v97443.py
 ./tests/test_cohort_class_heatmap_v9790.py
 ./tests/test_cohort_context_lq_strain_03.py
 ./tests/test_cohort_deliverable.py
@@ -1610,6 +1664,7 @@
 ./tests/test_cohort_precompute_package_fallback_v9_7_286.py
 ./tests/test_cohort_precompute_version_manifest.py
 ./tests/test_cohort_prevalence_denominator_v97410.py
+./tests/test_cohort_profile_ack_unknown_codex_v97442.py
 ./tests/test_cohort_proteins_v9_7_377.py
 ./tests/test_cohort_resolver_lineage.py
 ./tests/test_cohort_resolver_v9744.py
@@ -1703,6 +1758,7 @@
 ./tests/test_deliverable_markdown_reminder_current_folder_naming_bc2_398.py
 ./tests/test_deliverable_surfacing_v9_7_279.py
 ./tests/test_deliverable_tools_import_writes_nothing_v97417.py
+./tests/test_deliverable_tools_refuse_bundle_output_v97443.py
 ./tests/test_deliverables_registry_v9_7_391.py
 ./tests/test_depth_floor_t1_dark_bgc.py
 ./tests/test_determinism_fingerprint_v97407.py
@@ -1772,6 +1828,7 @@
 ./tests/test_exemplars_are_clean_v97247.py
 ./tests/test_exploration_identity_independent.py
 ./tests/test_exploration_native_identity_independent.py
+./tests/test_export_figure_ready_missing_correction_stays_blank_v97443.py
 ./tests/test_export_tree_figure_source_package_v97428.py
 ./tests/test_export_tree_source_package_runs_v97439.py
 ./tests/test_external_literature_corpus_guide.py
@@ -1819,6 +1876,7 @@
 ./tests/test_figure_source_bundle_and_tranche2_v97345.py
 ./tests/test_figure_source_bundle_feature_types_v97408.py
 ./tests/test_figure_source_contract_v97407.py
+./tests/test_figure_text_entities_codex_v97442.py
 ./tests/test_figure_theme_gallery_v97392.py
 ./tests/test_figure_theme_visual_modernization.py
 ./tests/test_figure_tranche7_v97406.py
@@ -1907,6 +1965,7 @@
 ./tests/test_hermetic_env_guard_v97404.py
 ./tests/test_hmm_blastp_adjudicate.py
 ./tests/test_hmm_env_precedence_432.py
+./tests/test_hook_install_refuses_to_overwrite_a_differing_hook_v97443.py
 ./tests/test_hooks_jqless_path_v97402.py
 ./tests/test_hooks_workspace_portability.py
 ./tests/test_hostile_gates_round2_v97409.py
@@ -2060,6 +2119,7 @@
 ./tests/test_mode_b_receipt.py
 ./tests/test_modeb_availability_engine_headers.py
 ./tests/test_modeb_availability_v9_7_370.py
+./tests/test_modeb_bigscape_hold_reason_v97442.py
 ./tests/test_modeb_bigscape_strain_identity_codex_v97442.py
 ./tests/test_modeb_card_diff_v97406.py
 ./tests/test_modeb_card_guard_eco_regex_v97395.py
@@ -2068,6 +2128,7 @@
 ./tests/test_modeb_class_checklist_v97164.py
 ./tests/test_modeb_class_conflict.py
 ./tests/test_modeb_class_conflict_wiring.py
+./tests/test_modeb_class_match_category_caveat_v97443.py
 ./tests/test_modeb_compile_out_redirect_v97413.py
 ./tests/test_modeb_complete_blastp_matrix_v9_7_372.py
 ./tests/test_modeb_convergence_integration.py
@@ -2100,6 +2161,7 @@
 ./tests/test_modeb_non_ctg_canonical_roster_v9_7_383.py
 ./tests/test_modeb_nucleoside_checklist.py
 ./tests/test_modeb_packet_validator.py
+./tests/test_modeb_percent_identity_numeric_codex_v97442.py
 ./tests/test_modeb_public_authoring_contract_v97410.py
 ./tests/test_modeb_publication_gate_gene_column_v9_7_384.py
 ./tests/test_modeb_publication_gate_gene_column_v9_7_385.py
@@ -2133,6 +2195,7 @@
 ./tests/test_modeb_synthesis_stub_v9_7_339.py
 ./tests/test_modeb_template_cross_source_prefill.py
 ./tests/test_modeb_template_emitter.py
+./tests/test_modeb_template_sources_reach_every_route_v97442.py
 ./tests/test_modeb_uniformity_advisory.py
 ./tests/test_modeb_verify_actionable_diagnostics_v97390.py
 ./tests/test_modeb_workflow_v97143a.py
@@ -2146,6 +2209,7 @@
 ./tests/test_native_csv_producer_anchors_candidate.py
 ./tests/test_native_figure_adapter_v9_7_115.py
 ./tests/test_needs_multibatch_a2.py
+./tests/test_neighborhood_nearest_type_is_type_v97443.py
 ./tests/test_new_cctt_triggers_v1999.py
 ./tests/test_newest_changelog_composition_prose_v97406.py
 ./tests/test_next_evidence_actions.py
@@ -2185,7 +2249,9 @@
 ./tests/test_orig_bounds_partial_marker_v97438.py
 ./tests/test_orphan_membership_tiers.py
 ./tests/test_outgroup_alignment_contract_v97416.py
+./tests/test_outgroup_cache_outside_bundle_v97443.py
 ./tests/test_outgroup_gate_parity_v97407.py
+./tests/test_outgroup_get16s_hint_is_runnable_v97443.py
 ./tests/test_outgroup_registry.py
 ./tests/test_outgroup_registry_bundle_fallback_v97418.py
 ./tests/test_output_label_containment_v97438.py
@@ -2248,6 +2314,7 @@
 ./tests/test_phylo_publication_labels_v97427.py
 ./tests/test_phylo_reference_dedup_guard_v97406.py
 ./tests/test_phylo_refset_dedup.py
+./tests/test_phylo_refset_pair_identity_v97443.py
 ./tests/test_phylo_refset_tier2_fails_closed_v9_7_416.py
 ./tests/test_phylo_roster.py
 ./tests/test_phylo_sequence_admission_v97429.py
@@ -2263,6 +2330,7 @@
 ./tests/test_placement_publication_rollback_followup_v97421.py
 ./tests/test_placement_typed_producer_cli_followup_v97421.py
 ./tests/test_plan_gtotree_iqtree_codex19.py
+./tests/test_plot_examples_reads_exported_strain_key_v97443.py
 ./tests/test_pm_guard_replication.py
 ./tests/test_polyene_misanchor_clamp_scope.py
 ./tests/test_portable_composition_v97418.py
@@ -2375,6 +2443,8 @@
 ./tests/test_release_sha256sums_p6.py
 ./tests/test_release_status_front_door.py
 ./tests/test_release_surfacing_v9787.py
+./tests/test_release_tarball_duplicate_members_codex_v97442.py
+./tests/test_release_tarball_modes_codex_v97442.py
 ./tests/test_release_tier_identity_v97406.py
 ./tests/test_release_zip_hygiene.py
 ./tests/test_remediate_only_touches_cards.py
@@ -2446,6 +2516,7 @@
 ./tests/test_run_manifest_profile.py
 ./tests/test_run_planned_tree.py
 ./tests/test_run_stage_and_timeout.py
+./tests/test_runner_cache_provenance_unmarked_codex_v97442.py
 ./tests/test_s4_matrix_locator_v9_7_373.py
 ./tests/test_saccharide_reason_v97406.py
 ./tests/test_safe_kcb_display.py
@@ -2777,6 +2848,10 @@
 ./tools/blastp_campaign.py
 ./tools/blastp_channel_triage.py
 ./tools/blastp_coverage_wave.py
+./tools/blastp_crawl/crawl_handoff.py
+./tools/blastp_crawl/nr_rid_runner.py
+./tools/blastp_crawl/run_lane.sh
+./tools/blastp_crawl/split_multi_panels.py
 ./tools/blastp_monitoring/blastp_dashboard.sh
 ./tools/blastp_monitoring/blastp_health.py
 ./tools/blastp_monitoring/blastp_last_returns.py
@@ -2870,6 +2945,7 @@
 ./tools/check_module_accretion.py
 ./tools/check_monolith_freshness.py
 ./tools/check_no_brace_paths.py
+./tools/check_no_bundle_write_defaults.py
 ./tools/check_onboarding_funnel.py
 ./tools/check_patch_lane.py
 ./tools/check_provenance_columns.py
@@ -2989,6 +3065,7 @@
 ./tools/log_release.py
 ./tools/make_public_tier.sh
 ./tools/make_release_tarball.sh
+./tools/make_verified_code_tarball.sh
 ./tools/mamey_habitat_map.py
 ./tools/mamey_intake.py
 ./tools/mamey_package_qa_v2.py

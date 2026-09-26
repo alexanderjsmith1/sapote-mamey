@@ -28,7 +28,7 @@ PowerPoint / BioRender / Illustrator without fighting baked-in decoration.
 - Secondary / categorical series: green family `#a8ddb5 · #52a878 · #1d6e44` (replaces the old
   orange highlight `#e07b39`). [v9.7.115]
 - Sequential ordinal (e.g. Interior→Edge→Full-contig): 3-blue ramp `#cfe0f3 · #7fa9d6 · #3a6ea5`. [v9.7.115]
-- Assembly tiers: GOOD `#2a9d5a` · MODERATE `#e0a030` · POOR `#cc4444`.
+- Assembly tiers: GOOD `#2a9d5a` · MODERATE `#e0a030` · POOR `#cc4444` · VERY_POOR `#756bb1` · UNKNOWN `#bdbdbd`. Retain every admitted group; UNKNOWN means unavailable metadata and is not a quality grade. Use labels as well as color.
 - Sequential (heatmaps): `viridis`. Binary present/absent: `Blues`. Diverging (rare): `RdBu`.
 - Never rely on red/green alone to carry meaning.
 
@@ -49,7 +49,7 @@ manuscript — or gate the corner label behind a `--catalog` flag.
 ## Typography & canvas (matplotlib rcParams — apply at top of every render)
 - Font: DejaVu Sans. Sizes: title 13 · axis label 11 · tick 9 · bar value label 8.
 - White background; top and right spines off; gridlines `alpha 0.25`.
-- `savefig.dpi = 200` (slides), `bbox='tight'`. For print also emit `.svg`/`.pdf` at 300 dpi.
+- `savefig.dpi = 300` minimum for raster exports (including slides), `bbox='tight'`; retain `.svg`/`.pdf` vector output. Any raster layers within vector exports must also meet the house-rule minimum.
 - Strain axis order = corrected-BGC rank (from `strain_summary.csv`, which is emitted in that order),
   so strains line up across every panel.
 
@@ -57,7 +57,7 @@ manuscript — or gate the corner label behind a `--catalog` flag.
 - The caption is **text below the figure**, never inside it. Each prompt suggests one.
 - Captions are claim-safe: antiSMASH product classes and KCB/MIBiG matches are **class-level
   hypotheses**, never assayed chemistry; say "candidate", "predicted", "consistent with".
-- State n (e.g. "n = 18 strains") and the correction rule where relevant.
+- State the actual admitted plotted isolate count and unit (use isolates in reader-facing text), any subset/group sizes, and the correction rule where relevant. Technical `strain_id` fields and filenames retain their schema names. Fill caption placeholders from bound input tables/receipts; never copy a historical count or result into a new set. For lead tables, distinguish displayed BGC rows from cohort isolates. Confirm every result-bearing example clause against this set before using it.
 
 ## Data hygiene
 - Plot only from the tidy `figure_ready/` CSVs (one observation per row) or named workbook sheets.

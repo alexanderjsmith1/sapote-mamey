@@ -218,18 +218,17 @@ def render_threads_figure(rows: list[dict], png_path, *, release: str = "PRIVATE
     host_seen = sorted({nd["host"] for nd in nodes})
     host_handles = [Line2D([0], [0], marker="o", color="w", markerfacecolor=host_color.get(h, "#9A9A9A"),
                            markersize=11, label=h) for h in host_seen]
-    leg1 = ax.legend(handles=class_handles, title="Shared biosynthetic thread (class-level)",
+    leg1 = ax.legend(handles=class_handles, title="Shared biosynthetic thread",
                      loc="upper left", bbox_to_anchor=(-0.02, 1.0), fontsize=7, title_fontsize=8, frameon=False)
     ax.add_artist(leg1)
     ax.legend(handles=host_handles, title="Host association", loc="lower left",
               bbox_to_anchor=(-0.02, 0.0), fontsize=8, title_fontsize=8, frameon=False)
 
-    ax.set_title("Cross-strain shared biosynthetic threads (class-level capacity)\n"
+    ax.set_title("Cross-strain shared biosynthetic threads\n"
                  f"{strain_label} · recurrent compound classes link strains across host associations",
                  fontsize=12, fontweight="bold")
-    foot = ("Data-only · class-level biosynthetic CAPACITY co-occurrence, not product identity and not "
-            "activity · an edge = both strains carry capacity for that class (B2 matrix), never a shared "
-            "molecule · KCB = similarity, not identity · ubiquitous/standing-exclusion classes "
+    # v9.7.442: claim wording stays off the canvas (Alex, 2026-09-24); the data facts stay.
+    foot = ("An edge = both strains carry that class (B2 matrix) · ubiquitous/standing-exclusion classes "
             f"(saccharide, NAPAA, siderophore, …) dropped: {', '.join(dropped) or 'none present'}"
             f" · label provenance: {label_provenance}"
             + (" · PUBLIC tier: strain IDs redacted to AS-XXX" if public else " · PRIVATE (AS cohort)"))
@@ -248,4 +247,6 @@ def render_threads_figure(rows: list[dict], png_path, *, release: str = "PRIVATE
             w.writerow([disp(e["a"]), disp(e["b"]), e["class"], label_provenance, release])
     return {"status": "PASS", "png": str(png_path), "csv": str(csv_path),
             "nodes": len(nodes), "edges": len(edges), "dropped_classes": dropped,
-            "release": release, "label_provenance": label_provenance}
+            "release": release, "label_provenance": label_provenance,
+            "claim_ceiling": ("class-level biosynthetic capacity co-occurrence; not product identity and not "
+                              "activity; an edge is never a shared molecule; KCB = similarity, not identity")}

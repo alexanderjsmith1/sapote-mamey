@@ -41,7 +41,19 @@ pcr = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pcr)   # provides query_proteins()
 
 
+
+def _refuse_output_inside_bundle(path):
+    """v9.7.443: ROOT falls back to the current directory; run from the bundle root, the plots
+    would land inside the sealed bundle. Stop with the reason instead."""
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle
+    try:
+        assert_output_outside_bundle(path, __file__, kind="BLASTp crawl plots")
+    except OutputInsideBundle as e:
+        sys.exit(f"{e}\n  The plot folder is SAPOTE_BLASTP_PLOT_DIR, else SAPOTE_WORKSPACE_ROOT/blastp_plots.")
+
 def main():
+    _refuse_output_inside_bundle(OUT)  # before any reading or plotting
     now = datetime.datetime.now()
     start = now - datetime.timedelta(hours=HOURS)
     recs = []

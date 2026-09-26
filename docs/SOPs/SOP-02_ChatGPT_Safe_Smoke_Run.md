@@ -1,7 +1,10 @@
 # SOP-02 — ChatGPT-Safe Capped-Session Run
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 > **v9.7.374 correction:** this SOP originally described a "smoke mode" first-run path. `--mode
-> smoke` was **removed at v9.7.161** (`mamey run --mode` now accepts only `{standard,gold}`, and
+> smoke` was **removed at v9.7.161** (`python mamey_run.py run --mode` now accepts only `{standard,gold}`, and
 > `standard` is a deprecated alias of `gold` since v9.7.92) and the forced smoke-first gate for
 > capped sessions was itself removed at **v9.7.160** ("capped sessions run gold DIRECTLY (the old
 > forced smoke-first FATAL is gone)" — `cli.py:3037`). Gold is the only analysis mode; the
@@ -24,10 +27,10 @@ wall-clock-expensive figure/brief work so the session doesn't time out. There is
 ## Required first commands
 
 ```bash
-python -m mamey doctor
-python -m mamey inspect <input.zip>
-python -m mamey run --input-zip <input.zip> --mode gold --capped-session --json-evidence off --brief none
-python -m mamey validate <package_dir> --workbook-strict
+python mamey_run.py doctor
+python mamey_run.py inspect <input.zip>
+python mamey_run.py run --input-zip <input.zip> --mode gold --capped-session --json-evidence off --brief none
+python mamey_run.py validate <package_dir> --workbook-strict
 ```
 
 ## Why `--capped-session` first
@@ -40,7 +43,7 @@ python -m mamey validate <package_dir> --workbook-strict
 - ChatGPT/Claude tool timeout,
 - too many regions or BGCs,
 - missing optional deliverables (suppressed on purpose, not silently dropped — re-populate with
-  `mamey render-all-figures --package <pkg> --all --workbook <wb.xlsx>` post-seal).
+  `python mamey_run.py render-all-figures --package <pkg> --all --workbook <wb.xlsx>` post-seal).
 
 ## Required outputs
 

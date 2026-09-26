@@ -1,5 +1,7 @@
 """A release tarball passes only when it carries exactly the sealed ZIP's files, byte for byte."""
 import io
+import hashlib
+import json
 import subprocess
 import sys
 import tarfile
@@ -31,7 +33,15 @@ def _tar(tmp_path: Path, files: dict, extra_members: dict | None = None) -> Path
 
 
 def _run(tar: Path, zp: Path):
-    return subprocess.run([sys.executable, str(TOOL), str(tar), "--zip", str(zp)],
+    receipt = zp.with_suffix(".seal.json")
+    receipt.write_text(json.dumps({
+        "schema": "sapote-mamey.local-code-seal.v1",
+        "status": "SEALED_LOCAL_CODE", "tier": "CODE",
+        "archive": {"path": zp.name, "sha256": hashlib.sha256(zp.read_bytes()).hexdigest(),
+                    "bytes": zp.stat().st_size},
+    }))
+    return subprocess.run([sys.executable, str(TOOL), str(tar), "--zip", str(zp),
+                           "--seal-receipt", str(receipt)],
                           capture_output=True, text=True, timeout=60)
 
 

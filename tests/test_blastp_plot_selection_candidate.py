@@ -74,12 +74,16 @@ def test_dense_legend_is_outside_data_and_unknown_counts_are_labeled(tmp_path,mo
     assert any("LOWER BOUNDS" in t.get_text() for t in fig.texts)
     colors = [color for _comps, color in state["data"].values()]
     assert len(colors) == len(set(colors)) == 22
-    bars = sorted(state["axes"][1][0].patches, key=lambda bar: bar.get_x())
+    # All 22 lanes fetched in the same hour: one full-hour bar, stacked 22 segments high.
+    bars = sorted(state["axes"][1][0].patches, key=lambda bar: bar.get_y())
     assert len(bars) == 22
-    assert all(
-        left.get_x() + left.get_width() <= right.get_x() + 1e-12
-        for left, right in zip(bars, bars[1:])
-    )
+    assert len({round(bar.get_x(), 9) for bar in bars}) == 1
+    assert all(abs(bar.get_width() - 0.9 / 24) < 1e-9 for bar in bars)
+    running = 0
+    for bar in bars:
+        assert abs(bar.get_y() - running) < 1e-9
+        running += bar.get_height()
+    assert running == 21  # panel0.faa was removed above, so that lane counts 0
     plt.close(fig)
 
 
@@ -103,3 +107,51 @@ def test_timezone_label_comes_from_runtime_locale(tmp_path, monkeypatch):
     assert "%H:%M} PDT" not in source
     assert '"time (PDT)"' not in source
     plt.close(state["fig"])
+
+
+def test_strain_lanes_get_short_one_line_labels(tmp_path, monkeypatch):
+    stamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _lane(tmp_path, "_STRAINGAP_SINGLE_CLNR_GAP_AS932", "panel0.faa", stamp)
+    _lane(tmp_path, "_NR_RID_AS-40", "panel1.faa", stamp)
+    state = run_plot(tmp_path, monkeypatch)
+    fig = state["fig"]
+    texts = [t.get_text() for t in fig.legends[0].get_texts()]
+    assert any(t.startswith("AS-932 — ") for t in texts)
+    assert any(t.startswith("AS-40 nr — ") for t in texts)
+    assert all("\n" not in t for t in texts)
+    plt.close(fig)
+
+
+def test_same_strain_in_two_lanes_keeps_both_distinct(tmp_path, monkeypatch):
+    stamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _lane(tmp_path, "_STRAINGAP_SINGLE_CLNR_AS190", "panel0.faa", stamp)
+    _lane(tmp_path, "_STRAINGAP_SINGLE_CLNR_GAP_AS190", "panel1.faa", stamp)
+    state = run_plot(tmp_path, monkeypatch)
+    names = list(state["data"])
+    assert len(names) == 2 and len(set(names)) == 2
+    assert all(name.startswith("AS-190 [") for name in names)
+    plt.close(state["fig"])
+
+
+def test_selection_receipt_records_stacked_bars(tmp_path, monkeypatch):
+    stamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _lane(tmp_path, "_STRAINGAP_SINGLE_CLNR_GAP_AS1", "panel0.faa", stamp)
+    state = run_plot(tmp_path, monkeypatch)
+    receipt = json.loads((tmp_path / "blastp_throughput_proteins_24_96h.selection.json").read_text())
+    assert receipt["hourly_bar_layout"] == "stacked"
+    plt.close(state["fig"])
+
+
+def test_default_plot_folder_inside_the_bundle_is_refused(tmp_path, monkeypatch):
+    stamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _lane(tmp_path, "_STRAINGAP_SINGLE_CLNR_GAP_AS1", "panel0.faa", stamp)
+    bundle = SCRIPT.parents[2]
+    monkeypatch.setenv("SAPOTE_WORKSPACE_ROOT", str(tmp_path))
+    monkeypatch.delenv("SAPOTE_BLASTP_PLOT_DIR", raising=False)
+    monkeypatch.chdir(bundle)
+    monkeypatch.setattr(sys, "argv", [str(SCRIPT)])
+    from mamey.path_safety import OutputInsideBundle
+    with pytest.raises(OutputInsideBundle):
+        runpy.run_path(str(SCRIPT), run_name="__main__")
+    assert not (bundle / "blastp_throughput_proteins_24_96h.png").exists()
+    plt.close("all")

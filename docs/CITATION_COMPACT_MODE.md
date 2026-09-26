@@ -1,5 +1,8 @@
 # Citation-Compact Mode
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 **Introduced:** proposed v9.7.136  
 **Purpose:** reduce repeated claim-safety prose while increasing citation/evidence density.
 
@@ -8,10 +11,10 @@
 
 ## CLI Usage
 
-Use citation-compact mode during `mamey run`:
+Use citation-compact mode during `python mamey_run.py run`:
 
 ```bash
-python -m mamey run --strain <ID> --input-zip <antiSMASH.zip> --mode gold --capped-session --token-budget citation-compact --outdir <runs>
+python mamey_run.py run --strain <ID> --input-zip <antiSMASH.zip> --mode gold --capped-session --token-budget citation-compact --outdir <runs>
 ```
 
 The compact outputs are emitted into the package before final manifest/checksum/ZIP sealing.

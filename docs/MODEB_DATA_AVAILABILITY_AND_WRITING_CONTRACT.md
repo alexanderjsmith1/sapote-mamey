@@ -1,7 +1,10 @@
 # Mode B data-availability and writing contract
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 **Status:** normative pre-authoring contract.  
-**Command:** `mamey modeb-availability`  
+**Command:** `python mamey_run.py modeb-availability`  
 **Principle:** inventory evidence before writing prose.
 
 ## 1. Purpose
@@ -108,7 +111,7 @@ The planner never writes the interpretation. Conditional §21–§27 and §29 ap
 ## 7. Example
 
 ```bash
-python -m mamey modeb-availability \
+python mamey_run.py modeb-availability \
   --inventory project/per_bgc_inventory.tsv \
   --source-root package=project/runs \
   --source-root blastp=project/evidence/blastp \

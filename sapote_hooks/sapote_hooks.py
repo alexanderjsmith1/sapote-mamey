@@ -240,22 +240,43 @@ def cmd_install(a):
                 if new != hk["command"]:
                     hk["command"] = new; changed += 1
     # optional: copy bundle hook files into .claude/hooks/
-    copied = 0
+    # An installed hook that differs from the bundle copy is never replaced silently: the
+    # install is refused before anything is written unless --overwrite is given, and then
+    # each differing hook is backed up to .claude/hook_backups/<stamp>/ first.
+    plan = []; differing = []
     if a.bundle:
         bdir = a.bundle if os.path.isabs(a.bundle) else os.path.join(root, a.bundle)
-        hd = hooks_dir(root); os.makedirs(hd, exist_ok=True)
+        hd = hooks_dir(root)
         for r in load_manifest():
             if r["hook"] == "INLINE": continue
-            src = os.path.join(bdir, r["hook"])
+            src = os.path.join(bdir, r["hook"]); dst = os.path.join(hd, r["hook"])
             if os.path.exists(src):
-                if a.apply: shutil.copy2(src, os.path.join(hd, r["hook"]))
-                copied += 1
+                plan.append((src, dst))
+                if os.path.exists(dst) and _sha(dst) != _sha(src):
+                    differing.append(r["hook"])
+    copied = len(plan)
+    if differing and a.apply and not getattr(a, "overwrite", False):
+        sys.exit(f"INSTALL_REFUSED: {len(differing)} installed hook(s) differ from the bundle copy and "
+                 f"would be overwritten: {', '.join(sorted(differing))}. Nothing was written. Compare "
+                 "them, then re-run with --overwrite (each differing hook is backed up first).")
     if not a.apply:
         print(f"DRY-RUN: would portabilize {changed} absolute hook path(s) -> {PORTABLE_ROOT}"
               + (f", copy {copied} bundle hook file(s) into .claude/hooks/" if a.bundle else "")
               + ".\n  Re-run with --apply to write (settings.json backed up first).")
+        if differing:
+            sys.stdout.write(f"  {len(differing)} installed hook(s) differ from the bundle and need "
+                             f"--overwrite: {', '.join(sorted(differing))}\n")
         return
-    bak = sp + ".bak_" + time.strftime("%Y%m%d_%H%M%S")
+    stamp = time.strftime("%Y%m%d_%H%M%S")
+    if plan:
+        os.makedirs(hooks_dir(root), exist_ok=True)
+        if differing:
+            keep = os.path.join(root, ".claude", "hook_backups", stamp); os.makedirs(keep, exist_ok=True)
+            for name in differing:
+                shutil.copy2(os.path.join(hooks_dir(root), name), os.path.join(keep, name))
+        for src, dst in plan:
+            shutil.copy2(src, dst)
+    bak = sp + ".bak_" + stamp
     shutil.copy2(sp, bak)
     json.dump(s, open(sp, "w"), indent=2)
     print(f"APPLIED: {changed} paths portabilized"
@@ -272,6 +293,8 @@ def main(argv=None):
     v.add_argument("--tree", default="", help="check a STANDALONE bundle tree (self-contained; no .claude needed)")
     v.set_defaults(fn=cmd_verify)
     i = sub.add_parser("install"); i.add_argument("--apply", action="store_true")
+    i.add_argument("--overwrite", action="store_true",
+                   help="replace installed hooks that differ from the bundle (each is backed up first)")
     i.add_argument("--bundle", default=""); i.set_defaults(fn=cmd_install)
     a = ap.parse_args(argv); a.fn(a)
 

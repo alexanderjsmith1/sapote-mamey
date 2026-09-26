@@ -18,15 +18,29 @@ not redistribute the NP Atlas dataset.
 ## `npatlas provision` (NPA-03, NPA-04)
 
 ```bash
-Tools/bin/python3 tools/npatlas_provision.py doctor
-Tools/bin/python3 tools/npatlas_provision.py inspect --source /path/to/np_atlas_v2024_09.json
-Tools/bin/python3 tools/npatlas_provision.py provision \
+# Activate the bundle Python environment and run from the bundle root.
+export MAMEY_NPATLAS_DIR="/absolute/path/to/writable/npatlas_data"
+python tools/npatlas_provision.py doctor
+python tools/npatlas_provision.py inspect --source /path/to/np_atlas_v2024_09.json
+python tools/npatlas_provision.py provision \
     --source /path/to/np_atlas_v2024_09.json \
-    --out ./my_npatlas_actino_subset.json \
-    --dataset-version v2024_09 \
-    --origin-type bacterium --taxon-contains Streptomyces
+    --out "$MAMEY_NPATLAS_DIR/all_actinobacteria_npatlas_ref.json" \
+    --dataset-version v2024_09 --normalize \
+    --phylum Actinobacteria --phylum Actinomycetota
 ```
 
+- **Consumer schema and layout.** Raw v2024_09 records need `--normalize` to map
+  `original_name`/`origin_reference`/classifier result keys to the consumer's fields before
+  filtering and writing. The phylum allowlist above uses a derived scalar from the source taxonomy;
+  repeated `--phylum` values are ORed and imply normalization. For a genus-specific normalized
+  subset, use `--genus-field origin_organism.genus --genus Streptomyces`. The flat defaults
+  `origin_type`, `origin_taxon` and `genus` belong to a different schema and must not be assumed
+  for raw or normalized v2024_09 records.
+- **Discoverable add-ons.** The consumer searches `all_actinobacteria_npatlas_ref.json` and
+  `bacteria_nonactino_npatlas_ref.json` inside the configured directory. An arbitrary `--out`
+  filename is valid as a standalone subset, but is not automatically loaded. Keep its actual
+  filter and included/excluded counts in the receipt; a filename does not establish complete
+  taxonomic coverage. Provisioning a file is not scientific acceptance of its references.
 - **Streaming.** The official JSON download is ~475 MB. `inspect`/`provision` stream it with
   `ijson` (system install if present, else the vendored copy at `mamey/_vendor/ijson` — same
   dual-name fallback pattern as `mamey/antismash_evidence.py`) — the file is never
@@ -50,9 +64,9 @@ Tools/bin/python3 tools/npatlas_provision.py provision \
   `filter_rule` (the exact clauses applied), `included_count`, `excluded_count`, `output_path`,
   `output_sha256`, `tool_version`, `claim_ceiling`. `--format tsv` prints one row instead;
   `--out-receipt` also writes the receipt to a file.
-- **`inspect`** is read-only — hash, byte count, total record count, and a small sample of the
-  first records' keys, for previewing a source before committing to a filter. Never writes
-  anything.
+- **`inspect`** leaves the source unchanged and reports hash, byte count, record count and
+  sampled keys. By default it writes the report only to stdout; `--out-json <report.json>`
+  additionally persists that report to the selected path.
 - **`doctor`** reports whether `ijson` is available (and from where) and whether `rdkit` is
   importable, plus the NP Atlas dataset's own provisioning status via `mamey.external_data`.
 

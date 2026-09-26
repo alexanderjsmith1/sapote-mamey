@@ -5,9 +5,32 @@ import shlex
 import sys
 
 
-SEPARATORS = {";", "&&", "||", "|", "&"}
+SEPARATORS = {";", "&&", "||", "|", "|&", "&"}
+REDIRECTIONS = {">", ">>", "<", "<<", "<>", ">|", ">&", "<&", "&>", "&>>"}
+FD_REDIRECTIONS = REDIRECTIONS - {"&>", "&>>"}
 INTERPRETERS = {"bash", "sh", "zsh", "dash", "ksh", "python", "python2", "python3"}
 WRAPPERS = {"env", "nohup", "caffeinate"}
+
+
+def _strip_redirections(parts):
+    """Remove shell redirection operands before looking for executable scripts."""
+    out = []
+    index = 0
+    while index < len(parts):
+        token = parts[index]
+        # With punctuation tokens, `2>&1` is `2`, `>&`, `1` and `&>log` is
+        # `&>`, `log`. Keep command separators such as `cmd & >log next` distinct.
+        if token.isdecimal() and index + 1 < len(parts) and parts[index + 1] in FD_REDIRECTIONS:
+            index += 1
+            token = parts[index]
+        if token in REDIRECTIONS:
+            index += 1
+            if index < len(parts) and parts[index] not in SEPARATORS | REDIRECTIONS:
+                index += 1
+            continue
+        out.append(token)
+        index += 1
+    return out
 
 
 def _assignment(token):
@@ -43,10 +66,10 @@ def candidates(command):
     if "$(" in command or "`" in command or "\n" in command:
         return []
     try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>")
         lexer.whitespace_split = True
         lexer.commenters = ""
-        parts = list(lexer)
+        parts = _strip_redirections(list(lexer))
     except ValueError:
         return []
     segments = [[]]

@@ -80,7 +80,7 @@ def test_run_round_threads_precompute_dir(tmp_path, monkeypatch):
     """v9.7.226: the --from-precompute value must reach emit_batch."""
     import mamey.modeb_template_emitter as _emit
     seen = {}
-    def _fake_emit_batch(pkg, scope="top", top_n=10, precompute_dir=None):
+    def _fake_emit_batch(pkg, scope="top", top_n=10, precompute_dir=None, **_kwargs):
         seen["precompute_dir"] = precompute_dir
         return {"skipped_reason": "stub"}
     monkeypatch.setattr(_emit, "emit_batch", _fake_emit_batch)

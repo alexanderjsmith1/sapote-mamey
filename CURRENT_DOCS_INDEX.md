@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.442 · engine 1.9.169 · build 20260924v97442a
+# Current Docs Index — v9.7.443 · engine 1.9.170 · build 20260926v97443a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -46,6 +46,66 @@ or receive it through their supported instruction mechanism.
 The [Master Walkthrough](docs/MASTER_WALKTHROUGH.md) connects installation to validated outputs;
 [prerequisites](docs/PREREQUISITES.md) distinguish Python extras, external tools and datasets.
 
+## Tool and contract pages
+
+These pages document shipped tools, commands and contracts. They were not linked from here before.
+
+- [Optional external AB/AF activity-prediction channel](docs/AB_AF_EXTERNAL_ACTIVITY_CHANNEL.md)
+- [BGC functional logic workup](docs/BGC_FUNCTIONAL_LOGIC_WORKUP.md)
+- [Bioactivity Metadata Contract](docs/BIOACTIVITY_METADATA_CONTRACT.md)
+- [Bioassay activity-channel workflow — where it sits](docs/BIOASSAY_ACTIVITY_CHANNEL_WORKFLOW.md)
+- [Whole-genome chitin/GlcNAc reference-capacity evaluation](docs/CHITIN_REFERENCE_EVALUATION.md)
+- [Clear Match Finder](docs/CLEAR_MATCH_FINDER.md)
+- [cluster_completeness — assembly truncation vs biological absence](docs/CLUSTER_COMPLETENESS.md)
+- [cluster_discovery — find strains carrying a BGC from a diagnostic marker](docs/CLUSTER_DISCOVERY.md)
+- [cluster_gene_compare — gene-by-gene BGC comparison as a real deliverable](docs/CLUSTER_GENE_COMPARE.md)
+- [cluster_relate — relationship tree + distance matrix from homologous clusters](docs/CLUSTER_RELATE.md)
+- [ClusterBlast-derived phylogeny candidate ledger](docs/CLUSTERBLAST_PHYLO_CANDIDATES.md)
+- [Cohort pack interface (external, operator-supplied, Git-ignored)](docs/COHORT_PACK_INTERFACE.md)
+- [Cohort protein comparison contract for Mode B](docs/COHORT_PROTEIN_COMPARISON_MODEB_CONTRACT.md)
+- [Definitive BGC prioritization ranker](docs/DEFINITIVE_BGC_RANKER.md)
+- [BGC-machinery domain-tree contract](docs/DOMAIN_TREE_CONTRACT.md)
+- [Enzyme neighborhood explorer](docs/ENZYME_NEIGHBORHOODS.md)
+- [Gene evidence disagreement review candidate](docs/EVIDENCE_DISAGREEMENTS_CANDIDATE.md)
+- [extract_cluster — bring a raw genome into the pipeline](docs/EXTRACT_CLUSTER.md)
+- [F13 BGC domain-count PCA source-artwork contract](docs/F13_BGC_DOMAIN_PCA.md)
+- [fetch_reference_cluster — reference/cohort cluster GBKs, as a shared step](docs/FETCH_REFERENCE_CLUSTER.md)
+- [Figure owner-review workflow](docs/FIGURE_OWNER_REVIEW_WORKFLOW.md)
+- [Figure Factory owner-review queue](docs/FIGURE_REVIEW_WORKFLOW.md)
+- [Bounded GToTree panel selection](docs/GTOTREE_PANEL_SELECTION.md)
+- [Lab Quest: governed optional local interface](docs/LAB_QUEST.md)
+- [Literature atlas current-evidence refresh](docs/LITERATURE_ATLAS_CURRENT_EVIDENCE_REFRESH.md)
+- [Locus-map review contract](docs/LOCUS_MAP_REVIEW_CONTRACT.md)
+- [Locus map v8](docs/LOCUS_MAP_V8.md)
+- [FA6 — Mode B card exporter (modeb-export)](docs/MODEB_EXPORT_HOOK.md)
+- [Mode B gene-first exploration](docs/MODEB_GENE_FIRST_EXPLORATION.md)
+- [RATIFIED status vocabulary — Sapote-Mamey Mode B (the Developer or User ratification 2026-08-21)](docs/MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md)
+- [NPBDetect optional-adapter guard](docs/NPBDETECT_ADAPTER_GUARD.md)
+- [Outgroup generator + right-sized reference sets (outgroup_registry.py, phylo_refset.py)](docs/OUTGROUP_AND_REFSET_WORKFLOW.md)
+- [Owner-kept Figure Factory inputs](docs/OWNER_KEPT_FIGURE_INPUTS.md)
+- [Spec — Cohesive Per-BGC Report (L0–L3) + Comparison Matrix](docs/PER_BGC_REPORT_CARD_SPEC.md)
+- [TROUBLESHOOTING — EPA-ng placement + phylo tooling (Eggplant, 2026-09-06)](docs/PHYLO_TROUBLESHOOTING.md)
+- [PKS ketosynthase-tree option guide](docs/PKS_KS_TREE_OPTIONS.md)
+- [Portable evidence-workspace interface](docs/PORTABLE_EVIDENCE_WORKSPACE.md)
+- [Portable strain privacy and evidence registry](docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md)
+- [Prevalence workflow — where it sits](docs/PREVALENCE_WORKFLOW.md)
+- [Portable project data home](docs/PROJECT_DATA_HOME.md)
+- [Sapote-Mamey Naming Contract](docs/PROJECT_NAMING.md)
+- [Exact-bound reference-BGC structural validator](docs/REFERENCE_BGC_STRUCTURAL_VALIDATOR.md)
+- [Reporting v2 — per-gene MIBiG convergence & structured antiSMASH tables](docs/reporting_v2_mibig_convergence.md)
+- [RG-GMCI complementary-rescue atlas](docs/RGGMCI_RESCUE_ATLAS.md)
+- [RiPP tree and sequence-network option guide](docs/RIPP_TREE_OPTIONS.md)
+- [Sapote Markdown authoring contract](docs/SAPOTE_MARKDOWN_AUTHORING_CONTRACT.md)
+- [Sapote-Mamey report theme](docs/SAPOTE_REPORT_THEME.md)
+- [scope_cluster — scope an over-merged antiSMASH region to its true protocluster](docs/SCOPE_CLUSTER.md)
+- [Screening exploration with ggplot2](docs/SCREENING_EXPLORATION_R.md)
+- [Strain BiG-SCAPE report + figure-label convention (v9.7.293)](docs/STRAIN_BIGSCAPE_REPORT.md)
+- [Strain-level BGC logic reports](docs/STRAIN_LEVEL_BGC_LOGIC.md)
+- [Token-light Sapote document factory](docs/TOKEN_LIGHT_DOCUMENT_FACTORY.md)
+- [Read only tool database inspection](docs/TOOL_DATABASE_INSPECTION.md)
+- [Two-stage modular BGC reports](docs/TWO_STAGE_MODULAR_BGC_REPORTS.md)
+- [Phylogenetic workflow gate guide](docs/WORKFLOW_GATES_GUIDE.md)
+
 ## Reference, development and history
 
 [Guide navigation](docs/GUIDE/00_README.md) distinguishes the operational guides from the dated
@@ -61,8 +121,8 @@ against current implementation and test paths.
 [Figure repair records](docs/figure_factory/README.md), `docs/working/`, `docs/release_planning/`,
 and `docs/patch_notes/` are engineering records, not an alternative user setup sequence.
 
-[History](docs/history/README.md), [release history](RELEASES_LOG.md), and [changelog](CHANGELOG.md)
-preserve dated decisions. Historical commands, counts, results and proposed features in those records
+[History](docs/history/README.md) and the [changelog](CHANGELOG.md) preserve dated decisions. The changelog is the
+complete per-cut record. [RELEASES_LOG](RELEASES_LOG.md) is a partial build-stamp table (see its header). Historical commands, counts, results and proposed features in those records
 are not current operating instructions. `docs/QUICK_GUIDE.md` is superseded by the Quick Guide above;
 `docs/user_guides/comprehensive_glossary.md` and `sapote_mamey_wheel_glossary.md` are retained snapshots.
 `docs/user_guides/` now holds `operational_reference.md`, `tools_reference.md`, `sapote_kernel_guide.md`,

@@ -121,7 +121,7 @@ placement. When an antiSMASH ZIP contains a non-region assembly sequence, `phylo
 optional five-locus MLSA screen from it. Review assembly completeness separately.
 Local reference genomes and external companion tools are needed to run the screen. `phylo-run` launches an approved GToTree/IQ-TREE genome workflow,
 with optional ANI inputs. The tree renderers join tree tips to metadata and to strain-level ANI, BGC, domain,
-Mode B or assembly tracks. Each track needs an explicit tip-to-strain mapping and its own data;
+Mode B, assembly or bioassay tracks. Each track needs an explicit tip-to-strain mapping and its own data;
 nothing is inferred from the tree. See [trees and heatmaps](docs/GUIDE/02_Quick_Guide.md#trees-and-heatmap-overlays).
 
 **Bioassay figures.** The bioassay Figure Factory takes a hash-bound long-form observation table
@@ -268,7 +268,7 @@ works only as a deprecated alias for `--capped-session`.
 Once the package validates, render the deferred figures (needs the figure dependencies):
 
 ```bash
-python mamey_run.py render-all-figures runs/EXAMPLE/package
+python mamey_run.py render-all-figures --package runs/EXAMPLE/package
 ```
 
 The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) covers package review, cohort work and the move
@@ -334,4 +334,4 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.442 / engine 1.9.169 · build 20260924v97442a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.443 / engine 1.9.170 · build 20260926v97443a · release profile: CODE (see RELEASE_MANIFEST.md)*

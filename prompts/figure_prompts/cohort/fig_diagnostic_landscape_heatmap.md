@@ -3,17 +3,17 @@
 - **id:** `fig_diagnostic_landscape_heatmap`
 - **category:** cohort
 - **audience:** presentation
-- **output:** `fig_diagnostic_landscape_heatmap.png` (slides, ≥200 dpi) + `.svg`/`.pdf` for print
+- **output:** `fig_diagnostic_landscape_heatmap.png` (slides, ≥300 dpi) + `.svg`/`.pdf` for print
 
 ## Data
 - **source:** `figure_ready/diagnostics_long.csv`
-- **columns used:** sid, diagnostic_name, present
+- **columns used:** strain, diagnostic_name, present
 - **row filter:** all strains × 4 diagnostics
 - **derived fields:** pivot strain × diagnostic, values = present
 
 ## Plot
 - **type:** binary heatmap (present/absent)
-- **x:** diagnostic_name (ansamycin/thiopeptide/enediyne/nucleoside)   **y:** sid   **color:** present (0/1)
+- **x:** diagnostic_name (ansamycin/thiopeptide/enediyne/nucleoside)   **y:** strain   **color:** present (0/1)
 - **order:** strain rank   **scales:** —
 
 ## Style
@@ -23,7 +23,9 @@ annotation: axis labels, legend, title, colorbar, and value labels flush at bar 
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-> Diagnostic TIGRFAM presence across the cohort (n = 18). Ansamycin currently unexercised.
+Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+
+> Diagnostic TIGRFAM presence across the cohort (n = <admitted_isolate_n> isolates). Ansamycin currently unexercised.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Spotlight the enediyne column on the slide for a warhead-leads talk.

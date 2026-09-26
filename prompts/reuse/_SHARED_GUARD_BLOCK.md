@@ -50,13 +50,13 @@ Sapote heuristic, not a monolith rule.
 
 ## G6 — Misanchor warning (SM-P0-005 v9.7.123)
 When authoring a Mode B card for a BGC whose triage board row (`_4_triage_board.csv`) has a
-non-blank `Misanchor_Flag` column, insert this block at the start of §5 (Pharmacology):
+non-blank `Misanchor_Flag` column, insert this block at the start of §8 (Comparator/KCB interpretation):
 
 ```
 > **⚠ KCB anchor note:** The KCB anchor compound carries a misanchor flag:
 > `{Misanchor_Flag value}`. The anchor compound's committed class-diagnostic enzyme was
 > not detected in this cluster's gene content. Cite the *class* the anchor belongs to —
-> not the anchor name — as the basis for pharmacological comparison in §5.
+> not the anchor name — as the basis for comparator interpretation in §8.
 ```
 
 Misanchor families: `aminoglycoside_anchor_no_DOIS` (no DOIS synthase); `polyene_anchor_<N_PKS_KS`

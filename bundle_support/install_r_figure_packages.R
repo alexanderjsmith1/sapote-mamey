@@ -29,7 +29,13 @@ if (!check_only && !offline) {
     failed <- character()
     for (z in pending) {
       src <- z
-      if (grepl("\\.zip$", z)) { d <- tempfile(); dir.create(d); unzip(z, exdir = d); src <- list.dirs(d, recursive = FALSE)[1] }
+      if (grepl("\\.zip$", z)) {
+        d <- tempfile(); dir.create(d); unzip(z, exdir = d)
+        roots <- c(d, list.dirs(d, recursive = FALSE))
+        src <- roots[file.exists(file.path(roots, "DESCRIPTION"))]
+        if (length(src) != 1L)
+          stop("--from ZIP must contain exactly one top-level R package with DESCRIPTION: ", basename(z))
+      }
       ok <- tryCatch({ install.packages(src, repos = NULL, type = "source"); TRUE }, warning = function(w) FALSE)
       if (!ok) failed <- c(failed, z)
     }

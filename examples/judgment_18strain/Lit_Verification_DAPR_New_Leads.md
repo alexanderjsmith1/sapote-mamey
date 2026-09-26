@@ -1,5 +1,10 @@
 # Literature Verification — DAPR New-Lead Activity Associations
 
+> **Locator note.** The locators in this record (for example `SID-XXX BGC050`) are a redacted strain plus a
+> bare BGC alias. They predate the exact-locus rule in `AGENTS.md`: every BGC reference is
+> `strain / full node-or-contig / region / BGC alias`. Keep this file as a literature-verification record; do
+> not copy its locator form into a new deliverable.
+
 **Actinomycetes Project** · Sapote judgment layer
 Purpose: citation-back the class→activity associations newly added to the DAPR boards (judgment pack §1–§2) before they harden into the bundle. Feeds `G1_Literature_Index`.
 

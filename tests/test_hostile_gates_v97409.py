@@ -37,7 +37,10 @@ def test_run_refuses_traversal_strain_id_and_writes_nothing(tmp_path):
                         "--capped-session", "--json-evidence", "off"],
                        cwd=str(ROOT), capture_output=True, text=True, timeout=300)
     assert r.returncode == 2, r.stdout[-400:] + r.stderr[-400:]
-    assert "REFUSED" in r.stderr
+    # Name the refusal. mamey_run.py can refuse before the engine starts (stale bytecode, for one),
+    # with rc 2, "REFUSED" in stderr and nothing written -- which satisfied every assertion here
+    # while the strain-id guard never ran. Only the engine's own [strain] refusal proves the guard.
+    assert "[strain]" in r.stderr and "not a safe path component" in r.stderr, r.stderr[-400:]
     assert not (tmp_path / "escaped").exists(), "on .408 this directory was created OUTSIDE --outdir"
     assert not any(out.iterdir()), "nothing may be written for a refused strain id"
 

@@ -17,7 +17,7 @@ Install the optional interface dependencies from the extracted bundle, then bind
 tier and expected versions deliberately:
 
 ```bash
-pip install 'mamey[labquest]'
+python -m pip install streamlit   # Lab Quest's only extra dependency; run inside the bundle's venv
 python mamey_run.py lab-quest \
   --project-root /path/to/project \
   --code-tier /path/to/extracted/sapote-mamey \

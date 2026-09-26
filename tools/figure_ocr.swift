@@ -14,7 +14,12 @@ for path in CommandLine.arguments.dropFirst() {
     let req = VNRecognizeTextRequest()
     req.recognitionLevel = .accurate
     req.usesLanguageCorrection = false
-    try? VNImageRequestHandler(cgImage: cg, options: [:]).perform([req])
+    do {
+        try VNImageRequestHandler(cgImage: cg, options: [:]).perform([req])
+    } catch {
+        print("\(path)\t<<unreadable>>")
+        continue
+    }
     for obs in req.results ?? [] {
         if let t = obs.topCandidates(1).first?.string { print("\(path)\t\(t)") }
     }

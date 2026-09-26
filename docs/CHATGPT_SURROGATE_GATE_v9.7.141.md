@@ -1,5 +1,8 @@
 # ChatGPT surrogate gate — v9.7.141
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 Purpose: provide a fast, high-signal gate for ChatGPT/Claude review loops when the complete partitioned pytest suite is too slow for every iteration.
 
 This gate is intentionally **not** a replacement for the full partitioned pytest suite before signing. It is a surrogate for rapid patch-review cycling.
@@ -18,7 +21,7 @@ validation/chatgpt_surrogate_gate/
 
 ## What it covers
 
-- `python -m mamey doctor`
+- `python mamey_run.py doctor`
 - Python compilation of the main v9.7.141 ChatGPT/recovery/receipt tools
 - Bash syntax for the deliverable fail-closed script
 - A curated pytest subset covering:

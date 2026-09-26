@@ -1,6 +1,6 @@
 # The Sapote–Mamey User Manual
 
-*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.442 / engine Mamey 1.9.169*
+*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.443 / engine Mamey 1.9.170*
 *Historical sections retain their stated scope.*
 
 > This Manual tells you **how to run** Sapote–Mamey and **how to read what it gives you**, in the order you actually use it. For *why each part exists and how it relates to the rest*, see the **Encyclopedia** (cross-referenced as → §Vol.Chapter). The Manual is operational; the Encyclopedia is the deep reference behind it. Term definitions live in one place, the **Glossary** ([`GLOSSARY.md`](../GLOSSARY.md); its **Core concepts** section covers the load-bearing terms). This Manual and the Encyclopedia point to it rather than redefining terms.
@@ -27,7 +27,7 @@ Mamey is the factual floor; Sapote is the interpretive ceiling. The contract bet
 ## 2 · Setup and installation
 
 Mamey parses antiSMASH output; it does not run genome detection itself.
-*(engine 1.9.169, bundle v9.7.442)*
+*(engine 1.9.170, bundle v9.7.443)*
 
 ### 2.1 · What you need
 
@@ -92,7 +92,7 @@ Use CODE for all internal analysis. Never distribute MERGED-PRIVATE.
 
 ```bash
 python mamey_run.py doctor            # pre-flight check: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # should report `engine 1.9.169, bundle 9.7.442`
+python3 tools/sync_version.py --check # should report `engine 1.9.170, bundle 9.7.443`
 python3 -m pytest -q                  # green suite = tier is intact (requires pytest wheel)
 ```
 
@@ -104,7 +104,7 @@ deps: openpyxl✓ | ijson(vendored)✓ JSON streaming on | figures✓ | biopytho
 
 If a required dependency shows ✗, install it from the wheels folder before running.
 
-→ Full dependency reference and system binary install (pandoc, xelatex): `docs/PREREQUISITES.md`.
+→ Full dependency reference and system binary install (pandoc): `docs/PREREQUISITES.md`.
 
 ## 3 · Running a strain
 
@@ -134,7 +134,7 @@ Key flags (→ Encyclopedia §VII.7 for the full tunable surface):
 - `MAMEY_COMPLETE_WITH_ISSUES` — completed, but the manifest carries `[ISSUE]` lines worth reading (MULTIBATCH, VERY_POOR assembly, PHO_CLUSTER, E-signal, etc.).
 - `VALIDATION_FAIL` — the package did not pass its integrity gate; do not use it.
 
-**The package naming convention.** The sealed package is named after the **bundle** version with the engine version as a provenance suffix: `<strain>_SapoteMamey_v9.7.100_engine1.9.98_Complete_Package.zip`. (Before v9.7.85 it used only the engine version, which made the producing bundle unidentifiable from the filename.)
+**The package naming convention.** The sealed package is named after the **bundle** version with the engine version as a provenance suffix: `<strain>_SapoteMamey_v<bundle-version>_engine<engine-version>_Complete_Package.zip`. Replace both version placeholders with the producing package manifest values; for this code bundle they are bundle **9.7.442** and engine **1.9.169**. An older package retains its original producing versions. (Before v9.7.85 it used only the engine version, which made the producing bundle unidentifiable from the filename.)
 
 **Where the outputs land.** Inside `runs/<ID>/package/`: the numbered deliverables (`_1_…` intake through the triage board `_4_triage_board.csv` and the dedicated `_4c_AB_lead_board.csv` / `_4c_AF_lead_board.csv`), the `_5_workbook.xlsx`, the `AntiSMASH_Evidence_Parse.json`, the judgment register, and — in gold mode — the gene-by-gene deep layer. `OPEN_ME_FIRST.html` is the entry point; `START_HERE.md` is the reading order; `manifest.json` is the authoritative file inventory; `run_phase_receipts.jsonl` records per-phase START/DONE receipts; `checksums_sha256.txt` seals it.
 
@@ -215,7 +215,7 @@ cluster identity. The fix was to stop relying on any single inherited signal and
 
 The division of labour is simple: **HMM tells you what the machine is** (intrinsic domain
 architecture, offline, deterministic); **BLASTp tells you whose machine it is most like and whether
-the product is known** (extrinsic identity, organism, novelty). The emitted §1–§30 template seeds
+the product is known** (extrinsic identity, organism, novelty). The emitted template seeds
 §4 and §8 in this order, so you follow it without having to remember it.
 
 **Function and novelty.** The BLASTp channel also reports two things a discovery pipeline cares
@@ -268,7 +268,7 @@ v9.7.338 adds twelve on-demand subcommands that consume an **already-sealed pack
 - **`signoff`** — the "would a master's student sign off?" analysis QC gate (§8-style checks mechanised): objective checks on Newick trees — outgroup sanity, contaminant/label-cruft, support/thin-tree. Advisory; always exits 0.
   `python mamey_run.py signoff [tree.treefile ...] [--minutes N]`
 - **`verify-modeb --interp`** — adds the Mode-B **interpretation** (judgment-substance) layer to `verify-modeb`: **WARN-only** `INTERP_*` findings (`INTERP_NO_SYNTHESIS`, `INTERP_NO_TIER`, `INTERP_REFDARK_SILENT`) reading the §4 synthesis/ref-dark prose. It only *adds* warnings; the structure gate's PASS/FAIL verdict and exit code are unchanged, so a card can be structurally green and still show interp warnings. For an authoring loop that should FAIL on missing judgment, run the standalone gate `python -m mamey.modeb_interp_gate <card.md> [--strict]`.
-  `python mamey_run.py verify-modeb --package <pkg> --bgc BGC### --interp [--interp-strict]`
+  `python mamey_run.py verify-modeb <authored-card.md> --package <pkg> --bgc BGC### --interp [--interp-strict]`
 
 ### 4.4 · Persisting Mode B judgment — the receipt path (v9.7.85)
 
@@ -353,7 +353,7 @@ Processed in bacterial mode; structural handling identical. Caveats milder than 
 
 ### 7.5 · Roadmap to full cross-kingdom support
 
-A six-patch roadmap (P-F1–P-F6 → §IX.6): P-F1 adds a `--kingdom` flag (reads the antiSMASH taxon label, records kingdom in the manifest, threads it through the scan pack); later patches gate actinomycete-only scans, fix the CGAD inversion, and add a fungal CCTT subset. Until they ship, the §7.3 manual steps are the correct procedure. Anyone implementing fungal extensions should fork the SID-public tier and verify a reference actinomycete run remains byte-identical before/after.
+A six-patch roadmap (P-F1–P-F6 → §IX.6): P-F1 adds a `--kingdom` flag (reads the antiSMASH taxon label, records kingdom in the manifest, threads it through the scan pack); later patches gate actinomycete-only scans, fix the CGAD inversion, and add a fungal CCTT subset. Until they ship, the §7.3 manual steps are the correct procedure. Anyone implementing fungal extensions should fork the COHORT-public tier and verify a reference actinomycete run remains byte-identical before/after.
 
 ## 8 · Type strain reference analyses
 
@@ -404,13 +404,13 @@ The boundaries above are historical examples, not a declaration that 1.9.98 is c
 This chapter is the single reference for every figure Sapote–Mamey produces: what it shows, whether it renders by default or on demand, how to trigger it, and where it lands. Two principles hold across all of them:
 
 1. **Keep each figure with its actual data and methods sidecars.** Formats vary by renderer; inspect the emitted files rather than assuming a PNG/CSV pair for every workflow. The PNG is for the eye; the CSV is the figure's data, so a figure can always be re-plotted or audited without re-running the pipeline. Strain names display as *Genus species* strain `<ID>`.
-2. **Every figure carries a claim-safe footer.** Capacity-level, not a product claim; KCB = similarity, not identity; gene roles are antiSMASH rule/smCOG annotations, not BLASTP-confirmed. Figures never assert compound identity.
+2. **Figures carry no claim text on the canvas.** The claim ceiling (capacity, not production; KCB similarity, not identity) is recorded in the render receipt. It is not drawn on the image, and it is not written into the caption. Some older renderers still draw it. Run `tools/figure_render_qc.py` on a finished folder to find them; [Make and review Mamey figures](../FIGURES_START_HERE.md) explains the check. Figures never assert compound identity.
 
 Figures fall into three groups: **default per-strain** (rendered automatically in every run), **default cohort** (rendered when you build the cohort atlas), and **optional/on-demand** (rendered when you ask for them, in-run or post-seal).
 
-### 10.1 · Default per-strain figures (every run)
+### 10.1 · Default per-strain figures (with the strain brief)
 
-These render automatically during a standard or gold run, into the package root (alongside `manifest.json`), and are listed in `figure_manifest_print.csv` at the package root. (The `figures/figure_manifest.csv` inside the package's `figures/` directory is the collection/metadata-figure manifest, and post-seal `render-figures` writes its own `figure_manifest.csv` into `figures_rendered/`; neither lists the five figures below.)
+These render with the strain brief, into the package root (alongside `manifest.json`), and are listed in `figure_manifest_print.csv` at the package root. (The `figures/figure_manifest.csv` inside the package's `figures/` directory is the collection/metadata-figure manifest, and post-seal `render-figures` writes its own `figure_manifest.csv` into `figures_rendered/`; neither lists the five figures below.) They are skipped when the run uses `--brief none`, which `--capped-session` forces. Render them afterwards with `python mamey_run.py render-all-figures --package <pkg>`.
 
 1. **DAPR scatter** (`<strain>_8c_fig_dapr_scatter.png`) — the diagnostic landscape: every BGC placed by antibacterial vs antifungal capacity, sized/annotated by priority. The at-a-glance "what does this strain's biosynthetic potential look like" figure.
 2. **Antibacterial lead board** (`<strain>_8d_fig_ab_ranked.png`) — top BGCs ranked by AB capacity score, node/contig-anchored.
@@ -418,9 +418,9 @@ These render automatically during a standard or gold run, into the package root 
 4. **Funnel** (`<strain>_8f_fig_funnel.png`) — raw BGC count → corrected count → lead set, showing how fragmentation and standing-rule downgrades reduce the candidate pool.
 5. **AB/AF vertical panels** (`<strain>_8g_fig_ab_af_panels.png`) — stacked AB and AF lead boards for side-by-side reading.
 
-### 10.2 · Default per-strain locus maps (every run)
+### 10.2 · Default per-strain locus maps (unless turned off)
 
-Deterministic gene-arrow maps render automatically in-run into the package's `locus_maps/` directory, catalogued in `locus_maps/locus_map_manifest.csv`. Each gene is an arrow drawn to bp scale, strand-aware, colored by its functional role (PepM, Ppd, NRPS module, PKS module, RiPP machinery, transport, regulation, …) from `mamey/data/locus_role_palette.json`; unrecognized genes are grey "other / hypothetical". Three triggers fire automatically:
+Deterministic gene-arrow maps render in-run into the package's `locus_maps/` directory, unless the run sets `--locus-maps off` or a capped session turns them off. They are catalogued in `locus_maps/locus_map_manifest.csv`. Each gene is an arrow drawn to bp scale, strand-aware, colored by its functional role (PepM, Ppd, NRPS module, PKS module, RiPP machinery, transport, regulation, …) from `mamey/data/locus_role_palette.json`; unrecognized genes are grey "other / hypothetical". Three triggers fire automatically:
 
 6. **Top-lead locus maps** (`<BGC>_<node>_locus.png`) — a single-BGC map for the top antibacterial lead and the top antifungal lead.
 7. **Mode B locus maps** (`<BGC>_<node>_locus.png`) — one map per Mode B BGC (gold mode is uniform full depth for every BGC).
@@ -430,7 +430,7 @@ The map's role labels come from the full antiSMASH `gene_functions` annotation. 
 
 ### 10.3 · Default cohort figures (the master atlas)
 
-Rendered when you build the Bee–Wasp Master Figure Atlas from a populated cohort workbook (the master `.xlsx`). These are cohort-level, not per-strain.
+Rendered by `tools/build_master_figures.py` from a populated cohort workbook (the master `.xlsx`). These are cohort-level, not per-strain.
 
 9. **Master dashboard** (`fig_master_dashboard`) — the cohort overview panel.
 10. **Dual-priority atlas** (`fig_dual_priority_atlas`) — AB and AF priorities across the whole cohort.
@@ -451,7 +451,9 @@ These are not rendered automatically; you invoke them with `render-figures --fig
 
 **Cohort class-capacity heatmap** — `render-figures --figure-set cohort-class --workbook <cohort.xlsx>`. One figure:
 
-18. **Class-capacity heatmap** (`cohort_class_heatmap.png`) — strain × primary-biosynthetic-class matrix, cell = BGC count, viridis. Applies the standing permanent-exclusion rule: **saccharide and NAPAA are dropped from the class comparison** (and the footer says so). All-zero class columns are dropped to keep it legible.
+18. **Class-capacity heatmap** (`cohort_class_heatmap.png`) — strain × primary-biosynthetic-class matrix, cell = BGC count, viridis. The genome-class display parks **saccharide only**; NAPAA and fatty_acid remain eligible. This is separate from the wider genus/BiG-SCAPE comparison exclusions. Claim and interpretation text belongs in accompanying captions/methods, not on the figure. All-zero class columns are dropped to keep it legible.
+
+Compare class counts only within one antiSMASH detection strictness. A loose run calls more regions than a default run, so a cohort that mixes them makes the loose genomes look richer. `python tools/check_antismash_profile.py <runs_dir>` reports each package's strictness, and [Make and review Mamey figures](../FIGURES_START_HERE.md) has the count-table tool that refuses mixed input.
 
 **Cross-strain figure suite** — `tools/build_cross_strain_figures.py --rg-dir <rggmci_dir> --out-dir <dir>`. A bundle of cohort comparison figures (class prevalence, fragmentation gradients, raw-vs-corrected BGC, genome-size-vs-BGC, and related), each with its data CSV. See the figure prompt specs under `prompts/figure_prompts/cohort/`.
 
@@ -468,14 +470,14 @@ Because the deterministic core seals before figures render (the Finding-L sideca
 
 | Figure group | Directory | Trigger |
 |---|---|---|
-| Per-strain leads/diagnostics (1–5) | `figures/` | automatic, every run |
-| Per-strain locus maps (6–8) | `locus_maps/` | automatic, every run |
+| Per-strain leads/diagnostics (1–5) | package root | with the strain brief; skipped by `--brief none` |
+| Per-strain locus maps (6–8) | `locus_maps/` | in-run unless locus maps are off |
 | Cohort master atlas (9–14) | atlas output dir | build the master atlas |
 | Domain-level pack (15–17) | `domain_level/figures/` | `--figure-set domain-level` |
 | Cohort class heatmap (18) | chosen out dir | `--figure-set cohort-class` |
 | Cross-strain suite | chosen out dir | `tools/build_cross_strain_figures.py` |
 
-Every figure in every group ships a companion `_data.csv` and is registered in a figure manifest for its group.
+Most figures ship a companion `_data.csv` and are registered in a figure manifest for their group. Check the emitted files rather than assuming the pair, as principle 1 says.
 
 ---
 
@@ -533,4 +535,4 @@ Use [the Mode B user walkthrough](../MODE_B_USER_WALKTHROUGH.md) for package inp
 
 ---
 
-*Sapote–Mamey User Manual · current to bundle v9.7.442 / engine Mamey 1.9.169 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
+*Sapote–Mamey User Manual · current to bundle v9.7.443 / engine Mamey 1.9.170 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*

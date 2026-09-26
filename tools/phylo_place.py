@@ -9,8 +9,9 @@ placement" workflow (EPA-ng + gappa; MAFFT fragment alignment for partial querie
 HARD RULES baked in (Sapote-Mamey governing gates):
   * DATA-TYPE MATCH: a 16S query places only onto a 16S reference tree; a protein/core-gene query places only
     onto a protein backbone. This tool refuses to mix nt queries with an aa reference and vice-versa.
-  * SOURCE SEPARATION: one reference package per cohort (streptomyces / nocardia / rare_genera / attines /
-    moss / bees). --group is required and stamped into every output; the tool never merges cohorts.
+  * SOURCE SEPARATION: the operator must bind one reference/query/output set per selected cohort.
+    build-ref requires --group and placement stamps that reference group; these labels do not verify
+    the cohort membership of each supplied query. Validate the query roster before placement.
   * 16S = ANCHOR, NOT SPECIES: every report carries the claim-safety header. Placement states a neighborhood
     (genus/clade) with a likelihood-weight ratio (LWR); it is not a species assignment and not an ANI call.
   * TREE-APPROVAL GATE: `build-ref` (the only CPU-heavy step) prints the approval reminder and refuses to run
@@ -1486,15 +1487,25 @@ def _grafted_neighborhoods(graft_newick, labelmap, out_tsv, query_names=None):
         return _tree_tip_matches_query(tip.name or "", query_names)
     refs = [x for x in tips if not query_role(x)]
     qs = [x for x in tips if query_role(x)]
+    # v9.7.443: the nearest_type_strain column used to take the nearest reference of ANY kind, so a
+    # panel with non-type neighbours (phylo_16s_panel --refs ...,nontype:Nx) reported e.g.
+    # "Kribbella sp OP442298 1" as a type strain. It now takes the nearest reference whose record
+    # leads with an NR_ accession (the figure's type-reference class, _is_type_reference_label), and
+    # the nearest reference of any kind moves to two added columns. Blank when the panel has none.
+    type_refs = [x for x in refs if _is_type_reference_label(pretty(x.name))]
     rows = []
     for q in qs:
         if not refs:
             break
         best = min(refs, key=lambda r: t.distance(q, r))
-        rows.append((pretty(q.name), pretty(best.name).replace("_", " "), f"{t.distance(q, best):.4f}"))
-    rows.sort(key=lambda r: float(r[2]))
+        best_t = min(type_refs, key=lambda r: t.distance(q, r)) if type_refs else None
+        rows.append((pretty(q.name),
+                     pretty(best_t.name).replace("_", " ") if best_t else "",
+                     f"{t.distance(q, best_t):.4f}" if best_t else "",
+                     pretty(best.name).replace("_", " "), f"{t.distance(q, best):.4f}"))
+    rows.sort(key=lambda r: float(r[2] or r[4]))
     with open(out_tsv, "w") as fh:
-        fh.write("as_query\tnearest_type_strain\tpatristic_dist\n")
+        fh.write("as_query\tnearest_type_strain\tpatristic_dist\tnearest_reference_any\tnearest_reference_dist\n")
         for r in rows:
             fh.write("\t".join(r) + "\n")
     return len(rows)
@@ -1699,7 +1710,7 @@ def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
         txt.set_fontsize(8)
     ax.set_title(f"{group} 16S — AS strains (red) PLACED on reference backbone "
                  "(NR_ type-material refs blue; other refs teal); outgroup grey\n"
-                 "EPA-ng placement; 16S = anchor, not a species call; neighborhood only; judgment deferred",
+                 "EPA-ng placement; 16S = anchor, not a species call; neighborhood only",
                  fontsize=8.5)
     for s in ("top", "right", "left"):
         ax.spines[s].set_visible(False)

@@ -1,17 +1,27 @@
 import os
 #!/usr/bin/env python3
-"""PostToolUse provenance logger. Reads the tool-use JSON on stdin, appends one row to the
-firehose TSV. Never blocks / never errors out loud. argv: <log_path> <chat>."""
-import sys, json, os, datetime
+"""PostToolUse provenance logger. Reads event session_id and tool-use JSON on stdin,
+appends one row to the firehose TSV. Never blocks / never errors out loud.
+argv: <log_path> [legacy_chat_fallback]."""
+import sys, json, os, datetime, re
 
 def main():
     log = sys.argv[1] if len(sys.argv) > 1 else ""
-    chat = sys.argv[2] if len(sys.argv) > 2 else "unattributed"
+    fallback = sys.argv[2] if len(sys.argv) > 2 else "unattributed"
     root = (os.environ.get("SAPOTE_WORKSPACE_ROOT") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
     try:
         d = json.load(sys.stdin)
     except Exception:
         return
+    session_id = d.get("session_id")
+    # The shared color marker can name another concurrent session. Prefer the
+    # event's own id, and reject control characters before writing a TSV row.
+    if session_id is None:
+        chat = fallback
+    elif isinstance(session_id, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", session_id):
+        chat = session_id
+    else:
+        chat = "unattributed"
     tool = d.get("tool_name", "")
     if tool not in ("Write", "Edit", "MultiEdit", "NotebookEdit"):
         return

@@ -1,14 +1,14 @@
-# Figure: Per-strain class mix (donut/bar)
+# Figure: Per isolate class mix (donut/bar)
 
 - **id:** `fig_per_strain_class_donut`
 - **category:** per_strain
 - **audience:** presentation
-- **output:** `fig_per_strain_class_donut.png` (slides, ≥200 dpi) + `.svg`/`.pdf` for print
+- **output:** `fig_per_strain_class_donut.png` (slides, ≥300 dpi) + `.svg`/`.pdf` for print
 
 ## Data
 - **source:** `figure_ready/bgc_class_long.csv`
-- **columns used:** sid, product_class
-- **row filter:** sid == <SID>
+- **columns used:** strain, product_class
+- **row filter:** strain == <SID>
 - **derived fields:** count by product_class
 
 ## Plot

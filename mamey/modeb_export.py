@@ -409,6 +409,7 @@ def export_card_pdf(md_path: Path, out_pdf: Path, theme: str = "evidence_dossier
     doc = SimpleDocTemplate(
         str(_tmp_pdf), pagesize=letter, topMargin=0.7 * inch, bottomMargin=0.85 * inch,
         leftMargin=0.9 * inch, rightMargin=0.8 * inch, title=title,
+        initialFontName=getattr(r, "SANS", "Helvetica"),
     )
     first = [True]
     proj_foot = r._footer_line()
@@ -419,10 +420,10 @@ def export_card_pdf(md_path: Path, out_pdf: Path, theme: str = "evidence_dossier
             first[0] = False
         # Claim-safety footer + page number + project line on EVERY page (cover included).
         canv.setFillColor(r.GREY)
-        canv.setFont("Helvetica-Oblique", 7.5)
+        canv.setFont(getattr(r, "SANS_ITALIC", "Helvetica-Oblique"), 7.5)
         canv.drawCentredString(letter[0] / 2.0, 0.38 * inch, CLAIM_SAFETY_FOOTER)
         if not (d.page == 1):
-            canv.setFont("Helvetica", 8)
+            canv.setFont(getattr(r, "SANS", "Helvetica"), 8)
             canv.drawRightString(letter[0] - 0.8 * inch, 0.6 * inch, str(d.page))
             canv.drawString(0.9 * inch, 0.6 * inch, proj_foot)
             canv.setStrokeColor(r.INDIGO)

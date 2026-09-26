@@ -1,5 +1,8 @@
 # SOP-07 — Single-Region Public Accession Inputs
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 ## Purpose
 
 This SOP defines how Sapote/Mamey should handle single-region antiSMASH ZIPs from public GenBank accessions.
@@ -40,14 +43,14 @@ and explain:
 ## Correct first command
 
 ```bash
-python -m mamey inspect <accession_zip>
+python mamey_run.py inspect <accession_zip>
 ```
 
 If inspect passes, run gold mode directly — gold has been the only analysis mode since v9.7.161
 (`smoke` was removed; `standard` is a deprecated alias of `gold`):
 
 ```bash
-python -m mamey run --input-zip <accession_zip> --mode gold --capped-session --json-evidence off --brief none
+python mamey_run.py run --input-zip <accession_zip> --mode gold --capped-session --json-evidence off --brief none
 ```
 
 ## Warning interpretation

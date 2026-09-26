@@ -1,5 +1,8 @@
 # SOP-01 — Intake: Raw antiSMASH ZIP vs Mamey Package vs Reference Accession
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 ## Purpose
 
 This SOP defines how Sapote/Mamey should classify uploaded ZIP files and choose the correct first command.
@@ -20,7 +23,7 @@ A raw antiSMASH ZIP commonly contains:
 First action:
 
 ```bash
-python -m mamey inspect <input.zip>
+python mamey_run.py inspect <input.zip>
 ```
 
 ## Full-genome antiSMASH ZIP
@@ -37,7 +40,7 @@ was removed and `standard` is a deprecated alias of `gold`; `--capped-session` k
 a capped-session wall-clock budget, it does not select a different mode):
 
 ```bash
-python -m mamey run --input-zip <input.zip> --mode gold --capped-session --json-evidence off --brief none
+python mamey_run.py run --input-zip <input.zip> --mode gold --capped-session --json-evidence off --brief none
 ```
 
 ## Single-region antiSMASH accession ZIP
@@ -65,7 +68,7 @@ Expected signs:
 First action:
 
 ```bash
-python -m mamey validate <package_dir>
+python mamey_run.py validate <package_dir>
 ```
 
 Do not re-run the package as if it were raw antiSMASH input.

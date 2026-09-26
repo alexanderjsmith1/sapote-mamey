@@ -89,7 +89,7 @@
    "require_specific": true,
    "in_sec_met_domains": true,
    "single_strain_unreliable": true,
-   "min_domains_rationale": "Both Chal_sti_synt_N and Chal_sti_synt_C are required. A genuine type III PKS carries the paired N- and C-terminal profiles; the thiolase-superfamily fold shared with HMG-CoA synthase fires only the N-terminal profile. Cohort measurement 2026-08-26 over 1575 region GBKs / 39 strains: 55 CDS carry a Chal_sti_synt profile - 31 paired, 18 N-only, 6 C-only, and all 18 N-only sit in regions that call T3PKS. Verified case AS-XXX / NODE_48_length_47999_cov_32.892179 / region001 / BGC028 gene ctg48_4: N-only at E=2e-11 bitscore 35.3, read as HMG-CoA synthase by Swiss-Prot, NCBI nr, smCOG and MIBiG independently. reclass_check is OPERATOR_ONLY: a review prompt, never a reclassification verdict."
+   "min_domains_rationale": "Both Chal_sti_synt_N and Chal_sti_synt_C are required. A genuine type III PKS carries the paired N- and C-terminal profiles; the thiolase-superfamily fold shared with HMG-CoA synthase fires only the N-terminal profile. Cohort measurement 2026-08-26 over 1575 region GBKs / 39 strains: 55 CDS carry a Chal_sti_synt profile - 31 paired, 18 N-only, 6 C-only, and all 18 N-only sit in regions that call T3PKS. The N-only case checked across channels read as HMG-CoA synthase in Swiss-Prot, NCBI nr, smCOG and MIBiG independently. reclass_check is OPERATOR_ONLY: a review prompt, never a reclassification verdict."
   },
   "lanthipeptide-class-i": {
    "discriminating_domains": [

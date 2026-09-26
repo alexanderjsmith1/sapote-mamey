@@ -1,4 +1,7 @@
 # REUSE PROMPT — Top-N Compound-Class Enumeration (polyketide / nucleoside / rare-class)
+
+> **Reference status:** CURRENT_DOCS_INDEX.md does not explicitly mark this prompt current. Its original vetting/profile labels are historical context, not verification against the installed bundle. Select the current named contract and admitted evidence before reuse; follow AGENTS.md and docs/ASSISTANT_GOVERNANCE.md. The scoped corrections below do not certify every historical threshold or output requirement in this reference.
+
 **Vetted against:** Sapote–Mamey v9.7.7 contract · `docs/DELIVERABLE_CONTRACT.md` Part B (cross-strain
 rankings), `docs/WORKBOOK_SCHEMA.md` (B8–B12 top-class sheets, C1/C2 DAPR), monolith §43 (CCTT) / §57.
 **Use:** cross-strain or single-strain enumeration of a target compound class — the ranked "top-N"
@@ -41,7 +44,7 @@ Sapote layer over sealed package(s). Do not re-run scans. First:
   rare-class *enumerations* requiring orthogonal confirmation (e.g. ³¹P-NMR for phosphonate) before
   compound-class claims.
 - **Claim-safety + locator mandate** throughout; candidate language; PMID/DOI Bert-verified only.
-- **NAPAA excluded** from any ranking; **hglE-KS** entries flagged prevalent (PREV-001), not novel.
+- **NAPAA** is registry-neutral and not intrinsically excluded from ranking; **hglE-KS/PREV-001** is informational and not a class downgrade. Bound cohort context may be reported, but marker prevalence and missing/zero KCB alone do not establish new chemistry, product identity or activity.
 
 ## Handback
 The ranked top-N table + grouped-frequency block + the confirmed-vs-label-only audit + relevant

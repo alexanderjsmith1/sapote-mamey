@@ -27,7 +27,11 @@ This is the ritual the Patch Chat follows. It is binding on the Patch Chat, not 
 
 4. **Verify out-of-band, then cut with the gates live.** Run the configured full suite once on the
    assembled cut source. The ordinary `release_cut.sh` route runs that suite itself. Its
-   `--skip-tests` route accepts only a hash-pinned structured external-validation receipt verified by
+   shell exports `PYTHONDONTWRITEBYTECODE=1` before Python starts: the parent pytest process
+   can create unmarked caches during collection before `tests/conftest.py` sets the child
+   environment, causing the bundle runner to refuse later tests. Start a manual source-suite
+   run with that setting too, and use a clean source tree; the setting does not remove old caches.
+   The `--skip-tests` route accepts only a hash-pinned structured external-validation receipt verified by
    `tools/verify_external_validation_receipt.py`; a free-text `PYTEST_LOG`, typed pass count, or
    `SKIP_INTIER_PYTEST=1` environment variable is not external-validation authority. The receipt must
    bind the exact source-tree digest; the canonical `python -m pytest -q -p no:cacheprovider --run-slow --run-network` command
@@ -144,11 +148,10 @@ tool, then prove it carries exactly the sealed files:
 
 ```bash
 python3 -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" <sealed.zip> <tmp>/<bundle-dir-name>
-bash tools/make_release_tarball.sh <tmp>/<bundle-dir-name> <OUT>
-python3 tools/verify_release_tarball.py <OUT>/<bundle-dir-name>.tar.gz --zip <sealed.zip>
+bash tools/make_verified_code_tarball.sh <tmp>/<bundle-dir-name> <OUT> <sealed.zip> <selected-SEAL_RECEIPT.json>
 ```
 
-Publish only on `release tarball: PASS`, and quote the `.tar.gz.sha256` the tool wrote. Never
+The CODE tarball route runs the producer, receipt-bound tarball verifier and SHA-256 sidecar check in private scratch space; it places the tarball and sidecar in `<OUT>` only after those checks pass. The selected local CODE seal receipt must name the supplied ZIP and bind its exact SHA-256 and byte count. Verify the receipt itself by the cut record before using it; this tool checks consistency, not owner selection. Publish only after that owner review, and quote the `.tar.gz.sha256` the tool wrote. Never
 hand-build or copy the tarball through another volume. A tree that crossed exFAT, FAT or SMB
 carries macOS `._*` files that Linux extracts as real files; at v9.7.441 that broke pytest
 collection and failed `--strict-membership`.

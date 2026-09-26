@@ -3,7 +3,7 @@
 - **id:** `fig_core_ecological_signal_bar`
 - **category:** ecological
 - **audience:** presentation
-- **output:** `fig_core_ecological_signal_bar.png` (slides, ≥200 dpi) + `.svg`/`.pdf` for print
+- **output:** `fig_core_ecological_signal_bar.png` (slides, ≥300 dpi) + `.svg`/`.pdf` for print
 
 ## Data
 - **source:** `figure_ready/class_prevalence.csv`
@@ -23,7 +23,9 @@ annotation: axis labels, legend, title, colorbar, and value labels flush at bar 
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-> Near-core osmolyte (ectoine) and iron-acquisition (siderophore/metallophore) classes across the cohort (n = 18); presence/absence over conserved classes, not an assay.
+Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+
+> Near-core osmolyte (ectoine) and iron-acquisition (siderophore/metallophore) classes across the cohort (n = <admitted_isolate_n> isolates); presence/absence over conserved classes, not an assay.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - —

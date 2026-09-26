@@ -189,6 +189,13 @@ if __name__ == "__main__":
     ap.add_argument("--strain"); ap.add_argument("--all", action="store_true")
     ap.add_argument("--outdir", default=f"{ROOT}/sapote_deliverables/roster_v2")
     a = ap.parse_args()
+    # v9.7.443: ROOT falls back to the current directory; refuse output inside the code bundle.
+    _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+    from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle
+    try:
+        assert_output_outside_bundle(a.outdir, __file__, kind="roster v2")
+    except OutputInsideBundle as _e:
+        _sys.exit(str(_e))
     targets = all_strains() if a.all else [a.strain]
     for s in targets:
         if s in EXCLUDE: emit(f"SKIP {s} (excluded)"); continue

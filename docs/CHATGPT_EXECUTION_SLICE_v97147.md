@@ -5,6 +5,11 @@
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
 # ChatGPT Execution Slice — v9.7.147
+
+> **Historical record.** This was the ChatGPT controller for engine 1.9.100. Its §1–§20 section
+> counts and authority order are superseded: finished cards use `FINISHED_FULL48_CURRENT_EVIDENCE`
+> (see `docs/MODE_B_USER_WALKTHROUGH.md`), and `AGENTS.md` governs every assistant. Use this file for
+> the history of the handback rules only.
 **Status:** default ChatGPT/Sapote execution controller.  
 **Replaces default use of:** `docs/SAPOTE_SLIM_JUDGMENT_KERNEL.md`.  
 **Engine line:** Mamey 1.9.100.  

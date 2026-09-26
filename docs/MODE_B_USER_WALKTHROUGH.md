@@ -19,6 +19,16 @@ python mamey_run.py verify-modeb '/path/to/review/authored-card.md' --package '/
 
 The first command prepares native Mode B output; it is not a universal 50-section author or a finished biological interpretation. Inspect the emitted files and named profile. The second checks an existing authored Markdown card under the installed verifier and selected gates; it does not perform online literature or protein searches. A JSON report retains findings; a nonzero exit requires review. Do not use force or weaker depth settings simply to make a finished card pass. Ask the operator to check the exact command help before adding prospective semantic gates, and record which gates actually ran.
 
+To start a card, emit its template with the cross-source inputs. Without them, §25, §40, §44, §46 and §47 are emitted as "Source not supplied" holds:
+
+```bash
+python mamey_run.py emit-modeb-template --package '/path/to/package' --bgc BGC001 --out '/path/to/review/template.md' \
+  --cohort-dir '/path/to/cohort_packages' --reference-dir '/path/to/reference_packages' \
+  --strain-metadata '/path/to/strain_metadata.tsv' --bigscape-regions-dir '/path/to/region_gbks'
+```
+
+`modeb-round`, `deliverable-queue` and `tools/emit_modeb_template_full50.py` take the same four flags. The strain-metadata table is read as deposited.
+
 A useful assistant request is: “Use this complete package and the selected four-part locus identity. Inventory the available evidence, identify the intended profile and its actual verifier, and draft a bounded interpretation. Preserve alternatives, missing evidence and per-claim sources. Do not submit anything online. Save the card, evidence mapping and verification report in this review folder. Tell me which publication requirements remain unverified.”
 
 ## Read and resume

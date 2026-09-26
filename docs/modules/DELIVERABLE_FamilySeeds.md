@@ -30,7 +30,7 @@ Auto-run **after the BGC inventory** for every strain (this is the v7.5 "cross-s
 ## 3. Pipeline
 
 ```bash
-python tools/build_gcf_tags.py --package-dir <pkg> --master <master.xlsx>   # emits/updates seed rows
+python tools/build_gcf_tags.py --banked-dir <cohort_dir> --workbook <master.xlsx> --out-dir <dir>   # emits/updates seed rows
 ```
 Then (PROMPT_BACKED) the threshold check: scan the master for classes with seeds in ≥3 strains; for each, surface the CCSM trigger. **Project-wide audit rule:** after every fifth strain, run a full family-seed audit against the master JSON.
 

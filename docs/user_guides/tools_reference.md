@@ -1,5 +1,8 @@
 # Sapote–Mamey Tools Directory Reference
 
+Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
+
+
 **Bundle v9.7.430 · Engine 1.9.164** — re-grounded 2026-09-14 (Eggplant lane).
 
 > **The per-script inventory that used to live here has been retired, not lost.**
@@ -43,14 +46,14 @@ observations about *behaviour*, not descriptions of *existence*.
 
 | Command | Input | Output | Confirmed |
 |---|---|---|---|
-| `mamey doctor` | (no input) | Dependency/permission pre-flight report | ✅ 18.8s total |
-| `mamey inspect <zip>` | antiSMASH ZIP | Pre-run preview: region count, GBK contents | ✅ |
-| `mamey run --mode gold` | antiSMASH ZIP | Sealed package, 26 figures, compiled report | ✅ 18.8s wall |
-| `mamey validate <pkg>` | Sealed package | JSON gate report: file_presence, checksums, rggmci | ✅ MAMEY_COMPLETE |
-| `mamey list-bgcs <pkg> --json` | Sealed package | JSON BGC inventory with all scores | ✅ |
-| `mamey emit-modeb-template --bgc BGC001` | Sealed package + BGC ID | §1–§30 template with gene table pre-filled | ✅ 109 lines |
-| `mamey render-all-figures <pkg>` | Sealed package | 5 figure modules, 26 figures total | ✅ |
-| `mamey workflow <pkg> --json` | Sealed package | W0–W10 gate status with receipts | ✅ W0-W2 PASS |
+| `python mamey_run.py doctor` | (no input) | Dependency/permission pre-flight report | ✅ 18.8s total |
+| `python mamey_run.py inspect <zip>` | antiSMASH ZIP | Pre-run preview: region count, GBK contents | ✅ |
+| `python mamey_run.py run --mode gold` | antiSMASH ZIP | Sealed package, 26 figures, compiled report | ✅ 18.8s wall |
+| `python mamey_run.py validate <pkg>` | Sealed package | JSON gate report: file_presence, checksums, rggmci | ✅ MAMEY_COMPLETE |
+| `python mamey_run.py list-bgcs <pkg> --json` | Sealed package | JSON BGC inventory with all scores | ✅ |
+| `python mamey_run.py emit-modeb-template --bgc BGC001` | Sealed package + BGC ID | §1–§30 template with gene table pre-filled | ✅ 109 lines |
+| `python mamey_run.py render-all-figures <pkg>` | Sealed package | 5 figure modules, 26 figures total | ✅ |
+| `python mamey_run.py workflow <pkg> --json` | Sealed package | W0–W10 gate status with receipts | ✅ W0-W2 PASS |
 | `tools/preflight_zip_hygiene.py <zip>` | antiSMASH ZIP | Clean/dirty assessment | ✅ OK |
 | `tools/gen_marker_catalog.py --check` | (live patterns) | Drift check: 14 tables in sync | ✅ |
 | `tools/sapote_workflow.py <pkg>` | Sealed package | W0–W10 ledger markdown | ✅ 3/11 PASS |
@@ -68,13 +71,13 @@ observations about *behaviour*, not descriptions of *existence*.
 
 ### Tools output format notes
 
-**`mamey workflow --json`** — produces the same content as the markdown output but machine-readable. The status values are: `PASS`, `PENDING`, `BLOCKED`, `N_A`. The `receipt` field contains the specific artifact reference (file name + size + content summary) that confirmed the PASS, or the blocking reason.
+**`python mamey_run.py workflow --json`** — produces the same content as the markdown output but machine-readable. The status values are: `PASS`, `PENDING`, `BLOCKED`, `N_A`. The `receipt` field contains the specific artifact reference (file name + size + content summary) that confirmed the PASS, or the blocking reason.
 
-**`mamey list-bgcs --json`** — produces a JSON array, one object per BGC. The array is directly usable by downstream tools. The `--axis` flag selects sort order (`rank`, `ab`, `af`, `novelty`); `--top N` limits output count.
+**`python mamey_run.py list-bgcs --json`** — produces a JSON array, one object per BGC. The array is directly usable by downstream tools. The `--axis` flag selects sort order (`rank`, `ab`, `af`, `novelty`); `--top N` limits output count.
 
-**`mamey emit-modeb-template`** — the output goes to stdout by default; redirect to a file for authoring. The template includes a pre-filled gene table from `gene_context.jsonl`, the BGC's scores from the triage board, and the over-merge warning when applicable.
+**`python mamey_run.py emit-modeb-template`** — the output goes to stdout by default; redirect to a file for authoring. The template includes a pre-filled gene table from `gene_context.jsonl`, the BGC's scores from the triage board, and the over-merge warning when applicable.
 
-**`mamey render-all-figures`** — non-blocking per module. If one module fails (e.g. domain-level fails because deep_data.json is empty), the others continue. The summary at the end reports per-module results.
+**`python mamey_run.py render-all-figures`** — non-blocking per module. If one module fails (e.g. domain-level fails because deep_data.json is empty), the others continue. The summary at the end reports per-module results.
 
 **`tools/gen_tools_inventory.py`** — writes the full tools inventory to `docs/TOOLS_INVENTORY.generated.md`, injects a compact `name — summary` list into the generated block of `docs/BUNDLE_CAPABILITIES.md`, and also outputs "wrote inventory: N tools" to stdout. The inventory is a structured markdown table of all tools/scripts with docstrings extracted. For a connection-aware review, run `python tools/gen_tools_inventory.py --connections --format tsv --output tool_connections.tsv`. That audit reports exact source hashes, executable interface, source/CLI consumers, tests, path-filtered non-historical documentation references, manifest membership, declared lifecycle, personal-path literals, external-contact markers, and two transparent evidence scores. The scores measure wiring and operational support only; they do not measure scientific value, correctness, acceptance, or release readiness. The marker columns are review cues, not proof that a default is unsafe or that external contact occurs.
 
@@ -86,12 +89,12 @@ For field use — the most common tools and their essential flags.
 
 ```bash
 # --- BEFORE A RUN ---
-mamey doctor                               # pre-flight: Python, deps, permissions
+python mamey_run.py doctor                               # pre-flight: Python, deps, permissions
 preflight_zip_hygiene.py <zip>             # check for macOS artifacts, oversized files
-mamey inspect <zip>                        # preview: region count, organism, GBK structure
+python mamey_run.py inspect <zip>                        # preview: region count, organism, GBK structure
 
 # --- RUN ---
-python -m mamey run \
+python mamey_run.py run \
   --input-zip <zip> --strain <ID> \
   --taxonomy "Genus sp." --source "host, location" \
   --release PUBLIC|PRIVATE \
@@ -99,31 +102,31 @@ python -m mamey run \
   --outdir runs/
 
 # --- VALIDATE ---
-mamey validate runs/<ID>/package           # → MAMEY_COMPLETE or MAMEY_COMPLETE_WITH_ISSUES
+python mamey_run.py validate runs/<ID>/package           # → MAMEY_COMPLETE or MAMEY_COMPLETE_WITH_ISSUES
 
 # --- FIGURES ---
-mamey render-all-figures --package <pkg>   # run if --capped-session suppressed figures
+python mamey_run.py render-all-figures --package <pkg>   # run if --capped-session suppressed figures
 
 # --- EXPLORE OUTPUTS ---
-mamey list-bgcs <pkg> --json              # BGC inventory with all scores
-mamey list-bgcs <pkg> --axis af --top 5  # top 5 by antifungal score
-mamey explain <pkg>                        # narrative walkthrough
+python mamey_run.py list-bgcs <pkg> --json              # BGC inventory with all scores
+python mamey_run.py list-bgcs <pkg> --axis af --top 5  # top 5 by antifungal score
+python mamey_run.py explain <pkg>                        # narrative walkthrough
 
 # --- MODE B ---
-mamey emit-modeb-template \
+python mamey_run.py emit-modeb-template \
   --package <pkg> --bgc BGC001 > BGC001_card.md    # emit §1–§30 skeleton
-mamey verify-modeb --package <pkg> --bgc BGC001    # validate authored card
+python mamey_run.py verify-modeb --package <pkg> --bgc BGC001    # validate authored card
 
 # --- WORKFLOW GATE ---
-mamey workflow --package <pkg>             # W0–W10 markdown ledger
-mamey workflow --package <pkg> --json     # W0–W10 machine-readable
-mamey workflow --package <pkg> --strict   # exit non-zero if any mandatory step incomplete
+python mamey_run.py workflow --package <pkg>             # W0–W10 markdown ledger
+python mamey_run.py workflow --package <pkg> --json     # W0–W10 machine-readable
+python mamey_run.py workflow --package <pkg> --strict   # exit non-zero if any mandatory step incomplete
 
 # --- COMPILE ---
-mamey compile-report --package <pkg>       # auto-compile report
-mamey compile-report --package <pkg> --strict  # exit non-zero if SAPOTE slots open
-mamey compile-report --package <pkg> --pdf  # also render Boss-Ready PDF via tools/md_to_pdf.sh (refuses on unfilled slots)
-mamey compile-report --package <pkg> --pdf --allow-unfilled-pdf  # render the PDF even with unfilled slots (skeleton)
+python mamey_run.py compile-report --package <pkg>       # auto-compile report
+python mamey_run.py compile-report --package <pkg> --strict  # exit non-zero if SAPOTE slots open
+python mamey_run.py compile-report --package <pkg> --pdf  # also render Boss-Ready PDF via tools/md_to_pdf.sh (refuses on unfilled slots)
+python mamey_run.py compile-report --package <pkg> --pdf --allow-unfilled-pdf  # render the PDF even with unfilled slots (skeleton)
 
 # --- BANK AND BUILD ---
 tools/ingest_package.py \
@@ -256,7 +259,7 @@ check_monolith_freshness: PASS (anchor honest, no retired doctrine)
 
 ### `PHANTOM_LOCUS` — release-blocking referent validation
 
-Not a standalone tool: a lint inside `mamey/modeb_structure_gate.py`, reachable through `mamey verify-modeb` and `authored_verify`.
+Not a standalone tool: a lint inside `mamey/modeb_structure_gate.py`, reachable through `python mamey_run.py verify-modeb` and `authored_verify`.
 
 **What it asks:** does every `ctgN_M` locus tag cited in this Mode B card exist in **this strain's own CDS table**?
 
@@ -265,7 +268,7 @@ Not a standalone tool: a lint inside `mamey/modeb_structure_gate.py`, reachable 
 **How to invoke:**
 
 ```bash
-mamey verify-modeb --package <sealed_pkg> --bgc BGC001    # loads known_loci automatically
+python mamey_run.py verify-modeb --package <sealed_pkg> --bgc BGC001    # loads known_loci automatically
 ```
 
 `authored_verify` globs `<pkg>/*_cds_table.csv` and `<pkg>/cds_table.csv` to build `bgc_context["known_loci"]`. Without a sealed package there is no CDS table, and **the lint is silent** — it cannot judge what it cannot see, and a false accusation of fabrication is worse than none.
@@ -343,30 +346,30 @@ The independent per-gene homology channel and its ingest/iterate commands, plus 
 
 **§4 authoring — offline path preferred (v9.7.260).** A Mode B lead card's §4 is authored *after* the BLASTp panel exists, but there are two ways to produce the same `<BGC>_online_blastp.csv` panel and the offline one avoids live polling:
 
-- **token-friendly / offline (preferred when results are in hand):** if NCBI BLAST has already been run, ingest the hit-table with zero network via `mamey ingest-blastp` — no RID poll, no ~1–2 min/query wait.
-- **live:** `mamey blastp-online` submits to NCBI and polls; use only when no pre-run results exist.
+- **token-friendly / offline (preferred when results are in hand):** if NCBI BLAST has already been run, ingest the hit-table with zero network via `python mamey_run.py ingest-blastp` — no RID poll, no ~1–2 min/query wait.
+- **live:** `python mamey_run.py blastp-online` submits to NCBI and polls; use only when no pre-run results exist.
 
 With no results at all, the honest read is "antiSMASH Pfam, unverified" — never fabricate (see `PANEL_ABSENT_CLAIM` / `PHANTOM_LOCUS`, Section 17).
 
-**`mamey bgc-blastp-panel`** — Export up to two representative translated proteins per BGC as chunked FASTA files for manual BLASTP. The panel *selection* is what downstream gates read to decide a BGC "has a panel" (`PANEL_ABSENT_CLAIM`).
+**`python mamey_run.py bgc-blastp-panel`** — Export up to two representative translated proteins per BGC as chunked FASTA files for manual BLASTP. The panel *selection* is what downstream gates read to decide a BGC "has a panel" (`PANEL_ABSENT_CLAIM`).
 
-**`mamey blastp-online`** — Per-gene NCBI web BLASTp for a BGC (independent homology channel; fail-closed if biopython/network absent — actionable message, not a traceback). Its banner now points at the offline `ingest-blastp` route to skip live polling.
+**`python mamey_run.py blastp-online`** — Per-gene NCBI web BLASTp for a BGC (independent homology channel; fail-closed if biopython/network absent — actionable message, not a traceback). Its banner now points at the offline `ingest-blastp` route to skip live polling.
 
-**`mamey blastp-ebi`** — EBI fallback BLASTp transport (no nr; DB-tagged provenance;
+**`python mamey_run.py blastp-ebi`** — EBI fallback BLASTp transport (no nr; DB-tagged provenance;
 coverage-preserving XML path). Live submission requires a valid EBI contact email plus
 `--confirm-public-sequence-upload`; the sequence count and SHA-256 receipt print before transport.
 
-**`mamey blastp-round`** — Plan/run a phased strain BLASTp round (full top-N + 1 per remaining BGC).
+**`python mamey_run.py blastp-round`** — Plan/run a phased strain BLASTp round (full top-N + 1 per remaining BGC).
 
-**`mamey blastp-followup`** — Parse NCBI BLASTP Hit Table / XML2 results and make the next iterative, residue-safe BLASTP queue files.
+**`python mamey_run.py blastp-followup`** — Parse NCBI BLASTP Hit Table / XML2 results and make the next iterative, residue-safe BLASTP queue files.
 
-**`mamey ingest-blastp`** — Ingest an NCBI BLASTp HitTable CSV (+ optional Alignment XML) into a master workbook's `B5_BLASTp_Hits` sheet; with `--package`, mirrors the panel to `<package>/blastp_online/<BGC>_online_blastp.csv`. This is the offline, zero-network path.
+**`python mamey_run.py ingest-blastp`** — Ingest an NCBI BLASTp HitTable CSV (+ optional Alignment XML) into a master workbook's `B5_BLASTp_Hits` sheet; with `--package`, mirrors the panel to `<package>/blastp_online/<BGC>_online_blastp.csv`. This is the offline, zero-network path.
 
-**`mamey modeb-blastp`** — Emit per-BGC BLASTP FASTA batches from the panel manifest (Mode B §16 automation).
+**`python mamey_run.py modeb-blastp`** — Emit per-BGC BLASTP FASTA batches from the panel manifest (Mode B §16 automation).
 
-**`mamey hmm-adjudicate`** — Ordered HMM domain readout for a BGC (intrinsic structure; offline tie-breaker that complements BLASTp when it disagrees with the antiSMASH call).
+**`python mamey_run.py hmm-adjudicate`** — Ordered HMM domain readout for a BGC (intrinsic structure; offline tie-breaker that complements BLASTp when it disagrees with the antiSMASH call).
 
-**`mamey release-qa`** — Run release QA gates: Legacy Feature Matrix + Dual-LLM Handoff Receipt.
+**`python mamey_run.py release-qa`** — Run release QA gates: Legacy Feature Matrix + Dual-LLM Handoff Receipt.
 
 *Batch rule (v9.7.252): a submission closes on protein count OR a 30,000-aa `RESIDUE_BUDGET`, whichever hits first; `MAX_BATCH` stays 30 and `DEFAULT_BATCH` is 10 (the courteous default used when the caller omits `batch_size`); giants (>2,500 aa) run solo; `SUBMIT_GAP_S` spaces submissions.*
 
@@ -386,32 +389,32 @@ capacity-level, judgment deferred.
 
 ```bash
 # --- CROSS-STRAIN LEDGERS ---
-mamey cohort-leads    --runs-dir <runs_dir> [--out COHORT_PRIORITY_LEADS.csv]   # union Exceptional+High leads → one ranked CSV
-mamey cohort-assemble --runs-dir <runs_dir> [--out COHORT_MASTER.csv] [--xlsx]  # many sealed packages → one master table (+ siblings)
+python mamey_run.py cohort-leads    --runs-dir <runs_dir> [--out COHORT_PRIORITY_LEADS.csv]   # union Exceptional+High leads → one ranked CSV
+python mamey_run.py cohort-assemble --runs-dir <runs_dir> [--out COHORT_MASTER.csv] [--xlsx]  # many sealed packages → one master table (+ siblings)
 
 # --- EVIDENCE / FALSE-POSITIVE LAYER ---
-mamey comparator-coverage <package> [--cohort-runs-dir <runs_dir>] [--out <dir>]  # two-denominator MIBiG comparator coverage (report-only)
+python mamey_run.py comparator-coverage <package> [--cohort-runs-dir <runs_dir>] [--out <dir>]  # two-denominator MIBiG comparator coverage (report-only)
                                                                      # standalone: python -m mamey.mibig_comparator_coverage <package_dir> [--cohort-runs-dir <dir>]
 
 # --- ANTIFUNGAL + INTERPRETIVE DELIVERABLES ---
-mamey af-dossier   <root> [--out DIR] [--activity-table CSV] [--depth N]  # AF leads x optional measured Candida activity (report-only)
-mamey good-guesses <root> [--out DIR] [--pdf] [--docx] [--depth N]       # claim-safe interpretive priors (solid/rare/remarkable/notable/interesting)
+python mamey_run.py af-dossier   <root> [--out DIR] [--activity-table CSV] [--depth N]  # AF leads x optional measured Candida activity (report-only)
+python mamey_run.py good-guesses <root> [--out DIR] [--pdf] [--docx] [--depth N]       # claim-safe interpretive priors (solid/rare/remarkable/notable/interesting)
                                                                           # standalone: python -m mamey.good_guesses <ROOT|package_dir> --out <DIR> --pdf --docx
 
 # --- DOCUMENT + FIGURE EXPORT ---
-mamey modeb-export <card.md|mode_b/> [--outdir DIR] [--format docx|pdf|both]  # authored Mode B card → .docx + .pdf (reportlab)
+python mamey_run.py modeb-export <card.md|mode_b/> [--outdir DIR] [--format docx|pdf|both]  # authored Mode B card → .docx + .pdf (reportlab)
 python -m mamey.kcb_locusmap --zip <zip> --contig <NODE> --out-dir <dir> \
     --strain-id <ID> --bgc-id BGC### [--products "..."] [--top-n 6]           # offline KCB comparative locus map (PNG/SVG + data.csv)
                                                                               # or: --kcb-txt <knownclusterblast.txt> --out-dir <dir> --stem BGC###
 
 # --- COUNT / NOVELTY / REFERENCE (advisory) ---
-mamey domain-reference  --package <pkg> [--out DIR]             # bundled Mode-B domain-reference dictionary
-mamey realistic-count   --package <pkg> [--out DIR]             # honest corrected BGC-count denominator
-mamey novelty-shortlist --package <pkg> [--top 30] [--out DIR]  # composite multi-signal novelty shortlist
+python mamey_run.py domain-reference  --package <pkg> [--out DIR]             # bundled Mode-B domain-reference dictionary
+python mamey_run.py realistic-count   --package <pkg> [--out DIR]             # honest corrected BGC-count denominator
+python mamey_run.py novelty-shortlist --package <pkg> [--top 30] [--out DIR]  # composite multi-signal novelty shortlist
 
 # --- ANALYSIS QC + MODE-B INTERPRETATION GATES ---
-mamey signoff [tree.treefile ...] [--minutes N]                          # "would a master's student sign off?" tree QC (advisory, exit 0)
-mamey verify-modeb --package <pkg> --bgc BGC### --interp [--interp-strict]  # add WARN-only INTERP_* judgment checks to verify-modeb
+python mamey_run.py signoff [tree.treefile ...] [--minutes N]                          # "would a master's student sign off?" tree QC (advisory, exit 0)
+python mamey_run.py verify-modeb --package <pkg> --bgc BGC### --interp [--interp-strict]  # add WARN-only INTERP_* judgment checks to verify-modeb
                                                                            # strict authoring gate: python -m mamey.modeb_interp_gate <card.md> [--strict]
 ```
 

@@ -28,7 +28,7 @@ The strain-like label is often an accession such as `KY089035.1`, where `.1` is 
 1. Do not treat this as a full strain genome.
 2. Do not try to manually parse the large antiSMASH JSON in chat.
 3. Run `python -m mamey inspect <zip>` first.
-4. If inspect passes, use smoke mode with `--chatgpt-safe`.
+4. If inspect passes, run gold mode; add `--capped-session` when the session has a time limit.
 5. Explain that assembly completeness warnings may be expected because the input is one accession/one region.
 6. Treat exact KnownClusterBlast matches as reference/control evidence, not as a discovery result.
 

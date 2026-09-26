@@ -18,8 +18,10 @@ finished card; it is a skeleton with prose. The three steps below are ordered an
       `modeb_exemplars/README.md` for slot status). If no exemplar exists for the class, use the nearest
       and hold to `docs/modules/MODE_B_DEPTH_POLICY.md`.
 - [ ] Note the depth bar: the exemplar's §4 is an **evidence grid**
-      `| Locus | aa | antiSMASH domains | BLASTp top hit (nr) | %id | Reconciliation |` with **●** core
-      markers, followed by a **prose walkthrough**. Mirror that shape (do not copy verbatim).
+      with each match's actual database/channel and transport, plus locus, protein length,
+      antiSMASH domains, identity and reconciliation, with **●** core markers and a prose
+      walkthrough. Use the selected profile's current table contract; do not relabel EBI/UniProt
+      matches as nr or merge nr, ClusteredNR and Swiss-Prot evidence.
 
 ## Step 1 — Get the per-gene BLASTp (before §4 exists)
 
@@ -31,8 +33,12 @@ cores** — never panel-only, never Pfam-only.
 - [ ] Obtain each core's sequence from the **region GBK** (gold tags + translations together — the clean
       source) or the cohort DB `aa_seq` **with** the region→gold-tag reconciliation (region-relative DB
       ORFs ≠ gold contig tags for sliced regions).
-- [ ] Run BLASTp: NCBI, or **EBI** (`mamey/blastp_ebi.py`) when NCBI throttles.
-- [ ] **If you cannot run it, request it from the operator** — name the strain + the region GBKs you need,
+- [ ] Bind each sequence and search's actual database, transport and provenance before using
+      results. The bundled EBI transport (`mamey/blastp_ebi.py`) defaults to `uniprotkb_bacteria`,
+      not nr. Follow `docs/ONLINE_BLASTP_PROTOCOL.md` and the selected transport's admission
+      requirements; keep later nr confirmation or other unresolved channel gaps explicit.
+- [ ] **If you cannot run it, request it from the operator** — give the complete
+      `strain / full node-or-contig / region / BGC alias` and source-bound region GBKs you need,
       or the exact cores to BLASTp — and record the gap in §4 / §16 as an explicit request. Do NOT fill
       the gap with Pfam prose and present the card as done.
 - [ ] Reconcile every hit as CONFIRM / REFINE / OVERTURN against the antiSMASH call; tag provenance
@@ -43,22 +49,39 @@ Escalation triggers (large modular proteins, repeated comparator hits, split/com
 
 ## Step 2 — Author to the contract + exemplar
 
-- [ ] Full §1–§30 (no compact entries). §4 as the evidence grid + prose walkthrough from Step 0.
-- [ ] Cite BGCs by node·region; loci must be the strain's own package loci (PHANTOM_LOCUS guard).
+- [ ] Select the intended named profile and its actual contract/verifier before authoring.
+      The native corrective contract `mamey/data/mode_b/modeb_full30_corrective_contract.json`
+      defines 48 sections despite its historical filename. Use the emitted template's exact titles
+      and selected profile requirements. The separate 50-section reference and its specific
+      consumers are described in `docs/MODEB_FULL50_CONTRACT_USAGE.md`; do not treat that reference
+      as universal native 50-section producer/verifier support.
+- [ ] Bind every individual locus as `strain / full node-or-contig / region / BGC alias` from one
+      selected source record. Hold missing/conflicting fields; do not shorten or reconstruct them.
 - [ ] Claim language: "capacity consistent with," never "produces"; KCB/BLASTp = similarity not identity;
       bioactivity extract-level only. Keep certainty copulas away from KCB compound names
       (`identity_overclaim` fires on "class is robust/known(<compound>)", "<compound>-like product").
 
 ## Step 3 — Run all THREE gates and report receipts
 
-- [ ] `mamey verify-modeb <card> --package <pkg> --bgc <BGC>` → **OK** (structure + depth).
-- [ ] `mamey claim-safety <card> --package <pkg> --card-id <BGC> --mode warn` → **0 HIGH/0 MEDIUM**.
-- [ ] `mamey.mode_b_quality_gate.evaluate_card(<BGC>, <md>)` → tier **FULL** (MID/LOW = not done).
-- [ ] Report the numbers (char count, gene mentions, gate output), not "passes / clean / solid."
+- [ ] From the bundle root, use `python mamey_run.py verify-modeb <authored-card.md>
+      --package <pkg> --bgc <BGC>` under the selected installed profile and gates; retain the
+      actual findings and exit status. This is mechanical verification, not scientific acceptance.
+- [ ] Run `python mamey_run.py claim-safety <authored-card.md> --package <pkg> --card-id <BGC>
+      --mode warn` and inspect the finding counts: warn mode exits 0 even when findings exist.
+- [ ] If using the additional library depth checker, call
+      `mamey.mode_b_quality_gate.evaluate_card(bgc_id, authored_markdown_text, rank=rank,
+      edge_status=edge_status, cds_count=cds_count)` from Python with the full text and the
+      selected source record's context. It is an API, not a shell command. Report its `tier`
+      (`FULL`, `SHALLOW`, `STUB`) separately from `priority` (`HIGH`, `MID`, `LOW`) and `floor`;
+      omitted rank selects the most lenient priority. A FULL depth verdict is not science acceptance.
+- [ ] Retain selected contract/profile identity, character count, gene mentions, gate findings,
+      priority/floor context and unresolved holds; do not replace them with “passes/clean/solid.”
 
-## Hub handoff (if a producer chat)
+## Explicitly selected handoff
 
-Drop `AS-XXX_BGCNNN_ModeB_card.md` + `AS-XXX_BGCNNN_ModeB_card.meta.json`
-(`{author_chat, depth, blastp_core_coverage, gates}`) into the integrator's `incoming/<STRAIN>/`. The
-integrator re-runs all three gates as the single authority — a producer's "passed on my end" is not
-sufficient.
+Select the recipient and authorized output destination before writing. A previous receipt path,
+chat label or folder name does not authorize that destination. Use a filesystem-safe complete
+identity such as `STRAIN__FULL_CONTIG__REGION__BGC_ALIAS__ModeB_card.md` and a companion receipt
+binding source files/hashes, the selected profile, actual gate outputs and unresolved holds.
+The recipient checks those bindings and any required gates. Mechanical gate results do not grant
+scientific acceptance, integration, publication or sealing authority.

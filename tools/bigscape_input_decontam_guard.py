@@ -8,7 +8,8 @@ removed-contig manifest existed; nothing compared the run's inputs with them.
 Input:
   --regions DIR       folder of region GBKs as staged for BiG-SCAPE (names like <STRAIN>_<contig>.regionNNN.gbk)
   --removed STRAIN=TSV  (repeatable) a decontamination manifest whose first column is the removed contig name
-                        (e.g. <strain>/decontam_<date>/<strain>_removed_contigs.tsv)
+                        (e.g. <strain>/decontam_<date>/<strain>_removed_contigs.tsv), or
+                        clade_decontam.py's <clade>_contig_bins.tsv (keep == 0 rows); see removed_contig_ids()
   --authority-glob    optional glob of *_ASSEMBLY_AUTHORITY.md files; strains named there without a --removed manifest are
                       reported as "authority file present, no manifest given".
 Matching: the contig name is read from the GBK file name after "<STRAIN>_" and before ".regionNNN"; SPAdes names are
@@ -27,26 +28,48 @@ def key(contig: str) -> str:
     return m.group(1) if m else contig
 
 
-def load_removed(spec: str) -> tuple[str, set[str]]:
-    """Read a removed-contig list. Two shapes are accepted:
-    a plain list (first column = removed contig), or the bundle's own
-    ``deliverable_tools/clade_decontam.py`` ``<clade>_contig_bins.tsv``, which lists EVERY contig
-    with a ``keep`` column; only ``keep == 0`` rows are removed there."""
-    strain, path = spec.split("=", 1)
-    out = set()
-    with open(path, newline="") as h:
-        rows = [r for r in csv.reader(h, delimiter="\t") if r and r[0] and not r[0].startswith("#")]
-    header = [c.strip().lower() for c in rows[0]] if rows else []
-    if "keep" in header and header and header[0] == "contig":
+HEADER_FIRST = {"contig", "record", "record_id"}
+
+
+def removed_contig_ids(path) -> set[str]:
+    """Removed contig ids from a decontamination manifest, as written. The one reader for every
+    tool that takes a removed-contig list (this guard, bigscape_prep and region_table_one_setting).
+
+    Two shapes are accepted: a plain list (first column = removed contig, optional header row), or
+    the bundle's own ``deliverable_tools/clade_decontam.py`` ``<clade>_contig_bins.tsv``, which
+    lists EVERY contig with a ``keep`` column; only ``keep == 0`` rows are removed there. A table
+    with an ``assignment`` column and no ``keep`` column also lists every contig, so it is refused
+    rather than read as all-removed. Bin rows with blank ids or unknown keep values are refused."""
+    with open(path, encoding="utf-8", errors="replace", newline="") as h:
+        rows = [(n, r) for n, r in enumerate(csv.reader(h, delimiter="\t"), 1)
+                if r and any(c.strip() for c in r) and not r[0].strip().startswith("#")]
+    if not rows:
+        return set()
+    header = [c.strip().casefold() for c in rows[0][1]]
+    if header[0] not in HEADER_FIRST:
+        return {r[0].strip() for _, r in rows if r[0].strip()}
+    if "keep" in header:
         k = header.index("keep")
-        for row in rows[1:]:
-            if len(row) > k and row[k].strip() in ("0", "false", "False"):
-                out.add(key(row[0]))
-        return strain, out
-    for row in rows:
-        if not row[0].startswith("contig"):
-            out.add(key(row[0]))
-    return strain, out
+        removed = set()
+        for n, r in rows[1:]:
+            if not r[0].strip() or len(r) <= k:
+                raise ValueError(f"{path}: bin table row {n} needs a contig and keep value")
+            keep = r[k].strip().casefold()
+            if keep not in ("0", "false", "1", "true"):
+                raise ValueError(f"{path}: bin table row {n} has invalid keep value {r[k]!r}")
+            if keep in ("0", "false"):
+                removed.add(r[0].strip())
+        return removed
+    if "assignment" in header:
+        raise ValueError(f"{path}: a contig bin table without a keep column lists every contig; "
+                         "pass the removed-contig list, or a bin table with a keep column")
+    return {r[0].strip() for _, r in rows[1:] if r[0].strip()}
+
+
+def load_removed(spec: str) -> tuple[str, set[str]]:
+    """STRAIN=TSV -> (strain, removed contigs compared on NODE_<n>_length_<L>)."""
+    strain, path = spec.split("=", 1)
+    return strain, {key(c) for c in removed_contig_ids(path)}
 
 
 def check(regions: Path, removed: dict[str, set[str]]) -> list[tuple[str, str]]:
@@ -73,7 +96,10 @@ def main(argv=None) -> int:
     staged_regions = sorted(a.regions.glob("*.gbk"))
     if not staged_regions:
         ap.error("--regions contains no staged GBK files")
-    removed = dict(load_removed(s) for s in a.removed)
+    try:
+        removed = dict(load_removed(s) for s in a.removed)
+    except (OSError, ValueError) as exc:
+        ap.error(str(exc))
     missing_authority = []
     if a.authority_glob:
         for f in glob.glob(a.authority_glob):

@@ -22,6 +22,7 @@ except ImportError:  # direct execution: no parent package to resolve against.
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from mamey.console import emit
 import json
+import hashlib
 import os
 import subprocess
 import sys
@@ -30,10 +31,17 @@ from pathlib import Path
 
 from . import blastp_gate as _g
 from .blastp_ingest import install_channel_top10
+from .modeb_template_emitter import source_argv, sources_from_args
 
 
 # v9.7.441: pin subprocesses to the bundle runner, not `-m mamey` (cwd-shadow risk).
 _RUNNER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mamey_run.py")
+
+
+def _source_args_sha256(sources: dict | None) -> str:
+    """Bind queue resume to the Mode B source arguments without storing their paths."""
+    raw = json.dumps(source_argv(sources), ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 def _run(mod_args: list[str], env=None) -> tuple[int, str]:
     """Invoke mamey via the bundle-pinned runner (not `-m mamey`); returns (rc, tail)."""
@@ -60,10 +68,12 @@ def _auto_ingest(package: str, strain: str) -> dict:
     return got
 
 
-def process_strain(strain: str, runs_dir: str, out_root: str, activity_csv: str | None = None) -> dict:
+def process_strain(strain: str, runs_dir: str, out_root: str, activity_csv: str | None = None,
+                   sources: dict | None = None) -> dict:
     pkg = os.path.join(runs_dir, strain, "package")
     rec = {"strain": strain,
-           "ts": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+           "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+           "source_args_sha256": _source_args_sha256(sources)}
     if not os.path.isdir(pkg):
         rec["status"] = "NO_PACKAGE"
         return rec
@@ -80,7 +90,8 @@ def process_strain(strain: str, runs_dir: str, out_root: str, activity_csv: str 
     env = dict(os.environ)
     # 2. deterministic deliverables
     steps = {
-        "cards": ["emit-modeb-template", "--package", pkg, "--batch", "--scope", "all"],
+        "cards": ["emit-modeb-template", "--package", pkg, "--batch", "--scope", "all",
+                  *source_argv(sources)],
         "lead_pages": ["lead-pages", pkg, "--out", os.path.join(out, "lead_pages")],
         "reference_dark": ["reference-dark", pkg, "--out", os.path.join(out, "reference_dark")],
         "good_guesses": ["good-guesses", pkg, "--out", os.path.join(out, "good_guesses")],
@@ -104,13 +115,17 @@ def process_strain(strain: str, runs_dir: str, out_root: str, activity_csv: str 
                 Path(dst, f).write_text(Path(tdir, f).read_text(encoding="utf-8"), encoding="utf-8"); n += 1
         results["cards_copied"] = n
     rec["steps"] = results
-    rec["status"] = "DETERMINISTIC_DONE"
+    rec["failed_steps"] = [name for name, value in results.items()
+                           if isinstance(value, str) and value != "ok"]
+    rec["status"] = ("DETERMINISTIC_INCOMPLETE" if rec["failed_steps"]
+                     else "DETERMINISTIC_DONE")
     rec["narratives"] = "PENDING_JUDGMENT"  # the Sapote judgment layer is authored separately
     return rec
 
 
 def run_queue(strains: list[str], runs_dir: str, out_root: str, activity_csv: str | None = None,
-              ledger_path: str | None = None, resume: bool = True) -> dict:
+              ledger_path: str | None = None, resume: bool = True,
+              sources: dict | None = None) -> dict:
     ledger_path = ledger_path or os.path.join(out_root, "DELIVERABLE_QUEUE_LEDGER.json")
     os.makedirs(out_root, exist_ok=True)
     ledger = {}
@@ -120,12 +135,15 @@ def run_queue(strains: list[str], runs_dir: str, out_root: str, activity_csv: st
         except json.JSONDecodeError:
             ledger = {}
     done_states = {"DETERMINISTIC_DONE"}
+    current_source_args_sha256 = _source_args_sha256(sources)
     for s in strains:
-        if resume and ledger.get(s, {}).get("status") in done_states:
+        if (resume and ledger.get(s, {}).get("status") in done_states
+                and ledger[s].get("source_args_sha256") == current_source_args_sha256):
             emit(f"[queue] {s}: skip (already {ledger[s]['status']})", flush=True)
             continue
         emit(f"[queue] {s}: processing…", flush=True)
-        rec = process_strain(s, runs_dir, out_root, activity_csv)
+        rec = process_strain(s, runs_dir, out_root, activity_csv, sources=sources)
+        rec["source_args_sha256"] = current_source_args_sha256
         ledger[s] = rec
         # v9.7.374 fix: this file is the ONLY resumability bookkeeping this queue has (see module
         # docstring: "a strain marked DONE in the ledger is skipped on re-run"). A direct write_text()
@@ -138,19 +156,23 @@ def run_queue(strains: list[str], runs_dir: str, out_root: str, activity_csv: st
         _ledger_tmp.replace(ledger_path)
         emit(f"[queue] {s}: {rec['status']}"
               + (f" (missing {rec.get('missing')})" if rec['status'] == 'BLASTP_BLOCKED' else ""), flush=True)
+    requested_records = [ledger[s] for s in strains if s in ledger]
     summary = {"total": len(strains),
-               "deterministic_done": sum(1 for r in ledger.values() if r.get("status") == "DETERMINISTIC_DONE"),
-               "blocked": sum(1 for r in ledger.values() if r.get("status") == "BLASTP_BLOCKED"),
+               "deterministic_done": sum(1 for r in requested_records if r.get("status") == "DETERMINISTIC_DONE"),
+               "blocked": sum(1 for r in requested_records if r.get("status") == "BLASTP_BLOCKED"),
+               "incomplete": sum(1 for r in requested_records if r.get("status") == "DETERMINISTIC_INCOMPLETE"),
                "ledger": ledger_path}
     emit(f"[queue] DONE: {summary['deterministic_done']}/{summary['total']} deterministic-complete; "
-          f"{summary['blocked']} BLASTp-blocked. Ledger -> {ledger_path}", flush=True)
+          f"{summary['blocked']} BLASTp-blocked; {summary['incomplete']} incomplete. "
+          f"Ledger -> {ledger_path}", flush=True)
     return summary
 
 
 def deliverable_queue_command(args) -> int:
     strains = args.strains if getattr(args, "strains", None) else []
-    run_queue(strains, args.runs_dir, args.out_root,
-              activity_csv=getattr(args, "activity_table", None),
-              ledger_path=getattr(args, "ledger", None),
-              resume=not getattr(args, "no_resume", False))
-    return 0
+    summary = run_queue(strains, args.runs_dir, args.out_root,
+                        activity_csv=getattr(args, "activity_table", None),
+                        ledger_path=getattr(args, "ledger", None),
+                        resume=not getattr(args, "no_resume", False),
+                        sources=sources_from_args(args))
+    return 1 if summary["incomplete"] else 0

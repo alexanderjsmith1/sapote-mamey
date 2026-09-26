@@ -1,12 +1,15 @@
 # MODE_B_20_SECTION_CANONICAL_TITLES.md — DEPRECATED (v9.7.150e+)
 
 > **This file is retained as a redirect pointer only.** It listed §1–§20 titles
-> when the contract was a §1–§20-only spec. The current canonical contract is
-> §1–§30, with §28 and §30 mandatory and §21–§27/§29 conditional.
+> when the contract was a §1–§20-only spec. The §1–§30 contract that replaced it
+> is itself now the legacy `MODEB_CANDIDATE_30` profile.
 
 ## Read instead
 
-- **`docs/MODE_B_30_SECTION_CANONICAL_TITLES.md`** — current canonical titles.
+- **`docs/MODE_B_USER_WALKTHROUGH.md`** — current profiles. Finished cards use
+  `FINISHED_FULL48_CURRENT_EVIDENCE` (§1–§48); the §1–§30 pages below describe the legacy
+  `MODEB_CANDIDATE_30` profile.
+- **`docs/MODE_B_30_SECTION_CANONICAL_TITLES.md`** — legacy §1–§30 titles.
 - **`docs/FULL_MODEB_30_SECTION_CONTRACT_v97150.md`** — full contract spec
   including conditional predicates and quality gate.
 

@@ -9,7 +9,7 @@ workbook. Run `export_figure_ready.py` first to produce the CSVs.
 Inputs (in --data dir, produced by export_figure_ready.py):
   c1_dapr_antibacterial.csv, c2_dapr_antifungal.csv, fragment_rescue_tiers.csv
 Outputs (in --out dir): fig_dapr_antibacterial.png, fig_dapr_antifungal.png,
-  fig_fragment_rescue_landscape.png
+  fig_fragment_rescue_landscape.png; each board also gets a <stem>_caption.txt carrying its claim ceiling.
 
 Usage: python tools/render_dapr_boards.py --data figure_ready --out figures
 Dependency-light: matplotlib + stdlib. House style locked to FIGURE_CONVENTIONS.md.
@@ -40,7 +40,12 @@ def _tier_from_score(s):
     return {"3": "HIGH", "2": "MED", "1": "WATCH"}.get(str(s).strip(), "")
 
 
-def board_table(rows, title, note, out_png):
+# v9.7.443: claim wording stays off the canvas (Alex, 2026-09-24). The ceiling goes to the
+# caption sidecar beside the PNG; the drawn note keeps only what the board shows.
+CEILING = "Class-level hypotheses; bioactivity metadata is optional strain-level context."
+
+
+def board_table(rows, title, note, out_png, ceiling=CEILING):
     headers = ["tier", "strain", "BGC (locator)", "class", "KCB nearest", "note"]
     widths = [0.07, 0.09, 0.18, 0.20, 0.18, 0.28]
     table = []
@@ -62,6 +67,9 @@ def board_table(rows, title, note, out_png):
     if note:
         ax.text(0, -0.02, note, transform=ax.transAxes, fontsize=7.5, color="#666", style="italic")
     fig.savefig(out_png); plt.close(fig)
+    if ceiling:
+        with open(os.path.splitext(out_png)[0] + "_caption.txt", "w", encoding="utf-8") as fh:
+            fh.write(ceiling + "\n")
 
 
 def fragment_landscape(rows, out_png):
@@ -86,10 +94,9 @@ def main():
     ap.add_argument("--out", default="figures", help="output dir for PNGs")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
-    abn = ("Cell-wall/membrane/ribosome/T2PKS classes. Cytotoxic-adjacent & siderophore hits routed out. "
-           "Class-level hypotheses; bioactivity metadata is optional strain-level context.")
+    abn = "Cell-wall/membrane/ribosome/T2PKS classes. Cytotoxic-adjacent & siderophore hits routed out."
     afn = ("Two antifungal axes: polyene (ergosterol/membrane) + HSAF PTM-tetramate (sphingolipid). "
-           "arylpolyene excluded. Class-level hypotheses; bioactivity metadata is optional strain-level context.")
+           "arylpolyene excluded.")
     board_table(read_csv(os.path.join(a.data, "c1_dapr_antibacterial.csv")),
                 "DAPR - Antibacterial board (Sapote judgment, reference-framework scored)",
                 abn, os.path.join(a.out, "fig_dapr_antibacterial.png"))

@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**399 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**405 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -62,6 +62,10 @@
 | `blastp_campaign.py` | headless, resumable, checkpoint-first NCBI BLASTp campaign runner. |
 | `blastp_channel_triage.py` | Command-line front door for the fail-closed BLASTp channel triage sidecar. |
 | `blastp_coverage_wave.py` | measure BLASTp coverage gaps, stage a priority wave into isolated |
+| `tools/blastp_crawl/crawl_handoff.py` | Move a ClusteredNR gap crawl to another machine, and bring its results home. |
+| `tools/blastp_crawl/nr_rid_runner.py` | polite, RID-based remote NCBI nr BLASTp for the AS cohort. |
+| `tools/blastp_crawl/run_lane.sh` | Start one ClusteredNR gap lane with the crawl's house settings. Usage: run_lane.sh AS-<n> |
+| `tools/blastp_crawl/split_multi_panels.py` | Split 10-protein ClusteredNR panels into the single-protein layout the runner expects. |
 | `tools/blastp_monitoring/blastp_dashboard.sh` | one screen of GROUND TRUTH for the BLASTp crawl. |
 | `tools/blastp_monitoring/blastp_health.py` | GROUND-TRUTH health of the BLASTp crawl. |
 | `tools/blastp_monitoring/blastp_last_returns.py` | the ONE reliable answer to |
@@ -155,6 +159,7 @@
 | `check_module_accretion.py` | the module-accretion gate (Round 4 Item 6). |
 | `check_monolith_freshness.py` | the monolith is the parent design controller; keep its anchor honest. |
 | `check_no_brace_paths.py` | fail if any shipped path contains a '{' or '}' (W2). |
+| `check_no_bundle_write_defaults.py` | stop a tool from defaulting a WRITE into the code bundle. |
 | `check_onboarding_funnel.py` | One-door onboarding-funnel guard (CLAUDE_409_onboarding_funnel_guard). |
 | `check_patch_lane.py` | validate patch-lane STRUCTURE and DISPOSITION. |
 | `check_provenance_columns.py` | fail if a per-BGC table lacks its provenance anchor. |
@@ -262,6 +267,7 @@
 | `log_release.py` | append one row to RELEASES_LOG.md for the current build (idempotent). |
 | `make_public_tier.sh` | cut a clean release tier from the working tree, deterministically. |
 | `make_release_tarball.sh` | cut-time packaging artifact (v9.7.400, BC/Amber-fork proposal). |
+| `make_verified_code_tarball.sh` | Build a CODE tarball only after explicit sealed-ZIP and local seal-receipt verification. |
 | `mamey_habitat_map.py` | build the strain->habitat map L5/L6 need, store-backed. |
 | `mamey_intake.py` | one-command intake for Mamey package outputs. |
 | `mamey_package_qa_v2.py` | Mamey per-strain package completeness validator |

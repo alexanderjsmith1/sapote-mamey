@@ -68,16 +68,31 @@ CORE_PKGS="pyrodigal pyfastani pyswrd pyopal scoring_matrices biopython archspec
   pyhmmer pyskani pyfamsa pytrimal pytantan pyrodigal-gv gb-io pyfastx dendropy taxopy"
 FIGURE_PKGS="numpy matplotlib scipy pandas logomaker pycirclize dna_features_viewer"
 
+# Install into the interpreter that the verification step below imports from. Outside a virtual
+# environment, refuse unless the operator explicitly allows overriding system Python protections.
+PY="${PYTHON:-python3}"
+PIP_EXTRA=()
+if [ "$("$PY" -c 'import sys; print(int(sys.prefix != sys.base_prefix))')" != "1" ]; then
+  if [ "${SAPOTE_ALLOW_SYSTEM_PIP:-0}" = "1" ]; then
+    PIP_EXTRA=(--break-system-packages)
+    echo "[sapote-addons] WARNING: no virtual environment; SAPOTE_ALLOW_SYSTEM_PIP=1 overrides system protections" >&2
+  else
+    echo "[sapote-addons] REFUSED: activate a virtual environment first (see docs/INSTALL.md)," >&2
+    echo "  or set SAPOTE_ALLOW_SYSTEM_PIP=1 in a disposable sandbox." >&2
+    exit 2
+  fi
+fi
+
 echo "[sapote-addons] installing core runtime deps..."
-pip install --no-index --find-links "$WHEELS" $CORE_PKGS --break-system-packages
+"$PY" -m pip install --no-index --find-links "$WHEELS" $CORE_PKGS ${PIP_EXTRA[@]+"${PIP_EXTRA[@]}"}
 
 echo "[sapote-addons] installing figure/analysis deps (best-effort; skipped if not attached)..."
-pip install --no-index --find-links "$WHEELS" $FIGURE_PKGS --break-system-packages 2>/dev/null \
+"$PY" -m pip install --no-index --find-links "$WHEELS" $FIGURE_PKGS ${PIP_EXTRA[@]+"${PIP_EXTRA[@]}"} 2>/dev/null \
   && echo "[sapote-addons]   figure stack installed" \
   || echo "[sapote-addons]   figure wheels not present — core is fully functional; attach the figures addon for 'mamey figures'"
 
 echo "[sapote-addons] verifying imports..."
-python3 - <<'PY'
+"$PY" - <<'PY'
 import importlib
 # CORE — required; a failure here is a real error
 core = [("pyrodigal","S1 gene prediction"), ("pyfastani","S2 ANI"),

@@ -1,4 +1,7 @@
 > **Historical compatibility profile — not a default.** Read this only when explicitly comparing
+
+> **Reference status:** CURRENT_DOCS_INDEX.md does not explicitly mark this prompt current. Its original vetting/profile labels are historical context, not verification against the installed bundle. Select the current named contract and admitted evidence before reuse; follow AGENTS.md and docs/ASSISTANT_GOVERNANCE.md. The scoped corrections below do not certify every historical threshold or output requirement in this reference.
+
 > or reproducing the legacy workflow. Its former scope/format rules do not govern current work.
 > Use `AGENTS.md`, `docs/ASSISTANT_GOVERNANCE.md`, and the selected current machine profile.
 
@@ -125,7 +128,7 @@ Coords: [start]–[end] bp | Size: [N] kb | Edge: [status] | Arch: [grade] | TTA
 Run after the Triage First Board (Slim Module 12) and before Mode B. Outputs two ranked tables — antibacterial (AB) and antifungal (AF) — as independent tracks. A BGC can rank in both, one, or neither.
 
 **Exclusions (apply before scoring):**
-- NAPAA BGCs → excluded from both tracks; mark `NAPAA-EXCL`
+- NAPAA is registry-neutral, not lead-blocking or intrinsically excluded from either track; retain all source product tokens.
 - QS-ecology BGCs → excluded from both tracks; mark `QS-ECOLOGY-ONLY`
 
 **Split-pathway anchors (v9.1 two-level rule):** When a BGC is identified as a split-pathway anchor (Interior BGC with strongest biosynthetic logic in a multi-contig pathway unit), score using the pathway unit's combined evidence — not the individual fragment's Architecture grade. Do not apply the Edge/FC assembly penalty to an Interior anchor simply because a secondary fragment on another contig has Edge/FC status. The anchor's DAPR score must reflect the pathway unit as a whole.
@@ -189,7 +192,7 @@ Run after the Triage First Board (Slim Module 12) and before Mode B. Outputs two
 **Primary AB lead:** BGC[N] — [class] — AB score [X] ([band])
 **Primary AF lead:** BGC[N] — [class] — AF score [X] ([band])
 **Dual-threat BGCs (AB ≥10 AND AF ≥10):** [list, or NONE]
-**NAPAA excluded:** [BGC list, or NONE]
+**NAPAA context:** [source-bound observations, or NOT_SUPPLIED; no automatic exclusion]
 **QS-ecology only:** [BGC list, or NONE]
 ```
 
@@ -406,7 +409,7 @@ Before delivering any report, verify all items below. Failure to pass any gate =
 - [ ] Every enediyne BGC has a CalC/apo-protein check result
 - [ ] Every glycosylation-arm candidate (≥3 hits) has a §34.5 trap verdict and proposed pairing
 - [ ] Every QS-signal BGC has `[QS-ECOLOGY-ONLY]` flag and is routed to ecology only
-- [ ] Every NAPAA BGC has `[NAPAA]` flag and is excluded from all comparative claims
+- [ ] NAPAA remains neutral; comparative claims use the admitted cohort and current scoped policy, without a blanket class exclusion.
 - [ ] All abbreviated ledger entries (Arch E exception only) include the `§34 trap verdict` field
 - [ ] The hallucination-trap audit statement appears in the report
 - [ ] The claim-safety statement appears on every Mode B card

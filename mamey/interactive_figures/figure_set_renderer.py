@@ -164,7 +164,7 @@ def _require_single_antismash_profile(payload: dict[str, Any], governed: Sequenc
     if len(counts) == 1 and next(iter(counts)) in {"strict", "relaxed", "loose"}:
         return
     acknowledged = (payload.get("meta") or {}).get("antismashProfileMixAcknowledged")
-    if acknowledged == counts:
+    if acknowledged == counts and all(p in {"strict", "relaxed", "loose"} for p in counts):
         return
     detail = "; ".join(
         f"{p}: {n} ({', '.join(sorted((s for s, q in profiles.items() if q == p), key=_strain_key)[:5])}"

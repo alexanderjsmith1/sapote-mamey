@@ -17,7 +17,7 @@ deterministic stages; data flows as typed objects from `models.py` (`RunContext`
    each region becomes one `BGCRecord` with a stable `bgc_id` locked at parse time (the node-naming
    rule: every claim traces to a stable BGC node id). KnownClusterBlast / RiPP / Pfam / TIGRFAM
    evidence status is read. JSON handling defaults to `--json-evidence bounded` (streamed via the
-   vendored ijson, wall-clock capped) with TXT-only fallback; `full` mode refuses files > 20 MB.
+   vendored ijson, wall-clock capped) with TXT-only fallback; `full` mode refuses JSON files over 80,000,000 bytes (`FULL_MAX_JSON_BYTES`).
 2. **Ten source-derived scans** (`source_scans.py`) — class triggers (CCTT), chitinase context
    (CGAD), resistance tiers, TFBS, RiPP maturation (UMED), bldA/TTA codon usage, cassettes, and
    more, producing a `SourceScanBundle`. `rggmci.py` adds RG-GMCI: multi-contig split-pathway

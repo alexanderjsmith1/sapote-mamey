@@ -1853,11 +1853,12 @@ def run_one_strain(
     # functional_rescue_class (COMPLEMENTARY / BOTH_CORE / ACCESSORY_ONLY). A homology rescue is only
     # credible when the fragments are functionally complementary; BOTH_CORE corroborates a paralog verdict.
     try:
-        from .clusterblast_genes import (functional_profile_from_gene_context,
-                                          rescue_functional_complementarity)
+        from .clusterblast_genes import (functional_profile_from_gene_context, modular_continuation,
+                                          modular_profile_from_gene_context, rescue_functional_complementarity)
         from .gene_context import load_gene_context as _load_gc
         _gctx = _load_gc(package_dir, strain_id)
         _fprof = functional_profile_from_gene_context(_gctx)
+        _mprof = modular_profile_from_gene_context(_gctx)
         source_scans.functional_profiles = _fprof
         _rk = source_scans.rggmci.get("ranked_pairs", []) if source_scans.rggmci else []
         for _p in _rk:
@@ -1867,6 +1868,11 @@ def run_one_strain(
             _p["b_core_fraction"] = _fc.get("b_core_fraction")
             _p["a_functional_roles"] = "; ".join(_fc.get("a_roles", []))
             _p["b_functional_roles"] = "; ".join(_fc.get("b_roles", []))
+            # v9.7.443: module-aware reading, beside the class above; never feeds the _4D verdict.
+            _mc = modular_continuation(_mprof.get(_p.get("bgc_a")), _mprof.get(_p.get("bgc_b")))
+            _p["modular_continuation"] = _mc.get("modular_continuation")
+            for _k in ("a_assembly_line_cds", "b_assembly_line_cds", "a_release_cds", "b_release_cds"):
+                _p[_k] = _mc.get(_k, "")
         _stage(f"functional-complementarity annotated on {len(_rk)} RG-GMCI pairs")
     except Exception as _fp_exc:  # pragma: no cover - defensive
         source_scans.functional_profiles = {"status": f"ERROR_{type(_fp_exc).__name__}"}
@@ -3324,6 +3330,7 @@ def _write_package(run: MameyRun, package_dir: Path,
         "rescue_evidence_base", "knownclusterblast_refs", "clusterblast_refs",
         "functional_rescue_class", "a_core_fraction", "b_core_fraction",
         "a_functional_roles", "b_functional_roles",
+        "modular_continuation", "a_assembly_line_cds", "b_assembly_line_cds", "a_release_cds", "b_release_cds",
         "subject_tiling_verdict", "terminus_truncation_rescue", "terminus_override_note",
         "shared_class_tokens", "complementary_disjoint_refs", "overlapping_subject_refs",
         "n_a_only_subjects", "n_b_only_subjects", "n_shared_subjects",
@@ -7542,6 +7549,8 @@ def build_parser():
     dq.add_argument("--ledger", default=None, help="ledger path (default <out-root>/DELIVERABLE_QUEUE_LEDGER.json)")
     dq.add_argument("--no-resume", dest="no_resume", action="store_true", default=False,
                     help="reprocess strains already marked done in the ledger")
+    from .modeb_template_emitter import add_source_arguments as _add_queue_template_sources
+    _add_queue_template_sources(dq)
     dq.set_defaults(func=deliverable_queue_command)
 
     # Registry-backed, read-only user-facing deliverables discovery.  The
@@ -7638,16 +7647,8 @@ def build_parser():
                     help="Override the v9.7.344 BLASTp-completeness HARD gate with a logged reason "
                          "(recorded to manifest provenance). Without this, emission is REFUSED when "
                          "ingestable BLASTp is available on disk but not ingested.")
-    et.add_argument("--cohort-dir", default=None, dest="cohort_dir",
-                    help="Package root laid out as <dir>/<strain>/package/*_2_inventory.csv; "
-                         "pre-fills §44 prevalence (and §47 locus counts)")
-    et.add_argument("--reference-dir", default=None, dest="reference_dir",
-                    help="Reference package root, same layout; pre-fills §46 for the focal genus")
-    et.add_argument("--strain-metadata", default=None, dest="strain_metadata",
-                    help="TSV with strain/genus/host/excluded/exclusion_reason columns, used as "
-                         "deposited; supplies genus (§46), host (§47) and exclusions (§44)")
-    et.add_argument("--bigscape-regions-dir", default=None, dest="bigscape_regions_dir",
-                    help="Directory of region GBKs; §40 binds only on the exact full contig + region")
+    from .modeb_template_emitter import add_source_arguments as _add_template_sources
+    _add_template_sources(et)
     et.set_defaults(func=emit_modeb_template_command)
     # --- v9.7.194: contractual Mode B round orchestrator (emit + scaffold-verify + worklist) ---
     from .modeb_round import modeb_round_command
@@ -7659,6 +7660,7 @@ def build_parser():
                     help="Which BGCs (default: top N by Corrected_rank)")
     mr.add_argument("--from-precompute", default=None, dest="from_precompute",
                     help="cohort precompute dir — pre-fill §8/§11/§14 (and more) from the cohort tables, joined on assembly_locator (Part C)")
+    _add_template_sources(mr)
     mr.set_defaults(func=modeb_round_command)
 
     # v9.7.123 (SM-P1-004): claim-safety linter — post-hoc check on Mode B cards

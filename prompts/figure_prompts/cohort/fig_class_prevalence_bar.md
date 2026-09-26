@@ -3,7 +3,7 @@
 - **id:** `fig_class_prevalence_bar`
 - **category:** cohort
 - **audience:** manuscript + presentation
-- **output:** `fig_class_prevalence_bar.png` (slides, ≥200 dpi) + `.svg`/`.pdf` for print
+- **output:** `fig_class_prevalence_bar.png` (slides, ≥300 dpi) + `.svg`/`.pdf` for print
 
 ## Data
 - **source:** `figure_ready/class_prevalence.csv`
@@ -23,7 +23,9 @@ annotation: axis labels, legend, title, colorbar, and value labels flush at bar 
 *color* (with a legend entry) is allowed.
 
 ## Caption (suggested — claim-safe)
-> Product-class prevalence across the cohort (n = 18 strains), banded by how many strains carry each class. Universal classes are non-discriminating.
+Fill every placeholder from the admitted plotted inputs and retain their provenance. Confirm each result-bearing sentence against those inputs; omit or revise any statement that does not hold for this set. For lead tables, state the displayed row count separately from the cohort isolate count.
+
+> Product-class prevalence across the cohort (n = <admitted_isolate_n> isolates), banded by how many isolates carry each class. Universal classes are non-discriminating.
 
 ## Overlay suggestions (add downstream in PowerPoint / BioRender — NOT in the figure)
 - Shade the universal-class rows with a slide rectangle if you want to flag them as excluded.

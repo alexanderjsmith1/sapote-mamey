@@ -24,6 +24,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFTEST = ROOT / "tests" / "conftest.py"
+# conftest.py loads this helper from its own directory (v9.7.443 page-text ratchet); copy it too.
+RATCHET = ROOT / "tests" / "figure_page_text_ratchet.py"
 
 # A fast test in a file whose name carries no hint, parametrised with values that do.
 INNER = '''
@@ -41,6 +43,7 @@ def test_fast_but_parametrised_with_hint_words(target):
 
 def _run(tmp_path):
     shutil.copy(CONFTEST, tmp_path / "conftest.py")
+    shutil.copy(RATCHET, tmp_path / "figure_page_text_ratchet.py")
     (tmp_path / "test_partition_probe_v97416.py").write_text(INNER, encoding="utf-8")
     return subprocess.run(
         [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q",
@@ -67,6 +70,7 @@ def test_parametrisation_values_do_not_deselect_a_fast_test(tmp_path):
 def test_explicit_slow_marker_is_skipped_and_opt_in_runs(tmp_path):
     """The fix must not widen the fast partition to include genuinely slow files."""
     shutil.copy(CONFTEST, tmp_path / "conftest.py")
+    shutil.copy(RATCHET, tmp_path / "figure_page_text_ratchet.py")
     (tmp_path / "test_figure_probe_v97416.py").write_text(
         "import pytest\npytestmark = pytest.mark.slow\ndef test_probe():\n    assert True\n", encoding="utf-8")
     proc = subprocess.run(

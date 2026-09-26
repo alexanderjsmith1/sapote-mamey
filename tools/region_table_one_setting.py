@@ -14,7 +14,8 @@ What it does:
     claim one strain (byte-identical copies count once);
   * drops hard-excluded strains (mamey.exclusions) unless --no-exclusions, and says which;
   * drops regions on contigs listed in --drop-contigs STRAIN=removed_contigs.tsv (first column =
-    record id), for decontaminated assemblies, and reports how many listed contigs matched;
+    record id, or clade_decontam.py's contig_bins.tsv keep == 0 rows), for decontaminated
+    assemblies, and reports how many listed contigs matched;
   * writes one row per region and a receipt with each zip's sha256.
 
 Usage:
@@ -27,9 +28,9 @@ from __future__ import annotations
 
 import os as _os, sys as _sys
 _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 
 import argparse
-import csv
 import hashlib
 import re
 import sys
@@ -45,6 +46,7 @@ except ImportError:  # bare-script run from a foreign cwd
 
 from mamey.antismash_input import VALID_STRICTNESS, detect_strictness
 from mamey.ziputil import regular_file_names
+from bigscape_input_decontam_guard import removed_contig_ids
 
 REGION_GBK = re.compile(r"(?:^|/)([^/]+)\.region(\d+)\.gbk$")
 REGION_BLOCK = re.compile(r"\n     region .*?(?=\n     \S|\nORIGIN)", re.S)
@@ -80,14 +82,10 @@ def read_drop_lists(specs: list[str]) -> dict[str, set[str]]:
             raise ValueError(f"--drop-contigs needs STRAIN=path, got {spec!r}")
         if strain in out:
             raise ValueError(f"duplicate --drop-contigs strain {strain!r}")
-        with open(path, encoding="utf-8", newline="") as fh:
-            values = [row[0].strip() for row in csv.reader(fh, delimiter="\t")
-                      if row and row[0].strip() and not row[0].strip().startswith("#")]
-        if values and values[0].casefold() in {"contig", "record", "record_id"}:
-            values.pop(0)
+        values = removed_contig_ids(path)
         if not values:
             raise ValueError(f"--drop-contigs for {strain!r} has no contig IDs")
-        out[strain] = set(values)
+        out[strain] = values
     return out
 
 

@@ -1,6 +1,6 @@
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.442 / engine Mamey 1.9.169
+**Version:** v9.7.443 / engine Mamey 1.9.170
 
 Mamey extracts deterministic evidence from antiSMASH output. Sapote turns a validated evidence
 package into governed interpretation. Start at the [README](../../README.md). If you work through a
@@ -86,6 +86,10 @@ This first run deliberately skips the brief and the locus maps. `PRIVATE` labels
 artifacts; it does not claim that a public source genome is private. Choose another release tag
 only when it fits your output. If isolation metadata are missing, `--source 'not supplied'`
 records that gap; the GenBank `SOURCE` organism label in the archive is not the isolation habitat.
+
+Run each genome through antiSMASH as one job, and give Mamey that one result. `run` reads one ZIP per
+strain, so a genome split across several jobs becomes several partial packages. If the job used a
+record filter, record it as a property of that one run, for example "contigs ≥ 1.68 kb".
 
 Read the package path and status in the output. If validation fails, stop interpreting, record the
 reported issue and resolve it. A passing structural gate is not scientific acceptance.
@@ -265,6 +269,13 @@ database and, unless `--no-widgets` is set, tries to build the linked matrix and
 Check both the compute and the widget results; one successful stage does not prove every output
 exists.
 
+If a strain's assembly was decontaminated, keep its removed contigs out of the input. Stage with
+`tools/bigscape_prep.py --drop-contigs STRAIN=removed_contigs.tsv`, or check a staged folder with
+`tools/bigscape_input_decontam_guard.py --regions <dir> --removed STRAIN=removed_contigs.tsv`.
+Both refuse rather than guess. A drop list that matches no staged region is refused until you review
+it and pass `--allow-zero-drop STRAIN`. The guard exits non-zero when any staged region sits on a
+removed contig. The [BiG-SCAPE walkthrough](../BIGSCAPE_COHORT_WALKTHROUGH.md) covers staging.
+
 Use family membership to compare architectures across the sampled strains. Keep the run ID, cutoff,
 region membership, input hashes, reference-panel composition and contig-edge flags. Family
 identifiers are local to a run, and a singleton is not automatically a novel product. The
@@ -313,7 +324,8 @@ python tools/tree_bgc_overlay.py --config path/to/tree_overlay.json
 ```
 
 The config must bind the actual files and hashes; the command does not invent them. Supported
-strain-level tracks are ANI, BGC, DOMAIN, MODE_B and ASSEMBLY. It renders SVG/PNG artwork with
+strain-level tracks are ANI, BGC, DOMAIN, MODE_B, ASSEMBLY and BIOASSAY; the bioassay track needs an
+admitted selection (see below). It renders SVG/PNG artwork with
 reproducibility outputs. Placement renderers also support metadata-oriented tree views, with host
 and location data taken from a supplied source. Keep missing values as missing, check label clipping
 and track alignment, and keep the methods and caption sidecars with the final figure. The separate
@@ -388,7 +400,7 @@ input identity, diagnostics and resulting files. For the example package above:
 
 ```bash
 python mamey_run.py list-bgcs analysis/runs/EXAMPLE/package
-python mamey_run.py render-all-figures analysis/runs/EXAMPLE/package
+python mamey_run.py render-all-figures --package analysis/runs/EXAMPLE/package
 python mamey_run.py emit-modeb-template --help
 python mamey_run.py verify-modeb --help
 ```

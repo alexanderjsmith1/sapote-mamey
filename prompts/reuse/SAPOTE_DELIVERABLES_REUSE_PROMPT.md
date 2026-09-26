@@ -1,4 +1,7 @@
 # REUSE PROMPT — Full Sapote Deliverables Run
+
+> **Reference status:** CURRENT_DOCS_INDEX.md does not explicitly mark this prompt current. Its original vetting/profile labels are historical context, not verification against the installed bundle. Select the current named contract and admitted evidence before reuse; follow AGENTS.md and docs/ASSISTANT_GOVERNANCE.md. The scoped corrections below do not certify every historical threshold or output requirement in this reference.
+
 **Vetted against:** Sapote–Mamey v9.7.7 contract (evidencefix + locatorfix) · `docs/DELIVERABLE_CONTRACT.md`,
 `docs/WORKBOOK_SCHEMA.md`, `prompts/CLAUDE_SYSTEM_PROMPT.md`, and the monolith.
 **Use:** paste to the Sapote/Claude judgment layer when a sealed Mamey package exists
@@ -43,7 +46,7 @@ G3_Hallucination_Trap_Audit. Validate against WORKBOOK_SCHEMA on handoff.
   to the alias.
 - **Treatment status:** every BGC gets one of full Mode B / candidate card / abbreviated ledger /
   deferred / not applicable (Contract Part C). No PENDING stubs.
-- **Convention checks:** apply hglE-KS PREV-001 as **collection-specific** — state its prevalence against the strain set it was measured on, do NOT assume project-universal prevalence (on the current 18-strain banked set it is 4/18, all KCB-anchored); NAPAA exclusion (exclude as a **non-discriminating housekeeping-adjacent** class — list, don't interpret; not "ubiquitous"); corrected BGC count = Interior + 0.5×Edge + 0.25×FC; typed bioactivity metadata only, with `NOT_SUPPLIED` when absent.
+- **Convention checks:** hglE-KS/PREV-001 is informational, not a class downgrade; report prevalence only from the actual bound cohort, without a fixed historical denominator. NAPAA is neutral, neither lead-blocking nor intrinsically excluded from comparison. Preserve complete product tokens and distinguish genome-class saccharide-only display from the separately scoped wider genus/BiG-SCAPE family policy. Use current source-backed correction and typed assay contracts; missing observations are not measured negatives.
 - **Citation guardrail:** any PMID/DOI must be Bert-Mode verified (Verified/Partial buckets); never emit
   an unconfirmed identifier; defer if no network.
 - **EVIDENCE_PENDING:** mark (don't guess) any claim that genuinely needs HMMER/DIAMOND/BLASTp the
