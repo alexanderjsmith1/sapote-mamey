@@ -4,12 +4,15 @@ Lab Quest is a local accessibility and navigation layer over one explicitly conf
 Mamey code tier. It is not a second biological engine, a workspace-discovery tool, or scientific
 authority.
 
-**Status (v9.7.405 candidate):** the library (`mamey/lab_quest.py`), workflow registry
-(`mamey/lab_quest_registry.py`), the Streamlit app (`mamey/lab_quest_app.py`), the shared
-exact-locus display contract (`mamey/exact_identity.py`), and the portfolio/privacy/catalog layer
-(`mamey/portfolio_config.py`, `mamey/project_catalog.py`) are landed and tested. The `lab-quest`
-subcommand is registered in `mamey/cli.py` — `python mamey_run.py lab-quest ...` is a recognized
-subcommand.
+**Status (v9.7.444): an optional add-on.** Lab Quest is not part of the analysis methods, so it moved out of the
+core `mamey` package into `sapote_addons/lab_quest/`: the package `sapote_addons/lab_quest/sapote_lab_quest/`
+holds the library, the workflow registry and the Streamlit app. Its behaviour is unchanged. Install it from the bundle root with
+`pip install ./sapote_addons/lab_quest` (needs streamlit), or offline with
+`SAPOTE_INSTALL_LAB_QUEST=1 bash bundle_support/install_sapote_addons.sh` when a streamlit wheel is in the add-on pool.
+The core CLI registers `python mamey_run.py lab-quest ...` only when the add-on is installed; otherwise the command is
+absent from `--help` and typing it prints how to install it. The shared exact-locus contract
+(`mamey/exact_identity.py`) and the portfolio/privacy/catalog layer (`mamey/portfolio_config.py`,
+`mamey/project_catalog.py`, which write `lab_quest_outputs/`) stay in core.
 
 ## Install and launch
 
@@ -106,7 +109,7 @@ and `tools/project_catalog.py`.
 This layer deliberately does **not** reimplement privacy from scratch: it consumes
 `mamey/project_registry.py` as the single producer of a package's `privacy_tier` /
 `privacy_assignment_state` fields (see `mamey/models.py`), rather than adding a second or third
-privacy mechanism. `mamey/lab_quest.py`'s `PackageSnapshot` and `mamey/lab_quest_app.py`'s package
+privacy mechanism. `sapote_addons/lab_quest/sapote_lab_quest/lab_quest.py`'s `PackageSnapshot` and `sapote_addons/lab_quest/sapote_lab_quest/lab_quest_app.py`'s package
 station display and register a catalog entry for every validated package.
 
 **Still out of this candidate's grant:** the profile-backed extraction-admission layer

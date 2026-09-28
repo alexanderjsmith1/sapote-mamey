@@ -19,6 +19,7 @@ except ImportError:  # direct execution: no parent package to resolve against.
     from mamey.console import emit
 
 import csv
+import shlex
 import json
 import sys
 import warnings
@@ -38,8 +39,9 @@ def _inspect_strain_guess(path: Path) -> str:
     stem = _re.sub(r"(?i)(?:[ _-]+(?:loose|copy|new))+\s*$", "", stem)
     stem = stem.replace(" ", "_")
     stem = _re.sub(r"[^A-Za-z0-9_.-]+", "_", stem)
-    stem = _re.sub(r"_+", "_", stem).strip("_")
-    return stem or Path(path).stem
+    stem = _re.sub(r"_+", "_", stem).strip("_.-")
+    # Never reintroduce raw shell syntax or a leading option marker after sanitizing.
+    return stem or "ISOLATE"
 
 
 def classify_antismash_zip(names: list[str]) -> dict[str, object]:
@@ -202,7 +204,7 @@ def inspect_command(args) -> int:
     # Derive a ChatGPT-safe suggested strain name from the ZIP filename.
     strain_guess = _inspect_strain_guess(zip_path)
 
-    emit(f"\n  Capped-session run command (gold is the only analysis mode):", f"    python mamey_run.py run \\", f"        --strain {strain_guess} \\", f"        --input-zip \"{zip_path.name}\" \\", f"        --taxonomy \"<Genus species>\" \\", f"        --source \"<isolation source>\" \\", f"        --mode gold \\", f"        --release <PUBLIC|PRIVATE> \\", f"        --capped-session \\", f"        --json-evidence off \\", f"        --brief none", f"    Then validate: python mamey_run.py validate <outdir>/{strain_guess}/package", sep="\n")
+    emit(f"\n  Capped-session run command (gold is the only analysis mode):", f"    python mamey_run.py run \\", f"        --strain {strain_guess} \\", f"        --input-zip {shlex.quote(str(zip_path))} \\", f"        --taxonomy \"<Genus species>\" \\", f"        --source \"<isolation source>\" \\", f"        --mode gold \\", f"        --release <PUBLIC|PRIVATE> \\", f"        --capped-session \\", f"        --json-evidence off \\", f"        --brief none", f"    Then validate: python mamey_run.py validate <outdir>/{strain_guess}/package", sep="\n")
 
     if not json_files:
         emit(f"\n  ⚠  No JSON evidence found. The run command above already uses --json-evidence off.")

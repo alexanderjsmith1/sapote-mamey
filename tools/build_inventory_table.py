@@ -19,6 +19,7 @@ try:
 except ImportError:
     _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
     from mamey.dedup_and_guard import derive_release
+from mamey.class_architecture import with_family_labels  # noqa: E402
 
 def short_node(n):
     m = re.search(r"(NODE_\d+)", n or "")
@@ -31,7 +32,7 @@ def region_num(r):
     m = re.search(r"(\d+)", r or "")
     return int(m.group(1)) if m else 9999
 def headline_class(products):
-    tl = (products or "").lower()
+    tl = ";".join(with_family_labels(products or "", without=("napaa",))).lower()   # families; NAPAA stays excluded
     for key, lab in [("nrps", "NRPS"), ("transat", "PKS (trans-AT)"), ("t1pks", "PKS (T1)"),
                      ("t2pks", "PKS (T2)"), ("t3pks", "PKS (T3)"), ("lanthi", "RiPP"), ("ripp", "RiPP"),
                      ("lasso", "RiPP"), ("thiopep", "RiPP"), ("ranthi", "RiPP"), ("sacti", "RiPP"),

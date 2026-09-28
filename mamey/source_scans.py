@@ -44,6 +44,7 @@ from typing import Any
 from .models import BGCRecord, CDSFeature, DomainFeature, SourceScanBundle
 from .crosswalk import contig_key as _contig_key   # T-4: single shared normaliser (was a local def here)
 from .dkp_cdps import scan_dkp_cdps
+from .class_architecture import product_families, with_family_labels
 
 
 DOMAIN_CLASS_PATTERNS = {
@@ -194,7 +195,9 @@ def cctt_trigger_corroborated(trigger: str, products: list) -> bool:
     if not compat:
         return True
     blob = " ".join(products or []).lower()
-    return any(k in blob for k in compat)
+    # The family words in a compat set ("ripp", "nrps", "pks", …) mean any type in that antiSMASH category:
+    # "RRE-containing" is a RiPP and "thioamide-NRP" is an NRP, though neither name contains the word.
+    return any(k in blob for k in compat) or bool(product_families(products) & compat)
 
 
 def cctt_context_uncorroborated(per_bgc: dict, bgcs: list) -> list:
@@ -799,7 +802,7 @@ def scan_umed(cds_list: list[CDSFeature], bgcs: list[BGCRecord]) -> dict[str, An
     coupling = bgc_coupling(bgcs, scan, flank=5000)
     per_bgc = {}
     for bgc in bgcs:
-        product_text = " ".join(bgc.products).lower()
+        product_text = " ".join(with_family_labels(bgc.products)).lower()
         # BH-005: token-split before membership test so "thioamide" does not match inside
         # "thioamide-NRP" (its own assembly-line class, not RiPP-style maturation), nor
         # "nucleoside" inside "nucleoside-sugar".

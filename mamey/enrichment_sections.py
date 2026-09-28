@@ -28,6 +28,8 @@ import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
+from .class_architecture import with_family_labels
+
 
 # Domains that are ubiquitous NRPS/PKS machinery — not "interesting" as rare markers.
 _COMMON_MACHINERY = frozenset({
@@ -204,7 +206,8 @@ def emit_peptide_precursor(genes: list[Gene], products: str) -> str:
     ripp_like = [g for g in genes
                  if any(any(k.lower() in d.lower() for k in _RIPP_PRECURSOR_KEYS)
                         for d in g.domains)]
-    is_ripp = "ripp" in products.lower() or "lanthi" in products.lower()
+    _fam = ";".join(with_family_labels(products)).lower()
+    is_ripp = "ripp" in _fam or "lanthi" in _fam
     if not (short or ripp_like or is_ripp):
         return ""
     bits = ["§ Peptide-precursor scan. "]

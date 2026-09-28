@@ -34,6 +34,7 @@ except ImportError:  # direct execution: no parent package to resolve against.
     from mamey.console import emit
 
 import csv
+from mamey.class_architecture import with_family_labels  # antiSMASH families for groupings; products stay types
 try:
     from .csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter  # v9.7.410 CSV formula-cell guard (CLAUDE_410_csv_writer_coverage)
 except ImportError:
@@ -78,7 +79,7 @@ def _is_p450(*fields: str) -> bool:
 
 def _scaffold_of(products: str) -> str:
     """Coarse scaffold class from a BGC's antiSMASH product string (for role context, not a claim)."""
-    p = (products or "").lower()
+    p = ";".join(with_family_labels(products or "")).lower()
     has = lambda *ts: any(t in p for t in ts)
     tags = []
     if has("nrps"):

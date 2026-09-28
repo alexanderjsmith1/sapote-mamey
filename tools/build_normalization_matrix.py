@@ -32,6 +32,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     import os as _cs_os, sys as _cs_sys
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH families for groupings; products stay types
 import numpy as np
 import sys as _sys, os as _os
 
@@ -55,7 +56,7 @@ def compute_per_strain(banked):
     bgc=_read_json(os.path.join(banked,'bgc_data.json')); strains=bgc['strains']; bgcs=bgc['bgcs']
     ccount=defaultdict(Counter); den=defaultdict(Counter)
     for b in bgcs:
-        sid=b['sid']; p=(b.get('products') or '').lower()
+        sid=b['sid']; p=';'.join(with_family_labels(b.get('products') or '')).lower()
         for c in CLASSES:
             if c.lower() in p: ccount[c][sid]+=1
         for dn,toks in DEN_CLASSES.items():

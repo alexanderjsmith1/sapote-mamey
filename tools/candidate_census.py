@@ -48,6 +48,16 @@ def census(root: str) -> dict:
 
     for _dirpath, dirnames, filenames in os.walk(root, onerror=_record_walk_error):
         for d in dirnames:
+            child = os.path.join(_dirpath, d)
+            if os.path.islink(child):
+                # os.walk does not follow directory symlinks. Report the omitted
+                # subtree rather than certifying complete coverage or following
+                # links outside the candidate (or into a cycle).
+                traversal_errors.append({
+                    "path": os.path.abspath(child),
+                    "error_type": "DirectorySymlinkSkipped",
+                    "message": "Directory symlink was not traversed; coverage is incomplete",
+                })
             if d == "__pycache__":
                 pycache_dirs += 1
             elif d == ".pytest_cache":

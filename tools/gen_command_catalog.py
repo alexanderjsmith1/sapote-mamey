@@ -65,6 +65,13 @@ GROUPS: list[tuple[str, str, tuple[str, ...]]] = [
 ]
 
 
+# Optional add-on commands (v9.7.444) register only when their package is installed. The catalog always lists them
+# with this fixed text, so the generated file is the same with or without the add-on.
+ADDON_COMMANDS = {
+    "lab-quest": "Optional add-on, not installed by default: a local review UI over a sealed package. "
+                 "Install with `pip install ./sapote_addons/lab_quest`; see docs/LAB_QUEST.md.",
+}
+
 def _md_cell(value: str) -> str:
     """Escape prose for a Markdown table cell.
 
@@ -125,7 +132,10 @@ def render() -> str:
     for title, blurb, names in GROUPS:
         lines += [f"## {title}", "", f"_{blurb}_", "", "| command | what it does |", "|---|---|"]
         for n in names:
-            if n in subs:
+            if n in ADDON_COMMANDS:
+                seen.add(n)
+                lines.append(f"| `{n}` | {_md_cell(ADDON_COMMANDS[n])} |")
+            elif n in subs:
                 seen.add(n)
                 meta = subs[n]
                 help_ = _md_cell(meta["help"])

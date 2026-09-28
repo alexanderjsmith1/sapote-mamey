@@ -13,6 +13,8 @@ import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from 
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import argparse, os, json, sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))  # bundle root, for mamey
+from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH families for groupings; products stay types
 
 
 def _read_json(_path, *, encoding="utf-8"):
@@ -47,7 +49,7 @@ DEFAULT_MAP=('causemap_enediyne.png','the discrimination logic — class support
 def size_context(sid,bid,bgcs):
     # percentile of this BGC's size within its antiSMASH primary class across the cohort
     def primary(b):
-        cl=[p.strip().lower() for p in (b.get('products') or '').split(';') if p.strip()]
+        cl=[p.lower() for p in with_family_labels(b.get('products') or '')]
         for pref in ['transat-pks','t1pks','hr-t2pks','t2pks','nrps','terpene','ripp','siderophore']:
             if pref in cl: return pref
         return cl[0] if cl else 'other'

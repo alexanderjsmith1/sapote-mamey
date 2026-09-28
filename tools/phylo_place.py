@@ -1265,8 +1265,31 @@ def cmd_report(a):
         grp = safe_label(json.load(open(pj)).get("group", "unknown"),
                          field=f"group in {os.path.basename(pj)}")
     # 1) grafted tree: queries attached to the backbone (the picture)
-    from tools.graft_integrity import generate_checked_graft
+    from tools.graft_integrity import generate_checked_graft, generate_length_restored_graft
     graft = generate_checked_graft(gappa, a.jplace, outdir, _env(PLACEMENT_BIN))
+    # 1b) v9.7.444: EPA-ng writes a 0.105361 default on reference edges that are 0 in ref.tree and on some query
+    #     pendants; the graft inherits both. Everything drawn below uses the length-restored graft; the raw gappa
+    #     graft stays on disk. Without the refpkg's ref.tree, say so in the report instead of drawing defaults silently.
+    refpkg_dir = a.refpkg or os.path.join(os.path.dirname(os.path.abspath(a.jplace)), "..", "refpkg")
+    ref_tree = os.path.join(refpkg_dir, "ref.tree")
+    branch_lengths_verified = False
+    if os.path.exists(ref_tree):
+        place_dir = os.path.dirname(os.path.abspath(a.jplace))
+        model = next((m for m in (os.path.join(refpkg_dir, "ref.bestModel"),
+                                  os.path.join(refpkg_dir, "ref.raxml.raxml.bestModel")) if os.path.exists(m)), None)
+        q_aln = os.path.join(place_dir, "query.aligned.fasta")
+        graft, n_reset, n_default, how = generate_length_restored_graft(
+            graft, a.jplace, ref_tree, outdir, ref_aln=os.path.join(refpkg_dir, "ref.aln.fasta"),
+            query_aln=q_aln if os.path.exists(q_aln) else None, model=model,
+            raxml=_which("raxml-ng", PLACEMENT_BIN), env=_env(PLACEMENT_BIN))
+        branch_lengths_verified = not n_default or how == "RAXML_NG_EVALUATE"
+        sys.stdout.write(f"[report] branch lengths: {n_reset} reference edges restored from ref.tree; "
+                         f"{len(n_default)} default query pendants ({how}) -> {graft}\n")
+    else:
+        with open(os.path.join(outdir, "BRANCH_LENGTHS_NOT_RESTORED.txt"), "w") as handle:
+            handle.write("ref.tree not found next to this placement: the grafted tree may carry EPA-ng's 0.105361 "
+                         "default on reference edges and query pendants. Pass --refpkg.\n")
+        sys.stdout.write("[report] WARNING: ref.tree not found; branch lengths NOT restored (see BRANCH_LENGTHS_NOT_RESTORED.txt)\n")
     # 2) per-query neighborhood + confidence table
     subprocess.call([gappa, "examine", "assign", "--jplace-path", a.jplace,
                      "--out-dir", outdir, "--allow-file-overwriting"], env=_env(PLACEMENT_BIN)) \
@@ -1288,7 +1311,7 @@ def cmd_report(a):
     n_nb = _grafted_neighborhoods(graft, lm, nbtsv, query_names=query_names) if os.path.exists(graft) else 0
     # 5) figure: grafted tree, queries highlighted
     fig_png = os.path.join(outdir, f"{grp}_placement_tree.png")
-    if os.path.exists(graft):
+    if os.path.exists(graft) and branch_lengths_verified:
         try:
             _render_tree(graft, lm, fig_png, fig_png.replace(".png", ".svg"), grp,
                          query_names=query_names)
@@ -1296,8 +1319,10 @@ def cmd_report(a):
             sys.stdout.write((f"[report] figure skipped: {e}") + "\n"); fig_png = None
     else:
         fig_png = None
+        sys.stdout.write("[report] figures held: reference lengths or default query pendants are unverified; "
+                         "provide --refpkg and the re-estimation inputs before drawing.\n")
     # 5b) the required deliverable: colour-strip figure in both label variants (render_placement_COLOR_STRIPS.R)
-    if os.path.exists(graft):
+    if os.path.exists(graft) and branch_lengths_verified:
         lm_path = next((c for c in (os.path.join(os.path.dirname(a.jplace), "labelmap.tsv"),
                                     os.path.join(a.refpkg or "", "labelmap.tsv") if a.refpkg else "",
                                     os.path.join(os.path.dirname(a.jplace), "..", "refpkg", "labelmap.tsv")) if c and os.path.exists(c)), "")

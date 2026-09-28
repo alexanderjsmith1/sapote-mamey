@@ -46,7 +46,7 @@ def _scan(root: Path) -> dict[str, list[str]]:
 
 def test_tool_layer_is_cohort_id_free():
     hits = {}
-    for sub in ("tools", "deliverable_tools"):
+    for sub in ("tools", "deliverable_tools", "packaging"):   # packaging/: the standalone rggmci source (v9.7.444)
         hits.update(_scan(ROOT / sub))
     assert not hits, "unaccounted cohort identifiers in tool-layer source: %r" % hits
 

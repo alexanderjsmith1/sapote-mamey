@@ -47,6 +47,7 @@ except ImportError:  # direct execution: no parent package to resolve against.
     from mamey.console import emit
 
 from mamey import __version__
+from mamey.class_architecture import with_family_labels  # antiSMASH families for groupings; products stay types
 
 import contextlib as _contextlib
 import json
@@ -349,7 +350,7 @@ def _gene_backed_carotenoid_bgcs(run: "MameyRun") -> set[str]:
 
 def _b2_product_class_rows(run: "MameyRun", counts_reliability: str) -> list[dict[str, Any]]:
     """Build independently selectable raw and gene-backed B2 label views."""
-    products = [c for bgc in run.bgcs for c in bgc.products]
+    products = [c for bgc in run.bgcs for c in with_family_labels(bgc.products)]   # category columns count per region
     raw = {"strain": run.context.strain_id}
     raw.update(_b2_product_class_counts(products))
     raw["label_provenance"] = "RAW_ANTISMASH"

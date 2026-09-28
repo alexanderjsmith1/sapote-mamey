@@ -37,6 +37,14 @@
   ],
   "probes": [
     {
+      "id": "rggmci_package_parity",
+      "input": "tests/fixtures/rggmci_public_VWPH00000000.1_subset.zip",
+      "input_sha256": "1555ac7d756bb3a174a0be43952b4fd21a42b9c08d2cf5f6b17750bc2a9353bb",
+      "kind": "pytest",
+      "expected_exit_code": 0,
+      "command": ["-m", "pytest", "tests/test_444_rggmci_package_parity.py", "-q", "--no-header", "--no-summary"]
+    },
+    {
       "id": "synthetic_tigrfam_parser",
       "input": "tests/fixtures/synthetic_tigrfam_antismash.zip",
       "input_sha256": "5b916d12bb7548e5ce3d61ebe51fb4a8975efedcf58087a8338265e989cc2bc3",
@@ -60,6 +68,156 @@
       "kind": "calibration",
       "expected_exit_code": 0,
       "command": ["tools/calibration_run.py"]
+    },
+    {
+        "id": "rggmci_rescue_groups_fixture",
+        "input": "tests/fixtures/rggmci_public_MTQP00000000.1_groups_subset.zip",
+        "input_sha256": "666c8b50524bd3177f2e444712bbcc1479ce100a70662c2c13a9afb992fc8637",
+        "kind": "pytest",
+        "expected_exit_code": 0,
+        "command": [
+            "-m",
+            "pytest",
+            "tests/test_444_rggmci_rescue_groups_are_analysis_units.py",
+            "-q",
+            "--no-header",
+            "--no-summary"
+        ]
+    },
+    {
+        "id": "task40_F001_regression",
+        "input": "tests/fixtures/task40_F001_public.gbk",
+        "input_sha256": "a1a54f2914763ec2a8a48e43c10a2d4ff5cfb848076260493519c85f6ab1b7ab",
+        "kind": "pytest",
+        "expected_exit_code": 0,
+        "command": [
+            "-m",
+            "pytest",
+            "tests/test_task40_F001.py",
+            "-q",
+            "--no-header",
+            "--no-summary"
+        ]
+    },
+    {
+        "id": "task40_F002_regression",
+        "input": "tests/fixtures/task40_F002_public.gbk",
+        "input_sha256": "a1a54f2914763ec2a8a48e43c10a2d4ff5cfb848076260493519c85f6ab1b7ab",
+        "kind": "pytest",
+        "expected_exit_code": 0,
+        "command": [
+            "-m",
+            "pytest",
+            "tests/test_task40_F002.py",
+            "-q",
+            "--no-header",
+            "--no-summary"
+        ]
+    },
+    {
+        "id": "task40_F003_regression",
+        "input": "tests/fixtures/task40_F003_public.gbk",
+        "input_sha256": "a1a54f2914763ec2a8a48e43c10a2d4ff5cfb848076260493519c85f6ab1b7ab",
+        "kind": "pytest",
+        "expected_exit_code": 0,
+        "command": [
+            "-m",
+            "pytest",
+            "tests/test_task40_F003.py",
+            "-q",
+            "--no-header",
+            "--no-summary"
+        ]
+    },
+    {
+        "id": "task40_F004_regression",
+        "input": "tests/fixtures/task40_F004_public.gbk",
+        "input_sha256": "a1a54f2914763ec2a8a48e43c10a2d4ff5cfb848076260493519c85f6ab1b7ab",
+        "kind": "pytest",
+        "expected_exit_code": 0,
+        "command": [
+            "-m",
+            "pytest",
+            "tests/test_task40_F004.py",
+            "-q",
+            "--no-header",
+            "--no-summary"
+        ]
+    },
+    {
+        "id": "task40_F005_regression",
+        "input": "tests/fixtures/task40_F005_public.gbk",
+        "input_sha256": "a1a54f2914763ec2a8a48e43c10a2d4ff5cfb848076260493519c85f6ab1b7ab",
+        "kind": "pytest",
+        "expected_exit_code": 0,
+        "command": [
+            "-m",
+            "pytest",
+            "tests/test_task40_F005.py",
+            "-q",
+            "--no-header",
+            "--no-summary"
+        ]
+    },
+    {
+        "id": "task40_F006_regression",
+        "input": "tests/fixtures/task40_F006_public.gbk",
+        "input_sha256": "a1a54f2914763ec2a8a48e43c10a2d4ff5cfb848076260493519c85f6ab1b7ab",
+        "kind": "pytest",
+        "expected_exit_code": 0,
+        "command": [
+            "-m",
+            "pytest",
+            "tests/test_task40_F006.py",
+            "-q",
+            "--no-header",
+            "--no-summary"
+        ]
+    },
+    {
+        "id": "task40_F007_regression",
+        "input": "tests/fixtures/task40_F007_public.gbk",
+        "input_sha256": "a1a54f2914763ec2a8a48e43c10a2d4ff5cfb848076260493519c85f6ab1b7ab",
+        "kind": "pytest",
+        "expected_exit_code": 0,
+        "command": [
+            "-m",
+            "pytest",
+            "tests/test_task40_F007.py",
+            "-q",
+            "--no-header",
+            "--no-summary"
+        ]
+    },
+    {
+        "id": "task40_F008_regression",
+        "input": "tests/fixtures/task40_F008_public.gbk",
+        "input_sha256": "a1a54f2914763ec2a8a48e43c10a2d4ff5cfb848076260493519c85f6ab1b7ab",
+        "kind": "pytest",
+        "expected_exit_code": 0,
+        "command": [
+            "-m",
+            "pytest",
+            "tests/test_task40_F008.py",
+            "-q",
+            "--no-header",
+            "--no-summary"
+        ]
+    },
+    {
+        "id": "task40_F009_regression",
+        "input": "tests/fixtures/task40_F009_public.gbk",
+        "input_sha256": "a1a54f2914763ec2a8a48e43c10a2d4ff5cfb848076260493519c85f6ab1b7ab",
+        "kind": "pytest",
+        "expected_exit_code": 0,
+        "command": [
+            "-m",
+            "pytest",
+            "tests/test_task40_F009.py",
+            "-q",
+            "--no-header",
+            "--no-summary"
+        ]
     }
   ],
   "legitimate_volatile_fields": {

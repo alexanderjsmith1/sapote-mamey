@@ -63,7 +63,9 @@ def test_runner_wires_the_hard_qc_and_determinism():
     assert "phylo_evidence" in src
     # determinism: seed pinned, AUTO gone from the iqtree invocation
     assert "--seed" in src or "-seed" in src
-    assert re.search(r'"-seed",\s*str\(a\.seed\)', src)
+    # v9.7.444: the command now lives in iqtree_command(..., seed, ...); the behaviour is tested directly in
+    # test_444_run_planned_tree_restricts_modelfinder.py
+    assert re.search(r'"-seed",\s*str\((?:a\.)?seed\)', src)
     assert '"-T", "AUTO"' not in src
 
 

@@ -23,6 +23,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     import os as _cs_os, sys as _cs_sys
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH families for groupings; products stay types
 
 from _wbio import atomic_save, atomic_open
 
@@ -87,7 +88,7 @@ def build_board(bgc_data, deep_data, tigr, bgc_markers=None, rescue=None):
     cctt_fallback={(r['sid'],r['bgc_id']): r.get('cctt_triggers') for r in deep_data.get('bgc_profile',[])}
     boards={}
     for b in bgcs:
-        sid=b['sid']; prods=[p for p in (b.get('products') or '').split(';') if p]
+        sid=b['sid']; prods=with_family_labels(b.get('products') or '', without=('napaa',))   # NAPAA stays housekeeping (PRIMMET)
         pset=set(prods)
         hi=sorted(pset & HIGH)                       # specialized product classes
         # per-BGC banked markers (CCTT + TIGRFAM), uniform across all strains

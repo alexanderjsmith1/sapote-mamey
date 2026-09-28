@@ -49,6 +49,7 @@ import csv
 import json
 from pathlib import Path
 from typing import Any
+from mamey.class_architecture import with_family_labels  # antiSMASH families for groupings; products stay types
 
 from . import judgment_store as js
 from . import BUNDLE_VERSION as _ACTIVE_BUNDLE_VERSION
@@ -616,7 +617,7 @@ def _fermentation_draft(pkg: Path) -> str:
             import collections
             c = collections.Counter()
             for r in csv.DictReader(tb.open(newline="", encoding="utf-8")):
-                for p in (r.get("Products", "") or "").replace(",", ";").split(";"):
+                for p in with_family_labels(r.get("Products", "") or ""):
                     p = p.strip().lower()
                     if p and p not in ("terpene", "ectoine", "other", "saccharide", "carotenoid",
                                        "hopene", "arylpolyene", "melanin", "napaa", "betalactone"):

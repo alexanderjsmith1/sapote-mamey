@@ -99,7 +99,7 @@ class ReleaseCutIntegrityTests(unittest.TestCase):
         final_suite = text.index('say "gate: final full suite"')
         final_bind = text.index("gen_release_manifest.py --apply --pytest-log")
         identity = text.index('say "gate: release identity"')
-        tier_cut = text.index('say "cut five tiers')
+        tier_cut = text.index('say "cut the CODE tier')
         self.assertLess(baseline, fixed_point)
         self.assertLess(fixed_point, final_suite)
         self.assertLess(final_suite, final_bind)

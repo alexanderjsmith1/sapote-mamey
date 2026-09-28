@@ -43,6 +43,7 @@ def _source(tmp_path: Path) -> Path:
 def _run(src: Path, out: Path, *, env_extra: dict[str, str] | None = None):
     env = {
         **os.environ,
+        "SAPOTE_ENABLE_DISABLED_TIERS": "1",  # v9.7.444: the merged tier is disabled by default
         "BUILD_STAMP": STAMP,
         "SKIP_INTIER_PYTEST": "1",
         **(env_extra or {}),

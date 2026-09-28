@@ -1,4 +1,9 @@
 from __future__ import annotations
+# Lab Quest is an optional add-on (v9.7.444): tests import it from the bundle's source, so they run without
+# installing it.
+import sys as _lq_sys
+from pathlib import Path as _LqPath
+_lq_sys.path.insert(0, str(_LqPath(__file__).resolve().parents[1] / "sapote_addons" / "lab_quest"))
 
 import csv
 import argparse
@@ -14,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from mamey.exact_identity import ExactLocusIdentityError, exact_locus_display
-from mamey.lab_quest import (
+from sapote_lab_quest.lab_quest import (
     EngineBindingError,
     PackageSnapshot,
     build_engine_command,
@@ -35,7 +40,7 @@ from mamey.lab_quest import (
     validate_strain_token,
     write_run_receipt,
 )
-from mamey.lab_quest_registry import EvidenceState, STATIONS, WorkflowRegistry, WorkflowState
+from sapote_lab_quest.lab_quest_registry import EvidenceState, STATIONS, WorkflowRegistry, WorkflowState
 from mamey.project_catalog import ProjectCatalog
 
 
@@ -101,7 +106,7 @@ def _fixture_package(project: Path) -> PackageSnapshot:
 
 
 def _snapshot_with_hash(snapshot: PackageSnapshot) -> PackageSnapshot:
-    from mamey.lab_quest import sha256_file
+    from sapote_lab_quest.lab_quest import sha256_file
 
     return PackageSnapshot(
         **{**snapshot.__dict__, "manifest_sha256": sha256_file(snapshot.package / "manifest.json")}
@@ -347,7 +352,7 @@ def test_scientific_review_record_is_persona_free_and_claim_safe(tmp_path):
 def test_package_snapshot_joins_exact_identity_and_fails_closed(monkeypatch, tmp_path):
     project = tmp_path / "project"
     snapshot = _fixture_package(project)
-    monkeypatch.setattr("mamey.lab_quest.validate_package", lambda *_args, **_kwargs: {"status": "PASS"})
+    monkeypatch.setattr("sapote_lab_quest.lab_quest.validate_package", lambda *_args, **_kwargs: {"status": "PASS"})
     loaded = load_package_snapshot(snapshot.package)
     assert loaded.inventory[0]["exact_locus"].endswith("/ region001 / BGC001")
     row = {"BGC_ID": "BGC001", "Node_ID": "NODE_1", "antiSMASH_Region": "region001"}
@@ -366,8 +371,8 @@ def test_package_validation_executes_bound_runner_before_snapshot_admission(monk
         observed["command"] = command
         return subprocess.CompletedProcess(command, 0, "validated", "")
 
-    monkeypatch.setattr("mamey.lab_quest.run_bound_command", fake_run)
-    monkeypatch.setattr("mamey.lab_quest.load_package_snapshot", lambda package: _snapshot_with_hash(snapshot))
+    monkeypatch.setattr("sapote_lab_quest.lab_quest.run_bound_command", fake_run)
+    monkeypatch.setattr("sapote_lab_quest.lab_quest.load_package_snapshot", lambda package: _snapshot_with_hash(snapshot))
     command, completed, admitted = validate_package_with_bound_engine(
         binding=binding,
         project_root=project,
@@ -457,7 +462,7 @@ def test_launcher_requires_binding_and_is_loopback_only(tmp_path):
 
 
 def test_interface_keeps_provenance_accessibility_and_admission_controls_visible():
-    app = Path(__file__).resolve().parents[1] / "mamey" / "lab_quest_app.py"
+    app = Path(__file__).resolve().parents[1] / "sapote_addons" / "lab_quest" / "sapote_lab_quest" / "lab_quest_app.py"
     source = app.read_text(encoding="utf-8")
     assert "_display_provenance(binding, root, run, snapshot)" in source
     assert 'os.environ.get("MAMEY_LAB_QUEST_ROOT")' in source
@@ -482,27 +487,37 @@ def test_streamlit_six_station_smoke_when_optional_dependency_is_installed(tmp_p
     monkeypatch.setenv("MAMEY_LAB_QUEST_CODE_TIER", str(code_tier))
     monkeypatch.setenv("MAMEY_LAB_QUEST_EXPECT_BUNDLE", "9.7.test")
     monkeypatch.setenv("MAMEY_LAB_QUEST_EXPECT_ENGINE", "1.9.test")
-    app = Path(__file__).resolve().parents[1] / "mamey" / "lab_quest_app.py"
+    app = Path(__file__).resolve().parents[1] / "sapote_addons" / "lab_quest" / "sapote_lab_quest" / "lab_quest_app.py"
     at = AppTest.from_file(str(app)).run()
     assert not at.exception
     assert len(at.tabs) == 6
 
 
-# v9.7.405: the cli.py `lab-quest` registration hunk landed at composition (Black Cherry); skip lifted.
+# v9.7.444: Lab Quest is an optional add-on. A clean extracted bundle carries its sources under sapote_addons/;
+# with the add-on on the path `lab-quest --help` works, without it the command says how to install it.
 def test_clean_extracted_bundle_smoke_has_portable_lab_quest_sources(tmp_path):
     source = Path(__file__).resolve().parents[1]
     staged = tmp_path / "staged_bundle"
     shutil.copytree(source / "mamey", staged / "mamey")
+    shutil.copytree(source / "sapote_addons" / "lab_quest", staged / "sapote_addons" / "lab_quest")
     shutil.copy2(source / "mamey_run.py", staged / "mamey_run.py")
     shutil.copy2(source / "pyproject.toml", staged / "pyproject.toml")
     archive = shutil.make_archive(str(tmp_path / "portable_bundle"), "zip", staged)
     extracted = tmp_path / "extracted"
     shutil.unpack_archive(archive, extracted)
-    for relative in ("mamey/lab_quest.py", "mamey/lab_quest_registry.py", "mamey/lab_quest_app.py"):
-        assert (extracted / relative).is_file()
-    text = "\n".join((extracted / rel).read_text(encoding="utf-8") for rel in ("mamey/lab_quest.py", "mamey/lab_quest_app.py"))
+    addon = extracted / "sapote_addons" / "lab_quest"
+    for name in ("lab_quest.py", "lab_quest_registry.py", "lab_quest_app.py"):
+        assert (addon / "sapote_lab_quest" / name).is_file()
+        assert not (extracted / "mamey" / name).exists()
+    text = "\n".join((addon / "sapote_lab_quest" / n).read_text(encoding="utf-8") for n in ("lab_quest.py", "lab_quest_app.py"))
     assert "/Users/" not in text and "fonts.googleapis" not in text and "unsafe_allow_html" not in text
-    result = subprocess.run([sys.executable, str(extracted / "mamey_run.py"), "lab-quest", "--help"], capture_output=True, text=True, check=False, timeout=60)
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    missing = subprocess.run([sys.executable, str(extracted / "mamey_run.py"), "lab-quest", "--help"],
+                             capture_output=True, text=True, check=False, timeout=60, env=env)
+    assert missing.returncode == 2 and "sapote_addons/lab_quest" in missing.stderr
+    result = subprocess.run([sys.executable, str(extracted / "mamey_run.py"), "lab-quest", "--help"],
+                            capture_output=True, text=True, check=False, timeout=60,
+                            env={**env, "PYTHONPATH": str(addon)})
     assert result.returncode == 0
     assert "--project-root" in result.stdout
     assert "--code-tier" in result.stdout and "--expect-bundle-version" in result.stdout

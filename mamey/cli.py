@@ -641,6 +641,11 @@ def _write_start_here(package_dir, strain_id, mode, status, raw, interior, edge,
         f"   other the accessory genes; what a real split looks like) > **BOTH_CORE** (both fragments\n"
         f"   carry a near-complete core — corroborates PARALOGY, not a split) > **ACCESSORY_ONLY**\n"
         f"   (shared accessory genes only) > **AMBIGUOUS**.\n"
+        f"   `acceptance_gate` names the gate that kept or demoted the pair (for example\n"
+        f"   `ST-PARALOG_no_complementarity_proof` or `DEMOTED_HUB_PROMISCUITY_degree_5_gt_4`); read it before\n"
+        f"   treating a MODERATE or LOW pair as absent evidence.\n"
+        f"   Pairs that involve a region antiSMASH places inside a contig are never rescues; they are listed apart in\n"
+        f"   `{strain_id}_4A_RGGMCI_related_loci.csv` (`RELATED_LOCUS_NOT_A_RESCUE`) as possible related loci.\n"
         f"5. Caution: high pair-count is NOT high confidence. A fragment that matches many reference\n"
         f"   clusters is usually promiscuous, not multiply-split — filter to HIGH/MODERATE and read\n"
         f"   `functional_rescue_class` before calling any link.\n"
@@ -3127,6 +3132,55 @@ def _write_axis_lead_boards(package_dir, strain, triage, bgc_by_id, issues):
     _phase_receipt(package_dir, "axis_lead_boards", "END")
 
 
+RELATED_LOCI_HEADERS = [
+    "pair", "bgc_a", "contig_a", "products_a", "edge_a", "bgc_b", "contig_b", "products_b", "edge_b",
+    "interior_side", "related_because", "rggmci_confidence", "shared_reference_grade", "rggmci_score", "acceptance_gate",
+    "subject_tiling_verdict", "good_geometry_references", "mibig_good_geometry_references", "best_sources",
+]
+
+
+RGGMCI_GROUP_HEADERS = ["group", "n_regions", "n_contigs", "high_pairs", "regions", "pair_keys", "possible_moderate_links",
+                        "group_gbk", "members_tsv", "gbk_status", "label"]
+
+
+def _write_rggmci_groups(run: MameyRun, package_dir: Path, strain: str, groups: list[dict]) -> None:
+    """`_4A_RGGMCI_groups.csv`, plus one multi-record GenBank file and members table per group.
+
+    Each group file holds its regions' own antiSMASH records one after another; nothing is joined. The completeness,
+    gene-compare, reference-align and relate tools read every record, so a group file is one query there.
+    """
+    import zipfile
+    from .rescue_groups import write_group_genbanks
+    by_id = {b.bgc_id: b for b in run.bgcs}
+    regions = {b.bgc_id: {"strain": strain, "contig": b.contig, "antismash_region": b.antismash_region,
+                          "source_gbk": b.source_gbk, "products": list(b.products or []), "edge_status": b.edge_status}
+               for b in run.bgcs}
+    status = {}
+    if groups:
+        try:
+            status = {r["group"]: r for r in write_group_genbanks(
+                run.context.input_zip, groups, regions, package_dir / f"{strain}_4A_RGGMCI_groups",
+                f"{strain}_RGGMCI")}
+        except (OSError, zipfile.BadZipFile) as exc:   # the table still lists every group
+            status = {g["group"]: {"status": f"NOT_WRITTEN: {exc}"} for g in groups}
+
+    def ident(bid: str) -> str:
+        b = by_id.get(bid)
+        return f"{strain} / {b.contig} / {b.antismash_region} / {bid}" if b else bid
+
+    with _atomic_open_pkg(package_dir / f"{strain}_4A_RGGMCI_groups.csv", "w", newline="") as f:
+        w = _SafeWriter(f)
+        w.writerow(RGGMCI_GROUP_HEADERS)
+        for g in groups:
+            st = status.get(g["group"], {})
+            w.writerow([g["group"], g["n_regions"], g["n_contigs"], g["high_pairs"],
+                        "; ".join(ident(r["bgc_id"]) for r in g["regions"]), "; ".join(g["pairs"]),
+                        "; ".join(g["possible_moderate_links"]),
+                        f"{strain}_4A_RGGMCI_groups/{st['gbk']}" if st.get("gbk") else "",
+                        f"{strain}_4A_RGGMCI_groups/{st['members']}" if st.get("members") else "",
+                        st.get("status", ""), g["label"]])
+
+
 def _write_package(run: MameyRun, package_dir: Path,
                    antismash_evidence: dict,
                    antismash_profile: str = "auto") -> None:
@@ -3319,6 +3373,11 @@ def _write_package(run: MameyRun, package_dir: Path,
 
     # 4A — full RG-GMCI outputs (must exist before lead ranking)
     rggmci = ss.rggmci if ss else {}
+    # Candidate groups: HIGH cross-contig rescues that share a region, one analysis unit per group (same code as
+    # the standalone rggmci package).
+    from .rescue_groups import candidate_groups as _candidate_groups
+    if rggmci:
+        rggmci["candidate_groups"] = _candidate_groups(rggmci.get("ranked_pairs", []))
     _atomic_write_manifest_text(package_dir / f"{strain}_4A_RGGMCI_full.json",
         json.dumps(rggmci, indent=2))
     rg_headers = [
@@ -3337,12 +3396,23 @@ def _write_package(run: MameyRun, package_dir: Path,
         "a_only_subjects", "b_only_subjects", "shared_subjects",
         "shared_reference_type_tokens", "shared_product_tokens", "best_sources",
         "interpretation_guard",
+        # why the pair holds its confidence (the gate that kept or demoted it), and the inputs of two gates;
+        # the standalone rggmci package shows the same columns
+        "acceptance_gate", "max_endpoint_hub_degree", "mibig_good_geometry_references",
     ]
     with _atomic_open_pkg(package_dir / f"{strain}_4A_RGGMCI_ranked_pairs.csv", "w", newline="") as f:
         w = _SafeWriter(f)
         w.writerow(rg_headers)
         for row in rggmci.get("ranked_pairs", []):
             w.writerow([row.get(h, "") for h in rg_headers])
+    # Pairs with an interior region: related loci, never contig rescues (Alex, 2026-09-27). Kept apart from the
+    # ranked pairs so no reader can take one for a rescue.
+    with _atomic_open_pkg(package_dir / f"{strain}_4A_RGGMCI_related_loci.csv", "w", newline="") as f:
+        w = _SafeWriter(f)
+        w.writerow(RELATED_LOCI_HEADERS)
+        for row in rggmci.get("related_locus_pairs", []):
+            w.writerow([row.get(h, "") for h in RELATED_LOCI_HEADERS])
+    _write_rggmci_groups(run, package_dir, strain, rggmci.get("candidate_groups") or [])
     # --- _4D two-proof rescue verdict (.359, phylogenomics-lane P358): join RG-GMCI _4A (reference-based, just written
     # above) x KS-clade _4B (reference-free, computed in the pks_ks_scan phase). Placed HERE — not beside the
     # _4B scan — because two_proof_join reads the _4A CSV from disk, which only exists after this write.
@@ -5647,6 +5717,15 @@ def _phylo_run_command(args) -> int:
     if getattr(args, "ani_refs", None): argv += ["--ani-refs", args.ani_refs]
     if getattr(args, "ani_queries", None): argv += ["--ani-queries", args.ani_queries]
     if getattr(args, "signoff", None): argv += ["--signoff", args.signoff]
+    # v9.7.444: forward the runner's remaining options. Unset ones are not passed, so the runner's own defaults
+    # (IQ-TREE -T 1, seed 12345) still apply when the caller does not choose.
+    if getattr(args, "iqtree_threads", None): argv += ["--iqtree-threads", str(args.iqtree_threads)]
+    if getattr(args, "iqtree_model", None): argv += ["--iqtree-model", args.iqtree_model]
+    if getattr(args, "seed", None) is not None: argv += ["--seed", str(args.seed)]
+    if getattr(args, "tree_spec", None): argv += ["--tree-spec", args.tree_spec]
+    if getattr(args, "query_tips", None): argv += ["--query-tips", args.query_tips]
+    if getattr(args, "allow_reference_drop", False): argv += ["--allow-reference-drop"]
+    if getattr(args, "hmm_sha256", None): argv += ["--hmm-sha256", args.hmm_sha256]
     if getattr(args, "approved", False): argv += ["--approved"]
     try:
         return mod.main(argv)
@@ -6324,6 +6403,20 @@ def build_parser():
     pr.add_argument("--ani-queries", dest="ani_queries", default=None,
                     help="Optional: query FASTA paths for fastANI (default: --genome-list)")
     pr.add_argument("--signoff", default=None, help="Optional: path to signoff_check.py")
+    pr.add_argument("--iqtree-threads", dest="iqtree_threads", default=None,
+                    help="IQ-TREE -T value (runner default 1, for run-to-run determinism). Record the value used in Methods.")
+    pr.add_argument("--iqtree-model", dest="iqtree_model", default=None,
+                    help="IQ-TREE model (runner default: the documented restricted ModelFinder search; "
+                         "'MFP' = unrestricted; or a fixed model such as LG+F+G4)")
+    pr.add_argument("--seed", type=int, default=None, help="IQ-TREE --seed (runner default 12345)")
+    pr.add_argument("--tree-spec", dest="tree_spec", default=None,
+                    help="TREE_SPEC.json; its queries/query_tips list declares which tips are queries")
+    pr.add_argument("--query-tips", dest="query_tips", default=None,
+                    help="Comma-separated query tip labels (overrides TREE_SPEC)")
+    pr.add_argument("--allow-reference-drop", dest="allow_reference_drop", action="store_true",
+                    help="Passed to the runner; see tools/run_planned_tree.py --help")
+    pr.add_argument("--hmm-sha256", dest="hmm_sha256", default=None,
+                    help="Optional expected sha256 (or prefix) of the resolved HMM file")
     pr.add_argument("--approved", action="store_true",
                     help="REQUIRED to run. Affirms a human approved this CPU run (tree-approval gate).")
     pr.set_defaults(func=_phylo_run_command)
@@ -7176,9 +7269,12 @@ def build_parser():
     # lab-quest (v9.7.390 candidate, B8/v9.7.405): optional local UI bound to this installed
     # engine. The launcher accepts a user-selected project root; it never searches personal
     # workspaces for an arbitrary Mamey source tree or treats interface progress as scientific
-    # evidence. See mamey/lab_quest.py / lab_quest_registry.py / lab_quest_app.py / docs/LAB_QUEST.md.
-    from . import lab_quest as _lab_quest
-    _lab_quest.register_subparser(sub)
+    # evidence. See sapote_addons/lab_quest/ and docs/LAB_QUEST.md.
+    # v9.7.444: Lab Quest is an optional add-on (sapote_addons/lab_quest, package sapote_lab_quest).
+    # Registered only when installed; otherwise a hidden stub says how to install it.
+    if _lab_quest_available():
+        from sapote_lab_quest import lab_quest as _lab_quest
+        _lab_quest.register_subparser(sub)
 
     # emit-modeb-cards (v9.7.330, Blue): compact auto-filled per-BGC Mode-B DATA cards (composition,
     # RG-GMCI split-pathway banner, auto-priors, architecture domain-counts). Complementary to
@@ -8214,8 +8310,22 @@ def _install_package_positional_alias(parser) -> dict[str, bool]:
     return required
 
 
+LAB_QUEST_INSTALL_HINT = ("lab-quest is an optional add-on and is not installed. From the bundle root run: "
+                          "pip install ./sapote_addons/lab_quest (needs streamlit); see docs/LAB_QUEST.md.")
+
+
+def _lab_quest_available() -> bool:
+    """True when the optional Lab Quest add-on (package sapote_lab_quest) is importable."""
+    import importlib.util as _lq_util
+    return _lq_util.find_spec("sapote_lab_quest") is not None
+
+
 def main(argv=None) -> int:
     import sys
+    _argv = list(sys.argv[1:] if argv is None else argv)
+    if _argv[:1] == ["lab-quest"] and not _lab_quest_available():
+        sys.stderr.write(LAB_QUEST_INSTALL_HINT + "\n")
+        return 2
     parser = build_parser()
     _pkg_required = _install_package_positional_alias(parser)
     args = parser.parse_args(argv)

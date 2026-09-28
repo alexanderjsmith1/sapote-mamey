@@ -18,3 +18,17 @@ validate_annotation_strip <- function(plot, tip_order, expected_values, palette)
   if (!all(same)) stop("ANNOTATION_COLOUR: strip colours differ from joined tip values")
   data.frame(tip=tip_order,y=seq_len(n),value=expected_values,fill=actual)
 }
+
+# v9.7.444: every panel of a tree + strips figure must span one y range, or strip cells sit off their tips.
+# aplot draws the tree over [scale-bar y, n + 0.6]; a strip left on its default range [0.4, n + 0.6] has rows
+# slightly shorter than the tree's, and its cells drift off their tips toward the bottom of the tree.
+validate_panel_ranges <- function(combined) {
+  pw <- aplot::as.patchwork(combined)
+  yr <- lapply(c(list(pw), pw$patches$plots), function(g)
+    tryCatch(ggplot2::ggplot_build(g)$layout$panel_params[[1]]$y.range, error = function(e) NULL))
+  yr <- Filter(Negate(is.null), yr)
+  shown <- vapply(yr, function(r) paste(format(round(r, 4), nsmall = 4), collapse = ".."), "")
+  if (length(yr) < 2 || any(vapply(yr, function(r) max(abs(r - yr[[1]])) > 1e-6, logical(1))))
+    stop("ANNOTATION_PANEL_RANGE_MISMATCH: ", paste(shown, collapse = " vs "))
+  shown
+}

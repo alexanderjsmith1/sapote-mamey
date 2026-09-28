@@ -12,7 +12,9 @@
 #   8. bind the final green log and refresh source integrity one last time
 #   9. fail closed if backup/editor debris exists; never silently delete it
 #  10. gates: sync --check, manifest --check, verify_release_identity
-#  11. cut all five tiers (each runs its own leak-audit / parity / checksum gates)
+#  11. cut the CODE tier (its own leak-audit / derivation / checksum gates). v9.7.444: the other four tiers
+#      (clean, cohort, merged, public) are disabled; CUT_TIERS="code clean cohort merged public" with
+#      SAPOTE_ENABLE_DISABLED_TIERS=1 restores them (see CUT_PROTOCOL.md).
 #  12. emit SHA256SUMS + a per-tier receipt
 #
 # Usage:  tools/release_cut.sh <bundle_version> <src_dir> <out_dir> [build_letter] [--skip-tests]
@@ -189,9 +191,10 @@ python3 tools/repo_health.py --strict 2>&1 | tail -6
 python3 tools/repo_health.py --strict >/dev/null 2>&1 \
   || die "strict repo-health gate failed — reduce the metric or record a signed STRICT_HEALTH_WAIVER.json entry (never raise the ceiling)."
 
-say "cut five tiers -> $OUT"
+CUT_TIERS="${CUT_TIERS:-code}"
+say "cut the CODE tier ($CUT_TIERS) -> $OUT"
 export BUILD_STAMP="$STAMP" SKIP_INTIER_PYTEST=1
-for tier in code clean sid merged public; do
+for tier in $CUT_TIERS; do
   td="$OUT/$tier"; mkdir -p "$td"
   # Write the cutlog to a local tmpfile, then copy it into $td. Redirecting make_public_tier.sh's
   # stdout+stderr *directly* into a file under $OUT (which may be a slow/among-scanned mount such as

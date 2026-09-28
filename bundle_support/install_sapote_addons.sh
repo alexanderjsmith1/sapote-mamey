@@ -116,4 +116,14 @@ if not ok:
 print("[sapote-addons] core dependencies importable. Gemini/BLASTp/HMM runnable offline.")
 PY
 
+# v9.7.444: the optional Lab Quest interface ships as source in sapote_addons/lab_quest. Opt in with
+# SAPOTE_INSTALL_LAB_QUEST=1; it needs a streamlit wheel in the pool. Skipped cleanly otherwise.
+if [ "${SAPOTE_INSTALL_LAB_QUEST:-0}" = "1" ]; then
+  LQ="$HERE/sapote_addons/lab_quest"
+  if [ -f "$LQ/pyproject.toml" ] && python3 -m pip install --no-index --find-links "$POOL" "$LQ"; then
+    echo "[sapote-addons] Lab Quest add-on installed (python mamey_run.py lab-quest --help)"
+  else
+    echo "[sapote-addons] Lab Quest add-on NOT installed (needs a streamlit wheel in the add-on pool); core is unaffected"
+  fi
+fi
 echo "[sapote-addons] done. Run a comparison with:  python3 -m mamey compare --help"

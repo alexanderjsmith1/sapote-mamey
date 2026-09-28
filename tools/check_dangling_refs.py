@@ -55,6 +55,9 @@ TOOLS_HIST = re.compile(
     r"(CHANGELOG\.md$|PATCH_NOTES_|RELEASE_NOTES_|BUNDLE_PATCH_NOTES_|_SPEC\.md$|_WISHLIST|"
     r"drift_map|ISSUES_EXPERIENCED|RECONCILIATION_|patch_notes/|history/|working/)"
 )
+# Files that ship into the standalone rggmci repository name files in that repository's tree (src/rggmci/core.py,
+# its tests), not in this bundle. tests/test_444_rggmci_package_parity.py checks them against the built package.
+OTHER_REPO_DOCS = re.compile(r"^packaging/rggmci/(repo_extras|templates)/")
 # Placeholder tokens used as generic code-example filler in template/game docs, not real tool claims.
 TOOLS_PLACEHOLDER = {"file.py", "main.py", "run.py", "manifest.py", "parsing.py", "scans.py",
                       "validation.py", "some_script.py", "record_processing.py"}
@@ -81,7 +84,7 @@ TOOLS_ALLOW = {
 # v9.7.371: "hooks" and "sapote_hooks" added — the v9.7.370 cut shipped those directories (VGP
 # hook_guard_org card) but this detector never learned them, so any doc naming a genuinely-shipped
 # hook (e.g. sapote_hooks.py, SEAL_GATE_snippet.sh) was flagged as a dangling reference.
-SEARCH_DIRS = ("tools", "mamey", "scripts", "tests", "Wheelhouse", "deliverable_tools", "hooks", "sapote_hooks", "bundle_support", ".")
+SEARCH_DIRS = ("tools", "mamey", "scripts", "tests", "Wheelhouse", "deliverable_tools", "hooks", "sapote_hooks", "bundle_support", ".", "sapote_addons")  # v9.7.444: optional add-on source (Lab Quest) ships in the bundle
 
 
 def _warn_unreadable(p: pathlib.Path, root: pathlib.Path, exc: Exception) -> None:
@@ -150,7 +153,7 @@ def scan_tools(root: pathlib.Path, strict_paths: bool = False):
     for p in root.rglob("*.md"):
         rel = str(p.relative_to(root))
         parts = p.relative_to(root).parts
-        if "tests" in parts or TOOLS_HIST.search(rel) or p.name in META_SKIP:
+        if "tests" in parts or TOOLS_HIST.search(rel) or p.name in META_SKIP or OTHER_REPO_DOCS.search(rel):
             continue
         try:
             txt = p.read_text(encoding="utf-8", errors="ignore")

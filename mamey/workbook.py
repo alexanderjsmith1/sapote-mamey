@@ -61,6 +61,7 @@ def _write_rggmci_sheets(wb, rggmci: dict):
         "good_geometry_references", "avg_min_identity", "max_protein_sum",
         "shared_reference_type_tokens", "shared_product_tokens", "best_sources",
         "interpretation_guard",
+        "acceptance_gate", "max_endpoint_hub_degree", "mibig_good_geometry_references",
     ]
     ws = wb.create_sheet("RGGMCI_Ranked")
     ws.append(ranked_headers)

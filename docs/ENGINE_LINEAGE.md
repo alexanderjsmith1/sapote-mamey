@@ -1,5 +1,18 @@
 # Mamey Engine Lineage
 
+## Engine 1.9.171 — first bundle: v9.7.444
+
+RG-GMCI pairs only regions antiSMASH flags as on a contig edge, never two regions on one contig; those
+pairs move to a related-loci table (`_4A_RGGMCI_related_loci.csv`) and triage ignores them. The ranked-pairs
+table gains its gate columns, proxy-adjacency ties no longer depend on the hash seed, HIGH pairs sharing a
+region form candidate groups with group GenBank files, and glycosylated split pathways can be called.
+Product-class counting no longer treats antiSMASH category words as product classes. These change emitted
+RG-GMCI calls and class counts, so boards from 1.9.170 are not directly poolable for them. The fallback GenBank reader now retains LOCUS names and DEFINITION text, which can change
+replicon order and BGC aliases when Biopython is absent. Region-only archives now offset extracted CDS and
+domain coordinates by Orig. start; BGC bound conventions and KnownClusterBlast parsing are unchanged.
+These changes can alter downstream architecture and gene-to-region assignments. Mechanical validation
+does not establish biological interpretation or scientific acceptance.
+
 ## Engine 1.9.170 — first bundle: v9.7.443
 
 The adjacent-cluster rescue read (`mamey/clusterblast_genes.py`) adds a MODULAR_CONTINUATION

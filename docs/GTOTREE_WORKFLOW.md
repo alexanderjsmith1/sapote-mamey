@@ -222,10 +222,23 @@ version-matched strings.*
 # Frozen execution identity
 
 Production GToTree packets must pass `tools/gtotree_execution_gate.py` before launch.
-The packet binds GToTree 1.8.19, the exact executable SHA-256, the HMM file SHA-256,
+The packet binds the GToTree version (one of the accepted versions below), the exact executable SHA-256, the HMM file SHA-256,
 every genome SHA-256, one unique working directory and output directory per panel,
 and a maximum of four concurrent jobs. Each process runs from its own panel directory;
 shared working directories are prohibited. Postflight repeats the gate and refuses
 silent loss of any approved tip before downstream inference. GToTree v2 requires a
 separate controlled migration because its marker set is not assumed comparable with
 the established 138-marker Actinobacteria workflow.
+
+**Accepted GToTree versions** — one list, in `tools/_gtotree_versions.py`, read by both the planner
+(`tools/plan_gtotree_iqtree.py`) and the gate (`tools/gtotree_execution_gate.py`):
+
+| Version | Status |
+|---|---|
+| 1.8.19 | production version of the 138-marker workflow |
+| 2.0.x | admitted; its trees are not pooled with 1.8.19 trees without the migration above |
+| 1.8.16 and anything else | refused (1.8.16 also has the interactive-prompt hang fixed in 1.8.19) |
+
+The planner still checks the installed help text for every flag it writes, so a version whose flags
+differ holds at `HOLD_HELP_DRIFT`. `--threads-per-tree N` (1–4, default 1) gives one approved tree N
+threads; trees run at once = `--max-concurrent-cores` ÷ N, so the four-core ceiling is unchanged.

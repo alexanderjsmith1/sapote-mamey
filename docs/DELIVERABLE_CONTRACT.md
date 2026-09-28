@@ -47,7 +47,8 @@ These are mandatory for every strain. Missing items must be logged in the deferr
 | BGC inventory | `[StrainID]_2_inventory.csv` | Every BGC with class, edge status, Architecture Confidence, KCB top hit, MIBiG %, WL score, bldA/TTA tier, treatment status |
 | BGC crosswalk | `[StrainID]_2b_bgc_crosswalk.csv` | BGC_ID ↔ bgc_uid ↔ contig/region ↔ User_Label locator map |
 | Scan states | `[StrainID]_3_scan_states.json` | Status and output file for all source-derived scans; assembly block; package status |
-| RG-GMCI (full + ranked + evidence) | `[StrainID]_4A_RGGMCI_full.json`, `_4A_RGGMCI_ranked_pairs.csv`, `_4A_RGGMCI_evidence.csv` | Split-BGC pairs from ClusterBlast/KnownClusterBlast; required for every multi-contig genome |
+| RG-GMCI (full + ranked + evidence + related loci) | `[StrainID]_4A_RGGMCI_full.json`, `_4A_RGGMCI_ranked_pairs.csv`, `_4A_RGGMCI_evidence.csv`, `_4A_RGGMCI_related_loci.csv` | Split-BGC pairs from ClusterBlast/KnownClusterBlast between regions antiSMASH flags as on a contig edge; required for every multi-contig genome. Pairs involving an interior region, or two regions on one contig, are listed apart as related loci, never rescues |
+| RG-GMCI candidate groups | `[StrainID]_4A_RGGMCI_groups.csv`, `[StrainID]_4A_RGGMCI_groups/[StrainID]_RGGMCI_Gnn.gbk` + `.members.tsv` | HIGH rescues that share a region, one row per group with every member's full identity. Each group file holds the members' own antiSMASH region records one after another, nothing joined; `tools/cluster_completeness.py` reads it per fragment and together. A group is a candidate, not a contig join |
 | Triage board | `[StrainID]_4_triage_board.csv` | Per-BGC triage: CCTT triggers, primary-metab flag, standing rule, corrected rank |
 | Diagnostic Rescue (4B) | `[StrainID]_4B_Diagnostic_Rescue_Leads.{csv,json,md}`, `_4B_Diagnostic_Rescue_Tiling.csv` | Auto-emitted rescue leads + tiling (via `package_addons`) |
 | Workbook | `[StrainID]_5_workbook.xlsx` | Per-strain workbook (coded sheets) |
@@ -180,6 +181,28 @@ Mandatory when all strains are complete or at user request. Produced by Claude (
 | Project bundle manifest | All files, sizes, SHA-256 checksums | CODE_BACKED |
 
 ---
+
+## Handoff gate — run before handing work over
+
+`tools/handoff_gate.py` is one fail-closed check before a patch folder, a deliverable folder or a reply goes to the
+owner, a reviewer or another assistant. It prints a PASS/FAIL table and writes a JSON receipt; exit 0 only when every
+check passes.
+
+```bash
+python tools/handoff_gate.py patches <patch folder> --compose <compose script> --replay
+python tools/handoff_gate.py deliverable <run folder> --index INDEX.md --figure-dir figures
+python tools/handoff_gate.py reply <draft.md> --root <project root>
+```
+
+- **patches:** every compose step names an existing file; the short hash the queue gives a diff (on its own line) is
+  that diff's current hash; every `HASHES.txt` line matches its file; every card with a diff is composed or explicitly
+  excluded; `tools/patch_packet_preflight.py` finds no bloat; `--replay` reruns the composition.
+- **deliverable:** `tools/check_md_links.py` passes; every file an index links exists and every figure is linked; BGC
+  identities carry all four components (`strain / node / region / BGC`); no figure script draws wording that
+  `mamey.figure_policy` bans from figures.
+- **reply:** links open files under the project root, with spaces as `%20` and parentheses as `%28 %29`.
+
+A PASS is a structural result. It does not review the science, and it does not seal or release anything.
 
 ## Part C — Treatment status vocabulary
 

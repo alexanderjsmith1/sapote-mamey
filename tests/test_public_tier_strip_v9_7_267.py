@@ -34,7 +34,8 @@ def test_public_tier_does_not_ship_user_provisioned_hmm(tmp_path):
     if not stamp or not (ROOT / "tools" / "make_public_tier.sh").exists():
         pytest.skip("build stamp or make_public_tier.sh unavailable")
     out = tmp_path / "pub"; out.mkdir()
-    env = {**os.environ, "BUILD_STAMP": stamp, "SKIP_INTIER_PYTEST": "1", "PYTHON": sys.executable}  # v9.7.410: the cut script honours $PYTHON
+    env = {**os.environ, "BUILD_STAMP": stamp, "SKIP_INTIER_PYTEST": "1", "PYTHON": sys.executable,  # v9.7.410: the cut script honours $PYTHON
+           "SAPOTE_ENABLE_DISABLED_TIERS": "1"}  # v9.7.444: non-CODE tiers are disabled by default; this test keeps them working
     r = subprocess.run(
         ["bash", "tools/make_public_tier.sh", "public", str(ROOT), str(out)],
         cwd=ROOT, env=env, capture_output=True, text=True, timeout=420,
@@ -91,7 +92,8 @@ def test_public_tier_content_matches_code_tier(tmp_path):
     if not stamp or not (ROOT / "tools" / "make_public_tier.sh").exists():
         pytest.skip("build stamp or make_public_tier.sh unavailable")
     out = tmp_path / "code"; out.mkdir()
-    env = {**os.environ, "BUILD_STAMP": stamp, "SKIP_INTIER_PYTEST": "1", "PYTHON": sys.executable}  # v9.7.410: the cut script honours $PYTHON
+    env = {**os.environ, "BUILD_STAMP": stamp, "SKIP_INTIER_PYTEST": "1", "PYTHON": sys.executable,  # v9.7.410: the cut script honours $PYTHON
+           "SAPOTE_ENABLE_DISABLED_TIERS": "1"}  # v9.7.444: non-CODE tiers are disabled by default; this test keeps them working
     r = subprocess.run(
         ["bash", "tools/make_public_tier.sh", "code", str(ROOT), str(out)],
         cwd=ROOT, env=env, capture_output=True, text=True, timeout=420,

@@ -204,9 +204,6 @@ mamey/judgment_store.py	judgment_store.py — Persistent judgment register for S
 mamey/kcb_frontpage.py	kcb_frontpage — read the antiSMASH "Most similar known cluster" column, for every region.
 mamey/kcb_locusmap.py	mamey/kcb_locusmap.py — offline KnownClusterBlast / ClusterBlast comparative locus maps.
 mamey/ks_phylogeny.py	ks_phylogeny.py — in-engine home for the module-core (KS) domain phylogeny channel (C06 / P358-003).
-mamey/lab_quest.py	Portable, claim-safe support for the optional local Lab Quest interface.
-mamey/lab_quest_app.py	Accessible optional local interface for receipt-governed Mamey workflows.
-mamey/lab_quest_registry.py	Receipt-backed workflow registry for the optional Lab Quest interface.
 mamey/layperson_guide.py	Claim-safe, package-only layperson guide renderer.
 mamey/lcms/__init__.py	Sapote-Mamey research patch namespace.
 mamey/lcms/handle_registry.py	LC-MS Chemical Handle Registry v2.
@@ -313,6 +310,7 @@ mamey/report_card.py	mamey/report_card.py — render the cohesive L0–L1 per-BG
 mamey/report_from_spec.py	Run the BGC report builder from portable logical-source configuration.
 mamey/report_mode.py	mamey.report_mode — terse by default, legacy compact Mode B scaffold on demand (W7/W24).
 mamey/report_theme.py	Portable Sapote-Mamey report theme tokens.
+mamey/rescue_groups.py	RG-GMCI candidate groups, and one GenBank file per group for the tools that read genes.
 mamey/rescue_two_proof.py	rescue_two_proof.py — the CORE join: RG-GMCI (_4A, reference-based) × KS-clade (_4B, reference-free)
 mamey/resistance_dossier.py	resistance_dossier — post-seal per-BGC resistance-focused gene-by-gene writeups.
 mamey/rggmci.py	Reference-Guided Genome Mining Candidate Inference (RG-GMCI).
@@ -364,7 +362,7 @@ mamey/workbook_schema_check.py	workbook_schema_check.py — Validate a Sapote-Ma
 mamey/workbooks/__init__.py	Sapote-Mamey research patch namespace.
 mamey/workbooks/directed_study_workbook.py	Directed Study Workbook full output.
 mamey/workflow_onboarding.py	Read-only onboarding decision widgets for portable Mamey bundles.
-mamey/workspace_root.py	mamey/workspace_root.py (CANDIDATE, Indigo2 JOB-C) — single home of the workspace-root default.
+mamey/workspace_root.py	Resolve an operator workspace without assuming a personal home directory.
 mamey/workspace_source_discovery.py	Bounded workspace source discovery and report-preflight gate.
 mamey/xlsx_determinism.py	Canonicalize XLSX container metadata after an atomic openpyxl save.
 mamey/ziputil.py	Shared zip-extraction safety. Single home of the member-path traversal guard

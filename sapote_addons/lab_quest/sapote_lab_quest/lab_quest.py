@@ -21,8 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from .exact_identity import exact_locus_from_mapping, exact_locus_from_native_inventory_row
-from .validate import validate_package
+from mamey.exact_identity import exact_locus_from_mapping, exact_locus_from_native_inventory_row
+from mamey.validate import validate_package
 
 
 CLAIM_CEILING = (
@@ -269,7 +269,7 @@ def export_private_project_handoff(
     or touch an archive.
     """
     verify_engine_binding_current(binding)
-    from .project_catalog import export_private_project_handoff as _export_private_project_handoff
+    from mamey.project_catalog import export_private_project_handoff as _export_private_project_handoff
 
     return _export_private_project_handoff(project_root, output_zip)
 
@@ -694,7 +694,7 @@ def run_from_args(args) -> int:
         sys.stdout.write(str(f"Lab Quest binding verified: {binding.code_tier}") + "\n")
         return 0
     if importlib.util.find_spec("streamlit") is None:
-        sys.stderr.write(str("Lab Quest requires the optional dependency: pip install 'mamey[labquest]'") + "\n")
+        sys.stderr.write(str("Lab Quest requires the optional dependency: pip install ./sapote_addons/lab_quest (the Lab Quest add-on; needs streamlit)") + "\n")
         return 2
     command, env = lab_quest_launch_command(args.project_root, args.port, args.headless, binding=binding)
     return subprocess.call(command, env=env)

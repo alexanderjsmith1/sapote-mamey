@@ -136,19 +136,18 @@ def test_siderophore_reads_antismash_metallophore_type():
 def test_end_to_end_micromonospora_humida_hybrids():
     # End-to-end derivation on a real *public* antiSMASH export (Micromonospora humida, GenBank
     # JAFEUC01) — replaces the MIBiG teicoplanin fixtures (which carried a CC-BY attribution
-    # requirement and were ~2.6 MB) with a 136 KB public fixture that ships in every tier. The two
-    # bundled regions are PKS-containing multi-class hybrids (arylpolyene/T2PKS and NRPS/T1PKS), so
-    # this exercises the multi-region + hybrid path the teicoplanin tests guarded, on freely
-    # redistributable data. Glycopeptide classification itself remains covered by the pure-classifier
-    # unit test above. Skips explicitly when the fixture is absent, never a silent green.
+    # requirement and were ~2.6 MB) with a 136 KB public fixture that ships in every tier.
+    # Region 002 carries T2PKS + arylpolyene + fatty_acid: one PKS family, so it is an aromatic type II
+    # PKS, not a three-class hybrid. Region 006 carries NRPS + T1PKS + hglE-KS: two families, so the
+    # multi-class guard must not fire; its NRPS/PKS call comes from its own domains. These regions were
+    # once called multi-class only because antiSMASH's category words ("PKS", "NRPS") were counted as
+    # extra classes. Skips explicitly when the fixture is absent, never a silent green.
     caps = _derive_all("micromonospora_humida_JAFEUC01.zip")
     if caps is None:
         pytest.skip("micromonospora_humida_JAFEUC01.zip fixture not available")
-    resolved = [c for c in caps if "unresolved" not in c]
-    assert len(resolved) >= 2, caps                      # both regions resolve to a determinate class
-    assert all("pks" in c.lower() for c in resolved), caps  # both are PKS-containing hybrids
-    joined = " ".join(caps).lower()
-    assert "arylpolyene" in joined and "nrps" in joined, caps  # the two distinct hybrid signatures
+    assert len(caps) == 2, caps
+    assert "aromatic type II PKS" in caps[0], caps
+    assert not any("complex multi-class" in c for c in caps), caps
 
 
 # ---- regression tests for Audit Flag C (terpene misrouted to NRPS) and Flag D (multi-class) ----

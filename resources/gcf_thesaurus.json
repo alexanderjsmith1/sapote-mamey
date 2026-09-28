@@ -253,6 +253,10 @@
     "dudomycin",
     "q6402"
    ]
+  },
+  {
+   "tag": "PKS1_class_orphan",
+   "aliases": []
   }
  ],
  "transAT-PKS": [
@@ -1017,6 +1021,12 @@
   },
   {
    "tag": "OTHER_unknown",
+   "aliases": []
+  }
+ ],
+ "PKS_other": [
+  {
+   "tag": "PKS_other_orphan",
    "aliases": []
   }
  ]

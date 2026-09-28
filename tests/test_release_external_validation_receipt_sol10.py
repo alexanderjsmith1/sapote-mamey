@@ -198,6 +198,7 @@ def test_explicit_intier_pytest_skip_remains_loud_and_builds_only_an_unsealed_ca
     output = tmp_path / "engineering builds"
     env = {
         **os.environ,
+        "SAPOTE_ENABLE_DISABLED_TIERS": "1",  # v9.7.444: the merged tier is disabled by default
         "BUILD_STAMP": "20260902v00000a",
         "SKIP_INTIER_PYTEST": "1",
         "PYTHON": sys.executable,

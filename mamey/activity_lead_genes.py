@@ -21,6 +21,7 @@ import json
 import os
 import re
 from collections import defaultdict
+from mamey.class_architecture import with_family_labels  # antiSMASH families for groupings; products stay types
 from typing import Any, Iterable
 
 
@@ -87,7 +88,7 @@ def _norm_class(value: str) -> str | None:
 
 def _source_classes(products: str) -> list[str]:
     seen: list[str] = []
-    for token in _tokens(products):
+    for token in with_family_labels(_tokens(products)):
         normalized = _norm_class(token)
         if normalized and normalized not in seen:
             seen.append(normalized)

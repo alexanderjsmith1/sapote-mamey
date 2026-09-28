@@ -42,6 +42,7 @@ except ImportError:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 import argparse, csv, glob, os
 from collections import Counter
+from mamey.class_architecture import with_family_labels  # antiSMASH families for groupings; products stay types
 import numpy as np
 # W2-H3/v9.7.352: figure deps are optional ([all] extra). Guard the import so this module — reached
 # via cohort_class_heatmap — stays importable on a core-only install instead of crashing.
@@ -185,7 +186,7 @@ def fig_pks_bars(root, strains, out):
         inv = {r["BGC_ID"]: r for r in load_inventory(root, sid)}
         genes = load_genes(root, sid)
         pks = [(b, float(r["Length_kb"] or 0)) for b, r in inv.items()
-               if any(k in r["Products"] for k in ("PKS", "transAT")) and float(r["Length_kb"] or 0) > 0]
+               if any(k in ";".join(with_family_labels(r["Products"] or "")) for k in ("PKS", "transAT")) and float(r["Length_kb"] or 0) > 0]
         pks.sort(key=lambda x: -x[1])
         for xi, (b, L) in enumerate(pks):
             comp = {g: 0.0 for g in gtypes}
@@ -308,7 +309,7 @@ def fig_enriched_locus(root, sid, bgc, out):
 
 # ---------------- FIG 5: archetype composition ----------------
 def norm_arch(prod):
-    p = (prod or "").lower()
+    p = ";".join(with_family_labels(prod or "")).lower()
     if "nrps" in p and "pks" in p:
         return "hybrid NRPS-PKS"
     if "nrps" in p:

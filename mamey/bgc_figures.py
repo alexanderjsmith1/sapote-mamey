@@ -31,6 +31,7 @@ import glob
 from pathlib import Path
 
 from .figure_save import save_figure
+from .class_architecture import with_family_labels
 
 PUBLICATION_RASTER_DPI = 300
 
@@ -131,7 +132,7 @@ def genome_atlas(strain_dir, out_png, top_n=20):
                 if n.split("_length")[0].replace("NODE_", "c") == sector.name]
         if orig:
             prods = contig_bgc.get(orig[0], [])
-            col = "#C44E52" if any("NRPS" in p or "PKS" in p for p in prods) else "#55A868"
+            col = "#C44E52" if any("NRPS" in p or "PKS" in p for p in with_family_labels(prods)) else "#55A868"
             track.rect(0, sector.size, fc=col, ec="none")
     fig = circos.plotfig()
     _save_pair(fig, out_png, renderer="bgc_figures.genome_atlas",

@@ -69,7 +69,8 @@ def test_end_to_end_paralog_verdict_survives_substring_collision():
         _ref("SID01", "NODE_1_length_9000", "BGC_SIDERO", ["S1", "S2"]),
         _ref("SID02", "NODE_2_length_100000", "BGC_SIDERO", ["S1", "S3"]),  # shared S1 -> paralog
     ]}
-    out = compute_rggmci(bgcs, refmap)
+    # the scoring rule under test; interior regions are scored in the related-loci list, so pair them all here
+    out = compute_rggmci(bgcs, refmap, contig_edge_bgcs={b.bgc_id for b in bgcs})
     r = out["ranked_pairs"][0]
     assert r["shared_class_tokens"] == "", r
     assert r["terminus_truncation_rescue"] is False, r

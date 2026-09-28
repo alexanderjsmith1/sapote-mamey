@@ -140,6 +140,19 @@ SHA-256. `tools/release.sh` applies the same receipt gate before honoring
 If a public tier **REFUSES** (leak audit) or **FATALs** (parity gate), that is the gate working. Do not
 force past it — fix the source (allowlist a genuine synthetic token; redact a real ID) and re-cut.
 
+### Releases cut the CODE tier only (v9.7.444)
+
+Alex, 2026-09-28: the four other tiers (CODE-analysis-free `clean`, `cohort` (formerly `sid`), `merged` and `public`)
+are no longer part of the cut. `tools/release_cut.sh` cuts the CODE tier only, which still runs its own leak audit,
+derivation check and checksums. The tooling for the other tiers stays in the bundle, disabled:
+- the `clean`, `cohort`/`sid`, `merged` and `public` branches of `tools/make_public_tier.sh`, and the four-tier driver
+  `tools/release.sh`, refuse to run unless `SAPOTE_ENABLE_DISABLED_TIERS=1` is set;
+- `tools/check_tier_parity.py`, `tools/tier_vocabulary.py` and the redaction and leak-scan tools stay live, because
+  the CODE tier and the release manifest still use them.
+
+To cut the old tier set again: `SAPOTE_ENABLE_DISABLED_TIERS=1 CUT_TIERS="code clean cohort merged public" bash
+tools/release_cut.sh …`. For a CODE-only cut the disclosure block below has one row, CODE.
+
 ## Release tarball (only when one is published)
 
 The sealed ZIP is the validated artifact. A `.tar.gz` for a release page is a repackaging, and the

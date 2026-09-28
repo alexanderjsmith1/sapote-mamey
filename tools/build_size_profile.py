@@ -27,6 +27,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     import os as _cs_os, sys as _cs_sys
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH families for groupings; products stay types
 
 
 def _read_json(_path, *, encoding="utf-8"):
@@ -53,7 +54,7 @@ _PREF=['transat-pks','t1pks','hr-t2pks','t2pks','nrps','nrps-like','pks','terpen
 _NORM={'nrps-like':'NRPS','t1pks':'T1PKS','t2pks':'T2PKS','hr-t2pks':'HR-T2PKS','transat-pks':'transAT',
  'pks':'PKS','pks-like':'PKS','ni-siderophore':'Siderophore'}
 
-def _classes(b): return [p.strip().lower() for p in (b.get('products') or '').split(';') if p.strip()]
+def _classes(b): return [p.lower() for p in with_family_labels(b.get('products') or '')]
 def _primary(b):
     cl=_classes(b)
     if not cl: return 'unclassified'

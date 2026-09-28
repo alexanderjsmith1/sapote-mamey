@@ -27,6 +27,98 @@ from dataclasses import dataclass, field
 
 from .crosswalk import contig_key
 
+# antiSMASH writes two labels on each protocluster: the product type (/product, e.g. "T1PKS") and the
+# category it belongs to (/category, e.g. "PKS"). BGC products hold the product types only. This table gives
+# the category back wherever a rule is about a family, so a type and its category are never counted as two
+# classes. It is antiSMASH's own assignment, read from the protocluster features of 1,026 public antiSMASH 8
+# results: 86 product types, each in exactly one category. The category words map to themselves, so records
+# written before product types and categories were separated read the same.
+ANTISMASH_PRODUCT_CATEGORY = {
+    # nrps
+    "cdps": "nrps", "isocyanide-nrp": "nrps", "mycosporine": "nrps", "napaa": "nrps", "nrp-metallophore": "nrps",
+    "nrps": "nrps", "nrps-like": "nrps", "t3nrps-iterative": "nrps", "thioamide-nrp": "nrps",
+    # pks
+    "arylpolyene": "pks", "benzoxazole": "pks", "hgle-ks": "pks", "hr-t2pks": "pks", "pks": "pks",
+    "pks-like": "pks", "prodigiosin": "pks", "pufa": "pks", "t1pks": "pks", "t2pks": "pks", "t3pks": "pks",
+    "transat-pks": "pks", "transat-pks-like": "pks",
+    # ripp
+    "atropopeptide": "ripp", "azole-containing-ripp": "ripp", "bottromycin": "ripp", "crocagin": "ripp",
+    "cyanobactin": "ripp", "darobactin": "ripp", "fungal-ripp-like": "ripp", "guanidinotides": "ripp",
+    "lanthipeptide-class-i": "ripp", "lanthipeptide-class-ii": "ripp", "lanthipeptide-class-iii": "ripp",
+    "lanthipeptide-class-iv": "ripp", "lanthipeptide-class-v": "ripp", "lassopeptide": "ripp", "linaridin": "ripp",
+    "lipolanthine": "ripp", "methanobactin": "ripp", "proteusin": "ripp", "ranthipeptide": "ripp",
+    "redox-cofactor": "ripp", "ripp": "ripp", "ripp-like": "ripp", "rre-containing": "ripp",
+    "sactipeptide": "ripp", "thioamitides": "ripp", "triceptide": "ripp",
+    # terpene
+    "quinone_isoprenoid_chain": "terpene", "terpene": "terpene", "terpene-precursor": "terpene",
+    # saccharide
+    "oligosaccharide": "saccharide", "saccharide": "saccharide",
+    # other
+    "2dos": "other", "acyl_amino_acids": "other", "amglyccycl": "other", "aminocoumarin": "other",
+    "aminopolycarboxylic-acid": "other", "azoxy-crosslink": "other", "azoxy-dimer": "other",
+    "betalactone": "other", "blactam": "other", "butyrolactone": "other", "deazapurine": "other",
+    "ectoine": "other", "fatty_acid": "other", "furan": "other", "halogenated": "other", "hserlactone": "other",
+    "hydrogen-cyanide": "other", "hydroxytropolone": "other", "indole": "other", "isocyanide": "other",
+    "lincosamides": "other", "melanin": "other", "naggn": "other", "ni-siderophore": "other",
+    "nucleoside": "other", "opine-like-metallophore": "other", "other": "other", "phenazine": "other",
+    "phosphoglycolipid": "other", "phosphonate": "other", "phosphonate-like": "other",
+    "polyhalogenated-pyrrole": "other", "polyyne": "other", "pyrrolidine": "other", "resorcinol": "other",
+}
+
+
+def product_family(product) -> str:
+    """antiSMASH category of one product type, lower case: nrps, pks, ripp, terpene, saccharide or other.
+
+    A type missing from the table (a newer antiSMASH release) is placed by its name when the name says its
+    family ("…-RiPP-like", "…peptide", "…PKS", "…-KS", "…NRP…", "…terpene…"); otherwise it is "other".
+    """
+    p = str(product).strip().lower()
+    if p in ANTISMASH_PRODUCT_CATEGORY:
+        return ANTISMASH_PRODUCT_CATEGORY[p]
+    if "ripp" in p or "peptide" in p or "lanthi" in p:
+        return "ripp"
+    if "pks" in p or p.endswith("-ks"):
+        return "pks"
+    if "nrp" in p:
+        return "nrps"
+    if "terpene" in p:
+        return "terpene"
+    if "saccharide" in p:
+        return "saccharide"
+    return "other"
+
+
+def product_families(products) -> set[str]:
+    """The antiSMASH categories of a region's product types."""
+    return {product_family(p) for p in (products or []) if str(p).strip()}
+
+
+_CATEGORY_LABEL = {"nrps": "NRPS", "pks": "PKS", "ripp": "RiPP", "terpene": "terpene", "saccharide": "saccharide",
+                   "other": "other"}
+
+
+def with_family_labels(products, without=()) -> list[str]:
+    """Product types followed by antiSMASH's category label for each family present, written as antiSMASH writes it.
+
+    For groupings, counts and figure rows written when products carried both (a "PKS" row, an "NRPS or PKS" test):
+    they read the families explicitly, and the product lists shown to people hold the types only. Takes a list or a
+    ';'/','-separated string, and returns a list. Types named in `without` (case-insensitive) add no label of their own:
+    a tool that files NAPAA as housekeeping passes without=("napaa",), so NAPAA alone never reads as NRPS.
+    """
+    if isinstance(products, str):
+        products = re.split(r"[;,]", products)
+    out = [str(p).strip() for p in (products or []) if str(p).strip()]
+    have = {p.lower() for p in out}
+    skip = {str(w).lower() for w in without}
+    for product in list(out):                     # labels in the order their types appear, as antiSMASH wrote them
+        if product.lower() in skip:
+            continue
+        label = _CATEGORY_LABEL[product_family(product)]
+        if label.lower() not in have:
+            out.append(label)
+            have.add(label.lower())
+    return out
+
 # tailoring enzyme classes -> annotation substrings (same vocabulary as the gene-by-gene profiler)
 TAILORS = {
     # v9.7.335: these are substrings, so they match DEhalogenase. Six real BGCs
@@ -69,6 +161,7 @@ def classify_architecture(bgc_id: str, products, pks_ks: int, nrps_c: int, nrps_
                           tailoring) -> ArchitectureCall:
     """Pure decision procedure over architecture. Claim-safe capacity call."""
     p = _ptypes(products)
+    fams = product_families(p)
     tl = set(tailoring or [])
     nrps = max(nrps_c, nrps_a)
     has = lambda *names: any(n in tl for n in names)
@@ -92,7 +185,16 @@ def classify_architecture(bgc_id: str, products, pks_ks: int, nrps_c: int, nrps_
                      "lanthipeptide-class-iii", "lanthipeptide-class-iv", "lassopeptide",
                      "terpene", "betalactone", "cdps", "nucleoside", "indole", "hserlactone",
                      "aminocoumarin", "arylpolyene", "2dos", "amglyccycl"}
-    _real = {x for x in p if x in _REAL_CLASSES}
+    # Count families, not labels. The NRPS, PKS, RiPP and terpene types count once per antiSMASH category, so
+    # T1PKS + NRPS is two classes, not three with the "PKS" category word. Classes from antiSMASH's catch-all
+    # "other" category count one by one, and only those listed above. Noise labels never count.
+    _real = set()
+    for x in p - _NOISE:
+        fam = product_family(x)
+        if fam in ("nrps", "pks", "ripp", "terpene"):
+            _real.add(fam)
+        elif x in _REAL_CLASSES:
+            _real.add(x)
     if len(_real) >= 3:
         classes_str = "/".join(sorted(_real))
         return call(f"complex multi-class hybrid ({classes_str})", "MODERATE",
@@ -114,17 +216,17 @@ def classify_architecture(bgc_id: str, products, pks_ks: int, nrps_c: int, nrps_
         return call("siderophore / metallophore", "HIGH", "antiSMASH product type = metallophore/siderophore")
     # 5. meroterpenoid — checked before NRPS, since a lone CoA-ligase AMP-binding domain (e.g. marinoterpin's
     #    benzoate-CoA ligase, C=0) is not a true NRPS module. prenyltransferase + a PKS backbone is distinctive.
-    if has("prenyltransferase") and (pks_ks >= 1 or "t1pks" in p or "t2pks" in p or "pks" in p):
+    if has("prenyltransferase") and (pks_ks >= 1 or "pks" in fams):
         return call("meroterpenoid (terpene + polyketide)", "MODERATE",
                     f"prenyltransferase + PKS ({pks_ks} KS)")  # marinoterpin
-    if "terpene" in p and pks_ks == 0 and nrps == 0 and not has("prenyltransferase"):
+    if "terpene" in fams and pks_ks == 0 and nrps == 0 and not has("prenyltransferase"):
         return call("terpene", "MODERATE", "terpene backbone")
     # terpene guard: if the product annotation is terpene-only (or terpene + other/saccharide noise) and no
     # significant PKS/NRPS domain evidence, route to terpene even if a stray domain hit leaked from a boundary
     # gene. This fixes the routing error where a terpene BGC with an adjacent NRPS-like gene gets misclassified
     # as "small NRPS peptide" because 1 condensation domain from a boundary CDS fires nrps_c >= 1. (Audit Flag C)
     _pcore = {x for x in p if x not in ("other","saccharide","terpene-precursor","terpene")}
-    if "terpene" in p and not _pcore and nrps_c <= 1 and pks_ks == 0:
+    if "terpene" in fams and not _pcore and nrps_c <= 1 and pks_ks == 0:
         return call("terpene (sesquiterpene / diterpene class)", "MODERATE",
                     "terpene product annotation; minor domain noise from boundary gene suppressed")
     # 5. NRPS-dominant (a real NRPS needs a condensation OR >=2 adenylation domains)
@@ -145,7 +247,7 @@ def classify_architecture(bgc_id: str, products, pks_ks: int, nrps_c: int, nrps_
                         f"large modular PKS ({pks_ks} KS)" + (" + oxygenase" if has("oxygenase") else ""))  # nystatin, candicidin, corallopyronin
         return call("modular PKS (polyketide)", "LOW", f"modular PKS ({pks_ks} KS)")
     # 7. RiPP / other handled elsewhere
-    if any(x in p for x in ("ripp", "lanthipeptide", "lassopeptide", "lanthipeptide-class")):
+    if "ripp" in fams:
         return call("RiPP", "LOW", "RiPP backbone (see RiPP markers)")
     return call("unresolved (capacity not architecture-classifiable)", "LOW",
                 f"products={sorted(p)} KS={pks_ks} NRPS={nrps_c}C/{nrps_a}A")

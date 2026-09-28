@@ -66,6 +66,7 @@ if str(_ROOT) not in sys.path:
 
 from mamey.assembly import assembly_tier, corrected_bgc_count  # noqa: E402
 from mamey.cohort_leads_ledger import find_triage_boards  # noqa: E402
+from mamey.class_architecture import with_family_labels  # noqa: E402
 
 try:
     import json as _json
@@ -134,7 +135,7 @@ _CLASS_TOKEN_RULES: list[tuple[str, tuple[str, ...]]] = [
 
 def _primary_class(products: str) -> str:
     """First recognizable class token in a lead's `Products` string, else the raw first token."""
-    for token in (part.strip() for part in (products or "").split(";")):
+    for token in with_family_labels(products or ""):   # same tokens as mamey.activity_lead_genes
         if not token:
             continue
         lowered = token.lower()

@@ -80,7 +80,8 @@ def test_genuine_paralog_not_overridden():
         _ref("BGC008", "NODE_15_length_157950", "BGC_X", ["S1", "S2"]),
         _ref("BGC032", "NODE_47_length_28356", "BGC_X", ["S1", "S3"]),  # shared S1
     ]}
-    out = compute_rggmci(bgcs, refmap)
+    # the scoring rule under test; interior regions are scored in the related-loci list, so pair them all here
+    out = compute_rggmci(bgcs, refmap, contig_edge_bgcs={b.bgc_id for b in bgcs})
     r = out["ranked_pairs"][0]
     assert r["terminus_truncation_rescue"] is False
     assert r["subject_tiling_verdict"] == "OVERLAPPING_PARALOG"

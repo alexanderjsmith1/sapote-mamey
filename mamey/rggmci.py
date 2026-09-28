@@ -21,6 +21,7 @@ import zipfile
 from .models import BGCRecord
 from .antismash_evidence import _region_key_from_name  # internal stable-key helper
 from .ziputil import regular_file_names
+from .class_architecture import product_families
 
 
 RGGMCI_SCORE_HIGH = 14
@@ -70,6 +71,11 @@ ST_MIN_AGG_SUBJECTS_PER_SIDE = 3
 # shared references (good_geometry = OVERLAPPING/ADJACENT segments); otherwise disjoint subjects are just
 # the default for unrelated BGCs and the pair is reported INSUFFICIENT, not a split.
 ST_MIN_GEOMETRY_FOR_SPLIT = 1
+# A reference is still complementary when the two fragments share a few of its genes but cover different genes
+# otherwise: one gene family present in two copies within one cluster (sugar genes, RRE/methyltransferases) is hit
+# from both sides. Two copies of the same machinery share far more (a desferrioxamine pair shares 25-45%).
+ST_MAX_SHARED_SUBJECTS = 2
+ST_MAX_SHARED_FRACTION = 0.15
 
 # ── Terminus-truncation rescue (v9.7.100, P-TT) ──────────────────────────────────────────
 # The simplest, most certain rescue is physical, not homological: an Edge region whose boundary IS the
@@ -197,9 +203,11 @@ def _subject_tiling(a_subjects: Iterable[str], b_subjects: Iterable[str]) -> dic
 
     Returns counts and a per-reference tiling_class:
       COMPLEMENTARY_DISJOINT  — both sides hit >= ST_MIN_SUBJECTS_PER_SIDE subjects and the sets are
-                                disjoint (the split fingerprint: each contig tiles a different part of
-                                the same reference cluster).
-      OVERLAPPING_SUBJECTS    — the sides share one or more subject genes (paralogy / shared machinery;
+                                disjoint, or share at most ST_MAX_SHARED_SUBJECTS genes that are at most
+                                ST_MAX_SHARED_FRACTION of all genes hit, each side still hitting
+                                ST_MIN_SUBJECTS_PER_SIDE of its own (the split fingerprint: each contig tiles a
+                                different part of the same reference cluster).
+      OVERLAPPING_SUBJECTS    — the sides share more subject genes than that (paralogy / shared machinery;
                                 NOT a clean split — the contigs compete for the same reference genes).
       SINGLETON_OR_THIN       — at least one side hits fewer than ST_MIN_SUBJECTS_PER_SIDE subjects, so
                                 complementarity cannot be called either way.
@@ -210,9 +218,12 @@ def _subject_tiling(a_subjects: Iterable[str], b_subjects: Iterable[str]) -> dic
     shared = a_set & b_set
     a_only = a_set - b_set
     b_only = b_set - a_set
+    few_shared = (len(shared) <= ST_MAX_SHARED_SUBJECTS
+                  and len(shared) <= ST_MAX_SHARED_FRACTION * len(a_set | b_set)
+                  and len(a_only) >= ST_MIN_SUBJECTS_PER_SIDE and len(b_only) >= ST_MIN_SUBJECTS_PER_SIDE)
     if len(a_set) < ST_MIN_SUBJECTS_PER_SIDE or len(b_set) < ST_MIN_SUBJECTS_PER_SIDE:
         tiling = "SINGLETON_OR_THIN"
-    elif shared:
+    elif shared and not few_shared:
         tiling = "OVERLAPPING_SUBJECTS"
     else:
         tiling = "COMPLEMENTARY_DISJOINT"
@@ -252,6 +263,9 @@ _P2_HYBRID_OK = {frozenset({"nrps", "pks"}), frozenset({"nrps", "t1pks"}),
 def _p2_specific_classes(products: str) -> set[str]:
     """Lower-cased specific product classes, minus permanent exclusions and the RiPP umbrella."""
     cls = {p.strip().lower() for p in re.split(r"[;,]", products or "") if p.strip()}
+    # Family words count too, so an NRPS fragment and a PKS-family fragment (arylpolyene, PKS-like, T3PKS) form the
+    # NRPS+PKS hybrid below, as they did when products carried antiSMASH's category words.
+    cls |= product_families(cls)
     return {c for c in cls if c not in _P2_EXCL_TOKENS and c not in _P2_UMBRELLA}
 
 
@@ -380,6 +394,91 @@ def _r3_noise_class_gate(confidence: str, products_a: str, products_b: str) -> t
         return "MODERATE_RG_GMCI_CANDIDATE", "DEMOTED_HIGH_TO_MODERATE_R3_noise_class_both_sides"
     return confidence, "OK"
 
+# Sugar-arm restore (v9.7.444). A fragment antiSMASH labels only "saccharide" can be the deoxysugar tailoring arm of a
+# glycosylated product whose backbone sits on another contig (a glycosylated angucycline: the core on one contig,
+# the aminosugar cassette on another). The product-class gate sets "saccharide" aside, so such a pair could never hold
+# HIGH. The backbone side must carry a glycosyltransferase gene of its own: the enzyme that attaches the sugar.
+_SUGAR_ONLY_TOKENS = {"saccharide", "oligosaccharide", "other"}
+_SUGAR_ARM_BACKBONE_FAMILIES = {"nrps", "pks", "ripp", "terpene"}
+_SUGAR_ARM_OTHER_BACKBONES = {"indole", "nucleoside", "betalactone", "phenazine", "aminocoumarin", "2dos", "amglyccycl"}
+_GLYCOSYLTRANSFERASE_RE = re.compile(r"glycosyl ?transferase|glycosyltransf|Glycos_transf|Glyco_trans|UDPGT|SMCOG1062",
+                                     re.I)
+
+
+def _types(products: Iterable[str]) -> set[str]:
+    return {str(p).strip().lower() for p in products if str(p).strip()}
+
+
+def _is_sugar_only(products: Iterable[str]) -> bool:
+    t = _types(products)
+    return bool(t) and t <= _SUGAR_ONLY_TOKENS and bool(t & {"saccharide", "oligosaccharide"})
+
+
+def _is_sugar_arm_backbone(products: Iterable[str]) -> bool:
+    t = _types(products)
+    return bool(product_families(t) & _SUGAR_ARM_BACKBONE_FAMILIES) or bool(t & _SUGAR_ARM_OTHER_BACKBONES)
+
+
+def _sugar_arm_pair(bgc_a: BGCRecord, bgc_b: BGCRecord, glycosyltransferase_bgcs: set[str] | None) -> bool:
+    """One side sugar-only, the other a backbone class whose own region carries a glycosyltransferase gene."""
+    for arm, core in ((bgc_a, bgc_b), (bgc_b, bgc_a)):
+        if (_is_sugar_only(arm.products) and _is_sugar_arm_backbone(core.products)
+                and core.bgc_id in (glycosyltransferase_bgcs or ())):
+            return True
+    return False
+
+
+def _glycosyltransferase_bgcs(zip_path: str | Path, bgcs: list[BGCRecord]) -> set[str]:
+    """BGC ids whose own region GenBank file names a glycosyltransferase gene (annotation text only)."""
+    want = {b.source_gbk: b.bgc_id for b in bgcs if getattr(b, "source_gbk", "")}
+    out: set[str] = set()
+    if not want:
+        return out
+    try:
+        with zipfile.ZipFile(zip_path) as zf:
+            names = set(regular_file_names(zf))
+            for name, bgc_id in want.items():
+                if name in names and _GLYCOSYLTRANSFERASE_RE.search(_read_text(zf, name)):
+                    out.add(bgc_id)
+    except (OSError, zipfile.BadZipFile):
+        return set()
+    return out
+
+
+_EDGE_STATUSES = {"Edge", "Full-contig"}
+_CONTIG_EDGE_RE = re.compile(r'/contig_edge="(True|False)"')
+
+
+def _edge_status_fallback(bgcs: list[BGCRecord]) -> set[str]:
+    """Regions the engine places at a contig end (within 5 kb of one, or covering the contig)."""
+    return {b.bgc_id for b in bgcs if getattr(b, "edge_status", "") in _EDGE_STATUSES}
+
+
+def _contig_edge_bgcs(zip_path: str | Path, bgcs: list[BGCRecord]) -> set[str]:
+    """Regions antiSMASH itself flags as touching a contig edge (`/contig_edge="True"` on the region feature).
+
+    RG-GMCI pairs only these (Alex, 2026-09-27): a region antiSMASH places inside a contig is whole on that contig,
+    and an assembly break cannot have separated it from anything. A region file without the flag falls back to the
+    engine's own edge status.
+    """
+    fallback = _edge_status_fallback(bgcs)
+    out: set[str] = set()
+    try:
+        with zipfile.ZipFile(zip_path) as zf:
+            names = set(regular_file_names(zf))
+            for b in bgcs:
+                name = getattr(b, "source_gbk", "")
+                m = _CONTIG_EDGE_RE.search(_read_text(zf, name)) if name in names else None
+                if m:
+                    if m.group(1) == "True":
+                        out.add(b.bgc_id)
+                elif b.bgc_id in fallback:
+                    out.add(b.bgc_id)
+    except (OSError, zipfile.BadZipFile):
+        return fallback
+    return out
+
+
 def _apply_hub_degree_guard(ranked: list[dict[str, Any]]) -> None:
     """v9.7.42 component-degree guard (graph-level, runs last; mutates `ranked` in place).
 
@@ -457,7 +556,10 @@ def _norm_type_tokens(text: str) -> set[str]:
 
 
 def _product_tokens(products: Iterable[str]) -> set[str]:
-    return _norm_type_tokens(";".join(products))
+    # antiSMASH's family words count beside the types ("pks" for T3PKS or arylpolyene), as the category words did when
+    # products carried them: two fragments of one PKS pathway can be typed differently.
+    products = list(products)
+    return _norm_type_tokens(";".join(products + sorted(product_families(products))))
 
 
 def _first_accession(text: str) -> str | None:
@@ -745,14 +847,13 @@ def _proxy_adjacency(a: ClusterBlastReference, b: ClusterBlastReference):
     shared = set(pa) & set(pb)
     if not shared:
         return None, None, None
-    best = None  # (gap, span) for the shared-prefix namespace with the smallest gap
+    # The namespace with the smallest gap wins. On a tie, the one with more loci (more evidence) wins, then the
+    # prefix. Iterating the set alone made the tie depend on Python's per-process hash seed (v9.7.444).
+    ranked = []
     for pre in shared:
         na, nb = pa[pre], pb[pre]
-        gap = min(abs(x - y) for x in na for y in nb)
-        span = max(na | nb) - min(na | nb)
-        if best is None or gap < best[0]:
-            best = (gap, span)
-    gap, span = best
+        ranked.append((min(abs(x - y) for x in na for y in nb), -len(na | nb), pre, max(na | nb) - min(na | nb)))
+    gap, _, _, span = min(ranked)
     if gap <= ADJ_MAX_LOCUS_GAP and span <= ADJ_MAX_SPAN:
         return "ADJACENT_OR_NEARBY_REFERENCE_SEGMENTS", gap, span
     return "DISTANT_ON_REFERENCE_CAUTION", gap, span
@@ -886,8 +987,18 @@ def _geometry_gate(confidence: str, good_geometry_references: int, split_signatu
     return confidence, gate
 
 
+def _same_contig(bgc_a: BGCRecord, bgc_b: BGCRecord) -> bool:
+    return bool(bgc_a.contig) and contig_key(bgc_a.contig) == contig_key(bgc_b.contig)
+
+
 def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
-                   contigs: dict[str, str] | None = None) -> dict[str, Any]:
+                   contigs: dict[str, str] | None = None,
+                   glycosyltransferase_bgcs: set[str] | None = None,
+                   contig_edge_bgcs: set[str] | None = None,
+                   same_contig_pairs: bool = False) -> dict[str, Any]:
+    # Only regions at a contig edge are paired; interior regions are whole on their contig (Alex, 2026-09-27).
+    # Two regions on one contig are never a rescue: no assembly break separates them (Alex, 2026-09-27).
+    edge_ids = _edge_status_fallback(bgcs) if contig_edge_bgcs is None else set(contig_edge_bgcs)
     all_records = [ClusterBlastReference(**r) for r in reference_map.get("reference_records", [])]
     # P-CBDB v9.7.100: subclusterblast finds sub-operon (cassette/sugar-operon) hits, NOT whole-cluster
     # hits, so it must NOT contribute to cluster-level rescue geometry. It is retained separately as a
@@ -923,7 +1034,7 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
     # Accumulate per-pair statistics across all shared references.
     for (db_kind, ref), recs in by_ref.items():
         # Skip references that only point to one query BGC.
-        bgc_ids = sorted({r.bgc_id for r in recs if r.bgc_id in by_bgc})
+        bgc_ids = sorted({r.bgc_id for r in recs if r.bgc_id in by_bgc and r.bgc_id in edge_ids})
         if len(bgc_ids) < 2:
             continue
         # Best record per BGC for this reference: rank first, then protein hits/score.
@@ -941,6 +1052,8 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
             a = best_by_bgc[a_id]
             b = best_by_bgc[b_id]
             bgc_a, bgc_b = by_bgc[a_id], by_bgc[b_id]
+            if not same_contig_pairs and _same_contig(bgc_a, bgc_b):
+                continue
             score, confidence, details = _pair_score(a, b, bgc_a, bgc_b)
             row = {
                 "pair": f"{a_id}+{b_id}",
@@ -1187,6 +1300,24 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
             st_gate = "ST-PARALOG_no_complementarity_proof"
             acceptance_gate = st_gate if acceptance_gate == "OK" else f"{acceptance_gate}+{st_gate}"
 
+        # Sugar-arm restore (see _sugar_arm_pair): only a pair the product-class gate alone demoted from HIGH, split
+        # by its genes across contigs, tiling 2-RGGMCI_MAX_COCLUSTER_MIBIG_REFS characterized clusters together, with a
+        # glycosyltransferase on the backbone side. R1-R3 still apply.
+        if (confidence == "MODERATE_RG_GMCI_CANDIDATE" and conf_after_geometry == "HIGH_RG_GMCI_RESCUE"
+                and product_gate == "DEMOTED_HIGH_TO_MODERATE_no_specific_product_class_after_exclusions"
+                and diff_contig
+                and subject_tiling_verdict in ("COMPLEMENTARY_SPLIT", "TERMINUS_TRUNCATION_SPLIT")
+                and 2 <= acc["mibig_good_geometry_references"] <= RGGMCI_MAX_COCLUSTER_MIBIG_REFS
+                and _sugar_arm_pair(bgc_a, bgc_b, glycosyltransferase_bgcs)):
+            restored = "HIGH_RG_GMCI_RESCUE"
+            pa, pb = "; ".join(bgc_a.products), "; ".join(bgc_b.products)
+            restored, g1 = _r1_drop_pair_gate(restored, pa, pb)
+            restored, g2 = _r2_strong_ref_gate(restored, acc["strong_supporting_references"])
+            restored, g3 = _r3_noise_class_gate(restored, pa, pb)
+            if restored == "HIGH_RG_GMCI_RESCUE":
+                confidence = restored
+                acceptance_gate = f"{acceptance_gate}+RESTORED_sugar_arm_glycosylated_partner"
+
         # P-CBDB v9.7.100: rescue evidence base — which DB types corroborate this pair. A rescue is most
         # credible when BOTH knownclusterblast (characterized-cluster identity) AND clusterblast (cross-genome
         # co-occurrence) support it; clusterblast-only still rescues (the AS-XXX/AS-XXX case where the BGC
@@ -1296,7 +1427,11 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
             "overlapping_paralog_pairs": overlapping_paralog_pairs,
             "promotion_ceiling": ceiling,
         },
-        "pairing_scope": "all_BGC_pairs_sharing_reference_accession_from_clusterblast_txt",
+        "pairing_scope": ("pairs_of_contig_edge_regions_on_different_contigs_sharing_reference_accession_from_clusterblast_txt"
+                          if not same_contig_pairs else
+                          "pairs_of_listed_regions_sharing_reference_accession_from_clusterblast_txt"),
+        "contig_edge_regions": len(edge_ids & set(by_bgc)),
+        "interior_regions_not_paired": len(set(by_bgc) - edge_ids),
         "reference_record_count": reference_map.get("reference_record_count", 0),
         "clusterblast_txt_file_count": len(reference_map.get("clusterblast_txt_files", [])),
         "pairs_total": len(ranked),
@@ -1310,10 +1445,50 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
     }
 
 
+RELATED_LOCUS_LABEL = "RELATED_LOCUS_NOT_A_RESCUE"
+
+
+def related_locus_pairs(bgcs: list[BGCRecord], reference_map: dict[str, Any], contig_edge_bgcs: set[str],
+                        contigs: dict[str, str] | None = None,
+                        glycosyltransferase_bgcs: set[str] | None = None) -> list[dict[str, Any]]:
+    """Pairs that involve an interior region or sit on one contig, kept apart from the rescue list (Alex, 2026-09-27).
+
+    The same scoring runs over all regions; every HIGH or MODERATE pair with at least one region off a contig edge, or
+    with both regions on the same contig, is returned with its grade moved to `shared_reference_grade` and
+    `rggmci_confidence` set to RELATED_LOCUS_NOT_A_RESCUE. An interior region is whole on its contig, and two regions on
+    one contig have no assembly break between them, so such a pair can point to related loci (a second copy, a separate
+    locus of one pathway, a shared cassette) but never to a fragment the assembly separated. These pairs never feed
+    the rescue confidence, candidate groups or triage. `related_because` says which rule placed the pair here.
+    """
+    by_id = {b.bgc_id: b for b in bgcs}
+    everything = compute_rggmci(bgcs, reference_map, contigs=contigs, glycosyltransferase_bgcs=glycosyltransferase_bgcs,
+                                contig_edge_bgcs=set(by_id), same_contig_pairs=True)
+    out = []
+    for p in everything.get("ranked_pairs", []):
+        same = _same_contig(by_id[p["bgc_a"]], by_id[p["bgc_b"]])
+        if p["bgc_a"] in contig_edge_bgcs and p["bgc_b"] in contig_edge_bgcs and not same:
+            continue
+        grade = p.get("rggmci_confidence", "")
+        if not (grade.startswith("HIGH") or grade.startswith("MODERATE")):
+            continue
+        q = dict(p)
+        q["shared_reference_grade"] = grade
+        q["rggmci_confidence"] = RELATED_LOCUS_LABEL
+        q["interior_side"] = "+".join(x for x, b in (("a", p["bgc_a"]), ("b", p["bgc_b"])) if b not in contig_edge_bgcs)
+        q["related_because"] = "; ".join(r for r, hit in (("interior region", bool(q["interior_side"])),
+                                                          ("same contig", same)) if hit)
+        out.append(q)
+    return out
+
+
 def run_rggmci(zip_path: str | Path, bgcs: list[BGCRecord],
                contigs: dict[str, str] | None = None) -> dict[str, Any]:
     reference_map = parse_clusterblast_reference_map(zip_path, bgcs)
-    result = compute_rggmci(bgcs, reference_map, contigs=contigs)
+    gt = _glycosyltransferase_bgcs(zip_path, bgcs)
+    edge = _contig_edge_bgcs(zip_path, bgcs)
+    result = compute_rggmci(bgcs, reference_map, contigs=contigs, glycosyltransferase_bgcs=gt, contig_edge_bgcs=edge)
+    result["related_locus_pairs"] = related_locus_pairs(bgcs, reference_map, edge, contigs=contigs,
+                                                        glycosyltransferase_bgcs=gt)
     result["reference_map_status"] = reference_map.get("status")
     result["reference_parse_error_count"] = reference_map.get("parse_error_count", 0)
     return result

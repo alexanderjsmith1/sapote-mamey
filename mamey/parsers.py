@@ -569,7 +569,11 @@ def protocluster_breakdown(features) -> list:
 
 def _feature_products(feature) -> list[str]:
     vals = []
-    for key in ("product", "products", "category", "aSDomain", "domain"):
+    # Region/protocluster/candidate-cluster category is an antiSMASH umbrella,
+    # not another product class. Preserve the legacy CDS-only fallback below.
+    keys = (("product", "products", "category", "aSDomain", "domain")
+            if getattr(feature, "type", None) == "CDS" else ("product", "products"))
+    for key in keys:
         if key in feature.qualifiers:
             q = feature.qualifiers[key]
             vals.extend(q if isinstance(q, list) else [str(q)])
@@ -868,9 +872,11 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
 def extract_cds_features(zip_path: str | Path) -> list[CDSFeature]:
     cds = []
     seen = set()
+    offsets = _region_record_offsets(zip_path)
     for name, rec in read_genbank_records(zip_path, region_only=False,
                                           exclude_regions=True):
         contig_id = _record_contig_id(rec)
+        off = offsets.get(name, 0)
         for f in rec.features:
             if f.type != "CDS":
                 continue
@@ -882,12 +888,12 @@ def extract_cds_features(zip_path: str | Path) -> list[CDSFeature]:
                     # The naive min..max span brackets the whole contig and false-overlaps
                     # every region; use the dominant (longest) part as representative coords.
                     _p = max(_parts, key=lambda p: int(p.end) - int(p.start))
-                    start = int(_p.start) + 1
-                    end = int(_p.end)
+                    start = int(_p.start) + 1 + off
+                    end = int(_p.end) + off
                     strand = int(_p.strand or 0)
                 else:
-                    start = int(_loc.start) + 1
-                    end = int(_loc.end)
+                    start = int(_loc.start) + 1 + off
+                    end = int(_loc.end) + off
                     strand = int(_loc.strand or 0)
             except Exception:
                 continue
@@ -960,6 +966,30 @@ def _parse_float_maybe(x):
     except Exception:
         return None
 
+def _region_record_offsets(zip_path: str | Path) -> dict[str, int]:
+    """Offset that puts a clipped region record's features on the contig's coordinates.
+
+    An archive with no whole-record GenBank file is read from its region files, whose feature coordinates restart
+    at 1. BGC bounds come from the same files' `Orig. start` (0-based), so without this a region away from its
+    contig start found none of its own domains or genes, and overlapping local frames credited one region's
+    domains to another. The offset is `Orig. start`: a 1-based local start plus it is the 1-based contig start.
+    Archives with whole-record files read those instead and get no offset.
+    """
+    has_whole = False
+    try:
+        with zipfile.ZipFile(zip_path) as zf:
+            for n in regular_file_names(zf):
+                base = Path(n).name.lower()
+                if base.endswith(GBK_EXTS) and "region" not in base and not is_macos_cruft(n):
+                    has_whole = True
+                    break
+    except (OSError, zipfile.BadZipFile):
+        return {}
+    if has_whole:
+        return {}
+    return {name: start for name, (start, _end) in _region_orig_bounds_from_zip(zip_path).items()}
+
+
 def extract_domain_features(zip_path: str | Path) -> list[DomainFeature]:
     """Extract antiSMASH-specific domain/module features from GBKs.
 
@@ -972,16 +1002,18 @@ def extract_domain_features(zip_path: str | Path) -> list[DomainFeature]:
     domains = []
     seen = set()
     wanted = {"aSDomain", "PFAM_domain", "CDS_motif", "aSModule"}   # antiSMASH type is aSModule, not "module" (Patch F Bug 1)
+    offsets = _region_record_offsets(zip_path)
     for name, rec in read_genbank_records(
         zip_path, region_only=False, exclude_regions=True
     ):
         contig_id = _record_contig_id(rec)
+        off = offsets.get(name, 0)
         for f in rec.features:
             if f.type not in wanted:
                 continue
             try:
-                start = int(f.location.start) + 1
-                end = int(f.location.end)
+                start = int(f.location.start) + 1 + off
+                end = int(f.location.end) + off
                 strand = int(f.location.strand or 0)
             except Exception:
                 continue

@@ -1,0 +1,36 @@
+LOCUS       BGC0000055               381 bp    DNA              UNK 01-JAN-1980
+DEFINITION  Saccharopolyspora erythraea NRRL2338 complete genome.
+ACCESSION   BGC0000055
+VERSION     BGC0000055
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+COMMENT     Public BGC0000055 single-CDS subrecord; engineering perturbation
+            control only.
+FEATURES             Location/Qualifiers
+     gene            1..381
+                     /locus_tag="SACE_0712"
+     CDS             1..381
+                     /codon_start=1
+                     /db_xref="EnsemblGenomes-Gn:SACE_0712"
+                     /db_xref="EnsemblGenomes-Tr:CAM00053"
+                     /db_xref="GOA:A4F7M9"
+                     /db_xref="InterPro:IPR007815"
+                     /db_xref="UniProtKB/TrEMBL:A4F7M9"
+                     /locus_tag="SACE_0712"
+                     /product="putative erythromycin esterase"
+                     /protein_id="CAM00053.1"
+                     /transl_table=11
+                     /translation="MVFDGELTLLPMGQYLHRALGGDYVALAATHTGTSAPEIELDDSS
+                     DSGFAVREVDLPAPEDGSIEAAAVAARIGTGLVDLRAQAPGLDRIRSQSTWMRTPLRDA
+                     FDAVLTVPTATAEVSTPRPARD"
+ORIGIN
+        1 gtggtcttcg acggggagct gacgctgctg cccatggggc agtacctgca ccgcgccctc
+       61 ggcggcgact acgtcgccct cgccgccacg cacaccggca ccagcgcccc cgagatagag
+      121 ctcgacgaca gcagcgacag cggcttcgcc gttcgggagg tggatctgcc cgcaccggag
+      181 gacggaagca tcgaggccgc ggccgtcgcg gcgcgcatcg gaacgggcct cgtcgacctg
+      241 cgcgcgcaag ctcccggcct ggaccggatc cgctcccaga gcacgtggat gcggacgccg
+      301 ctgcgcgacg cgttcgacgc cgtgctcact gttcccaccg ccaccgcgga agtctcgaca
+      361 ccccgtccgg cgcgcgacta a
+//

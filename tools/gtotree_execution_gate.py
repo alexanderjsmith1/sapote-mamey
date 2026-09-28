@@ -39,7 +39,9 @@ V2_NO_REMOVAL_LINE = "No genomes were removed due to having too few SCG hits"
 WALL_CLOCK_MARKER = "Total wall-clock time"
 # ")95:" / ")95/99:" / ")0.98:" — a numeric label directly after a close-paren = support present.
 _SUPPORT_RE = re.compile(r"\)\s*[0-9]+(?:\.[0-9]+)?(?:/[0-9]+(?:\.[0-9]+)?)?\s*:")
-_ACCEPTED_GTOTREE_VERSIONS = re.compile(r"(?:^|\D)(?:1\.8\.19|2\.0\.\d+)(?:\D|$)")
+# One shared list with the planner and the workflow doc (tools/_gtotree_versions.py).
+_sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _gtotree_versions import ACCEPTED_GTOTREE_VERSIONS as _ACCEPTED_GTOTREE_VERSIONS  # noqa: E402
 
 
 def digest(path):
@@ -53,8 +55,8 @@ def validate(packet, root, postflight=False):
     for key in ("run_id","gtotree","hmm","panel","working_directory","output_directory","max_concurrent_jobs"):
         if key not in packet: raise ValueError("PACKET_FIELD_MISSING: "+key)
     gt=packet["gtotree"]; hmm=packet["hmm"]
-    # v9.7.432: the installed and documented GToTree is v2.0.0; 1.8.19 stays accepted for the
-    # standalone tree. Anything else (e.g. the conda env's 1.8.16) is still refused.
+    # Accepted versions come from tools/_gtotree_versions.py (1.8.19 production, 2.0.x admitted);
+    # anything else (e.g. the conda env's 1.8.16) is refused.
     if not _ACCEPTED_GTOTREE_VERSIONS.search(str(gt.get("version",""))):
         raise ValueError("GTOTREE_VERSION: production packet requires 1.8.19 or 2.0.x")
     for label,item in (("GTOTREE",gt),("HMM",hmm)):

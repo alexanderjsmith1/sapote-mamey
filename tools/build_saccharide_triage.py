@@ -22,6 +22,8 @@ import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from 
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import argparse, json, os
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))  # bundle root, for mamey
+from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH families for groupings; products stay types
 
 from _wbio import atomic_save
 
@@ -57,7 +59,7 @@ if os.path.exists(_REF):
     SUGAR_PRODUCTS=_r.get('sugar_products',SUGAR_PRODUCTS)
     GLYCOSYLATED_HYBRIDS=_r.get('glycosylated_hybrids',GLYCOSYLATED_HYBRIDS)
 
-def tokens(b): return [t.strip().lower() for t in (b.get('products') or '').replace(';',',').split(',') if t.strip()]
+def tokens(b): return [t.lower() for t in with_family_labels(b.get('products') or '', without=('napaa',))]  # NAPAA is no backbone
 
 def classify(b):
     tk=tokens(b)

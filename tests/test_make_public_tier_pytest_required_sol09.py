@@ -39,6 +39,7 @@ def _run(tmp_path: Path, wrapper: Path) -> subprocess.CompletedProcess[str]:
         **os.environ,
         "BUILD_STAMP": "20260909v97420a",
         "PYTHON": str(wrapper),
+        "SAPOTE_ENABLE_DISABLED_TIERS": "1",  # v9.7.444: the public tier is disabled by default
     }
     return subprocess.run(
         ["bash", str(BUILDER), "public", str(ROOT), str(output)],

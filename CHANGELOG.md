@@ -1,3 +1,29 @@
+# v9.7.444 · 2026-09-29 · build 20260929v97444a · engine 1.9.171 · CODE
+
+Accretion-justified: mamey/rescue_groups.py — RG-GMCI candidate groups and group GenBank files, shared with the standalone rggmci package.
+
+- **RG-GMCI pairs only contig-edge regions on different contigs.** Interior regions and two regions on one contig are never rescues. Their HIGH or MODERATE shared-reference signals go to a related-loci table with the reason; LOW signals are omitted. antiSMASH edge flags take priority, with engine edge status as fallback. Triage ignores these related pairs.
+- **RG-GMCI shows why a pair was demoted, and the result no longer depends on the hash seed.** The ranked-pairs table carries its gate columns; adjacency ties break by locus count, then prefix.
+- **Rescues become analysis units.** HIGH pairs that share a region form candidate groups. A group GenBank file is written only when every member file and complete identity is bound, for the completeness, compare and relate tools; glycosylated pathways split across contigs can now be called.
+- **Three advisory tools read a split cluster against a reference.** KS placement on a reference's module order, a gene-by-gene synteny map, and a gap-directed search for missing reference genes anywhere in the genome, with contig-track figures drawing reciprocal best matches only. None changes a pair's score or confidence.
+- **Product classes are counted from products, not category words.** antiSMASH category words are no longer product classes; figure and report groupings read antiSMASH families; GCF tags stop calling every unmatched type I PKS a polyene, and NAPAA stays out of NRPS in three tools.
+- **The GenBank fallback reader keeps LOCUS name and DEFINITION.** This closes the reproduced replicon-order and BGC-alias mismatch when Biopython is absent; it does not establish universal parser equivalence. Region-only CDS and domains use contig coordinates.
+- **RG-GMCI ships as a standalone package built from the bundle's source.** It is checked against the repository docs, with public fixtures.
+- **An operator can run a handoff gate on supplied packets, deliverables and reply links before sending them.** It checks queue and hash drift, orphan cards, replay, links, four-part BGC identities and figure text.
+- **Releases cut the CODE tier only.** The clean, cohort, merged and public tiers and the four-tier driver stay in the bundle but refuse to run unless SAPOTE_ENABLE_DISABLED_TIERS=1 (CUT_PROTOCOL.md).
+- **Lab Quest is an optional add-on.** It moves to sapote_addons/lab_quest (package sapote_lab_quest) with unchanged behaviour; `lab-quest` appears only when installed, and the launcher's missing `mamey[labquest]` extra is gone.
+- **One GToTree version list for planner, gate and doc.** 1.8.19 and 2.0.x are accepted and 1.8.16 is refused everywhere; `--threads-per-tree` (default 1) keeps the four-core ceiling.
+- **Genome-tree panels can add named type strains past the related cap.** Type anchors need the type-material flag, are capped per query and listed in the receipt.
+- **Phylogeny option and rendering fixes.** phylo-run forwards IQ-TREE threads, seed and tree spec; the genome-tree runner honours its ModelFinder restriction; EPA-ng reference branch lengths are restored from ref.tree, and default query pendants are re-estimated when RAxML-NG, alignments and model are available; placement figures wait until branch lengths are verified, and the report says what is missing; rect02 strip cells stay on their tips.
+- **Test runs no longer rewrite a checksummed file in tools/.** Inspect-command paths and candidate-census links are safe (Codex audits).
+- Codex Task 41 fixes: the standalone package example states the engine's own counts; placement figures wait for verified branch lengths.
+- Compose fixes: the handoff gate is registered; ten new test fixtures join the determinism inventory; no .444 addition names an AS strain or contig; the command catalog lists the Lab Quest add-on whether or not it is installed.
+- Codex Task 40 review fixes (9): reciprocal-only partner support, one protein one rival, placement bound to its reference, fail-closed hash and replay checks in the handoff gate, every diff in a card accounted for, coverage labels match their identity cut, group export refuses incomplete identities, and a core prefix must name one region.
+
+Engine 1.9.171: RG-GMCI output changes (which pairs are rescues, the related-loci table, gate columns, rescue groups) and product-class counting changes. Boards from 1.9.170 are not directly poolable for RG-GMCI calls or class counts.
+
+Scientific hold: gap-rescue deployment thresholds have not been accepted (public calibration: STRONG partner precision 2/7 on a sparse truth set); the tool ships as advisory only.
+
 # v9.7.443 · 2026-09-26 · build 20260926v97443a · engine 1.9.170 · CODE
 
 Accretion-justified: no new mamey runtime module. New operator surfaces: tools/check_no_bundle_write_defaults.py, tools/make_verified_code_tarball.sh, tools/blastp_crawl/.

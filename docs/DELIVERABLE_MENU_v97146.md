@@ -2,6 +2,6 @@
 
 The version-pinned filename is retained so historical links keep working. The current, registry-generated menu is [`DELIVERABLE_MENU.md`](DELIVERABLE_MENU.md).
 
-Current bundle: Sapote-Mamey v9.7.443; engine: Mamey 1.9.170.
+Current bundle: Sapote-Mamey v9.7.444; engine: Mamey 1.9.171.
 
 Do not add new offerings here. Add them to `mamey/data/deliverables_registry.json` and regenerate the menu.

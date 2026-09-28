@@ -51,7 +51,11 @@ def emit(*args, sep=" ", end="\n", file=None, flush=False):
 
 
 SCHEMA_VERSION = "sapote-phylo-plan/1.1"
-VERIFIED_GTOTREE_VERSION = "1.8.16"
+# Accepted GToTree versions are one shared list (tools/_gtotree_versions.py), read by this planner
+# and by gtotree_execution_gate.py; the workflow doc states the same list.
+_sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _gtotree_versions import ACCEPTED_GTOTREE_VERSIONS_TEXT, accepted as _gtotree_accepted  # noqa: E402
+VERIFIED_GTOTREE_VERSION = "1.8.19"   # production version; kept as a name for callers
 DEFAULT_PANEL_CAP = 40
 HARD_PANEL_CAP = 60
 DEFAULT_REFERENCES_PER_QUERY = 3
@@ -280,6 +284,8 @@ def read_prepared_panel(directory: Path, references_per_query: int) -> tuple[lis
         raise ValueError("prepared panel must contain exactly one OUTGROUP row")
 
     linked_counts = {query_id: 0 for query_id in query_ids}
+    # Type anchors (build_phylo_panel.py): named type strains outside the related cap, re-checked here.
+    anchor_counts = {query_id: 0 for query_id in query_ids}
     rows: list[PanelRow] = []
     observed_labels: set[str] = set()
     for line_no, raw in enumerate(raw_rows, 2):
@@ -314,8 +320,17 @@ def read_prepared_panel(directory: Path, references_per_query: int) -> tuple[lis
                 )
             if not str(raw.get("selection_basis") or "").strip():
                 raise ValueError(f"prepared panel row {line_no}: reference selection_basis missing")
+            anchor = str(raw.get("type_anchor") or "").strip() == "yes"
+            if anchor and (
+                not re.fullmatch(r"nearest_type_strain_[a-z0-9]+", str(raw.get("selection_basis") or "").strip(), re.I)
+                or str(raw.get("assembly_fromtype") or "").strip().lower() != "assembly from type material"
+            ):
+                raise ValueError(
+                    f"prepared panel row {line_no}: type anchor needs nearest_type_strain_<method> "
+                    "and assembly_fromtype = assembly from type material"
+                )
             for query_id in set(related):
-                linked_counts[query_id] += 1
+                (anchor_counts if anchor else linked_counts)[query_id] += 1
         query_id = candidate_id if role == "QUERY" else (
             ";".join(related) if role == "REFERENCE" else "__OUTGROUP__"
         )
@@ -336,6 +351,13 @@ def read_prepared_panel(directory: Path, references_per_query: int) -> tuple[lis
             if count > references_per_query}
     if over:
         raise ValueError(f"prepared panel exceeds references-per-query cap: {over}")
+    anchor_cap = int(receipt.get("max_type_anchors_per_query", 0))
+    over = {q: n for q, n in anchor_counts.items() if n > anchor_cap}
+    if over:
+        raise ValueError(f"prepared panel exceeds type-anchors-per-query cap {anchor_cap}: {over}")
+    over = {q: linked_counts[q] + anchor_counts[q] for q in query_ids if linked_counts[q] + anchor_counts[q] > 4}
+    if over:
+        raise ValueError(f"prepared panel exceeds 4 comparators per query: {over}")
     return rows, {
         "directory": str(directory),
         "panel_selected": {"path": str(selected_path), "sha256": file_sha256(selected_path)},
@@ -395,8 +417,7 @@ def probe_toolchain(gtotree_bin: str | None, iqtree_bin: str | None) -> dict:
     iq = _probe(iqtree_bin, "--version", "-h", REQUIRED_IQTREE_HELP)
     observed_gtt = str(gtt.get("version") or "")
     gtt["verified_interface"] = (
-        "PASS" if re.search(rf"\bv?{re.escape(VERIFIED_GTOTREE_VERSION)}\b", observed_gtt)
-        else "HOLD_UNVERIFIED_VERSION"
+        "PASS" if _gtotree_accepted(observed_gtt) else "HOLD_UNVERIFIED_VERSION"
     )
     helpers = {}
     gtt_parent = Path(gtotree_bin).parent if gtotree_bin else None
@@ -410,7 +431,7 @@ def probe_toolchain(gtotree_bin: str | None, iqtree_bin: str | None) -> dict:
 
 def _safe_label(value: str, fallback: str) -> str:
     label = re.sub(r"[\t\r\n]+", " ", value).strip() or fallback
-    # GToTree 1.8.16 rejects these characters anywhere in its mapping file.
+    # GToTree 1.8 rejects these characters anywhere in its mapping file.
     return re.sub(r"[()*&^#$@!\\/|\[\]]", "_", label)
 
 
@@ -434,17 +455,17 @@ def _write_tsv_new(path: Path, fieldnames: list[str], rows: list[dict]) -> None:
         writer.writerows(rows)
 
 
-def _command_text(run_dir: Path, hmm_relpath: Path, gtt_bin: str, iq_bin: str) -> str:
-    # GToTree 1.8.16 contains shell loops that split paths on whitespace. Run from
+def _command_text(run_dir: Path, hmm_relpath: Path, gtt_bin: str, iq_bin: str, threads: int = 1) -> str:
+    # GToTree 1.8 contains shell loops that split paths on whitespace. Run from
     # the run directory and give it only controlled, space-free relative paths.
     if hmm_relpath.is_absolute() or any(" " in part for part in hmm_relpath.parts):
         raise ValueError("staged HMM path must be a space-free path relative to the run directory")
     gtt = [gtt_bin, "-f", "input_view/genomes.txt", "-H", hmm_relpath.as_posix(),
-           "-m", "input_view/labels.tsv", "-j", "1", "-n", "1",
-           "-M", "1", "-N", "-k", "-o", "outputs/gtotree_alignment"]
+           "-m", "input_view/labels.tsv", "-j", "1", "-n", str(threads),
+           "-M", str(threads), "-N", "-k", "-o", "outputs/gtotree_alignment"]
     iq = [iq_bin, "-s", "<DISCOVERED_ALIGNMENT_PATH>", "-m", "MFP", "-mset",
           "LG,WAG,JTT,Q.pfam", "-mrate", "G,I,I+G", "-B", "1000", "--alrt", "1000",
-          "-T", "1", "--seed", "12345", "--prefix", "outputs/iqtree/final"]
+          "-T", str(threads), "--seed", "12345", "--prefix", "outputs/iqtree/final"]
     return (
         "#!/usr/bin/env bash\nset -euo pipefail\n"
         "# GENERATED PLAN ONLY. Do not execute until RUN_STATE records APPROVED.\n"
@@ -469,6 +490,10 @@ def _hmm_profile_count(path: Path) -> int:
 def plan(args: argparse.Namespace) -> int:
     if not 1 <= args.max_concurrent_cores <= DEFAULT_MAX_CONCURRENT_CORES:
         raise ValueError("max-concurrent-cores must be between 1 and 4")
+    threads = int(getattr(args, "threads_per_tree", 1) or 1)
+    if not 1 <= threads <= args.max_concurrent_cores:
+        raise ValueError("threads-per-tree must be between 1 and max-concurrent-cores (at most 4)")
+    concurrent_trees = args.max_concurrent_cores // threads   # the combined core ceiling is unchanged
     prepared_meta: dict | None = None
     if getattr(args, "prepared_panel", None):
         rows, prepared_meta = read_prepared_panel(
@@ -570,7 +595,7 @@ def plan(args: argparse.Namespace) -> int:
     object_paths = [r["object_relpath"] for r in admitted]
     _write_new(run_dir / "input_view" / "genomes.txt",
                ("\n".join(object_paths) + "\n").encode("utf-8"))
-    # GToTree 1.8.16's -m file is headerless and matches local inputs by basename.
+    # GToTree 1.8's -m file is headerless and matches local inputs by basename.
     # Full paths also trip its special-character check because they contain '/'.
     label_lines = [f"{Path(r['object_path']).name}\t{label}"
                    for r, label in zip(admitted, labels)]
@@ -606,9 +631,10 @@ def plan(args: argparse.Namespace) -> int:
             "duplicate_rows_excluded": len(excluded), "network_rows_not_staged": len(network_rows),
         },
         "resource_policy": {
-            "gtotree_jobs": 1, "hmm_threads": 1, "muscle_threads": 1,
-            "iqtree_threads_per_tree": 1,
-            "max_concurrent_one_core_trees": args.max_concurrent_cores,
+            "gtotree_jobs": 1, "hmm_threads": threads, "muscle_threads": threads,
+            "iqtree_threads_per_tree": threads,
+            "max_concurrent_trees": concurrent_trees,
+            "accepted_gtotree_versions": list(ACCEPTED_GTOTREE_VERSIONS_TEXT),
             "maximum_concurrent_cores": args.max_concurrent_cores,
         },
         "hmm": {"kind": "PROTEIN_PROFILE_SET_FOR_GTOTREE",
@@ -638,7 +664,7 @@ def plan(args: argparse.Namespace) -> int:
     _write_json_new(run_dir / "RUN_STATE.json", state_doc)
     _write_new(run_dir / hmm_relpath, hmm.read_bytes())
     _write_new(run_dir / "COMMAND.sh", _command_text(
-        run_dir, hmm_relpath, gtt_bin or "GToTree", iq_bin or "iqtree3"
+        run_dir, hmm_relpath, gtt_bin or "GToTree", iq_bin or "iqtree3", threads
     ).encode("utf-8"))
     event = {"time_utc": manifest["created_utc"], "event": "PLAN_CREATED", "state": state,
              "execution_authorized": False}
@@ -648,8 +674,9 @@ def plan(args: argparse.Namespace) -> int:
 State: **{state}**. Execution and network access are **not approved**.
 
 Read `RUN_MANIFEST.json`, then `RUN_STATE.json`, then `COMMAND.sh`. The manifest is immutable.
-The command uses GToTree 1.8.16-compatible explicit controls `-j 1 -n 1 -M 1 -N -k`; IQ-TREE
-uses `-T 1`. At most {args.max_concurrent_cores} one-core trees may be active at once.
+The command uses explicit GToTree 1.8-style controls `-j 1 -n {threads} -M {threads} -N -k`; IQ-TREE
+uses `-T {threads}`. At most {concurrent_trees} tree(s) of {threads} thread(s) may be active at once
+({args.max_concurrent_cores} cores in all). Accepted GToTree: {", ".join(ACCEPTED_GTOTREE_VERSIONS_TEXT)}.
 
     Panel: {len(admitted)} unique local assemblies admitted / cap {panel_cap};
 {len(excluded)} normalized-sequence duplicate row(s) excluded; {len(network_rows)} network input(s)
@@ -762,6 +789,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-concurrent-cores", type=int, choices=(1, 2, 3, 4),
                    default=DEFAULT_MAX_CONCURRENT_CORES,
                    help="maximum simultaneous one-core tree jobs (default and hard maximum 4)")
+    p.add_argument("--threads-per-tree", type=int, choices=(1, 2, 3, 4), default=1,
+                   help="threads for one approved tree (GToTree -n/-M, IQ-TREE -T); default 1; "
+                        "trees at once = max-concurrent-cores // threads, so the core ceiling is unchanged")
     p.add_argument("--gtotree-bin", default=None)
     p.add_argument("--iqtree-bin", default=None,
                    help="explicit executable; otherwise resolve iqtree3, iqtree2, then iqtree")

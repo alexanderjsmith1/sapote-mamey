@@ -1,7 +1,12 @@
+# Lab Quest is an optional add-on (v9.7.444): tests import it from the bundle's source, so they run without
+# installing it.
+import sys as _lq_sys
+from pathlib import Path as _LqPath
+_lq_sys.path.insert(0, str(_LqPath(__file__).resolve().parents[1] / "sapote_addons" / "lab_quest"))
 import csv
 import json
 import pytest
-from mamey import lab_quest
+from sapote_lab_quest import lab_quest
 
 
 def package(tmp_path, monkeypatch, change=None, target='inventory'):

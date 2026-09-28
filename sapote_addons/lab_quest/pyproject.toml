@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sapote-lab-quest"
+version = "1.0.0"
+description = "Lab Quest: an optional local interface for Sapote-Mamey packages (add-on; not part of the analysis methods)."
+requires-python = ">=3.11"
+# The Sapote-Mamey engine (the `mamey` package) must already be installed from its bundle; it is not
+# listed here so pip never fetches an engine from an index.
+dependencies = ["streamlit>=1.30"]
+
+[tool.setuptools.packages.find]
+include = ["sapote_lab_quest*"]

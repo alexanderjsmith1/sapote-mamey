@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
+from .class_architecture import product_family
+
 
 REPORT_ONLY_CONTRACT = "TRIAL_ONLY_NO_SCORING"
 DEFAULT_NOMINAL_FULL_LENGTH_BP = 15_000
@@ -60,6 +62,10 @@ _EXACT_ALIASES = {
     "redox-cofactor": "REDOX_COFACTOR",
 }
 
+# antiSMASH's own category for a type not named above (arylpolyene -> PKS, cdps -> NRPS); "other" stays unmapped.
+_ANTISMASH_CATEGORY_FAMILY = {"nrps": "NRPS", "pks": "PKS", "ripp": "RiPP", "terpene": "TERPENE",
+                              "saccharide": "SACCHARIDE"}
+
 
 def _clean_product(product: str) -> str:
     value = str(product or "").strip().lower().replace("_", "-")
@@ -91,6 +97,9 @@ def normalize_product_family(product: str) -> tuple[str | None, str]:
         return "SIDEROPHORE", "FAMILY_RULE"
     if "saccharide" in cleaned or "oligosaccharide" in cleaned:
         return "SACCHARIDE", "FAMILY_RULE"
+    family = _ANTISMASH_CATEGORY_FAMILY.get(product_family(str(product).strip()))   # the table keeps antiSMASH's '_'
+    if family:
+        return family, "ANTISMASH_CATEGORY"
     return None, "DEFAULT_UNMAPPED"
 
 

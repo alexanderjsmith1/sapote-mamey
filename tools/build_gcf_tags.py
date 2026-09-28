@@ -24,6 +24,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     import os as _cs_os, sys as _cs_sys
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+from mamey.class_architecture import product_family  # noqa: E402  antiSMASH family of a type the bucket map does not name
 from collections import Counter
 from _wbio import atomic_save, atomic_open
 
@@ -42,8 +43,13 @@ CLASS_BUCKET = {
  'thiopeptide':'RiPP','thioamitides':'RiPP','saccharide':'saccharide','oligosaccharide':'saccharide',
  'nucleoside':'nucleoside','terpene':'terpene','indole':'indole_alkaloid','siderophore':'siderophore',
  'ni-siderophore':'siderophore','nrp-metallophore':'siderophore','betalactone':'betalactone','cdps':'CDPS',
- 'ectoine':'other','melanin':'other','butyrolactone':'other','hgle-ks':'other','pks':'T1PKS','pks-like':'T1PKS',
+ 'ectoine':'other','melanin':'other','butyrolactone':'other','napaa':'other',
+ # PKS-family types that are not type I, II or trans-AT: a general PKS bucket (Alex, 2026-09-26: PKS-like and
+ # hglE-KS count as PKS)
+ 'hgle-ks':'PKS_other','pks-like':'PKS_other','t3pks':'PKS_other','arylpolyene':'PKS_other','pks':'PKS_other',
 }
+# a type named nowhere above falls to its antiSMASH family
+FAMILY_BUCKET = {'pks':'PKS_other','nrps':'NRPS','ripp':'RiPP','terpene':'terpene','saccharide':'saccharide','other':'other'}
 
 def load_aliases(thesaurus_path):
     th=_read_json(thesaurus_path)
@@ -53,15 +59,25 @@ def load_aliases(thesaurus_path):
             for a in t['aliases']:
                 pairs.append((a.lower(), t['tag']))
     pairs.sort(key=lambda p:-len(p[0]))  # longest alias first = most specific match
-    orphan={cls:next((t['tag'] for t in tags if t['tag'].endswith('_orphan') or t['tag'].endswith('_unknown')), None) for cls,tags in th.items()}
+    # class-level fallback: an orphan/unknown tag with no aliases of its own if the class has one (T1PKS lists two
+    # compound-family orphans, polyene first, which must not stand in for every unmatched type I PKS)
+    def _orphan(tags):
+        cands=[t for t in tags if t['tag'].endswith(('_orphan','_unknown'))]
+        return next((t['tag'] for t in cands if not t['aliases']), cands[0]['tag'] if cands else None)
+    orphan={cls:_orphan(tags) for cls,tags in th.items()}
     return pairs, orphan
 
 def primary_class(products):
-    cl=[p.strip().lower() for p in (products or '').split(';') if p.strip()]
+    """The region's leading antiSMASH type. The preference order ranks a type by its own name or, failing that, by
+    its antiSMASH family (so RiPP-like ranks as RiPP and arylpolyene as PKS, as before), but the type is what is shown.
+    NAPAA is housekeeping and does not rank as NRPS."""
+    cl=[p.strip().lower() for p in (products or '').replace(',', ';').split(';') if p.strip()]   # antiSMASH types
     for pref in ['transat-pks','t1pks','hr-t2pks','t2pks','nrps','nrps-like','phosphonate','lanthipeptide',
                  'lassopeptide','thiopeptide','ripp','terpene','saccharide','nucleoside','siderophore','ectoine',
                  'betalactone','cdps','indole','butyrolactone','melanin','pks']:
         if pref in cl: return pref
+        by_family=[t for t in cl if t!='napaa' and product_family(t)==pref]
+        if by_family: return by_family[0]
     return cl[0] if cl else 'unknown'
 
 def tag_bgc(kcb, products, pairs, orphan):
@@ -73,7 +89,7 @@ def tag_bgc(kcb, products, pairs, orphan):
         if alias and alias in anchor:
             return tag, f'anchor~"{alias}"'
     # named anchor but no thesaurus match -> class-level orphan
-    bucket=CLASS_BUCKET.get(pc)
+    bucket=CLASS_BUCKET.get(pc) or FAMILY_BUCKET.get(product_family(pc))
     ot=orphan.get(bucket) if bucket else None
     return (ot or 'OTHER_unknown'), 'unmatched_anchor'
 

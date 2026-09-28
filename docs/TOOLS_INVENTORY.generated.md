@@ -1,12 +1,13 @@
 # Tools Inventory (generated)
 
-**405 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**410 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
 | Tool | What it does |
 |---|---|
 | `_console.py` | the single owner of direct terminal emission for tools/ and deliverable_tools/. |
+| `_gtotree_versions.py` | the one list of GToTree versions the phylo tools accept. |
 | `_phylo16s.py` | Configured data roots, local database lookup and checked external tool execution. |
 | `_phylo_metadata.py` | Conservative display normalization for phylogeny metadata. |
 | `_safe_walk.py` | shared directory-walk helper that surfaces permission errors instead of |
@@ -228,6 +229,7 @@
 | `find_asset.py` | locate a big/shared local asset BEFORE downloading or re-deriving it. |
 | `fixture_inputs.py` | Content-preserving preparation of the one hash-bound synthetic test archive. |
 | `fragment_concordance_scorer.py` | score a strain's observed BGC fragments against the reference panel. |
+| `gap_directed_rescue.py` | what a core region's reference cluster has and the core lacks, looked for across the genome. |
 | `gate_mutation_probe.py` | Reproducibly answer whether a named test detects a minimal protection mutation. |
 | `gate_stem_aware.py` | Run the sibling tree gate, optionally on a verified display's analysis parent. |
 | `gen_command_catalog.py` | generate the task-oriented CLI command catalog (v9.7.405). |
@@ -240,6 +242,7 @@
 | `gen_user_catalog.py` | generate the USER-FACING cassette + scan catalogs (v9.7.86 B4). |
 | `gene_assembly_line.py` | gene_assembly_line.py -- reliable PER-GENE NRPS/PKS assembly-line parser for antiSMASH region GBKs. |
 | `gene_modeb_enrichment.py` | gene_modeb_enrichment.py -- gene-level assembly-line block for a Mode B card, floors enforced. |
+| `gene_synteny_map.py` | one genome against one reference cluster, gene by gene, with the ordered blocks. |
 | `gene_topology.py` | antiSMASH-style gene-arrow topology figures from antiSMASH region GBKs. |
 | `generate_bgc_atlas.py` | browsable HTML atlas of one strain's BGC inventory (deliverable G1). |
 | `generate_deliverables_menu.py` | Generate or verify the registry-backed Sapote-Mamey Diner Menu. |
@@ -247,6 +250,7 @@
 | `graft_integrity.py` | Read-only metric checks and transactional gappa graft generation. |
 | `gtotree_env.sh` | canonical environment for a GToTree/IQ-TREE phylogenomic run. |
 | `gtotree_execution_gate.py` | Validate a frozen GToTree execution packet before launch or postflight. |
+| `handoff_gate.py` | one fail-closed check before work is handed to a person, a reviewer or another assistant. |
 | `harvest_16s.py` | assemble the 16S inputs for a per-genus EPA-ng placement, ALL FROM LOCAL DATA. |
 | `hub_merge.py` | one-shot hub merge: ingest → schema-gate → normalize → merge → verify. |
 | `ingest_blastp_rollups.py` | fold the per-strain DATED rollup CSVs into blastp.sqlite. |
@@ -258,6 +262,7 @@
 | `intake_harness.py` | multi-strain intake for Sapote-Mamey with performance metrics. |
 | `kcb_confidence.py` | extract antiSMASH's per-region KnownClusterBlast "Similarity Confidence" |
 | `ks_burden_table.py` | Build a package-native KS-burden TSV and hash-bound receipt. |
+| `ks_module_placement.py` | place one isolate's KS domains on a reference cluster's module order. |
 | `lab_office_render.py` | the Lab Office "make-report" entry point (batch figure rendering). |
 | `ladder_test.py` | Describe nearest-neighbor concordance across explicitly selected density rungs. |
 | `lead_board.py` | the per-strain ranked Lead Board (single source of truth). |

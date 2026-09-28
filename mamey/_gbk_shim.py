@@ -34,6 +34,10 @@ class _Record:
     seq: str = ""
     features: list[_Feature] = field(default_factory=list)
     annotations: dict = field(default_factory=dict)
+    # Biopython's record.name (the LOCUS name) and record.description (the DEFINITION line). Callers read them:
+    # parsers._replicon_intake_key orders chromosome before plasmid records from the description.
+    name: str = ""
+    description: str = ""
 
 
 def _parse_qualifiers(lines: list[str]) -> dict[str, list[str]]:
@@ -150,7 +154,14 @@ def parse_genbank_text(text: str) -> list[_Record]:
         if topo_m:
             annot['topology'] = topo_m.group(1).lower()
 
-        records.append(_Record(id=rec_id, seq=seq, features=features, annotations=annot))
+        # DEFINITION, as Biopython reads it: continuation lines joined by one space, one final period dropped.
+        def_m = re.search(r'^DEFINITION  (.*(?:\n {12}.*)*)', entry, re.MULTILINE)
+        description = " ".join(def_m.group(1).split()) if def_m else ""
+        if description.endswith("."):
+            description = description[:-1]
+
+        records.append(_Record(id=rec_id, seq=seq, features=features, annotations=annot,
+                               name=loc_m.group(1) if loc_m else rec_id, description=description))
     return records
 
 

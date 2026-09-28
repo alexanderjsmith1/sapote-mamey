@@ -21,6 +21,7 @@ import json, glob, os, csv, ast, collections, re, argparse, hashlib, warnings
 import json as _j
 import contextlib
 import math
+from mamey.class_architecture import with_family_labels  # antiSMASH families for groupings; products stay types
 from pathlib import Path
 PUBLICATION_RASTER_DPI = 300
 from .manifest_schema import read_manifest_field
@@ -809,9 +810,8 @@ def products_per_strain(S, order):
         invf=glob.glob(f"{S[s]['pkg']}/*_2_inventory.csv")
         if not invf: continue
         for row in csv.DictReader(open(invf[0], encoding="utf-8")):
-            for t in (row.get("Products") or "").replace(";",",").split(","):
-                t=t.strip()
-                if t: pc[t][s]+=1
+            for t in with_family_labels(row.get("Products") or ""):
+                pc[t][s]+=1
     return pc
 
 _RIPP_PRODUCT_RE = re.compile(r"ripp|lanthipeptide|lassopeptide|thiopeptide|\bLAP\b|sactipeptide|"
@@ -1360,7 +1360,7 @@ def build(S, order, OUT):
             bid=r.get("BGC_ID")
             L[(s,bid)]=_num(r.get("Length_kb"))
             v=r.get("KCB_score"); KCB[(s,bid)]=float(v) if v not in (None,"","NA","nan") and r.get("KCB_top") else None
-            PRODS[(s,bid)]=[t.strip() for t in (r.get("Products") or "").replace(";",",").split(",") if t.strip()]
+            PRODS[(s,bid)]=with_family_labels(r.get("Products") or "")
 
     # D01 bubble matrix: product class x strain (size=BGC count, colour=mean BGC length kb)
     pc=collections.Counter()

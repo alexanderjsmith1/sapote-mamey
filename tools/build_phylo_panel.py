@@ -13,7 +13,17 @@ Roles are QUERY, REFERENCE, or OUTGROUP. REFERENCE rows must also supply both
 selection_basis and related_query_ids. This prevents the tool from silently
 calling a genome a nearest neighbour or type/reference strain. Optional columns:
   source_member, priority, cohort, taxonomy, display_label, tree_label,
-  selection_basis, related_query_ids, reference_status
+  selection_basis, related_query_ids, reference_status, assembly_fromtype
+
+Type anchors: a REFERENCE row whose selection_basis is
+nearest_type_strain_<method> (method = how the curator found it: tygs, ani,
+mlsa, ...) is a named type strain added to anchor the tree's names. It must
+carry assembly_fromtype = "assembly from type material" (the NCBI Assembly
+value, exact). Anchors are chosen after the ordinary references, so they never
+change which ordinary references are selected. They do not count toward the
+related cap (--max-related-per-query), have their own cap
+(--max-type-anchors-per-query, 0..2, default 2), and still count toward the
+total-tip target and a hard ceiling of 4 comparators per query.
 
 source_path may be FASTA, GenBank, or an antiSMASH ZIP. For a ZIP, source_member
 is the exact assembly member. If omitted, auto-selection is allowed only when
@@ -66,6 +76,11 @@ CLAIM_CEILING = (
     "taxonomic identity, nearest-neighbour status, strain independence, novelty, "
     "biosynthetic production, or biological activity."
 )
+DEFAULT_TYPE_ANCHORS_PER_QUERY = 2
+MAX_TYPE_ANCHORS_PER_QUERY = 2
+MAX_COMPARATORS_PER_QUERY = 4  # related references + type anchors linked to one query
+TYPE_MATERIAL = "assembly from type material"
+TYPE_ANCHOR_BASIS = re.compile(r"nearest_type_strain_[a-z0-9]+", re.I)
 FASTA_SUFFIXES = {".fna", ".fa", ".fasta", ".fas"}
 GENBANK_SUFFIXES = {".gbk", ".gbff", ".gb", ".genbank"}
 
@@ -88,6 +103,8 @@ class Candidate:
     selection_basis: str = ""
     related_query_ids: list[str] = field(default_factory=list)
     reference_status: str = ""
+    assembly_fromtype: str = ""
+    type_anchor: bool = False
     sequences: list[str] = field(default_factory=list)
     content_sha256: str = ""
     source_sha256: str = ""
@@ -261,6 +278,14 @@ def read_manifest(path: Path) -> list[Candidate]:
             raise PanelError(
                 f"line {line_no}: REFERENCE requires explicit selection_basis and related_query_ids"
             )
+        fromtype = (row.get("assembly_fromtype") or "").strip()
+        anchor = role == "REFERENCE" and basis.lower().startswith("nearest_type_strain")
+        if anchor and not TYPE_ANCHOR_BASIS.fullmatch(basis):
+            raise PanelError(f"line {line_no}: type anchor basis must be nearest_type_strain_<method>: {basis!r}")
+        if anchor and fromtype.lower() != TYPE_MATERIAL:
+            raise PanelError(
+                f"line {line_no}: type anchor requires assembly_fromtype = {TYPE_MATERIAL!r}; got {fromtype!r}"
+            )
         try:
             priority = int((row.get("priority") or "1000").strip())
         except ValueError as exc:
@@ -281,6 +306,7 @@ def read_manifest(path: Path) -> list[Candidate]:
             display_label=display, tree_label=tree, selection_basis=basis,
             related_query_ids=related,
             reference_status=(row.get("reference_status") or "").strip(),
+            assembly_fromtype=fromtype, type_anchor=anchor,
         ))
     if len({c.tree_label for c in candidates}) != len(candidates):
         raise PanelError("tree_label values must be unique after sanitization")
@@ -294,7 +320,9 @@ def deduplicate(candidates: list[Candidate]) -> list[Candidate]:
         groups.setdefault(c.content_sha256, []).append(c)
     unique = []
     for group in groups.values():
-        ordered = sorted(group, key=lambda c: (role_order[c.role], c.priority, c.candidate_id))
+        # An ordinary reference beats a type anchor with the same content, so anchors never
+        # remove an ordinary reference.
+        ordered = sorted(group, key=lambda c: (role_order[c.role], c.type_anchor, c.priority, c.candidate_id))
         winner = ordered[0]
         unique.append(winner)
         for duplicate in ordered[1:]:
@@ -304,14 +332,20 @@ def deduplicate(candidates: list[Candidate]) -> list[Candidate]:
     return unique
 
 
-def select_panel(candidates: list[Candidate], target: int, max_related: int = 3) -> list[Candidate]:
+def select_panel(candidates: list[Candidate], target: int, max_related: int = 3,
+                 max_anchors: int = DEFAULT_TYPE_ANCHORS_PER_QUERY) -> list[Candidate]:
     if max_related < 0 or max_related > 3:
         raise PanelError("max related genomes per query must be between 0 and 3")
+    if max_anchors < 0 or max_anchors > MAX_TYPE_ANCHORS_PER_QUERY:
+        raise PanelError(f"max type anchors per query must be between 0 and {MAX_TYPE_ANCHORS_PER_QUERY}")
     unique = deduplicate(candidates)
     queries = sorted((c for c in unique if c.role == "QUERY"), key=lambda c: (c.priority, c.candidate_id))
     query_ids = {c.candidate_id for c in queries}
     outgroups = sorted((c for c in unique if c.role == "OUTGROUP"), key=lambda c: (c.priority, c.candidate_id))
-    references = sorted((c for c in unique if c.role == "REFERENCE"), key=lambda c: (c.priority, c.candidate_id))
+    references = sorted((c for c in unique if c.role == "REFERENCE" and not c.type_anchor),
+                        key=lambda c: (c.priority, c.candidate_id))
+    anchors = sorted((c for c in unique if c.role == "REFERENCE" and c.type_anchor),
+                     key=lambda c: (c.priority, c.candidate_id))
     if not queries:
         raise PanelError("manifest has no unique QUERY assembly")
     if not outgroups:
@@ -340,6 +374,27 @@ def select_panel(candidates: list[Candidate], target: int, max_related: int = 3)
         for qid in ref.related_query_ids:
             counts[qid] += 1
         ref.decision, ref.reason = "SELECTED", "explicit comparator basis; priority order"
+    # Type anchors come after every ordinary reference, so they cannot displace one.
+    anchor_counts = {qid: 0 for qid in query_ids}
+    for anc in anchors:
+        unknown = sorted(set(anc.related_query_ids) - query_ids)
+        if unknown:
+            anc.decision, anc.reason = "EXCLUDED_UNKNOWN_QUERY", f"unknown related_query_ids: {','.join(unknown)}"
+            continue
+        if any(anchor_counts[qid] >= max_anchors for qid in anc.related_query_ids):
+            anc.decision, anc.reason = "EXCLUDED_TYPE_ANCHOR_CAP", f"would exceed {max_anchors} type anchors for a query"
+            continue
+        if any(counts[qid] + anchor_counts[qid] >= MAX_COMPARATORS_PER_QUERY for qid in anc.related_query_ids):
+            anc.decision, anc.reason = ("EXCLUDED_COMPARATOR_CEILING",
+                                        f"would exceed {MAX_COMPARATORS_PER_QUERY} comparators for a query")
+            continue
+        if len(selected) >= target:
+            anc.decision, anc.reason = "EXCLUDED_PANEL_FULL", f"target total tips reached ({target})"
+            continue
+        selected.append(anc)
+        for qid in anc.related_query_ids:
+            anchor_counts[qid] += 1
+        anc.decision, anc.reason = "SELECTED", "type anchor: named type strain outside the related cap"
     for q in queries:
         q.decision, q.reason = "SELECTED", "unique query retained"
     if len(selected) != target:
@@ -364,14 +419,15 @@ def write_tsv(path: Path, fieldnames: list[str], rows: Iterable[dict]) -> None:
         writer.writerows(rows)
 
 
-def build(manifest: Path, out_dir: Path, target: int, max_related: int) -> dict:
+def build(manifest: Path, out_dir: Path, target: int, max_related: int,
+          max_anchors: int = DEFAULT_TYPE_ANCHORS_PER_QUERY) -> dict:
     candidates = read_manifest(manifest)
     for c in candidates:
         try:
             load_candidate_sequences(c)
         except Exception as exc:
             raise PanelError(f"{c.candidate_id}: {exc}") from exc
-    selected = select_panel(candidates, target, max_related)
+    selected = select_panel(candidates, target, max_related, max_anchors)
     out_dir.mkdir(parents=True, exist_ok=False)
     genomes = out_dir / "genomes"
     genomes.mkdir()
@@ -385,7 +441,7 @@ def build(manifest: Path, out_dir: Path, target: int, max_related: int) -> dict:
         "duplicate_of", "source_path", "source_member", "resolved_member",
         "source_sha256", "content_sha256", "contigs", "total_bp", "tree_label",
         "display_label", "taxonomy", "reference_status", "selection_basis",
-        "related_query_ids",
+        "related_query_ids", "assembly_fromtype", "type_anchor",
     ]
     def row(c: Candidate) -> dict:
         return {
@@ -399,6 +455,8 @@ def build(manifest: Path, out_dir: Path, target: int, max_related: int) -> dict:
             "taxonomy": c.taxonomy, "reference_status": c.reference_status,
             "selection_basis": c.selection_basis,
             "related_query_ids": ",".join(c.related_query_ids),
+            "assembly_fromtype": c.assembly_fromtype,
+            "type_anchor": "yes" if c.type_anchor else "",
         }
     write_tsv(out_dir / "panel_candidates.tsv", common_fields, map(row, candidates))
     write_tsv(out_dir / "panel_selected.tsv", common_fields, map(row, selected))
@@ -425,6 +483,8 @@ def build(manifest: Path, out_dir: Path, target: int, max_related: int) -> dict:
         "default_total_tips": DEFAULT_PANEL_SIZE,
         "hard_max_total_tips": MAX_PANEL_SIZE,
         "max_related_genomes_per_query": max_related,
+        "max_type_anchors_per_query": max_anchors,
+        "max_comparators_per_query": MAX_COMPARATORS_PER_QUERY,
         "manifest_path": str(manifest.resolve()),
         "manifest_sha256": sha256_bytes(manifest.read_bytes()),
         "candidate_count": len(candidates),
@@ -432,6 +492,12 @@ def build(manifest: Path, out_dir: Path, target: int, max_related: int) -> dict:
         "selected_role_counts": {role: sum(c.role == role for c in selected)
                                  for role in ("QUERY", "REFERENCE", "OUTGROUP")},
         "selected_candidate_ids": [c.candidate_id for c in selected],
+        # Listed apart from the ordinary references so a caption can say which tips anchor names.
+        "type_anchors": [
+            {"candidate_id": c.candidate_id, "display_label": c.display_label,
+             "selection_basis": c.selection_basis, "related_query_ids": c.related_query_ids,
+             "assembly_fromtype": c.assembly_fromtype} for c in selected if c.type_anchor
+        ],
         "exact_content_duplicate_count": len(duplicate_rows),
         "exact_content_duplicates": [
             {"candidate_id": c.candidate_id, "duplicate_of": c.duplicate_of,
@@ -464,6 +530,10 @@ def parser() -> argparse.ArgumentParser:
                    help="total tips: 20, 40 (default), 60, or custom 3..60; >60 rejected")
     p.add_argument("--max-related-per-query", type=int, default=3, metavar="K",
                    help="maximum explicitly linked reference genomes per query (0..3; default 3)")
+    p.add_argument("--max-type-anchors-per-query", type=int, default=DEFAULT_TYPE_ANCHORS_PER_QUERY, metavar="K",
+                   help="type anchors (nearest_type_strain_<method>, type material) per query outside the "
+                        f"related cap (0..{MAX_TYPE_ANCHORS_PER_QUERY}; default {DEFAULT_TYPE_ANCHORS_PER_QUERY}); "
+                        f"related + anchors never exceed {MAX_COMPARATORS_PER_QUERY} per query")
     p.add_argument("--show-options", action="store_true",
                    help="print panel-size choices/default/maximum as JSON and exit")
     return p
@@ -476,13 +546,16 @@ def main(argv: list[str] | None = None) -> int:
                           "default_total_tips": DEFAULT_PANEL_SIZE,
                           "custom_total_tips": "integer 3..60",
                           "hard_max_total_tips": MAX_PANEL_SIZE,
-                          "max_related_genomes_per_query": 3}))
+                          "max_related_genomes_per_query": 3,
+                          "max_type_anchors_per_query": MAX_TYPE_ANCHORS_PER_QUERY,
+                          "max_comparators_per_query": MAX_COMPARATORS_PER_QUERY}))
         return 0
     if args.manifest is None or args.out_dir is None:
         parser().error("manifest and out_dir are required unless --show-options is used")
     try:
         target = panel_size(args.panel_size)
-        receipt = build(args.manifest, args.out_dir, target, args.max_related_per_query)
+        receipt = build(args.manifest, args.out_dir, target, args.max_related_per_query,
+                        args.max_type_anchors_per_query)
     except (PanelError, OSError, zipfile.BadZipFile) as exc:
         emit(f"build_phylo_panel: ERROR: {exc}", file=sys.stderr)
         return 2

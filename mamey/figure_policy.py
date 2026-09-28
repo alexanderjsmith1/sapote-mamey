@@ -21,6 +21,8 @@ import struct
 from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
+
+from .class_architecture import with_family_labels
 from xml.etree import ElementTree
 
 # # Specialist (figure-worthy) product classes used to distinguish "pure saccharide" (omit) from
@@ -905,7 +907,7 @@ def _classes(products) -> set[str]:
 
 def is_pure_saccharide(products) -> bool:
     """True iff the region's only specialist signal is saccharide (→ omit from figures)."""
-    c = _classes(products)
+    c = _classes(with_family_labels(products))
     return ("saccharide" in c) and not (c & SPECIALIST_CLASSES)
 
 

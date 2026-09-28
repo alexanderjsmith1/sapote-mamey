@@ -78,7 +78,7 @@ def _outgroup(tmp_path: Path) -> dict:
 def good_probe(monkeypatch):
     payload = {
         "gtotree": {"status": "PRESENT", "path": "/fake/GToTree",
-                     "version": "GToTree v1.8.16", "help_contract": "PASS",
+                     "version": "GToTree v1.8.19", "help_contract": "PASS",
                      "verified_interface": "PASS"},
         "iqtree": {"status": "PRESENT", "path": "/fake/iqtree3",
                    "version": "IQ-TREE 3.1.2", "help_contract": "PASS"},
@@ -282,7 +282,7 @@ def test_probe_only_uses_version_and_help(monkeypatch):
     def fake_run(argv, **kwargs):
         calls.append(argv)
         if argv[0].endswith("GToTree"):
-            text = "GToTree v1.8.16" if argv[1] == "-v" else " ".join(tool.REQUIRED_GTOTREE_HELP)
+            text = "GToTree v1.8.19" if argv[1] == "-v" else " ".join(tool.REQUIRED_GTOTREE_HELP)
         else:
             text = "IQ-TREE 3.1.2" if argv[1] == "--version" else " ".join(tool.REQUIRED_IQTREE_HELP)
         return SimpleNamespace(stdout=text, stderr="", returncode=0)

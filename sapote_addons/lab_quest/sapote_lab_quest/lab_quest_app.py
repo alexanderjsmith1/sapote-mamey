@@ -14,7 +14,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from mamey.lab_quest import (
+from sapote_lab_quest.lab_quest import (
     CLAIM_CEILING,
     HISTORICAL_PROTOTYPE_STATUS,
     EngineBinding,
@@ -38,7 +38,7 @@ from mamey.lab_quest import (
     write_engine_binding_receipt,
     write_run_receipt,
 )
-from mamey.lab_quest_registry import EvidenceState, STATIONS, WorkflowRegistry, WorkflowState
+from sapote_lab_quest.lab_quest_registry import EvidenceState, STATIONS, WorkflowRegistry, WorkflowState
 from mamey.project_catalog import ProjectCatalog
 
 

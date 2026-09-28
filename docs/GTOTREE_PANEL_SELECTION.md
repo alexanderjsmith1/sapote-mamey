@@ -35,6 +35,19 @@ Start from `examples/phylo_panel_candidates.template.tsv`. Required columns are
   reference status.
 - At most three selected references may be linked to any query. The default and
   hard maximum for `--max-related-per-query` are both 3.
+- A named type strain can be added past that cap as a type anchor. It is a
+  `REFERENCE` row with `selection_basis` = `nearest_type_strain_<method>` (the
+  curator's method, for example `tygs`, `ani` or `mlsa`) and `assembly_fromtype`
+  = `assembly from type material`, copied from NCBI Assembly. Any other
+  `assembly_fromtype` value stops the tool.
+- Type anchors are chosen after the ordinary references, so they never change
+  which ordinary references are selected. `--max-type-anchors-per-query` sets
+  their limit (0 to 2, default 2). They still count toward the total-tip target,
+  and a query never gets more than 4 related references and anchors together.
+- `panel_selected.tsv` marks anchors with `type_anchor` = `yes`, and
+  `panel_receipt.json` lists them under `type_anchors`, so a caption can say
+  which tips were added to anchor names. `plan_gtotree_iqtree.py` re-checks both
+  fields and both limits.
 - Exactly one unique outgroup is staged. “Outgroup” in the manifest remains a
   curator assertion requiring human review; the tool does not validate that the
   lineage is phylogenetically appropriate.

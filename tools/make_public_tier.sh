@@ -43,6 +43,12 @@ case "$TIER" in
     TIER=cohort
     ;;
 esac
+# v9.7.444 (Alex): releases cut the CODE tier only. The clean, cohort, merged and public branches below are
+# kept in the bundle but disabled; SAPOTE_ENABLE_DISABLED_TIERS=1 runs them (see CUT_PROTOCOL.md).
+if [ "$TIER" != "code" ] && [ "${SAPOTE_ENABLE_DISABLED_TIERS:-0}" != "1" ]; then
+  echo "REFUSED: tier '$TIER' is disabled (v9.7.444: releases cut the CODE tier only). Set SAPOTE_ENABLE_DISABLED_TIERS=1 to run it." >&2
+  exit 2
+fi
 PRIVACY_PROFILE=""
 while [ "$#" -gt 0 ]; do
   case "$1" in

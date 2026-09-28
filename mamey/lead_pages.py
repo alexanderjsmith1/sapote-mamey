@@ -37,6 +37,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))  # ref-impl default; command p
 from . import assembly_line as _assembly_line
 from mamey.convergence_band import annotate as _band_pct  # display-only
 from mamey.ziputil import safe_extract_all
+from mamey.class_architecture import with_family_labels  # antiSMASH families for groupings; products stay types
 # BC2-408: this try/except was pasted INSIDE _load_lit()'s docstring below (as inert prose, never
 # executed) rather than as real module-level code -- confirmed live: `mamey lead-pages <pkg>` raised
 # `NameError: name 'emit' is not defined` unconditionally on its final summary line (lead_pages.py's
@@ -199,7 +200,7 @@ def _asm_line(pkg, bgc):
     return _assembly_line.assembly_line_str(_assembly_line.assembly_for_bgc(drows))
 
 def classify(cctt, compound, products):
-    s = f"{cctt} {compound} {products}".lower()
+    s = f"{cctt} {compound} {';'.join(with_family_labels(products or ''))}".lower()
     if "ptm" in s or "hsaf" in s or "frontalamide" in s or "maltophilin" in s or "ikarugamycin" in s or "clifednamide" in s or "xanthobaccin" in s: return "PTM_HSAF"
     if "glycopeptide" in s or "balhimycin" in s or "teicoplanin" in s or "vancomycin" in s or "a47934" in s: return "GPA_glycopeptide"
     if "enediyne" in s or "calicheamicin" in s or "dynemicin" in s or "c-1027" in s or "ene_ks" in s: return "enediyne"

@@ -18,6 +18,9 @@ import subprocess
 import sys
 from collections import Counter, defaultdict
 
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))  # bundle root, for mamey
+from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH families for groupings; products stay types
+
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
 
@@ -94,8 +97,7 @@ def main(argv=None) -> int:
     strain_classes = defaultdict(set)
     class_bgc_count = Counter()
     for row in bgcs:
-        for product in (row["products"] or "").split(";"):
-            product = product.strip()
+        for product in with_family_labels(row["products"] or ""):
             if product:
                 strain_classes[row["sid"]].add(product)
                 class_bgc_count[product] += 1
@@ -139,7 +141,7 @@ def main(argv=None) -> int:
 
     enediyne_leads = []
     for strain in diagnostic_strains.get("TIGR03828", []):
-        candidates = [row for row in bgcs if row["sid"] == strain and "PKS" in (row["products"] or "")]
+        candidates = [row for row in bgcs if row["sid"] == strain and "PKS" in ";".join(with_family_labels(row["products"] or ""))]
         if candidates:
             row = sorted(candidates, key=lambda item: -(item.get("kcb_cumulative") or 0))[0]
             identity = f"{strain} / {row['contig']} / {row['region']} / {row['bgc_id']}"

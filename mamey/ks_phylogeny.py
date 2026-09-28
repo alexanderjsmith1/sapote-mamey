@@ -248,3 +248,146 @@ def write_adjudication_queue(queue: list[dict], out_path: Path | str) -> dict:
             "Routing assigns no score and promotes no triage tier; a lane owner adjudicates.",
         ],
     }
+
+
+# ── Reference-anchored placement: which module of a reference cluster does a query KS sit beside? ──────────
+# A strain-internal KS tree cannot say where a fragment of a giant modular PKS belongs. Adding a characterized
+# reference cluster's own module KS as labelled tips can: in SID8382 (public WGS WWFZ01), KS domains on ten contigs
+# sat one-to-one beside neomediomycin B module KS, in order within each contig, where shared-reference homology could
+# not separate the pieces. References are labelled tips, never a second query strain, so the STRAIN-INTERNAL rule
+# holds. Placement reads machinery, not product, and module order is not contig order.
+
+REFERENCE_TIP_PREFIX = "MIBiG__"
+PLACED = "PLACED_ON_REFERENCE_MODULE"
+AMBIGUOUS = "AMBIGUOUS_MODULES"
+FAMILY = "MODULE_FAMILY"
+UNPLACED = "UNPLACED"
+MAX_QUERIES_PER_PLACED_MODULE = 2   # a duplicated module or an overlap; more reads as a family of similar modules
+PLACEMENT_FIELDS = ["query", "verdict", "reference", "module", "reference_tips_in_split", "query_tips_in_split",
+                    "support_ufboot", "split_size"]
+
+
+def reference_module_ks(gbk_path: Path | str, accession: str | None = None) -> list[dict]:
+    """KS domains of one reference cluster GenBank file, numbered by position along the record.
+
+    Returns [{tip, reference, module, translation}] with tip = MIBiG__<accession>_KS<nn>. antiSMASH writes features
+    in position order, so file order is module order along the record.
+    """
+    p = Path(gbk_path)
+    acc = accession or p.name.split(".")[0]
+    doms = [d for d in _parse_gbk_asdomains(p.read_text(encoding="utf-8", errors="replace"), "", "")
+            if d["domain_class"] == "PKS_KS" and d["translation"]]
+    return [{"tip": f"{REFERENCE_TIP_PREFIX}{acc}_KS{i:02d}", "reference": acc, "module": i,
+             "translation": d["translation"]} for i, d in enumerate(doms, 1)]
+
+
+def _parse_newick(text: str) -> tuple[list[int], list[str], list[list[int]]]:
+    """Minimal Newick reader: returns (parent, label, children) per node; node 0 is the root.
+
+    Handles IQ-TREE output: quoted or bare tip names, internal labels such as '95.3/100', and branch lengths.
+    """
+    parent, label, children = [-1], [""], [[]]
+    cur, i, n = 0, 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == "(":
+            parent.append(cur); label.append(""); children.append([]); children[cur].append(len(parent) - 1)
+            cur = len(parent) - 1; i += 1
+        elif c == ",":
+            p = parent[cur]
+            parent.append(p); label.append(""); children.append([]); children[p].append(len(parent) - 1)
+            cur = len(parent) - 1; i += 1
+        elif c == ")":
+            cur = parent[cur]; i += 1
+        elif c == ";":
+            break
+        elif c == ":":
+            i += 1
+            while i < n and text[i] not in ",();":
+                i += 1
+        else:
+            if c == "'":
+                j = text.index("'", i + 1)
+                label[cur] = text[i + 1:j]; i = j + 1
+            else:
+                j = i
+                while j < n and text[j] not in ",():;":
+                    j += 1
+                label[cur] = text[i:j].strip(); i = j
+    return parent, label, children
+
+
+def _ufboot(label: str) -> float | None:
+    """UFBoot support from an IQ-TREE internal label ('SH-aLRT/UFBoot' or a single number)."""
+    parts = label.split("/")
+    try:
+        return float(parts[-1])
+    except ValueError:
+        return None
+
+
+def place_on_reference_modules(newick_text: str, min_ufboot: float = 80.0,
+                               reference_prefix: str = REFERENCE_TIP_PREFIX) -> list[dict]:
+    """For each query KS tip, the smallest well-supported split of the tree around it that holds reference KS tips.
+
+    Unrooted and root-independent: every internal branch with UFBoot >= min_ufboot splits the tips in two; the side
+    holding the query is a candidate. Of the candidates holding at least one reference tip, the smallest decides:
+      PLACED_ON_REFERENCE_MODULE  exactly one reference KS, of one reference (module = its number), shared with at
+                                  most one other query KS
+      MODULE_FAMILY               one reference KS but more query KS than that: a family of similar modules
+      AMBIGUOUS_MODULES           more than one reference KS (several modules or references fit)
+      UNPLACED                    no supported split holds a reference KS
+    Advisory: it assigns no score and changes no RG-GMCI confidence.
+    """
+    parent, label, children = _parse_newick(newick_text)
+    tips = [k for k in range(len(parent)) if not children[k]]
+    below: dict[int, frozenset] = {}
+    for k in reversed(range(len(parent))):   # children always follow their parent in creation order
+        below[k] = frozenset([label[k]]) if not children[k] else frozenset().union(*(below[c] for c in children[k]))
+    alltips = frozenset(label[t] for t in tips)
+    splits = []
+    for k in range(1, len(parent)):
+        if children[k]:
+            s = _ufboot(label[k])
+            if s is not None and s >= min_ufboot:
+                splits.append((below[k], s))
+    out = []
+    for t in sorted(tips, key=lambda t: label[t]):
+        q = label[t]
+        if q.startswith(reference_prefix):
+            continue
+        best = None
+        for side, s in splits:
+            side = side if q in side else alltips - side
+            refs = sorted(x for x in side if x.startswith(reference_prefix))
+            if refs and (best is None or len(side) < best[0]):
+                best = (len(side), refs, s, len(side) - len(refs))
+        if best is None:
+            out.append({"query": q, "verdict": UNPLACED, "reference": "", "module": "", "reference_tips_in_split": "",
+                        "query_tips_in_split": "", "support_ufboot": "", "split_size": ""})
+            continue
+        size, refs, s, nq = best
+        m = re.match(rf"{re.escape(reference_prefix)}(.+)_KS(\d+)$", refs[0]) if len(refs) == 1 else None
+        verdict = AMBIGUOUS if not m else PLACED if nq <= MAX_QUERIES_PER_PLACED_MODULE else FAMILY
+        out.append({"query": q, "verdict": verdict,
+                    "reference": m.group(1) if m else "; ".join(sorted({re.sub(r"_KS\d+$", "", r[len(reference_prefix):])
+                                                                     for r in refs})),
+                    "module": int(m.group(2)) if m else "", "reference_tips_in_split": "; ".join(refs),
+                    "query_tips_in_split": nq, "support_ufboot": s, "split_size": size})
+    return out
+
+
+def write_placement(rows: list[dict], out_path: Path | str) -> dict:
+    """Write placement rows as a TSV. Deterministic."""
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = _SafeDictWriter(handle, fieldnames=PLACEMENT_FIELDS, delimiter="\t", lineterminator="\n")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({k: row.get(k, "") for k in PLACEMENT_FIELDS})
+    counts = Counter(r["verdict"] for r in rows)
+    return {"schema": "sapote-ks-reference-placement-v1", "counts": dict(counts),
+            "non_claims": ["Placement reads KS machinery, not product identity.",
+                           "Module order read from a tree is not contig order; it joins nothing.",
+                           "Advisory: no score, no triage tier, no RG-GMCI confidence change."]}

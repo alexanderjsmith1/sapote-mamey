@@ -128,10 +128,12 @@ if (nzchar(hexp_exact)) {
   if (!is.finite(hexp) || hexp < 0.05 || hexp > 2) stop("GG_HEXPAND_EXACT must be between 0.05 and 2")
 }
 
+# v9.7.444: the scale bar's y is the bottom of the tree panel's y range; the strips are given the same range below.
+y_lo <- -0.12 * max(1, Ntip(tr) / 60)
 p <- ggtree(tr, size = tree_size, ladderize = TRUE) %<+% md +
   geom_tiplab(aes(label = ifelse(focal, NA, disp)), align = TRUE, linetype = "dotted", linesize = 0.2,
               size = lsize, offset = lab_off, parse = parse_labels) +
-  geom_treescale(width = sb_len, x = 0.04 * xr, y = -0.12 * max(1, Ntip(tr) / 60), fontsize = max(2, lsize - 0.4),
+  geom_treescale(width = sb_len, x = 0.04 * xr, y = y_lo, fontsize = max(2, lsize - 0.4),
                  linesize = 0.4, offset = 0.08 * max(1, Ntip(tr) / 60)) +
   ggtree::hexpand(hexp)
 if (any(md$focal)) {
@@ -147,6 +149,7 @@ mk_strip <- function(col, pal, title) {
   d <- data.frame(tip = md$tip, val = md[[col]], stringsAsFactors = FALSE)
   d$tip <- factor(d$tip, levels = tip_order)
   ggplot(d, aes(x = 0, y = tip, fill = val)) +
+    scale_y_discrete(limits = tip_order, expand = expansion(add = c(1 - y_lo, 0.6))) +   # v9.7.444: the tree's y range
     geom_tile(width = 1, height = 1) +
     scale_fill_manual(values = pal, na.value = "#eeeeee", name = title, drop = FALSE) +
     labs(title = paste(strwrap(title, width=12), collapse="\n")) + theme_void() + theme(plot.title = element_text(size=8, hjust=0.5), legend.key.size = unit(3.4, "mm"), legend.text = element_text(size = 6),
@@ -172,6 +175,7 @@ combined <- if (n_strips == "0") {
   s_src |> insert_left(s_cat, width = 1) |> insert_left(p, width = 13)
 }
 
+if (n_strips != "0") cat("PANEL_Y_RANGES:", paste(validate_panel_ranges(combined), collapse = " | "), "\n")
 per_tip <- if (n > 800) 0.085 else if (n > 300) 0.105 else 0.14
 # GG_PER_TIP overrides vertical density (inches/tip) so the SAME tree can be emitted at several
 # densities without dropping tips (Alex, 2026-09-08: "3 figures always at different densities").

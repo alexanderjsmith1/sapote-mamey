@@ -96,6 +96,20 @@ def gtotree_command(gtotree, major, genome_list, hmm, threads, parallel, out_dir
     return [gtotree, "-f", genome_list, "-H", hmm, "-n", str(threads), "-j", str(parallel), "-o", out_dir]
 
 
+# v9.7.444: docs/GTOTREE_WORKFLOW.md section 5 prescribes this restricted ModelFinder search for the protein
+# supermatrix ("bare -m MFP never finishes on ~30k cols"). The runner used bare -m MFP: on the 87-genome Cameron
+# v5 alignment (20,910 columns) ModelFinder tested 24 of up to 1,232 models in about 2 hours.
+DOCUMENTED_MODEL_SEARCH = ["-m", "MFP", "-mset", "LG,WAG,JTT,Q.pfam", "-mrate", "G,I,I+G"]
+
+
+def iqtree_command(iqtree, aln, prefix, seed, threads, outgroup, model=""):
+    """IQ-TREE invocation. ``model`` empty = the documented restricted search; 'MFP' = unrestricted
+    ModelFinder; anything else = that fixed model (e.g. LG+F+G4)."""
+    model_args = DOCUMENTED_MODEL_SEARCH if not model else ["-m", model]
+    return [iqtree, "-s", aln, *model_args, "-B", "1000", "-alrt", "1000",
+            "-seed", str(seed), "-T", str(threads), "-o", outgroup, "--prefix", prefix]
+
+
 def _sha256(path):
     h = hashlib.sha256()
     with open(path, "rb") as fh:
@@ -295,6 +309,10 @@ def main(argv=None):
     ap.add_argument("--iqtree-threads", default="1",
                     help="IQ-TREE -T value (default 1, matching the planner template; thread count "
                          "can perturb results, so AUTO is NOT used here. Pass AUTO to override).")
+    ap.add_argument("--iqtree-model", default="",
+                    help="IQ-TREE model. Default: the documented restricted ModelFinder search "
+                         "(-m MFP -mset LG,WAG,JTT,Q.pfam -mrate G,I,I+G; docs/GTOTREE_WORKFLOW.md section 5). "
+                         "'MFP' = unrestricted search (slow on large alignments); anything else = that fixed model.")
     ap.add_argument("--tree-spec", help="TREE_SPEC.json; its queries/query_tips list declares which tips are queries")
     ap.add_argument("--query-tips", help="comma-separated query tip labels (overrides TREE_SPEC; default: every listed genome)")
     ap.add_argument("--allow-reference-drop", action="store_true",
@@ -428,9 +446,8 @@ def main(argv=None):
         # emitted COMMAND.sh template already pins `--seed 12345 -T 1`; match it so the CLI-blessed
         # executor is reproducible like the planner and the placement path.
         prefix = os.path.join(a.workdir, "iqtree")
-        rc = run([iqtree, "-s", aln, "-m", "MFP", "-B", "1000", "-alrt", "1000",
-                  "-seed", str(a.seed), "-T", str(a.iqtree_threads),
-                  "-o", a.outgroup, "--prefix", prefix], log, env)
+        rc = run(iqtree_command(iqtree, aln, prefix, a.seed, a.iqtree_threads, a.outgroup,
+                                getattr(a, "iqtree_model", "")), log, env)
         _emit(f"IQTREE_EXIT rc={rc}", file=log)
         if rc != 0:
             _write_status(a.workdir, "IQTREE_FAILED", iqtree_rc=rc, log_tail=_log_tail(logp), **base_status)

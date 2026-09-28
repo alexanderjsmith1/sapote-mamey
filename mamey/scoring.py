@@ -3,7 +3,9 @@ import re
 from collections import Counter
 from .assembly import corrected_bgc_count, assembly_tier
 from . import antimicrobial_recall as _amr
+from .crosswalk import contig_key
 from .models import BGCRecord, TriageRecord
+from .class_architecture import product_families
 
 
 # --- canonical lead-exclusion predicate (v9.7.376, Tier-0 shared helper) ------------------------
@@ -132,6 +134,9 @@ def scoring_class_text(bgc: BGCRecord) -> str:
     the v9.7.19 rationale). It does NOT see the raw `kcb_top` genome-description blob. KCB
     still informs novelty (kcb_cumulative) and display (preferred_kcb_anchor) as before; only
     the per-class KEYWORD CREDIT is scoped to the cluster's own evidence.
+
+    antiSMASH's category words ("NRPS", "PKS", "RiPP") are not class evidence of their own and bank no
+    keyword credit; `products` holds the product types only.
     """
     parts = list(bgc.products) + list(bgc.mibig_hits)
     ccp = getattr(bgc, "closest_candidate_kcb_product", "")
@@ -411,6 +416,9 @@ def triage_bgcs(bgcs: list[BGCRecord], rggmci: dict | None = None, scans=None) -
     for pair in (rggmci or {}).get("ranked_pairs", []):
         conf = pair.get("rggmci_confidence")
         if conf not in {"HIGH_RG_GMCI_RESCUE", "MODERATE_RG_GMCI_CANDIDATE"}:
+            continue
+        # Two regions on one contig are never a rescue (Alex, 2026-09-27); older packages still list such pairs.
+        if pair.get("contig_a") and contig_key(pair["contig_a"]) == contig_key(pair.get("contig_b") or ""):
             continue
         for bid in (pair.get("bgc_a"), pair.get("bgc_b")):
             if bid:
@@ -757,7 +765,7 @@ def triage_bgcs(bgcs: list[BGCRecord], rggmci: dict | None = None, scans=None) -
         # modifying enzyme + KCB can't float a fragment above a complete cluster. Never touches Interior.
         ripp_floored = False
         _prods = {p.lower() for p in bgc.products}
-        _is_ripp = bool(_prods & RIPP_FAMILY_CLASSES) or any(
+        _is_ripp = "ripp" in product_families(_prods) or bool(_prods & RIPP_FAMILY_CLASSES) or any(
             any(rf in p for rf in RIPP_FAMILY_CLASSES) for p in _prods)
         _end = getattr(bgc, "end", 0) or 0
         _start = getattr(bgc, "start", 0) or 0

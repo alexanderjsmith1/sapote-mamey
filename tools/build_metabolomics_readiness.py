@@ -26,6 +26,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     import os as _cs_os, sys as _cs_sys
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH families for groupings; products stay types
 
 from _wbio import atomic_save
 
@@ -57,7 +58,7 @@ CLASS_DEFAULTS = {
 }
 
 def base_class(products, closest):
-    products = " ".join(products) if isinstance(products, list) else (products or "")
+    products = " ".join(with_family_labels(products or ""))
     closest = " ".join(closest) if isinstance(closest, list) else (closest or "")
     p = (products + " " + closest).lower()
     for k in ["transat", "enediyne", "phosphonate", "glycopeptide", "lanthi", "ripp", "siderophore",

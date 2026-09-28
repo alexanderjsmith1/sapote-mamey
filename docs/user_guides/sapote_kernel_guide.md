@@ -1,5 +1,5 @@
 # Sapote–Mamey: The Kernel and Evidence Gates
-**Sapote–Mamey v9.7.443 · Engine 1.9.170 · build 20260926v97443a**
+**Sapote–Mamey v9.7.444 · Engine 1.9.171 · build 20260929v97444a**
 
 ## Extraction and interpretation
 

@@ -19,6 +19,12 @@ reported with their functional label and their position in the reference; if the
 edge/full-contig and the missing genes sit at a reference end, the report flags likely truncation
 and states the capacity the complete cluster would add. Capacity/architecture-level — homology,
 not product identity.
+
+The query may be an RG-GMCI candidate group file (`<strain>_4A_RGGMCI_groups/<strain>_RGGMCI_Gnn.gbk`,
+one antiSMASH region per record, members table beside it). The group is then read as one unit:
+completeness per fragment and together, which fragment carries each reference gene, and genes a
+partner fragment carries are not reported as missing. A gene missing from every fragment may sit
+in the gap between contigs, so it is never read as a biological difference.
 """
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -60,8 +66,9 @@ def _genes(gbk):
         from Bio import SeqIO
     except ImportError:
         from mamey._gbk_shim import SeqIO
-    out = []
+    out, records = [], []
     for rec in SeqIO.parse(str(gbk), "genbank"):
+        records.append(rec.id)
         for i, f in enumerate(rec.features):
             if f.type == "CDS" and "translation" in f.qualifiers:
                 lab = (f.qualifiers.get("gene", [None])[0]
@@ -69,8 +76,17 @@ def _genes(gbk):
                        or None)
                 out.append({"tag": f.qualifiers.get("locus_tag", ["orf"])[0],
                             "aa": f.qualifiers["translation"][0], "label": lab,
-                            "start": int(f.location.start)})
+                            "start": int(f.location.start), "record": len(records) - 1})
     return out
+
+
+def _group_members(gbk):
+    """The members table an RG-GMCI group file carries beside it, or [] for any other GenBank file."""
+    try:
+        from mamey.rescue_groups import read_members
+    except ImportError:
+        return []
+    return read_members(gbk)
 
 
 def assess(query_genes, references, min_id=30.0):
@@ -112,10 +128,17 @@ def assess(query_genes, references, min_id=30.0):
             pos_by_ref = {ri: g["start"] for ri, _, g in members}
             cluster_genes.append({"label": label, "rep_aa": rep["aa"],
                                   "n_refs": len(rset), "pos_by_ref": pos_by_ref})
-    # 2) does the query have an ortholog of each cluster gene?
+    # 2) does the query have an ortholog of each cluster gene? A query file may hold several records (an RG-GMCI
+    #    candidate group: one antiSMASH region per record), so the best match is kept per record too.
+    n_records = 1 + max((q.get("record", 0) for q in query_genes), default=0)
     for cg in cluster_genes:
-        cg["query_id"] = round(max((_gid(al, cg["rep_aa"], q["aa"]) for q in query_genes), default=0), 1)
+        by_rec = [0.0] * n_records
+        for q in query_genes:
+            i = q.get("record", 0)
+            by_rec[i] = max(by_rec[i], _gid(al, cg["rep_aa"], q["aa"]))
+        cg["query_id"] = round(max(by_rec, default=0), 1)
         cg["present_in_query"] = cg["query_id"] >= min_id
+        cg["found_on"] = [i for i, x in enumerate(by_rec) if x >= min_id]
     present = [cg for cg in cluster_genes if cg["present_in_query"]]
     missing = [cg for cg in cluster_genes if not cg["present_in_query"]]
     n = len(cluster_genes)
@@ -142,10 +165,14 @@ def assess(query_genes, references, min_id=30.0):
     edge_like = missing and interior_missing == 0   # all missing genes at the ends
     return {"n_cluster_genes": n, "n_present": len(present), "n_missing": len(missing),
             "completeness_pct": completeness,
-            "present": [{"label": p["label"], "n_refs": p["n_refs"], "query_id": p["query_id"]} for p in present],
+            "present": [{"label": p["label"], "n_refs": p["n_refs"], "query_id": p["query_id"],
+                         "found_on": p["found_on"]} for p in present],
             "missing": [{"label": m["label"], "n_refs": m["n_refs"], "query_id": m["query_id"]} for m in missing],
             "interior_missing": interior_missing, "end_missing": end_missing,
-            "missing_end_loaded": bool(edge_like)}
+            "missing_end_loaded": bool(edge_like),
+            "fragments": [{"record": i, "n_present": sum(1 for cg in cluster_genes if i in cg["found_on"]),
+                           "completeness_pct": round(100 * sum(1 for cg in cluster_genes if i in cg["found_on"]) / n, 1)
+                           if n else 0} for i in range(n_records)]}
 
 
 def tier(pct):
@@ -192,9 +219,44 @@ def interpret(report, query_label, query_boundary, ref_labels):
     return "\n\n".join(lines)
 
 
+def interpret_group(report, query_label, ref_labels, fragment_labels, rggmci_group):
+    """Read a query of several records (one region each) as one unit, fragment by fragment."""
+    n, pct = report["n_cluster_genes"], report["completeness_pct"]
+    frags = report["fragments"]
+    names = [fragment_labels[i] if i < len(fragment_labels) else f"record {i + 1}" for i in range(len(frags))]
+    lines = []
+    if rggmci_group:
+        lines.append(f"RG-GMCI candidate group: fragments on {len(frags)} contigs, linked by shared reference "
+                     f"homology; not a contig join.")
+    else:
+        lines.append(f"{query_label} holds {len(frags)} GenBank records, read together as one query.")
+    lines.append(f"Together they carry {report['n_present']}/{n} of the reference cluster genes ({pct}% — "
+                 f"{tier(pct)}), measured against {', '.join(ref_labels)}.")
+    lines.append(" ".join(f"{nm} alone: {f['n_present']}/{n} ({f['completeness_pct']}%)." for nm, f in zip(names, frags)))
+    best = max(frags, key=lambda f: f["n_present"]) if frags else None
+    if best is not None:
+        gain = round(pct - best["completeness_pct"], 1)
+        lines.append(f"That is {gain} percentage points above the strongest single fragment.")
+        partner = [p for p in report["present"] if best["record"] not in p.get("found_on", [])]
+        if partner:
+            lines.append(f"{len(partner)} gene(s) the strongest fragment lacks are carried by a partner fragment, so "
+                         f"they are present in the group, not missing: "
+                         f"{', '.join(p['label'][:26] for p in partner)}.")
+    if report["missing"]:
+        lines.append(f"Missing from every fragment: {', '.join(m['label'][:26] for m in report['missing'])}. Each may "
+                     f"sit in the unassembled gap between these contigs, on a fragment not linked here, or be "
+                     f"absent. The assembly cannot tell which, so this is not read as a biological difference.")
+    else:
+        lines.append("No reference cluster gene is missing from the group.")
+    lines.append("Completeness is measured on global-identity orthology (homology), not product identity; "
+                 "capacity-level throughout. It does not show that the fragments are physically linked.")
+    return "\n\n".join(lines)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Assess a truncated cluster's completeness vs complete references.")
-    ap.add_argument("--query", required=True, metavar="LABEL:query.gbk")
+    ap.add_argument("--query", required=True, metavar="LABEL:query.gbk",
+                    help="one region, or an RG-GMCI group file (one record per fragment), read as one query")
     ap.add_argument("--reference", action="append", required=True, metavar="LABEL:ref.gbk")
     ap.add_argument("--query-boundary", default="", help="interior | edge | full-contig (from triage)")
     ap.add_argument("--min-id", type=float, default=30.0)
@@ -209,7 +271,14 @@ def main(argv=None):
     report["query"] = qlab; report["query_boundary"] = a.query_boundary
     report["references"] = [l for l, _ in refs]
     report["tier"] = tier(report["completeness_pct"])
-    report["interpretation"] = interpret(report, qlab, a.query_boundary, [l for l, _ in refs])
+    members = _group_members(qpath)
+    if len(report["fragments"]) > 1:
+        report["fragment_labels"] = [m.get("identity") or m.get("bgc_id") for m in members] if members else []
+        report["rggmci_group"] = bool(members)
+        report["interpretation"] = interpret_group(report, qlab, [l for l, _ in refs], report["fragment_labels"],
+                                                   report["rggmci_group"])
+    else:
+        report["interpretation"] = interpret(report, qlab, a.query_boundary, [l for l, _ in refs])
     Path(a.outdir).mkdir(parents=True, exist_ok=True)
     (Path(a.outdir) / f"{qlab}_completeness.json").write_text(json.dumps(report, indent=2))
     with open(Path(a.outdir) / f"{qlab}_missing_genes.csv", "w", newline="") as fh:
@@ -218,6 +287,16 @@ def main(argv=None):
             w.writerow(["MISSING", m["label"], m["n_refs"], m["query_id"]])
         for p in report["present"]:
             w.writerow(["present", p["label"], p["n_refs"], p["query_id"]])
+    if len(report["fragments"]) > 1:   # which fragment carries each reference gene
+        labels = report.get("fragment_labels") or []
+        with open(Path(a.outdir) / f"{qlab}_genes_by_fragment.csv", "w", newline="") as fh:
+            w = _SafeWriter(fh)
+            w.writerow(["gene_label", "n_refs_with_it", "best_id_pct"] + [
+                labels[i] if i < len(labels) else f"record {i + 1}" for i in range(len(report["fragments"]))])
+            for p in report["present"] + report["missing"]:
+                on = set(p.get("found_on", []))
+                w.writerow([p["label"], p["n_refs"], p["query_id"]] + [
+                    "present" if i in on else "" for i in range(len(report["fragments"]))])
     emit(f"[cluster_completeness] {qlab}: {report['completeness_pct']}% complete ({report['tier']}), {report['n_present']}/{report['n_cluster_genes']} cluster genes; {report['n_missing']} missing.", '[cluster_completeness] ' + report['interpretation'].split('\n\n')[-2 if report['missing'] else -1], sep="\n")
     return 0
 
