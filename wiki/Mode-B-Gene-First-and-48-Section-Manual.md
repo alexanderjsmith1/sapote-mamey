@@ -1,6 +1,6 @@
 # Mode B gene-first and 48-section manual
 
-*Current to bundle v9.7.437 · engine Mamey 1.9.167. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
+*Current to bundle v9.7.445 · engine Mamey 1.9.172. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
 
 This page does not replace the machine contract, create a Mode B card, or confer scientific, integration, release, or publication authority.
 

@@ -20,6 +20,8 @@ import sys
 import zipfile
 from xml.sax.saxutils import escape
 from mamey.xlsx_determinism import save_workbook_safely as _save_wb_safely
+import logging
+_LOG = logging.getLogger(__name__)
 
 
 def _discard_tmp(tmp: str) -> None:
@@ -27,9 +29,9 @@ def _discard_tmp(tmp: str) -> None:
     try:
         if os.path.exists(tmp):
             os.remove(tmp)
-    except OSError:
+    except OSError as _swallowed:
         # A stale temp file is non-authoritative; the original write exception remains decisive.
-        pass
+        _LOG.debug("partial temp file not removed after a failed write: %r", _swallowed)
 
 REQUIRED_SHEETS = [
     "Overview",

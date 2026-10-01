@@ -1,6 +1,6 @@
 # Researcher Recipes
 
-*Current to bundle v9.7.437 · engine Mamey 1.9.167. Authored by Codex (Wiki Revision 03, 2026-08-31) against v9.7.395; admitted to the bundle wiki at v9.7.405 by the Claude Code patch lane after a currency pass. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
+*Current to bundle v9.7.445 · engine Mamey 1.9.172. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
 
 
 Run commands from the extracted bundle root. Paths below are generic examples. Replace them with governed local paths; do not copy development-workspace paths into a project or public document.
@@ -113,7 +113,7 @@ Explicit metadata improves provenance but does not prove the stated host, habita
 
 - Two or three antiSMASH ZIPs, each already checked with `inspect`.
 - Pipe-separated taxonomy and source lists aligned to the ZIP order.
-- One provenance enum shared by the batch. In v9.7.395, the help text describes pipe-separated provenance, but the parser accepts only one of `accession`, `table`, `filename`, or `asserted`.
+- One provenance value shared by the batch. The help text describes pipe-separated provenance, but the parser accepts only one of `accession`, `table`, `filename`, or `asserted`.
 - A shared output directory.
 - An optional master workbook path for cross-strain accumulation.
 
@@ -151,7 +151,7 @@ The batch path resolves strain identifiers from archive content or filenames and
 
 ### Common failure
 
-Trying `--source-provenance "table|asserted"` is rejected by the v9.7.395 parser even though its help text describes a pipe-separated batch form. Use one truthful shared value, or split inputs with different provenance states into separate runs. A shorter taxonomy or source list falls back to `not verified` or `not supplied`; fix the alignment and use a new governed output root if the recorded metadata is unacceptable.
+Trying `--source-provenance "table|asserted"` is rejected by the parser even though its help text describes a pipe-separated batch form. Use one truthful shared value, or split inputs with different provenance states into separate runs. A shorter taxonomy or source list falls back to `not verified` or `not supplied`; fix the alignment and use a new governed output root if the recorded metadata is unacceptable.
 
 ### What this result does not establish
 

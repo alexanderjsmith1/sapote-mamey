@@ -31,6 +31,10 @@ Pure standard library only (glob, os, re, zipfile).
 from __future__ import annotations
 
 import glob
+import csv
+import json
+import fnmatch
+from pathlib import Path
 import os
 import re
 import zipfile
@@ -96,6 +100,14 @@ def resolve_antismash_zip(strain: str, root: str = ".", flavor: str | None = Non
 
     Returns ``None`` if nothing valid is found — never a fabricated path.
     """
+    auth, state = _assembly_authority(strain, root)
+    if state["status"] == "AUTHORITY_INVALID":
+        return None
+    if auth is not None:
+        target = _authority_path(auth.get("clean_antismash_zip", ""), root)
+        if flavor is not None and auth.get("antismash_flavor") != flavor:
+            return None
+        return target if target and zip_has_antismash_json(target) else None
     if flavor is not None:
         for pat in (
             os.path.join(root, "_ANTISMASH_CANONICAL", flavor, strain + ".zip"),
@@ -190,7 +202,7 @@ def _package_zip_index(root: str) -> list[str]:
     seen_dirs: set = set()
     seen_files: set = set()
     for home in homes:
-        for home_dir in glob.glob(os.path.join(root, home)):
+        for home_dir in _matched_homes(root, home):
             if not os.path.isdir(home_dir):
                 continue
             try:
@@ -207,6 +219,8 @@ def _package_zip_index(root: str) -> list[str]:
                 continue
             seen_dirs.add(dir_id)
             for dirpath, _dirnames, filenames in os.walk(home_dir):
+                if home in _PACKAGE_HOMES:
+                    _dirnames[:] = [d for d in _dirnames if "archive" not in d.casefold() and "excluded" not in d.casefold()]
                 for fn in filenames:
                     if fn.endswith(".zip"):
                         path = os.path.join(dirpath, fn)
@@ -235,6 +249,11 @@ def _package_version_key(path: str):
     return tuple(int(g) for g in m.groups())
 
 
+def _package_engine_key(path: str):
+    m = re.search(r"_engine(\d+)\.(\d+)\.(\d+)_", os.path.basename(path))
+    return tuple(map(int, m.groups())) if m else (-1, -1, -1)
+
+
 def resolve_mamey_package(strain: str, root: str = ".", flavor: str | None = None) -> str | None:
     """Return the newest (highest-version) sealed Mamey Complete package ZIP for
     *strain*, searching the known package homes.
@@ -245,14 +264,26 @@ def resolve_mamey_package(strain: str, root: str = ".", flavor: str | None = Non
 
     Homes searched (recursively): ``mamey_packages/``, ``Mamey Complete*/``, plus any
     ``MAMEY_PACKAGE_HOMES`` environment globs (``os.pathsep``-separated).
-    "Newest" = highest parsed bundle version; ties fall back to path sort.
+    With an owner authority row, admitted assembly metrics use engine then bundle
+    version. Without a row, highest parsed bundle version wins; ties use path sort.
     Returns ``None`` if no package is found — never a fabricated path.
     """
+    auth, state = _assembly_authority(strain, root)
+    if state["status"] == "AUTHORITY_INVALID":
+        return None
+    if auth is not None:
+        target = _authority_path(auth.get("clean_package", ""), root)
+        if auth.get("clean_package", "").strip():
+            return target if target and _manifest_matches_authority(target, strain, auth, flavor) else None
     found = _strain_packages(strain, root, flavor=flavor)
+    if auth is not None:
+        found = [p for p in found if _manifest_matches_authority(p, strain, auth, flavor)]
     if not found:
         return None
-    # Prefer highest version; break ties deterministically by path.
-    return sorted(found, key=lambda p: (_package_version_key(p), p))[-1]
+    # Owner-matched assembly metrics permit engine-first ordering; legacy discovery stays bundle-first.
+    if auth is not None:
+        return max(found, key=lambda p: (_package_engine_key(p), _package_version_key(p), p))
+    return max(found, key=lambda p: (_package_version_key(p), p))
 
 
 def _strain_packages(strain: str, root: str, flavor: str | None = None) -> list[str]:
@@ -300,13 +331,94 @@ def strain_data_home(strain: str, root: str = ".", flavor: str | None = None) ->
     older: set[str] = set()
     if newest is not None:
         older = {p for p in _strain_packages(strain, root, flavor=flavor) if p != newest}
+    auth, authority_state = _assembly_authority(strain, root)
+    if auth is not None:
+        authority_state = {**authority_state, "status": "MATCHED_ASSEMBLY_METRICS" if newest else "SUPERSEDED_ASSEMBLY_OR_MISSING",
+                           "reason": "Owner-nominated package or matching metrics; metrics are not sequence-hash proof" if newest else "No admitted package; disagreeing, missing or unreadable candidates refused"}
     return {
+        "searched_homes": list(_package_homes()),
+        "assembly_authority": authority_state,
         "strain": strain,
         "antismash_zip": resolve_antismash_zip(strain, root=root, flavor=flavor),
         "mamey_package": newest,
         "superseded_packages": sorted(older, key=lambda p: (_package_version_key(p), p)),
         "canonical_dir": os.path.join("strain_data", strain),
     }
+
+
+def _matched_homes(root: str, home: str) -> list[str]:
+    """Built-in homes match case-insensitively; archives and excluded variants do not compete."""
+    if home not in _PACKAGE_HOMES:
+        return glob.glob(os.path.join(root, home))
+    try:
+        return [str(p) for p in sorted(Path(root).iterdir())
+                if p.is_dir() and fnmatch.fnmatchcase(p.name.casefold(), home.casefold())
+                and "archive" not in p.name.casefold() and "excluded" not in p.name.casefold()]
+    except OSError:
+        return []
+
+
+def _assembly_authority(strain: str, root: str) -> tuple[dict | None, dict]:
+    """Read the current owner table each time; mutable authority is never cached."""
+    configured = os.environ.get("SAPOTE_ASSEMBLY_AUTHORITY")
+    path = Path(configured or "OFFICIAL_DATA/ASSEMBLY_AUTHORITY.tsv")
+    if not path.is_absolute():
+        path = Path(root) / path
+    if not path.exists() and not configured:
+        return None, {"status": "NOT_CONFIGURED", "reason": "No assembly-authority table present"}
+    try:
+        with path.open(newline="", encoding="utf-8") as fh:
+            reader = csv.DictReader(fh, delimiter="\t")
+            required = {"strain", "authoritative_contigs", "authoritative_genome_bp", "clean_package", "clean_antismash_zip"}
+            if not required <= set(reader.fieldnames or []):
+                raise ValueError("assembly-authority headers missing")
+            rows = list(reader)
+        seen = set()
+        for row in rows:
+            sid = row.get("strain", "").strip()
+            if not sid or sid in seen or None in row or any(v is None for v in row.values()):
+                raise ValueError("duplicate strain or malformed row")
+            seen.add(sid)
+            if int(row["authoritative_contigs"]) <= 0 or int(row["authoritative_genome_bp"]) <= 0:
+                raise ValueError("assembly metrics must be positive")
+        matches = [row for row in rows if row["strain"].strip() == strain]
+        return (matches[0] if matches else None), {"status": "OWNER_ROW" if matches else "NO_ROW", "reason": str(path)}
+    except (OSError, ValueError, TypeError) as exc:
+        return None, {"status": "AUTHORITY_INVALID", "reason": f"{type(exc).__name__}: {exc}"}
+
+
+def _authority_path(value: str, root: str) -> str | None:
+    if not value.strip():
+        return None
+    p = Path(value)
+    if not p.is_absolute():
+        p = Path(root) / p
+    return str(p) if p.exists() else None
+
+
+def _manifest_matches_authority(path: str, strain: str, authority: dict, flavor: str | None) -> bool:
+    try:
+        p = Path(path)
+        if p.is_dir():
+            mp = p / "manifest.json"
+            if not mp.is_file():
+                mp = p / "package/manifest.json"
+            manifest = json.loads(mp.read_text())
+        else:
+            with zipfile.ZipFile(p) as zf:
+                names = [n for n in zf.namelist() if n in ("manifest.json", "package/manifest.json") or n.endswith("/package/manifest.json")]
+                if len(names) != 1:
+                    return False
+                manifest = json.loads(zf.read(names[0]))
+        if not isinstance(manifest, dict) or not isinstance(manifest.get("assembly"), dict):
+            return False
+        asm = manifest["assembly"]
+        return (manifest.get("strain") == strain
+                and int(asm.get("contigs", -1)) == int(authority["authoritative_contigs"])
+                and int(asm.get("genome_bp", -1)) == int(authority["authoritative_genome_bp"])
+                and (flavor is None or manifest.get("antismash_profile") == flavor))
+    except (OSError, ValueError, TypeError, zipfile.BadZipFile):
+        return False
 
 
 if __name__ == "__main__":

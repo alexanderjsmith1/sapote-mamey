@@ -1269,6 +1269,10 @@ def run_one_strain(
     token_budget: str = "standard",    # v9.7.136: standard|citation-compact output profile
     heartbeat_seconds: int = 20,            # ChatGPT-safe heartbeat interval for quiet finalization stages
     hmm_scan: bool = False,
+    reference_completion: str = "auto",     # v9.7.445: RG-GMCI reference-guided completion: auto|off
+    mibig_db: str | None = None,            # v9.7.445: MIBiG protein database folder (else env, else asset registry)
+    completion_sensitivity: str = "sensitive",  # v9.7.445: DIAMOND mode for the completion search
+    completion_pfam: str | None = None,     # v9.7.445: optional Pfam-A.hmm for the housekeeping-neighbour check
 ) -> dict:
     """Run Mamey extraction for one strain. Returns summary dict."""
 
@@ -1762,8 +1766,8 @@ def run_one_strain(
             issues.append(message)
             _phase_receipt(package_dir, "locus_map_catalog", "ERROR", reason=message)
         _phase_receipt(package_dir, "locus_maps", "END", n_maps=_n_maps, n_high_pairs=_n_pairs)
-    except _LocusMapsSkipped:
-        pass  # SKIP receipt already emitted above; no render performed
+    except _LocusMapsSkipped as _swallowed:
+        _LOGGER.debug("locus maps skipped (SKIP receipt already written): %r", _swallowed)
     except Exception as _lm_err:
         _phase_receipt(package_dir, "locus_maps", "ERROR", reason=str(_lm_err))
 
@@ -1796,7 +1800,16 @@ def run_one_strain(
     _phase_receipt(package_dir, "rggmci", "START")
     _stage("running RG-GMCI (multi-contig reconstruction)")
     try:
-        source_scans.rggmci = run_rggmci(input_zip, bgcs, contigs=contigs)
+        _rc_t0 = _time.time()
+        source_scans.rggmci = run_rggmci(
+            input_zip, bgcs, contigs=contigs, reference_completion=reference_completion, mibig_db=mibig_db,
+            mibig_db_registry_from=Path(__file__).resolve().parents[1], sensitivity=completion_sensitivity,
+            label=strain_id, pfam_hmm=completion_pfam)
+        _rc = source_scans.rggmci.get("reference_completion") or {}
+        _stage(f"RG-GMCI reference-guided completion: {_rc.get('completion_tier')}"
+               + (f" ({_rc.get('aligner')} --{_rc.get('sensitivity')}; {len(_rc.get('cores') or [])} edge regions "
+                  f"with a MIBiG reference; {round(_time.time() - _rc_t0, 1)} s for RG-GMCI in total)"
+                  if _rc.get("completion_tier") == "FULL" else ""))
     except Exception as _rg_err:
         _phase_receipt(package_dir, "rggmci", "ERROR", reason=str(_rg_err))
         raise
@@ -3399,12 +3412,35 @@ def _write_package(run: MameyRun, package_dir: Path,
         # why the pair holds its confidence (the gate that kept or demoted it), and the inputs of two gates;
         # the standalone rggmci package shows the same columns
         "acceptance_gate", "max_endpoint_hub_degree", "mibig_good_geometry_references",
+        # read depth of the two contigs from their SPAdes names (observational; never changes confidence)
+        "depth_a", "depth_b", "depth_ratio", "depth_flag",
+        # v9.7.445 report-only evidence layers: reference-guided completion (the tier says whether it ran) and
+        # residue tiling of the pairs the whole-gene paralog gate demoted
+        "completion_tier", "ref_completion_partner", "split_gene_links",
+        "residue_tiling", "residue_top_reference", "residue_top_class", "residue_complementary_references",
+        "residue_overlapping_references",
     ]
     with _atomic_open_pkg(package_dir / f"{strain}_4A_RGGMCI_ranked_pairs.csv", "w", newline="") as f:
         w = _SafeWriter(f)
         w.writerow(rg_headers)
         for row in rggmci.get("ranked_pairs", []):
             w.writerow([row.get(h, "") for h in rg_headers])
+    # 4E — reference-guided completion (v9.7.445): each edge region's MIBiG reference searched across the whole
+    # genome. Written on every run; when the completion did not run, one row carries the tier that says why.
+    from .ref_completion import (COMPLETION_GENE_COLS as _RC_GENE, COMPLETION_PARTNER_COLS as _RC_PART,
+                                 COMPLETION_SPLIT_COLS as _RC_SPLIT)
+    _rcb = (rggmci or {}).get("reference_completion") or {"completion_tier": "NOT_RUN"}
+    for _rc_name, _rc_cols, _rc_key in (("reference_completion", _RC_GENE, "genes"),
+                                        ("split_genes", _RC_SPLIT + ["split_call_before_recurrence"], "splits"),
+                                        ("partner_contigs", _RC_PART, "partners")):
+        with _atomic_open_pkg(package_dir / f"{strain}_4E_{_rc_name}.csv", "w", newline="") as f:
+            w = _SafeWriter(f)
+            w.writerow(_rc_cols)
+            _rc_rows = _rcb.get(_rc_key) or []
+            if not _rc_rows:
+                w.writerow([_rcb.get("completion_tier", "")] + [""] * (len(_rc_cols) - 1))
+            for row in _rc_rows:
+                w.writerow([row.get(h, "") for h in _rc_cols])
     # Pairs with an interior region: related loci, never contig rescues (Alex, 2026-09-27). Kept apart from the
     # ranked pairs so no reader can take one for a rescue.
     with _atomic_open_pkg(package_dir / f"{strain}_4A_RGGMCI_related_loci.csv", "w", newline="") as f:
@@ -3953,6 +3989,10 @@ def run_batch(
     token_budget: str = "standard",  # v9.7.136: standard|citation-compact output profile
     heartbeat_seconds: int = 20,      # v9.7.141: propagate ChatGPT-safe heartbeat into batch strains
     hmm_scan: bool = False,
+    reference_completion: str = "auto",   # v9.7.445: RG-GMCI reference-guided completion for every batch strain
+    mibig_db: str | None = None,
+    completion_sensitivity: str = "sensitive",
+    completion_pfam: str | None = None,
     allow_accession_strain_id: bool = False,  # v9.7.374 fix: was declared on the shared `run`
         # subparser (so it reads as available for --strains batches too) but never threaded into
         # run_batch() -- the batch resolve_strain_id("auto", ...) call always used the default
@@ -4013,6 +4053,10 @@ def run_batch(
             token_budget=token_budget,
             heartbeat_seconds=heartbeat_seconds,
             hmm_scan=hmm_scan,
+            reference_completion=reference_completion,
+            mibig_db=mibig_db,
+            completion_sensitivity=completion_sensitivity,
+            completion_pfam=completion_pfam,
         )
         results.append(result)
 
@@ -4165,6 +4209,13 @@ def _auto_emit_cohort_class_heatmap(results, outdir, logger=None):
 # CLI entry points
 # ---------------------------------------------------------------------------
 
+def _completion_mode(args) -> str:
+    """--reference-completion: 'on' and 'auto' run it when a MIBiG protein database and an aligner are found, capped
+    sessions included (about 30 s on a 10,000-protein genome; Alex, 2026-09-30); 'off' skips it (v9.7.445)."""
+    mode = getattr(args, "reference_completion", "auto") or "auto"
+    return "off" if mode == "off" else "auto"
+
+
 def run_command(args) -> int:
     # v9.7.152: capped-session timeout profile (assistant-neutral). Keyed on the same
     # `chatgpt_safe` dest as before so all existing call sites and tests are unaffected;
@@ -4248,6 +4299,10 @@ def run_command(args) -> int:
             token_budget=getattr(args, "token_budget", "standard"),
             heartbeat_seconds=getattr(args, "heartbeat_seconds", 20),
             hmm_scan=getattr(args, "hmm_scan", False),
+            reference_completion=_completion_mode(args),
+            mibig_db=getattr(args, "mibig_db", None),
+            completion_sensitivity=getattr(args, "completion_sensitivity", "sensitive"),
+            completion_pfam=getattr(args, "completion_pfam", None),
             allow_accession_strain_id=getattr(args, "allow_accession_strain_id", False),
         )
     else:
@@ -4301,6 +4356,10 @@ def run_command(args) -> int:
             token_budget=getattr(args, "token_budget", "standard"),
             heartbeat_seconds=getattr(args, "heartbeat_seconds", 20),
             hmm_scan=getattr(args, "hmm_scan", False),
+            reference_completion=_completion_mode(args),
+            mibig_db=getattr(args, "mibig_db", None),
+            completion_sensitivity=getattr(args, "completion_sensitivity", "sensitive"),
+            completion_pfam=getattr(args, "completion_pfam", None),
         )
         results = [result]
 
@@ -4756,8 +4815,8 @@ def doctor_command(args) -> int:
         if not _runs_preexisted:
             try:
                 _runs_root.rmdir()
-            except OSError:
-                pass  # not empty (a concurrent run populated it) or already gone — never force it
+            except OSError as _swallowed:
+                _LOGGER.debug("runs root not removed (not empty or already gone): %r", _swallowed)
         ok.append("write permissions ✓ (./runs/ writable)")
     except Exception as e:
         fail.append(f"write permissions FAIL — cannot write to ./runs/: {e}")
@@ -6011,6 +6070,24 @@ def build_parser():
                         "(--chatgpt-followup is a deprecated alias.)")
     r.add_argument("--heartbeat-seconds", type=int, default=20, dest="heartbeat_seconds",
                    help="Under --capped-session, emit heartbeat lines during quiet finalization stages at this interval (default: 20).")
+    r.add_argument("--reference-completion", dest="reference_completion", default="auto",
+                   choices=["auto", "on", "off"],
+                   help="v9.7.445: RG-GMCI reference-guided completion (report-only). Each edge region's best "
+                        "KnownClusterBlast MIBiG reference is searched across the whole genome for missing and split "
+                        "genes and tested partner contigs (_4E_* tables). Runs when a MIBiG protein database "
+                        "(--mibig-db, $RGGMCI_MIBIG_DB, or the workspace asset registry) and DIAMOND or BLAST+ are "
+                        "found; otherwise the tier says what was missing. Runs under --capped-session too; off skips it.")
+    r.add_argument("--mibig-db", dest="mibig_db", default=None,
+                   help="v9.7.445: MIBiG protein database folder built by `rggmci build-mibig-db` (or "
+                        "`python -m mamey.ref_completion build-mibig-db`).")
+    r.add_argument("--completion-sensitivity", dest="completion_sensitivity", default="sensitive",
+                   choices=["sensitive", "more-sensitive", "ultra-sensitive", "default"],
+                   help="v9.7.445: DIAMOND mode for reference-guided completion (default sensitive; DIAMOND's own "
+                        "fast default misses 25-40%% identity homologues).")
+    r.add_argument("--completion-pfam", dest="completion_pfam", default=None,
+                   help="v9.7.445: pressed Pfam-A.hmm for the housekeeping-neighbour check (default: $RGGMCI_PFAM_HMM, "
+                        "then the workspace asset registry). With pyhmmer installed, a lone partner find beside >= 2 "
+                        "primary-metabolism genes is set aside as HOUSEKEEPING_CONTEXT.")
     r.add_argument("--locus-maps", dest="locus_maps", default="auto",
                    choices=["auto", "off", "on"],
                    help="P0 (v9.7.101): locus-map render policy. auto = render unless a capped run "

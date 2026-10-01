@@ -334,6 +334,72 @@ def extract_gbk_pfam_hits(zip_path: str | Path) -> dict[str, list[dict]]:
     return hits
 
 
+
+def dominated_diagnostic_flags(hits: dict[str, list[dict]], *, max_bitscore: float = 30.0,
+                               min_evalue_orders: float = 20.0) -> dict:
+    """Experimental same-CDS diagnostic warnings; preserve every original hit and diagnostic status.
+
+    Proposed thresholds await public calibration. E-values from different HMM families are screening
+    evidence only, not comparable functional probabilities or a basis for changing routing scores.
+    Missing, zero, non-finite and malformed values are unassessable, never negative evidence.
+    """
+    from decimal import Decimal, InvalidOperation
+    import math
+    if not math.isfinite(max_bitscore) or max_bitscore <= 0 or not math.isfinite(min_evalue_orders) or min_evalue_orders <= 0:
+        raise ValueError("diagnostic thresholds must be positive finite values")
+    out = []
+    def significance(hit):
+        try:
+            e = Decimal(str(hit.get("evalue", "")))
+            return -float(e.log10()) if e.is_finite() and 0 < e <= 1 else None
+        except (InvalidOperation, ValueError, OverflowError):
+            return None
+    for region, rows in sorted(hits.items()):
+        for weak in rows:
+            if not weak.get("tier1_diagnostic") or not weak.get("locus_tag"):
+                continue
+            try:
+                bits = float(weak.get("bitscore", ""))
+            except (ValueError, TypeError):
+                continue
+            sig = significance(weak)
+            if not math.isfinite(bits) or not 0 <= bits <= max_bitscore or sig is None:
+                continue
+            rivals = [(significance(other), other) for other in rows
+                      if other.get("locus_tag") == weak["locus_tag"]
+                      and other.get("domain_name") != weak.get("domain_name")]
+            rivals = [(v, h) for v, h in rivals if v is not None and v - sig >= min_evalue_orders]
+            if not rivals:
+                continue
+            best_sig, best = sorted(rivals, key=lambda x: (-x[0], str(x[1].get("domain_name", ""))))[0]
+            out.append({"flag": "DOMINATED_DIAGNOSTIC", "region_key": region, "locus_tag": weak["locus_tag"],
+                        "diagnostic_domain": weak.get("domain_name", ""), "diagnostic_bitscore": bits,
+                        "diagnostic_evalue": weak.get("evalue", ""), "competing_domain": best.get("domain_name", ""),
+                        "competing_evalue": best.get("evalue", ""), "evalue_orders_gap": round(best_sig - sig, 3)})
+    return {"status": "CALIBRATION_REQUIRED", "thresholds": {"max_bitscore": max_bitscore,
+            "min_evalue_orders": min_evalue_orders}, "flags": out,
+            "scope": "Same-CDS parsed hits only; unchanged tier-1 calls and scores; screening aid for owner review"}
+
+
+def _diagnostic_competitors_from_rec(rec, name, out):
+    """Retain non-diagnostic TIGRFAM rivals for the report only, using an unambiguous region overlap."""
+    rec_id = rec.get("id") or ""
+    for hit in (rec.get("modules", {}).get("antismash.detection.tigrfam", {}).get("hits", [])):
+        locus = hit.get("locus_tag") or hit.get("label") or ""
+        loc = _TIGRFAM_LOC_RE.search(str(hit.get("location") or ""))
+        if not locus or not loc or not rec_id:
+            continue
+        start, end = map(int, loc.groups())
+        regions = [i for i, area in enumerate(rec.get("areas") or [], 1)
+                   if area.get("start") is not None and area.get("end") is not None
+                   and area["start"] <= start < end <= area["end"]]
+        if len(regions) != 1:
+            continue
+        key = f"{rec_id}_c{regions[0]}"
+        out.setdefault(key, []).append({"locus_tag": locus, "domain_name": hit.get("identifier") or hit.get("domain") or "",
+                                       "evalue": hit.get("evalue", ""), "bitscore": hit.get("score", ""),
+                                       "tier1_diagnostic": False, "source": "tigrfam_competitor_report_only"})
+
 def extract_tigrfam_hits(zip_path: str | Path) -> dict[str, list[dict]]:
     """Extract diagnostic TIGRFAM hits from the antiSMASH JSON.
 
@@ -721,6 +787,7 @@ def _extract_record_evidence(zip_path: str | Path,
     no pass is made at all.
     """
     tigrfam: dict[str, list[dict]] = {}
+    competitors: dict[str, list[dict]] = {}
     nrps: list[dict[str, Any]] = []
     asite: list[dict[str, Any]] = []
     pclass: list[dict[str, Any]] = []
@@ -729,6 +796,7 @@ def _extract_record_evidence(zip_path: str | Path,
     handlers: list = []
     if want_tigrfam:
         handlers.append((_tigrfam_from_rec, tigrfam))
+        handlers.append((_diagnostic_competitors_from_rec, competitors))
     if include_extras:
         handlers += [
             (_nrps_pks_from_rec, nrps),
@@ -741,6 +809,7 @@ def _extract_record_evidence(zip_path: str | Path,
         _run_record_extractors(zip_path, handlers)
     return {
         "tigrfam_hits": tigrfam,
+        "diagnostic_competitors": competitors,
         "nrps_pks_consensus": nrps,
         "active_site_pairings": asite,
         "product_class_predictions": pclass,
@@ -1164,6 +1233,12 @@ def parse_antismash_evidence(zip_path: str | Path,
                                        want_tigrfam=want_tigrfam)
     if want_tigrfam:
         evidence["tigrfam_hits"] = _rec_ev["tigrfam_hits"]
+        # A separate report channel. Never insert non-diagnostic rivals into the scored Pfam/TIGRFAM channel.
+        report_hits = extract_gbk_pfam_hits(zip_path)
+        for source in (_rec_ev["tigrfam_hits"], _rec_ev["diagnostic_competitors"]):
+            for key, rows in source.items():
+                report_hits.setdefault(key, []).extend(rows)
+        evidence["dominated_diagnostics"] = dominated_diagnostic_flags(report_hits)
     if requested_mode != "off" or include_structured:
         if _rec_ev["nrps_pks_consensus"]:
             evidence["nrps_pks_consensus"] = _rec_ev["nrps_pks_consensus"]

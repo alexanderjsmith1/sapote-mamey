@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**410 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**413 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -65,7 +65,7 @@
 | `blastp_coverage_wave.py` | measure BLASTp coverage gaps, stage a priority wave into isolated |
 | `tools/blastp_crawl/crawl_handoff.py` | Move a ClusteredNR gap crawl to another machine, and bring its results home. |
 | `tools/blastp_crawl/nr_rid_runner.py` | polite, RID-based remote NCBI nr BLASTp for the AS cohort. |
-| `tools/blastp_crawl/run_lane.sh` | Start one ClusteredNR gap lane with the crawl's house settings. Usage: run_lane.sh AS-<n> |
+| `tools/blastp_crawl/run_lane.sh` | Start one ClusteredNR gap lane with the crawl's house settings. Usage: bash run_lane.sh AS-<n> |
 | `tools/blastp_crawl/split_multi_panels.py` | Split 10-protein ClusteredNR panels into the single-protein layout the runner expects. |
 | `tools/blastp_monitoring/blastp_dashboard.sh` | one screen of GROUND TRUTH for the BLASTp crawl. |
 | `tools/blastp_monitoring/blastp_health.py` | GROUND-TRUTH health of the BLASTp crawl. |
@@ -230,6 +230,8 @@
 | `fixture_inputs.py` | Content-preserving preparation of the one hash-bound synthetic test archive. |
 | `fragment_concordance_scorer.py` | score a strain's observed BGC fragments against the reference panel. |
 | `gap_directed_rescue.py` | what a core region's reference cluster has and the core lacks, looked for across the genome. |
+| `gap_rescue_all_regions.py` | run tools/gap_directed_rescue.py on every antiSMASH region of one genome. |
+| `gap_rescue_locus_map.py` | the clinker-style figure for tools/gap_directed_rescue.py. |
 | `gate_mutation_probe.py` | Reproducibly answer whether a named test detects a minimal protection mutation. |
 | `gate_stem_aware.py` | Run the sibling tree gate, optionally on a verified display's analysis parent. |
 | `gen_command_catalog.py` | generate the task-oriented CLI command catalog (v9.7.405). |
@@ -391,6 +393,7 @@
 | `strict_source_disclosure_audit.py` | COMPATIBILITY ENTRY POINT. Holds no policy. |
 | `suite_count_census.py` | Measure pytest collection separately from JUnit execution outcomes. |
 | `sync_version.py` | propagate the single source-of-truth version into restated files. |
+| `sync_wiki_mirrors.py` | keep wiki pages that copy a maintained doc identical to that doc. |
 | `test_reaction_gap_board.py` | (no docstring) |
 | `test_resolve_reference_metadata.py` | parse, strain-gate, absence, deposit heuristic. |
 | `tools/tests/test_441_intake_launches_via_bundle_pinned_runner.py` | The harness must launch the engine so the bundle's mamey wins over any stray cwd mamey/. |

@@ -79,7 +79,7 @@ def _is_p450(*fields: str) -> bool:
 
 def _scaffold_of(products: str) -> str:
     """Coarse scaffold class from a BGC's antiSMASH product string (for role context, not a claim)."""
-    p = ";".join(with_family_labels(products or "")).lower()
+    p = ";".join(with_family_labels(products or "")).lower().replace("_", "-")
     has = lambda *ts: any(t in p for t in ts)
     tags = []
     if has("nrps"):
@@ -89,7 +89,7 @@ def _scaffold_of(products: str) -> str:
     if has("terpene"):
         tags.append("terpene")
     if has("lanthipeptide", "lassopeptide", "ripp", "thiopeptide", "sactipeptide",
-           "lap", "bacteriocin", "redox_cofactor"):
+           "lap", "bacteriocin", "redox-cofactor"):
         tags.append("RiPP")
     if has("siderophore", "nrp-metallophore"):
         tags.append("siderophore")

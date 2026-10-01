@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rggmci"
 version = "1.0.0rc1"
-description = "Surfaces antiSMASH regions in a fragmented assembly that may belong to one biosynthetic pathway (from Sapote-Mamey)"
+description = "Surfaces antiSMASH regions in a fragmented assembly that may belong to one biosynthetic pathway"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"

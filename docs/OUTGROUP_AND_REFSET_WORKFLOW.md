@@ -12,6 +12,9 @@ external project registry (the taxon→sister-outgroup table with real accession
 `OUTGROUP_REGISTRY`; a path selection records provenance and does not itself grant scientific
 acceptance. The shipped `mamey/data/outgroup_registry.tsv` is reference-only: lookup and sequence
 extraction refuse it as project authority. Record the selected registry's source and SHA-256.
+In the shipped snapshot, the rare-genera 16S row roots trees on *Bifidobacterium bifidum* KCTC 3202 (T),
+accession NR_044771.1, an outgroup inside the phylum Actinomycetota, and the sequence is fetched by accession.
+It replaced a *Pseudomonas* row, which drew one genus to the root.
 
 Before the examples, activate the bundle Python environment, work from the bundle root and bind
 these separately supplied resources to actual existing locations:

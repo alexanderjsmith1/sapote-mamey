@@ -1,3 +1,33 @@
+# v9.7.445 (2026-09-30) — build 20260930v97445a
+
+- **Registry test discovery.** Owner-table tests discover the nearest governed table independently of bundle depth.
+- **Packed lane wrapper.** Packed BLASTp lanes invoke their internal runner with bash.
+- **Standalone package wording.** Standalone RG-GMCI descriptions and version output retain source provenance with independent package wording.
+- **Rare genera outgroup snapshot.** The bundled rare-genera snapshot records the ruled Bifidobacterium accession; the external owner table remains authoritative.
+- **Placement reference home.** Default reference packages stay beside explicit outputs or in the configured tree home.
+- **RG GMCI depth and residue evidence.** Pairs expose contig-depth fields; optional DIAMOND residue evidence remains advisory and leaves scores and confidence unchanged.
+- **Pipefail checks.** CHANGELOG and denylist gates avoid early-exit grep pipelines.
+- **Asset registry discovery.** Copies of the asset tool outside the bundle can discover the registry marker.
+- **Resolver authority and case.** Reader homes match case-insensitively and omit archives; an optional owner table admits clean packages and refuses mismatches. Authority population remains with the owner.
+- **Product label comparisons.** Product comparisons normalize separators while preserving raw labels and the reconciliation enum.
+- **Dominated diagnostic report.** A separate same-CDS warning channel proposes bitscore <=30 and an E-value gap >=20 orders; calibration required, with no score or tier change.
+
+- **User docs and wiki mirrors.** Documents the built changes, repairs stale guidance and keeps eight wiki mirrors bound to their maintained sources.
+
+- **Portable tree home and fixture environment.** Configurable tree outputs remove a private locator, and the pipefail test preserves the required child environment flag.
+
+- **RG-GMCI reference-guided completion.** Each edge region's best MIBiG reference is searched across the whole genome by default when a MIBiG protein database and DIAMOND or BLAST+ are found: missing and split genes and tested partner contigs (`_4E_*` tables), and `completion_tier`, `ref_completion_partner` and `split_gene_links` on every pair. Otherwise the tier says what was missing. It runs in capped sessions too. With pyhmmer, the registered Pfam-A.hmm sets aside lone finds beside housekeeping genes. Report-only: no score or confidence changes. The gap-rescue tool and the standalone package run the same code.
+
+- **Gap rescue split-gene check.** Adds synthetic-tested split-gene, partner/reference, locus-map and all-regions advisory outputs.
+- **TIGRFAM competitor print-count fixture.** Updates the existing output-count fixture to include the report-only competitor reader.
+- **Gap rescue standing-gate repairs.** Guard optional Bio imports, scope test monkeypatches, and log optional-output fallbacks and progress without increasing print-call ratchets.
+- **Silent-swallow handlers logged; ceiling zero.** Debug records preserve fallback behavior while reducing the measured silent-swallow ceiling to zero.
+
+Accretion-justified: mamey/residue_tiling.py — optional DIAMOND residue tiling for RG-GMCI pairs, report-only, shared byte-for-byte with the standalone rggmci package.
+Accretion-justified: mamey/ref_completion.py — reference-guided completion for RG-GMCI and the gene table and split-gene check it shares with tools/gap_directed_rescue.py, report-only, shared byte-for-byte with the standalone rggmci package.
+
+Engine 1.9.172 covers the unreleased cut: emitted depth/evidence, product-family handling, gap-rescue and reference-completion fields. The new completion card emits _4E tables and pair completion fields; the gap-rescue card adds advisory tool outputs. No extra engine increment within this one unreleased cut. RG-GMCI and gap rescue remain advisory; homology is not product identity.
+
 # v9.7.444 · 2026-09-29 · build 20260929v97444a · engine 1.9.171 · CODE
 
 Accretion-justified: mamey/rescue_groups.py — RG-GMCI candidate groups and group GenBank files, shared with the standalone rggmci package.

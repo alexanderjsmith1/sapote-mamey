@@ -386,7 +386,8 @@ if [ "$TIER" != "merged" ]; then
   if [ -f "$DENY" ]; then
     while IFS= read -r term; do
       [ -z "$term" ] && continue
-      if grep -rIlF "$term" "$STAGE" 2>/dev/null | grep -q .; then
+      # one grep, no pipe: under pipefail, "grep -rIlF | grep -q ." turned SIGPIPE into "no leak" when the term was in many files
+      if grep -rIqF "$term" "$STAGE" 2>/dev/null; then
         echo "LEAK: denylisted term present in $TIER tier (see tools/release_denylist.txt)" >&2; FAIL=1; fi
     done < "$DENY"
   fi

@@ -20,7 +20,7 @@ from _console import emit  # noqa: E402
 import argparse, glob, os, re, sys, datetime
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # bundle root for `import mamey` (v9.7.367 A10)
-from mamey.workspace_root import workspace_root
+from mamey.workspace_root import workspace_root, tree_home
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _wbio import atomic_save
 
@@ -37,7 +37,7 @@ def _find(dirs):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", action="append", default=[], help="placement output dir (repeatable)")
-    ap.add_argument("--auto", action="store_true", help="discover strain_data/_PLACEMENT/*/placements*")
+    ap.add_argument("--auto", action="store_true", help="discover legacy strain_data placements and configured tree-home placements")
     ap.add_argument("--out", required=True)
     ap.add_argument("--title", default="Phylogenetic placement trees")
     ap.add_argument("--root", default=str(workspace_root()))
@@ -49,6 +49,7 @@ def main():
     dirs = list(a.dir)
     if a.auto:
         dirs += sorted(glob.glob(os.path.join(a.root, "strain_data/_PLACEMENT/*/placements*")))
+        dirs += sorted(glob.glob(str(tree_home(a.root) / "_PLACEMENT" / "*" / "placements*")))
     dirs = [d for i, d in enumerate(dirs) if d not in dirs[:i]]  # dedupe, keep order
     pairs = _find(dirs)
     if not pairs:

@@ -16,8 +16,9 @@ GToTree -v
 
 The package page currently offers `conda install bioconda::gtotree`; resolve dependencies with the
 configured strict channel priority and preserve the exported environment plus the exact resolved
-builds. The local workflow was verified with GToTree 1.8.16, but the channel can publish newer
-versions. Therefore no LLM may assume 1.8.16 behavior without checking `GToTree -h` for the installed
+builds. The production version is GToTree 1.8.19; 2.0.x is admitted and 1.8.16 is refused
+([GTOTREE_WORKFLOW.md](GTOTREE_WORKFLOW.md)). The channel can publish newer versions, so no LLM may assume
+a version's behavior without checking `GToTree -h` for the installed
 version. Installation or upgrade needs user approval and network access; using an already installed
 environment does not.
 
@@ -146,8 +147,8 @@ GToTree -h
 gtt-hmms
 ```
 
-In the locally verified GToTree 1.8.16 interface, defaults can exceed the project core limit (`-n`
-defaults to 2 and `-M` to 5), so all three controls must be explicit. Re-check these defaults after
+GToTree's defaults can exceed the project core limit (in 1.8.16, `-n` defaulted to 2 and `-M` to 5),
+so all three controls must be explicit. Re-check these defaults after
 any upgrade. Generate the alignment first and infer the final tree in a separate, recorded IQ-TREE
 step:
 
@@ -168,7 +169,7 @@ with and without it when the choice changes taxon retention or placement.
 Do not use `-F` to overwrite an existing output. Do not assume the alignment is named
 `Aligned_SCGs.faa`; discover the emitted alignment in the completed output and record its SHA-256.
 
-The packaged `Actinobacteria.hmm` in GToTree 1.8.16 contains 138 protein profiles; verify the local
+The packaged `Actinobacteria.hmm` of the production version, GToTree 1.8.19, contains 138 protein profiles; verify the local
 count with `grep -c '^NAME' <path>/Actinobacteria.hmm` and record it. A custom GToTree HMM must contain
 protein profiles and be versioned and hashed like any other reference resource. Six-locus MLSA that
 includes 16S is built separately and cannot be represented as one GToTree protein-HMM target set.

@@ -195,7 +195,7 @@ def cmd_pack(a) -> int:
                   "command": 'bash "$CLAUDE_PROJECT_DIR/hooks/block_blastp_overconcurrency.sh"'}]}]},
     }, indent=2) + "\n")
     wrappers = {
-        "run_lane.sh": 'export SAPOTE_WORKSPACE_ROOT="$HERE"\nexec "$HERE/tools/blastp_crawl/run_lane.sh" "$@"\n',
+        "run_lane.sh": 'export SAPOTE_WORKSPACE_ROOT="$HERE"\nexec bash "$HERE/tools/blastp_crawl/run_lane.sh" "$@"\n',
         "plot.sh": ('mkdir -p "$HERE/plots"\nSAPOTE_WORKSPACE_ROOT="$HERE" SAPOTE_BLASTP_PLOT_DIR="$HERE/plots" '
                     'python3 "$HERE/tools/blastp_monitoring/plot_crawl_proteins_24_96h.py" --lanes "*GAP*" '
                     '--active-hours 48\necho "open: $HERE/plots/blastp_throughput_proteins_24_96h.png"\n'),

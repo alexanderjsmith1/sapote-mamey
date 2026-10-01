@@ -1,6 +1,6 @@
 # The Sapote–Mamey User Manual
 
-*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.444 / engine Mamey 1.9.171*
+*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.445 / engine Mamey 1.9.172*
 *Historical sections retain their stated scope.*
 
 > This Manual tells you **how to run** Sapote–Mamey and **how to read what it gives you**, in the order you actually use it. For *why each part exists and how it relates to the rest*, see the **Encyclopedia** (cross-referenced as → §Vol.Chapter). The Manual is operational; the Encyclopedia is the deep reference behind it. Term definitions live in one place, the **Glossary** ([`GLOSSARY.md`](../GLOSSARY.md); its **Core concepts** section covers the load-bearing terms). This Manual and the Encyclopedia point to it rather than redefining terms.
@@ -27,7 +27,7 @@ Mamey is the factual floor; Sapote is the interpretive ceiling. The contract bet
 ## 2 · Setup and installation
 
 Mamey parses antiSMASH output; it does not run genome detection itself.
-*(engine 1.9.171, bundle v9.7.444)*
+*(engine 1.9.172, bundle v9.7.445)*
 
 ### 2.1 · What you need
 
@@ -92,7 +92,7 @@ Use CODE for all internal analysis. Never distribute MERGED-PRIVATE.
 
 ```bash
 python mamey_run.py doctor            # pre-flight check: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # should report `engine 1.9.171, bundle 9.7.444`
+python3 tools/sync_version.py --check # should report `engine 1.9.172, bundle 9.7.445`
 python3 -m pytest -q                  # green suite = tier is intact (requires pytest wheel)
 ```
 
@@ -399,6 +399,11 @@ The boundaries above are historical examples, not a declaration that 1.9.98 is c
 
 ---
 
+
+### 9.4 · v9.7.445 — RG-GMCI read depth and residue tiling
+
+Each RG-GMCI ranked pair (`*_4A_RGGMCI_ranked_pairs.csv`) now ends with `depth_a`, `depth_b`, `depth_ratio` and `depth_flag`. The flag is **DEPTH_MISMATCH** when the lower read depth is below 0.67 of the higher: the two contigs may not come from the same replicon, so read that pair with more caution. The standalone `rggmci` package adds an optional residue-tiling check (`--diamond-db`). It shows whether two fragments cover different stretches of the same MIBiG proteins, which is how a gene broken across contigs differs from a paralog. Both are report-only: no score or confidence changes, so §9.3's comparability boundaries are unchanged. → Glossary "RG-GMCI read depth and residue tiling".
+
 ## 10 · Figure generation
 
 This chapter is the single reference for every figure Sapote–Mamey produces: what it shows, whether it renders by default or on demand, how to trigger it, and where it lands. Two principles hold across all of them:
@@ -535,4 +540,4 @@ Use [the Mode B user walkthrough](../MODE_B_USER_WALKTHROUGH.md) for package inp
 
 ---
 
-*Sapote–Mamey User Manual · current to bundle v9.7.444 / engine Mamey 1.9.171 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
+*Sapote–Mamey User Manual · current to bundle v9.7.445 / engine Mamey 1.9.172 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*

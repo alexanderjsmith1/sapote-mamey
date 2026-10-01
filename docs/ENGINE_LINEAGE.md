@@ -1,5 +1,9 @@
 # Mamey Engine Lineage
 
+## Engine 1.9.172 — first bundle: v9.7.445
+
+Adds emitted contig-depth fields and optional residue-tiling evidence. Product-family comparisons accept separator variants. A separate dominated-diagnostic report preserves tier-1 calls and scores and labels its thresholds uncalibrated. These changes require explicit version binding when comparing outputs. Core region-coordinate extraction is unchanged by these cards; family/routing outputs and advisory fields can differ. No product identity or physical contig linkage is inferred.
+
 ## Engine 1.9.171 — first bundle: v9.7.444
 
 RG-GMCI pairs only regions antiSMASH flags as on a contig edge, never two regions on one contig; those

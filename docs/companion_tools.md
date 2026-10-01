@@ -54,8 +54,8 @@ command. A cohort-only run is scientifically useful but cannot support KNOWN/NOV
 - Active runbook: `docs/phylogenomics.md`.
 
 The Bioconda package page is `https://anaconda.org/bioconda/gtotree`. Current channel state can
-change; do not hard-code the channel's newest version. The local verified environment uses GToTree
-1.8.16 and an Actinobacteria HMM with 138 profiles. Re-check after installation or upgrade.
+change; do not hard-code the channel's newest version. The production version is GToTree
+1.8.19, with an Actinobacteria HMM of 138 profiles; 2.0.x is admitted and 1.8.16 is refused (`GTOTREE_WORKFLOW.md`). Re-check after installation or upgrade.
 
 ```bash
 conda create -n sapote-phylo -c conda-forge -c bioconda gtotree iqtree fastani ncbi-datasets-cli

@@ -10,6 +10,8 @@ import os
 import shutil
 import stat
 import tempfile
+import logging
+_LOG = logging.getLogger(__name__)
 
 
 class AtomicJsonWriteRefused(RuntimeError):
@@ -44,8 +46,8 @@ def _inherit_mode(path, tmp):
     try:
         if os.path.exists(path):
             os.chmod(tmp, os.stat(path).st_mode & 0o7777)
-    except OSError:
-        pass  # best-effort permission carry; write proceeds either way
+    except OSError as _swallowed:
+        _LOG.debug("permission carry onto the temp file failed; the write proceeds: %r", _swallowed)  # best-effort permission carry; write proceeds either way
 
 
 def _discard(tmp):
@@ -53,8 +55,8 @@ def _discard(tmp):
     try:
         if os.path.exists(tmp):
             os.remove(tmp)
-    except OSError:
-        pass  # best-effort cleanup; temp may already be gone
+    except OSError as _swallowed:
+        _LOG.debug("temp file not removed after a failed write: %r", _swallowed)  # best-effort cleanup; temp may already be gone
 
 
 def _commit(path, tmp):

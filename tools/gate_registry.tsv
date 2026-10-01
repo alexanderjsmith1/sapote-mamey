@@ -82,3 +82,4 @@ sixteen_s_similarity_check	OPERATOR_ONLY	recomputes deposited 16S similarity aga
 verify_release_tarball	WIRED	called by make_verified_code_tarball.sh before CODE tarball delivery; receipt selection and invocation remain operator actions, release_cut.sh does not call it (regression suites: test_442_verify_release_tarball, test_442_make_verified_code_tarball_codex)
 check_no_bundle_write_defaults	WIRED	bundle-write default gate exercised by tests/test_check_no_bundle_write_defaults_v97443.py
 handoff_gate	WIRED	one fail-closed check before a patch packet, deliverable or reply is handed over (queue/HASHES drift, orphan cards, replay, links, four-part BGC identity, figure text): pytest tests/test_444_handoff_gate.py
+sync_wiki_mirrors	WIRED	wiki mirror gate: pytest tests/test_445_wiki_mirrors_match_docs.py

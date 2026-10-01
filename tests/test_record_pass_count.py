@@ -13,8 +13,11 @@ This test makes that counter permanent. _run_record_extractors is the single dri
 extractor routes through, so counting its invocations counts record passes directly.
 
 Invariant for a run on a single-contig input:
-  * bounded -> exactly ONE pass, carrying all 6 handlers (tigrfam + the 5 json-evidence extractors)
-  * off     -> exactly ONE pass, carrying ONLY tigrfam (1 handler)
+  * bounded -> exactly ONE pass, carrying all 7 handlers (the 2 tigrfam readers + the 5 json-evidence extractors)
+  * off     -> exactly ONE pass, carrying ONLY the 2 tigrfam readers
+
+The tigrfam channel has two readers of the same record: the tier-1 hits and, since v9.7.445, their report-only
+competitors for the dominated-diagnostic report. Both ride the one pass; neither opens the JSON in off mode.
 
 A second pass (dedup regression) or an extra off-mode pass (tigrfam-fold regression) fails here.
 """
@@ -51,12 +54,12 @@ def _run_counting_passes(json_mode, monkeypatch, input_zip):
 def test_bounded_run_makes_one_record_pass(monkeypatch, synthetic_single_contig_full_locus_zip):
     counts = _run_counting_passes("bounded", monkeypatch, synthetic_single_contig_full_locus_zip)
     assert len(counts) == 1, f"expected ONE record pass in bounded mode, got {len(counts)}: {counts}"
-    # tigrfam + nrps_pks + active_site + product_class + ripp + rrefinder
-    assert counts[0] == 6, f"bounded pass should carry all 6 handlers, got {counts[0]}"
+    # tigrfam + tigrfam competitors (report-only) + nrps_pks + active_site + product_class + ripp + rrefinder
+    assert counts[0] == 7, f"bounded pass should carry all 7 handlers, got {counts[0]}"
 
 
 def test_off_run_makes_one_tigrfam_only_pass(monkeypatch, synthetic_single_contig_full_locus_zip):
     counts = _run_counting_passes("off", monkeypatch, synthetic_single_contig_full_locus_zip)
     assert len(counts) == 1, f"expected ONE record pass in off mode, got {len(counts)}: {counts}"
-    # off mode: only tigrfam (the four json-evidence extractors are gated off)
-    assert counts[0] == 1, f"off-mode pass should carry only tigrfam (1 handler), got {counts[0]}"
+    # off mode: only the two tigrfam readers (the json-evidence extractors are gated off)
+    assert counts[0] == 2, f"off-mode pass should carry only the 2 tigrfam readers, got {counts[0]}"

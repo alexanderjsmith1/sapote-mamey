@@ -1,5 +1,5 @@
-version=9.7.444
-build=20260929v97444a
-engine=1.9.171
-patch=RG-GMCI pairs only contig-edge regions on different contigs.; RG-GMCI shows why a pair was demoted, and the result no longer depends on the hash seed.; Rescues become analysis units.; Three advisory tools read a split cluster against a reference.; Product classes are counted from products, not category words.; The GenBank fallback reader keeps LOCUS name and DEFINITION.; RG-GMCI ships as a standalone package built from the bundle's source.; An operator can run a handoff gate on supplied packets, deliverables and reply links before sending them.
+version=9.7.445
+build=20260930v97445a
+engine=1.9.172
+patch=Registry test discovery.; Packed lane wrapper.; Standalone package wording.; Rare genera outgroup snapshot.; Placement reference home.; RG GMCI depth and residue evidence.; Pipefail checks.; Asset registry discovery.
 tier=code

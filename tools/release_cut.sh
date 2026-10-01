@@ -92,7 +92,9 @@ PY
 
 say "validate CHANGELOG top entry for v$VER"
 head -1 CHANGELOG.md | grep -q "v$VER" || die "CHANGELOG top entry is not v$VER — write it first."
-awk 'NR>1 && /^# v9/{exit} {print}' CHANGELOG.md | grep -qE '^- \*\*' \
+# grep reads the whole entry (no -q): under pipefail, -q closes the pipe at the first match, awk dies of SIGPIPE on a long
+# entry, and the cut aborted with "no bold bullets" although the bullets were there.
+awk 'NR>1 && /^# v9/{exit} {print}' CHANGELOG.md | grep -E '^- \*\*' >/dev/null \
   || die "CHANGELOG v$VER entry has no '- **bold**' bullets (patch-line parser needs them)."
 
 say "preflight: no backup/editor debris"

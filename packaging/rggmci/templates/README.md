@@ -7,8 +7,7 @@ ClusterBlast and KnownClusterBlast results that antiSMASH already wrote.
 It is a homology-guided candidate method, not a contig joiner. If the reads had supported a join, the
 assembler would have made it. A candidate is a hypothesis to check at gene level.
 
-This package is the RG-GMCI scorer from Sapote-Mamey, built from that project's source by a build
-script. It has no required dependencies. Biopython is used when installed; otherwise a built-in
+It has no required dependencies. Biopython is used when installed; otherwise a built-in
 GenBank reader is used.
 
 ## Run it
@@ -58,8 +57,6 @@ rggmci blastp-layer --manifest queries/blastp_manifest.json \
   genome is already in NCBI, pass `--exclude-organism "<its species>"`, or its own proteins come back as hits.
 - The layer sits beside the RG-GMCI confidence and never changes it. Similarity is not identity: shared
   homologs in one organism are a reason to look at that organism's genome, not proof of one pathway.
-- The FASTA headers and the result parsing are the same as Sapote-Mamey's `bgc-blastp-panel` and
-  `blastp-followup`, so the same results read in both.
 
 ## What it reports
 
@@ -121,9 +118,9 @@ antiSMASH 8.0, doi:10.1093/nar/gkaf334. Reference clusters come from MIBiG 4.0, 
 
 ## Where it comes from
 
-`src/rggmci/PROVENANCE.json` names the Sapote-Mamey version the package was built from, and the SHA-256
-of every source file used.
+`src/rggmci/PROVENANCE.json` records the source version this build came from, and the SHA-256 of every
+source file used.
 
 ## Licence
 
-MIT, the same as Sapote-Mamey. See `LICENSE`.
+MIT. See `LICENSE`.

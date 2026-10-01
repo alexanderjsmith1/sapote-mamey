@@ -1,365 +1,419 @@
-# Sapote–Mamey Quick Guide
-**Version:** v9.7.401 / engine Mamey 1.9.143
+<!-- Mirror of docs/GUIDE/02_Quick_Guide.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
+# Sapote Mamey Quick Guide
 
----
+**Version:** v9.7.445 / engine Mamey 1.9.172
 
-## What this is
+Mamey extracts deterministic evidence from antiSMASH output. Sapote turns a validated evidence
+package into governed interpretation. Start at the [README](../README.md). If you work through a
+coding assistant, it follows the shared [AGENTS contract](../AGENTS.md); the workflow is the same
+either way. Check the [release manifest](../RELEASE_MANIFEST.md) for the status of the exact
+bundle you have.
 
-**Mamey** runs deterministic extraction: parsing, inventory, scans, scoring, workbook. It never writes speculative claims.  
-**Sapote** is the LLM judgment layer: Mode B deep dives, ecological synthesis, figure interpretation.
+This page is the compact reference. For a first-time walkthrough with plain-language setup and
+recovery steps, use [Your first analysis](../docs/MASTER_WALKTHROUGH.md). If you already have a
+package, use [Read your results](../docs/READING_YOUR_RESULTS.md).
 
-Run Mamey first. Do Sapote only after you have a sealed package.
+## Start with the question you need answered
 
-> **Mamey-first gate (v9.7.146+):** If you ask Claude or ChatGPT for Mode B without a sealed Mamey package, it will refuse and redirect you to run the engine first. The package provides correct boundary computation, WL/AB/AF scores, CCTT triggers, and cluster-level KCB that cannot be reproduced from raw antiSMASH output.
+There are two paths here: a first validated extraction, then optional follow-on analysis. You do
+not need every optional tool to inspect the bundle or to run core extraction. For a
+decision-oriented walkthrough, see [Working with an assistant](../docs/ASSISTANT_USER_GUIDE.md).
 
----
+Find your starting point in the table, then go to the matching section.
+
+| Your situation | First useful action | What you should receive |
+|---|---|---|
+| Code ZIP or repository only | Review files; install only if execution is requested | Capability and setup assessment, not a strain result |
+| One antiSMASH result ZIP | Inspect, bind metadata, then run and validate | Inventory, evidence package, workbook and explicit missing/deferred states |
+| Existing validated package | Read manifest, issues and available evidence first | The requested summary/card/figure; no automatic rerun |
+| Genome or 16S FASTA only | Select the appropriate sequence workflow | A scoped placement/genome plan; not an invented antiSMASH package |
+| Several strains | Identify authoritative inputs and master workbook | A resumable batch with per-strain outcomes and preserved prior master |
+
+Three things to know before you run anything:
+
+- Read §2 (the evidence and runtime budget) before you run the command in §1. Bounded JSON is the
+  documented default; capped mode trades evidence and rendered outputs for a shorter run.
+- A code bundle alone contains software, not your biological results.
+- Run the commands below yourself, in the foreground, one at a time.
 
 ## 0. Install
 
-Unzip the bundle, install the engine, then install the add-on wheels.
+Use Python 3.12 or newer in an isolated environment. The archive name below matches the current
+release manifest; if your download or unsealed candidate has a different name, substitute the real
+archive and extracted directory. The bundle root is the directory that contains `mamey_run.py`.
 
 ```bash
-unzip sapote-mamey-v9.7.394-CODE-20260831v97394a.zip
-cd sapote-mamey-v9.7.394-CODE-20260831v97394a
-pip install -e .                      # installs the mamey command + core deps
+unzip path/to/code-bundle.zip -d path/to/extracted-code
+# Locate pyproject.toml and mamey_run.py together; GitHub ZIPs add a nested directory.
+cd path/to/extracted-code/actual-bundle-root
+python3 --version  # must be 3.12 or newer before creating the environment
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -e '.[figures,bio]'
+python mamey_run.py start
+python mamey_run.py doctor
+python tools/sync_version.py --check # checks version consistency, not candidate release acceptance
 ```
 
-On a managed system Python: add `--break-system-packages`. On Miniconda: plain `pip install -e .` works.
+This example installs the core plus the figure and Biopython extras. For core extraction only, use
+`python -m pip install -e .`; rendering capabilities will then differ. Neither choice installs the
+external companion databases or programs. Read doctor warnings by capability: a missing optional
+tree tool does not stop core extraction.
 
-**Add-on wheels** (offline install — no network needed):
+Install only when you intend to run the software; reviewing the documentation does not need an
+install. The pip commands may download packages. If network access is not authorized, use the
+documented offline procedure. Keep the environment and all outputs inside your permitted root.
+
+[INSTALL](../docs/INSTALL.md) covers Windows activation, optional extras, offline wheel compatibility
+and test setup. Do not override system Python protections or alter wheel compatibility tags.
+
+## 1. Inspect and run one strain
+
+Replace the paths and metadata below with the values bound to your real input. `EXAMPLE` is a
+placeholder strain ID. Run `inspect` first and read its diagnostics and the invocation it suggests.
 
 ```bash
-# drop the distributed .whl and .tar.gz files into a wheels/ folder, then:
-pip install --no-index --find-links ./wheels biopython ijson pytest pluggy iniconfig
+python mamey_run.py inspect path/to/antismash_result.zip
+python mamey_run.py run --strain EXAMPLE \
+  --input-zip path/to/antismash_result.zip \
+  --taxonomy 'Genus sp.' --source 'recorded isolation source' \
+  --mode gold --json-evidence bounded --brief none --locus-maps off \
+  --release PRIVATE --outdir analysis/runs/
+python mamey_run.py validate analysis/runs/EXAMPLE/package
+python mamey_run.py explain analysis/runs/EXAMPLE/package
 ```
 
-| Wheel | What it enables |
-|---|---|
-| `biopython-1.87-cp312-*.whl` | Robust GBK parsing (optional — shim works for standard antiSMASH output) |
-| `ijson-3.5.0.tar.gz` | Fast JSON streaming C backend (optional — pure-Python copy ships in bundle) |
-| `pytest-9.0.3-py3-none-any.whl` | Test suite — required for release cuts |
-| `pluggy-1.6.0.tar.gz` · `iniconfig-2.3.0.tar.gz` | pytest dependencies |
+This first run deliberately skips the brief and the locus maps. `PRIVATE` labels your local
+artifacts; it does not claim that a public source genome is private. Choose another release tag
+only when it fits your output. If isolation metadata are missing, `--source 'not supplied'`
+records that gap; the GenBank `SOURCE` organism label in the archive is not the isolation habitat.
 
-For figures, also: `pip install matplotlib numpy`
+Run each genome through antiSMASH as one job, and give Mamey that one result. `run` reads one ZIP per
+strain, so a genome split across several jobs becomes several partial packages. If the job used a
+record filter, record it as a property of that one run, for example "contigs ≥ 1.68 kb".
 
-**Biopython filename:** must use dots in version and platform tags (`1.87`, not `1_87`). If your file transfer swapped them, rename the file before installing.
+Read the package path and status in the output. If validation fails, stop interpreting, record the
+reported issue and resolve it. A passing structural gate is not scientific acceptance.
 
-**Verify:**
+## 2. Choose the evidence and runtime budget
 
-```bash
-mamey doctor                          # dependency + permission check
-python3 tools/sync_version.py --check # → engine 1.9.143, bundle 9.7.401
-```
-
-→ Full dependency reference: `docs/PREREQUISITES.md`
-
----
-
-## 1. Run one strain
-
-```bash
-python mamey_run.py run \
-  --strain AS-XXX \
-  --input-zip AS-XXX_antismash.zip \
-  --taxonomy "Streptomyces sp." \
-  --source "Apis mellifera, Ontario" \
-  --mode gold \
-  --brief standard \
-  --outdir runs/
-```
-
-Validate immediately after:
-
-```bash
-python mamey_run.py validate runs/AS-XXX/package
-```
-
-Status vocabulary: `MAMEY_COMPLETE` · `MAMEY_COMPLETE_WITH_ISSUES` · `VALIDATION_FAIL`. Do not use a VALIDATION_FAIL package.
-
----
-
-## 2. Mamey-first for a cohort
-
-Run every strain through Mamey before doing any Mode B interpretation. One strain at a time is fine.
-
-```
-run strain → validate → bank → update master workbook → next strain
-```
-
-Use the master workbook and special review buckets to choose Mode B targets. Do not spend judgment time on low-priority strains before the cross-strain pattern is visible.
-
----
-
-## 3. Bank and build the master workbook
-
-```bash
-python tools/mamey_intake.py --packages runs/ --banked-dir cohort/ --workbook project_master.xlsx
-```
-
-Every run with `--master` appends the strain without deleting prior strains. Always check `WORKBOOK_STATUS` in the run output.
-
----
-
-## 4. Post-MAMEY_COMPLETE handback
-
-After every run the analysis chat automatically presents code-backed outputs before offering any prompt-backed deliverables:
-
-- Strain brief PDF (`*_8_strain_brief.pdf`)
-- All figures (`*_8a–_8m_fig_*.png` plus companion `_data.csv` files)
-- Locus maps (`locus_maps/`)
-- Workbook (`*_5_workbook.xlsx`)
-- Checksums and issue log
-
-If any of these are absent, say so — do not silently omit them.
-
----
-
-## 5. The Deliverable Menu
-
-After `MAMEY_COMPLETE`, the analysis chat presents the **Sapote–Mamey Diner Menu**. Full menu: `docs/DELIVERABLE_MENU_v97146.md`.
-
-| # | What you get | Say |
+| Choice | Main JSON behavior | What to report |
 |---|---|---|
-| 1 | Triage Board — all BGCs ranked | "Triage board" |
-| 2 | Lead Sheet — top 3–5 leads, one paragraph each | "Lead sheet" |
-| 3 | Layperson Guide — plain-English, for PI / lab meeting | "Layperson guide" |
-| 4 | Locus Maps — SVG gene-arrow diagrams | "Locus maps for BGC___" |
-| 5 | BLASTP Batches — ready-to-submit FASTA + README | "BLASTP batches for BGC___" |
-| 6 | Mode B Deep Dive — full §1–§30 for one BGC | "Full Mode B for BGC___ (NODE___)" |
-| 7 | Full Strain Plate — everything for one strain | "Full plate for [strain]" |
-| S1 | Fermentation Card | "Fermentation card" |
-| S2 | Wet Lab Decision Matrix | "Wet lab matrix" |
-| S3 | Metabolomics Readiness | "Metabolomics readiness" |
+| `--json-evidence bounded` | Streams with byte/leaf limits | Truncation, fallback and unresolved completeness |
+| `--json-evidence full` | Cap: 80,000,000 bytes per file | Size hold if over cap; admitted files may still require several GB RAM |
+| `--json-evidence off` | Disables the main walker; record-level paths are separate | Which evidence channels actually ran |
+| `--capped-session` | Overrides the main walker to off and suppresses selected outputs | Deferred evidence and deliverables |
 
-You can combine: *"#2 and S1 for the top three leads"* · *"Mode B for BGC028 (NODE_32) plus a fermentation card"*
+The shipped full-mode cap is 80 MB (`FULL_MAX_JSON_BYTES` in `mamey/antismash_evidence.py`); the earlier 20 MB cap was retired.
+ZIP download size is not uncompressed JSON size, and more CPU threads cannot bypass this hard-coded
+size check. Full mode is not a completeness certificate. See
+[a public-strain walkthrough with examples on both sides of 80 MB](../docs/ROUND2_PUBLIC_STRAIN_WALKTHROUGH.md).
 
----
+Gold is the analysis mode. When a time limit applies, add `--capped-session` to the run command.
+It forces JSON evidence off and `--brief none`, requires the workbook, and disables automatic
+locus maps unless you enable them explicitly. Passing `--json-evidence bounded` alongside the
+capped flag does not keep JSON evidence. For bounded JSON extraction, omit the capped flag and
+allow enough runtime. The deprecated `--chatgpt-safe` alias behaves the same way.
 
-## 6. Mode B cards — what to expect
+A capped run can leave deliverables or evidence channels deferred. List those explicitly, and
+render the applicable figures after validation.
 
-The finished card is **§1–§48** (`FINISHED_FULL48_CURRENT_EVIDENCE`, gate-enforced since v9.7.369); **§1–§20** is the always-required core subset and **§1–§30** is the legacy candidate/calibration profile. Two sections are required for every completed card:
+## 3. Review and retain the package
 
-- **§28 Evidence provenance ledger** — every factual claim traced to its source file, engine version, and evidence tier (observed/computed/inferred/assumed). Makes cards surgically updatable.
-- **§30 Experimental decision tree** — five open questions, each with: the resolution experiment, what the result would change in the card, and the downstream programme consequence.
+Keep the input ZIP, its checksum, the run configuration, the package manifest and the issue log.
+Check the inventory, triage board, workbook and validation result. Report any brief, figure, locus
+map or evidence stream that is missing or deferred. Do not promise an artifact just because the
+command supports it. Keep sealed inputs as they are and use the documented post-seal commands for
+follow-on work.
 
-**Interpretive floor (v9.7.146+):** §5 must connect domain architecture to structural consequences. §9 must weigh alternatives with evidence. §12 must name the ecological mechanism. §19 must argue the verdict, not restate §11. See `docs/MODEB_INTERPRETIVE_FLOOR_v97146.md`.
+### Know which kind of completion you have
 
-**Edge/FC BGC equality (v9.7.147+):** All detected BGCs appear in the triage board sorted by score. In POOR/VERY_POOR assemblies edge/FC BGCs receive full Mode B depth — the boundary caveat belongs in §3 and §19 only.
+| State | Meaning | Still not established |
+|---|---|---|
+| Doctor completed | Environment diagnostics were produced | Successful extraction or scientific correctness |
+| Extraction and validation completed | Encoded package gates ran; inspect actual statuses and issues | Every optional evidence channel or requested narrative is finished |
+| `MAMEY_COMPLETE_WITH_ISSUES` | Pipeline completed with recorded issues | That every warning is resolved |
+| Validator says `MAMEY_COMPLETE` | Validator completed its encoded checks | That pipeline issues or judgment pending disappeared |
+| A template was emitted | A writing scaffold exists | An authored or verified Mode B card |
+| Structure/depth checks passed | The particular encoded checks passed | Factual source binding, literature verification or product identity |
+| Requested deliverable reviewed | The selected files and their evidence were checked | Publication, new release or permission to distribute private material |
 
----
+### Recover without losing provenance
 
-## 7. Special review buckets
+| Symptom | Next check | Safe recovery |
+|---|---|---|
+| Wrong Python or import failure | Interpreter version and selected environment | Use Python 3.12+ and the documented extras; do not bypass system protections |
+| `inspect` rejects a ZIP | Archive type and required antiSMASH contents | Obtain/fix the input; do not pass the code ZIP as biological data |
+| Timeout/interruption | Last log event and partial output status | Preserve the attempt; resume through the documented intake workflow or start a separately named run |
+| Validation failure | Actual failed gate and issue details | Hold affected interpretation; diagnose before declaring the package complete |
+| Figure or homology result missing | Requested mode, dependencies and recorded channel status | Complete only the needed follow-on work; absence of a file is not negative biology |
+| Ambiguous locus or master workbook | Source-bound identity, hashes and prior receipts | Hold the disputed join/update; continue independent review |
 
-Some BGC rows must be reviewed even when not top-ranked:
+The example run writes under `analysis/runs/` inside the bundle working directory. Use a new output
+directory when inputs or parameters change. Do not overwrite a previous run to make the latest
+command succeed. Keep original inputs immutable and record which output supersedes which.
 
-- **Nucleoside priority** — always review for antifungal relevance (nikkomycin/polyoxin-like).
-- **Polyene/PTM/HSAF flags** — review for antifungal relevance; arylpolyene alone is not antifungal polyene evidence.
-- **`other` product rows** — antiSMASH `other` is not junk; it means gene-level review is needed.
-- **RG-GMCI HIGH pairs** — possible split-pathway reconstructions; hypotheses, not confirmed contig joins.
+## 4. Process a cohort
 
----
+Inventory the input ZIPs and run each strain before you choose cross-strain interpretation targets.
+The intake and master-workbook workflows are in the [User Manual](User-Manual.md). The `run`
+command accepts `--master /path/to/project_master.xlsx`; check the emitted workbook status and keep
+a copy of an existing master before updating it. A folder name or modification time does not show
+which master is authoritative.
 
-## 8. Claim-safety reminders
+## 5. Select a deliverable
 
-- "biosynthetic capacity consistent with X" — never "produces X"
-- KCB hits are similarity signals, not product identity
-- Bioactivity is extract-level; never pin to a specific BGC without fractionation
-- NAPAA excluded from comparative claims (ubiquitous, ecologically non-informative)
-- hglE-KS is habitat-non-specific — do not use for habitat specificity claims
-- Cite BGCs as `BGC028 (NODE_32_length_60747_cov_53 · region001)` at first mention
+Choose the output that answers the question: a triage board, lead summary, figures, a plain-language
+guide, a Mode B card or a compiled report. The [deliverable contract](../docs/DELIVERABLE_CONTRACT.md)
+defines the required artifacts and quality checks. Record which outputs are complete and which are
+pending.
 
----
+## 6. Bind a complete locus identity
 
-## 9. Citation provenance
+Every reference to an individual BGC must carry **strain / full node-or-contig / region / BGC alias**,
+copied from one bound source record, and filenames must encode all four components safely. A bare
+alias, a shortened node or a remembered label is not enough. If a component is missing or
+conflicting, stop with an identity hold. Keep exact source paths and hashes.
+
+## Deepen the evidence before writing
+
+### Protein search and result import
+
+Choose between a representative screen and a full region-level search. The representative panel
+reads translated CDS sequences from the input ZIP and writes FASTA batches plus a manifest:
+
+```bash
+python mamey_run.py bgc-blastp-panel --input-zip path/to/antismash_result.zip \
+  --strain EXAMPLE --outdir analysis/protein_panel --genes-per-bgc 2
+```
+
+For a manual search, submit the exported amino-acid FASTA batches to the BLASTp service you have
+chosen. Keep the query headers and batch manifest. Save the hit-table CSV and alignment XML together
+with the search database, date and settings. A representative panel samples the regions; it is not
+a full per-gene examination of every region.
+
+To submit every extracted protein from one selected region through the NCBI runner:
+
+```bash
+python mamey_run.py blastp-online --package path/to/selected_region.gbk \
+  --database nr --outdir analysis/region_protein_search
+```
+
+This command makes network submissions. Here `--package` means the protein-bearing region GBK or
+antiSMASH ZIP, not simply the sealed Mamey output directory. For a multi-region ZIP, bind the full
+locus identity first and use the documented region/crosswalk selectors; do not submit an unscoped
+whole-genome ZIP as if it were one region. The default batch size is 10 proteins.
+
+For a strain-wide plan, `blastp-round` defaults to full coverage of the top three ranked regions
+plus one representative protein from each remaining region. Planning does not submit searches:
+
+```bash
+python mamey_run.py blastp-round --package analysis/runs/EXAMPLE/package \
+  --outdir analysis/blastp_plan
+```
+
+Inspect the plan before you add `--run --confirm-public-sequence-upload`; the second flag records
+that the planned sequences may be disclosed to NCBI. For resumable scheduling, start with
+`auto-blastp --help` and its default local plan (`--dry-run` is also supported). Live scheduling requires both
+`--submit` and `--confirm-public-sequence-upload`; only acknowledge sequences you may disclose to
+NCBI. Each submitted batch reports its endpoint, database, protein count, and sequence SHA-256
+before transport. Confirm that the channel you chose is actually reachable; nr,
+ClusteredNR and local Swiss-Prot are separate evidence channels.
+
+To import saved NCBI hit tables into an existing project master and the matching package overlay:
+
+```bash
+python mamey_run.py ingest-blastp --master path/to/project_master.xlsx \
+  --strain EXAMPLE --hit-table analysis/hits.csv --xml analysis/alignments.xml \
+  --package analysis/runs/EXAMPLE/package
+```
+
+Keep a copy of the master before updating it. Review the import diagnostics and query mappings. If
+you omit `--package`, the workbook is updated but downstream readers do not get the package overlay.
+For non-NCBI results, use the channel-specific workflow and the correct source metadata; do not
+label an EBI or local search as NCBI nr.
+
+Use the results to look into disagreements. A short local match, a missing alignment segment or a
+generic enzyme annotation can change meaning once full protein length, domains and gene context are
+read together. A failed search is not a no-hit result. The
+[BLASTp protocol](../docs/ONLINE_BLASTP_PROTOCOL.md) covers scoping, batching, provenance and channels.
+
+### Fragmented-pathway review
+
+RG-GMCI runs during extraction. Review its pair-level evidence together with the inventory's
+boundary status and the original reference matches. For each proposed link, inspect:
+
+- shared reference support and hit geometry, including whether positions are coordinates or a locus-number proxy;
+- complementary subject-gene coverage versus both fragments matching the same conserved machinery;
+- contig-edge/terminus evidence, product-class compatibility, and reasons for a confidence downgrade;
+- conflicting protein/domain evidence and any remaining missing sequence.
+
+Keep both fragments' complete locus identities. A proposed link does not merge their source
+records. Low-complexity termini can need long-read resolution rather than a computed junction.
+BiG-SCAPE family context and BLASTp add evidence during interpretation; on their own they do not
+promote a link or repair the assembly.
+
+### BiG-SCAPE family analysis
+
+The integrated runner accepts a package, a cohort run directory or an explicit directory of region
+GBKs. Install the external BiG-SCAPE toolchain and provide the pressed Pfam database first:
+
+```bash
+python mamey_run.py doctor --companions
+python mamey_run.py bigscape --runs-dir analysis/runs/ --out analysis/bigscape \
+  --bigscape /absolute/path/to/bigscape --pfam /absolute/path/to/Pfam-A.hmm \
+  --cpus 1 --dry-run
+```
+
+Review the staging plan, then remove `--dry-run` to execute it. The runner produces a cohort SQLite
+database and, unless `--no-widgets` is set, tries to build the linked matrix and clinker widgets.
+Check both the compute and the widget results; one successful stage does not prove every output
+exists.
+
+If a strain's assembly was decontaminated, keep its removed contigs out of the input. Stage with
+`tools/bigscape_prep.py --drop-contigs STRAIN=removed_contigs.tsv`, or check a staged folder with
+`tools/bigscape_input_decontam_guard.py --regions <dir> --removed STRAIN=removed_contigs.tsv`.
+Both refuse rather than guess. A drop list that matches no staged region is refused until you review
+it and pass `--allow-zero-drop STRAIN`. The guard exits non-zero when any staged region sits on a
+removed contig. The [BiG-SCAPE walkthrough](../docs/BIGSCAPE_COHORT_WALKTHROUGH.md) covers staging.
+
+Use family membership to compare architectures across the sampled strains. Keep the run ID, cutoff,
+region membership, input hashes, reference-panel composition and contig-edge flags. Family
+identifiers are local to a run, and a singleton is not automatically a novel product. The
+[GCF workflow](../docs/BIGSCAPE_GCF_WORKFLOW.md) covers reference preparation and interpretation.
+
+### Trees and heatmap overlays
+
+Choose the sequence route that matches your question. A 16S FASTA can be
+placed against a reference backbone. Whole-genome FASTA can support a core-genome
+tree. If your antiSMASH ZIP contains the **full assembly** (not only clipped
+region files), `phylo-mlsa` offers an optional five-protein-coding-gene MLSA
+screen from that assembly. Selection of a non-region sequence member does not
+certify that the assembly is complete; review the member and assembly metrics.
+The screen helps select neighbors for a later core-genome
+analysis; it does not establish species identity. Reference genome
+acquisition remains a separate, reviewed step. Start by inspecting the uploads
+or planning the MLSA input:
+
+```bash
+python mamey_run.py phylo-autopilot plan path/to/sequence_uploads
+python mamey_run.py phylo-autopilot route --query path/to/16S.fasta \
+  --db /absolute/path/to/16S_database_prefix --out analysis/routing.tsv
+python mamey_run.py phylo-mlsa --input-zip path/to/antismash.zip \
+  --query-label QUERY_A --mode plan
+python mamey_run.py phylo-run --help
+```
+
+For MLSA, supply locally curated `.fna` reference genomes in
+`--references-dir`, with exactly one filename containing `_OUTGROUP` for
+`--mode run`. `--mode prepare --outdir new_directory` stages a source-bound
+genome set; `--mode run` also calls the shipped `build_mlsa.py` driver, which
+requires Prodigal, BLAST+, MUSCLE and IQ-TREE. A ZIP with region GBKs only is
+refused. The database prefix and external tools for 16S placement must exist on
+your machine. Review routing, references, outgroup and compute requirements
+before building a tree. `run-16s` takes `--approved-by`; the core-genome runner
+requires `--approved`. The [autopilot guide](../docs/PHYLO_AUTOPILOT_WORKFLOW.md)
+explains the 16S and core-genome routes; the [GToTree workflow](../docs/GTOTREE_WORKFLOW.md)
+explains MLSA screening and later genome-panel selection.
+
+Building a tree and annotating it are separate steps. The tree overlay tool reads a
+`sapote.tree-figure-factory.v1` configuration that names the tree, alignment, workflow/model/seed
+receipts, outgroup and final-tip rosters, an explicit tip crosswalk and an annotation matrix:
+
+```bash
+python tools/tree_bgc_overlay.py --config path/to/tree_overlay.json
+```
+
+The config must bind the actual files and hashes; the command does not invent them. Supported
+strain-level tracks are ANI, BGC, DOMAIN, MODE_B, ASSEMBLY and BIOASSAY; the bioassay track needs an
+admitted selection (see below). It renders SVG/PNG artwork with
+reproducibility outputs. Placement renderers also support metadata-oriented tree views, with host
+and location data taken from a supplied source. Keep missing values as missing, check label clipping
+and track alignment, and keep the methods and caption sidecars with the final figure. The separate
+`figure-factory` phylogeny adapters may return data or diagnostics rather than a finished tree
+image, so check the output type. See the [figure entry point](../docs/FIGURES_START_HERE.md).
+
+For a repeatable series of 1:1, 1:2 and 1:3 query-to-reference displays, declare the completed
+placement runs in a [Tree Catalog](../docs/TREE_CATALOG.md). The catalog can emit paired geography and
+no-geography views in one run. It records type-only versus type-plus-selected-non-type panels and
+refuses to create a spotlight claim by silently pruning a full-cohort analysis.
+
+### Bioassays, trees, and R figures
+
+Do not feed a raw plate-reader export straight to a tree renderer. First map every 96- or 384-well
+observation into the canonical schema, including material lineage, organism label state, time point,
+replicate type, controls and exclusions. Then build the admitted summary:
+
+```bash
+python mamey_run.py figure-factory --config path/to/bioassay_figure.json
+```
+
+The bioassay factory can emit one explicitly selected quantitative `BIOASSAY` tree track. Its config
+must name one target, target state, time point, material type, strain roster and material ID per
+strain. A separate exact crosswalk binds those strains to a GToTree tree, or to reviewed EPA-ng tips
+for strains that have 16S but no genome. See the [bioassay contract](../docs/BIOASSAY_FIGURE_FACTORY.md)
+and the [R renderer map](../docs/R_FIGURE_WORKFLOWS.md).
+
+## 7. Author Mode B from current evidence
+
+Start from a validated package. `mode-b` emits a top-leads table; it does not write a finished card.
+Before writing, read the [Mode B document index](../docs/MODE_B_DOCUMENT_INDEX.md), the
+[authoring preflight](../docs/MODE_B_AUTHORING_PREFLIGHT.md) and the matching class exemplar.
+
+Use `emit-modeb-template --help` for the template options. Choose the current named profile from its
+machine-readable contract and emitted template; a historical section count is not authority. Keep
+the exact titles and required evidence fields. When a command takes an alias in `--bgc`, bind it to
+the complete four-component identity and the package first; the argument is only a machine selector.
+
+Keep the nr, ClusteredNR and local Swiss-Prot channels separate. Missing hits, unrun searches and
+provenance holds stay as explicit typed states. Never fill a template with invented observations.
+Run the structure/depth, claim-safety and quality checks on the authored file itself and report
+their receipts. A template pass or `PASS_STRUCTURE` does not make a card finished or scientifically
+accepted.
+
+## 8. Review figures and prose
+
+Use the [figure entry point](../docs/FIGURES_START_HERE.md) and the existing renderers before creating a
+new plot. Read the rendered output, check labels and complete identities, and keep the data behind
+it. Capacity is not production; similarity is not compound identity; strain or extract bioactivity
+must not become an unsupported locus-level claim. Missing evidence is not biological absence.
+
+## 9. Save a resumable handoff
+
+Save the objective, the exact inputs and their hashes, the permitted output location, completed
+work, unresolved holds and the next bounded step. Link the package and the authored deliverables.
+Keep prior versions and state what supersedes them. A saved summary is not a verbatim transcript.
+User review and release acceptance remain separate decisions.
 
 ### Citation-Compact Provenance and Citation Status
 
-- **antiSMASH 8.0** method provenance: DOI `10.1093/nar/gkaf334`
-- **MIBiG 4.0** reference database: DOI `10.1093/nar/gkae1115`
-- `PASS_STRUCTURE` means package integrity passed — not that literature claims are verified
-- `citation_needed` means a literature-search pass is still required
-- `Literature_Search_WorkOrder.md/json` is a safe handoff for a separate web-search session
-- `operator_supplied` — provenance row came from runtime evidence already in the package
-- `interpretation_scope` — reader-facing scope field used in current compact lead tables
+Method provenance: antiSMASH 8.0 DOI `10.1093/nar/gkaf334`; MIBiG 4.0 reference-database
+provenance: DOI `10.1093/nar/gkae1115`. These identify methods and databases, not a confirmed product.
+`PASS_STRUCTURE` reports structural checks, not verification of literature claims.
+`operator_supplied` identifies runtime evidence provenance; `citation_needed` remains an unresolved
+literature requirement. `Literature_Search_WorkOrder.md/json` is a search handoff, not a verified fact.
+Current compact lead tables use `interpretation_scope` for reader-facing scope.
 
----
+## 10. Post-seal deliverables
 
-## 10. Post-seal deliverable subcommands
-
-These run **against an already-sealed package** (or a directory of them). Every one is post-seal and
-non-blocking — it reads facts the engine already computed and **never touches AB/AF/tiers, scans,
-gates, or a published tier**. They are capacity-level, judgment-deferred deliverables (sign-off gated);
-`domain-reference` / `realistic-count` / `novelty-shortlist` / `signoff` are advisory helpers.
+Use the validated package with the command you need. Begin with its `--help`, and keep the command,
+input identity, diagnostics and resulting files. For the example package above:
 
 ```bash
-# --- CROSS-STRAIN LEDGERS ---
-python mamey_run.py cohort-leads    --runs-dir <runs_dir> [--out COHORT_PRIORITY_LEADS.csv]  # union of Exceptional+High leads → one ranked CSV
-python mamey_run.py cohort-assemble --runs-dir <runs_dir> [--out COHORT_MASTER.csv] [--xlsx]  # many sealed packages → one master table
-
-# --- EVIDENCE / FALSE-POSITIVE LAYER ---
-python mamey_run.py comparator-coverage <package> [--cohort-runs-dir <runs_dir>]  # two-denominator MIBiG comparator coverage
-
-# --- ANTIFUNGAL + INTERPRETIVE DELIVERABLES ---
-python mamey_run.py af-dossier   <root> [--out DIR] [--activity-table CSV] [--depth N]  # AF leads x optional measured Candida activity
-python mamey_run.py good-guesses <root> [--out DIR] [--pdf] [--docx] [--depth N]       # claim-safe interpretive priors (solid/rare/remarkable/notable/interesting)
-
-# --- DOCUMENT + FIGURE EXPORT ---
-python mamey_run.py modeb-export <card.md|mode_b/> [--outdir DIR] [--format docx|pdf|both]  # authored Mode B card → .docx + .pdf
-python -m mamey.kcb_locusmap --zip <zip> --contig <NODE> --out-dir <dir> \
-    --strain-id <ID> --bgc-id BGC### [--products "..."] [--top-n 6]                         # offline KCB comparative locus map (PNG/SVG + data.csv)
-
-# --- COUNT / NOVELTY / REFERENCE (advisory) ---
-python mamey_run.py domain-reference  --package <pkg> [--out FILE]           # bundled Mode-B domain-reference dictionary
-python mamey_run.py realistic-count   --package <pkg> [--out FILE]           # honest corrected BGC-count denominator
-python mamey_run.py novelty-shortlist --package <pkg> [--top 30] [--out FILE]  # composite multi-signal novelty shortlist
-
-# --- ANALYSIS QC + MODE-B INTERPRETATION GATES ---
-python mamey_run.py signoff [tree.treefile ...] [--minutes N]                        # "would a master's student sign off?" tree QC (advisory, exit 0)
-python mamey_run.py verify-modeb --package <pkg> --bgc BGC### --interp [--interp-strict]  # add WARN-only INTERP_* judgment checks to verify-modeb
+python mamey_run.py list-bgcs analysis/runs/EXAMPLE/package
+python mamey_run.py render-all-figures --package analysis/runs/EXAMPLE/package
+python mamey_run.py emit-modeb-template --help
+python mamey_run.py verify-modeb --help
 ```
 
-Claim-safety holds throughout: these surface capacity-level hypotheses and priors with their resolving
-experiment, never a structural or bioactivity claim. `good-guesses` tags each notable BGC
-solid / rare / remarkable / notable / interesting **and** names the experiment that would resolve it.
+`verify-modeb` takes the authored Markdown file as a positional argument. For a package-bound review,
+also supply `--package` and the reconciled `--bgc` selector; `--interp` adds the interpretation check
+and does not replace structural, claim-safety or quality review. A package path alone does not
+identify an authored card.
 
----
-
-## Useful commands — natural language that works
-
-Sapote–Mamey runs through Claude or ChatGPT, which means you talk to it in plain English. The pipeline is designed to understand intent, not just syntax. The phrases below are examples that reliably trigger the right behaviour — but you don't need to copy them exactly. The words in brackets are the parts you change.
-
-One important note before the list: the pipeline runs **Mamey first, then Sapote**. Always have a sealed Mamey package before asking for any interpretation. If you ask for a Mode B card without a package, the analysis chat will tell you to run Mamey first — that's intentional.
-
----
-
-### Getting started with a package
-
-> **"Can you work from this to get me the full deliverables?"**
-
-This is the single most useful phrase. Upload your antiSMASH ZIP or a sealed Mamey package alongside it and the chat will run the engine, present all outputs, and offer everything the pipeline can produce. It works because it signals intent (full deliverables) without constraining the path — the pipeline figures out where you are in the workflow and picks up from there.
-
-> **"Run Mamey on [strain].zip and give me the full plate."**  
-> **"Run full Sapote analysis on [strain]."**  
-> **"Load the Mamey package and start judgment."**
-
-### The three evidence channels (for lead BGCs)
-
-Once you have a package, these phrases drive the reconciled Mode B evidence workflow. The pipeline
-runs them in the right order on its own when you ask for a lead card, but you can also call them
-directly:
-
-> **"Read the KCB front page for [strain]."**  
-> — the named database leads, each with its corroboration tier (STRONG / COINCIDENTAL / LARGE_GENERIC). Run this first; it is the cheapest strong signal.
-
-> **"BLASTp every gene in [BGC] and reconcile against antiSMASH."**  
-> — independent per-gene homology, with CONFIRM / REFINE / OVERTURN per gene, plus the cluster coherence and function/novelty reads. Fail-closed: if NCBI is down it says so and invents nothing.
-
-> **"Plan a BLASTp round for [strain]."**  
-> — the phased campaign: full per-gene BLASTp for the top BGCs plus one representative per remaining cluster. Shows the plan and time estimate; say "run it" to submit.
-
-> **"Adjudicate [gene] — does the domain signature back BLASTp or antiSMASH?"**  
-> — the offline HMM tie-breaker for a disagreement, plus module architecture and short-gene rescue.
-
-A useful thing to know: a lead card wants all three channels *reconciled*, not just listed. The
-honest answer for a well-conserved cluster with no characterised product match is "conserved genes,
-unknown product" — which is a better lead than a weak compound name.
-
-
-These are the formal trigger phrases. "Full plate" (menu item #7) means everything for one strain. "Start judgment" means begin Mode B after the package is loaded.
-
----
-
-### Getting specific deliverables
-
-> **"Triage board for [strain]."**  
-> **"What are the top leads?"** / **"What's the best guess?"**  
-> **"Write me the layperson guide."** / **"Explain it to my PI."**  
-> **"Full Mode B for BGC028 (NODE_32 · region001)."**  
-> **"Locus maps for the top three leads."**  
-> **"BLASTP batches for BGC050."**
-
-You can combine items in one request:
-
-> **"Mode B for BGC028 plus a fermentation card and a wet lab matrix."**  
-> **"Top leads, layperson guide, and BLASTP batches for the polyene cluster."**
-
----
-
-### Continuing or updating an analysis
-
-> **"Can you work from this to get me the full deliverables?"** *(with a prior handoff package uploaded)*
-
-The same phrase works for continuing. If you upload the handoff package from a previous session, the chat reads the established context — what's been done, what's pending, what the established findings are — and picks up without re-deriving anything.
-
-> **"Continue from where we left off on [strain]. Next priority is [BGC]."**  
-> **"I have the Mamey package from the testing chat. What are the next steps?"**  
-> **"Here's the BLASTP result for batch 10. Integrate it into the BGC050 card."**
-
----
-
-### Requesting figures specifically
-
-> **"Give me the domain heatmap for [strain]."** *(requires gold mode)*  
-> **"Run render-figures on this package."**  
-> **"I need the fermentation figures."**  
-> **"Produce the figure set for the cohort."** *(2+ gold packages)*
-
-If figures were skipped (`--brief none` or a capped run), say:
-
-> **"Figures weren't produced — can you render them now?"**
-
-The chat will run `mamey render-figures` and present the outputs.
-
----
-
-### Asking about specific science
-
-> **"What class is BGC044?"**  
-> **"Is the polyene cluster split across contigs?"**  
-> **"What proteins from BGC050 should I BLASTP first?"**  
-> **"What does the halogenase on BGC044 do?"**
-
-These work because the pipeline holds the triage context and mode B cards in memory for the session. You can ask follow-up questions without re-stating the strain or BGC.
-
----
-
-### Triggering §21–§30 extensions
-
-> **"Add the mass ladder for this RiPP BGC."** *(triggers §21)*  
-> **"Write the experimental decision tree for BGC028."** *(triggers §30)*  
-> **"I need the heterologous expression strategy."** *(triggers §23 when MATURATION_GAP is present)*  
-> **"Give me the OSMAC protocol for [BGC]."** *(triggers §26)*  
-> **"What are the five most important open questions about this cluster?"** *(triggers §30)*
-
----
-
-### Getting a compiled report
-
-> **"Write me the analysis report for [strain]."**  
-> **"Compile everything into a single document."**  
-> **"I need something I can share with my PI."**
-
-The compiled Markdown report (`<strain>_Analysis_Report_<date>.md`) covers: executive summary, strain metadata, top leads, full triage board, Mode B cards, figures, BLASTP action list, fermentation guidance, and a candidate appendix for remaining BGCs.
-
----
-
-### Workflow control
-
-> **"Run in gold mode this time."** *(enables deep_data.json, gene-by-gene, automatic figures)*  
-> **"Skip figures for now — just give me the triage."** *(brief=none)*  
-> **"This is private data — mark it PRIVATE throughout."**  
-> **"Flag this as an AS-series strain."** *(triggers PI-clearance guard)*
-
----
-
-### The pattern that works
-
-The pipeline is designed to understand what you need even when the phrasing is loose. A few principles that make requests work well:
-
-**Name the BGC with its node.** "BGC028 (NODE_32 · region001)" is unambiguous; "the polyene cluster" depends on prior context. Both work in an ongoing session; the node citation works everywhere.
-
-**State what you have.** "I have the Mamey package" or "I only have the antiSMASH ZIP" tells the chat which step to start from.
-
-**Say what you want to do with the output.** "Something I can share with my PI" → layperson guide. "Something I can bring to lab meeting" → same. "Something for the bench" → fermentation card + wet lab matrix.
-
-**You don't need to know the menu item number.** "Full plate," "everything," "complete analysis" all map to #7. The chat resolves the intent.
+The [tools reference](../docs/user_guides/tools_reference.md) and
+[command catalog](../docs/COMMAND_CATALOG.generated.md) cover cohort ledgers, comparator coverage,
+AF dossiers, Good Guesses, document export, locus maps and advisory helpers; check each one's
+dependency, output and sign-off requirements. For release work, use the
+[cut protocol](../CUT_PROTOCOL.md); historical notes in the [changelog](../CHANGELOG.md)
+do not replace current operating instructions.

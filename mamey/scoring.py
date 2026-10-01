@@ -242,13 +242,13 @@ def standing_rule_for(own_products_text: str, full_text: str) -> str:
     clusters because they are annotation-domain flags — a PKS cluster that also carries the hglE-KS domain
     or NAPAA annotation is still subject to those standing rules regardless of backbone class.
     """
-    own_classes = {t.strip() for t in re.split(r"[;,/|]+|\s+", own_products_text) if t.strip()}
-    committed = own_classes and not (own_classes <= WEAK_OVERCALL_CLASSES)
+    own_classes = {t.strip().replace("_", "-") for t in re.split(r"[;,/|]+|\s+", own_products_text) if t.strip()}
+    committed = own_classes and not (own_classes <= {p.replace("_", "-") for p in WEAK_OVERCALL_CLASSES})
     hits = []
     for rule in _downgrade_rules():
         if committed and rule.id.upper() not in _BYPASS_COMMITTED_CLASS_GUARD:
             continue   # committed biosynthetic lead — standing rules do not apply (except bypass set)
-        text = own_products_text if rule.id.upper() in _OWN_PRODUCTS_ONLY else full_text
+        text = own_products_text.replace("_", "-") if rule.id.upper() in _OWN_PRODUCTS_ONLY else full_text
         for pat in rule.patterns:
             m = pat.search(text)
             if m and not (rule.false_positive_guard and _rule_guarded(m.group(0), text, m.start(), rule.false_positive_guard)):
@@ -577,8 +577,8 @@ def triage_bgcs(bgcs: list[BGCRecord], rggmci: dict | None = None, scans=None) -
         # clusters (a committed class label or a CCTT diagnostic exempts the region).
         pm = pm_per_bgc.get(bgc.bgc_id, {})
         pm_families = set(pm.get("families", [])) if isinstance(pm, dict) else set()
-        own_classes = {t.strip() for t in re.split(r"[;,/|]+|\s+", " ".join(bgc.products).lower()) if t.strip()}
-        primary_flag = bool(pm_families) and bool(own_classes) and own_classes <= WEAK_OVERCALL_CLASSES and not tier1_diag
+        own_classes = {t.strip().replace("_", "-") for t in re.split(r"[;,/|]+|\s+", " ".join(bgc.products).lower()) if t.strip()}
+        primary_flag = bool(pm_families) and bool(own_classes) and own_classes <= {p.replace("_", "-") for p in WEAK_OVERCALL_CLASSES} and not tier1_diag
         if primary_flag:
             base_ab = min(base_ab, 25.0)   # strip keyword credit to the floor on both bioactivity axes
             base_af = min(base_af, 20.0)

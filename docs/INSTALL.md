@@ -101,3 +101,20 @@ not a passed check, and an interrupted suite is incomplete. Release validation f
 then the current working directory. There is no required personal workspace path. Set a root
 only when a workflow needs it, and use each command's explicit input and output options. This
 helper does not change every command's output directory.
+
+## Reader package homes and assembly authority
+
+Built-in package homes match case-insensitively. Archive and excluded home names and nested directories do not compete with active built-in homes.
+Set `MAMEY_PACKAGE_HOMES` to additional root-relative or absolute glob patterns, separated by the platform path separator.
+For example, `MAMEY_PACKAGE_HOMES="results/packages"` adds a local results home. Clear the resolver cache after new packages arrive.
+
+An optional owner table at `OFFICIAL_DATA/ASSEMBLY_AUTHORITY.tsv`, or `SAPOTE_ASSEMBLY_AUTHORITY`, admits current packages.
+Required columns are `strain`, `authoritative_contigs`, `authoritative_genome_bp`, `clean_package`, and `clean_antismash_zip`.
+Paths may be root-relative or absolute; a nominated package must match the strain and both assembly metrics.
+Optional `antismash_flavor` binds the clean antiSMASH ZIP for a flavor-specific request.
+An invalid configured table fails closed. A nominated package that is missing or mismatched is not replaced by an older raw package.
+Without a nominated package, owner-matched candidates prefer parsed engine version, then bundle version and path.
+Without an owner row, the legacy highest-bundle-version order remains. This orders only discovered ZIPs;
+use a nominated package or configured home for results outside built-in homes.
+Metrics are not sequence-hash proof. Populate and review the table before relying on it for assembly custody.
+The resolver never creates or changes the table, and reports authority status and searched homes in its descriptor.

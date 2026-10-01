@@ -34,6 +34,8 @@ contains (class capacity, KCB similarity, contig/node citations); no phenotype o
 language is synthesised here.
 """
 from __future__ import annotations
+import logging
+_LOG = logging.getLogger(__name__)
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -954,9 +956,9 @@ def _svg_to_pdf(src: "Path", dst: "Path") -> bool:
         import cairosvg
         cairosvg.svg2pdf(url=str(src), write_to=str(dst))
         return dst.exists() and dst.stat().st_size > 0
-    except Exception:
+    except Exception as _swallowed:
         # CairoSVG is optional; the converter chain below preserves vector-PDF fallback behavior.
-        pass
+        _LOG.debug("CairoSVG conversion unavailable or failed; trying the next converter: %r", _swallowed)
     for conv in (["rsvg-convert", "-f", "pdf", "-o", str(dst), str(src)],
                  ["inkscape", str(src), "--export-type=pdf", f"--export-filename={dst}"]):
         if shutil.which(conv[0]):

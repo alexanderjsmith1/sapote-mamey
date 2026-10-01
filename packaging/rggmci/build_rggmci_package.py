@@ -2,7 +2,7 @@
 """Build a standalone `rggmci` package from a Sapote-Mamey bundle's own source.
 
 One source, two distributions. Nothing here re-implements the scorer: `mamey/rggmci.py`,
-`ziputil.py`, `pair_scan_caps.py` and `_gbk_shim.py` are copied byte-for-byte except three import
+`ziputil.py`, `pair_scan_caps.py`, `_gbk_shim.py`, `residue_tiling.py` and `ref_completion.py` are copied byte-for-byte except three import
 lines, `rescue_groups.py` is copied unchanged as `groups.py`, and the region-parsing and naming
 helpers are lifted out of `parsers.py`, `crosswalk.py` and `antismash_evidence.py` by AST, with the
 module-level helpers they need. Only the record type, the zip reader and the CLI are new.
@@ -19,7 +19,8 @@ import argparse, ast, hashlib, json, pathlib, shutil, sys
 HERE = pathlib.Path(__file__).resolve().parent
 TEMPLATES = HERE / "templates"
 
-VERBATIM = ["rggmci.py", "ziputil.py", "pair_scan_caps.py", "_gbk_shim.py", "csv_safety.py"]
+VERBATIM = ["rggmci.py", "ziputil.py", "pair_scan_caps.py", "_gbk_shim.py", "csv_safety.py", "residue_tiling.py",
+            "ref_completion.py"]
 # Copied unchanged under another name. The engine and the package share one implementation of candidate groups.
 RENAMED = {"rescue_groups.py": "groups.py"}
 IMPORT_REWRITES = {

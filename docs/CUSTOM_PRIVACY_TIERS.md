@@ -19,6 +19,10 @@ Everything is driven by [`tools/make_public_tier.sh`](../tools/make_public_tier.
 tools/make_public_tier.sh <tier> <src_dir> <out_dir>
 ```
 
+**Only the CODE tier runs by default.** Releases cut the CODE tier only, so every tier other than
+`code` refuses to run (exit 2) unless you set `SAPOTE_ENABLE_DISABLED_TIERS=1`. See
+[CUT_PROTOCOL.md](../CUT_PROTOCOL.md).
+
 `<tier>` is one of `code`, `clean`, `sid`, `merged` (and `public`, a labelled
 alias of `code`). The cut runs a version-sync gate, strips per-tier content,
 scrubs your denylist, runs a fail-closed leak audit, runs the in-tier test

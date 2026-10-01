@@ -1,5 +1,5 @@
 #!/bin/bash
-# Start one ClusteredNR gap lane with the crawl's house settings. Usage: run_lane.sh AS-<n>
+# Start one ClusteredNR gap lane with the crawl's house settings. Usage: bash run_lane.sh AS-<n>
 # Needs SAPOTE_WORKSPACE_ROOT: the folder that holds `Blastp RESULTS/`.
 # Runs in the foreground; start it as a background task, one lane at a time, a minute apart.
 set -euo pipefail

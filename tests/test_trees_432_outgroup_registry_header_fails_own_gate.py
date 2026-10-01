@@ -17,7 +17,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from tools.phylo_place import screen_reference_definitions  # noqa: E402
 
-OFFICIAL = ROOT.parents[2] / "OFFICIAL_DATA" / "OUTGROUP_REGISTRY.tsv"
+# The owner's ruled table, found by walking up from the bundle, so the result does not depend on how deep the
+# bundle sits under the workspace. (Not mamey.exclusions: conftest binds MAMEY_OFFICIAL_DATA to a test fixture.)
+OFFICIAL = next((p / "OFFICIAL_DATA" / "OUTGROUP_REGISTRY.tsv" for p in ROOT.parents
+                 if (p / "OFFICIAL_DATA" / "OUTGROUP_REGISTRY.tsv").is_file()),
+                ROOT / "OFFICIAL_DATA" / "OUTGROUP_REGISTRY.tsv")
 HEADER = "tree_scope\tingroup_taxon\tfamily\toutgroup_genus\toutgroup_species_strain\tassembly_accession\tstatus\trationale\n"
 ROWS = [
     "genus\tSaccharopolyspora\tPseudonocardiaceae\tPseudonocardia\tPseudonocardia thermophila ATCC 19285 (NR_118886.1)\t16S_local_RefSeq\tLOCKED\truled",

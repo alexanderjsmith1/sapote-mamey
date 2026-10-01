@@ -30,6 +30,8 @@ This file is intentionally standalone: it only reads emitted package CSVs, so it
 does not import or perturb ``mibig_per_gene.py`` (owned by another change).
 """
 from __future__ import annotations
+import logging
+_LOG = logging.getLogger(__name__)
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -701,9 +703,9 @@ def _atomic_open(path: Path, *, newline: str | None = None):
             fh.close()
             try:
                 tmp.unlink()
-            except OSError:
+            except OSError as _swallowed:
                 # Best-effort cleanup must not mask the original write failure being re-raised.
-                pass
+                _LOG.debug("temp file not removed after a failed write: %r", _swallowed)
             raise
         else:
             fh.close()

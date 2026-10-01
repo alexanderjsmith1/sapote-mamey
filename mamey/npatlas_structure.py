@@ -21,6 +21,8 @@ CLAIM SAFETY (mandatory, and deliberately tighter than the cohort reference-impl
 Degrades to empty (match_type="unavailable") if the NP Atlas add-on is not installed.
 """
 from __future__ import annotations
+import logging
+_LOG = logging.getLogger(__name__)
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -108,11 +110,11 @@ def _index() -> dict[str, dict[str, Any]]:
             idx = _NR._load_index()  # type: ignore[attr-defined]
             if idx:
                 return idx
-        except Exception:
+        except Exception as _swallowed:
             # Optional engine resolver first, local index second: this is a fallback chain, not a
             # dropped error. If the resolver is absent or its private loader changed, fall through
             # to the local load below, which is the documented behaviour.
-            pass
+            _LOG.debug("engine resolver index unavailable; using the local index: %r", _swallowed)
     idx: dict[str, dict[str, Any]] = {}
     for d in _local_npatlas_dirs():
         for fn in _REF_FILES:
@@ -156,10 +158,10 @@ def _conservative_lookup(name: str) -> dict[str, Any] | None:
             rec = _NR.resolve_compound(name)  # type: ignore[attr-defined]
             if rec:
                 return rec
-        except Exception:
+        except Exception as _swallowed:
             # Fallback chain (vetted engine matcher first, local exact lookup second): a resolver
             # that is absent or raises falls through to the local lookup below, by design.
-            pass
+            _LOG.debug("engine compound resolver failed; using the local exact lookup: %r", _swallowed)
     return _index().get(name.strip().lower())
 
 

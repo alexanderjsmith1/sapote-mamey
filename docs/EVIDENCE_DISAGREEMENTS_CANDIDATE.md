@@ -1,7 +1,7 @@
 # Gene evidence disagreement review candidate
 
 Run `python tools/evidence_disagreements.py --selection selection.json` from a
-patched extracted bundle, using Python 3.11 or newer. The private server binds
+patched extracted bundle, using Python 3.12 or newer. The private server binds
 only loopback, default port 8767. Use `--port` to change it. `--audit new.json`
 writes a deterministic bounded source-review receipt; existing outputs are refused.
 

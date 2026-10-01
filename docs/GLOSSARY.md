@@ -824,6 +824,16 @@ text. This note explains old output and is not a current-version label.*
 | subject-tiling verdict | Disjoint-vs-shared reference subject genes | Reads which genes of a shared reference cluster each fragment hits: **COMPLEMENTARY_SPLIT** (disjoint subject genes = two halves of one cluster), **OVERLAPPING_PARALOG** (shared subject genes = independent paralogous clusters), or MIXED/INSUFFICIENT. Gated to avoid calling every low-signal pair a split. |
 | Terminus-truncation rescue / TERMINUS_TRUNCATION_SPLIT | Coordinate-confirmed split at a contig break | The simplest, most certain rescue: an **Edge** region whose boundary sits *at* the contig terminus is a cluster sliced by the assembly break. When paired with a small (≤25 kb) complete-contig "severed arm" or a shared *specific* biosynthetic class, it is flagged TERMINUS_TRUNCATION_SPLIT and **overrides** an OVERLAPPING_PARALOG verdict that rests on a gene class which is legitimately multi-copy *within one* cluster (e.g. the bottromycin RRE/methyltransferase). The paralog call is preserved for genuine paralogs. Produces candidates, not confirmed joins — a small contig can be the severed arm of only one cluster, so where it pairs with several Edge regions the evidence base + functional class disambiguate; physical confirmation still needs long-read / gap-PCR. |
 
+
+### RG-GMCI read depth and residue tiling (added v9.7.445)
+
+*Both are report-only: they add fields to the ranked pairs and change no score or confidence.*
+
+| Term | Full name | What it means in plain English |
+|---|---|---|
+| depth_flag | Read-depth agreement of a pair's two contigs | Each ranked pair carries `depth_a`, `depth_b` and `depth_ratio` (the lower read depth over the higher), read from SPAdes contig names (`_cov_<x>`). **DEPTH_CONSISTENT**: the ratio is 0.67 or more. **DEPTH_MISMATCH**: the ratio is below 0.67, so the two contigs may come from different replicons or copies; plasmids and repeats can differ for good reasons. **DEPTH_UNAVAILABLE**: a contig name has no `_cov_` value, as with other assemblers. |
+| residue tiling verdict | Which stretch of each shared MIBiG protein each fragment covers | An optional DIAMOND check, run with the standalone `rggmci --diamond-db` or `run_rggmci(..., diamond_db=...)`. It places each fragment's proteins on the reference proteins the two fragments share, using each residue once. **COMPLEMENTARY_RESIDUES**: the two sides cover different parts, as a gene broken across contigs would. **OVERLAPPING_RESIDUES**: they cover the same parts, as paralogs or copies would. **MIXED_RESIDUES**, **THIN_RESIDUES** and **NO_SHARED_MIBIG_REFERENCE** say what their names say; **NOT_TESTED** means DIAMOND or the database was missing. By default only the pairs the paralog gate demoted are tested. |
+
 ---
 
 *Maintenance note: this glossary is the reader-facing canonical source for term
@@ -832,7 +842,7 @@ or revise the definition here and point other documents here. Keep counts,
 formulas, and status enumerations tied to their code/schema source and keep
 claim-safe framing in every definition.*
 
-*Maintenance note: version-sync marker for the installed engine 1.9.171.*
+*Maintenance note: version-sync marker for the installed engine 1.9.172.*
 
 ---
 

@@ -12,6 +12,8 @@ import math
 import re
 import textwrap
 from typing import Any, Iterable
+import logging
+_LOG = logging.getLogger(__name__)
 
 _FORBIDDEN_VALUE_RE = re.compile(r"\bnp\.(?:int|float|bool|str|array|generic)|numpy\.")
 
@@ -30,8 +32,8 @@ def clean_scalar(value: Any) -> Any:
     if callable(item):
         try:
             value = item()
-        except Exception:
-            pass  # exotic numpy/pandas scalar — keep original value
+        except Exception as _swallowed:
+            _LOG.debug("scalar .item() failed; keeping the original value: %r", _swallowed)
     if isinstance(value, float):
         if math.isnan(value) or math.isinf(value):
             return ""

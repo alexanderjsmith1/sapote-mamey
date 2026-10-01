@@ -30,6 +30,8 @@ Standalone:  python -m mamey.modeb_export CARD.md [--outdir DIR] [--format both|
 The `modeb-export` subcommand is wired in `mamey.cli`.
 """
 from __future__ import annotations
+import logging
+_LOG = logging.getLogger(__name__)
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -316,8 +318,8 @@ def export_card_docx(md_path: Path, out_docx: Path, theme: str = "evidence_dossi
             table = doc.add_table(rows=0, cols=ncol)
             try:
                 table.style = "Light Grid Accent 1"
-            except KeyError:
-                pass  # docx template may lack the style; table renders without it
+            except KeyError as _swallowed:
+                _LOG.debug("docx template lacks the table style; table rendered unstyled: %r", _swallowed)
             for ridx, row in enumerate(rows):
                 cells = table.add_row().cells
                 padded = (row + [""] * ncol)[:ncol]

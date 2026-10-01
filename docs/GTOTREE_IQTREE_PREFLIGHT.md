@@ -8,8 +8,10 @@ bounded, checksum-backed plan before approving resource use.
 
 The integration was verified on 2026-08-02 against:
 
-- GToTree 1.8.16 (`GToTree -v`, `GToTree -h`), where `-n` defaults to 2 HMM-search CPUs, `-M`
-  defaults to 5 MUSCLE threads, and `-j` defaults to one concurrent job;
+- GToTree 1.8.16 (`GToTree -v`, `GToTree -h`), where `-n` defaulted to 2 HMM-search CPUs, `-M`
+  to 5 MUSCLE threads, and `-j` to one concurrent job. 1.8.16 is now refused: 1.8.19 is the production
+  version and 2.0.x is admitted ([GTOTREE_WORKFLOW.md](GTOTREE_WORKFLOW.md)). Check `GToTree -h` for the
+  installed version's defaults;
 - IQ-TREE 3.1.2 for macOS ARM64, where `-T` controls cores/threads and defaults to one.
 
 The planner checks the installed help for the exact options it will use. A different GToTree version

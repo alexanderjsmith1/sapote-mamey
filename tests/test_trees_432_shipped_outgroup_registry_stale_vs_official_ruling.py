@@ -12,7 +12,11 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SHIPPED = ROOT / "mamey" / "data" / "outgroup_registry.tsv"
-OFFICIAL = ROOT.parents[2] / "OFFICIAL_DATA" / "OUTGROUP_REGISTRY.tsv"
+# The owner's ruled table, found by walking up from the bundle, so the result does not depend on how deep the
+# bundle sits under the workspace. (Not mamey.exclusions: conftest binds MAMEY_OFFICIAL_DATA to a test fixture.)
+OFFICIAL = next((p / "OFFICIAL_DATA" / "OUTGROUP_REGISTRY.tsv" for p in ROOT.parents
+                 if (p / "OFFICIAL_DATA" / "OUTGROUP_REGISTRY.tsv").is_file()),
+                ROOT / "OFFICIAL_DATA" / "OUTGROUP_REGISTRY.tsv")
 COLS = ["tree_scope", "ingroup_taxon", "family", "outgroup_genus",
         "outgroup_species_strain", "assembly_accession", "status", "rationale"]
 

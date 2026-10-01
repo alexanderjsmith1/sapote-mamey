@@ -154,3 +154,21 @@ def test_split_multi_panels_skips_genes_already_single(tmp_path):
     singles = sorted(p.name for p in strain.rglob("*.faa"))
     assert singles == ["AS-1__gapK__a.faa", "AS-1__gapK__b.faa", "AS-1__gapK__c.faa"]
     assert (br / "_SUPERSEDED_MULTI_PANELS" / "AS-1" / "AS-1_gapK_p010.faa").exists()
+
+
+def test_packed_run_lane_works_without_an_execute_bit(tmp_path, monkeypatch):
+    """The bundle ships every .sh without an execute bit and runs them with bash; the packed
+    wrapper must do the same, or a handoff lane dies with exit 126 before the runner starts."""
+    ws = workspace(tmp_path)
+    mod = load()
+    monkeypatch.setattr(mod, "runners_live", lambda: False)
+    monkeypatch.setenv("SAPOTE_WORKSPACE_ROOT", str(ws))
+    out = tmp_path / "out"
+    out.mkdir()
+    run(mod, monkeypatch, "pack", "--out", str(out), "--name", "H")
+    inner = out / "H" / "tools/blastp_crawl/run_lane.sh"
+    inner.chmod(0o644)
+    # No strain given: run_lane.sh itself must run and refuse with its own usage error (exit 1).
+    p = subprocess.run([str(out / "H" / "run_lane.sh")], capture_output=True, text=True)
+    assert p.returncode == 1, (p.returncode, p.stderr)
+    assert "give a strain" in p.stderr

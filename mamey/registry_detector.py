@@ -45,6 +45,8 @@ import zipfile
 from typing import Any
 
 from .ziputil import regular_file_names
+import logging
+_LOG = logging.getLogger(__name__)
 
 # --- Phase 1 frozen detector set. Widen ONLY after Phase-2 parity work. ------
 ACTIVE_DETECTORS: frozenset[str] = frozenset({"regex", "motif"})
@@ -281,9 +283,9 @@ def run_hmm_scan(zip_path: str, bgcs: list, strain_id: str) -> dict[str, Any]:
                 if tmp_name:
                     try:
                         os.unlink(tmp_name)
-                    except OSError:
+                    except OSError as _swallowed:
                         # The OS can reclaim this temporary GBK; cleanup failure does not alter scan evidence.
-                        pass
+                        _LOG.debug("temporary GBK not removed: %r", _swallowed)
     status = "PASS" if rows and all(row["status"] == "PASS" for row in rows) else "PASS_WITH_DEGRADATION"
     return {"schema_version": "mamey_hmm_scan_v1", "status": status,
             "hmm_database": os.path.basename(str(hmm_path)), "rows": rows}

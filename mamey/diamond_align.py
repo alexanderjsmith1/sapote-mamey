@@ -79,7 +79,21 @@ def diamond_available() -> tuple[bool, str]:
         return False, f"diamond4py present but failed to load: {type(exc).__name__}: {exc}"
 
 
-def _run_diamond_blastp_raw(db_path: str, query_fasta: str, out_path: str, threads: int) -> None:
+SENSITIVITIES = ("fast", "mid-sensitive", "sensitive", "more-sensitive", "very-sensitive", "ultra-sensitive")
+
+
+def _sensitivity_args(sensitivity: str | None) -> list[str]:
+    """DIAMOND's search mode flag. None keeps DIAMOND's default (fast), which misses many homologues under ~40%
+    identity; searches for distant pathway genes should ask for more-sensitive or ultra-sensitive."""
+    if sensitivity is None:
+        return []
+    if sensitivity not in SENSITIVITIES:
+        raise ValueError(f"unknown DIAMOND sensitivity {sensitivity!r}; use one of {', '.join(SENSITIVITIES)}")
+    return [f"--{sensitivity}"]
+
+
+def _run_diamond_blastp_raw(db_path: str, query_fasta: str, out_path: str, threads: int,
+                            sensitivity: str | None = None) -> None:
     """Call DIAMOND blastp with an explicit -outfmt 6 column spec via the raw argv entry
     point. The high-level diamond4py .blastp() does not forward --outfmt, so we drive
     libdiamond.main() directly to get the identity/coverage columns."""
@@ -92,6 +106,7 @@ def _run_diamond_blastp_raw(db_path: str, query_fasta: str, out_path: str, threa
         "--outfmt", "6", *_OUTFMT6_COLS,
         "--threads", str(threads),
         "--quiet",
+        *_sensitivity_args(sensitivity),
     ]
     main(*args)
 
@@ -118,7 +133,7 @@ def build_db(reference_fasta: str, db_path: str, threads: int = 1) -> dict[str, 
 
 
 def align_fasta(query_fasta: str, reference_fasta: str, threads: int = 1,
-                min_pident: float = 0.0, min_qcov: float = 0.0) -> dict[str, Any]:
+                min_pident: float = 0.0, min_qcov: float = 0.0, sensitivity: str | None = None) -> dict[str, Any]:
     """Align query proteins against a reference protein FASTA and return parsed hits.
 
     Builds a temporary DIAMOND db from reference_fasta, runs blastp, parses -outfmt 6.
@@ -126,9 +141,12 @@ def align_fasta(query_fasta: str, reference_fasta: str, threads: int = 1,
     full-length-ortholog gate (e.g. min_qcov=50) that distinguishes real orthologs from
     short motif hits.
 
+    sensitivity: DIAMOND search mode (see SENSITIVITIES); None keeps DIAMOND's default.
+
     Returns {ok, hits: [ {col: val, ...} ], n_hits, reason}. Degrades gracefully:
     ok=False with a reason when DIAMOND is unavailable or inputs are missing.
     """
+    _sensitivity_args(sensitivity)  # refuse an unknown mode before any work
     ok, reason = diamond_available()
     if not ok:
         return {"ok": False, "hits": [], "n_hits": 0, "reason": reason}
@@ -144,7 +162,7 @@ def align_fasta(query_fasta: str, reference_fasta: str, threads: int = 1,
     except Exception:
         _have_binding = False
     if not _have_binding:
-        return _align_fasta_cli(query_fasta, reference_fasta, threads, min_pident, min_qcov)
+        return _align_fasta_cli(query_fasta, reference_fasta, threads, min_pident, min_qcov, sensitivity)
 
     tmp = tempfile.mkdtemp(prefix="mamey_diamond_")
     try:
@@ -153,7 +171,7 @@ def align_fasta(query_fasta: str, reference_fasta: str, threads: int = 1,
         if not built["ok"]:
             return {"ok": False, "hits": [], "n_hits": 0, "reason": built["reason"]}
         out_path = os.path.join(tmp, "hits.tsv")
-        _run_diamond_blastp_raw(built["db_path"], query_fasta, out_path, threads)
+        _run_diamond_blastp_raw(built["db_path"], query_fasta, out_path, threads, sensitivity)
         hits = _parse_outfmt6(out_path, min_pident=min_pident, min_qcov=min_qcov)
         return {"ok": True, "hits": hits, "n_hits": len(hits), "reason": "ok"}
     except Exception as exc:
@@ -163,7 +181,7 @@ def align_fasta(query_fasta: str, reference_fasta: str, threads: int = 1,
 
 
 def _align_fasta_cli(query_fasta: str, reference_fasta: str, threads: int,
-                     min_pident: float, min_qcov: float) -> dict[str, Any]:
+                     min_pident: float, min_qcov: float, sensitivity: str | None = None) -> dict[str, Any]:
     """v9.7.409 (AUDIT_cli_code_bugs #1): align via the `diamond` CLI (makedb + blastp -outfmt 6)
     when the diamond4py binding is not compiled but a DIAMOND executable is on PATH. Reuses the
     same _OUTFMT6_COLS spec and _parse_outfmt6 parser as the binding path, so hit dicts are
@@ -179,13 +197,40 @@ def _align_fasta_cli(query_fasta: str, reference_fasta: str, threads: int,
                         "--threads", str(threads), "--quiet"],
                        check=True, capture_output=True)
         subprocess.run([exe, "blastp", "--db", db_path, "--query", query_fasta, "--out", out_path,
-                        "--outfmt", "6", *_OUTFMT6_COLS, "--threads", str(threads), "--quiet"],
+                        "--outfmt", "6", *_OUTFMT6_COLS, "--threads", str(threads), "--quiet",
+                        *_sensitivity_args(sensitivity)],
                        check=True, capture_output=True)
         hits = _parse_outfmt6(out_path, min_pident=min_pident, min_qcov=min_qcov)
         return {"ok": True, "hits": hits, "n_hits": len(hits), "reason": "ok (diamond CLI)"}
     except Exception as exc:
         return {"ok": False, "hits": [], "n_hits": 0,
                 "reason": f"diamond CLI failed: {type(exc).__name__}: {exc}"}
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def search_db(query_fasta: str, db_path: str, threads: int = 1, sensitivity: str | None = None,
+              evalue: str = "1e-5", max_target_seqs: int = 25) -> dict[str, Any]:
+    """Search query proteins against a prebuilt DIAMOND database (.dmnd), e.g. the local MIBiG protein database.
+
+    Same hit dicts as align_fasta. Uses the `diamond` CLI; returns ok=False with a reason when it is absent."""
+    _sensitivity_args(sensitivity)
+    exe = shutil.which("diamond")
+    if not exe:
+        return {"ok": False, "hits": [], "n_hits": 0, "reason": "no diamond CLI on PATH"}
+    if not os.path.exists(query_fasta) or not os.path.exists(db_path):
+        return {"ok": False, "hits": [], "n_hits": 0, "reason": f"missing query or database: {query_fasta}, {db_path}"}
+    tmp = tempfile.mkdtemp(prefix="mamey_diamonddb_")
+    try:
+        out_path = os.path.join(tmp, "hits.tsv")
+        subprocess.run([exe, "blastp", "--db", db_path, "--query", query_fasta, "--out", out_path, "--outfmt", "6",
+                        *_OUTFMT6_COLS, "--threads", str(threads), "--evalue", str(evalue),
+                        "--max-target-seqs", str(max_target_seqs), "--quiet", *_sensitivity_args(sensitivity)],
+                       check=True, capture_output=True)
+        hits = _parse_outfmt6(out_path)
+        return {"ok": True, "hits": hits, "n_hits": len(hits), "reason": "ok (diamond CLI, prebuilt db)"}
+    except Exception as exc:
+        return {"ok": False, "hits": [], "n_hits": 0, "reason": f"diamond search failed: {type(exc).__name__}: {exc}"}
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

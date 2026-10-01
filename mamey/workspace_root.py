@@ -33,3 +33,10 @@ def _walk_to_workspace_marker(start: Path) -> Path:
         if any((candidate / m).is_dir() for m in WORKSPACE_MARKERS):
             return candidate
     return start
+
+
+def tree_home(root: str | Path | None = None) -> Path:
+    """Configured tree outputs, defaulting to the generic trees directory."""
+    base = Path(root) if root is not None else workspace_root()
+    configured = Path(os.environ.get("SAPOTE_TREE_HOME") or "trees")
+    return configured if configured.is_absolute() else base / configured

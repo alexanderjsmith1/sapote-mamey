@@ -93,13 +93,20 @@ def test_sync_version_owns_both_stamps():
 # MID-SENTENCE) and had drifted to v9.7.401 / 1.9.143 while the bundle shipped 9.7.412 / 1.9.150,
 # eleven cuts apart. These are deliberately a separate registry: the two forms are different
 # strings with different owners, and folding them together would make HEADER's tests fail.
-CLAIM = re.compile(r"[Cc]urrent to bundle v(\d+(?:\.\d+)*[a-z]*) / engine Mamey (\d+(?:\.\d+)*[a-z]*)")
+# v9.7.445: the separator may be " / " or " \u00b7 ". Five wiki pages used the dot, so this pattern missed them and they
+# froze at v9.7.437 behind an unregistered claim.
+CLAIM = re.compile(r"[Cc]urrent to bundle v(\d+(?:\.\d+)*[a-z]*) (?:/|\u00b7) engine Mamey (\d+(?:\.\d+)*[a-z]*)")
 CLAIMED = [
     "wiki/User-Manual.md",
     "wiki/Concepts-Q-and-A.md",
     "wiki/Encyclopedia.md",
     "docs/GUIDE/01_User_Manual.md",
     "docs/GUIDE/06_Concepts_QandA.md",
+    "wiki/Home.md",
+    "wiki/Audience-Start-Paths.md",
+    "wiki/Researcher-Recipes.md",
+    "wiki/What-It-Does-and-Limitations.md",
+    "wiki/Mode-B-Gene-First-and-48-Section-Manual.md",
 ]
 
 

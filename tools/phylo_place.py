@@ -35,7 +35,7 @@ import argparse, csv, json, os, re, shutil, subprocess, sys, datetime
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # bundle root for `import mamey` (v9.7.367 A10)
 import sys
-from mamey.workspace_root import workspace_root
+from mamey.workspace_root import workspace_root, tree_home
 from mamey.csv_safety import SafeDictWriter
 from mamey.path_safety import safe_label  # v9.7.438: output-label containment
 try:
@@ -872,6 +872,20 @@ def screen_reference_definitions(ref_fasta):
     return rejected
 
 
+def _default_refpkg(a):
+    """Where build-ref writes the reference package when --refpkg is not given.
+
+    v9.7.445: with --outdir (the `all` command) it goes to <outdir>/refpkg, beside its placements;
+    without one, to the tree home <tree_home>/_PLACEMENT/<group>/refpkg. It used to be
+    <workspace>/strain_data/_PLACEMENT/<group>/refpkg, which made a stray top-level strain_data/ folder
+    in the workspace even when --outdir named a different home."""
+    if a.refpkg:
+        return a.refpkg
+    if getattr(a, "outdir", None):
+        return os.path.join(os.path.abspath(a.outdir), "refpkg")
+    return str(tree_home(ROOT) / "_PLACEMENT" / a.group / "refpkg")
+
+
 def cmd_build_ref(a):
     if a.group not in GROUPS:
         if _is_per_genus_group(a.group):
@@ -890,7 +904,7 @@ def cmd_build_ref(a):
         sys.exit("TREE-APPROVAL GATE: build-ref does CPU-heavy ML inference. Re-run with "
                  "--approved-by <name> to record who authorized this tree (standing tree-approval rule).")
     prot = _is_protein(a.ref_fasta)
-    outdir = a.refpkg or f"{ROOT}/strain_data/_PLACEMENT/{a.group}/refpkg"
+    outdir = _default_refpkg(a)
     # OUTPUT-CONTAINMENT (v9.7.441): never stamp a refpkg inside the code bundle this tool runs
     # from. Under the standing "run from the bundle root" rule cwd is the bundle; with no
     # SAPOTE_WORKSPACE_ROOT set, workspace_root() falls back to cwd, so the default outdir above
@@ -1768,7 +1782,7 @@ def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
 def cmd_all(a):
     if not (a.refpkg and os.path.exists(os.path.join(a.refpkg, "ref.tree"))):
         cmd_build_ref(a)
-        a.refpkg = a.refpkg or f"{ROOT}/strain_data/_PLACEMENT/{a.group}/refpkg"
+        a.refpkg = _default_refpkg(a)
     cmd_place(a)
     a.jplace = os.path.join(os.path.abspath(a.outdir or os.path.join(a.refpkg, "..", "placements")),
                             "epa_result.jplace")

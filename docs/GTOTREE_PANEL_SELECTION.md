@@ -80,7 +80,7 @@ The new output directory contains:
 | `panel_candidates.tsv` | Every candidate, selection/exclusion reason, source/member and hashes |
 | `panel_selected.tsv` | Exact staged panel and all explicit comparator bases |
 | `label_crosswalk.tsv` | Five-column, headered human receipt: ID, tree-safe label, display label, role, taxonomy |
-| `labels.tsv` | GToTree 1.8.16 `-m` map: exactly two columns, no header |
+| `labels.tsv` | GToTree `-m` map: exactly two columns, no header |
 | `panel_receipt.json` | Size option/default/max, counts, duplicates, claim ceiling, input hash |
 | `genomes/*.fna` | Normalized staged assemblies |
 | `genomes.txt` | Absolute paths for a later GToTree command |

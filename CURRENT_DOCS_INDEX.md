@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.444 · engine 1.9.171 · build 20260929v97444a
+# Current Docs Index — v9.7.445 · engine 1.9.172 · build 20260930v97445a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -142,3 +142,7 @@ do not turn a version-stamp update into a claim of a full content review.
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 - [Mode B user walkthrough](docs/MODE_B_USER_WALKTHROUGH.md): actual profile boundaries, commands and all 50 requirements.
+
+## Diagnostic screening
+
+- [Experimental dominated diagnostic report](docs/DOMINATED_DIAGNOSTIC.md) — report-only thresholds and calibration hold.

@@ -40,13 +40,21 @@ def package(tmp_path_factory):
     return out
 
 
+# Pinned to the run without a MIBiG protein database (v9.7.445): reference-guided completion then records tier
+# NO_MIBIG_PROTEINS on both sides whatever aligner is installed, so the test runner's environment cannot change what is
+# compared. The completion code itself is compared byte for byte by the package build (VERBATIM).
+_PINNED_OFF = ("RGGMCI_MIBIG_DB", "RGGMCI_DIAMOND", "RGGMCI_PFAM_HMM")
+
+
 def _clean_env(src: Path) -> dict:
-    env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPATH", "PYTHONSTARTUP")}
+    env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPATH", "PYTHONSTARTUP", *_PINNED_OFF)}
     env["PYTHONPATH"] = str(src)          # the package only: the bundle root is not importable
     return env
 
 
-def test_package_matches_the_engine_on_a_public_fixture(package, tmp_path):
+def test_package_matches_the_engine_on_a_public_fixture(package, tmp_path, monkeypatch):
+    for k in _PINNED_OFF:
+        monkeypatch.delenv(k, raising=False)
     from mamey import parsers, rggmci
     bgcs = parsers.parse_bgcs_from_zip(str(FIXTURE), json_mode="off")
     engine = json.dumps({"records": [[getattr(x, f) for f in FIELDS] for x in bgcs],
@@ -56,6 +64,7 @@ def test_package_matches_the_engine_on_a_public_fixture(package, tmp_path):
     assert r.returncode == 0, r.stderr
     got = r.stdout.strip()
     assert json.loads(got)["result"]["ranked_pairs"], "the fixture must score pairs, or this compares nothing"
+    assert json.loads(got)["result"]["reference_completion"]["completion_tier"] == "NO_MIBIG_PROTEINS"
     if got != engine:   # name the first difference; pytest's own diff of two long JSON strings is slow and unreadable
         i = next(k for k, (x, y) in enumerate(zip(got, engine)) if x != y) if len(got) == len(engine) else \
             next((k for k, (x, y) in enumerate(zip(got, engine)) if x != y), min(len(got), len(engine)))

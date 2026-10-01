@@ -37,9 +37,17 @@ def _root() -> pathlib.Path:
         from mamey.workspace_root import workspace_root as _wr
         return pathlib.Path(_wr())
     except Exception:
+        # v9.7.445: a copy of this tool outside a bundle (e.g. <workspace>/Tools/find_asset.py) has no
+        # importable mamey. Fall back to the nearest folder that holds the registry this tool reads,
+        # searching up from the working directory and then from the tool's own folder.
+        for start in (pathlib.Path.cwd(), pathlib.Path(__file__).resolve().parent):
+            for cand in (start, *start.parents):
+                if (cand / "OFFICIAL_DATA" / "ASSET_REGISTRY.tsv").is_file():
+                    return cand
         raise SystemExit(
             "find_asset: no workspace root configured. Set SAPOTE_WORKSPACE_ROOT (or "
-            "SAPOTE_ROOT), or run from a bundle where the mamey package is importable.")
+            "SAPOTE_ROOT), run from a bundle where the mamey package is importable, or run from inside a "
+            "workspace that has OFFICIAL_DATA/ASSET_REGISTRY.tsv.")
 
 
 ROOT = _root()

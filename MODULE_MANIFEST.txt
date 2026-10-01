@@ -296,6 +296,7 @@ mamey/protein_signature.py	Content-addressed protein FASTA signatures for assemb
 mamey/rare_motif.py	Rare-motif BGC detection — cross-strain.
 mamey/raw_antismash_triage.py	raw_antismash_triage.py — guided pre-extraction genome triage (new, v9.7.233).
 mamey/recovery_status.py	Recovery/package status semantics.
+mamey/ref_completion.py	Reference-guided completion: each edge region's MIBiG reference, searched across the whole genome (report-only).
 mamey/reference_dark.py	reference_dark — package-native reference-dark novelty re-projection.
 mamey/reference_dark_prior.py	FA3 / ADD-03 — First-class Reference-Dark novelty prior (per-BGC, NON-RANKING).
 mamey/reference_strain_registry.py	Typed loader for an operator-provisioned reference-strain registry.
@@ -312,6 +313,7 @@ mamey/report_mode.py	mamey.report_mode — terse by default, legacy compact Mode
 mamey/report_theme.py	Portable Sapote-Mamey report theme tokens.
 mamey/rescue_groups.py	RG-GMCI candidate groups, and one GenBank file per group for the tools that read genes.
 mamey/rescue_two_proof.py	rescue_two_proof.py — the CORE join: RG-GMCI (_4A, reference-based) × KS-clade (_4B, reference-free)
+mamey/residue_tiling.py	Residue-level tiling for RG-GMCI pairs, from DIAMOND alignments against MIBiG proteins (optional, report-only).
 mamey/resistance_dossier.py	resistance_dossier — post-seal per-BGC resistance-focused gene-by-gene writeups.
 mamey/rggmci.py	Reference-Guided Genome Mining Candidate Inference (RG-GMCI).
 mamey/rggmci_rescue_atlas.py	Portable, claim-safe RG-GMCI complementary-rescue atlas.

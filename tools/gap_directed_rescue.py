@@ -7,7 +7,8 @@ the missing part of a pathway split by the assembly often sits on a short contig
 holds tailoring genes and no core gene.
 
 For each reference gene:
-- PRESENT_IN_CORE: its best match inside the core region reaches 30% identity over 50% of the reference protein.
+- PRESENT_IN_CORE: its best match inside the core region reaches 30% identity over 50% of the reference protein, or
+  25% identity with e <= 1e-10 over 50% (a weak match inside the cluster itself; not used outside the core).
 - MISSING_FOUND_CLEAR: missing from the core, and the genome's best match elsewhere beats the next candidate's
   bitscore by 20% or more (or has no rival) at >= 35% identity. Paralog families (halogenases, glycosyltransferases,
   methyltransferases) give several candidates; only a clear margin picks one.
@@ -20,9 +21,25 @@ contig end. Reference genes are split by the reference's own antiSMASH gene_kind
 biosynthetic-additional finds count toward "biosynthetic clear finds" (some MIBiG entries carry flanking housekeeping
 genes).
 
-Outputs: gap_rescue.tsv (one row per reference gene), gap_rescue_partners.tsv, gap_rescue_receipt.json and
-gap_rescue.png: the reference in the middle, each contig above or below it (the side where its ribbons cross no other
-contig), contig ends as heavy bars, matched genes numbered by reference gene, and the full gene table beneath.
+Split-gene check. The table above keeps one best genome protein per reference gene and needs 50% coverage, so a gene
+broken by the assembly shows only its larger piece; the other piece reads as "no match". The check reads every hit
+again, before those filters: a reference gene is SPLIT_ACROSS_CONTIG_ENDS when two proteins on different contigs each
+cover >= 40 residues of it, neither covers 80% or more, their reference stretches overlap by <= 20 residues and
+together cover >= 50% of it, and each piece's open end faces a contig end within 300 bp (the piece covering the
+reference's start ends at a contig end; the piece covering its end starts at one). Each split gets a call:
+MODULAR_UNRESOLVED when the reference gene or either piece is an assembly-line protein (a KS or condensation domain,
+or two or more adenylation domains, read from the reference's aSDomain features and the genome's sec_met_domain
+qualifiers), where module paralogy can fake complementary pieces; RIVAL_STRONGER when a whole-gene match
+elsewhere is at least as identical as the weaker piece (likely paralog fragments); WEAK when the pieces beat it by
+under 10 identity points; CLEAR otherwise. Only CLEAR splits are drawn. The check changes no status or partner; it
+needs the reference coordinates (qstart, qend) of each hit and says it was not run when they are missing.
+
+Outputs: gap_rescue.tsv (one row per reference gene), gap_rescue_partners.tsv, gap_rescue_split_genes.tsv,
+gap_rescue_receipt.json, and gap_rescue.png / gap_rescue.pdf: a clinker-style locus map drawn by
+tools/gap_rescue_locus_map.py. The reference sits above; the genome below starts with the core contig, then the contig
+holding the other piece of a CLEAR split gene (red gap marker), then contigs with a clear match of >= 50% identity to a
+named cluster gene. Ribbons are shaded by protein identity, and each matched gene is labelled with its match. The full
+gene table stays in gap_rescue.tsv.
 
 Claim-safety: homology is similarity, not product identity; a rescue candidate joins no contigs. A fragmented assembly
 is never joined with full confidence.
@@ -31,19 +48,22 @@ CLI:
   python tools/gap_directed_rescue.py --zip <antiSMASH.zip> --label <strain> --core <contig>.regionNNN \
          --reference <MIBiG.gbk> [--reference-name "AT2433-A1"] --out <dir> [--hits hits.tsv] [--threads 4]
 --hits: precomputed DIAMOND/BLAST tabular (qseqid = reference gene id g001..., sseqid = genome protein id from
-gap_rescue_proteins.faa, pident, qcovhsp, bitscore), for runs without DIAMOND.
+gap_rescue_proteins.faa, pident, qcovhsp, bitscore, and optionally qstart, qend for the split-gene check and evalue
+for the core-only 25% floor), for runs without DIAMOND.
+--sensitivity: DIAMOND search mode, default ultra-sensitive; DIAMOND's own default (fast) misses pathway genes at
+25-40% identity. 'default' restores it.
 """
 from __future__ import annotations
 
 import os as _os, sys as _sys  # resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
+from gap_rescue_locus_map import draw_locus_map  # noqa: E402
 
 import argparse
 import io
 import json
 import re
-import statistics
 import tempfile
 import zipfile
 from collections import Counter
@@ -59,17 +79,18 @@ except ImportError:  # bare-script run: bundle root is one level up
     from mamey.csv_safety import SafeWriter
     from mamey.path_safety import assert_output_outside_bundle
 
-MIN_ID, MIN_COV, CLEAR_ID, CLEAR_RATIO = 30.0, 50.0, 35.0, 1.2
-PARTNER_MIN, CONCENTRATION, SHORT_CONTIG = 2, 0.6, 30000
-BIOSYNTHETIC_KINDS = {"biosynthetic", "biosynthetic-additional"}
-COLS = ["#2f6db3", "#e07b28", "#3a9e5a"]
-TABLE_COLS = ["reference_gene", "name", "reference_product", "reference_len_aa", "reference_gene_kind", "modular_pks", "status",
-              "best_identity_pct", "best_coverage_pct", "reciprocal_best", "best_protein", "best_locus", "best_len_aa",
-              "best_contig",
-              "best_region_identity", "rivals", "bitscore_ratio_to_second"]
-PARTNER_COLS = ["partner_contig", "partner_identity", "contig_length", "clear_finds", "biosynthetic_clear_finds",
-                "genes", "concentrated", "split_plausible"]
-
+# The gene table, the split-gene check, the partner checks, reference discovery and their thresholds live in
+# mamey/ref_completion.py, shared with RG-GMCI's reference-guided completion and the standalone rggmci package, so the
+# tool and the engine run one implementation. This tool keeps its loaders, its DIAMOND calls and its figure.
+from mamey import ref_completion as _rc  # noqa: E402
+from mamey.ref_completion import (BIOSYNTHETIC_KINDS, CLEAR_ID, CLEAR_RATIO, CONCENTRATION,  # noqa: E402,F401
+                                  DISCOVERY_MAX_KB, DISCOVERY_MIN_COV, DISCOVERY_MIN_ID, DISCOVERY_MIN_PROTEINS,
+                                  HOUSEKEEPING_MIN, HOUSEKEEPING_PFAM, MAX_EVALUE_CORE, MIN_COV, MIN_ID, MIN_ID_CORE,
+                                  NEIGHBOUR_GENES, PARALOG_LIMIT, PARTNER_CHECK_COLS, PARTNER_COLS, PARTNER_MIN,
+                                  PARTNER_WINDOW_BP, RECIPROCAL_MARGIN, RECIPROCAL_MIN, SHORT_CONTIG, SPLIT_COLS,
+                                  SPLIT_END_BP, SPLIT_MAX_OVERLAP, SPLIT_MAX_PIECE_COV, SPLIT_MIN_AA, SPLIT_MIN_UNION,
+                                  SPLIT_RIVAL_MARGIN, TABLE_COLS, _locus_kb, _open_end_distance, _pfam_names,
+                                  region_of, search, split_genes)
 
 def _say(*lines: str) -> None:
     emit(*lines, sep="\n")
@@ -84,11 +105,16 @@ def load_reference(gbk: Path) -> tuple[list[dict], str]:
     cds = sorted([c for c in rec.features if c.type == "CDS" and "translation" in c.qualifiers],
                  key=lambda c: int(c.location.start))
     ks = [int(f.location.start) for f in rec.features if f.type == "aSDomain" and f.qualifiers.get("aSDomain") == ["PKS_KS"]]
+    doms = [(int(f.location.start), f.qualifiers.get("aSDomain", [""])[0]) for f in rec.features if f.type == "aSDomain"]
     genes = []
     for i, c in enumerate(cds, 1):
         q = c.qualifiers
         n_ks = sum(1 for k in ks if int(c.location.start) <= k < int(c.location.end))
+        mine = [d for s, d in doms if int(c.location.start) <= s < int(c.location.end)]
+        # an assembly-line gene: module paralogy can fake two complementary pieces (split-gene check)
+        modular = n_ks > 0 or any(d.startswith("Condensation") for d in mine) or mine.count("AMP-binding") >= 2
         genes.append({"id": f"g{i:03d}", "i": i, "start": int(c.location.start), "end": int(c.location.end), "ks": n_ks,
+                      "modular": modular,
                       "strand": c.location.strand or 1,
                       "name": (q.get("gene") or q.get("locus_tag") or q.get("protein_id") or [f"g{i}"])[0],
                       "product": q.get("product", [""])[0], "kind": q.get("gene_kind", ["other"])[0],
@@ -127,25 +153,26 @@ def load_genome(zip_path: Path, label: str) -> tuple[dict, list]:
                                 "identity": f"{label} / {name} / region{n:03d} / {b.bgc_id if b else 'IDENTITY_HOLD'}"})
             elif f.type == "CDS" and "translation" in f.qualifiers:
                 pid = f"q{len(prots) + 1:06d}"
+                doms = [d.split(" (")[0] for d in f.qualifiers.get("sec_met_domain", [])]
                 prots[pid] = {"contig": rec.id, "shown": f"{label} / {shown}", "start": int(f.location.start),
                               "end": int(f.location.end), "strand": f.location.strand or 1,
                               "tag": f.qualifiers.get("locus_tag", [pid])[0], "aa": f.qualifiers["translation"][0],
-                              "contig_len": len(rec.seq)}
+                              "contig_len": len(rec.seq), "kind": f.qualifiers.get("gene_kind", [""])[0],
+                              "modular": any(d == "PKS_KS" or d.startswith("Condensation") for d in doms)
+                              or doms.count("AMP-binding") >= 2}
     return prots, regions
 
 
-def region_of(p: dict, regions: list) -> dict | None:
-    return next((r for r in regions if r["contig"] == p["contig"] and r["start"] < p["end"] and r["end"] > p["start"]),
-                None)
+SENSITIVITY_DEFAULT = "ultra-sensitive"  # DIAMOND's fast default misses pathway genes at 25-40% identity
 
 
-def run_diamond(ref: list, prots: dict, threads: int) -> list[dict]:
+def run_diamond(ref: list, prots: dict, threads: int, sensitivity: str | None = SENSITIVITY_DEFAULT) -> list[dict]:
     from mamey import diamond_align
     with tempfile.TemporaryDirectory() as td:
         qf, rf = Path(td, "ref.faa"), Path(td, "genome.faa")
         qf.write_text("".join(f">{g['id']}\n{g['aa']}\n" for g in ref))
         rf.write_text("".join(f">{k}\n{v['aa']}\n" for k, v in prots.items()))
-        res = diamond_align.align_fasta(str(qf), str(rf), threads=threads)
+        res = diamond_align.align_fasta(str(qf), str(rf), threads=threads, sensitivity=sensitivity)
     if not res.get("ok"):
         raise RuntimeError(f"DIAMOND unavailable: {res.get('reason')}; pass --hits with a precomputed table")
     return res["hits"]
@@ -156,229 +183,61 @@ def read_hits(path: Path) -> list[dict]:
     for line in open(path, encoding="utf-8"):
         p = line.rstrip("\n").split("\t")
         if len(p) >= 5:
-            out.append({"qseqid": p[0], "sseqid": p[1], "pident": float(p[2]), "qcovhsp": float(p[3]),
-                        "bitscore": float(p[4])})
+            h = {"qseqid": p[0], "sseqid": p[1], "pident": float(p[2]), "qcovhsp": float(p[3]), "bitscore": float(p[4])}
+            if len(p) >= 7 and p[5].strip() and p[6].strip():
+                h.update(qstart=int(p[5]), qend=int(p[6]))
+            if len(p) >= 8 and p[7].strip():
+                h["evalue"] = float(p[7])
+            out.append(h)
     return out
 
 
-def search(ref, prots, regions, hits, core):
-    """-> rows (one per reference gene) and partner rows."""
-    by_q = {}
-    for h in hits:
-        if float(h["pident"]) >= MIN_ID and float(h["qcovhsp"]) >= MIN_COV and h["sseqid"] in prots:
-            by_q.setdefault(h["qseqid"], []).append(h)
-    for q, values in by_q.items():
-        unique = {}
-        for h in sorted(values, key=lambda h: (-float(h["bitscore"]), -float(h["pident"]),
-                                              -float(h["qcovhsp"]), h["sseqid"])):
-            unique.setdefault(h["sseqid"], h)
-        by_q[q] = list(unique.values())
-    in_core = lambda p: p["contig"] == core["contig"] and p["start"] < core["end"] and p["end"] > core["start"]
-    rows = []
-    for g in ref:
-        hs = by_q.get(g["id"], [])
-        row = {"reference_gene": g["i"], "name": g["name"], "reference_product": g["product"],
-               "reference_len_aa": len(g["aa"]), "reference_gene_kind": g["kind"], "modular_pks": g["ks"] > 0,
-               "status": "MISSING_NOT_FOUND"}
-        inside = [h for h in hs if in_core(prots[h["sseqid"]])]
-        outside = [h for h in hs if not in_core(prots[h["sseqid"]])]
-        best = None
-        if inside:
-            best, row["status"] = inside[0], "PRESENT_IN_CORE"
-        elif outside:
-            best = outside[0]
-            second = outside[1] if len(outside) > 1 else None
-            clear = float(best["pident"]) >= CLEAR_ID and (second is None or
-                                                          float(best["bitscore"]) >= CLEAR_RATIO * float(second["bitscore"]))
-            row["status"] = "MISSING_FOUND_CLEAR" if clear else "MISSING_FOUND_AMBIGUOUS"
-            row["rivals"] = len(outside) - 1
-            row["bitscore_ratio_to_second"] = round(float(best["bitscore"]) / float(second["bitscore"]), 2) if second else ""
-        if best:
-            p = prots[best["sseqid"]]
-            reg = region_of(p, regions)
-            row.update(best_identity_pct=round(float(best["pident"]), 1), best_coverage_pct=round(float(best["qcovhsp"])),
-                       best_protein=best["sseqid"], best_locus=p["tag"], best_len_aa=len(p["aa"]), best_contig=p["contig"],
-                       best_region_identity=reg["identity"] if reg else f"{p['shown']} (no antiSMASH region)")
-        rows.append(row)
-    # modular PKS genes are left out: their best whole-gene match follows module paralogy (use KS placement instead)
-    # reciprocal best: of the reference genes whose best match is one genome protein, only the highest-identity one is
-    # that protein's own match. The others are cross-hits (typically paralogous PKS modules) and get no ribbon.
-    top_for = {}
-    for r in rows:
-        if r.get("best_protein"):
-            b = top_for.get(r["best_protein"])
-            if b is None or r["best_identity_pct"] > b["best_identity_pct"]:
-                top_for[r["best_protein"]] = r
-    for r in rows:
-        if r.get("best_protein"):
-            r["reciprocal_best"] = top_for[r["best_protein"]] is r
-    clear = [r for r in rows if r["status"] == "MISSING_FOUND_CLEAR" and r["best_contig"] != core["contig"]
-             and not r["modular_pks"] and r.get("reciprocal_best")]
-    total_clear = sum(1 for r in rows if r["status"] == "MISSING_FOUND_CLEAR"
-                      and not r["modular_pks"] and r.get("reciprocal_best"))
-    by_c = Counter(r["best_contig"] for r in clear)
-    top = [c for c, _ in by_c.most_common(2)]
-    concentrated = total_clear and sum(by_c[c] for c in top) / total_clear >= CONCENTRATION
-    core_edge = core["edge"] in ("True", "true", "Edge")
-    partners = []
-    for c, n in by_c.most_common():
-        if n < PARTNER_MIN:
-            continue
-        genes = [r for r in clear if r["best_contig"] == c]
-        p0 = prots[genes[0]["best_protein"]]
-        regs = [region_of(prots[r["best_protein"]], regions) for r in genes]
-        partners.append({"partner_contig": c, "partner_identity": genes[0]["best_region_identity"],
-                         "contig_length": p0["contig_len"], "clear_finds": n,
-                         "biosynthetic_clear_finds": sum(1 for r in genes if r["reference_gene_kind"] in BIOSYNTHETIC_KINDS),
-                         "genes": "; ".join(f"{r['reference_gene']} {r['name']} ({r['best_identity_pct']}%)" for r in genes),
-                         "concentrated": bool(concentrated and c in top),
-                         "split_plausible": bool(core_edge or p0["contig_len"] < SHORT_CONTIG
-                                                 or any(r and r["edge"] in ("True", "true") for r in regs))})
-    return rows, partners
+def _search_db(*args, **kwargs) -> dict:
+    """The tool's MIBiG search: mamey.diamond_align.search_db, looked up at call time."""
+    from mamey import diamond_align
+    return diamond_align.search_db(*args, **kwargs)
 
 
-def _arrow(ax, s, e, strand, y, fc, h=0.36):
-    from matplotlib.patches import FancyArrow
-    L = e - s
-    head = min(L * 0.35, 900)
-    fwd = strand >= 0
-    ax.add_patch(FancyArrow(s if fwd else e, y, (L - head) * (1 if fwd else -1), 0, width=h, head_width=h * 1.5,
-                            head_length=head, length_includes_head=False, fc=fc, ec="#333", lw=0.5))
+def partner_checks(rows, prots, hits, core, ref_acc, mibig_db=None, pfam_hmm=None, threads=4, sensitivity=None,
+                   compounds=None) -> dict:
+    """mamey.ref_completion.partner_checks with this tool's DIAMOND search and Pfam scan (see there for the rules)."""
+    return _rc.partner_checks(rows, prots, hits, core, ref_acc, mibig_db, pfam_hmm, threads, sensitivity,
+                              search=_search_db, pfam_names=lambda *a, **k: _pfam_names(*a, **k), compounds=compounds)
 
 
-def draw(ref, rows, partners, prots, regions, core, label, ref_name, ref_acc, out_png):
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import Patch, Polygon
-    r0 = min(g["start"] for g in ref)
-    rpos = [(g["start"] - r0, g["end"] - r0, g["strand"]) for g in ref]
-    rspan = max(e for _, e, _ in rpos)
-    contigs = [core["contig"]] + [p["partner_contig"] for p in partners[:2]]
-    matches = {c: [] for c in contigs}
-    for i, r in enumerate(rows):
-        if (r["status"] in ("PRESENT_IN_CORE", "MISSING_FOUND_CLEAR") and r.get("best_contig") in matches
-                and r.get("reciprocal_best")):
-            matches[r["best_contig"]].append((i, prots[r["best_protein"]], float(r["best_identity_pct"])))
-    contigs = [c for c in contigs if matches[c]]
-    span_of = {c: (min(rpos[i][0] for i, _, _ in m), max(rpos[i][1] for i, _, _ in m)) for c, m in matches.items() if m}
-    sides, row = {"above": [], "below": []}, {}
-    for c in contigs:
-        lo, hi = span_of[c]
-        cost = {s: sum(max(0, min(hi, span_of[o][1]) - max(lo, span_of[o][0])) for o in sides[s]) for s in sides}
-        side = min(sides, key=lambda s: (cost[s], len(sides[s])))
-        sides[side].append(c)
-        row[c] = len(sides[side]) * (1 if side == "above" else -1)
-    H = 4.0 + 1.25 * len(contigs) + 0.155 * len(rows)
-    fig = plt.figure(figsize=(14, H))
-    ax = fig.add_axes([0.05, 1 - (1.0 + 1.25 * len(contigs) + 0.6) / H, 0.9, (1.25 * len(contigs) + 0.9) / H])
-    yref = 1.25 * len(sides["below"]) + 0.2
-    ax.set_ylim(-0.9, yref + 1.25 * len(sides["above"]) + 0.7)
-    ax.axis("off")
-    for i, (s, e, st) in enumerate(rpos):
-        _arrow(ax, s, e, st, yref, "#d9d9d9")
-        ax.text((s + e) / 2, yref, str(i + 1), ha="center", va="center", fontsize=6.3)
-    labels = [(yref, f"{ref_acc}\n(reference)", "k")]
-    legend = [Patch(fc="#d9d9d9", ec="#333", label=f"{ref_acc}: {ref_name[:70]}")]
-    xmin, xmax = 0, rspan
-    for k, c in enumerate(contigs):
-        y = yref + 1.25 * row[c]
-        ms = matches[c]
-        L = ms[0][1]["contig_len"]
-        pm = [(p["start"] + p["end"]) / 2 for _, p, _ in ms]
-        rm = [(rpos[i][0] + rpos[i][1]) / 2 for i, _, _ in ms]
-        corr = statistics.correlation(pm, rm) if len(ms) >= 2 and len(set(pm)) > 1 and len(set(rm)) > 1 else 1
-        flip = corr < 0
-        tx = (lambda x: -x) if flip else (lambda x: x)
-        shift = statistics.median(r - tx(p) for r, p in zip(rm, pm))
-        X = lambda x: tx(x) + shift
-        lo = max(0, min(p["start"] for _, p, _ in ms) - 3000)
-        hi = min(L, max(p["end"] for _, p, _ in ms) + 3000)
-        ax.plot(sorted([X(lo), X(hi)]), [y, y], color="#555", lw=1, zorder=0)
-        for end in (0, L):
-            if lo <= end <= hi:
-                ax.plot([X(end), X(end)], [y - 0.32, y + 0.32], color="k", lw=3)
-        matched = {id(p) for _, p, _ in ms}
-        for p in prots.values():
-            if p["contig"] == c and p["end"] > lo and p["start"] < hi:
-                s, e = sorted((X(p["start"]), X(p["end"])))
-                _arrow(ax, s, e, -p["strand"] if flip else p["strand"], y, COLS[k] if id(p) in matched else "#ffffff", h=0.3)
-        nums = {}
-        for i, p, _ in ms:
-            nums.setdefault(id(p), (p, []))[1].append(i + 1)
-        for p, idx in nums.values():
-            s, e = sorted((X(p["start"]), X(p["end"])))
-            ax.text((s + e) / 2, y, ",".join(map(str, idx)), ha="center", va="center", fontsize=6.3, color="white",
-                    fontweight="bold")
-            if any(ref[i - 1]["ks"] for i in idx):
-                ax.add_patch(plt.Rectangle((s, y - 0.15), e - s, 0.3, fill=False, hatch="////", ec="white", lw=0))
-        for i, p, pid in ms:
-            s, e = sorted((X(p["start"]), X(p["end"])))
-            ry, cy = (yref + 0.28, y - 0.22) if y > yref else (yref - 0.28, y + 0.22)
-            alpha = (0.18 + 0.6 * max(0, min(1, (pid - 30) / 70))) * 0.7
-            ax.add_patch(Polygon([(rpos[i][0], ry), (rpos[i][1], ry), (e, cy), (s, cy)], closed=True, fc=COLS[k],
-                                 ec="none", alpha=alpha, zorder=-1))
-        xmin, xmax = min(xmin, X(lo), X(hi)), max(xmax, X(lo), X(hi))
-        reg = region_of(ms[0][1], regions) if k == 0 else next((region_of(p, regions) for _, p, _ in ms
-                                                                if region_of(p, regions)), None)
-        name = reg["identity"] if reg else f"{ms[0][1]['shown']} (no antiSMASH region)"
-        role = "core" if k == 0 else f"partner {k}"
-        labels.append((y, role, COLS[k]))
-        legend.append(Patch(fc=COLS[k], ec="#333", label=f"{role}: {name}; contig {L / 1000:.1f} kb; {len(ms)} reference "
-                                                         f"genes" + ("; drawn reversed" if flip else "")))
-    ax.set_xlim(xmin - 0.13 * (xmax - xmin), xmax + 0.02 * (xmax - xmin))
-    for y, lab, col in labels:
-        ax.text(xmin - 0.035 * (xmax - xmin), y, lab, ha="right", va="center", fontsize=8, color=col, fontweight="bold")
-    ax.plot([xmin, xmin + 5000], [-0.75, -0.75], color="k", lw=1)
-    ax.text(xmin + 2500, -0.82, "5 kb", ha="center", va="top", fontsize=7)
-    legend += [Patch(fc="#ffffff", ec="#333", label="gene on the contig with no match to this reference"),
-               Patch(fc="k", ec="k", label="heavy bar: contig end (assembly break)"),
-               Patch(fc="#999", ec="none", alpha=0.5, label="ribbon: best match, darker = higher identity (30-100%); "
-                                                            "numbers = reference gene"),
-               Patch(fc="#ffffff", ec="#ffffff", label="ribbons join reciprocal best matches only; a reference gene whose best "
-                                                         "match is taken by a closer reference gene is a cross-hit (table)"),
-               Patch(fc="#888", ec="#333", hatch="////", label="modular PKS gene: best match follows module paralogy; "
-                                                              "order these with KS placement (tools/ks_module_placement.py)")]
-    fig.legend(handles=legend, loc="upper left", bbox_to_anchor=(0.05, 1 - (1.0 + 1.25 * len(contigs) + 0.7) / H),
-               fontsize=7.5, frameon=False)
-    fig.suptitle(f"{label}: pieces matching {ref_acc} ({ref_name[:50]}) on {len(contigs)} contigs",
-                 x=0.05, ha="left", fontsize=10)
-    tab = fig.add_axes([0.05, 0.01, 0.9, (0.155 * len(rows) + 0.3) / H])
-    tab.axis("off")
-    who = {c: ("core" if k == 0 else f"partner {k}") for k, c in enumerate(contigs)}
-    lines = ["#   ref gene      reference product                     ref aa  kind                     match      "
-             "AS locus       AS aa   % id  % cov  contig"]
-    st_name = {"PRESENT_IN_CORE": "in core", "MISSING_FOUND_CLEAR": "clear", "MISSING_FOUND_AMBIGUOUS": "ambiguous",
-               "MISSING_NOT_FOUND": "none"}
-    for r in rows:
-        st = st_name[r["status"]]
-        lines.append(f"{r['reference_gene']:<3} {r['name'][:13]:<13} {r['reference_product'][:37]:<37} "
-                     f"{r['reference_len_aa']:>6}  {r['reference_gene_kind'][:23]:<24} {st:<10} "
-                     f"{str(r.get('best_locus', ''))[:14]:<14} {str(r.get('best_len_aa', '')):>5}  "
-                     f"{str(r.get('best_identity_pct', '')):>4}  {str(r.get('best_coverage_pct', '')):>5}  "
-                     f"{who.get(r.get('best_contig', ''), str(r.get('best_contig', ''))[:40]) if st != 'none' else ''}"
-                     f"{'  (cross-hit; no ribbon)' if r.get('best_protein') and not r.get('reciprocal_best') else ''}")
-    tab.text(0, 1, "\n".join(lines), va="top", ha="left", family="monospace", fontsize=6.6)
-    fig.savefig(out_png, dpi=200)
-    plt.close(fig)
+def discover_references(queries: dict, prots: dict, mibig_db, mibig_dir, threads=4, sensitivity=None, hits=None) -> dict:
+    """mamey.ref_completion.discover_references with this tool's DIAMOND search (see there for the rules)."""
+    return _rc.discover_references(queries, prots, mibig_db, mibig_dir, threads, sensitivity, hits, search=_search_db)
 
 
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--zip", required=True, type=Path)
-    ap.add_argument("--label", required=True)
-    ap.add_argument("--core", required=True, help="core region as <contig>.regionNNN")
-    ap.add_argument("--reference", required=True, type=Path, help="reference cluster GenBank file (MIBiG)")
-    ap.add_argument("--reference-name", default="")
-    ap.add_argument("--out", required=True, type=Path)
-    ap.add_argument("--hits", type=Path)
-    ap.add_argument("--threads", type=int, default=4)
-    ap.add_argument("--no-figure", action="store_true")
-    a = ap.parse_args(argv)
-    assert_output_outside_bundle(a.out, __file__)
-    ref, desc = load_reference(a.reference)
-    prots, regions = load_genome(a.zip, a.label)
-    m = re.match(r"(.+)\.region(\d+)$", a.core)
+def kcb_reference(zip_path: Path, core: dict, mibig_dir: Path):
+    """The core region's KnownClusterBlast rank-1 MIBiG hit, when its GenBank file is in mibig_dir -> (path, name) or None."""
+    from mamey import kcb_locusmap
+    try:
+        reg = kcb_locusmap.read_kcb_from_zip(Path(zip_path), core["contig"], f"region{core['n']:03d}")
+    except (FileNotFoundError, KeyError, ValueError):
+        return None
+    top = reg.hits[0] if reg.hits else None
+    m = re.match(r"(BGC\d{7})", (top.bgc_id if top else "") or "")
+    if m and (Path(mibig_dir) / f"{m.group(1)}.gbk").exists():
+        return Path(mibig_dir) / f"{m.group(1)}.gbk", top.compound or ""
+    return None
+
+
+def load_mibig_names(path) -> dict:
+    """accession -> compound name(s), from a MIBiG index JSON ({"entries": [{"accession", "compounds"}]}) or a TSV."""
+    if not path or not Path(path).exists():
+        return {}
+    text = Path(path).read_text(encoding="utf-8", errors="replace")
+    if str(path).endswith(".json"):
+        data = json.loads(text)
+        entries = data.get("entries", data) if isinstance(data, dict) else data
+        return {e["accession"]: "/".join(e.get("compounds") or [])[:60] for e in entries if isinstance(e, dict)}
+    return {p[0]: p[1] for p in (line.split("\t") for line in text.splitlines()) if len(p) >= 2}
+
+
+def resolve_core(regions: list, spec: str) -> dict:
+    m = re.match(r"(.+)\.region(\d+)$", spec)
     if not m:
         raise SystemExit("--core must look like <contig>.regionNNN")
     matches = [r for r in regions if r["n"] == int(m.group(2)) and
@@ -386,40 +245,135 @@ def main(argv=None) -> int:
                 (len(r["identity"].split(" / ")) == 4 and
                  m.group(1) in r["identity"].split(" / ")[1].split(" = ")))]
     if len(matches) != 1:
-        raise SystemExit(f"core region {a.core} not found or ambiguous; use an exact bound contig or node alias")
+        raise SystemExit(f"core region {spec} not found or ambiguous; use an exact bound contig or node alias")
     core = matches[0]
     parts = core["identity"].split(" / ")
     if len(parts) != 4 or any(not x.strip() or x in {"None", "?", "IDENTITY_HOLD"} for x in parts):
-        raise SystemExit(f"core region {a.core} has an unresolved identity")
-    a.out.mkdir(parents=True, exist_ok=True)
-    (a.out / "gap_rescue_proteins.faa").write_text("".join(f">{k}\n{v['aa']}\n" for k, v in prots.items()))
-    hits = read_hits(a.hits) if a.hits else run_diamond(ref, prots, a.threads)
+        raise SystemExit(f"core region {spec} has an unresolved identity")
+    return core
+
+
+def choose_reference(zip_path, core, prots, reference=None, reference_name="", mibig_dir=None, mibig_db=None,
+                     names=None, threads=4, sensitivity=None):
+    """-> (reference GenBank path or None, display name, source). A given reference wins; then the region's
+    KnownClusterBlast rank-1 MIBiG hit; then discovery by DIAMOND at >= 35% (see discover_references)."""
+    names = names or {}
+    if reference:
+        return Path(reference), reference_name or names.get(Path(reference).stem, ""), "given"
+    if not mibig_dir:
+        return None, "", "no reference: give --reference, or --mibig-dir (and --mibig-db) to choose one"
+    k = kcb_reference(zip_path, core, mibig_dir)
+    if k:
+        return k[0], reference_name or names.get(k[0].stem) or k[1], "KnownClusterBlast rank 1"
+    if not mibig_db:
+        return None, "", "no reference: no KnownClusterBlast hit, and no --mibig-db for discovery"
+    in_core = [pid for pid, p in prots.items() if p["contig"] == core["contig"] and p["start"] < core["end"]
+               and p["end"] > core["start"]]
+    d = discover_references({"core": in_core}, prots, mibig_db, mibig_dir, threads, sensitivity).get("core")
+    if not d:
+        return None, "", ("no reference: no KnownClusterBlast hit and no MIBiG cluster with >= 2 core proteins at "
+                          ">= 35% identity (one biosynthetic, reference <= 250 kb)")
+    source = (f"DIAMOND >= 35% identity: {d['proteins']} core proteins (bitscore {d['bitscore']})"
+              + (f"; runner-up {d['runner_up']}" if d["runner_up"] else "")
+              + ("; tied: ambiguous reference" if d["tied"] else ""))
+    return d["reference"], reference_name or names.get(d["reference"].stem, ""), source
+
+
+def analyse_region(label, prots, regions, core, reference, ref_name, source, out, hits=None, threads=4,
+                   sensitivity=SENSITIVITY_DEFAULT, mibig_db=None, pfam=None, figure=True, write_proteins=True) -> dict:
+    """Search one core region against one reference and write every output; returns the receipt."""
+    ref, desc = load_reference(reference)
+    out.mkdir(parents=True, exist_ok=True)
+    if write_proteins:  # the ids the hit tables use; the all-regions runner writes one shared copy instead
+        (out / "gap_rescue_proteins.faa").write_text("".join(f">{k}\n{v['aa']}\n" for k, v in prots.items()))
+    sens = None if sensitivity == "default" else sensitivity
+    homology = "precomputed hits" if hits is not None else f"DIAMOND ({sens or 'default fast'} mode)"
+    if hits is None:
+        hits = run_diamond(ref, prots, threads, sens)
     rows, partners = search(ref, prots, regions, hits, core)
-    with open(a.out / "gap_rescue.tsv", "w", newline="") as fh:
+    splits, split_check = split_genes(ref, prots, regions, hits)
+    checks = partner_checks(rows, prots, hits, core, Path(reference).stem.split(".")[0], mibig_db, pfam, threads, sens)
+    with open(out / "gap_rescue_split_genes.tsv", "w", newline="") as fh:
         w = SafeWriter(fh, delimiter="\t")
-        w.writerow(TABLE_COLS)
+        w.writerow(SPLIT_COLS)
+        for s in splits:
+            w.writerow([s[c] for c in SPLIT_COLS])
+    with open(out / "gap_rescue.tsv", "w", newline="") as fh:
+        w = SafeWriter(fh, delimiter="\t")
+        w.writerow(TABLE_COLS + PARTNER_CHECK_COLS)
         for r in rows:
-            w.writerow([r.get(c, "") for c in TABLE_COLS])
-    with open(a.out / "gap_rescue_partners.tsv", "w", newline="") as fh:
+            w.writerow([r.get(c, "") for c in TABLE_COLS + PARTNER_CHECK_COLS])
+    with open(out / "gap_rescue_partners.tsv", "w", newline="") as fh:
         w = SafeWriter(fh, delimiter="\t")
         w.writerow(PARTNER_COLS)
         for p in partners:
             w.writerow([p[c] for c in PARTNER_COLS])
     st = Counter(r["status"] for r in rows)
-    name = a.reference_name or desc
-    receipt = {"tool": "gap_directed_rescue", "label": a.label, "core": core["identity"], "reference": a.reference.name,
-               "reference_name": name, "reference_genes": len(rows), **{k.lower(): st[k] for k in
-               ("PRESENT_IN_CORE", "MISSING_FOUND_CLEAR", "MISSING_FOUND_AMBIGUOUS", "MISSING_NOT_FOUND")},
-               "partners": partners, "homology": "precomputed hits" if a.hits else "DIAMOND",
+    receipt = {"tool": "gap_directed_rescue", "label": label, "core": core["identity"], "reference": Path(reference).name,
+               "reference_name": ref_name or desc, "reference_source": source, "reference_genes": len(rows),
+               **{k.lower(): st[k] for k in ("PRESENT_IN_CORE", "MISSING_FOUND_CLEAR", "MISSING_FOUND_AMBIGUOUS",
+                                              "MISSING_NOT_FOUND")},
+               "partners": partners, "homology": homology, "partner_checks": checks,
+               "split_gene_check": split_check,
+               "split_genes": [{c: s[c] for c in SPLIT_COLS} for s in splits],
                "non_claims": ["homology is similarity, not product identity",
                               "a partner contig is a candidate missing piece; no contigs are joined",
-                              "a fragmented assembly is never joined with full confidence"]}
-    (a.out / "gap_rescue_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
-    if not a.no_figure:
-        draw(ref, rows, partners, prots, regions, core, a.label, name, a.reference.stem, a.out / "gap_rescue.png")
-    _say(f"[gap_directed_rescue] {core['identity']} vs {a.reference.stem}: {st['PRESENT_IN_CORE']} of {len(rows)} "
-         f"reference genes in the core; {st['MISSING_FOUND_CLEAR']} missing and found clearly elsewhere; partners: "
-         + ("; ".join(f"{p['partner_identity']} ({p['clear_finds']})" for p in partners) or "none") + f" -> {a.out}")
+                              "a fragmented assembly is never joined with full confidence",
+                              "a split gene is two pieces at facing contig ends, not a joined sequence",
+                              "a partner verdict is homology and context evidence, not proof of one pathway"]}
+    (out / "gap_rescue_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    if figure:
+        draw_locus_map(reference, rows, splits, prots, regions, core, label, ref_name, out / "gap_rescue.png",
+                       out / "gap_rescue.pdf")
+    return receipt
+
+
+def summary_line(receipt: dict, out) -> str:
+    clear = [s for s in receipt["split_genes"] if s["split_call"] == "CLEAR"]
+    split_note = (f"clear split genes: {'; '.join(s['name'] + ' (' + s['piece1_locus'] + ' + ' + s['piece2_locus'] + ')' for s in clear) or 'none'}"
+                  if receipt["split_gene_check"] == "run" else f"split-gene check {receipt['split_gene_check']}")
+    return (f"[gap_directed_rescue] {receipt['core']} vs {receipt['reference']} ({receipt['reference_source']}): "
+            f"{receipt['present_in_core']} of {receipt['reference_genes']} reference genes in the core; "
+            f"{receipt['missing_found_clear']} found clearly elsewhere; partner verdicts "
+            f"{receipt['partner_checks']['verdicts'] or 'none'}; {split_note} -> {out}")
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--zip", required=True, type=Path)
+    ap.add_argument("--label", required=True)
+    ap.add_argument("--core", required=True, help="core region as <contig>.regionNNN")
+    ap.add_argument("--reference", type=Path, help="reference cluster GenBank file (MIBiG); omit to choose one: the "
+                                                   "KnownClusterBlast rank-1 hit, else DIAMOND discovery at >= 35%%")
+    ap.add_argument("--reference-name", default="")
+    ap.add_argument("--mibig-dir", type=Path, default=_os.environ.get("SAPOTE_MIBIG_GBK_DIR"),
+                    help="folder of MIBiG GenBank files named <accession>.gbk (env SAPOTE_MIBIG_GBK_DIR)")
+    ap.add_argument("--mibig-db", type=Path, default=_os.environ.get("SAPOTE_MIBIG_DMND"),
+                    help="DIAMOND database of MIBiG proteins, ids starting with the accession (env SAPOTE_MIBIG_DMND); "
+                         "used for reference discovery and the reciprocal partner check")
+    ap.add_argument("--mibig-names", type=Path, default=_os.environ.get("SAPOTE_MIBIG_NAMES"),
+                    help="MIBiG index JSON or accession<TAB>name TSV for figure titles (env SAPOTE_MIBIG_NAMES)")
+    ap.add_argument("--pfam", type=Path, default=_os.environ.get("SAPOTE_PFAM_HMM"),
+                    help="pressed Pfam-A.hmm for neighbour context of lone finds (env SAPOTE_PFAM_HMM; needs pyhmmer)")
+    ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument("--hits", type=Path)
+    ap.add_argument("--threads", type=int, default=4)
+    ap.add_argument("--sensitivity", default=SENSITIVITY_DEFAULT,
+                    help="DIAMOND search mode (default ultra-sensitive; 'default' uses DIAMOND's own fast mode)")
+    ap.add_argument("--no-figure", action="store_true")
+    a = ap.parse_args(argv)
+    assert_output_outside_bundle(a.out, __file__)
+    prots, regions = load_genome(a.zip, a.label)
+    core = resolve_core(regions, a.core)
+    sens = None if a.sensitivity == "default" else a.sensitivity
+    reference, name, source = choose_reference(a.zip, core, prots, a.reference, a.reference_name, a.mibig_dir,
+                                               a.mibig_db, load_mibig_names(a.mibig_names), a.threads, sens)
+    if reference is None:
+        raise SystemExit(f"[gap_directed_rescue] {core['identity']}: {source}")
+    receipt = analyse_region(a.label, prots, regions, core, reference, name, source, a.out,
+                             read_hits(a.hits) if a.hits else None, a.threads, a.sensitivity, a.mibig_db, a.pfam,
+                             not a.no_figure)
+    _say(summary_line(receipt, a.out))
     return 0
 
 

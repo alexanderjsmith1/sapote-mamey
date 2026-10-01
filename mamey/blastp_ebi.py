@@ -17,6 +17,8 @@ carry database + transport=EBI in its §28 provenance and a named nr-confirmatio
 fallback, never the default; nr remains the reference DB when reachable.
 """
 from __future__ import annotations
+import logging
+_LOG = logging.getLogger(__name__)
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -196,11 +198,11 @@ def harvest_ebi(state, poll_budget=600, poll_gap=8.0, save_xml=True, sleep=time.
                         with open(f"{stem}_{lt}.xml", "w", encoding="utf-8") as fh:
                             fh.write(xml)
                     d["results"][lt] = "OK"; _save(state, d); pending.remove(lt)
-                except Exception:
+                except Exception as _swallowed:
                     # Transient fetch/write error on a job that just reported FINISHED: leave lt in
                     # `pending` so the next poll retries it. A persistent failure surfaces when the
                     # poll loop times out. Emitting here would repeat every poll gap, so stay quiet.
-                    pass
+                    _LOG.debug("transient fetch/write error on a FINISHED job; left pending for the next poll: %r", _swallowed)
             elif st in ("NOT_FOUND", "FAILURE", "ERROR"):
                 d["results"][lt] = st; _save(state, d); pending.remove(lt)
         if pending:

@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.444 stamp=20260929v97444a
+# TIER_MANIFEST tier=code version=9.7.445 stamp=20260930v97445a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -178,6 +178,7 @@
 ./docs/DISCOVER_DESIGN_AND_FIGURES.md
 ./docs/DOCUMENTATION_MAP.md
 ./docs/DOMAIN_TREE_CONTRACT.md
+./docs/DOMINATED_DIAGNOSTIC.md
 ./docs/ENGINE_LINEAGE.md
 ./docs/ENZYME_NEIGHBORHOODS.md
 ./docs/EPA_NG_PLACEMENT_WORKFLOW.md
@@ -1005,6 +1006,7 @@
 ./mamey/rare_motif.py
 ./mamey/raw_antismash_triage.py
 ./mamey/recovery_status.py
+./mamey/ref_completion.py
 ./mamey/reference_dark.py
 ./mamey/reference_dark_prior.py
 ./mamey/reference_strain_registry.py
@@ -1021,6 +1023,7 @@
 ./mamey/report_theme.py
 ./mamey/rescue_groups.py
 ./mamey/rescue_two_proof.py
+./mamey/residue_tiling.py
 ./mamey/resistance_dossier.py
 ./mamey/rggmci.py
 ./mamey/rggmci_rescue_atlas.py
@@ -1094,7 +1097,9 @@
 ./packaging/rggmci/templates/src/rggmci/cli.py
 ./packaging/rggmci/templates/src/rggmci/reader.py
 ./packaging/rggmci/templates/tests/test_blastp.py
+./packaging/rggmci/templates/tests/test_completion.py
 ./packaging/rggmci/templates/tests/test_groups.py
+./packaging/rggmci/templates/tests/test_residue.py
 ./prompts/CHATGPT_TASK_BRIEF_TEMPLATE.md
 ./prompts/CLAUDE_SYSTEM_PROMPT.md
 ./prompts/FULL_RUN_PROFILE.md
@@ -1382,6 +1387,20 @@
 ./tests/test_444_rggmci_rescue_groups_are_analysis_units.py
 ./tests/test_444_rggmci_same_contig_pairs_are_related_loci.py
 ./tests/test_444_run_planned_tree_restricts_modelfinder.py
+./tests/test_445_dominated_diagnostic_report.py
+./tests/test_445_gap_rescue_locus_map.py
+./tests/test_445_gap_rescue_partner_checks_and_reference_choice.py
+./tests/test_445_gap_rescue_sensitivity_and_core_floor.py
+./tests/test_445_gap_rescue_split_gene_check.py
+./tests/test_445_pipefail_grep_q_gates.py
+./tests/test_445_portable_tree_home.py
+./tests/test_445_product_label_normalization.py
+./tests/test_445_rare_genera_outgroup_in_phylum.py
+./tests/test_445_refpkg_default_not_workspace_root.py
+./tests/test_445_resolver_authority_and_case.py
+./tests/test_445_rggmci_depth_and_residue_tiling.py
+./tests/test_445_rggmci_reference_completion.py
+./tests/test_445_wiki_mirrors_match_docs.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_absent_median_is_not_a_zero_v97438.py
 ./tests/test_activity_decision_tree_portable.py
@@ -1949,6 +1968,7 @@
 ./tests/test_figures_sapote_figure_save_v97406.py
 ./tests/test_figures_smoke.py
 ./tests/test_find_asset_gcf_gca_lookup_v9_7_416.py
+./tests/test_find_asset_root_outside_bundle_v9_7_445.py
 ./tests/test_first_pass_scans.py
 ./tests/test_flagged_lead_cli_registers.py
 ./tests/test_flavor_aware_resolver_v97399.py
@@ -3092,6 +3112,8 @@
 ./tools/fixture_inputs.py
 ./tools/fragment_concordance_scorer.py
 ./tools/gap_directed_rescue.py
+./tools/gap_rescue_all_regions.py
+./tools/gap_rescue_locus_map.py
 ./tools/gate_mutation_probe.py
 ./tools/gate_mutation_table.tsv
 ./tools/gate_registry.tsv
@@ -3277,6 +3299,7 @@
 ./tools/strict_source_disclosure_audit.py
 ./tools/suite_count_census.py
 ./tools/sync_version.py
+./tools/sync_wiki_mirrors.py
 ./tools/test_reaction_gap_board.py
 ./tools/test_resolve_reference_metadata.py
 ./tools/test_synthetic_ids.txt

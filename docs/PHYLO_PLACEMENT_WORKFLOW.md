@@ -34,7 +34,10 @@ what EPA-ng and related placement methods were built for, and it is exactly the 
    name/designation and accession in the metadata and display according to the figure house rules.
 2. **`build-ref`** — `mafft` align → `raxml-ng` (or `iqtree`) ML tree + model → frozen `refpkg/`. CPU-heavy →
    **requires `--approved-by`** (tree-approval gate). Bootstraps for the backbone only; the queries never enter
-   this inference.
+   this inference. Without `--refpkg`, the package goes beside the placements (`<outdir>/refpkg`) when the
+   command has an `--outdir` (the `all` command), and otherwise to `_PLACEMENT/<group>/refpkg` in the
+   generic `trees/` home. Set `SAPOTE_TREE_HOME` to an absolute path or a workspace-relative path to override it. No top-level `strain_data/` folder is made, and
+   `placement_to_docx --auto` finds both locations.
 3. **`place`** — align the lab 16S into the reference coordinate system (`mafft --add --keeplength`, or
    `mafft --addfragments --keeplength` via `--fragmentary` for short Sanger reads) → **epa-ng** →
    `epa_result.jplace`. The autopilot writes `query_qc.tsv` and selects fragment mode when any

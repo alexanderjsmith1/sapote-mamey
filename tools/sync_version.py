@@ -415,7 +415,33 @@ RULES = [
     ("wiki/External-Tools-and-Databases.md",
      re.compile(r"\*\*Bundle v\d+(?:\.\d+)*[a-z]* \u00b7 engine Mamey \d+(?:\.\d+)*[a-z]* \u00b7 compiled \d{4}-\d{2}-\d{2}\*\*"),
      f"**Bundle v{BUNDLE} \u00b7 engine Mamey {ENGINE} \u00b7 compiled {_STAMP_DATE}**"),
+    # v9.7.445 docs sweep: five wiki pages write the claim with a middle dot ("Current to bundle vX · engine
+    # Mamey Y"), a form the slash-only rules and test never matched, so they sat at v9.7.437 while the bundle
+    # moved on. Case-exact rules, one per page, keep --check idempotent.
+    ("wiki/Home.md",
+     re.compile(r"Current to bundle v\d+(?:\.\d+)*[a-z]* \u00b7 engine Mamey \d+(?:\.\d+)*[a-z]*"),
+     f"Current to bundle v{BUNDLE} \u00b7 engine Mamey {ENGINE}"),
+    ("wiki/Audience-Start-Paths.md",
+     re.compile(r"Current to bundle v\d+(?:\.\d+)*[a-z]* \u00b7 engine Mamey \d+(?:\.\d+)*[a-z]*"),
+     f"Current to bundle v{BUNDLE} \u00b7 engine Mamey {ENGINE}"),
+    ("wiki/Researcher-Recipes.md",
+     re.compile(r"Current to bundle v\d+(?:\.\d+)*[a-z]* \u00b7 engine Mamey \d+(?:\.\d+)*[a-z]*"),
+     f"Current to bundle v{BUNDLE} \u00b7 engine Mamey {ENGINE}"),
+    ("wiki/What-It-Does-and-Limitations.md",
+     re.compile(r"Current to bundle v\d+(?:\.\d+)*[a-z]* \u00b7 engine Mamey \d+(?:\.\d+)*[a-z]*"),
+     f"Current to bundle v{BUNDLE} \u00b7 engine Mamey {ENGINE}"),
+    ("wiki/Mode-B-Gene-First-and-48-Section-Manual.md",
+     re.compile(r"Current to bundle v\d+(?:\.\d+)*[a-z]* \u00b7 engine Mamey \d+(?:\.\d+)*[a-z]*"),
+     f"Current to bundle v{BUNDLE} \u00b7 engine Mamey {ENGINE}"),
 ]
+
+# v9.7.445: a wiki page mirrored by tools/sync_wiki_mirrors.py gets every rule of its source doc, so a cut re-stamps
+# the two alike and the mirror stays identical to its source. Explicit rules for a mirror are kept and not repeated.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from sync_wiki_mirrors import MIRRORS as _MIRRORS  # noqa: E402
+_HAVE = {(r[0], r[1].pattern) for r in RULES}
+RULES += [(page, pat, rep) for page, src in _MIRRORS.items() for (path, pat, rep) in list(RULES)
+          if path == src and (page, pat.pattern) not in _HAVE]
 
 
 def plan_rule_updates(rules=None):
