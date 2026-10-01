@@ -5,6 +5,9 @@ scoring, never writes into the sealed package, and uses only the Python standard
 library.  Every HTML view is self-contained so it remains usable over ``file://``.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -1231,5 +1234,5 @@ def render_widgets_command(args) -> int:
     except (FileNotFoundError, ValueError, zipfile.BadZipFile) as exc:
         emit(f"render-widgets: ERROR: {exc}", file=sys.stderr)
         return 1
-    emit(f"render-widgets: {result['status']} · {result['counts']['widgets']} widgets · {result['counts']['bgcs']} BGC rows -> {result['outdir']}", '  source package unchanged; open OPEN_WIDGETS.html', sep="\n")
+    _OUT.info('%s\n%s', f"render-widgets: {result['status']} · {result['counts']['widgets']} widgets · {result['counts']['bgcs']} BGC rows -> {result['outdir']}", '  source package unchanged; open OPEN_WIDGETS.html')
     return 0 if result["status"] == "PASS" else 1

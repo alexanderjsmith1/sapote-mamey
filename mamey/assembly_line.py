@@ -18,6 +18,9 @@ CLAIM CEILING (mandatory): substrate/module calls are antiSMASH Stachelhaus/Mino
 Judgment deferred.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -184,11 +187,10 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
 
 def assembly_line_command(args) -> int:
     res = run(args.package, getattr(args, "out", None))
-    emit(f"assembly-line: {res.get('status')} | strain={res.get('strain','?')} | "
+    _OUT.info('%s', f"assembly-line: {res.get('status')} | strain={res.get('strain','?')} | "
           f"BGCs with an assembly line={res.get('bgcs', 0)}")
     if res.get("status") == "ok":
-        emit(f"  class-consistent reads: {res['class_consistent']}",
-             f"  -> {res['out']}", sep="\n")
+        _OUT.info('%s\n%s', f"  class-consistent reads: {res['class_consistent']}", f"  -> {res['out']}")
     return 0
 
 

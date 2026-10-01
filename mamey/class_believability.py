@@ -35,6 +35,9 @@ CLI:
         [--class phosphonate] [--json out.json] [--csv out.csv]
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -289,11 +292,11 @@ def run_from_args(args) -> int:
         c = rep["counts"].get(cls, {})
         n_split = sum(1 for r in rep["pooled"]
                       if r["cls"] == cls and r.get("split_pathway_candidate"))
-        emit(f"[{cls}] " + " ".join(f"{t}={c.get(t, 0)}" for t in _TIER_ORDER) +
+        _OUT.info('%s', f"[{cls}] " + " ".join(f"{t}={c.get(t, 0)}" for t in _TIER_ORDER) +
               f"  | pooled split-pathway candidates: {n_split}")
     if getattr(args, "json_out", None):
         Path(args.json_out).write_text(json.dumps(rep, indent=1), encoding="utf-8")
-        emit(f"  json -> {args.json_out}")
+        _OUT.info('%s', f"  json -> {args.json_out}")
     if getattr(args, "csv_out", None):
         cols = ["strain", "bgc_id", "cls", "believability", "gateway", "gateway_bitscore",
                 "committed", "tigr", "warhead_count", "assembly", "products", "boundary",
@@ -302,7 +305,7 @@ def run_from_args(args) -> int:
             w = _SafeDictWriter(f, fieldnames=cols, extrasaction="ignore")
             w.writeheader()
             w.writerows(rep["local"])
-        emit(f"  csv  -> {args.csv_out}")
+        _OUT.info('%s', f"  csv  -> {args.csv_out}")
     return 0
 
 

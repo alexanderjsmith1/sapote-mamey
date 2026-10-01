@@ -5,6 +5,9 @@ does not run BLASTP. It emits NCBI-web-safe FASTA batches, unique queue IDs,
 and a stable queue ledger so completed ranks are never rerun.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -179,5 +182,5 @@ def plan_cpu_failure_recovery(active_rows: list[dict], failed_queue_ids: set[str
 def command(args) -> int:
     records=parse_ranked_fasta(args.input_fasta)
     summary=write_wise_batches(records, args.outdir, prefix=getattr(args,'prefix','ALL_STRAINS_RANKED'), target_residues=getattr(args,'target_residues',DEFAULT_TARGET_RESIDUES), hard_cap=getattr(args,'hard_cap',NCBI_WEB_HARD_CAP), active_files=getattr(args,'active_files',2), emit_all=getattr(args,'emit_all',False), start_q=getattr(args,'start_q',1))
-    emit(f"wise-fragmented-pks: {summary['record_count']} proteins -> {summary['active_files_emitted']} active / {summary['total_batches']} total batches")
+    _OUT.info('%s', f"wise-fragmented-pks: {summary['record_count']} proteins -> {summary['active_files_emitted']} active / {summary['total_batches']} total batches")
     return 0

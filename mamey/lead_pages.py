@@ -26,6 +26,9 @@ Claim ceiling is fixed in the template: class-level capacity; comparators are si
 not identity; antiSMASH substrate/extender calls are predictions; judgment deferred.
 """
 import csv, json, os, sys, re, glob, zipfile, tempfile, argparse
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 HERE = os.path.dirname(os.path.abspath(__file__))  # ref-impl default; command passes outdir explicitly
 # NOTE: the reference impl did `sys.path.insert(0, HERE)` here so it could `import assembly_logic`
@@ -699,9 +702,9 @@ def lead_pages_command(args):
             emitted.append((b, klass, out))
         except Exception as e:  # a malformed single BGC must not sink the batch
             failed += 1
-            emit(f"  skip {b}: {e}")
+            _OUT.info('%s', f"  skip {b}: {e}")
 
-    emit(f"lead-pages: {len(emitted)} page(s) -> {outdir}"
+    _OUT.info('%s', f"lead-pages: {len(emitted)} page(s) -> {outdir}"
           + (f"  ({skipped_nonlead} non-lead skipped)" if skipped_nonlead else "")
           + (f"  ({failed} failed)" if failed else ""))
     return 0

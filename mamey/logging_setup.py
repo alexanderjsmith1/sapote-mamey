@@ -23,6 +23,26 @@ _LEVELS = {"debug": logging.DEBUG, "info": logging.INFO,
 _configured = False
 
 
+class _LiveStdoutHandler(logging.StreamHandler):
+    """Writes to whatever sys.stdout is at the moment of each record, like print does.
+
+    A plain StreamHandler(sys.stdout) keeps the stream object it was built with. A test runner or a caller that swaps
+    sys.stdout afterwards (pytest capture, contextlib.redirect_stdout) would then lose the line, or hit a closed stream,
+    where the former print reached the new stdout. This handler reads sys.stdout per record, so a converted line goes
+    exactly where the print went."""
+
+    def __init__(self):
+        logging.Handler.__init__(self)
+
+    @property
+    def stream(self):
+        return sys.stdout
+
+    @stream.setter
+    def stream(self, value):   # StreamHandler.setStream assigns here; the live lookup always wins
+        return
+
+
 def configure(level: str | int | None = None, fmt: str = _DEFAULT_FMT,
               stream=None) -> logging.Logger:
     """(Re)configure the mamey root logger. Called lazily by get_logger; callable
@@ -33,7 +53,7 @@ def configure(level: str | int | None = None, fmt: str = _DEFAULT_FMT,
         level = _LEVELS.get(os.environ.get("MAMEY_LOG", "info").lower(), logging.INFO)
     elif isinstance(level, str):
         level = _LEVELS.get(level.lower(), logging.INFO)
-    handler = logging.StreamHandler(stream if stream is not None else sys.stdout)
+    handler = logging.StreamHandler(stream) if stream is not None else _LiveStdoutHandler()
     handler.setFormatter(logging.Formatter(fmt))
     handler.set_name("mamey-default")
     for h in list(root.handlers):

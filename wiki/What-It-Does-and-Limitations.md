@@ -1,6 +1,6 @@
 # What It Does and Limitations
 
-*Current to bundle v9.7.445 · engine Mamey 1.9.172. Documentation
+*Current to bundle v9.7.446 · engine Mamey 1.9.172. Documentation
 only — confers no scientific, release, or publication authority; class-level hypotheses,
 judgment deferred.*
 

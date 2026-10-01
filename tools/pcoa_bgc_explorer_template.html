@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__PAGE_TITLE__</title>
+<style>
+/* Layout: control bar on top; protein map (canvas) beside the BGC panel, stacked on phones. Tokens mirror the PCoA figures. */
+:root {
+  --bg: #f6f7f4; --panel: #ffffff; --fg: #1c211e; --muted: #626b66; --line: #dde2db; --soft: #eef1ec;
+  --c0: #d9532c; --c1: #2e9e5b; --c2: #8a5bb8; --cx: #9a7b2f; --mibig: #6f9bc9; --ref: #c3c8c1; --sid: #d9ddd6;
+  --k-core: #c2410c; --k-add: #e9a47e; --k-transport: #4f7fb8; --k-reg: #3f9a5c; --k-other: #c4c9c3; --sel: #1c211e;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111513; --panel: #181d1a; --fg: #e5eae6; --muted: #98a29c; --line: #2b322e; --soft: #1f2522;
+  --c0: #ee6c43; --c1: #4cc07c; --c2: #a985d6; --cx: #c9a54a; --mibig: #82acd9; --ref: #4b534e; --sid: #3a413d;
+  --k-core: #f07a42; --k-add: #b8775a; --k-transport: #6b9ad3; --k-reg: #5cb878; --k-other: #4b534e; --sel: #f4f7f5; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111513; --panel: #181d1a; --fg: #e5eae6; --muted: #98a29c; --line: #2b322e; --soft: #1f2522;
+  --c0: #ee6c43; --c1: #4cc07c; --c2: #a985d6; --cx: #c9a54a; --mibig: #82acd9; --ref: #4b534e; --sid: #3a413d;
+  --k-core: #f07a42; --k-add: #b8775a; --k-transport: #6b9ad3; --k-reg: #5cb878; --k-other: #4b534e; --sel: #f4f7f5; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.45; }
+.wrap { padding-inline: 16px; padding-block: 14px 28px; max-width: 1500px; margin: 0 auto; display: grid; gap: 14px; }
+header { display: grid; gap: 10px; }
+h1 { font-size: 19px; font-weight: 700; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; max-width: 75ch; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.controls label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+select, input[type=search] { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel); color: var(--fg); max-width: 100%; }
+select#set { min-width: 0; width: min(440px, 100%); }
+button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 6px;
+  padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, select:focus-visible, input:focus-visible, .gene:focus-visible { outline: 2px solid var(--c0); outline-offset: 2px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; font-size: 12px; }
+.chip input { margin: 0; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+main { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.plothead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding: 10px 12px 0; align-items: baseline; }
+.plothead .t { font-weight: 700; font-size: 15px; }
+.stats { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.canvasbox { position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 78vh; }
+canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+.zoom { position: absolute; right: 10px; top: 10px; display: flex; gap: 4px; }
+.zoom button { padding: 2px 9px; font-size: 15px; line-height: 1.3; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 12px 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.ring { width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--c0); display: inline-block; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
+  font-size: 12px; max-width: 280px; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+aside { padding: 12px 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+#dbody { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
+#dbody > * { min-width: 0; }
+.empty { color: var(--muted); }
+.ident { font-family: var(--mono); font-size: 13px; word-break: break-all; background: var(--soft); border-radius: 6px; padding: 8px 10px; }
+.hold { color: var(--cx); font-weight: 600; }
+dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; margin: 0; font-size: 13px; }
+dt { color: var(--muted); }
+dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 4px 0 0; font-weight: 600; }
+.mapbox { overflow-x: auto; }
+svg.map { display: block; width: 100%; min-width: 640px; height: auto; }
+.gene { cursor: pointer; }
+.kinds { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+.kinds span { display: inline-flex; gap: 5px; align-items: center; }
+.sw { width: 14px; height: 9px; border-radius: 2px; display: inline-block; }
+.hits { margin: 4px 0 0; padding-left: 20px; font-size: 12px; }
+.hits li { margin: 2px 0; }
+a { color: var(--k-transport); }
+.geneinfo { border-left: 3px solid var(--c0); padding: 6px 10px; background: var(--soft); border-radius: 0 6px 6px 0; font-size: 13px; }
+.links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.links button { font-size: 12px; padding: 2px 8px; }
+.tablebox { overflow-x: auto; max-height: 340px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 12px; }
+th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { position: sticky; top: 0; background: var(--panel); color: var(--muted); font-weight: 600; }
+td.mono { font-family: var(--mono); white-space: nowrap; }
+tr.on td { background: var(--soft); }
+tr[data-i] { cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; text-align: right; }
+footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
+.loading { color: var(--muted); padding: 10px 12px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>__PAGE_TITLE__</h1>
+    <p class="sub">Each point is one protein or domain, placed by amino-acid identity against public genomes and MIBiG, as in the PCoA figures. Click an isolate point to open its BGC. Click a gene in the map to jump to it in any other PCoA.</p>
+    <div class="controls">
+      <label for="set"><span class="lbl">Protein class</span></label>
+      <select id="set" aria-label="Protein class"></select>
+      <label for="axes"><span class="lbl">Axes</span>
+        <select id="axes"><option value="0,1">PCoA 1 × 2</option><option value="0,2">PCoA 1 × 3</option><option value="1,2">PCoA 2 × 3</option></select></label>
+      <label for="color"><span class="lbl">Colour</span>
+        <select id="color"><option value="cohort">by cohort (as figures)</option><option value="genus">by genus</option></select></label>
+      <label for="find"><span class="lbl">Strain</span>
+        <input id="find" type="search" placeholder="strain id" list="strainlist" size="10"></label>
+      <datalist id="strainlist"></datalist>
+    </div>
+    <div class="controls" id="cohorts">
+      <span class="lbl">Show isolates</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="card" aria-label="Protein map">
+      <div class="plothead"><span class="t" id="ptitle">Loading…</span><span class="stats" id="pstats"></span></div>
+      <div class="canvasbox" id="cbox">
+        <canvas id="cv" aria-label="PCoA scatter; click a point for details"></canvas>
+        <div class="zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zreset" aria-label="Reset view">⟲</button></div>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <aside class="card" id="detail" aria-live="polite">
+      <div class="empty" id="hint">
+        <h2>BGC</h2>
+        <p>Click a coloured point to see its strain, contig, region and BGC, with every gene drawn to scale. Or open any strain's BGCs here:</p>
+        <label for="strainpick" class="lbl">Strain</label>
+        <select id="strainpick"><option value="">Choose a strain…</option></select>
+      </div>
+      <div id="dbody" hidden></div>
+    </aside>
+  </main>
+
+  <section class="card" id="outbox" aria-label="Outliers">
+    <div class="plothead"><span class="t">Outliers</span><span class="stats" id="outstats"></span></div>
+    <div class="controls" style="padding:6px 12px">
+      <label for="outgroup"><span class="lbl">Protein classes</span> <select id="outgroup"></select></label>
+      <label for="outtier"><span class="lbl">Call</span> <select id="outtier"><option value="">any</option><option value="far">far in sequence (&lt; 50%)</option><option value="distant">distant in sequence (&lt; 70%)</option><option value="isolated">isolated in the plot</option></select></label>
+      <span class="stats">Only the cohorts ticked above are listed. Click a row to open the point and its BGC. A short or low-coverage contig makes an artifact or contaminant more likely than a new protein.</span>
+    </div>
+    <div class="tablebox" style="margin:0 12px 12px;max-height:420px"><table id="outtable"><thead><tr><th class="num">#</th><th>Call</th><th>Class</th><th>Strain</th><th>BGC</th><th class="num">Best match</th><th class="num">Isolation</th><th>Contig</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <footer id="foot">
+    Points sit where amino-acid identity puts them (all-against-all protein search, classical PCoA). Nearness to a reference or MIBiG protein is similarity of sequence, not a shared product. Gene labels come from antiSMASH and are hints at function. MIBiG hits, where shown, are DIAMOND blastp of each gene against MIBiG proteins; a close MIBiG gene is similarity, not the same compound. NCBI and Swiss-Prot hits, where shown, come from a copy of the BLASTp store and are bound to a gene by strain, locus tag and protein length, or by exact sequence; an NCBI hit is nearest-neighbour similarity, not characterization. A BGC number is shown only when a Mamey package was built from the same antiSMASH result as the region file; otherwise the region is on identity hold.
+  </footer>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const KIND = { "biosynthetic": "--k-core", "biosynthetic-additional": "--k-add", "transport": "--k-transport", "regulatory": "--k-reg" };
+  const KIND_NAME = { "biosynthetic": "core biosynthetic", "biosynthetic-additional": "additional biosynthetic", "transport": "transport", "regulatory": "regulatory", "": "other" };
+  const GENUS_COL = ["#d9532c","#3f7cc0","#2e9e5b","#8a5bb8","#c99a1e","#1aa3a3","#c2457a","#6b8e23","#7a5c3e","#e07b39","#5468a8","#9c3d3d"];
+  const COHORT_VAR = ["--c0", "--c1", "--c2", "--c0", "--c1", "--c2"];
+  const cohortVar = c => c === "excluded" ? "--cx" : COHORT_VAR[Math.max(0, st.index.cohorts.filter(x => x !== "excluded").indexOf(c)) % COHORT_VAR.length];
+  const cohortName = c => c === "excluded" ? "left out of the default view" : String(c || "").replace(/_/g, " ");
+  const st = { index: null, set: null, data: null, view: null, sel: null, regions: {}, find: "", hover: null, genusCol: {} };
+
+  // ---------- data ----------
+  // data files are scripts that call __PBX.put(key, value), so the page also works when opened from disk
+  const pending = {}, cache = {};
+  window.__PBX = { put(key, value) { cache[key] = value; if (pending[key]) { pending[key].forEach(f => f(value)); delete pending[key]; } } };
+  function load(key, file) {
+    if (cache[key]) return Promise.resolve(cache[key]);
+    return new Promise((resolve, reject) => {
+      (pending[key] = pending[key] || []).push(resolve);
+      if (pending[key].length > 1) return;
+      const el = document.createElement("script"); el.src = `data/${file || key}.js`;
+      el.onerror = () => { delete pending[key]; reject(new Error("missing data/" + (file || key) + ".js")); };
+      document.head.appendChild(el);
+    });
+  }
+  async function regionsOf(strain) {
+    if (!st.regions[strain]) st.regions[strain] = await load(`regions/${strain}`, `regions/${st.index.files[strain] || strain}`);
+    return st.regions[strain];
+  }
+
+  // ---------- plot ----------
+  const cv = $("cv"), ctx = cv.getContext("2d"), tip = $("tip");
+  let W = 0, H = 0, dpr = 1;
+  function resize() {
+    const r = cv.getBoundingClientRect(); dpr = window.devicePixelRatio || 1;
+    W = r.width; H = r.height; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); draw();
+  }
+  const pad = { l: 44, r: 12, t: 12, b: 34 };
+  function axes() { return $("axes").value.split(",").map(Number); }
+  function fitView() {
+    const [a, b] = axes(); const P = st.data.pts;
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const p of P) { if (p[a] < x0) x0 = p[a]; if (p[a] > x1) x1 = p[a]; if (p[b] < y0) y0 = p[b]; if (p[b] > y1) y1 = p[b]; }
+    const mx = (x1 - x0) * 0.04 || 0.01, my = (y1 - y0) * 0.04 || 0.01;
+    st.view = { x0: x0 - mx, x1: x1 + mx, y0: y0 - my, y1: y1 + my };
+  }
+  const sx = x => pad.l + (x - st.view.x0) / (st.view.x1 - st.view.x0) * (W - pad.l - pad.r);
+  const sy = y => H - pad.b - (y - st.view.y0) / (st.view.y1 - st.view.y0) * (H - pad.t - pad.b);
+  const ix = px => st.view.x0 + (px - pad.l) / (W - pad.l - pad.r) * (st.view.x1 - st.view.x0);
+  const iy = py => st.view.y0 + (H - pad.b - py) / (H - pad.t - pad.b) * (st.view.y1 - st.view.y0);
+
+  function shown(p) {
+    if (p[3] !== "i") return true;
+    const box = document.querySelector(`input[data-cohort="${CSS.escape(String(p[12]))}"]`);
+    return !!(box && box.checked);
+  }
+  function isoColor(p) {
+    if ($("color").value === "genus") return st.genusCol[st.data.strings[p[4]]] || css("--muted");
+    return css(cohortVar(p[12]));
+  }
+  function ticks(lo, hi, n) {
+    const step0 = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+    const step = [1, 2, 5, 10].map(m => m * mag).find(s => s >= step0) || mag * 10;
+    const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-12; v += step) out.push(+v.toFixed(10)); return out;
+  }
+  function draw() {
+    if (!st.data || !W) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const [a, b] = axes(), P = st.data.pts, pct = st.data.pct || [];
+    const fg = css("--fg"), muted = css("--muted"), line = css("--line");
+    // axes and ticks
+    ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = "11px " + css("--font");
+    ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H - pad.b); ctx.lineTo(W - pad.r, H - pad.b); ctx.stroke();
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (const v of ticks(st.view.x0, st.view.x1, 5)) { const x = sx(v); ctx.fillText(v.toFixed(2), x, H - pad.b + 5); }
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (const v of ticks(st.view.y0, st.view.y1, 5)) { const y = sy(v); ctx.fillText(v.toFixed(2), pad.l - 5, y); }
+    ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillStyle = fg;
+    ctx.fillText(`PCoA ${a + 1} (${pct[a] ?? "?"}%)`, pad.l + (W - pad.l - pad.r) / 2, H - 2);
+    ctx.save(); ctx.translate(11, pad.t + (H - pad.t - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = "middle";
+    ctx.fillText(`PCoA ${b + 1} (${pct[b] ?? "?"}%)`, 0, 0); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+    const find = st.find, dim = !!find;
+    // background: SID, references, MIBiG
+    const layers = [["s", css("--sid"), 1.6], ["r", css("--ref"), 1.7], ["m", css("--mibig"), 2.1]];
+    for (const [code, col, r] of layers) {
+      ctx.fillStyle = col; ctx.globalAlpha = dim ? 0.45 : 1; ctx.beginPath();
+      for (const p of P) if (p[3] === code) { const x = sx(p[a]), y = sy(p[b]); ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, 6.2832); }
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // isolates: solid when the best reference/MIBiG match is below 70 % identity, hollow otherwise
+    const labels = [];
+    for (let i = 0; i < P.length; i++) {
+      const p = P[i]; if (p[3] !== "i" || !shown(p)) continue;
+      const hit = find && st.data.strings[p[5]].toUpperCase() === find;
+      if (dim && !hit) ctx.globalAlpha = 0.25;
+      const x = sx(p[a]), y = sy(p[b]), col = isoColor(p), r = hit ? 6 : 4.2;
+      const low = p[13] !== null && p[13] < 70;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832);
+      if (low) { ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = fg; ctx.stroke(); }
+      else { ctx.fillStyle = css("--panel"); ctx.fill(); ctx.lineWidth = 1.8; ctx.strokeStyle = col; ctx.stroke(); }
+      ctx.globalAlpha = 1;
+      if (($("labels").checked && p[17]) || hit) labels.push([x, y, st.data.strings[p[5]]]);
+    }
+    ctx.font = "11px " + css("--font"); ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+    for (const [x, y, t] of labels) { ctx.lineWidth = 3; ctx.strokeStyle = css("--panel"); ctx.strokeText(t, x + 6, y - 4); ctx.fillStyle = fg; ctx.fillText(t, x + 6, y - 4); }
+    if (st.sel !== null && st.data.pts[st.sel]) {
+      const p = st.data.pts[st.sel], x = sx(p[a]), y = sy(p[b]);
+      ctx.lineWidth = 2.5; ctx.strokeStyle = css("--sel"); ctx.beginPath(); ctx.arc(x, y, 9, 0, 6.2832); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function nearest(px, py, isolatesOnly) {
+    const [a, b] = axes(); let best = null, bd = 144;
+    st.data.pts.forEach((p, i) => {
+      if (isolatesOnly && p[3] !== "i") return;
+      if (p[3] === "i" && !shown(p)) return;
+      const dx = sx(p[a]) - px, dy = sy(p[b]) - py, d = dx * dx + dy * dy;
+      if (d < bd || (best !== null && st.data.pts[best][3] !== "i" && p[3] === "i" && d < 144)) { bd = d; best = i; }
+    });
+    return best;
+  }
+  // pan, zoom, click
+  let drag = null;
+  cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); drag = { x: e.offsetX, y: e.offsetY, v: { ...st.view }, moved: false }; });
+  cv.addEventListener("pointermove", e => {
+    if (drag) {
+      const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
+      if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+      if (drag.moved) {
+        const kx = (drag.v.x1 - drag.v.x0) / (W - pad.l - pad.r), ky = (drag.v.y1 - drag.v.y0) / (H - pad.t - pad.b);
+        st.view = { x0: drag.v.x0 - dx * kx, x1: drag.v.x1 - dx * kx, y0: drag.v.y0 + dy * ky, y1: drag.v.y1 + dy * ky }; draw();
+      }
+      return;
+    }
+    const i = st.data ? nearest(e.offsetX, e.offsetY, false) : null;
+    if (i === null) { tip.hidden = true; return; }
+    const p = st.data.pts[i], S = st.data.strings;
+    tip.innerHTML = p[3] === "i"
+      ? `<b>${S[p[5]]}</b> · ${S[p[4]]}<br>${S[p[7]] || ""} · best match ${p[13] ?? "?"}% identity<br><span style="color:var(--muted)">click to open the BGC</span>`
+      : `${{ r: "Reference genome", m: "MIBiG cluster", s: "SID collection genome" }[p[3]]}<br><b>${esc(S[p[5]]).replace(/_/g, " ")}</b><br>${S[p[7]] || ""}${p[6] > 1 ? ` · stands for ${p[6]} proteins` : ""}`;
+    tip.hidden = false;
+    const bx = Math.min(e.offsetX + 14, W - 290); tip.style.left = Math.max(4, bx) + "px"; tip.style.top = (e.offsetY + 14) + "px";
+  });
+  cv.addEventListener("pointerleave", () => { tip.hidden = true; });
+  cv.addEventListener("pointerup", e => {
+    const d = drag; drag = null;
+    if (d && !d.moved) { const i = nearest(e.offsetX, e.offsetY, true); if (i !== null) selectPoint(i); }
+  });
+  function zoomAt(px, py, f) {
+    const x = ix(px), y = iy(py), v = st.view;
+    st.view = { x0: x - (x - v.x0) * f, x1: x + (v.x1 - x) * f, y0: y - (y - v.y0) * f, y1: y + (v.y1 - y) * f }; draw();
+  }
+  cv.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, e.deltaY > 0 ? 1.18 : 1 / 1.18); }, { passive: false });
+  $("zin").onclick = () => zoomAt(W / 2, H / 2, 1 / 1.5);
+  $("zout").onclick = () => zoomAt(W / 2, H / 2, 1.5);
+  $("zreset").onclick = () => { fitView(); draw(); };
+
+  function outliers() {
+    const O = st.index.outliers || [], g = $("outgroup").value, t = $("outtier").value;
+    const on = new Set([...document.querySelectorAll("#cohorts input[data-cohort]")].filter(x => x.checked).map(x => x.dataset.cohort));
+    const rows = O.filter(r => on.has(r[3]) && (!g || r[8] === g) && (!t || r[4].includes(t)));
+    $("outstats").textContent = `${rows.length.toLocaleString()} called points (of ${O.length.toLocaleString()} listed)`;
+    $("outtable").querySelector("tbody").innerHTML = rows.slice(0, 500).map((r, k) =>
+      `<tr data-o="${esc(r[0])}|${r[1]}"><td class="num">${k + 1}</td><td>${esc(r[4])}</td><td>${esc(r[0])} · ${esc(r[9])}</td><td>${esc(r[2])}</td>`
+      + `<td class="mono">${esc(r[7] || r[10])}</td><td class="num">${r[5] ?? "?"}%</td><td class="num">${r[6] ?? ""}${r[6] != null ? "×" : ""}</td><td>${r[11] ? `<span class="hold">${esc(r[11])}</span>` : ""}</td></tr>`).join("");
+  }
+  function legend() {
+    const D = st.data, P = D.pts, S = D.strings;
+    const n = c => P.filter(p => p[3] === c).reduce((s, p) => s + p[6], 0);
+    const iso = P.filter(p => p[3] === "i" && shown(p));
+    const low = iso.filter(p => p[13] !== null && p[13] < 70);
+    let h = `<span><span class="dot" style="background:var(--ref)"></span>reference genomes (${n("r").toLocaleString()} proteins)</span>`
+      + `<span><span class="dot" style="background:var(--sid)"></span>SID collection (${n("s").toLocaleString()})</span>`
+      + `<span><span class="dot" style="background:var(--mibig)"></span>MIBiG (${n("m").toLocaleString()})</span>`;
+    if ($("color").value === "cohort") {
+      h += `<span><span class="dot" style="background:var(--c0);outline:1px solid var(--fg)"></span>isolates, best match &lt; 70% identity (${low.length})</span>`
+        + `<span><span class="ring"></span>isolates, best match ≥ 70% (${iso.length - low.length})</span>`;
+    } else {
+      const gs = [...new Set(iso.map(p => S[p[4]]))].sort();
+      h += gs.map(g => `<span><span class="dot" style="background:${st.genusCol[g]}"></span><i>${esc(g)}</i></span>`).join("");
+    }
+    $("legend").innerHTML = h;
+    const strains = new Set(iso.map(p => S[p[5]]));
+    $("pstats").textContent = `${iso.length.toLocaleString()} isolate points from ${strains.size} strains · ${P.length.toLocaleString()} points in all · ~${D.approx_id}% identity clusters`;
+  }
+
+  // ---------- set loading ----------
+  async function loadSet(s, then) {
+    st.set = s; $("set").value = s; $("ptitle").textContent = "Loading…";
+    try { history.replaceState(null, "", "#" + s); } catch (e) {}
+    st.data = await load(`sets/${s}`);
+    st.sel = null;
+    const gs = [...new Set(st.data.pts.filter(p => p[3] === "i").map(p => st.data.strings[p[4]]))].sort();
+    gs.forEach((g, i) => { if (!st.genusCol[g]) st.genusCol[g] = GENUS_COL[Object.keys(st.genusCol).length % GENUS_COL.length]; });
+    $("ptitle").textContent = `${s} · ${st.data.title}`;
+    fitView(); legend(); draw();
+    if (then !== undefined) selectPoint(then);
+  }
+
+  // ---------- detail panel ----------
+  const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  async function selectPoint(i) {
+    st.sel = i; draw();
+    const p = st.data.pts[i], S = st.data.strings, strain = S[p[5]];
+    const pointInfo = { set: st.set, title: st.data.title, subtype: S[p[7]], locus: p[9], length: p[11], pid: p[13], qcov: p[14],
+      nstrain: p[15], nsource: p[16], genus: S[p[4]], cohort: p[12], iso: (st.data.isolation || {})[String(i)] };
+    let regs = {};
+    try { regs = await regionsOf(strain); } catch (e) { regs = {}; }
+    const reg = regs[p[10]];
+    showDetail(strain, reg, p[9], pointInfo, p[10]);
+  }
+  function identityLine(strain, reg) {
+    if (!reg) return "";
+    const alias = reg.alias ? reg.alias : `<span class="hold">alias on hold</span>`;
+    return `<div class="ident">${esc(strain)} / ${esc(reg.node)} / ${esc(reg.region)} / ${alias}</div>`
+      + (reg.alias ? "" : `<div class="hold" style="font-size:12px">Identity hold: ${esc(reg.alias_hold)}.</div>`);
+  }
+  function geneFill(c) {
+    if (st.gmode !== "mibig") return `var(${KIND[c[4]] || "--k-other"})`;
+    const h = (c[10] || [])[0]; if (!h) return "var(--k-other)";
+    return `color-mix(in srgb, var(--mibig) ${Math.round(Math.max(12, Math.min(100, (h[3] - 25) / 70 * 100)))}%, var(--panel))`;
+  }
+  function geneMap(reg, selLocus) {
+    const Wd = 640, L = reg.length || 1, rowH = 34, trackY = 30, H = 96;
+    const k = Wd / L;
+    let g = `<svg class="map" viewBox="0 0 ${Wd} ${H}" role="img" aria-label="Genes of ${esc(reg.node)} ${esc(reg.region)}">`;
+    g += `<line x1="0" y1="${trackY + rowH / 2}" x2="${Wd}" y2="${trackY + rowH / 2}" stroke="var(--line)" stroke-width="1.5"/>`;
+    reg.cds.forEach((c, j) => {
+      const [s, e, str, locus, kind] = c; const x0 = s * k, x1 = e * k, w = Math.max(x1 - x0, 2), head = Math.min(9, w * 0.45);
+      const y0 = trackY + 3, y1 = trackY + rowH - 3, ym = trackY + rowH / 2;
+      const pts = str >= 0 ? `${x0},${y0} ${x1 - head},${y0} ${x1},${ym} ${x1 - head},${y1} ${x0},${y1}`
+                           : `${x1},${y0} ${x0 + head},${y0} ${x0},${ym} ${x0 + head},${y1} ${x1},${y1}`;
+      const on = locus === selLocus, inSets = reg.sets && reg.sets[locus];
+      g += `<polygon class="gene" tabindex="0" data-j="${j}" points="${pts}" fill="${geneFill(c)}" stroke="${on ? "var(--sel)" : "var(--panel)"}" stroke-width="${on ? 3 : 0.8}"><title>${esc(locus)} · ${esc(c[5] || c[6] || "no function")}${(c[10] || [])[0] ? ` · MIBiG ${c[10][0][3]}% ${esc(c[10][0][2])}` : ""}</title></polygon>`;
+      if (inSets) g += `<circle cx="${(x0 + x1) / 2}" cy="${trackY - 6}" r="3.2" fill="var(--c0)"/>`;
+    });
+    const kb = L / 1000; const tk = ticks(0, kb, 6);
+    for (const v of tk) { const x = v * 1000 * k; g += `<line x1="${x}" x2="${x}" y1="${H - 18}" y2="${H - 13}" stroke="var(--muted)"/><text x="${Math.min(Math.max(x, 8), Wd - 14)}" y="${H - 2}" font-size="11" fill="var(--muted)" text-anchor="middle">${v} kb</text>`; }
+    g += `<text x="0" y="12" font-size="11" fill="var(--muted)">● gene also in a PCoA (click it)</text></svg>`;
+    return g;
+  }
+  function geneInfo(reg, j) {
+    const c = reg.cds[j], [s, e, str, locus, kind, func, prod, doms, aa] = c;
+    const sets = (reg.sets && reg.sets[locus]) || [];
+    const btns = sets.map(([set, pi]) => `<button data-jump="${set}|${pi}">${esc(set)}</button>`).join("");
+    return `<div class="geneinfo"><b class="mono" style="font-family:var(--mono)">${esc(locus)}</b> · ${aa ? aa + " aa" : ""} · ${str >= 0 ? "+" : "−"} strand · ${(s / 1000).toFixed(1)}–${(e / 1000).toFixed(1)} kb<br>`
+      + `${esc(KIND_NAME[kind] ?? kind)}${func ? " · " + esc(func) : ""}${prod && prod !== func ? "<br>" + esc(prod) : ""}${doms ? `<br>Domains: ${esc(doms.replace(/;/g, ", "))}` : ""}`
+      + blastpList(c[9]) + mibigList(c[10])
+      + (sets.length ? `<div class="links"><span style="font-size:12px;color:var(--muted)">Open in PCoA:</span>${btns}</div>` : `<div style="font-size:12px;color:var(--muted);margin-top:4px">Not in any PCoA set.</div>`)
+      + `</div>`;
+  }
+  function blastpList(b) {
+    if (!b || (!b.nr && !b.sp)) return `<div style="font-size:12px;color:var(--muted);margin-top:4px">No NCBI or Swiss-Prot BLASTp bound to this gene.</div>`;
+    const one = (lab, x) => x ? `<li><span style="color:var(--muted)">${lab}</span> <b>${x[0]}%</b>${x[1] !== null ? ` over ${x[1]}%` : ""} · ${esc(x[3])}${x[2] && !x[3].includes(x[2]) ? ` · <i>${esc(x[2])}</i>` : ""} · E ${esc(x[4])}</li>` : "";
+    return `<div style="margin-top:6px"><span style="font-size:12px;color:var(--muted)">BLASTp (from the BLASTp database snapshot):</span><ul class="hits">`
+      + one(b.nr && b.nr[5] === "ncbi_clustered_nr" ? "ClusteredNR" : "NCBI nr", b.nr) + one(b.sp && b.sp[5] === "ebi_uniprot" ? "UniProt" : "Swiss-Prot", b.sp) + `</ul></div>`;
+  }
+  function mibigList(h) {
+    if (!h || !h.length) return `<div style="font-size:12px;color:var(--muted);margin-top:4px">No MIBiG protein hit (DIAMOND blastp, E ≤ 1e-5).</div>`;
+    return `<div style="margin-top:6px"><span style="font-size:12px;color:var(--muted)">Closest MIBiG genes (DIAMOND blastp):</span><ol class="hits">`
+      + h.map(x => `<li><b>${x[3]}%</b> over ${x[4]}% · ${esc(x[2] || "gene")} · <a href="https://mibig.secondarymetabolites.org/repository/${esc(x[0])}" target="_blank" rel="noopener">${esc(x[0])}</a>${x[1] ? " (" + esc(x[1]) + ")" : ""} · E ${esc(x[5])}</li>`).join("")
+      + `</ol></div>`;
+  }
+  function geneTable(reg, selLocus) {
+    const rows = reg.cds.map((c, j) => {
+      const sets = (reg.sets && reg.sets[c[3]]) || [];
+      return `<tr data-i="${j}" class="${c[3] === selLocus ? "on" : ""}"><td class="mono">${esc(c[3])}</td><td class="num">${c[8] || ""}</td>`
+        + `<td><span class="sw" style="background:var(${KIND[c[4]] || "--k-other"})"></span></td><td>${esc(c[5] || c[6] || "")}</td>`
+        + `<td>${esc((c[7] || "").replace(/;/g, ", "))}</td>`
+        + `<td>${c[9] && c[9].nr ? `<span class="num">${c[9].nr[0]}%</span> ${esc(c[9].nr[3].split(" [")[0])}` : ""}</td>`
+        + `<td>${(c[10] || [])[0] ? `<span class="num">${c[10][0][3]}%</span> ${esc((c[10][0][2] || "").split(":")[0])} · ${esc(c[10][0][1] || c[10][0][0])}` : ""}</td>`
+        + `<td>${sets.map(x => esc(x[0])).join(", ")}</td></tr>`;
+    }).join("");
+    return `<div class="tablebox"><table><thead><tr><th>Gene</th><th class="num">aa</th><th></th><th>Function (antiSMASH)</th><th>Domains</th><th>Best NCBI hit</th><th>Closest MIBiG gene</th><th>PCoA</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  async function showDetail(strain, reg, selLocus, pt, origin) {
+    $("hint").hidden = true; const D = $("dbody"); D.hidden = false;
+    let h = "";
+    if (pt) {
+      h += `<div><h2>Selected point · ${esc(pt.set)}</h2><dl>`
+        + `<dt>Strain</dt><dd>${esc(strain)} (<i>${esc(pt.genus)}</i>; ${esc(cohortName(pt.cohort))})</dd>`
+        + `<dt>Class</dt><dd>${esc(pt.title)}${pt.subtype ? " · " + esc(pt.subtype) : ""}</dd>`
+        + `<dt>Gene</dt><dd style="font-family:var(--mono)">${esc(pt.locus)} · ${pt.length} aa</dd>`
+        + `<dt>Best match</dt><dd>${pt.pid ?? "?"}% identity over ${pt.qcov ?? "?"}% of the protein · ${esc((pt.nstrain || "").replace(/_/g, " "))} (${esc({ MIBiG: "MIBiG", reference_held: "reference genome", reference_download: "reference genome", reference_extra: "reference genome", SID_held: "SID collection", SID_download: "SID collection" }[pt.nsource] || pt.nsource)})</dd>`
+        + (pt.iso != null ? `<dt>Isolation</dt><dd>${pt.iso}× the 95th percentile of the reference points' own nearest-neighbour distances (PCoA 1–3; above 1 = an emptier neighbourhood than 95% of them)</dd>` : "")
+        + `</dl></div>`;
+    }
+    if (reg) {
+      h += `<div><h2>BGC</h2>${identityLine(strain, reg)}<dl style="margin-top:6px">`
+        + `<dt>antiSMASH product</dt><dd>${esc(reg.product)}</dd><dt>Length</dt><dd>${(reg.length / 1000).toFixed(1)} kb · ${reg.cds.length} genes</dd>`
+        + `<dt>Contig edge</dt><dd>${reg.edge === "True" ? "yes: the region runs off its contig, so it may be incomplete" : reg.edge === "False" ? "no" : "not recorded"}</dd>`
+        + (reg.alias_source ? `<dt>BGC number from</dt><dd style="font-size:12px">${esc(reg.alias_source)}</dd>` : "")
+        + `</dl></div>`
+        + `<div class="mapbox">${geneMap(reg, selLocus)}</div>`
+        + `<div class="kinds"><label for="gmode" class="lbl">Gene colour</label><select id="gmode"><option value="kind" ${st.gmode !== "mibig" ? "selected" : ""}>by antiSMASH role</option><option value="mibig" ${st.gmode === "mibig" ? "selected" : ""}>by identity to the closest MIBiG gene</option></select></div>`
+        + (st.gmode === "mibig" ? `<div class="kinds"><span><span class="sw" style="background:color-mix(in srgb, var(--mibig) 12%, var(--panel))"></span>≤ 30%</span><span><span class="sw" style="background:color-mix(in srgb, var(--mibig) 50%, var(--panel))"></span>~60%</span><span><span class="sw" style="background:var(--mibig)"></span>≥ 95%</span><span><span class="sw" style="background:var(--k-other)"></span>no hit</span></div>` :
+        `<div class="kinds"><span><span class="sw" style="background:var(--k-core)"></span>core biosynthetic</span><span><span class="sw" style="background:var(--k-add)"></span>additional biosynthetic</span><span><span class="sw" style="background:var(--k-transport)"></span>transport</span><span><span class="sw" style="background:var(--k-reg)"></span>regulatory</span><span><span class="sw" style="background:var(--k-other)"></span>other</span></div>`)
+        + `<div id="ginfo"></div>` + geneTable(reg, selLocus);
+    } else if (origin) {
+      const m = /^([^:]+):(.+)_(\d+)$/.exec(origin);
+      h += `<div><h2>Location</h2><p>This protein was counted genome-wide, not from a BGC region, so there is no BGC map.${m ? ` Contig <span style="font-family:var(--mono)">${esc(m[2])}</span>, protein ${esc(m[3])} on that contig.` : ""}</p></div>`;
+    }
+    // other BGCs of the strain
+    let regs = {}; try { regs = await regionsOf(strain); } catch (e) {}
+    const opts = Object.values(regs).sort((x, y) => (x.alias || "ZZ" + x.node).localeCompare(y.alias || "ZZ" + y.node, undefined, { numeric: true }))
+      .map(r => `<option value="${esc(r.file)}" ${reg && r.file === reg.file ? "selected" : ""}>${esc(r.alias || "hold")} · ${esc(r.node.replace(/_cov_.*/, ""))} ${esc(r.region)} · ${esc(r.product)}</option>`).join("");
+    h += `<div><label class="lbl" for="otherreg">Other BGCs of ${esc(strain)} with a protein in these PCoAs (${Object.keys(regs).length})</label><br><select id="otherreg" style="width:100%">${opts}</select></div>`;
+    h += `<div><label class="lbl" for="strainpick2">Another strain</label><br><select id="strainpick2">${$("strainpick").innerHTML}</select></div>`;
+    D.innerHTML = h;
+    // wiring
+    const ginfo = $("ginfo");
+    const pick = j => { if (ginfo && reg) { ginfo.innerHTML = geneInfo(reg, j); D.querySelectorAll("tr[data-i]").forEach(tr => tr.classList.toggle("on", +tr.dataset.i === j)); } };
+    if (reg) {
+      const j0 = reg.cds.findIndex(c => c[3] === selLocus); if (j0 >= 0) pick(j0);
+      D.querySelectorAll(".gene").forEach(el => { el.addEventListener("click", () => pick(+el.dataset.j)); el.addEventListener("keydown", e => { if (e.key === "Enter") pick(+el.dataset.j); }); });
+      D.querySelectorAll("tr[data-i]").forEach(tr => tr.addEventListener("click", () => pick(+tr.dataset.i)));
+    }
+    D.addEventListener("click", e => {
+      const b = e.target.closest("button[data-jump]"); if (!b) return;
+      const [set, pi] = b.dataset.jump.split("|"); loadSet(set, +pi);
+      document.querySelector(".card").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    $("otherreg").onchange = e => showDetail(strain, regs[e.target.value], null, null, null);
+    if ($("gmode")) $("gmode").onchange = e => { st.gmode = e.target.value; showDetail(strain, reg, selLocus, pt, origin); };
+    $("strainpick2").onchange = e => openStrain(e.target.value);
+  }
+  async function openStrain(s) {
+    if (!s) return;
+    const regs = await regionsOf(s);
+    const first = Object.values(regs).sort((x, y) => (x.alias || "ZZ").localeCompare(y.alias || "ZZ", undefined, { numeric: true }))[0];
+    st.find = s.toUpperCase(); $("find").value = s; draw();
+    showDetail(s, first, null, null, null);
+  }
+
+  // ---------- boot ----------
+  async function boot() {
+    st.index = await load("index");
+    const order = [], groups = {};
+    for (const s of st.index.sets) { if (!groups[s.group]) { groups[s.group] = []; order.push(s.group); } groups[s.group].push(s); }
+    $("set").innerHTML = order.map(g => `<optgroup label="${esc(g)}">`
+      + groups[g].map(s => `<option value="${esc(s.set)}">${esc(s.set)} · ${esc(s.title)} (${s.shown} cohort points)</option>`).join("") + `</optgroup>`).join("");
+    const box = $("cohorts");
+    st.index.cohorts.forEach((c, i) => {
+      const lab = document.createElement("label"); lab.className = "chip";
+      lab.innerHTML = `<input type="checkbox" id="co-${i}" data-cohort="${esc(c)}" ${st.index.show.includes(c) ? "checked" : ""}> <span class="dot" style="background:var(${cohortVar(c)})"></span> ${esc(cohortName(c))}${c === "excluded" && st.index.excluded.length ? " (" + esc(st.index.excluded.join(", ")) + ")" : ""}`;
+      box.appendChild(lab);
+      lab.querySelector("input").onchange = () => { legend(); draw(); outliers(); };
+    });
+    const og = [...new Set((st.index.outliers || []).map(r => r[8]))];
+    $("outgroup").innerHTML = `<option value="">all</option>` + og.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+    $("outgroup").onchange = outliers; $("outtier").onchange = outliers;
+    $("outtable").addEventListener("click", e => { const tr = e.target.closest("tr[data-o]"); if (!tr) return;
+      const [set, pi] = tr.dataset.o.split("|"); loadSet(set, +pi); document.querySelector(".card").scrollIntoView({ behavior: "smooth", block: "start" }); });
+    const ll = document.createElement("label"); ll.className = "chip";
+    ll.innerHTML = `<input type="checkbox" id="labels" checked> strain labels`; box.appendChild(ll);
+    $("labels").onchange = () => { legend(); draw(); };
+    if (st.index.notes && st.index.notes.length) { const p = document.createElement("p"); p.textContent = st.index.notes.join(" "); $("foot").appendChild(p); }
+    const so = st.index.strains.map(s => `<option value="${esc(s)}">${esc(s)}${st.index.cohort_of[s] ? " · " + esc(cohortName(st.index.cohort_of[s])) : ""}</option>`).join("");
+    $("strainpick").innerHTML = `<option value="">Choose a strain…</option>` + so;
+    $("strainlist").innerHTML = st.index.strains.map(s => `<option value="${esc(s)}">`).join("");
+    $("strainpick").onchange = e => openStrain(e.target.value);
+    const want = (location.hash || "").slice(1);
+    const start = st.index.sets.find(s => s.set === want) ? want : st.index.sets[0].set;
+    new ResizeObserver(resize).observe($("cbox"));
+    await loadSet(start);
+    outliers();
+    resize();
+  }
+  $("set").onchange = e => loadSet(e.target.value);
+  $("axes").onchange = () => { fitView(); draw(); };
+  $("color").onchange = () => { legend(); draw(); };
+  $("find").oninput = e => { st.find = e.target.value.trim().toUpperCase(); draw(); };
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  boot().catch(err => { $("ptitle").textContent = "Could not load the data: " + err.message; });
+})();
+</script>
+</body>
+</html>

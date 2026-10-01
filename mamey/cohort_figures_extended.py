@@ -27,6 +27,9 @@ Figures written to --out:
     fig6_kcb_novelty.png       KCB novelty landscape (BGCs ranked by similarity; dark = candidate-novel)
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -90,7 +93,7 @@ def _sidecar_csv(png_path, header, rows):
                 w.writerow(r)
         os.replace(tmp, csv_path)
     except OSError as e:  # pragma: no cover - disk/permission only; keep the figure
-        emit(f"  (sidecar write failed for {os.path.basename(csv_path)}: {e})")
+        _OUT.info('%s', f"  (sidecar write failed for {os.path.basename(csv_path)}: {e})")
     return csv_path
 
 
@@ -249,7 +252,7 @@ def fig_enriched_locus(root, sid, bgc, out):
     genes = load_genes(root, sid).get(bgc, [])
     inv = {r["BGC_ID"]: r for r in load_inventory(root, sid)}.get(bgc, {})
     if not genes:
-        emit(f"  (no genes for {sid} {bgc}; skipping locus map)"); return
+        _OUT.info('%s', f"  (no genes for {sid} {bgc}; skipping locus map)"); return
     xs = [int(g["cds_start"]) for g in genes] + [int(g["cds_end"]) for g in genes]
     x0 = min(xs); span = (max(xs) - x0) / 1000.0
     fig, ax = plt.subplots(figsize=(15, 5.0))
@@ -413,7 +416,7 @@ def fig_cctt_heatmap(root, strains, out):
         all_trigs.update(per)
     fams = [f for f, _ in all_trigs.most_common()]
     if not fams:
-        emit("  (no CCTT triggers; skipping fig7)"); return
+        _OUT.info('%s', "  (no CCTT triggers; skipping fig7)"); return
     M = np.array([[trig_by_strain[sid].get(f, 0) for sid in strains] for f in fams], float)
     fig, ax = plt.subplots(figsize=(1.6 + 1.3 * len(strains), 0.5 + 0.42 * len(fams)))
     im = ax.imshow(M, cmap="YlOrRd", aspect="auto")

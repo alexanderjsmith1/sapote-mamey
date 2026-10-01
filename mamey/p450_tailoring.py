@@ -23,6 +23,9 @@ scaffold context, NOT a proven catalytic activity, and NEVER a product/structure
 claim. Judgment deferred.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -258,12 +261,11 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
 
 def p450_tailoring_command(args) -> int:
     res = run(args.package, getattr(args, "out", None))
-    emit(f"p450-tailoring: {res.get('status')} | strain={res.get('strain','?')} | "
+    _OUT.info('%s', f"p450-tailoring: {res.get('status')} | strain={res.get('strain','?')} | "
           f"P450 genes={res.get('p450_genes', 0)} in {res.get('bgcs_with_p450', 0)} BGCs")
     if res.get("status") == "ok":
-        emit(f"  crosslinker-candidates={res['crosslinker_candidates']} "
-              f"({res['cassette_bgcs']} cassette BGCs)",
-             f"  -> {res['out_dir']}", sep="\n")
+        _OUT.info('%s\n%s', f"  crosslinker-candidates={res['crosslinker_candidates']} "
+              f"({res['cassette_bgcs']} cassette BGCs)", f"  -> {res['out_dir']}")
     return 0
 
 

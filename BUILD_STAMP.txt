@@ -1,5 +1,5 @@
-version=9.7.445
-build=20260930v97445a
+version=9.7.446
+build=20261001v97446a
 engine=1.9.172
-patch=Registry test discovery.; Packed lane wrapper.; Standalone package wording.; Rare genera outgroup snapshot.; Placement reference home.; RG GMCI depth and residue evidence.; Pipefail checks.; Asset registry discovery.
+patch=PCoA-to-BGC explorer.; Protein-class PCoA renderer.; Protein-class PCoA ordination.; Library progress lines through the engine logger.; A ZIP without its whole-genome GenBank no longer fails RG-GMCI.; Standalone rggmci 1.0.0rc2.; print_calls waiver retired.
 tier=code

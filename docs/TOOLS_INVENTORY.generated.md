@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**413 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**416 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -299,6 +299,7 @@
 | `parked_card_audit.py` | flag patch-pool cards that silently fell out of the cut cadence. |
 | `patch_packet_preflight.py` | Fail closed when a patch packet contains workspace, cache, or evidence bloat. |
 | `patch_queue_composition_audit.py` | advisory pre-composition audit of a patch queue. |
+| `pcoa_bgc_explorer.py` | Build a clickable explorer from protein-class PCoA outputs: click a cohort protein, see its whole BGC. |
 | `phylo_16s_audit_merges.py` | phylo 16s audit merges. External inputs remain outside the software bundle. |
 | `phylo_16s_build_db.py` | phylo 16s build db. External inputs remain outside the software bundle. |
 | `phylo_16s_esearch.py` | phylo 16s esearch. External inputs remain outside the software bundle. |
@@ -330,6 +331,8 @@
 | `preview_figure_themes.py` | CLI wrapper for the portable Sapote-Mamey figure-theme gallery prototype. |
 | `professionalism_linter.py` | post-hoc "professionalism" check for Sapote interpretive text |
 | `project_catalog.py` | Operate the portable, hash-bound project catalog without the UI. |
+| `protein_pcoa_ordinate.py` | Build a protein-class PCoA kit from antiSMASH region files: cohort proteins among reference and MIBiG protein… |
+| `protein_pcoa_render.py` | Draw protein-class PCoA figures from an ordination kit: cohort proteins among reference and MIBiG proteins. |
 | `prune_neighbors_from_tree.py` | pick each query strain's nearest reference |
 | `public_release_audit.py` | FAIL-CLOSED audit of a tree destined for the public GitHub release. |
 | `query_support_table.py` | query_support_table.py <placement_dir> <refpkg_dir> <out.tsv> |

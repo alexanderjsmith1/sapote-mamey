@@ -45,6 +45,9 @@ Usage:
     python mamey_run.py good-guesses [ROOT] [--out DIR] [--depth N] [--pdf] [--docx]
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -943,13 +946,13 @@ def good_guesses_command(args) -> int:
               docx=getattr(args, "docx", False))
     if res.get("out_dir"):
         fc = res["flavour_counts"]
-        emit(f"good-guesses: {res['packages']} package(s) -> {res['guesses']} guess(es) "
+        _OUT.info('%s', f"good-guesses: {res['packages']} package(s) -> {res['guesses']} guess(es) "
               f"across {len(res['strains'])} strain(s) "
               f"[{', '.join(f'{k}={v}' for k, v in fc.items() if v)}] -> {res['out_dir']}")
         for key in ("docx", "pdf"):
             if key in res:
                 st = res[key]
-                emit(f"  {key}: {st.get('status')}"
+                _OUT.info('%s', f"  {key}: {st.get('status')}"
                       + (f" -> {st.get('path')}" if st.get("path") else
                          f" ({st.get('detail', '')})"))
     else:

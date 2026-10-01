@@ -1,3 +1,15 @@
+# v9.7.446 (2026-10-01) — build 20261001v97446a
+
+- **PCoA-to-BGC explorer.** `tools/pcoa_bgc_explorer.py` builds an offline page from protein-class PCoA kits: click a point to open its whole BGC, with per-gene MIBiG and BLASTp evidence and ranked outliers. BGC numbers come only from a package crosswalk whose rows name the strain and list exactly the same region files and coordinates; BLASTp binds by strain, locus tag and protein length, a locus tag naming two proteins is held, and an exact-sequence row reaches every gene with that protein.
+- **Protein-class PCoA renderer.** `tools/protein_pcoa_render.py` (with `protein_pcoa_render.R`) draws the PCoA figures with the strain-label rule, grouping labels on the span of the whole kit; R uses cairo, then Quartz, then base pdf.
+- **Protein-class PCoA ordination.** `tools/protein_pcoa_ordinate.py` builds PCoA kits from region files (extract, Pfam, CARD, ordinate, nearest).
+- **Library progress lines through the engine logger.** 52 library progress lines in 20 modules move from print/emit to the engine logger, byte-identical at the default level; the logger follows a swapped stdout. Command results (JSON, typed refusals, markdown reports, lookups) stay on emit, and WARNING/ERROR lines log at those levels. print_calls ceiling 1,280 → 1,272 (measured).
+- **A ZIP without its whole-genome GenBank no longer fails RG-GMCI.** With a MIBiG protein database found, reference-guided completion raised on region-only ZIPs (such as single-region downloads) and the strain run failed. Such a ZIP now gets the tier `NO_WHOLE_GENOME_GENBANK` on every pair and table row, and its pairs are kept as scored.
+- **Standalone rggmci 1.0.0rc2.** Version bump, an rc2 CHANGELOG entry, and README and output-guide sections for reference-guided completion, `build-mibig-db`, read depth and residue tiling.
+- **print_calls waiver retired.** The signed strict-health waiver no longer covered anything; strict health passes with no waiver.
+
+Engine 1.9.172 unchanged: no score, confidence or threshold changes. The new completion tier appears only on region-only ZIPs, which failed before; ZIPs with a whole-genome GenBank, including every AS cohort ZIP, take the same path as in .445.
+
 # v9.7.445 (2026-09-30) — build 20260930v97445a
 
 - **Registry test discovery.** Owner-table tests discover the nearest governed table independently of bundle depth.

@@ -30,6 +30,9 @@ Usage:
     # or import build_strain_sapote(pkg_dir) -> (markdown_str, meta_dict)
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -578,7 +581,7 @@ def run_from_args(args) -> int:
             pkg, strain, cohort_db=args.cohort_db, cohort_tsv=args.cohort_tsv,
             cutoff=getattr(args, "cutoff", "0.5"), mibig_index=getattr(args, "mibig_index", None))
         if cohort_summary is None:
-            emit("  cohort: no GCF placement found for this strain in the given cohort source "
+            _OUT.info('%s', "  cohort: no GCF placement found for this strain in the given cohort source "
                   "(S5 stays single-strain)")
     md, meta = build_strain_sapote(pkg, cohort_summary=cohort_summary)
     strain = meta.get("strain", "strain")
@@ -588,15 +591,15 @@ def run_from_args(args) -> int:
     receipt_path = out_path.with_suffix(out_path.suffix + ".citation_receipt.json")
     out_path.write_text(md, encoding="utf-8")
     receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    emit(f"strain Mode B -> {out}  ({meta})", f"  S1-S8 citation receipt -> {receipt_path}", sep="\n")
+    _OUT.info('%s\n%s', f"strain Mode B -> {out}  ({meta})", f"  S1-S8 citation receipt -> {receipt_path}")
     if not getattr(args, "no_gate", False):
         rc, problems = validate_strain_card(md)
         if problems:
-            emit("  strain-structure gate: ISSUES (non-blocking) —")
+            _OUT.info('%s', "  strain-structure gate: ISSUES (non-blocking) —")
             for p in problems:
-                emit("    " + p)
+                _OUT.info('%s', "    " + p)
         else:
-            emit("  strain-structure gate: OK (S1–S8 present; claim ceiling complete)")
+            _OUT.info('%s', "  strain-structure gate: OK (S1–S8 present; claim ceiling complete)")
     return 0
 
 

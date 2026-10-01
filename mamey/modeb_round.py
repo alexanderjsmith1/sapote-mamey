@@ -26,6 +26,9 @@ This module produces the worklist and states; the Sapote layer does the authorin
 states by re-running verify on the authored file.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -147,13 +150,13 @@ def modeb_round_command(args) -> int:
     if not r.get("ok"):
         emit(f"[modeb-round] ERROR: {r.get('error')}", file=__import__("sys").stderr)
         return 1
-    emit(f"[modeb-round] {r['strain']}: emitted {r['emitted_n']} triage card(s) "
+    _OUT.info('%s', f"[modeb-round] {r['strain']}: emitted {r['emitted_n']} triage card(s) "
           f"(scope={r['scope']}, requested {r['requested_n']})")
     if r["scaffold_invalid_n"]:
-        emit(f"[modeb-round] WARNING: {r['scaffold_invalid_n']} emitted skeleton(s) FAILED the "
+        _OUT.warning('%s', f"[modeb-round] WARNING: {r['scaffold_invalid_n']} emitted skeleton(s) FAILED the "
               f"structure gate — these are real scaffold bugs, not just unauthored:")
         for e in r["entries"]:
             if e["authoring_state"] == S_SCAFFOLD_BAD:
-                emit(f"    {e['bgc_id']}: {'; '.join(e['scaffold_errors'][:2])}")
-    emit(f"[modeb-round] worklist -> {pkg / 'modeb_round_worklist.json'}", f"[modeb-round] contract: minimum {r['contract']['minimum_before_contact']}; preferred {r['contract']['preferred_before_contact']}", f'[modeb-round] NOTE: authoring is the Sapote/LLM step — this command emits + scaffold-verifies only. Author each card, then `mamey verify-modeb <file>` to advance its state to {S_AUTHORED}.', sep="\n")
+                _OUT.info('%s', f"    {e['bgc_id']}: {'; '.join(e['scaffold_errors'][:2])}")
+    _OUT.info('%s\n%s\n%s', f"[modeb-round] worklist -> {pkg / 'modeb_round_worklist.json'}", f"[modeb-round] contract: minimum {r['contract']['minimum_before_contact']}; preferred {r['contract']['preferred_before_contact']}", f'[modeb-round] NOTE: authoring is the Sapote/LLM step — this command emits + scaffold-verifies only. Author each card, then `mamey verify-modeb <file>` to advance its state to {S_AUTHORED}.')
     return 0

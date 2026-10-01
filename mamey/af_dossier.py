@@ -39,6 +39,9 @@ Usage:
     python mamey_run.py af-dossier [ROOT] [--out DIR] [--activity-table CSV] [--depth N]
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -525,7 +528,7 @@ def af_dossier_command(args) -> int:
               depth=getattr(args, "depth", 3))
     if res.get("out_dir"):
         join = res["measured_join"]
-        emit(f"af-dossier: {res['packages']} packages -> {res['lead_rows']} AF lead rows "
+        _OUT.info('%s', f"af-dossier: {res['packages']} packages -> {res['lead_rows']} AF lead rows "
               f"across {res['strains']} strains; measured Candida join for {join} strain(s); "
               f"{len(res['standout_strains'])} standout strain(s) -> {res['out_dir']}")
     else:

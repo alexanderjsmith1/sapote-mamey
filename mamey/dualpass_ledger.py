@@ -11,6 +11,9 @@ Class-level; reconcile/render only; judgment deferred. Proven on the 2026-07-29 
 macrolide pks_category 430/430 AGREE; RiPP subclass 0->367 AGREE after enum.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -230,7 +233,7 @@ def dualpass_command(args) -> int:
     res = merge(args.claude, args.codex, getattr(args, "out", None),
                 normalize=not getattr(args, "no_normalize", False),
                 miscall_file=getattr(args, "miscalls", None))
-    emit(f"dualpass: {res['claims']} claims | AGREE {res['AGREE']} DISAGREE {res['DISAGREE']} CLAUDE_ONLY {res['CLAUDE_ONLY']} CODEX_ONLY {res['CODEX_ONLY']}", f"  auto-resolved by rule: {res['auto_resolved']} | need discussion: {res['needs_discussion']}", f"  -> {res['out']}", sep="\n")
+    _OUT.info('%s\n%s\n%s', f"dualpass: {res['claims']} claims | AGREE {res['AGREE']} DISAGREE {res['DISAGREE']} CLAUDE_ONLY {res['CLAUDE_ONLY']} CODEX_ONLY {res['CODEX_ONLY']}", f"  auto-resolved by rule: {res['auto_resolved']} | need discussion: {res['needs_discussion']}", f"  -> {res['out']}")
     return 0
 
 

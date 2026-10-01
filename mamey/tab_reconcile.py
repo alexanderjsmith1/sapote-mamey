@@ -6,6 +6,9 @@ antiSMASH-vs-Mamey comparison table.  This is deliberately a raw-evidence report
 it never promotes comparator/product names to compound identities.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -696,5 +699,5 @@ def tab_reconcile_command(args) -> int:
     summary = build_tab_reconciliation(
         args.antismash, args.out, bgc=args.bgc, node=args.node, region=args.region, package=args.package
     )
-    emit(f"tab-reconcile complete: {summary['bgc'] or summary['record_id']}", f"  ledger     : {summary['ledger_csv']}", f"  comparison : {summary['comparison_csv']}", sep="\n")
+    _OUT.info('%s\n%s\n%s', f"tab-reconcile complete: {summary['bgc'] or summary['record_id']}", f"  ledger     : {summary['ledger_csv']}", f"  comparison : {summary['comparison_csv']}")
     return 0

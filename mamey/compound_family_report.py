@@ -14,6 +14,9 @@ the family the anchor belongs to, NEVER a claim the strain makes an active compo
 Comparators are similarity anchors, never identity; judgment deferred.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -258,15 +261,15 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
 def compound_families_command(args) -> int:
     res = run(args.package, getattr(args, "out", None),
               with_structures=not getattr(args, "no_structures", False))
-    emit(f"compound-families: {res.get('status')} | strain={res.get('strain','?')} | "
+    _OUT.info('%s', f"compound-families: {res.get('status')} | strain={res.get('strain','?')} | "
           f"anchored rows={res.get('rows', 0)}")
     if res.get("by_target_class"):
-        emit("  by target class:", res["by_target_class"])
+        _OUT.info('%s %s', "  by target class:", res["by_target_class"])
     if "structures_resolved" in res:
-        emit(f"  structures: {res['structures_resolved']}/{res.get('distinct_anchors',0)} distinct "
+        _OUT.info('%s', f"  structures: {res['structures_resolved']}/{res.get('distinct_anchors',0)} distinct "
               f"anchors resolved to an NP Atlas structure")
     if res.get("out_dir"):
-        emit("  ->", res["out_dir"])
+        _OUT.info('%s %s', "  ->", res["out_dir"])
     return 0
 
 

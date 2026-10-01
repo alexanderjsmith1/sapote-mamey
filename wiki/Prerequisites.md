@@ -1,5 +1,5 @@
 <!-- Mirror of docs/PREREQUISITES.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
-# PREREQUISITES — Sapote–Mamey v9.7.445
+# PREREQUISITES — Sapote–Mamey v9.7.446
 
 Start with [INSTALL](../docs/INSTALL.md) or the [complete walkthrough](../docs/MASTER_WALKTHROUGH.md). The package metadata in [pyproject.toml](../pyproject.toml) defines the supported Python version, core requirements and extras. Use the [README tool table](../README.md#tool-downloads-and-licenses) for upstream downloads and licenses.
 

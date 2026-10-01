@@ -15,6 +15,9 @@ Deterministic and offline (stdlib only). Fail-soft: a missing input ZIP yields a
 handoff with an explicit note, never a crash.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -171,7 +174,7 @@ def handoff_command(args) -> int:
         emit(f"ERROR: {exc}", file=sys.stderr)
         return 1
     mb = res["bytes"] / 1048576
-    emit(f"handoff -> {res['out_zip']} ({mb:.1f} MB)", f"  region GBKs: {res['region_gbks']}" + (f"  (top-{top_n}: {', '.join(res['selected_bgcs'])})" if top_n and res['selected_bgcs'] else '  (all regions)'), sep="\n")
+    _OUT.info('%s\n%s', f"handoff -> {res['out_zip']} ({mb:.1f} MB)", f"  region GBKs: {res['region_gbks']}" + (f"  (top-{top_n}: {', '.join(res['selected_bgcs'])})" if top_n and res['selected_bgcs'] else '  (all regions)'))
     if res["note"]:
-        emit(f"  NOTE: {res['note']}")
+        _OUT.info('%s', f"  NOTE: {res['note']}")
     return 0

@@ -1,5 +1,8 @@
 """Layered per-gene BGC Guide deliverable — lay→technical, Structure/Function/BLASTp per gene."""
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -421,7 +424,7 @@ def guide_command(args) -> int:
         try:
             guide = build_guide(package, bgc, blastp_store=store, audience=audience)
         except Exception as e:
-            emit(f"[guide] {bgc}: build failed — {e}")
+            _OUT.warning('%s', f"[guide] {bgc}: build failed — {e}")
             rc = 1
             continue
         # AUDIT_374: was `guide_quality_gate(guide)` -- the ONLY real production caller
@@ -442,7 +445,7 @@ def guide_command(args) -> int:
             if docx_ok:
                 wrote.append("docx")
             elif fmt == "docx":
-                emit(f"[guide] {bgc}: docx renderer unavailable (python-docx) — writing md fallback")
+                _OUT.info('%s', f"[guide] {bgc}: docx renderer unavailable (python-docx) — writing md fallback")
                 (outdir / f"{stem}.md").write_text(render_markdown(guide), encoding="utf-8")
                 wrote.append("md")
                 rc = 1 if not wrote else rc
@@ -456,10 +459,10 @@ def guide_command(args) -> int:
         }
         (outdir / f"{stem}.receipt.json").write_text(json.dumps(receipt, indent=2), encoding="utf-8")
         status = "OK" if ok else "GATE_FAIL"
-        emit(f"[guide] {bgc}: {status} ({guide['gene_count']} genes; wrote {','.join(wrote)})", f'        note: this gates the SKELETON only. After authoring the LAY slots, run `mamey verify-guide {stem}.md` to validate the finished guide.', sep="\n")
+        _OUT.info('%s\n%s', f"[guide] {bgc}: {status} ({guide['gene_count']} genes; wrote {','.join(wrote)})", f'        note: this gates the SKELETON only. After authoring the LAY slots, run `mamey verify-guide {stem}.md` to validate the finished guide.')
         if not ok:
             for e in errors:
-                emit(f"        ERROR: {e}")
+                _OUT.error('%s', f"        ERROR: {e}")
             rc = 1
     return rc
 

@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.445 stamp=20260930v97445a
+# TIER_MANIFEST tier=code version=9.7.446 stamp=20261001v97446a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -1401,6 +1401,10 @@
 ./tests/test_445_rggmci_depth_and_residue_tiling.py
 ./tests/test_445_rggmci_reference_completion.py
 ./tests/test_445_wiki_mirrors_match_docs.py
+./tests/test_446_library_prints_to_logger.py
+./tests/test_446_pcoa_bgc_explorer.py
+./tests/test_446_protein_pcoa_ordinate.py
+./tests/test_446_protein_pcoa_render.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_absent_median_is_not_a_zero_v97438.py
 ./tests/test_activity_decision_tree_portable.py
@@ -3189,6 +3193,8 @@
 ./tools/parked_card_audit.py
 ./tools/patch_packet_preflight.py
 ./tools/patch_queue_composition_audit.py
+./tools/pcoa_bgc_explorer.py
+./tools/pcoa_bgc_explorer_template.html
 ./tools/phylo_16s_audit_merges.py
 ./tools/phylo_16s_build_db.py
 ./tools/phylo_16s_esearch.py
@@ -3221,6 +3227,9 @@
 ./tools/preview_figure_themes.py
 ./tools/professionalism_linter.py
 ./tools/project_catalog.py
+./tools/protein_pcoa_ordinate.py
+./tools/protein_pcoa_render.R
+./tools/protein_pcoa_render.py
 ./tools/prune_neighbors_from_tree.py
 ./tools/public_release_audit.py
 ./tools/query_support_table.py

@@ -26,9 +26,12 @@ antiSMASH regions (one alignment call per genome covers all such references). Th
   called CLEAR whose pieces sit on the two regions' contigs: one broken gene counts once, however many references see
   it).
 
-Tiers, on every row and in the receipt: FULL, NO_ALIGNER, NO_MIBIG_PROTEINS, OFF. Anything but FULL means the
-completion did not run; missing evidence is not absence of a partner. With no database the tier is NO_MIBIG_PROTEINS
-whatever aligner is installed, so a run without a database reads the same on every machine.
+Tiers, on every row and in the receipt: FULL, NO_ALIGNER, NO_MIBIG_PROTEINS, NO_WHOLE_GENOME_GENBANK, OFF. Anything
+but FULL means the completion did not run; missing evidence is not absence of a partner. With no database the tier is
+NO_MIBIG_PROTEINS whatever aligner is installed, so a run without a database reads the same on every machine. A ZIP
+without a whole-genome GenBank file (region files only, as in a single-region download) cannot be searched outside its
+regions, so its tier is NO_WHOLE_GENOME_GENBANK; it is decided from the input before any aligner is probed, and the
+pairs are kept as RG-GMCI scored them.
 
 Inputs are never searched for on disk: the MIBiG protein database comes from an explicit path, $RGGMCI_MIBIG_DB, or
 (engine only) the workspace asset registry. The aligner is DIAMOND (explicit path, $RGGMCI_DIAMOND, PATH), else BLAST+
@@ -43,6 +46,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import logging
 import os
 import re
 import shutil
@@ -58,6 +62,8 @@ from ._gbk_shim import parse_genbank_text
 from .csv_safety import SafeWriter
 from .residue_tiling import find_diamond, mibig_accession
 from .ziputil import regular_file_names
+
+_log = logging.getLogger(__name__)
 
 # ── Gene table and split-gene check (moved from tools/gap_directed_rescue.py, which imports them) ─────────────────
 MIN_ID, MIN_COV, CLEAR_ID, CLEAR_RATIO = 30.0, 50.0, 35.0, 1.2
@@ -519,7 +525,7 @@ def discover_references(queries: dict, prots: dict, mibig_db, mibig_dir=None, th
 
 
 # ── Completion settings ─────────────────────────────────────────────────────────────────────────────────────────────
-TIERS = ("FULL", "NO_ALIGNER", "NO_MIBIG_PROTEINS", "OFF")
+TIERS = ("FULL", "NO_ALIGNER", "NO_MIBIG_PROTEINS", "NO_WHOLE_GENOME_GENBANK", "OFF")
 SENSITIVITIES = ("sensitive", "more-sensitive", "ultra-sensitive", "default")
 DEFAULT_SENSITIVITY = "sensitive"   # measured: DIAMOND's fast default misses 25-40% homologues; --sensitive finds them
 ALIGN_MAX_EVALUE = "1e-5"           # no identity floor at alignment time; the table rules above decide what counts
@@ -808,6 +814,21 @@ def align(aligner: str, binary: str, query_faa: Path, subject_faa: Path, work: P
 
 
 # ── The genome ──────────────────────────────────────────────────────────────────────────────────────────────────────
+def whole_genome_gbk_name(zf: zipfile.ZipFile) -> str:
+    """The whole-genome GenBank file in an antiSMASH ZIP (the largest .gbk that is not a region file), or ''."""
+    gbks = [n for n in regular_file_names(zf) if n.endswith(".gbk") and ".region" not in Path(n).name]
+    return max(gbks, key=lambda n: zf.getinfo(n).file_size) if gbks else ""
+
+
+def has_whole_genome_gbk(zip_path: str | Path) -> bool:
+    try:
+        with zipfile.ZipFile(zip_path) as zf:
+            return bool(whole_genome_gbk_name(zf))
+    except (OSError, zipfile.BadZipFile) as exc:   # an unreadable input is reported, not searched
+        _log.debug("reference completion: cannot read %s as a ZIP: %s", zip_path, exc)
+        return False
+
+
 def genome_from_zip(zip_path: str | Path, label: str, bgcs: list[Any], edge_ids: set[str]) -> tuple[dict, list]:
     """Every CDS of the whole-genome GenBank in the antiSMASH ZIP (proteins), and the antiSMASH regions.
 
@@ -817,10 +838,9 @@ def genome_from_zip(zip_path: str | Path, label: str, bgcs: list[Any], edge_ids:
     """
     with zipfile.ZipFile(zip_path) as zf:
         names = regular_file_names(zf)
-        gbks = [n for n in names if n.endswith(".gbk") and ".region" not in Path(n).name]
-        if not gbks:
+        genome = whole_genome_gbk_name(zf)
+        if not genome:   # complete() records NO_WHOLE_GENOME_GENBANK before calling this; a direct caller still learns why
             raise FileNotFoundError("no whole-genome GenBank file in the ZIP")
-        genome = max(gbks, key=lambda n: zf.getinfo(n).file_size)
         full: dict[str, str] = {}
         for fa in [n for n in names if n.endswith((".fasta", ".fa", ".fna")) and "input" in n]:
             for line in zf.read(fa).decode("utf-8", "replace").splitlines():
@@ -990,11 +1010,15 @@ def complete(result: dict[str, Any], zip_path: str | Path, bgcs: list[Any], refe
     if mode not in ("auto", "off"):
         raise ValueError("mode must be 'auto' or 'off'")
     have_db = mode != "off" and bool(mibig_db) and Path(mibig_db, DB_FAA).is_file()
-    aligner, binary = find_aligner(diamond) if have_db else ("", "")   # probed only with a database: see Tiers
+    # the input is judged before the machine: a ZIP of region files only reads the same everywhere (see Tiers)
+    has_genome = have_db and has_whole_genome_gbk(zip_path)
+    aligner, binary = find_aligner(diamond) if has_genome else ("", "")   # probed only when it could be used
     if mode == "off":
         tier = "OFF"
     elif not have_db:
         tier = "NO_MIBIG_PROTEINS"
+    elif not has_genome:
+        tier = "NO_WHOLE_GENOME_GENBANK"
     else:
         tier = "FULL" if aligner else "NO_ALIGNER"
     block: dict[str, Any] = {"completion_tier": tier, "aligner": aligner, "sensitivity": sensitivity if aligner else "",

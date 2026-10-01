@@ -9,6 +9,9 @@ Emits: a text table, a CSV, and a JSON (the same aggregate a table/widget render
 CLAIM CEILING: BLASTp = similarity, not identity; counts are BGC-channel coverage, not a claim.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -167,5 +170,5 @@ def blastp_availability_command(args) -> int:
     out = getattr(args, "out", None)
     if out:
         paths = write(agg, out)
-        emit(f"\n-> {paths['csv']}\n-> {paths['json']}")
+        _OUT.info('%s', f"\n-> {paths['csv']}\n-> {paths['json']}")
     return 0

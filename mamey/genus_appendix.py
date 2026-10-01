@@ -15,6 +15,9 @@ Usage:
     python mamey_run.py genus-appendix [ROOT] [--out DIR] [--depth N]
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -181,7 +184,7 @@ def genus_appendix_command(args) -> int:
               out_dir=getattr(args, "out", None),
               depth=getattr(args, "depth", 3))
     if res.get("out_dir"):
-        emit(f"genus-appendix: {res['packages']} packages -> "
+        _OUT.info('%s', f"genus-appendix: {res['packages']} packages -> "
               f"{res['af_candidate_rows']} AF + {res['ab_candidate_rows']} AB candidate rows "
               f"written to {res['out_dir']}")
     else:

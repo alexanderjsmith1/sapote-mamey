@@ -14,9 +14,11 @@ from types import SimpleNamespace
 
 import pytest
 
+from mamey import parsers, rggmci
 from mamey import ref_completion as rc
 
 ROOT = Path(__file__).resolve().parents[1]
+FIXTURE = ROOT / "tests" / "fixtures" / "rggmci_public_VWPH00000000.1_subset.zip"
 AA = "ACDEFGHIKLMNPQRSTVWY"
 
 
@@ -148,13 +150,46 @@ def test_a_database_without_an_aligner_is_no_aligner_and_off_runs_nothing(tmp_pa
     monkeypatch.setattr(rc, "find_aligner", lambda d=None: ("", ""))
     (tmp_path / rc.DB_FAA).write_text(">BGC9999001|1\nM\n")
     res = _pairs()
-    rc.complete(res, tmp_path / "x.zip", BGCS, REFMAP, {"BGC001"}, mibig_db=tmp_path)
+    rc.complete(res, _genome_zip(tmp_path), BGCS, REFMAP, {"BGC001"}, mibig_db=tmp_path)
     assert res["reference_completion"]["completion_tier"] == "NO_ALIGNER"
     res = _pairs()
     rc.complete(res, tmp_path / "x.zip", BGCS, REFMAP, {"BGC001"}, mibig_db=tmp_path, mode="off")
     assert res["ranked_pairs"][0]["completion_tier"] == "OFF"
     with pytest.raises(ValueError):
         rc.complete(_pairs(), tmp_path / "x.zip", BGCS, REFMAP, set(), sensitivity="fastest")
+
+
+def test_a_zip_of_region_files_only_is_recorded_not_raised_and_the_aligner_is_not_probed(tmp_path, monkeypatch):
+    """No whole-genome GenBank (region files only) means nothing can be searched outside the regions. The tier says so,
+    every pair keeps its RG-GMCI fields, and the answer does not depend on which aligner the machine has."""
+    def probe(d=None):
+        raise AssertionError("the aligner must not be probed when the input cannot be searched")
+    monkeypatch.setattr(rc, "find_aligner", probe)
+    (tmp_path / rc.DB_FAA).write_text(">BGC9999001|1\nM\n")
+    z = tmp_path / "regions_only.zip"
+    with zipfile.ZipFile(z, "w") as zf:
+        zf.writestr(f"{N1}.region001.gbk", _gbk(N1, 5000, [(100, 1300, 1, "c1", G1, [])]))
+    res = _pairs()
+    block = rc.complete(res, z, BGCS, REFMAP, {"BGC001"}, mibig_db=tmp_path)
+    assert block["completion_tier"] == "NO_WHOLE_GENOME_GENBANK" and block["genes"] == []
+    assert res["ranked_pairs"][0]["completion_tier"] == "NO_WHOLE_GENOME_GENBANK"
+    assert res["ranked_pairs"][0]["pair"] == "BGC001+BGC002"
+
+
+def test_the_engine_keeps_the_pairs_of_a_region_only_zip_when_a_database_is_found(tmp_path, monkeypatch):
+    """The public fixture holds region files only. With a database it ran into FileNotFoundError in 9.7.445 and the
+    whole run failed; now the pairs are scored exactly as without a database and the tier names the missing file."""
+    for k in ("RGGMCI_MIBIG_DB", "RGGMCI_DIAMOND", "RGGMCI_PFAM_HMM"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setattr(rc, "find_aligner", lambda d=None: ("", ""))
+    (tmp_path / rc.DB_FAA).write_text(">BGC9999001|1\nM\n")
+    (tmp_path / rc.DB_TSV).write_text("\t".join(rc.GENE_TSV_COLS) + "\n")
+    bgcs = parsers.parse_bgcs_from_zip(str(FIXTURE), json_mode="off")
+    plain = rggmci.run_rggmci(str(FIXTURE), bgcs)
+    got = rggmci.run_rggmci(str(FIXTURE), bgcs, mibig_db=tmp_path)
+    assert got["reference_completion"]["completion_tier"] == "NO_WHOLE_GENOME_GENBANK"
+    strip = lambda p: {k: v for k, v in p.items() if k != "completion_tier"}
+    assert [strip(p) for p in got["ranked_pairs"]] == [strip(p) for p in plain["ranked_pairs"]]
 
 
 # ── recurrence, partners, the join ─────────────────────────────────────────────────────────────────────────────────

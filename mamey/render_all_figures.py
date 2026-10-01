@@ -39,6 +39,9 @@ W9-N14 / Gap 3 (v9.7.150e+).
 """
 from __future__ import annotations
 import warnings as _warnings
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -637,7 +640,7 @@ def render_all_figures_command(args) -> int:
 
     # loud preflight: one clear line about whether figures can render at all
     _present, _msg = figure_stack_preflight()
-    emit(f"  {_msg}")
+    _OUT.info('%s', f"  {_msg}")
 
     summary = render_all(
         args.package,
@@ -649,7 +652,7 @@ def render_all_figures_command(args) -> int:
         dry_run=getattr(args, "dry_run", False),
     )
 
-    emit(f"render-all-figures: {summary['package']}")
+    _OUT.info('%s', f"render-all-figures: {summary['package']}")
     if not summary.get("ok"):
         emit(f"  ERROR: {summary.get('error','run aborted')}", file=sys.stderr)
         if "error" in summary and "manifest.json" in str(summary.get("error", "")):
@@ -667,41 +670,41 @@ def render_all_figures_command(args) -> int:
         total += n if isinstance(n, int) else 0
         out = res.get("out", "")
         if st == "RAN":
-            emit(f"  {set_name:14s} RAN     {n:3d} fig(s) → {out}")
+            _OUT.info('%s', f"  {set_name:14s} RAN     {n:3d} fig(s) → {out}")
         elif st == "SKIPPED":
             reason = res.get("skipped_reason") or ""
             if not reason.strip():
                 reason = ("no figures produced \u2014 likely matplotlib/addon missing or no data for this set; "
                           "see the figure-stack line above")
-            emit(f"  {set_name:14s} SKIPPED  ({reason})")
+            _OUT.info('%s', f"  {set_name:14s} SKIPPED  ({reason})")
         elif st == "ERRORED":
             emit(f"  {set_name:14s} ERRORED  {res.get('error','')}",
                   file=sys.stderr)
         elif st == "DRY_RUN":
-            emit(f"  {set_name:14s} (would run)")
+            _OUT.info('%s', f"  {set_name:14s} (would run)")
         elif st == "UNKNOWN_SET":
             emit(f"  {set_name:14s} UNKNOWN  ({res.get('error','')})",
                   file=sys.stderr)
         else:
-            emit(f"  {set_name:14s} {st}")
+            _OUT.info('%s', f"  {set_name:14s} {st}")
 
     if not summary.get("dry_run"):
-        emit(f"\n  total figures: {total}")
+        _OUT.info('%s', f"\n  total figures: {total}")
         # Gather every produced PNG/SVG into one <pkg>/figures/ dir with a manifest, so the
         # scatter across 6 dirs stops being the reason figures can't be found.
         try:
             g = gather_figures(summary["package"], summary)
-            emit(f"  gathered {g['gathered']} figure(s) → {g['figures_dir']}")
+            _OUT.info('%s', f"  gathered {g['gathered']} figure(s) → {g['figures_dir']}")
             if g["gathered"] != total:
-                emit(f"    (note: sets self-reported {total}; on-disk gathered count "
+                _OUT.info('%s', f"    (note: sets self-reported {total}; on-disk gathered count "
                       f"{g['gathered']} is authoritative)")
-            emit(f"    manifest: {g['manifest']}")
+            _OUT.info('%s', f"    manifest: {g['manifest']}")
             if g.get("untracked_or_stale"):
                 emit(f"    WARNING: {g['untracked_or_stale']} untracked/stale figure(s) remain "
                       "and are explicitly marked in the manifest", file=sys.stderr)
             if g["by_source"]:
                 bits = ", ".join(f"{k}:{v}" for k, v in sorted(g["by_source"].items()))
-                emit(f"    by source: {bits}")
+                _OUT.info('%s', f"    by source: {bits}")
             summary["gathered"] = g
         except Exception as exc:  # gathering must never break the run
             emit(f"  (figure gather skipped: {exc})", file=sys.stderr)

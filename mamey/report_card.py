@@ -16,6 +16,9 @@ Degrades cleanly: no RDKit → mass line says "rdkit not installed"; no predicti
 layer says so. Never raises on missing inputs.
 """
 from __future__ import annotations
+from .logging_setup import get_logger as _get_logger
+
+_OUT = _get_logger(__name__)   # library progress lines, byte-identical to the former print
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -387,6 +390,6 @@ def report_card_command(args) -> int:
     if res.get("markdown"):
         emit(res["markdown"])
     else:
-        emit(f"[report-card] {res['strain']}: {res['cards']} card(s) "
+        _OUT.info('%s', f"[report-card] {res['strain']}: {res['cards']} card(s) "
               f"({res['with_polymer']} with predicted polymer) -> {res['out']}")
     return 0

@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.445 · engine 1.9.172 · build 20260930v97445a
+# Current Docs Index — v9.7.446 · engine 1.9.172 · build 20261001v97446a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
