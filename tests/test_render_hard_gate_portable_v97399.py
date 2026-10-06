@@ -1,4 +1,4 @@
-"""Tree-portable regression for the render HARD gate (VGP .399 phylo patch 2).
+"""Tree-portable regression for the render HARD gate (an audit lane .399 phylo patch 2).
 
 `tools/render_clean_tree.py` must refuse (exit 2, "REFUSED", no output file) a tree that FAILS
 `tree_sanity_check.check()` BEFORE drawing anything, while a healthy registry-rooted tree (whose

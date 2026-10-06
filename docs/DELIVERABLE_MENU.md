@@ -2,8 +2,8 @@
 
 *Choose by label, name, or plain-language request. This document is generated from `mamey/data/deliverables_registry.json`; do not edit it by hand.*
 
-**Bundle:** Sapote-Mamey v9.7.446  
-**Engine:** Mamey 1.9.172  
+**Bundle:** Sapote-Mamey v9.7.448  
+**Engine:** Mamey 1.9.173  
 **Required exact-locus display:** `strain / full node-or-contig / region / BGC alias`
 
 > Similarity is not identity; capacity is not production; missing or unbound evidence is not biological absence. Gate success verifies encoded checks, not biological identity, activity, novelty, acceptance, or publication readiness.
@@ -17,7 +17,7 @@
 - **GOVERNANCE_AND_QA** — A validation, provenance, privacy, handoff, or release-control outcome.
 - **HUMAN_REVIEW_PROTOCOL** — A structured human/LLM review protocol rather than an engine-generated scientific result.
 
-Run `python mamey_run.py deliverables availability ...` for a local, read-only preflight. A listed external workflow is never authorization to contact it.
+Run `python mamey_run.py deliverables availability ...` for a local, read-only preflight. It checks local presence, not source admission, gate success or completed authorship. A listed external workflow is never authorization to contact it.
 
 ## The Counter - quick orientation
 
@@ -158,20 +158,65 @@ Approval-gated GToTree/IQ-TREE/ANI context with explicit outgroups, tip cleaning
 - **Ask for:** “Build the approved phylogenomics context”
 - **Claim ceiling:** Comparator placement and nucleotide/protein similarity; taxonomy and novelty require their own admitted evidence.
 
+### E6 — GECCO Class Cross-check
+
+*What class-level second opinion does the optional local GECCO adapter supply?*
+
+Run `gecco-crosscheck --package <package> --zip <original-antismash.zip>` only after source admission and an operating choice to use the installed GECCO 0.11 adapter. It preserves the full locus identities, source/archive binding, class labels, gene/cluster probabilities and region overlap; GECCO-only candidates remain a separate evidence stream. The bundle does not install GECCO. Fresh outputs use the external sibling post_seal/gecco-crosscheck directory by default. See [companion class evidence](COMPANION_CLASS_EVIDENCE.md).
+
+- **Delivery class:** `OPTIONAL_LOCAL_ADAPTER`
+- **Commands:** `gecco-crosscheck`
+- **Required inputs:** `sealed_package`, `gecco_local`, `biopython`, `source_archive_binding`, `gecco_version_0_11_and_tables`
+- **Optional evidence/resources:** `gap_gene_source_tables`, `explicit_genome_member`
+- **Outputs:** `gecco_crosscheck_sidecars`, `gecco_only_candidates`, `source_and_output_receipt`
+- **Gates:** `GECCO 0.11 version/table admission`, `exact source/archive/CDS binding`, `external output receipt`
+- **Ask for:** “Cross-check class evidence with local GECCO”
+- **Claim ceiling:** Class-level capacity hypotheses and overlap only; no compound, production or activity claim.
+
+### E7 — Class-level Metabolomics Review Export
+
+*Which genome-side class hypotheses should an independent MS review consider?*
+
+`export-metabolomics --package <package> --source-zip <original-antismash.zip>` exports deterministic domain-based class hypotheses, source-bound region GenBank pointers and an independent MS review template. Unsupported class mappings remain unmapped. A previously admitted GECCO output can be supplied with --gecco-dir. It does not analyze MS data or establish a BGC-to-MS association. Fresh outputs default to external sibling post_seal/export-metabolomics. See [companion class evidence](COMPANION_CLASS_EVIDENCE.md).
+
+- **Delivery class:** `DETERMINISTIC_BUILT_IN`
+- **Commands:** `export-metabolomics`
+- **Required inputs:** `sealed_package`, `biopython`, `source_archive_binding`
+- **Optional evidence/resources:** `admitted_gecco_crosscheck`
+- **Outputs:** `class_hypotheses`, `source_bound_region_gbk_pointers`, `independent_ms_review_template`, `source_and_output_receipt`
+- **Gates:** `exact source/archive/region binding`, `versioned class mapping provenance`, `external output receipt`
+- **Ask for:** “Export genome-side class hypotheses for independent MS review”
+- **Claim ceiling:** Capacity hypotheses only; no predicted compound, measured activity or established genome-to-MS association.
+
+### E8 — Explicit Non-KS Second-proof Reader
+
+*How does a recorded alternative policy treat a non-KS linkage hypothesis?*
+
+`two-proof-rescue --package <package>` keeps ks_clade_v2 as its default. Explicitly select `--policy nonks_position_v1 --scorecard <bound-scorecard.tsv>` to evaluate the alternative non-KS rule. Eligible complementary HIGH pairs require positively observed non-KS class evidence and an independently bound CONSISTENT positional reading; APART_CLOSE or CONFLICT vetoes admission. Missing or unresolved independent evidence remains typed uncertainty; KnownClusterBlast is supporting evidence only. The policy is recorded in each advisory row and receipt; fresh outputs default to external sibling post_seal/two-proof-rescue. See [companion class evidence](COMPANION_CLASS_EVIDENCE.md).
+
+- **Delivery class:** `POST_SEAL_JUDGMENT`
+- **Commands:** `two-proof-rescue`
+- **Required inputs:** `sealed_package`, `admitted_pair_evidence`
+- **Optional evidence/resources:** `bound_nonks_position_scorecard`
+- **Outputs:** `policy_recorded_4D_advisory`, `two_proof_policy_receipt`
+- **Gates:** `explicit rule policy`, `exact pair and scorecard binding`, `independent evidence vetoes`, `external output receipt`
+- **Ask for:** “Evaluate the explicit non-KS second-proof policy”
+- **Claim ceiling:** Advisory linkage interpretation; independent adjudication remains required and no compound or activity follows.
+
 ## Full Meals - integrated analysis
 
-### #5 — Mode B 48-Section Deep Dive
+### #5 — Mode B 48-Section / Current50 v2 Deep Dive
 
 *What does all admitted evidence support for one exact locus?*
 
-A complete 48-section, gene-oriented evidence reconciliation with alternatives, discriminating tests, typed holds, and loss audit.
+Choose the finished profile before authoring: full48 is the default 48-section route; current50_v2 is an explicit opt-in 50-section contract. emit-modeb-template creates a scaffold, not a finished authored card. For opt-in v2 use native `emit-modeb-template --package <package> --bgc <BGC> --contract current50_v2` and `verify-modeb <card.md> --package <package> --bgc <BGC> --contract current50_v2`; the contract flags belong to these native emit/verify commands. A finished card needs the canonical protein roster, admitted evidence, locus-specific interpretation or reasoned typed limitations, citation checks and the matching verifier contract. For an expanded-locus work order, bind the whole-assembly source and translated-CDS inventory first with `python tools/build_modeb_locus_inventory.py`, then emit using the documented rescue-source flags and verify with --contract current50_v2 --require-expanded-locus; ordinary core-only v2 verification does not enforce an expanded work order. Core and selected expanded-CDS counts remain separate. See [profile matrix](MODEB_PROFILE_MATRIX.md), [current50 v2 contract](MODEB_CURRENT50_V2_CONTRACT.md) and [expanded-locus admission](MODEB_EXPANDED_LOCUS.md).
 
 - **Delivery class:** `POST_SEAL_JUDGMENT`
-- **Commands:** `modeb-availability`, `mode-b`, `modeb-compile`, `verify-modeb`, `verify-citations`
+- **Commands:** `modeb-availability`, `emit-modeb-template`, `mode-b`, `modeb-compile`, `verify-modeb`, `verify-citations`
 - **Required inputs:** `sealed_package`, `exact_locus_identity`, `canonical_protein_roster`, `authored_judgment`
 - **Optional evidence/resources:** `admitted_blastp`, `admitted_bigscape`, `admitted_mibig`, `phylogenomics_context`
-- **Outputs:** `modeb_48_card`, `source_loss_audit`, `future_map_payload`
-- **Gates:** `verify-modeb`, `verify-citations`, `claim-safety`
+- **Outputs:** `modeb_48_card`, `modeb_current50_v2_card`, `source_loss_audit`, `future_map_payload`
+- **Gates:** `verify-modeb --contract full48 (default)`, `verify-modeb --contract current50_v2 (opt-in)`, `verify-modeb --contract current50_v2 --require-expanded-locus (expanded work order)`, `verify-citations`, `claim-safety`
 - **Ask for:** “Write full Mode B for STRAIN-001 / NODE_12_length_48000_cov_30.1 / region001 / BGC007”
 - **Claim ceiling:** Candidate interpretation only unless separately accepted; capacity is not production.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""blastp_last_returns.py (VGP, 2026-08-23) — the ONE reliable answer to
+"""blastp_last_returns.py (2026-08-23) — the ONE reliable answer to
 "are the last BLASTp returns usable, and were there any failures?"
 
 WHY THIS EXISTS (root cause it kills): the crawl ledger schema is
@@ -26,7 +26,7 @@ import re
 ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
 BR = os.path.join(ROOT, "Blastp RESULTS")
 ROWS_RE = re.compile(r"(\d+)\s*row")
-# BC2-398: this file's own header docstring states "Mirrors blastp_health.py's process/error
+# 398: this file's own header docstring states "Mirrors blastp_health.py's process/error
 # anchoring" — verified live it did not: this pattern missed "UNKNOWN", "curl rc=", and
 # "expired" (three real error signatures blastp_health.py's own docstring documents catching
 # after a real 2026-08-21 incident), and blastp_health.py's pattern in turn missed this file's

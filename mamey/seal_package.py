@@ -319,27 +319,48 @@ def _gate_claim_safety(package_dir: Path) -> GateResult:
                       detail=f"{len(bgcs)} cards, {len(findings)} findings")
 
 
+# Where a package keeps its figures (.447, fresh-clone audit D2). The root keeps the historical *fig*.png rule;
+# each figure folder counts every PNG. Before .447 only the root was searched, so every gold, smoke and locus-map figure
+# read as missing and a pristine package could never seal PASS.
+FIGURE_DIRS = ("gold_figures", "smoke_figures", "figures", "locus_maps")
+
+
+def _figure_pngs(package_dir: Path) -> list:
+    pngs = list(package_dir.glob("*fig*.png"))
+    for d in FIGURE_DIRS:
+        if (package_dir / d).is_dir():
+            pngs += (package_dir / d).glob("*.png")
+    return sorted(set(pngs))
+
+
+def _png_refs(text: str) -> list:
+    """PNG targets named in markdown, paths kept: image links ![..](gold_figures/D01.png) and bare path mentions."""
+    import re as _re
+    refs = set(_re.findall(r"!\[[^\]]*\]\(<?([^)\s>]+?\.png)>?(?:\s+\"[^\"]*\")?\)", text))
+    refs |= set(_re.findall(r"(?<![\w./-])([\w.-]+(?:/[\w.-]+)*\.png)\b", text))
+    return sorted(r for r in refs if "://" not in r)
+
+
 def _gate_figure_references(package_dir: Path) -> GateResult:
     """Validate package figures (v9.7.126, audit P1): every figure PNG opens and has its
     companion *_data.csv (the data-only-figure convention), and every figure referenced in a
     markdown report exists on disk. Figures are post-seal supplementary, so this is WARN, not
     a blocking gate — a missing figure should not fail the scientific core."""
-    import re as _re
     findings = []
-    pngs = sorted(package_dir.glob("*fig*.png"))
+    pngs = _figure_pngs(package_dir)
     # (a) every figure PNG opens (magic bytes) and has a companion _data.csv
     for png in pngs:
         try:
             with open(png, "rb") as f:
                 if f.read(8) != b"\x89PNG\r\n\x1a\n":
                     findings.append({"bgc": "", "severity": "WARN",
-                                     "detail": f"{png.name}: not a valid PNG"})
+                                     "detail": f"{_rel(png, package_dir)}: not a valid PNG"})
         except Exception as e:
-            findings.append({"bgc": "", "severity": "WARN", "detail": f"{png.name}: unreadable ({e})"})
+            findings.append({"bgc": "", "severity": "WARN", "detail": f"{_rel(png, package_dir)}: unreadable ({e})"})
         companion = png.with_name(png.stem + "_data.csv")
         if not companion.exists():
             findings.append({"bgc": "", "severity": "WARN",
-                             "detail": f"{png.name}: missing companion {companion.name}"})
+                             "detail": f"{_rel(png, package_dir)}: missing companion {companion.name}"})
     # (b) every figure referenced in a markdown report exists on disk
     on_disk = {p.name for p in pngs}
     for md in sorted(package_dir.glob("*.md")):
@@ -352,18 +373,28 @@ def _gate_figure_references(package_dir: Path) -> GateResult:
                 "detail": f"{md.name}: unreadable ({type(exc).__name__}: {exc})",
             })
             continue
-        # markdown image refs ![..](name.png) and bare *.png mentions
+        # markdown image refs ![..](gold_figures/name.png) and bare *.png mentions, paths kept (_png_refs)
         # sorted: set iteration order is randomised per process (PYTHONHASHSEED), and these
         # findings are emitted verbatim into seal_findings.csv / seal_status.json /
         # DEBUG_RECEIPT.md / figure_reference_validation.csv — unsorted, two identical runs
         # produce byte-different sealed receipts.
-        for ref in sorted(set(_re.findall(r"([A-Za-z0-9_.\-]+\.png)", text))):
-            if ref not in on_disk and not (package_dir / ref).exists():
-                findings.append({"bgc": "", "severity": "WARN",
-                                 "detail": f"{md.name} references missing figure {ref}"})
+        for ref in _png_refs(text):
+            # a path resolves against the report's own folder, then the package root; a bare name (no folder) may
+            # sit in any figure folder
+            if (md.parent / ref).exists() or (package_dir / ref).exists() or ("/" not in ref and ref in on_disk):
+                continue
+            findings.append({"bgc": "", "severity": "WARN",
+                             "detail": f"{md.name} references missing figure {ref}"})
     status = "PASS" if not findings else "WARN"
     return GateResult("figure_references", status, False, findings=findings,
                       detail=f"{len(pngs)} figures, {len(findings)} issues")
+
+
+def _rel(p: Path, root: Path) -> str:
+    try:
+        return p.relative_to(root).as_posix()
+    except ValueError:
+        return p.name
 
 
 def _gate_deliverable_status(package_dir: Path, gates_so_far: list) -> GateResult:
@@ -382,8 +413,9 @@ def _gate_deliverable_status(package_dir: Path, gates_so_far: list) -> GateResul
         ("gene_by_gene_table",       _exists("*_gene_by_gene_all_bgcs.csv")),
         ("judgment_register",        _exists("*_judgment_register.json")),
         ("mode_b_cards",             _exists("judgment/*_mode_b.md") or _exists("*_mode_b.md")),
-        ("figures",                  _exists("*fig*.png")),
-        ("figure_data_csvs",         _exists("*fig*_data.csv")),
+        ("figures",                  bool(_figure_pngs(pkg))),
+        ("figure_data_csvs",         _exists("*fig*_data.csv")
+                                     or any(_exists(f"{d}/*_data.csv") for d in FIGURE_DIRS)),
         ("checksums",                _exists("checksums_sha256.txt") or _exists("*checksums*.txt")),
     ]
     findings = []

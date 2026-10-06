@@ -1,4 +1,4 @@
-"""AMBER_04 (v9.7.349): tests for the MLSA outgroup-stability scan's RF core
+"""P04 (v9.7.349): tests for the MLSA outgroup-stability scan's RF core
 (tools/mlsa_outgroup_scan.py).
 
 No external tools, no tree building. Checks the Robinson-Foulds distance on shared

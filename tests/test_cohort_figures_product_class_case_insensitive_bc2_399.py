@@ -1,4 +1,4 @@
-"""BC2 .399 audit (CORRECTED v2 — see PATCH_CARD.md). mamey/cohort_figures.py's F03
+"""An audit-lane .399 audit (CORRECTED v2 — see PATCH_CARD.md). mamey/cohort_figures.py's F03
 product-class heatmap keys its `pc` lookup by the raw, unmodified antiSMASH Products token,
 with no case normalization. This is HARDENING against a mixed-case cohort (an older/
 differently-configured antiSMASH run, or future casing drift) — NOT a fix for a demonstrated

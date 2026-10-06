@@ -185,3 +185,17 @@ def pytest_terminal_summary(terminalreporter, config):
         terminalreporter.write_line(
             "figure page text: these listed sites rendered clean; delete them from "
             "tests/fixtures/figure_page_text_known_sites.txt: " + ", ".join(cleared))
+
+
+@pytest.fixture
+def require_r_packages():
+    """Optional R admission shares the production doctor's bounded probe."""
+    from mamey.optional_r import r_package_status, TREE_RENDER_PACKAGES
+    def require(packages=TREE_RENDER_PACKAGES):
+        state, reason, executable = r_package_status(packages)
+        if state == 'UNAVAILABLE':
+            pytest.skip(reason)
+        if state != 'READY':
+            pytest.fail(reason)
+        return executable
+    return require

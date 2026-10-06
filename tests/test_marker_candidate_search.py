@@ -1,4 +1,4 @@
-"""AMBER_04 (v9.7.349): tests for the marker-BLAST comparator-discovery pure core
+"""P04 (v9.7.349): tests for the marker-BLAST comparator-discovery pure core
 (tools/marker_candidate_search.py).
 
 No network, no BLAST, no downloads (those are approval-gated and only PLANNED). What IS

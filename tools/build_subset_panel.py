@@ -27,6 +27,23 @@ except ImportError:  # bare-script run: bundle root is one level up
 import matplotlib; matplotlib.use('Agg')
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -104,12 +121,13 @@ def plot(rows, title, claim, out):
     fig.text(0.5, -0.02/fig_h, claim, ha='center', fontsize=8, color='#555', wrap=True)
     plt.tight_layout(); plt.savefig(out, dpi=150, bbox_inches='tight'); plt.close()
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--out-dir', default='figures')
     ap.add_argument('--tag', default=None); ap.add_argument('--strain-set', default=None)
     ap.add_argument('--replot', action='store_true'); ap.add_argument('--csv', default=None)
-    a=ap.parse_args(); os.makedirs(a.out_dir, exist_ok=True)
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None)); os.makedirs(a.out_dir, exist_ok=True)
     sset=set(a.strain_set.split(',')) if a.strain_set else None
     if a.replot and a.csv:
         label=re.sub(r'^subset_|_loci$','', os.path.splitext(os.path.basename(a.csv))[0])

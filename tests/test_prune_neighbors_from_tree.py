@@ -1,4 +1,4 @@
-"""AMBER_04 (v9.7.349 rebase): tests for the two-tier prune bridge
+"""P04 (v9.7.349 rebase): tests for the two-tier prune bridge
 (tools/prune_neighbors_from_tree.py).
 
 Pure python, no external tools, never runs a tree. Checks the newick parse, the

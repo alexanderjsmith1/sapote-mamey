@@ -177,11 +177,13 @@ The architecture confidence grade — A through E — measures how structurally 
 
 | Grade | Condition | Meaning |
 |---|---|---|
-| **A** | Interior + known class + ≥ 10 kb | Complete, coherent cluster |
-| **B** | Interior + (known class or strong KCB) | Complete but compact or KCB-supported |
+| **A** | Interior + core class + ≥ 10 kb; or a compact Interior core with antiSMASH chemical-hybrid flag and at least two distinct core-class terms | Structurally coherent under the implemented rule |
+| **B** | Interior + strong KCB without a core class; otherwise Interior + core class after the A rules | Compact or KCB-supported structure |
 | **C** | Edge + known class | Truncated but architecturally coherent |
 | **D** | Edge without known class, or Full-contig with known class | Truncated and limited |
 | **E** | Everything else | Weak or ambiguous |
+
+Apply the branches in [the technical reference](01_Math_Reference_VolI.md) in order: long Interior core → A; KCB-only Interior → B; compact chemical hybrid with two distinct core terms → A; remaining Interior core → B; then truncation branches C/D/E. The hybrid flag never promotes an Edge or Full-contig truncation. Synthetic example: Interior, `nrps; t1pks`, 5,000 bp, chemical-hybrid flag true → A; without that flag → B. This is structural grading, not a compound or activity claim.
 
 The judgment layer displays these as: A → High confidence, B → Moderate-High, C → Moderate, D → Low-Moderate, E → Low. This grade travels with every BGC record and is distinct from the lead tier — a cluster can be architecture grade A (well-supported structure) but Inventory tier (unattractive compound class for the current search), or grade C (truncated) but High tier (strong class evidence and KCB support).
 

@@ -75,7 +75,7 @@ def test_deliverables_cli_lists_and_explains(capsys):
     assert any(row["id"] == "M01" for row in rows)
     assert main(["deliverables", "explain", "M01", "--json"]) == 0
     item = json.loads(capsys.readouterr().out)
-    assert item["name"] == "Mode B 48-Section Deep Dive"
+    assert item["name"] == "Mode B 48-Section / Current50 v2 Deep Dive"
 
 
 def test_availability_is_local_read_only_and_fail_closed(tmp_path):
@@ -122,7 +122,7 @@ def test_session_checklist_consumes_registry_and_does_not_call_presence_done(tmp
         cwd=ROOT, text=True, capture_output=True, env={"PYTHONDONTWRITEBYTECODE": "1"},
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "#5 Mode B 48-Section Deep Dive" in result.stdout
+    assert "#5 Mode B 48-Section / Current50 v2 Deep Dive" in result.stdout
     assert "Artifact presence is not gate success" in result.stdout
     assert "Operational run records (not scientific deliverables)" in result.stdout
     assert "[x]=done" not in result.stdout.lower()

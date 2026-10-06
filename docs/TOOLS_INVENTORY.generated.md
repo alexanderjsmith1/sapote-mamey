@@ -1,11 +1,12 @@
 # Tools Inventory (generated)
 
-**416 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**435 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
 | Tool | What it does |
 |---|---|
+| `_bankio.py` | Banked tool read/write boundary; delegates journal checks and lock ownership. |
 | `_console.py` | the single owner of direct terminal emission for tools/ and deliverable_tools/. |
 | `_gtotree_versions.py` | the one list of GToTree versions the phylo tools accept. |
 | `_phylo16s.py` | Configured data roots, local database lookup and checked external tool execution. |
@@ -94,7 +95,7 @@
 | `build_domain_explorer.py` | Read-only projection of the existing architecture owner; no biological scans. |
 | `build_domain_matrix.py` | cross-strain antiSMASH-HMM domain census (v9.7.221). |
 | `build_domain_reference.py` | emit a per-package domain functional-context dictionary (DOMREF-01). |
-| `build_domain_tree.py` | the ONLY sanctioned way to build a BGC-machinery domain tree (VGP-399). |
+| `build_domain_tree.py` | the ONLY sanctioned way to build a BGC-machinery domain tree (399). |
 | `build_enzyme_neighborhoods.py` | Explicit local view builder; pins the adjacent bundled package. |
 | `build_family_map.py` | lexicon growth) |
 | `build_figure_review_queue.py` | Build a portable, paginated owner-review queue from a Figure Factory manifest. |
@@ -114,6 +115,7 @@
 | `build_mibig_index.py` | auto-extract a provenance-tagged architecture-signature INDEX from a |
 | `build_mlsa.py` | 5-locus MLSA tree for a whole family's genome set, in one driver. |
 | `build_modeb_deepdive.py` | gene-by-gene Mode B deep dives (Sapote deliverable). |
+| `build_modeb_locus_inventory.py` | Export translated CDS from one explicitly selected whole-assembly GenBank. |
 | `build_normalization_matrix.py` | fragmentation-robustness of BGC-class counts across a cohort. |
 | `build_novelty_shortlist.py` | composite (multi-signal) novelty shortlist (advisory report). |
 | `build_overview_figures.py` | two cohort-level overview figures for Sapote–Mamey. |
@@ -129,6 +131,7 @@
 | `build_reconstruction.py` | clusterblast-scaffolded split-pathway reconstruction. |
 | `build_saccharide_triage.py` | separate genuine saccharide products from glycosylation noise. |
 | `build_saved_scan_states.py` | Portable extraction of saved package scan context. Never execute a scan. |
+| `build_scanner_hmm.py` | Provision a source-bound scanner subset from an operator's Pfam-A.hmm; no network. |
 | `build_siderophore_atlas.py` | Bounded projection over pinned existing owner databases; never runs searches. |
 | `build_size_profile.py` | per-strain BGC nucleotide content by class (Mamey standard module). |
 | `build_subset_panel.py` | deterministic cross-cohort / cohort-subset panel (closes DLV-008; drives G2 & G6). |
@@ -137,6 +140,7 @@
 | `build_thesis_handoff.py` | (no docstring) |
 | `build_thesis_vignettes.py` | worked thesis vignettes for the Class-A leads. |
 | `build_tree.sh` | the ONLY sanctioned way to build a phylogenomic tree in this project. |
+| `build_tree_retention.py` | Mandatory byte-bound input and retained-tip gate for build_tree.sh. |
 | `build_tree_tracks.py` | Adapt hash-bound Figure Factory BIOASSAY tracks for exact-tip R rendering. |
 | `build_validation_panel.py` | corrected-vs-raw percentile scatter for the external-validation panel. |
 | `build_wetlab_matrix.py` | deterministic writer for the Wet-Lab Decision Matrix (WLDM). |
@@ -170,6 +174,7 @@
 | `check_requirements_pyproject_sync.py` | freeze the requirements.txt <-> pyproject.toml core-dep drift. |
 | `check_schema_drift.py` | check_schema_drift.py  (candidate patch G1) |
 | `check_tier_parity.py` | fail-closed parity gate across the four release tiers. |
+| `check_tygs_coverage.py` | Check that every TYGS top-N type strain is either in an isolate's panel or logged as an issue. |
 | `chitin_reference_eval.py` | tools/chitin_reference_eval.py -- operator front door for the whole-genome chitin/GlcNAc |
 | `chitinase_hmm_confirm.py` | tools/chitinase_hmm_confirm.py -- HMMER confirmation pass for chitinolytic capacity. |
 | `claim_safety_linter.py` | post-hoc claim-safety linter for Sapote interpretive text |
@@ -177,9 +182,9 @@
 | `cluster_alignment.py` | reference-aligned homolog figures for split-pathway BGCs. |
 | `cluster_brief.py` | one-command driver for the comparative chain → a consolidated brief. |
 | `cluster_completeness.py` | is a truncated cluster incomplete by assembly, or by biology? |
-| `cluster_discovery.py` | find strains carrying a BGC from a diagnostic marker gene. |
-| `cluster_gene_compare.py` | gene-by-gene comparison of biosynthetic gene clusters. |
-| `cluster_relate.py` | relationship tree + distance matrix from a set of homologous clusters. |
+| `cluster_discovery.py` | candidate assembly lookup from marker-protein similarities. |
+| `cluster_gene_compare.py` | Compare translated CDSs using global protein identity and single-link homology groups. |
+| `cluster_relate.py` | Cluster protein-inventory comparisons and descriptive UPGMA summaries. |
 | `cohort_blastp_driver.py` | drive BLASTp + overlay ingest across a scoped set of BGCs. |
 | `cohort_concordance_summary.py` | run the fragment-concordance scorer across a multi-strain ledger |
 | `cohort_figure_prototypes.py` | Standalone CLI for the extended cohort figure suite (see mamey/cohort_figures_extended.py). |
@@ -197,6 +202,7 @@
 | `compile_figure_owner_review.py` | Compile human figure decisions into a deterministic, non-rendering action plan. |
 | `cross_strain_denominator_audit.py` | fail-closed invariant on cohort-size denominators (v9.7.116). |
 | `cut_audit.py` | reproducible sealed-cut audit + card rebase-verify harness. |
+| `cut_preflight.sh` | Cut preflight: refuse release-root review artifacts and purge working-copy bytecode. |
 | `dark_gene_scan.py` | Dark-gene rescue scanner for edge/FC BGCs. |
 | `definitive_bgc_ranker.py` | Reciprocal, core-weighted, boundary-aware BGC evidence ranking. |
 | `deliverable_citation_audit.py` | pre-delivery §15 citation + provenance gate for FINISHED deliverables. |
@@ -213,7 +219,7 @@
 | `evidence_disagreements.py` | Run the local evidence review view using this extracted bundle's package. |
 | `export_figure_ready.py` | emit tidy, figure-ready CSVs from a Sapote-Mamey master workbook. |
 | `export_tree_figure_source_package.py` | Export an editable, portable ggtree source package from one rendered tree folder. |
-| `extract_cluster.py` | locate and extract a BGC from a RAW genome by its marker genes. |
+| `extract_cluster.py` | Extract a marker-co-occurrence candidate region from a supplied raw genome. |
 | `extract_module_core_domains.py` | deterministic module-core aSDomain extractor (P358-003 Idea A.1). |
 | `fetch_mibig_reference.py` | turn a MIBiG accession into a reference GBK from the PUBLIC repo. |
 | `fetch_reference_cluster.py` | reconstruct a cluster GenBank from the BiG-SCAPE DB or NCBI. |
@@ -229,6 +235,7 @@
 | `find_asset.py` | locate a big/shared local asset BEFORE downloading or re-deriving it. |
 | `fixture_inputs.py` | Content-preserving preparation of the one hash-bound synthetic test archive. |
 | `fragment_concordance_scorer.py` | score a strain's observed BGC fragments against the reference panel. |
+| `full_suite_receipt.py` | Run the canonical complete pytest profile and bind its receipt to candidate bytes. |
 | `gap_directed_rescue.py` | what a core region's reference cluster has and the core lacks, looked for across the genome. |
 | `gap_rescue_all_regions.py` | run tools/gap_directed_rescue.py on every antiSMASH region of one genome. |
 | `gap_rescue_locus_map.py` | the clinker-style figure for tools/gap_directed_rescue.py. |
@@ -256,7 +263,7 @@
 | `harvest_16s.py` | assemble the 16S inputs for a per-genus EPA-ng placement, ALL FROM LOCAL DATA. |
 | `hub_merge.py` | one-shot hub merge: ingest → schema-gate → normalize → merge → verify. |
 | `ingest_blastp_rollups.py` | fold the per-strain DATED rollup CSVs into blastp.sqlite. |
-| `ingest_field_collection.py` | ingest_field_collection.py -- normalize Alex's field-collection workbook into a per-strain |
+| `ingest_field_collection.py` | ingest_field_collection.py -- normalize the owner's field-collection workbook into a per-strain |
 | `ingest_package.py` | map a Mamey package into the cohort banked-JSON entries. |
 | `ingest_swissprot_local.py` | fold the local SwissProt BLASTp CSVs into blastp.sqlite. |
 | `init_project_data_home.py` | Create a portable, pointer-first scientific project data home. |
@@ -273,7 +280,7 @@
 | `locator_reconciliation.py` | verify a Mode B card's header fields match the canonical |
 | `log_release.py` | append one row to RELEASES_LOG.md for the current build (idempotent). |
 | `make_public_tier.sh` | cut a clean release tier from the working tree, deterministically. |
-| `make_release_tarball.sh` | cut-time packaging artifact (v9.7.400, BC/Amber-fork proposal). |
+| `make_release_tarball.sh` | cut-time packaging artifact (v9.7.400, BC/the phylogeny lane-fork proposal). |
 | `make_verified_code_tarball.sh` | Build a CODE tarball only after explicit sealed-ZIP and local seal-receipt verification. |
 | `mamey_habitat_map.py` | build the strain->habitat map L5/L6 need, store-backed. |
 | `mamey_intake.py` | one-command intake for Mamey package outputs. |
@@ -289,6 +296,9 @@
 | `modeb_card_diff.py` | Report current-package facts that would change a stored Mode B card. |
 | `modeb_card_guard.py` | the check that would have caught 2026-08-17. |
 | `modeb_evidence_gate.py` | deterministic Mode B evidence-governance gate (v9.7.354). |
+| `multi_reference_comparison.py` | One AS locus against its best reference loci (MIBiG clusters, or reference-genome antiSMASH regions), KnownCl… |
+| `multi_reference_comparison_strain.py` | Draw the multi-reference comparison for every BGC of one strain, with one DIAMOND search for the whole strain. |
+| `neighbour_panel_candidates.py` | Build one isolate's genome-neighbourhood candidate panel from three evidence sources. |
 | `npatlas_provision.py` | tools/npatlas_provision.py -- operator front door for user-provisioned NP Atlas ingestion |
 | `nrps_substrate.py` | nrps_substrate.py -- predicted peptides + antibiotic-class signatures from A-domain substrates. |
 | `omitted_tips_receipt.py` | Machine-readable receipt for tips deliberately left off a GToTree panel. |
@@ -327,6 +337,7 @@
 | `plot_examples.py` | reference figures built ONLY from the figure_ready/ tidy CSVs. |
 | `preflight_zip_hygiene.py` | scan a built release ZIP for packaging-hygiene violations. |
 | `prepare_biosynthetic_tree_inputs.py` | Prepare provenance-rich PKS/RiPP sequence pools without running a tree. |
+| `prepare_pdf_resources.py` | Resolve local Markdown image resources for a portable LaTeX fallback. |
 | `preview_figure_components.py` | Write the static Figure Factory component gallery without network access. |
 | `preview_figure_themes.py` | CLI wrapper for the portable Sapote-Mamey figure-theme gallery prototype. |
 | `professionalism_linter.py` | post-hoc "professionalism" check for Sapote interpretive text |
@@ -335,6 +346,7 @@
 | `protein_pcoa_render.py` | Draw protein-class PCoA figures from an ordination kit: cohort proteins among reference and MIBiG proteins. |
 | `prune_neighbors_from_tree.py` | pick each query strain's nearest reference |
 | `public_release_audit.py` | FAIL-CLOSED audit of a tree destined for the public GitHub release. |
+| `publish_verified_pair.py` | Deliver already-verified archive/sidecar bytes with exclusive, no-replace publication. |
 | `query_support_table.py` | query_support_table.py <placement_dir> <refpkg_dir> <out.tsv> |
 | `rank_clusterblast_phylo_candidates.py` | Rank ClusterBlast-derived candidate comparator assemblies for phylogenomics. |
 | `ratchet_delta.py` | What does THIS patch packet cost against the repo-health ratchets? |
@@ -360,14 +372,18 @@
 | `render_dapr_boards.py` | render the DAPR antibacterial/antifungal boards and the |
 | `render_deliverable_pdf.py` | Compatibility CLI for the package-scoped ``mamey.markdown_pdf`` renderer. |
 | `render_gcf_synteny_tree.py` | one gene-cluster family as a tree beside gene-arrow tracks. |
+| `render_locus_comparison.py` | Render supplied locus correspondences without running a biological search. |
 | `render_siderophore_atlas.py` | Render a pinned atlas snapshot into a standalone local evidence drawer. |
 | `render_three_channel_evidence_matrix.py` | Render the static three-channel evidence matrix from generic JSON or TSV. |
 | `render_tree_reference_series.py` | Render a hash-bound series of prepared tree displays using immutable input copies. |
 | `repo_health.py` | one-command repo-health gate for the Sapote-Mamey bundle. |
 | `reroot_postflight_receipt.py` | Reroot a Newick tree on one exact tip and emit a deterministic postflight receipt. |
+| `rescue_locus_comparison.py` | Turn one gap-rescue comparison (<BGC>_vs_<reference>/gap_rescue.tsv) into a locus-comparison-v1 manifest and … |
+| `rescue_locus_comparison_strain.py` | Render a locus comparison for every gap-rescue folder of one strain (the genome read once). |
 | `resolve_reference_metadata.py` | Resolve reference-genome isolation metadata from the deposited NCBI record (strain-level, cited). |
 | `rewrite_release_identity.py` | Rewrite cut-time bundle/build identity without platform-specific ``sed -i``. |
 | `rggmci_cohort_rollup.py` | cross-strain RG-GMCI ranked rollup + confidence tiering (v9.7.117). |
+| `rggmci_pair_locus_map.py` | a locus map for each RG-GMCI fragment pair. |
 | `rggmci_rescue_atlas.py` | Build the post-seal RG-GMCI complementary-rescue atlas. |
 | `round_ledger.py` | verify a Mode B card and append one audit row to the round ledger. |
 | `run_chatgpt_surrogate_gate.py` | Fast ChatGPT surrogate release gate for Sapote--Mamey. |
@@ -393,6 +409,8 @@
 | `sixteen_s_similarity_check.py` | do the deposited 16S similarity values reproduce from the sequences on file? |
 | `strain_bigscape_report.py` | strain_bigscape_report.py -- per-strain BiG-SCAPE report as a standard Sapote-Mamey deliverable. |
 | `strain_level_bgc_logic.py` | Build readable per-strain BGC product-logic reports from the CP050 workup. |
+| `strain_slides.py` | Per-strain slide decks: every antiSMASH region of one strain, with every evidence channel held for it. |
+| `strain_slides_pcoa.py` | Per-strain protein PCoA panels: one strain's proteins marked against the other isolates, MIBiG and reference … |
 | `strict_source_disclosure_audit.py` | COMPATIBILITY ENTRY POINT. Holds no policy. |
 | `suite_count_census.py` | Measure pytest collection separately from JUnit execution outcomes. |
 | `sync_version.py` | propagate the single source-of-truth version into restated files. |
@@ -412,6 +430,7 @@
 | `tree_sanity_check.py` | HARD pre-render gate. A tree must PASS this before it is rendered or shown. |
 | `tree_series_contract.py` | Validate requested tree-series coverage and hash-bound reference rosters. |
 | `tree_trust_audit.py` | Audit explicitly bound tree artifacts; results cover mechanical checks only. |
+| `typed_class_rules.py` | Portable typed family-evidence evaluator. No product or completion scores. |
 | `validate_portfolio_config.py` | Validate and bind a portable multi-strain project configuration to its project_registry.py |
 | `validate_portfolio_registry.py` | Validate portable strain privacy and evidence registries without running Mamey. |
 | `validate_timing_receipt_parity.py` | compare timing phases to run_phase_receipts.jsonl. |

@@ -141,7 +141,7 @@ def rebase_verify(args) -> int:
 
         # Run the same scope both sides so the failure-set subtraction is apples-to-apples.
         # --tests limits scope (repeatable) for a faster targeted check; default is the full suite.
-        # BC2-407: --run-slow is REQUIRED, not optional. conftest.py auto-skips any test whose
+        # 407: --run-slow is REQUIRED, not optional. conftest.py auto-skips any test whose
         # file name contains a _SLOW_FILE_HINTS substring (e.g. "figure") unless --run-slow is
         # passed -- CI's own full-suite job always adds it. Without it here, a card that touches
         # a figure/render/atlas-named test file gets "0 failures" on BOTH sides because every

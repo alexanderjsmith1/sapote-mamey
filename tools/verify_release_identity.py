@@ -100,7 +100,7 @@ def _probe_text(name: str, text: str, truth: dict[str, str], where: str) -> list
         if engine and name in {"AGENTS.md", "CLAUDE.md", "README.md", "TAG", "BUILD_STAMP.txt", "pyproject.toml", "mamey/__init__.py"}:
             if engine not in text:
                 errs.append(f"{where}:{name}: does not contain current engine {engine}")
-        # BC2-VRI-01 (v9.7.395): TAG was missing from this membership set. TAG genuinely carries a
+        # VRI-01 (v9.7.395): TAG was missing from this membership set. TAG genuinely carries a
         # build stamp (e.g. "build: 20260831v97394a", per its own on-disk format), and this whole
         # module's stated purpose is catching "the v9.7.139 wrapper/stale-internal failure class"
         # — a doc/probe file that still names the current bundle+engine version but has a stale

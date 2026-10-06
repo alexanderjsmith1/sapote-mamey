@@ -417,7 +417,7 @@ def triage_bgcs(bgcs: list[BGCRecord], rggmci: dict | None = None, scans=None) -
         conf = pair.get("rggmci_confidence")
         if conf not in {"HIGH_RG_GMCI_RESCUE", "MODERATE_RG_GMCI_CANDIDATE"}:
             continue
-        # Two regions on one contig are never a rescue (Alex, 2026-09-27); older packages still list such pairs.
+        # Two regions on one contig are never a rescue (2026-09-27); older packages still list such pairs.
         if pair.get("contig_a") and contig_key(pair["contig_a"]) == contig_key(pair.get("contig_b") or ""):
             continue
         for bid in (pair.get("bgc_a"), pair.get("bgc_b")):
@@ -684,7 +684,7 @@ def triage_bgcs(bgcs: list[BGCRecord], rggmci: dict | None = None, scans=None) -
             return (p.get("functional_rescue_class") or "").strip() != "ACCESSORY_ONLY"
         high_rg = any(p.get("rggmci_confidence") == "HIGH_RG_GMCI_RESCUE" and _rescue_eligible(p) for p in support)
         mod_rg = any(p.get("rggmci_confidence") == "MODERATE_RG_GMCI_CANDIDATE" and _rescue_eligible(p) for p in support)
-        # BC2-407: extend the primary_flag exemption to mobile_flag -- a mobile-dominant, uncorroborated
+        # 407: extend the primary_flag exemption to mobile_flag -- a mobile-dominant, uncorroborated
         # region (ICE/transposon mis-typed as biosynthetic, v9.7.33 #28) is exactly as much "not a
         # genuine biosynthetic fragment to rescue" as a primary-metabolism/pigment false positive already
         # is. Before this fix, rescue_bonus ignored mobile_flag entirely, so a HIGH_RG_GMCI_RESCUE pairing

@@ -3,6 +3,11 @@
 
 **v9.7.149a** | Last updated: 2026-06-29
 
+> **Safety note (v9.7.447):** this page is a historical quick-lookup. Where a row below disagrees with
+> [Troubleshooting a Sapote–Mamey run](../COMMON_MISTAKES.md), follow that page. Never accept a checksum mismatch,
+> rename a source BGC ID, or regenerate assistant instruction files as a recovery step: those rows have been
+> replaced with the current route. Releases cut CODE only and the release owner alone seals; see `CUT_PROTOCOL.md`.
+>
 > **Currency note (v9.7.409):** the recovery commands below have been updated from `--mode smoke` to
 > `--mode gold`. `smoke` was removed at v9.7.161 — `mamey run` accepts only `{standard,gold}` and now
 > rejects `smoke` with an argparse `invalid choice` error. Gold is the only analysis mode.
@@ -19,24 +24,24 @@
 | `antiSMASH ZIP not found` | File path wrong | Use full path: `python -m mamey run ... --input-zip /full/path/antismash.zip` | 1 min |
 | `VALIDATION_FAIL` (after Mamey run) | Corrupted or incomplete antiSMASH ZIP | Re-run antiSMASH at web server. Download full ZIP. Re-run Mamey. | 10 min |
 | `No region GBK files found` | antiSMASH ZIP is malformed | Check ZIP structure: `unzip -l antismash.zip` should show `regions/`, `json/` folders | 2 min |
-| All KCB scores are 0 | Registry not loaded (registry_detector failed) | Run: `python tools/render_bootstrap_contract.py` to regenerate bootstrap | 2 min |
+| All KCB scores are 0 | KnownClusterBlast evidence absent or unbound for this run | Follow [Missing KCB, RiQ or JSON evidence](../COMMON_MISTAKES.md#missing-kcb-riq-or-json-evidence): check the run's KCB source and channel receipts. Do not regenerate the assistant bootstrap files; they hold instructions, not evidence. A missing channel is not a biological negative. | 5 min |
 | Assembly tier: VERY_POOR | Genome is fragmented (<20% interior) | Continue normally; add caveat: "Assembly fragmentation limits BGC boundary confidence" | 0 min |
 | [HALLUCINATION TRAP] in Mode B | LLM made an over-confident claim | Rewrite claim to match evidence scope. E.g., "produces X" → "biosynthetic capacity consistent with X-class" | 2 min |
 | Mode B card incomplete (stops at §8) | LLM timed out mid-response | Continue in new chat with remaining BGCs. Split batches into groups of 3. | 1 min |
-| "Tier parity failure" (after release cut) | Tiers fell out of sync during cut | Delete old tier ZIPs. Run `bash tools/release.sh` to re-cut all tiers. Verify with `check_tier_parity.py`. | 5 min |
+| "Tier parity failure" (historical) | Multi-tier releases are retired | Releases cut CODE only (`CUT_PROTOCOL.md`). Do not delete release ZIPs or re-cut tiers; report the message to the release owner. | 0 min |
 | SHA256SUMS don't match | ZIP corrupted during download | Re-download the file. Re-compute checksums. | 5 min |
-| "Private data in public tier" detected | AS strains included in public release | Run `redact_public_tier.py` before cut. Re-run `make_public_tier.sh`. | 3 min |
+| "Private data in public tier" detected | A strain assignment or release gate failed | Stop. Do not re-cut. Privacy follows each strain's exact assignment profile (`PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md`), not its ID prefix; report to the release owner. | 0 min |
 | Workbook missing columns | Schema version mismatch | Run `schema_deployed_audit.py` to identify missing columns. Re-run `build_workbook.py` to regenerate. | 5 min |
-| "Key collision" during merge | Two strains have same BGC ID | Rename one BGC_ID manually (e.g., BGC_00001 → BGC_00001_alt). Re-merge. | 2 min |
+| "Key collision" during merge | Two loci share a BGC alias | Keep both exact source IDs. Join on the full identity `strain / full node-or-contig / region / BGC` (the alias is never a join key); repair the join, not the ID. | 5 min |
 | Figure generation fails silently | matplotlib not installed (optional) | `pip install matplotlib numpy --break-system-packages`. Retry `build_figures.py`. | 2 min |
-| `figure_ready/` directory is empty | Export not run | Run: `export_figure_ready.py --workbook workbook.xlsx --outdir figure_ready/` | 1 min |
+| `figure_ready/` directory is empty | Export not run | Run: `python tools/export_figure_ready.py workbook.xlsx figure_ready/` (two positional arguments: the workbook, then the optional output folder) | 1 min |
 | ChatGPT timeout mid-Mode B | Session context too large | Reduce batch size. Hand only 3 BGCs at a time instead of 10. | 0 min (next run) |
 | "No Python execution available" in ChatGPT | Text-only session (no code interpreter) | Switch to Claude, or run Mamey locally then hand results to text-only ChatGPT for interpretation. | 0 min |
 | Claude context window full mid-response | Batch too large for one session | Split into smaller batches (5 BGCs per session). Continue in next session. | 0 min |
 | Mode B has wrong BGC ID in header | Mismatch between LLM data and package | Run: `locator_reconciliation.py --card mode_b.md --package package/`. Edit header to match. | 2 min |
 | Evidence conservation audit fails | Fields dropped between source and package | Run `evidence_conservation_audit.py`. Check `issue_log.md` for missing fields. Re-run Mamey if critical. | 5 min |
 | "Cannot compare fragments across assembly tiers" | Mixing GOOD and POOR assemblies in cohort | Run `build_normalization_matrix.py` to produce assembly-adjusted counts. Use corrected counts for claims. | 3 min |
-| Checksum doesn't match after recompute | Legitimate file difference (not corruption) | If file contents match (`diff -q old new`), checksum difference is OK (may be timestamp). | 1 min |
+| Checksum doesn't match after recompute | Different bytes, or a different artifact or byte scope compared | Unresolved until explained. Compare the same artifact over the same byte scope: a file's SHA-256 does not change with its timestamp. A repackaged archive can differ while its extracted files match; that needs its own documented derivation check. See [Package fails after transfer](../COMMON_MISTAKES.md#package-fails-after-transfer-or-files-seem-missing). | 5 min |
 
 ## Quick triage
 
@@ -203,37 +208,11 @@ KCB similarity is 45% (moderate); actual compound may differ."
 
 ## Section F: Release & Deployment Errors
 
-### Error: "Tier parity check failed"
+### Error: "Tier parity check failed" / "Private data detected in public tier" (historical)
 
-```bash
-# All tiers out of sync
-python tools/check_tier_parity.py
-# Reports: CODE has 5 files, SID-public has 6
-
-# Fix: Re-cut from scratch
-rm sapote-mamey-*.zip  # Remove old tier ZIPs
-bash tools/release.sh  # Full release pipeline
-python tools/check_tier_parity.py  # Verify
-# ✓ All tiers in sync
-```
-
----
-
-### Error: "Private data detected in public tier"
-
-```bash
-# Before cutting tiers, anonymize:
-python tools/redact_public_tier.py \
-  --workbook merged_workbook.xlsx \
-  --spec redaction.json \
-  --output public_workbook.xlsx
-
-# Then cut tiers:
-bash tools/make_public_tier.sh
-
-# Verify no leaks:
-python tools/audit_public_cut.py --workbook SID-public/workbook.xlsx
-```
+Multi-tier cuts are retired: releases cut CODE only, and the release owner alone seals (`CUT_PROTOCOL.md`). Do not delete
+release ZIPs, re-run tier scripts or redact by hand. Privacy follows each strain's exact assignment profile
+(`docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md`), never an ID prefix. Report the message to the release owner.
 
 ---
 
@@ -269,18 +248,11 @@ python tools/build_workbook.py \
 
 ---
 
-### Error: "Key collision during merge" (BGC_00001 appears twice)
+### Error: "Key collision during merge" (one BGC alias appears twice)
 
-```bash
-# Two strains have same BGC ID
-# Fix manually:
-
-# 1. Open the workbook
-# 2. Find the duplicate BGC_ID row in strain_B
-# 3. Rename it: BGC_00001 → BGC_00001_B or BGC_00001_alt
-# 4. Save workbook
-# 5. Re-run merge: python tools/hub_merge.py ...
-```
+Keep both source records unchanged. A BGC alias is not a join key: join on the full identity
+`strain / full node-or-contig / region / BGC` from each record's own source, and fix the join in the merge
+input. Never rename a source BGC ID by hand; downstream evidence is bound to it.
 
 ---
 
@@ -302,12 +274,10 @@ python tools/build_figures.py --package package/ --outdir figures/
 
 ```bash
 # Data export step was skipped
-python tools/export_figure_ready.py \
-  --workbook workbook.xlsx \
-  --outdir figure_ready/
+python tools/export_figure_ready.py workbook.xlsx figure_ready/
 
 # Then build figures:
-python tools/build_figures.py --csv-dir figure_ready/ --outdir figures/
+python tools/build_figures.py --banked-dir cohort --workbook workbook.xlsx --out-dir figures/
 ```
 
 ---

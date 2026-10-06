@@ -21,7 +21,7 @@ Comparators (Type/SID members) are similarity anchors, not identity calls. Judgm
 from __future__ import annotations
 import os, re, sqlite3, collections, sys as _sys
 
-# v9.7.417 (Amber): the reference-strain label is derived through the engine's single strain
+# v9.7.417: the reference-strain label is derived through the engine's single strain
 # resolver so the figure widgets cannot collapse two distinct references onto one row (see
 # strain_of). The bundle root is added to the path the same way the tools/ scripts do; when the
 # module is used standalone OUTSIDE a bundle the import fails and strain_of falls back to its
@@ -46,7 +46,7 @@ DOMAIN_DEPTH_DIR = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd()) + "/stra
 def strain_of(path: str, organism: str):
     """Return (strain_label, cohort_class) for a gbk row. class in {AS, SID, Type, Ref, MIBiG}."""
     b = os.path.basename(path or "")
-    # v9.7.418 (Amber): MIBiG anchor BGCs must resolve, not crash. strain_of is called on EVERY
+    # v9.7.418: MIBiG anchor BGCs must resolve, not crash. strain_of is called on EVERY
     # gbk row by gbk_index, and a cohort DB built with the standard `-m local2088` recipe carries
     # MIBiG `BGCxxxxxxx.gbk` rows (2,087 in curated_clean_2026-09-04). strain_of never had a MIBiG
     # branch: the pre-.417 code mislabelled them "Type" via an organism/filename fallback, and the
@@ -76,7 +76,7 @@ def strain_of(path: str, organism: str):
         stem = stem.split("__", 1)[0]
         stem = re.sub(r"_(NODE|scaffold|contig|ctg|tig)_.*$", "", stem, flags=re.I)
         return stem[:60] or "ref", "Ref"
-    # v9.7.417 (Amber): a `Genus sp. <COLLECTION> <NUMBER>` reference must keep its strain
+    # v9.7.417: a `Genus sp. <COLLECTION> <NUMBER>` reference must keep its strain
     # designator. `" ".join(organism.split()[:3])` dropped the 4th token, collapsing e.g.
     # "Streptomyces sp. WAC 01529" and "Streptomyces sp. WAC 06738" onto ONE matrix row and
     # merging two organisms' GCF portfolios; the "."-organism fallback below additionally leaked

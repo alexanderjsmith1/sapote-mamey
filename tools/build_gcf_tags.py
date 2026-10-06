@@ -29,6 +29,23 @@ from collections import Counter
 from _wbio import atomic_save, atomic_open
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -44,7 +61,7 @@ CLASS_BUCKET = {
  'nucleoside':'nucleoside','terpene':'terpene','indole':'indole_alkaloid','siderophore':'siderophore',
  'ni-siderophore':'siderophore','nrp-metallophore':'siderophore','betalactone':'betalactone','cdps':'CDPS',
  'ectoine':'other','melanin':'other','butyrolactone':'other','napaa':'other',
- # PKS-family types that are not type I, II or trans-AT: a general PKS bucket (Alex, 2026-09-26: PKS-like and
+ # PKS-family types that are not type I, II or trans-AT: a general PKS bucket (2026-09-26: PKS-like and
  # hglE-KS count as PKS)
  'hgle-ks':'PKS_other','pks-like':'PKS_other','t3pks':'PKS_other','arylpolyene':'PKS_other','pks':'PKS_other',
 }
@@ -93,11 +110,12 @@ def tag_bgc(kcb, products, pairs, orphan):
     ot=orphan.get(bucket) if bucket else None
     return (ot or 'OTHER_unknown'), 'unmatched_anchor'
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--thesaurus', default='resources/gcf_thesaurus.json')
     ap.add_argument('--workbook', default=None); ap.add_argument('--out-dir', default='analysis')
-    a=ap.parse_args(); os.makedirs(a.out_dir, exist_ok=True)
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None)); os.makedirs(a.out_dir, exist_ok=True)
     pairs, orphan = load_aliases(a.thesaurus)
     bgc=_read_json(os.path.join(a.banked_dir,'bgc_data.json')); bgcs=bgc['bgcs']
     rows=[]; tagc=Counter(); basis=Counter()

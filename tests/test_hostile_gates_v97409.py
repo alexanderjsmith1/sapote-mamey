@@ -1,4 +1,4 @@
-"""v9.7.409 — gates that the hostile audit of the sealed .408 artifact found open (Black Cherry, 2026-09-04).
+"""v9.7.409 — gates that the hostile audit of the sealed .408 artifact found open (2026-09-04).
 
 Each test names the attack that got through on .408 and pins the fail-closed behaviour now required."""
 from __future__ import annotations

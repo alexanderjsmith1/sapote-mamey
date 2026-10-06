@@ -1,6 +1,6 @@
 """Partner checks, automatic reference choice and the all-regions runner for the gap-rescue tool.
 
-Alex, 2026-09-30, on four small contigs drawn beside an AS nucleoside cluster: "the question is whether they are part of
+The owner, 2026-09-30, on four small contigs drawn beside an AS nucleoside cluster: "the question is whether they are part of
 a nucleoside BGC, or if the matching genes are noise?" Checked by hand: two were housekeeping operons (a ThyX beside
 DapA/DapB; ArgB inside the arginine operon, whose best MIBiG match was another cluster), one a common-family paralog, and
 one a real pair. Then: "note this process you are doing should be part of the rggmci". And: "If we can patch this

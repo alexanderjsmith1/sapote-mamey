@@ -3,7 +3,7 @@
 reference-dark novelty flagging, 4-channel gene tables, and a novelty-first lead-ranking
 front table. Reads roster_v2.json (nr/MIBiG/ClusterBlast/Swiss-Prot).
 Claim-safe: homology & capacity only; predicted != measured; judgment deferred.
-Implements Amber's v3 suggestions (2026-08-03).
+Implements the phylogeny lane's v3 suggestions (2026-08-03).
 """
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))

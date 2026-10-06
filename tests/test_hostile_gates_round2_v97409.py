@@ -1,4 +1,4 @@
-"""v9.7.409 — second hostile pass on sealed .408 (Black Cherry, 2026-09-04 evening): H8 formula injection,
+"""v9.7.409 — second hostile pass on sealed .408 (2026-09-04 evening): H8 formula injection,
 H9 phantom-locus card ingest, H10 outdir inside the engine tree."""
 from __future__ import annotations
 

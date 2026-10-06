@@ -1,6 +1,6 @@
 """Collection figures carry provenance on the page, not claim wording, and their save path refuses it.
 
-Alex, 2026-09-24: claim-safety statements come off figures entirely, footers included. The engine's
+2026-09-24: claim-safety statements come off figures entirely, footers included. The engine's
 `run` renders collection figures from strain metadata (mamey/cli.py). Every one of them drew
 "Claim-safe: activity=observation; capacity≠production; KCB=similarity not identity" in its footer,
 over the x tick labels, and the Candida/MRSA titles added "(observation, not compound identity)".

@@ -85,6 +85,7 @@ def validate_registry(data: dict[str, Any]) -> list[str]:
     allowed_classes = set(data.get("delivery_classes", {}))
     seen_ids: set[str] = set()
     seen_labels: set[str] = set()
+    lookup_tokens: dict[str, str] = {}
     required_item = {
         "id", "label", "group", "name", "question", "summary",
         "delivery_class", "commands", "requirements", "optional_inputs",
@@ -120,6 +121,15 @@ def validate_registry(data: dict[str, Any]) -> list[str]:
             findings.append(f"{item_id}: detection_globs must be a list of strings")
         if not item["outputs"]:
             findings.append(f"{item_id}: outputs may not be empty")
+        aliases = item.get("aliases", [])
+        if not isinstance(aliases, list) or any(not isinstance(v, str) or not v.strip() for v in aliases):
+            findings.append(f"{item_id}: aliases must be a list of non-empty strings")
+            aliases = []
+        for token in [item_id, label, str(item["name"]), *aliases]:
+            folded = token.casefold()
+            if folded in lookup_tokens and lookup_tokens[folded] != item_id:
+                findings.append(f"{item_id}: ambiguous lookup token {token}")
+            lookup_tokens[folded] = item_id
         for trigger in item["triggers"]:
             if _BGC_TOKEN.search(trigger) and trigger.count(" / ") < 3:
                 findings.append(f"{item_id}: incomplete exact-locus trigger: {trigger}")
@@ -153,7 +163,8 @@ def render_menu(registry: dict[str, Any] | None = None) -> str:
     lines.extend([
         "",
         "Run `python mamey_run.py deliverables availability ...` for a local, read-only "
-        "preflight. A listed external workflow is never authorization to contact it.",
+        "preflight. It checks local presence, not source admission, gate success or completed authorship. "
+        "A listed external workflow is never authorization to contact it.",
         "",
     ])
     by_group: dict[str, list[dict[str, Any]]] = {}
@@ -207,6 +218,9 @@ def render_legacy_pointer() -> str:
         "",
         f"Current bundle: Sapote-Mamey v{BUNDLE_VERSION}; engine: Mamey {__version__}.",
         "",
+        "Menu #5 distinguishes default full48, opt-in current50_v2 and source-bound expanded-locus "
+        "work orders. Emitted templates are scaffolds, not finished authored cards.",
+        "",
         "Do not add new offerings here. Add them to "
         "`mamey/data/deliverables_registry.json` and regenerate the menu.",
         "",
@@ -243,6 +257,10 @@ def _requirement_available(requirement: str, *, package: str | None, runs_dir: s
         return _count_packages(runs_dir) >= 2
     if requirement == "exact_locus_identity":
         return _complete_locus(locus)
+    if requirement == "gecco_local":
+        return shutil.which("gecco") is not None
+    if requirement == "biopython":
+        return importlib.util.find_spec("Bio") is not None
     if requirement == "figure_stack":
         return importlib.util.find_spec("matplotlib") is not None
     if requirement == "local_literature_corpus":
@@ -290,7 +308,8 @@ def availability_for(item: dict[str, Any], *, package: str | None = None,
 def _find_item(registry: dict[str, Any], token: str) -> dict[str, Any]:
     folded = token.casefold()
     for item in registry["deliverables"]:
-        if folded in {item["id"].casefold(), item["label"].casefold(), item["name"].casefold()}:
+        tokens = [item["id"], item["label"], item["name"], *item.get("aliases", [])]
+        if folded in {value.casefold() for value in tokens}:
             return item
     raise DeliverablesRegistryError(f"unknown deliverable: {token}")
 

@@ -1,6 +1,6 @@
 """RG-GMCI rescues pair only regions antiSMASH places on a contig edge; interior pairs are a separate list.
 
-Alex, 2026-09-27: "we don't want to waste our time on any BGCs that antismash deems internal and not on a contig
+2026-09-27: "we don't want to waste our time on any BGCs that antismash deems internal and not on a contig
 edge, ever" and "if the assembly puts a bgc internal, then we are not going to be able to confidently over-ride
 that". Interior pairs may still be worth a look as related loci, "but not as a strong, sane contig rescue".
 The edge test is antiSMASH's own `/contig_edge` flag on the region feature; the engine's edge status is the fallback

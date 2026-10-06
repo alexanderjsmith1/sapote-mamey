@@ -171,7 +171,7 @@ def _refuse_foreign_bytecode():
         # data, so clear the untrusted cache instead of sending the operator away: the stale code
         # still never executes, and the whole cost is one recompile.
         #
-        # Fail closed if the clear does not take. `_dirs_holding_bytecode` is `1246F6CE`'s, and
+        # Fail closed if the clear does not take. `_dirs_holding_bytecode` comes from an earlier card, and
         # their finding is why this re-checks: rmtree runs with ignore_errors=True, so a cache the
         # filesystem will not release is skipped silently. Proceeding then would import exactly
         # the bytecode this branch exists to distrust.

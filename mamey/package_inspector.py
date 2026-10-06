@@ -194,25 +194,27 @@ def inspect_command(args) -> int:
         emit(f"\n⚠  {zip_path.name} — does NOT look like an antiSMASH output ZIP", f"   Found {len(names)} files but no GBK region files.", "   This may be a raw NCBI/genome download. Run antiSMASH first:", "   https://antismash.secondarymetabolites.org", sep="\n")
         return 1
 
-    emit(f"\nMamey inspect — {zip_path.name}", f"{'─'*50}", f"  antiSMASH version : {as_version or 'not detected'}", f"  GBK region files  : {len(gbk_regions)}  ← Mamey will parse one BGC per file", f"  GBK other files   : {len(gbk_other)}", f"  JSON evidence     : {'YES (' + str(len(json_files)) + ' file(s))' if json_files else 'NO — KCB/RiQ will fall back to TXT'}", f"  KCB TXT files     : {len(cb_txt)}  ({'available' if cb_txt else 'absent — KCB may be blank'})", f"  HTML/viz files    : {len(html_files)}", f"  Total ZIP entries : {len(names)}", f"  Input shape       : {input_shape['summary']}", sep="\n")
+    report_lines = []
+    report_lines.extend([f'\nMamey inspect — {zip_path.name}', f"{'─' * 50}", f"  antiSMASH version : {as_version or 'not detected'}", f'  GBK region files  : {len(gbk_regions)}  ← Mamey will parse one BGC per file', f'  GBK other files   : {len(gbk_other)}', f"  JSON evidence     : {('YES (' + str(len(json_files)) + ' file(s))' if json_files else 'NO — KCB/RiQ will fall back to TXT')}", f"  KCB TXT files     : {len(cb_txt)}  ({('available' if cb_txt else 'absent — KCB may be blank')})", f'  HTML/viz files    : {len(html_files)}', f'  Total ZIP entries : {len(names)}', f"  Input shape       : {input_shape['summary']}"])
     if input_shape.get("accession_like"):
-        emit(f"  Public accession  : {input_shape.get('accession')}")
+        report_lines.extend([f"  Public accession  : {input_shape.get('accession')}"])
 
     if input_shape.get("shape") == "single_region_antismash_accession":
-        emit("\n  Single-region accession note:", "    This looks like a raw antiSMASH run on one public GenBank/INSDC sequence, not a full genome and not a sealed Mamey package.", "    It is still a valid Mamey intake target if inspect passes.", "    Assembly completeness warnings such as VERY_POOR / 0% interior BGCs can be expected for this input shape.", "    Treat this as reference/control evidence unless the user says it is a discovery strain.", sep="\n")
+        report_lines.extend(['\n  Single-region accession note:', '    This looks like a raw antiSMASH run on one public GenBank/INSDC sequence, not a full genome and not a sealed Mamey package.', '    It is still a valid Mamey intake target if inspect passes.', '    Assembly completeness warnings such as VERY_POOR / 0% interior BGCs can be expected for this input shape.', '    Treat this as reference/control evidence unless the user says it is a discovery strain.'])
 
     # Derive a ChatGPT-safe suggested strain name from the ZIP filename.
     strain_guess = _inspect_strain_guess(zip_path)
 
-    emit(f"\n  Capped-session run command (gold is the only analysis mode):", f"    python mamey_run.py run \\", f"        --strain {strain_guess} \\", f"        --input-zip {shlex.quote(str(zip_path))} \\", f"        --taxonomy \"<Genus species>\" \\", f"        --source \"<isolation source>\" \\", f"        --mode gold \\", f"        --release <PUBLIC|PRIVATE> \\", f"        --capped-session \\", f"        --json-evidence off \\", f"        --brief none", f"    Then validate: python mamey_run.py validate <outdir>/{strain_guess}/package", sep="\n")
+    report_lines.extend([f'\n  Capped-session run command (gold is the only analysis mode):', f'    python mamey_run.py run \\', f'        --strain {strain_guess} \\', f'        --input-zip {shlex.quote(str(zip_path))} \\', f'        --taxonomy "<Genus species>" \\', f'        --source "<isolation source>" \\', f'        --mode gold \\', f'        --release <PUBLIC|PRIVATE> \\', f'        --capped-session \\', f'        --json-evidence off \\', f'        --brief none', f'    Then validate: python mamey_run.py validate <outdir>/{strain_guess}/package'])
 
     if not json_files:
-        emit(f"\n  ⚠  No JSON evidence found. The run command above already uses --json-evidence off.")
+        report_lines.extend([f'\n  ⚠  No JSON evidence found. The run command above already uses --json-evidence off.'])
     if len(gbk_regions) > 40:
         import math
         batches = math.ceil(len(gbk_regions) / 20)
-        emit(f"\n  ⚠  {len(gbk_regions)} BGCs is a large strain (~{batches} judgment batches).", f"     Run gold directly (command above); sequence Mode B authoring across ~{batches} batches after the package validates.", sep="\n")
+        report_lines.extend([f'\n  ⚠  {len(gbk_regions)} BGCs is a large strain (~{batches} judgment batches).', f'     Run gold directly (command above); sequence Mode B authoring across ~{batches} batches after the package validates.'])
 
+    emit(*report_lines, sep="\n")
     return 0
 
 
@@ -279,23 +281,24 @@ def explain_command(args) -> int:
         issues = [line.lstrip("- ").strip() for line in txt.splitlines()
                   if line.strip().startswith("-") and "No blocking" not in line]
 
-    emit(f"\nMamey explain — {strain_id}", f"{'─'*55}", f"  Status        : {status}", f"  Taxonomy      : {tax}", f"  Source        : {source}", f"  Mode          : {mode}   Mamey v{mamey_ver}", f"  Assembly tier : {asm_tier}" + (f"  ({int_pct}% interior)" if int_pct is not None else ""), f"  Raw BGCs      : {raw_bgcs}", f"  Corrected BGCs: {corrected}", sep="\n")
+    report_lines = []
+    report_lines.extend([f'\nMamey explain — {strain_id}', f"{'─' * 55}", f'  Status        : {status}', f'  Taxonomy      : {tax}', f'  Source        : {source}', f'  Mode          : {mode}   Mamey v{mamey_ver}', f'  Assembly tier : {asm_tier}' + (f'  ({int_pct}% interior)' if int_pct is not None else ''), f'  Raw BGCs      : {raw_bgcs}', f'  Corrected BGCs: {corrected}'])
 
     if top_ab:
-        emit(f"\n  Top antibacterial leads:")
+        report_lines.extend([f'\n  Top antibacterial leads:'])
         for i, lead in enumerate(top_ab, 1):
-            emit(f"    {i}. {lead.get('bgc_id','?')} · {lead.get('contig','?')}  AB={lead.get('ab_score','?')}")
+            report_lines.extend([f"    {i}. {lead.get('bgc_id', '?')} · {lead.get('contig', '?')}  AB={lead.get('ab_score', '?')}"])
     if top_af:
-        emit(f"\n  Top antifungal leads:")
+        report_lines.extend([f'\n  Top antifungal leads:'])
         for i, lead in enumerate(top_af, 1):
-            emit(f"    {i}. {lead.get('bgc_id','?')} · {lead.get('contig','?')}  AF={lead.get('af_score','?')}")
+            report_lines.extend([f"    {i}. {lead.get('bgc_id', '?')} · {lead.get('contig', '?')}  AF={lead.get('af_score', '?')}"])
 
     if issues:
-        emit(f"\n  Issues ({len(issues)}):")
+        report_lines.extend([f'\n  Issues ({len(issues)}):'])
         for issue in issues[:5]:
-            emit(f"    · {issue[:100]}")
+            report_lines.extend([f'    · {issue[:100]}'])
         if len(issues) > 5:
-            emit(f"    · … and {len(issues)-5} more (see issue_log.md)")
+            report_lines.extend([f'    · … and {len(issues) - 5} more (see issue_log.md)'])
 
     # Key files present
     key_files = {
@@ -306,12 +309,13 @@ def explain_command(args) -> int:
     present = [f"{f} ({desc})" for f, desc in key_files.items() if (pkg / f).exists()]
     missing = [f for f in key_files if not (pkg / f).exists()]
     if present:
-        emit(f"\n  Key files: {', '.join(present)}")
+        report_lines.extend([f"\n  Key files: {', '.join(present)}"])
     if missing:
-        emit(f"  Missing  : {', '.join(missing)}")
+        report_lines.extend([f"  Missing  : {', '.join(missing)}"])
 
-    emit(f"\n  To start judgment: upload manifest.json to Claude and type:", f"    \"Run full Sapote analysis on {strain_id}\"", sep="\n")
+    report_lines.extend([f'\n  To start judgment: upload manifest.json to Claude and type:', f'    "Run full Sapote analysis on {strain_id}"'])
 
+    emit(*report_lines, sep="\n")
     return 0
 
 
@@ -464,13 +468,11 @@ def list_bgcs_command(args) -> int:
         emit(json.dumps(out, indent=2))
         return 0
 
-    emit(f"\nMamey list-bgcs — {len(out)} BGC(s)")
+    report_lines = []
+    report_lines.extend([f'\nMamey list-bgcs — {len(out)} BGC(s)'])
     for row in out:
         # Identity is the first line, unabridged; scores are routing priors.
-        emit(row["exact_locus"],
-             f"  Products: {row['products']} | Boundary: {row['boundary']} | "
-             f"AB: {row['ab_score']:.0f} | AF: {row['af_score']:.0f} | "
-             f"Lead tier: {row['lead_tier']}",
-             sep="\n")
-    emit("\n  Tip: --axis ab|af sorts by score | --json for machine-readable output | --top N to limit")
+        report_lines.extend([row['exact_locus'], f"  Products: {row['products']} | Boundary: {row['boundary']} | AB: {row['ab_score']:.0f} | AF: {row['af_score']:.0f} | Lead tier: {row['lead_tier']}"])
+    report_lines.extend(['\n  Tip: --axis ab|af sorts by score | --json for machine-readable output | --top N to limit'])
+    emit(*report_lines, sep="\n")
     return 0

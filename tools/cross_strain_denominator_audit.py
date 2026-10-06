@@ -90,7 +90,7 @@ def audit_denominators(workbook_path: str) -> list[str]:
 
     # plausible cohort denominators: the registry length and (separately) the BGC total.
     allowed = {n_reg, n_bgc}
-    # v9.7.401 (BC2): the window's LOWER bound used to be `n_reg - 12` -- symmetric with the
+    # v9.7.401: the window's LOWER bound used to be `n_reg - 12` -- symmetric with the
     # upper bound. But a stale cohort denominator is, by construction, always SMALLER than the
     # live registry length (the cohort only ever grows; that is the entire failure mode this
     # tool's own docstring documents: an 18-strain snapshot surviving inside a 24-strain
@@ -136,7 +136,7 @@ def ambiguous_denominators(workbook_path: str) -> list[str]:
     neither the registry length nor the BGC total AND falls OUTSIDE audit_denominators()'s
     +/-12 cohort-size window — i.e. tokens that function is structurally unable to see at all.
 
-    BC2-CSD-01 (v9.7.396): the +/-12 window exists to avoid false-flagging a genuinely smaller,
+    CSD-01 (v9.7.396): the +/-12 window exists to avoid false-flagging a genuinely smaller,
     unrelated per-category ratio as a stale cohort count — a reasonable anti-false-positive design.
     But a denominator that is FAR from the current registry length (e.g. a synthesis sheet frozen
     at a much smaller cohort snapshot from an earlier pass — exactly the "wrong number that looks

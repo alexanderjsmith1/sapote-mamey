@@ -1,6 +1,6 @@
 """v9.7.418 (GOLDENROD): exactly one outgroup gate ships — the superseded sibling must not.
 
-Eggplant's .417 audit (§3.3): `outgroup_sanity_gate.py` and `phylo_outgroup_gate.py` are the SAME
+The phylogeny lane's .417 audit (§3.3): `outgroup_sanity_gate.py` and `phylo_outgroup_gate.py` are the SAME
 distance-screen tool under two names; only `phylo_outgroup_gate.py` landed in the seal (verified:
 `load`/`ident`/`check` trio is unique to it). The superseded `.416`-queue `outgroup_sanity_gate.py`
 diff still reports `git apply --check` rc=0, so it "looks like a clean win" and applying it would ship

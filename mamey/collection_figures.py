@@ -370,7 +370,7 @@ def _dynamic_height(n_rows: int, row_pitch: float = 0.38, base: float = 1.8) -> 
 def _prov_footer(ax, source_name: str, n: int, version: str, date_str: str) -> None:
     """FB-6: small provenance footer on every figure.
 
-    v9.7.442: provenance only. Claim wording stays off the page (Alex, 2026-09-24); it lives in
+    v9.7.442: provenance only. Claim wording stays off the page (2026-09-24); it lives in
     the _data.csv sidecar. The footer sits below the x-axis label instead of over the tick labels.
     """
     txt = (f"Source: {source_name or 'supplied metadata'} · n={n} strains · "

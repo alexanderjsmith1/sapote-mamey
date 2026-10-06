@@ -1,12 +1,12 @@
 """No production code should launch the engine via ``-m mamey`` in a subprocess.
 
 The stray workspace-root mamey/ (v1.9.154, bundle 9.7.418) shadows the bundle
-(v1.9.169, bundle 9.7.440) when cwd is the workspace root. 88fdad06 fixed the
+(v1.9.169, bundle 9.7.440) when cwd is the workspace root. fixed the
 intake harness; this test covers the three remaining callers AND prevents any
 new caller from reintroducing the pattern.
 
 Four callers total (before this fix):
-  tools/intake_harness.py          (fixed by 88fdad06)
+  tools/intake_harness.py          (fixed by)
   tools/run_chatgpt_surrogate_gate.py  (fixed here)
   tools/cohort_blastp_driver.py    (fixed here, 2 call sites)
   mamey/deliverable_queue.py       (fixed here)
@@ -85,5 +85,5 @@ def test_callers_use_bundle_pinned_runner(tool, runner_literal):
 def test_intake_harness_already_fixed_by_88fdad06():
     src = (ROOT / "tools/intake_harness.py").read_text()
     assert 'mamey_run.py' in src or "-m" not in src[src.index("run_monitored"):], (
-        "intake_harness.py should use mamey_run.py (88fdad06 fix)"
+        "intake_harness.py should use mamey_run.py ( fix)"
     )

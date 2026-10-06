@@ -40,7 +40,7 @@ from pathlib import Path
 
 # ---- config -----------------------------------------------------------------
 SCAN_DIRS = ("mamey", "tools")
-PRINT_WARN_THRESHOLD = 1272  # ratchet-down 2026-10-01: 1280 -> 1272 (measured; command results stay on emit, review F1)  # v9.7.410 cut, 2026-09-06: 1277 -> 1280 (measured) -- UP, flagged for the owner: +1 tools/gen_figure_r_manifest.py, +1 tools/check_patch_lane.py (two new tool entry points, one emit each), +1 mamey/cli.py ingest-blastp fail-loud WARNING (deliberate, replaces a silent 0-BGC bind); no consecutive single-arg emit pairs remain to merge (measured by AST)  # ratchet-down 2026-09-06: 1278 -> 1277 (measured)  # ratchet-down 2026-09-05: 1289 -> 1278 (measured)  # v9.7.408 close-out, second paydown: 101 more consecutive single-arg emits merged (sep="\n", byte-identical); the 5 new emissions from `start`/`phylo-autopilot` are absorbed. Ceilings only go down.
+PRINT_WARN_THRESHOLD = 1255  # v9.7.448 cut, 2026-10-05: 1249 -> 1255 (measured) -- UP, flagged for the owner: +3 tools/strain_slides.py (gene-label refusal, map-not-drawn and gallery-skip diagnostics on stderr), +2 tools/rescue_locus_comparison.py (fallback-step failure line, CLI result), +1 tools/multi_reference_comparison.py (CLI result); all three are imported by other tools, so they stay counted  # ratchet-down 2026-10-04: 1272 -> 1249 (measured)  # ratchet-down 2026-10-01: 1280 -> 1272 (measured; command results stay on emit, review F1)  # v9.7.410 cut, 2026-09-06: 1277 -> 1280 (measured) -- UP, flagged for the owner: +1 tools/gen_figure_r_manifest.py, +1 tools/check_patch_lane.py (two new tool entry points, one emit each), +1 mamey/cli.py ingest-blastp fail-loud WARNING (deliberate, replaces a silent 0-BGC bind); no consecutive single-arg emit pairs remain to merge (measured by AST)  # ratchet-down 2026-09-06: 1278 -> 1277 (measured)  # ratchet-down 2026-09-05: 1289 -> 1278 (measured)  # v9.7.408 close-out, second paydown: 101 more consecutive single-arg emits merged (sep="\n", byte-identical); the 5 new emissions from `start`/`phylo-autopilot` are absorbed. Ceilings only go down.
                              # emissions merged byte-identically with sep="\n"; merge requires the
                              # statement to stand ALONE on its line -- a single-line compound statement
                              # shares the indent of a bare one and is NOT in the same block)  # ratchet-down 2026-09-02: 1623 -> 1622 (measured)  # ratchet-down 2026-09-02: 1624 -> 1623 (measured)   # RATCHETED DOWN 2026-09-02 (v9.7.405) from 1629: the .405 composition
@@ -160,7 +160,11 @@ CLI_TOOL_EXCLUDE_FILES = {"render_all.py", "phylo_preflight.py", "phylo_postflig
                           "region_table_one_setting.py", "sixteen_s_similarity_check.py",
                           "verify_release_tarball.py",
                           # v9.7.443: a check tool; its terminal lines are the site list it exists to print.
-                          "check_no_bundle_write_defaults.py"}
+                          "check_no_bundle_write_defaults.py",
+                          # v9.7.448: five operator front doors. Each one's terminal lines are its per-run log
+                          # (one line per BGC or panel, then a summary); none is imported as a library.
+                          "multi_reference_comparison_strain.py", "rescue_locus_comparison_strain.py",
+                          "render_locus_comparison.py", "check_tygs_coverage.py", "neighbour_panel_candidates.py"}
 # v9.7.403: tools/blastp_channel_triage.py is an operator front door whose stdout IS the
 # deliverable (the triage receipt JSON on stdout, the error line on stderr) — the same family as
 # the phylo launchers above, so it is EXCLUDED BY DESIGN rather than counted as library debt.

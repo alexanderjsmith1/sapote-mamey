@@ -1,0 +1,9 @@
+{
+ "schema_version": "1.0",
+ "policy": "domain-supported broad biosynthetic pathway hypotheses; no structure classifier was run",
+ "taxonomy": "NPClassifier pathway vocabulary",
+ "mapping": {"PKS": "Polyketides", "NRPS": "Peptides", "RiPP": "Peptides", "terpene": "Terpenoids", "unmapped": "unmapped"},
+ "domain_rules": {"PKS": ["PKS_KS"], "NRPS": ["NRPS_A"], "RiPP": ["RiPP_precursor", "YcaO_TOMM"], "terpene": ["Terpene_synthase", "Terpene_cyclase", "Terpene_synth_C"]},
+ "unknown_policy": "Product-only, tailoring-only, unsupported or absent core evidence stays unmapped. Missing observations do not establish class absence. Hybrid regions retain multiple independent hypotheses.",
+ "close_match_identity_threshold_pct": 74.0
+}

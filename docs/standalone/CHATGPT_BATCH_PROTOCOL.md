@@ -1,6 +1,6 @@
 # Batch execution and continuation
 
-Documented bundle: v9.7.446 / engine 1.9.172
+Documented bundle: v9.7.448 / engine 1.9.173
 
 
 A batch is an operational grouping of inputs, not a fixed biological or model limit. Start with one representative input and inspect measured runtime, memory, disk output and evidence gaps before selecting the next group. Do not infer the appropriate batch size from a historical “three strains” or “four to six strains” rule.

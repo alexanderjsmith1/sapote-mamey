@@ -1,6 +1,6 @@
 # Working method — cohort phylogenomic trees (Sapote-Mamey)
 
-**Status:** working method, in use 2026-08-26. Two trees built this way passed Alex's sign-off
+**Status:** working method, in use 2026-08-26. Two trees built this way passed the owner's sign-off
 review (bee/wasp Pseudonocardiaceae and bee/wasp *Nocardia*). This is the reproducible recipe
 plus the reasoning behind each governed choice, so the next tree is a parameter change, not a
 re-derivation.
@@ -9,7 +9,7 @@ re-derivation.
 
 ## Which GToTree — and why the passing figures say 1.8.19
 
-**The two figures Alex passed were built with GToTree v1.8.19** (confirmed in each run's
+**The two figures the owner passed were built with GToTree v1.8.19** (confirmed in each run's
 `citations.txt`). A figure's methods must describe how *that* figure was made, so their methods
 sections state 1.8.19 / the 138-gene NCBI-taxonomy Actinobacteria SCG set. That is not a
 placeholder to be relabelled later.
@@ -34,12 +34,12 @@ be all-one or explicitly labelled. Recommended path: rebuild the current passing
 once, so the whole series is internally consistent, and cite 1.8.19 only if those exact figures
 are published as-is.
 
-**Upstream contributions to GToTree v2 (for the developer):** `upstream_gtotree2/` in this same
-patch folder carries `NOTE_TO_GTOTREE_AUTHOR.md` and a 248-line patch
-(`gtotree2-input-sanity-and-env-compat.patch`) with three fixes found during the trial — a
-fatal-error `sys.exit(0)`, no fallback for the v1.x environment-variable names, and no
-pre-run sanity check on input FASTAs. The v2 test suite is green with the patch applied
-(1294 passed, 1 skipped).
+**Retained GToTree v2 compatibility reference:** [compatibility patch notes](../tools/upstream_gtotree2/COMPATIBILITY_PATCH_NOTES.md)
+describe the target snapshot and mechanics of `tools/upstream_gtotree2/gtotree2-input-sanity-and-env-compat.patch`:
+nonzero fatal exits, legacy environment-variable fallback and input-format preflight.
+The recorded 1294 passed, 1 skipped result is historical and unverified against an actual external
+checkout for this documentation change; it does not establish current installation compatibility.
+Author correspondence is excluded from the bundle.
 
 ## The recipe (reproducible)
 

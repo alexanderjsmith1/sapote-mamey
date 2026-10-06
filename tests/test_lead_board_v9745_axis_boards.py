@@ -73,7 +73,7 @@ def test_headers_present():
     assert "Downgrade" in AXIS_LEAD_BOARD_HEADERS and "Score" in AXIS_LEAD_BOARD_HEADERS
 
 
-# BC2-408 (rebased): mobile_element_flag is the third corrected_rank-gating exclusion signal
+# 408 (rebased): mobile_element_flag is the third corrected_rank-gating exclusion signal
 # alongside standing_rule_flag/primary_metabolism_flag (scoring.py's own three-flag gate). Before
 # this fix, a mobile-dominant/uncorroborated row's Downgrade cell was silently blank and it sorted
 # among genuine clean leads by score alone -- exactly the class of bug the AUDIT_378 sweep fixed in

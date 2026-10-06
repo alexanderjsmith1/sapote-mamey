@@ -1,39 +1,39 @@
-# cluster_relate — relationship tree + distance matrix from homologous clusters
+# Cluster protein-inventory comparison
 
-The comparative tools produce ortholog tables, but the *relationship* between clusters — which
-are near-identical, which are diverged, which is the outgroup — was left to eyeball. This turns a
-set of cluster GBKs into a distance matrix, a UPGMA dendrogram, a Newick tree, and (with `--pdf`)
-a figure + methods + interpretation naming the closest pair and the outgroup.
+Use the declared `one_to_one_v1` metric for a bounded, symmetric inventory comparison:
 
-## Distance metric
+    python tools/cluster_relate.py --metric one_to_one_v1 \
+      --gbk "FixtureA:fixture_a.gbk" --gbk "FixtureB:fixture_b.gbk" --outdir OUT --pdf
 
-    similarity(A,B) = (shared_orthologs / min(|A|,|B|)) x mean_global_identity_over_orthologs
-    distance(A,B)   = 1 - similarity(A,B)
+The metric globally aligns every cross-inventory protein pair using Bio.Align,
+BLOSUM62 and gap penalties -11/-1. It excludes identities below `--min-id` (default
+30 percent), then maximizes the sum of identity/100 under one-to-one matching.
+Similarity equals this sum divided by the larger translated-CDS inventory;
+distance equals 1 minus similarity. Unmatched copies contribute zero, and every
+copy remains in the denominator. Sequence sorting, canonical whole-inventory orientation and canonical pair orientation
+make input and gene-order permutations preserve the result, including alignment
+tie behavior. Equal-weight assignments can differ in member identities while
+preserving the same score; no ortholog assignment is emitted. Empty inventories
+are unmeasured and refused. Identities must be finite percentages.
 
-Orthologs are confident **global**-identity (clinker-consistent) gene pairs >= `--min-id`. The
-metric rewards both gene-content overlap and sequence conservation, so a shared 3-gene warhead at
-40% ranks far from a 14-gene near-identical cluster at 79%.
+`--engine pyswrd` with this metric still performs exhaustive Bio.Align global
+alignment: a prefilter would change the admitted edge set. The requested and
+effective engine are recorded separately. This can be slower than a prefilter.
 
-## Usage
+The default `legacy_checked` preserves the historical directed best-hit/minimum-
+inventory formula for compatibility. It checks both directions before rounding,
+requires bounded finite values and matching shared-count/mean-identity details,
+and refuses disagreements. It never silently substitutes the named metric.
 
-    python tools/cluster_relate.py \
-        --gbk "AS-XXX_BGC008:BGC008.gbk" \
-        --gbk "NPDC08785:NPDC.gbk" --gbk "x-80:x80.gbk" \
-        --gbk "polyoxin:polyoxin.gbk" --gbk "nikkomycin:nikkomycin.gbk" \
-        --outdir OUT --pdf
+Outputs are `distance_matrix.csv`, `tree.nwk`, `dendrogram.png`,
+`comparison_contract.json`, and optional `comparison.pdf`. The contract records
+metric, threshold, engine, inventories and inference ceiling. All destinations
+must be fresh. UPGMA is descriptive; it establishes neither orthology nor an
+evolutionary outgroup, biological function, compound or activity. Labels must
+preserve exact Newick leaf identity through the installed parser; unsupported
+quoted spellings and control characters are refused before outputs.
 
-Outputs: `distance_matrix.csv`, `dendrogram.png`, `tree.nwk`, `comparison.pdf`. UPGMA is pure
-Python (no tree library); the dendrogram uses scipy; identity uses Bio.Align. `--engine pyswrd`
-prefilters ortholog candidates for large inputs.
-
-## Fits the pipeline
-
-    fetch_reference_cluster / extract_cluster  ->  annotated cluster GBKs
-    cluster_gene_compare                       ->  gene-by-gene ortholog view
-    cluster_relate                             ->  the relationship tree over those clusters
-
-## Validated
-
-On a set of related clusters it recovers the expected topology (the query branching with its
-nearest sisters, the two characterised MIBiG references forming the outgroup pair).
-Capacity/architecture-level: distance is homology, not product identity. [cohort exemplar [Redacted — publication in preparation]]
+The dendrogram needs SciPy, plotting needs Matplotlib, and alignment needs
+Biopython. Tests check the assignment against an independent exhaustive oracle,
+copy-count behavior, symmetry, bounds, engine route and legacy refusals. These
+controls verify the declared computation, not a biological interpretation.

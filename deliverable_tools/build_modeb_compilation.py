@@ -222,7 +222,7 @@ def main() -> int:
     ap.add_argument("--strain")
     ap.add_argument("--strains", nargs="+")
     ap.add_argument("--no-docx", action="store_true")
-    # v9.7.413 (BC2): --out, mirroring `majority-read` and `surface-leads` (the latter landed at
+    # v9.7.413: --out, mirroring `majority-read` and `surface-leads` (the latter landed at
     # .412). Without it this command had no way NOT to write into the canonical home: it writes
     # BOTH `<MAMEY_DATA_ROOT>/strain_data/<STRAIN>/` and the dated
     # `strain_data/modeb_compilation_2026-08-05/` on every run, and `strain_data` is a symlink to
@@ -247,7 +247,7 @@ def main() -> int:
         for od in (targets if targets is not None else (MASTER / s, OUTDIR)):
             od.mkdir(parents=True, exist_ok=True)
             mdp = od / f"{s}_ModeB_compilation.md"
-            # v9.7.413 (BC2): refuse to silently replace an existing canonical dated deliverable.
+            # v9.7.413: refuse to silently replace an existing canonical dated deliverable.
             guard_canonical_write(mdp, force=a.force)
             mdp.write_text(md, encoding="utf-8")
             if not a.no_docx:

@@ -3,7 +3,7 @@
 #
 # PORTABLE VARIANT. Carries no personal paths: the project root is derived from this script's
 # own location (it is expected to live in <project>/Tools/), and every other path is either
-# derived from that or overridable. This is the change Codex held AMBER_380 at Tier-C for.
+# derived from that or overridable. This is the change Codex held P380 at Tier-C for.
 #
 # WHY THIS EXISTS — every failure below was observed live on 2026-08-26, not hypothesised:
 #   1. Calling GToTree by absolute path without the conda env on PATH =>

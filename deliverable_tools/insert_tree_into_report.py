@@ -27,9 +27,9 @@ import argparse, csv, glob, os, re, shutil
 import os
 
 ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
-MAP = f"{ROOT}/sessions/Amber/Deliverables/strain_to_MLSA_tree_map.csv"
+MAP = f"{ROOT}/deliverables/strain_to_MLSA_tree_map.csv"
 REPORTS = f"{ROOT}/July 25 the Developer or User thesis bee paper/Strain_Level_Capture_2026-07-25/reports/docx"
-OUTDIR_DEFAULT = f"{ROOT}/sessions/Amber/Deliverables/strain_reports_with_tree"
+OUTDIR_DEFAULT = f"{ROOT}/deliverables/strain_reports_with_tree"
 
 _TREE_KIND = {"pruned": "pruned 138-SCG core-genome backbone (derived from the full-pool MLSA screen)",
               "family": "138-SCG core-genome tree"}

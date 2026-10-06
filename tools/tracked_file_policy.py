@@ -66,7 +66,7 @@ def is_tracked(rel: str) -> bool:
         return False
     if rel.endswith(_SKIP_SUFFIX):
         return False
-    # BC2-TFP-01 (v9.7.396): _RELEASE_ARTIFACT_RE matched on the BASENAME alone, with no path
+    # TFP-01 (v9.7.396): _RELEASE_ARTIFACT_RE matched on the BASENAME alone, with no path
     # context -- exactly the bug shape the v9.7.374 fix immediately below (_ROOT_LEVEL_ZIP_RE)
     # was built to close for the tier ZIP, left unfixed here in the sibling rule right next to it.
     # A real cut log or SHA256SUMS manifest produced BY the cut process always lands at the tier

@@ -1,4 +1,4 @@
-"""mamey/logging_setup.py — CANDIDATE (Indigo2 JOB-E / TASK-01, 2026-08-15).
+"""mamey/logging_setup.py — one logging front door for the engine.
 
 One logging front door for the engine. Design constraints, in order:
 1. BYTE-IDENTICAL default output for converted modules: bare "%(message)s" format, single

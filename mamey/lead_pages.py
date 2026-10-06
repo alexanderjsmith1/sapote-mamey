@@ -41,7 +41,7 @@ from . import assembly_line as _assembly_line
 from mamey.convergence_band import annotate as _band_pct  # display-only
 from mamey.ziputil import safe_extract_all
 from mamey.class_architecture import with_family_labels  # antiSMASH families for groupings; products stay types
-# BC2-408: this try/except was pasted INSIDE _load_lit()'s docstring below (as inert prose, never
+# 408: this try/except was pasted INSIDE _load_lit()'s docstring below (as inert prose, never
 # executed) rather than as real module-level code -- confirmed live: `mamey lead-pages <pkg>` raised
 # `NameError: name 'emit' is not defined` unconditionally on its final summary line (lead_pages.py's
 # own `lead_pages_command`, ~line 652), a 100% crash rate on this CLI command. The per-BGC dossier
@@ -681,7 +681,11 @@ def lead_pages_command(args):
     import os as _os
     pkg = find_pkg_dir(args.package)
     _clear_cache()
-    outdir = getattr(args, "out", None) or _os.path.join(pkg, "LEAD_PAGES")
+    try:
+        from .postseal_output import output_directory
+    except ImportError:
+        from postseal_output import output_directory
+    outdir = str(output_directory(pkg, "lead-pages", getattr(args, "out", None)))
     tri = {r["BGC_ID"]: r for r in rows(pkg, "_4_triage_board.csv")}
     inv = rows(pkg, "_2_inventory.csv")
     all_tiers = getattr(args, "all_tiers", False)

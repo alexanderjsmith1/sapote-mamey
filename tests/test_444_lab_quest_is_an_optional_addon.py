@@ -1,4 +1,4 @@
-"""Lab Quest is an optional add-on, not part of core (Alex, 2026-09-27; .444 card 6275a90d_444_lab_quest_to_optional_addon).
+"""Lab Quest is an optional add-on, not part of core (2026-09-27; .444 card).
 
 Core must not import it, its modules must not live in `mamey/`, and the CLI must work with and without it.
 """

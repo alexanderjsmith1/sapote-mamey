@@ -12,7 +12,7 @@
 #           PYTEST_RECEIPT_SHA256=<sha256> tools/release.sh ...
 #         The structured receipt must bind the exact source tree and configured full-suite evidence.
 set -euo pipefail
-# v9.7.444 (Alex): DISABLED. This four-tier build driver is kept in the bundle but no longer part of the cut;
+# v9.7.444 (owner): DISABLED. This four-tier build driver is kept in the bundle but no longer part of the cut;
 # tools/release_cut.sh cuts the CODE tier only. SAPOTE_ENABLE_DISABLED_TIERS=1 runs it (see CUT_PROTOCOL.md).
 if [ "${SAPOTE_ENABLE_DISABLED_TIERS:-0}" != "1" ]; then
   echo "REFUSED: tools/release.sh is disabled (v9.7.444: releases cut the CODE tier only with tools/release_cut.sh). Set SAPOTE_ENABLE_DISABLED_TIERS=1 to run it." >&2

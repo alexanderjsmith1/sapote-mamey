@@ -1,6 +1,6 @@
 """tools/gene_synteny_map.py: a genome against a reference cluster, gene by gene, with ordered blocks.
 
-Alex, 2026-09-28: the per-gene view (a candidate match for each reference gene, identity and coverage, neighbouring
+2026-09-28: the per-gene view (a candidate match for each reference gene, identity and coverage, neighbouring
 genes matched in order on one contig) is the convincing one; build it into this cut. Modular PKS genes are assigned by
 KS placement when a placement table is given, because their best whole-gene match follows module paralogy.
 """

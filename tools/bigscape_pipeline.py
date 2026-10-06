@@ -56,7 +56,7 @@ def interpreter_env(env=None, executable=None):
     bin directory is prepended to PATH so binaries installed beside it (BiG-SCAPE shells out to a
     BARE `fasttree` during output generation) resolve even though the conda env was never
     activated. The pipeline is documented to run under the env's python by absolute path, which is
-    exactly the case where PATH does not contain that env. v9.7.441 card EB3DF1EF / 283f1f96."""
+    exactly the case where PATH does not contain that env. v9.7.441 card."""
     env = dict(os.environ if env is None else env)
     bindir = os.path.dirname(executable or sys.executable)
     parts = [p for p in env.get("PATH", "").split(os.pathsep) if p]

@@ -1,6 +1,6 @@
 """tools/gap_directed_rescue.py: what the core's reference has and the core lacks, looked for across the whole genome.
 
-Alex, 2026-09-28: a real split-cluster rescue came from knowing what was missing (a halogenase), searching the
+2026-09-28: a real split-cluster rescue came from knowing what was missing (a halogenase), searching the
 genome, picking the one clear candidate among paralogs, and checking coherence. The missing piece can sit on a contig
 with no antiSMASH region, which region-to-region pairing cannot see.
 """

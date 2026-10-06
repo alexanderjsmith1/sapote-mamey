@@ -1,5 +1,5 @@
 """Portable regression for the flavor-aware resolver (BC4's CLAUDE_399 patch; test authored
-by Black Cherry at composition — the patch shipped receipt-verified but test-less).
+by an audit lane at composition — the patch shipped receipt-verified but test-less).
 
 Asserts the card's documented semantics: a flavor request returns ONLY a package/ZIP of that
 flavor (honest ``None`` otherwise, never a silent other-flavor substitute); ``flavor=None``

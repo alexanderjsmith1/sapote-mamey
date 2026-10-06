@@ -1,4 +1,4 @@
-"""OSError→realpath-fallback regression for mamey.strain_data_home (v9.7.402, Black Cherry-4).
+"""OSError→realpath-fallback regression for mamey.strain_data_home (v9.7.402, 4).
 
 Roster seed #7 (ROSTER_401 carried seed — the one good extra from the superseded .399
 convergent case-dup card): ``_package_zip_index`` keys its estate dedup on inode identity

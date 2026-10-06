@@ -15,7 +15,8 @@ from mamey import cli, deliverable_queue, modeb_round
 from mamey import modeb_template_emitter as em
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-FLAGS = ["--cohort-dir", "--reference-dir", "--strain-metadata", "--bigscape-regions-dir"]
+FLAGS = ["--cohort-dir", "--reference-dir", "--strain-metadata", "--bigscape-regions-dir",
+         "--gap-rescue-dir", "--rescue-verdicts-tsv", "--rescue-gene-adjudication-tsv", "--rescue-locus-inventory"]
 
 
 def _pkg(tmp_path: pathlib.Path) -> pathlib.Path:

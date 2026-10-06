@@ -310,7 +310,21 @@ def s6_narrative(pkg, deliv, ctx):
 
 
 def s7_compile(pkg, deliv, ctx):
-    rep = _first(pkg, "*_compiled_report.md")
+    try:
+        from .postseal_output import current_compiled_report
+    except ImportError:
+        from mamey.postseal_output import current_compiled_report
+    try:
+        # A filled immutable-reader report supersedes the auto-emitted source
+        # skeleton, only when its source and output bytes still match.
+        # Mutable construction reads its internal report. An obsolete sibling
+        # reader receipt must not hide a fresh preseal engine deliverable.
+        sealed = any(os.path.lexists(os.path.join(pkg, marker)) for marker in
+                     ("checksums_sha256.txt", "seal_status.json", "SEAL_RECEIPT.md"))
+        external = current_compiled_report(pkg) if sealed and os.path.isfile(os.path.join(pkg, "manifest.json")) else None
+    except (ValueError, OSError, TypeError) as exc:
+        return PENDING, f"external compiled report refused: {exc}"
+    rep = str(external) if external else _first(pkg, "*_compiled_report.md")
     if not rep:
         rep = _first(deliv, "*_compiled_report.md") if deliv else None
     if not rep:

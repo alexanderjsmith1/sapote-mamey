@@ -1,4 +1,4 @@
-"""Independent finding by Black Cherry-3 (read-only audit of the sealed .405 CODE tier), landed on the
+"""Independent finding by 3 (read-only audit of the sealed .405 CODE tier), landed on the
 CODEX-406 typed-receipt shape (coverage_complete + traversal_errors[{path,error_type,message}],
 status INCOMPLETE). v9.7.406 candidate — regression coverage for the candidate_census.py fail-closed fix.
 

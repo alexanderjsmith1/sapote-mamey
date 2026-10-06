@@ -1,4 +1,4 @@
-"""B2 schema v1.1 (.401): the 14 cohort-attested classes promoted from 'other' (Alex ruling
+"""B2 schema v1.1 (.401): the 14 cohort-attested classes promoted from 'other' (the owner ruling
 2026-09-02, n>=10 full-cohort threshold; decision memo beside COHORT_MASTER_v97400). Locks:
 promoted tokens land in their own columns (case-insensitively), rare tokens still fold to
 'other', the MW-01 sum invariant holds, and the widened canon stays lowercase-collision-free."""

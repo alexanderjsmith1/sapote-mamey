@@ -442,7 +442,7 @@ Before delivering any report, verify all items below. Failure to pass any gate =
 
 **Full-Run Profile v1.9.7** — extends Sapote-Slim Judgment Kernel v1.0 (Mamey v1.9.3+).  
 **Lab:** 
-**Analyst:** Alexander J. Smith (ORCID: 0000-0002-7987-1460)  
+**Analyst:** 
 **Affiliation for all deliverables:** 
 
 Sections added by this profile (not in slim kernel): Modules 17 (DAPR), 18 (Fermentation Plan), 19 (Layperson Guide), 20 (Bench Guide). Section B overrides Slim Module 13. Section D overrides Slim Module 14. Section H extends Slim Module 16.

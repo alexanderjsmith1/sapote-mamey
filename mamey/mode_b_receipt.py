@@ -1133,6 +1133,12 @@ def emit_modeb_template_command(args) -> int:
     """
     import argparse  # noqa: F401 — for type clarity at call sites
     from pathlib import Path as _P
+    from .modeb_current50_v2 import load_contract as _load_v2
+    try:
+        _contract = _load_v2(getattr(args, "contract", None))
+    except ValueError as exc:
+        emit(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     pkg = _P(args.package).resolve()
     if not pkg.is_dir():
         emit(f"ERROR: not a directory: {pkg}", file=sys.stderr)
@@ -1189,7 +1195,7 @@ def emit_modeb_template_command(args) -> int:
     if bgc:
         try:
             from . import modeb_template_emitter as _emit
-            card = _emit.emit_card_template(pkg, bgc, sources=sources)
+            card = _emit.emit_card_template(pkg, bgc, contract=_contract, sources=sources)
         except FileNotFoundError as e:
             emit(f"ERROR: {e}", file=sys.stderr)
             return 1
@@ -1206,7 +1212,7 @@ def emit_modeb_template_command(args) -> int:
     top_n = getattr(args, "top_n", None)
     try:
         from . import modeb_template_emitter as _emit
-        res = _emit.emit_batch(pkg, scope=scope, top_n=top_n, sources=sources)
+        res = _emit.emit_batch(pkg, contract=_contract, scope=scope, top_n=top_n, sources=sources)
     except FileNotFoundError as e:
         emit(f"ERROR: {e}", file=sys.stderr)
         return 1
@@ -2531,31 +2537,22 @@ def ingest_receipts_command(args) -> int:
     if auto:
         force_structure = bool(getattr(args, "force_structure", False))
         summary = auto_detect_ingest(pkg, force_structure=force_structure)
-        emit(f"Auto-detect ingest for {summary['strain_id']}:",
-             f"  scanned:           {summary['scanned_count']} *_mode_b.md card(s) in judgment/",
-             f"  recorded:          {len(summary['recorded'])} -> "
-             f"{', '.join(summary['recorded']) or '(none)'}",
-             sep="\n")
+        report_lines = []
+        report_lines.extend([f"Auto-detect ingest for {summary['strain_id']}:", f"  scanned:           {summary['scanned_count']} *_mode_b.md card(s) in judgment/", f"  recorded:          {len(summary['recorded'])} -> {', '.join(summary['recorded']) or '(none)'}"])
         if summary.get("recorded_with_structure_override"):
-            emit(f"  recorded w/ override: "
-                  f"{', '.join(summary['recorded_with_structure_override'])}  "
-                  "(structure ERRORS present; --force-structure used)")
+            report_lines.extend([f"  recorded w/ override: {', '.join(summary['recorded_with_structure_override'])}  (structure ERRORS present; --force-structure used)"])
         if summary["skipped_already_complete"]:
-            emit(f"  skipped (done):    "
-                  f"{', '.join(summary['skipped_already_complete'])}")
+            report_lines.extend([f"  skipped (done):    {', '.join(summary['skipped_already_complete'])}"])
         if summary["skipped_unknown"]:
-            emit(f"  SKIPPED (unknown): "
-                  f"{', '.join(summary['skipped_unknown'])}  "
-                  "(not in register — not invented)")
+            report_lines.extend([f"  SKIPPED (unknown): {', '.join(summary['skipped_unknown'])}  (not in register — not invented)"])
         if summary.get("skipped_structure_invalid"):
             bad = [f"{bid} ({n} err)"
                    for bid, n in summary["skipped_structure_invalid"]]
-            emit(f"  SKIPPED (structure): {', '.join(bad)}  "
-                  "(§1–§48 contract violations; rebuild from template or "
-                  "re-run with --force-structure)")
+            report_lines.extend([f"  SKIPPED (structure): {', '.join(bad)}  (§1–§48 contract violations; rebuild from template or re-run with --force-structure)"])
         # v9.7.152 (AS-XXX Bug 1): loud, actionable warning for recognizable
         # near-miss filenames that were skipped — prevents silent
         # 'scanned: N, recorded: 0' with no diagnostic.
+        emit(*report_lines, sep="\n")
         recovery_diagnostics = []
         if summary.get("skipped_misnamed"):
             recovery_diagnostics.extend([
@@ -2603,39 +2600,30 @@ def ingest_receipts_command(args) -> int:
         emit(f"ERROR: {e}", file=sys.stderr)
         return 1
 
-    emit(f"Ingested Mode B receipt for {summary['strain_id']}:", f"  recorded:          {len(summary['recorded'])} BGC(s) -> {', '.join(summary['recorded']) or '(none)'}", sep="\n")
+    report_lines = []
+    report_lines.extend([f"Ingested Mode B receipt for {summary['strain_id']}:", f"  recorded:          {len(summary['recorded'])} BGC(s) -> {', '.join(summary['recorded']) or '(none)'}"])
     if summary.get("recorded_with_structure_override"):
-        emit(f"  recorded w/ override: "
-              f"{', '.join(summary['recorded_with_structure_override'])}  "
-              "(structure ERRORS present; --force-structure used)")
+        report_lines.extend([f"  recorded w/ override: {', '.join(summary['recorded_with_structure_override'])}  (structure ERRORS present; --force-structure used)"])
     if summary["skipped_unknown"]:
-        emit(f"  SKIPPED (unknown): {', '.join(summary['skipped_unknown'])}  "
-              "(not in register — not invented)")
+        report_lines.extend([f"  SKIPPED (unknown): {', '.join(summary['skipped_unknown'])}  (not in register — not invented)"])
     if summary["skipped_no_content"]:
-        emit(f"  SKIPPED (empty):   {', '.join(summary['skipped_no_content'])}")
+        report_lines.extend([f"  SKIPPED (empty):   {', '.join(summary['skipped_no_content'])}"])
     if summary.get("skipped_identity_mismatch"):
         bad = [
             f"{row['receipt_bgc_id']} ({row['reason']})"
             for row in summary["skipped_identity_mismatch"]
         ]
-        emit(
-            f"  SKIPPED (identity): {', '.join(bad)}  "
-            "(receipt/card/package identity conflict; not overridable)"
-        )
+        report_lines.extend([f"  SKIPPED (identity): {', '.join(bad)}  (receipt/card/package identity conflict; not overridable)"])
     if summary.get("skipped_structure_invalid"):
         bad = [f"{bid} ({n} err)"
                for bid, n in summary["skipped_structure_invalid"]]
-        emit(f"  SKIPPED (structure): {', '.join(bad)}  "
-              "(§1–§48 contract violations; rebuild from template or "
-              "re-run with --force-structure)")
+        report_lines.extend([f"  SKIPPED (structure): {', '.join(bad)}  (§1–§48 contract violations; rebuild from template or re-run with --force-structure)"])
     cov = summary.get("coverage_receipt")
     if cov:
-        emit(f"  native coverage:   {cov.get('coverage_status') or '(not supplied)'} "
-              f"({cov.get('emitted_card_count')}/{cov.get('inventory_bgc_count')} emitted)")
+        report_lines.extend([f"  native coverage:   {cov.get('coverage_status') or '(not supplied)'} ({cov.get('emitted_card_count')}/{cov.get('inventory_bgc_count')} emitted)"])
         if cov.get("coverage_only"):
-            emit("  native coverage:   coverage-only receipt accepted; no cards recorded")
-    emit(f"  register:          {summary['complete_bgcs']}/{summary['total_bgcs']} complete "
-          f"({summary['register_status']})")
+            report_lines.extend(['  native coverage:   coverage-only receipt accepted; no cards recorded'])
+    report_lines.extend([f"  register:          {summary['complete_bgcs']}/{summary['total_bgcs']} complete ({summary['register_status']})"])
     if summary["e1_updated"]:
         es = summary["e1_summary"] or {}
         _workbook_status = (
@@ -2646,7 +2634,8 @@ def ingest_receipts_command(args) -> int:
     else:
         _workbook_status = "  workbook E1:       not updated (no --master given)"
     _advisory = _persistence_advisory(summary)
-    emit(_workbook_status, *([_advisory] if _advisory else []), sep="\n")
+    report_lines.extend([_workbook_status, *([_advisory] if _advisory else [])])
+    emit(*report_lines, sep="\n")
     if summary.get("skipped_identity_mismatch"):
         return 5
     return 3 if summary.get("skipped_structure_invalid") else 0

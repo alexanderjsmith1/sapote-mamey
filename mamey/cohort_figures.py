@@ -64,7 +64,7 @@ GENUS={}; FIGNUM=[0]
 
 
 def _save_pair(fig, path, *, renderer="cohort_figures", provenance="normalized_cohort_tables"):
-    # BC2-408: 15 of this file's figures use `constrained_layout=True`, whose own layout engine
+    # 408: 15 of this file's figures use `constrained_layout=True`, whose own layout engine
     # actively repositions the axes/tick-labels on every draw -- including the draw triggered by
     # `save_figure()`'s later `savefig(..., bbox_inches="tight")` call, which happens AFTER
     # `add_claim_safety_footer()` has already placed the mandatory footer text at a FIXED
@@ -767,6 +767,7 @@ def heatmap(mat, rowlabs, order, S, title, fid, OUT, cbar="count", lognorm=True,
         ax.text(0.5,0.5,f"{title}\n(no data for this view)",ha="center",va="center",fontsize=10,color="#666")
         ax.axis("off")
         fname=stamp(fig,fid); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
+        sidecar(f"{OUT}/{fname}_data.csv",["row"]+list(order),[])   # header only: the view has no rows (.447)
         return
     npriv=sum(1 for s in order if is_private(s)); ndiv=len(order)-npriv
     fig_w=max(8.0, 1.55*len(order)+3.4); fig_h=max(3.4, 0.36*len(rowlabs)+2.6)
@@ -1323,6 +1324,7 @@ def bubble_matrix(rows, order, count_fn, color_fn, title, fid, OUT, clab, slab, 
         # D, not G. The original copied hmap's stamp_g here, mis-filing the placeholder into the
         # G (heatmap) family. stamp_d keeps the placeholder in the same series as the real figure.
         fname=stamp_d(fig,fid); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
+        sidecar(f"{OUT}/{fname}_data.csv",["row"]+list(order),[])   # header only: the view has no rows (.447)
         return
     _bw,_bh=_matrix_fig_size(nx,ny,1.5,3.0,0.5,2.5,min_w=8.0,min_h=3.5)
     fig,ax=plt.subplots(figsize=(_bw,_bh),constrained_layout=True)
@@ -1394,6 +1396,7 @@ def build(S, order, OUT):
     # D03 per-BGC scatter: size (kb) vs domain count, colour by strain, diamonds=private
     fig,ax=plt.subplots(figsize=(9.6,6.6))
     pal=plt.cm.tab20(np.linspace(0,1,max(3,len(order))))
+    d03=[]  # the plotted values (.447: every gold figure carries its data CSV)
     for gi,s in enumerate(order):
         xs=[]; ys=[]
         prof={b["bgc_id"]:b for b in S[s]["deep"]["bgc_profile"]}
@@ -1401,6 +1404,7 @@ def build(S, order, OUT):
             bid=r.get("BGC_ID"); b=prof.get(bid)
             if not b: continue
             xs.append(L[(s,bid)]); ys.append(int(b.get("total_domains") or 0))
+            d03.append([s,bid,L[(s,bid)],ys[-1]])
         priv=is_private(s)
         ax.scatter(xs,ys,s=70 if priv else 26,marker="D" if priv else "o",color=pal[gi],alpha=0.75,
                    edgecolor="#222",linewidth=0.8 if priv else 0.3,label=f"{genus(s).split()[0]} {s}"+(" (PRIV)" if priv else ""))
@@ -1408,6 +1412,7 @@ def build(S, order, OUT):
     ax.set_title("Per-BGC architecture landscape — size vs domain richness",pad=12); ax.grid(alpha=0.2)
     ax.legend(fontsize=7,bbox_to_anchor=(1.02,1.0),loc="upper left",borderaxespad=0)
     fn=stamp_d(fig,"scatter_size_vs_domains"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
+    sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","region_length_kb","total_domains"],d03)
 
     # D04 KCB strength vs BGC size, colour by boundary (truncation effect on KCB)
     binv={}
@@ -1416,6 +1421,7 @@ def build(S, order, OUT):
     bcol={"Interior":"#1b7837","Edge":"#e08214","Full-contig":"#b2182b"}
     fig,ax=plt.subplots(figsize=(9.2,6.4))
     _pos_kcb=False
+    d04=[]
     for bnd,col in bcol.items():
         xs=[]; ys=[]
         for s in order:
@@ -1423,6 +1429,7 @@ def build(S, order, OUT):
                 bid=r.get("BGC_ID")
                 if binv.get((s,bid))==bnd and KCB.get((s,bid)):
                     xs.append(L[(s,bid)]); ys.append(KCB[(s,bid)])
+                    d04.append([s,bid,bnd,L[(s,bid)],KCB[(s,bid)]])
         if any(v>0 for v in ys): _pos_kcb=True
         ax.scatter(xs,ys,s=24,color=col,alpha=0.65,edgecolor="#222",linewidth=0.3,label=bnd)
     # a cohort with no KnownClusterBlast hits has no positive y -> log scale would crash; stay linear
@@ -1435,16 +1442,17 @@ def build(S, order, OUT):
     ax.set_title("KCB reference-similarity vs BGC size, by boundary status\n(truncated Edge/Full-contig BGCs trend to weaker / absent hits)",pad=12); ax.grid(alpha=0.2,which="both")
     ax.legend(fontsize=8,title="boundary",title_fontsize=8)
     fn=stamp_d(fig,"scatter_kcb_vs_size"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
+    sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","boundary","region_length_kb","kcb_rank1_score"],d04)
 
     # D05 strain summary: raw vs corrected BGC count, size=domain hits, colour=tier, labelled
     fig,ax=plt.subplots(figsize=(10.5,7.0))
-    pts=[]
+    pts=[]; d05=[]
     for s in order:
         ms=S[s]["ms"]; raw=int(read_manifest_field("raw_bgcs", manifest_short=ms, default=0)); cor=float(read_manifest_field("corrected_bgcs", manifest_short=ms, default=0)); dh=len(S[s]["deep"].get("domain_hits",[]))
         priv=is_private(s); tier=read_manifest_field("assembly_tier", manifest_short=ms, default="UNKNOWN")
         ax.scatter(raw,cor,s=60+dh/12,marker="D" if priv else "o",color=TCOLOR.get(tier,"#999"),
                    edgecolor="#111",linewidth=1.2 if priv else 0.7,zorder=3)
-        pts.append((raw,cor,s))
+        pts.append((raw,cor,s)); d05.append([s,raw,cor,dh,tier,"PRIVATE" if priv else ""])
     lim=max(int(S[s]["ms"]["raw_bgcs"]) for s in order)+12
     ax.plot([0,lim],[0,lim],ls=":",color="#aaa",lw=1,label="raw = corrected")
     ax.set_xlim(0,lim); ax.set_ylim(0,lim*0.85)
@@ -1455,11 +1463,13 @@ def build(S, order, OUT):
     h.append(plt.Line2D([],[],marker="D",color="w",markerfacecolor="#888",markeredgecolor="#111",label="PRIVATE"))
     ax.legend(handles=h,fontsize=7.5,loc="upper left")
     fn=stamp_d(fig,"scatter_raw_vs_corrected"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
+    sidecar(f"{OUT}/{fn}_data.csv",["strain","raw_bgcs","corrected_bgcs","domain_hits","assembly_tier","release"],d05)
 
     # D06 KCB strip plot: each BGC a dot, x=strain (jittered), y=log KCB bitscore; no-hit count noted
     fig,ax=plt.subplots(figsize=(max(9,1.3*len(order)+3),6.2))
     rng=np.random.default_rng(7)
     _pos_kcb=False
+    d06=[[s,r.get("BGC_ID"),KCB.get((s,r.get("BGC_ID"))) or ""] for s in order for r in inv[s]]  # "" = no KCB hit
     for j,s in enumerate(order):
         ys=[KCB[(s,r.get("BGC_ID"))] for r in inv[s] if KCB.get((s,r.get("BGC_ID")))]
         if any(v>0 for v in ys): _pos_kcb=True
@@ -1479,10 +1489,11 @@ def build(S, order, OUT):
     soft_div_x(ax,order,ax.get_ylim()[1])
     ax.set_title("KCB reference-similarity distribution per strain (one dot = one BGC with a hit;\n'no-hit' count noted = novelty-leaning, incl. truncated BGCs)",pad=12); ax.grid(alpha=0.2,axis="y",which="both")
     fn=stamp_d(fig,"strip_kcb_per_strain"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
+    sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","kcb_rank1_score"],d06)
 
     # D07 rare-chemistry richness vs total BGC content (per strain)
     COMMON={"T43-HAL_halogenase","T43-LAN_lanthipeptide"}
-    fig,ax=plt.subplots(figsize=(9.4,6.6)); pts=[]
+    fig,ax=plt.subplots(figsize=(9.4,6.6)); pts=[]; d07=[]
     for s in order:
         rare_tr=set()
         for b in S[s]["deep"]["bgc_profile"]:
@@ -1492,11 +1503,12 @@ def build(S, order, OUT):
         raw=int(S[s]["ms"]["raw_bgcs"]); priv=is_private(s)
         ax.scatter(raw,len(rare_tr),s=90,marker="D" if priv else "o",color=TCOLOR.get(S[s]["ms"]["assembly_tier"],"#999"),
                    edgecolor="#111",linewidth=1.1 if priv else 0.7,zorder=3)
-        pts.append((raw,len(rare_tr),s))
+        pts.append((raw,len(rare_tr),s)); d07.append([s,raw,len(rare_tr),";".join(sorted(rare_tr))])
     place_labels(ax,pts)
     ax.set_xlabel("raw BGC count"); ax.set_ylabel("# distinct rare chemistry triggers")
     ax.set_title("Rare-chemistry richness vs genome BGC content\n(strains above the trend punch above their weight in rare chemistry)",pad=12); ax.grid(alpha=0.2)
     fn=stamp_d(fig,"scatter_rarechem_vs_bgcs"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
+    sidecar(f"{OUT}/{fn}_data.csv",["strain","raw_bgcs","rare_trigger_count","rare_triggers"],d07)
 
     # D08 tailoring-enzyme bubble matrix (size=count)
     dc=collections.defaultdict(lambda: collections.defaultdict(int))
@@ -1524,7 +1536,7 @@ def build(S, order, OUT):
     # D10 per-BGC scatter coloured by dominant product class
     DOMCLASS=["NRPS","T1PKS","PKS","RiPP","terpene","saccharide","NI-siderophore","other"]
     cpal={c:plt.cm.tab10(i/10) for i,c in enumerate(DOMCLASS)}
-    fig,ax=plt.subplots(figsize=(9.8,6.6))
+    fig,ax=plt.subplots(figsize=(9.8,6.6)); d10=[]
     for c in DOMCLASS:
         xs=[]; ys=[]
         for s in order:
@@ -1534,20 +1546,23 @@ def build(S, order, OUT):
                 dom=next((d for d in DOMCLASS if d in pl),"other") if pl else "other"
                 if dom==c and prof.get(bid):
                     xs.append(L[(s,bid)]); ys.append(int(prof[bid].get("total_domains") or 0))
+                    d10.append([s,bid,c,L[(s,bid)],ys[-1]])
         ax.scatter(xs,ys,s=22,color=cpal[c],alpha=0.6,edgecolor="#333",linewidth=0.2,label=c)
     ax.set_xlabel("BGC region length (kb)"); ax.set_ylabel("domains per BGC")
     ax.set_title("Per-BGC architecture coloured by dominant product class",pad=12); ax.grid(alpha=0.2)
     ax.legend(fontsize=7.5,bbox_to_anchor=(1.02,1.0),loc="upper left",borderaxespad=0,title="product class")
     fn=stamp_d(fig,"scatter_bgc_by_class"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
+    sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","dominant_class","region_length_kb","total_domains"],d10)
 
     # D11 TTA load vs modularity (per BGC), coloured by strain
     fig,ax=plt.subplots(figsize=(9.6,6.4)); pal=plt.cm.tab20(np.linspace(0,1,max(3,len(order))))
-    rng=np.random.default_rng(3)
+    rng=np.random.default_rng(3); d11=[]
     for gi,s in enumerate(order):
         xs=[]; ys=[]
         for b in S[s]["deep"]["bgc_profile"]:
             mod=int(b.get("PKS_KS") or 0)+int(b.get("NRPS_C") or 0); tta=int(b.get("tta_codons") or 0)
             xs.append(mod+rng.uniform(-0.2,0.2)); ys.append(tta+rng.uniform(-0.2,0.2))
+            d11.append([s,b.get("bgc_id"),mod,tta])   # the values before display jitter
         priv=is_private(s)
         ax.scatter(xs,ys,s=55 if priv else 20,marker="D" if priv else "o",color=pal[gi],alpha=0.7,
                    edgecolor="#222",linewidth=0.6 if priv else 0.2,label=f"{s}"+(" (PRIV)" if priv else ""))
@@ -1555,6 +1570,7 @@ def build(S, order, OUT):
     ax.set_title("bldA-dependency vs megasynthase modularity, per BGC",pad=12); ax.grid(alpha=0.2)
     ax.legend(fontsize=7,bbox_to_anchor=(1.02,1.0),loc="upper left",borderaxespad=0)
     fn=stamp_d(fig,"scatter_tta_vs_modularity"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
+    sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","megasynthase_modules","tta_codons"],d11)
 
 
 def _run_all_d(S, order, out):
@@ -1638,6 +1654,7 @@ def hmap(mat, rowlabs, order, title, fid, OUT, cbar="count", cmap="magma_r", log
         ax.text(0.5,0.5,f"{title}\n(no data for this view)",ha="center",va="center",fontsize=10,color="#666")
         ax.axis("off")
         fname=stamp_g(fig,fid); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
+        sidecar(f"{OUT}/{fname}_data.csv",["row"]+list(order),[])   # header only: the view has no rows (.447)
         return
     fig_w,fig_h=_matrix_fig_size(len(order),len(rowlabs),1.55,3.4,0.36,2.6)
     fig,ax=plt.subplots(figsize=(fig_w,fig_h),constrained_layout=True)

@@ -5,7 +5,7 @@ PY="${SAPOTE_WORKSPACE_ROOT:-${CLAUDE_PROJECT_DIR:-$PWD}}/Tools/bin/python3"
 CHK="${SAPOTE_WORKSPACE_ROOT:-${CLAUDE_PROJECT_DIR:-$PWD}}/Tools/signoff_check.py"
 CLM="${SAPOTE_WORKSPACE_ROOT:-${CLAUDE_PROJECT_DIR:-$PWD}}/Tools/claim_safety_check.py"
 [ -x "$PY" ] || PY="python3"
-# v9.7.413 (Razzle Dazzle Rose): SERIALIZE. Every chat fires this hook at every turn-end; with many
+# v9.7.413: SERIALIZE. Every chat fires this hook at every turn-end; with many
 # sessions open the scans stack (3 concurrent observed 2026-09-04, load avg 39/179/143, fseventsd at
 # 90% CPU). The .412 bounded scan cut one call from ~2 min to ~21 s, but concurrency was the other
 # half of that fix and did not land with it. A portable mkdir lock (flock is absent on macOS) makes a

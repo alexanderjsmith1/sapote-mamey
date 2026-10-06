@@ -1,4 +1,4 @@
-"""Governed-data override precedence (.403, Black Cherry-4).
+"""Governed-data override precedence (.403, 4).
 
 An explicit ``MAMEY_OFFICIAL_DATA`` override must be AUTHORITATIVE. Before this fix the
 env override, the data root, and the ``__file__`` parent walk all went into one ordered

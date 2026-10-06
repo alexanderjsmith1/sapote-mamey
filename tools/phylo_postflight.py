@@ -4,7 +4,7 @@
 Companion to phylo_preflight.py. Preflight validates the inputs; postflight validates the output,
 and catches the one class of error preflight cannot: a taxon that entered legitimately but lands in
 the wrong place. On 2026-08-26 that was AS-XXX — a Streptomyces sitting on a long basal branch in a
-Pseudonocardiaceae tree. Alex caught it by eye; check P4 catches it mechanically.
+Pseudonocardiaceae tree. The owner caught it by eye; check P4 catches it mechanically.
 
     CHECK  WHAT IT PROVES
     P1     The tree is actually rooted on the declared outgroup (outgroup is a child of the root,

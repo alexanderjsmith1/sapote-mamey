@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""build_domain_tree.py — the ONLY sanctioned way to build a BGC-machinery domain tree (VGP-399).
+"""build_domain_tree.py — the ONLY sanctioned way to build a BGC-machinery domain tree (399).
 
 Mirrors tools/build_tree.sh for the domain lane: declare intent in DOMAIN_TREE_SPEC.json, then this
 runner extracts → stages (dedup/length/min-tips gates) → aligns+infers (approval-gated) → runs the

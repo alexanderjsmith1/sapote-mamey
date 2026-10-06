@@ -96,7 +96,7 @@ _COUNTRY_TO_CONTINENT = {
     "Russia":          "Europe",
     "Spain":           "Europe",
     "United Kingdom":  "Europe",
-    # Georgia: RULED "Europe" by Alex 2026-09-14 (NCBI BioSample convention).
+    # Georgia: RULED "Europe" by the owner 2026-09-14 (NCBI BioSample convention).
     "Georgia":         "Europe",
     # Asia
     "China":           "Asia",

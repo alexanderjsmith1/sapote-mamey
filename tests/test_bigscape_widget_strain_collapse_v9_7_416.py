@@ -1,4 +1,4 @@
-"""AMBER_417 — the BiG-SCAPE cohort widgets must not collapse two distinct references onto one row.
+"""P417 — the BiG-SCAPE cohort widgets must not collapse two distinct references onto one row.
 
 deliverable_tools/_bigscape_data.strain_of() derived a reference label from the first three organism
 words (`" ".join(organism.split()[:3])`). For `Genus sp. <COLLECTION> <NUMBER>` names the 4th token IS

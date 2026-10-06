@@ -234,11 +234,15 @@ has_core = any(t in products for t in
      siderophore, metallophore, lassopeptide, thioamide, tomm, azole})
 
 A  ⇐  Interior AND has_core AND span >= 10 kb
-B  ⇐  Interior AND (has_core OR kcb_cumulative >= 10_000)
+B  ⇐  Interior AND NOT has_core AND kcb_cumulative >= 10_000
+A  ⇐  Interior AND has_core AND has_chemical_hybrid AND distinct_core >= 2
+B  ⇐  Interior AND has_core
 C  ⇐  Edge     AND has_core
 D  ⇐  (Edge AND NOT has_core) OR (Full-contig AND has_core)
 E  ⇐  otherwise
 ```
+
+Apply these branches in order (first match wins). `distinct_core` counts distinct terms in the core-class set above; `has_chemical_hybrid` is antiSMASH candidate-cluster `kind = chemical_hybrid`. Synthetic example: Interior, `nrps; t1pks`, 5,000 bp, chemical-hybrid flag true → A; without the flag → B. The hybrid branch never promotes Edge or Full-contig truncations. See [the technical reference](../reference/01_Math_Reference_VolI.md); this is structural grading, not compound or activity evidence.
 
 Display: A→High · B→Moderate-High · C→Moderate · D→Low-Moderate · E→Low.
 

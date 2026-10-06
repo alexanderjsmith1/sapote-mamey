@@ -1,4 +1,4 @@
-"""BC2 .401 audit: tools/cross_strain_denominator_audit.py's own docstring documents a real
+"""An audit-lane .401 audit: tools/cross_strain_denominator_audit.py's own docstring documents a real
 historical incident -- an 18-strain cohort snapshot survived, undetected, inside a 24-strain
 master (drift = 6). The gate's own catch window was `n_reg - 12` to `n_reg + 12`: symmetric,
 and calibrated for that drift magnitude. But a stale cohort denominator is, BY CONSTRUCTION,

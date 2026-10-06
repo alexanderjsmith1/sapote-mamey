@@ -21,7 +21,9 @@ while IFS= read -r rel || [ -n "$rel" ]; do
 done < "$LIST"
 
 if [ -n "$missing" ]; then
-  echo "ℹ DELIVERABLE-DOCX: these designated-deliverable .md files have no matching .docx:$missing" >&2
-  echo "  render the trio with: Tools/bin/python3 Tools/render_deliverable.py --dir \"<folder>\"" >&2
+  # exit 0 + stderr is debug-log only (audit F03); a systemMessage is shown to the user
+  msg="ℹ DELIVERABLE-DOCX: these designated-deliverable .md files have no matching .docx:$missing
+  render the trio with: Tools/bin/python3 Tools/render_deliverable.py --dir \"<folder>\""
+  printf '%s' "$msg" | python3 -c 'import json, sys; print(json.dumps({"systemMessage": sys.stdin.read()}))'
 fi
 exit 0

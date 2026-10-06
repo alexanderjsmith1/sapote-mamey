@@ -8,7 +8,7 @@ Method (stdlib only — no muscle/iqtree/network, so it is safe in the core run)
 translation from the region GBKs, compute an alignment-free identity proxy (5-mer containment), single-linkage
 cluster at a threshold, and report clades that span more than one contig. Deterministic; runtime seconds/strain.
 
-Prototype logic validated by a contributor lane (BLIZZARD_BLUE_15_ks_clade_channel), cross-validated against Amber's
+Prototype logic validated by a contributor lane (ks_clade_channel), cross-validated against the phylogeny lane's
 IQ-TREE KS trees (agreement on AS-XXX/677/760 positive + AS-XXX negative control). This module packages that
 logic for the engine and adds the `_4B` CSV writer + a summary dict shaped like run_rggmci's return.
 
@@ -43,9 +43,9 @@ MIN_KS_AA = 100                    # a KS domain is ~400 aa; a shorter slice is 
 DEFAULT_THRESHOLD = 0.40           # top of the stable plateau (BB sweep); a proposal, not a constant
 NEAR_IDENTICAL = 0.75              # containment >=0.75 across contigs -> iterative / same-gene split flag
 
-# .366 (AMBER_366_C12, Amber sign-off 2026-08-12): partition the single-linkage pass by antiSMASH KS
+# .366 (C12, phylogeny-lane sign-off 2026-08-12): partition the single-linkage pass by antiSMASH KS
 # /domain_subtypes so a trans-AT KS cannot join a cis-AT clade by transitivity (kills the substrate-clade
-# false positive Amber's trees exposed). Two KS may union ONLY when they carry the SAME named subtype;
+# false positive the phylogeny lane's trees exposed). Two KS may union ONLY when they carry the SAME named subtype;
 # Hybrid-KS joins only Hybrid-KS; unclassified stands as its own group. This changes the _4B CSV (a new
 # `ks_subtype` column + subtype-partitioned clades) which is in packaging.py::DETERMINISM_WHITELIST, so it
 # re-scores the fingerprint -> engine bump to 1.9.121. The version below self-declares the partition rule.

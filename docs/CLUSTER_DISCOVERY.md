@@ -1,47 +1,38 @@
-# cluster_discovery — find strains carrying a BGC from a diagnostic marker
+# cluster_discovery — candidate assembly lookup from a marker
 
-Discovers other strains that carry a cluster, from a single diagnostic marker protein, using
-only public NCBI data:
-
-    marker.faa --BLASTp(NCBI, Entrez-filtered)--> homolog proteins
-               --IPG (Identical Protein Groups)-> source assemblies + organism
-               (--verify, optional)-------------> confirm by co-occurring cluster genes
-
-Output: `candidate_strains.csv` (assembly, organism, strain, marker %identity, protein) and a
-an external download_genomes.sh helper you write around the NCBI `datasets` command ( — ready to feed a genome download + cluster
-extraction + `cluster_gene_compare` run.
+The tool maps marker-protein similarities to candidate assemblies through an injectable
+BLAST/IPG service interface. A homolog is candidate evidence; this lookup does not
+establish cluster presence, physical linkage, compound identity or activity.
 
 ## Usage
 
     python tools/cluster_discovery.py \
-        --marker nikJ.faa \
-        --entrez "Streptomyces[Organism]" \
-        --min-identity 60 --max-strains 20 \
-        --outdir OUT
+        --marker marker.faa --entrez "Streptomyces[Organism]" \
+        --min-identity 60 --max-strains 20 --outdir OUT
 
-## Why a marker + IPG (not just BLAST)
+A completed interaction writes `candidate_strains.csv` and download_genomes.sh.
+Review the candidate identities before any separately authorized downstream download
+or analysis. This tool has no `--verify` option.
 
-A diagnostic gene (e.g. the cluster's radical-SAM signature) is a sharper probe than the whole
-cluster: it is present once per cluster and diverges slowly. NCBI's non-redundant proteins
-(`WP_...`) collapse many assemblies, so a raw BLAST hit does not name a genome — the **IPG**
-database maps each protein back to every assembly that encodes it, which is how one hit becomes a
-concrete, downloadable list of strains.
+## Incomplete interactions
 
-## Confirming the cluster is really there
+A completed result requires an observed READY state. Exhausted polling raises TIMEOUT
+without fetching results. Unparsed text without a recognized no-hit response raises
+RESULT_PARSE_UNVERIFIED. Failed or malformed IPG resolution raises ASSEMBLY_UNRESOLVED,
+or PARTIAL when some candidate rows were recovered. The CLI returns 2 for these states
+and writes no completed candidate table. The importable DiscoveryFailure retains RID,
+status and any partial rows. Existing files from an earlier run are not deleted;
+consumers must check the current exit status.
 
-A marker homolog means a strain *may* carry the cluster — radical-SAM enzymes occur in other
-contexts. Confirm presence by checking that >=2 cluster genes co-occur in a short window of the
-candidate genome (the same gene-call + marker-scan step used to locate the cluster in the seed
-strains). `--verify` is the hook for this; without it the table is candidates, not confirmed
-carriers, and is labelled as such.
+A standalone starred `***** No hits found *****` response line can complete with an empty list;
+prose merely containing that phrase and conflicting hit/no-hit markers are refused.
+Parsed hits filtered out by the requested identity threshold can also yield an empty
+candidate list; neither case establishes biological absence.
 
-## Testability
+## Validation boundary
 
-The single network dependency is the injectable `Net` object; `test_cluster_discovery.py` runs
-the whole pipeline against a fake `Net` (no NCBI), and the parsers are validated on real NCBI
-BLAST/IPG output shapes. 4 tests, network-free.
-
-## Validated
-
-nikJ (BGC008 radical SAM) -> 100 Streptomyces homologs at 76-79% -> IPG -> assembly accessions
-(e.g. GCF_042756365.1, Streptomyces sp. NPDC059092). Capacity-level throughout.
+Tests use fake service replies only. No online search or live database is used in the
+repair validation. The legacy text-parser format and service-version compatibility
+remain bounded admission assumptions; unsupported responses fail rather than being
+reported as completed empty evidence. Scientific marker specificity and downstream
+confirmation are separate from service completion.

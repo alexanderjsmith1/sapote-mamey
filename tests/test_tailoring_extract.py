@@ -1,4 +1,4 @@
-"""Engine tests for mamey/tailoring_extract.py + mamey/data/tailoring_families.json (VGP-400).
+"""Engine tests for mamey/tailoring_extract.py + mamey/data/tailoring_families.json (400).
 
 IN-TREE: imports the INSTALLED module and reads the INSTALLED registry, so these assert the behavior
 of the tree they ship in. Synthetic GBK fixtures only (no cohort strain IDs).

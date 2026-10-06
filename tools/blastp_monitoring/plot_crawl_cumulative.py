@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""plot_crawl_cumulative.py (VGP, 2026-08-21) — CUMULATIVE query proteins retrieved over time,
+"""plot_crawl_cumulative.py (2026-08-21) — CUMULATIVE query proteins retrieved over time,
 pooled across EVERY blastp lane. The question this answers: "is the number retrieved still rising,
 or has it gone flat (stalled)?"
 
@@ -25,11 +25,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
-VGP = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", os.path.join(ROOT, "blastp_plots"))
-OUT = os.path.join(VGP, "crawl_plots")
+PLOT_DIR = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", os.path.join(ROOT, "blastp_plots"))
+OUT = os.path.join(PLOT_DIR, "crawl_plots")
 
 # import load_fetches from the sibling recent-plot module (single source of truth for ledger parsing)
-spec = importlib.util.spec_from_file_location("pcr", os.path.join(VGP, "plot_crawl_recent.py"))
+spec = importlib.util.spec_from_file_location("pcr", os.path.join(PLOT_DIR, "plot_crawl_recent.py"))
 pcr = importlib.util.module_from_spec(spec)
 os.chdir(ROOT)  # load_fetches uses BR="Blastp RESULTS" relative to cwd
 spec.loader.exec_module(pcr)

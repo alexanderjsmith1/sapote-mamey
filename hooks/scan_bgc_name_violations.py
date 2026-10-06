@@ -6,7 +6,7 @@ node/contig token, regardless of what the file itself is named.
 
 Non-destructive: reports counts + writes a TSV of violations. Never renames/moves.
 
-v9.7.401 EXTENSION (BC2, ROSTER_401_SEEDS.md item 3 follow-through -- same gap, sibling tool):
+v9.7.401 EXTENSION (ROSTER_401_SEEDS.md item 3 follow-through -- same gap, sibling tool):
 this scanner is the offline/census sibling of hooks/bgc_node_name_guard.sh (the live
 PostToolUse hook), which had the identical name-only blindness fixed this round. A
 generically-named file (e.g. "notes.md") whose BODY cites a bare strain+BGC with no node token

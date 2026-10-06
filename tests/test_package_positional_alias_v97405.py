@@ -55,7 +55,7 @@ def test_conflicting_spellings_are_refused(capsys, tmp_path):
     assert "canonical invocation" in capsys.readouterr().err
 
 
-# BC2-408: `test_every_package_subcommand_without_own_positionals_gained_the_alias` above only
+# 408: `test_every_package_subcommand_without_own_positionals_gained_the_alias` above only
 # checks that `_PACKAGE_POSITIONAL` appears in each subcommand's `dests` -- it never actually
 # parses a real positional invocation for anything but the one hardcoded CMD ("render-figures").
 # That coverage gap hid a real bug: when --package lives inside a REQUIRED mutually-exclusive

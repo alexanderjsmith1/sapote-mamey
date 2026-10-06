@@ -1,4 +1,4 @@
-"""Tree-portable regression for the relabeler's AS-id preservation (VGP .399, Amber Fix #2).
+"""Tree-portable regression for the relabeler's AS-id preservation (an audit lane .399 Fix #2).
 
 The pre-.399 relabel loop guarded query preservation with ``re.match(r'AS-\\d+', tip)`` —
 dash form, anchored at the start — so an underscore/embedded tip like

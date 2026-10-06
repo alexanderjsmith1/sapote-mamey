@@ -1,4 +1,4 @@
-"""v9.7.441 (finding EB3DF1EF_441_bigscape_pipeline_does_not_put_its_own_env_bin_on_path; diff by 283f1f96):
+"""v9.7.441 (finding a cut card; diff by):
 every subprocess the BiG-SCAPE pipeline launches gets the interpreter's bin directory first on PATH,
 so a bare `fasttree` beside the env's python resolves without activating the env."""
 import importlib.util, os, pathlib, sys

@@ -1,0 +1,96 @@
+{
+  "schema": "locus-comparison-v1",
+  "synthetic": true,
+  "title": "Synthetic locus comparison",
+  "sources": [],
+  "tracks": [
+    {
+      "id": "0",
+      "label": "Query",
+      "kind": "reference",
+      "identity": {
+        "accession": "SYNTHETIC_0",
+        "description": "Synthetic fixture"
+      },
+      "orientation": 1,
+      "anchor_gene": "g1",
+      "genes": [
+        {
+          "id": "g1",
+          "label": "gene1",
+          "start": 1000,
+          "end": 1600,
+          "strand": 1,
+          "aa_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "group": "G1"
+        },
+        {
+          "id": "g2",
+          "label": "gene2",
+          "start": 2000,
+          "end": 2600,
+          "strand": 1,
+          "aa_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "group": "G2"
+        }
+      ]
+    },
+    {
+      "id": "1",
+      "label": "Reference",
+      "kind": "reference",
+      "identity": {
+        "accession": "SYNTHETIC_1",
+        "description": "Synthetic fixture"
+      },
+      "orientation": -1,
+      "anchor_gene": "g1",
+      "genes": [
+        {
+          "id": "g1",
+          "label": "gene1",
+          "start": 2000,
+          "end": 2600,
+          "strand": -1,
+          "aa_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "group": "G1"
+        },
+        {
+          "id": "g2",
+          "label": "gene2",
+          "start": 1000,
+          "end": 1600,
+          "strand": -1,
+          "aa_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "group": "G2"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "a": [
+        "0",
+        "g1"
+      ],
+      "b": [
+        "1",
+        "g1"
+      ],
+      "evidence": "synthetic fixture",
+      "identity_pct": 70
+    },
+    {
+      "a": [
+        "0",
+        "g2"
+      ],
+      "b": [
+        "1",
+        "g2"
+      ],
+      "evidence": "synthetic fixture",
+      "identity_pct": 70
+    }
+  ]
+}

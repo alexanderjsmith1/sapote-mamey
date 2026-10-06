@@ -70,7 +70,7 @@ def _make_pkg(tmp_path: pathlib.Path,
         {"strain_id": strain_id}))
 
     if with_triage:
-        # BC2-408: Region column added (was missing) -- render_bgc_v8 (mamey/locus_map_v8.py,
+        # 408: Region column added (was missing) -- render_bgc_v8 (mamey/locus_map_v8.py,
         # P004 "V8 combined repair") requires strain/node/REGION/bgc_alias all populated and
         # raises "complete locus identity unavailable: region" otherwise. This fixture predates
         # that check and never carried one, breaking every test in this file that reaches the
@@ -138,7 +138,7 @@ def test_svg_output_is_valid_xml(tmp_path):
 # that don't.)
 # ---------------------------------------------------------------------------
 
-# BC2-408: v9.7.405 changed the DEFAULT renderer to "v8" (LOCUS_MAP_V8, an owner ruling --
+# 408: v9.7.405 changed the DEFAULT renderer to "v8" (LOCUS_MAP_V8, an owner ruling --
 # see render_for_compile_report's own docstring), which *always* emits both PNG and SVG and
 # explicitly `del fmt` (locus_map_v8.py::render_for_compile_report_v8: "v8 always emits both
 # PNG and SVG; `fmt` is accepted for API compatibility."). These two tests predate that change
@@ -163,7 +163,7 @@ def test_default_format_is_still_svg_no_signature_break(tmp_path):
 
 
 def test_fmt_png_emits_png_not_svg(tmp_path):
-    """legacy renderer only — see the BC2-408 note above test_default_format_is_still_svg."""
+    """legacy renderer only — see the 408 note above test_default_format_is_still_svg."""
     pytest.importorskip("matplotlib")
     from mamey.locus_map import render_for_compile_report
     pkg = _make_pkg(tmp_path)

@@ -1,5 +1,10 @@
 # Tier Differences — Sapote–Mamey Release Bundles
 
+> **Historical (retired tiers).** Releases now cut the CODE tier only (`CUT_PROTOCOL.md`, since v9.7.444); the
+> other tiers' tooling is disabled. This page describes how the retired tiers differed. Nothing here makes any
+> tier "safe to share": disclosure follows each strain's exact assignment profile
+> (`docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md`), not a tier name or an ID prefix.
+
 The four-tier release system produces bundles that are **intentionally file-tree-identical
 except for metadata redaction.** This is by design, not a packaging error.
 

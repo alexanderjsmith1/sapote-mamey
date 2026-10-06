@@ -297,7 +297,7 @@ def _render_domain_strips(domain_rows, complexity, out, specs, plt, result, top_
         handles = [Patch(facecolor=palette.get(r, "#e0e0e0"), label=r) for r in present_roles]
         ax.legend(handles=handles, fontsize=4.5, loc="upper center",
                   bbox_to_anchor=(0.5, -0.05), ncol=min(4, len(present_roles)), framealpha=0.9)
-        # BC2-408: add_claim_safety_footer()'s own docstring requires "a bottom margin of at least
+        # 408: add_claim_safety_footer()'s own docstring requires "a bottom margin of at least
         # 0.13" reserved by the caller -- this figure never reserved any, and its legend sits at
         # axes-fraction y=-0.05 (just below the axes), which on a strip plot whose axes occupy
         # nearly the whole figure lands almost exactly where the mandatory claim-safety text is

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""domain_tree.py — the GATED builder pipeline for BGC-machinery domain trees (VGP-399, card 1/3).
+"""domain_tree.py — the GATED builder pipeline for BGC-machinery domain trees (399, card 1/3).
 
 `ks_phylogeny.extract_module_core_domains()` produces the reproducible INPUT to a domain tree; until
 now the actual align→infer→gate→render happened ad-hoc in the workspace (the exact
@@ -91,7 +91,7 @@ def load_spec(path: Path | str) -> dict:
         raise DomainTreeError(f"SPEC_UNKNOWN_CLASS: {cls!r} — known classes: {sorted(known)}")
     spec.setdefault("min_tips", MIN_TIPS)
     spec.setdefault("outgroup", None)
-    # v9.7.413 standing rule (Alex 2026-09-07): a tree with no recognisable outgroup is itself a gate
+    # v9.7.413 standing rule (2026-09-07): a tree with no recognisable outgroup is itself a gate
     # failure. A within-class paralog panel (every KS domain of one strain) legitimately has no
     # outgroup, so the spec must DECLARE which case it is rather than leave the gate to degrade
     # silently. Refused here, at spec load, so the operator learns BEFORE the CPU-heavy inference

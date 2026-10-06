@@ -3,7 +3,7 @@
 RG-GMCI surfaces antiSMASH regions that may belong to one biosynthetic pathway, by biosynthetic logic read through
 reference homology. It is not evidence to join contigs: if the reads had supported a join, the assembler would have
 made it. Rescues pair only regions antiSMASH flags as on a contig edge, and never two regions on one contig; every
-other pair is a related locus and never reaches this module (Alex, 2026-09-27).
+other pair is a related locus and never reaches this module (2026-09-27).
 
 1. `candidate_groups`: HIGH pairs on different contigs that share a region, gathered into one group, so a pathway
    spread over several fragments reads as one candidate. MODERATE pairs never join groups: chained together they

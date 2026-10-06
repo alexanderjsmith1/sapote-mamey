@@ -81,7 +81,7 @@ def test_matplotlib_figure_gets_pair_and_receipt_without_a_footer(tmp_path):
             fig, figure_id="SYNTHETIC_MATPLOTLIB", out_stem=package / "mpl",
             renderer="synthetic-matplotlib", package_dir=package, provenance="synthetic fixture",
         )
-        # v9.7.442 (Alex, 2026-09-24): no claim wording on figures. The ceiling lives in the receipt.
+        # v9.7.442 (2026-09-24): no claim wording on figures. The ceiling lives in the receipt.
         assert not {text.get_text() for text in fig.texts} & {CLAIM_SAFETY}
         assert receipt["claim_safety"] == CLAIM_SAFETY
         assert set(receipt["outputs"]) == {"png", "svg"}

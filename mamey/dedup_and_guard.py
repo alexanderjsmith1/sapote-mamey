@@ -99,7 +99,7 @@ def resolve_release(strain, override=None, private_registry=frozenset(), publish
 def leak_audit(rows):
     """Return private-identifier cells appearing in PUBLIC rows.
 
-    v9.7.401 (BC2): this module's own `derive_release()` implements the v9.7.236 PI decision
+    v9.7.401: this module's own `derive_release()` implements the v9.7.236 PI decision
     that AS-series strains are PUBLIC by default -- but `leak_audit()` was never updated for
     that decision. It flagged ANY cell matching the private-identifier regexes (which include
     `AS_PATTERN`) in a PUBLIC row, including the row's OWN `strain`/`BGC_ID` identifiers --

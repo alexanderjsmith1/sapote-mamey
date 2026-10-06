@@ -60,7 +60,7 @@ def _norm(h: str) -> str:
 def _sniff(path: Path):
     """Return (fieldnames, rows) using the delimiter implied by the suffix.
 
-    BC2-PC-01 (v9.7.396): the delimiter used to come SOLELY from the file suffix (.tsv/.tab ->
+    PC-01 (v9.7.396): the delimiter used to come SOLELY from the file suffix (.tsv/.tab ->
     tab, else comma), with no check that the file's actual content agreed. A per-BGC table
     genuinely missing its provenance anchor (bare "bgc" column, no strain/contig/region --
     exactly the AS-XXX 2026-07-05 failure this gate's own docstring cites as its origin) was

@@ -1,4 +1,4 @@
-"""test_ingest_modeb_verdicts_merge.py — BC2-408: ingest_package.py must merge the per-package
+"""test_ingest_modeb_verdicts_merge.py — 408: ingest_package.py must merge the per-package
 modeb_verdicts.csv into a cohort-level <banked_dir>/modeb_verdicts.csv.
 
 mamey/cli.py's `_write_package` writes `modeb_verdicts.csv` into each sealed PACKAGE directory
@@ -32,7 +32,7 @@ import ingest_package as ip  # noqa: E402
 
 def _minimal_snapshot(sid="SIDTEST1"):
     return {
-        "strain_id": sid,
+        "workflow_version": "synthetic-v1", "strain_id": sid,
         "taxonomy": f"Streptomyces sp. {sid}",
         "assembly": {"contigs": 10, "n50": 500000, "genome_bp": 8000000,
                      "gc_pct": 71.2, "largest_contig": 900000},
@@ -120,7 +120,7 @@ def test_merge_writes_cohort_level_modeb_verdicts_csv(tmp_path):
     ip.merge(entry, str(bank))
 
     mv_path = bank / "modeb_verdicts.csv"
-    assert mv_path.exists(), "merge() must create the cohort-level modeb_verdicts.csv (BC2-408)"
+    assert mv_path.exists(), "merge() must create the cohort-level modeb_verdicts.csv (408)"
     rows = list(csv.DictReader(open(mv_path, encoding="utf-8")))
     assert rows == [
         {"strain": "SIDTEST1", "bgc": "BGC001", "status": "CONFIRM",

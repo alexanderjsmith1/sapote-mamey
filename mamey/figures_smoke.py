@@ -234,6 +234,15 @@ def _fig_bgc_ranking(plt, triage: list[dict], inventory: list[dict],
 # Figure 2 — Compound class composition
 # ---------------------------------------------------------------------------
 
+LABEL_MAX = 40  # a tick label longer than this is cut; the full value stays in the sidecar CSV
+
+
+def _cap_label(text: str, n: int = LABEL_MAX) -> str:
+    """A label short enough to lay out. antiSMASH /product is free text: a 300 KB qualifier became one x tick and
+    drove matplotlib past 5.5 GB until the kernel killed the run after seal (.447, fresh-clone audit D7)."""
+    return text if len(text) <= n else text[: n - 1] + "…"
+
+
 def _fig_class_composition(plt, triage: list[dict], inventory: list[dict],
                            out_dir: pathlib.Path) -> Optional[pathlib.Path]:
     """Bar chart of compound-class counts among non-excluded BGCs.
@@ -264,7 +273,9 @@ def _fig_class_composition(plt, triage: list[dict], inventory: list[dict],
     values  = [v for _, v in ordered]
 
     fig, ax = plt.subplots(figsize=(max(5.0, 0.6 * len(classes) + 2.0), 3.8))
-    ax.bar(classes, values, color="#1f3a93", edgecolor="#1a1a1a", linewidth=0.4)
+    ax.bar(range(len(classes)), values, color="#1f3a93", edgecolor="#1a1a1a", linewidth=0.4)
+    ax.set_xticks(range(len(classes)))
+    ax.set_xticklabels([_cap_label(c) for c in classes])
     ax.set_ylabel("product-label token count")
     ax.set_title("Product-label token frequency (all tokens per BGC; standing-rule rows excluded)",
                  loc="left", fontsize=11)

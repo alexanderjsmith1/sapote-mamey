@@ -187,7 +187,7 @@ def _generic_source(tmp_path: Path) -> Path:
     )
     (source / "CITATION.cff").write_text("version: 0.0.0\n", encoding="utf-8")
     (source / "generic_payload.txt").write_text("generic payload\n", encoding="utf-8")
-    for name in ("tracked_file_policy.py", "check_release_manifest.py"):
+    for name in ("tracked_file_policy.py", "check_release_manifest.py", "cut_preflight.sh"):
         shutil.copy2(ROOT / "tools" / name, source / "tools" / name)
     return source
 

@@ -4,8 +4,17 @@ Two standard deliverables, both DB-free (they read the portable derived TSVs, no
 
 ## `tools/strain_bigscape_report.py` — per-strain report as a standard deliverable
 Generates one strain's cross-strain / MIBiG-anchored biosynthetic report in the bundle's markdown
-voice from the portable exports. Detailed sections:
-1. **Overview** — genus/habitat, BGC count, known/novel split, dominant class.
+voice from the portable exports.
+
+> **What the KNOWN / NOVEL and unique labels mean.** They are BiG-SCAPE family labels **within one run, at one
+> cutoff, on the loaded panel and reference set**. KNOWN means the family contains a MIBiG member; NOVEL means
+> it does not (`tools/bigscape_known_novel.py`). "Unique" or "cohort-exclusive" means no other loaded strain sits in
+> the family. None of these labels identifies a compound, shows chemical novelty, or shows rarity in nature
+> (`docs/BIGSCAPE_GCF_WORKFLOW.md`, caption rule). Always state the run, cutoff and panel denominator with any
+> count. The field names stay as they are for the consumers that read them.
+
+Detailed sections:
+1. **Overview** — genus/habitat, BGC count, MIBiG-anchored / unanchored family split (the KNOWN/NOVEL labels), dominant class.
 2. **Assembly quality** — contig-size span, median, and the count of BGCs on <15 kb contigs, with the
    fragmentation caveat stated up front (per-region hits are fragments until a contiguous assembly confirms).
 3. **BGC class distribution** — full antiSMASH class counts.
@@ -15,10 +24,10 @@ voice from the portable exports. Detailed sections:
    flags, GCF distance, node.region, **and the antiSMASH domain architecture** (from `--integrated`).
 6. **Notable BGCs** (from `--integrated`) — the strain's clusters with a complete core assembly line
    (PKS: KS+AT+ACP; NRPS: C+A+PCP), the ones most likely functional and worth prioritising.
-7. **Novel families** (from `--novel`) — novel antimicrobial-class families the strain is in, with the
-   consensus assembly-line architecture.
+7. **Families without a MIBiG member** (from `--novel`; the legacy label is NOVEL) — antimicrobial-class families
+   the strain is in that have no MIBiG member in this run, with the consensus assembly-line architecture. Not a novelty claim.
 8. **Biosynthetic neighbours** (from `--sharing`) — closest strains by shared GCF families.
-9. **Uniqueness** (from `--uniqueness`) — strain-unique BGC count + fraction (families no other cohort strain occupies) = private chemistry.
+9. **Cohort-exclusive families** (from `--uniqueness`) — the strain's BGC count and fraction in families no other loaded strain occupies, with the panel denominator. This is similarity-family membership in this panel, not private chemistry.
 10. **Caveats** — capacity-level, fragmentation, over-broad anchors, NAPAA exclusion.
 
 Filename carries the strain ID (bundle convention). Capacity-level throughout; node.region locators;

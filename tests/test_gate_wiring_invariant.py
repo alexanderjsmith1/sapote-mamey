@@ -184,7 +184,8 @@ def test_orphan_detection_fires_when_a_reference_is_removed(tmp_path):
 # unit-tested-but-not-cut helper (enumerate it here with a reason). A NEW such gate not on this list
 # fails the test, forcing the call rather than letting it drift.
 _UNIT_TESTED_OPERATOR_GATES = {
-    # figure_check: reclassified WIRED in .401 (AMBER_401_figure_check_render_wiring) — now
+    "check_tygs_coverage": "TYGS panel coverage report (.448); unit-tested, run while building tree panels, not a cut gate",
+    # figure_check: reclassified WIRED in .401 (figure_check_render_wiring) — now
     # hooked into tools/render_clean_tree.py before any figure render, so it is no longer
     # operator-only (the check_module_accretion .321 path, as the .400 note prescribed).
     "check_chatgpt_next_paths": "bunny-hop next-path helper; logic unit-tested, not run at cut",
@@ -197,7 +198,7 @@ _UNIT_TESTED_OPERATOR_GATES = {
     # operator-run naming checker, not wired into the cut path.
     "check_bgc_naming": "exact-locus filename checker; unit-tested (test_check_bgc_naming_exact_locus), operator-run",
     "file_atlas": "file-atlas import-safety helper; import-tested, not a cut gate",
-    # v9.7.431: new guard-surface auditor (Blizzard Blue). Classifies silent success exits and
+    # v9.7.431: new guard-surface auditor. Classifies silent success exits and
     # reports a denominator rather than accusing, so it is read by a reviewer, not gated on.
     "silent_exit_audit": "silent-success-exit inventory; branch-scoping unit-tested (test_silent_exit_audit_v97416), operator-run",
     "modeb_evidence_gate": "advisory Mode B authoring lint (v9.7.354, Codex governance state machine); "
@@ -220,7 +221,7 @@ _UNIT_TESTED_OPERATOR_GATES = {
     # (review lane C07, workhorse-scoped subagent governance), not an engine build gate.
     "session_cost_audit": "session token/cost ledger auditor (review lane C07); "
                           "unit-tested (test_session_cost_audit_identify_v97395), operator-run",
-    # BC2-407: gained regression tests for its --run-slow pytest-args construction
+    # 407: gained regression tests for its --run-slow pytest-args construction
     # (test_cut_audit_pytest_args_v97407) after a false-PASS was found (rebase-verify silently
     # never invoked slow-gated tests); still the operator-run rebase-verify harness itself
     # (gate_registry.tsv: OPERATOR_ONLY, "operator-run, not engine-wired"), not a cut gate.

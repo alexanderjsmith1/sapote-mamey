@@ -1,4 +1,4 @@
-"""Case-twin regression for mamey.strain_data_home (v9.7.399, Black Cherry-4 finding).
+"""Case-twin regression for mamey.strain_data_home (v9.7.399, 4 finding).
 
 Verified field failure (sealed v9.7.398, macOS APFS, 2026-09-01): with the house-rule
 ``MAMEY_PACKAGE_HOMES="MAMEY COMPLETE"`` environment set, the built-in ``Mamey Complete*``

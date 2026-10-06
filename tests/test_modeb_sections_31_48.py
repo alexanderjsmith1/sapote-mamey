@@ -46,7 +46,7 @@ def test_contract_covers_exactly_1_to_48_and_extension_tiers_are_pinned():
     """Pins the FULL range and the tier of every extension row, so a partially-omitted
     extension cannot pass.
 
-    v9.7.369 (announced change, full48 gate binding + W13 amendment; Cerulean + INDIGO2
+    v9.7.369 (announced change, full48 gate binding + W13 amendment; an audit lane + INDIGO2
     owner-ruled, the Developer or User green-lit 2026-08-17): seven extension sections flipped
     optional→conditional, bound to predicates the engine computes. §32–§34 bind to
     `has_measured_assembly_line` (W13: MEASURED architecture only — a bare PKS/NRPS

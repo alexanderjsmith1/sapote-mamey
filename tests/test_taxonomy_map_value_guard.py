@@ -1,4 +1,4 @@
-"""v9.7.440 (session 9c5f37d0): load_taxonomy_map must reject placeholder / empty values.
+"""v9.7.440: load_taxonomy_map must reject placeholder / empty values.
 
 A --taxonomy-map value of "sp." (or "", ".", "spp.") passes the flat-{str:str} shape check but is
 exactly what the engine's is_placeholder_taxonomy guard rejects at run time -- and because "sp." is

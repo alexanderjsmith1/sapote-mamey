@@ -1,4 +1,4 @@
-# Publication layout for Sapote figures (Alex, 2026-09-24).
+# Publication layout for Sapote figures (2026-09-24).
 # Top to bottom: the figure, white space, the PUBLIC caption, a thin rule, then small grey INTERNAL notes
 # (tool versions, cutoffs, rulings applied, exclusions, data paths). The public caption is plain scientific
 # English; jargon and paths live only in the notes. No governance wording anywhere on the page: run

@@ -1,4 +1,4 @@
-"""AMBER_06 (v9.7.349): the fragment-adequacy gate on the external activity channel.
+"""P06 (v9.7.349): the fragment-adequacy gate on the external activity channel.
 
 Resolves the BGC-MLM fragment problem at the interface, not in a model: a fragment-inadequate
 cluster (edge/short/padded) can never be IN_DOMAIN, so a padding/length-sensitive prediction is

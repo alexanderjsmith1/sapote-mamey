@@ -29,6 +29,23 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _wbio import atomic_write_text
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -95,12 +112,13 @@ def evaluate(r, genus_max=None, literal=False):
         return 'WARN', [f"oversized assembly — verify purity (genome {f'{gbp/1e6:.1f} Mb' if gbp else 'n/a'}, raw {raw})"]
     return 'PASS', []
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--snapshot', default=None); ap.add_argument('--banked-dir', default='cohort')
     ap.add_argument('--out', default='assembly_qc.json'); ap.add_argument('--genus-table', default=None)
     ap.add_argument('--literal-or', action='store_true', help="apply the spec's exact OR-logic (any rule → FLAG)")
-    a=ap.parse_args()
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None))
     rows = from_snapshot(a.snapshot) if a.snapshot else derive_from_banks(a.banked_dir)
     genus_max=_read_json(a.genus_table) if a.genus_table else None
     out=[]

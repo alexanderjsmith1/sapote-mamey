@@ -1,4 +1,4 @@
-"""Evidence-store bridge round trip (V4 §7 required test — Black Cherry-4).
+"""Evidence-store bridge round trip (V4 §7 required test — 4).
 
 Builds a generic rev5-layout BLASTp evidence-store fixture (parsed round table + round
 manifest + archived query FASTA), bridges it into stage rows for `nr`, swaps those rows

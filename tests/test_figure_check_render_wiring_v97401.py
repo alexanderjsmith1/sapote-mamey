@@ -1,6 +1,6 @@
 """Regression test — v97401: render_clean_tree.py refuses a figure_check-FAILing tree.
 
-Follow-on to AMBER_400 (tools/figure_check.py, OPERATOR_ONLY in gate_registry): this wires the gate
+Follow-on to P400 (tools/figure_check.py, OPERATOR_ONLY in gate_registry): this wires the gate
 into the render entry point, mirroring how the .399 render hard-gate wired tree_sanity_check —
 upgrading figure_check to WIRED. Receipt: on 2026-09-01 a figure with a known defect (AS-660 missing
 its host marker) was rendered and sent; with this wiring that render REFUSES (exit 2, no PNG).

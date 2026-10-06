@@ -1,4 +1,4 @@
-"""Engine tests for tools/phylo_place.py rooting + graft render gate (VGP-400).
+"""Engine tests for tools/phylo_place.py rooting + graft render gate (400).
 
 IN-TREE: exercises the INSTALLED tools/phylo_place.py source. `phylo_place` imports the bundle
 `mamey` package at module load and shells out to placement binaries, so these tests assert the two

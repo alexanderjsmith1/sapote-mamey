@@ -28,6 +28,23 @@ from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH
 from _wbio import atomic_save, atomic_open
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -158,11 +175,12 @@ def build_board(bgc_data, deep_data, tigr, bgc_markers=None, rescue=None):
     return boards
 
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--workbook'); ap.add_argument('--banked-dir', default='cohort')
     ap.add_argument('--queue', help='also write a flat Mode-B queue CSV')
-    a=ap.parse_args()
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None))
     # v9.7.173: tolerate optional banked stores that ingest_package does not create — notably
     # deep_data.json, read only for the CCTT fallback (deep_data.get('bgc_profile', [])). A
     # missing store returns {} instead of crashing the whole lead board with FileNotFoundError.

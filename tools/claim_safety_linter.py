@@ -266,7 +266,7 @@ def lint_claim_safety(text: str, compound_names: set | None = None) -> list[str]
         if cnames is not None:
             if t in cnames:
                 return True
-            # BC2-CS-MULTIWORD (v9.7.395): lint_claim_safety_report()'s _identity_hit() builds a
+            # CS-MULTIWORD (v9.7.395): lint_claim_safety_report()'s _identity_hit() builds a
             # multi-word probe (captured token + a short tail window) and tests substring
             # membership against cnames, so "is phosphonoacetic acid" matches the multi-word
             # compound "phosphonoacetic acid" even though the identity-verb regex only captures

@@ -735,7 +735,7 @@ def candidate_text_files(package_dir: str | Path) -> tuple[list[Path], list[str]
     """Every claim-safety-relevant file under `package_dir`, plus any directory this walk
     could not descend into.
 
-    v9.7.401 (BC2): replaced `root.rglob("*")`, which silently swallows a per-directory
+    v9.7.401: replaced `root.rglob("*")`, which silently swallows a per-directory
     OSError -- an unreadable subdirectory's contents are simply absent from the scan, with no
     signal. Reproduced live against the real pristine function: an overclaim-carrying report
     (`produces the antibiotic streptomycin`) hidden inside a permission-locked subdirectory of
@@ -770,7 +770,7 @@ def run_claim_safety_gate(package_dir: str | Path) -> dict[str, Any]:
     files, unreadable = candidate_text_files(root)
     findings: list[dict[str, Any]] = []
     for d in unreadable:
-        # v9.7.401 (BC2): a directory this scan could not enter means the scan is INCOMPLETE --
+        # v9.7.401: a directory this scan could not enter means the scan is INCOMPLETE --
         # any claim-safety-relevant file inside it (which may carry a real overclaim) was never
         # examined. Surface that as its own finding rather than silently reporting fewer files
         # checked, so the manifest's claim_safety_status can never read as clean/not-applicable

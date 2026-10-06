@@ -1,10 +1,10 @@
-"""BC2 .401 audit: hooks/check_tools_before_building.py — advisory PreToolUse hook, Alex-assigned
-(ROSTER_401_SEEDS.md item 2, from VGP's 2026-09-02 self-audit, "audit control #1, the
+"""An audit-lane .401 audit: hooks/check_tools_before_building.py — advisory PreToolUse hook, owner-assigned
+(ROSTER_401_SEEDS.md item 2, from an audit lane's 2026-09-02 self-audit, "audit control #1, the
 highest-value change"): before a Write creates a brand-new `.py` file outside this bundle's own
 `tools/`/`mamey/`, surface any shipped tool sharing a name concept, so a script isn't
 independently re-derived when the engine already ships one.
 
-Grounded in a real, confirmed incident: VGP independently re-derived `rggmci.py`,
+Grounded in a real, confirmed incident: an audit lane independently re-derived `rggmci.py`,
 `rggmci_cohort_rollup.py`, `build_reconstruction.py`, and `cohort_leads_ledger.py` -- verified
 here directly that all four ship in the sealed bundle this hook would have warned against.
 
@@ -42,7 +42,7 @@ def test_hook_present():
 # -- the real E1 incident this hook exists to catch -------------------------------------------
 
 def test_e1_examples_actually_ship_in_the_bundle():
-    """Grounding check: the four files VGP independently re-derived must genuinely exist in
+    """Grounding check: the four files an audit lane independently re-derived must genuinely exist in
     this bundle, or the whole premise of this hook is unfounded."""
     assert (BUNDLE_ROOT / "mamey" / "rggmci.py").is_file()
     assert (BUNDLE_ROOT / "tools" / "rggmci_cohort_rollup.py").is_file()
@@ -56,8 +56,8 @@ def test_rederiving_cohort_leads_ledger_fires_the_advisory(tmp_path):
     assert out is not None, "expected an advisory for a real E1-shaped duplicate"
     hso = out["hookSpecificOutput"]
     assert hso["hookEventName"] == "PreToolUse"
-    assert hso["permissionDecision"] == "allow", "must never deny -- advisory only"
-    assert "cohort_leads_ledger" in hso["permissionDecisionReason"]
+    assert "permissionDecision" not in hso, "advisory only: never denies and never auto-approves (audit F03)"
+    assert "cohort_leads_ledger" in hso["additionalContext"]
 
 
 def test_the_exact_match_is_not_buried_by_truncation(tmp_path):
@@ -66,7 +66,7 @@ def test_the_exact_match_is_not_buried_by_truncation(tmp_path):
     preview's truncation point, behind generic same-prefix noise. The exact/closest match
     must always be the first name shown."""
     out, rc = _run("Write", str(tmp_path / "cohort_leads_ledger.py"), content="# new")
-    reason = out["hookSpecificOutput"]["permissionDecisionReason"]
+    reason = out["hookSpecificOutput"]["additionalContext"]
     after_colon = reason.split(": ", 2)[-1]
     first_listed = after_colon.split(",")[0].strip()
     assert first_listed == "cohort_leads_ledger", (
@@ -77,7 +77,7 @@ def test_the_exact_match_is_not_buried_by_truncation(tmp_path):
 def test_rederiving_rggmci_cohort_rollup_fires(tmp_path):
     out, rc = _run("Write", str(tmp_path / "rggmci_cohort_rollup.py"), content="# new")
     assert out is not None
-    assert "rggmci" in out["hookSpecificOutput"]["permissionDecisionReason"]
+    assert "rggmci" in out["hookSpecificOutput"]["additionalContext"]
 
 
 def test_rederiving_build_reconstruction_fires(tmp_path):

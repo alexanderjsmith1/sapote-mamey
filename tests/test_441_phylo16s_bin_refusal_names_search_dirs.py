@@ -1,4 +1,4 @@
-"""v9.7.441 card 283f1f96: when a placement binary is absent, tools/_phylo16s._bin names every
+"""v9.7.441 card: when a placement binary is absent, tools/_phylo16s._bin names every
 location it looked in and the root it resolved, instead of telling the operator to install software."""
 import importlib.util, pathlib, sys
 import pytest

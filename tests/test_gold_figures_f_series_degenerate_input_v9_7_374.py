@@ -1,4 +1,4 @@
-"""v9.7.374 (Black Cherry audit) — Path-3 guard, F-series: heatmap() must not crash on a
+"""v9.7.374 (an audit lane audit) — Path-3 guard, F-series: heatmap() must not crash on a
 degenerate (empty) input, matching the guard v9.7.267 already gave its two siblings.
 
 v9.7.267 gave `hmap()` (G-series) and `bubble_matrix()` (D-series) an early-return placeholder

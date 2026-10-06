@@ -1,6 +1,6 @@
 """Tier A must be at least as strict as Tier B on every gate they share.
 
-Finding and fix are Goldenrod's
+Finding and fix are an audit lane's
 (`GOLDENROD_436_rggmci_tier_a_missing_alignment_coverage_gate.md`): Tier A omits
 the `median_alignment_coverage >= 55` floor that Tier B enforces.
 

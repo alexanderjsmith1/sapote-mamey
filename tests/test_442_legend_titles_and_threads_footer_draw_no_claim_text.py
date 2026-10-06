@@ -1,4 +1,4 @@
-"""Legend titles and the threads figure carry no claim wording (Alex, 2026-09-24).
+"""Legend titles and the threads figure carry no claim wording (2026-09-24).
 
 The shared text extractor behind the .442 save-path refusal skipped legend titles and any legend
 kept with ax.add_artist(), so banned wording there saved without a refusal even through

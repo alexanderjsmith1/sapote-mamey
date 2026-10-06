@@ -70,7 +70,7 @@ def is_ubiquitous(compound: str) -> bool:
     return any(u in c for u in UBIQUITOUS)
 
 def main() -> int:
-    # v9.7.412 (BC2): --out, mirroring the sibling `majority-read` tool. Without it this command
+    # v9.7.412: --out, mirroring the sibling `majority-read` tool. Without it this command
     # had NO way to redirect its output and rewrote the canonical dated deliverable in place on
     # every run — and `<MAMEY_DATA_ROOT>/strain_data` is a symlink to the workspace's canonical
     # home, so "just seeing what it does" silently overwrote real data. Default is unchanged.
@@ -103,7 +103,7 @@ def main() -> int:
 
     # ---- write combined CSV ----
     csv_path = outdir / "flagged_lead_surfacing.csv"
-    # v9.7.413 (BC2): refuse to silently replace an existing canonical dated deliverable.
+    # v9.7.413: refuse to silently replace an existing canonical dated deliverable.
     for _p in (csv_path, outdir / "FLAGGED_LEAD_SURFACING.md"):
         guard_canonical_write(_p, force=a.force)
     with csv_path.open("w", newline="") as fh:

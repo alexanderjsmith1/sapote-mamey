@@ -156,20 +156,26 @@ def build_comparative_pairs(bank: dict[str, Any],
 def load_bank(bank_path: str | Path) -> dict[str, Any]:
     """Read a cohort/single-strain bgc_data.json bank. Empty shell if absent/malformed."""
     p = Path(bank_path)
-    if not p.exists():
+    from .bank_transaction import reader, STATE
+    # Always lock before inspecting first-generation/legacy state. Admission
+    # failures remain outside the legacy malformed-data fallback.
+    with reader(p.parent):
+        if (p.parent / STATE).exists():
+            return json.loads(p.read_text(encoding="utf-8"))
+        if not p.exists():
+            return {"strains": {}, "bgcs": []}
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+            if isinstance(d, dict) and "bgcs" in d:
+                return d
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            sys.stderr.write(
+                f"comparative_pairs: cannot read {p}; using an empty comparison bank "
+                f"({type(exc).__name__}: {exc})\n"
+            )
+        else:
+            sys.stderr.write(
+                f"comparative_pairs: {p} is not a bank object with a bgcs field; "
+                "using an empty comparison bank\n"
+            )
         return {"strains": {}, "bgcs": []}
-    try:
-        d = json.loads(p.read_text(encoding="utf-8"))
-        if isinstance(d, dict) and "bgcs" in d:
-            return d
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        sys.stderr.write(
-            f"comparative_pairs: cannot read {p}; using an empty comparison bank "
-            f"({type(exc).__name__}: {exc})\n"
-        )
-    else:
-        sys.stderr.write(
-            f"comparative_pairs: {p} is not a bank object with a bgcs field; "
-            "using an empty comparison bank\n"
-        )
-    return {"strains": {}, "bgcs": []}

@@ -1,4 +1,4 @@
-"""GF3-1 coordinate-hash sensitivity and schema v2.1 locks (V4 §4 — Black Cherry-4).
+"""GF3-1 coordinate-hash sensitivity and schema v2.1 locks (V4 §4 — 4).
 
 The v2 roster digest hashed only gene_order/locus_tag/protein_sha256, so an unchanged
 protein reassigned different physical coordinates, strand, or roster membership after a

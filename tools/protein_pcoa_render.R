@@ -8,20 +8,20 @@ grDevices::pdf(NULL)   # a null device for incidental graphics calls, so R never
 a <- commandArgs(TRUE); spec <- fromJSON(a[1]); prefix <- a[2]; stamp <- a[3]
 if (!identical(spec$stamp, stamp)) stop("stamp mismatch: refusing to draw a spec from another run")
 pts <- as.data.frame(spec$points)
-lv <- intersect(c("ref", "mibig", "iso_low", "iso_high"), unique(pts$layer))   # only layers with points
+lv <- intersect(c("ref", "mibig", "iso_low", "iso_mid", "iso_high"), unique(pts$layer))   # only layers with points
 pts$layer <- factor(pts$layer, levels = lv); pts <- pts[order(pts$layer), ]
-leg <- spec$legend; col <- spec$colour
-labs <- c(ref = leg$ref, mibig = leg$mibig, iso_low = leg$iso_low, iso_high = leg$iso_high)[lv]
+leg <- spec$legend; col <- spec$colour; midf <- if (is.null(spec$mid_fill)) "white" else spec$mid_fill
+labs <- unlist(c(ref = leg$ref, mibig = leg$mibig, iso_low = leg$iso_low, iso_mid = leg$iso_mid, iso_high = leg$iso_high))[lv]
 pts$ps <- ifelse(pts$layer %in% c("ref", "mibig"), 0.28 * sqrt(3 + 1.5 * sqrt(pts$size)), 1.9)
 g <- ggplot(pts, aes(x, y)) +
   geom_point(aes(colour = layer, fill = layer, shape = layer, size = ps, alpha = layer), stroke = 0.45) +
   scale_size_identity() +
-  scale_colour_manual(values = c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = "black", iso_high = col), labels = labs, breaks = lv, name = NULL) +
-  scale_fill_manual(values = c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = col, iso_high = "white"), labels = labs, breaks = lv, name = NULL) +
-  scale_shape_manual(values = c(ref = 16, mibig = 16, iso_low = 21, iso_high = 21), labels = labs, breaks = lv, name = NULL) +
-  scale_alpha_manual(values = c(ref = .7, mibig = .7, iso_low = 1, iso_high = 1), labels = labs, breaks = lv, name = NULL) +
-  guides(colour = guide_legend(override.aes = list(size = unname(c(ref = 2.2, mibig = 2.2, iso_low = 2.4, iso_high = 2.4)[lv]),
-                                                   stroke = unname(c(ref = 0, mibig = 0, iso_low = .45, iso_high = .9)[lv])))) +
+  scale_colour_manual(values = c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = "black", iso_mid = col, iso_high = col), labels = labs, breaks = lv, name = NULL) +
+  scale_fill_manual(values = c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = col, iso_mid = midf, iso_high = "white"), labels = labs, breaks = lv, name = NULL) +
+  scale_shape_manual(values = c(ref = 16, mibig = 16, iso_low = 21, iso_mid = 21, iso_high = 21), labels = labs, breaks = lv, name = NULL) +
+  scale_alpha_manual(values = c(ref = .7, mibig = .7, iso_low = 1, iso_mid = 1, iso_high = 1), labels = labs, breaks = lv, name = NULL) +
+  guides(colour = guide_legend(override.aes = list(size = unname(c(ref = 2.2, mibig = 2.2, iso_low = 2.4, iso_mid = 2.4, iso_high = 2.4)[lv]),
+                                                   stroke = unname(c(ref = 0, mibig = 0, iso_low = .45, iso_mid = .7, iso_high = .9)[lv])))) +
   annotate("text", x = -Inf, y = Inf, label = spec$tag, hjust = -0.04, vjust = 1.4, fontface = "bold", size = 9 / .pt) +
   scale_y_continuous(expand = expansion(mult = c(.03, .10))) +   # headroom so the class tag sits clear of the points
   labs(x = spec$xlab, y = spec$ylab) + theme_classic(base_size = 9) +
@@ -29,7 +29,7 @@ g <- ggplot(pts, aes(x, y)) +
         legend.key.height = unit(10, "pt"), axis.line = element_line(linewidth = .4), axis.ticks = element_line(linewidth = .4))
 lab <- if (length(spec$labels)) as.data.frame(spec$labels) else data.frame(x = numeric(0), y = numeric(0), label = character(0))
 if (nrow(lab)) {
-  iso <- pts[pts$layer %in% c("iso_low", "iso_high"), c("x", "y")]; iso$label <- ""   # empty labels keep text off the points
+  iso <- pts[pts$layer %in% c("iso_low", "iso_mid", "iso_high"), c("x", "y")]; iso$label <- ""   # empty labels keep text off the points
   g <- g + geom_text_repel(data = rbind(lab[, c("x", "y", "label")], iso), aes(x, y, label = label), inherit.aes = FALSE, size = 2.1,
     min.segment.length = 0, segment.size = .25, segment.colour = "#555555", box.padding = .4, point.padding = .2,
     force = 3, force_pull = .5, max.overlaps = Inf, max.iter = 20000, seed = 1)

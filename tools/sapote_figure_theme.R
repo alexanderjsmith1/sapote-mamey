@@ -83,7 +83,7 @@ sapote_theme <- function(base_pt = 8) {
 #   final$panel.grid.major.x$colour   # -> "grey70", still an element_line
 #
 # Three renderers used that idiom, all intending no grid, and all three still drew the grey vertical
-# lines: cohort_tree_ggtree.R, sapote_strain_figure.R, sapote_tidy_figure.R. Alex, 2026-09-09, on a
+# lines: cohort_tree_ggtree.R, sapote_strain_figure.R, sapote_tidy_figure.R. The owner, 2026-09-09, on a
 # GToTree figure: "The grey vertical lines are not wanted." He suspected a machine-specific setting;
 # it is not -- it is portable and reproduces anywhere the shared theme is used.
 #

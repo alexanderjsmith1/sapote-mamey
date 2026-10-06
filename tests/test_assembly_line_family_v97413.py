@@ -1,4 +1,4 @@
-"""v9.7.413 (BC2) — the assembly-line family: cohort coverage + the two print companions.
+"""v9.7.413 — the assembly-line family: cohort coverage + the two print companions.
 
 Three things are pinned here.
 

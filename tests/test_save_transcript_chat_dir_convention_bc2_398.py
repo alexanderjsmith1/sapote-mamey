@@ -1,4 +1,4 @@
-"""BC2 .400 audit: hooks/save_transcript.py's chat-folder lookup (both the `.session_id` pin
+"""An audit-lane .400 audit: hooks/save_transcript.py's chat-folder lookup (both the `.session_id` pin
 resolution and the output directory) defaulted to '<ROOT>/sessions/<color>/' when
 $SAPOTE_CHAT_DIR is unset. Confirmed live: SAPOTE_CHAT_DIR is unset in the real environment, no
 'sessions/' directory exists anywhere under the real workspace root, and the real per-chat

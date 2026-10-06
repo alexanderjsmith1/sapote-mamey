@@ -66,7 +66,7 @@ for (c in c("category", "source")) if (!c %in% names(md)) md[[c]] <- NA
 if (is.null(tr$edge.length) || any(!is.finite(tr$edge.length)) || any(tr$edge.length < 0)) stop("Valid branch lengths required")
 md$disp <- ifelse(is.na(md$label) | md$label == "", md$tip, md$label); md$label <- NULL
 # GG_ITALIC: italicise the SPECIES (first two whitespace tokens = Genus species) and leave the
-# bracketed source, the (T) marker and the (accession) upright (Alex, 2026-09-08: "species names
+# bracketed source, the (T) marker and the (accession) upright (2026-09-08: "species names
 # are italicized."). plotmath + parse=TRUE; ggtext is not installed. Plain text when unset.
 parse_labels <- FALSE
 if (nzchar(Sys.getenv("GG_ITALIC"))) {
@@ -106,7 +106,7 @@ xr      <- max(ape::node.depth.edgelength(tr), na.rm = TRUE)
 if (!is.finite(xr) || xr <= 0) stop("Positive tree depth required")
 # Gap between branch tip and the dotted leader/label, as a fraction of tree depth. Default 0.02
 # unchanged; GG_LAB_OFFSET_FRAC widens it when labels read as touching the branch tips
-# (Alex, 2026-09-08: "a little more space between the branches and the labels").
+# (2026-09-08: "a little more space between the branches and the labels").
 lab_off <- as.numeric(Sys.getenv("GG_LAB_OFFSET_FRAC", "0.02")) * xr
 
 sb_raw  <- 0.10 * xr
@@ -178,7 +178,7 @@ combined <- if (n_strips == "0") {
 if (n_strips != "0") cat("PANEL_Y_RANGES:", paste(validate_panel_ranges(combined), collapse = " | "), "\n")
 per_tip <- if (n > 800) 0.085 else if (n > 300) 0.105 else 0.14
 # GG_PER_TIP overrides vertical density (inches/tip) so the SAME tree can be emitted at several
-# densities without dropping tips (Alex, 2026-09-08: "3 figures always at different densities").
+# densities without dropping tips (2026-09-08: "3 figures always at different densities").
 if (nzchar(Sys.getenv("GG_PER_TIP"))) per_tip <- as.numeric(Sys.getenv("GG_PER_TIP"))
 h <- max(5, per_tip * n + 1.5)
 w <- if (n > 600) 22 else if (n > 250) 19 else if (n > 120) 16 else 12

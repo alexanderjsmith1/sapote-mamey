@@ -1,6 +1,6 @@
 """Hermetic suite coverage for the ARTS Genelist parse-failure distinguisher.
 
-Black Cherry-2's card ships `test_arts_genelist_parse_failure.py`, which resolves the tool
+2's card ships `test_arts_genelist_parse_failure.py`, which resolves the tool
 through the `UUT` and `PRISTINE` environment variables. That works in its author's harness
 but fails with `KeyError` the moment the file sits in `tests/`, so the defect it proves is
 not covered by `pytest -q`. Every other test in the bundle — `test_arts_ingest.py` included —

@@ -1,4 +1,4 @@
-"""Releases cut the CODE tier only; the other four tiers are kept in the bundle but disabled (Alex, 2026-09-28).
+"""Releases cut the CODE tier only; the other four tiers are kept in the bundle but disabled (2026-09-28).
 
 "we were planning to disable the four tiers from the cut process and leave the tooling in a disabled location
 within the bundle". The tooling stays (tests that exercise it set SAPOTE_ENABLE_DISABLED_TIERS=1).

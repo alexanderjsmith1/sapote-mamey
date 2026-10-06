@@ -199,7 +199,7 @@ _RULED_ACCESSION = re.compile(r"\(?\b((?:NR|NG|NZ|NC)_\d+(?:\.\d+)?)\)?")
 def split_ruled_accession(species_strain):
     """Return (species/strain text without any accession token, ruled accession or '').
 
-    TREES_432: registry rows may name the accession Alex ruled on inside `outgroup_species_strain`
+    TREES_432: registry rows may name the accession the owner ruled on inside `outgroup_species_strain`
     (e.g. `Gordonia bronchialis DSM 43247 (NR_074529.1)`). That token must not leak into the cache
     filename or the header a second time, and when present it is what the build fetches."""
     m = _RULED_ACCESSION.search(species_strain or "")

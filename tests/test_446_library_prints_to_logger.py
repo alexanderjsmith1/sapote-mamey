@@ -66,7 +66,7 @@ def test_explicit_stream_is_still_honoured():
 def test_converted_modules_import_and_use_the_engine_logger():
     converted = [p for p in (ROOT / "mamey").rglob("*.py")
                  if "_OUT = _get_logger(__name__)" in p.read_text()]
-    assert len(converted) >= 20   # modules whose command RESULTS print were left on emit (Task 198 review, F1)
+    assert len(converted) >= 20   # modules whose command RESULTS print were left on emit (review F1)
     for p in converted:
         mod = ".".join(p.relative_to(ROOT).with_suffix("").parts)
         m = importlib.import_module(mod)
@@ -74,7 +74,7 @@ def test_converted_modules_import_and_use_the_engine_logger():
         assert re.search(r"_OUT\.(info|warning|error)\(", p.read_text()), mod
 
 
-# ---- results stay on the deliverable channel (Task 198 review, F1) -------------------------------
+# ---- results stay on the deliverable channel (review F1) -------------------------------
 # A command's result (JSON, a typed refusal, a markdown report, a lookup answer) is the deliverable and
 # must reach stdout whatever MAMEY_LOG says. Only progress chatter moved to the logger.
 

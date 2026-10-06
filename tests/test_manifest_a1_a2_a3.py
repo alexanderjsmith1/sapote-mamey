@@ -3,7 +3,7 @@
 Built end-to-end with the admitted full-locus synthetic fixture. Tests generic
 package contracts, not public-reference biology or nonzero split-pathway detection.
 
-v9.7.416 (BC2): these four tests were gated on a hardcoded `/mnt/user-data/uploads/` sandbox
+v9.7.416: these four tests were gated on a hardcoded `/mnt/user-data/uploads/` sandbox
 path, so they were dark in every environment but one. While dark, A2 went STALE: v9.7.400
 replaced the embedded `source_scans.rggmci` object with a channel-alias stub, and A2's direct
 `["high_pairs"]` read stopped working without ever failing. A2 now follows the alias through

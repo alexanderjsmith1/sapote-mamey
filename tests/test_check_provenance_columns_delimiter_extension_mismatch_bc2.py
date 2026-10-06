@@ -1,4 +1,4 @@
-"""BC2-PC-01 (v9.7.396): check_provenance_columns.py must not go silently blind when a table's
+"""PC-01 (v9.7.396): check_provenance_columns.py must not go silently blind when a table's
 real delimiter doesn't match its file extension.
 
 _sniff() picked its CSV/TSV delimiter solely from the file suffix (.tsv/.tab -> tab, else comma),

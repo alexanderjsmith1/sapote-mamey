@@ -15,6 +15,14 @@ import sys
 
 import pytest
 
+def _shown(proc):
+    """What the user sees: advisory hooks report through a JSON systemMessage on stdout (audit F03); stderr with
+    exit 0 reaches only the debug log."""
+    import json as _json
+    out = proc.stdout.strip()
+    return _json.loads(out).get("systemMessage", "") if out else ""
+
+
 ROOT = Path(__file__).resolve().parents[1]
 HOOKS = ROOT / 'hooks'
 
@@ -149,19 +157,19 @@ def test_state_reminder_reports_a_missing_state_root(tmp_path):
     permanent silence, which reads as 'everyone is current'."""
     result = _run('state_save_reminder.py', tmp_path)
     assert result.returncode == 0, 'a reminder must never wedge a Stop'
-    assert 'task_state' in result.stderr and 'SAPOTE_TASK_STATE_ROOT' in result.stderr
+    assert 'task_state' in _shown(result) and 'SAPOTE_TASK_STATE_ROOT' in _shown(result)
 
 
 def test_state_reminder_debounces_the_misconfiguration_warning(tmp_path):
-    assert _run('state_save_reminder.py', tmp_path).stderr.strip()
-    assert not _run('state_save_reminder.py', tmp_path).stderr.strip(), 'must not nag every Stop'
+    assert _shown(_run('state_save_reminder.py', tmp_path)).strip()
+    assert not _shown(_run('state_save_reminder.py', tmp_path)).strip(), 'must not nag every Stop'
 
 
 def test_state_reminder_is_silent_when_the_root_exists_and_is_current(tmp_path):
     root = tmp_path / 'task_state' / 'session'
     root.mkdir(parents=True)
     (root / 'STATE.md').write_text('checkpoint')
-    assert not _run('state_save_reminder.py', tmp_path).stderr.strip()
+    assert not _shown(_run('state_save_reminder.py', tmp_path)).strip()
 
 
 # --- D5: c10_tool_drift failed open silently, and wrote project state to fail open ----------
@@ -184,11 +192,11 @@ def test_c10_says_it_is_unarmed_when_the_session_id_does_not_match(tmp_path):
     target.write_text('print(2)\n')
 
     matched = _run('c10_tool_drift.py', tmp_path, dict(session_id='abc'), ('--mode', 'check'))
-    assert 'MODIFIED: tools/a.py' in matched.stderr, 'precondition: it detects drift when armed'
+    assert 'MODIFIED: tools/a.py' in _shown(matched), 'precondition: it detects drift when armed'
 
     unarmed = _run('c10_tool_drift.py', tmp_path, {}, ('--mode', 'check'))
     assert unarmed.returncode == 0
-    assert 'unarmed' in unarmed.stderr.lower(), 'silence here is indistinguishable from "no drift"'
+    assert 'unarmed' in _shown(unarmed).lower(), 'silence here is indistinguishable from "no drift"'
 
 
 def test_c10_is_silent_when_no_session_ever_took_a_baseline(tmp_path):
@@ -196,7 +204,7 @@ def test_c10_is_silent_when_no_session_ever_took_a_baseline(tmp_path):
     (tmp_path / 'tools').mkdir()
     (tmp_path / 'tools' / 'a.py').write_text('print(1)\n')
     result = _run('c10_tool_drift.py', tmp_path, dict(session_id='abc'), ('--mode', 'check'))
-    assert result.returncode == 0 and not result.stderr.strip()
+    assert result.returncode == 0 and not _shown(result).strip()
 
 @pytest.mark.parametrize('module,function', [('reasoning_self_audit_stop','tail_records'),('contradiction_and_magnitude_stop','_tail_records')])
 def test_tail_honors_exact_byte_cap(monkeypatch,module,function):

@@ -25,6 +25,23 @@ except ImportError:  # bare-script run: bundle root is one level up
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -60,16 +77,17 @@ def axis(mc, note, anchor='', chitin_context=False):
         return 'antifungal (Candida)' if chitin_context else 'nucleoside-antibiotic candidate (axis uncertain)'
     return tbl.get('default_axis','antibacterial (general)')
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--out', default='ChemistryFirst_Recall.csv')
     ap.add_argument('--bioactivity', default=None, help='filter to one axis, e.g. antifungal (substring match)')
-    a=ap.parse_args()
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None))
     bgc=_read_json(os.path.join(a.banked_dir,'bgc_data.json')); brec={(b['sid'],b['bgc_id']):b for b in bgc['bgcs']}
     # H4: per-strain chitin context for nucleoside→antifungal axis gate.
     # cgad_active stored in bgc_data.json strains metadata (H4 fix in _emit_bgc_bank).
     cgad_by_sid={sid: bool(meta.get('cgad_active')) for sid,meta in (bgc.get('strains') or {}).items()}
-    # BC2-408: deep_data.json is a SEPARATE tool's output (tools/build_deep_data.py, per the
+    # 408: deep_data.json is a SEPARATE tool's output (tools/build_deep_data.py, per the
     # AUDIT_374 comment in tools/build_master.py's own _read_json_or() fix for this identical gap)
     # -- ingest_package.py --merge never writes it, so a freshly-banked cohort (the common case:
     # verified live against this cycle's own AS-XXX deliverable bank) does not have it yet. This
@@ -103,7 +121,7 @@ def main():
                              f"refusing to run — a corrupt QC hold-set would silently promote held strains. "
                              f"Fix or remove {qcp}.")
     rows=[]
-    # BC2-408: modeb_verdicts.csv is written per-PACKAGE (mamey/cli.py's _write_package, gold mode)
+    # 408: modeb_verdicts.csv is written per-PACKAGE (mamey/cli.py's _write_package, gold mode)
     # but no tool in this codebase -- not ingest_package.py, not tools/build_deep_data.py, not
     # tools/build_master.py -- ever merges those per-strain rows into a cohort-level
     # <banked_dir>/modeb_verdicts.csv. Every sibling consumer of this same file

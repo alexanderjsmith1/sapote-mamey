@@ -137,11 +137,11 @@ def test_gate_still_rejects_genuinely_multi_record_deflines(tmp_path):
     assert all("NR_074529.1 Gordonia" not in h for h, _r in rejected)
 
 
-def _official_rows():
-    if not OFFICIAL.is_file():
+def _registry_rows(path):
+    if not path.is_file():
         return []
     seen, out = set(), []
-    for ln in OFFICIAL.read_text(encoding="utf-8").splitlines():
+    for ln in path.read_text(encoding="utf-8").splitlines():
         if not ln.strip() or ln.startswith("#") or ln.startswith("tree_scope"):
             continue
         c = ln.split("\t")
@@ -151,8 +151,7 @@ def _official_rows():
     return out
 
 
-@pytest.mark.skipif(not OFFICIAL.is_file(), reason="OFFICIAL_DATA/OUTGROUP_REGISTRY.tsv not on this machine")
-@pytest.mark.parametrize("row", _official_rows(), ids=lambda r: "/".join(r.split("\t")[:2]))
+@pytest.mark.parametrize("row", _registry_rows(ROOT / "tests/fixtures/outgroup_registry_header_cases.tsv"), ids=lambda r: "/".join(r.split("\t")[:2]))
 def test_every_official_registry_row_yields_an_admissible_header(tmp_path, monkeypatch, row):
     c = row.split("\t")
     scope, taxon, og_genus, species_strain = c[0], c[1], c[3], c[4]
@@ -166,3 +165,13 @@ def test_every_official_registry_row_yields_an_admissible_header(tmp_path, monke
     assert screen_reference_definitions(fa) == [], _header(fa)
     assert _header(fa).count(">") == 1 and _header(fa).count(acc) == 1
     assert "outgroup" in _header(fa)
+
+
+@pytest.mark.skipif(not OFFICIAL.is_file(), reason="live OFFICIAL_DATA registry absent; fixture cases still run")
+def test_live_official_registry_rows_yield_admissible_headers(tmp_path, monkeypatch):
+    rows = _registry_rows(OFFICIAL)
+    assert rows, "live registry is present but contains no cases"
+    for index, row in enumerate(rows):
+        case = tmp_path / str(index)
+        case.mkdir()
+        test_every_official_registry_row_yields_an_admissible_header(case, monkeypatch, row)

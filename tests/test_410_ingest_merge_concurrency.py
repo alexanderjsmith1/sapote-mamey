@@ -37,7 +37,7 @@ def _load():
 
 def _entry(sid: str, salt: int) -> dict:
     return {
-        "sid": sid, "strain": {"sid": sid},
+        "workflow_version": "synthetic-v1", "sid": sid, "strain": {"sid": sid},
         "bgcs": [{"sid": sid, "bgc_id": f"BGC{i:03d}", "products": f"p-{sid}-{i}",
                   "length_kb": 10 + i + salt, "edge_status": "Interior"} for i in range(3)],
         "scan_agg": {}, "tfbs": {}, "rggmci_full": {}, "tigrfam": {}, "coupling": {},

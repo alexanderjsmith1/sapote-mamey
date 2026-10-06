@@ -1,4 +1,4 @@
-"""BC2-CDR-01 (v9.7.395): tools/check_dangling_refs.py's scan() and scan_tools() must not
+"""CDR-01 (v9.7.395): tools/check_dangling_refs.py's scan() and scan_tools() must not
 silently swallow an unreadable candidate file.
 
 Both functions wrapped `p.read_text(...)` in `except Exception: continue` with no signal of any

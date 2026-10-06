@@ -26,9 +26,8 @@ def test_direct_renderer_rejects_missing_source_and_full_view_geography():
   validate([dict(tip='reference_1',category_raw='soil',category='soil/rock/sediment',source='Not recorded')],require_geography=True)
  assert validate([dict(tip='reference_1',category_raw='soil',category='soil/rock/sediment',source='Not recorded')],require_geography=False)['complete_geography_required'] is False
 
-def test_actual_r_plot_geometry_and_fill(tmp_path):
- r=shutil.which('Rscript')
- if not r:pytest.skip('Rscript unavailable; render integration remains unverified')
+def test_actual_r_plot_geometry_and_fill(tmp_path, require_r_packages):
+ r=require_r_packages(('ggplot2',))
  script=tmp_path/'geometry.R'
  script.write_text("""suppressPackageStartupMessages(library(ggplot2))
 source(commandArgs(trailingOnly=TRUE)[1])
@@ -54,10 +53,9 @@ def test_gate_wired_before_render_and_dependencies_exported():
  for name in ['tree_annotation_gate.py','tree_annotation_geometry.R','_phylo_metadata.py','phylo_display_contract.py','phylo_display_palette.tsv']:assert name in export
 
 
-def test_full_renderer_blocks_bad_metadata_before_export(tmp_path):
+def test_full_renderer_blocks_bad_metadata_before_export(tmp_path, require_r_packages):
  import os,csv
- r=shutil.which('Rscript')
- if not r:pytest.skip('Rscript unavailable')
+ r=require_r_packages()
  tree=tmp_path/'tree.nwk';tree.write_text('((((A:0.1,B:0.1):0.1,C:0.1):0.1,D:0.1):0.1,OUTGROUP:0.15);')
  md=tmp_path/'metadata.tsv'
  rows=[dict(tip=t,label='Genus species '+t,category_raw='soil',category='soil/rock/sediment',source='US') for t in ['A','B','C','D','OUTGROUP']]

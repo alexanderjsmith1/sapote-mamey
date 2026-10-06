@@ -56,7 +56,7 @@ for L in "$BR"/_N*CODEX100_*/_run.log; do
 done
 
 if [ -n "$real_hits" ]; then
-  echo "!!!!! REAL ERROR DETECTED — STOPPING ALL 8 CODEX100 LANES (Alex directive) !!!!!"
+  echo "!!!!! REAL ERROR DETECTED — STOPPING ALL 8 CODEX100 LANES (the owner directive) !!!!!"
   echo "$real_hits"
   for n in "${LANES[@]}"; do
     launchctl bootout gui/$UID_ "$LA/com.alex.blastp.codex100.$n.plist" 2>/dev/null && echo "  stopped com.alex.blastp.codex100.$n"

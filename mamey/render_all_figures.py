@@ -716,7 +716,7 @@ def render_all_figures_command(args) -> int:
         try:
             pkg_root = Path(summary["package"])
             shipped = _relativize_paths(summary, pkg_root)
-            # v9.7.414 (BC2): the shipped receipt could not identify its own subject. Relativizing
+            # v9.7.414: the shipped receipt could not identify its own subject. Relativizing
             # is correct and must stay (CLAUDE_409 / DEEP_AUDIT3 F1 — never embed the operator's
             # absolute layout), and `"package": "."` matches the house anchor convention used by
             # manifest.json and PACKAGE_MAP.json. What was missing is the OTHER half of that

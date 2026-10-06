@@ -1,7 +1,7 @@
 """v9.7.409 — regression tests for the new-laptop scratch candidates (A1–A11, N1, B1–B3, CS-2, V1).
 
 Each test names the finding it guards. The finding numbering follows
-`EVAL_new_laptop_scratch_candidates_2026-09-04.md` (Black Cherry lane). Synthetic inputs only.
+`EVAL_new_laptop_scratch_candidates_2026-09-04.md` (audit lane). Synthetic inputs only.
 """
 import json
 import pathlib

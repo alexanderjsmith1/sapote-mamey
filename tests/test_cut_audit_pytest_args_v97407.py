@@ -1,6 +1,6 @@
 """Regression test for tools/cut_audit.py's rebase-verify pytest invocation.
 
-BC2-407: without --run-slow, any card touching a test file whose name matches
+407: without --run-slow, any card touching a test file whose name matches
 conftest.py's _SLOW_FILE_HINTS (e.g. "figure", "atlas", "render_fig") is silently
 SKIPPED on both the base and patched sides -- so "0 failures both sides" reads as a
 clean REBASE-VERIFY: PASS when in fact none of those tests ever ran. CI's own full

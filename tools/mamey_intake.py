@@ -48,13 +48,25 @@ INIT = {
 }
 
 def init_banked(banked):
-    os.makedirs(banked, exist_ok=True)
+    from _bankio import lock, coherent, prepare, STORES
     created = []
-    for fn, empty in INIT.items():
-        p = os.path.join(banked, fn)
-        if not os.path.exists(p):
-            atomic_dump_json(empty, p, indent=None); created.append(fn)
+    with lock(banked, writer=True) as root:
+        coherent(root)
+        absent = [fn for fn in INIT if not (root / fn).exists()]
+        if not absent:
+            return created
+        def build(stage):
+            for fn in absent:
+                if fn != 'bgc_markers.json':
+                    atomic_dump_json(INIT[fn], stage / fn, indent=None)
+                    created.append(fn)
+        prepare(root, build, STORES + ('deep_data.json',))
+        # Derived marker file is outside the protected transaction stores.
+        if 'bgc_markers.json' in absent:
+            atomic_dump_json(INIT['bgc_markers.json'], root / 'bgc_markers.json', indent=None)
+            created.append('bgc_markers.json')
     return created
+
 
 def find_snapshots(paths):
     """Each package dir -> its snapshot. Accept package dirs or a parent to scan."""
@@ -112,7 +124,7 @@ def main():
 
     snaps = find_snapshots(a.packages)
     accession_map = _load_accession_map(a.accession_map)
-    banked = set(_read_json(os.path.join(a.banked_dir, "bgc_data.json"))["strains"])
+    banked = set(__import__('_bankio', fromlist=['checked_json']).checked_json(os.path.join(a.banked_dir, "bgc_data.json"))["strains"])
     todo = {sid: sp for sid, sp in snaps.items() if sid not in banked}
     emit(f"[discover] {len(snaps)} package(s) found; {len(todo)} new to bank "
           f"({len(snaps)-len(todo)} already banked)")
@@ -131,7 +143,7 @@ def main():
         emit(f"  + {sid} [{ww}] {line}")
 
     if a.no_workbook:
-        n = len(_read_json(os.path.join(a.banked_dir, "bgc_data.json"))["strains"])
+        n = len(__import__('_bankio', fromlist=['checked_json']).checked_json(os.path.join(a.banked_dir, "bgc_data.json"))["strains"])
         emit(f"[done] banked dir now holds {n} strains (workbook skipped)"); return
 
     emit("[build] generating workbook from scratch (deep bank -> marker bank -> Lead_Board)...")
@@ -145,7 +157,7 @@ def main():
         emit("   ! build error:", r.stderr.strip()[-300:])
 
     # intake summary
-    bgc = _read_json(os.path.join(a.banked_dir, "bgc_data.json"))
+    bgc = __import__('_bankio', fromlist=['checked_json']).checked_json(os.path.join(a.banked_dir, "bgc_data.json"))
     emit(f"\n=== INTAKE SUMMARY ===\n  strains: {len(bgc['strains'])} | BGCs: {len(bgc['bgcs'])}", f"  workbook: {a.workbook}", f"  banked-dir: {a.banked_dir}", sep="\n")
     if any(re.match(r'AS-?\d+', s) for s in bgc['strains']):
         emit("  NOTE: AS- strains present — keep this banked dir PRIVATE; never ship in a public release.")

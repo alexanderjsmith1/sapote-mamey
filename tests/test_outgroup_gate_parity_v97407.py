@@ -100,7 +100,7 @@ def test_ingroup_pathology_still_fails_with_full_designation(tmp_path):
     assert r.returncode == 2, "a pathological ingroup branch must still FAIL"
 
 
-# ---------- second-order false positive found in Amber's own sign-off pass ----------
+# ---------- second-order false positive found in the phylogeny lane's own sign-off pass ----------
 # (the shared _is_outgroup_tip predicate now legitimately matches >1 tip for a real
 # multi-taxon outgroup clade, which trips the UNRELATED "N tips tagged _OUTGROUP
 # (expected 1)" leftover-staging check — that check predates .406 and was never meant

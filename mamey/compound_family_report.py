@@ -142,7 +142,15 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
         return {"status": "no_triage_board", "note": "no *_4_triage_board.csv in package; skipped",
                 "rows": 0}
     strain = _strain_of(package_dir, board)
-    outd = os.path.join(str(out_dir or package_dir), "COMPOUND_FAMILIES")
+    try:
+        from .postseal_output import output_directory
+    except ImportError:
+        from postseal_output import output_directory
+    from pathlib import Path
+    sealed = any((Path(package_dir) / name).exists() for name in ("checksums_sha256.txt", "seal_status.json", "SEAL_RECEIPT.md"))
+    # Preserve the unsealed low-level assembly API used while constructing a run.
+    root = output_directory(package_dir, "compound-families", out_dir) if sealed else Path(out_dir or package_dir)
+    outd = str(output_directory(package_dir, "compound-families", root / "COMPOUND_FAMILIES") if sealed else root / "COMPOUND_FAMILIES")
     os.makedirs(outd, exist_ok=True)
 
     # v9.7.374 fix: was case-sensitive (same gap fixed for p450_tailoring.py at v9.7.371).
@@ -277,7 +285,7 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(description="Compound-family + structure report over a sealed package")
     ap.add_argument("package", help="path to a sealed package directory")
-    ap.add_argument("--out", default=None, help="output root (default: the package dir)")
+    ap.add_argument("--out", default=None, help="output root (default: sibling post_seal/compound-families)")
     ap.add_argument("--no-structures", action="store_true", help="skip NP Atlas structure resolution")
     a = ap.parse_args()
     raise SystemExit(compound_families_command(a))

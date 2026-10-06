@@ -75,7 +75,7 @@ def test_overmerge_widget_api():
 
 
 def test_overmerge_index_blank_bgc_shows_placeholder(tmp_path):
-    """v9.7.413 BC2 — the canonical OVERMERGE_REGISTER_GBK.tsv has real rows with an empty `bgc`
+    """v9.7.413 an audit lane — the canonical OVERMERGE_REGISTER_GBK.tsv has real rows with an empty `bgc`
     field: regions flagged OVER_MERGED that carry no corrected-BGC alias (45 of 180 on a real
     render). `write_index` rendered `esc(b['bgc'])` with no fallback — a bare empty <td></td> that
     reads as a broken render rather than as 'unresolved'. The sibling `kinds` column one line below
@@ -111,7 +111,7 @@ def test_assembly_line_widget_api():
 
 
 def test_assembly_line_gene_kind_label_not_truncated():
-    """v9.7.413 BC2 — the gene-lane label (`${g.aa} aa · ${g.kind}`) hard-slices antiSMASH's own
+    """v9.7.413 an audit lane — the gene-lane label (`${g.aa} aa · ${g.kind}`) hard-slices antiSMASH's own
     gene_kind qualifier to a fixed character cap. That controlled vocabulary
     (mamey/clusterblast_genes.py) includes 'biosynthetic-additional' (23 chars) alongside
     'biosynthetic' / 'transport' / 'regulatory' / 'other'. A cap narrower than 23 renders the

@@ -38,12 +38,14 @@ class FakeNCBI:
     def __init__(self, clock, never=(), ready_after=90):
         self.clock, self.never, self.ready_after = clock, set(never), ready_after
         self.rids, self.polls, self.submits = {}, {}, []
+        self.titles = {}
 
     def submit(self, text):
         gene = text.split("gene=")[1].split("|")[0].split()[0]
         rid = f"RID{len(self.submits):03d}"
         self.submits.append(gene)
         self.rids[rid] = (gene, self.clock.now)
+        self.titles[rid] = text.splitlines()[0][1:]
         return rid, 30
 
     def status(self, rid):
@@ -55,9 +57,9 @@ class FakeNCBI:
 
     def fetch_xml2(self, rid):
         gene, _ = self.rids[rid]
-        return (f"<Search><query-title>S|BGC1|gene={gene}</query-title><Hit><accession>WP_1</accession>"
-                f"<sciname>x</sciname><title>t</title><bit-score>50</bit-score><evalue>1e-5</evalue>"
-                f"<identity>9</identity><positive>9</positive><align-len>10</align-len></Hit></Search>")
+        return (f"<Search><query-title>{self.titles[rid]}</query-title><query-len>60</query-len><hits><Hit><accession>WP_1</accession>"
+                f"<sciname>x</sciname><title>t</title><hsps><Hsp><bit-score>50</bit-score><evalue>1e-5</evalue>"
+                f"<identity>9</identity><positive>9</positive><align-len>10</align-len></Hsp></hsps></Hit></hits></Search>")
 
 
 def stage(tmp_path, genes, seqs=None):

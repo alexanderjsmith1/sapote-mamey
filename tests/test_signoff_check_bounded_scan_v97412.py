@@ -1,4 +1,4 @@
-"""v9.7.412 (Razzle Dazzle Rose): signoff_check's scan mode must be a BOUNDED walk — it must find a
+"""v9.7.412: signoff_check's scan mode must be a BOUNDED walk — it must find a
 recent tree under a normal folder and must NOT descend into the huge subtrees that can never hold
 tree artefacts (conda envs, genome pools, wheelhouses). The unbounded recursive glob it replaces
 crawled a whole 18 GB workspace on every chat turn-end and thrashed the machine."""

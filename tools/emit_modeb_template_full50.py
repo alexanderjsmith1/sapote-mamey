@@ -96,7 +96,9 @@ def load_contract(bundle: Path) -> dict:
 
 # The engine's cross-source flags (mamey.modeb_template_emitter.SOURCE_FLAGS), forwarded unchanged.
 # Without them §25 §40 §44 §46 §47 arrive as "Source not supplied" holds.
-SOURCE_FLAGS = ("--cohort-dir", "--reference-dir", "--strain-metadata", "--bigscape-regions-dir")
+SOURCE_FLAGS = ("--cohort-dir", "--reference-dir", "--strain-metadata", "--bigscape-regions-dir",
+                "--gap-rescue-dir", "--rescue-verdicts-tsv", "--rescue-gene-adjudication-tsv",
+                "--rescue-locus-inventory")
 
 
 def emit_engine_template(bundle: Path, python: str, package: Path, bgc: str,
@@ -106,7 +108,10 @@ def emit_engine_template(bundle: Path, python: str, package: Path, bgc: str,
         out = Path(td) / "engine_template.md"
         proc = subprocess.run(
             [python, "mamey_run.py", "emit-modeb-template",
-             "--package", str(package), "--bgc", bgc, "--out", str(out), *(source_args or [])],
+             "--package", str(package), "--bgc", bgc, "--out", str(out),
+             *(["--contract", "current50_v2"] if any(flag in (source_args or []) for flag in
+                ("--rescue-locus-inventory", "--rescue-gene-adjudication-tsv")) else []),
+             *(source_args or [])],
             cwd=bundle, capture_output=True, text=True, timeout=1800,
         )
         if proc.returncode != 0 or not out.is_file():
@@ -186,7 +191,15 @@ def extract_matrix(body: list[str]) -> tuple[list[str], list[str]]:
 
 def build(bundle: Path, python: str, package: Path, bgc: str,
           source_args: list[str] | None = None) -> tuple[str, dict]:
-    contract = load_contract(bundle)
+    expanded = any(flag in (source_args or []) for flag in ("--rescue-locus-inventory", "--rescue-gene-adjudication-tsv"))
+    if expanded:
+        native_path = bundle / "mamey/data/mode_b/modeb_current50_v2_contract.json"
+        native = json.loads(native_path.read_text(encoding="utf-8"))
+        if native.get("schema_version") != "modeb_current50_v2" or len(native.get("sections", [])) != 50:
+            raise SystemExit("EXPANDED_LOCUS_CONTRACT_REFUSED: invalid current50_v2 contract")
+        contract = {"requirements": {}, "json_path": str(native_path), "contract_sha256": _sha256(native_path)}
+    else:
+        contract = load_contract(bundle)
     reqs = contract["requirements"]
     engine_text = emit_engine_template(bundle, python, package, bgc, source_args)
     preamble, bodies, order, footer = split_sections(engine_text)
@@ -196,6 +209,19 @@ def build(bundle: Path, python: str, package: Path, bgc: str,
     if order != sorted(order) or len(set(order)) != len(order):
         raise SystemExit(f"ENGINE_TEMPLATE_ORDER: sections not unique and ascending: {order}")
 
+    if expanded:
+        if (order != list(range(1, 51)) or "contract: current50_v2" not in preamble
+                or "contract_sha256: " + contract["contract_sha256"] not in preamble):
+            raise SystemExit("EXPANDED_LOCUS_CONTRACT_REFUSED: expected native current50_v2 sections 1..50")
+        return engine_text, {
+            "profile": "CURRENT50_V2_NATIVE", "engine_source_args": list(source_args or []),
+            "section_count": len(order), "sections": order, "contract_json": contract["json_path"],
+            "contract_sha256": contract["contract_sha256"], "contract_schema_version": "modeb_current50_v2",
+            "engine_template_sha256": hashlib.sha256(engine_text.encode("utf-8")).hexdigest(),
+            "emitted_sha256": hashlib.sha256(engine_text.encode("utf-8")).hexdigest(),
+            "migration_actions": [], "package": str(package), "bgc": bgc,
+            "claim_ceiling": "Authoring scaffold; source binding grants context, not scientific acceptance.",
+        }
     actions: list[str] = []
 
     # --- former §4 matrix -> §50 (without duplication) -----------------------------

@@ -21,6 +21,9 @@ if ! bash "$tool_dir/make_release_tarball.sh" "$src" "$scratch" >/dev/null; then
 fi
 archive="$scratch/$name.tar.gz"
 sidecar="$scratch/$name.tar.gz.sha256"
+# Bind the produced bytes before verification; publish only this exact pair.
+archive_sha="$(shasum -a 256 "$archive" | awk '{print $1}')"
+sidecar_sha="$(shasum -a 256 "$sidecar" | awk '{print $1}')"
 verification_log="$scratch/verification.log"
 if ! python3 "$tool_dir/verify_release_tarball.py" "$archive" \
   --zip "$sealed_zip" --seal-receipt "$seal_receipt" >"$verification_log"; then
@@ -34,18 +37,8 @@ if ! (cd "$scratch" && shasum -c -- "$name.tar.gz.sha256" >/dev/null); then
 fi
 mkdir -p "$outdir"
 outdir="$(cd -- "$outdir" && pwd -P)"
-if [ -e "$outdir/$name.tar.gz" ] || [ -L "$outdir/$name.tar.gz" ] || \
-   [ -e "$outdir/$name.tar.gz.sha256" ] || [ -L "$outdir/$name.tar.gz.sha256" ]; then
-  echo "REFUSED: output tarball or sidecar already exists" >&2
-  exit 2
-fi
-if ! mv "$archive" "$outdir/$name.tar.gz"; then
-  echo "REFUSED: cannot deliver verified CODE tarball" >&2
-  exit 2
-fi
-if ! mv "$sidecar" "$outdir/$name.tar.gz.sha256"; then
-  rm -f -- "$outdir/$name.tar.gz"
-  echo "REFUSED: cannot deliver verified CODE sidecar" >&2
+if ! python3 "$tool_dir/publish_verified_pair.py" "$archive" "$sidecar" "$outdir" "$archive_sha" "$sidecar_sha"; then
+  echo "HOLD: verified pair publication incomplete; read the committed-path receipt above" >&2
   exit 2
 fi
 printf 'verified CODE tarball: %s\n' "$outdir/$name.tar.gz"

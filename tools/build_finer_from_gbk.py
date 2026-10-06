@@ -86,7 +86,7 @@ def find_gbks(d):
     g=glob.glob(os.path.join(d,'**','*region*.gbk'),recursive=True)
     return g or glob.glob(os.path.join(d,'**','*.region*.gbk'),recursive=True) or glob.glob(os.path.join(d,'**','*.gbk'),recursive=True)
 
-def main():
+def _main_stage():
     ap=argparse.ArgumentParser()
     ap.add_argument('--gbk-dir'); ap.add_argument('--package'); ap.add_argument('--sid')
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--dry-run', action='store_true')
@@ -131,5 +131,35 @@ def main():
     atomic_dump_json(deep, os.path.join(a.banked_dir,'deep_data.json'))
     atomic_dump_json(gene, os.path.join(a.banked_dir,'gene_data.json'))
     emit(f"  banked (provenance=GBK-offline). Rebuild the workbook to fill the 3 finer sheets for {sid}.", f"  NOTE: Gene_RiPP_Cores still needs the region JSON / bounded run — GBKs don't carry precursor cores.", sep="\n")
+
+def main():
+    if any(x in ('-h','--help') for x in sys.argv[1:]):
+        return _main_stage()
+    from _bankio import transactional_call
+    import argparse
+    probe = argparse.ArgumentParser(add_help=False)
+    probe.add_argument('--banked-dir', required=True)
+    args, _ = probe.parse_known_args()
+    saved = list(sys.argv)
+    def run(stage):
+        replacement = []
+        skip = False
+        for i, token in enumerate(saved):
+            if skip:
+                skip = False
+                continue
+            if token == '--banked-dir':
+                replacement.extend([token, str(stage)])
+                skip = True
+            elif token.startswith('--banked-dir='):
+                replacement.append('--banked-dir=' + str(stage))
+            else:
+                replacement.append(token)
+        sys.argv = replacement
+        try:
+            return _main_stage()
+        finally:
+            sys.argv = saved
+    return transactional_call(args.banked_dir, run)
 
 if __name__=='__main__': main()

@@ -201,7 +201,7 @@ CANONICAL_V1_HEADERS: dict[str, list[str]] = {
     "A3_Run_Manifest": ["run_date", "strain", "version", "mode", "antismash_profile", "input_zip", "raw_bgcs", "corrected_bgcs", "issues", "package_path"],
     "A4_Completeness_Audit": ["strain", "A2_registry", "B1_bgc_master", "B4_scans", "C1_dapr_ab", "C2_dapr_af", "D1_rggmci", "E1_mode_b", "F1_ecology", "overall", "gap_action"],
     "B1_BGC_Master": ["strain", "assembly_locator", "contig", "region", "BGC_ID", "start", "end", "length_kb", "products", "boundary", "arch", "kcb_top", "kcb_score", "kcb_evidence_state", "kcb_proteins", "cctt_triggers", "resistance_tier", "tta_tier", "ab_auto", "af_auto", "novelty_auto", "lead_tier_auto", "depth_floor", "closest_product_provenance", "source_kcb_file", "source_kcb_locator", "kcb_hit_rank", "denominator_type", "parse_confidence", "needs_manual_kcb_check", "product_claim_ceiling", "efls_status", "flank_census_tier1", "flank_census_tier2_todo", "cross_contig_candidate_set", "efls_claim_ceiling", "dkp_rank", "dkp_cdps_evidence", "dkp_oxidase_homology", "dkp_provenance", "dkp_claim_ceiling", "diagnostic_signal_score", "evidence_weight_tier", "claim_confidence", "claim_ceiling", "safe_claim", "engine_version"],
-    # B2 columns v1.1 (.401, Alex-ruled 2026-09-02): +14 cohort-attested classes promoted from the
+    # B2 columns v1.1 (.401, owner-ruled 2026-09-02): +14 cohort-attested classes promoted from the
     # full-cohort 'other' remeasure (43 strains / 2,438 BGCs, n>=10 threshold — decision memo in
     # September 2 2026 Claude/COHORT_MASTER_v9.7.400_2026-09-02/). Backward-compatible: readers/
     # renderers take columns from the sheet, so pre-.401 workbooks keep folding these into 'other'.

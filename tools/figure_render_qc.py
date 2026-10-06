@@ -277,7 +277,7 @@ def check_files(png: Path) -> list[tuple[str, str]]:
         return flags
     gov = check_caption(text, raises=False)
     if gov:
-        # Not drawn on the figure (the text checks cover that), so a warning: Alex's 2026-09-24 rule keeps
+        # Not drawn on the figure (the text checks cover that), so a warning: The owner's 2026-09-24 rule keeps
         # claim guards in the work, not on the page. Strip it before the caption is pasted anywhere public.
         flags.append(("warn", f"claim-safety wording in {cap.name} (not on the figure; strip before a manuscript "
                               f"or talk): " + ", ".join(p for p, _ in gov)))
@@ -370,7 +370,7 @@ def write_reports(results, out: Path, roots: list[Path]) -> dict[str, int]:
         md += [f"## {title}", ""] + (items or ["None."]) + [""]
     wn = [rel(f) for f, fl in results if any(l == "wording" for l, _ in fl)]
     md += ["## Wording", "", f"{len(wn)} figures print \"strains\". House wording is \"isolates\"; "
-           "whether it applies to every figure is Alex's call.", ""]
+           "whether it applies to every figure is the owner's call.", ""]
     (out / "RENDER_QC.md").write_text("\n".join(md))
     return cnt
 

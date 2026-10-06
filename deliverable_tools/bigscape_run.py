@@ -48,6 +48,7 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+_sys.path.insert(0, os.path.dirname(HERE))
 REPO_ROOT = os.path.dirname(HERE)  # deliverable_tools/ sits next to mamey/ and tools/
 
 # ---- documented defaults (override on the CLI / subcommand) -------------------------
@@ -105,7 +106,85 @@ def discover_inputs(package=None, runs_dir=None, input_gbk_dir=None):
     raise ValueError("no input source: pass --package, --runs-dir, or --input-gbk-dir")
 
 
-def stage_gbks(mode, items, out_dir):
+def _stage_bound_package(package, out_dir, source_zip=None, receipt_records=None):
+    """Stage only region members from the exact package-bound antiSMASH archive.
+
+    Admission is complete before member files are written. Multiple assembly
+    roots, duplicate members and colliding destination names are refused.
+    """
+    import hashlib, json, zipfile
+    from pathlib import Path
+    from mamey.postseal_output import resolve_source_archive, sha256_file
+    package = Path(package).resolve()
+    if package.is_file():
+        package_digest = sha256_file(package)
+        with zipfile.ZipFile(package) as packaged:
+            manifests = [name for name in packaged.namelist() if name == "manifest.json" or name.endswith("/manifest.json")]
+            if len(manifests) != 1:
+                raise ValueError("SEALED_PACKAGE_MANIFEST_AMBIGUOUS")
+            manifest_bytes = packaged.read(manifests[0])
+        payload = json.loads(manifest_bytes)
+        if not isinstance(payload, dict):
+            raise ValueError("SOURCE_MANIFEST_NOT_OBJECT")
+        locator = payload.get("input_zip")
+        selected = source_zip
+        if selected is None and isinstance(locator, str):
+            loc = Path(locator).expanduser()
+            options = [loc] if loc.is_absolute() else [package.parent / loc, package.parent.parent / loc]
+            found = {f.resolve() for f in options if f.is_file()}
+            if len(found) != 1:
+                raise ValueError("SOURCE_ARCHIVE_AMBIGUOUS" if len(found) > 1 else "SOURCE_ARCHIVE_UNAVAILABLE: pass --source-zip")
+            selected = str(found.pop())
+        with tempfile.TemporaryDirectory(prefix="bs_manifest_") as temporary:
+            root = Path(temporary)
+            (root / "manifest.json").write_bytes(manifest_bytes)
+            archive, binding = resolve_source_archive(root, selected)
+        binding["package_zip"] = str(package)
+        if sha256_file(package) != package_digest:
+            raise ValueError("SOURCE_PACKAGE_ZIP_CHANGED_DURING_ADMISSION")
+        binding["package_zip_sha256"] = package_digest
+        binding["manifest_member"] = manifests[0]
+    else:
+        manifest_bytes = (package / "manifest.json").read_bytes()
+        payload = json.loads(manifest_bytes)
+        archive, binding = resolve_source_archive(package, source_zip)
+        if binding["manifest_sha256"] != hashlib.sha256(manifest_bytes).hexdigest():
+            raise ValueError("SOURCE_MANIFEST_CHANGED_DURING_ADMISSION")
+    strain = payload.get("strain_id")
+    if not isinstance(strain, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+", strain):
+        raise ValueError("SOURCE_PACKAGE_STRAIN_ID_INVALID")
+    with zipfile.ZipFile(archive) as zipped:
+        members = [info for info in zipped.infolist() if not info.is_dir() and
+                   REGION.search(info.filename) and not Path(info.filename).name.startswith("._")]
+        if not members:
+            raise ValueError("SOURCE_ARCHIVE_NO_REGION_GBKS: supply the original antiSMASH results ZIP")
+        if len({str(Path(info.filename).parent) for info in members}) != 1:
+            raise ValueError("SOURCE_ARCHIVE_ASSEMBLY_AMBIGUOUS: region files occupy multiple archive roots")
+        names = [info.filename for info in members]
+        destinations = [f"{strain}_{Path(info.filename).name}" for info in members]
+        if len(set(names)) != len(names) or len(set(destinations)) != len(destinations):
+            raise ValueError("SOURCE_ARCHIVE_REGION_COLLISION")
+        if any((Path(out_dir) / name).exists() for name in destinations):
+            raise ValueError("SOURCE_ARCHIVE_STAGING_COLLISION: use a fresh work directory")
+        # Read and hash every admitted member before publication to staging.
+        admitted = [(name, zipped.read(info)) for name, info in zip(destinations, members)]
+    # Detect source replacement after admission rather than executing on other bytes.
+    from mamey.postseal_output import sha256_file
+    if sha256_file(archive) != binding["sha256"]:
+        raise ValueError("SOURCE_ARCHIVE_CHANGED_DURING_STAGING")
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    member_receipts = []
+    for (name, data), member in zip(admitted, members):
+        (Path(out_dir) / name).write_bytes(data)
+        member_receipts.append({"member":member.filename,"staged_name":name,
+                                "sha256":hashlib.sha256(data).hexdigest()})
+    binding.update({"package":str(package),"strain_id":strain,"region_count":len(admitted),"members":member_receipts})
+    if receipt_records is not None:
+        receipt_records.append(binding)
+    return len(admitted)
+
+
+def stage_gbks(mode, items, out_dir, source_zip=None, receipt_records=None):
     """Copy/extract region GBKs into a (space-free) staging dir, strain-prefixed so records
     from different strains never collide. Reuses tools/bigscape_prep.py when available.
 
@@ -130,6 +209,17 @@ def stage_gbks(mode, items, out_dir):
     # mode == "packages": one or more sealed Mamey packages / antiSMASH zips
     for it in items:
         strain = _strain_from(it)
+        from pathlib import Path
+        bound_package = (Path(it).is_dir() and (Path(it) / "manifest.json").is_file())
+        if Path(it).is_file() and str(it).lower().endswith(".zip"):
+            import zipfile
+            with zipfile.ZipFile(it) as zipped:
+                bound_package = any(name == "manifest.json" or name.endswith("/manifest.json") for name in zipped.namelist())
+        if bound_package:
+            total += _stage_bound_package(it, out_dir, source_zip, receipt_records)
+            continue
+        if source_zip is not None:
+            raise ValueError("SOURCE_ZIP_REQUIRES_PACKAGE_MANIFEST")
         try:
             if prep is not None:
                 if os.path.isdir(it):
@@ -293,12 +383,30 @@ def run_pipeline(package=None, runs_dir=None, input_gbk_dir=None,
                  out=None, bigscape_bin=BIGSCAPE_BIN_DEFAULT, pfam=PFAM_DEFAULT,
                  cpus=4, cutoffs=CUTOFFS_DEFAULT, record_type="region",
                  classify="category", work_dir=None, dry_run=False,
-                 run_widgets=True, widgets_out=None):
+                 run_widgets=True, widgets_out=None, source_zip=None):
     """Full post-seal BiG-SCAPE step. Returns a result dict:
        {"command": [...], "input_dir": ..., "n_gbks": N, "out": ..., "db": ...|None,
         "widgets": {...}, "dry_run": bool}.
     Never raises for expected failures — prints and returns with db=None instead."""
-    out = out or "bigscape_run"
+    from pathlib import Path
+    from mamey.postseal_output import output_directory
+    if package and Path(package).is_dir():
+        out = str(output_directory(package, "bigscape", out))
+        for extra_path in (work_dir, widgets_out):
+            if extra_path is not None:
+                output_directory(package, "bigscape", extra_path)
+    else:
+        out = out or "bigscape_run"
+    if source_zip and (not package or runs_dir or input_gbk_dir):
+        raise ValueError("SOURCE_ZIP_REQUIRES_SINGLE_PACKAGE")
+    # Cohort output/work/widgets must also stay outside every selected package.
+    mode, items = discover_inputs(package=package, runs_dir=runs_dir, input_gbk_dir=input_gbk_dir)
+    if mode == "packages":
+        for item in items:
+            if Path(item).is_dir():
+                for extra_path in (out, work_dir, widgets_out):
+                    if extra_path is not None:
+                        output_directory(item, "bigscape", extra_path)
     os.makedirs(out, exist_ok=True)
 
     # GOTCHA 2: run under a space-free work root; stage input GBKs there. The out dir may have
@@ -308,8 +416,14 @@ def run_pipeline(package=None, runs_dir=None, input_gbk_dir=None,
     input_dir = os.path.join(work_root, "input")
     shim_dir = os.path.join(work_root, "_shim_bin")
 
-    mode, items = discover_inputs(package=package, runs_dir=runs_dir, input_gbk_dir=input_gbk_dir)
-    n = stage_gbks(mode, items, input_dir)
+    sources = []
+    n = stage_gbks(mode, items, input_dir, source_zip=source_zip, receipt_records=sources)
+    if n == 0:
+        raise ValueError("SOURCE_NO_REGION_GBKS: no inputs staged; supply the original antiSMASH results ZIP")
+    import json
+    with open(os.path.join(out, "source_staging_receipt.json"), "w", encoding="utf-8") as handle:
+        json.dump({"schema":"sapote.bigscape-source.v1", "n_gbks":n, "sources":sources}, handle, indent=2)
+        handle.write("\n")
     emit(f"  bigscape: staged {n} region GBKs -> {input_dir}")
 
     pfam_use = _stage_no_space(pfam, work_root)
@@ -317,7 +431,7 @@ def run_pipeline(package=None, runs_dir=None, input_gbk_dir=None,
     cmd = build_command(bigscape_bin, input_dir, out, pfam_use, cpus,
                         cutoffs=cutoffs, record_type=record_type, classify=classify)
     result = {"command": cmd, "input_dir": input_dir, "n_gbks": n,
-              "out": out, "db": None, "widgets": {}, "dry_run": dry_run}
+              "out": out, "db": None, "widgets": {}, "dry_run": dry_run, "source_receipt": os.path.join(out, "source_staging_receipt.json")}
 
     emit("  $ " + " ".join(str(c) for c in cmd))
     if dry_run:
@@ -363,7 +477,8 @@ def main(argv=None):
     src.add_argument("--runs-dir", help="Cohort dir containing <ID>/package/ (or sealed zips)")
     src.add_argument("--input-gbk-dir", dest="input_gbk_dir",
                      help="Explicit dir of already-extracted antiSMASH region GBKs")
-    ap.add_argument("--out", default="bigscape_run", help="Output dir (default: bigscape_run)")
+    ap.add_argument("--source-zip", default=None, help="Original antiSMASH ZIP; must match package manifest digest")
+    ap.add_argument("--out", default=None, help="External output dir (package default: sibling post_seal/bigscape)")
     ap.add_argument("--bigscape", dest="bigscape_bin", default=BIGSCAPE_BIN_DEFAULT,
                     help="BiG-SCAPE 2.x binary (default: the conda bigscape env)")
     ap.add_argument("--pfam", default=PFAM_DEFAULT, help="Pfam-A.hmm (pressed)")
@@ -385,7 +500,7 @@ def main(argv=None):
                        out=a.out, bigscape_bin=a.bigscape_bin, pfam=a.pfam, cpus=a.cpus,
                        cutoffs=a.cutoffs, record_type=a.record_type, classify=a.classify,
                        work_dir=a.work_dir, dry_run=a.dry_run, run_widgets=a.run_widgets,
-                       widgets_out=a.widgets_out)
+                       widgets_out=a.widgets_out, source_zip=a.source_zip)
     emit("  GCF = BiG-SCAPE sequence-similarity clustering, class-level only; comparators "
           "are similarity anchors, not identity. Judgment deferred.")
     if a.dry_run:

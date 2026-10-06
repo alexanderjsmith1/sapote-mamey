@@ -30,10 +30,11 @@ def test_all_extras_group_is_the_union_of_optional_dep_groups():
     bio = _extras_block(text, "bio")
     render = _extras_block(text, "render")
     documents = _extras_block(text, "documents")   # v9.7.405: governed DOCX/PDF authoring group
+    slides = _extras_block(text, "slides")         # v9.7.447: per-strain slide decks (tools/strain_slides.py)
     all_group = _extras_block(text, "all")
-    expected = set(figures) | set(bio) | set(render) | set(documents)
+    expected = set(figures) | set(bio) | set(render) | set(documents) | set(slides)
     assert set(all_group) == expected, (
-        f"pyproject.toml [all] has drifted from the union of [figures]+[bio]+[render]+[documents].\n"
+        f"pyproject.toml [all] has drifted from the union of [figures]+[bio]+[render]+[documents]+[slides].\n"
         f"all:      {sorted(all_group)}\n"
         f"expected: {sorted(expected)}\n"
         f"missing from all: {sorted(expected - set(all_group))}\n"

@@ -33,6 +33,7 @@ import argparse
 import collections
 import csv
 import json
+import hashlib
 import logging
 import os
 import re
@@ -61,7 +62,7 @@ SECMET_SETS = {"LANC_like": "LANC", "YcaO": "YCAO"}
 PFAM_SETS = {"TERP": ["Terpene_synth_C", "Terpene_syn_C_2"], "T3PKS": ["Chal_sti_synt_N"], "NIS": ["IucA_IucC"],
              "P450": ["p450"], "HALO": ["Trp_halogenase"], "GT1": ["UDPGT"], "SARP": ["BTAD"], "LUXR": ["GerE"]}
 APPROX_ID = {"KS": 70, "A": 60, "C": 60, "AT": 60, "P450": 60, "LUXR": 60, "GT1": 70, "SARP": 70}
-META_COLS = ["id", "source", "group", "genus", "strain", "origin", "locus_tag", "label", "subtype", "region_product", "length"]
+META_COLS = ["id", "source", "group", "genus", "strain", "origin", "locus_tag", "label", "subtype", "region_product", "length", "assembly", "record_id", "region", "locus_identity", "source_sha256", "assembly_binding"]
 
 
 class OrdinateRefusal(RuntimeError):
@@ -116,23 +117,90 @@ def run(cmd):
 
 
 # ---------------------------------------------------------------- extract
+def _admitted_gbk(name):
+    base = Path(name).name
+    return base.endswith(".gbk") and (".region" in base or base.startswith("BGC"))
+
+
+def _region_entries(path, ledger):
+    """One representation policy; follow directory links once, report aliases/errors."""
+    path = Path(path)
+    files, seen_dirs, seen_files = [], set(), set()
+    followed = []
+    if path.suffix == ".zip":
+        files = [path]
+    else:
+        def walk_error(error):
+            raise OrdinateRefusal(f"INPUT_TRAVERSAL_FAILED: {error}")
+        for base, dirs, names in os.walk(path, followlinks=True, onerror=walk_error):
+            real = Path(base).resolve()
+            if real in seen_dirs:
+                dirs[:] = []
+                ledger.append(dict(status="DUPLICATE_DIRECTORY", path=str(base), reason="alias/loop"))
+                continue
+            seen_dirs.add(real)
+            if Path(base).is_symlink():
+                followed.append(str(base))
+            keep = []
+            for name in sorted(dirs):
+                directory = Path(base) / name
+                if directory.is_symlink() and not directory.exists():
+                    raise OrdinateRefusal(f"BROKEN_DIRECTORY_ALIAS: {directory}")
+                keep.append(name)
+            dirs[:] = keep
+            for name in sorted(names):
+                candidate = Path(base) / name
+                if candidate.is_symlink() and not candidate.exists():
+                    raise OrdinateRefusal(f"BROKEN_INPUT_ALIAS: {candidate}")
+                if candidate.suffix not in (".gbk", ".zip"):
+                    continue
+                if not candidate.is_file():
+                    raise OrdinateRefusal(f"INPUT_FILE_UNREADABLE: {candidate}")
+                identity = (candidate.stat().st_dev, candidate.stat().st_ino)
+                if identity in seen_files:
+                    ledger.append(dict(status="DUPLICATE_FILE_ALIAS", path=str(candidate)))
+                    continue
+                seen_files.add(identity)
+                files.append(candidate)
+        if not path.is_dir():
+            raise OrdinateRefusal(f"input folder absent: {path}")
+    _LOG.warning("input %s: followed %d symlinked folder(s) [%s]; found %d GBK/ZIP file(s)",
+                 path, len(followed), ", ".join(followed), len(files))
+    for item in sorted(files):
+        folder = item.parent.name if item.parent != path else ""
+        if item.suffix == ".zip":
+            with zipfile.ZipFile(item) as archive:
+                admitted_names = [name for name in archive.namelist() if _admitted_gbk(name)]
+                if len(set(admitted_names)) != len(admitted_names):
+                    raise OrdinateRefusal(f"AMBIGUOUS_ZIP_MEMBER: {item}")
+                for name in sorted(archive.namelist()):
+                    if not name.endswith('.gbk'):
+                        continue
+                    locator = f"{item}!{name}"
+                    if "__MACOSX" in Path(name).parts or Path(name).name.startswith('._') or not _admitted_gbk(name):
+                        ledger.append(dict(status="REJECTED_FILE", path=locator, reason="non-region/reference GBK"))
+                        continue
+                    raw = archive.read(name)
+                    yield f"{item.stem}:{Path(name).name}", raw.decode('utf-8', 'replace'), folder, dict(
+                        path=locator, file=Path(name).name, sha256=hashlib.sha256(raw).hexdigest())
+        else:
+            if not _admitted_gbk(item.name):
+                ledger.append(dict(status="REJECTED_FILE", path=str(item), reason="non-region/reference GBK"))
+                continue
+            raw = item.read_bytes()
+            yield item.name, raw.decode('utf-8', 'replace'), folder, dict(
+                path=str(item), file=item.name, sha256=hashlib.sha256(raw).hexdigest())
+
+
 def _zip_texts(zpath: Path, folder: str = ""):
-    with zipfile.ZipFile(zpath) as z:
-        for n in sorted(z.namelist()):
-            if n.endswith(".gbk") and "__MACOSX" not in n and (".region" in n or Path(n).name.startswith("BGC")):
-                yield f"{zpath.stem}:{Path(n).name}", z.read(n).decode("utf-8", "replace"), folder
+    for name, text, _folder, evidence in _region_entries(zpath, []):
+        yield name, text, folder
 
 
 def region_texts(path: Path):
-    """(file name, GenBank text, parent folder name or "") for every region GenBank file under a folder, in a zip, or in
-    any antiSMASH result zip under a folder (a genome downloaded as one zip is named by the zip, e.g. its accession)."""
-    if path.suffix == ".zip":
-        yield from _zip_texts(path)
-    else:
-        for p in sorted(path.rglob("*.gbk")):
-            yield p.name, p.read_text(errors="replace"), (p.parent.name if p.parent != path else "")
-        for z in sorted(path.rglob("*.zip")):
-            yield from _zip_texts(z, z.parent.name if z.parent != path else "")
+    """Representation-independent region/reference admission, with visible traversal counts."""
+    for name, text, folder, evidence in _region_entries(path, []):
+        yield name, text, folder
 
 
 def strain_of(name: str, source: str) -> str:
@@ -152,16 +220,45 @@ def cmd_extract(a):
     cds, cds_meta = [], []
     sets = {s: [] for s in (*DOMAIN_SETS.values(), *SECMET_SETS.values())}
     counts = collections.Counter()
+    admission, seen_records = [], {}
+    assembly_table = {}
+    assembly_path = getattr(a, "assembly_table", None)
+    if assembly_path:
+        for row in read_tsv(assembly_path):
+            if not row.get("input") or not row.get("assembly", "").strip():
+                raise OrdinateRefusal("assembly table requires nonempty input and assembly columns")
+            bound_input = str(Path(row["input"]).resolve())
+            if bound_input in assembly_table:
+                raise OrdinateRefusal(f"ambiguous repeated assembly binding: {bound_input}")
+            assembly_table[bound_input] = row["assembly"].strip()
     for spec in a.input:
         label, _, path = spec.partition("=")
         if label not in SOURCES or not path:
             raise OrdinateRefusal(f"--input {spec!r}: use SOURCE=PATH with SOURCE one of {sorted(SOURCES)}")
         src = SOURCES[label]
-        for name, text, folder in region_texts(Path(path)):
+        for name, text, folder, evidence in _region_entries(Path(path), admission):
             strain = strain_of(name, label)
             g = genus.get(strain, "") or ("" if label == "MIBiG" else folder)
             group = cohort.get(strain, "") if src == "isolate" else src
-            for rec in parse_genbank_text(text):
+            records = list(parse_genbank_text(text))
+            if not records:
+                raise OrdinateRefusal(f"REGION_PARSE_UNVERIFIED: {evidence['path']}")
+            if len({str(rec.id) for rec in records}) != len(records):
+                raise OrdinateRefusal(f"AMBIGUOUS_RECORD_IDENTITY: {evidence['path']}")
+            for rec in records:
+                # Default identity is the record/region supplied by the source, not a
+                # inferred biological assembly. Independent assemblies with identical
+                # identifiers/bytes require explicit input-to-assembly bindings.
+                assembly = assembly_table.get(str(Path(path).resolve()), str(rec.id))
+                identity = (src, assembly, str(rec.id), evidence["file"])
+                if identity in seen_records:
+                    if seen_records[identity]["sha256"] != evidence["sha256"]:
+                        raise OrdinateRefusal(f"CONFLICTING_REGION_IDENTITY: {identity}")
+                    admission.append(dict(status="DUPLICATE_SOURCE_MATERIAL", identity=list(identity),
+                                          **evidence, duplicate_of=seen_records[identity]["path"]))
+                    continue
+                seen_records[identity] = evidence
+                admission.append(dict(status="ADMITTED_REGION", identity=list(identity), **evidence))
                 products = []
                 for f in rec.features:
                     q = f.qualifiers
@@ -169,7 +266,11 @@ def cmd_extract(a):
                         products = sorted(set(p for v in q.get("product", []) for p in v.split()))
                     base = dict(source=src, group=group, genus=g, strain=strain, origin=name,
                                 locus_tag=(q.get("locus_tag") or [""])[0], label=(q.get("label") or [""])[0],
-                                region_product="+".join(products))
+                                region_product="+".join(products), assembly=assembly, record_id=str(rec.id),
+                                region=evidence["file"], source_sha256=evidence["sha256"],
+                                assembly_binding="EXPLICIT_INPUT_TABLE" if str(Path(path).resolve()) in assembly_table else "SOURCE_RECORD_ID",
+                                locus_identity=" / ".join(map(str, identity)) + " / " +
+                                    ((q.get("locus_tag") or [""])[0] or str(f.location)))
                     tr = (q.get("translation") or [""])[0]
                     if not tr:
                         continue
@@ -197,7 +298,11 @@ def cmd_extract(a):
             r["id"] = f"{t}{i:06d}"; r["length"] = len(r["seq"])
         write_fasta(kit / f"{t}.faa", [(r["id"], r["seq"]) for r in rows]); write_meta(kit / f"{t}_META.tsv", rows)
     summary = dict(cds_by_source=dict(counts), sets={t: len(v) for t, v in sets.items()})
-    (kit / "EXTRACT_RECEIPT.json").write_text(json.dumps(dict(summary, inputs=a.input), indent=1))
+    (kit / "EXTRACT_RECEIPT.json").write_text(json.dumps(dict(summary, inputs=a.input,
+        assembly_table=None if not assembly_path else dict(path=str(Path(assembly_path).resolve()),
+            sha256=hashlib.sha256(Path(assembly_path).read_bytes()).hexdigest()), admission=admission,
+        population_policy="region/reference filenames only; exact source record/region copies deduplicated; "
+                          "explicit assembly-table bindings preserve independent copies"), indent=1))
     return summary
 
 
@@ -401,6 +506,7 @@ def main(argv=None) -> int:
     common.add_argument("--diamond", help="path to the diamond binary (default: on PATH)")
     e = sub.add_parser("extract", parents=[common]); e.add_argument("--input", action="append", required=True)
     e.add_argument("--genus-table"); e.add_argument("--cohort-table")
+    e.add_argument("--assembly-table", help="TSV input/assembly bindings; required to retain independently sampled identical region copies")
     p = sub.add_parser("pfam", parents=[common]); p.add_argument("--hmm", required=True)
     c = sub.add_parser("card", parents=[common]); c.add_argument("--card-fasta", required=True); c.add_argument("--aro-index", required=True)
     c.add_argument("--min-cohort", type=int, default=5)
@@ -411,7 +517,7 @@ def main(argv=None) -> int:
     try:
         result = {"extract": cmd_extract, "pfam": cmd_pfam, "card": cmd_card, "ordinate": cmd_ordinate,
                   "nearest": cmd_nearest}[a.cmd](a)
-    except OrdinateRefusal as exc:
+    except (OrdinateRefusal, OSError, zipfile.BadZipFile, UnicodeError) as exc:
         _LOG.error("REFUSED: %s", exc)
         return 2
     _LOG.info("%s", json.dumps(result))

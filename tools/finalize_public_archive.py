@@ -141,7 +141,9 @@ def _inventory_bound_stage(binding: StageRootBinding) -> list[Member]:
     _assert_stage_root_identity(binding)
     root = binding.resolved
     rows: list[Member] = []
-    for current, dirs, files in os.walk(root, topdown=True, followlinks=False):
+    def traversal_error(error):
+        raise ArchiveTransactionError("ARCHTXN-STAGE-001", "stage_traversal_unverified") from error
+    for current, dirs, files in os.walk(root, topdown=True, followlinks=False, onerror=traversal_error):
         current_path = Path(current)
         for entry in list(dirs):
             candidate, mode = current_path / entry, (current_path / entry).lstat().st_mode
@@ -399,7 +401,12 @@ def capability_probe(destination_parent: Path) -> None:
 
 def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, postcommit_fsync: Callable[[int], None] | None = None) -> ArchiveReceipt:
     final_name = _canonical_basename(archive_name)
-    stage_binding = _bind_stage_root(stage_root)
+    try:
+        stage_binding = _bind_stage_root(stage_root)
+    except ArchiveTransactionError:
+        raise
+    except OSError as exc:
+        raise ArchiveTransactionError("ARCHTXN-STAGE-001", "stage_binding_unverified") from exc
     output_dir = output_dir.resolve(strict=True)
     if not output_dir.is_dir():
         _fail("ARCHTXN-ARG-001", "output_directory_not_directory")
@@ -407,18 +414,35 @@ def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, p
     if final_path.exists() or final_path.is_symlink():
         _fail("ARCHTXN-TXN-001", "final_destination_exists")
     capability_probe(output_dir)
-    members = _inventory_bound_stage(stage_binding)
-    temporary = output_dir / f".{final_name}.archtxn.tmp"
-    if temporary.exists():
-        _fail("ARCHTXN-TXN-001", "owned_temporary_name_exists")
-    srcfd = dstfd = -1
     try:
-        _write_archive(stage_binding, temporary, members)
+        members = _inventory_bound_stage(stage_binding)
+    except ArchiveTransactionError:
+        raise
+    except OSError as exc:
+        raise ArchiveTransactionError("ARCHTXN-STAGE-001", "stage_inventory_unverified") from exc
+    # A private, exclusively created directory owns the staging name. Neither a
+    # predictable sibling file nor another transaction's partial archive is opened.
+    owned_directory = Path(tempfile.mkdtemp(prefix=".archtxn-", dir=output_dir))
+    temporary = owned_directory / "archive.tmp"
+    owned_identity = owned_directory.stat()
+    srcfd = dstfd = -1
+    committed = False
+    try:
+        with temporary.open("xb") as owned_file:
+            _write_archive(stage_binding, owned_file, members)
+            owned_file.flush()
+            os.fsync(owned_file.fileno())
+            owned_file_identity = os.fstat(owned_file.fileno())
         size, digest = audit_archive(temporary, members)
         _assert_stage_unchanged(stage_binding, members)
         if _sha_path(temporary) != (size, digest):
             _fail("ARCHTXN-ZIP-011", "temporary_archive_changed_after_audit")
-        srcfd = os.open(temporary if platform.system() == "Windows" else output_dir, os.O_RDONLY)
+        current_identity = temporary.lstat()
+        if (not stat.S_ISREG(current_identity.st_mode) or
+                (current_identity.st_dev, current_identity.st_ino) !=
+                (owned_file_identity.st_dev, owned_file_identity.st_ino)):
+            _fail("ARCHTXN-ZIP-011", "owned_temporary_identity_changed")
+        srcfd = os.open(temporary if platform.system() == "Windows" else owned_directory, os.O_RDONLY)
         dstfd = os.open(output_dir, os.O_RDONLY)
         try:
             commit_noreplace(srcfd, temporary.name, dstfd, final_name)
@@ -435,6 +459,7 @@ def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, p
             # `finally` below — but a release tool must SAY which refusal fired, not crash.
             # Same code as the preflight: both are "the final destination is taken".
             _fail("ARCHTXN-TXN-001", "final_destination_claimed_before_commit")
+        committed = True
         final_size, final_digest = _sha_path(final_path)
         if (final_size, final_digest) != (size, digest):
             _fail("ARCHTXN-TXN-006", "postcommit_identity_unverified", committed=True)
@@ -442,15 +467,46 @@ def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, p
             (postcommit_fsync or os.fsync)(dstfd)
         except OSError:
             _fail("ARCHTXN-TXN-006", "postcommit_directory_durability_hold", committed=True)
+        # Close and clean while errors still pass through committed-state handling.
+        descriptor, srcfd = srcfd, -1
+        os.close(descriptor)
+        descriptor, dstfd = dstfd, -1
+        os.close(descriptor)
+        cleanup_identity = owned_directory.lstat()
+        if (not stat.S_ISDIR(cleanup_identity.st_mode) or
+                (cleanup_identity.st_dev, cleanup_identity.st_ino) !=
+                (owned_identity.st_dev, owned_identity.st_ino)):
+            raise OSError("owned temporary directory identity changed before cleanup")
+        shutil.rmtree(owned_directory)
         return ArchiveReceipt("COMMITTED", None, None, final_name, len(members), digest, size, "TEMP_REMOVED_BY_COMMIT")
+    except ArchiveTransactionError as exc:
+        if committed:
+            exc.committed = True
+            exc.commit_details = {"archive_name": final_name, "archive_path": str(final_path),
+                                  "expected_sha256": digest, "expected_size_bytes": size}
+        raise
+    except Exception as exc:
+        error = ArchiveTransactionError("ARCHTXN-TXN-006" if committed else "ARCHTXN-TXN-004",
+                                        "postcommit_operation_failed" if committed else "archive_operation_failed",
+                                        committed=committed)
+        if committed:
+            error.commit_details = {"archive_name": final_name, "archive_path": str(final_path),
+                                    "expected_sha256": digest, "expected_size_bytes": size}
+        raise error from exc
     finally:
-        if srcfd >= 0:
-            os.close(srcfd)
-        if dstfd >= 0:
-            os.close(dstfd)
-        if temporary.exists():
+        for descriptor in (srcfd, dstfd):
+            if descriptor >= 0:
+                try:
+                    os.close(descriptor)
+                except OSError as close_exc:
+                    sys.stderr.write(f"WARN: descriptor cleanup failed: {type(close_exc).__name__}\n")
+        # Clean only this transaction's unchanged private directory.
+        if owned_directory.exists() and not owned_directory.is_symlink():
             try:
-                temporary.unlink()
+                current = owned_directory.stat()
+                if (current.st_dev, current.st_ino) != (owned_identity.st_dev, owned_identity.st_ino):
+                    raise OSError("owned temporary directory identity changed")
+                shutil.rmtree(owned_directory)
             except OSError as cleanup_exc:
                 # Best-effort cleanup inside `finally`: raising here would replace whatever real
                 # error is already propagating. It must not be SILENT either — a temporary
@@ -474,9 +530,13 @@ def _main(argv: Iterable[str] | None = None) -> int:
         # Typed refusal on stderr; stdout stays reserved for the committed-archive receipt so a
         # caller can parse one stream without the other. sys.stderr.write rather than
         # print(file=...) because the ratchet counts print( by AST and cannot see file=.
-        sys.stderr.write(json.dumps(
-            {"status": "REFUSED", "error_code": exc.code, "reason_code": exc.reason},
-            sort_keys=True) + "\n")
+        record = {"status": "COMMITTED_HOLD" if exc.committed else "REFUSED",
+                  "committed": exc.committed, "error_code": exc.code, "reason_code": exc.reason}
+        if exc.committed:
+            record.update(getattr(exc, "commit_details", {}))
+            sys.stdout.write(json.dumps(record, sort_keys=True) + "\n")
+        else:
+            sys.stderr.write(json.dumps(record, sort_keys=True) + "\n")
         return 1
     sys.stdout.write(receipt.as_json() + "\n")
     return 0

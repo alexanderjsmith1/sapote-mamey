@@ -1,4 +1,4 @@
-"""BC2 .398 audit: hooks/provenance_log.py computed the logged 'path' column via a bare
+"""An audit-lane .398 audit: hooks/provenance_log.py computed the logged 'path' column via a bare
 `fp.startswith(root)` check -- a classic string-prefix false positive for a sibling path that
 shares root's string prefix with no path separator between them (e.g. root=".../Foo",
 fp=".../Foo_archive/x.md"). This workspace has many dated/versioned/archived sibling folder

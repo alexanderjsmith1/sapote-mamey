@@ -42,6 +42,22 @@ bigscape --version
 Do not put `--mibig`, auto-download references, or direct Mode B/triage mutation in a quick-start
 command. A cohort-only run is scientifically useful but cannot support KNOWN/NOVEL language.
 
+## GECCO
+
+GECCO is an optional external caller, recorded in `mamey/data/companion_tools.json`
+and detected by `python mamey_run.py doctor --companions` via `gecco --version`.
+The registry is a capability inventory, not proof of a usable installation or a completed run.
+There is no GECCO execution subcommand in the Mamey extraction route described here.
+
+Preserve the actual input assembly, full sequence identifiers, tool/model version, input/output
+hashes and run receipt. Keep outputs in a separate approved analysis directory.
+`tools/strain_slides.py` consumes explicitly supplied `*.genes.tsv`, `*.features.tsv` and
+`*.clusters.tsv` using `gecco_dir` in its sources file; see [strain slides](STRAIN_SLIDES.md).
+The [current50 v2 contract](MODEB_CURRENT50_V2_CONTRACT.md) supplies §22 for GECCO
+evidence and §50 for the complete gene table. Check sequence and coordinate bindings
+before comparing predictions; agreement or disagreement is evidence to reconcile, not
+a product, activity or novelty conclusion. Missing GECCO evidence remains explicit.
+
 ## GToTree and IQ-TREE
 
 - Purpose: organismal phylogenomics from whole-genome assemblies; not BGC region phylogeny.

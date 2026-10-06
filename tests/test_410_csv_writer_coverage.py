@@ -261,7 +261,7 @@ def test_every_guarded_module_binds_both_safe_writers():
 def test_plain_writer_allowlist_is_not_stale():
     """An allowlisted file that no longer uses a plain writer keeps a free pass it does not need.
 
-    v9.7.421 (BC2): mamey/blastp_online.py no longer matched PLAIN_WRITER_RE and was removed.
+    v9.7.421: mamey/blastp_online.py no longer matched PLAIN_WRITER_RE and was removed.
     """
     stale = [rel for rel in sorted(PLAIN_WRITER_ALLOWLIST)
              if not (BUNDLE_ROOT / rel).is_file()

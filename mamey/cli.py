@@ -679,7 +679,7 @@ _ACCESSION_RE = _re.compile(
 
 
 def _label_is_accession(strain_id: str) -> bool:
-    # v9.7.372 (VGP): delegated so the accession pattern has ONE definition. The module also covers
+    # v9.7.372: delegated so the accession pattern has ONE definition. The module also covers
     # the 2-letter INSDC prefixes (CP025018.1) this regex never matched, and the sanitised form
     # ("CP025018_1") that a cleaned filename actually produces.
     from .strain_identity import looks_like_accession
@@ -1402,7 +1402,7 @@ def run_one_strain(
             "issues": [_issue],
         }
     antismash_ver     = extract_antismash_version(input_zip)
-    # v9.7.372 (VGP): the detection strictness is recorded INSIDE the archive, so it need not be
+    # v9.7.372: the detection strictness is recorded INSIDE the archive, so it need not be
     # taken on trust. "auto" reads it; an explicit value is honoured but a disagreement is surfaced
     # rather than silently accepted. Regions from different strictness are not comparable, and a
     # wrong profile is harder to detect downstream than a missing one.
@@ -3441,7 +3441,7 @@ def _write_package(run: MameyRun, package_dir: Path,
                 w.writerow([_rcb.get("completion_tier", "")] + [""] * (len(_rc_cols) - 1))
             for row in _rc_rows:
                 w.writerow([row.get(h, "") for h in _rc_cols])
-    # Pairs with an interior region: related loci, never contig rescues (Alex, 2026-09-27). Kept apart from the
+    # Pairs with an interior region: related loci, never contig rescues (2026-09-27). Kept apart from the
     # ranked pairs so no reader can take one for a rescue.
     with _atomic_open_pkg(package_dir / f"{strain}_4A_RGGMCI_related_loci.csv", "w", newline="") as f:
         w = _SafeWriter(f)
@@ -3459,6 +3459,13 @@ def _write_package(run: MameyRun, package_dir: Path,
         if _ksscan_4d:
             _rows_4d, _sum_4d, _cnt_4d = two_proof_join(
                 str(package_dir / f"{strain}_4A_RGGMCI_ranked_pairs.csv"), _ksscan_4d)
+            # Record the unchanged default policy and full locked identities.
+            from dataclasses import asdict as _4d_asdict
+            from .nonks_second_proof import apply_policy as _4d_policy
+            _rows_4d = _4d_policy(_rows_4d, {
+                "strain_id": strain, "bgcs": [_4d_asdict(b) for b in run.bgcs],
+                "source_scans": {"domain_architecture": getattr(ss, "domain_architecture", {})},
+            })
             write_4d_csv(_rows_4d, str(package_dir / f"{strain}_4D_two_proof_rescue.csv"), strain)
     except Exception as _two_proof_exc:  # advisory join; never fail packaging
         _two_proof_issue = (
@@ -4001,12 +4008,12 @@ def run_batch(
 ) -> list[dict]:
     """Run up to N strains in sequence. Returns list of summary dicts."""
     results = []
-    # v9.7.372 (VGP): two archives of the same organism resolve to the SAME id (e.g. two assemblies
+    # v9.7.372: two archives of the same organism resolve to the SAME id (e.g. two assemblies
     # of Actinophytocola sp. NPDC049390). Without uniquification the second run would write into the
     # first strain's package directory — silent overwrite. Track and suffix instead.
     _seen_sids: set[str] = set()
     for i, input_zip in enumerate(input_zips):
-        # v9.7.372 (VGP): batch has no operator to re-prompt, so an accession-shaped id is UPGRADED
+        # v9.7.372: batch has no operator to re-prompt, so an accession-shaped id is UPGRADED
         # to the organism name from the archive rather than refused. This is the path that produced
         # CP025018_1 / CP108695_1 style packages on 2026-08-20.
         from .strain_identity import resolve_strain_id as _resolve_sid
@@ -4211,7 +4218,7 @@ def _auto_emit_cohort_class_heatmap(results, outdir, logger=None):
 
 def _completion_mode(args) -> str:
     """--reference-completion: 'on' and 'auto' run it when a MIBiG protein database and an aligner are found, capped
-    sessions included (about 30 s on a 10,000-protein genome; Alex, 2026-09-30); 'off' skips it (v9.7.445)."""
+    sessions included (about 30 s on a 10,000-protein genome; the owner, 2026-09-30); 'off' skips it (v9.7.445)."""
     mode = getattr(args, "reference_completion", "auto") or "auto"
     return "off" if mode == "off" else "auto"
 
@@ -4307,7 +4314,7 @@ def run_command(args) -> int:
         )
     else:
         # Single strain
-        # v9.7.372 (VGP): an accession is a database pointer, not a strain identity. Refuse it
+        # v9.7.372: an accession is a database pointer, not a strain identity. Refuse it
         # ONLY when the archive offers a real organism name, so the error is actionable.
         from .strain_identity import resolve_strain_id as _resolve_sid
         _sid_res = _resolve_sid(args.strain, args.input_zip,
@@ -4335,7 +4342,7 @@ def run_command(args) -> int:
             json_mode=args.json_evidence,
             # v9.7.374 fix: SSOT drift -- run_one_strain()'s own parameter default (line ~959)
             # and the --antismash-profile argparse default (line ~4308) were both deliberately
-            # flipped from "unknown" to "auto" this cut (VGP's auto-recognizer), but this getattr
+            # flipped from "unknown" to "auto" this cut (an audit lane's auto-recognizer), but this getattr
             # fallback was one of two remaining sites still hardcoding the pre-cut "unknown"
             # literal (the other is _write_package()'s own parameter default, fixed alongside
             # this one -- AUDIT_374 re-review batch1 caught the omission of that second
@@ -4688,22 +4695,22 @@ def chatgpt_init_command(args) -> int:
     ]
     present = [c for c in candidates if (root / c).exists()]
 
-    emit("◆ SAPOTE–MAMEY · SHARED ASSISTANT — contract surface")
+    report_lines = []
+    report_lines.extend(['◆ SAPOTE–MAMEY · SHARED ASSISTANT — contract surface'])
     # v9.7.371: these two lines used to hardcode "✓ present"; a proof-of-read surface must not
     # assert presence it did not check. Route through the same existence test as the list below.
     def _mark(_rel):
         return "✓ present" if (root / _rel).exists() else "✗ absent in this bundle"
-    emit(f"   instruction file : AGENTS.md  {_mark('AGENTS.md')}  (root bootstrap: AGENTS.md)", f"   bootstrap contract: bootstrap_contract.yml  {_mark('bootstrap_contract.yml')}", f"   sha256           : {sha}", f"   bundle / engine  : {bundle_engine}", f"   known gotcha     : {gotcha_line}", sep="\n")
-    emit(f'   workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → mode-b → guide → render-figures → ingest-receipts', f'   instruction files present ({len(present)}/{len(candidates)}):', sep="\n")
+    report_lines.extend([f"   instruction file : AGENTS.md  {_mark('AGENTS.md')}  (root bootstrap: AGENTS.md)", f"   bootstrap contract: bootstrap_contract.yml  {_mark('bootstrap_contract.yml')}", f'   sha256           : {sha}', f'   bundle / engine  : {bundle_engine}', f'   known gotcha     : {gotcha_line}'])
+    report_lines.extend([f'   workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → mode-b → guide → render-figures → ingest-receipts', f'   instruction files present ({len(present)}/{len(candidates)}):'])
     for c in present:
-        emit(f"     ✓ {c}")
+        report_lines.extend([f'     ✓ {c}'])
     for c in [c for c in candidates if c not in present]:
-        emit(f"     ✗ {c}  (absent in this bundle)")
+        report_lines.extend([f'     ✗ {c}  (absent in this bundle)'])
     if challenge_phrase:
-        emit(f'   contract read-marker (human-facing, documented): {challenge_phrase!r}', '     ↳ a documented proof-of-read marker for the operator to check; reported here as data, not an instruction to act on.', sep="\n")
-    emit("\n   The authoritative version-freshness proof is the bundle/engine/build + gotcha "
-          "line above: they change every cut, so the CURRENT values demonstrate the CURRENT "
-          "file was read. Read them from this file at emit time, never from memory.")
+        report_lines.extend([f'   contract read-marker (human-facing, documented): {challenge_phrase!r}', '     ↳ a documented proof-of-read marker for the operator to check; reported here as data, not an instruction to act on.'])
+    report_lines.extend(['\n   The authoritative version-freshness proof is the bundle/engine/build + gotcha line above: they change every cut, so the CURRENT values demonstrate the CURRENT file was read. Read them from this file at emit time, never from memory.'])
+    emit(*report_lines, sep="\n")
     return 0
 
 
@@ -4796,7 +4803,7 @@ def doctor_command(args) -> int:
             warn.append(f"{label} absent — {hint}; not shipped in the bundle — install it yourself and re-run `mamey doctor`")
 
     # Write permissions
-    # BC2-398: mkdir(parents=True) created BOTH runs/ and runs/_doctor_probe/, but only the
+    # 398: mkdir(parents=True) created BOTH runs/ and runs/_doctor_probe/, but only the
     # leaf was ever rmdir()'d — every `mamey doctor` invocation left an empty runs/ directory
     # behind permanently. That litter trips tools/public_release_audit.py's `runs*` glob check
     # (PUBLIC RELEASE AUDIT: FAIL), which is a required, non-continue-on-error step in
@@ -4857,15 +4864,19 @@ def doctor_command(args) -> int:
     # Sapote add-ons: comparative-genomics stack (optional; installable offline from the bundle)
     gem_stack = [("pyrodigal", "S1 gene prediction"), ("pyfastani", "S2 ANI"),
                  ("pyswrd", "S4/S5 alignment"), ("Bio", "parsing/alignment")]
+    _addon_pool = any((BUNDLE_ROOT / relative).is_dir() and any((BUNDLE_ROOT / relative).glob("*.whl"))
+                      for relative in ("sapote_addons/wheels", "sapote_addons_core/wheels"))
+    _addon_route = ("bash bundle_support/install_sapote_addons.sh (offline wheel pool; "
+                    "--online permits an index fallback)" if _addon_pool else
+                    "pip install -e '.[addons]' (online index; activate a virtual environment first)")
     gem_have = [lbl for mod, lbl in gem_stack if _have(mod)]
     if len(gem_have) == len(gem_stack):
         ok.append("Sapote add-ons ✓ (two-strain comparison ready: mamey compare)")
     elif gem_have:
         warn.append(f"Sapote add-ons partial ({len(gem_have)}/{len(gem_stack)}) — "
-                    "run bundle_support/install_sapote_addons.sh to enable `mamey compare`")
+                    + _addon_route + " to enable `mamey compare`")
     else:
-        warn.append("Sapote add-ons not installed — run bundle_support/install_sapote_addons.sh "
-                    "(offline, from bundled wheels) to enable two-strain comparison")
+        warn.append("Sapote add-ons not installed — " + _addon_route + " to enable two-strain comparison")
     # External reference datasets (v9.7.362: user-provisioned, never redistributed — licences and
     # release cadence belong to upstream). Report each so an operator knows exactly what to fetch
     # before a run degrades, rather than discovering it mid-analysis as a NOT MEASURED section.
@@ -4943,7 +4954,20 @@ def doctor_command(args) -> int:
             + " — install them in your own environment (GPL-3, never vendored; see "
               "docs/GTOTREE_WORKFLOW.md). Without them `plan_gtotree_iqtree.py` correctly refuses "
               "to authorize a run (HOLD_TOOL_MISSING); trees are NOT MEASURED, not absent.")
-    # 16S placement + R figure companions (v9.7.441 card 283f1f96): the EPA-ng workflow and every
+    from .pdf_dependencies import status as _pdf_status
+    _pdf = _pdf_status()
+    if _pdf["primary_reportlab_embedded_fonts"]:
+        ok.append("PDF primary route: reportlab with embedded fonts ✓")
+    elif _pdf["fallback_ready"]:
+        ok.append("PDF fallback route: pandoc + xelatex ✓")
+    else:
+        warn.append("PDF routes unavailable: install reportlab with embedded fonts, or pandoc + xelatex")
+    if not _pdf["svg_conversion_ready"]:
+        warn.append("PDF SVG conversion unavailable: install cairosvg, rsvg-convert or inkscape")
+    if not _pdf["publication_qa_ready"]:
+        warn.append("Compiled publication-PDF QA needs: " + ", ".join(name for name, present in _pdf["publication_qa"].items() if not present))
+
+    # 16S placement + R figure companions (v9.7.441 card): the EPA-ng workflow and every
     # tools/*.R renderer need binaries that doctor never mentioned, so a user got DOCTOR: PASS and
     # then five environment aborts. Report presence per binary; absence is NOT MEASURED, not failure.
     _pl_ok, _pl_missing = _placement_and_r_companion_status()
@@ -4955,6 +4979,16 @@ def doctor_command(args) -> int:
             + " — set SAPOTE_WORKSPACE_ROOT to the workspace holding miniconda3/envs/{blast,placement}, "
               "or put them on PATH (docs/EPA_NG_PLACEMENT_WORKFLOW.md, docs/PREREQUISITES.md). "
               "Placement trees and R figures are NOT MEASURED without them.")
+    from .optional_r import r_package_status
+    _r_state, _r_reason, _r_path = r_package_status()
+    (ok if _r_state == "READY" else warn).append(_r_reason)
+    from .wheelhouse import resolve_hmm_database
+    if not resolve_hmm_database().get("path"):
+        warn.append("Scanner HMM absent — provide your Pfam-A.hmm, then run "
+                    "python tools/build_scanner_hmm.py --source /path/to/Pfam-A.hmm --preset 148 "
+                    "--out /path/to/scanner_pfam_150.hmm; set SM_HMM_DB to that output. "
+                    "Accessions: bundle_support/scanner_pfam_148_accessions.txt (or preset 35). "
+                    "This is source-bound provisioning, not historical exact reconstruction.")
     # DIAMOND fast-path is optional and NOT vendored
     import shutil as _sh
     if _sh.which("diamond"):
@@ -4969,10 +5003,10 @@ def doctor_command(args) -> int:
     sci_have = [lbl for mod, lbl in sci if _have(mod)]
     if sci_have:
         ok.append(f"Science stack: {len(sci_have)}/{len(sci)} available "
-                  f"({', '.join(sci_have)}) — bundle_support/install_sapote_addons.sh for the rest")
+                  f"({', '.join(sci_have)})" + (" — " + _addon_route + " for the rest" if len(sci_have) < len(sci) else ""))
     else:
         warn.append("Science stack (pyhmmer/pyskani/pyfamsa/gb-io) not installed — "
-                    "run bundle_support/install_sapote_addons.sh to enable offline HMM search + skani ANI")
+                    + _addon_route + " to enable offline HMM search + skani ANI")
     # Companion-files reminder — the anti-'assumed unavailable' guard
     if (BUNDLE_ROOT / "docs/COMPANION_FILES.md").exists():
         ok.append("docs/COMPANION_FILES.md present — companion inputs (antiSMASH ZIPs, genome "
@@ -5037,20 +5071,23 @@ def doctor_command(args) -> int:
             emit("  Full purpose + per-OS install + usage recipes: docs/companion_tools.md")
 
     # Summary
-    emit(f"\nMamey doctor — bundle {BUNDLE_ROOT.name}", f"Platform: {plat} | Python {sys.version.split()[0]}\n", sep="\n")
-    for line in ok:   emit(f"  ✅  {line}")
-    for line in warn: emit(f"  ⚠️   {line}")
-    for line in fail: emit(f"  ❌  {line}")
-    emit()
+    report_lines = []
+    report_lines.extend([f'\nMamey doctor — bundle {BUNDLE_ROOT.name}', f'Platform: {plat} | Python {sys.version.split()[0]}\n'])
+    for line in ok:   report_lines.extend([f'  ✅  {line}'])
+    for line in warn: report_lines.extend([f'  ⚠️   {line}'])
+    for line in fail: report_lines.extend([f'  ❌  {line}'])
+    report_lines.append("")
     if fail:
-        emit(f"DOCTOR: {len(fail)} blocking issue(s) — fix the ❌ items before running mamey.")
-        return 1
+        report_lines.extend([f'DOCTOR: {len(fail)} blocking issue(s) — fix the ❌ items before running mamey.'])
+        report_status = 1
     elif warn:
-        emit(f"DOCTOR: PASS with {len(warn)} warning(s) — optional items only; mamey will run.")
-        return 0
+        report_lines.extend([f'DOCTOR: PASS with {len(warn)} warning(s) — optional items only; mamey will run.'])
+        report_status = 0
     else:
-        emit("DOCTOR: ALL CLEAR — environment looks good.")
-        return 0
+        report_lines.extend(['DOCTOR: ALL CLEAR — environment looks good.'])
+        report_status = 0
+    emit(*report_lines, sep="\n")
+    return report_status
 
 
 def cohort_command(args) -> int:
@@ -5067,21 +5104,22 @@ def cohort_command(args) -> int:
         figure_series=getattr(args, "series", "all"),
         public_only=getattr(args, "public_only", False),
     )
+    report_lines = []
     for w in res.warnings:
-        emit(f"  [WARN] cohort: {w}")
+        report_lines.extend([f'  [WARN] cohort: {w}'])
     if res.synthesis_report:
-        emit(f"  DELIVERABLE: {res.synthesis_report}")
+        report_lines.extend([f'  DELIVERABLE: {res.synthesis_report}'])
     if res.figures_dir and res.figure_count:
-        emit(f"  cohort figures: {res.figure_count} -> {res.figures_dir}")
+        report_lines.extend([f'  cohort figures: {res.figure_count} -> {res.figures_dir}'])
     if not res.ok:
         # mandatory-deliverable gate failed: no human-readable deliverable produced
-        emit("  [FAIL] cohort mandatory-deliverable gate: no deliverable emitted. "
-              "Most likely no verified cohort master workbook was found -- build the "
-              "master first or pass --master-path.")
-        return 1
-    emit(f"cohort: deliverable bundle -> {res.out_dir} "
-          f"({len(res.deliverables)} deliverable(s), {len(res.strains)} strain(s))")
-    return 0
+        report_lines.extend(['  [FAIL] cohort mandatory-deliverable gate: no deliverable emitted. Most likely no verified cohort master workbook was found -- build the master first or pass --master-path.'])
+        report_status = 1
+    else:
+        report_lines.extend([f'cohort: deliverable bundle -> {res.out_dir} ({len(res.deliverables)} deliverable(s), {len(res.strains)} strain(s))'])
+        report_status = 0
+    emit(*report_lines, sep="\n")
+    return report_status
 
 
 def cohort_leads_command(args) -> int:
@@ -5090,11 +5128,11 @@ def cohort_leads_command(args) -> int:
     MIXED-ENGINE comparability caution when strains span engine versions."""
     from .cohort_leads_ledger import run as _leads_run
     meta = _leads_run(args.runs_dir, args.out)
-    emit(f"cohort-leads: {meta['n_leads']} Exceptional+High leads across "
-          f"{meta['n_strains']} strain(s) -> {meta['out_path']}")
+    report_lines = []
+    report_lines.extend([f"cohort-leads: {meta['n_leads']} Exceptional+High leads across {meta['n_strains']} strain(s) -> {meta['out_path']}"])
     if meta["mixed_engine"]:
-        emit(f"  [CLAIM-SAFETY] MIXED engine versions {meta['engine_versions']}; "
-              f"cross-strain rank is a routing prior only, not a confident call.")
+        report_lines.extend([f"  [CLAIM-SAFETY] MIXED engine versions {meta['engine_versions']}; cross-strain rank is a routing prior only, not a confident call."])
+    emit(*report_lines, sep="\n")
     return 0 if meta["n_leads"] else 1
 
 
@@ -5108,27 +5146,19 @@ def activity_leads_command(args) -> int:
         canonical_crosswalk=getattr(args, "canonical_crosswalk", None),
         require_crosswalk=getattr(args, "require_crosswalk", False),
     )
-    emit(
-        f"activity-leads: {meta['n_rows']} board position(s) across "
-        f"{meta['n_strains']} strain(s) -> {meta['paths']['report_md']}"
-    )
+    report_lines = []
+    report_lines.extend([f"activity-leads: {meta['n_rows']} board position(s) across {meta['n_strains']} strain(s) -> {meta['paths']['report_md']}"])
     if meta["mixed_engine"]:
-        emit(
-            f"  [CLAIM-SAFETY] MIXED engine versions {meta['engine_versions']}; "
-            "cross-version score magnitudes are not strictly comparable."
-        )
+        report_lines.extend([f"  [CLAIM-SAFETY] MIXED engine versions {meta['engine_versions']}; cross-version score magnitudes are not strictly comparable."])
     if meta["unbound_rows"]:
-        emit(
-            f"  [HOLD] {meta['unbound_rows']} source-local row(s) were not admitted; "
-            f"see {meta['paths']['unbound_csv']}"
-        )
+        report_lines.extend([f"  [HOLD] {meta['unbound_rows']} source-local row(s) were not admitted; see {meta['paths']['unbound_csv']}"])
     if not meta["complete"]:
-        emit(
-            "  [FAIL] one or more strains had fewer than the requested top-N "
-            "canonical-bound rows; outputs remain partial."
-        )
-        return 1
-    return 0 if meta["n_strains"] else 1
+        report_lines.extend(['  [FAIL] one or more strains had fewer than the requested top-N canonical-bound rows; outputs remain partial.'])
+        report_status = 1
+    else:
+        report_status = 0 if meta["n_strains"] else 1
+    emit(*report_lines, sep="\n")
+    return report_status
 
 
 def activity_lead_genes_command(args) -> int:
@@ -5157,14 +5187,14 @@ def cohort_assemble_command(args) -> int:
     capacity-level outputs; the figure-ready cohort substrate."""
     from .cohort_assemble import run as _assemble_run
     meta = _assemble_run(args.runs_dir, args.out, xlsx=getattr(args, "xlsx", False))
-    emit(f"cohort-assemble: {meta['n_strains']} strain(s), {meta['n_bgcs']} BGC(s) -> "
-          f"{meta['paths']['main']}")
+    report_lines = []
+    report_lines.extend([f"cohort-assemble: {meta['n_strains']} strain(s), {meta['n_bgcs']} BGC(s) -> {meta['paths']['main']}"])
     for k in ("strain_summary", "class_by_strain", "xlsx"):
         if meta["paths"].get(k):
-            emit(f"  {meta['paths'][k]}")
+            report_lines.extend([f"  {meta['paths'][k]}"])
     if meta["mixed_engine"]:
-        emit(f"  [CLAIM-SAFETY] MIXED engine versions {meta['engine_versions']}; "
-              f"cross-strain comparison is not strictly valid.")
+        report_lines.extend([f"  [CLAIM-SAFETY] MIXED engine versions {meta['engine_versions']}; cross-strain comparison is not strictly valid."])
+    emit(*report_lines, sep="\n")
     return 0 if meta["n_strains"] else 1
 
 
@@ -5214,7 +5244,7 @@ def capabilities_command(args) -> int:
     import sys as _sys
     if args.top < 1:
         # composer note (.401): refusals write to stderr per the ratchet convention
-        # (sealed .400 sits exactly at the 1635 ceiling; ceiling changes are Alex-signed only).
+        # (sealed .400 sits exactly at the 1635 ceiling; ceiling changes are the owner-signed only).
         _sys.stderr.write("capabilities: --top must be at least 1\n")
         return 2
     root = Path(__file__).resolve().parent.parent
@@ -5495,7 +5525,7 @@ def rggmci_widget_command(args) -> int:
 
 
 def _assembly_line_family_pdf(args, tool: str, label: str) -> int:
-    """Shared driver for the two print companions (v9.7.413, BC2).
+    """Shared driver for the two print companions (v9.7.413).
 
     `assembly-line-pdf`  -> assembly_line_pdf.py   (NRPS/PKS domain architecture, N per page)
     `bgc-gene-map`       -> bgc_gene_map.py        (EVERY gene in EVERY region, all classes)
@@ -5636,7 +5666,7 @@ def split_overmerge_cards_command(args) -> int:
 
 
 def _flagged_lead_command(args) -> int:
-    """Post-seal, non-blocking: reader-side flagged-lead + Mode B compilation workflow (VGP v9.7.353).
+    """Post-seal, non-blocking: reader-side flagged-lead + Mode B compilation workflow (an audit lane v9.7.353).
 
     Dispatches three deliverable_tools loaded by path (same convention as _bigscape_command):
       majority-read  -> whole_bgc_majority_read.py   (whole-BGC MIBiG majority read + flags)
@@ -5668,19 +5698,19 @@ def _flagged_lead_command(args) -> int:
         # deliverable and was missed, so without this its guard would be a one-way door.
         if getattr(args, "force", False): argv.append("--force")
     elif args.command == "surface-leads":
-        # v9.7.412 (BC2): forward --out. Without it the tool could only ever write to the canonical
+        # v9.7.412: forward --out. Without it the tool could only ever write to the canonical
         # dated folder, so any exploratory run overwrote a real deliverable in place.
         if getattr(args, "out", None): argv += ["--out", args.out]
-        # v9.7.413 (BC2): forward --force, or the canonical-overwrite guard is a one-way door.
+        # v9.7.413: forward --force, or the canonical-overwrite guard is a one-way door.
         if getattr(args, "force", False): argv.append("--force")
     elif args.command == "modeb-compile":
         if getattr(args, "strain", None): argv += ["--strain", args.strain]
         if getattr(args, "strains", None): argv += ["--strains", *args.strains]
         if getattr(args, "no_docx", False): argv.append("--no-docx")
-        # v9.7.413 (BC2): forward --out. Without it this command could only write into the two
+        # v9.7.413: forward --out. Without it this command could only write into the two
         # canonical targets, so any exploratory run overwrote real deliverables in place.
         if getattr(args, "out", None): argv += ["--out", args.out]
-        # v9.7.413 (BC2): forward --force, or the canonical-overwrite guard is a one-way door.
+        # v9.7.413: forward --force, or the canonical-overwrite guard is a one-way door.
         if getattr(args, "force", False): argv.append("--force")
     spec = _ilu.spec_from_file_location(tool, path)
     mod = _ilu.module_from_spec(spec)
@@ -5737,15 +5767,15 @@ def _bigscape_command(args) -> int:
             out=args.out, bigscape_bin=args.bigscape_bin, pfam=args.pfam,
             cpus=args.cpus, cutoffs=args.cutoffs, record_type=args.record_type,
             classify=args.classify, work_dir=args.work_dir, dry_run=args.dry_run,
-            run_widgets=args.run_widgets, widgets_out=args.widgets_out)
+            run_widgets=args.run_widgets, widgets_out=args.widgets_out,
+            source_zip=getattr(args, "source_zip", None))
     except Exception as exc:  # never raise into the caller / seal
         emit(f"bigscape: skipped ({type(exc).__name__}: {exc})", file=_sys.stderr)
         return 1
     if args.dry_run:
         return 0
     if not res.get("db"):
-        emit("bigscape: no cohort DB produced. Re-run detached (no foreground timeout):\n"
-              "  python deliverable_tools/bigscape_run.py --package <pkg> --out <dir> --cpus 4",
+        emit("bigscape: clustering produced no verified cohort DB; inspect the source staging receipt and engine log before retrying.",
               file=_sys.stderr)
         return 1
     emit("  GCF = BiG-SCAPE sequence-similarity clustering, class-level only; comparators "
@@ -5960,6 +5990,42 @@ def _phylo_autopilot_command(args) -> int:
         emit(f"phylo-autopilot: skipped ({type(exc).__name__}: {exc})", file=_sys.stderr)
         return 1
 
+def gecco_crosscheck_command(args):
+    import sys, subprocess, zipfile
+    from .gecco_crosscheck import crosscheck
+    try:
+        rows = crosscheck(args.package, args.source_zip, args.out, args.threshold, args.jobs, args.genome_member, args.gap_genes)
+        emit(f"GECCO cross-check: {len(rows)} locked regions; external outputs only")
+        return 0
+    except (ValueError, OSError, subprocess.SubprocessError, zipfile.BadZipFile) as exc:
+        emit(f"GECCO cross-check refused: {exc}", file=sys.stderr)
+        return 2
+
+
+def export_metabolomics_command(args):
+    import sys, zipfile
+    from .metabolomics_bridge import export_metabolomics
+    try:
+        rows = export_metabolomics(args.package, args.out, args.source_zip, args.gecco_dir)
+        emit(f"Metabolomics export: {len(rows)} class hypotheses; MS sample mapping requires operator completion")
+        return 0
+    except (ValueError, OSError, zipfile.BadZipFile) as exc:
+        emit(f"Metabolomics export refused: {exc}", file=sys.stderr)
+        return 2
+
+
+def two_proof_policy_command(args):
+    import sys
+    from .nonks_second_proof import recompute
+    try:
+        rows = recompute(args.package, args.policy, args.scorecard, args.out)
+        emit(f"Two-proof reader: {len(rows)} pairs; policy={args.policy}; adjudication required")
+        return 0
+    except (ValueError, OSError) as exc:
+        emit(f"Two-proof reader refused: {exc}", file=sys.stderr)
+        return 2
+
+
 def build_parser():
     import argparse
     p = argparse.ArgumentParser(
@@ -5972,6 +6038,28 @@ def build_parser():
         version=f"Mamey {__version__} / Sapote-Mamey {BUNDLE_VERSION}",
     )
     sub = p.add_subparsers(dest="command")
+
+    gx = sub.add_parser("gecco-crosscheck", help="Optional external GECCO 0.11 class-level second opinion")
+    gx.add_argument("--package", required=True)
+    gx.add_argument("--zip", dest="source_zip", required=True, help="Exact package-bound antiSMASH source ZIP")
+    gx.add_argument("--out", default=None, help="Fresh external directory; default sibling post_seal/gecco-crosscheck")
+    gx.add_argument("--threshold", type=float, default=0.8)
+    gx.add_argument("--jobs", type=int, default=1)
+    gx.add_argument("--genome-member", default=None, help="Explicit whole-genome GBK member when archive contains multiple candidates")
+    gx.add_argument("--gap-genes", action="append", default=[], help="Repeatable CSV/TSV with source locus_tag/query_gene/protein_id; joins copied externally")
+    gx.set_defaults(func=gecco_crosscheck_command)
+    mx = sub.add_parser("export-metabolomics", help="Genome-side class hypotheses and hash-bound region GBKs for MS review")
+    mx.add_argument("--package", required=True)
+    mx.add_argument("--source-zip", default=None)
+    mx.add_argument("--out", default=None)
+    mx.add_argument("--gecco-dir", default=None, help="Package-bound cross-check sidecar, if previously run")
+    mx.set_defaults(func=export_metabolomics_command)
+    nx = sub.add_parser("two-proof-rescue", help="External two-proof reader with explicit recorded alternative non-KS position policy")
+    nx.add_argument("--package", required=True)
+    nx.add_argument("--policy", choices=["ks_clade_v2", "nonks_position_v1"], default="ks_clade_v2")
+    nx.add_argument("--scorecard", default=None, help="TSV with exact strain and identity_a/identity_b, layers_verdict, relative")
+    nx.add_argument("--out", default=None)
+    nx.set_defaults(func=two_proof_policy_command)
 
     # --- run ---
     r = sub.add_parser("run", help="Run Mamey extraction on one or more antiSMASH ZIPs")
@@ -6166,7 +6254,7 @@ def build_parser():
     # compound-families (roadmap #10)
     cfam = sub.add_parser("compound-families",
         help="Map a sealed package's anchored BGCs to compound families + related-known structures")
-    cfam.add_argument("package"); cfam.add_argument("--out", default=None)
+    cfam.add_argument("package"); cfam.add_argument("--out", default=None, help="External output root (default: sibling post_seal/compound-families)")
     cfam.add_argument("--no-structures", action="store_true")
     cfam.set_defaults(func=compound_families_command)
 
@@ -6179,7 +6267,7 @@ def build_parser():
     # assembly-line (roadmap #6, report half)
     asm = sub.add_parser("assembly-line",
         help="Predicted PKS/NRPS assembly line per BGC from the native _domains.csv")
-    asm.add_argument("package"); asm.add_argument("--out", default=None)
+    asm.add_argument("package"); asm.add_argument("--out", default=None, help="External output root (default: sibling post_seal/assembly-line)")
     asm.set_defaults(func=assembly_line_command)
 
     # interactive-figures: emit the Codex widget-data aggregate FROM sealed
@@ -6308,7 +6396,7 @@ def build_parser():
     # lead-pages (Wave B: roadmap #4 dossier + #7 lead-§31–40, lead-only report layer)
     lp = sub.add_parser("lead-pages",
         help="Render lead-only §31-40 enrichment + related-genomes dossier pages from a sealed package")
-    lp.add_argument("package"); lp.add_argument("--out", default=None)
+    lp.add_argument("package"); lp.add_argument("--out", default=None, help="External output root (default: sibling post_seal/lead-pages)")
     lp.add_argument("--bgc", default="ALL", help="a single BGC_ID, or ALL (default)")
     lp.add_argument("--all-tiers", action="store_true", dest="all_tiers",
                     help="lift the lead-only gate and render a page for every BGC (capacity read)")
@@ -6417,7 +6505,8 @@ def build_parser():
                         help="Cohort dir containing <ID>/package/ (or sealed zips)")
     bs_src.add_argument("--input-gbk-dir", dest="input_gbk_dir",
                         help="Explicit dir of already-extracted antiSMASH region GBKs")
-    bs.add_argument("--out", default="bigscape_run", help="Output dir (default: bigscape_run)")
+    bs.add_argument("--source-zip", default=None, help="Original antiSMASH ZIP bound to package input_zip_sha256")
+    bs.add_argument("--out", default=None, help="External output dir (single package default: sibling post_seal/bigscape)")
     bs.add_argument("--bigscape", dest="bigscape_bin",
                     default=str(workspace_root()) + "/miniconda3/envs/bigscape/bin/bigscape",
                     help="BiG-SCAPE 2.x binary (default: the conda bigscape env)")
@@ -6438,7 +6527,7 @@ def build_parser():
     bs.add_argument("--dry-run", action="store_true", dest="dry_run",
                     help="Print the command + staging plan without running BiG-SCAPE")
     bs.set_defaults(func=_bigscape_command)
-    # --- flagged-lead + Mode B compilation workflow (post-seal, non-blocking; VGP v9.7.353) ---
+    # --- flagged-lead + Mode B compilation workflow (post-seal, non-blocking; an audit lane v9.7.353) ---
     mr = sub.add_parser("majority-read",
                         help="whole-BGC MIBiG majority read (minority/promiscuous-anchor flags)")
     mr.add_argument("--strain"); mr.add_argument("--bgc")
@@ -6563,7 +6652,7 @@ def build_parser():
                      help="Output directory (default: _ASSEMBLY_LINE_MODULE/widgets)")
     alw.set_defaults(func=assembly_line_widget_command)
 
-    # v9.7.413 (BC2): print companions to the interactive readers.
+    # v9.7.413: print companions to the interactive readers.
     for _name, _fn, _help in (
             ("assembly-line-pdf", assembly_line_pdf_command,
              "print-ready PDF of a strain's NRPS/PKS assembly lines, 4 or 6 per page"),
@@ -6997,7 +7086,7 @@ def build_parser():
                              "(disk-backed sections filled; narrative sections left as Sapote slots)")
     cr.add_argument("package_dir", help="Path to sealed Mamey package directory")
     cr.add_argument("--out", default=None,
-                    help="Output markdown path (default: <pkg>/<strain>_compiled_report.md)")
+                    help="Output markdown path (default: external post_seal/compile-report for sealed inputs; package report for mutable inputs)")
     cr.add_argument("--strict", action="store_true", default=False,
                     help="Compile gate: exit non-zero and write nothing if any narrative "
                          "SAPOTE slot is still unfilled (blocks a half-written master report)")
@@ -7153,7 +7242,17 @@ def build_parser():
                         help="Verify a FINISHED authored Mode B card via lint_card (structure + strict depth)")
     vm.add_argument("file", help="Path to the authored Mode B card .md")
     vm.add_argument("--package", default=None, help="Sealed package dir (for BGC context predicates)")
+    vm.add_argument("--contract", default="full48", choices=["full48", "current50_v2"],
+                    help="Verify against the 48-section profile (default) or contract current50_v2 (structure, depth, "
+                         "claim safety, plus literature-with-relevance in §48-§49, the data evidence table last, "
+                         "and no deferral text)")
+    vm.add_argument("--require-expanded-locus", action="store_true", default=False,
+                    help="Require a source-bound expanded-locus declaration for this work order (current50_v2 only)")
     vm.add_argument("--bgc", default=None, help="BGC ID (for RiPP/novelty conditional-section predicates)")
+    vm.add_argument("--rescue-tsv", action="append", default=None, dest="rescue_tsv", metavar="PATH",
+                    help="current50_v2 only: a gap_rescue.tsv for this BGC. Its found genes outside any region "
+                         "(best_locus, same strain) may be cited in §26/§50 without PHANTOM_LOCUS. Existence only; "
+                         "BGC membership is not granted. Repeatable.")
     vm.add_argument("--no-strict-depth", action="store_true", default=False,
                     help="Depth findings WARN instead of ERROR (default: strict, thin card is refused)")
     vm.add_argument("--force", action="store_true", default=False,
@@ -7820,6 +7919,10 @@ def build_parser():
                     help="Override the v9.7.344 BLASTp-completeness HARD gate with a logged reason "
                          "(recorded to manifest provenance). Without this, emission is REFUSED when "
                          "ingestable BLASTp is available on disk but not ingested.")
+    et.add_argument("--contract", default="full48", choices=["full48", "current50_v2"],
+                    help="Section contract: full48 (default, the 48-section corrective profile) or current50_v2 "
+                         "(50 sections with GECCO in §22, the contigs rescued into the BGC in §26, literature in "
+                         "§48-§49 and the data evidence table last in §50)")
     from .modeb_template_emitter import add_source_arguments as _add_template_sources
     _add_template_sources(et)
     et.set_defaults(func=emit_modeb_template_command)
@@ -8366,7 +8469,7 @@ def _install_package_positional_alias(parser) -> dict[str, bool]:
                 continue
             required[name] = bool(pkg.required)
             pkg.required = False
-            # BC2-408: if --package lives inside a REQUIRED mutually-exclusive group (e.g.
+            # 408: if --package lives inside a REQUIRED mutually-exclusive group (e.g.
             # bigscape's --package/--runs-dir/--input-gbk-dir, blastp-availability's
             # --runs-dir/--package), a bare top-level positional added via sub.add_argument()
             # is NOT a member of that group, so argparse's own "one of these is required" check

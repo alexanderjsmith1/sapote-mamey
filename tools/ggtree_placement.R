@@ -85,7 +85,7 @@ p <- ggtree(tr, size = 0.32) %<+% ann +
   guides(color = guide_legend(override.aes = list(size = 3), order = 2)) +
   # v9.7.417 (RAZZLE): GG_HEXPAND controls how much of the x-range is reserved for tip labels.
   # The fixed 0.52 gave labels MORE than half the canvas, so on a small pruned tree the branches were
-  # squeezed into the left ~48% and real length differences became invisible (Alex 2026-09-08: "cant
+  # squeezed into the left ~48% and real length differences became invisible (2026-09-08: "cant
   # that tree get stretched horizontally so a human can see differences in branch lengths?"). Lower it
   # to widen the tree; raise it if long labels are clipped. Default unchanged for reproducibility.
   ggtree::hexpand(as.numeric(Sys.getenv("GG_HEXPAND", "0.52"))) +

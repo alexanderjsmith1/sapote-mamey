@@ -1,4 +1,4 @@
-"""BC2 .400 audit: tools/check_no_brace_paths.py's own docstring states its entire purpose is
+"""An audit-lane .400 audit: tools/check_no_brace_paths.py's own docstring states its entire purpose is
 to make the brace-path mkdir mistake "fail the build instead of shipping." The implementation
 used `ROOT.rglob("*")`, which silently swallows a per-directory OSError -- an unreadable
 directory (permission-restricted; a git-object-style directory mode; any tree assembled from a

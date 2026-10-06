@@ -1,7 +1,7 @@
-"""_4B KS-clade subtype partition (AMBER_366_C12, engine 1.9.121).
+"""_4B KS-clade subtype partition (C12, engine 1.9.121).
 
 A cross-contig KS pair may co-cluster ONLY when both domains carry the same antiSMASH /domain_subtypes.
-Hybrid-KS joins only Hybrid-KS; UNCLASSIFIED stands as its own group. These tests pin Amber's edge policy
+Hybrid-KS joins only Hybrid-KS; UNCLASSIFIED stands as its own group. These tests pin the phylogeny lane's edge policy
 so a trans-AT KS can never bridge into a cis-AT clade by transitivity.
 """
 import io
@@ -77,7 +77,7 @@ def test_hybrid_only_with_hybrid():
 
 
 def test_unclassified_pair_surfaces_pairwise():
-    # Amber ASK-1 ruling (b): two UNCLASSIFIED KS, identical seq, different contigs -> surface as ONE
+    # phylogeny-lane ASK-1 ruling (b): two UNCLASSIFIED KS, identical seq, different contigs -> surface as ONE
     # pairwise candidate (not dropped). It is a KSU clade of exactly 2 members carrying UNCLASSIFIED.
     scan = P.run_pks_ks_scan(_zip_two("", ""))
     clades = scan["cross_contig_clades"]

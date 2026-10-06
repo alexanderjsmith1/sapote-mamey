@@ -1,4 +1,4 @@
-"""BC2-AP-01 (v9.7.395): redact_public_tier.py's audit_paths() must catch a private strain ID
+"""AP-01 (v9.7.395): redact_public_tier.py's audit_paths() must catch a private strain ID
 leaked into a lowercase/mixed-case FILENAME, not just an uppercase one.
 
 audit_paths() exists specifically to close the "content-only scrubbing cannot see this" gap for a

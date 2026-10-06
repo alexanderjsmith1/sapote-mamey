@@ -517,7 +517,7 @@ def build_gene_by_gene_table(
         tta_tier = tta_info.get("bldA_tier", "")
         res_tier = res_per_bgc.get(bgc_id, {}).get("tier", "")
         cctt = "; ".join(cctt_per_bgc.get(bgc_id, []))
-        # VGP-06 (.366): this is the per-RUN depth mode (Depth_floor), constant across a strain's genes —
+        # 06 (.366): this is the per-RUN depth mode (Depth_floor), constant across a strain's genes —
         # renamed from the misleading `diagnostic_tier`, which read as a per-gene signal it never was.
         run_depth_mode = triage_row.get("Depth_floor", "")
         rggmci_ctx = _rggmci_adjacency(bgc_id)

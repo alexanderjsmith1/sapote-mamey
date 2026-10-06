@@ -1,4 +1,4 @@
-"""AMBER_04 (v9.7.349): tests for the numbered-roster / remove-by-number curation tool
+"""P04 (v9.7.349): tests for the numbered-roster / remove-by-number curation tool
 (tools/phylo_roster.py).
 
 Checks stable tree-leaf-order numbering, role/genus inference, the '30,31,36' removal

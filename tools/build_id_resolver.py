@@ -20,6 +20,23 @@ except ImportError:  # bare-script run: bundle root is one level up
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -49,10 +66,11 @@ def _workbook_map(path):
         sys.stderr.write(f"  [warn] workbook read failed ({e}); using derived uids\n")
     return wm
 
+@_bank_reader_scope
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Emit BGC ID-resolver table for a banked cohort.")
     ap.add_argument("--banked-dir", default="cohort"); ap.add_argument("--workbook", default=None); ap.add_argument("--out", default=None)
-    a = ap.parse_args(argv)
+    a = ap.parse_args(argv); _bank_read_guard(getattr(a, "banked_dir", None))
     bgcs = _read_json(os.path.join(a.banked_dir, "bgc_data.json"))["bgcs"]
     rows = resolver_rows(bgcs, _workbook_map(a.workbook) if a.workbook else None)
     # Build the CSV in memory, then write atomically (file) or stream to stdout. Building first means

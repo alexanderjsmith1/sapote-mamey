@@ -1,6 +1,6 @@
 """A FASTA-submitted region GBK carries `ORGANISM  .` (truthy '.'), not a blank. detect_and_stage
 must normalise that to None so the taxonomy fallback engages; otherwise the engine is handed "."
-and rejects the whole FASTA cohort. Black Cherry 2 / session 88fdad06, v9.7.440."""
+and rejects the whole FASTA cohort. an audit lane, v9.7.440."""
 import importlib.util, sys, zipfile
 from pathlib import Path
 BUNDLE = Path(__file__).resolve().parents[1]; sys.path.insert(0, str(BUNDLE))

@@ -141,7 +141,15 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
         return {"status": "no_domains_csv",
                 "note": "no *_domains.csv in package (pre-gene_context cut?); skipped", "bgcs": 0}
     strain = _strain_of(package_dir, dpath)
-    outd = os.path.join(str(out_dir or package_dir), "ASSEMBLY_LINES")
+    try:
+        from .postseal_output import output_directory
+    except ImportError:
+        from postseal_output import output_directory
+    from pathlib import Path
+    sealed = any((Path(package_dir) / name).exists() for name in ("checksums_sha256.txt", "seal_status.json", "SEAL_RECEIPT.md"))
+    # Preserve the unsealed low-level assembly API used while constructing a run.
+    root = output_directory(package_dir, "assembly-line", out_dir) if sealed else Path(out_dir or package_dir)
+    outd = str(output_directory(package_dir, "assembly-line", root / "ASSEMBLY_LINES") if sealed else root / "ASSEMBLY_LINES")
     os.makedirs(outd, exist_ok=True)
     # v9.7.374 fix: was case-sensitive (same gap fixed for p450_tailoring.py at v9.7.371).
     # EXCLUDE_STRAINS (raw_analysis_excluded()) is canonical uppercase (e.g. "AS-XXX");
@@ -198,6 +206,6 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(description="Predicted PKS/NRPS assembly-line report over a sealed package")
     ap.add_argument("package", help="path to a sealed package directory (must contain *_domains.csv)")
-    ap.add_argument("--out", default=None, help="output root (default: the package dir)")
+    ap.add_argument("--out", default=None, help="output root (default: sibling post_seal/assembly-line)")
     a = ap.parse_args()
     raise SystemExit(assembly_line_command(a))

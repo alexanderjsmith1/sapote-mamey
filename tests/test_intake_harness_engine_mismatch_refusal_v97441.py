@@ -1,11 +1,11 @@
 """BLIZZARD_BLUE_441: intake_harness launches the engine as `sys.executable -m mamey`. Python's
 `-m` puts the child's own cwd ahead of PYTHONPATH on sys.path, so a stray `mamey/` package sitting
-in the operator's cwd silently version-shadows the bundle's engine -- observed by EB3DF1EF sealing
+in the operator's cwd silently version-shadows the bundle's engine -- observed by sealing
 35 packages under engine 1.9.154 against a 1.9.169 bundle, rc=0, no warning surfaced. This tests
 the post-run refusal added in `.441`: read the version the child actually used back out of its own
 sealed manifest_short.json and refuse (RUN_FAILED: ENGINE_MISMATCH) instead of trusting rc==0.
 
-Two other `.441` diffs (88fdad06, 1955A8C0) independently fix the LAUNCH side (stop using `-m mamey`
+Two other `.441` diffs independently fix the LAUNCH side (stop using `-m mamey`
 / add `-P`) -- this is complementary defense-in-depth for whichever launch fix lands, and for any
 future launch path that reintroduces the same shadow.
 
@@ -58,13 +58,6 @@ def test_real_read_json_extracts_mamey_version_from_a_synthetic_manifest(tmp_pat
     assert result["mamey_version"] == "1.9.154"
 
 
-def test_mismatch_predicate_fires_only_on_real_disagreement():
-    """Mirrors the exact comparison the diff performs (the check lives inline in main(), which
-    argparse-drives a full batch run and is not unit-callable in isolation) -- proves the
-    predicate's behavior on the three cases that matter: match, mismatch, and unreadable."""
-    def would_refuse(sealed_version, bundle_version):
-        return sealed_version is not None and sealed_version != bundle_version
-
-    assert would_refuse("1.9.154", "1.9.169") is True     # the observed real-world case
-    assert would_refuse("1.9.169", "1.9.169") is False    # matching engine: no refusal
-    assert would_refuse(None, "1.9.169") is False          # unreadable manifest: warn, don't refuse
+# The old copied predicate test did not exercise the harness and treated unreadable
+# evidence as acceptable. Actual batch behavior (missing/malformed/null/mismatch and
+# matching controls) is tested by test_447_intake_version_evidence.py instead.

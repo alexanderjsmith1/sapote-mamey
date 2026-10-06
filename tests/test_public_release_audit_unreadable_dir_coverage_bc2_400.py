@@ -1,4 +1,4 @@
-"""BC2 .400 audit: tools/public_release_audit.py's own docstring promises the whole-tree scan
+"""An audit-lane .400 audit: tools/public_release_audit.py's own docstring promises the whole-tree scan
 flags "an unreadable tracked file (never silently skipped)" -- and it does, via the
 `_UNREADABLE` sentinel in `_decode()`. But that per-FILE guarantee only fires for a file
 `root.rglob("*")` actually yields; `rglob()` silently swallows a per-directory `OSError`, so a

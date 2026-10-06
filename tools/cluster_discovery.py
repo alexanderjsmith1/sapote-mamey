@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
-"""cluster_discovery — find strains carrying a BGC from a diagnostic marker gene.
+"""cluster_discovery — candidate assembly lookup from marker-protein similarities.
 
-Given a diagnostic marker protein (e.g. a cluster's radical-SAM signature like nikJ), this
-finds other strains that carry the cluster, entirely from public data:
+An injectable BLAST/IPG service maps homolog proteins to candidate assemblies.
+This lookup does not establish cluster presence or physical linkage. Review
+candidate identities before any separately authorized downstream download or
+analysis. No --verify option is implemented.
 
-    marker.faa --BLASTp(NCBI)--> homolog proteins
-               --IPG--------->   source assemblies (genomes) + organism
-               [--verify]----->   optional: confirm cluster by co-occurrence of extra markers
-
-Outputs a ranked candidate-strain table (accession, organism, marker identity, assembly) that
-feeds directly into a genome download + cluster extraction + cluster_gene_compare run.
-
-Network boundary is a single injectable object (`Net`) so the pipeline is unit-testable
-without hitting NCBI. Requires only urllib + Biopython (for --verify gene-calling).
-
-Capacity/architecture-level: a marker homolog is evidence a strain *may* carry a related
-cluster; confirm with --verify (co-occurrence of >=2 cluster genes) before claiming presence.
+Incomplete search, result parsing or assembly resolution raises DiscoveryFailure;
+the CLI returns 2 without writing a completed candidate table. Partial rows are
+incomplete evidence. A completed empty result does not establish biological absence.
 """
 import argparse, csv, io, json, sys, time, urllib.parse, urllib.request
 try:  # v9.7.410 CSV formula-cell guard (CLAUDE_v9.7.410_tools_csv_writer_coverage)
@@ -110,30 +103,56 @@ def parse_ipg(text):
 
 
 # ----------------------------------------------------------------- pipeline
+class DiscoveryFailure(RuntimeError):
+    """An incomplete interaction must not become completed empty evidence."""
+    def __init__(self, status, message, *, rid=None, partial_rows=()):
+        super().__init__(f"{status}: {message}")
+        self.status = status
+        self.rid = rid
+        self.partial_rows = list(partial_rows)
+
+
 def discover(marker_seq, net, entrez="Streptomyces[Organism]", evalue=1e-40,
              hitlist=100, min_identity=0, max_strains=50, log=print):
     rid = net.blast_put(marker_seq, entrez, evalue, hitlist)
     if not rid:
-        raise RuntimeError("BLAST submission failed (no RID)")
+        raise DiscoveryFailure("SUBMISSION_FAILED", "BLAST submission failed (no RID)")
     log(f"[cluster_discovery] BLAST RID {rid}; polling...")
     for _ in range(60):
         st = net.blast_ready(rid)
         if st == "READY":
             break
         if st == "FAILED" or st == "UNKNOWN":
-            raise RuntimeError(f"BLAST status {st}")
+            raise DiscoveryFailure("SEARCH_FAILED", f"BLAST status {st}", rid=rid)
         time.sleep(net.poll)
-    hits = parse_blast_hits(net.blast_hits(rid))
+    else:
+        raise DiscoveryFailure("TIMEOUT", "no READY state in 60 polls", rid=rid)
+    response = net.blast_hits(rid)
+    hits = parse_blast_hits(response)
+    import re
+    no_hits = any(re.fullmatch(r"\s*\*+\s*No hits found\s*\*+\s*", line)
+                  for line in response.splitlines())
+    if (not hits and not no_hits) or (hits and no_hits):
+        raise DiscoveryFailure("RESULT_PARSE_UNVERIFIED", "no parsed hits or recognized no-hit response", rid=rid)
     hits = [(a, p) for a, p in hits if p >= min_identity]
     log(f"[cluster_discovery] {len(hits)} marker homolog(s) >= {min_identity}% identity")
     # map each hit protein -> assemblies (IPG); keep best marker identity per assembly
     strains = {}   # assembly -> (organism, strain, best_identity, protein_acc)
+    unresolved = []
     for acc, pid in hits:
         try:
-            for asm, org, strain in parse_ipg(net.ipg(acc)):
+            response = net.ipg(acc)
+            header = response.splitlines()[0].split("\t") if response.splitlines() else []
+            if "Assembly" not in header:
+                raise ValueError("IPG response has no Assembly column")
+            resolved = parse_ipg(response)
+            if not resolved:
+                raise ValueError("IPG response resolved no admitted assembly")
+            for asm, org, strain in resolved:
                 if asm not in strains or pid > strains[asm][2]:
                     strains[asm] = (org, strain, pid, acc)
         except Exception as e:
+            unresolved.append(acc)
             log(f"[cluster_discovery]  IPG {acc} skipped: {str(e)[:60]}")
         if len(strains) >= max_strains * 3:
             break
@@ -143,6 +162,10 @@ def discover(marker_seq, net, entrez="Streptomyces[Organism]", evalue=1e-40,
                      for a, (o, s, p, prot) in strains.items()),
                     key=lambda r: -r["marker_identity_pct"])[:max_strains]
     log(f"[cluster_discovery] {len(ranked)} candidate strain(s)/assembly(ies)")
+    if unresolved:
+        raise DiscoveryFailure("PARTIAL" if ranked else "ASSEMBLY_UNRESOLVED",
+                               "unresolved protein(s): " + ", ".join(unresolved),
+                               rid=rid, partial_rows=ranked)
     return ranked
 
 
@@ -177,8 +200,12 @@ def main(argv=None):
     except ImportError:
         from mamey._gbk_shim import SeqIO
     rec = next(SeqIO.parse(a.marker, "fasta"))
-    ranked = discover(str(rec.seq), Net(), entrez=a.entrez, evalue=a.evalue,
-                      min_identity=a.min_identity, max_strains=a.max_strains)
+    try:
+        ranked = discover(str(rec.seq), Net(), entrez=a.entrez, evalue=a.evalue,
+                          min_identity=a.min_identity, max_strains=a.max_strains)
+    except DiscoveryFailure as exc:
+        print(f"[cluster_discovery] {exc}; no completed candidate table written", file=sys.stderr)
+        return 2
     p = write_table(ranked, a.outdir, marker_name=rec.id)
     print(f'[cluster_discovery] wrote {p} ({len(ranked)} strains) + download_genomes.sh', '[cluster_discovery] next: run download_genomes.sh, then extract clusters and compare with cluster_gene_compare.py', sep="\n")
     return 0

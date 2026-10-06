@@ -2,7 +2,7 @@
 
 **Claim-safe interpretive genome mining for actinomycete biosynthetic gene clusters (BGCs).**
 
-*Current to bundle v9.7.446 · engine Mamey 1.9.172*
+*Current to bundle v9.7.448 · engine Mamey 1.9.173*
 
 Sapote–Mamey turns antiSMASH output into auditable, claim-safe biosynthetic evidence packages and
 interpretations. It is built in two layers, and the boundary between them is deliberate:

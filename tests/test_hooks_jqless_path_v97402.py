@@ -1,4 +1,4 @@
-"""jq-family port regression (.402, ROSTER_402 seed #1 — Black Cherry-4).
+"""jq-family port regression (.402, ROSTER_402 seed #1 — 4).
 
 Verified field defect (sealed v9.7.401, 2026-09-02): nine shipped hooks parsed their hook
 payload with ``jq``, which is absent in clean/container shells and undocumented in
@@ -117,7 +117,7 @@ def test_full_suite_gate_still_denies_unmarked_candidate_without_jq(jqless_path,
     cand = root / "Patches for next cut Sapote Mamey (v9.9.9)" / "candidate_cut_jqtest"
     cand.mkdir(parents=True)
     proc = _run("full_suite_before_package.sh",
-                {"tool_input": {"command": "zip -r out.zip candidate_cut_jqtest"}},
+                {"cwd": str(cand.parent), "tool_input": {"command": "zip -r out.zip candidate_cut_jqtest"}},
                 jqless_path, extra_env={"SAPOTE_WORKSPACE_ROOT": str(root)})
     reason = _deny_reason(proc)
     assert "FULL-suite" in reason

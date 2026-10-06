@@ -1,6 +1,6 @@
 """v9.7.412 — manual BLASTp-ingest binding + numeric + self-hit guard (F1–F10).
 
-Spec origin: the laptop lane CLAUDE_409_blastp_ingest_binding shipped these tests without the code (its patch held
+Spec origin: a separate lane CLAUDE_409_blastp_ingest_binding shipped these tests without the code (its patch held
 only the two B1 baseline edits, which .411 already carries). The guard was built here against this spec.
 
 Regression pins for DEEP_AUDIT2 (development/DEEP_AUDIT2_blastp_ingest.md). The manual overlay

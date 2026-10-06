@@ -4,8 +4,8 @@
 shares a concept token with the new file, so a script isn't independently re-derived when the
 engine already ships one.
 
-ROSTER_401_SEEDS.md item 2 (Alex-assigned to BC2, from VGP's 2026-09-02 self-audit, "audit
-control #1, the highest-value change"): VGP independently re-derived `rggmci.py`,
+ROSTER_401_SEEDS.md item 2 (owner-assigned to an audit lane, from an audit lane's 2026-09-02 self-audit, "audit
+control #1, the highest-value change"): an audit lane independently re-derived `rggmci.py`,
 `rggmci_cohort_rollup.py`, `build_reconstruction.py`, and `cohort_leads_ledger.py` — all four
 already ship in the sealed bundle (confirmed: `mamey/rggmci.py`, `tools/rggmci_cohort_rollup.py`,
 `tools/build_reconstruction.py`, `mamey/cohort_leads_ledger.py`) — apparently without checking
@@ -14,8 +14,8 @@ first. Same "check before create" house rule this project already states behavio
 advisory hook rather than left purely to memory/habit.
 
 Design notes:
-  * Advisory ONLY — never denies. `permissionDecision: "allow"` with `permissionDecisionReason`
-    set to the reminder text; the Write always proceeds. Denying would fight legitimate new
+  * Advisory ONLY — never denies and never approves: it emits `additionalContext` with the reminder text and
+    leaves the permission decision to the user's settings (an `allow` would have skipped the prompt). Denying would fight legitimate new
     work, which the roster seed explicitly rules out ("deny would fight legitimate new work").
   * Scoped to Write only (not Edit/MultiEdit): those tools require an already-existing file by
     construction, so they can never create the brand-new file this hook cares about.
@@ -161,9 +161,10 @@ def main() -> int:
         f"`ls tools/ mamey/ | grep -i <keyword>`. Not blocking; proceeding anyway is fine if "
         f"this is genuinely new work."
     )
+    # additionalContext reaches Claude next to the tool result. permissionDecision "allow" would skip the permission
+    # prompt and send its reason to the debug log only (hooks reference; audit F03), so it is not used.
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
-                                             "permissionDecision": "allow",
-                                             "permissionDecisionReason": reason}}))
+                                             "additionalContext": reason}}))
     return 0
 
 

@@ -1,6 +1,6 @@
 """445: the rare-genera 16S outgroup is the in-phylum Bifidobacterium ruling, fetched by accession.
 
-Alex ruled on 2026-09-29 that rare-genera 16S trees root on Bifidobacterium bifidum KCTC 3202 (NR_044771.1).
+The owner ruled on 2026-09-29 that rare-genera 16S trees root on Bifidobacterium bifidum KCTC 3202 (NR_044771.1).
 The Pseudomonas root it replaces joined next to one ingroup genus and made it sister to all the others.
 The shipped snapshot must carry the ruling, and the ruled accession must sit inside outgroup_species_strain,
 because that is the only place get_16s reads an accession from; without it the fetch falls back to a name pick.

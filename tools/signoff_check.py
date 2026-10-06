@@ -97,7 +97,7 @@ MAGLIKE = re.compile(r'(^[A-Z]{4,}\d{2,}[_ ]|[_ ]sp\d{6,}|Candidatus|'
 # Portable default: scan the current working directory. Override with --root.
 ROOT_DEFAULT = os.getcwd()
 
-# v9.7.412 (Razzle Dazzle Rose): the scan used to be `glob("**/*.treefile", recursive=True)` from
+# v9.7.412: the scan used to be `glob("**/*.treefile", recursive=True)` from
 # --root, which defaults to cwd. The shipped Stop hook runs it from the WORKSPACE root on every
 # turn-end of every chat, so each call crawled the entire workspace (an 18 GB tree here: conda envs,
 # an 18 GB reference-genome pool, BiG-SCAPE, GTDB, wheelhouses) — ~2 min at ~50% CPU per call, and

@@ -495,7 +495,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = parser.parse_args(list(argv) if argv is not None else None)
     try:
         receipt = write_matrix(args.input, args.out, args.theme, emit_png=args.emit_png)
-    # BC2-407: every validation refusal in this module (_clean_text, _stable_key, _integer,
+    # 407: every validation refusal in this module (_clean_text, _stable_key, _integer,
     # _exact_keys, _parse_cell, matrix_from_json_data, matrix_from_tsv_text, load_matrix_input,
     # _theme -- confirmed by grep, there is no `raise RuntimeError` anywhere in this file) raises
     # ValueError, not RuntimeError. Catching RuntimeError here was dead code: every malformed

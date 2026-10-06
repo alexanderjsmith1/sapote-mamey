@@ -1,6 +1,6 @@
 """The harness must launch the engine so the bundle's mamey wins over any stray cwd mamey/.
 `python -m mamey` puts the child's cwd first on sys.path; `python <bundle>/mamey_run.py` puts the
-bundle dir first and never cwd. Black Cherry 2 / 88fdad06, v9.7.441. Verifies EB3DF1EF's finding."""
+bundle dir first and never cwd. an audit lane, v9.7.441. Verifies a peer finding."""
 import os, re, subprocess, sys, textwrap
 from pathlib import Path
 

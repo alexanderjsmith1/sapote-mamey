@@ -1,5 +1,7 @@
 # MODE_B_FULL20_CONTRACT_RECONCILIATION.md
 
+> **Historical (superseded).** This document describes the retired §1–§20 count. It is not a current completion definition or acceptance specification. For the current profiles see `MODEB_PROFILE_MATRIX.md`.
+
 ## Purpose
 
 This patch resolves Mode B artifact drift: previous outputs could look compliant because they had files, tables, trackers, PDFs, or character counts, while still failing to deliver a prose-first scientific Mode B interpretation.

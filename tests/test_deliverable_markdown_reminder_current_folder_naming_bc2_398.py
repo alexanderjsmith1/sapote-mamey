@@ -1,4 +1,4 @@
-"""BC2 .398/.399 audit: hooks/deliverable_markdown_reminder.py::newest_patch_folder().
+"""An audit-lane .398/.399 audit: hooks/deliverable_markdown_reminder.py::newest_patch_folder().
 
 v9.7.398 fix: only matched the two LEGACY patch-folder naming conventions, missing the
 current one entirely, resolving to a ~14-patch-version-stale folder on the real workspace.

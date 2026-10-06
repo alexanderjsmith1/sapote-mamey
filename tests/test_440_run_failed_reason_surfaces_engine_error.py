@@ -6,7 +6,7 @@ stdout only. Does not touch the checkpoint CSV schema (_MET_HDR) or any row shap
 grep below that the RUN_FAILED met_rows dict is unchanged.
 
 Hermetic: extracts the helper's source directly (regex + exec), the same seam-testing approach as
-9C92D456's taxonomy-fallback test, so this does not need `_console`/`mamey` importable.
+the taxonomy-fallback test, so this does not need `_console`/`mamey` importable.
 """
 import re
 import sys

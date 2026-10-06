@@ -60,7 +60,7 @@ _ACCESSION_TAIL = re.compile(
 def strain_from_gbk_name(name: str) -> str:
     """Strain id from a staged BiG-SCAPE region-GBK filename, for AS-cohort AND reference genomes.
 
-    v9.7.412 (Amber): the per-tool `^(AS-\\d+|SID\\d+|[A-Za-z0-9-]+?)_` prefix could not cross a
+    v9.7.412: the per-tool `^(AS-\\d+|SID\\d+|[A-Za-z0-9-]+?)_` prefix could not cross a
     space or period, so every reference genome (`Genus species strain_ACCESSION.regionNNN.gbk`)
     collapsed to a single '?' bucket — verified: all 2,785 reference region GBKs in a real curated
     run mapped to '?', silently corrupting cross-strain counts and KNOWN/NOVEL calls on any mixed

@@ -1,4 +1,4 @@
-"""tree_heatmap_panel v1 locks (BC-4, Alex-directed heatmap × phylogenomics integration).
+"""tree_heatmap_panel v1 locks (BC-4, the owner-directed heatmap × phylogenomics integration).
 
 Alignment authority (tree tip order, never matrix order), typed refusals (unmatched
 tip/row, duplicates, non-numeric, missing caption, unapproved tree), missing != zero,

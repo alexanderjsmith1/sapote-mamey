@@ -48,6 +48,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 VERIFIED = "GToTree 1.8.16 / IQ-TREE 3.x, verified 2026-08-05; GToTree 2.0.0 recipe verified 2026-09-15"
 DEFAULT_HMM_SET = "Actinobacteria"
@@ -97,7 +98,7 @@ def gtotree_command(gtotree, major, genome_list, hmm, threads, parallel, out_dir
 
 
 # v9.7.444: docs/GTOTREE_WORKFLOW.md section 5 prescribes this restricted ModelFinder search for the protein
-# supermatrix ("bare -m MFP never finishes on ~30k cols"). The runner used bare -m MFP: on the 87-genome Cameron
+# supermatrix ("bare -m MFP never finishes on ~30k cols"). The runner used bare -m MFP: on the 87-genome insect-set
 # v5 alignment (20,910 columns) ModelFinder tested 24 of up to 1,232 models in about 2 hours.
 DOCUMENTED_MODEL_SEARCH = ["-m", "MFP", "-mset", "LG,WAG,JTT,Q.pfam", "-mrate", "G,I,I+G"]
 
@@ -245,22 +246,27 @@ def hard_tree_qc(treefile, outgroup, tools_dir=None, mamey_dir=None, genomes_dir
     og_primary = (outgroup.split(",")[0].strip() if outgroup else "") or "OUTGROUP"
     lines, ok = [], True
 
-    # Gate 1 — tree_sanity_check (HARD). Same gate the placement renderer calls before drawing.
+    # Gate 1 — require the gate from this tree, not a cached module from another copy.
     try:
-        if tools_dir not in sys.path:
-            sys.path.insert(0, tools_dir)
-        import tree_sanity_check as _tsc
+        sanity_path = os.path.join(tools_dir, "tree_sanity_check.py")
+        if not os.path.isfile(sanity_path):
+            raise FileNotFoundError("mandatory gate module missing: " + sanity_path)
+        _tsc = _load_module(sanity_path, "tree_sanity_check_for_run_qc")
+        if _tsc is None:
+            raise RuntimeError("mandatory gate module loader returned None")
         s_ok, s_msg = _tsc.check(treefile, outgroup=outgroup)
         lines.append(s_msg)
         if not s_ok:
             ok = False
-    except Exception as exc:  # a gate that cannot run is a FAIL, never a silent pass
+    except Exception as exc:
         ok = False
         lines.append(f"  [tree_sanity_check] ERROR {type(exc).__name__}: {exc} (treated as FAIL)")
 
-    # Gate 2 — phylo_postflight P1-P6 (HARD on any FAIL; subprocess for its authoritative rc).
+    # Gate 2 — absent/unlaunchable postflight is a hard failure, like a nonzero exit.
     pf = os.path.join(tools_dir, "phylo_postflight.py")
-    if os.path.exists(pf):
+    try:
+        if not os.path.isfile(pf):
+            raise FileNotFoundError("mandatory gate module missing: " + pf)
         cmd = [sys.executable, pf, treefile, "--outgroup", og_primary]
         if genomes_dir:
             cmd += ["--genomes-dir", genomes_dir]
@@ -270,26 +276,68 @@ def hard_tree_qc(treefile, outgroup, tools_dir=None, mamey_dir=None, genomes_dir
             lines.append(proc.stdout.rstrip("\n"))
         if proc.returncode != 0:
             ok = False
-            lines.append("  [phylo_postflight] HARD FAIL (>=1 P1-P6 check FAILed)")
-    else:
-        lines.append("  [phylo_postflight] NOTE: tool not found; skipped")
+            lines.append(f"  [phylo_postflight] HARD FAIL rc={proc.returncode} (>=1 P1-P6 check FAILed)")
+    except Exception as exc:
+        ok = False
+        lines.append(f"  [phylo_postflight] ERROR {type(exc).__name__}: {exc} (treated as FAIL)")
 
-    # Gate 3 — phylo_evidence claim-safety typed refusal: support must be present.
+    # Gate 3 — absence, import/loader failure and support refusal all fail explicitly.
     pe = os.path.join(mamey_dir, "phylo_evidence.py")
-    if os.path.exists(pe):
+    try:
+        if not os.path.isfile(pe):
+            raise FileNotFoundError("mandatory gate module missing: " + pe)
         mod = _load_module(pe, "phylo_evidence_for_run_qc")
-        if mod is not None:
-            try:
-                with open(treefile, encoding="utf-8", errors="strict") as fh:
-                    tree_text = fh.read()
-                supp = mod._support(tree_text)
-                lines.append(f"  [phylo_evidence] support present ({supp['label']}) on "
-                             f"{supp['node_count']} nodes; SH-aLRT min {supp['sh_alrt_min']}, "
-                             f"UFBoot min {supp['ufboot_min']}, weak {supp['weak_node_count']}")
-            except Exception as exc:  # PhyloEvidenceError renders as 'CODE: detail'
-                ok = False
-                lines.append(f"  [phylo_evidence] REFUSED {exc}")
+        if mod is None:
+            raise RuntimeError("mandatory gate module loader returned None")
+        with open(treefile, encoding="utf-8", errors="strict") as fh:
+            tree_text = fh.read()
+        supp = mod._support(tree_text)
+        lines.append(f"  [phylo_evidence] support present ({supp['label']}) on "
+                     f"{supp['node_count']} nodes; SH-aLRT min {supp['sh_alrt_min']}, "
+                     f"UFBoot min {supp['ufboot_min']}, weak {supp['weak_node_count']}")
+    except Exception as exc:
+        ok = False
+        lines.append(f"  [phylo_evidence] REFUSED {type(exc).__name__}: {exc}")
     return ok, lines
+
+
+def _run_requested_fastani(refs, queries, workdir, threads, log, env):
+    """Operational stage receipt; no ANI threshold/content interpretation is added."""
+    stage = {"requested": True, "status": "FASTANI_LAUNCH_FAILED", "returncode": None,
+             "references": refs, "queries": queries, "output": None}
+    failure_status = "FASTANI_LAUNCH_FAILED"
+    try:
+        fastani = _resolve(["fastANI"])
+        stage["executable"] = fastani
+        if not fastani:
+            stage.update(status="FASTANI_UNAVAILABLE", detail="requested fastANI executable is not on PATH")
+            return stage
+        # A fresh attempt path cannot mistake a prior fastani.tsv for this run's output.
+        # Keep prior ANI/core-tree files until a current output is ready to publish.
+        attempt_dir = tempfile.mkdtemp(prefix=".fastani_attempt_", dir=workdir)
+        attempt = os.path.join(attempt_dir, "fastani.tsv")
+        stage["attempted_output"] = attempt
+        cmd = [fastani, "--ql", queries, "--rl", refs, "-o", attempt, "-t", str(threads)]
+        stage["command"] = cmd
+        rc = run(cmd, log, env)
+        stage["returncode"] = rc
+        _emit(f"FASTANI_EXIT rc={rc}", file=log)
+        if rc != 0:
+            stage.update(status="FASTANI_FAILED", detail="requested fastANI exited nonzero")
+            return stage
+        if not os.path.isfile(attempt):
+            stage.update(status="FASTANI_OUTPUT_MISSING", detail="fastANI exited zero without a current output file")
+            return stage
+        failure_status = "FASTANI_OUTPUT_VALIDATION_FAILED"
+        output_sha = _sha256(attempt)
+        output = os.path.join(workdir, "fastani.tsv")
+        failure_status = "FASTANI_OUTPUT_PUBLISH_FAILED"
+        os.replace(attempt, output)
+        stage.update(status="DONE", output=output, output_sha256=output_sha)
+        return stage
+    except Exception as exc:
+        stage.update(status=failure_status, detail=f"{type(exc).__name__}: {exc}")
+        return stage
 
 
 def main(argv=None):
@@ -498,20 +546,30 @@ def main(argv=None):
         if a.signoff and os.path.exists(a.signoff):
             run([sys.executable, a.signoff, treefile], log, env)
 
-        # 5) optional fastANI boundary table
+        # 5) Optional until requested; a requested incomplete stage fails the overall run.
         ani_out = None
+        ani_fields = {}
         if a.ani_refs:
-            fastani = _resolve(["fastANI"])
-            if fastani:
-                ani_out = os.path.join(a.workdir, "fastani.tsv")
-                ql = a.ani_queries or a.genome_list
-                run([fastani, "--ql", ql, "--rl", a.ani_refs, "-o", ani_out, "-t", str(a.threads)], log, env)
-            else:
-                _emit("NOTE: --ani-refs given but fastANI not on PATH; skipped.", file=log)
+            stage = _run_requested_fastani(a.ani_refs, a.ani_queries or a.genome_list,
+                                          a.workdir, a.threads, log, env)
+            ani_fields["fastani_stage"] = stage
+            _emit(f"FASTANI_STAGE status={stage['status']} rc={stage['returncode']} "
+                  f"detail={stage.get('detail', '')}", file=log)
+            if stage["status"] != "DONE":
+                _write_status(a.workdir, stage["status"], treefile=treefile,
+                              contree=completion["contree"], alignment=aln,
+                              support_nodes=completion["support_nodes"],
+                              tip_retention=retention["status"], dropped=retention["dropped"],
+                              core_tree_status="TREE_QC_PASSED", qc=qc_lines,
+                              fastani=None, **ani_fields, **base_status)
+                _emit(f"REFUSED: {stage['status']} — requested fastANI stage did not complete. "
+                      f"Core-tree artifacts retained; see {logp} and run_status.json.", file=sys.stderr)
+                return 8
+            ani_out = stage["output"]
 
     _write_status(a.workdir, "DONE", treefile=treefile, contree=completion["contree"], alignment=aln,
                   support_nodes=completion["support_nodes"], tip_retention=retention["status"],
-                  dropped=retention["dropped"], fastani=ani_out, **base_status)
+                  dropped=retention["dropped"], fastani=ani_out, **ani_fields, **base_status)
     _emit(f"DONE. treefile={treefile}")
     _emit(f"  contree={completion['contree']} (support on {completion['support_nodes']} nodes)")
     _emit(f"  alignment={aln}")

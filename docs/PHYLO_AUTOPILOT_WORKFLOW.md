@@ -103,3 +103,19 @@ and selection receipt as one record. A 16S selection does not by itself select a
 Keep marker-specific rulings separate until the corresponding source and scope are verified.
 For source lookup, preserve accession versions and use verified paired-accession records rather
 than treating a shared numeric body or name similarity as proof of identity.
+
+## Requested-stage completion
+
+The planned tree runner refuses absent or unloadable mandatory tree QC gates. An explicitly requested fastANI stage must complete successfully and create its current output before the overall run can report DONE. Missing executable, nonzero exit or missing output returns a typed FASTANI failure and exit 8, preserving core-tree artifacts and advertising no verified ANI table. A fresh attempt prevents an older table from masking failure; output existence and checksum do not independently validate ANI content or biological interpretation.
+
+## Shell builder retention
+
+`tools/build_tree.sh` binds the staged genome bytes, tip labels and TREE_SPEC.json
+before GToTree. Extra arguments cannot replace its input list or output path.
+The shared retention gate runs before IQ-TREE and again against the supported
+final Newick tree; query loss, unexpected tips, missing gates and changed input
+bytes return nonzero. `tree_input_binding.json`, `tree_retention_status.json` and
+`DROPPED_BY_QC.tsv` retain the execution evidence. Only a literal
+`"allow_reference_drop": true` in the bound TREE_SPEC permits recorded reference
+drops; declared queries must remain. These checks establish execution identity
+and roster retention, without adopting a scientific interpretation.

@@ -1,4 +1,4 @@
-"""BC2 .401 audit: tools/check_command_pointers.py — the phantom-command guard's own docstring
+"""An audit-lane .401 audit: tools/check_command_pointers.py — the phantom-command guard's own docstring
 says it exists to catch a documented `mamey <token>` invocation pointing at nothing (the F-01/
 F-02 defect class). It used a plain `os.walk()` (no `onerror`) and a bare `except Exception:
 continue` around each file read -- both silently drop coverage with no signal.

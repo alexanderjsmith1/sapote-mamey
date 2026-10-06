@@ -1,10 +1,10 @@
 """'.368' MULTI_CHANNEL_HOLD surfacer — the owner-ruled two-proof advisory verdict.
 
 Rulings encoded here (both 2026-08-17):
-  * Cerulean (two-proof): RG-GMCI homology + KS-clade homology = proof-1 + proof-1, NOT proof-1 + proof-2.
+  * an audit lane (two-proof): RG-GMCI homology + KS-clade homology = proof-1 + proof-1, NOT proof-1 + proof-2.
     A HIGH/MODERATE RG-GMCI pair that FAILS the complementarity (logic) proof, with KS-clade co-membership,
     is a HOLD (two homology channels concordant, complementarity owed), NEVER a rescue. Surfacer only.
-  * Amber (_4B owner): the KS-clade partition is unchanged; _4B stays byte-identical (no cross-subtype bridge).
+  * The phylogeny lane (_4B owner): the KS-clade partition is unchanged; _4B stays byte-identical (no cross-subtype bridge).
   * AS-922 control: the in-engine KS channel is containment single-linkage, not "any shared ancestor UFBoot",
     so the naive-backbone false positive cannot arise here.
 
@@ -127,5 +127,5 @@ def test_multi_channel_hold_is_engine_neutral():
     # The surfacer lives in _4D, which is NOT in the determinism fingerprint -> no engine bump required.
     from mamey.packaging import DETERMINISM_WHITELIST
     assert "_4D_two_proof_rescue.csv" not in DETERMINISM_WHITELIST
-    # _4B (the KS partition Amber owns) is unchanged and still whitelisted.
+    # _4B (the KS partition the phylogeny lane owns) is unchanged and still whitelisted.
     assert "_4B_pks_ks_fragment_scan.csv" in DETERMINISM_WHITELIST

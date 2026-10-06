@@ -1,6 +1,6 @@
 """tools/gap_directed_rescue.py split-gene check: one reference gene in two pieces at facing contig ends.
 
-Alex, 2026-09-30: "Can we simply have another 'check' that addresses this blind spot". The gene table keeps one best
+2026-09-30: "Can we simply have another 'check' that addresses this blind spot". The gene table keeps one best
 genome protein per reference gene and needs 50% coverage, so the second piece of a gene broken by the assembly read as
 "no match". The check reads every hit again and reports the two pieces; it changes no status or partner.
 """

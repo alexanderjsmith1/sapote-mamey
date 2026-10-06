@@ -188,7 +188,7 @@ def test_cli_writes_portable_receipt_and_deterministic_svg(tmp_path: Path) -> No
 
 
 def test_cli_reports_a_malformed_input_as_a_clean_typed_refusal_not_a_traceback(tmp_path: Path) -> None:
-    # BC2-407: every validator in this module raises ValueError, not RuntimeError -- main()'s
+    # 407: every validator in this module raises ValueError, not RuntimeError -- main()'s
     # except clause must actually match, or every malformed-input run (the CLI's primary failure
     # mode, since this adapter's whole job is fail-closed validation) crashes with a raw Python
     # traceback and exit code 1 instead of the documented clean stderr message + exit code 2.

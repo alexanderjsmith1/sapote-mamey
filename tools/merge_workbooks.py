@@ -14,7 +14,7 @@ The mapping spec is the authoritative, reviewable contract (the 4-column sheet `
 BLANK · BLANK+FLAG (provenance gap) · MAP (→ conserved canonical col, target read from notes `→ name`) ·
 DROP/move (e.g. inline taxonomy → A2_Strain_Registry).
 
-Guarantees: honest blanks (never fabricated), evidence conservation (union of useful columns),
+Guarantees: honest blanks (never fabricated), no artifact/input aliases, nonempty-row admission, evidence conservation (union of useful columns),
 bgc_uid=strain:BGC_ID global-uniqueness check, per-source row-count reconcile, release/leak tagging
 (any AS-### → PRIVATE), and a blank-by-source ledger. Fail-closed on PK collision unless --allow-collisions.
 """
@@ -92,79 +92,202 @@ def _resolve_transform_name(action, notes, canonical):
     return DEFAULT_TRANSFORM_BY_CANON.get(canonical)
 
 
+class _SheetRow(dict):
+    """A source row retains its Excel locator without adding an output column."""
+    def __init__(self, header, values, excel_row):
+        super().__init__(zip(header, values))
+        self.excel_row = excel_row
+
+
 def _read_sheet(path, sheet):
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    if sheet in wb.sheetnames:
-        ws = wb[sheet]
-    else:
-        import warnings
-        ws = wb[wb.sheetnames[0]]
-        warnings.warn(f"Sheet '{sheet}' not found in {path}; falling back to '{wb.sheetnames[0]}'")
-    rows = list(ws.iter_rows(values_only=True))
-    hdr = [str(c) for c in rows[0]]
-    data = [dict(zip(hdr, r)) for r in rows[1:] if r and r[0] is not None]
-    extra = {sn: wb[sn] for sn in wb.sheetnames}  # for taxonomy lookup etc.
-    wb.close()
-    return hdr, data
+    try:
+        if sheet in wb.sheetnames:
+            ws = wb[sheet]
+        else:
+            import warnings
+            ws = wb[wb.sheetnames[0]]
+            warnings.warn(f"Sheet '{sheet}' not found in {path}; falling back to '{wb.sheetnames[0]}'")
+        rows = list(ws.iter_rows(values_only=True))
+        # Formatting can extend max_column beyond the actual table. Trim only
+        # trailing columns empty in the header AND every source row; never
+        # discard unnamed evidence or hide an internal blank header.
+        width = len(rows[0]) if rows else 0
+        while width and all(row[width - 1] in (None, "") for row in rows):
+            width -= 1
+        rows = [row[:width] for row in rows]
+        if not rows or not width or any(c is None or not str(c).strip() for c in rows[0]):
+            raise ValueError(f"{path}, sheet {ws.title}: empty or blank header")
+        hdr = [str(c) for c in rows[0]]
+        if len(set(hdr)) != len(hdr):
+            raise ValueError(f"{path}, sheet {ws.title}: duplicate header")
+        data = [_SheetRow(hdr, row, number) for number, row in enumerate(rows[1:], 2)
+                if any(value not in (None, "") for value in row)]
+        return hdr, data
+    finally:
+        wb.close()
+
+
+def _action_kind(action):
+    """Validate documented actions; an empty action retains legacy direct-copy behavior."""
+    action = (action or "").strip().upper()
+    simple = re.sub(r"\s+", "", action)
+    if simple in ("", "DIRECT", "RENAME", "BLANK", "BLANK+FLAG", "MAP", "DROP", "DROP/MOVE"):
+        return simple or "DIRECT"
+    if re.fullmatch(r"(?:RENAME\s*\+\s*)?TRANSFORM(?:\s*[=:]\s*[A-Za-z0-9_]+)?", action):
+        return "TRANSFORM"
+    raise ValueError(f"unknown mapping action: {action!r}")
+
+
+def _same_destination(left, right):
+    if os.path.realpath(os.fspath(left)) == os.path.realpath(os.fspath(right)):
+        return True
+    try:
+        return os.path.samefile(left, right)
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        raise ValueError(f"cannot establish file alias safety for {left} and {right}: {exc}") from exc
+
+
+def _preflight_destinations(canonical, sources, mapping, out, report):
+    inputs = [canonical, *sources, mapping]
+    outputs = [("output", out)] + ([("report", report)] if report else [])
+    for role, destination in outputs:
+        for source in inputs:
+            if _same_destination(destination, source):
+                raise ValueError(f"{role} aliases input workbook: {destination} -> {source}")
+    if report and _same_destination(out, report):
+        raise ValueError(f"output and report alias one another: {out} -> {report}")
+
+
+def _validate_keys(row, path, sheet):
+    missing = [key for key in ("strain", "BGC_ID")
+               if row.get(key) is None or not str(row.get(key)).strip()]
+    if missing:
+        raise ValueError(f"{path}, sheet {sheet}, row {getattr(row, 'excel_row', '?')}: "
+                         f"missing required key(s): {', '.join(missing)}")
+
+
+class _ConservedTargets(dict):
+    """Keep mapping row locators without changing the public target dictionary."""
+    def __init__(self):
+        super().__init__()
+        self.mapping_rows = {}
+
+
+def _validate_output_columns(canon_cols, rules, conserved, mapping_path="mapping"):
+    """Reject raw-name collisions before values can replace canonical evidence."""
+    owners = {name: ("canonical header", None, None) for name in canon_cols}
+    for name in ("bgc_uid", "_src"):
+        owners.setdefault(name, ("generated column", None, None))
+
+    def reserve(target, kind, source, row):
+        previous = owners.get(target)
+        if previous is not None:
+            # MAP and unknown-transform fallback both read the exact same
+            # source cell, so this one duplicate has identical value semantics.
+            if previous[0] != "canonical header" and previous[1] == source:
+                return
+            raise ValueError(f"{mapping_path}, mapping row {row}: output column {target!r} "
+                             f"collision with {previous[0]}"
+                             f" (mapping row {previous[2]})")
+        owners[target] = (kind, source, row)
+
+    for source, target in conserved.items():
+        reserve(target, "MAP", source, getattr(conserved, "mapping_rows", {}).get(source, "?"))
+    for source, rule in rules.items():
+        kind = rule.get("kind") or _action_kind(rule["action"])
+        if (kind == "TRANSFORM" and rule["canonical"] in canon_cols
+                and NAMED_TRANSFORMS.get(rule.get("transform")) is None):
+            reserve(source.lower(), "raw fallback", source, rule.get("mapping_row", "?"))
 
 
 def parse_mapping(path):
     """Return per-divergent-column rules: {b_col: {'canonical':.., 'action':.., 'notes':..}} plus the
     provenance-gap set and any MAP→conserved-target names and taxonomy handling."""
     wb = openpyxl.load_workbook(path, data_only=True)
-    ws = wb["Column_Mapping"] if "Column_Mapping" in wb.sheetnames else wb[wb.sheetnames[0]]
-    rules = {}
-    prov_gap = []
-    conserved = {}      # b_col -> canonical conserved name
-    taxonomy_to_a2 = None
-    rows = list(ws.iter_rows(values_only=True))
-    for r in rows[1:]:
-        if not r or all(c is None for c in r):
-            continue
-        canon = str(r[0]).strip() if r[0] else ""
-        bcol = str(r[1]).strip() if r[1] else ""
-        action = (str(r[2]).strip() if r[2] else "").upper()
-        notes = str(r[3]).strip() if len(r) > 3 and r[3] else ""
-        if not bcol or bcol.lower() in ("(missing)",):
-            if "BLANK+FLAG" in action or "PROVENANCE GAP" in notes.upper():
+    try:
+        ws = wb["Column_Mapping"] if "Column_Mapping" in wb.sheetnames else wb[wb.sheetnames[0]]
+        rules, prov_gap, conserved, taxonomy_to_a2 = {}, [], _ConservedTargets(), None
+        target_sources = {}
+        for row_number, r in enumerate(ws.iter_rows(values_only=True), 1):
+            if row_number == 1 or not r or all(c in (None, "") for c in r):
+                continue
+            if len(r) < 3:
+                raise ValueError(f"{path}, mapping row {row_number}: missing action column")
+            canon = str(r[0]).strip() if r[0] else ""
+            bcol = str(r[1]).strip() if r[1] else ""
+            action = (str(r[2]).strip() if r[2] else "").upper()
+            notes = str(r[3]).strip() if len(r) > 3 and r[3] else ""
+            try:
+                kind = _action_kind(action)
+            except ValueError as exc:
+                raise ValueError(f"{path}, mapping row {row_number}: {exc}") from exc
+            if not bcol or bcol.lower() == "(missing)":
+                if kind not in ("BLANK", "BLANK+FLAG"):
+                    raise ValueError(f"{path}, mapping row {row_number}: missing source requires BLANK action")
+                if not canon or canon in target_sources:
+                    raise ValueError(f"{path}, mapping row {row_number}: conflicting or empty canonical target {canon!r}")
+                target_sources[canon] = bcol
+                if kind == "BLANK+FLAG" or "PROVENANCE GAP" in notes.upper():
+                    prov_gap.append(canon)
+                continue
+            if kind in ("DROP", "DROP/MOVE"):
+                if bcol.lower() == "taxonomy":
+                    taxonomy_to_a2 = bcol
+                continue
+            if kind == "MAP" and canon.startswith("("):
+                words = re.split(r"->|→", notes)[-1].strip().split() if re.search(r"->|→", notes) else [bcol.lower()]
+                if not words:
+                    raise ValueError(f"{path}, mapping row {row_number}: empty MAP target")
+                target = words[0]
+                if conserved.get(bcol) == target:
+                    continue  # identical MAP source/destination reads the same value
+                if target in target_sources or bcol in conserved:
+                    raise ValueError(f"{path}, mapping row {row_number}: conflicting mapping target {target}")
+                target_sources[target] = bcol
+                conserved[bcol] = target
+                conserved.mapping_rows[bcol] = row_number
+                continue
+            if not canon:
+                raise ValueError(f"{path}, mapping row {row_number}: empty canonical target")
+            if canon in target_sources or bcol in rules:
+                raise ValueError(f"{path}, mapping row {row_number}: conflicting mapping for {canon} / {bcol}")
+            target_sources[canon] = bcol
+            rules[bcol] = {"canonical": canon, "action": action, "kind": kind, "notes": notes, "mapping_row": row_number,
+                           "transform": _resolve_transform_name(action, notes, canon) if kind == "TRANSFORM" else None}
+            if kind == "BLANK+FLAG":
                 prov_gap.append(canon)
-            continue
-        if "DROP" in action or "A2" in action.upper() or "A2" in notes.upper():
-            if bcol.lower() == "taxonomy":
-                taxonomy_to_a2 = bcol
-            continue
-        if "MAP" in action and canon.startswith("("):
-            m = re.search(r"->|→", notes)
-            target = re.split(r"->|→", notes)[-1].strip().split()[0] if m else bcol.lower()
-            conserved[bcol] = target
-            continue
-        rules[bcol] = {"canonical": canon, "action": action, "notes": notes,
-                       "transform": _resolve_transform_name(action, notes, canon) if "TRANSFORM" in action else None}
-        if "BLANK+FLAG" in action:
-            prov_gap.append(canon)
-    wb.close()
-    return rules, prov_gap, conserved, taxonomy_to_a2
+        return rules, prov_gap, conserved, taxonomy_to_a2
+    finally:
+        wb.close()
 
 
 def normalize_row(brow, rules, conserved, canon_cols):
+    _validate_output_columns(canon_cols, rules, conserved)
     out = {c: None for c in canon_cols}
     for bcol, rule in rules.items():
         canon = rule["canonical"]
         if canon not in out:
             continue
         v = brow.get(bcol)
-        act = rule["action"]
-        if "TRANSFORM" in act:
+        act = rule.get("kind") or _action_kind(rule["action"])
+        if act in ("BLANK", "BLANK+FLAG"):
+            out[canon] = None
+        elif act == "TRANSFORM":
             fn = NAMED_TRANSFORMS.get(rule.get("transform"))
             out[canon] = fn(v) if fn else None  # unknown/unnamed transform -> blank (raw conserved below)
-        else:  # direct / RENAME
+        elif act in ("DIRECT", "RENAME", "MAP"):
             out[canon] = v
+        else:
+            raise ValueError(f"unsupported normalizer action: {act}")
     cons = {}
     for bcol, target in conserved.items():
         cons[target] = brow.get(bcol)
     # conserve raw value of any TRANSFORM whose named transform is unknown (no fabrication, no data loss)
     for bcol, rule in rules.items():
-        if "TRANSFORM" in rule["action"] and rule["canonical"] in canon_cols and NAMED_TRANSFORMS.get(rule.get("transform")) is None:
+        if (rule.get("kind") or _action_kind(rule["action"])) == "TRANSFORM" and rule["canonical"] in canon_cols and NAMED_TRANSFORMS.get(rule.get("transform")) is None:
             cons[bcol.lower()] = brow.get(bcol)
     return out, cons
 
@@ -173,11 +296,23 @@ def run_merge(canonical, sources, mapping, out, report=None, sheet=SHEET_DEFAULT
     """Importable merge core. Returns a result dict; on PK collision (and not allow_collisions) returns
     status='PK_COLLISION' WITHOUT writing, so callers (e.g. the hub command) can fail-closed themselves."""
     import types
+    sources = list(sources)
+    _preflight_destinations(canonical, sources, mapping, out, report)
     a = types.SimpleNamespace(canonical=canonical, sources=sources, mapping=mapping, out=out,
                               report=report, sheet=sheet, allow_collisions=allow_collisions)
 
     canon_cols, A = _read_sheet(a.canonical, a.sheet)
+    if not {"strain", "BGC_ID"}.issubset(canon_cols):
+        raise ValueError(f"{canonical}, sheet {sheet}: canonical header needs strain and BGC_ID")
+    for row in A:
+        _validate_keys(row, canonical, sheet)
+        supplied_uid = row.get("bgc_uid")
+        expected_uid = f"{row['strain']}:{row['BGC_ID']}"
+        if supplied_uid is not None and str(supplied_uid).strip() and str(supplied_uid) != expected_uid:
+            raise ValueError(f"{canonical}, sheet {sheet}, row {row.excel_row}: "
+                             f"bgc_uid {supplied_uid!r} conflicts with {expected_uid!r}")
     rules, prov_gap, conserved, tax_col = parse_mapping(a.mapping)
+    _validate_output_columns(canon_cols, rules, conserved, a.mapping)
     conserved_targets = sorted(set(conserved.values()))
 
     rows = []
@@ -201,6 +336,8 @@ def run_merge(canonical, sources, mapping, out, report=None, sheet=SHEET_DEFAULT
         src_counts[os.path.basename(src)] = len(B)
         for br in B:
             norm, cons = normalize_row(br, rules, conserved, canon_cols)
+            located = _SheetRow(norm.keys(), norm.values(), br.excel_row)
+            _validate_keys(located, src, sheet)
             # frozen-schema default: product present but no manual-check value -> 'yes'
             if norm.get("products") and not norm.get("needs_manual_kcb_check"):
                 norm["needs_manual_kcb_check"] = "yes"
@@ -224,7 +361,9 @@ def run_merge(canonical, sources, mapping, out, report=None, sheet=SHEET_DEFAULT
     release = "PRIVATE" if private else "PUBLIC"
     a2 = [(s, t, src, release) for (s, t, src, _) in a2]
 
-    out_cols = ["bgc_uid"] + canon_cols + sorted(extra_conserved)
+    # A merge output is a valid next canonical: generated names appear once,
+    # in stable order even when already present in the canonical header.
+    out_cols = list(dict.fromkeys(["bgc_uid"] + canon_cols + sorted(extra_conserved)))
 
     if dups and not a.allow_collisions:
         return {"status": "PK_COLLISION", "collisions": dups, "rows": len(rows),
@@ -317,7 +456,11 @@ def main():
     if not (a.canonical and a.sources and a.mapping and a.out):
         ap.error("--canonical, --sources, --mapping and --out are required (unless --list-transforms)")
 
-    res = run_merge(a.canonical, a.sources, a.mapping, a.out, a.report, a.sheet, a.allow_collisions)
+    try:
+        res = run_merge(a.canonical, a.sources, a.mapping, a.out, a.report, a.sheet, a.allow_collisions)
+    except ValueError as exc:
+        emit(f"MERGE_REFUSED: {exc}", file=sys.stderr)
+        return 2
     if res["status"] == "PK_COLLISION":
         emit(f"✗ PK COLLISION — {len(res['collisions'])} duplicate bgc_uid(s): {', '.join(res['collisions'][:8])}", "  Refusing to write a merge with colliding primary keys (use --allow-collisions to override).", sep="\n")
         sys.exit(2)
@@ -327,4 +470,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -100,7 +100,7 @@ def test_clean_bgc_unaffected_by_guard():
     assert rec.corrected_rank is not None
 
 
-# ---- BC2-407: rescue_bonus must respect the mobile-element floor, same as primary_flag ------------
+# ---- 407: rescue_bonus must respect the mobile-element floor, same as primary_flag ------------
 # rescue_bonus (scoring.py) already exempted primary_flag ("flagged primary/pigment regions are not
 # biosynthetic fragments to rescue") but never checked mobile_flag -- so a HIGH_RG_GMCI_RESCUE pairing
 # could add its +8 back on top of the mobile guard's own ab<=25/af<=20 floor, directly contradicting

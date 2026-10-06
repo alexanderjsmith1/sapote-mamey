@@ -1,0 +1,14 @@
+{
+  "35": {
+    "source_hmm_sha256": "4d3d2ebb31d962a358fa71a84acc31979287e01a6a8a4990c632bd78d58c9fa5",
+    "source_manifest_sha256": "925f1a8803a446b9b7b0674dd8f67cf25c68bf5eb1b6c126eed2dd033d631b2e",
+    "accession_file_sha256": "57cf64de40382ccb0a32741bba81a664ee94829c7efa4e5c9d621ac033e99413",
+    "count": 35
+  },
+  "148": {
+    "source_hmm_sha256": "2db9ed0e58d1cd679b6b3c15e01c411e0bd49ae410a116d50bd23afa904aa57c",
+    "source_manifest_sha256": "e1e74b950ed77bd2f8f2593642cc2e4c7d6dc602308be4e5a48f7a2e9209261e",
+    "accession_file_sha256": "48d7c8b85d3ceeed979fdef1bdfd26bb3f10d4b557925e9004f610bbd27fdadf",
+    "count": 148
+  }
+}

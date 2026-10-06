@@ -1,6 +1,6 @@
 """tools/handoff_gate.py: one fail-closed check before a handoff.
 
-Alex, 2026-09-28: "maybe we need a module or step that checks everything? a gate?" after a session where every miss
+2026-09-28: "maybe we need a module or step that checks everything? a gate?" after a session where every miss
 reached the owner: dead reply links, a stale HASHES.txt, BGC identities without their alias, claim text on figures.
 """
 import hashlib

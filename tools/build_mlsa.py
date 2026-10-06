@@ -100,11 +100,15 @@ def resolve_bin(tool, bin_dir=None):
     env = os.environ.get("MAMEY_PHYLO_BIN") or os.environ.get("PHYLO_BIN")
     if env:
         search_dirs.extend(env.split(os.pathsep))
-    for name in _BIN_ALIASES.get(tool, [tool]):
-        for d in search_dirs:
+    aliases = _BIN_ALIASES.get(tool, [tool])
+    # every alias in every named directory first, then PATH: a stray iqtree2 on PATH must never beat the iqtree the
+    # user named with --bin-dir or MAMEY_PHYLO_BIN (.447, fresh-clone audit D5)
+    for d in search_dirs:
+        for name in aliases:
             cand = os.path.join(d, name)
             if os.path.isfile(cand) and os.access(cand, os.X_OK):
                 return cand
+    for name in aliases:
         found = shutil.which(name)
         if found:
             return found

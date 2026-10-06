@@ -1,0 +1,513 @@
+{
+ "schema_version": "modeb_current50_v2",
+ "status": "candidate (.447 card 6275a90d_447_modeb_current50_v2); Alex approved the design 2026-10-03",
+ "supersedes": null,
+ "does_not_supersede": [
+  {
+   "path": "mamey/data/mode_b/modeb_full30_corrective_contract.json",
+   "note": "48-section corrective profile; unchanged and still the default"
+  },
+  {
+   "path": "mamey/data/mode_b/modeb_full50_contract.json",
+   "note": "current50 v1; unchanged; existing pins keep working"
+  }
+ ],
+ "requirements_from": {
+  "path": "Task_362 CONTRACT_V2_APPROVED.json (the approved authoring scope)",
+  "sha256": "211f2da9666a3a275993e47e230dbb5fb6764569d89a33172cdb0f26604a40e7",
+  "note": "Alex-approved requirement text; §44 adds the PCoA figure"
+ },
+ "derived_from": {
+  "current50_v1": "mamey/data/mode_b/modeb_full50_contract.json",
+  "titles_and_conditions": "mamey/data/mode_b/modeb_full30_corrective_contract.json"
+ },
+ "section_policy": "§1–§50 in exact order. A section may carry a reasoned NOT_APPLICABLE disposition but is never omitted. §48 and §49 are the literature sections, with relevance. §50, the data evidence table, is the very last section; appendices are not allowed after it.",
+ "profiles": {
+  "FINISHED_FULL50_CURRENT50_V2": "§1–§50 exactly once in order; literature in §48–§49; the data evidence table last in §50; no generic deferrals; reasoned typed evidence limitations retain their claim ceiling"
+ },
+ "quality_gate": [
+  "Every first BGC mention includes node/region.",
+  "Expanded owner-review candidates contain §1–§50 in exact order; reasoned NOT_APPLICABLE replaces omission.",
+  "§28 (Evidence provenance ledger) is present.",
+  "§30 (Experimental decision tree) is present.",
+  "Every conditional §21–§27 / §29 that applies to this BGC is present.",
+  "Section 4 contains prose interpretation, not only tables.",
+  "Important genes include protein_length_aa where available.",
+  "Sections 5–7 satisfy the explicit scientific-reasoning scaffold; character counts are diagnostics only.",
+  "Every section §1–§50 has a completeness row naming evidence and predecessor-content disposition.",
+  "All 14 supporting streams have typed dispositions and historical content loss is reconciled explicitly.",
+  "Comparator/KCB is treated as similarity, not identity.",
+  "At least two plausible alternative interpretations are named when evidence permits.",
+  "Exact product claims are avoided.",
+  "The next experiment or analysis is specific.",
+  "A scientist can understand the BGC without opening the CSV.",
+  "Every first BGC mention uses the four-field display: strain / full node-or-contig / region / BGC alias.",
+  "Character counts are progress metadata only; never acceptance evidence.",
+  "Mechanical validation cannot claim release or publication readiness (cap: EVIDENCE_MATRIX_VALIDATED).",
+  "§50 (Data evidence table) is the very last section and holds the one contiguous named-match table.",
+  "§48 and §49 each cite at least one source by DOI, PMID or PMCID, and state its relevance to this locus.",
+  "No generic deferrals, TODOs or placeholder text. A typed limitation may state 'not recorded' or 'not evaluated' when the same sentence names its causal reason and inference ceiling. Each section holds a supported finding, a documented negative result, a reasoned not-applicable decision, or a precise evidence limitation after the accessible sources are exhausted.",
+  "§22 (GECCO) and §26 (Contigs rescued into the BGC) are filled from their source tables, named by path."
+ ],
+ "claim_safety": "Section requirements are scope statements for what a Mode-B section must address. Presence of a requirement row is not evidence, and this artifact makes no biological claim and admits nothing. Judgment deferred.",
+ "section_count": 50,
+ "sections": [
+  {
+   "number": 1,
+   "title": "Identity and node/region",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Exact four-part identity; assembly/profile; region interval and sequence/CDS binding; protein-hash/neighborhood identity policy; canonical versus source-local alias distinction.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 2,
+   "title": "Why this BGC was selected",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Evidence-based selection rationale; current triage context; why this exact locus merits attention; no score-as-truth shortcut.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 3,
+   "title": "Boundary and assembly status",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Exact boundary geometry; truncation/overmerge assessment; displayed exact/context denominators; what assembly state permits and prevents.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 4,
+   "title": "Gene-by-gene interpretation",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Short gene-role overview and pointer to §50. Preserve exact/context membership and the core, tailoring, transport, regulator and context distinctions without duplicating the full table.",
+   "change_from_v1": "unchanged",
+   "prefill": "pointer_to_50"
+  },
+  {
+   "number": 5,
+   "title": "Core biosynthetic logic",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Exact committed-step genes; reaction-level roles; conditional ordered pathway; minimal-gene-set/on-contig audit; strongest false-positive alternative; evidence for/against; positive and negative claim ceilings.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 6,
+   "title": "Tailoring and maturation logic",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Direct tailoring candidates separated from broad metabolic context; conditional order; non-diagnostic families; comparator conflicts; coupling evidence; discriminating tests.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 7,
+   "title": "Transport, resistance, and regulation",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Independent transport, resistance, and regulation adjudications; direction/substrate/mechanism/operon holds; no proximity-to-function leap; no exact-bound evidence distinguished from biological absence.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 8,
+   "title": "Comparator/KCB interpretation",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "KCB, MIBiG, ClusterBlast, and named comparator convergence/conflict; gene coverage and core-versus-generic-flank distinction; similarity never identity. Integrate reference-guided rescue comparisons. If one found gene matches two reference genes, report the reciprocal-best assignment and name the competing match with its evidence; an absent reciprocal result remains explicit.",
+   "change_from_v1": "updated (paralog naming)"
+  },
+  {
+   "number": 9,
+   "title": "Alternative hypotheses",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "At least two locus-specific alternatives when evidence permits; strongest rival model; observations that discriminate each model.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 10,
+   "title": "Fragmentation and co-capture risks",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Fragment/co-capture/overmerge risks; exact edge distances; partner-locus possibilities; RG-GMCI claim ceiling; no physical join without nucleotide proof.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 11,
+   "title": "Product-family interpretation",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Product-family capacity model from core grammar; exact compound held unless independently established; comparator conflicts retained.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 12,
+   "title": "Host/microbe ecological interpretation",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Host/microbe context from verified strain metadata and prevalence across all AS strains, including bee/wasp, attine and moss cohorts; chitin/ecology signals treated as strain context unless exact-locus coupled.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 13,
+   "title": "Antibacterial/antifungal relevance",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Class-level antibacterial/antifungal relevance; extract phenotype separated from locus attribution; literature claim and organism scope explicit.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 14,
+   "title": "What cannot be claimed",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Explicit forbidden claims: exact product, production, activity attribution, novelty, ecological function, physical linkage, and expression as applicable.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 15,
+   "title": "Missing evidence",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Typed remaining gaps only after accessible sources are searched; distinguish unavailable, unbound, not run, running, ingest gap, measured-none, and not applicable.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 16,
+   "title": "BLASTP/HMMER next steps",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Current BLASTp/HMM/domain evidence plus only unresolved next tests; later nr/ClusteredNR additions are versioned, additive updates rather than a card-wide blocker.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 17,
+   "title": "LC-MS / fermentation implications",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Testable LC-MS/fermentation implications derived from the conditional product-family model; no predicted mass asserted as detected.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 18,
+   "title": "Figure/locus-map notes",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Lossless future-map payload requirements: every displayed gene, label, coordinates, strand, domains, selected genes, named matches and holds; V7 comparator preserved. Rendering remains a separate gate.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 19,
+   "title": "Final Mode B judgement",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "One integrated judgment and cross-cohort synthesis, preserving support, contradictions, strongest alternative, confidence, final claim ceiling and unresolved discriminating evidence. No publication-ready claim from mechanical checks.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 20,
+   "title": "Next actions",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Prioritized bounded actions with decision rules and owners; accessible evidence is obtained/reconciled rather than labeled pending.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 21,
+   "title": "RiPP / NRPS precursor ladder and RiPP search",
+   "required": "conditional",
+   "condition_key": "is_ripp",
+   "condition_human": "RiPP- or NRPS-relevant loci; otherwise a reasoned NOT_APPLICABLE.",
+   "requirement": "Merged v1 §§21–22: For RiPP/NRPS-relevant loci, conditional precursor/monomer ladder with assumptions. For RiPP-relevant loci, document search scope, databases, precursor/maturation evidence and negative-result ceiling. Preserve NRPS applicability; justify component-level non-applicability separately.",
+   "change_from_v1": "v1 §21 and §22 merged"
+  },
+  {
+   "number": 22,
+   "title": "GECCO gene-level and cluster evidence",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "GECCO evidence across the exact core region and candidate rescued contigs: complete per-gene probability table, cluster probabilities, run/version and sequence binding; agreement or disagreement with antiSMASH boundaries; GECCO-only genes and clusters. Bind GECCO ClusteredNR evidence and available nr results separately to exact proteins; distinguish returned hits, measured no-hit results and unperformed or unreturned searches. Prediction is not product or activity proof.",
+   "change_from_v1": "new (GECCO)",
+   "prefill": "prompt_only"
+  },
+  {
+   "number": 23,
+   "title": "Production strategy: heterologous expression and OSMAC",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards; a reasoned NOT_APPLICABLE when neither route is warranted.",
+   "requirement": "Merged v1 §§23 and 26: Integrated production-strategy assessment covering heterologous-expression rationale, minimum-construct assessment, pathway completeness, host limitations, controls and interpretation, plus OSMAC rationale tied to plausible regulation/product-family chemistry and measurable outcomes. Preserve distinct questions and evidence for each component; justify non-applicability separately. No inference of production from genomic capacity.",
+   "change_from_v1": "v1 §23 and §26 merged",
+   "prefill": "prompt_only"
+  },
+  {
+   "number": 24,
+   "title": "Scaffold novelty score",
+   "required": "conditional",
+   "condition_key": "novel_or_no_mibig",
+   "condition_human": "Novel compound / no MIBiG hit.",
+   "requirement": "Novelty evidence decomposed into architecture, homology, cohort prevalence and comparator distance; “no hit” is not novelty.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 25,
+   "title": "Genome neighbourhood",
+   "required": "conditional",
+   "condition_key": "isolation_worthy",
+   "condition_human": "Any isolation-worthy BGC (lead tier HIGH or PRIORITY ISO).",
+   "requirement": "Exact genomic-neighborhood conservation from ClusterBlast/current comparisons; core versus generic conserved context distinguished.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 26,
+   "title": "Contigs rescued into the BGC",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards; state plainly when no gap-rescue run exists for the locus.",
+   "requirement": "Reference-guided gap rescue and the whole-BGC view: preserve the core identity as strain / full contig / region / BGC; identify every partner contig and its exact gene identities. Tabulate reference genes found within the core region, found elsewhere and set aside by partner checks, with denominators and reference identity. Bind every gene-level split-link ruling and adjudication, RG-GMCI component evidence, assembly evidence and assembled/candidate locus map. Settled similarity or partner rulings do not establish a nucleotide join. Display unresolved partners as candidates; state competing explanations and the precise evidence needed to discriminate them.",
+   "change_from_v1": "new (reference-guided rescue across contigs)",
+   "prefill": "prompt_only"
+  },
+  {
+   "number": 27,
+   "title": "Self-resistance assessment",
+   "required": "conditional",
+   "condition_key": "antimicrobial_candidate",
+   "condition_human": "Any antimicrobial candidate (default for AB/AF leads).",
+   "requirement": "Mechanism-specific self-resistance evidence, exact gene coupling, alternatives and required validation; broad transporter/family names are insufficient.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 28,
+   "title": "Evidence provenance ledger",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards, mandatory. Claim-by-claim source tracing: observed/computed/inferred/assumed.",
+   "requirement": "Claim-by-claim provenance; 14-stream disposition table; historical source-loss table; 50-row section reconciliation matrix.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 29,
+   "title": "Cross-cluster interactions",
+   "required": "conditional",
+   "condition_key": "strain_gt_3_high_priority",
+   "condition_human": "Strain has >3 high-priority BGCs.",
+   "requirement": "Cross-cluster hypotheses with exact four-part partner identities, evidence state and physical-linkage ceiling; otherwise reasoned not-applicable.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 30,
+   "title": "Experimental decision tree",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards, mandatory. Open questions → experiments → programme consequences.",
+   "requirement": "Branching experimental decision tree: question, experiment, positive/negative decision rule, and program consequence.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 31,
+   "title": "Region CDS census",
+   "required": "optional",
+   "condition_key": null,
+   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "requirement": "Exact region CDS census plus boundary-context census; independently reconciled denominators; no denominator-difference identity failure.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 32,
+   "title": "Assembly-line inventory",
+   "required": "conditional",
+   "condition_key": "has_measured_assembly_line",
+   "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token).",
+   "requirement": "Assembly-line enzyme/domain inventory from measured architecture; absent modules distinguished from unmeasured modules.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 33,
+   "title": "Module programming readout",
+   "required": "conditional",
+   "condition_key": "has_measured_assembly_line",
+   "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token).",
+   "requirement": "Module programming, substrate/extension/reduction logic and uncertainty; no collinearity assumption without support.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 34,
+   "title": "Initiation & release logic",
+   "required": "conditional",
+   "condition_key": "has_measured_assembly_line",
+   "condition_human": "the region carries an antiSMASH MEASURED assembly line (aSModule evidence) (aSModule features or a PKS/NRPS class token).",
+   "requirement": "Initiation/loading and release/cyclization logic, candidate genes, alternatives and missing functions.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 35,
+   "title": "Protocluster decomposition",
+   "required": "conditional",
+   "condition_key": "multi_protocluster",
+   "condition_human": "the region decomposes into more than one protocluster.",
+   "requirement": "Per-protocluster decomposition for mixed/overmerged regions; each core and accessory set assigned or held separately.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 36,
+   "title": "Boundary status + overmerge/locus-splitting adjudication (merged)",
+   "required": "conditional",
+   "condition_key": "boundary_or_overmerge_flag",
+   "condition_human": "the region touches a contig edge, is truncated, or carries an overmerge/split flag.",
+   "requirement": "Boundary, overmerge and locus-splitting adjudication integrated with exact intervals and sequence/CDS evidence.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 37,
+   "title": "Partner & accessory proteins",
+   "required": "optional",
+   "condition_key": null,
+   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "requirement": "Partner/accessory proteins classified as direct, plausible, broad context, or unbound; mechanism and coupling evidence stated.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 38,
+   "title": "Co-located resistance & efflux",
+   "required": "conditional",
+   "condition_key": "has_resistance_signal",
+   "condition_human": "a co-located resistance/efflux signal is bound for this region.",
+   "requirement": "Resistance/efflux signals with exact locus, mechanism specificity, direction, coupling and phenotype ceiling.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 39,
+   "title": "Cross-strain sequence identity",
+   "required": "optional",
+   "condition_key": null,
+   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "requirement": "Cross-strain identity/coverage on exact orthologous genes/loci with denominators and channels; no alias-only comparison.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 40,
+   "title": "BiG-SCAPE family / cohort placement",
+   "required": "optional",
+   "condition_key": null,
+   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "requirement": "BiG-SCAPE family, cutoff, run receipt, cohort/reference membership and private/shared scope; new run may update additively. Bind the current BiG-SCAPE run including MIBiG and reference-genome membership, per the companion-tool protocol, with its run receipt, parameters and compatible sequence/profile scope. If the required run is absent, state the actual evidence limitation rather than infer its results.",
+   "change_from_v1": "updated (current BiG-SCAPE run)"
+  },
+  {
+   "number": 41,
+   "title": "Protein / domain phylogeny",
+   "required": "optional",
+   "condition_key": null,
+   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "requirement": "Protein/domain phylogeny target, sequence binding, reference set, model limits and supported clade-level inference.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 42,
+   "title": "Horizontal transfer evidence",
+   "required": "optional",
+   "condition_key": null,
+   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "requirement": "HGT/composition evidence relative to a declared genomic baseline; mobile/context alternatives; GC deviation alone is insufficient.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 43,
+   "title": "Split-pathway / cross-contig (RG-GMCI)",
+   "required": "conditional",
+   "condition_key": "has_4a_rows",
+   "condition_human": "the region is a member of at least one ABOVE-BAR RG-GMCI ranked pair (confidence above LOW_SHARED_REFERENCE_SIGNAL).",
+   "requirement": "RG-GMCI/cross-contig candidates with exact partner identity, component signals and explicit “candidate, not nucleotide join” ceiling. Cross-reference §26 for rescue tables and gene-level rulings; retain independent RG-GMCI component assessment without duplicating those tables.",
+   "change_from_v1": "updated (points to §26)"
+  },
+  {
+   "number": 44,
+   "title": "Within-cohort prevalence & tier",
+   "required": "optional",
+   "condition_key": null,
+   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "requirement": "Within-cohort prevalence with exact numerator/denominator, profile/class definition and governed exclusions. Also enumerate protein PCoA set membership for the exact BGC proteins and candidate partners, with input sequence identities, set/run receipts, embedding parameters and membership denominators. Separate set membership and visual proximity from supported functional or phylogenetic inference. Show the protein PCoA figure for the BGC: the compact two-set view, or the full PCoA where its proteins fall in more than two sets (Alex, 3 Oct: integrate the PCA plots into Mode B).",
+   "change_from_v1": "updated (protein PCoA sets)"
+  },
+  {
+   "number": 45,
+   "title": "Supervisor / university cohort comparison",
+   "required": "optional",
+   "condition_key": null,
+   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "requirement": "Supervisor/university cohort comparison with declared cohort, comparable denominator and source receipt; otherwise reasoned not-applicable.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 46,
+   "title": "Type / reference strain comparison",
+   "required": "optional",
+   "condition_key": null,
+   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "requirement": "Type/reference-strain comparison on exact comparable loci and genes, including Mamey/antiSMASH profile compatibility and divergence.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 47,
+   "title": "Host-matched unrelated reference",
+   "required": "optional",
+   "condition_key": null,
+   "condition_human": "Optional §31-§48 extension (v9.7.364). Absence is NEVER an error. If PRESENT: number, exact title, order, uniqueness and body extraction are enforced.",
+   "requirement": "Host-matched unrelated reference comparison with verified host metadata, comparator rationale and transfer limits.",
+   "change_from_v1": "unchanged"
+  },
+  {
+   "number": 48,
+   "title": "Biosynthetic gene, domain and machinery literature",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Biosynthetic gene, domain and machinery citations with explicit relevance to named genes, domain logic, alternatives or experiments; source scope and limits of transfer stated. Evaluate primary literature claim by claim, identifying the named gene/domain or inference supported, comparator organism and experimental scope, contradictory findings and transfer limits.",
+   "change_from_v1": "title from v1 requirement",
+   "prefill": "prompt_only"
+  },
+  {
+   "number": 49,
+   "title": "Genus and biological-context literature",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards.",
+   "requirement": "Genus secondary-metabolite and broader biological-context citations with explicit relevance; justify broader taxa/topics and distinguish reference phenotype from focal-strain evidence. Evaluate primary literature relevance to verified strain/genus and host context, retaining contradictory evidence and separating reference-organism activity from focal-locus attribution.",
+   "change_from_v1": "title from v1 requirement",
+   "prefill": "prompt_only"
+  },
+  {
+   "number": 50,
+   "title": "Data evidence table",
+   "required": "always",
+   "condition_key": null,
+   "condition_human": "All cards; always the last section.",
+   "requirement": "Complete contiguous named-match table formerly in §4, with unchanged full gene roster, geometry, protein binding, channel separation, result/admission states and typed holds. This data evidence table is the final numbered section. Include every core-region CDS and separately identified partner/context genes with full identities, coordinates, strand, sequence binding, named matches, identity/coverage, independent evidence channels, domains, GECCO probabilities, comparator/rescue assignments and split-link rulings as applicable. Resolve competing reference matches by reciprocal-best evidence where available and name the alternative. Tables may be split into linked parts for readability without dropping rows or provenance.",
+   "change_from_v1": "title set; GECCO and rescue columns",
+   "prefill": "evidence_table_50"
+  }
+ ]
+}

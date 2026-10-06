@@ -34,6 +34,8 @@ STAMP="${DATE}v$(echo "$VER" | tr -d '.')${LETTER}"
 cd "$SRC"; SRC="$(pwd)"; OUT="$(cd "$(dirname "$OUT")" && pwd)/$(basename "$OUT")"
 say(){ printf '\n=== %s ===\n' "$*"; }; die(){ printf '\nABORT: %s\n' "$*" >&2; exit 1; }
 
+source "$SRC/tools/cut_preflight.sh"
+
 assert_no_backup_debris(){
   local offender
   offender="$(find . -type f \( -name '*-E' -o -name '*.orig' -o -name '*.rej' -o -name '*.bak' -o -name '*~' \) ! -path './.git/*' -print -quit)"
@@ -99,6 +101,8 @@ awk 'NR>1 && /^# v9/{exit} {print}' CHANGELOG.md | grep -E '^- \*\*' >/dev/null 
 
 say "preflight: no backup/editor debris"
 assert_no_backup_debris
+sapote_assert_no_review_root "$SRC" || die "review-stage root preflight failed."
+sapote_purge_cut_bytecode "$SRC" || die "working-copy bytecode purge failed."
 
 say "atomically bump to $VER / $STAMP"
 python3 tools/rewrite_release_identity.py "$VER" "$STAMP" --root .
@@ -110,6 +114,10 @@ python3 tools/render_bootstrap_contract.py --apply >/dev/null
 python3 tools/gen_command_catalog.py >/dev/null
 python3 tools/generate_deliverables_menu.py --apply >/dev/null
 python3 tools/gen_tools_inventory.py >/dev/null
+
+say "refresh current module inventory"
+python3 tools/check_module_accretion.py --write >/dev/null \
+  || die "module inventory refresh failed."
 
 say "gate: version sync"
 python3 tools/sync_version.py --check | tail -1 | grep -q "OK" || die "version sync gate failed."

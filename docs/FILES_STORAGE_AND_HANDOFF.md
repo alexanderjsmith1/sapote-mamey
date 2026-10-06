@@ -66,8 +66,20 @@ If you do not need the brief or the locus maps, turn them off:
 python mamey_run.py run ... --brief none --locus-maps off
 ```
 
-`--capped-session` already sets both. This removes optional rendering only. The evidence tables
-and the workbook are always written.
+These two flags remove optional rendering only; the evidence tables and the workbook are still written.
+
+`--capped-session` does more than that, so do not treat it as a rendering switch (`mamey/cli.py`, capped-session
+profile):
+- `--brief none`;
+- `--json-evidence off`: the JSON-derived evidence channel is **not** written. That is an omitted channel, never a
+  biological negative;
+- `--require-workbook`;
+- `--locus-maps off`, but only when maps were left on `auto`; an explicit `--locus-maps on` is kept;
+- store-only ZIP compression (unless `MAMEY_ZIP_COMPRESSION` is already set);
+- heartbeat lines every 20 s during quiet stages (unless `--heartbeat-seconds` is given).
+
+When you need the JSON evidence, leave out `--capped-session` and use `--json-evidence bounded` with enough
+runtime. The capped flag overrides that choice (`AGENTS.md`).
 
 ## Archive to an external disk or iCloud
 

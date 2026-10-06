@@ -8,7 +8,7 @@ F-02 (`mamey render-brief`): both were documented command invocations pointing a
 Scope: backticked ``mamey <token>`` only (a command-invocation signal), so prose like
 "the mamey engine" or "a mamey package" does not false-positive.
 
-v9.7.401 HARDENING (BC2): the scan previously used a plain `os.walk()` (no `onerror`) and a
+v9.7.401 HARDENING: the scan previously used a plain `os.walk()` (no `onerror`) and a
 bare `except Exception: continue` around each file read -- both silently drop coverage with no
 signal. Reproduced live against the real pristine script: a genuine phantom command reference
 hidden inside either an unreadable directory OR an unreadable individual file is completely

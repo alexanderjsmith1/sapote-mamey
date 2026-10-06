@@ -109,6 +109,15 @@ def test_build_mibig_db_writes_proteins_clusters_and_manifest(tmp_path, monkeypa
         rc.build_mibig_db(tmp_path / "mibig_gbk", tmp_path / "db")
 
 
+def test_build_mibig_db_help_takes_the_callers_program_name(capsys):
+    with pytest.raises(SystemExit):
+        rc.main(["build-mibig-db", "--help"])
+    assert "usage: ref_completion build-mibig-db" in capsys.readouterr().out
+    with pytest.raises(SystemExit):
+        rc.main(["build-mibig-db", "--help"], prog="rggmci")
+    assert "usage: rggmci build-mibig-db" in capsys.readouterr().out
+
+
 def test_resolve_mibig_db_never_searches_the_disk(tmp_path, monkeypatch):
     monkeypatch.delenv(rc.MIBIG_DB_ENV, raising=False)
     db = tmp_path / "ws" / "BigSCAPE" / "prot"

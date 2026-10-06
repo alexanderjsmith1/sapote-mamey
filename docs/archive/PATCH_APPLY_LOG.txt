@@ -51,7 +51,7 @@ NOTE   Engine-neutral: __version__ 1.9.119 and BUNDLE_VERSION 9.7.358 UNCHANGED;
 NOTE   HARD cut-blockers unchanged: AS-XXX (no decontam antiSMASH rerun; GOVERNED(built)=43/1,701 pending) + 6 GBK-less strains. Build-now-seal-later per the Developer or User 2026-08-10.
 
 # ---- v9.7.359 (2026-08-10, build 20260810v97359a, engine 1.9.120, the patch lane) ----
-# Accretive superset of the parked .358 candidate (all fold-1 + fold-2 carried) + Amber's _4B/_4D ENGINE channel.
+# Accretive superset of the parked .358 candidate (all fold-1 + fold-2 carried) + the phylogeny lane's _4B/_4D ENGINE channel.
 ADD    mamey/pks_ks_scan.py — deterministic offline cross-contig PKS-KS clade scan -> _4B_pks_ks_fragment_scan.csv (phylogenomics-lane P358)
 ADD    mamey/rescue_two_proof.py — join _4A x _4B under C06 two-proof gate -> _4D_two_proof_rescue.csv (phylogenomics-lane P358)
 ADD    tests/test_pks_ks_scan.py + tests/test_rescue_two_proof.py (9 passing)
@@ -59,7 +59,7 @@ MODIFY mamey/models.py — SourceScanBundle: declared new field pks_ks_scan (dic
 MODIFY mamey/cli.py — import run_pks_ks_scan/write_pks_ks_csv; _4B phase after rggmci END (uses _os not os); _4D emitted in _write_package AFTER _4A_RGGMCI_ranked_pairs.csv is written (join reads it from disk)
 MODIFY mamey/packaging.py — DETERMINISM_WHITELIST += _4B_pks_ks_fragment_scan.csv (deterministic; enters repro fingerprint)
 MODIFY mamey/validate.py — advisory NON-BLOCKING pks_ks_scan presence note (PKS_KS_SCAN_MISSING); never flips status
-FIX    (integration, vs Amber standalone APPLY) — (1) _os alias not os; (2) _4D placement moved to post-_4A-write; (3) declared pks_ks_scan field
+FIX    (integration, vs the phylogeny lane standalone APPLY) — (1) _os alias not os; (2) _4D placement moved to post-_4A-write; (3) declared pks_ks_scan field
 MODIFY mamey/__init__.py — __version__ 1.9.119->1.9.120; BUNDLE_VERSION 9.7.358->9.7.359
 MODIFY pyproject.toml — [project].version 1.9.120; [tool.sapote] bundle_version 9.7.359
 ADD    docs/ENGINE_LINEAGE.md — Engine 1.9.120 entry (additive: no score change; _4B/_4D advisory only; fully comparable to 1.9.119)

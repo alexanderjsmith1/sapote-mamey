@@ -1,4 +1,4 @@
-"""Capabilities module-stem indexing (.402, ROSTER_402 seed #3 — Black Cherry-4).
+"""Capabilities module-stem indexing (.402, ROSTER_402 seed #3 — 4).
 
 Verified field failure (sealed v9.7.401, 2026-09-02): `search_capabilities(["rggmci"])`
 returned ten modules that merely MENTION rggmci in their docstrings while the owner module
@@ -33,10 +33,13 @@ def test_rggmci_query_surfaces_the_owner_module():
 def test_stem_match_outranks_prose_mentions():
     """Within equal keyword coverage, stem-matching modules lead the result list."""
     rows = search_capabilities(["rggmci"], root=ROOT)
-    top_two = {row["path"] for row in rows[:2]}
-    assert {"mamey/rggmci.py", "tools/rggmci_cohort_rollup.py"} <= top_two, (
-        "stem-matching owners should lead: %r" % [row["path"] for row in rows[:4]]
+    # every module whose name carries the stem ranks above every passing mention (.447: a third stem-matching tool,
+    # rggmci_pair_locus_map.py, made a fixed "top two" too narrow; the intent is owners before mentions)
+    stem = [i for i, row in enumerate(rows) if "rggmci" in Path(row["path"]).stem]
+    assert stem == list(range(len(stem))), (
+        "stem-matching owners should lead: %r" % [row["path"] for row in rows[:len(stem) + 2]]
     )
+    assert {"mamey/rggmci.py", "tools/rggmci_cohort_rollup.py"} <= {rows[i]["path"] for i in stem}
 
 
 def test_stem_hit_is_visible_in_matched_lines():

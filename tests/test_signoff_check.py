@@ -1,11 +1,11 @@
-"""FA4 (extended in AMBER_04): tests for the analysis sign-off gate (tools/signoff_check.py).
+"""FA4 (extended in P04): tests for the analysis sign-off gate (tools/signoff_check.py).
 
 The gate is advisory (always exits 0); these tests exercise the OBJECTIVE checks:
   * a clean, well-labelled tree with support + a marked outgroup passes with no issues;
   * a tree with a planted non-target contaminant tip (E. coli) and NO branch-support
     values is flagged (the two catches the sign-off gate exists to mechanise);
   * the CLI wrapper runs on a real Newick file and exits 0 regardless.
-AMBER_04 adds coverage for the four checks folded in from the Amber phylogeny session:
+P04 adds coverage for the four checks folded in from the phylogeny-lane phylogeny session:
   MAG/unclassified bin tips, >1 _OUTGROUP tip, an _OUTGROUP whose genus is also in the
   ingroup (not a true outgroup), and the same assembly present as both GCA and GCF.
 """
@@ -39,7 +39,7 @@ MAG_TREE = ("(((Pseudonocardia_autotrophica_DSM43083:0.01,"
             "Actinosynnema_mirum_DSM43827_OUTGROUP:0.10)100:0.0);")
 
 # Two _OUTGROUP tips, one of which shares a genus with the ingroup (mislabelled), plus a
-# GCA/GCF twin of the same assembly. All four AMBER_04 checks fire on this one tree.
+# GCA/GCF twin of the same assembly. All four P04 checks fire on this one tree.
 MULTI = ("((((Nocardia_farcinica_IFM10152:0.01,"
          "Nocardia_farcinica_GCA_000009565.1:0.01)90:0.02,"
          "Nocardia_brasiliensis_HUJEG1_GCF_000009565.1:0.03)95:0.02,"

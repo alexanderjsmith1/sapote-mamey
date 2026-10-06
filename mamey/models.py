@@ -351,6 +351,7 @@ class MameyRun:
     def to_dict(self) -> dict[str, Any]:
         """Full JSON snapshot — the manifest handoff object."""
         from . import BUNDLE_VERSION
+        from .metabolomics_bridge import targets_for_run
         from .assembly import (corrected_bgc_count, assembly_tier,
                                assembly_quality as _assembly_quality)
         from .source_provenance import source_provenance_note
@@ -490,7 +491,7 @@ class MameyRun:
             "hallucination_traps_triggered": [],
             "resistance_gene_summary": self.resistance_gene_summary(),
             "wet_lab_priorities": [],
-            "metabolomics_targets": [],
+            "metabolomics_targets": targets_for_run(self),
             "missingness": [],
             "recommended_next_steps": [],
             # --- Cross-strain context (populated by master workbook writer) ---

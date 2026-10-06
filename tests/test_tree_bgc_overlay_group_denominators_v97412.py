@@ -1,4 +1,4 @@
-"""v9.7.412 (Razzle Dazzle Rose): the caption field `group_denominators` must be a per-ROLE plotted-row
+"""v9.7.412: the caption field `group_denominators` must be a per-ROLE plotted-row
 count, not one `rows=1` entry per tip. Guards the fix at tools/tree_bgc_overlay.py (three cuts open:
 first flagged on .408) and its compatibility with the figure_policy validator (`rows=` + a digit)."""
 from __future__ import annotations

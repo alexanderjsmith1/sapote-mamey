@@ -1,4 +1,4 @@
-"""v9.7.441 card 283f1f96: workspace_root() climbs from a CODE bundle nested inside its workspace to
+"""v9.7.441 card: workspace_root() climbs from a CODE bundle nested inside its workspace to
 the nearest parent holding a workspace marker (miniconda3/, blast_dbs/, Tools/databases/); OFFICIAL_DATA is NOT a marker because the bundle ships one. With no
 marker anywhere the historical cwd fallback is byte-identical; an env var still wins."""
 from pathlib import Path

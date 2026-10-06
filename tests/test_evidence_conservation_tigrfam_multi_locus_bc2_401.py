@@ -1,4 +1,4 @@
-"""BC2 .401 audit: tools/evidence_conservation_audit.py's own docstring states its design
+"""An audit-lane .401 audit: tools/evidence_conservation_audit.py's own docstring states its design
 principle is "LOCUS-level presence checks (not bare string matching, which false-positives on
 product labels)". `check_tigrfam()` did not actually follow that principle -- it used a bare
 `acc not in pkg_blob` boolean-presence check, not a locus-aware one.

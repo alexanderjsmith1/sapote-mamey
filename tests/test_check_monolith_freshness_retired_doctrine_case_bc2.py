@@ -1,4 +1,4 @@
-"""BC2-CMF-01 (v9.7.396): tools/check_monolith_freshness.py's RETIRED-doctrine scan matched via
+"""CMF-01 (v9.7.396): tools/check_monolith_freshness.py's RETIRED-doctrine scan matched via
 bare re.finditer(pat, text) with no re.I, while the file's own _DENY negation-guard regex (used to
 decide whether a match is an assertion or a denial) already had re.I. A monolith casually referencing
 a retired flag/phrase in a different case (e.g. "as_scrub is still checked" instead of "AS_SCRUB")

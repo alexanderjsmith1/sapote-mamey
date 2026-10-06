@@ -28,7 +28,7 @@ def _fires(pats, text):
 def test_pho_transporter_does_not_fire():
     assert not _fires(PHO, "2-aminoethylphosphonate ABC transporter substrate-binding protein")
     assert not _fires(PHO, "2-aminoethylphosphonate ABC transporter permease subunit")
-    # BC2-408: the cassette twin (MMC-004) never received T43-PHO's own guards -- fixed here.
+    # 408: the cassette twin (MMC-004) never received T43-PHO's own guards -- fixed here.
     assert not _fires(CAS_PHO, "2-aminoethylphosphonate ABC transporter substrate-binding protein")
 
 def test_pho_family_fold_does_not_fire():
@@ -72,7 +72,7 @@ def test_pho_real_pep_mutase_domain_now_fires():
     assert _fires(PHO, "PEP_mutase (E-value: 5.3e-71, bitscore: 229.5, seeds: 69, tool: rule-based-clusters)")
 
 
-# BC2-408: T43-PYE already guards "polyene" with (?<!aryl) (an APE-type pigment, not polyene-
+# 408: T43-PYE already guards "polyene" with (?<!aryl) (an APE-type pigment, not polyene-
 # macrolide antifungal chemistry — the same confusion scoring.py's PIGMENT_NONLEAD_CLASSES
 # guards against on the scoring axis). The cassette twin (polyene_ptm_hsaf, registry MMC-012,
 # TIER_1_DIAGNOSTIC/HIGH, surfaced directly in the per-strain workbook's Cassette_Registry
@@ -89,7 +89,7 @@ def test_pye_real_polyene_still_fires():
     assert _fires(CAS_PYE, "HSAF biosynthesis gene cluster")
 
 
-# BC2-408 round 2: Alex flagged that the CASSETTE/CCTT sibling sweep was NOT finished (2 of ~15
+# 408 round 2: The owner flagged that the CASSETTE/CCTT sibling sweep was NOT finished (2 of ~15
 # pairs checked at the time) and asked for one more pass. Checking the remaining true sibling
 # pairs (a CASSETTE_PATTERNS entry with a semantically corresponding CCTT trigger) surfaced three
 # more real gaps, verified live exactly like the PYE/PHO pair above.

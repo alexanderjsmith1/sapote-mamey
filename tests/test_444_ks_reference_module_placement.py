@@ -2,7 +2,7 @@
 
 Shared-reference homology cannot separate the pieces of a giant modular PKS broken over many contigs; KS phylogeny with
 the reference's own module KS can. In public genome SID8382 (WGS WWFZ01), KS domains on ten contigs sat one-to-one
-beside neomediomycin B module KS. Alex, 2026-09-27: build it into this cut as an additive evidence layer.
+beside neomediomycin B module KS. 2026-09-27: build it into this cut as an additive evidence layer.
 """
 import csv
 import importlib.util

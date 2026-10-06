@@ -1,4 +1,4 @@
-"""BC2 .401 audit: mamey/dedup_and_guard.py's own docstring documents the v9.7.236 PI decision
+"""An audit-lane .401 audit: mamey/dedup_and_guard.py's own docstring documents the v9.7.236 PI decision
 -- AS-series strains are PUBLIC by default, implemented in `derive_release()`. But the sibling
 `leak_audit()` in the same file was never updated for that decision: it flagged ANY cell
 matching the private-identifier regexes in a PUBLIC row, including the row's OWN

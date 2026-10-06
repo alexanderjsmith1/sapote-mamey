@@ -8,7 +8,7 @@ from mamey.cross_strain_card_context import (
 )
 
 MASTER = str(_ROOT / "private" / "cohort_fixtures" / "_cohort_master_v2.xlsx")
-# v9.7.414 (BC2): this was a module-level `pytestmark`, so EVERY test here skipped whenever the
+# v9.7.414: this was a module-level `pytestmark`, so EVERY test here skipped whenever the
 # non-shipped 24-strain scored master was absent — which is always, in this tier. That is exactly
 # the pattern TEST-02 removed from the sibling test_cohort_synthesis.py ("hiding the pure-logic and
 # self-contained tests too"); this file never received the same treatment. Scope the skip to the

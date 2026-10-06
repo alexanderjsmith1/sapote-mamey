@@ -59,7 +59,7 @@ modeb_card_guard	OPERATOR_ONLY	identity-vs-STRAIN_CARD.md QC (the review and pat
 public_release_audit	WIRED	fail-closed public-release leak audit (roster/AS-id/personal-path/run-dir/exclusions): pytest test_release_audit_fails_closed_v9_7_381 + CI gates job
 check_regex_interpolation	WIRED	unbound interpolated-alternation regex gate (silent branch loss): pytest tests/test_check_regex_interpolation_v97395.py
 strict_source_disclosure_audit	WIRED	opt-in strict pass over python source + tests/ (B-003); fold-ready for the Repair-15 evaluator: pytest tests/test_strict_source_disclosure_audit_v97395.py
-figure_check	WIRED	HARD pre-render FIGURE gate (render-side sibling of tree_sanity_check): marker coverage, category vocabulary, label hygiene/verbosity, declared omissions. Reclassified WIRED in .401 (AMBER_401_figure_check_render_wiring): hooked into tools/render_clean_tree.py before any figure render (FIGCHECK_SKIP=1 is the explicit escape hatch).
+figure_check	WIRED	HARD pre-render FIGURE gate (render-side sibling of tree_sanity_check): marker coverage, category vocabulary, label hygiene/verbosity, declared omissions. Reclassified WIRED in .401 (figure_check_render_wiring): hooked into tools/render_clean_tree.py before any figure render (FIGCHECK_SKIP=1 is the explicit escape hatch).
 lead_propagation_gate	OPERATOR_ONLY	v9.7.405 lead-propagation audit (every triage-board lead reaches every lead-listing surface); post-seal, advisory unless --strict; unit-tested (test_lead_propagation_gate_v97405), operator-run, not wired into release.sh
 audit_documents_wheelhouse	WIRED	v9.7.405 fail-closed preflight for the documents add-on wheelhouse (pip-resolver wheel availability, no index, no install); referenced by its unit test (test_documents_wheelhouse*); operator-run before an offline install
 ani_caption_check	WIRED	C2 ANI/AAI honesty lock; referenced by tests/test_ani_caption_check.py
@@ -83,3 +83,4 @@ verify_release_tarball	WIRED	called by make_verified_code_tarball.sh before CODE
 check_no_bundle_write_defaults	WIRED	bundle-write default gate exercised by tests/test_check_no_bundle_write_defaults_v97443.py
 handoff_gate	WIRED	one fail-closed check before a patch packet, deliverable or reply is handed over (queue/HASHES drift, orphan cards, replay, links, four-part BGC identity, figure text): pytest tests/test_444_handoff_gate.py
 sync_wiki_mirrors	WIRED	wiki mirror gate: pytest tests/test_445_wiki_mirrors_match_docs.py
+check_tygs_coverage	OPERATOR_ONLY	per-cohort TYGS coverage report for tree panels; run during panel building, not a release invariant

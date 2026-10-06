@@ -228,7 +228,7 @@ CASSETTE_PATTERNS = {
     "release_macrocyclization": [r"thioesterase", r"\bte\b", r"cyclase", r"macrocycl", r"esterase", r"reductase release"],
     "glycosylation": [r"glycosyltransferase", r"glycosyl", r"sugar", r"deoxysugar", r"gt\b"],
     "halogenation": [r"(?<!de)halogenase", r"fluorinase", r"chlorinase", r"brominase"],
-    # BC2-408: same false-positive class as CCTT's T43-PHO_phosphonate (whose own guards this
+    # 408: same false-positive class as CCTT's T43-PHO_phosphonate (whose own guards this
     # cassette twin never received): bare "phosphonate" matches phosphonate ABC-TRANSPORTER/
     # UPTAKE annotations (not biosynthesis) and the "carboxyphosphonate"/SMCOG1231 isocitrate-
     # lyase-superfamily substring (~84% of the CCTT trigger's own over-firing on the live cohort
@@ -241,7 +241,7 @@ CASSETTE_PATTERNS = {
     # exact guards.
     "phosphonate": [r"(?<!carboxy)phosphonate(?!.*transporter)(?!.*utilization)(?!.*c-?p lyase)(?!.*phn[g-m]\b)",
                     r"pep mutase(?!\s*family)", r"phosphoenolpyruvate mutase(?!\s*family)", r"foma", r"fomb"],
-    # BC2-408 round 2: bare "nucleoside" matched primary-metabolism annotations that have nothing
+    # 408 round 2: bare "nucleoside" matched primary-metabolism annotations that have nothing
     # to do with nucleoside-antibiotic (nikkomycin/polyoxin-class) biosynthesis -- verified live:
     # "nucleoside diphosphate kinase" (a universal core-metabolic enzyme present in essentially
     # every bacterial genome), "purine nucleoside phosphorylase" (purine salvage), "nucleoside
@@ -250,7 +250,7 @@ CASSETTE_PATTERNS = {
     # peptidyl-nucleoside, chitin-synthase-inhibition phrase).
     "nucleoside": [r"peptidyl[- ]nucleoside", r"nikkomycin", r"polyoxin",
                    r"\bnikj\b", r"\bnikd\b", r"\bnikc\b", r"chitin synthase inhibit"],
-    # BC2-408 round 2: bare "aminoglycoside" matched the aminoglycoside-modifying RESISTANCE
+    # 408 round 2: bare "aminoglycoside" matched the aminoglycoside-modifying RESISTANCE
     # enzyme families -- verified live: "aminoglycoside phosphotransferase",
     # "aminoglycoside N-acetyltransferase", "aminoglycoside 6-adenylyltransferase" all fired.
     # These confer resistance TO aminoglycosides (self-protection/detox), not synthesis OF one --
@@ -260,7 +260,7 @@ CASSETTE_PATTERNS = {
     "aminoglycoside_aminocyclitol": [r"aminocyclitol", r"dois", r"btrc", r"2-deoxy-scyllo-inosose"],
     "tetronate_spirotetronate": [r"tetronate", r"spirotetronate", r"fkbh", r"(?<!acyl)glyceryl"],
     "thioamide_ycao": [r"thioamide", r"ycaO"],
-    # BC2-408 round 2: bare, unanchored "lanc"/"lanm"/"lant"/"lanp" substrings -- verified live:
+    # 408 round 2: bare, unanchored "lanc"/"lanm"/"lant"/"lanp" substrings -- verified live:
     # "atlantic salmon protein" and "planthopper" both fired (pure substring collisions with no
     # relation to lanthipeptide biosynthesis), and "Lant_dehydr_N"/"Lant_dehydr_C" fired via the
     # bare "lant" token the same way this file's OWN UMED_PATTERNS docstring (a few hundred lines
@@ -277,7 +277,7 @@ CASSETTE_PATTERNS = {
                        r"(?<![A-Za-z])lant(?![A-Za-z_])", r"(?<![A-Za-z])lanp(?![A-Za-z])"],
     "lassopeptide": [r"lassopeptide", r"lasso peptide"],
     "tomm_azole_ripp": [r"azole", r"tomm", r"cyclodehydratase", r"dehydrogenase", r"ripp"],
-    # BC2-408: bare "polyene" (no guard) matches "arylpolyene" as a substring -- arylpolyenes are
+    # 408: bare "polyene" (no guard) matches "arylpolyene" as a substring -- arylpolyenes are
     # APE-type PIGMENTS, not polyene-macrolide antifungal chemistry (the exact confusion
     # scoring.py's PIGMENT_NONLEAD_CLASSES and this file's own T43-PYE trigger
     # (`(?<!aryl)polyene macrolide`) already guard against elsewhere). This cassette is registry

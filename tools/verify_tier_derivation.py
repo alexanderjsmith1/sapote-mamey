@@ -46,6 +46,9 @@ METADATA_SKIP = {"SOURCE_CHECKSUMS_SHA256.txt", "TIER_MANIFEST.txt",
 # + the caches removed at stage-1). A private-tree file under one of these has no public counterpart BY
 # DESIGN — it is not drift. Kept in sync with make_public_tier.sh so the verifier mirrors the cut; add a
 # dir here whenever the cut learns to strip it (v9.7.382: _CANDIDATE_NOTES/ was added to strip_internal).
+# Exact correspondence-file omission shared with the tier builder; the patch remains shipped.
+STRIP_FILE_PATHS = {"tools/upstream_gtotree2/NOTE_TO_GTOTREE_AUTHOR.md"}
+
 STRIP_DIR_PREFIXES = (
     "_CANDIDATE_NOTES/", "docs/internal/", "tools/internal/", "scripts/one-off/",
     "future_improvements/", "private/", "cohort/", "merged_cohort/", "data/",
@@ -54,7 +57,7 @@ STRIP_DIR_PREFIXES = (
 )
 
 import re as _re
-# BC2-VTD-01 (v9.7.396): the dynamic-run-dir check was `first.startswith("runs")` — a bare prefix
+# VTD-01 (v9.7.396): the dynamic-run-dir check was `first.startswith("runs")` — a bare prefix
 # match with no word-boundary, so ANY root-level file or directory whose name merely starts with
 # the substring "runs" (e.g. "runsafe_check.py", "runsanalysis_helper.md" — ordinary, plausible
 # names for a future root-level script or doc in an actively-developed project whose own .395
@@ -87,7 +90,7 @@ def _is_stripped(rel: str, policy: PublicExportPolicy | None = None) -> bool:
     so they cannot be represented safely as a single static path prefix.
     """
     # CODEX_392 rebase: the incoming patch restored `first.startswith("runs")` here, because it
-    # was authored before BC2-VTD-01. Reapplying it verbatim would have silently reverted that
+    # was authored before VTD-01. Reapplying it verbatim would have silently reverted that
     # fix and re-excluded any root-level name merely beginning with "runs" from the whole
     # redaction-parity loop. The boundary regex is kept; only the policy term is added.
     policy = policy or load_public_export_policy()
@@ -95,7 +98,8 @@ def _is_stripped(rel: str, policy: PublicExportPolicy | None = None) -> bool:
     if rel.startswith("./"):
         rel = rel[2:]
     first = rel.split("/", 1)[0]
-    return (bool(_RUNS_DIR_RE.match(first))
+    return (rel in STRIP_FILE_PATHS
+            or bool(_RUNS_DIR_RE.match(first))
             or _is_policy_stripped(rel, policy)
             or any(rel.startswith(p) for p in STRIP_DIR_PREFIXES))
 

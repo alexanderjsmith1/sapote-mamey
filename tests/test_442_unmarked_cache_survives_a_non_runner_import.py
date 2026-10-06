@@ -153,7 +153,7 @@ def test_symlinked_cache_refused_before_stale_code_executes(tmp_path):
     reason="root ignores directory permissions, so an undeletable cache cannot be staged",
 )
 def test_a_cache_that_cannot_be_cleared_still_refuses(tmp_path):
-    """Fail closed. `1246F6CE` showed that rmtree runs with ignore_errors=True, so a cache the
+    """Fail closed. An earlier card showed that rmtree runs with ignore_errors=True, so a cache the
     filesystem will not release is skipped silently. Clearing must not become a way to import the
     very bytecode this branch exists to distrust."""
     root = _tree(tmp_path)

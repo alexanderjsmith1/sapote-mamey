@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """extract_module_core_domains.py — deterministic module-core aSDomain extractor (P358-003 Idea A.1).
 
-Emits the reproducible INPUT to a strain-internal KS/module-core domain tree (the substrate Amber's
+Emits the reproducible INPUT to a strain-internal KS/module-core domain tree (the substrate the phylogeny lane's
 AS-XXX tree currently has no engine-side generator for). For a directory of antiSMASH region GBKs it
 pulls every module-core aSDomain (PKS_KS/PKS_AT/Condensation/AMP-binding/PKS_KR/PKS_DH by default),
 reads the domain's own `/translation`, and writes per-class FASTA + a manifest TSV.
 
 Deterministic extraction, judgment deferred — the engine motto. Non-scoring.
 
-TWO GATES (baked in, per the review lane/VGP 2026-08-10 — these are the hazards that must not be discovered later):
-  1. ITERATIVE-MODULE GUARD (VGP): KS count != module count != chain length. An iterative PKS/FAS system is
+TWO GATES (baked in, per the review lane/an audit lane 2026-08-10 — these are the hazards that must not be discovered later):
+  1. ITERATIVE-MODULE GUARD: KS count != module count != chain length. An iterative PKS/FAS system is
      COMPLETE at low KS count, so this tool NEVER emits a "missing modules" / "fragmented" claim from a count.
      It reports the raw PKS_KS count per BGC as an OBSERVATION with that caveat stamped on the manifest.
   2. STRAIN-INTERNAL ONLY: one strain per run (asserted from the region-GBK filenames). A cross-strain KS tree

@@ -1,4 +1,4 @@
-"""Engine tests for mamey/domain_tree.py — the gated BGC-machinery domain-tree builder (VGP-400).
+"""Engine tests for mamey/domain_tree.py — the gated BGC-machinery domain-tree builder (400).
 
 IN-TREE: imports the INSTALLED module, so these assert the behavior of the tree they ship in (the
 packet-relative variant that only tested the packet's own copy is kept as packet evidence only).

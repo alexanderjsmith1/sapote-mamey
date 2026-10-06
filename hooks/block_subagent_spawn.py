@@ -10,7 +10,7 @@ WHY (measured, 2026-08-10 — not a story this time):
   Measured across the six analyst lanes (Tools/session_cost_audit.py, same day):
 
     lane          main-thread tokens   analyses on disk   tokens/analysis   Agent calls
-    Mango Tango          35.1M               62               0.57M              6
+    an audit lane          35.1M               62               0.57M              6
     Sea Green            24.5M               41               0.60M              4
     Wisteria             20.6M               13               1.58M             27
     a contributor lane                 38.6M               23               1.68M              2
@@ -176,7 +176,7 @@ def main():
         "anywhere on disk. When the Developer or User asked why one analyst lane had spent so many tokens, "
         "its 42 subagents had left only their final reports — the reasoning, the reads and "
         "the spend were unrecoverable. The lanes that read GBKs one at a time, in-session "
-        "(Mango Tango, Sea Green), delivered an analysis for ~0.57-0.60M tokens; the two "
+        "(Sea Green), delivered an analysis for ~0.57-0.60M tokens; the two "
         "heaviest delegators cost ~3.1-3.3M per analysis, 5x more.\n\n"
         "DO THIS INSTEAD: read the region yourself, in this session. Read/Grep/Glob/Bash "
         "are all still available and all leave a record. Your accumulated strain context "

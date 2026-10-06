@@ -41,17 +41,17 @@ def test_identify_recognizes_the_real_convention_regardless_of_parent_dir_name_v
     # deliberately NOT literally "Color folders" or "sessions" in this test either -- proves the
     # fix matches on the STATE.md-owning directory's own name, not a hardcoded parent literal.
     _write_fake_transcript(
-        p, "/home/user/some_workspace_root/Black Cherry/STATE.md"
+        p, "/home/user/some_workspace_root/Example Lane/STATE.md"
     )
-    assert m.identify(str(p)) == "Black Cherry"
+    assert m.identify(str(p)) == "Example Lane"
 
 
 def test_identify_still_recognizes_legacy_sessions_convention_v97395(tmp_path):
     """No regression: the old sessions/<Name>/STATE.md shape still resolves -- it's a special
     case of the same general pattern now, not a separately-maintained one."""
     p = tmp_path / "fake_legacy_session.jsonl"
-    _write_fake_transcript(p, "/some/old/path/sessions/Aquarius/STATE.md")
-    assert m.identify(str(p)) == "Aquarius"
+    _write_fake_transcript(p, "/some/old/path/sessions/Example Lane/STATE.md")
+    assert m.identify(str(p)) == "Example Lane"
 
 
 def test_identify_does_not_hardcode_a_workspace_specific_literal_v97395():

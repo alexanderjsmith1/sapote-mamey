@@ -1,6 +1,6 @@
 """tools/build_lead_tiers.py must not crash on a freshly-banked cohort.
 
-Found via a real deliverable run (BC2-408): `ingest_package.py --package <pkg> --merge` is the
+Found via a real deliverable run (408): `ingest_package.py --package <pkg> --merge` is the
 documented, complete cohort-banking step, but neither it nor any other tool in this codebase ever
 writes deep_data.json (a separate tool's output, tools/build_deep_data.py -- per the AUDIT_374
 comment already fixed for this exact class of gap in tools/build_master.py's own

@@ -1,12 +1,12 @@
 # Sapote-Mamey release tiers
 
-**Bundle v9.7.446 · build 20261001v97446a · engine Mamey 1.9.172**
+**Bundle v9.7.448 · build 20261005v97448a · engine Mamey 1.9.173**
 
 > **HISTORICAL SNAPSHOT — measured 2026-07-12 for v9.7.319; reviewed 2026-09-03.**
 > The five-cut layout, 1,353-file count, sizes, and checksums below describe that historical cut.
-> They are retained as provenance, not current operating instructions. For the current four-tier
-> set and its separately governed public-release promotion, use `docs/TIER_DIFFERENCES.md` and
-> `CURRENT_DOCS_INDEX.md`.
+> They are retained as provenance, not current operating instructions. Releases now cut the CODE tier only
+> (`CUT_PROTOCOL.md`); `docs/TIER_DIFFERENCES.md` is also historical. For disclosure, use
+> `docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md`.
 
 Every release cut produces the same bundle in five labelled tiers. This note explains what each tier is *designed* to be, and — importantly for this release — what the five tiers actually contain right now.
 

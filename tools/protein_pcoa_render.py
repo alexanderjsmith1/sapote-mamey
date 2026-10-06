@@ -8,6 +8,7 @@ A cohort table (strain, cohort) assigns cohort points to panels: --panel NAME=CO
 What is drawn:
 - reference genomes grey and MIBiG blue, sized by the members each centroid represents; cohort points on top;
 - fill shows identity: solid when the best reference/MIBiG match is below --label-below % (default 70), open otherwise;
+  with --mid-below M (for example 85), three tiers: solid below --label-below, light fill from --label-below to M, open at M or above;
 - the class tag bold at top left; no title and no other text on the artwork (the caption carries it);
 - labels, one of two rules:
   * --top-strains N: up to N strains by name, one label each; strains with a point below --label-below come first (lowest
@@ -165,6 +166,13 @@ def render_r(spec: Path, out_prefix: Path, stamp: str) -> None:
     done.unlink()
 
 
+def tint(hex_colour: str, keep: float = 0.45) -> str:
+    """The panel colour mixed with white (keep = share of the colour), the light fill of the middle identity tier."""
+    h = hex_colour.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return "#" + "".join(f"{round(255 - (255 - c) * keep):02x}" for c in (r, g, b))
+
+
 def render_matplotlib(spec: dict, out_prefix: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
@@ -178,10 +186,14 @@ def render_matplotlib(spec: dict, out_prefix: Path) -> None:
                        lw=0, alpha=.7, label=spec["legend"][layer])
     col = spec["colour"]
     lo = [p for p in spec["points"] if p["layer"] == "iso_low"]
+    mid = [p for p in spec["points"] if p["layer"] == "iso_mid"]
     hi = [p for p in spec["points"] if p["layer"] == "iso_high"]
     if lo:
         ax.scatter([p["x"] for p in lo], [p["y"] for p in lo], s=22, c=col, edgecolors="black", lw=.4, zorder=3,
                    label=spec["legend"]["iso_low"])
+    if mid:
+        ax.scatter([p["x"] for p in mid], [p["y"] for p in mid], s=22, facecolors=spec["mid_fill"], edgecolors=col, lw=.8, zorder=3,
+                   label=spec["legend"]["iso_mid"])
     if hi:
         ax.scatter([p["x"] for p in hi], [p["y"] for p in hi], s=22, facecolors="white", edgecolors=col, lw=1.1, zorder=3,
                    label=spec["legend"]["iso_high"])
@@ -224,20 +236,26 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
     groups, texts, thr, numbered = choose_labels(cpts, bg, label_below=a.label_below, top_strains=a.top_strains, q=a.quantile,
                                                  number_above=a.number_above, span=kit_span)
     low = [p["pid"] is not None and p["pid"] < a.label_below for p in cpts]
-    for p, lw in zip(cpts, low):
-        points.append(dict(x=p["x"], y=p["y"], layer="iso_low" if lw else "iso_high", size=1))
+    mid = [not lw and a.mid_below is not None and p["pid"] is not None and p["pid"] < a.mid_below for p, lw in zip(cpts, low)]
+    for p, lw, md in zip(cpts, low, mid):
+        points.append(dict(x=p["x"], y=p["y"], layer="iso_low" if lw else ("iso_mid" if md else "iso_high"), size=1))
     title, tag, unit = titles.get(s, (s, s, "proteins"))
     pct = run.get("pct_axes") or [float("nan"), float("nan")]
     mt = "reference/MIBiG" if n_mib else "reference"
-    nlo = sum(low); nhi = len(cpts) - nlo
-    slo = len({p["strain"] for p, lw in zip(cpts, low) if lw}); shi = len({p["strain"] for p, lw in zip(cpts, low) if not lw})
+    nlo = sum(low); nmd = sum(mid); nhi = len(cpts) - nlo - nmd
+    slo = len({p["strain"] for p, lw in zip(cpts, low) if lw}); smd = len({p["strain"] for p, md in zip(cpts, mid) if md})
+    shi = len({p["strain"] for p, lw, md in zip(cpts, low, mid) if not lw and not md})
+    top = a.mid_below if a.mid_below is not None else a.label_below
     spec = dict(set=s, panel=panel, tag=tag, colour=colour, xlab=f"PCoA 1 ({pct[0]:.1f}%)", ylab=f"PCoA 2 ({pct[1]:.1f}%)",
                 legend=dict(ref=f"reference genomes ({n_ref:,} {unit})", mibig=f"MIBiG ({n_mib:,} {unit})",
                             iso_low=f"{label_text} ({nlo:,} {unit}, {slo} strains): best {mt} match < {a.label_below:.0f}% identity",
-                            iso_high=f"{label_text} ({nhi:,} {unit}, {shi} strains): best {mt} match >= {a.label_below:.0f}% identity"),
-                points=points,
+                            iso_high=f"{label_text} ({nhi:,} {unit}, {shi} strains): best {mt} match >= {top:.0f}% identity"),
+                points=points, mid_fill=tint(colour),
                 labels=[dict(x=sum(cpts[k]["x"] for k in g) / len(g), y=sum(cpts[k]["y"] for k in g) / len(g), label=t)
                         for g, t in zip(groups, texts)])
+    if a.mid_below is not None:
+        spec["legend"]["iso_mid"] = (f"{label_text} ({nmd:,} {unit}, {smd} strains): best {mt} match "
+                                     f"{a.label_below:.0f}–{a.mid_below:.0f}% identity")
     assert_no_banned_figure_text([spec["tag"], spec["xlab"], spec["ylab"], *spec["legend"].values(), *texts],
                                  figure_id=f"{s}_{panel}")
     prefix = out / f"PCOA_{s}_{panel}"
@@ -262,11 +280,12 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
             for k in g:
                 p = cpts[k]
                 w.writerow([n, t, p["strain"], p["row"].get("origin", ""), p["row"].get("locus_tag", ""), f"{p['x']:.5f}",
-                            f"{p['y']:.5f}", f"{p['pid']:.1f}" if p["pid"] is not None else "", "solid" if low[k] else "open"])
+                            f"{p['y']:.5f}", f"{p['pid']:.1f}" if p["pid"] is not None else "",
+                            "solid" if low[k] else ("light" if mid[k] else "open")])
     receipt = dict(set=s, panel=panel, cohorts=sorted(cohort_set), renderer=renderer, stamp=stamp, labels=len(groups),
-                   numbered=numbered, threshold=thr, n_cohort_points=len(cpts), n_low=nlo, n_ref=n_ref, n_mibig=n_mib,
+                   numbered=numbered, threshold=thr, n_cohort_points=len(cpts), n_low=nlo, n_mid=nmd, n_ref=n_ref, n_mibig=n_mib,
                    label_rule=("top_strains" if a.top_strains else "distance_quantile"), top_strains=a.top_strains,
-                   quantile=a.quantile, label_below=a.label_below, title=title)
+                   quantile=a.quantile, label_below=a.label_below, mid_below=a.mid_below, title=title)
     (out / f"panel_{s}_{panel}.json").write_text(json.dumps(receipt, indent=1))
     return receipt
 
@@ -284,11 +303,15 @@ def main(argv=None) -> int:
     ap.add_argument("--exclude-strain", action="append", help="strain not drawn (repeatable)")
     ap.add_argument("--drop-origins", help="file listing region files whose points are not drawn")
     ap.add_argument("--label-below", type=float, default=70.0)
+    ap.add_argument("--mid-below", type=float, default=None,
+                    help="three identity tiers: light fill from --label-below up to this value (for example 85); default two tiers")
     ap.add_argument("--top-strains", type=int, default=0, help="label up to N strains by name (0 = distance rule)")
     ap.add_argument("--quantile", type=float, default=0.95)
     ap.add_argument("--number-above", type=int, default=30)
     ap.add_argument("--renderer", choices=["auto", "r", "matplotlib"], default="auto")
     a = ap.parse_args(argv)
+    if a.mid_below is not None and a.mid_below <= a.label_below:
+        ap.error("--mid-below must be above --label-below")
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
         out = Path(a.out)

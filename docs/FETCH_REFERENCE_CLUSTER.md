@@ -13,16 +13,47 @@ hand-reconstructing a GBK. This exposes that as a reusable step and improves on 
 
 ## Usage
 
+    # --acc <text>:<label>   a MIBiG or cohort cluster from the DB (repeatable)
+    # --ncbi <acc>:<label>   an NCBI nucleotide record (repeatable)
     python tools/fetch_reference_cluster.py \
         --db anchored.db \
-        --acc BGC0000877:polyoxin \        # MIBiG or cohort cluster from the DB (repeatable)
-        --acc AS-XXX_NODE_42:AS-XXX_BGC043 \ # cohort clusters match on gbk.path substring
-        --ncbi MF055656.1:nikkomycin \      # NCBI nucleotide efetch (repeatable)
+        --acc BGC0000877:polyoxin \
+        --acc AS-XXX_NODE_42_length_51234_cov_12.3.region001:AS-XXX_BGC043 \
+        --ncbi MF055656.1:nikkomycin \
         --outdir refs/
 
-Writes `refs/<label>.gbk` per reference, ready to drop into any comparison. Cohort members are
-selected the same way as MIBiG accessions — by a substring of `gbk.path` — so a strain's region
-is one flag away from a comparable GBK.
+Writes `refs/<label>.gbk` per reference. Each `--acc` text must select **exactly one** record in the
+DB's `gbk.path`. It is matched as plain text (SQL wildcards are escaped). No match stops with "not
+found". More than one match stops with the list of matching paths: give a longer substring, such as the
+full region file name. The selected path is printed on stderr and preserved in
+`refs/<label>.reference_selection.json`. Each receipt contains the requested selector, resolved DB
+path and SHA256, selected `gbk` row ID and original source path, CDS count, and output GBK path
+and SHA256. If a SQLite WAL exists, its path and SHA256 are included too. For NCBI inputs, the
+receipt records the request URL, returned record IDs and response SHA256 instead of a DB binding.
+Keep the receipt alongside the GBK; it records source selection and output bytes, without upgrading
+similarity into a compound or activity claim. A strain/contig fragment without the region can match several
+regions on the same contig; that is now refused rather than resolved to the first row.
+
+All requested references are resolved and the complete output/receipt set is staged before
+publication. Missing, ambiguous, or empty selections fail visibly with a nonzero exit. Labels must
+be unique, nonempty filename basenames; path separators and traversal names are refused.
+Existing output destinations are refused rather than overwritten. Use a fresh output directory
+for a new selection or rerun, and retain earlier GBK/receipt pairs as history.
+
+The query and every local or fetched GenBank reference must contain exactly one record; multiple
+records are refused rather than concatenated or silently truncated. All final paths are checked
+for containment within the resolved output directory. Ordinary publication errors roll back newly
+published files. This is not a concurrent atomic multi-file transaction or crash-recovery mechanism:
+keep sources stable, avoid concurrent output writers, and inspect an interrupted output directory
+before treating any set as complete.
+
+`bgc_reference_align` applies the same DB selection rule. Every requested DB, NCBI, or local GBK
+reference must contain translated CDS; a missing or empty member stops the comparison before its
+figure or CSV is written. A successful comparison also writes
+`<strain>_<bgc>_reference_selection.json` (or `<bgc>_reference_selection.json` without `--strain`),
+which binds the query GBK, each source selection, the global-identity threshold, and both output
+files to their SHA256 values. Local GBK references are bound to their resolved paths and bytes.
+Use a stable source DB during the run and retain any WAL with the DB when reproducing its state.
 
 ## Why this closes a loop
 

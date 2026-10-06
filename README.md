@@ -15,7 +15,7 @@ the interpretation for you.
 
 From one antiSMASH result ZIP you can examine the genes and their reference matches, deepen
 uncertain calls with BLASTp, and compare strains. Optional companion workflows add BiG-SCAPE
-gene-cluster families and phylogenetic trees to the same evidence review and figure workflow.
+gene-cluster families, independently predicted GECCO evidence, and phylogenetic trees to the same evidence review and figure workflow.
 You do not need every optional workflow to get a useful result. Mode B cards have optional sections designed to integrate these additional data streams.
 
 For a one-page map of the program's parts, inputs, and outputs, see
@@ -92,6 +92,23 @@ The program was occasionally tested with other bacterial orders, and several bas
 
 ## Beyond extraction
 
+**Optional class-evidence commands.** `gecco-crosscheck --package <package> --zip <source.zip>` runs an externally installed GECCO 0.11 adapter with the source CDS calls. `export-metabolomics --package <package> --source-zip <source.zip>` stages broad class hypotheses and exact region GBKs for operator MS review. `two-proof-rescue --package <package> --policy nonks_position_v1 --scorecard <scorecard.tsv>` enables the named alternative position rule; the default KS rule remains unchanged. All three write fresh external sibling outputs with source/policy receipts. See the [class-evidence command guide](docs/COMPANION_CLASS_EVIDENCE.md) for inputs, claim ceilings and operating choices.
+
+**Independent GECCO evidence.** GECCO is an optional, externally installed BGC caller;
+`python mamey_run.py doctor --companions` reports whether its executable is detected.
+Detection is not a GECCO run or validation of its outputs. Keep its input assembly,
+sequence bindings, tool/model version and run receipt with the results. The shipped
+[companion guide](docs/companion_tools.md#gecco) explains the integration boundary.
+[Strain slides](docs/STRAIN_SLIDES.md) consume explicitly supplied `*.genes.tsv`,
+`*.features.tsv` and `*.clusters.tsv` through `gecco_dir`, showing per-gene evidence,
+overlaps and GECCO-only candidates. The [current50 v2 Mode B contract](docs/MODEB_CURRENT50_V2_CONTRACT.md)
+provides a GECCO section (§22) and gene-level evidence table (§50); carry
+`--contract current50_v2` through template emission and authored-card verification. The [gap-rescue reader](docs/MODEB_GAP_RESCUE_READER.md) describes optional supplied context and its existence-only verification boundary.
+For supported context on other contigs, the [expanded-locus guide](docs/MODEB_EXPANDED_LOCUS.md) describes pinned CDS inventories, bounded interval selection and verification with `--require-expanded-locus`. Context genes retain separate roles from core membership.
+GECCO evidence complements antiSMASH evidence; it does not alter the deterministic
+sealed package or establish a product or activity.
+
+
 **Protein evidence.** Mamey extracts translated CDS sequences from antiSMASH region GenBank
 files. `bgc-blastp-panel` exports representative proteins as FASTA batches for a manual BLASTp
 search. `blastp-online` submits a selected region's proteins to NCBI; `blastp-round` plans broader
@@ -109,6 +126,11 @@ terminus evidence add context; paralogous overlap and promiscuous links can weak
 proposed rescue. "Rescue" here means recovering an interpretable candidate pathway relationship.
 It does not join contigs or reconstruct missing sequence. See
 [fragment review](docs/GUIDE/02_Quick_Guide.md#fragmented-pathway-review).
+
+**Immutable reader outputs.** Report compilation, compound-family reports, assembly-line
+reports and lead pages use sibling `post_seal/<command>/` folders. Compiled reports
+retain an external source snapshot and byte-bound receipt. See
+[post-seal readers and portable PDF routes](docs/POSTSEAL_READERS.md).
 
 **Cluster families.** `bigscape` stages region GBKs, runs an externally installed BiG-SCAPE 2.x,
 and can chain the results into cohort widgets. The command is integrated; you supply the
@@ -194,7 +216,7 @@ distribution you use.
 | [HMMER](https://github.com/EddyRivasLab/hmmer) | Profile searches and pressed Pfam preparation for relevant companion workflows | [BSD-3-Clause](https://github.com/EddyRivasLab/hmmer/blob/master/LICENSE) |
 | [clinker](https://github.com/gamcil/clinker#installation) | Optional gene-cluster comparison views | MIT |
 | [DIAMOND](https://github.com/bbuchfink/diamond) | Optional accelerated local protein comparisons | GPL-3.0 |
-| [GToTree](https://github.com/AstrobioMike/GToTree) | Optional genome-marker phylogeny workflow | MIT; dependencies retain their own licenses |
+| [GToTree](https://github.com/AstrobioMike/GToTree) | Optional genome-marker phylogeny workflow | GPL-3.0; dependencies retain their own licenses |
 | [Prodigal](https://github.com/hyattpd/Prodigal) | Gene prediction where required by the selected genome workflow | GPL-3.0 |
 | [MUSCLE](https://github.com/rcedgar/muscle) | Alignment in workflows configured for MUSCLE | [GPL-3.0 for the current upstream distribution](https://github.com/rcedgar/muscle/blob/main/LICENSE); verify the required CLI version |
 | [MAFFT](https://mafft.cbrc.jp/alignment/software/index.html) | Alignment for the placement workflow | BSD for the core distribution; bundled extensions have separate terms |
@@ -334,4 +356,4 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.446 / engine 1.9.172 · build 20261001v97446a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.448 / engine 1.9.173 · build 20261005v97448a · release profile: CODE (see RELEASE_MANIFEST.md)*

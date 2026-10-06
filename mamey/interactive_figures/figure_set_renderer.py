@@ -546,7 +546,7 @@ def _contrast_ratio(colour_a: str, colour_b: str) -> float:
 def _text_colour_for_contrast(fill: str, dark: str, light: str) -> str:
     """Pick whichever of `dark`/`light` gives the higher WCAG contrast ratio against `fill`.
 
-    BC2-398: the prior single-threshold-on-raw-sRGB-luminance rule (`_luminance(fill) > .58`)
+    398: the prior single-threshold-on-raw-sRGB-luminance rule (`_luminance(fill) > .58`)
     picked the lower-contrast option on ~18% of a 2,000-random-color sample tested against the
     actual best-contrast choice — a real readability defect for scientific-figure text labels,
     not a hypothetical one. Comparing the two real contrast ratios directly removes the need for

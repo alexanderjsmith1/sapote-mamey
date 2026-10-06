@@ -1,4 +1,4 @@
-"""AMBER_04: tests for the MLSA driver's pure, importable logic (tools/build_mlsa.py).
+"""P04: tests for the MLSA driver's pure, importable logic (tools/build_mlsa.py).
 
 The blastp/prodigal/muscle/iqtree steps are DETECTED external companions and are not
 exercised here (offline core stays test-clean). What IS unit-tested is the sequence

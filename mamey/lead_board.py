@@ -175,7 +175,7 @@ def axis_lead_board_rows(
                 "Node_ID": identity.normalized_node_id,
                 "antiSMASH_Region": identity.region,
             }
-        # BC2-408 (rebased from a .407 finding, unlanded before seal): mobile_element_flag is
+        # 408 (rebased from a .407 finding, unlanded before seal): mobile_element_flag is
         # the THIRD corrected_rank-gating exclusion signal alongside standing_rule_flag/
         # primary_metabolism_flag (scoring.py's own comment: "Downgraded rows keep their raw
         # scores but get corrected_rank=None" applies uniformly to all three). This file was

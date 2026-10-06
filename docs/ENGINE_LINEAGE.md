@@ -1,5 +1,9 @@
 # Mamey Engine Lineage
 
+## Engine 1.9.173 — first bundle: v9.7.448
+
+Adds `mamey/figures/locus_comparison.py`, a source-bound locus-comparison renderer that the strain-slide comparison tools share. It writes each figure with a receipt of the drawn coordinates, track orientations and assembly markers. Elsewhere in the engine only docstrings and comments changed, so extraction, scoring, calls and emitted tables are the same as 1.9.172.
+
 ## Engine 1.9.172 — first bundle: v9.7.445
 
 Adds emitted contig-depth fields and optional residue-tiling evidence. Product-family comparisons accept separator variants. A separate dominated-diagnostic report preserves tier-1 calls and scores and labels its thresholds uncalibrated. These changes require explicit version binding when comparing outputs. Core region-coordinate extraction is unchanged by these cards; family/routing outputs and advisory fields can differ. No product identity or physical contig linkage is inferred.
@@ -304,7 +308,7 @@ DPI-independent repair to the gold-figure empty-state placeholder gate.
 
 ## Engine 1.9.144 — first bundle: v9.7.402
 
-**Why the engine bumps here:** composed under an Alex ASAP-cut ruling. Two new module families
+**Why the engine bumps here:** composed under an owner ASAP-cut ruling. Two new module families
 land for the first time — Mode B gene-first v2 (`mamey/mode_b/gene_first_stage_v2.py`,
 `gene_first_interpret_v2.py`, `gene_first_figure_overlay.py`, the first fixed/versioned/static
 gene-first staging workflow) and the Figure Factory publication/onboarding/continuity family
@@ -313,7 +317,7 @@ onboarding/package-continuity/portable-project widgets). Consumers distinguishin
 generations need an unambiguous engine stamp.
 
 **Scoring/parser/extraction semantics changed: mostly no, with one deliberate, flagged exception.**
-Gene-first v2 composed in the Alex-ratified blocking-gate order: (1) sealed Codex candidate; (2)
+Gene-first v2 composed in the owner-ratified blocking-gate order: (1) sealed Codex candidate; (2)
 GF3-2 — identity validator converges on the shipped `gene_first_explore.py`'s semantics (region/
 BGC-alias normalization, NODE anti-shortening; 9-fixture differential gate, 9/9 concordant, was
 6/9 divergent); (3) GF3-1 — coordinate/strand/membership added to the roster digest, schema bumped
@@ -334,7 +338,7 @@ prior. This interacts with the tier-1 diagnostic floor's corroboration guard (PC
 uncorroborated diagnostic on a class-incompatible locus (the nucleoside-on-NRPS/T1PKS fixture) no
 longer reaches Medium via a phantom credit that was masking the guard's own "uncorroborated"
 finding. The stricter, honest behavior is shipped; a class-compatible companion case still floors
-to Medium end-to-end (verified). **Open policy question for Alex, not resolved by this cut**:
+to Medium end-to-end (verified). **Open policy question for the owner, not resolved by this cut**:
 should an uncorroborated diagnostic still floor tier at all? A future NUC~NRPS class-compatibility
 ruling would flip today's shipped answer. Cross-strain comparability with `.401` preserved outside
 this one flagged, deliberate exception.
@@ -345,7 +349,7 @@ this one flagged, deliberate exception.
 
 **Why the engine bumps here (after three bundle-only cuts on 1.9.142):** the `.400` fold changed
 the manifest shape (R1: `source_scans` channels alias to standalone package files) and `.401`
-changes the B2 product-class canon (23 → 37 columns, Alex n≥10 ruling, 2026-09-02). Consumers
+changes the B2 product-class canon (23 → 37 columns, the owner n≥10 ruling, 2026-09-02). Consumers
 distinguishing pre/post-R1 manifests and pre/post-promotion workbooks need an unambiguous engine
 stamp; three manifest/schema generations under one engine number would be a provenance ambiguity.
 
@@ -435,7 +439,7 @@ not change existing scored-board values.
 "gene"/"locus" headers by digit-bearing cell shape (a gate-classification fix — it was raising a false
 `PUBLICATION_GENE_TABLE_DUPLICATE` and, worse, silently missing a real one); `cli.py`'s `_write_package`
 two-pathway early pass now records a propagated parse failure instead of swallowing it with no receipt;
-and Amber's phylogenomics render/preflight tools gain accession-junk stripping, governed-host tip
+and the phylogeny lane's phylogenomics render/preflight tools gain accession-junk stripping, governed-host tip
 cleaning, an off-target non-actinomycete guard, and multi-outgroup rooting. No file under `scoring.py` /
 `parsers.py` / `rules.py` / `domain_level.py` changed behavior — `.385`/`.386` boards remain poolable with
 no re-score. The engine bumped because Mode B gate classification and the run's failure-receipt behavior
@@ -829,7 +833,7 @@ finished card passes 41/41 matrix rows, and the v1 card that motivated the gate 
 the matrix is absent/incomplete — that is the gate working; draft-profile verdicts are unchanged.
 No package re-derivation needed. 1.9.125 additionally carries: the no-pending amendment
 (`BLASTP_MATRIX_PENDING_TERMINAL` — `pending` is not a terminal finished-matrix state), the
-exact-locus four-field filename gate in `tools/check_bgc_naming.py`, and the VGP
+exact-locus four-field filename gate in `tools/check_bgc_naming.py`, and an audit lane
 `--antismash-profile auto` default — `manifest.json`/`_1_intake.json` now record the strictness
 READ FROM the archive instead of the operator's unverified word (explicit values honoured, loud
 `PROFILE_MISMATCH` on disagreement). Packages produced at 1.9.125 can therefore carry a different
@@ -962,7 +966,7 @@ feeds no scoring path (`grep _4B mamey/scoring.py` = 0), so **no triage value mo
 (not held) purely because a whitelisted deterministic output changes — the SSOT rule for a fingerprint-bearing
 artifact.
 
-**What lands (AMBER_366_C12, Amber `_4B`-owner sign-off 2026-08-12):**
+**What lands (C12, the phylogeny lane `_4B`-owner sign-off 2026-08-12):**
 - `mamey/pks_ks_scan.py`: `ks_domains_from_gbk()` parses `/domain_subtypes` (already in the region GBKs —
   no antiSMASH re-run); the containment/single-linkage pass unions two KS **only when they share the same
   named subtype** (Hybrid-KS with Hybrid-KS only); UNCLASSIFIED KS are kept out of the union-find and surfaced **pairwise** (each qualifying cross-contig unclassified pair is its own 2-member candidate, never transitively merged). New `ks_subtype` +

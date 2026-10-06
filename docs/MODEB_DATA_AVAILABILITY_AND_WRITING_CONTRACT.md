@@ -60,11 +60,11 @@ The command writes only under `--out`:
 
 This pass means only that the evidence can be assembled into a card with explicit gaps. It does not mean the biological interpretation is correct or complete.
 
-Promotion remains held when per-gene BLASTp is absent, unbound, stale, or freshness-unverified. A filename or modification time does not establish freshness; a normalized evidence index must explicitly state `CURRENT` after provenance review.
+Promotion remains held while required evidence is `AVAILABLE_UNINGESTED`, `NEAR_READY_ACTIVE_RUN`, `PRACTICALLY_ATTAINABLE`, stale, or freshness-unverified. An absent or `OBSERVED_UNBOUND` row may remain as a reasoned terminal limitation only after readiness is adjudicated as `STRUCTURALLY_UNAVAILABLE` or `NOT_APPLICABLE`, the selected profile's matrix and roster checks pass, and independent content review accepts the claim ceiling. Such a row supplies no bound protein/function evidence. This preserves the ratified separation between document state and evidence state; it does not waive evidence requirements. A filename or modification time does not establish freshness; admitted search evidence must explicitly state `CURRENT` in a normalized evidence index after provenance review.
 
-### Finished-current-evidence §4 BLASTp matrix
+### Finished-current-evidence BLASTp matrix (default §4; current50 v2 §50)
 
-A card declaring `FINISHED_CURRENT_EVIDENCE` must contain a subsection titled exactly:
+The default full48 and its legacy `FINISHED_CURRENT_EVIDENCE` alias use §4. A selected `FINISHED_FULL50_CURRENT50_V2` card uses §50; keep the same complete roster and channel separation there. The selected evidence section must contain a subsection titled exactly:
 
 `#### Complete channel-separated BLASTp matrix`
 

@@ -38,8 +38,9 @@ Outputs: gap_rescue.tsv (one row per reference gene), gap_rescue_partners.tsv, g
 gap_rescue_receipt.json, and gap_rescue.png / gap_rescue.pdf: a clinker-style locus map drawn by
 tools/gap_rescue_locus_map.py. The reference sits above; the genome below starts with the core contig, then the contig
 holding the other piece of a CLEAR split gene (red gap marker), then contigs with a clear match of >= 50% identity to a
-named cluster gene. Ribbons are shaded by protein identity, and each matched gene is labelled with its match. The full
-gene table stays in gap_rescue.tsv.
+named cluster gene. Ribbons are shaded by protein identity, and each matched gene is labelled with its match. The two
+rows are centred on one anchor gene, as in clinker: the reference gene named by --anchor, else the longest matched
+core enzyme on the core contig (see anchor_gene in the renderer). The full gene table stays in gap_rescue.tsv.
 
 Claim-safety: homology is similarity, not product identity; a rescue candidate joins no contigs. A fragmented assembly
 is never joined with full confidence.
@@ -50,6 +51,10 @@ CLI:
 --hits: precomputed DIAMOND/BLAST tabular (qseqid = reference gene id g001..., sseqid = genome protein id from
 gap_rescue_proteins.faa, pident, qcovhsp, bitscore, and optionally qstart, qend for the split-gene check and evalue
 for the core-only 25% floor), for runs without DIAMOND.
+--anchor <gene>: the reference gene (MIBiG name, e.g. sanG) both rows are centred on.
+--redraw <folder>: redraw the figure of an earlier run from its saved tables, without DIAMOND. Needs --zip, --label and
+--mibig-dir; --core, --reference and --out are taken from the folder. Writes gap_rescue.png/.pdf into --out when given,
+else into the folder.
 --sensitivity: DIAMOND search mode, default ultra-sensitive; DIAMOND's own default (fast) misses pathway genes at
 25-40% identity. 'default' restores it.
 """
@@ -122,6 +127,15 @@ def load_reference(gbk: Path) -> tuple[list[dict], str]:
     return genes, rec.description
 
 
+STOP_CODONS = {"TAA", "TAG", "TGA"}
+
+
+def lacks_stop(last_codon: str) -> bool:
+    """True when a CDS does not end in a stop codon. antiSMASH writes no fuzzy (<, >) ends for draft contigs, so a gene
+    cut by a contig end shows up here; on one draft genome, all 412 such genes run off a contig end."""
+    return last_codon.upper() not in STOP_CODONS
+
+
 def load_genome(zip_path: Path, label: str) -> tuple[dict, list]:
     """Every CDS of the whole-genome GenBank in the ZIP, and the antiSMASH regions with their full identities."""
     names = [n for n in zipfile.ZipFile(zip_path).namelist()
@@ -158,6 +172,7 @@ def load_genome(zip_path: Path, label: str) -> tuple[dict, list]:
                               "end": int(f.location.end), "strand": f.location.strand or 1,
                               "tag": f.qualifiers.get("locus_tag", [pid])[0], "aa": f.qualifiers["translation"][0],
                               "contig_len": len(rec.seq), "kind": f.qualifiers.get("gene_kind", [""])[0],
+                              "missing_stop": lacks_stop(str(f.extract(rec.seq)[-3:])),
                               "modular": any(d == "PKS_KS" or d.startswith("Condensation") for d in doms)
                               or doms.count("AMP-binding") >= 2}
     return prots, regions
@@ -280,7 +295,8 @@ def choose_reference(zip_path, core, prots, reference=None, reference_name="", m
 
 
 def analyse_region(label, prots, regions, core, reference, ref_name, source, out, hits=None, threads=4,
-                   sensitivity=SENSITIVITY_DEFAULT, mibig_db=None, pfam=None, figure=True, write_proteins=True) -> dict:
+                   sensitivity=SENSITIVITY_DEFAULT, mibig_db=None, pfam=None, figure=True, write_proteins=True,
+                   anchor=None) -> dict:
     """Search one core region against one reference and write every output; returns the receipt."""
     ref, desc = load_reference(reference)
     out.mkdir(parents=True, exist_ok=True)
@@ -324,8 +340,42 @@ def analyse_region(label, prots, regions, core, reference, ref_name, source, out
     (out / "gap_rescue_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     if figure:
         draw_locus_map(reference, rows, splits, prots, regions, core, label, ref_name, out / "gap_rescue.png",
-                       out / "gap_rescue.pdf")
+                       out / "gap_rescue.pdf", anchor=anchor)
     return receipt
+
+
+def apply_adjudication(rows, folder: Path):
+    """When a later adjudication of this run sits beside its folder (<folder>_ADJUDICATION.tsv: reference_gene,
+    candidate_locus, verdict), its verdicts replace the partner_verdict the run wrote. Returns the rows."""
+    import csv
+    adj = folder.parent / f"{folder.name}_ADJUDICATION.tsv"
+    if not adj.exists():
+        return rows
+    with open(adj) as fh:
+        v = {(r.get("reference_gene", ""), r.get("candidate_locus", "")): r.get("verdict", "")
+             for r in csv.DictReader(fh, delimiter="\t")}
+    for r in rows:
+        key = (r.get("name", ""), r.get("best_locus", ""))
+        if v.get(key):
+            r["partner_verdict"] = v[key]
+    return rows
+
+
+def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | None = None, anchor=None) -> dict:
+    """Redraw an earlier run's figure from its saved tables (no DIAMOND)."""
+    import csv
+    receipt = json.loads((folder / "gap_rescue_receipt.json").read_text())
+    core = next((r for r in regions if r["identity"] == receipt["core"]), None)
+    if core is None:
+        raise SystemExit(f"{receipt['core']} is not a region of this zip; check --zip and --label")
+    with open(folder / "gap_rescue.tsv") as fh:
+        rows = apply_adjudication(list(csv.DictReader(fh, delimiter="\t")), folder)
+    with open(folder / "gap_rescue_split_genes.tsv") as fh:
+        splits = list(csv.DictReader(fh, delimiter="\t"))
+    out = out or folder
+    out.mkdir(parents=True, exist_ok=True)
+    return draw_locus_map(Path(mibig_dir) / receipt["reference"], rows, splits, prots, regions, core, label,
+                          receipt.get("reference_name", ""), out / "gap_rescue.png", out / "gap_rescue.pdf", anchor=anchor)
 
 
 def summary_line(receipt: dict, out) -> str:
@@ -342,7 +392,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--zip", required=True, type=Path)
     ap.add_argument("--label", required=True)
-    ap.add_argument("--core", required=True, help="core region as <contig>.regionNNN")
+    ap.add_argument("--core", help="core region as <contig>.regionNNN (required unless --redraw)")
     ap.add_argument("--reference", type=Path, help="reference cluster GenBank file (MIBiG); omit to choose one: the "
                                                    "KnownClusterBlast rank-1 hit, else DIAMOND discovery at >= 35%%")
     ap.add_argument("--reference-name", default="")
@@ -355,13 +405,26 @@ def main(argv=None) -> int:
                     help="MIBiG index JSON or accession<TAB>name TSV for figure titles (env SAPOTE_MIBIG_NAMES)")
     ap.add_argument("--pfam", type=Path, default=_os.environ.get("SAPOTE_PFAM_HMM"),
                     help="pressed Pfam-A.hmm for neighbour context of lone finds (env SAPOTE_PFAM_HMM; needs pyhmmer)")
-    ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument("--out", type=Path, help="output folder (required unless --redraw)")
+    ap.add_argument("--anchor", help="reference gene name the two figure rows are centred on (default: the longest "
+                                     "matched core enzyme on the core contig)")
+    ap.add_argument("--redraw", type=Path, help="redraw the figure of an earlier run folder from its saved tables")
     ap.add_argument("--hits", type=Path)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--sensitivity", default=SENSITIVITY_DEFAULT,
                     help="DIAMOND search mode (default ultra-sensitive; 'default' uses DIAMOND's own fast mode)")
     ap.add_argument("--no-figure", action="store_true")
     a = ap.parse_args(argv)
+    if a.redraw:
+        if not a.mibig_dir:
+            raise SystemExit("--redraw needs --mibig-dir (or SAPOTE_MIBIG_GBK_DIR) to read the reference GenBank file")
+        assert_output_outside_bundle(a.out or a.redraw, __file__)
+        prots, regions = load_genome(a.zip, a.label)
+        redraw(a.redraw, prots, regions, a.label, a.mibig_dir, a.out, a.anchor)
+        _say(f"[gap_directed_rescue] redrew {a.redraw} -> {a.out or a.redraw}")
+        return 0
+    if not (a.core and a.out):
+        raise SystemExit("--core and --out are required (unless --redraw)")
     assert_output_outside_bundle(a.out, __file__)
     prots, regions = load_genome(a.zip, a.label)
     core = resolve_core(regions, a.core)
@@ -372,7 +435,7 @@ def main(argv=None) -> int:
         raise SystemExit(f"[gap_directed_rescue] {core['identity']}: {source}")
     receipt = analyse_region(a.label, prots, regions, core, reference, name, source, a.out,
                              read_hits(a.hits) if a.hits else None, a.threads, a.sensitivity, a.mibig_db, a.pfam,
-                             not a.no_figure)
+                             not a.no_figure, anchor=a.anchor)
     _say(summary_line(receipt, a.out))
     return 0
 

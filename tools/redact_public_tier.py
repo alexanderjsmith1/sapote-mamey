@@ -13,7 +13,7 @@ identifiers or numeric literals, so a tree-wide walk is safe by construction (cl
 foot-gun). Non-.py text files are scrubbed whole. CAS stable-IDs are guarded (abort on any change).
 Run on PUBLIC tiers only; the MERGED-PRIVATE scaffold legitimately retains strain IDs.
 
-v9.7.156 (PI decision, the Developer or User Smith, 2026-06-30): the AS-series privacy guard is
+v9.7.156 (PI decision, the release owner, 2026-06-30): the AS-series privacy guard is
 RETIRED — all AS strains are publicly disclosed (16S on GenBank associating strain/genus/host).
 The AS-ID patterns below are RETAINED but INACTIVE for enforcement (the leak audit that consumed
 them is now WARN, not FAIL; see make_public_tier.sh AS_GUARD_RETIRED). They are kept deliberately
@@ -276,7 +276,7 @@ def audit_paths(tree: Path) -> list[str]:
     Content-only scrubbing cannot see this. Report it; renaming is a human decision because references
     must move with the file."""
     import re as _re
-    # BC2-AP-01 (v9.7.395): this pattern lacked re.IGNORECASE even though AS_RE (the near-identical
+    # AP-01 (v9.7.395): this pattern lacked re.IGNORECASE even though AS_RE (the near-identical
     # content-scrubbing pattern nine lines above, in this same file) has it. This function's own
     # docstring and the CHANGELOG.md v9.7.251 entry it cites both frame it as closing exactly the
     # "content-only scrubbing cannot see this" gap for a private strain ID leaked into a FILENAME —

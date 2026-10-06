@@ -101,7 +101,7 @@ def main(argv=None) -> int:
     # violation. Look only at the local window before the match. My first version flagged its own
     # freshly-written "no per-BGC BSL-2 flagging" line.
     _DENY = re.compile(r"\b(no|not|never|without|retired|removed|dropped|superseded)\b", re.I)
-    # BC2-CMF-01 (v9.7.396): RETIRED's patterns were matched via bare re.finditer(pat, text) with
+    # CMF-01 (v9.7.396): RETIRED's patterns were matched via bare re.finditer(pat, text) with
     # no re.I, unlike _DENY right above (already re.I). This monolith is explicitly "hand-
     # maintained" and "reviewed at checkpoints" (this module's own docstring) -- casual prose
     # referencing a retired flag or phrase in a different case (e.g. "as_scrub is still checked"

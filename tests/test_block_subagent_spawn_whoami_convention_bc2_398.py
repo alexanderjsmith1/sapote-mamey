@@ -1,4 +1,4 @@
-"""BC2 .398 audit: hooks/block_subagent_spawn.py::whoami() (the identity resolver behind the
+"""Example Lane .398 audit: hooks/block_subagent_spawn.py::whoami() (the identity resolver behind the
 workhorse subagent-ban enforcement hook) used the same broken "sessions/<Name>/STATE.md"
 pattern that tools/session_cost_audit.py::identify() was already fixed to drop, at v97395 tick
 22 (see tests/test_session_cost_audit_identify_v97395.py) -- but the fix was never propagated
@@ -44,8 +44,8 @@ def test_whoami_recognizes_the_real_convention_regardless_of_parent_dir_name(tmp
 def test_whoami_still_recognizes_legacy_sessions_convention(tmp_path):
     """No regression: the old sessions/<Name>/STATE.md shape still resolves."""
     p = tmp_path / "fake_legacy.jsonl"
-    _write_fake_transcript(p, "/some/old/path/sessions/Aquarius/STATE.md")
-    assert bss.whoami(str(p), "sid-1") == "Aquarius"
+    _write_fake_transcript(p, "/some/old/path/sessions/Example Lane/STATE.md")
+    assert bss.whoami(str(p), "sid-1") == "Example Lane"
 
 
 def test_whoami_does_not_hardcode_a_workspace_specific_literal():

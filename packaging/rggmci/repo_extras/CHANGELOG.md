@@ -2,6 +2,12 @@
 
 ## {version}
 
+- `rggmci build-mibig-db --help` names the command `rggmci build-mibig-db`. It said `ref_completion`.
+- A package test now runs `rggmci build-mibig-db` on a small made-up MIBiG GenBank file, without DIAMOND, so CI
+  covers the command the README asks you to run first.
+
+## 1.0.0rc2
+
 - **Reference-guided completion.** For each region at a contig edge, the best KnownClusterBlast MIBiG reference
   (or, without one, a discovered one) is searched against every protein in the genome, not only those inside
   antiSMASH regions. It reports reference genes found elsewhere, genes split across two contig ends, and partner
@@ -19,6 +25,9 @@
 - **Residue tiling.** For pairs the paralog gate demoted, a DIAMOND search shows which stretch of each shared MIBiG
   protein each region covers. It runs with `--diamond-db`, or by default when the completion database has its DIAMOND
   index. It never changes a confidence.
+- **Product names.** A product name now matches its antiSMASH category whether it is written with hyphens or
+  underscores, so a region whose name used the other spelling gets its category, and its pairs can score
+  differently from rc1. (This line was missing from the rc2 changelog; the rc2 release notes carried it.)
 
 ## 1.0.0rc1
 

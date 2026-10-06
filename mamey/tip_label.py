@@ -74,7 +74,7 @@ def make_label(tip_key,raw_label,*,query=False,outgroup=False,fields=None,width=
         holds.append('SOURCE_FIELDS_UNBOUND')
         # v9.7.416 (Sextant): the unbound provenance is recorded in `holds` and the returned
         # `authority` field; do NOT stamp a visible '| UNBOUND' on every tree tip — it is clutter,
-        # and the figure caption already carries the claim-safety statement. (Alex 2026-09-08.)
+        # and the figure caption already carries the claim-safety statement. (2026-09-08.)
         label=('OUTGROUP ' if outgroup else '')+(tip_key+' | ' if query and tip_key!=raw_label else '')+raw_label
     else:
         for k in ('species','host'):_text(fields.get(k,''))

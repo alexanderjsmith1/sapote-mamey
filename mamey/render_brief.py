@@ -343,6 +343,9 @@ def _text_page(pdf, plt, facts, tier, has_lay=False, has_ferm=False):
     fig = None
     y = 0.94
     page = 0
+    caption = {"schema": "sapote.extraction-summary-caption.v1",
+               "reading_guards": [KCB_NOTE],
+               "scope": "KnownClusterBlast similarity evidence; class-level interpretation"}
 
     def new_page():
         nonlocal fig, y, page
@@ -352,6 +355,10 @@ def _text_page(pdf, plt, facts, tier, has_lay=False, has_ferm=False):
         page += 1
         fig = plt.figure(figsize=(8.27, 11.69))
         y = 0.94
+        # PDF text annotations are captions, not words drawn onto the artwork.
+        # Return the same receipt for consumers that render through a PDF adapter.
+        if callable(getattr(pdf, "attach_note", None)):
+            pdf.attach_note("Extraction summary caption: " + "; ".join(caption["reading_guards"]))
         fig.text(0.07, 0.035, f"Extraction summary - {page} | Review source tables for complete evidence",
                  fontsize=8, color=CL["muted"], va="top")
 
@@ -407,7 +414,7 @@ def _text_page(pdf, plt, facts, tier, has_lay=False, has_ferm=False):
     if q.get("caveat_required") and q.get("caveat"):
         write(f"ASSEMBLY CONTIGUITY: {q['caveat']}", 9, True, CL["exc"])
     write("Reading guards", 11, True)
-    for guard in (SCORE_NOTE, KCB_NOTE, "Bioactivity is optional strain-level context; no activity is assigned to a locus without linked evidence.", _gap_note(has_lay, has_ferm)):
+    for guard in (SCORE_NOTE, "Bioactivity is optional strain-level context; no activity is assigned to a locus without linked evidence.", _gap_note(has_lay, has_ferm)):
         write(guard, 9)
     if tier == "standard":
         write("Selected triage rows - priority, not measured activity", 11, True)
@@ -462,6 +469,7 @@ def _text_page(pdf, plt, facts, tier, has_lay=False, has_ferm=False):
         write("Arylpolyene is not antifungal polyene macrolide evidence. These review buckets do not identify a compound.", 8)
     pdf.savefig(fig)
     plt.close(fig)
+    return caption
 
 
 def render_brief(pkg, tier="standard", logger=None):

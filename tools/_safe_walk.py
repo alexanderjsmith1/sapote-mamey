@@ -11,7 +11,7 @@ v9.7.400: found and independently fixed in three release/CI-hygiene gates this r
 `check_no_brace_paths.py`, `check_duplicate_dict_keys.py`, `public_release_audit.py` -- the
 same shape each time (reproduced live against each real pristine script: a genuine finding
 sitting inside a permission-locked directory silently reported PASS). Consolidated here per
-Alex's direction after the third instance turned up, so a future walk-based gate gets the
+The owner's direction after the third instance turned up, so a future walk-based gate gets the
 guarantee for free and a future fix to this shape needs one change instead of N -- the same
 "stop writing the Nth independent resolver" lesson already applied to the hooks' shared
 `deliverable_hub_root()` reuse this round.

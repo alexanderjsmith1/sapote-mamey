@@ -1,4 +1,4 @@
-"""BC2 .401 audit: hooks/scan_bgc_name_violations.py — the offline/census sibling of
+"""An audit-lane .401 audit: hooks/scan_bgc_name_violations.py — the offline/census sibling of
 hooks/bgc_node_name_guard.sh (the live PostToolUse hook, fixed this same round for the
 identical gap). This scanner only ever checked file/directory NAMES for a bare
 strain+BGC-number citation with no node token; a genuinely-named file (e.g. "notes.md") whose

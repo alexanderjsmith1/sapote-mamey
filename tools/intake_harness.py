@@ -14,6 +14,13 @@ USAGE:
       --registry out/intake_registry.csv --metrics out/intake_metrics.csv \
       --batch-report out/intake_batchN_report.md [--source "..."] [--mode gold] [--bench]
 
+Resume policy: successful completion is skipped only with a matching
+intake_completion_receipt.json binding source path/bytes, engine code/options and
+package path/bytes. Legacy or mismatched success is RUN_FAILED without replacement;
+use a fresh outdir/registry for a reviewed migration. NEEDS_ANTISMASH is retryable
+and never a successful-completion receipt. Existing unbound packages are held;
+failed attempts without a package remain retryable. Receipts provide integrity binding, not authenticity.
+
 Peak memory uses psutil (subprocess RSS incl. children); falls back to resource.ru_maxrss if absent.
 """
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
@@ -28,6 +35,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 import glob
+import hashlib
 import json
 import os
 import re
@@ -35,6 +43,8 @@ import shutil
 import subprocess
 import sys
 import time
+import tempfile
+import math
 import warnings
 
 
@@ -129,36 +139,73 @@ def assign_unique_names(zips):
     return out
 
 
-def run_monitored(cmd, **kw):
-    """Run cmd; return (returncode, wall_s, peak_mb, combined_output)."""
+def run_monitored(cmd, timeout=None, **kw):
+    """Return (returncode, wall_s, peak_mb, combined_output).
+
+    Child output goes directly to an owned temporary file while RSS is sampled;
+    a verbose child cannot fill a pipe whose reader is waiting for termination.
+    Optional timeout/interrupt cleanup owns the immediate child only. Descendant
+    cancellation and persistent per-input log receipts require separate policy.
+    """
+    if timeout is not None and (not math.isfinite(timeout) or timeout <= 0):
+        raise ValueError("timeout must be finite and positive")
     t0 = time.perf_counter()
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, **kw)
+    deadline = None if timeout is None else t0 + timeout
     peak = 0
-    if _HAVE_PSUTIL:
+    with tempfile.TemporaryFile(mode="w+b") as output:
+        p = subprocess.Popen(cmd, stdout=output, stderr=subprocess.STDOUT, text=True, **kw)
         try:
-            pp = psutil.Process(p.pid)
-            while p.poll() is None:
+            if _HAVE_PSUTIL:
                 try:
-                    rss = pp.memory_info().rss
-                    for c in pp.children(recursive=True):
+                    pp = psutil.Process(p.pid)
+                    while p.poll() is None:
+                        if deadline is not None and time.perf_counter() >= deadline:
+                            raise subprocess.TimeoutExpired(cmd, timeout)
                         try:
-                            rss += c.memory_info().rss
+                            rss = pp.memory_info().rss
+                            for child in pp.children(recursive=True):
+                                try:
+                                    rss += child.memory_info().rss
+                                except psutil.Error:
+                                    continue
+                            peak = max(peak, rss)
                         except psutil.Error:
-                            continue  # Child processes can exit between enumeration and sampling.
-                    peak = max(peak, rss)
+                            break
+                        time.sleep(0.03)
                 except psutil.Error:
-                    break
-                time.sleep(0.03)
-        except psutil.Error:
-            peak = 0  # The benchmark still runs when the process exits before monitoring attaches.
-        out = p.stdout.read() if p.stdout else ""
-        p.wait()
+                    peak = 0
+            remaining = None if deadline is None else max(0, deadline-time.perf_counter())
+            p.wait(timeout=remaining)
+        except BaseException as exc:
+            if p.poll() is None:
+                try:
+                    p.terminate()
+                except ProcessLookupError:
+                    exc.output_monitor_cleanup_races = getattr(exc, "output_monitor_cleanup_races", []) + ["child exited before terminate"]
+                    exc.add_note("Output monitor cleanup: child exited before terminate (expected process race)")
+                try:
+                    p.wait(timeout=1)
+                except BaseException:
+                    # A second interrupt must also force cleanup before re-raising.
+                    if p.poll() is None:
+                        try:
+                            p.kill()
+                        except ProcessLookupError:
+                            exc.output_monitor_cleanup_races = getattr(exc, "output_monitor_cleanup_races", []) + ["child exited before kill"]
+                            exc.add_note("Output monitor cleanup: child exited before kill (expected process race)")
+                    p.wait()
+            output.seek(0)
+            # Preserve diagnostics on timeout/interrupt without marking success.
+            exc.output = output.read().decode(p.encoding, errors="replace").replace("\r\n", "\n").replace("\r", "\n")
+            raise
+        output.seek(0)
+        out = output.read().decode(p.encoding, errors=p.errors or "strict").replace("\r\n", "\n").replace("\r", "\n")
+    if _HAVE_PSUTIL:
         peak_mb = peak / 1e6
     else:
-        out = p.stdout.read() if p.stdout else ""
-        p.wait()
+        import resource
         peak_mb = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024.0
-    return p.returncode, round(time.perf_counter() - t0, 3), round(peak_mb, 1), out
+    return p.returncode, round(time.perf_counter()-t0, 3), round(peak_mb, 1), out
 
 
 def _run_failed_reason(log, max_len=160):
@@ -196,7 +243,7 @@ def _run_failed_reason(log, max_len=160):
 def _safe_extract_zip(z, dest):
     """Back-compat shim; canonical guard lives in mamey.ziputil (v9.7.367).
 
-    BC2-398: this file already imports unconditionally from `mamey` (no try/except fallback,
+    398: this file already imports unconditionally from `mamey` (no try/except fallback,
     unlike tools/sapote_md_preflight.py's degraded-environment pattern), so there was no reason
     for it to carry its own independent zip-slip guard — the same asymmetric-duplicate shape this
     round's audit has repeatedly found and consolidated elsewhere. mamey/raw_antismash_triage.py
@@ -209,6 +256,82 @@ def _safe_extract_zip(z, dest):
     from mamey.ziputil import safe_extract_all
     safe_extract_all(z, dest)
 
+
+def _file_binding(path):
+    resolved = os.path.realpath(path)
+    digest = hashlib.sha256()
+    with open(resolved, "rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return {"path": resolved, "sha256": digest.hexdigest()}
+
+
+def _walk_error(error):
+    """An incomplete inventory cannot certify source or output integrity."""
+    raise error
+
+
+def _tree_binding(path):
+    """Bind every package file; symlinks are an explicit unbound-output hold."""
+    if os.path.islink(path) or not os.path.isdir(path):
+        raise ValueError(f"missing or symlinked output directory: {path}")
+    files = []
+    for base, dirs, names in os.walk(path, onerror=_walk_error):
+        for name in dirs + names:
+            if os.path.islink(os.path.join(base, name)):
+                raise ValueError(f"symlinked output cannot be bound: {os.path.join(base, name)}")
+        for name in sorted(names):
+            fp = os.path.join(base, name)
+            files.append({"file": os.path.relpath(fp, path), "sha256": _file_binding(fp)["sha256"]})
+    return {"path": os.path.realpath(path), "files": sorted(files, key=lambda item: item["file"])}
+
+
+def _engine_binding():
+    """Bundle-local engine files/resources and launcher/harness code, excluding bytecode."""
+    files = []
+    for base, dirs, names in os.walk(os.path.join(ROOT, "mamey"), onerror=_walk_error):
+        dirs[:] = sorted(d for d in dirs if d != "__pycache__")
+        if any(os.path.islink(os.path.join(base, d)) for d in dirs):
+            raise ValueError("symlinked engine directory cannot be bound")
+        for name in sorted(names):
+            if name.endswith((".pyc", ".pyo")):
+                continue
+            fp = os.path.join(base, name)
+            files.append((os.path.relpath(fp, ROOT), _file_binding(fp)["sha256"]))
+    for fp in (os.path.join(ROOT, "mamey_run.py"), __file__,
+               os.path.join(HERE, "_wbio.py"), os.path.join(HERE, "_console.py")):
+        files.append((os.path.relpath(fp, ROOT), _file_binding(fp)["sha256"]))
+    digest = hashlib.sha256(json.dumps(sorted(files), separators=(",", ":")).encode()).hexdigest()
+    return {"root": os.path.realpath(ROOT), "version": _BUNDLE_ENGINE_VERSION,
+            "code_sha256": digest, "python": os.path.realpath(sys.executable), "python_version": sys.version}
+
+
+def _run_binding(zp, name, args, engine):
+    return {"input": _file_binding(zp), "strain": name, "engine": engine,
+            "options": {"mode": args.mode, "source": args.source, "release": args.release,
+                        "taxonomy_map": _file_binding(args.taxonomy_map) if args.taxonomy_map else None,
+                        "brief": "none", "json_evidence": "bounded"},
+            "outdir": os.path.realpath(args.outdir)}
+
+
+def _completion_path(outdir, name):
+    return os.path.join(outdir, name, "intake_completion_receipt.json")
+
+
+def _resume_verified(path, binding, package):
+    try:
+        receipt = _read_json(path)
+        return (isinstance(receipt, dict) and receipt.get("schema") == 1
+                and receipt.get("status") == "OK" and receipt.get("run") == binding
+                and receipt.get("output") == _tree_binding(package))
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+class AmbiguousRegionDirectories(ValueError):
+    """More than one region parent needs an explicit upstream selection."""
+
+
 def detect_and_stage(zip_path, stage_root, name):
     """Return (kind, input_zip_or_none, clusterblast_dir_or_none, organism)."""
     d = os.path.join(stage_root, name)
@@ -217,10 +340,14 @@ def detect_and_stage(zip_path, stage_root, name):
     with zipfile.ZipFile(zip_path) as z:
         _safe_extract_zip(z, d)
     shutil.rmtree(os.path.join(d, "__MACOSX"), ignore_errors=True)
-    region_gbks = glob.glob(os.path.join(d, "**", "*region*.gbk"), recursive=True)
+    region_gbks = sorted(glob.glob(os.path.join(d, "**", "*region*.gbk"), recursive=True))
     if not region_gbks:
         return "NEEDS_ANTISMASH", None, None, None
-    gdir = os.path.dirname(region_gbks[0])
+    parents = sorted({os.path.dirname(fp) for fp in region_gbks})
+    if len(parents) != 1:
+        raise AmbiguousRegionDirectories("AMBIGUOUS_REGION_DIRECTORIES: "
+                                         + ", ".join(os.path.relpath(fp, d) for fp in parents))
+    gdir = parents[0]
     organism = None
     try:
         with open(region_gbks[0], encoding="utf-8", errors="replace") as organism_fh:
@@ -360,7 +487,7 @@ def main():
     ap.add_argument("--bench", action="store_true", dest="bench",
                     help="run the bundled fixture in gold mode for a machine-normalization datapoint")
     ap.add_argument("--resume", action="store_true",
-                    help="skip strains already present in the registry (timeout-safe re-runs)")
+                    help="skip only receipt-bound unchanged successful completions; retry NEEDS_ANTISMASH")
     a = ap.parse_args()
 
     os.makedirs(a.outdir, exist_ok=True)
@@ -393,9 +520,12 @@ def main():
                 "rescue_leads", "rescue_HIGH", "rescue_MODERATE", "IDC_split_HIGH"]
     _MET_HDR = ["strain", "batch", "status", "engine_wall_s", "engine_peak_mb", "rescue_wall_s", "n_regions"]
 
-    done = set()
-    if a.resume and os.path.exists(a.registry):
-        done = {r["strain"] for r in csv.DictReader(open(a.registry))}
+    prior = {}
+    if os.path.exists(a.registry):
+        with open(a.registry, newline="") as stream:
+            for row in csv.DictReader(stream):
+                prior.setdefault(row["strain"], []).append(row)
+    engine_binding = _engine_binding()
 
     def _checkpoint(reg_row, met_row):
         # append immediately so a timeout never loses completed strains
@@ -410,10 +540,27 @@ def main():
         name = name_for[zp]
         if a.release == "PUBLIC" and _is_private(name):
             raise SystemExit(f"Refusing PUBLIC intake for private-looking strain {name}; rerun with --release PRIVATE")
-        if name in done:
-            emit(f"  - {name:40} SKIP (already in registry)")
+        pkg = os.path.join(a.outdir, name, "package")
+        receipt_path = _completion_path(a.outdir, name)
+        try:
+            binding = _run_binding(zp, name, a, engine_binding)
+            prior_success = any(row.get("assembly_tier") != "NEEDS_ANTISMASH"
+                                for row in prior.get(name, []))
+            completed_or_unbound = (prior_success or os.path.lexists(receipt_path)
+                                   or os.path.lexists(pkg))
+            if completed_or_unbound:
+                if a.resume and _resume_verified(receipt_path, binding, pkg):
+                    emit(f"  - {name:40} SKIP (verified completion receipt)")
+                    continue
+                raise ValueError("RESUME_BINDING_HOLD: existing success/package is unbound, "
+                                 "changed, or requires --resume; use a fresh reviewed outdir/registry")
+            kind, izip, cb, org = detect_and_stage(zp, stage_root, name)
+        except (OSError, ValueError, zipfile.BadZipFile) as exc:
+            emit(f"  - {name:40} RUN_FAILED ({exc})")
+            met_rows.append({"strain": name, "batch": a.batch_label, "status": "RUN_FAILED",
+                             "engine_wall_s": "", "engine_peak_mb": "", "rescue_wall_s": "", "n_regions": ""})
+            append_rows(a.metrics, [met_rows[-1]], _MET_HDR)
             continue
-        kind, izip, cb, org = detect_and_stage(zp, stage_root, name)
         if name in taxonomy_map:
             org = taxonomy_map[name]
         if kind == "NEEDS_ANTISMASH":
@@ -451,17 +598,19 @@ def main():
         # silently seals this package under a different engine (observed: 35 packages sealed at
         # 1.9.154 against a 1.9.169 bundle, with rc=0 and no warning). Read the version the child
         # actually used back out of its own sealed manifest and refuse on any mismatch, rather
-        # than trusting rc==0 to mean "used this bundle's engine". (EB3DF1EF, .441)
+        # than trusting rc==0 to mean "used this bundle's engine". (.441)
         try:
-            _sealed_version = _read_json(os.path.join(pkg, "manifest_short.json")).get("mamey_version")
+            _package_manifest = _read_json(os.path.join(pkg, "manifest_short.json"))
+            _sealed_version = _package_manifest.get("mamey_version") if isinstance(_package_manifest, dict) else None
         except (OSError, ValueError) as _mv_exc:
             _sealed_version = None
             emit(f"  - {name:40} WARN: could not read manifest_short.json to verify engine "
                  f"version ({type(_mv_exc).__name__})")
-        if _sealed_version is not None and _sealed_version != _BUNDLE_ENGINE_VERSION:
-            emit(f"  - {name:40} RUN_FAILED (ENGINE_MISMATCH: package sealed by mamey "
-                 f"{_sealed_version}, this bundle is {_BUNDLE_ENGINE_VERSION} -- a shadowed "
-                 f"mamey package on the child's sys.path, not this bundle's engine, produced it)")
+        if not isinstance(_sealed_version, str) or not _sealed_version.strip() or _sealed_version != _BUNDLE_ENGINE_VERSION:
+            _version_failure = ("ENGINE_VERSION_UNVERIFIED" if not isinstance(_sealed_version, str)
+                                or not _sealed_version.strip() else "ENGINE_MISMATCH")
+            emit(f"  - {name:40} RUN_FAILED ({_version_failure}: package engine evidence "
+                 f"is {_sealed_version!r}; this bundle requires {_BUNDLE_ENGINE_VERSION!r})")
             met_rows.append({"strain": name, "batch": a.batch_label, "status": "RUN_FAILED",
                              "engine_wall_s": wall, "engine_peak_mb": mem, "rescue_wall_s": "", "n_regions": ""})
             append_rows(a.metrics, [met_rows[-1]], _MET_HDR)
@@ -478,7 +627,27 @@ def main():
         met_rows.append({"strain": name, "batch": a.batch_label, "status": "OK",
                          "engine_wall_s": wall, "engine_peak_mb": mem, "rescue_wall_s": rwall,
                          "n_regions": summ["raw_bgcs"]})
+        try:
+            completion = {"schema": 1, "status": "OK", "run": binding, "output": _tree_binding(pkg)}
+            # Catch inputs/options/code changed during the run before banking success.
+            if _run_binding(zp, name, a, _engine_binding()) != binding:
+                raise ValueError("COMPLETION_BINDING_CHANGED: source/options/engine changed during run")
+        except (OSError, ValueError) as exc:
+            emit(f"  - {name:40} RUN_FAILED ({exc})")
+            reg_rows.pop()
+            met_rows[-1]["status"] = "RUN_FAILED"
+            append_rows(a.metrics, [met_rows[-1]], _MET_HDR)
+            continue
         _checkpoint(reg_rows[-1], met_rows[-1])
+        try:
+            with atomic_open(receipt_path, "w") as stream:
+                json.dump(completion, stream, indent=2, sort_keys=True)
+                stream.write("\n")
+        except (OSError, ValueError) as exc:
+            emit(f"  - {name:40} RUN_FAILED (COMPLETION_RECEIPT_HOLD: {exc})")
+            met_rows[-1]["status"] = "RUN_FAILED"
+            append_rows(a.metrics, [met_rows[-1]], _MET_HDR)
+            continue
         emit(f"  - {name:40} {summ['assembly_tier']:13} raw={summ['raw_bgcs']:>3} "
               f"HIGH={resc['rescue_HIGH']} IDC={resc['IDC_split_HIGH']} | {wall}s {mem}MB")
 
@@ -496,8 +665,12 @@ def _batch_exit_status(met_rows):
     indistinguishable, to a shell or a scheduler, from one in which every input succeeded. The
     per-input lines were printed, but nothing that checks an exit status could see them.
     NEEDS_ANTISMASH is a triage state, not a failure: those inputs are recorded in the registry and
-    need an antiSMASH run first. SKIP (--resume) rows are not in met_rows at all. RUN_FAILED rows
-    stay out of the registry on purpose, so a later --resume retries them.
+    need an antiSMASH run first. Verified SKIP (--resume) rows are not in met_rows at all.
+    Engine/staging failures do not bank new success registry rows. A publication
+    failure after the success CSV checkpoints leaves an unbound registry row;
+    resume deliberately holds it rather than assuming completion. Failed attempts
+    without a package may retry; existing unbound packages require a fresh reviewed
+    output directory/registry.
 
     Returns (exit status, summary text). Pure, so the caller prints once and it is testable.
     """
@@ -509,7 +682,8 @@ def _batch_exit_status(met_rows):
     if not failed:
         return 0, summary
     return 1, (summary + f"\n[intake] BATCH_INCOMPLETE: {len(failed)} of {len(met_rows)} attempted "
-               f"input(s) failed; re-run with --resume to retry them: {', '.join(failed)}")
+               f"input(s) failed; re-run with --resume where no package remains; "
+               f"binding holds require a fresh reviewed outdir/registry: {', '.join(failed)}")
 
 
 def _write_report(path, label, reg, met, smoke):

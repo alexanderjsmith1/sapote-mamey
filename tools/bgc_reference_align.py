@@ -25,6 +25,8 @@ import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from 
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 import argparse, csv, os, re, sqlite3, sys, urllib.request, urllib.parse, time
+from fetch_reference_cluster import (file_binding, write_selection_receipt,
+                                     select_gbk, safe_label, stage_output_set, validate_ncbi_accession)
 try:  # v9.7.410 CSV formula-cell guard (CLAUDE_v9.7.410_tools_csv_writer_coverage)
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ImportError:  # bare-script run: bundle root is one level up
@@ -70,7 +72,10 @@ def parse_gbk_cds(path):
     except ImportError:
         from mamey._gbk_shim import SeqIO
     cds, length = [], 0
-    for rec in SeqIO.parse(path, "genbank"):
+    records = list(SeqIO.parse(path, "genbank"))
+    if len(records) != 1:
+        raise ValueError(f"{path}: expected exactly one GenBank record, got {len(records)}")
+    for rec in records:
         length = len(rec.seq)
         for f in rec.features:
             if f.type == "CDS" and "translation" in f.qualifiers:
@@ -81,24 +86,57 @@ def parse_gbk_cds(path):
         return cds, length
     return cds, length
 
-def ref_from_db(db, acc):
-    c = sqlite3.connect(db)
-    g = c.execute("select id from gbk where path like ?", (f"%{acc}%",)).fetchone()
-    if not g:
-        return []
-    rows = c.execute("select nt_start, nt_stop, strand, aa_seq, orf_num from cds where gbk_id=? order by nt_start", (g[0],)).fetchall()
-    c.close()
-    return [{"tag": f"orf{o}", "start": s, "end": e, "strand": st, "aa": aa or "", "domains": ""}
-            for s, e, st, aa, o in rows]
+def ref_from_db(db, acc, provenance=None):
+    """Require one matching DB record with CDS; preserve the historical list return."""
+    from pathlib import Path
+    c = sqlite3.connect(Path(db).resolve().as_uri() + "?mode=ro", uri=True)
+    try:
+        gid, gpath = select_gbk(c, acc)
+        rows = c.execute("SELECT nt_start, nt_stop, strand, aa_seq, orf_num FROM cds "
+                         "WHERE gbk_id=? ORDER BY nt_start", (gid,)).fetchall()
+    finally:
+        c.close()
+    genes = [{"tag": f"orf{o}", "start": s, "end": e, "strand": st, "aa": aa or "", "domains": ""}
+             for s, e, st, aa, o in rows]
+    if not genes:
+        raise ValueError(f"{acc}: selected DB record {gpath} has no CDS")
+    if provenance is not None:
+        provenance.update({"kind": "DB", "requested_selector": acc, "database": file_binding(db),
+                           "selected_id": gid, "selected_source_path": gpath, "cds_count": len(genes)})
+        wal = Path(str(db) + "-wal")
+        if wal.exists():
+            provenance["database_wal"] = file_binding(wal)
+    return genes
 
-def ref_from_ncbi(acc):
-    base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
-    q = urllib.parse.urlencode({"db": "nucleotide", "id": acc, "rettype": "gb", "retmode": "text"})
-    with urllib.request.urlopen(base + "efetch.fcgi?" + q, timeout=90) as _r:
-        gb = _r.read().decode(errors="ignore")
-    tmp = f"/tmp/_ref_{acc.replace('.', '_')}.gb"
-    open(tmp, "w", encoding="utf-8").write(gb)
-    return parse_gbk_cds(tmp)[0]
+
+def ref_from_ncbi(acc, provenance=None):
+    """Fetch one exact versioned record using the shared NZ_-aware validator."""
+    acc = validate_ncbi_accession(acc)
+    import hashlib, io, tempfile
+    from Bio import SeqIO
+    query = urllib.parse.urlencode({"db": "nucleotide", "id": acc, "rettype": "gb", "retmode": "text"})
+    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?" + query
+    with urllib.request.urlopen(url, timeout=90) as response:
+        payload = response.read()
+    gb = payload.decode()
+    records = list(SeqIO.parse(io.StringIO(gb), "genbank"))
+    if len(records) != 1:
+        raise ValueError(f"{acc}: expected exactly one fetched GenBank record, got {len(records)}")
+    if records[0].id != acc:
+        raise ValueError(f"NCBI reference identity mismatch: requested {acc}, fetched {records[0].id}")
+    with tempfile.TemporaryDirectory(prefix="sapote_reference_") as tmp:
+        path = os.path.join(tmp, "reference.gbk")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(gb)
+        genes = parse_gbk_cds(path)[0]
+    if not genes:
+        raise ValueError(f"{acc}: fetched record has no translated CDS")
+    if provenance is not None:
+        provenance.update({"kind": "NCBI", "requested_selector": acc,
+                           "source_url": url, "response_sha256": hashlib.sha256(payload).hexdigest(),
+                           "selected_record_ids": [records[0].id],
+                           "cds_count": len(genes)})
+    return genes
 
 def classify(domains, defn):
     s = f"{domains or ''} {defn or ''}".lower()
@@ -135,12 +173,13 @@ def main():
     ap.add_argument("--min-score", type=float, default=60); ap.add_argument("--min-id", type=float, default=25)
     ap.add_argument("--min-cov", type=float, default=30)
     ap.add_argument("--min-gid", type=float, default=30, help="min GLOBAL identity %% for a CONFIDENT ortholog (clinker-consistent); twilight = min_gid-5..min_gid")
-    ap.add_argument("--outdir", default=".")
+    ap.add_argument("--outdir", default=".", help="new output files only; existing destinations are refused")
     a = ap.parse_args()
-    os.makedirs(a.outdir, exist_ok=True)
-    tag = f"{a.strain + '_' if a.strain else ''}{a.bgc}"
-
-    q, qlen = parse_gbk_cds(a.gbk)
+    try:
+        tag = safe_label(f"{a.strain + '_' if a.strain else ''}{a.bgc}", field="strain/BGC output tag")
+        q, qlen = parse_gbk_cds(a.gbk)
+    except (ValueError, OSError) as exc:
+        sys.exit(f"ERROR: query/output selection failed: {exc}")
     if not q:
         sys.exit("ERROR: no CDS in query GBK")
     # function labels for query genes (from blastp panel if present)
@@ -151,21 +190,48 @@ def main():
             d = re.sub(r"\s*\[[^\]]*\]\s*$", "", d).replace("domain-containing protein", "").strip(" ,")
             labels[r.get("locus_tag", "")] = " ".join(d.split()[:3]) if d and not d.lower().startswith("hypothetical") else ""
 
-    refs = []
-    for spec in a.ref_db:
-        acc, lab = (spec.split(":", 1) + [spec])[:2]
-        if not a.db: sys.exit("--ref-db needs --db")
-        refs.append((lab, ref_from_db(a.db, acc)))
-    for spec in a.ref_ncbi:
-        acc, lab = (spec.split(":", 1) + [spec])[:2]
-        refs.append((lab, ref_from_ncbi(acc))); time.sleep(0.3)
-    for spec in a.ref_gbk:
-        path, lab = (spec.split(":", 1) + [spec])[:2]
-        refs.append((lab, parse_gbk_cds(path)[0]))
-    refs = [(l, r) for l, r in refs if r]
-    if not refs:
-        sys.exit("ERROR: no usable references")
+    refs, provenance, seen = [], [], set()
+    try:
+        for kind, specs in (("DB", a.ref_db), ("NCBI", a.ref_ncbi), ("GBK", a.ref_gbk)):
+            for spec in specs:
+                source, lab = (spec.split(":", 1) + [spec])[:2]
+                if not source or not lab or lab in seen:
+                    raise ValueError("reference selectors and labels must be nonempty; labels must be unique")
+                safe_label(lab, field="reference label")
+                seen.add(lab)
+                bound = {}
+                if kind == "DB":
+                    if not a.db:
+                        raise ValueError("--ref-db needs --db")
+                    genes = ref_from_db(a.db, source, bound)
+                elif kind == "NCBI":
+                    genes = ref_from_ncbi(source, bound)
+                    time.sleep(0.3)
+                else:
+                    genes = parse_gbk_cds(source)[0]
+                    bound = {"kind": "GBK", "source": file_binding(source),
+                             "requested_selector": source, "cds_count": len(genes)}
+                if not genes or not any(g["aa"] for g in genes):
+                    raise ValueError(f"{source}: requested reference has no translated CDS")
+                bound["label"] = lab
+                refs.append((lab, genes))
+                provenance.append(bound)
+        if not refs:
+            raise ValueError("no references requested")
+    except (KeyError, ValueError, OSError, sqlite3.Error, RuntimeError) as exc:
+        sys.exit(f"ERROR: reference selection failed: {exc}")
+    refslug = "_".join(re.sub(r"\W", "", label) for label, _ in refs)
+    names = [f"{tag}_vs_{refslug}_synteny.png", f"{tag}_reference_alignment.csv",
+             f"{tag}_reference_selection.json"]
+    try:
+        with stage_output_set(a.outdir, names) as (stage, final):
+            summary = _write_comparison(a, tag, q, qlen, labels, refs, provenance, stage, final)
+    except (ValueError, OSError, RuntimeError) as exc:
+        sys.exit(f"ERROR: output publication failed: {exc}")
+    emit(*summary, sep="\n")
 
+
+def _write_comparison(a, tag, q, qlen, labels, refs, provenance, stage, final):
     al = _aligner()
     # correspondence
     corr = {g["tag"]: {} for g in q}
@@ -240,10 +306,10 @@ def main():
     ax.legend(handles=handles, loc="lower center", ncol=len(handles), fontsize=8, frameon=False, bbox_to_anchor=(0.5, -0.05))
     plt.tight_layout()
     refslug = "_".join(re.sub(r"\W", "", l) for l, _ in refs)
-    png = os.path.join(a.outdir, f"{tag}_vs_{refslug}_synteny.png")
+    png = os.path.join(stage, f"{tag}_vs_{refslug}_synteny.png")
     _save_rgb(fig, png); plt.close()
     # CSV
-    csvp = os.path.join(a.outdir, f"{tag}_reference_alignment.csv")
+    csvp = os.path.join(stage, f"{tag}_reference_alignment.csv")
     with open(csvp, "w", newline="") as fh:
         w = _SafeWriter(fh)
         head = ["query_gene", "function"]
@@ -256,7 +322,13 @@ def main():
                 h = corr[g["tag"]].get(lab, {})
                 row += [h.get("pid", ""), h.get("cov", ""), h.get("tier", "none")]
             w.writerow(row)
-    emit(f"[bgc_reference_align] {tag}: {nb}/{len(q)} CONFIDENT orthologs (global id >= {a.min_gid}%, clinker-consistent) to >=1 reference", f"   figure: {os.path.basename(png)}\n   table:  {os.path.basename(csvp)}", sep="\n")
+    receipt = os.path.join(stage, f"{tag}_reference_selection.json")
+    write_selection_receipt(receipt, provenance, [png, csvp], output_paths=final[:2],
+                            tool="bgc_reference_align",
+                            query=file_binding(a.gbk),
+                            thresholds={"min_global_identity": a.min_gid})
+    return (f"[bgc_reference_align] {tag}: {nb}/{len(q)} CONFIDENT orthologs (global id >= {a.min_gid}%, clinker-consistent) to >=1 reference",
+            f"   figure: {os.path.basename(png)}\n   table: {os.path.basename(csvp)}")
 
 if __name__ == "__main__":
     main()

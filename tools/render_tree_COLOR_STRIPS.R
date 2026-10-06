@@ -21,15 +21,15 @@ lines<-readLines('tree.iqtree',warn=FALSE);model<-sub('^Model of substitution:[[
 source_palette<-c('Bumblebee'='#0072B2','Honeybee'='#E69F00','Other bee'='#56B4E9','Wasp'='#CC79A7','Ant'='#882255','Attine'='#882255','Beehive pollen'='#AA7700','Bryophyte'='#44AA99','Lichen'='#AA4499','Lichen-moss mixture'='#DDCC77','Soil'='#8C510A','Plant-associated'='#228833','Marine-associated'='#332288','Mangrove'='#117733','Freshwater-associated'='#88CCEE','Freshwater sediment'='#88CCEE','Salt lake'='#999933','Animal-associated'='#D55E00','Animal/clinical'='#D55E00','Other documented'='#666666','Fungal-associated'='#AA3377','Built environment'='#999999','Rock-associated'='#999999','Coastal sediment'='#88AA99','Biofilter'='#A6761D','Termite'='#663399','Waste-associated'='#6B6B3D','Air-associated'='#BBBBBB')
 geo_palette<-c('Africa'='#E69F00','Antarctica'='#56B4E9','Asia'='#CC79A7','Europe'='#332288','North America'='#44AA99','South America'='#D55E00','Oceania'='#882255','Europe / Asia'='#7B3294','Indian Ocean'='#999933','US'='#009E73','Canada'='#0072B2','Pacific Ocean'='#4477AA')
 
-# --- Display alias layer (Alex's ruling 2026-09-14) -------------------------------------------
+# --- Display alias layer (the owner's ruling 2026-09-14) -------------------------------------------
 # Applied at RENDER time only. The underlying metadata keeps every value as deposited; nothing is
 # re-categorised in the data. Two rulings:
 #   (a) "collapse marine and ocean samples to 'Marine' for readability"
 #   (b) long deposited descriptions do not belong in the tree - they squeeze the branches.
 #       The verbatim detail is exported to a supplement table instead (see *_SUPPLEMENT_*.tsv).
-# Alex named 'Marine' and 'Plant' explicitly; the short form is applied consistently to the
+# The owner named 'Marine' and 'Plant' explicitly; the short form is applied consistently to the
 # '-associated' family. Revert by emptying these two vectors.
-# 'Animal' was reverted 2026-09-14: Alex flagged it as ambiguous with invertebrates (the bee/wasp
+# 'Animal' was reverted 2026-09-14: The owner flagged it as ambiguous with invertebrates (the bee/wasp
 # categories are also animals). The registry's 'Animal-associated' stands unchanged until the
 # vocabulary question is settled. M46's deposited 'Mammoth faeces' is an OPEN metadata question
 # (frozen/permafrost material? 'Other terrestrial'? 'Faeces'?) - recorded, not decided, not blocking.
@@ -37,9 +37,9 @@ src_alias<-c('Marine-associated'='Marine','Plant-associated'='Plant')
 geo_alias<-c('Pacific Ocean'='Marine','Indian Ocean'='Marine')
 source_palette<-c(source_palette,'Not recorded'='#DDDDDD','Laboratory mutant'='#984EA3','Marine'='#332288','Plant'='#228833','Animal'='#D55E00')
 # 'Marine' is one label, so it gets one colour in both strips. Where a tip is Marine on both axes
-# the two cells are the same hue, separated by the white cell border (Alex's ruling on the
+# the two cells are the same hue, separated by the white cell border (the owner's ruling on the
 # Bumblebee/Canada case: the border is sufficient).
-geo_palette<-c(geo_palette,'Not recorded'='#DDDDDD','Marine'='#332288','Russia'='#A50F15','Turkey'='#F0E442','Virgin Islands'='#FB9A99','Costa Rica'='#B15928','Northern Cyprus'='#6A3D9A')  # held countries: own category+colour per Alex 2026-09-14
+geo_palette<-c(geo_palette,'Not recorded'='#DDDDDD','Marine'='#332288','Russia'='#A50F15','Turkey'='#F0E442','Virgin Islands'='#FB9A99','Costa Rica'='#B15928','Northern Cyprus'='#6A3D9A')  # held countries: own category+colour per the owner 2026-09-14
 # v9.7.430 display contract: focal-tip colour is a knob. The bundle's EPA-ng renderer defaults to
 # black; this panel family has been reviewed and accepted with red queries, so red is the default
 # HERE and black is one export away (GG_FOCAL_COLOUR='#000000'). The point of the contract is that

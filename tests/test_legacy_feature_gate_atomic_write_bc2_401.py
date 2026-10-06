@@ -1,5 +1,5 @@
 """Regression test for `mamey/legacy_feature_gate.py::write_default_legacy_matrix()`
-(v9.7.401, BC2, `.401` round tick 11).
+(v9.7.401, an audit lane, `.401` round tick 11).
 
 `write_default_legacy_matrix()` wrote directly to its destination path. Reproduced live: an
 interrupted write (crash, disk full, kill -9) leaves the real destination file itself -- not a

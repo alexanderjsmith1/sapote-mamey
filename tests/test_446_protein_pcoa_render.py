@@ -115,7 +115,7 @@ def test_tool_names_no_strain():
         assert not re.search(r"\bA[JS]S?-\d", (ROOT / f).read_text()), f
 
 
-# ---- Task 198 review: F5 grouping span from every kit point, F6 base-pdf fallback ---------------------------------------
+# ---- Review: F5 grouping span from every kit point, F6 base-pdf fallback ---------------------------------------
 def test_grouping_span_comes_from_the_whole_kit():
     # two points of one strain 0.02 apart; panel + background span 1.0 (1.5% = 0.015: two labels),
     # whole kit span 2.0 because of an other-cohort point (1.5% = 0.03: one shared label, as in v5)

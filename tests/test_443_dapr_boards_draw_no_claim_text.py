@@ -1,4 +1,4 @@
-"""The DAPR boards draw no claim wording; the ceiling goes to the caption sidecar (Alex, 2026-09-24).
+"""The DAPR boards draw no claim wording; the ceiling goes to the caption sidecar (2026-09-24).
 
 tools/render_dapr_boards.py drew each board's note with ax.text, and main() built both notes with
 "Class-level hypotheses; ...". The wording reached the canvas through a function argument, so no

@@ -1,4 +1,4 @@
-"""Tree-portable regression for the placement-graft pre-render gate (VGP .399 phylo patch 4).
+"""Tree-portable regression for the placement-graft pre-render gate (an audit lane .399 phylo patch 4).
 
 `tools/phylo_place.py::_graft_sane` is the importable, matplotlib-free HARD gate for placement
 grafts: it must FAIL a graft with a dominating ingroup branch and PASS a graft whose only long

@@ -2,7 +2,7 @@
 
 docs/GTOTREE_WORKFLOW.md (section 5) prescribes `-m MFP -mset LG,WAG,JTT,Q.pfam -mrate G,I,I+G` for the protein
 supermatrix and warns that bare `-m MFP` never finishes on ~30k columns. The runner passed bare `-m MFP`: on the
-87-genome Cameron v5 alignment (20,910 columns) ModelFinder tested 24 of up to 1,232 models in about 2 hours.
+87-genome insect-set v5 alignment (20,910 columns) ModelFinder tested 24 of up to 1,232 models in about 2 hours.
 """
 import importlib.util
 import re

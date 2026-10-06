@@ -1,5 +1,5 @@
-"""Enhancement (Aquarius .436): a receipt must surface when an evidence row SUPPLIED a
-protein hash the canonical gene had none to check against — the exact case Black Cherry-3
+"""Enhancement (an audit lane .436): a receipt must surface when an evidence row SUPPLIED a
+protein hash the canonical gene had none to check against — the exact case 3
 demonstrated. Admission stays the documented accept-when-optional behaviour; the claimed-but-
 unverifiable hash is made visible (evidence_rows_hash_unverifiable) instead of refused."""
 from __future__ import annotations

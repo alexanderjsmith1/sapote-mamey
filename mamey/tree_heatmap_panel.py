@@ -179,7 +179,7 @@ def build_panel(config_path: str | Path) -> dict[str, Any]:
     if not FIGURE_SET_ID.fullmatch(figure_set_id):
         _hold("THP_REGISTRY_HOLD", "figure_set_id must name one Figure Factory registry row (FS###)")
 
-    # 1. Tree sanity gate: an Amber-lane receipt with status PASS, digest-bound.
+    # 1. Tree sanity gate: an phylogeny-lane receipt with status PASS, digest-bound.
     sanity_path = _bound_file(root, config.get("tree_sanity_receipt"), "tree_sanity_receipt")
     try:
         sanity = json.loads(sanity_path.read_text(encoding="utf-8"))

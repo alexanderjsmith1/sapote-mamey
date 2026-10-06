@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ingest_field_collection.py -- normalize Alex's field-collection workbook into a per-strain
+"""ingest_field_collection.py -- normalize the owner's field-collection workbook into a per-strain
 collection-metadata TSV the rest of the engine can bind (placement host/origin tables, bioassay
 cohort grouping, strain-metadata reconciliation).
 

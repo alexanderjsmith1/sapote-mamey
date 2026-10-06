@@ -17,7 +17,7 @@ the review lane's two-proof rule (C06), operationalized:
       KS_CLADE_ONLY      KS proof only, reference-DARK -> RG-GMCI never ranked the pair (surface it!)
       WEAK               neither clears its bar
 
-MULTI_CHANNEL_HOLD (.368, Mango Tango RFC KS_PHYLO_MULTI_CHANNEL_RESCUE, ruled by BOTH lane owners 2026-08-17):
+MULTI_CHANNEL_HOLD (.368, an audit lane RFC KS_PHYLO_MULTI_CHANNEL_RESCUE, ruled by BOTH lane owners 2026-08-17):
 the review lane (two-proof): RG-GMCI homology + KS-clade homology is proof-1 + proof-1 (a STRONGER homology signal),
 NOT proof-1 + independent proof-2. So a pair the RG-GMCI channel ranked HIGH/MODERATE but that FAILED the
 complementarity (logic) proof, and which the KS channel independently groups, is exactly "two homology channels
@@ -25,7 +25,7 @@ agree these fragments are related, but the independent COMPLEMENTARY_SPLIT proof
 never a promotion: MULTI_CHANNEL_HOLD is a pure advisory SURFACER — it feeds NO score, rank, or prior, and it
 does NOT promote to TWO_PROOF_RESCUE. COMPLEMENTARY_SPLIT (the `_logic_proof` gate) remains the SOLE gate for
 any rescue. This verdict is engine-NEUTRAL: `_4D_two_proof_rescue.csv` is not in packaging.py::DETERMINISM_WHITELIST,
-so it never moves the repro fingerprint. Amber (`_4B` owner): the KS-clade partition it reads is unchanged —
+so it never moves the repro fingerprint. The phylogeny lane (`_4B` owner): the KS-clade partition it reads is unchanged —
 `_4B` is byte-identical, its subtype partition and pairwise-UNCLASSIFIED policy intact — so this adds no
 cross-subtype bridge. AS-XXX chimera control (2026-08-17): the in-engine KS channel is 5-mer containment
 single-linkage (subtype-gated, UNCLASSIFIED pairwise), NOT an "any shared ancestor UFBoot>=80" tree query, so
@@ -174,7 +174,8 @@ _INTERP = {
 
 def write_4d_csv(rows, out_path, strain_id=""):
     cols = ["strain", "contig_a", "contig_b", "verdict", "interpretation", "rggmci_confidence", "rggmci_score",
-            "functional_rescue_class", "ks_clade_id", "bgc_a", "bgc_b", "two_proof_logic_version", "claim_note"]
+            "functional_rescue_class", "ks_clade_id", "bgc_a", "bgc_b", "two_proof_logic_version", "claim_note", "rule_policy", "identity_a", "identity_b",
+            "second_proof_channel", "independent_proof_state", "position_verdict", "position_reference", "kcb_role"]
     note = ("two-proof candidate for adjudication; homology-guided linkage, NOT a merge or nucleotide join; "
             "the review lane adjudicates; judgment deferred")
     order = {"TWO_PROOF_RESCUE": 0, "MULTI_CHANNEL_HOLD": 1, "KS_CLADE_ONLY": 2, "RGGMCI_ONLY": 3, "WEAK": 4}
@@ -193,7 +194,14 @@ def write_4d_csv(rows, out_path, strain_id=""):
             for r in sorted(rows, key=lambda x: order.get(x["verdict"], 9)):
                 r2 = dict(r); r2["strain"] = strain_id; r2["claim_note"] = note
                 r2["interpretation"] = _INTERP.get((r2.get("verdict") or "").strip(), "")
-                r2["two_proof_logic_version"] = TWO_PROOF_LOGIC_VERSION
+                if r2.get("rule_policy") == "nonks_position_v1" and r2.get("second_proof_channel") == "INTACT_RELATIVE_POSITION":
+                    r2["interpretation"] = ("complementary HIGH linkage candidate + position CONSISTENT; adjudication required" if r2.get("verdict") == "TWO_PROOF_RESCUE" else "position veto; retain as contradicted candidate" if r2.get("verdict") == "POSITION_VETO" else "position insufficient; independent proof unresolved")
+                r2.setdefault("rule_policy", "ks_clade_v2")
+                r2.setdefault("second_proof_channel", "KS_CLADE" if r2.get("ks_clade_id") else "NONE")
+                r2.setdefault("independent_proof_state", "PRESENT" if r2.get("ks_clade_id") else "NOT_OBSERVED")
+                r2.setdefault("position_verdict", "NOT_READ")
+                r2.setdefault("kcb_role", "SUPPORTING_ONLY; never independent second proof")
+                r2["two_proof_logic_version"] = "nonks_position_v1" if r2.get("rule_policy") == "nonks_position_v1" else TWO_PROOF_LOGIC_VERSION
                 w.writerow(r2)
     except BaseException:
         if os.path.exists(tmp):

@@ -19,7 +19,7 @@ _STRAIN_RE = re.compile(r"\b(?:AS|AJS|SID|PENDING)-?\d+\b", re.I)
 # are the same citation as `BGC016` and must not silently bypass the gate.
 _BGC_RE = re.compile(r"\bBGC(?!0\d{5,})\d+\b", re.I)
 # any token that ties the label back to the assembly.
-# v9.7.401 (BC2): the last alternative was a bare `\bcontig\b` -- matched the generic NOUN
+# v9.7.401: the last alternative was a bare `\bcontig\b` -- matched the generic NOUN
 # "contig" with no accompanying number, so a decoy sentence that merely mentions the word
 # ("BGC016 is on a contig, exact node still needs to be checked") satisfied this check and the
 # line was never reported. That is the exact WAC-01375 defect class this gate exists to catch --

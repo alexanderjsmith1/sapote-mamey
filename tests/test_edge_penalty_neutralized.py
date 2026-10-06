@@ -1,4 +1,4 @@
-"""AMBER_07 (v9.7.349): lock in the fragment-surfacing invariant — edge_penalty == 0.
+"""P07 (v9.7.349): lock in the fragment-surfacing invariant — edge_penalty == 0.
 
 Since v9.7.84 the edge/full-contig penalty is NEUTRALIZED to zero: it had no measurement basis
 (Edge/FC BGCs show no truncation signature in their base score) and had buried real high-value

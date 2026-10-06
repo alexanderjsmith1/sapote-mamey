@@ -46,13 +46,23 @@ def test_every_lock_is_present():
     assert not missing, "structural lock(s) missing: " + "; ".join(missing)
 
 
-def test_ratchet_constants_equal_measured_on_shipped_tree():
+def test_ratchet_constants_equal_measured_on_shipped_tree(tmp_path):
     """The ratchet ceilings must be the measured truth, not a number with headroom."""
     import importlib.util, re, sys
     tool = TESTS.parent / "tools" / "repo_health.py"
     spec = importlib.util.spec_from_file_location("repo_health", tool)
     rh = importlib.util.module_from_spec(spec); sys.modules["repo_health"] = rh; spec.loader.exec_module(rh)
-    results = {r.name: r for r in rh.run(TESTS.parent)}
+    import shutil
+    snapshot = tmp_path / 'source_snapshot'
+    snapshot.mkdir()
+    for name in rh.SCAN_DIRS:
+        shutil.copytree(TESTS.parent / name, snapshot / name,
+                        ignore=shutil.ignore_patterns('__pycache__', '*.pyc', '.pytest_cache'))
+    # Other metadata gates read these source-bound files; do not use shared outputs.
+    for path in TESTS.parent.iterdir():
+        if path.is_file():
+            shutil.copy2(path, snapshot / path.name)
+    results = {r.name: r for r in rh.run(snapshot)}
     for metric, const in rh._RATCHETS.items():
         measured = int(re.match(r"(\d+)", results[metric].detail).group(1))
         ceiling = getattr(rh, const)

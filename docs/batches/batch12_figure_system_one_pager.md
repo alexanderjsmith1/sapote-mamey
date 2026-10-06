@@ -214,9 +214,7 @@ Before submitting figures, verify:
 
 ```bash
 # Data preparation — always run this first
-python tools/export_figure_ready.py \
-  --workbook merged_workbook.xlsx \
-  --outdir figure_ready/
+python tools/export_figure_ready.py merged_workbook.xlsx figure_ready/   # positional: workbook, then output folder
 
 # Core figure generation (four built-in figures)
 python tools/build_figures.py \
@@ -232,13 +230,13 @@ python tools/build_figures.py \
 ### Task: "I want an interactive HTML atlas"
 
 ```bash
+# One strain per run, from banked data (see the tool's docstring)
 python tools/generate_bgc_atlas.py \
-  --workbook merged_workbook.xlsx \
-  --package-dirs runs/*/package/ \
-  --figures figures/ \
-  --outdir atlas/
+  --strain SID-XXX \
+  --banked-dir cohort \
+  --out atlas/SID-XXX_atlas.html
 
-# Output: atlas/index.html (self-contained, browsable in any browser)
+# Output: one self-contained HTML atlas for that strain
 ```
 
 ---
@@ -247,7 +245,7 @@ python tools/generate_bgc_atlas.py \
 
 ```bash
 # Step 1: Export figure-ready data CSVs
-python tools/export_figure_ready.py --workbook workbook.xlsx --outdir figure_ready/
+python tools/export_figure_ready.py workbook.xlsx figure_ready/
 
 # Step 2: Generate the four standard figures
 python tools/build_figures.py \
@@ -313,7 +311,7 @@ python tools/build_thesis_diagrams.py \
 
 ```bash
 # Export figure-ready CSVs from workbook
-python tools/export_figure_ready.py --workbook workbook.xlsx --outdir figure_ready/
+python tools/export_figure_ready.py workbook.xlsx figure_ready/
 
 # Generate four standard figures from cohort data
 python tools/build_figures.py \

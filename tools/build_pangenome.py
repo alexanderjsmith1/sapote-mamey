@@ -26,6 +26,23 @@ from collections import defaultdict
 from _wbio import atomic_save, atomic_open, atomic_write_text
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -39,6 +56,7 @@ def fam(b):
     m=(b.get('closest_mibig') or '').strip()
     return None if (m=='' or m.upper()=='UNRESOLVED') else m
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--workbook', default='')
@@ -46,7 +64,7 @@ def main():
     ap.add_argument('--core-min', type=int, default=0,
                     help='min strains a family must span to count as core; 0 = auto max(2, n_strains//2). '
                          'Fixes B13: the old hardcoded 45 made core empty for any <45-strain cohort.')
-    a=ap.parse_args(); os.makedirs(a.out_dir,exist_ok=True)
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None)); os.makedirs(a.out_dir,exist_ok=True)
     bgc=_read_json(os.path.join(a.banked_dir,'bgc_data.json')); bgcs=bgc['bgcs']; strains=sorted(bgc['strains'])
     # Empty-safe (v9.7.114): an empty cohort has no pangenome — exit cleanly rather than crash on
     # round(100*x/len(bgcs)) (ZeroDivisionError) or mean[-1] (IndexError) in the rarefaction summary.

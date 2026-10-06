@@ -1008,15 +1008,14 @@ def _prepare_publication_artwork(md: str, pkg: "Path", *, profile: str = "DOUBLE
         if not match:
             gated.append(line)
             continue
-        target = match.group(1)
+        target = match.group(1).strip().strip("<>")
         source = (pkg / target).resolve()
         try:
             source.relative_to(pkg)
         except ValueError as exc:
             raise FigurePolicyError("FIGURE_ARTWORK_ROOT_ESCAPE", target) from exc
         if not source.exists():
-            dropped += 1
-            continue
+            raise FigurePolicyError("FIGURE_ARTWORK_UNAVAILABLE", target)
         suffix = source.suffix.casefold()
         if suffix == ".svg":
             checked.append(validate_publication_artwork(source, profile=profile))
@@ -1127,9 +1126,6 @@ def _render_compiled_pdf(md: str, out_pdf: "Path", pkg: "Path") -> dict:
     script = Path(__file__).resolve().parents[1] / "tools" / "md_to_pdf.sh"
     if not script.exists():
         return {"status": "SKIPPED_NO_RENDERER", "path": None, "detail": f"{script} absent"}
-    if shutil.which("pandoc") is None or shutil.which("xelatex") is None:
-        return {"status": "SKIPPED_NO_TOOLCHAIN", "path": None,
-                "detail": "pandoc/xelatex not on PATH — the sanctioned PDF path requires both"}
     try:
         gated_md, quality = _prepare_publication_artwork(md, pkg, profile="DOUBLE_COLUMN")
     except FigurePolicyError as exc:
@@ -1164,7 +1160,92 @@ def _render_compiled_pdf(md: str, out_pdf: "Path", pkg: "Path") -> dict:
 
 
 def compile_report_command(args) -> int:
-    import sys
+    """Compile a mutable preseal report or an immutable sealed-package reader view.
+
+    Preseal construction retains the internal report destination. Sealed inputs
+    use byte-bound external snapshots for figure conversion and waiver attestation;
+    the original package and its seal remain byte-identical.
+    """
+    import copy, hashlib, json, os, shutil, tempfile, sys
+    from .postseal_output import output_file, package_binding
+    pkg = Path(args.package_dir).expanduser().resolve()
+    if not pkg.is_dir():
+        emit(f"ERROR: not a directory: {pkg}", file=sys.stderr)
+        return 1
+    # Validate the original before copying; a snapshot never launders tampering.
+    from .validate import validate_package
+    checked = validate_package(pkg)
+    tamper = []
+    if str(checked.get("identity_binding", "PASS")).upper().startswith(("FAIL", "ERROR")):
+        tamper.append(f"identity_binding ({checked.get('identity_binding_detail', '')})")
+    if str(checked.get("manifest_parse", "PASS")).upper().startswith("FAIL"):
+        tamper.append("manifest_parse")
+    if ((pkg / "checksums_sha256.txt").is_file() and
+            str(checked.get("checksum_integrity", "PASS")).upper() == "FAIL"):
+        errors = checked.get("checksum_errors") or []
+        tamper.append("checksum_integrity" + (": " + "; ".join(str(e) for e in errors[:3]) if errors else ""))
+    if tamper:
+        raise SystemExit("compile-report: REFUSED — original package validation failed (" +
+                         " | ".join(tamper) + f"); run `mamey validate {pkg}` and repair before compiling a report")
+    sealed = any((pkg / marker).exists() or (pkg / marker).is_symlink() for marker in
+                 ("checksums_sha256.txt", "seal_status.json", "SEAL_RECEIPT.md"))
+    if not sealed:
+        # This is the construction-time API. It is allowed to build the report
+        # inside a mutable package before its final manifest/checksums are frozen.
+        return _compile_report_from_reader_view(args)
+    strain = _read_manifests(pkg).get("strain_id", "strain")
+    out = output_file(pkg, "compile-report", f"{strain}_compiled_report.md", getattr(args, "out", None))
+    # All sidecar/PDF paths are admitted too; an old symlink cannot redirect a
+    # secondary artifact into the original sealed tree.
+    for suffix in (".pdf", ".render.md", ".source_receipt.json", ".wide_tables_appendix.md", ".render_preflight.json"):
+        output_file(pkg, "compile-report", out.with_suffix(suffix).name, out.with_suffix(suffix))
+    binding = package_binding(pkg)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    # A unique persistent view avoids replacing assets used by an earlier report
+    # and prevents stale or adversarial pre-existing subdirectories being reused.
+    view_parent = Path(tempfile.mkdtemp(prefix=".reader_view_", dir=out.parent))
+    view = view_parent / "package"
+    shutil.copytree(pkg, view)
+    if package_binding(pkg) != binding:
+        shutil.rmtree(view_parent)
+        raise ValueError("POSTSEAL_SOURCE_CHANGED_DURING_SNAPSHOT")
+    copied = package_binding(view)
+    if copied["files_sha256"] != binding["files_sha256"]:
+        shutil.rmtree(view_parent)
+        raise ValueError("POSTSEAL_SNAPSHOT_HASH_MISMATCH")
+    report_args = copy.copy(args)
+    report_args.package_dir = str(view)
+    report_args._postseal_source_package = str(pkg)
+    report_args.out = str(out)
+    manifest = _read_manifests(pkg)
+    # Option fields vary across historical packages; explicit off is always honored.
+    settings = [json.loads((pkg / "manifest.json").read_text()), manifest] + [manifest.get(key, {}) for key in ("options", "run_options", "settings")]
+    maps_off = any(isinstance(s, dict) and str(s.get("locus_maps", "")).lower() == "off" for s in settings)
+    phase_path = pkg / "run_phase_receipts.jsonl"
+    if phase_path.is_file():
+        for line in phase_path.read_text().splitlines():
+            row = json.loads(line)
+            if row.get("phase") == "locus_maps" and row.get("status") == "SKIP" and row.get("reason") == "locus_maps=off":
+                maps_off = True
+    if maps_off:
+        report_args.no_figures = True
+        emit("compile-report: source run disabled locus maps; using existing source figures")
+    rc = _compile_report_from_reader_view(report_args)
+    final_binding = package_binding(pkg)
+    receipt = {"schema":"sapote.postseal-report.v1", "status":"WRITTEN" if rc == 0 else "REFUSED_OR_INCOMPLETE",
+               "source":binding, "source_unchanged":final_binding == binding,
+               "reader_view":str(view), "report":str(out) if out.is_file() else None,
+               "report_sha256":hashlib.sha256(out.read_bytes()).hexdigest() if out.is_file() else None,
+               "reader_manifest_sha256":hashlib.sha256((view / "manifest.json").read_bytes()).hexdigest() if (view / "manifest.json").is_file() else None,
+               "exit_code":rc, "locus_maps_off_respected":maps_off}
+    out.with_suffix(".source_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
+    if not receipt["source_unchanged"]:
+        raise ValueError("POSTSEAL_ORIGINAL_PACKAGE_CHANGED")
+    return rc
+
+
+def _compile_report_from_reader_view(args) -> int:
+    import sys, re
     pkg = Path(args.package_dir).resolve()
     if not pkg.is_dir():
         emit(f"ERROR: not a directory: {pkg}", file=sys.stderr)
@@ -1177,7 +1258,7 @@ def compile_report_command(args) -> int:
     # partial fixture packages and pre-seal trees legitimately lack them and the existing contract allows
     # compiling those.
     from .validate import validate_package as _validate_now
-    _v = _validate_now(pkg)
+    _v = _validate_now(Path(getattr(args, "_postseal_source_package", pkg)))
     _tamper = []
     if str(_v.get("identity_binding", "PASS")).upper().startswith(("FAIL", "ERROR")):
         _tamper.append(f"identity_binding ({_v.get('identity_binding_detail', '')})")
@@ -1195,7 +1276,18 @@ def compile_report_command(args) -> int:
     # manifest provenance; the report ships BLASTP-INCOMPLETE by attestation).
     from . import blastp_gate as _bpg
     _strain = _read_manifests(pkg).get("strain_id", "") or ""
-    _bp = _bpg.gate(pkg, _strain, waiver=getattr(args, "blastp_waiver", None))
+    source_pkg = Path(getattr(args, "_postseal_source_package", pkg))
+    waiver = getattr(args, "blastp_waiver", None)
+    # Discovery stays bound to the original project, not the relocated snapshot.
+    _bp = _bpg.gate(source_pkg, _strain, waiver=None)
+    if _bp["blocked"] and waiver:
+        missing = _bp.get("missing", [])
+        recorded = _bpg.record_waiver(pkg, _strain, waiver, missing)
+        if not recorded:
+            emit("BLASTP GATE — external reader waiver could not be recorded", file=sys.stderr)
+            return 3
+        _bp = dict(_bp, blocked=False, waived=True,
+                   message=f"BLASTP-INCOMPLETE by attestation: {waiver}; recorded in external reader manifest")
     if _bp["blocked"]:
         emit(_bp["message"], file=sys.stderr)
         return 3
@@ -1204,6 +1296,15 @@ def compile_report_command(args) -> int:
     md = build_report(pkg, generate_figures=not getattr(args, "no_figures", False),
                       toc_depth=int(getattr(args, "toc_depth", 1)))
     out = Path(args.out) if getattr(args, "out", None) else (pkg / f"{_read_manifests(pkg)['strain_id']}_compiled_report.md")
+    # Persist image paths into the external reader view. Input package paths are
+    # never rewritten; embedded artwork generation also stays in this view.
+    def _reader_image(match):
+        target = match.group(2).strip().strip("<>")
+        if "://" in target or target.startswith("#"):
+            return match.group(0)
+        source = Path(target) if Path(target).is_absolute() else pkg / target
+        return f"![{match.group(1)}](<{source.resolve()}>)"
+    md = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", _reader_image, md)
     slots = open_slots(md)
     # MB-03 (v9.7.338): run claim-safety over the report's OWN assembled text at compile time. CS-01
     # otherwise only bites at seal, so a freshly compiled report could ship an overclaim un-scanned.
@@ -1240,9 +1341,14 @@ def compile_report_command(args) -> int:
             return 3
         emit("  (--allow-claim-safety-warnings: report written past the claim-safety findings above "
               "— draft only, explicitly attested.)", file=sys.stderr)
-    _otmp = out.with_name(out.name + ".tmp")  # OUT-P06: atomic — no truncated report on a mid-write crash
-    _otmp.write_text(md, encoding="utf-8")
-    _otmp.replace(out)
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", prefix=out.name + ".", suffix=".tmp", dir=out.parent, delete=False) as handle:
+        handle.write(md)
+        _otmp = Path(handle.name)
+    try:
+        _otmp.replace(out)
+    finally:
+        _otmp.unlink(missing_ok=True)
     emit(f"compiled report → {out}")
     if slots:
         emit(f"  {len(slots)} narrative slot(s) still to fill: {', '.join(slots)}")
@@ -1264,7 +1370,7 @@ def compile_report_command(args) -> int:
                   f"  `--allow-unfilled-pdf` is a DRAFT-ONLY override: the PDF it renders carries empty judgment\n"
                   f"  slots and must not be presented as a finished deliverable.",
                   file=sys.stderr)
-            return 0
+            return 2
         pdf_out = out.with_suffix(".pdf")
         res = _render_compiled_pdf(md, pdf_out, pkg)
         if res["status"] == "WRITTEN":

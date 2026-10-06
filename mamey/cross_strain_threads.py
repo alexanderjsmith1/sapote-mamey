@@ -227,7 +227,7 @@ def render_threads_figure(rows: list[dict], png_path, *, release: str = "PRIVATE
     ax.set_title("Cross-strain shared biosynthetic threads\n"
                  f"{strain_label} · recurrent compound classes link strains across host associations",
                  fontsize=12, fontweight="bold")
-    # v9.7.442: claim wording stays off the canvas (Alex, 2026-09-24); the data facts stay.
+    # v9.7.442: claim wording stays off the canvas (2026-09-24); the data facts stay.
     foot = ("An edge = both strains carry that class (B2 matrix) · ubiquitous/standing-exclusion classes "
             f"(saccharide, NAPAA, siderophore, …) dropped: {', '.join(dropped) or 'none present'}"
             f" · label provenance: {label_provenance}"

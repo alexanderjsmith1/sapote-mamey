@@ -491,7 +491,7 @@ def _edge_status_fallback(bgcs: list[BGCRecord]) -> set[str]:
 def _contig_edge_bgcs(zip_path: str | Path, bgcs: list[BGCRecord]) -> set[str]:
     """Regions antiSMASH itself flags as touching a contig edge (`/contig_edge="True"` on the region feature).
 
-    RG-GMCI pairs only these (Alex, 2026-09-27): a region antiSMASH places inside a contig is whole on that contig,
+    RG-GMCI pairs only these (2026-09-27): a region antiSMASH places inside a contig is whole on that contig,
     and an assembly break cannot have separated it from anything. A region file without the flag falls back to the
     engine's own edge status.
     """
@@ -1030,8 +1030,8 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
                    glycosyltransferase_bgcs: set[str] | None = None,
                    contig_edge_bgcs: set[str] | None = None,
                    same_contig_pairs: bool = False) -> dict[str, Any]:
-    # Only regions at a contig edge are paired; interior regions are whole on their contig (Alex, 2026-09-27).
-    # Two regions on one contig are never a rescue: no assembly break separates them (Alex, 2026-09-27).
+    # Only regions at a contig edge are paired; interior regions are whole on their contig (2026-09-27).
+    # Two regions on one contig are never a rescue: no assembly break separates them (2026-09-27).
     edge_ids = _edge_status_fallback(bgcs) if contig_edge_bgcs is None else set(contig_edge_bgcs)
     all_records = [ClusterBlastReference(**r) for r in reference_map.get("reference_records", [])]
     # P-CBDB v9.7.100: subclusterblast finds sub-operon (cassette/sugar-operon) hits, NOT whole-cluster
@@ -1107,8 +1107,7 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
                 "interval_b": f"{b.interval_start}-{b.interval_end}" if b.interval_start is not None and b.interval_end is not None else "",
                 **details,
             }
-            if len(evidence_rows) < RGGMCI_MAX_EVIDENCE_ROWS:
-                evidence_rows.append(row)
+            evidence_rows.append(row)  # every row; the export cap is applied after ranking (below)
 
             key = tuple(sorted((a_id, b_id)))
             acc = pair_acc.setdefault(key, {
@@ -1443,6 +1442,17 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
         f"{basis_counts['COORDINATE']}/{basis_counts['LOCUS_PROXY']}/{basis_counts['NONE']} | "
         f"identity populated {identity_rows}/{len(evidence_rows)} | promotion ceiling {ceiling}"
     )
+    # Export cap: every evidence row of a HIGH pair is kept, then MODERATE pairs' rows, then the rest, up to the cap.
+    # Before v9.7.447 the first 5,000 rows were kept in reference order, so a HIGH pair could lose most of its
+    # supporting references from the export while its score still counted them. The summary counts above use every row.
+    evidence_total = len(evidence_rows)
+    if evidence_total > RGGMCI_MAX_EVIDENCE_ROWS:
+        tier = {(r["bgc_a"], r["bgc_b"]): 0 for r in high}
+        tier.update({(r["bgc_a"], r["bgc_b"]): 1 for r in moderate})
+        by_tier = sorted(evidence_rows, key=lambda r: tier.get(tuple(sorted((r["bgc_a"], r["bgc_b"]))), 2))
+        n_high = sum(tier.get(tuple(sorted((r["bgc_a"], r["bgc_b"]))), 2) == 0 for r in evidence_rows)
+        evidence_rows = by_tier[:max(n_high, RGGMCI_MAX_EVIDENCE_ROWS)]
+        summary_line += f" | evidence rows exported {len(evidence_rows)}/{evidence_total}"
     # Retain every HIGH-confidence pair even past the display cap, so a genuine split-pathway
     # rescue is never dropped by ranking truncation.
     _head = ranked[:RGGMCI_MAX_RANKED_PAIRS]
@@ -1458,6 +1468,8 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
             "adjacency_basis_counts": basis_counts,
             "identity_rows_populated": identity_rows,
             "evidence_rows": len(evidence_rows),
+            "evidence_rows_total": evidence_total,
+            "evidence_rows_not_exported": evidence_total - len(evidence_rows),
             "complementary_split_pairs": complementary_split_pairs,
             "overlapping_paralog_pairs": overlapping_paralog_pairs,
             "promotion_ceiling": ceiling,
@@ -1486,7 +1498,7 @@ RELATED_LOCUS_LABEL = "RELATED_LOCUS_NOT_A_RESCUE"
 def related_locus_pairs(bgcs: list[BGCRecord], reference_map: dict[str, Any], contig_edge_bgcs: set[str],
                         contigs: dict[str, str] | None = None,
                         glycosyltransferase_bgcs: set[str] | None = None) -> list[dict[str, Any]]:
-    """Pairs that involve an interior region or sit on one contig, kept apart from the rescue list (Alex, 2026-09-27).
+    """Pairs that involve an interior region or sit on one contig, kept apart from the rescue list (2026-09-27).
 
     The same scoring runs over all regions; every HIGH or MODERATE pair with at least one region off a contig edge, or
     with both regions on the same contig, is returned with its grade moved to `shared_reference_grade` and

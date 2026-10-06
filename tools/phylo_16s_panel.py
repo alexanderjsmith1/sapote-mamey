@@ -124,7 +124,7 @@ NULLISH_METADATA = ("", "missing", "not applicable", "not determined", "unknown"
 def metadata_predicate(con):
     """SQL requiring a deposited isolation source or host, over whichever columns this store has.
 
-    SEXTANT_421i (Alex's rule: "if you cannot find an isolation source, don't add it to the tree").
+    SEXTANT_421i (the owner's rule: "if you cannot find an isolation source, don't add it to the tree").
     Measured on the attines_rare panel 2026-09-09: 32 of 87 references carried no deposited habitat or
     country and rendered as blank strips. Schema-tolerant because the base `record` schema has neither
     column; stores gain them by extension. Refuses when the store cannot record metadata at all,

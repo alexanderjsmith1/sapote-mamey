@@ -22,7 +22,7 @@ from _wbio import atomic_dump_json, atomic_write_text  # noqa: E402
 try:
     from mamey.render_safe import has_forbidden_render_string
 except ImportError:  # pragma: no cover - allows tool use from an incomplete unpacked script path
-    # BC2-398 (v9.7.398): the canonical mamey/render_safe.py check matches both "nan" and
+    # 398 (v9.7.398): the canonical mamey/render_safe.py check matches both "nan" and
     # "NaN" explicitly (pandas' DataFrame.to_string()/.to_markdown() render missing values as
     # capitalized "NaN" by default) plus "None". This fallback's bare `\bnan\b` was
     # case-sensitive and matched only lowercase "nan" — the exact common case a boss-facing

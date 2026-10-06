@@ -2,7 +2,7 @@
 
 A contig with a region at each end has both regions flagged as on a contig edge, yet no assembly break separates
 them. Such a pair reached HIGH and gave both regions the triage rescue bonus, although candidate groups already left it
-out. Alex, 2026-09-27, approved moving these pairs to the related-loci list.
+out. The owner, 2026-09-27, approved moving these pairs to the related-loci list.
 """
 from mamey.models import BGCRecord
 from mamey.rggmci import RELATED_LOCUS_LABEL, compute_rggmci, related_locus_pairs

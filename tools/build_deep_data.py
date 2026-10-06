@@ -80,7 +80,7 @@ def merge_section(records, new, sids_replaced):
     kept=[r for r in records if r.get('sid') not in sids_replaced]
     return kept + new
 
-def main():
+def _main_stage():
     # v9.7.274 (audit CONCERN): give a clear usage/one-line error instead of a raw traceback on
     # `--help` or a missing/bad banked dir.
     if any(a in ("-h", "--help") for a in sys.argv[1:]):
@@ -90,7 +90,7 @@ def main():
               "(defaults to the current directory).")
         return 0
     banked=sys.argv[1] if len(sys.argv)>1 else os.getcwd()
-    # BC2-408: this tool's own docstring says its job is to "bank the full per-BGC deep_data for
+    # 408: this tool's own docstring says its job is to "bank the full per-BGC deep_data for
     # strains ingested core-only" -- i.e. to ADD deep_data.json/gene_data.json enrichment to a bank
     # that only has the core ingest_package.py --merge outputs. The old guard demanded deep_data.json
     # already exist before it would run at all -- a bootstrapping bug that makes the tool refuse to
@@ -111,7 +111,7 @@ def main():
     dd=os.path.join(banked,'deep_data.json')
     gd=os.path.join(banked,'gene_data.json')
     deep=_read_json(dd) if os.path.exists(dd) else {'bgc_profile':[],'domain_hits':[],'active_sites':[],'class_pred':[]}
-    gene=_read_json(gd) if os.path.exists(gd) else {'domain_arch':[],'substrates':[],'ripp':[]}
+    gene=_read_json(gd) if os.path.exists(gd) else {'scan_agg':{},'tfbs':{},'domain_arch':[],'substrates':[],'ripp':[]}
     all_sids=set(_read_json(bd)['strains'].keys())
     snaps=find_snaps()
     P=[]; A=[]; H=[]; ACT=[]; CLS=[]; SUBS=[]; RIPP=[]; done=set()
@@ -147,5 +147,21 @@ def main():
               f"offline (antiSMASH writes them to region GBKs regardless of json mode) — run the GBK recovery; "
               f"only RiPP precursor cores genuinely need a BOUNDED run.")
     emit(f"  still missing: {sorted(all_sids - prof_sids)}")
+
+def main():
+    if any(x in ('-h','--help') for x in sys.argv[1:]):
+        return _main_stage()
+    bank = sys.argv[1] if len(sys.argv)>1 else os.getcwd()
+    if not os.path.isfile(os.path.join(bank, 'bgc_data.json')):
+        return _main_stage()
+    from _bankio import transactional_call
+    saved = list(sys.argv)
+    def run(stage):
+        sys.argv = [saved[0], str(stage)] + saved[2:]
+        try:
+            return _main_stage()
+        finally:
+            sys.argv = saved
+    return transactional_call(bank, run)
 
 if __name__=='__main__': sys.exit(main() or 0)

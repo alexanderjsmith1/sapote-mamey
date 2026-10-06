@@ -18,6 +18,23 @@ from _console import emit  # noqa: E402
 import argparse, os, json, sys
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -38,7 +55,7 @@ def _count_verdicts(targets, vmap):
     main() already apply (`st=(v or {}).get('status','CONFIRM')`) -- otherwise a --targets-only
     invocation with no modeb_verdicts.csv (vmap == {}) prints "0 CONFIRM, 0 DOWNGRADE, 0 DROP"
     while every card in the document it just wrote literally renders "Verdict — CONFIRM": the
-    printed summary silently contradicts its own output. BC2-408."""
+    printed summary silently contradicts its own output. 408."""
     nc = nd = nr = 0
     for t in targets:
         st = (vmap.get(t) or {}).get('status', 'CONFIRM')
@@ -205,11 +222,12 @@ f"Class-level hypothesis only; bioactivity metadata may be `NOT_SUPPLIED` and is
                  f"{'; re-sequence to resolve fragmentation' if (b.get('edge_status')=='Edge' or (rescue.get(sid,{}).get('contigs') or 0)>200) else ''}.\n")
     return '\n'.join(L)
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--out', default='ModeB_DeepDives.md')
     ap.add_argument('--targets', default=None); ap.add_argument('--workbook', default=None)
-    a=ap.parse_args()
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None))
     bgc=_read_json(os.path.join(a.banked_dir,'bgc_data.json')); brec={(b['sid'],b['bgc_id']):b for b in bgc['bgcs']}
     import os.path as _op
     # W6: deep_data.json / gene_data.json are enrichment; degrade gracefully so a single-strain package
@@ -275,7 +293,7 @@ def main():
         body.append(deepdive(sid,bid,brec,prof,deep.get('active_sites',{}),deep.get('class_pred',{}),tfbs,rescue,gene.get('substrates',[]),coupling,v))
     head = head + "## ID resolver\n\n" + resolver_md(resolver_rows([brec[t] for t in targets if t in brec])) + "\n\n"
     atomic_write_text(a.out, head+'\n\n---\n\n'.join(body))
-    # BC2-408: count with the SAME 'CONFIRM' default the card body/section-header grouping above
+    # 408: count with the SAME 'CONFIRM' default the card body/section-header grouping above
     # already uses (line ~251's `st=(v or {}).get('status','CONFIRM')`) -- see _count_verdicts.
     nc, nd, nr = _count_verdicts(targets, vmap)
     emit(f"  wrote {len(targets)} Mode B deep dives ({nc} CONFIRM, {nd} DOWNGRADE, {nr} DROP) -> {a.out}")

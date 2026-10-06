@@ -1,3 +1,4 @@
+import json
 #!/usr/bin/env python3
 """link_check.py — Stop-hook guardrail: flag deliverable folders under the workspace
 subdirectory that owns `WHERE_THINGS_LIVE.md` that are NOT registered in that index.
@@ -122,5 +123,28 @@ def main():
             "discoverable; do not leave orphaned deliverables.\n" % (len(orphans), ", ".join(show), more))
     return 0
 
+
+def _run_visible():
+    """Hooks reference: stderr from a hook that exits 0 goes to the debug log only, and nobody sees it (audit F03).
+    Run main() with stderr captured. An exit-2 result passes its text through on stderr, which the host feeds back
+    to Claude. Any other result shows the text to the user as a systemMessage and exits 0."""
+    import io
+    buf, real = io.StringIO(), sys.stderr
+    sys.stderr = buf
+    try:
+        rc = main()
+    except Exception:
+        rc = 0  # advisory: fail open
+    finally:
+        sys.stderr = real
+    text = buf.getvalue().strip()
+    if rc == 2:
+        sys.stderr.write(text + "\n")
+        return 2
+    if text:
+        print(json.dumps({"systemMessage": text}))
+    return 0
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(_run_visible())

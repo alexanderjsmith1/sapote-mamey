@@ -53,7 +53,7 @@ svg{width:100%;display:block;border-radius:10px;background:var(--panel);border:1
 .legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
 .foot{color:var(--mut);font-size:11.5px;margin-top:16px;border-top:1px solid var(--line);padding-top:10px}
 .tag{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:999px;border:1px solid var(--line);margin-left:6px}
-.tag.query{color:#e0724d;border-color:#e0724d55}.tag.SID{color:#43a08a;border-color:#43a08a55}.tag.TYPE{color:#8b91a0}.tag.REF{color:#d1a53a}.tag.MIBiG{color:#c65fb0}.tag.Cameron{color:#d1a53a}
+.tag.query{color:#e0724d;border-color:#e0724d55}.tag.SID{color:#43a08a;border-color:#43a08a55}.tag.TYPE{color:#8b91a0}.tag.REF{color:#d1a53a}.tag.MIBiG{color:#c65fb0}
 @media print{body{background:#fff;color:#1b1e24}.bar,#tip{display:none}}
 .tag.priv{color:#d15f9a;border-color:#d15f9a66}
 #tip{position:fixed;pointer-events:none;background:var(--track);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;max-width:340px;opacity:0;transition:opacity .08s;z-index:9;box-shadow:0 6px 20px rgba(0,0,0,.35)}

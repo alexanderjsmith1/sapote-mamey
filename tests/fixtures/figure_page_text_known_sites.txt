@@ -10,7 +10,6 @@ mamey/kcb_locusmap.py::render_region
 mamey/locus_map.py::render_locus_map
 mamey/locus_map_v8.py::render_bgc_v8
 mamey/master_figure_atlas.py::_save
-mamey/render_brief.py::_text_page
 mamey/render_brief.py::fig_landscape
 mamey/render_brief.py::new_page
 tools/cluster_alignment.py::render

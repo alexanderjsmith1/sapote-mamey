@@ -1220,10 +1220,13 @@ def write_tables(block: dict[str, Any], out_dir: str | Path, prefix: str) -> lis
     return paths
 
 
-def main(argv: list[str] | None = None) -> int:
-    """`python -m mamey.ref_completion build-mibig-db <MIBiG gbk folder> <out folder> [--compounds <index.json>]`."""
+def main(argv: list[str] | None = None, prog: str = "ref_completion") -> int:
+    """`python -m mamey.ref_completion build-mibig-db <MIBiG gbk folder> <out folder> [--compounds <index.json>]`.
+
+    `prog` is the name the help shows: the standalone package passes "rggmci", so it reads `rggmci build-mibig-db`.
+    """
     import argparse
-    ap = argparse.ArgumentParser(prog="ref_completion", description="Build the MIBiG protein database that RG-GMCI's "
+    ap = argparse.ArgumentParser(prog=prog, description="Build the MIBiG protein database that RG-GMCI's "
                                  "reference-guided completion reads. Offline: it never downloads anything.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build-mibig-db", help="write a MIBiG protein database from a folder of MIBiG GenBank files")

@@ -2,7 +2,7 @@
 
 ### Counting, scoring, and reconstruction formulae in the deterministic extraction engine
 
-**Version of record:** Mamey engine v1.9.172 · bundle v9.7.446 · re-grounded 2026-09-14 (core formulas unchanged since v1.9.110; CCTT trigger roster expanded 14→18 at v1.9.99; constants last verified against engine source 2026-07-13)
+**Version of record:** Mamey engine v1.9.173 · bundle v9.7.448 · re-grounded 2026-09-14 (core formulas unchanged since v1.9.110; CCTT trigger roster expanded 14→18 at v1.9.99; constants last verified against engine source 2026-07-13)
 **Author:** Alexander J. Smith
 **Status:** Methods reference. Every formula below is transcribed from the engine source and cited to its module; nothing here is reconstructed from memory.
 
@@ -298,16 +298,20 @@ The tier is then subject to floors and downgrades (§6).
 
 **Source:** `parsers.py:architecture_grade`
 
-A *structural reliability* grade — how completely the cluster is captured — derived from edge status, whether a core biosynthetic class is present, length, and KCB support. Let `has_core` be true if the product text contains any of {nrps, pks, ripp, lanthipeptide, terpene, saccharide, phosphonate, siderophore, metallophore, lassopeptide, thioamide, tomm, azole}, and `high_kcb = (kcb_score ≥ 10000)`:
+A *structural reliability* grade — how completely the cluster is captured — derived from edge status, whether a core biosynthetic class is present, length, KCB support, and antiSMASH's chemical-hybrid flag. Let `has_core` be true if the product text contains any of {nrps, pks, ripp, lanthipeptide, terpene, saccharide, phosphonate, siderophore, metallophore, lassopeptide, thioamide, tomm, azole}; `distinct_core` the number of those terms present; `high_kcb = (kcb_score ≥ 10000)`; and `hybrid_coherent = has_chemical_hybrid ∧ distinct_core ≥ 2`, where `has_chemical_hybrid` means antiSMASH flagged the region's candidate cluster `kind = chemical_hybrid`. Rules are applied in this order; the first that matches wins:
 
 ```
 Interior ∧ has_core ∧ length ≥ 10 kb         →  A   (coherent, complete)
-Interior ∧ (has_core ∨ high_kcb)             →  B   (limited/compact, or KCB-supported)
+Interior ∧ high_kcb ∧ ¬has_core              →  B   (KCB-supported, limited core annotation)
+Interior ∧ has_core ∧ hybrid_coherent        →  A   (compact but coherent: fused multi-class architecture)
+Interior ∧ has_core                          →  B   (limited/compact)
 Edge ∧ has_core                              →  C   (truncated but coherent; partial)
 Edge ∧ ¬has_core                             →  D   (truncated, limited annotation)
 Full-contig ∧ has_core                       →  D   (likely truncated both ends)
 otherwise                                    →  E   (weak/ambiguous; inventory-level)
 ```
+
+The hybrid promotion only lifts a compact Interior core region from B to A. It never promotes a truncation grade (C, D or E): the hybrid flag says nothing about edge or length truncation. Example: Interior, products `nrps; t1pks`, 5,000 bp, chemical-hybrid flag set → A (without the flag, B). The grade is structural reliability, not production, novelty or activity. Section reviewed against `parsers.py:architecture_grade` in v9.7.447.
 
 The judgment-layer display maps A–E to words: A→High, B→Moderate-High, C→Moderate, D→Low-Moderate, E→Low (`scoring.py:triage_bgcs`).
 

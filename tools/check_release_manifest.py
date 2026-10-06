@@ -119,7 +119,7 @@ def _checksum_manifest_text(root: pathlib.Path) -> tuple[str | None, str | None]
 
 def checksum_problems(root: pathlib.Path) -> tuple[list[str], dict[str, int]]:
     """Assertions 1 + 2 only: every SOURCE_CHECKSUMS_SHA256.txt entry recomputes to its recorded
-    digest and names a file that exists (plus the malformed-line guard, BC2-CRM-01).
+    digest and names a file that exists (plus the malformed-line guard, CRM-01).
 
     v9.7.409 (CLAUDE identity_verify_content lane): extracted from check() as the single source of
     truth for "does the tree's CONTENT match the checksum manifest?" so verify_release_identity.py
@@ -139,7 +139,7 @@ def checksum_problems(root: pathlib.Path) -> tuple[list[str], dict[str, int]]:
         bad: list[str] = []
         missing: list[str] = []
         unsafe: list[str] = []
-        # BC2-CRM-01 (v9.7.396): a line with `len(parts) != 2` (no filename field — a truncated
+        # CRM-01 (v9.7.396): a line with `len(parts) != 2` (no filename field — a truncated
         # or corrupted entry) was silently `continue`d, with no count and no mention anywhere in
         # the output. This tool's own docstring exists specifically because "a bundle whose
         # checksum manifest fails on 128 files... passe[d]" every other gate, and warns that "a

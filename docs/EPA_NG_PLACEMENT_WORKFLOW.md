@@ -1,6 +1,6 @@
 # EPA-ng 16S Placement — the formal Sapote-Mamey workflow (paper-ready)
 
-**Lane:** Eggplant · **Engine:** sapote-mamey ≥ v9.7.411 (needs the EGGPLANT_411 patches) · **Status:** formal, end-to-end.
+**Lane:** The phylogeny lane · **Engine:** sapote-mamey ≥ v9.7.411 (needs the 411 patches) · **Status:** formal, end-to-end.
 **Supersedes** the older `docs/PHYLO_PLACEMENT_WORKFLOW.md`, which referenced a producer (an older unpackaged producer script)
 that was never packaged, leaving the ggtree renderer orphaned. This workflow is self-contained: every step
 is a shipped tool.

@@ -7,6 +7,14 @@ import sys
 
 import pytest
 
+def _shown(proc):
+    """What the user sees: advisory hooks report through a JSON systemMessage on stdout (audit F03); stderr with
+    exit 0 reaches only the debug log."""
+    import json as _json
+    out = proc.stdout.strip()
+    return _json.loads(out).get("systemMessage", "") if out else ""
+
+
 ROOT = Path(__file__).resolve().parents[1]
 HOOKS = ROOT / 'hooks'
 NAMES = ('require_phylo_workflow.sh', 'block_blastp_overconcurrency.sh', 'c10_tool_drift.py',
@@ -50,7 +58,7 @@ def test_tool_drift_baseline_reports_modification(tmp_path):
     assert _run('c10_tool_drift.py', tmp_path, payload, ('--mode', 'baseline')).returncode == 0
     target.write_text('second')
     result = _run('c10_tool_drift.py', tmp_path, payload, ('--mode', 'check'))
-    assert 'MODIFIED: tools/example.py' in result.stderr
+    assert 'MODIFIED: tools/example.py' in _shown(result)
 
 
 def test_open_task_contract_blocks_but_completed_contract_allows(tmp_path):
@@ -68,7 +76,7 @@ def test_state_reminder_uses_configurable_generic_root(tmp_path):
     old = time.time() - 3 * 3600;os.utime(file, (old, old))
     result = _run('state_save_reminder.py', tmp_path,
                   env_extra={'SAPOTE_TASK_STATE_ROOT': str(state.parent)})
-    assert 'session' in result.stderr and 'STATE-SAVE CADENCE' in result.stderr
+    assert 'session' in _shown(result) and 'STATE-SAVE CADENCE' in _shown(result)
 
 
 def test_reasoning_and_numeric_hooks_expose_review_requests(tmp_path):

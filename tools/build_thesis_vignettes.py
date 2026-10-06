@@ -17,6 +17,23 @@ _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)
 from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH families for groupings; products stay types
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -61,10 +78,11 @@ def size_context(sid,bid,bgcs):
     pct=round(100*sum(1 for x in dist if x<=sz)/len(dist)) if dist else 0
     return {'class':cls,'size':sz,'median':med,'pct':pct,'edge':tgt.get('edge_status',''),'anchor':tgt.get('closest_kcb_product','')}
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--out', default='thesis_vignettes.md')
-    ap.add_argument('--workbook', default=None); a=ap.parse_args()
+    ap.add_argument('--workbook', default=None); a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None))
     bgc=_read_json(os.path.join(a.banked_dir,'bgc_data.json')); bgcs=bgc['bgcs']; brec={(b['sid'],b['bgc_id']):b for b in bgcs}
     deep=_read_json(os.path.join(a.banked_dir,'deep_data.json')); prof={(p['sid'],p['bgc_id']):p for p in deep['bgc_profile']}
     gene=_read_json(os.path.join(a.banked_dir,'gene_data.json')); tfbs=gene.get('tfbs',{}); sub=gene.get('substrates',[])

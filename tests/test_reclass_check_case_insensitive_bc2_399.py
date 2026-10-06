@@ -1,4 +1,4 @@
-"""BC2 .399 audit: tools/reclass_check.py compared antiSMASH Products labels against the
+"""An audit-lane .399 audit: tools/reclass_check.py compared antiSMASH Products labels against the
 curated map's class keys with exact, case-sensitive string matching. The curated map
 (tools/reclass_discriminating_domains.json) keys four of its highest-value classes in
 UPPERCASE ("NRPS", "T1PKS", "T2PKS", "T3PKS"), but real antiSMASH output for these classes is

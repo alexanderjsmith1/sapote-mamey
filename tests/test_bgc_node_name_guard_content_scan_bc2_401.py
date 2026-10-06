@@ -1,4 +1,4 @@
-"""BC2 .401 audit: hooks/bgc_node_name_guard.sh — VERIFY/EXTEND task (ROSTER_401_SEEDS.md item
+"""An audit-lane .401 audit: hooks/bgc_node_name_guard.sh — VERIFY/EXTEND task (ROSTER_401_SEEDS.md item
 3, "audit control #5"): the guard's original check only ever inspected the FILENAME. Reproduced
 live: a genuinely-named file (e.g. "notes.md") whose BODY cites a bare strain+BGC-number with
 no node/contig token entirely escapes the guard, even under its own correct

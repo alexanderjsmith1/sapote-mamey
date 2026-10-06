@@ -117,10 +117,10 @@ def prepared_config(tmp_path):
  job=dict(jobs[0],tree_id='generic',job_id='generic_all',series_index=1,output_stem='Genus_N01_QUERY-001_2types_1nontype_sample-ID',reference_ratio='all',input_dir='prepared',input_hashes={n:digest(folder/n) for n in INPUTS})
  data['display_jobs']=[job];path=tmp_path/'config.json';path.write_text(json.dumps(data));return path,data
 
-def test_real_portable_series_render_and_hash_bindings(tmp_path):
+def test_real_portable_series_render_and_hash_bindings(tmp_path, require_r_packages):
  import shutil
  from render_tree_reference_series import render
- if not shutil.which('Rscript'):pytest.skip('Rscript unavailable; integration unverified')
+ require_r_packages()
  config,data=prepared_config(tmp_path);result=render(config,tmp_path/'result',workers=1)
  assert result['status']=='COMPLETE_MECHANICAL_REVIEW_ONLY',result
  assert result['passed']==1 and result['results'][0]['renderers']

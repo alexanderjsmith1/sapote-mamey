@@ -1,4 +1,4 @@
-"""BC2 .400 audit: tools/check_duplicate_dict_keys.py's own docstring states its whole purpose
+"""An audit-lane .400 audit: tools/check_duplicate_dict_keys.py's own docstring states its whole purpose
 is catching SILENT data loss from a duplicate dict-literal key. `collect()` used
 `rp.rglob("*.py")`, which silently swallows a per-directory OSError -- an unreadable
 subdirectory's contents are simply absent from the scan, no signal. The gate's own v9.7.395

@@ -1,4 +1,4 @@
-"""BC2 .399 audit: mamey/master_workbook.py::_b2_product_class_counts() -- the persistent
+"""An audit-lane .399 audit: mamey/master_workbook.py::_b2_product_class_counts() -- the persistent
 cross-strain master workbook's product-class pivot -- compared each product against the
 canonical B2 column set with exact, case-sensitive matching. The frozen B2 header names
 several classes in uppercase ("NRPS", "T1PKS", "T2PKS", "T3PKS", "NRPS-like",

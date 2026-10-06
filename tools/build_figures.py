@@ -30,6 +30,23 @@ import sys as _sys, os as _os
 PUBLICATION_RASTER_DPI = 300
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -322,11 +339,12 @@ FIGS={
  'fig_saccharide_adjusted':   (lambda a: data_saccharide_adjusted(a.banked_dir), plot_saccharide_adjusted),
 }
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--workbook', default='')
     ap.add_argument('--out-dir', default='figures'); ap.add_argument('--replot', action='store_true')
-    a=ap.parse_args(); os.makedirs(a.out_dir,exist_ok=True)
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None)); os.makedirs(a.out_dir,exist_ok=True)
     for name,(extract,plot) in FIGS.items():
         csvp=os.path.join(a.out_dir,name+'_data.csv')
         if a.replot:

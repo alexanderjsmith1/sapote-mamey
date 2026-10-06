@@ -6,7 +6,7 @@ RG-GMCI ranked-pairs table, this tool decides, for each candidate cross-BGC pair
 catalytic-domain co-clustering signal CORROBORATES an RG-GMCI/ClusterBlast homology rescue — or is
 merely an advisory hint that must NOT be treated as a rescue on its own.
 
-Why this exists (AS-XXX, Amber 2026-08-10): a KS-domain tree places KS aSDomains carried on different
+Why this exists (AS-XXX, the phylogeny lane 2026-08-10): a KS-domain tree places KS aSDomains carried on different
 antiSMASH fragments into type-coherent, well-supported clades, linking fragments whose whole-gene
 ClusterBlast is too diverged for RG-GMCI to tie. That is a real, complementary homology signal.
 

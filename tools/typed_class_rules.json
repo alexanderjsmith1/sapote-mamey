@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "status": "CANDIDATE_TYPED_FAMILY_RULES",
+  "baseline_sha256": "4520391f9a379155e83a8103e906a2b3f0f405d892e4d7c5441646571bfdebf1",
+  "previous_baseline_sha256": "2ce3fa03085c46e4e7b614d1170b8afa263031dc60caac1fcadc29d56393808a",
+  "rebase_reason": "Exact-binding and strip-spacing card adopted; six class keys remain outside legacy CLASS_STEPS.",
+  "source_draft_sha256": "9c7aa42c81edec0babd38141d6ad83877602d313d1ab4d26381343e4321959a1",
+  "matching": "Exact case-sensitive model names, no prose substring match; unique genes, not domain-row counts.",
+  "claim_limit": "Detected families support capacity hypotheses. Missing annotations are not absence, and no rule establishes product identity, production, activity or physical linkage.",
+  "classification_note": {
+    "hydrogen-cyanide": "Existing classification note only; no step/domain map."
+  },
+  "rules": [
+    {
+      "class_key": "T3PKS",
+      "aliases": [],
+      "completion_score": false,
+      "steps": [
+        {
+          "label": "Type III polyketide scaffold formation",
+          "type": "alternative_group",
+          "models": [
+            "Chal_sti_synt_C",
+            "Chal_sti_synt_N"
+          ],
+          "citations": [
+            "https://github.com/antismash/antismash/blob/8-0-4/antismash/detection/hmm_detection/cluster_rules/strict.txt#L29-L34",
+            "https://doi.org/10.1074/jbc.M110357200"
+          ],
+          "interpretation": "Either signature supports a type III PKS family assignment. Condensation and scaffold cyclization can reside in one enzyme; do not require separate T1PKS AT, ACP, reductive-loop or release modules. One terminal-domain hit can be a fragment.",
+          "draft_requirement": "class_signature_any"
+        },
+        {
+          "label": "Branch-specific downstream modifications",
+          "type": "optional",
+          "models": [],
+          "citations": [
+            "https://journals.asm.org/doi/10.1128/jb.00407-09"
+          ],
+          "interpretation": "Report individually annotated modifying-enzyme families when present. No universal domain list establishes the product, substrate choice or final cyclization pattern.",
+          "draft_requirement": "not_universal"
+        }
+      ]
+    },
+    {
+      "class_key": "fatty_acid",
+      "aliases": [],
+      "completion_score": false,
+      "steps": [
+        {
+          "label": "Fatty-acid-synthase or initiating condensing-enzyme family",
+          "type": "alternative_group",
+          "models": [
+            "bt1fas",
+            "ft1fas",
+            "t2fas",
+            "fabH"
+          ],
+          "citations": [
+            "https://github.com/antismash/antismash/blob/8-0-4/antismash/detection/hmm_detection/cluster_rules/loose.txt#L15-L20"
+          ],
+          "interpretation": "Loose detection signature. These families also serve primary metabolism; a hit does not establish a specialized-metabolite cluster or a particular fatty acid.",
+          "draft_requirement": "class_signature_any"
+        },
+        {
+          "label": "Carrier and reductive-cycle components",
+          "type": "optional",
+          "models": [],
+          "citations": [
+            "https://github.com/antismash/antismash/blob/8-0-4/antismash/detection/hmm_detection/cluster_rules/loose.txt#L15-L20"
+          ],
+          "interpretation": "The native detection rule does not specify one obligatory carrier/reductase/dehydratase set. Retain the observed families, but do not turn their absence from a bounded region into missing pathway steps.",
+          "draft_requirement": "branch_dependent_not_scored"
+        }
+      ]
+    },
+    {
+      "class_key": "RiPP-like",
+      "aliases": [],
+      "completion_score": false,
+      "steps": [
+        {
+          "label": "RiPP-related family signature",
+          "type": "alternative_group",
+          "models": [
+            "strepbact",
+            "Antimicrobial14",
+            "Bacteriocin_IId",
+            "BacteriocIIc_cy",
+            "Bacteriocin_II",
+            "Bacteriocin_IIi",
+            "Lactococcin",
+            "Antimicrobial17",
+            "Lactococcin_972",
+            "Bacteriocin_IIc",
+            "LcnG-beta",
+            "Cloacin",
+            "Linocin_M18",
+            "TIGR03651",
+            "TIGR03693",
+            "TIGR03601",
+            "TIGR03795",
+            "TIGR03975",
+            "DUF692",
+            "TIGR01193",
+            "YcaO",
+            "TIGR03604"
+          ],
+          "citations": [
+            "https://github.com/antismash/antismash/blob/8-0-4/antismash/detection/hmm_detection/cluster_rules/relaxed.txt#L32-L51",
+            "https://github.com/antismash/antismash/blob/8-0-4/antismash/detection/hmm_detection/cluster_rules/strict.txt#L209"
+          ],
+          "interpretation": "This is an OR-list of alternative RiPP-related signatures, not sequential steps. Keep a DUF692-only gene label unknown; the region fallback classification is a separate claim.",
+          "draft_requirement": "fallback_signature_any"
+        },
+        {
+          "label": "Precursor and family-specific maturation",
+          "type": "optional",
+          "models": [],
+          "citations": [
+            "https://github.com/antismash/antismash/blob/8-0-4/antismash/detection/hmm_detection/cluster_rules/relaxed.txt#L32-L51"
+          ],
+          "interpretation": "A precursor may lack an annotated Pfam domain. Require an explicit precursor feature or independently supported family assignment before displaying a specific precursor/maturation step. Never mark all families in the OR-list as required.",
+          "draft_requirement": "requires_subclass_evidence"
+        }
+      ]
+    },
+    {
+      "class_key": "quinone_isoprenoid_chain",
+      "aliases": [
+        "quinone"
+      ],
+      "completion_score": false,
+      "steps": [
+        {
+          "label": "Quinone isoprenoid side-chain synthesis",
+          "type": "required",
+          "models": [
+            "PT_HPP"
+          ],
+          "citations": [
+            "https://github.com/antismash/antismash/blob/8-0-4/antismash/detection/hmm_detection/cluster_rules/loose.txt#L37-L44"
+          ],
+          "interpretation": "Supports the long-chain prenyltransferase family used for quinone side chains. Does not by itself demonstrate quinone head-group synthesis, prenyl attachment, a specific cofactor, or its production.",
+          "draft_requirement": "class_signature_any"
+        },
+        {
+          "label": "Quinone head group and attachment",
+          "type": "optional",
+          "models": [],
+          "citations": [
+            "https://github.com/antismash/antismash/blob/8-0-4/antismash/detection/hmm_detection/cluster_rules/loose.txt#L37-L44"
+          ],
+          "interpretation": "These are separate biochemical requirements. Do not manufacture domain requirements from the shorthand display label quinone.",
+          "draft_requirement": "not_assessed_by_this_class"
+        }
+      ]
+    },
+    {
+      "class_key": "butyrolactone",
+      "aliases": [],
+      "completion_score": false,
+      "steps": [
+        {
+          "label": "AfsA-family scaffold-forming capacity",
+          "type": "required",
+          "models": [
+            "AfsA"
+          ],
+          "citations": [
+            "https://github.com/antismash/antismash/blob/8-0-4/antismash/detection/hmm_detection/cluster_rules/strict.txt#L558-L563",
+            "https://doi.org/10.1073/pnas.0607472104"
+          ],
+          "interpretation": "AfsA supports a family-level scaffold-forming signature, not a particular signaling molecule.",
+          "draft_requirement": "class_signature_any"
+        },
+        {
+          "label": "Reduction and dephosphorylation",
+          "type": "optional",
+          "models": [],
+          "citations": [
+            "https://doi.org/10.1073/pnas.0607472104"
+          ],
+          "interpretation": "The primary study describes alternative routes. Generic reductase or phosphatase domains are insufficient to identify these steps; require a specific characterized-reference match before naming them.",
+          "draft_requirement": "branch_dependent_not_scored"
+        },
+        {
+          "label": "TetR-family regulation context",
+          "type": "optional",
+          "models": [
+            "TetR_N"
+          ],
+          "citations": [
+            "https://pubmed.ncbi.nlm.nih.gov/17635544/"
+          ],
+          "interpretation": "A TetR-family domain alone does not identify a butyrolactone receptor. Display regulation-family context only; do not count it as a scaffold-biosynthesis step.",
+          "draft_requirement": "optional_context"
+        }
+      ]
+    },
+    {
+      "class_key": "nucleoside",
+      "aliases": [],
+      "completion_score": false,
+      "steps": [
+        {
+          "label": "Native nucleoside-pathway signature",
+          "type": "alternative_group",
+          "models": [
+            "LipM",
+            "LipV",
+            "LipU",
+            "TunD",
+            "pur6",
+            "pur10",
+            "nikJ",
+            "nikO",
+            "truD"
+          ],
+          "citations": [
+            "https://github.com/antismash/antismash/blob/8-0-4/antismash/detection/hmm_detection/cluster_rules/strict.txt#L580-L585"
+          ],
+          "interpretation": "Alternative pathway markers. Do not demand all models or infer a universal nucleoside route. ToyB occurs in the inspected 7.1.0 rule, not the inspected 8.0.4 rule; version-specific additions require explicit provenance.",
+          "draft_requirement": "class_signature_any"
+        },
+        {
+          "label": "TruD-family context (branch unassigned)",
+          "type": "optional",
+          "models": [
+            "truD"
+          ],
+          "citations": [
+            "https://doi.org/10.1016/j.chembiol.2018.12.004"
+          ],
+          "interpretation": "Only discuss the characterized-reference branch when the reference comparison supports it. An isolated TruD-family hit is compatible with ordinary RNA modification and does not identify a nucleoside antibiotic.",
+          "draft_requirement": "conditional_branch_marker"
+        },
+        {
+          "label": "Branch-specific scaffold modifications",
+          "type": "optional",
+          "models": [],
+          "citations": [
+            "https://doi.org/10.1016/j.chembiol.2018.12.004"
+          ],
+          "interpretation": "Keep individual domain families visible. Do not transfer the full malayamycin, polyoxin or nikkomycin pathway to an unassigned locus.",
+          "draft_requirement": "requires_reference_assignment"
+        }
+      ]
+    }
+  ]
+}

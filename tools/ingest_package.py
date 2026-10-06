@@ -7,10 +7,10 @@ aggregation) into the banked entry for that strain, so a newly-extracted genome 
 cohort with one command — the missing pipeline link between `mamey run` and the master build.
 
 Scope (core, validated): bgc_data (strain record + per-BGC rows), gene_data.scan_agg + tfbs,
-rggmci_full, tigrfam, modeb_verdicts (per-package modeb_verdicts.csv, gold mode only — BC2-408:
+rggmci_full, tigrfam, modeb_verdicts (per-package modeb_verdicts.csv, gold mode only — 408:
 merged into the cohort-level <banked_dir>/modeb_verdicts.csv that tools/build_modeb_deepdive.py,
 tools/generate_bgc_atlas.py, tools/build_thesis_vignettes.py, tools/build_subset_panel.py,
-tools/lead_board.py and tools/build_lead_tiers.py all read; before BC2-408 nothing ever wrote that
+tools/lead_board.py and tools/build_lead_tiers.py all read; before 408 nothing ever wrote that
 cohort-level file, so those six tools silently — or, in build_lead_tiers.py's case pre-.408,
 fatally — got no verdicts on any bank built purely from this tool). Detail per-BGC lists
 (substrates/active_sites/domain_hits/class_pred/bgc_profile/domain_arch) are emitted when present
@@ -93,7 +93,7 @@ def _private_tmp(path: str) -> str:
 def atomic_write_csv(rows, path, fieldnames):
     """Write ``rows`` to ``path`` as CSV crash-safely: serialize to a sibling .tmp, then
     os.replace() it into place (POSIX-atomic, mirrors atomic_dump's identical pattern above —
-    every other store this tool merges is JSON; modeb_verdicts.csv, BC2-408, is the first CSV
+    every other store this tool merges is JSON; modeb_verdicts.csv, 408, is the first CSV
     output here, so it gets its own writer rather than overloading atomic_dump's json.dump)."""
     path = str(path)
     tmp = _private_tmp(path)
@@ -338,7 +338,7 @@ def build_entry(snap, ww, pkg_dir=None, cohort=None, accession=""):
     # lift pattern and always-write-the-key contract as F10 (coupling).
     resistance_coupling = dict((ss.get("resistance", {}) or {}).get("bgc_coupling", {}) or {})
 
-    # --- modeb_verdicts (BC2-408) ---
+    # --- modeb_verdicts (408) ---
     # modeb_verdicts.csv is a per-PACKAGE file (mamey/cli.py::_write_package, gold mode only) —
     # unlike everything else built above it does NOT come from the snapshot, so it is read
     # straight off pkg_dir here. Every row's own 'strain' field already equals sid (the package
@@ -350,7 +350,7 @@ def build_entry(snap, ww, pkg_dir=None, cohort=None, accession=""):
             with open(_mv_path, encoding="utf-8") as _mvf:
                 modeb_verdicts = list(csv.DictReader(_mvf))
 
-    return {"sid": sid, "strain": strain, "bgcs": bgcs, "scan_agg": scan_agg,
+    return {"workflow_version": snap.get("workflow_version"), "sid": sid, "strain": strain, "bgcs": bgcs, "scan_agg": scan_agg,
             "tfbs": tfbs, "rggmci_full": rggmci_full, "tigrfam": tigrfam,
             "coupling": coupling, "resistance_coupling": resistance_coupling,
             "modeb_verdicts": modeb_verdicts}
@@ -381,32 +381,50 @@ def find_duplicate(entry_bgcs, bgc_json, self_sid):
     return None
 
 
-def merge(entry, banked_dir, allow_dup=False):
-    """Bank one package into the cohort stores, serialised across processes.
-
-    v9.7.410 hostile audit: the eight-file merge is a read-modify-write with no lock. Two `bank`
-    invocations into the same cohort dir interleaved so that the second reader loaded a
-    pre-first-write store and its rewrite dropped the first process's rows (reproduced: one
-    strain's modeb_verdicts rows lost, the other process dead in os.replace). A BLOCKING exclusive
-    advisory lock on ``<banked_dir>/.ingest.lock`` makes the second banker wait its turn instead
-    — same idiom as mamey/cli.py::_acquire_package_lock, but blocking, because a cohort bank is a
-    queue, not a conflict. Non-POSIX hosts (no fcntl) keep the old behaviour.
-    """
-    try:
-        import fcntl as _fcntl
-    except ImportError:  # pragma: no cover - non-POSIX
-        return _merge_unlocked(entry, banked_dir, allow_dup)
-    os.makedirs(str(banked_dir), exist_ok=True)
-    with open(os.path.join(str(banked_dir), ".ingest.lock"), "a+") as lock_fh:
-        _fcntl.flock(lock_fh.fileno(), _fcntl.LOCK_EX)
-        try:
-            return _merge_unlocked(entry, banked_dir, allow_dup)
-        finally:
-            _fcntl.flock(lock_fh.fileno(), _fcntl.LOCK_UN)
+def merge(entry, banked_dir, allow_dup=False, package=None, force_schema=False):
+    """Admit schema and publish all stores inside one cooperating writer lock."""
+    from mamey.bank_transaction import lock, prepare
+    with lock(banked_dir, writer=True) as root:
+        from mamey.bank_transaction import coherent, validate_stores, BankError, STORES
+        sid = entry.get("sid")
+        if not isinstance(sid, str) or not sid.strip() or not isinstance(entry.get("strain"), dict) or not isinstance(entry.get("bgcs"), list):
+            raise BankError("BANK_INCOMING_ENTRY_INVALID")
+        if any(not isinstance(b, dict) or b.get("sid") != sid or not b.get("bgc_id") for b in entry["bgcs"]):
+            raise BankError("BANK_INCOMING_LOCUS_BINDING_INVALID")
+        if len({b["bgc_id"] for b in entry["bgcs"]}) != len(entry["bgcs"]):
+            raise BankError("BANK_INCOMING_DUPLICATE_BGC")
+        if any(not isinstance(entry.get(k), dict) for k in ("scan_agg", "tfbs", "rggmci_full", "tigrfam")):
+            raise BankError("BANK_INCOMING_ENTRY_SCHEMA_INVALID")
+        if any(not isinstance(r, dict) or r.get("strain") != sid for r in entry.get("modeb_verdicts", [])):
+            raise BankError("BANK_INCOMING_VERDICT_STRAIN_INVALID")
+        coherent(root)
+        validate_stores(root)
+        incoming = _schema_gate(package, root, force=force_schema) if package else entry.get("workflow_version")
+        if not isinstance(incoming, str) or not incoming.strip() or incoming == "UNKNOWN":
+            raise SystemExit("SCHEMA GATE: direct merge requires entry workflow_version or a package manifest")
+        if package and entry.get("workflow_version") != incoming:
+            raise SystemExit("SCHEMA GATE: extracted entry version does not match admitted package manifest")
+        marker = root / "SCHEMA_VERSION"
+        if marker.exists() and marker.read_text().strip() != incoming and not force_schema:
+            raise SystemExit("SCHEMA GATE: direct merge version differs from bank")
+        import io
+        output = io.StringIO()
+        def build(stage):
+            # Existing bank version retained under explicit force, as before;
+            # override is recorded alongside both versions in transaction receipt.
+            atomic_dump({"incoming_version": incoming, "force_schema": bool(force_schema)}, stage / "schema_admission.json")
+            if not (stage / "SCHEMA_VERSION").exists():
+                (stage / "SCHEMA_VERSION").write_text(incoming)
+            with contextlib.redirect_stdout(output):
+                _merge_unlocked(entry, str(stage), allow_dup)
+        state = prepare(root, build, STORES + ('deep_data.json',))
+        sys.stdout.write(output.getvalue())
+        return state
 
 
 def _merge_unlocked(entry, banked_dir, allow_dup=False):
     sid = entry["sid"]
+    # Private-stage compatibility snapshots; canonical recovery is versioned.
     # Snapshot every banked file this merge may touch BEFORE writing any of them, so a
     # failure partway through the 8-file write is recoverable from the .bak siblings.
     _snapshot_bak([
@@ -451,7 +469,7 @@ def _merge_unlocked(entry, banked_dir, allow_dup=False):
     rcp = load(rcp_path) if os.path.exists(rcp_path) else {}
     rcp[sid] = entry.get("resistance_coupling", {})
     atomic_dump(rcp, rcp_path)
-    # BC2-408: modeb_verdicts.csv is written per-PACKAGE by mamey/cli.py::_write_package (gold
+    # 408: modeb_verdicts.csv is written per-PACKAGE by mamey/cli.py::_write_package (gold
     # mode only) but nothing merged those per-strain rows into a cohort-level
     # <banked_dir>/modeb_verdicts.csv — six downstream tools (build_modeb_deepdive.py,
     # generate_bgc_atlas.py, build_thesis_vignettes.py, build_subset_panel.py, lead_board.py,
@@ -470,8 +488,8 @@ def _merge_unlocked(entry, banked_dir, allow_dup=False):
     atomic_write_csv(_merged_mv, mv_path, mv_headers)
     # update the strains.json registry so GCA/cohort reach A2_Strain_Registry (provenance)
     sp = f"{banked_dir}/strains.json"
-    if os.path.exists(sp):
-        reg = load(sp); st = entry["strain"]
+    if True:
+        reg = load(sp, {}); st = entry["strain"]
         row = {"sid": sid, "ww": st.get("ww", ""), "gca": st.get("gca"),
                "samn": st.get("samn", ""),
                "cohort": st.get("cohort"), "organism": st.get("organism")}
@@ -487,7 +505,12 @@ def _merge_unlocked(entry, banked_dir, allow_dup=False):
           f"+ registry") + "\n")
 
 
+from mamey.bank_transaction import reader_scope as _bank_reader_scope
+
+@_bank_reader_scope
 def validate(sid, pkg, banked_dir):
+    from mamey.bank_transaction import hold_reader
+    hold_reader(banked_dir)
     snap = load(find_snapshot(pkg))  # pkg is the package dir
     ww = load(f"{banked_dir}/bgc_data.json")["strains"].get(sid, {}).get("ww", "")
     e = build_entry(snap, ww, pkg)
@@ -508,48 +531,27 @@ def validate(sid, pkg, banked_dir):
 
 
 def _schema_gate(package, banked_dir, force=False):
-    """Mandatory pre-merge schema gate (patch G1). Refuse to bank a package whose schema/engine version
-    diverges from the cohort the bank was established at — so divergent-schema sources can't be silently
-    concatenated. The first strain establishes the cohort version; later strains must match (or --force)."""
-    import os as _os
-    import sys as _sys
-    import glob as _glob
-    mans = _glob.glob(os.path.join(package, "manifest.json")) or _glob.glob(os.path.join(package, "*manifest.json"))
-    incoming = "UNKNOWN"
-    if mans:
-        try:
-            incoming = str(_read_json(mans[0]).get("workflow_version") or "UNKNOWN")
-        except (OSError, json.JSONDecodeError) as exc:
-            raise SystemExit(
-                f"SCHEMA GATE: cannot read manifest {mans[0]!r} ({exc}); "
-                "a malformed manifest cannot be forced as UNKNOWN schema."
-            ) from exc
-    if incoming == "UNKNOWN" and not force:
-        sys.stdout.write(("✗ SCHEMA GATE: incoming package does not declare workflow_version; refusing to establish or match UNKNOWN schema. Use --force-schema only after manual alignment.") + "\n")
-        _sys.exit(2)
-    marker = _os.path.join(banked_dir, "SCHEMA_VERSION")
-    if _os.path.exists(marker):
-        with open(marker, encoding="utf-8") as _mf:            # INGEST-P01: with-block + encoding
-            banked = _mf.read().strip()
-        if banked != incoming:
-            msg = (f"✗ SCHEMA GATE: incoming package is schema v{incoming}, but this cohort is banked at "
-                   f"v{banked}.\n  Divergent-schema sources must be normalized before merge — refusing.")
-            if not force:
-                sys.stdout.write((msg + "  (override with --force-schema once you've confirmed alignment.)") + "\n")
-                _sys.exit(2)
-            sys.stdout.write((msg + "  [--force-schema set — proceeding under operator override.]") + "\n")
-    else:
-        # INGEST-P01: create the bank dir if missing so the gate works off the build server
-        # (default banked_dir was the hardcoded /data/mamey-local, which crashed elsewhere).
-        try:
-            _os.makedirs(banked_dir, exist_ok=True)
-        except OSError as _e:
-            sys.stdout.write((f"✗ SCHEMA GATE: cannot create banked-dir {banked_dir!r} ({_e}); "
-                  f"pass a writable --banked-dir.") + "\n")
-            _sys.exit(2)
-        with open(marker, "w", encoding="utf-8") as _mf:        # INGEST-P01: with-block + encoding
-            _mf.write(incoming)
-        sys.stdout.write((f"  schema gate: cohort schema established at v{incoming}") + "\n")
+    """Read-only admission; writer transaction owns schema establishment."""
+    import glob
+    mans = sorted(set(glob.glob(os.path.join(str(package), "manifest.json")) or glob.glob(os.path.join(str(package), "*manifest.json"))))
+    if len(mans) != 1:
+        raise SystemExit("SCHEMA GATE: exactly one package manifest required")
+    try:
+        payload = _read_json(mans[0])
+        if not isinstance(payload, dict): raise ValueError("manifest must be an object")
+        incoming = payload.get("workflow_version")
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"SCHEMA GATE: cannot read manifest {mans[0]!r} ({exc})") from exc
+    if not isinstance(incoming, str) or not incoming.strip() or incoming == "UNKNOWN":
+        raise SystemExit("SCHEMA GATE: incoming package must declare workflow_version, including under --force-schema")
+    marker = os.path.join(str(banked_dir), "SCHEMA_VERSION")
+    if os.path.exists(marker):
+        with open(marker, encoding="utf-8") as handle:
+            banked = handle.read().strip()
+        if banked != incoming and not force:
+            sys.stderr.write(f"SCHEMA GATE: incoming {incoming} differs from bank {banked}; normalize or explicitly --force-schema\n")
+            raise SystemExit(2)
+    return incoming
 
 
 def main():
@@ -557,6 +559,7 @@ def main():
     ap.add_argument("--package"); ap.add_argument("--ww", default="")
     ap.add_argument("--banked-dir", default="/data/mamey-local")
     ap.add_argument("--merge", action="store_true")
+    ap.add_argument("--recover", choices=["rollback", "finish"], help="Explicit recovery of an interrupted bank journal")
     ap.add_argument("--allow-dup", action="store_true", help="bank even if a duplicate fingerprint is found")
     ap.add_argument("--validate", default=None)
     ap.add_argument("--out", default=None)
@@ -567,6 +570,12 @@ def main():
     ap.add_argument("--force-schema", action="store_true",
                     help="override the mandatory pre-merge schema-drift gate (operator confirms alignment)")
     a = ap.parse_args()
+    if a.recover:
+        from mamey.bank_transaction import recover
+        sys.stdout.write(json.dumps(recover(a.banked_dir, a.recover)) + "\n")
+        return
+    if not a.package:
+        ap.error("--package is required unless --recover is selected")
     if a.validate:
         validate(a.validate, a.package, a.banked_dir); return
     snap = load(find_snapshot(a.package))
@@ -577,8 +586,7 @@ def main():
     if a.out:
         atomic_dump(e, a.out, indent=2); sys.stdout.write((str("wrote") + " " + str(a.out)) + "\n")
     if a.merge:
-        _schema_gate(a.package, a.banked_dir, force=a.force_schema)  # G1: hard pre-condition
-        merge(e, a.banked_dir, allow_dup=a.allow_dup)
+        merge(e, a.banked_dir, allow_dup=a.allow_dup, package=a.package, force_schema=a.force_schema)
 
 
 if __name__ == "__main__":

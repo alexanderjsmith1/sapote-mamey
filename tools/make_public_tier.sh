@@ -31,6 +31,9 @@ PYTHON="${PYTHON:-python3}"
 
 TIER="${1:?tier: code|clean|cohort|merged|public}"; SRC="${2:?source dir}"; OUT="${3:?output dir}"
 shift 3
+# Refuse review-stage source roots before staging or creating any archive.
+source "$SRC/tools/cut_preflight.sh"
+sapote_assert_no_review_root "$SRC"
 # v9.7.408 (owner ruling 2026-09-04): the tier formerly called `sid` is now `cohort`. The old name
 # was specific to one lab's strain series (SID####) in a general-purpose tool; the new one states
 # what the tier does — it keeps cohort/ where code strips it. The alias stays resolvable because
@@ -43,7 +46,7 @@ case "$TIER" in
     TIER=cohort
     ;;
 esac
-# v9.7.444 (Alex): releases cut the CODE tier only. The clean, cohort, merged and public branches below are
+# v9.7.444 (owner): releases cut the CODE tier only. The clean, cohort, merged and public branches below are
 # kept in the bundle but disabled; SAPOTE_ENABLE_DISABLED_TIERS=1 runs them (see CUT_PROTOCOL.md).
 if [ "$TIER" != "code" ] && [ "${SAPOTE_ENABLE_DISABLED_TIERS:-0}" != "1" ]; then
   echo "REFUSED: tier '$TIER' is disabled (v9.7.444: releases cut the CODE tier only). Set SAPOTE_ENABLE_DISABLED_TIERS=1 to run it." >&2
@@ -105,6 +108,12 @@ cleanup() {
 trap cleanup EXIT
 STAGE="$WORK/sapote-mamey"
 mkdir -p "$STAGE"; cp -a "$SRC/." "$STAGE/"
+
+# BEGIN COMMON CORRESPONDENCE EXCLUSION
+# Owner ruling: this author note is correspondence, not bundle content. Apply to every tier,
+# including merged/private scaffolds; preserve the actual upstream compatibility patch.
+rm -f "$STAGE/tools/upstream_gtotree2/NOTE_TO_GTOTREE_AUTHOR.md"
+# END COMMON CORRESPONDENCE EXCLUSION
 
 fail_on_backup_debris() {
   local offender
@@ -213,7 +222,7 @@ fi
 # cassette stable-IDs are untouched. --as-only keeps public SID (Chevrette 2019) intact; the clean
 # tier leaves SID alone by design (SID is public). Without this the leak audit refuses every public tier,
 # because real cohort IDs live in code comments, docs, and the CHANGELOG. merged keeps real IDs.
-# v9.7.219 (PI decision, the Developer or User Smith, 2026-07-06): the AS-series cohort is PUBLIC — the
+# v9.7.219 (PI decision, the release owner, 2026-07-06): the AS-series cohort is PUBLIC — the
 # Hymenoptera paper publishes strain/genus/host/16S/accession for all AS strains, and BGC content is not
 # meaningful additional disclosure. The AS-ID scrub is therefore DEACTIVATED by default, so real AS IDs
 # (incl. the folded Master_Strain_Table) survive into the public tier. Tier structure is UNCHANGED — all
@@ -283,7 +292,7 @@ if [ "$TIER" != "merged" ] && [ -f "$SRC/tools/release_denylist.txt" ]; then
 fi
 
 # --- 3. leak audit — refuse to ship if anything survives --------------------
-# v9.7.156 (PI decision, the Developer or User Smith, 2026-06-30): the AS-series privacy guard is
+# v9.7.156 (PI decision, the release owner, 2026-06-30): the AS-series privacy guard is
 # RETIRED. All AS strains have 16S on GenBank publicly associating strain/genus/host; BGC content
 # is not meaningful additional disclosure; Sapote-Mamey ships concurrent with the publications.
 # The AS-ID portions of the leak audit are DEMOTED from FAIL to WARN. The machinery is retained
@@ -306,7 +315,7 @@ _as_leak() {   # $1 = message. Fully deactivated when AS_SCRUB=0 (cohort public,
   fi
 }
 FAIL=0
-# v9.7.442 (candidate, session 1246f6ce): assembly contig names are a SEPARATE disclosure class from
+# v9.7.442 (candidate, a session): assembly contig names are a SEPARATE disclosure class from
 # strain identifiers and this audit has never been able to see them. The two PI decisions that retired
 # the AS-ID guard (v9.7.156, v9.7.219) both reason about IDENTIFIERS -- 16S on GenBank associates
 # strain/genus/host. A SPAdes contig name such as NODE_49_length_57614_cov_34.087283 is assembly

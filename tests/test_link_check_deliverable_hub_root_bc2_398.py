@@ -1,4 +1,4 @@
-"""BC2 .398/.399 audit: hooks/link_check.py's deliverable-hub root discovery.
+"""An audit-lane .398/.399 audit: hooks/link_check.py's deliverable-hub root discovery.
 
 v9.7.398 fix: hardcoded scan root was '<workspace>/strain_data', which doesn't exist on the
 real workspace -- main()'s own first check exited immediately on every real invocation. Fixed
@@ -20,6 +20,14 @@ import pathlib
 import subprocess
 import sys
 from tests.conftest import hermetic_env  # v9.7.404 bytecode-leak fix
+
+def _shown(proc):
+    """What the user sees: advisory hooks report through a JSON systemMessage on stdout (audit F03); stderr with
+    exit 0 reaches only the debug log."""
+    import json as _json
+    out = proc.stdout.strip()
+    return _json.loads(out).get("systemMessage", "") if out else ""
+
 
 HOOKS_DIR = pathlib.Path(__file__).resolve().parents[1] / "hooks"
 sys.path.insert(0, str(HOOKS_DIR))
@@ -63,8 +71,8 @@ def test_orphan_detection_works_end_to_end_against_the_discovered_root(tmp_path,
     hook_path = HOOKS_DIR / "link_check.py"
     proc = subprocess.run([sys.executable, str(hook_path)], capture_output=True, text=True,
                            env=hermetic_env(SAPOTE_WORKSPACE_ROOT=str(tmp_path), PATH="/usr/bin:/bin"))
-    assert "_orphan_hub" in proc.stderr
-    assert "_registered_hub" not in proc.stderr
+    assert "_orphan_hub" in _shown(proc)
+    assert "_registered_hub" not in _shown(proc)
 
 
 def test_legacy_bare_strain_data_convention_still_works_when_no_structural_match(tmp_path, monkeypatch):

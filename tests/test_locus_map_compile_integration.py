@@ -70,7 +70,7 @@ def _make_pkg(tmp_path: pathlib.Path,
         {"strain_id": strain_id}))
 
     if with_triage:
-        # BC2-408: Region column added (was missing) -- render_bgc_v8 (mamey/locus_map_v8.py,
+        # 408: Region column added (was missing) -- render_bgc_v8 (mamey/locus_map_v8.py,
         # P004 "V8 combined repair") requires strain/node/REGION/bgc_alias all populated and
         # raises "complete locus identity unavailable: region" otherwise. This sibling fixture
         # (a near-duplicate of test_locus_map_compile_integration_v9_7_152.py's _make_pkg, same

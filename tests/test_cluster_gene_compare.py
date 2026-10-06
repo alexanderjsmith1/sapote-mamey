@@ -52,7 +52,7 @@ def test_global_identity_metric():
     assert gid2 < 30  # unrelated pair below the confident bar
 
 
-def test_annotation_propagates_to_gene_qualifier():
+def test_annotation_is_separate_from_original_gene_qualifier():
     """A gene annotated in ONE cluster should label its ortholog's /gene in another (clinker uses /gene)."""
     m = _load()
     with tempfile.TemporaryDirectory() as d:
@@ -64,7 +64,8 @@ def test_annotation_propagates_to_gene_qualifier():
         clusters, recs, pairs, groups, resolved = m.compare(labels, [str(a), str(b)], min_id=30)
         m.write_annotated_gbks(labels, [str(a), str(b)], clusters, recs, resolved, str(d))
         txt = (d / "annotated_gbks" / "B.gbk").read_text()
-        assert 'gene="nikJ"' in txt, "annotation did not propagate to the ortholog's /gene qualifier"
+        assert 'mamey_homology_label="nikJ"' in txt
+        assert '/gene=' not in txt
 
 
 def test_ortholog_grouping_and_csv(tmp_path):

@@ -1,4 +1,4 @@
-"""BC2-CRM-01 (v9.7.396): check_release_manifest.py must not silently skip a malformed/
+"""CRM-01 (v9.7.396): check_release_manifest.py must not silently skip a malformed/
 unparseable line in SOURCE_CHECKSUMS_SHA256.txt.
 
 This tool's own docstring exists specifically because "a bundle whose checksum manifest fails on

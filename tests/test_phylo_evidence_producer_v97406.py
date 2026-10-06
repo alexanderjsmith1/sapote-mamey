@@ -155,7 +155,7 @@ def test_xlsx_duplicate_headers_require_explicit_column_selector(tmp_path):
 
 
 def test_no_reference_dedup_supplied_is_not_recorded_and_does_not_hold(tmp_path):
-    # BC2-407: --reference-dedup is the one optional producer input (main()'s argparse
+    # 407: --reference-dedup is the one optional producer input (main()'s argparse
     # never marks it required). Before this test, neither dedup branch that matters for
     # claim-safety -- "no dedup file at all" and "a dedup file that fails to establish
     # one-per-species" -- had ANY test coverage, on a module whose whole reason to exist
@@ -165,7 +165,7 @@ def test_no_reference_dedup_supplied_is_not_recorded_and_does_not_hold(tmp_path)
     # assumption: omitting the dedup file entirely is NOT_RECORDED (a scope decision --
     # the operator chose not to run dedup verification for this tree), and NOT_RECORDED
     # does not hold the receipt. If a future reviewer decides NOT_RECORDED should also
-    # HOLD, that is a claim-safety policy call for Alex, not something to change quietly
+    # HOLD, that is a claim-safety policy call for the owner, not something to change quietly
     # by editing this test.
     values = _fixture(tmp_path)
     values["reference_dedup"] = None
@@ -179,7 +179,7 @@ def test_no_reference_dedup_supplied_is_not_recorded_and_does_not_hold(tmp_path)
 
 
 def test_dedup_not_verified_holds_the_receipt(tmp_path):
-    # BC2-407: the other, previously-unexercised half of the same gap -- a dedup file
+    # 407: the other, previously-unexercised half of the same gap -- a dedup file
     # that IS supplied but fails to establish the one-per-species invariant (here: no
     # species column at all) must actually HOLD the receipt, not silently PASS. This is
     # the safety-critical branch; before this test it had never been proven to fire.

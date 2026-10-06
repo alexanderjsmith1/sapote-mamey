@@ -18,20 +18,21 @@ Do not commit real strain FASTA files, antiSMASH ZIPs, generated PDFs/workbooks,
 
 antiSMASH outputs can be very large because full JSON files may contain sequence, features, domains, clusterblast evidence, and region metadata. Mamey source packages should not bundle those outputs.
 
-## The four shipped tiers — which ZIP, and when
+## Which release ZIP exists now
 
-Filename pattern: `sapote-mamey-v9.7.22-<TIER>-patched-<build>.zip` (suffix is the build tag;
-alphabetical = chronological — pick the latest). Plus the patch kit
-`sapote-mamey-DO-FIRST-kit-v9.7.22.zip`.
+Releases cut the **CODE tier only** (`CUT_PROTOCOL.md`, "Releases cut the CODE tier only", since v9.7.444):
+`sapote-mamey-v<version>-CODE-<build>.zip`, with its own leak audit, derivation check and checksums. Use it to
+run the pipeline or read the code. The release owner alone seals and publishes a cut.
 
-| Tier ZIP | Contains | Use when | Public? |
-|---|---|---|---|
-| `…-CODE-patched-…` | full engine + tools + docs + tests | you want to run the pipeline or read the code | **public** (0 AS-###) |
-| `…-CODE-analysis-free-patched-…` | CODE minus bundled analysis outputs | a lean code-only handoff / smaller upload | **public** (0 AS-###) |
-| `…-SID-public-patched-…` | code + **SID** strain material, AS-### scrubbed to `AS-XXX` | sharing strain context without exposing unpublished AS strains | **public** (leak-audited) |
-| `…-MERGED-PRIVATE-scaffold-patched-…` | merged set **including unpublished AS strains** | internal work only | **PRIVATE — never publish** |
-| `sapote-mamey-DO-FIRST-kit-…` | the new and changed files of one patch round only | apply *over* a full tier, then run tests there | patch layer (not standalone) |
+**Disclosure should not be decided by a strain ID prefix.** Whether a strain's material may leave the project
+follows its exact assignment profile and the live release gates (`docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md`,
+whose default is non-public). Be aware that the CLI's `--privacy-profile` is optional. Without it, `mamey run`
+still applies a legacy derivation from the ID shape: `AS-` → PUBLIC, and `AJS-`/`PENDING`/unrecognized →
+PRIVATE (`mamey/cli.py`, `--release` help). That tag is a run label, not a disclosure decision. Select the exact
+profile whenever disclosure matters.
 
-Rule of thumb: publish from **CODE** (or CODE-analysis-free); share strain context from
-**SID-public**; keep **MERGED-PRIVATE** off any public surface (it carries AS-### in data).
-File size is not a quality signal — the private scaffold is largest because it holds strain data.
+### Historical: the multi-tier set (retired)
+Until v9.7.444, releases also cut CODE-analysis-free, SID/cohort-public, MERGED-PRIVATE and public tiers, plus a
+DO-FIRST patch kit. That tooling stays in the bundle, disabled: the tier branches refuse to run unless
+`SAPOTE_ENABLE_DISABLED_TIERS=1` is set. Do not use those tiers for sharing. The old "share strain context from
+SID-public" rule is withdrawn.

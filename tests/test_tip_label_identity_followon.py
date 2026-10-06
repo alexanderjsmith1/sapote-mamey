@@ -52,7 +52,7 @@ def test_bad_brackets_or_control(raw):
 
 def test_no_authority_no_promotion():
  r=make_label('Q','NR_112543.123 Genus species',fields={'accession':'NR_112543.123'},width=5)
- # v9.7.418 (Kiwi): SEXTANT_418 removed the visible '| UNBOUND' marker from the label
+ # v9.7.418: SEXTANT_418 removed the visible '| UNBOUND' marker from the label
  # (the provenance is already in authority + holds). Assert the label is CLEAN of the marker
  # and the AUTHORITY field still records the unbound state.
  assert '| UNBOUND' not in r['label'] and 'NR_112543.123 Genus species'in r['label']

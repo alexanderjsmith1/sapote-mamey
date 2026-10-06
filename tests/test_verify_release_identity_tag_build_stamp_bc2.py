@@ -1,4 +1,4 @@
-"""BC2-VRI-01 (v9.7.395): tools/verify_release_identity.py's build-stamp freshness check must
+"""VRI-01 (v9.7.395): tools/verify_release_identity.py's build-stamp freshness check must
 cover TAG, not just BUILD_STAMP.txt/README.md/the handshake docs.
 
 verify_release_identity.py's own module docstring says it exists to catch "the v9.7.139

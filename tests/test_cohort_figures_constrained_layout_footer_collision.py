@@ -1,7 +1,7 @@
 """mamey/cohort_figures.py's `_save_pair` never reserved bottom margin for the mandatory
 claim-safety footer on any of its 15 `constrained_layout=True` figures.
 
-Found by running the real pipeline (BC2-408): a genuine 2-strain `mamey cohort-figures` run
+Found by running the real pipeline (408): a genuine 2-strain `mamey cohort-figures` run
 (AS-705 + AS-747, this cycle's own real deliverable strains -- the one cross-strain surface never
 exercised earlier this cycle) followed by opening the rendered PNGs (figure-inspection-before-
 send). F03 (`product_class_heatmap`)'s x-axis strain labels ("Streptomyces sp. / strain AS-705",

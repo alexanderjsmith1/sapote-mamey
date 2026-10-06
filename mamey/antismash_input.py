@@ -212,7 +212,7 @@ def detect_strictness(zf: zipfile.ZipFile) -> tuple[str, str]:
     # chunked stream scan for the token — no whole-member load even on normal-size members.
     refused = 0
     unreadable = 0
-    # v9.7.413 (BLIZZARD_BLUE_413_silent_swallow_triage, F_BROAD_UNCLASSIFIED): this used to be one
+    # v9.7.413 (silent_swallow_triage, F_BROAD_UNCLASSIFIED): this used to be one
     # `try` around the whole loop below. Split into two layers with two different jobs, rather than
     # narrowing the exception type (which would not help — the failure modes here are heterogeneous,
     # not one guessable type):

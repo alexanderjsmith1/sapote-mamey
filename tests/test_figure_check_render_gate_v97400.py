@@ -61,7 +61,7 @@ def test_undeclared_omission_fails_F5_and_ack_passes_the_AS150_convention_v97400
     ok, msg = fc.check(tf, spec=str(spec), marker_checks=False)
     assert not ok and "F5 OMISSIONS_DECLARED" in msg and "AS-150" in msg
     ok2, _ = fc.check(tf, spec=str(spec), marker_checks=False,
-                      omitted="AS-150 (fragmented assembly, removed per Alex 2026-09-01)")
+                      omitted="AS-150 (fragmented assembly, removed per the owner 2026-09-01)")
     assert ok2
 
 

@@ -46,8 +46,10 @@ import re
 import sys
 from pathlib import Path
 if __package__:
+    from .modeb_markdown import active_markdown, verification_markdown
     from .bigscape_namespace import NamespaceError, normalize_cutoff, normalize_run_id, parse_family_identity
 else:  # compatibility for the historical direct-file import used by lint owners
+    from mamey.modeb_markdown import active_markdown, verification_markdown
     from mamey.bigscape_namespace import NamespaceError, normalize_cutoff, normalize_run_id, parse_family_identity
 from typing import Any, Iterable, Optional
 
@@ -115,9 +117,9 @@ def load_contract(path: Optional[str | Path] = None) -> dict:
 _HEADING_RE = re.compile(
     r"""^                                       # start of line
         (?:                                     # REQUIRED prefix (v9.7.152, Bug 2.1):
-            (?P<md>\#{1,6}\s+|\*\*\s*)          #   markdown header level, or bold-only,
-            (?P<md_marker>§|Section\s+|)        #     with an OPTIONAL § / Section marker
-          | (?P<bare_marker>§|Section\s+)       #   bare § marker / bare "Section " word
+            (?P<md>\#{1,6}[ \t]+|\*\*[ \t]*)          #   markdown header level, or bold-only,
+            (?P<md_marker>§|Section[ \t]+|)        #     with an OPTIONAL § / Section marker
+          | (?P<bare_marker>§|Section[ \t]+)       #   bare § marker / bare "Section " word
         )                                       # at least one of the above must be present,
                                                 #   so a plain "1. sentence" line no longer matches
         (?P<num>\d{1,2})                       # section number
@@ -125,10 +127,10 @@ _HEADING_RE = re.compile(
                                                #   `.<digit>` is a NUMBERED SUBSECTION, not a
                                                #   section heading — `#### 4.1`, `### 4.2 ·`,
                                                #   `## §10.5` are body text belonging to the parent
-        (?:\s*[\.\:\—\-–]\s*|\s+)              # separator: . : — - – or whitespace
-        (?P<title>[^\n*]+?)                    # title up to newline or **
-        (?:\s*\*\*|)                           # optional closing bold
-        \s*$                                    # end of line
+        (?:[ \t]*[\.\:\—\-–][ \t]*|[ \t]+|(?=\r?$))              # separator: . : — - – or whitespace
+        (?P<title>[^\n*]*?)                    # title up to newline or **
+        (?:[ \t]*\*\*|)                           # optional closing bold
+        [ \t]*$                                    # end of line
     """,
     re.VERBOSE | re.MULTILINE,
 )
@@ -160,7 +162,7 @@ def recognised_section_numbers(contract: Optional[dict] = None) -> set[int]:
     Includes a small reserved window above the contract so out-of-contract numbers are SURFACED as
     UNKNOWN_SECTION_NUMBER warnings instead of vanishing.
     """
-    # BC2-405: load_contract() is called OUTSIDE the try below on purpose. Its own docstring is
+    # 405: load_contract() is called OUTSIDE the try below on purpose. Its own docstring is
     # explicit that a missing/malformed bundled contract is a bundle-integrity failure that must
     # surface, never silently degrade to a hard-coded fallback -- but this function used to call
     # it INSIDE a bare `except Exception: pass`, catching exactly the FileNotFoundError/ValueError
@@ -252,7 +254,7 @@ def _iter_headings(card_md: str,
     c = contract if contract is not None else load_contract()
     _recognised = recognised_section_numbers(c)
     _canonical = _canonical_titles(c)
-    for m in _HEADING_RE.finditer(card_md):
+    for m in _HEADING_RE.finditer(active_markdown(card_md)):
         try:
             num = int(m.group("num"))
         except (TypeError, ValueError):
@@ -852,6 +854,11 @@ def lint_card(card_md: str,
     thin-but-structurally-complete card is refused (the AS-XXX failure mode).
     Depth checks are additive and never suppress a structural finding.
     """
+    # Shape-only scaffold lint retains source bodies (including author prompts).
+    # Authored depth/evidence/publication validation consumes active content only.
+    # Heading admission independently filters inactive regions in every mode.
+    if check_depth or check_evidence_presence or check_publication_quality:
+        card_md = verification_markdown(card_md)
     findings: list[Finding] = _numeric_context_findings(bgc_context)
     if contract is None:
         contract = load_contract()
@@ -1097,16 +1104,10 @@ def lint_card(card_md: str,
     # hypothesis, not function). WARN-level; this is the form-level required-evidence assertion the
     # padding fix recommended, so the char-floor stops being the quality proxy.
     if check_evidence_presence:
-        # EVIDENCE_GAP is panel-specific ("strain has a BLASTp panel but §4 omits the table").
-        if (bgc_context or {}).get("has_blastp_panel"):
-            findings.extend(_evidence_presence_findings(card_md))
-        # item 4 (v9.7.323): the named-subject + §4 BLASTp-coverage checks are about the §4's OWN
-        # content and self-skip when there is no core grid, so they don't need the panel gate — this
-        # lets them fire at receipt (mode_b_receipt) and for core-BLASTp/region-GBK cards that have no
-        # separate "panel" artifact, catching a non-compliant card even if the producer skipped verify.
-        findings.extend(_section4_named_subject_findings(card_md))
-        findings.extend(_section4_blastp_coverage_findings(card_md, bgc_context))
-        findings.extend(_section4_complete_blastp_matrix_findings(card_md, bgc_context))
+        # Only the evidence-table checks share a schema across the two contracts.
+        # Never route the full48 publication/semantic section gates through this adapter.
+        evidence_section = 50 if contract.get("schema_version") == "modeb_current50_v2" else 4
+        findings.extend(_evidence_section_findings(card_md, bgc_context, section=evidence_section))
     if check_publication_quality:
         from .modeb_publication_gate import publication_quality_findings
         findings.extend(publication_quality_findings(
@@ -1695,6 +1696,39 @@ def _s4_identity_cols(header_cells: list[str]) -> list[int]:
     return [i for i, c in enumerate(header_cells) if _S4_IDENT_HDR_RE.search(c)]
 
 
+def evidence_card_for_section(card_md: str, section: int) -> str:
+    """Adapt only the shared per-gene evidence schema to its legacy §4 reader.
+
+    Swap headings so the real §4 prose can never masquerade as v2 evidence. This
+    private view is used only by evidence checks, never by numbered semantic gates.
+    """
+    if section == 4:
+        return card_md
+    def swap(match):
+        number = int(match.group(2))
+        mapped = 4 if number == section else section if number == 4 else number
+        return match.group(1) + str(mapped)
+    return re.sub(r"^(#{1,6}\s*§)(\d{1,2})\b", swap, card_md, flags=re.M)
+
+
+def _evidence_section_findings(card_md: str, bgc_context: Optional[dict], *, section: int) -> list["Finding"]:
+    view = evidence_card_for_section(card_md, section)
+    findings = []
+    if (bgc_context or {}).get("has_blastp_panel"):
+        findings.extend(_evidence_presence_findings(view))
+    findings.extend(_section4_named_subject_findings(view))
+    findings.extend(_section4_blastp_coverage_findings(view, bgc_context))
+    findings.extend(_section4_complete_blastp_matrix_findings(view, bgc_context))
+    if section != 4:
+        for finding in findings:
+            if finding.get("section") == 4:
+                finding["section"] = section
+            for key in ("message", "expected", "found"):
+                if isinstance(finding.get(key), str):
+                    finding[key] = finding[key].replace("§4", f"§{section}")
+    return findings
+
+
 def _has_blastp_table(card_md: str) -> bool:
     """True if §4 carries a reconciled per-gene BLASTp table — the evidence artifact that makes a
     lead card trustworthy (antiSMASH Pfam is a hypothesis; BLASTp per-gene is the homology channel).
@@ -1816,6 +1850,18 @@ def _section4_blastp_coverage_findings(card_md: str, bgc_context: Optional[dict]
         return []
     rows = [ln for ln in s4.splitlines() if ln.strip().startswith("|") and _LOCUS_RE.search(ln)]
     core_rows = [r for r in rows if _S4_CORE_MARK_RE.search(r)] or rows
+    matrix_loci = set((bgc_context or {}).get("modeb_matrix_locus_tags") or [])
+    if matrix_loci:
+        block = find_s4_matrix_block(s4) or ""
+        # Scope, domain and reference tables repeat tags. Only the actual complete
+        # named-match matrix contributes this evidence denominator, once per CDS.
+        unique = {}
+        for row in block.splitlines():
+            if row.strip().startswith("|"):
+                hits = set(_LOCUS_RE.findall(row)) & matrix_loci
+                if len(hits) == 1:
+                    unique.setdefault(next(iter(hits)), row)
+        core_rows = list(unique.values())
     n_card_cores = len(core_rows)
     if n_card_cores == 0:
         return []  # no core locus-grid to judge (EVIDENCE_GAP covers "no table at all")
@@ -1842,7 +1888,7 @@ def _section4_blastp_coverage_findings(card_md: str, bgc_context: Optional[dict]
                   if _S4_RECON_RE.search(r) and _row_has_real_pctid(r))
     ctx = bgc_context or {}
     ctx_cores = ctx.get("n_core_genes") or ctx.get("core_gene_count") or 0
-    n_cores = max(int(ctx_cores or 0), n_card_cores)
+    n_cores = len(matrix_loci) if matrix_loci else max(int(ctx_cores or 0), n_card_cores)
     # MODEB-GATE-P08 (v9.7.331): don't count nr-pending cores against the coverage floor. The big
     # NRPS/PKS cores marked "DATA REQUEST (nr)" / "no current-assembly Swiss-Prot hit" carry no %id
     # by data gap, not by authoring — counting them dragged BLASTP_THIN below floor cohort-wide with
@@ -1855,6 +1901,12 @@ def _section4_blastp_coverage_findings(card_md: str, bgc_context: Optional[dict]
     requested = bool(_S4_REQUEST_RE.search(card_md))
     if covered >= floor:
         return []
+    if matrix_loci:
+        return [_mk("WARN", "BLASTP_THIN" if covered else "BLASTP_ABSENT", 4,
+                    f">={floor} selected CDS with per-gene BLASTp", f"{covered}/{n_cores} selected CDS",
+                    f"The expanded named-match matrix has real identity and reconciliation evidence for "
+                    f"{covered} of {n_cores} selected CDS (floor {floor}). Keep tested negatives and "
+                    "channel-specific search limits separate; repeated scope tables do not add genes.")]
     if requested:
         return [_mk("WARN", "DATA_REQUESTED", 4, f">={floor} cores with per-gene BLASTp",
                     f"{covered}/{n_cores} cores carry BLASTp; data requested",
@@ -1900,6 +1952,7 @@ def find_s4_matrix_block(s4_body: Optional[str]) -> Optional[str]:
     is the complete gene×channel matrix (this only LOCATES it)."""
     if not s4_body:
         return None
+    s4_body = active_markdown(s4_body)
     m = _S4_MATRIX_TITLE_RE.search(s4_body)
     if not m:
         return None
@@ -1951,6 +2004,7 @@ def _section4_complete_blastp_matrix_findings(
     column. Missing results are valid only when both paired cells say so explicitly; missing is
     not converted to zero.
     """
+    card_md = verification_markdown(card_md)
     ctx = bgc_context or {}
     # v9.7.374 fix: the .373 status-vocabulary ratification names FINISHED_FULL48_CURRENT_EVIDENCE
     # as "the gate trigger" (docs/MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md) and
@@ -1964,11 +2018,12 @@ def _section4_complete_blastp_matrix_findings(
     required = bool(ctx.get("require_complete_blastp_matrix")) \
         or "FINISHED_CURRENT_EVIDENCE" in card_md \
         or "FINISHED_FULL48_CURRENT_EVIDENCE" in card_md \
+        or "FINISHED_FULL50_CURRENT50_V2" in card_md \
         or "PUBLICATION_REVIEW_CANDIDATE" in card_md
     if not required:
         return []
 
-    expected = list(ctx.get("known_locus_tags") or ctx.get("canonical_locus_tags") or [])
+    expected = list(ctx.get("modeb_matrix_locus_tags") or ctx.get("known_locus_tags") or ctx.get("canonical_locus_tags") or [])
     if not expected:
         return [_mk(
             "ERROR", "BLASTP_MATRIX_ROSTER_UNBOUND", 4,
@@ -2038,8 +2093,11 @@ def _section4_complete_blastp_matrix_findings(
     nr_match, nr_metric = pair("nr")
     cluster_match, cluster_metric = pair("clusterednr")
     swiss_match, swiss_metric = pair("swiss")
-    if None in (idx_gene, nr_match, nr_metric, cluster_match, cluster_metric,
-                swiss_match, swiss_metric):
+    channel_columns = (nr_match, nr_metric, cluster_match, cluster_metric,
+                       swiss_match, swiss_metric)
+    if (None in (idx_gene, *channel_columns)
+            or len(set(channel_columns)) != 6
+            or idx_gene in channel_columns):
         return [_mk(
             "ERROR", "BLASTP_MATRIX_CHANNELS", 4,
             "Gene plus separate named-match and metric columns for NCBI nr, NCBI ClusteredNR, and local Swiss-Prot",
@@ -2454,3 +2512,17 @@ def summarise(findings: Iterable[Finding]) -> str:
         sec = f"§{f['section']}" if f["section"] else "—"
         lines.append(f"  [{f['severity']}] [{f['code']}] {sec}: {f['message']}")
     return "\n".join(lines)
+
+
+def evidence_coverage_verified(card_md: str, bgc_context: Optional[dict], *, section: int = 4) -> bool:
+    """Whether the bound core-coverage check actually ran and had no gap finding."""
+    ctx = bgc_context or {}
+    if not (ctx.get("n_core_genes") or ctx.get("core_gene_count")):
+        return False
+    view = evidence_card_for_section(active_markdown(card_md), section)
+    body = extract_section_bodies(view).get(4, "")
+    rows = [line for line in body.splitlines()
+            if line.strip().startswith("|") and _LOCUS_RE.search(line)]
+    if not rows:
+        return False
+    return not _section4_blastp_coverage_findings(view, ctx)

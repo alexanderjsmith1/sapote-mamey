@@ -1,4 +1,4 @@
-# PREREQUISITES — Sapote–Mamey v9.7.446
+# PREREQUISITES — Sapote–Mamey v9.7.448
 
 Start with [INSTALL](INSTALL.md) or the [complete walkthrough](MASTER_WALKTHROUGH.md). The package metadata in [pyproject.toml](../pyproject.toml) defines the supported Python version, core requirements and extras. Use the [README tool table](../README.md#tool-downloads-and-licenses) for upstream downloads and licenses.
 
@@ -49,4 +49,4 @@ Prepare a complete compatible wheelhouse for the target operating system, CPU ar
 
 Run `python -m pip check`, `python mamey_run.py start`, and `python mamey_run.py doctor`. Record missing optional items and check the chosen external tools with their own version and diagnostic commands. Verify an actual small output for the selected workflow before scaling it up.
 
-Maintainers install pytest separately and use the complete configured test profile: `python -m pytest -q --run-slow --run-network`. See [the cut protocol](../CUT_PROTOCOL.md). Test counts change with the bundle, so use its validation receipt rather than a count copied into this guide. Skips and interrupted runs are not passes.
+Maintainers install pytest separately and use the complete configured test profile: `python -m pytest -q -p no:cacheprovider --run-slow --run-network`. See [the cut protocol](../CUT_PROTOCOL.md). Test counts change with the bundle, so use its validation receipt rather than a count copied into this guide. Skips and interrupted runs are not passes.

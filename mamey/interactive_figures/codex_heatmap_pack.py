@@ -190,7 +190,7 @@ def _contrast_ratio(colour_a: str, colour_b: str) -> float:
 def _text_colour_for_contrast(fill: str, dark: str, light: str) -> str:
     """Pick whichever of `dark`/`light` gives the higher WCAG contrast ratio against `fill`.
 
-    BC2-398: `_luminance` here already used the correct gamma-corrected WCAG formula, but the
+    398: `_luminance` here already used the correct gamma-corrected WCAG formula, but the
     call site compared it to a single threshold (`> 0.48`) rather than the actual contrast ratio
     against each candidate text colour — that threshold picked the lower-contrast option on
     ~33% of a 2,000-random-color sample tested against the real best-contrast choice (worse than

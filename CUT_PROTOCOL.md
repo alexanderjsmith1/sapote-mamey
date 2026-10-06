@@ -142,7 +142,7 @@ force past it — fix the source (allowlist a genuine synthetic token; redact a 
 
 ### Releases cut the CODE tier only (v9.7.444)
 
-Alex, 2026-09-28: the four other tiers (CODE-analysis-free `clean`, `cohort` (formerly `sid`), `merged` and `public`)
+2026-09-28: the four other tiers (CODE-analysis-free `clean`, `cohort` (formerly `sid`), `merged` and `public`)
 are no longer part of the cut. `tools/release_cut.sh` cuts the CODE tier only, which still runs its own leak audit,
 derivation check and checksums. The tooling for the other tiers stays in the bundle, disabled:
 - the `clean`, `cohort`/`sid`, `merged` and `public` branches of `tools/make_public_tier.sh`, and the four-tier driver

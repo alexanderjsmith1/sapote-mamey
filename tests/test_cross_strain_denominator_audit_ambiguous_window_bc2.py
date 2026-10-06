@@ -1,4 +1,4 @@
-"""BC2-CSD-01 (v9.7.396): cross_strain_denominator_audit.py must not leave a badly-stale
+"""CSD-01 (v9.7.396): cross_strain_denominator_audit.py must not leave a badly-stale
 cohort-size denominator completely invisible just because it falls outside the +/-12
 detection window.
 

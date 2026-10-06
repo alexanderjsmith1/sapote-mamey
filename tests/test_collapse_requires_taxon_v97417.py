@@ -15,7 +15,7 @@ parameters, changing only the metadata:
 
 `--max-nt` is a required CLI argument, so every invocation is asking for collapsing; there is no
 call that legitimately omits the column. The failure mode is the one this project has already been
-bitten by once — the one-per-species dedup that silently no-op'd on an accession key (AMBER_396) —
+bitten by once — the one-per-species dedup that silently no-op'd on an accession key (P396) —
 and it is worse here because the output is a *published display tree*: a panel that should have
 shown one representative per near-identical clade instead shows every isolate, and nothing in the
 receipt says why.

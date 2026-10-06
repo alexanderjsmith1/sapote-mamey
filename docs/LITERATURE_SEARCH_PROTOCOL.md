@@ -11,12 +11,13 @@ what to search for each BGC class so the references can be verified and the
 ## Why §8 is deferred by default
 
 The Sapote interpretation layer runs without guaranteed network access.
-Protocol §4.8 and §10 require every citation to carry a *verified* PMID and
-DOI resolved against PubMed/DOI.org. Rather than fabricate unverifiable
+Protocol §4.8 and §10 require verification of the identifiers that the primary record actually assigns,
+using PubMed/DOI.org as applicable. Record an unassigned or unavailable PMID or DOI explicitly;
+never invent one or reject a supported source solely because it has no PMID or DOI. Rather than fabricate unverifiable
 references, §8 is logged as `DEFERRED` with a completion path.
 
-**Your job:** run the searches below, send the PMIDs to Claude, and §8 will be
-written and closed in one pass.
+**Your job:** run the searches below and send the PMIDs to Claude. That starts verification; it does not
+guarantee closure in one pass, because each claim still needs its supporting passage.
 
 ---
 
@@ -44,8 +45,9 @@ These two apply to every antibacterial lead with coupled resistance genes:
 - `Wencewicz antibiotic resistance biosynthesis crossroads` *(Wencewicz 2019, J Mol Biol — PMID 31288031)*
 - `self-resistance gene directed natural product discovery` *(Yan et al. 2020, Nat Prod Rep — PMID 31912842)*
 
-These are verified references already used in AS-XXX. Reuse them across strains
-where the mechanistic framing applies — no re-verification needed.
+These references were verified once (metadata) for AS-XXX. Reuse one when the specific claim and its scope still
+apply, keeping the earlier review receipt: passage locator, date, applicability and open gaps. A metadata match does
+not show that the paper supports a new claim; check the passage for each new use (`docs/BERT_MODE_PROTOCOL.md`).
 
 ### Bucket 3 — Top antifungal lead
 
@@ -71,15 +73,19 @@ Always run this before §8:
 `[Genus species] secondary metabolites` and `[Genus species] biosynthesis antibiotic`
 
 If hits exist, they become the first reference in §8.1 (discovery/prior context).
-If no hits, note "no prior secondary metabolite characterization reported" — that
-itself is a positive statement of novelty.
+If there are no hits, report a bounded result, not a conclusion: "No relevant records found in [database] using
+[queries] on [date]; coverage limits: [...]". A no-hit search shows only that this search found nothing. It does
+not establish that no literature exists, and it never establishes a novel compound or novel chemistry. Keep four
+things as separate fields: the search outcome, bibliographic verification, claim support, and any novelty
+inference (which needs its own evidence).
 
 ---
 
 ## Verified reference bank (carry across all strains)
 
-These were verified against DOI.org for AS-XXX and can be reused without
-re-verification:
+These were verified against DOI.org (metadata) for AS-XXX. Reuse them under the rule above: the identifier is
+checked, but each new claim still needs its supporting passage. A missing identifier is a metadata gap to record,
+never one to fill in:
 
 | Key | Citation | PMID | DOI |
 |---|---|---|---|

@@ -8,7 +8,7 @@ newick to a figure in one call:
      headers to 'Genus species Strain'. It deliberately leaves AS-#### query
      tips alone.
   2. AS tips are then labelled 'Genus AS-#### (host)' from the SSOT, which is
-     what Alex asked for and what the raw GToTree labels never carry. A strain
+     what the owner asked for and what the raw GToTree labels never carry. A strain
      with no taxonomy in the SSOT is left bare AND reported -- that silence is
      exactly how AS-XXX reached a rendered figure unlabelled.
 

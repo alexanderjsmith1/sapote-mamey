@@ -1,4 +1,4 @@
-"""Deterministic tests for the _4D two-proof rescue join (Cerulean C06 gate). No shipped data."""
+"""Deterministic tests for the _4D two-proof rescue join (an audit lane C06 gate). No shipped data."""
 import csv
 import os
 

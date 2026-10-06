@@ -1,6 +1,6 @@
 """DIAMOND sensitivity and the core-only identity floor for tools/gap_directed_rescue.py.
 
-Alex, 2026-09-30, on an AS nucleoside cluster with no KnownClusterBlast hit: "it isn't fragmented but it is real with low
+The owner, 2026-09-30, on an AS nucleoside cluster with no KnownClusterBlast hit: "it isn't fragmented but it is real with low
 homology". Against its closest MIBiG cluster, DIAMOND's default (fast) mode found 4 of 12 genes; --sensitive and
 --ultra-sensitive found 6, the two extra at 28-32% identity. One of those sits under the 30% floor, so inside the core a
 25% match now counts when its e-value is 1e-10 or better.

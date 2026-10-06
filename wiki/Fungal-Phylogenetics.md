@@ -7,7 +7,7 @@ fast rDNA neighborhood screen to a genome-based multi-locus tree, with the same 
 sanity gates as the bacterial lane.
 
 *Status: formalized in the bundle at **v9.7.399** (`docs/PHYLO_FUNGAL_WORKFLOW.md` +
-`mamey/data/fungal_outgroup_registry.tsv`, AMBER_399 card). Developed on the workflow's founding
+`mamey/data/fungal_outgroup_registry.tsv`, P399 card). Developed on the workflow's founding
 case — a Vespid-wasp-associated black yeast (Chaetothyriales), referred to below as "the founding
 isolate" (internal cohort ID withheld from this page per release policy).*
 

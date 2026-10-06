@@ -1,4 +1,4 @@
-"""Regression for v9.7.413 (BLIZZARD_BLUE_413_silent_swallow_triage, F_BROAD_UNCLASSIFIED):
+"""Regression for v9.7.413 (silent_swallow_triage, F_BROAD_UNCLASSIFIED):
 `mamey/antismash_input.py::detect_strictness`'s saccharide-fallback loop used to wrap the WHOLE
 member loop in one `except Exception: pass`. Split into two layers instead: a coarse catch around
 LISTING the archive (unchanged in effect -- a corrupt central directory still degrades to

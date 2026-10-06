@@ -32,7 +32,10 @@ Usage (gap crawl, one protein per query file):
   python3 tools/blastp_crawl/nr_rid_runner.py status
 """
 from __future__ import annotations
-import argparse, csv, os, re, subprocess, sys, tempfile, time, urllib.parse
+import argparse, base64, contextlib, csv, hashlib, io, json, os, re, subprocess, sys, tempfile, time, urllib.parse, uuid
+import xml.etree.ElementTree as ET
+import math
+import html
 from pathlib import Path
 try:
     from mamey.csv_safety import SafeDictWriter, SafeWriter
@@ -49,7 +52,7 @@ BR = ROOT / "Blastp RESULTS"
 # with its OWN query subset, ledger and staging — never mixing channels:
 #   RID_DATABASE (default nr) · RID_QUERIES (default _QUERIES) · RID_BASE (default _NR_RID)
 DATABASE = os.environ.get("RID_DATABASE", "nr")
-# CHANNEL-SAFETY (2026-08-10, VGP): the staged CSV suffix decides the channel in
+# CHANNEL-SAFETY (2026-08-10): the staged CSV suffix decides the channel in
 # BLASTp Database/build_blastp_db.py (CHANNEL_BY_SUFFIX). `_NR_CLUSTER_RID` lives UNDER
 # "Blastp RESULTS", which is a SEARCH_ROOT, so a clustered result written as the plain
 # `_blastp_top10.csv` gets ingested as ncbi_nr — mixing cluster-representative identities
@@ -64,7 +67,7 @@ LOG = BASE / "_run.log"
 URL = "https://blast.ncbi.nlm.nih.gov/Blast.cgi"
 UA = "SapoteMamey-LabQuest-nr-runner/1.0 (polite serial cohort BLASTp)"
 
-# ── crawl_manifest heartbeat (v9.7.428, Amber) ──────────────────────────────────
+# ── crawl_manifest heartbeat (v9.7.428) ──────────────────────────────────
 # Derive the manifest lane name from RID_BASE (e.g. "_NR_CLNR_GAP_A" → "A").
 # Non-GAP lanes (legacy _NR_RID etc.) don't have a manifest entry; heartbeat is a no-op for them.
 _MANIFEST_LANE: str | None = None
@@ -154,7 +157,7 @@ def check_query_tree(files: list[Path]) -> list[str]:
 OUT_COLS = ["strain","bgc_id","gene","aa_length","role","domains","hit_rank","subject_acc",
             "subject_organism","subject_def","pct_identity","align_length","query_coverage",
             "evalue","bitscore","pct_positives"]
-LEDGER_COLS = ["strain","bgc","file","rid","rtoe","submit_iso","status","fetch_iso","note"]
+LEDGER_COLS = ["strain","bgc","file","rid","rtoe","submit_iso","status","fetch_iso","note", "query_sha256", "query_roster", "database"]
 
 # XML2 parsers (regex, matching enrich_xml.py's approach)
 R_SEARCH = re.compile(r"<Search>(.*?)</Search>", re.DOTALL)
@@ -169,6 +172,94 @@ R_EVAL   = re.compile(r"<evalue>([\d.eE+-]+)</evalue>")
 R_IDENT  = re.compile(r"<identity>(\d+)</identity>")
 R_POS    = re.compile(r"<positive>(\d+)</positive>")
 R_ALEN   = re.compile(r"<align-len>(\d+)</align-len>")
+
+
+class TransportUnverified(RuntimeError):
+    def __init__(self, message, response=""):
+        super().__init__(message)
+        self.response = response
+
+
+class RetrievalUnverified(ValueError):
+    """A response cannot certify the complete submitted query roster."""
+
+
+def _sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _atomic_bytes(path: Path, data: bytes):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink(): raise ValueError(f"checkpoint symlink refused: {path}")
+    fd, name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data); fh.flush(); os.fsync(fh.fileno())
+        os.replace(name, path)
+    finally:
+        Path(name).unlink(missing_ok=True)
+
+
+def _recover_results():
+    journal = BASE / "_result_transaction.json"
+    if not journal.exists(): return
+    record = json.loads(journal.read_text())
+    items = record["items"]
+    for item in items:
+        target = BASE / item["relative"]
+        if target.is_symlink() or not target.resolve().is_relative_to(BASE.resolve()):
+            raise ValueError(f"unsafe result recovery target: {target}")
+    # A fully published generation is committed even if cleanup was interrupted.
+    complete = all((BASE / i["relative"]).is_file() and
+                   _sha((BASE / i["relative"]).read_bytes()) == i["new_sha256"] for i in items)
+    if not complete:
+        for item in items:
+            target = BASE / item["relative"]
+            previous = item["previous"]
+            if previous is None: target.unlink(missing_ok=True)
+            else:
+                payload = base64.b64decode(previous, validate=True)
+                if _sha(payload) != item["previous_sha256"]:
+                    raise ValueError("result recovery backup digest mismatch")
+                _atomic_bytes(target, payload)
+    journal.unlink()
+
+
+def _publish_results(payloads: dict[Path, bytes]):
+    journal = BASE / "_result_transaction.json"
+    if journal.exists(): raise ValueError("pending result transaction requires lane recovery")
+    items = []
+    for target, data in payloads.items():
+        if target.is_symlink() or not target.resolve().is_relative_to(BASE.resolve()):
+            raise ValueError(f"unsafe result target: {target}")
+        previous = target.read_bytes() if target.exists() else None
+        items.append(dict(relative=str(target.relative_to(BASE)), new_sha256=_sha(data),
+                          previous=None if previous is None else base64.b64encode(previous).decode(),
+                          previous_sha256=None if previous is None else _sha(previous)))
+    _atomic_bytes(journal, json.dumps(dict(schema=1, items=items), sort_keys=True).encode())
+    try:
+        for target, data in payloads.items(): _atomic_bytes(target, data)
+    except BaseException:
+        _recover_results()
+        raise
+    journal.unlink()
+
+
+@contextlib.contextmanager
+def lane_owner():
+    """OS-held lane ownership is released on process exit; the PID is advisory only."""
+    try: import fcntl
+    except ImportError as exc: raise ValueError("exclusive lane ownership requires POSIX flock; runner held on this platform") from exc
+    BASE.mkdir(parents=True, exist_ok=True)
+    lockpath = BASE / "_runner.lock"
+    if lockpath.is_symlink(): raise ValueError("lane lock symlink refused")
+    with lockpath.open("a+") as lock:
+        try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc: raise ValueError("lane already owned by another runner") from exc
+        try:
+            _recover_results()
+            yield
+        finally: fcntl.flock(lock, fcntl.LOCK_UN)
 
 
 def now_iso(): return time.strftime("%Y-%m-%d %H:%M:%S")
@@ -188,10 +279,10 @@ def _curl(args: list[str], timeout: int) -> str:
     # --http1.1: force HTTP/1.1. curl negotiates HTTP/2 to blast.ncbi.nlm.nih.gov by default and a
     # framing error (curl rc=16 / CURLE_HTTP2) can wedge a single RID's polls indefinitely. HTTP/1.1
     # avoids that failure mode; NCBI serves the URL API fine over 1.1.
-    p = subprocess.run(["curl", "-s", "--http1.1", "--max-time", str(timeout), "-A", UA] + args,
+    p = subprocess.run(["curl", "-s", "--fail-with-body", "--http1.1", "--max-time", str(timeout), "-A", UA] + args,
                        capture_output=True, text=True)
     if p.returncode != 0:
-        raise RuntimeError(f"curl rc={p.returncode}: {p.stderr.strip()[:150]}")
+        raise TransportUnverified(f"curl rc={p.returncode}: {p.stderr.strip()[:150]}", p.stdout)
     return p.stdout
 
 def submit(fasta_text: str) -> tuple[str, int]:
@@ -222,7 +313,7 @@ def fetch_xml2(rid: str) -> str:
 def defline_meta(faa: Path) -> dict:
     meta = {}
     if not faa.exists():
-        # 2026-09-10 (Amber): an orphaned RID (see the RESUME comment below) has no local query file
+        # 2026-09-10: an orphaned RID (see the RESUME comment below) has no local query file
         # to read defline metadata from -- that's cosmetic (role/aa annotations on the result rows),
         # not fatal. Degrade to no metadata instead of letting FileNotFoundError abort the fetch.
         return meta
@@ -230,7 +321,10 @@ def defline_meta(faa: Path) -> dict:
         if line.startswith(">"):
             d = {k.split("=",1)[0].strip(): k.split("=",1)[1].strip()
                  for k in line[1:].split("|") if "=" in k}
-            if d.get("gene"): meta[d["gene"]] = {"aa": d.get("aa",""), "role": d.get("role","")}
+            if d.get("gene"):
+                value = {"aa": d.get("aa",""), "role": d.get("role","")}
+                meta[line[1:].strip()] = value
+                meta.setdefault(d["gene"], value)
     return meta
 
 def gene_of(defline: str) -> str:
@@ -251,15 +345,68 @@ def strain_bgc_of(defline: str, strain: str, bgc: str) -> tuple:
     m = R_SB.match(defline.lstrip(">").strip())
     return (m.group(1), m.group(2)) if m else (strain, bgc)
 
-def parse_xml2(xml: str, strain: str, bgc: str, meta: dict) -> list[list]:
+def parse_xml2(xml: str, strain: str, bgc: str, meta: dict, *, expected_queries=None) -> list[list]:
+    try: root = ET.fromstring(xml)
+    except ET.ParseError as exc: raise RetrievalUnverified(f"malformed XML: {exc}") from exc
+    for node in root.iter():
+        node.tag = node.tag.rsplit("}", 1)[-1]
+        if node.text: node.text = node.text.strip()
+    if root.tag not in ("BlastXML2", "BlastOutput2", "Search"):
+        raise RetrievalUnverified(f"unsupported XML root {root.tag}")
+    if any(n.tag in ("error", "Error", "errors", "Err") for n in root.iter()):
+        raise RetrievalUnverified("XML error response")
+    searches = list(root.iter("Search"))
+    titles = []
+    for search in searches:
+        qt = search.find("query-title")
+        if qt is None or not qt.text or not qt.text.strip():
+            raise RetrievalUnverified("Search missing query-title")
+        titles.append(qt.text.strip())
+        qlen = search.find("query-len")
+        hits_node = search.find("hits")
+        if qlen is None or not (qlen.text or "").isdigit() or int(qlen.text) <= 0 or hits_node is None:
+            raise RetrievalUnverified("Search missing complete query-length/hits structure")
+        if any(len(search.findall(tag)) != 1 for tag in ("query-title", "query-len", "hits")):
+            raise RetrievalUnverified("Search has repeated required structure")
+        if any(child.tag != "Hit" for child in hits_node) or (hits_node.text or "").strip():
+            raise RetrievalUnverified("unsupported hits structure")
+        if list(search.iter("Hit")) != list(hits_node):
+            raise RetrievalUnverified("Hit outside direct hits roster")
+        for hit in search.iter("Hit"):
+            if hit.find("hsps") is None or not list(hit.iter("Hsp")):
+                raise RetrievalUnverified("Hit missing HSP structure")
+            required = ("accession", "bit-score", "evalue", "identity", "align-len")
+            if any(not any(n.tag == tag and n.text for n in hit.iter()) for tag in required):
+                raise RetrievalUnverified("Hit missing required result field")
+            for hsp in hit.iter("Hsp"):
+                try:
+                    fields = {n.tag: n.text for n in hsp}
+                    alen = int(fields["align-len"])
+                    identity = int(fields["identity"])
+                    bits = float(fields["bit-score"]); evalue = float(fields["evalue"])
+                    if alen <= 0 or identity < 0 or identity > alen or bits < 0 or evalue < 0 or not all(map(math.isfinite, (bits, evalue))):
+                        raise ValueError("invalid alignment field")
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise RetrievalUnverified("HSP incomplete or invalid numeric fields") from exc
+    if not titles or len(set(titles)) != len(titles):
+        raise RetrievalUnverified("missing or repeated Search query identity")
+    if expected_queries is not None:
+        expected_queries = list(expected_queries)
+        if not expected_queries or len(set(expected_queries)) != len(expected_queries):
+            raise RetrievalUnverified("submitted query roster empty or ambiguous")
+        if set(titles) != set(expected_queries):
+            raise RetrievalUnverified("returned query roster differs from submitted query roster")
+    # Normalize namespaces for the existing rank/metric implementation.
+    xml = ET.tostring(root, encoding="unicode")
     rows = []
     for sb in R_SEARCH.finditer(xml):
         block = sb.group(1)
         qt = R_QTITLE.search(block) or R_QID.search(block)
         if not qt: continue
-        gene = gene_of(qt.group(1))
-        r_strain, r_bgc = strain_bgc_of(qt.group(1), strain, bgc)
-        m = meta.get(gene, {"aa": "", "role": ""})
+        title = html.unescape(qt.group(1))
+        gene = gene_of(title)
+        r_strain, r_bgc = strain_bgc_of(title, strain, bgc)
+        m = meta.get(title, meta.get(gene, {"aa": "", "role": ""}))
         hits = []
         for hb in R_HIT.finditer(block):
             h = hb.group(1)
@@ -292,27 +439,32 @@ def write_results_grouped(rows: list[list]):
     for (s, b), g in groups.items():
         write_results(s, b, g)
 
-def write_results(strain: str, bgc: str, rows: list[list]):
+def write_results(strain: str, bgc: str, rows: list[list], *, replace_genes=None, fresh=False):
     # MERGE by gene, don't clobber. A BGC can span several batch FASTAs (b01,b02,...),
     # each returning its own RID. Writing the per-BGC CSV per-batch with "w" would let the
     # last-fetched batch overwrite earlier ones, dropping genes. Instead: keep every gene
     # already in the file, replace only the genes present in this batch (idempotent re-run),
     # and append this batch's genes. gene locus (col index 2) is the stable key.
-    if not rows: return
+    if not rows and replace_genes is None: return
     d = RESDIR / strain / bgc; d.mkdir(parents=True, exist_ok=True)
     path = d / f"{bgc}{TOP10_SUFFIX}"
     existing = []
-    if path.exists():
+    if path.exists() and not fresh:
         with path.open(newline="") as fh:
             rd = csv.reader(fh); next(rd, None)          # drop header
             existing = [row for row in rd if row]
-    new_genes = {r[2] for r in rows}
+    new_genes = set(replace_genes) if replace_genes is not None else {r[2] for r in rows}
     merged = [row for row in existing if row[2] not in new_genes] + rows
-    with path.open("w", newline="") as fh:
-        w = SafeWriter(fh); w.writerow(OUT_COLS); w.writerows(merged)
     top1 = [r for r in merged if str(r[6]) == "1"]
-    with (d / f"{bgc}_top_hit_per_gene.csv").open("w", newline="") as fh:
-        w = SafeWriter(fh); w.writerow(OUT_COLS); w.writerows(top1)
+    payloads = {}
+    for target, selected in ((path, merged), (d / f"{bgc}_top_hit_per_gene.csv", top1)):
+        stream = io.StringIO(newline="")
+        writer = SafeWriter(stream); writer.writerow(OUT_COLS); writer.writerows(selected)
+        payloads[target] = stream.getvalue().encode()
+    receipt = dict(schema=1, generation=uuid.uuid4().hex,
+                   files={str(p.relative_to(BASE)): _sha(data) for p, data in payloads.items()})
+    payloads[d / "_result_generation.json"] = json.dumps(receipt, sort_keys=True).encode()
+    _publish_results(payloads)
 
 
 # ---------- ledger ----------
@@ -325,9 +477,10 @@ def load_ledger() -> dict:
 
 def save_ledger(led: dict):
     BASE.mkdir(parents=True, exist_ok=True)
-    with LEDGER.open("w", newline="") as fh:
-        w = SafeDictWriter(fh, fieldnames=LEDGER_COLS); w.writeheader()
-        for r in led.values(): w.writerow({k: r.get(k, "") for k in LEDGER_COLS})
+    stream = io.StringIO(newline="")
+    w = SafeDictWriter(stream, fieldnames=LEDGER_COLS); w.writeheader()
+    for r in led.values(): w.writerow({k: r.get(k, "") for k in LEDGER_COLS})
+    _atomic_bytes(LEDGER, stream.getvalue().encode())
 
 
 def all_query_files() -> list[Path]:
@@ -339,7 +492,7 @@ def all_query_files() -> list[Path]:
     files = []
     for s in order: files.extend(sorted((QUERIES / s).rglob("*.faa")))
     # PRIORITY TIERS (stable partition — flagship/count ordering preserved within each tier):
-    #   pri0 = Alex's curated Mode-B card set (PRIORITY_BLASTP_nr.fasta, 2026-07-31). These gate
+    #   pri0 = the owner's curated Mode-B card set (PRIORITY_BLASTP_nr.fasta, 2026-07-31). These gate
     #          Mode-B card authoring + his analysis, so they run FIRST, ahead of everything.
     #   pri  = Mode-B High/Exceptional lead panels (antifungal-first) built earlier.
     #   rest = the bulk sweep.
@@ -350,7 +503,7 @@ def all_query_files() -> list[Path]:
     #            per panel, TOP100-flagged BGCs first. Runs after the card set, before the
     #            AF-lead panels.
     def tier(f):
-        if "_srzTOP_" in f.name: return 0   # self-resistance batches — TOP priority (Alex 07-31)
+        if "_srzTOP_" in f.name: return 0   # self-resistance batches — TOP priority (the owner 07-31)
         if "_pri0_p" in f.name: return 1    # Mode-B card set
         if "_srz_p" in f.name: return 2     # (superseded per-BGC srz panels, if any remain)
         if "_pri_p" in f.name: return 3     # antifungal-first lead panels
@@ -358,6 +511,52 @@ def all_query_files() -> list[Path]:
     return sorted(files, key=lambda f: (tier(f), files.index(f)))
 
 def relkey(faa: Path) -> str: return str(faa.relative_to(QUERIES))
+
+
+def record_response(rid, xml, ledger_row):
+    """Preserve every returned body before result admission, including HTTP-error bodies."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", rid): raise RetrievalUnverified("unsafe RID filename identity")
+    raw = xml.encode("utf-8")
+    attempt = XMLDIR / f"{rid}-{uuid.uuid4().hex}.xml"
+    _atomic_bytes(attempt, raw)
+    _atomic_bytes(XMLDIR / f"{rid}-Alignment.xml", raw)
+    try:
+        roster = json.loads(ledger_row.get("query_roster") or "[]")
+        if not isinstance(roster, list) or any(not isinstance(title, str) for title in roster): roster = []
+    except ValueError: roster = []
+    evidence = dict(schema=1, rid=rid, database=ledger_row.get("database", ""),
+                    query_sha256=ledger_row.get("query_sha256", ""), raw_sha256=_sha(raw),
+                    raw_file=attempt.name, queries=roster, status="UNVERIFIED", rows=None,
+                    query_states=[dict(title=title, status="UNVERIFIED") for title in roster])
+    _atomic_bytes(attempt.with_suffix(".admission.json"), json.dumps(evidence, sort_keys=True).encode())
+    _atomic_bytes(XMLDIR / f"{rid}-admission.json", json.dumps(evidence, sort_keys=True).encode())
+    return attempt, evidence
+
+
+def retrieval_admitted(key, row):
+    """Legacy/mismatched retrieved statuses are not certified completion."""
+    try:
+        faa = QUERIES / key
+        receipt = json.loads((XMLDIR / f"{row['rid']}-admission.json").read_text())
+        raw_file = XMLDIR / receipt["raw_file"]
+        if not raw_file.resolve().is_relative_to(XMLDIR.resolve()): return False
+        bound = (receipt.get("database") == row.get("database") == DATABASE and
+                 receipt["status"] in ("COMPLETE_HITS", "COMPLETE_NO_HITS") and
+                 receipt["query_sha256"] == row.get("query_sha256") == _sha(faa.read_bytes()) and
+                 receipt["raw_sha256"] == _sha(raw_file.read_bytes()) and
+                 receipt["queries"] == [h for h, _ in read_fasta(faa.read_text())])
+        if not bound or not receipt.get("result_groups"): return False
+        for group in receipt["result_groups"]:
+            directory = RESDIR / group["strain"] / group["bgc"]
+            if not directory.resolve().is_relative_to(RESDIR.resolve()): return False
+            generation = json.loads((directory / "_result_generation.json").read_text())
+            expected = {str((directory / f"{group['bgc']}{TOP10_SUFFIX}").relative_to(BASE)),
+                        str((directory / f"{group['bgc']}_top_hit_per_gene.csv").relative_to(BASE))}
+            if set(generation["files"]) != expected: return False
+            if any(_sha((BASE / name).read_bytes()) != digest
+                   for name, digest in generation["files"].items()): return False
+        return True
+    except (KeyError, TypeError, ValueError, OSError): return False
 
 
 def cmd_status():
@@ -370,6 +569,14 @@ def cmd_status():
 
 
 def cmd_run(args):
+    try:
+        with lane_owner(): return _owned_cmd_run(args)
+    except (ValueError, OSError) as exc:
+        print(f"RUN refused: {exc}", file=sys.stderr)
+        return 3
+
+
+def _owned_cmd_run(args):
     marker = BASE / "_HANDOFF_OUT.txt"
     if marker.exists() and not args.ignore_handoff:
         print(f"RUN refused: this lane is handed off to another machine ({marker}):\n"
@@ -379,7 +586,7 @@ def cmd_run(args):
     for d in (BASE, XMLDIR, RESDIR): d.mkdir(parents=True, exist_ok=True)
     # _runner.pid marks the lane live for blastp_health.py, whatever launched it.
     pidfile = BASE / "_runner.pid"
-    pidfile.write_text(f"{os.getpid()}\n")
+    _atomic_bytes(pidfile, f"{os.getpid()}\n".encode())
     try:
         return _run_lane(args)
     finally:
@@ -396,8 +603,13 @@ def _run_lane(args):
     global _LAST_HEARTBEAT
     led = load_ledger()
     files = all_query_files()
+    for key, row in led.items():
+        if row.get("status") == "fetched" and not retrieval_admitted(key, row):
+            row["status"] = "query_unbound"
+            row["note"] = "completed retrieval receipt missing, changed, or unbound; operator hold"
+    save_ledger(led)
     # todo excludes already-fetched AND still-in-flight (submitted); expired/error get retried.
-    # 2026-09-10 (Amber): also exclude "submit_failed_parked" — the poison-pill park (30-fail cap,
+    # 2026-09-10: also exclude "submit_failed_parked" — the poison-pill park (30-fail cap,
     # see MAX_SUBMIT_RETRIES below) previously only held for the REST of that same process's run;
     # a fresh launch re-scanned `files`, saw no "fetched"/"submitted" exclusion, and re-burned the
     # full ~30-fail/~2.5h cycle on the same already-known-bad panel before re-parking it. Confirmed
@@ -413,26 +625,18 @@ def _run_lane(args):
                 f"Fix the staging, or pass --allow-mixed-tree.")
             return 2
     todo = [f for f in files
-            if led.get(relkey(f), {}).get("status") not in ("fetched", "submitted", "submit_failed_parked", "unsure")]
+            if led.get(relkey(f), {}).get("status") not in ("fetched", "submitted", "submit_failed_parked", "unsure", "retrieval_unverified", "query_unbound")]
 
     deadline = time.time() + args.hours*3600
     inflight = {}          # rid -> [faa, last_poll, submit_epoch]
     poll_errs = {}         # rid -> consecutive status-poll error count (reset on any success)
     requests = []          # epoch of every submit and status check, for the hourly rate line
     last_rate_log = time.time()
-    # EMPTY-RETRY: a batch that parses to 0 rows is often a spurious empty fetch (truncated XML /
-    # fetched during an NCBI wobble), not a real "no homologs" — 28 real proteins don't return zero.
-    # Give such a fetch ONE resubmission before accepting it as genuinely empty (a legit all-tiny-ORF
-    # batch settles after the retry). Count persists in the ledger note so restarts don't loop forever.
-    MAX_EMPTY_RETRIES = 1
-    empty_retries = {}     # key -> how many times we've already re-run it for emptiness
-    for key, r in led.items():
-        m = re.search(r"empty-requeue (\d+)", r.get("note", ""))
-        if m: empty_retries[key] = int(m.group(1))
+    # Failed retrieval retries the same RID; only a bound complete XML roster is admitted.
     # RESUME: re-poll live RIDs from a previous/other run instead of resubmitting them.
     # Carry each RID's original submit time so the WAITING age-out (below) can retire zombies.
     #
-    # 2026-09-10 (Amber): this loop used to require faa.exists() to resume a RID at all -- silently
+    # 2026-09-10: this loop used to require faa.exists() to resume a RID at all -- silently
     # dropping any RID whose query file no longer sits under THIS lane's QUERIES root. A lane
     # rebalance (e.g. the 4->8 split) moves query files between lane roots without touching any
     # other lane's ledger, so the SOURCE lane's ledger keeps a "submitted" row for a RID it will
@@ -440,21 +644,19 @@ def _run_lane(args):
     # resubmits the same query from scratch. Confirmed 16 such orphans across lanes A-D after this
     # session's split, one submitted 2026-09-09 09:12 and still READY-but-unclaimed >28h later --
     # a genuinely completed result sitting at NCBI, going unfetched, until manually reaped.
-    # Fix: resume the RID regardless of whether the file is still local (fetch/defline_meta already
-    # degrade gracefully when it's gone -- see defline_meta above); only skip resuming when the
-    # ledger itself has no query-file reference to log. A missing file is now visible immediately at
-    # RUN start instead of silently vanishing for days.
+    # Resume bookkeeping remains visible when a query moved. Retrieval now holds unbound
+    # or missing local query material rather than certifying results from an unknown roster.
     orphaned_resumed = 0
     for key, r in led.items():
-        if r.get("status") == "submitted" and r.get("rid"):
+        if r.get("status") in ("submitted", "retrieval_unverified") and r.get("rid"):
             faa = QUERIES / key
             if not faa.exists():
                 orphaned_resumed += 1
             inflight[r["rid"]] = [faa, 0.0, iso_to_epoch(r.get("submit_iso", ""))]
     if orphaned_resumed:
         log(f"  WARNING: {orphaned_resumed} resumed RID(s) have no local query file under "
-            f"{QUERIES} (likely moved by a lane rebalance) -- still polling them; a fetch will "
-            f"stage results under THIS lane's results dir even though the file now lives elsewhere.")
+            f"{QUERIES} (likely moved by a lane rebalance) -- still polling them; retrieval "
+            f"is held until the original query binding can be reconciled.")
     log(f"RUN start: {len(files)} query files, {len(todo)} to submit, "
         f"{len(inflight)} live RIDs resumed. hours={args.hours} sleep={args.sleep}s "
         f"max_inflight={args.max_inflight} hold_after={args.hold_after:.0f}s max_held={args.max_held} "
@@ -505,9 +707,10 @@ def _run_lane(args):
                 inflight[rid] = [faa, 0.0, nowt]; submitted += 1; consec_err = 0; pending = None
                 led[key] = {"strain": strain, "bgc": bgc, "file": key, "rid": rid,
                             "rtoe": rtoe, "submit_iso": now_iso(), "status": "submitted",
+                            "query_sha256": _sha(faa.read_bytes()),
+                            "query_roster": json.dumps([h for h, _ in read_fasta(text)]), "database": DATABASE,
                             "fetch_iso": "",
-                            # carry the empty-requeue count so a restart re-seeds it (no infinite retry)
-                            "note": (f"empty-requeue {empty_retries[key]}" if key in empty_retries else "")}
+                            "note": ""}
                 save_ledger(led)
                 log(f"  submitted {key} -> RID {rid} (rtoe~{rtoe}s) [{submitted} sent, {len(inflight)} in-flight]")
             else:
@@ -532,6 +735,8 @@ def _run_lane(args):
         # POLL / FETCH
         for rid in list(inflight):
             faa, last_poll, sub_epoch = inflight[rid]
+            key = relkey(faa)
+            strain, bgc = Path(key).parts[0], Path(key).parts[1]
             age = time.time() - sub_epoch
             if age > args.max_wait:
                 # Past the window: stop checking, and leave it for the operator. Never resubmit
@@ -544,7 +749,6 @@ def _run_lane(args):
             if time.time() - last_poll < poll_interval(age, poll_errs.get(rid, 0)): continue
             inflight[rid][1] = time.time()
             requests.append(time.time())
-            key = relkey(faa); strain, bgc = Path(key).parts[0], Path(key).parts[1]
             try:
                 st = status(rid)
                 poll_errs.pop(rid, None)          # any success clears the counter
@@ -558,28 +762,55 @@ def _run_lane(args):
             # A WAITING RID stays in flight. Once older than --hold-after it no longer blocks a
             # submit slot (see the submit gate), and --max-wait above ends the wait.
             if st == "READY":
+                attempt = evidence = None
                 try:
                     requests.append(time.time())
-                    xml = fetch_xml2(rid)
-                    (XMLDIR / f"{rid}-Alignment.xml").write_text(xml, encoding="utf-8")
-                    rows = parse_xml2(xml, strain, bgc, defline_meta(faa))
-                    if not rows and empty_retries.get(key, 0) < MAX_EMPTY_RETRIES:
-                        # spurious 0-rows: requeue ONE fresh submission instead of accepting empty
-                        n = empty_retries.get(key, 0) + 1; empty_retries[key] = n
-                        led[key]["status"] = "empty_requeue"
-                        led[key]["note"] = f"0 rows, empty-requeue {n}"
-                        save_ledger(led); del inflight[rid]; todo.append(faa)
-                        log(f"  EMPTY  {key} RID {rid}: 0 rows — requeued for fresh submit "
-                            f"(retry {n}/{MAX_EMPTY_RETRIES}) [{len(inflight)} in-flight]")
+                    try:
+                        xml = fetch_xml2(rid)
+                    except TransportUnverified as exc:
+                        attempt, evidence = record_response(rid, exc.response, led[key])
+                        raise
+                    attempt, evidence = record_response(rid, xml, led[key])
+                    raw = xml.encode("utf-8")
+                    roster = evidence["queries"]
+                    if led[key].get("database") != DATABASE or not roster or not faa.is_file() or not led[key].get("query_sha256") or _sha(faa.read_bytes()) != led[key]["query_sha256"]:
+                        led[key]["status"] = "query_unbound"
+                        led[key]["note"] = "retrieval held: local submitted query digest unavailable or changed"
+                        save_ledger(led); del inflight[rid]
                         continue
-                    write_results_grouped(rows)
+                    if roster != [head for head, _ in read_fasta(faa.read_text())]:
+                        raise RetrievalUnverified("submitted roster differs from bound local query")
+                    rows = parse_xml2(xml, strain, bgc, defline_meta(faa), expected_queries=roster)
+                    evidence = dict(schema=1, rid=rid, database=DATABASE, query_sha256=led[key]["query_sha256"],
+                                    raw_sha256=_sha(raw), raw_file=attempt.name, queries=roster,
+                                    status="COMPLETE_HITS" if rows else "COMPLETE_NO_HITS", rows=len(rows))
+                    queried = {}
+                    for title in roster:
+                        sb = strain_bgc_of(title, strain, bgc)
+                        queried.setdefault(sb, set()).add(gene_of(title))
+                    for (rs, rb), genes in queried.items():
+                        write_results(rs, rb, [r for r in rows if (r[0], r[1]) == (rs, rb)], replace_genes=genes)
+                    evidence["result_groups"] = [dict(strain=rs, bgc=rb) for rs, rb in queried]
+                    evidence["query_states"] = [dict(title=title, status="HITS" if any(
+                        (r[0], r[1]) == strain_bgc_of(title, strain, bgc) and r[2] == gene_of(title)
+                        for r in rows) else "NO_HITS") for title in roster]
+                    _atomic_bytes(attempt.with_suffix(".admission.json"), json.dumps(evidence, sort_keys=True).encode())
+                    _atomic_bytes(XMLDIR / f"{rid}-admission.json", json.dumps(evidence, sort_keys=True).encode())
                     led[key]["status"] = "fetched"; led[key]["fetch_iso"] = now_iso()
-                    led[key]["note"] = (f"{len(rows)} rows" if rows
-                                        else f"0 rows (confirmed empty after {empty_retries.get(key,0)} retr"
-                                             f"{'y' if empty_retries.get(key,0)==1 else 'ies'})")
+                    led[key]["note"] = f"{len(rows)} rows; " + evidence["status"]
                     save_ledger(led); fetched += 1; del inflight[rid]
                     log(f"  READY  {key} RID {rid}: {len(rows)} rows staged [{fetched} fetched]")
                 except Exception as e:
+                    if evidence is not None and attempt is not None:
+                        evidence["status"] = "UNVERIFIED"
+                        for state in evidence.get("query_states", []):
+                            state["status"] = "UNVERIFIED"
+                        evidence["error"] = f"{type(e).__name__}: {str(e)[:120]}"
+                        _atomic_bytes(attempt.with_suffix(".admission.json"), json.dumps(evidence, sort_keys=True).encode())
+                        _atomic_bytes(XMLDIR / f"{rid}-admission.json", json.dumps(evidence, sort_keys=True).encode())
+                    led[key]["status"] = "retrieval_unverified"
+                    led[key]["note"] = f"retrieval unverified: {type(e).__name__}: {str(e)[:120]}"
+                    save_ledger(led)
                     log(f"  fetch ERROR {rid} {key}: {str(e)[:150]}")
             elif st in ("UNKNOWN",):
                 # expired or failed RID; mark for resubmit next run
@@ -620,32 +851,36 @@ def _run_lane(args):
 
 
 def cmd_rebuild():
-    # Re-derive the entire staged results tree from saved XML, grouping ALL fetched batches
-    # of a BGC together so multi-batch BGCs merge losslessly. Safe to run anytime (even while
-    # `run` is live) — it only reads the ledger + xml/ and rewrites results/.
+    try:
+        with lane_owner(): return _owned_rebuild()
+    except (ValueError, OSError) as exc:
+        print(f"REBUILD refused: {exc}", file=sys.stderr); return 3
+
+
+def _owned_rebuild():
+    # Validate every admitted query before changing any result generation.
     led = load_ledger()
-    by_bgc: dict[tuple[str, str], list] = {}
-    for key, r in led.items():
-        if r.get("status") != "fetched": continue
-        xmlf = XMLDIR / f"{r.get('rid','')}-Alignment.xml"
+    groups, replacements, batches = {}, {}, 0
+    for key, record in led.items():
+        if record.get("status") != "fetched": continue
+        if not retrieval_admitted(key, record):
+            raise RetrievalUnverified(f"unbound fetched ledger: {key}")
+        xmlf = XMLDIR / f"{record['rid']}-Alignment.xml"
         faa = QUERIES / key
-        if not (xmlf.exists() and faa.exists()): continue
-        by_bgc.setdefault((r["strain"], r["bgc"]), []).append((xmlf, faa))
-    rebuilt = 0
-    for (strain, bgc), parts in sorted(by_bgc.items()):
-        # collect rows from every batch of this BGC, then write once (write_results merges)
-        first = True
-        for xmlf, faa in parts:
-            rows = parse_xml2(xmlf.read_text(errors="replace"), strain, bgc, defline_meta(faa))
-            if first:
-                d = RESDIR / strain / bgc
-                if (d / f"{bgc}{TOP10_SUFFIX}").exists():
-                    (d / f"{bgc}{TOP10_SUFFIX}").unlink()   # fresh start; merge from clean
-                first = False
-            write_results_grouped(rows)
-        rebuilt += 1
-    print(f"rebuilt {rebuilt} BGC result files from {sum(len(v) for v in by_bgc.values())} fetched batches")
+        roster = [h for h, _ in read_fasta(faa.read_text())]
+        rows = parse_xml2(xmlf.read_text(), record["strain"], record["bgc"], defline_meta(faa),
+                          expected_queries=roster)
+        for title in roster:
+            sb = strain_bgc_of(title, record["strain"], record["bgc"])
+            groups.setdefault(sb, [])
+            replacements.setdefault(sb, set()).add(gene_of(title))
+        for row in rows: groups.setdefault((row[0], row[1]), []).append(row)
+        batches += 1
+    for (strain, bgc), rows in sorted(groups.items()):
+        write_results(strain, bgc, rows, replace_genes=replacements[(strain, bgc)], fresh=True)
+    print(f"rebuilt {len(groups)} BGC result files from {batches} fetched batches")
     return 0
+
 
 def cmd_coverage():
     # Per-BGC Mode-B readiness. A gene is RESOLVED once its batch FASTA is fetched — whether or
@@ -656,9 +891,9 @@ def cmd_coverage():
     resolved: dict[tuple[str, str], set] = {}      # genes whose batch was fetched
     for f in all_query_files():
         strain, bgc = f.relative_to(QUERIES).parts[0], f.relative_to(QUERIES).parts[1]
-        genes = set(defline_meta(f).keys())
+        genes = {gene_of(h) for h, _ in read_fasta(f.read_text())}
         want.setdefault((strain, bgc), set()).update(genes)
-        if led.get(relkey(f), {}).get("status") == "fetched":
+        if led.get(relkey(f), {}).get("status") == "fetched" and retrieval_admitted(relkey(f), led[relkey(f)]):
             resolved.setdefault((strain, bgc), set()).update(genes)
     ready = partial = empty = 0
     partial_list = []

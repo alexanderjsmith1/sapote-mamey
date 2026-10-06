@@ -1,4 +1,4 @@
-"""BC2 (v9.7.395): lint_claim_safety() — the function wired into the BLOCKING seal gate
+"""An audit-lane (v9.7.395): lint_claim_safety() — the function wired into the BLOCKING seal gate
 (mamey/seal_package.py::_gate_claim_safety) and judgment_store.py's write-time self-lint — must
 flag a multi-word compound-identity overclaim after a copula the same way the report-only
 lint_claim_safety_report() already does.

@@ -1,4 +1,4 @@
-"""BC2-VTD-01 (v9.7.396): verify_tier_derivation.py's _is_stripped() must not wrongly exclude a
+"""VTD-01 (v9.7.396): verify_tier_derivation.py's _is_stripped() must not wrongly exclude a
 root-level file from the redaction-parity comparison just because its name happens to start with
 the substring "runs".
 

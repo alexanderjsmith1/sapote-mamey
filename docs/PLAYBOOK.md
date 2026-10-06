@@ -1,5 +1,5 @@
 # Sapote–Mamey Playbook
-**Version:** v9.7.446 | **Bundle:** sapote-mamey-v9.7.446 | **For:** ChatGPT (single-model or dual-model with Claude)
+**Version:** v9.7.448 | **Bundle:** sapote-mamey-v9.7.448 | **For:** ChatGPT (single-model or dual-model with Claude)
 
 ---
 
@@ -10,7 +10,9 @@
 3. Say: **"Run [STRAIN_ID] at Tier [1/2/3]"** — or paste the relevant command block below.
 4. If you have a prior Mamey package for this strain, upload that too and say "use this prior Mamey package."
 
-Read this file before doing anything else. It defines what you are, what you can do, and what you must never do.
+> **Scope and precedence (v9.7.447).** Operational startup is governed by `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md`; they take precedence over this document. The task the user asked for sets the scope: reading this file never expands a review into a run, a full-suite authoring job, or a release. A version stamp at the top records version synchronization, not a full content review.
+
+This playbook gives ChatGPT-oriented run recipes. Read it after the governing contract above, for the task you were given.
 
 ---
 

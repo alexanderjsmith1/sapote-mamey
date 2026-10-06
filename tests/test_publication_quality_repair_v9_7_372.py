@@ -1,4 +1,4 @@
-"""v9.7.372 publication-quality repair — Aquarius complementary-layer tests.
+"""v9.7.372 publication-quality repair — an audit lane complementary-layer tests.
 
 The gate-side program (broken tables, §§5-7 scaffolds, stream dispositions, section matrix,
 readiness cap) is implemented and tested by the Codex combined patch

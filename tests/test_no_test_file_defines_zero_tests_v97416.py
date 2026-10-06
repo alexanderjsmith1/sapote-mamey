@@ -1,4 +1,4 @@
-"""v9.7.416 (BC2): a file named test_*.py that defines no test is invisible, not green.
+"""v9.7.416: a file named test_*.py that defines no test is invisible, not green.
 
 A test file whose test functions are removed does not fail, does not error, and does not
 report a skip — pytest simply collects nothing from it and the suite total drops silently.

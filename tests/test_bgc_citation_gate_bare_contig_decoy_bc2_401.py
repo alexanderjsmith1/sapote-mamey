@@ -1,4 +1,4 @@
-"""Regression test for `mamey/bgc_citation_gate.py::_NODE_RE` (v9.7.401, BC2, `.401` round
+"""Regression test for `mamey/bgc_citation_gate.py::_NODE_RE` (v9.7.401, an audit lane, `.401` round
 tick 12).
 
 `_NODE_RE`'s last alternative was a bare `\\bcontig\\b` -- it matched the generic NOUN "contig"

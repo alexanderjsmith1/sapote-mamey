@@ -29,7 +29,7 @@ from .boundary_palette import TRAFFIC_LIGHT as _STRAIN_C
 
 
 def _foot(extra=""):
-    # v9.7.442 (Alex, 2026-09-24): no claim wording on figures. The footer keeps only the plot key
+    # v9.7.442 (2026-09-24): no claim wording on figures. The footer keeps only the plot key
     # each caller passes; SCORE_NOTE and KCB_NOTE still go to the _data.csv provenance row and the
     # markdown notes, which are the working record.
     return extra

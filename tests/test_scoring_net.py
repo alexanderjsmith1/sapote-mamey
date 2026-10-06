@@ -2,7 +2,7 @@
 
 Runs against the PATCHED engine (net_build/ on sys.path via conftest-free path insert).
 The cross-engine identical-output proof lives in run_engine_case.py (executed separately,
-sealed vs patched). Here: fingerprint neutrality (LOAD-BEARING per Cerulean condition 1),
+sealed vs patched). Here: fingerprint neutrality (LOAD-BEARING per an audit lane condition 1),
 collector contract, coverage-guard warn branch + gold-only wiring, handler persistence.
 """
 import ast
@@ -143,7 +143,7 @@ def test_scoring_all_five_sites_instrumented():
         assert f'_degradation.record("scoring.triage_bgcs.{slot}"' in src
 
 
-# ---- surface 2 (merge) wiring — added after Cerulean round-2 ruling ----
+# ---- surface 2 (merge) wiring — added after an audit lane round-2 ruling ----
 
 def test_merge_surface_wired_b1_only_warn_only():
     src = (PKG / "master_workbook.py").read_text(encoding="utf-8")

@@ -20,7 +20,7 @@ def _minimal_snapshot():
     """A minimal but build_entry-valid snapshot with a SARP-coupled BGC001 and
     an unregulated BGC002."""
     return {
-        "strain_id": "SIDTEST1",
+        "workflow_version": "synthetic-v1", "strain_id": "SIDTEST1",
         "taxonomy": "Streptomyces sp. SIDTEST1",
         "assembly": {"contigs": 10, "n50": 500000, "genome_bp": 8000000,
                      "gc_pct": 71.2, "largest_contig": 900000},

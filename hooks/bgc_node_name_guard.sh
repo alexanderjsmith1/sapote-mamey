@@ -8,7 +8,7 @@
 # promoted to a hard PreToolUse DENY once existing files are remediated + sibling chats notified
 # (set BGC_NAME_GUARD_DENY=1 and move the hook to PreToolUse). See the strain_data cleanup plan.
 #
-# v9.7.401 EXTENSION (BC2, ROSTER_401_SEEDS.md item 3 -- VERIFY/EXTEND per audit control #5):
+# v9.7.401 EXTENSION (ROSTER_401_SEEDS.md item 3 -- VERIFY/EXTEND per audit control #5):
 # the original check only ever looked at the FILENAME. Reproduced live: a genuinely-named file
 # (e.g. "notes.md") whose BODY cites a bare strain+BGC-number with no node token entirely
 # escapes this guard, even under the correct strain_data/AS-NNN/ scope -- the exact

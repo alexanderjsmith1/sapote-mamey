@@ -1,5 +1,5 @@
 """A GCA_ query must find a row registered under GCF_ with the same nine-digit body — as a LOOKUP, said aloud.
-2026-09-08: 19 of 40 'missing' Cameron genomes were on disk under the other prefix. Codex's review warns against
+2026-09-08: 19 of 40 'missing' reference genomes were on disk under the other prefix. Codex's review warns against
 treating shared digits as IDENTITY; this test pins that the hit is reported with an explicit note, not silently."""
 import importlib.util, io, sys
 from contextlib import redirect_stdout, redirect_stderr

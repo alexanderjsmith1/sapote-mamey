@@ -95,7 +95,7 @@ def scan(root: str, strains: list[str] | None, tsv_out: str | None) -> int:
             # still allow files whose OWN path segment names an AS strain
             pass
         # Determine the AS strain this path belongs to, if any.
-        # BC2-CASE-01 (v9.7.395): this used a bare `re.search(r"AS-\d+", dirpath)` with no
+        # CASE-01 (v9.7.395): this used a bare `re.search(r"AS-\d+", dirpath)` with no
         # IGNORECASE, while BASENAME_STRAIN_RE (used two lines above for the actual per-basename
         # governance check) and crosswalk()'s own strain lookup are both case-insensitive (the
         # latter additionally normalizes with .upper()). A lowercase/mixed-case strain directory

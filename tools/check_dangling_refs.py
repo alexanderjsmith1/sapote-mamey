@@ -75,20 +75,20 @@ TOOLS_ALLOW = {
     "workbook_status.py": "operator glue script, created on demand — docs/user_guides/tools_reference.md",
     "setup.py": "packaging entry point, not a tools/ script — docs/user_guides/sapote_mamey_wheel_glossary.md",
     # v9.7.382: GToTree's OWN internal files, named in the vendored upstream contribution
-    # tools/upstream_gtotree2/ (a patch + author note we ship to send upstream) — not bundle tools.
+    # tools/upstream_gtotree2/ (the retained upstream compatibility patch; author correspondence is excluded) — not bundle tools.
     "get_ncbi_assembly_data.py": "GToTree-internal file named in tools/upstream_gtotree2/ upstream patch",
     "get_gtdb_data.py": "GToTree-internal file named in tools/upstream_gtotree2/ upstream patch",
     "handle_ncbi_tax_info.py": "GToTree-internal file named in tools/upstream_gtotree2/ upstream patch",
     "data_locations.py": "GToTree-internal file named in tools/upstream_gtotree2/ upstream patch",
 }
-# v9.7.371: "hooks" and "sapote_hooks" added — the v9.7.370 cut shipped those directories (VGP
+# v9.7.371: "hooks" and "sapote_hooks" added — the v9.7.370 cut shipped those directories (an audit lane
 # hook_guard_org card) but this detector never learned them, so any doc naming a genuinely-shipped
 # hook (e.g. sapote_hooks.py, SEAL_GATE_snippet.sh) was flagged as a dangling reference.
 SEARCH_DIRS = ("tools", "mamey", "scripts", "tests", "Wheelhouse", "deliverable_tools", "hooks", "sapote_hooks", "bundle_support", ".", "sapote_addons")  # v9.7.444: optional add-on source (Lab Quest) ships in the bundle
 
 
 def _warn_unreadable(p: pathlib.Path, root: pathlib.Path, exc: Exception) -> None:
-    """BC2-CDR-01 (v9.7.395): both scan() and scan_tools() had `except Exception: continue` with
+    """CDR-01 (v9.7.395): both scan() and scan_tools() had `except Exception: continue` with
     no signal of any kind when a candidate .md/.txt/.html file couldn't be read (permission
     error, broken symlink, etc.) — the file was silently excluded from the audit and any real
     dangling reference it contained went unreported. Reproduced: a permission-denied .md file

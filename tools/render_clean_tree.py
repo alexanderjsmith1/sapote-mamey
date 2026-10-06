@@ -35,7 +35,7 @@ if __name__ == "__main__":
               "outgroup, then re-run). PHYLOGENETICS_WORKFLOW.md step 6.", file=sys.stderr)
         sys.exit(2)
 
-    # HARD pre-render FIGURE gate (AMBER_400/401): tree_sanity_check gates the TREE above; this
+    # HARD pre-render FIGURE gate (P400/401): tree_sanity_check gates the TREE above; this
     # gates what the renderer will DRAW — marker coverage, category vocabulary, label hygiene/
     # verbosity, declared omissions. Env-driven so call sites need no signature change:
     #   FIGCHECK_HOSTMAP=<hostmap.json>  enables marker checks (F1/F2)

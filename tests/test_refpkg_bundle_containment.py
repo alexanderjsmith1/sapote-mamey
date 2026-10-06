@@ -1,4 +1,4 @@
-"""v9.7.441 (session 9c5f37d0): build-ref must not stamp a refpkg inside the code bundle.
+"""v9.7.441: build-ref must not stamp a refpkg inside the code bundle.
 
 phylo_place.cmd_build_ref defaults its outdir to `{workspace_root()}/strain_data/_PLACEMENT/...`.
 Run from the bundle root with no SAPOTE_WORKSPACE_ROOT, workspace_root() == cwd == the bundle, so

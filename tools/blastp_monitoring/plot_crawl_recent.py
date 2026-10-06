@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""plot_crawl_recent.py (VGP, 2026-08-20) — "what is landing RIGHT NOW", across ALL lanes.
+"""plot_crawl_recent.py (2026-08-20) — "what is landing RIGHT NOW", across ALL lanes.
 
 Why this exists: the Wave-1 plot shows only the eight Wave-1 ledgers, so a whole-crawl question cannot
 be answered from it. This one discovers every direct-child `_ledger.csv` under `Blastp RESULTS/`, so no
 lane is invisible.
 
 Measured all-lane throughput (2026-08-20): trailing 7 days 6,661 query proteins = 0.66/min; last 24 h
-1,168 = 0.81/min. Alex's standing benchmark is ~1 protein/min, so the crawl sits slightly BELOW floor —
+1,168 = 0.81/min. The owner's standing benchmark is ~1 protein/min, so the crawl sits slightly BELOW floor —
 which is what justifies adding runner lanes.
 
 Two panels, both by fetch time:
@@ -34,7 +34,7 @@ BR = "Blastp RESULTS"
 OUT = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", "crawl_plots")
 ROWS_RE = re.compile(r"(\d+)\s*row")
 
-# UNITS WARNING (VGP 2026-08-20): the ledger `note` field's "N rows" is the number of BLAST HITS
+# UNITS WARNING (an audit lane 2026-08-20): the ledger `note` field's "N rows" is the number of BLAST HITS
 # RETURNED for a panel (up to 250 subject matches), NOT the number of query proteins crawled. Summing
 # it and calling the result "proteins" overstated throughput ~9x and produced a 7-day total larger than
 # the entire gene universe. Throughput is measured in QUERY PROTEINS = the '>' records in the panel
@@ -157,7 +157,7 @@ def panel(ax, fetches, hours, bin_minutes, title):
     ax.set_ylabel("query proteins crawled")
     ax.legend(fontsize=8, loc="upper left")
     ax.grid(alpha=0.25, axis="y")
-    # benchmark line: Alex's 1 protein/minute floor, scaled to the bin
+    # benchmark line: The owner's 1 protein/minute floor, scaled to the bin
     ax.axhline(bin_minutes, color="crimson", ls="--", lw=1,
                label=f"1/min floor ({bin_minutes}/bin)")
     ax.legend(fontsize=8, loc="upper left")

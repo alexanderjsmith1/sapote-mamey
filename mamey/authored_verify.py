@@ -32,7 +32,8 @@ from pathlib import Path
 from typing import Any
 
 from .bgc_guide import verify_authored_guide
-from .modeb_structure_gate import lint_card
+from .modeb_structure_gate import lint_card, evidence_coverage_verified
+from .modeb_markdown import verification_markdown
 from . import __version__ as _ENGINE_VERSION
 
 # a deliverable whose filename claims to be a Mode B card
@@ -66,7 +67,9 @@ def grouped_verify_findings(findings: list[dict[str, Any]]) -> list[dict[str, An
 
 def build_verify_report(*, card_name: str, profile: str, exit_code: int,
                         findings: list[dict[str, Any]], independent_roster_bound: bool,
-                        package_core_denominator_bound: bool) -> dict[str, Any]:
+                        package_core_denominator_bound: bool, contract_name: str = "full48",
+                        contract_schema: str = "modeb_corrective_full48_v1",
+                        coverage_checks_passed: bool = False) -> dict[str, Any]:
     """Build a stable receipt with both finding-instance and category counts."""
     normalized = [
         {"severity": str(f.get("severity") or "UNKNOWN").upper(),
@@ -79,12 +82,15 @@ def build_verify_report(*, card_name: str, profile: str, exit_code: int,
         "schema_version": VERIFY_REPORT_SCHEMA_VERSION,
         "card_name": card_name,
         "profile": profile,
+        "contract": contract_name,
+        "contract_schema_version": contract_schema,
         "status": "PASS" if exit_code == 0 else "FAIL",
         "exit_code": exit_code,
         "authority_ceiling": VERIFY_REPORT_AUTHORITY_CEILING,
         "independent_roster_bound": independent_roster_bound,
         "package_core_denominator_bound": package_core_denominator_bound,
-        "coverage_verified": package_core_denominator_bound,
+        "coverage_verified": bool(package_core_denominator_bound and coverage_checks_passed
+                                  and exit_code == 0),
         "error_instances": sum(f["severity"] == "ERROR" for f in normalized),
         "warning_instances": sum(f["severity"] == "WARN" for f in normalized),
         "finding_categories": len(categories),
@@ -583,6 +589,8 @@ def _coverage_unverified_reason(card_md: str, ctx: "dict | None") -> "str | None
 
 
 def verify_modeb_command(args) -> int:
+    from .modeb_current50_v2 import load_contract as _load_contract, v2_findings as _v2_findings
+    _v2_contract = _load_contract(getattr(args, "contract", None))
     p = Path(args.file)
     label = p.name
     if not p.exists():
@@ -594,10 +602,14 @@ def verify_modeb_command(args) -> int:
                 findings=[{"severity": "ERROR", "code": "FILE_NOT_FOUND", "section": None,
                            "message": f"Authored card file not found: {label}"}],
                 independent_roster_bound=False, package_core_denominator_bound=False,
+                contract_name="current50_v2" if _v2_contract is not None else "full48",
+                contract_schema=(_v2_contract["schema_version"] if _v2_contract is not None
+                                 else "modeb_corrective_full48_v1"),
             )
             write_verify_report(report_path, report)
         return 1
-    md = p.read_text(encoding="utf-8", errors="replace")
+    raw_md = p.read_text(encoding="utf-8", errors="replace")
+    md = verification_markdown(raw_md)
     ctx = _bgc_context_from_package(getattr(args, "package", None), getattr(args, "bgc", None))
     strict = not getattr(args, "no_strict_depth", False)
     # B1 (v9.7.373): the publication (§§1–48) gate is profile-triggered. A card that declares the
@@ -619,20 +631,51 @@ def verify_modeb_command(args) -> int:
     _figure_spec_v10 = bool(getattr(args, "figure_spec_v10", False))
     _reconciliation_specificity_v11 = bool(
         getattr(args, "reconciliation_specificity_v11", False))
-    findings = list((ctx or {}).get(_CONTEXT_FINDINGS_KEY, [])) + lint_card(md, bgc_context=ctx, check_depth=True, strict_depth=strict, check_class_content=True, check_claim_safety=True, check_evidence_presence=True,
-                         check_publication_quality=_finished_profile,
-                         check_substantive_quality_v2=(_finished_profile and _substantive_quality_v2),
-                         check_semantic_sections_v3=(_finished_profile and _semantic_sections_v3),
-                         check_semantic_comparators_v4=(_finished_profile and _semantic_comparators_v4),
-                         check_semantic_sections_v5=(_finished_profile and _semantic_sections_v5),
-                         check_semantic_decision_chains_v6=(_finished_profile and _semantic_decision_chains_v6),
-                         check_semantic_claim_models_v7=(_finished_profile and _semantic_claim_models_v7),
-                         check_inventory_reconciliation_v8=(_finished_profile and _inventory_reconciliation_v8),
-                         check_selection_process_v9=(_finished_profile and _selection_process_v9),
-                         check_figure_spec_v10=(_finished_profile and _figure_spec_v10),
-                         check_reconciliation_specificity_v11=(
-                             _finished_profile and _reconciliation_specificity_v11),
-                         canonical_loci=((ctx or {}).get("known_locus_tags") if _finished_profile else None))
+    findings = []
+    if _v2_contract is None:
+        findings = list((ctx or {}).get(_CONTEXT_FINDINGS_KEY, [])) + lint_card(md, bgc_context=ctx, check_depth=True, strict_depth=strict, check_class_content=True, check_claim_safety=True, check_evidence_presence=True,
+                             check_publication_quality=_finished_profile,
+                             check_substantive_quality_v2=(_finished_profile and _substantive_quality_v2),
+                             check_semantic_sections_v3=(_finished_profile and _semantic_sections_v3),
+                             check_semantic_comparators_v4=(_finished_profile and _semantic_comparators_v4),
+                             check_semantic_sections_v5=(_finished_profile and _semantic_sections_v5),
+                             check_semantic_decision_chains_v6=(_finished_profile and _semantic_decision_chains_v6),
+                             check_semantic_claim_models_v7=(_finished_profile and _semantic_claim_models_v7),
+                             check_inventory_reconciliation_v8=(_finished_profile and _inventory_reconciliation_v8),
+                             check_selection_process_v9=(_finished_profile and _selection_process_v9),
+                             check_figure_spec_v10=(_finished_profile and _figure_spec_v10),
+                             check_reconciliation_specificity_v11=(
+                                 _finished_profile and _reconciliation_specificity_v11),
+                             canonical_loci=((ctx or {}).get("known_locus_tags") if _finished_profile else None))
+    _v2_rescue_admitted: set = set()
+    if _v2_contract is not None:
+        from .modeb_current50_v2 import rescue_context_loci as _v2_rescue
+        _v2_rescue_admitted, _v2_rescue_notes = _v2_rescue(md, getattr(args, "rescue_tsv", None) or ())
+        from .modeb_locus_scope import context_loci as _v2_scope_loci
+        _scope_loci = _v2_scope_loci(raw_md, getattr(args, "package", None), getattr(args, "bgc", None))
+        _v2_rescue_admitted |= _scope_loci
+        if _scope_loci and ctx is not None:
+            from .modeb_locus_scope import MARKER as _scope_marker
+            _scope = json.loads(_scope_marker.findall(raw_md)[0])
+            ctx["modeb_matrix_locus_tags"] = [g["locus_tag"] for g in _scope["genes"]]
+        if _v2_rescue_admitted and ctx is not None and ctx.get("known_loci"):
+            _v2_rescue_admitted = _v2_rescue_admitted - set(ctx["known_loci"])
+            ctx["known_loci"] = set(ctx["known_loci"]) | _v2_rescue_admitted
+        else:
+            _v2_rescue_admitted = set()
+        for _note in _v2_rescue_notes:
+            emit(f"[verify-modeb] rescue table: {_note}")
+        # M01 already routes roster, channel and panel checks to section 50.
+        # current50 v2: structure, depth, class content, claim safety and evidence presence against the v2
+        # contract, plus the v2 checks. The 48-profile publication gates are keyed to that profile's section
+        # numbers and do not apply.
+        findings = list((ctx or {}).get(_CONTEXT_FINDINGS_KEY, [])) + lint_card(
+            md, bgc_context=ctx, contract=_v2_contract, check_depth=True, strict_depth=strict,
+            check_class_content=True, check_claim_safety=True, check_evidence_presence=True) + _v2_findings(
+                raw_md, require_expanded_locus=bool(getattr(args, "require_expanded_locus", False)))
+    if getattr(args, "require_expanded_locus", False) and _v2_contract is None:
+        findings.append({"severity": "ERROR", "code": "LOCUS_SCOPE_CONTRACT_REQUIRED", "section": None,
+                         "message": "--require-expanded-locus requires --contract current50_v2."})
     if _substantive_quality_v2 and not _finished_profile:
         findings.append({
             "severity": "ERROR",
@@ -759,15 +802,19 @@ def verify_modeb_command(args) -> int:
     # it meets the claim-safety contract, so product-identity phrasing is a BLOCKING failure there, not
     # an advisory WARN (an overclaimed finished card verified "OK / exit 0" before this). Draft and
     # candidate cards keep WARN so authors can iterate. Escape hatch: --force (reviewed phrase).
-    if _finished_profile and not getattr(args, "force", False):
+    if (_finished_profile or (_v2_contract is not None and "FINISHED_FULL50_CURRENT50_V2" in md)) and not getattr(args, "force", False):
         for f in findings:
             if f.get("code") in ("CLAIM_SAFETY", "KCB_IDENTITY_RISK") and f.get("severity") == "WARN":  # v9.7.409 (CLAUDE_409/F3 merged): KCB identity risk blocks on the finished profile too
                 f["severity"] = "ERROR"
     errs = [f for f in findings if f.get("severity") == "ERROR"]
     warns = [f for f in findings if f.get("severity") == "WARN"]
-    cov_gap = _coverage_unverified_reason(md, ctx)
+    from .modeb_structure_gate import evidence_card_for_section
+    _evidence_section = 50 if _v2_contract is not None else 4
+    cov_gap = _coverage_unverified_reason(evidence_card_for_section(md, _evidence_section), ctx)
+    if cov_gap and _evidence_section != 4:
+        cov_gap = cov_gap.replace("§4", "§50")
     if cov_gap:
-        warns = warns + [{"severity": "WARN", "code": "COVERAGE_UNVERIFIED", "section": 4,
+        warns = warns + [{"severity": "WARN", "code": "COVERAGE_UNVERIFIED", "section": _evidence_section,
                           "message": cov_gap}]
     # FA4: optional interpretation layer (advisory WARN-severity; never changes PASS/FAIL).
     if getattr(args, "interp", False):
@@ -777,34 +824,42 @@ def verify_modeb_command(args) -> int:
     # optional JSON receipt (--report-json) and grouped diagnostic lines (--summary-only).
     all_report_findings = errs + warns
     exit_code = 0 if not errs else 1
-    profile_name = "§1\u2013§48 structure + depth"
-    if _substantive_quality_v2:
+    profile_name = ("§1–§50 current50_v2 structure + depth + v2 checks"
+                    if _v2_contract is not None else "§1–§48 structure + depth")
+    if _v2_contract is not None and _v2_rescue_admitted:
+        profile_name += (f" + {len(_v2_rescue_admitted)} source-bound rescue-context locus tag(s) admitted for existence only "
+                         f"({', '.join(sorted(_v2_rescue_admitted))})")
+    if _substantive_quality_v2 and _v2_contract is None:
         profile_name += " + substantive quality v2"
-    if _semantic_sections_v3:
+    if _semantic_sections_v3 and _v2_contract is None:
         profile_name += " + semantic sections v3"
-    if _semantic_comparators_v4:
+    if _semantic_comparators_v4 and _v2_contract is None:
         profile_name += " + semantic comparators v4"
-    if _semantic_sections_v5:
+    if _semantic_sections_v5 and _v2_contract is None:
         profile_name += " + semantic sections v5"
-    if _semantic_decision_chains_v6:
+    if _semantic_decision_chains_v6 and _v2_contract is None:
         profile_name += " + semantic decision chains v6"
-    if _semantic_claim_models_v7:
+    if _semantic_claim_models_v7 and _v2_contract is None:
         profile_name += " + semantic claim models v7"
-    if _inventory_reconciliation_v8:
+    if _inventory_reconciliation_v8 and _v2_contract is None:
         profile_name += " + inventory reconciliation v8"
-    if _selection_process_v9:
+    if _selection_process_v9 and _v2_contract is None:
         profile_name += " + selection process v9"
-    if _figure_spec_v10:
+    if _figure_spec_v10 and _v2_contract is None:
         profile_name += " + figure specification v10"
-    if _reconciliation_specificity_v11:
+    if _reconciliation_specificity_v11 and _v2_contract is None:
         profile_name += " + reconciliation specificity v11"
     report_path = getattr(args, "report_json", None)
     if report_path:
         report = build_verify_report(
             card_name=label, profile=profile_name, exit_code=exit_code,
             findings=all_report_findings,
-            independent_roster_bound=False,
+            independent_roster_bound=bool((ctx or {}).get("known_locus_tags")),
             package_core_denominator_bound=bool(_pkg_core_count),
+            coverage_checks_passed=evidence_coverage_verified(md, ctx, section=_evidence_section),
+            contract_name="current50_v2" if _v2_contract is not None else "full48",
+            contract_schema=(_v2_contract["schema_version"] if _v2_contract is not None
+                             else "modeb_corrective_full48_v1"),
         )
         try:
             write_verify_report(report_path, report)
@@ -813,7 +868,7 @@ def verify_modeb_command(args) -> int:
             return 2
     summary_only = bool(getattr(args, "summary_only", False))
     if not errs:
-        head = "OK" if not cov_gap else "OK (§4 coverage NOT verified — no package core count)"
+        head = "OK" if not cov_gap else f"OK (§{_evidence_section} coverage NOT verified — no package core count)"
         emit(f"[verify-modeb] {label}: {head} — {profile_name} ({len(warns)} warning(s))")
         if summary_only:
             for line in compact_verify_summary_lines(warns):
@@ -822,7 +877,8 @@ def verify_modeb_command(args) -> int:
             for w in warns:
                 emit(f"        WARN: {w.get('code')}: {w.get('message')}")
         return 0
-    emit(f"[verify-modeb] {label}: FAIL — {len(errs)} error(s). A hand-built doc without §1\u2013§48 "
+    section_limit = 50 if _v2_contract is not None else 48
+    emit(f"[verify-modeb] {label}: FAIL — {len(errs)} error(s). A hand-built doc without §1–§{section_limit} "
           f"headings fails NO_HEADINGS_DETECTED here; a thin card fails depth.")
     if summary_only:
         for line in compact_verify_summary_lines(all_report_findings):

@@ -98,7 +98,7 @@ def default_legacy_rows() -> list[dict]:
 def write_default_legacy_matrix(path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = default_legacy_rows()
-    # v9.7.401 (BC2): was a direct write to `path`. Reproduced live: an interrupted write
+    # v9.7.401: was a direct write to `path`. Reproduced live: an interrupted write
     # (crash, disk full, kill -9) left the real destination file itself -- not a .tmp sibling --
     # truncated to 2 of 24 rows, on disk where a caller expects the committed matrix. This is the
     # SAME crash-safety gap this codebase already fixed once, for the exact same reason, in this

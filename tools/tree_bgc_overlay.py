@@ -520,7 +520,7 @@ GROUP_ROLE_ORDER = ("STUDY", "REFERENCE", "OUTGROUP", "EXTERNAL_BENCHMARK")
 def group_denominators(rows: list[dict[str, Any]]) -> str:
     """Per-ROLE plotted-row denominators for the caption's `group_denominators` field.
 
-    v9.7.412 (Razzle Dazzle Rose): the previous text listed every tip as `ROLE(rows=1; strain=X)` —
+    v9.7.412: the previous text listed every tip as `ROLE(rows=1; strain=X)` —
     a literal `rows=1` per tip is a tip list, not a denominator (the count was 1 by construction and
     never informative), and it bloated the caption with one entry per strain. A group denominator is
     the number of plotted rows per role. Format keeps `rows=<int>` (what `figure_policy` validates:

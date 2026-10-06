@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""blastp_health.py (VGP, 2026-08-21) — GROUND-TRUTH health of the BLASTp crawl.
+"""blastp_health.py (2026-08-21) — GROUND-TRUTH health of the BLASTp crawl.
 
 Root-cause fix for the 2026-08-21 incident: the old monitoring read ONLY the ledger
 (`_ledger.csv`, status=='fetched'). A *submit failure* never creates a fetched row — it is logged to
@@ -44,7 +44,7 @@ ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
 BR = os.path.join(ROOT, "Blastp RESULTS")
 STALL_MIN = 30          # no fetch for this long, with live lanes, = trouble
 RECENT_MIN = 30         # window for counting run.log errors
-# BC2-398: blastp_last_returns.py's own header docstring states it "Mirrors blastp_health.py's
+# 398: blastp_last_returns.py's own header docstring states it "Mirrors blastp_health.py's
 # process/error anchoring" — verified live it did not (and this pattern was missing the sibling's
 # bare "rc=(?:16|56|6|7|18)" and "throttl" signals in the other direction). Union of both — keep
 # in sync with the sibling copy in blastp_last_returns.py.

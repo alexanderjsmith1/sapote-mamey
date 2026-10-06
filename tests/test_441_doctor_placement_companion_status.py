@@ -1,4 +1,4 @@
-"""v9.7.441 card 283f1f96: doctor's placement/R companion probe finds binaries in the workspace conda
+"""v9.7.441 card: doctor's placement/R companion probe finds binaries in the workspace conda
 envs (via SAPOTE_WORKSPACE_ROOT), honours $BLAST_BIN, and reports the rest as missing (NOT MEASURED)."""
 from mamey.cli import _placement_and_r_companion_status
 

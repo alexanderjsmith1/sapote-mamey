@@ -215,7 +215,7 @@ def build_display(aln, nwk, meta, parameters):
             if group_label == "representative":
                 # The representative keeps its OWN category/source: they are that record's deposited
                 # fields, not a claim about the members, which stay in the ledger.
-                # SEXTANT_421l (Alex 2026-09-09): show the group as its representative -- a real record,
+                # SEXTANT_421l (2026-09-09): show the group as its representative -- a real record,
                 # whose label and source fields are its own -- with the member count appended. The
                 # members remain in the ledger. Bound here so the receipt covers the label.
                 result["label"] = f'{row["label"]} (+{len(members) - 1} grouped; max {max_pair} nt differences; min {min_shared} shared sites)'

@@ -12,8 +12,8 @@ ownership = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ownership)
 
 
-def _invoke(capsys, *args):
-    rc = ownership.main(["--root", str(ROOT), "--json", *args])
+def _invoke(capsys, *args, root=ROOT):
+    rc = ownership.main(["--root", str(root), "--json", *args])
     return rc, json.loads(capsys.readouterr().out)
 
 
@@ -38,18 +38,24 @@ def test_source_final_distinguishes_prior_generated_inputs_from_deferred_tier_ou
     assert payload["deferred_outputs"] == ["tier_manifest", "source_checksums"]
 
 
-def test_source_final_refuses_tier_outputs_as_source_final_and_creates_nothing(capsys):
-    before = _tree_hashes(ROOT)
+def test_source_final_refuses_tier_outputs_as_source_final_and_creates_nothing(capsys, tmp_path):
+    # Only existence of owner/surface paths matters to this check-only planner.
+    for contract in ownership.SURFACES.values():
+        for rel in (*contract['outputs'], *contract['owner_paths']):
+            target = tmp_path / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text('private synthetic surface sentinel')
+    before = _tree_hashes(tmp_path)
     rc, payload = _invoke(
         capsys,
         "--phase", "source-final",
         "--assert-input", "module_manifest,tools_inventory",
-        "--assert-final", "source_checksums",
+        "--assert-final", "source_checksums", root=tmp_path,
     )
     assert rc == 2
     assert payload["status"] == "REFUSED"
     assert any(item["code"] == "DECLARED_FINAL_SET_MISMATCH" for item in payload["findings"])
-    assert _tree_hashes(ROOT) == before
+    assert _tree_hashes(tmp_path) == before
 
 
 def test_tier_final_accepts_final_source_surfaces_as_inputs(capsys):

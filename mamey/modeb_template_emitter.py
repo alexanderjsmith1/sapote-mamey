@@ -154,6 +154,9 @@ def emit_card_template(package_dir: str | Path,
     if contract is None:
         contract = load_contract()
 
+    if contract.get("schema_version") != "modeb_current50_v2" and any(
+            (sources or {}).get(key) for key in ("rescue_locus_inventory", "rescue_gene_adjudication_tsv")):
+        raise ValueError("EXPANDED_LOCUS_CONTRACT_REQUIRED: use --contract current50_v2 with expanded-locus sources")
     facts = _bgc_facts(pkg, bgc_id)
     facts.update(_over_merge_facts(pkg, facts))
     # Part C (v9.7.225): pre-fill grounded facts from the cohort precompute layer, joined on the
@@ -166,10 +169,24 @@ def emit_card_template(package_dir: str | Path,
                                        strain=facts.get("strain_id", ""), bgc_id=facts.get("bgc_id", "")))
     facts["_sources"] = {k: v for k, v in (sources or {}).items() if v}
     facts["_pkg_dirname"] = pkg.resolve().parent.name
+    if contract.get("schema_version") == "modeb_current50_v2" and facts["_sources"].get("gap_rescue_dir"):
+        from .modeb_gap_rescue import load_gap_rescue
+        identity = " / ".join(str(facts.get(k) or "") for k in ("strain_id", "contig", "region", "bgc_id"))
+        facts["_gap_rescue"] = load_gap_rescue(facts["_sources"]["gap_rescue_dir"], identity,
+                                              facts["_sources"].get("rescue_verdicts_tsv"),
+                                              facts["_sources"].get("rescue_gene_adjudication_tsv"))
+    if contract.get("schema_version") == "modeb_current50_v2" and facts["_sources"].get("rescue_locus_inventory"):
+        from .modeb_locus_scope import build_scope
+        facts["_expanded_locus"] = build_scope(facts["_sources"]["rescue_locus_inventory"],
+                                              facts.get("_gap_rescue", {}), facts.get("gene_rows") or [])
     predicates = _build_predicates(facts)
 
     lines: list[str] = []
     lines.append(_header_block(facts, contract))
+    if facts.get("_expanded_locus"):
+        from .modeb_locus_scope import marker
+        lines.append("<!-- MODEB_EXPANDED_LOCUS_REQUIRED -->")
+        lines.append(marker(facts["_expanded_locus"]))
 
     for s in contract["sections"]:
         num = s["number"]
@@ -182,19 +199,27 @@ def emit_card_template(package_dir: str | Path,
         _floor = _section_floor_for(num, facts)
         lines.append(f"## §{num} {title}")
         lines.append(f"<!-- depth floor: {_floor} chars -->")
+        if s.get("requirement") and contract.get("schema_version") == "modeb_current50_v2":
+            # current50 v2: show each section's requirement to the author, including sections with a pre-fill
+            lines.append(f"<!-- Requirement (§{num}): {s['requirement']} -->")
         lines.append("")
         body = (_section_body(num, facts, s) if applies else
                 "**NOT_APPLICABLE (reason required):** Explain why this section does not apply to "
                 "this exact locus and distinguish non-applicability from missing/unbound evidence.")
+        if facts.get("_expanded_locus"):
+            from .modeb_locus_scope import ROUTED_SECTIONS, render_scope
+            if num in ROUTED_SECTIONS:
+                body = render_scope(facts["_expanded_locus"], num) + "\n\n" + body
         lines.append(body)
         lines.append("")
 
     lines.append("---")
     lines.append("")
+    _span = f"§1–§{len(contract['sections'])}"
     lines.append("*Template emitted by `mamey emit-modeb-template`. "
                  "Fill prose under each heading. Do not rename, reorder, "
-                 "or omit headings. Expanded owner-review candidates preserve "
-                 "§1–§48 in order. Replace every prompt, including conditional "
+                 f"or omit headings. Expanded owner-review candidates preserve "
+                 f"{_span} in order. Replace every prompt, including conditional "
                  "sections, with substantive analysis or a reasoned "
                  "NOT_APPLICABLE disposition.*")
     return "\n".join(lines)
@@ -386,13 +411,20 @@ def _header_block(facts: dict, contract: dict) -> str:
             "> Character counts are progress diagnostics only and never scientific acceptance "
             "evidence. Author to the evidence scaffold first; run the gate as confirmation.\n"
         )
+    if contract.get("schema_version") == "modeb_current50_v2":
+        # v2 cards carry the full contig name and the contract sha from emission, so nobody stamps them by hand.
+        from .modeb_current50_v2 import header_line
+        node = facts.get("contig") or node
+        lead = header_line(strain, node, facts.get("region") or "?", bgc) + "\n"
+    else:
+        lead = ""
     return (
-        f"<!-- MODE B TEMPLATE | bgc: {bgc} | node: {node} | "
+        f"{lead}<!-- MODE B TEMPLATE | bgc: {bgc} | node: {node} | "
         f"strain: {strain} | products: {products} | "
         f"contract: {contract.get('schema_version')} -->\n\n"
         f"# Mode B — {strain} / {node} / {facts.get('region') or '?'} / {bgc}\n\n"
         f"*Template emitted from `{contract.get('schema_version')}`. "
-        f"expanded owner-review profile includes §1–§48; non-applicable sections "
+        f"expanded owner-review profile includes §1–§{len(contract.get('sections') or []) or 48}; non-applicable sections "
         f"remain present with a reasoned NOT_APPLICABLE disposition.*\n"
         f"> **Lifecycle:** this is an authoring scaffold, not a publication candidate. "
         f"Populate every placeholder from the frozen evidence packet, save the authored bytes, "
@@ -580,6 +612,15 @@ SOURCE_FLAGS = (
      "deposited; supplies genus (§46), host (§47) and exclusions (§44)"),
     ("bigscape_regions_dir", "--bigscape-regions-dir",
      "Directory of region GBKs; §40 binds only on the exact strain + full contig + region"),
+    ("gap_rescue_dir", "--gap-rescue-dir",
+     "Existing gap-rescue run folder or strain parent; exact full-identity receipt, gene table, "
+     "query FASTA, split rulings and adjudication pre-fill current50_v2 §26 and §19 inputs; no search or join"),
+    ("rescue_verdicts_tsv", "--rescue-verdicts-tsv",
+     "Exact-identity pair-review TSV for --gap-rescue-dir; pair-level rulings stay separate from gene support"),
+    ("rescue_gene_adjudication_tsv", "--rescue-gene-adjudication-tsv",
+     "Explicit gene-level adjudication TSV; overrides saved run rulings only after exact gene/location checks"),
+    ("rescue_locus_inventory", "--rescue-locus-inventory",
+     "Sequence-bound whole-assembly CDS JSON; expands current50_v2 interpretation to supported-anchor neighbourhoods"),
 )
 
 
@@ -906,6 +947,37 @@ def _section_body(num: int, facts: dict, sect: dict) -> str:
     pre-fill rule, returns a single-line authoring prompt."""
     bgc = facts.get("bgc_id") or "?"
     node = facts.get("node") or facts.get("contig") or "?"
+
+    if num == 26 and facts.get("_gap_rescue"):
+        from .modeb_gap_rescue import render_section
+        return render_section(facts["_gap_rescue"])
+    if num == 19 and facts.get("_gap_rescue"):
+        from .modeb_gap_rescue import render_impact
+        remainder = _section_body(num, {k: v for k, v in facts.items() if k != "_gap_rescue"}, sect)
+        return render_impact(facts["_gap_rescue"]) + "\n\n" + remainder
+
+    if sect.get("prefill") == "pointer_to_50":
+        # current50 v2 §4: the interpretation anchors stay here; the gene table moves to §50, the last section.
+        full = _section_body(num, facts, {**sect, "prefill": None})
+        head = full.split("**Gene table**", 1)[0]
+        return (head + "**Gene roles in brief.** <!-- Author: a short gene-role overview by locus_tag; the "
+                "complete gene-by-gene table is §50 (Data evidence table). -->")
+
+    if sect.get("prefill") == "evidence_table_50":
+        gene_rows = facts.get("gene_rows") or []
+        scope = facts.get("_expanded_locus") or {}
+        matrix_rows = scope["genes"] if scope.get("state") == "BOUND" else gene_rows
+        return (f"**Gene table** (core-region observations, from `gene_context.jsonl`):\n\n{_render_gene_table(gene_rows, node)}\n\n"
+                f"#### Complete named-match, channel-separated table\n\n{_render_blastp_matrix_scaffold(matrix_rows)}"
+                "\n\n<!-- Author: add, per gene, the GECCO probability and the gap-rescue match (reference gene, "
+                "identity, reciprocal best). Keep nr, ClusteredNR and local Swiss-Prot separate. This is the "
+                "very last section. -->")
+
+    if sect.get("prefill") == "prompt_only":
+        # current50 v2: this number holds a different section than in the 48-section profile, so the
+        # profile's pre-fill for the number does not apply. The requirement is the authoring prompt.
+        return (f"<!-- Author ({sect.get('title', '')}): {sect.get('requirement', '')} -->\n\n"
+                "**Source tables:** name each table and file this section draws on.")
 
     if num == 1:
         return (f"**BGC:** {bgc}\n"

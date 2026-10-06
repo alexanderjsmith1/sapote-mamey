@@ -29,7 +29,7 @@ _REGISTRY_PATH = pathlib.Path(__file__).resolve().parent / "data" / "companion_t
 # categories a well-formed entry may declare (mirrors the registry's `categories` list)
 VALID_CATEGORIES = {
     "upstream-input", "BGC-detection", "GCF-clustering",
-    "synteny", "figure", "phylogenomics",
+    "synteny", "figure", "phylogenomics", "metabolomics",
 }
 VALID_REQUIREMENTS = {"REQUIRED-upstream", "optional", "on-request"}
 

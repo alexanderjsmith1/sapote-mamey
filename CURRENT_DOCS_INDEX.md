@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.446 · engine 1.9.172 · build 20261001v97446a
+# Current Docs Index — v9.7.448 · engine 1.9.173 · build 20261005v97448a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -7,6 +7,10 @@ generated `CLAUDE.md` copy supports Claude discovery; other assistants must be d
 or receive it through their supported instruction mechanism.
 
 ## Operating guides
+
+- [Immutable package readers](docs/POSTSEAL_READERS.md): external report destinations and source-bound BiG-SCAPE staging.
+- [Companion provisioning and retrieval controls](docs/447_COMPANION_RETRIEVAL_CONTROLS.md): clone installations, scanner subsets, optional R, protein input admission and RID checkpoints.
+- [Cohort bank transactions](docs/COHORT_BANK_TRANSACTIONS.md): schema admission, coherent readers and explicit interrupted-write recovery.
 
 - [Companion Tool Guide](docs/COMPANION_TOOL_GUIDE.md): standalone use, inputs/outputs and actual integration roles.
 
@@ -26,9 +30,16 @@ or receive it through their supported instruction mechanism.
   their presence does not assert that a study or module was run.
 - [Mode B authoring](wiki/Mode-B-Gene-First-and-48-Section-Manual.md): use the selected machine-readable
   profile and its emitted template; legacy section counts do not replace a named current profile.
+- [Mode B contract current50 v2](docs/MODEB_CURRENT50_V2_CONTRACT.md): the 50-section card with GECCO (§22), the contigs rescued into the BGC (§26), literature with relevance (§48–§49) and the data evidence table last (§50); `emit-modeb-template --contract current50_v2` and `verify-modeb --contract current50_v2`.
+- [Mode B expanded locus](docs/MODEB_EXPANDED_LOCUS.md): independently source-bound CDS inventories and bounded supported-anchor context; use `--require-expanded-locus` for an expanded work order. Core membership remains separate.
+- [Mode B gap-rescue reader](docs/MODEB_GAP_RESCUE_READER.md): supplied rescue context and existence checks; this does not adopt rescued genes into a locus.
+- [Mode B profiles](docs/MODEB_PROFILE_MATRIX.md): which card is which (scaffold, candidate, finished §1–§48, opt-in current50 v2), with each profile's producer, verifier and the status it can claim. "Full Mode B" means the selected finished profile.
 - [BLASTp evidence](docs/ONLINE_BLASTP_PROTOCOL.md): existing results first (rollups to reservoir; trove to package overlay; HitTable to workbook), optional live submission.
+- [antiSMASH web submission](docs/ANTISMASH_WEB_SUBMISSION_SOP.md): the procedure for sending reference genomes to the public antiSMASH server; light-touch queue rule, loose with all 11 features, no email, one authorised batch at a time.
 - [BiG-SCAPE cohort walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md) and [troubleshooting](docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md): stage region files, run a cohort, inspect family verdicts and figures.
 - [BiG-SCAPE cohort networks and comparator context](docs/BIGSCAPE_COHORT_NETWORK_GUIDE.md): exact-identity cohort tables, evidence badges and citations, overmerged-region component metrics, interactive/static figures, and additive batch report enrichment.
+- [Strain slides](docs/STRAIN_SLIDES.md): one deck per strain from a sources file: complete region inventory and gene tables; selected region slides (with explicit omission rules) carry the gap-rescue map, gene strip, GECCO, RG-GMCI two-proof, BiG-SCAPE and BLASTp lines, GECCO-only candidates and a gene-table appendix; protein PCoA panels per strain.
+- [Isolate neighbourhood panel](docs/NEIGHBOUR_PANEL_16S_TYGS.md): one isolate's genome panel from its 16S BLAST hits on complete genomes, the NCBI genome table (`datasets`) and its TYGS closest type strains (`tools/neighbour_panel_candidates.py`; check with `tools/check_tygs_coverage.py`).
 - [Phylogenetic workflow](docs/PHYLO_AUTOPILOT_WORKFLOW.md), [placement](docs/PHYLO_PLACEMENT_WORKFLOW.md),
   and [companion tools](docs/LLM_COMPANION_TOOL_PROTOCOL.md): inputs, resource scope and run receipts.
 - [Figure house rules](docs/FIGURE_HOUSE_RULES.md): the rules every figure meets (format, caption and methods, page wording, material labels, provenance) and what checks each one.
@@ -57,7 +68,7 @@ These pages document shipped tools, commands and contracts. They were not linked
 - [Whole-genome chitin/GlcNAc reference-capacity evaluation](docs/CHITIN_REFERENCE_EVALUATION.md)
 - [Clear Match Finder](docs/CLEAR_MATCH_FINDER.md)
 - [cluster_completeness — assembly truncation vs biological absence](docs/CLUSTER_COMPLETENESS.md)
-- [cluster_discovery — find strains carrying a BGC from a diagnostic marker](docs/CLUSTER_DISCOVERY.md)
+- [cluster_discovery — candidate assembly lookup from marker-protein similarities](docs/CLUSTER_DISCOVERY.md)
 - [cluster_gene_compare — gene-by-gene BGC comparison as a real deliverable](docs/CLUSTER_GENE_COMPARE.md)
 - [cluster_relate — relationship tree + distance matrix from homologous clusters](docs/CLUSTER_RELATE.md)
 - [ClusterBlast-derived phylogeny candidate ledger](docs/CLUSTERBLAST_PHYLO_CANDIDATES.md)
@@ -84,7 +95,7 @@ These pages document shipped tools, commands and contracts. They were not linked
 - [Outgroup generator + right-sized reference sets (outgroup_registry.py, phylo_refset.py)](docs/OUTGROUP_AND_REFSET_WORKFLOW.md)
 - [Owner-kept Figure Factory inputs](docs/OWNER_KEPT_FIGURE_INPUTS.md)
 - [Spec — Cohesive Per-BGC Report (L0–L3) + Comparison Matrix](docs/PER_BGC_REPORT_CARD_SPEC.md)
-- [TROUBLESHOOTING — EPA-ng placement + phylo tooling (Eggplant, 2026-09-06)](docs/PHYLO_TROUBLESHOOTING.md)
+- [TROUBLESHOOTING — EPA-ng placement + phylo tooling (2026-09-06)](docs/PHYLO_TROUBLESHOOTING.md)
 - [PKS ketosynthase-tree option guide](docs/PKS_KS_TREE_OPTIONS.md)
 - [Portable evidence-workspace interface](docs/PORTABLE_EVIDENCE_WORKSPACE.md)
 - [Portable strain privacy and evidence registry](docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md)
@@ -146,3 +157,5 @@ do not turn a version-stamp update into a claim of a full content review.
 ## Diagnostic screening
 
 - [Experimental dominated diagnostic report](docs/DOMINATED_DIAGNOSTIC.md) — report-only thresholds and calibration hold.
+
+- [Optional GECCO, metabolomics bridge and explicit non-KS policy](docs/COMPANION_CLASS_EVIDENCE.md) — external reader outputs, source binding and class-level interpretation.

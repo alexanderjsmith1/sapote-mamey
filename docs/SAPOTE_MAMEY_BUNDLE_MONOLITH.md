@@ -1,11 +1,13 @@
 # Sapote-Mamey All-in-One Bundle Monolith
 
 **Monolith content version:** vetted against bundle v9.7.6 (last full read-through 2026-06-13); **spot-vetted against bundle v9.7.439** (2026-09-22: targeted doctrine scan clean — no retired assembly tiers, no per-BGC BSL-2 flagging, no active AS_SCRUB, no PRIVATE(AS-) identifier doctrine, no PUBLIC/PRIVATE figure divider. The strict dangling-reference audit was also run and retained its existing unresolved/intentional operational set, including `COMMAND.sh`, four cohort-figure helper names, `directed_studies/pks.py`, `engine/pyhmmer_scanner_engine.py`, and `../bootstrap.sh`; this spot-vet does not claim those references were resolved or that a full read-through occurred. Supersedes the 2026-08-25 v9.7.378 spot-vet. The standing `sapote_pdf_styles.py` reference remains an intentional upload-at-session-time artifact rather than a bundled script). **Established:** May 25, 2026.
-**Note:** the monolith is the parent design controller; its content is reviewed at major checkpoints, not bumped every patch. It is intentionally tracked separately from the engine/bundle version (for the authoritative live versions see CITATION.cff / pyproject.toml / mamey/__init__.py — this document does not restate them, because a restated version number rots silently). Sections describing concrete code behavior (e.g. §-1.17 merge contract) are kept current with the code even between full read-throughs.
+> **Scope and precedence (v9.7.447).** Operational startup is governed by `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md`; they take precedence over this document. The task the user asked for sets the scope: reading this file never expands a review into a run, a full-suite authoring job, or a release. A version stamp at the top records version synchronization, not a full content review.
+
+**Note:** the monolith is the analytical design reference (it was formerly called the parent design controller); its content is reviewed at major checkpoints, not bumped every patch. It is intentionally tracked separately from the engine/bundle version (for the authoritative live versions see CITATION.cff / pyproject.toml / mamey/__init__.py — this document does not restate them, because a restated version number rots silently). Sections describing concrete code behavior (e.g. §-1.17 merge contract) are kept current with the code even between full read-throughs.
 **Project:** Multi-habitat actinomycete BGC discovery and manuscript support  
 **Scope:** Any actinomycete or bacterial collection with antiSMASH output. Reference project covers isolates from four [Habitat] categories; the workflow is not restricted to these categories.  
 **Core protocols:** Mamey deterministic extraction/scoring kernel + Sapote interpretive judgment layer + Workbook Contract + Batch Controller + Resume/Checkpoint Protocol + CDSW + Triage First + LC-MS Chemical Handle Module + Reader-Facing Front Page and Briefing Package + CCTT + CGAD + Resistance + bldA/TTA + RG-GMCI + FLBR + UMED + EFLS + DKP-CDPS + Linear Polyether Ionophore Detection + PKS Stereochemistry Reasoning + Output Registry (§54) + EFLS Constellation Reporting (§55) + Known-Outcome Benchmarking (§56) + Per-Class Constellation Sub-Grades (§57)  
-**Primary use:** Paste this prompt at the start of a new AI session, then upload the required master files or strain-specific antiSMASH ZIPs.
+**Primary use:** an analytical reference for designing and reviewing interpretation. Start a session from `AGENTS.md`, not by pasting this file.
 
 
 
@@ -20,9 +22,12 @@ v9.2 is not a science-module expansion. It is a **bundle-hardening patch**. Its 
 
 **Central rule:** the monolith may define the desired contract, but the bundle release is valid only when documentation, prompts, workbook schema, executable behavior, and tests agree.
 
-## -2.1 Active-controller rule
+## -2.1 Historical parent-controller design
 
-The bundle must have exactly one active parent controller:
+The following block records the v9.2 design and is historical, not a session instruction.
+Current operational authority is `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md`, within the user's authorized task. Derived prompts must respect that authority.
+
+The historical design specified:
 
 ```text
 Active parent controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md
@@ -541,7 +546,7 @@ If any item is missing, the monolith is a Sapote prompt, not a Sapote-Mamey bund
 0.6. [Triage First Board](#section-06--triage-first-board)
 0.7. [LC-MS Chemical Handle Module](#section-07--lc-ms-chemical-handle-module)
 0.8. [Visual Load Reduction Standard](#section-08--visual-load-reduction-standard)
-0.9. [Standard vs Archive-Quality Full Analysis](#section-09--standard-vs-archive-quality-full-analysis)
+0.9. [Standard vs Archive-Quality Full Analysis](#section-09--standard-full-analysis-vs-archive-quality-full-analysis)
 0.10. [Evidence / Claim Separation Card](#section-010--evidence--claim-separation-card)
 0.11. [Package Manifest and Deferred Ledger](#section-011--package-manifest-and-deferred-ledger)
 
@@ -591,14 +596,14 @@ If any item is missing, the monolith is a Sapote prompt, not a Sapote-Mamey bund
 43. [Figure Suggestion Module](#section-39--figure-suggestion-module)
 44. [Project Memory Snapshot](#section-40--project-memory-snapshot)
 45. [Cross-Comparative Synthesis Module](#section-41--cross-comparative-synthesis-module-ccsm-v11)
-46. [Large Modular PKS Rescue Workflow](#section-42--large-modular-pks-rescue-workflow-lmpks-rw)
+46. [Large Modular PKS Rescue Workflow](#section-42--large-modular-pks-rescue-workflow-lmpks-rw-v10)
 47. [Cryptic-Class / Tailoring Trigger Module](#section-43--cryptic-class--tailoring-trigger-module-cctt-v10)
 48. [Chitin / Glycan-Active Defense Module](#section-44--chitin--glycan-active-defense-module-cgad-v10)
 49. [Resistance Gene-Guided Compound Class Confirmation](#section-45--resistance-gene-guided-compound-class-confirmation)
 50. [Standalone Prompt Completeness Check](#standalone-prompt-completeness-check)
 51. [Reader-Facing Front Page and Briefing Package](#section-49--reader-facing-front-page-and-briefing-package)
 52. [v8.2 Compound-Class Coverage + Claim-Safety Patch](#section-50--v82-compound-class-coverage--claim-safety-patch)
-53. [§51 Fragmented Large-BGC Rescue (FLBR)](#section-51--fragmented-large-bgc-rescue-flbr)
+53. [§51 Fragmented Large-BGC Rescue (FLBR)](#section-51--fragmented-large-bgc-rescue-flbr-v10)
 54. [§52 Unclustered Maturation Enzyme Detection (UMED)](#section-52--unclustered-maturation-enzyme-detection-umed-v10)
 
 **Patches applied:**

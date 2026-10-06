@@ -1,4 +1,4 @@
-"""BC2 .399 audit: mamey/wise_fragmented_pks.py::write_wise_batches() hardcoded the queue_id's
+"""An audit-lane .399 audit: mamey/wise_fragmented_pks.py::write_wise_batches() hardcoded the queue_id's
 own "85K" segment to the DEFAULT target_residues literal, regardless of the actual
 target_residues value the call was given. Reproduced directly: write_wise_batches(...,
 target_residues=EXTRA_SAFE_TARGET_RESIDUES) [50_000] still emitted a queue_id claiming "85K".

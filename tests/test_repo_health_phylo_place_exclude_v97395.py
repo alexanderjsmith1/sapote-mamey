@@ -1,10 +1,10 @@
 """Regression test — v97395: tools/repo_health.py's CLI_TOOL_EXCLUDE_FILES is missing
 phylo_place.py, its direct sibling's own list already includes.
 
-Not a Black Cherry finding — this synthesizes a fix independently reached by two other lanes
+Not an audit-lane finding — this synthesizes a fix independently reached by two other lanes
 this same cut cycle:
-  - Aquarius (Claude lane), composing the earlier v97395 pool: "print_calls 1638 > ceiling 1635.
-    Attribution is exact: tools/phylo_place.py 15 -> 18 prints (Amber's reference-dedup patch).
+  - an audit lane (Claude lane), composing the earlier v97395 pool: "print_calls 1638 > ceiling 1635.
+    Attribution is exact: tools/phylo_place.py 15 -> 18 prints (the phylogeny lane's reference-dedup patch).
     Recommendation: add phylo_place.py to CLI_TOOL_EXCLUDE_FILES ... That list exists for
     'operator CLI tools whose stdout IS the deliverable' and already contains
     phylo_place.py's direct siblings phylo_preflight.py and phylo_postflight.py."

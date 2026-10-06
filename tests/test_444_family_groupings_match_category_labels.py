@@ -126,7 +126,7 @@ def test_tool_class_labels():
     for types in CASES:
         old, new = ";".join(old_products(types)), ";".join(types)
         assert leads._primary_class(new) == leads._primary_class(old), types
-        if "napaa" not in types:   # NAPAA stays excluded in the inventory table (Alex, 2026-09-27)
+        if "napaa" not in types:   # NAPAA stays excluded in the inventory table (2026-09-27)
             assert inventory.headline_class(new) == inventory.headline_class(old), types
 
 

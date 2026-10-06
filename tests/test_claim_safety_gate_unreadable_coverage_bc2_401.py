@@ -1,5 +1,5 @@
 """Regression test for `mamey/claim_safety_gate.py::candidate_text_files()` /
-`run_claim_safety_gate()` (v9.7.401, BC2, `.401` round tick 10).
+`run_claim_safety_gate()` (v9.7.401, an audit lane, `.401` round tick 10).
 
 `candidate_text_files()` used bare `root.rglob("*")`, which silently swallows a per-directory
 `OSError` -- an unreadable subdirectory's contents are simply absent from the scan, with no

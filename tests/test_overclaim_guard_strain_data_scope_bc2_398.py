@@ -1,4 +1,4 @@
-"""BC2 .400 audit: hooks/overclaim_guard.py's REPORT-scope check hardcoded this specific
+"""An audit-lane .400 audit: hooks/overclaim_guard.py's REPORT-scope check hardcoded this specific
 deployment's private folder name ('as strain master') as a raw substring test, alongside a
 second raw substring test for 'strain_data' -- neither generalizes to a differently-named or
 differently-laid-out workspace, and substring containment can match inside an unrelated,

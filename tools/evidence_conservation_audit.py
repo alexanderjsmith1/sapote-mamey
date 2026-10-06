@@ -74,7 +74,7 @@ def _count_in_blob(token, blob):
 
 
 def check_tigrfam(raw, pkg_blob):
-    """v9.7.401 (BC2): was a bare `acc not in pkg_blob` boolean-presence check -- silently
+    """v9.7.401: was a bare `acc not in pkg_blob` boolean-presence check -- silently
     contradicting this module's own stated design principle ("uses LOCUS-level presence checks, not
     bare string matching"). Reproduced live: the SAME diagnostic accession hit at two distinct loci
     in raw (two separate BGCs both showing e.g. TIGR01454), with the package retaining only ONE of

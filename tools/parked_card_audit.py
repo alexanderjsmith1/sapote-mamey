@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """parked_card_audit.py — flag patch-pool cards that silently fell out of the cut cadence.
 
-MOTIVATION (real, 2026-09-03): AMBER_401_g3b_n50_floor was a fully-verified patch that never
+MOTIVATION (real, 2026-09-03): g3b_n50_floor was a fully-verified patch that never
 folded. The .401 pool froze before it composed, and it sat un-folded through .402→.406 while its
 target file drifted underneath it — so the old patch bytes no longer even applied. Five cuts of
 silence. Nothing watched for it. This tool is that watch.
@@ -237,7 +237,7 @@ def audit(pools, sealed_tree, current_version, ttl=2, require_tests=True):
             # second guard: a not-yet-folded code change with no accompanying test. A test counts if
             # it is EITHER a tests/ target inside the patch OR a loose test_*.py file shipped beside
             # the patch in the card dir (a common convention — the test is placed into tests/ at fold
-            # time). Verified 2026-09-03: two real BC2 cards ship their test as a loose file, not a
+            # time). Verified 2026-09-03: two real an audit lane cards ship their test as a loose file, not a
             # patch hunk; checking only patch targets false-flagged them.
             test_gap = False
             if require_tests and status in ("PARKED", "DRIFTED"):

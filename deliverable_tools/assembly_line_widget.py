@@ -432,7 +432,7 @@ def run_strain(strain, runs_root, outdir):
 def discover(runs_root=None):
     """strain -> package dir for every strain with an antismash_modules.csv under runs_root.
 
-    v9.7.413 (BC2): the sibling `rggmci_widget` has had `--all` since it shipped; this tool had
+    v9.7.413: the sibling `rggmci_widget` has had `--all` since it shipped; this tool had
     only --strain/--demo, which is why the reader covered 5 flagship strains out of the 44 that
     have the table. Same glob shape as the sibling so both agree on what "every strain" means.
     """

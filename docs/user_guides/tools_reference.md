@@ -3,7 +3,7 @@
 Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
 
 
-**Bundle v9.7.430 · Engine 1.9.164** — re-grounded 2026-09-14 (Eggplant lane).
+**Bundle v9.7.430 · Engine 1.9.164** — re-grounded 2026-09-14 (phylogeny-lane).
 
 > **The per-script inventory that used to live here has been retired, not lost.**
 > It is now generated, not hand-maintained:

@@ -80,11 +80,33 @@ def main():
             "  → Link only existing FILES inside the workspace (percent-encoded); directories and "
             "out-of-workspace paths go as plain text. Re-send corrected links to the user.\n"
             % (len(problems), more, "\n  ".join(show)))
+        if not data.get("stop_hook_active"):
+            return 2  # Stop exit 2: the reply is held and the message goes back to Claude, once (the host caps repeats)
+    return 0
+
+
+
+def _run_visible():
+    """Hooks reference: stderr from a hook that exits 0 goes to the debug log only, and nobody sees it (audit F03).
+    Run main() with stderr captured. An exit-2 result passes its text through on stderr, which the host feeds back
+    to Claude. Any other result shows the text to the user as a systemMessage and exits 0."""
+    import io
+    buf, real = io.StringIO(), sys.stderr
+    sys.stderr = buf
+    try:
+        rc = main()
+    except Exception:
+        rc = 0  # advisory: fail open
+    finally:
+        sys.stderr = real
+    text = buf.getvalue().strip()
+    if rc == 2:
+        sys.stderr.write(text + "\n")
+        return 2
+    if text:
+        print(json.dumps({"systemMessage": text}))
     return 0
 
 
 if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except Exception:
-        sys.exit(0)  # advisory guard fails open
+    sys.exit(_run_visible())

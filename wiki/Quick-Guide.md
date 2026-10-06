@@ -1,7 +1,7 @@
 <!-- Mirror of docs/GUIDE/02_Quick_Guide.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.446 / engine Mamey 1.9.172
+**Version:** v9.7.448 / engine Mamey 1.9.173
 
 Mamey extracts deterministic evidence from antiSMASH output. Sapote turns a validated evidence
 package into governed interpretation. Start at the [README](../README.md). If you work through a

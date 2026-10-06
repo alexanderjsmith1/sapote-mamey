@@ -65,7 +65,7 @@ def _records(manifest_path, manifest):
     "bgcs" list.
 
     degraded = False normally, or (records_json_path, error_str) when a *_records.json file was
-    found but could NOT be read/parsed. BC2-SD-01 (v9.7.395): this case used to `except Exception:
+    found but could NOT be read/parsed. SD-01 (v9.7.395): this case used to `except Exception:
     pass` and silently fall back to manifest.bgcs with zero signal. A corrupted/truncated
     records.json — the richer source, more likely to hold the full BGC set — degraded checks #4
     (primary-key uniqueness) and #5 (KCB provenance) below to whatever subset the thinner manifest
@@ -123,7 +123,7 @@ def main():
 
     drift = bool(errs)
 
-    # 0. records.json integrity — BC2-SD-01 (v9.7.395): a source whose *_records.json exists but
+    # 0. records.json integrity — SD-01 (v9.7.395): a source whose *_records.json exists but
     # failed to parse fell back to manifest.bgcs (possibly incomplete) with no signal; the
     # primary-key-uniqueness (#4) and KCB-provenance (#5) checks below then silently examine a
     # degraded data set. Surfaced here and forced fail-closed, matching this gate's own stated

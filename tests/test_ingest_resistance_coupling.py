@@ -21,7 +21,7 @@ class TestResistanceLift(unittest.TestCase):
                 open(os.path.join(d, f), "w").write("{}")
             open(os.path.join(d, "bgc_data.json"), "w").write('{"strains":{},"bgcs":[]}')
             open(os.path.join(d, "gene_data.json"), "w").write('{"scan_agg":{},"tfbs":{}}')
-            entry = {"sid": "SX", "strain": {"cohort": "TYPE"}, "bgcs": [], "scan_agg": {},
+            entry = {"workflow_version": "synthetic-v1", "sid": "SX", "strain": {"cohort": "TYPE"}, "bgcs": [], "scan_agg": {},
                      "tfbs": {}, "rggmci_full": {}, "tigrfam": {}, "coupling": {}, "resistance_coupling": {}}
             ip.merge(entry, d)
             rc = json.load(open(os.path.join(d, "resistance_coupling.json")))

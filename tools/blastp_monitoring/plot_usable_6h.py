@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""plot_usable_6h.py (VGP, 2026-08-21) — USABLE data returned over the last 6 hours, all lanes.
+"""plot_usable_6h.py (2026-08-21) — USABLE data returned over the last 6 hours, all lanes.
 
 "Usable" = a fetched panel that came back with real hits (ledger note rows>0). Panels that returned
 0 hits are shown separately (red) — they are genes with no significant match (possibly reference-dark,
@@ -28,15 +28,15 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
-VGP = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", os.path.join(ROOT, "blastp_plots"))
+PLOT_DIR = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", os.path.join(ROOT, "blastp_plots"))
 BR = os.path.join(ROOT, "Blastp RESULTS")
-OUT = os.path.join(VGP, "crawl_plots")
+OUT = os.path.join(PLOT_DIR, "crawl_plots")
 HOURS = 6
 BINM = 15
 ROWS_RE = re.compile(r"(\d+)\s*row")
 
 os.chdir(ROOT)
-spec = importlib.util.spec_from_file_location("pcr", os.path.join(VGP, "plot_crawl_recent.py"))
+spec = importlib.util.spec_from_file_location("pcr", os.path.join(PLOT_DIR, "plot_crawl_recent.py"))
 pcr = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pcr)   # provides query_proteins()
 

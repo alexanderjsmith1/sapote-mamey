@@ -19,6 +19,23 @@ import argparse, json, os
 from _wbio import atomic_save
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -41,10 +58,11 @@ def _genus(org):
     if first.lower()=='candidatus' and len(org.split())>1: return org.split()[1]
     return first
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--workbook', required=True); ap.add_argument('--banked-dir', default='cohort')
-    a=ap.parse_args()
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None))
     gene=_read_json(os.path.join(a.banked_dir,'gene_data.json'))
     tfbs=gene.get('tfbs',{})
     if not tfbs:

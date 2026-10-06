@@ -1,4 +1,4 @@
-"""BC2 .399 audit: mamey/master_workbook.py::_update_class_matrix() merges real (raw-cased)
+"""An audit-lane .399 audit: mamey/master_workbook.py::_update_class_matrix() merges real (raw-cased)
 antiSMASH product tokens directly into its class-column list alongside the curated ALL_AS_CLASSES
 list, without case normalization. Real antiSMASH tokens are lowercase for several of
 ALL_AS_CLASSES's own entries ("NRPS", "T1PKS", "T2PKS", "T3PKS", ...) -- confirmed against

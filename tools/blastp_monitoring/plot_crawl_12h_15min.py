@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""plot_crawl_12h_15min.py (VGP, 2026-08-21) — the standing "is blastp still moving?" plot.
+"""plot_crawl_12h_15min.py (2026-08-21) — the standing "is blastp still moving?" plot.
 
 Last 12 hours, 15-minute bins, ALL lanes pooled. Two panels:
   * top    — query proteins per 15-min bin, stacked nr vs ClusteredNR, with the 1/min floor line
@@ -28,8 +28,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
-VGP = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", os.path.join(ROOT, "blastp_plots"))
-OUT = os.path.join(VGP, "crawl_plots")
+PLOT_DIR = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", os.path.join(ROOT, "blastp_plots"))
+OUT = os.path.join(PLOT_DIR, "crawl_plots")
 BR = os.path.join(ROOT, "Blastp RESULTS")
 ROWS_RE = re.compile(r"(\d+)\s*row")
 HOURS = int(next((a.split("=")[1] for a in sys.argv[1:] if a.startswith("--hours=")),
@@ -37,7 +37,7 @@ HOURS = int(next((a.split("=")[1] for a in sys.argv[1:] if a.startswith("--hours
 BINM = 15
 
 os.chdir(ROOT)  # load_fetches uses BR relative to cwd
-spec = importlib.util.spec_from_file_location("pcr", os.path.join(VGP, "plot_crawl_recent.py"))
+spec = importlib.util.spec_from_file_location("pcr", os.path.join(PLOT_DIR, "plot_crawl_recent.py"))
 pcr = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pcr)
 

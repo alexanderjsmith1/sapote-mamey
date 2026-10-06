@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mamey"
-version = "1.9.172"
+version = "1.9.173"
 description = "Mamey BGC discovery workflow — extraction layer for Sapote"
 requires-python = ">=3.12"
 dependencies = [
@@ -18,23 +18,28 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Optional comparative/scanner stack. No reference data or external binaries included.
+addons = ["pyrodigal>=3.7", "pyfastani>=0.6", "pyswrd>=0.3", "pyopal", "scoring_matrices", "biopython>=1.83,<2.0", "archspec", "pyhmmer", "pyskani", "pyfamsa", "pytrimal", "pytantan", "pyrodigal-gv", "gb-io", "pyfastx", "dendropy", "taxopy"]
 # Figure / plot tools. matplotlib/numpy/pandas are hard imports — figure generation crashes
 # without them. networkx + scipy are soft-guarded (see below), needed by two figure outputs.
 # Install with: pip install '.[figures]'
 # networkx: BiG-SCAPE GCF-network figure (mamey/bigscape_figures.py); soft-guarded —
 #   returns SKIPPED_NO_DEPS on ImportError, so that one figure silently no-ops if absent.
-# scipy: cohort clustermap ordering (mamey/cohort_figures.py) + tools/cluster_relate.py;
-#   soft-guarded — falls back to count-ordering (_HAS_SCIPY=False) if absent.
+# scipy: cohort clustermap ordering has a count-order fallback;
+#   tools/cluster_relate.py requires scipy for its dendrogram.
 figures = ["matplotlib>=3.7,<4.0", "numpy>=1.24", "pandas>=2.0,<3.1", "networkx>=3.0,<4.0", "scipy>=1.10,<2.0"]
 # Governed DOCX/PDF authoring and render verification. ReportLab remains core.
 # Install with: pip install '.[documents]'
 documents = ["python-docx>=1.2,<2.0", "lxml>=5.0,<7.0", "pypdf>=5.0,<7.0", "Pillow>=10.0,<13.0", "markdown>=3.4,<4.0"]  # markdown backs tools/build_chat_export.py HTML+PDF; absent -> SKIPS with a message (CLAUDE_409_optional_deps_guard)
+# Per-strain slide decks and PCoA panels (tools/strain_slides.py, tools/strain_slides_pcoa.py); absent -> exits with a message.
+# Install with: pip install '.[slides]'
+slides = ["python-pptx>=1.0,<2.0", "matplotlib>=3.7,<4.0", "numpy>=1.24", "Pillow>=10.0,<13.0"]
 # Biopython-backed GBK parsing (built-in shim used when absent). See docs/PREREQUISITES.md.
 bio = ["biopython>=1.83,<2.0"]
 # Back-compat alias: ijson moved to main deps; keeps `pip install '.[json]'` working.
 json = ["ijson>=3.2.0,<4.0"]
 # Convenience: core + figures + bio in one shot. `pip install '.[all]'`
-all = ["matplotlib>=3.7,<4.0", "numpy>=1.24", "pandas>=2.0,<3.1", "networkx>=3.0,<4.0", "scipy>=1.10,<2.0", "biopython>=1.83,<2.0", "cairosvg>=2.7,<3.0", "python-docx>=1.2,<2.0", "lxml>=5.0,<7.0", "pypdf>=5.0,<7.0", "Pillow>=10.0,<13.0", "markdown>=3.4,<4.0"]
+all = ["matplotlib>=3.7,<4.0", "numpy>=1.24", "pandas>=2.0,<3.1", "networkx>=3.0,<4.0", "scipy>=1.10,<2.0", "biopython>=1.83,<2.0", "cairosvg>=2.7,<3.0", "python-docx>=1.2,<2.0", "lxml>=5.0,<7.0", "pypdf>=5.0,<7.0", "Pillow>=10.0,<13.0", "markdown>=3.4,<4.0", "python-pptx>=1.0,<2.0"]
 # Back-compat alias: PyYAML moved to core deps (above). Kept so `pip install '.[dev]'` still resolves.
 dev = ["PyYAML>=6.0,<7.0"]
 # SVG->PNG conversion so locus-map SVGs embed in the compiled Boss-Ready PDF (compile_report._svg_to_png).
@@ -64,7 +69,7 @@ mamey = ["data/*.json", "data/**/*.json", "data/**/*.md", "data/**/*.yaml", "dat
          "data/**/*.tsv", "data/**/*.csv", "data/**/*.faa", "*.html"]
 
 [tool.pytest.ini_options]
-# v9.7.418 (BC2): four unittest suites ship beside the tools they test and were collected by
+# v9.7.418: four unittest suites ship beside the tools they test and were collected by
 # nothing — 48 passing tests, invisible to CI, discovered only because a recursive scan
 # surfaced the directories. tools/cohort_tailoring/test_integration.py is argparse-driven
 # and deliberately standalone; pytest collects nothing from it, so including these
@@ -79,4 +84,4 @@ markers = [
 [tool.sapote]
 # Single source of truth for the curated BUNDLE version.
 # (engine version lives in [project].version above)
-bundle_version = "9.7.446"
+bundle_version = "9.7.448"

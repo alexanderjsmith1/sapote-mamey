@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # bundle_support/install_sapote_addons.sh — install the Sapote add-ons stack (wheels + HMM + NP Atlas data) from vendored
-# wheels, with NO network access. Run from the bundle root (where sapote_addons/ lives).
+# wheels, offline by default. --online explicitly permits a pip-index fallback.
+# No installs are performed unless this script is invoked by the operator.
 #
 # What this installs (cp312 / manylinux x86_64):
 #   pyrodigal 3.7.1   -> S1 proteome prediction
@@ -30,7 +31,16 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Collect candidate roots to scan for wheels (explicit arg first, then the usual neighbours).
 SEARCH_ROOTS=()
-if [ "${1:-}" != "" ]; then SEARCH_ROOTS+=("$1"); fi
+ONLINE=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --online) ONLINE=1 ;;
+    --help|-h) echo "Usage: install_sapote_addons.sh [--online] [wheel-directory]"; exit 0 ;;
+    --*) echo "ERROR: unknown option $1" >&2; exit 2 ;;
+    *) SEARCH_ROOTS+=("$1") ;;
+  esac
+  shift
+done
 SEARCH_ROOTS+=(
   "$HERE/.." "$HERE" "$HERE/../sm_addons" "$HERE/sapote_addons"
   "$HERE/../uploads" "$HERE/../../uploads" "/mnt/user-data/uploads" "."
@@ -49,7 +59,7 @@ for root in "${SEARCH_ROOTS[@]}"; do
   done < <(find "$root" -maxdepth 4 -name '*.whl' 2>/dev/null)
 done
 
-if [ "$found" -eq 0 ]; then
+if [ "$found" -eq 0 ] && [ "$ONLINE" -eq 0 ]; then
   echo "ERROR: no .whl files found in any addon location." >&2
   echo "The wheels ship SEPARATELY from the lean bundle. Attach the addon — as one zip, as split" >&2
   echo "zips (core + figures), or as loose wheels — alongside this bundle, or pass a path:" >&2
@@ -59,7 +69,7 @@ fi
 
 WHEELS="$POOL"
 n_wheels="$(find "$POOL" -name '*.whl' | wc -l | tr -d ' ')"
-echo "[sapote-addons] pooled $n_wheels wheel(s) from the attached addon(s) -> installing offline"
+echo "[sapote-addons] pooled $n_wheels wheel(s); offline first; online fallback=$ONLINE"
 
 # Install in two passes: CORE deps (required) then FIGURE/analysis deps (best-effort). This way a
 # core-only addon (~27 MB, all runtime function) installs and verifies even when the heavy figure
@@ -83,13 +93,31 @@ if [ "$("$PY" -c 'import sys; print(int(sys.prefix != sys.base_prefix))')" != "1
   fi
 fi
 
-echo "[sapote-addons] installing core runtime deps..."
-"$PY" -m pip install --no-index --find-links "$WHEELS" $CORE_PKGS ${PIP_EXTRA[@]+"${PIP_EXTRA[@]}"}
+install_group() {
+  local error_log="$POOL/pip-error.log"
+  if [ "$found" -ne 0 ] && "$PY" -m pip install --no-index --find-links "$WHEELS" "$@" ${PIP_EXTRA[@]+"${PIP_EXTRA[@]}"} >"$error_log" 2>&1; then
+    cat "$error_log"
+    echo "[sapote-addons] route: offline wheel pool"
+    return 0
+  fi
+  if [ "$ONLINE" -eq 1 ] && { [ "$found" -eq 0 ] || grep -E 'No matching distribution found|Could not find a version that satisfies' "$error_log" >/dev/null; }; then
+    [ ! -f "$error_log" ] || cat "$error_log"
+    echo "[sapote-addons] route: online pip index (PyPI by default), explicitly authorized by --online"
+    "$PY" -m pip install --find-links "$WHEELS" "$@" ${PIP_EXTRA[@]+"${PIP_EXTRA[@]}"}
+    return $?
+  fi
+  [ ! -f "$error_log" ] || cat "$error_log" >&2
+  echo "[sapote-addons] REFUSED: offline resolution failed; --online permits missing-wheel fallback only" >&2
+  return 1
+}
 
-echo "[sapote-addons] installing figure/analysis deps (best-effort; skipped if not attached)..."
-"$PY" -m pip install --no-index --find-links "$WHEELS" $FIGURE_PKGS ${PIP_EXTRA[@]+"${PIP_EXTRA[@]}"} 2>/dev/null \
-  && echo "[sapote-addons]   figure stack installed" \
-  || echo "[sapote-addons]   figure wheels not present — core is fully functional; attach the figures addon for 'mamey figures'"
+echo "[sapote-addons] installing core runtime deps..."
+install_group $CORE_PKGS
+
+echo "[sapote-addons] installing figure/analysis deps (best-effort)..."
+install_group $FIGURE_PKGS \
+  && echo "[sapote-addons] figure stack installed" \
+  || echo "[sapote-addons] optional figure stack unavailable; core imports still verified below"
 
 echo "[sapote-addons] verifying imports..."
 "$PY" - <<'PY'
@@ -113,17 +141,21 @@ for m, stage in [("numpy","figures/math"), ("matplotlib","figure rendering"),
         print(f"  --   {m:12s} -> not installed (figures addon not attached; core is fine)")
 if not ok:
     raise SystemExit(1)
-print("[sapote-addons] core dependencies importable. Gemini/BLASTp/HMM runnable offline.")
+print("[sapote-addons] required dependency imports verified; external data/binaries require separate provisioning.")
 PY
 
 # v9.7.444: the optional Lab Quest interface ships as source in sapote_addons/lab_quest. Opt in with
 # SAPOTE_INSTALL_LAB_QUEST=1; it needs a streamlit wheel in the pool. Skipped cleanly otherwise.
 if [ "${SAPOTE_INSTALL_LAB_QUEST:-0}" = "1" ]; then
   LQ="$HERE/sapote_addons/lab_quest"
-  if [ -f "$LQ/pyproject.toml" ] && python3 -m pip install --no-index --find-links "$POOL" "$LQ"; then
+  if [ -f "$LQ/pyproject.toml" ] && install_group "$LQ"; then
     echo "[sapote-addons] Lab Quest add-on installed (python mamey_run.py lab-quest --help)"
   else
     echo "[sapote-addons] Lab Quest add-on NOT installed (needs a streamlit wheel in the add-on pool); core is unaffected"
   fi
 fi
 echo "[sapote-addons] done. Run a comparison with:  python3 -m mamey compare --help"
+
+# Optional GECCO adapter (not installed by this script):
+# conda create -n gecco -c conda-forge -c bioconda gecco=0.11.0
+# Then use mamey_run.py gecco-crosscheck; see docs/COMPANION_CLASS_EVIDENCE.md.

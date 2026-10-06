@@ -1,4 +1,4 @@
-"""v9.7.412 (BC2) — `surface-leads` must be able to write somewhere other than the canonical
+"""v9.7.412 — `surface-leads` must be able to write somewhere other than the canonical
 dated deliverable folder.
 
 `deliverable_tools/surface_flagged_leads.py` hardcoded BOTH its input and its output under

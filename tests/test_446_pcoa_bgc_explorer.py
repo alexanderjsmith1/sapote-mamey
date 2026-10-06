@@ -196,7 +196,7 @@ def test_dropped_region_files_do_not_block_a_package_built_without_them(kit):
     assert reg["alias"] == "BGC001"
 
 
-# ---- Task 198 review: F2 repeated locus tags, F3 strain field, F4 identical sequences ----------------------------------
+# ---- Review: F2 repeated locus tags, F3 strain field, F4 identical sequences ----------------------------------
 def _extra_region(kit, node, locus, protein, pc_id):
     """Add one AS-900 region file with a single CDS carrying `protein`, plus a PCoA point that uses it."""
     fn = f"AS-900__{node}_length_3000_cov_9.0.region001.gbk"

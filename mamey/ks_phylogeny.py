@@ -9,7 +9,7 @@ entry points; this module is the importable, testable core):
   1. extract_module_core_domains(gbk_dir, classes) — pull every module-core aSDomain
      (PKS_KS / PKS_AT / Condensation / AMP-binding / PKS_KR / PKS_DH) with its own /translation
      from a directory of *single-strain* antiSMASH region GBKs. This is the reproducible INPUT
-     to a strain-internal KS tree — the substrate Amber's AS-XXX tree had no engine generator for.
+     to a strain-internal KS tree — the substrate the phylogeny lane's AS-XXX tree had no engine generator for.
 
   2. route_domain_only_hints(verdicts) — the A.3 wiring. The corroborator
      (tools/domain_phylo_rescue.py::assess) emits two verdicts: CORROBORATED_SPLIT (a two-proof
@@ -21,7 +21,7 @@ entry points; this module is the importable, testable core):
 Engine motto: deterministic extraction, judgment deferred. This module assigns no score, promotes
 no triage tier, and mints no rescue — a DOMAIN_ONLY_HINT stays a hint.
 
-TWO GATES (baked in, per the review lane / VGP 2026-08-10 — the hazards that must not be discovered late):
+TWO GATES (baked in, per the review lane / an audit lane 2026-08-10 — the hazards that must not be discovered late):
   * ITERATIVE-MODULE GUARD: KS count != module count != chain length. An iterative PKS/FAS system
     is COMPLETE at a low KS count, so a low count is NOT evidence of a missing module or a
     fragmented pathway. This module never emits a "missing/fragmented" claim from a count.

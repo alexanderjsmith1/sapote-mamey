@@ -1266,6 +1266,10 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
             source_sha = _sha256(src)
             source_file = str(src.relative_to(troot))
             file_destinations: set[str] = set()
+            # A Swiss-Prot top-10 table (*_top10_local.csv) holds several rows per gene. Within one
+            # source file the lowest explicit hit_rank wins; without a rank column the first row wins,
+            # because BLAST writes hits best first. Letting the last row win kept rank 10.
+            file_rank: dict[tuple[str, str], float | None] = {}
             if not rekey_by_locus:
                 # Preserve the strict path's all-rejected stale-overlay cleanup behavior.
                 planned_rows.setdefault(bgc, {})
@@ -1324,8 +1328,19 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
                     "locus_rekey_state": keys.get("resolution_state", ""),
                 }
                 destination_rows = planned_rows.setdefault(destination_bgc, {})
-                # Preserve the established top-hit-per-gene behavior: later rows in the
-                # deterministic source traversal replace earlier rows for the same gene.
+                rank_text = str(r.get("hit_rank") or r.get("rank") or "").strip()
+                try:
+                    rank = float(rank_text)
+                except ValueError:
+                    rank = None
+                gene_key = (destination_bgc, locus)
+                if gene_key in file_rank:
+                    earlier = file_rank[gene_key]
+                    if rank is None or earlier is None or rank >= earlier:
+                        continue
+                file_rank[gene_key] = rank
+                # Across source files the established behavior holds: a later file in the
+                # deterministic traversal replaces an earlier file's row for the same gene.
                 destination_rows[locus] = new_row
                 file_destinations.add(destination_bgc)
             sources.append({

@@ -1,39 +1,39 @@
 #!/usr/bin/env python3
-"""extract_cluster — locate and extract a BGC from a RAW genome by its marker genes.
+"""Extract a marker-co-occurrence candidate region from a supplied raw genome.
 
-The whole Mamey pipeline starts from antiSMASH ZIPs; there is no way to bring a bare genome
-(FASTA) in. This closes that gap and the loop:
-
-    cluster_discovery  -> genome accessions
-    extract_cluster    -> THIS: gene-call a genome, find the cluster by marker co-occurrence,
-                          emit an annotated GBK (no antiSMASH run needed)
-    cluster_gene_compare -> gene-by-gene comparison + deliverable
-
-Given a genome FASTA and one or more diagnostic marker proteins (e.g. a cluster's radical-SAM
-signature plus one or two co-conserved genes), it gene-calls with pyrodigal, finds the tightest
-window where the markers co-localise, and writes that region (+ flank) as a GenBank file with the
-marker genes labelled. It also reports present/absent by a co-occurrence threshold, so it doubles
-as the confirmation step for cluster_discovery (a marker hit -> a confirmed carrier).
-
-Capacity/architecture-level: co-occurrence of marker genes is strong evidence the cluster is
-present; it is not proof the strain makes the same compound.
+Pyrodigal coordinates are converted once from one-based inclusive to zero-based
+half-open intervals. The marker threshold is a computational admission rule, not
+proof of a complete biosynthetic cluster, compound or activity. Insufficient hits
+mean this method did not admit a region, not biological absence. Fresh, contained
+output paths are required and supplied input files remain unchanged.
 """
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-import argparse, json, sys
+import argparse, json, sys, math
 from collections import defaultdict
 from pathlib import Path
+try:
+    from mamey.path_safety import safe_label, contained_output_path
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from mamey.path_safety import safe_label, contained_output_path
 
 
 def genecall(fna_path):
-    """pyrodigal gene call -> list of (contig, idx, start, end, strand, aa)."""
+    """Return (contig, index, zero-based start, exclusive end, strand, protein).
+
+    Pyrodigal uses one-based inclusive gene coordinates; conversion occurs here
+    once. Every downstream interval uses the Python slice convention.
+    """
     import pyrodigal
     try:
         from Bio import SeqIO
     except ImportError:
         from mamey._gbk_shim import SeqIO
     seqs = [(r.id, str(r.seq)) for r in SeqIO.parse(str(fna_path), "fasta")]
+    if len({cid for cid, _ in seqs}) != len(seqs):
+        raise ValueError("EXTRACT_IDENTITY_UNVERIFIED: duplicate FASTA record identifiers")
     orf = pyrodigal.GeneFinder(meta=False)
     train = [s for _, s in seqs if len(s) > 20000][:5]
     if train:
@@ -43,7 +43,10 @@ def genecall(fna_path):
     prots = []
     for cid, seq in seqs:
         for i, g in enumerate(orf.find_genes(seq)):
-            prots.append((cid, i + 1, g.begin, g.end, g.strand, g.translate().rstrip("*")))
+            start, end = int(g.begin) - 1, int(g.end)
+            if not 0 <= start < end <= len(seq) or g.strand not in (-1, 1):
+                raise ValueError("EXTRACT_COORDINATES_UNVERIFIED: gene outside its source contig")
+            prots.append((cid, i + 1, start, end, g.strand, g.translate().rstrip("*")))
     return prots, dict(seqs)
 
 
@@ -72,6 +75,10 @@ def find_cluster(prots, markers, min_identity=40.0, window=25):
     percontig = defaultdict(list)
     for h in hits:
         idn = val(h.result.identity) * 100
+        if not math.isfinite(idn) or not 0 <= idn <= 100:
+            raise ValueError("EXTRACT_ALIGNMENT_UNVERIFIED: identity is not a finite percentage")
+        if type(h.target_index) is not int or type(h.query_index) is not int or not 0 <= h.target_index < len(prots) or not 0 <= h.query_index < len(markers):
+            raise ValueError("EXTRACT_ALIGNMENT_UNVERIFIED: hit index outside supplied roster")
         if idn < min_identity:
             continue
         cid, gi, s, e, st, aa = prots[h.target_index]
@@ -97,14 +104,19 @@ def extract_gbk(prots, seqs, cluster, label, flank=2, marker_labels=None):
     from Bio.Seq import Seq
     from Bio.SeqRecord import SeqRecord
     from Bio.SeqFeature import SeqFeature, FeatureLocation
+    safe_label(label)
+    if type(flank) is not int or flank < 0:
+        raise ValueError("flank must be a nonnegative integer")
     cid = cluster["contig"]
     lo_gene = cluster["gene_start"] - flank
     hi_gene = cluster["gene_end"] + flank
     region = [p for p in prots if p[0] == cid and lo_gene <= p[1] <= hi_gene]
     if not region:
         return None
+    if any(not 0 <= p[2] < p[3] <= len(seqs[cid]) or p[4] not in (-1, 1) for p in region):
+        raise ValueError("EXTRACT_COORDINATES_UNVERIFIED: invalid zero-based source interval")
     nt_lo = max(0, min(p[2] for p in region) - 500)
-    nt_hi = max(p[3] for p in region) + 500
+    nt_hi = min(len(seqs[cid]), max(p[3] for p in region) + 500)
     # map prot_index -> marker label
     idx_label = {}
     for gi, mname, idn, pidx in cluster["hits"]:
@@ -119,7 +131,7 @@ def extract_gbk(prots, seqs, cluster, label, flank=2, marker_labels=None):
         global_index[(p[0], p[1])] = i
     for p in sorted(region, key=lambda x: x[2]):
         cid_, gi, s, e, st, aa = p
-        f = SeqFeature(FeatureLocation(max(0, s - nt_lo), e - nt_lo, strand=st), type="CDS")
+        f = SeqFeature(FeatureLocation(s - nt_lo, e - nt_lo, strand=st), type="CDS")
         gidx = global_index[(cid_, gi)]
         lab = idx_label.get(gidx)
         f.qualifiers["locus_tag"] = [f"{label}_{gi}"]
@@ -131,11 +143,20 @@ def extract_gbk(prots, seqs, cluster, label, flank=2, marker_labels=None):
 
 
 def run(genome, markers, label, min_identity=40.0, window=25, min_markers=2, flank=2):
+    safe_label(label)
+    if not math.isfinite(min_identity) or not 0 <= min_identity <= 100:
+        raise ValueError("identity must be a finite percentage")
+    if any(type(x) is not int or x < 1 for x in (window, min_markers)) or type(flank) is not int or flank < 0:
+        raise ValueError("window/marker count must be positive integers and flank nonnegative")
+    if not markers or len({name for name, _ in markers}) != len(markers) or any(not name or not seq for name, seq in markers):
+        raise ValueError("marker roster must contain unique nonempty names and sequences")
     prots, seqs = genecall(genome)
     cluster = find_cluster(prots, markers, min_identity=min_identity, window=window)
     present = bool(cluster and cluster["n_markers"] >= min_markers)
     result = {"label": label, "n_genes_called": len(prots), "present": present,
-              "n_markers_required": min_markers}
+              "n_markers_required": min_markers,
+              "coordinate_convention": "zero_based_half_open",
+              "gene_call_source_convention": "pyrodigal_one_based_inclusive"}
     rec = None
     if cluster:
         result.update({"contig": cluster["contig"], "n_markers_found": cluster["n_markers"],
@@ -162,16 +183,33 @@ def main(argv=None):
     ap.add_argument("--outdir", default="extract_cluster_out")
     a = ap.parse_args(argv)
     try:
+        safe_label(a.label)
+        op = Path(a.outdir)
+        destinations = [contained_output_path(op, f"{a.label}_extract.json"),
+                        contained_output_path(op, f"{a.label}_cluster.gbk")]
+        for raw in [op / f"{a.label}_extract.json", op / f"{a.label}_cluster.gbk"]:
+            if raw.exists() or raw.is_symlink():
+                raise ValueError("output destination must be fresh (including symlinks)")
+        if any(p.resolve() in {Path(a.genome).resolve(), Path(a.marker).resolve()} for p in destinations):
+            raise ValueError("output destination aliases an input")
+    except ValueError as exc:
+        ap.error(str(exc))
+    try:
         from Bio import SeqIO
     except ImportError:
         from mamey._gbk_shim import SeqIO
     markers = [(r.id, str(r.seq)) for r in SeqIO.parse(a.marker, "fasta")]
     result, rec = run(a.genome, markers, a.label, min_identity=a.min_identity,
                       window=a.window, min_markers=a.min_markers, flank=a.flank)
-    op = Path(a.outdir); op.mkdir(parents=True, exist_ok=True)
-    (op / f"{a.label}_extract.json").write_text(json.dumps(result, indent=2))
+    import io
+    payloads = {destinations[0]: (json.dumps(result, indent=2, allow_nan=False) + "\n").encode()}
     if rec is not None:
-        SeqIO.write(rec, str(op / f"{a.label}_cluster.gbk"), "genbank")
+        buffer = io.StringIO()
+        SeqIO.write(rec, buffer, "genbank")
+        payloads[destinations[1]] = buffer.getvalue().encode()
+    op.mkdir(parents=True, exist_ok=True)
+    from mamey.output_transaction import publish_payloads
+    publish_payloads(payloads)
     status = "PRESENT" if result["present"] else "absent/insufficient"
     loc = f" @ {result.get('contig','')} {result.get('region_kb','?')}kb" if result["present"] else ""
     emit(f"[extract_cluster] {a.label}: cluster {status}{loc} "

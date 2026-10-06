@@ -405,7 +405,7 @@ def test_cli_writes_summary_json(tmp_path):
     assert (pkg / "render_all_figures_summary.json").exists()
     data = json.loads(
         (pkg / "render_all_figures_summary.json").read_text(encoding="utf-8"))
-    # v9.7.414 (BC2): three properties, deliberately asserted together.
+    # v9.7.414: three properties, deliberately asserted together.
     # 1. NO absolute path — the shipped JSON must never embed the operator's layout
     #    (CLAUDE_409 / DEEP_AUDIT3 F1). The pre-.409 absolute assertion is gone for good.
     # 2. `package` stays the "." anchor, matching manifest.json / PACKAGE_MAP.json.

@@ -1,7 +1,7 @@
 """mamey/lead_pages.py: `mamey lead-pages <package>` crashed on EVERY invocation with
 `NameError: name 'emit' is not defined`.
 
-Found by running the real pipeline (BC2-408): `mamey lead-pages` against this cycle's own real
+Found by running the real pipeline (408): `mamey lead-pages` against this cycle's own real
 AS-705 sealed package. The per-BGC dossier pages were written correctly (`build()` never touches
 `emit`), but the command's own unconditional wrap-up summary line
 (`emit(f"lead-pages: {len(emitted)} page(s) -> {outdir}" ...)`) always raised, so the command never

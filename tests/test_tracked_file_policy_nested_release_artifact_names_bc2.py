@@ -1,4 +1,4 @@
-"""BC2-TFP-01 (v9.7.396): tracked_file_policy.py's is_tracked() must not exclude a NESTED file
+"""TFP-01 (v9.7.396): tracked_file_policy.py's is_tracked() must not exclude a NESTED file
 just because its basename matches a release-artifact pattern meant for root-level cut output.
 
 _RELEASE_ARTIFACT_RE (SHA256SUMS*.txt / cut_*_log.txt) matched on the basename alone, with no

@@ -1,6 +1,6 @@
 """tools/build_deep_data.py must be able to run on a genuinely FRESH bank.
 
-Found via a real deliverable run (BC2-408): this tool's own module docstring says its job is to
+Found via a real deliverable run (408): this tool's own module docstring says its job is to
 "bank the full per-BGC deep_data for strains ingested core-only" -- i.e. to ADD deep_data.json/
 gene_data.json enrichment to a bank that only carries the core `tools/ingest_package.py --merge`
 outputs. But its own `main()` guard demanded `deep_data.json` already exist in the banked dir before

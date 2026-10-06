@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# make_release_tarball.sh — cut-time packaging artifact (v9.7.400, BC/Amber-fork proposal).
+# make_release_tarball.sh — cut-time packaging artifact (v9.7.400, BC/the phylogeny lane-fork proposal).
 #
 # Produces a distribution-grade .tar.gz of a sealed bundle directory plus a .sha256 beside it.
 # The sealed ZIP + SOURCE_CHECKSUMS_SHA256.txt remain the CANONICAL integrity system — this
 # tarball is packaging convenience (preserves exec bits/symlinks; the format GitHub Releases
 # and bioinformatics tooling expect). Public-release policy is unchanged: any PUBLIC tarball
-# must be cut from the public tier, never the working bundle (HOLD per Alex 2026-08-25).
+# must be cut from the public tier, never the working bundle (HOLD per the owner 2026-08-25).
 #
 # Usage: tools/make_release_tarball.sh <sealed-bundle-dir> [outdir]
 # Emits: <outdir>/<bundle-dir-name>.tar.gz and <bundle-dir-name>.tar.gz.sha256

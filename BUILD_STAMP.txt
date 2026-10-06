@@ -1,5 +1,5 @@
-version=9.7.446
-build=20261001v97446a
-engine=1.9.172
-patch=PCoA-to-BGC explorer.; Protein-class PCoA renderer.; Protein-class PCoA ordination.; Library progress lines through the engine logger.; A ZIP without its whole-genome GenBank no longer fails RG-GMCI.; Standalone rggmci 1.0.0rc2.; print_calls waiver retired.
+version=9.7.448
+build=20261005v97448a
+engine=1.9.173
+patch=Strain-slide evidence and labels.; Locus comparison slides.; Multi-reference comparisons.; Neighbour panels.; Cut preflight and portability.; Shipped text names no person or working lane.; New tools meet the existing guards.
 tier=code

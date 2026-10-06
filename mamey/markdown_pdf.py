@@ -246,12 +246,29 @@ def md_table(rows):
         return Spacer(1, 1)
     header, body = rows[0], rows[1:]
     n = len(header)
+    if not n or any(len(row) > n for row in body):
+        raise ValueError("PDF_TABLE_COLUMN_MISMATCH: refusing to omit excess cells")
+    if n > 8:
+        # Wide records become a three-column ledger. Every original column and
+        # value is retained, with record identity repeated; no tiny type or clip.
+        folded = []
+        for record_index, row in enumerate(body or [[""] * n], 1):
+            padded = row + [""] * (n - len(row))
+            record = f"{record_index}: {padded[0]}" if body and len(padded[0]) <= 80 else (f"Record {record_index}" if body else "Header only")
+            for name, value in zip(header, padded):
+                # Chunk exceptionally long cells into continued rows, preserving
+                # each character; a single cell cannot grow taller than a page.
+                chunks = [value[i:i + 600] for i in range(0, len(value), 600)] or [""]
+                folded.extend([[record, name + (f" (continued {i+1})" if i else ""), chunk]
+                               for i, chunk in enumerate(chunks)])
+        header, body = ["Record", "Original field", "Value"], folded
+        n = 3
     th = ParagraphStyle("th", fontName=SANS_BOLD, fontSize=9, leading=11, textColor=colors.white)
     td = ParagraphStyle("td", fontName=SANS, fontSize=9, leading=11, textColor=INK)
     data = [[P(cell, th) for cell in header]]
     for row in body:
         row = (row + [""] * n)[:n]
-        data.append([P((cell[:300] + "…") if len(cell) > 300 else cell, td) for cell in row])
+        data.append([P(cell, td) for cell in row])
     width = 6.9 * inch
     table = Table(data, colWidths=[width / n] * n, repeatRows=1)
     style = [
@@ -286,8 +303,8 @@ def _image(path, alt, base_dir):
             height = max_height
             width = height * image_width / image_height
         return Image(source, width=width, height=height)
-    except Exception:  # noqa: BLE001
-        return Paragraph(f"<i>[image: {html.escape(alt or os.path.basename(path))}]</i>", BODY)
+    except Exception as exc:
+        raise ValueError(f"PDF_IMAGE_UNAVAILABLE: {source}: {exc}") from exc
 
 
 def parse(md, base_dir="."):
@@ -304,7 +321,7 @@ def parse(md, base_dir="."):
 
     def flush_table():
         if table:
-            rows = [[cell.strip() for cell in row.strip().strip("|").split("|")]
+            rows = [[cell.strip().replace(r"\|", "|") for cell in re.split(r"(?<!\\)\|", row.strip().strip("|"))]
                     for row in table if not re.match(r"^\s*\|?[\s:|-]+\|?\s*$", row)]
             flow.extend([md_table(rows), Spacer(1, 8)])
             table.clear()
@@ -341,10 +358,10 @@ def parse(md, base_dir="."):
         if in_code:
             code.append(line)
             continue
-        image_match = re.match(r"^\s*!\[([^\]]*)\]\(([^)\s]+)[^)]*\)\s*$", line)
+        image_match = re.match(r'^\s*!\[([^\]]*)\]\((?:<([^>]+)>|([^\s)]+))(?:\s+"[^"]*")?\)\s*$', line)
         if image_match:
             flush_paragraph(); flush_table(); flush_callouts(); flush_bullets()
-            flow.extend([_image(image_match.group(2), image_match.group(1), base_dir), Spacer(1, 6)])
+            flow.extend([_image(image_match.group(2) or image_match.group(3), image_match.group(1), base_dir), Spacer(1, 6)])
             continue
         if line.startswith("|"):
             flush_paragraph(); flush_callouts(); flush_bullets(); table.append(line); continue

@@ -5,7 +5,7 @@ RefSeq 16S titles are 'NR_######.#  Genus species strain ... 16S ribosomal RNA'.
 `toks = re.split(r"[ _]+", header); key = toks[0] toks[1]` -> 'NR 115365.1'. Every reference then
 got a UNIQUE species key = its own accession, and `--one-per-species` kept ALL same-species type
 strains (observed live: 2x S. kasugaensis, 2x S. albiaxialis, 6x S. griseus survived a "one per
-species" backbone; Alex flagged the duplicate tips on the placement figure). The fix strips a
+species" backbone; the owner flagged the duplicate tips on the placement figure). The fix strips a
 leading accession token before reading the binomial. Subspecies must STAY distinct (the engine's
 documented invariant) so a real subsp. is never silently merged.
 

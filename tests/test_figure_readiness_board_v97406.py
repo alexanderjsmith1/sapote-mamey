@@ -29,7 +29,7 @@ def test_no_receipt_states_and_malformed_receipt(tmp_path):
     else: raise AssertionError("malformed receipt accepted")
 
 def test_provisional_state_is_driven_by_the_shared_publication_gate(tmp_path, monkeypatch):
-    # BC2-407: proves the board's PROVISIONAL classification is now delegated to
+    # 407: proves the board's PROVISIONAL classification is now delegated to
     # publication_bridge.validate_figure_receipt_for_publication rather than a second,
     # independently-drifting "binding_state == PROVISIONAL_BINDING" string check. A
     # receipt whose binding_state does NOT match that literal string, but which the

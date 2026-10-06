@@ -101,7 +101,7 @@ def test_tigrfam_diagnostics_recovered_synthetic():
 
 
 def test_tigrfam_hit_resolves_to_its_own_region_not_always_region1():
-    """BC2-408: a real gap found while auditing (not merely a regression guard). Before this
+    """408: a real gap found while auditing (not merely a regression guard). Before this
     fix, `_tigrfam_from_rec` keyed EVERY TIGRFAM hit under `f"{rec_id}_c1"` unconditionally --
     correct only by coincidence when a contig carries exactly one antiSMASH region. On any
     contig with >=2 regions, a hit belonging to region002 (or later) was silently mis-keyed

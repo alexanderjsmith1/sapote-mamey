@@ -1,4 +1,4 @@
-"""v9.7.441 card 283f1f96 (Finding 7): placement_display accepts the flat layout phylo_place.py
+"""v9.7.441 card (Finding 7): placement_display accepts the flat layout phylo_place.py
 writes (X/epa_result.newick) as well as the nested one it historically required (X/report/...)."""
 import importlib.util, pathlib
 

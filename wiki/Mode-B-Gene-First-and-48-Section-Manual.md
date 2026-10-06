@@ -1,8 +1,13 @@
 # Mode B gene-first and 48-section manual
 
-*Current to bundle v9.7.446 · engine Mamey 1.9.172. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
+*Current to bundle v9.7.448 · engine Mamey 1.9.173. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
 
 This page does not replace the machine contract, create a Mode B card, or confer scientific, integration, release, or publication authority.
+
+> **Profile scope:** This manual describes default full48. For the opt-in 50-section
+> card, start with [the profile matrix](../docs/MODEB_PROFILE_MATRIX.md) and
+> [current50 v2 contract](../docs/MODEB_CURRENT50_V2_CONTRACT.md). Emit and verify
+> that card with `--contract current50_v2`; its evidence table is §50.
 
 ## What Mode B is
 

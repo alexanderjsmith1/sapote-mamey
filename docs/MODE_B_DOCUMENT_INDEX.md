@@ -83,13 +83,15 @@ The bundle previously contained overlapping Mode B depth language. This patch re
 |---|---|
 | `AGENTS.md` and older broad docs referring to `§1–§8` | Legacy compact/core-spine language. Must not be used as the complete Full Mode B contract. |
 | `docs/modules/MODE_B_WRITE.md` | Transitional implementation gate. The `§1–§10` card and `§11–§20` enrichment floor remain active quality/depth checks. |
-| `docs/modules/MODE_B_BATCH_RUN.md` | Transitional batch execution protocol. Update wording from `full §1–§10` to `Full Mode B §1–§20 with §1–§10 depth gate`. |
+| `docs/modules/MODE_B_BATCH_RUN.md` | Transitional batch execution protocol. Its historical §1–§20 depth floor is an additive check, not a finished-card definition; name the selected full48 or current50 v2 profile explicitly. |
 | `mamey/mode_b_quality_gate.py` and `tests/test_mode_b_quality_gate.py` | Existing depth/character/fragment gate. Keep as additive quality gate, not the definition of Full Mode B. |
-| `mamey/validators/modeb_full20.py` | Canonical named-section inventory for public Full Mode B. |
+| `mamey/validators/modeb_full20.py` | Legacy facade: the historical §1–§20 named-section inventory. Not the completeness definition (see the resolved policy below and `docs/MODEB_PROFILE_MATRIX.md`). |
 
-**Resolved policy:** Full Mode B uses the exact §1–§48 contract in `mamey/data/mode_b/modeb_full30_corrective_contract.json` (`modeb_corrective_full48_v1`). The older class exemplars and §1–§30 documentation remain historical calibration until upgraded. `mamey/validators/modeb_full20.py` is a legacy facade, not the current completeness definition.
+**Resolved policy:** The default Full Mode B profile uses the exact §1–§48 contract in `mamey/data/mode_b/modeb_full30_corrective_contract.json` (`modeb_corrective_full48_v1`). The older class exemplars and §1–§30 documentation remain historical calibration until upgraded. `mamey/validators/modeb_full20.py` is a legacy facade, not the current completeness definition.
 
-**Output rule:** if an assistant or report says `full Mode B`, it must satisfy the current §1–§48 contract or explicitly identify itself as partial, reference-authoring exemplar, fragment-level, or ledger-only.
+**Profiles:** `docs/MODEB_PROFILE_MATRIX.md` lists every profile with its producer and verifier. The opt-in 50-section card (`--contract current50_v2`) is a separate finished profile, not a replacement for the default.
+
+**Output rule:** if an assistant or report says `full Mode B`, it must satisfy the current §1–§48 contract (or the selected opt-in profile) or explicitly identify itself as partial, reference-authoring exemplar, fragment-level, or ledger-only.
 
 ---
 

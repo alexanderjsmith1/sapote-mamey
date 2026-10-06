@@ -37,7 +37,7 @@ def _run(root, *args):
 
 
 def test_unmarked_legacy_cache_cleared_before_stale_code_executes(tmp_path):
-    """v9.7.442 AUDITROUND (`2d6758ab`): this used to assert a refusal (rc=2). The refusal was
+    """v9.7.442 AUDITROUND (``): this used to assert a refusal (rc=2). The refusal was
     correct about the danger and wrong about the remedy -- it also fired on caches this bundle's
     own test suite and tools/ scripts had just created, which broke the documented batch route.
     The untrusted cache is now cleared instead. The property under test is unchanged: the stale

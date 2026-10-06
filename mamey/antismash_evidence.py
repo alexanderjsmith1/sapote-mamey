@@ -466,7 +466,7 @@ def _tigrfam_from_rec(rec, name, out):
         if acc not in DIAGNOSTIC_TIGRFAM:
             continue
         cls, desc, tier1 = DIAGNOSTIC_TIGRFAM[acc]
-        # BC2-408: was unconditionally `f"{rec_id}_c1"` regardless of which region the hit
+        # 408: was unconditionally `f"{rec_id}_c1"` regardless of which region the hit
         # actually falls in -- correct only by coincidence on a genome where every contig
         # carries exactly one region. On any contig with >=2 antiSMASH regions, every TIGRFAM
         # hit (including TIER_1_DIAGNOSTIC markers: ansamycin/AHBA_synth_RP, enediyne/ene_KS,

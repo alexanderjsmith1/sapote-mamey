@@ -1,4 +1,4 @@
-"""v9.7.412 (Goldenrod): the patch-queue composition auditor.
+"""v9.7.412: the patch-queue composition auditor.
 
 Pins the one behaviour the tool exists for: a whole-file drop that REMOVES lines the sealed
 tree has is a WARN, because copying it over the sealed file reverts that content with no

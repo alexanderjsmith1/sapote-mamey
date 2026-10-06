@@ -1,16 +1,16 @@
-"""Bundle regression for VGP-398: tree_sanity_check outgroup awareness (shipped module).
+"""Bundle regression for 398: tree_sanity_check outgroup awareness (shipped module).
 
-Asserts the SHIPPED `tools/tree_sanity_check.py` (post-VGP-398) behaviour:
+Asserts the SHIPPED `tools/tree_sanity_check.py` (post-398) behaviour:
   A correct sister-genus outgroup (long branch to *_OUTGROUP, tight ingroup) -> PASS (was the false-FAIL bug)
   B bad ingroup query (AS-150 dominates, non-outgroup)                        -> FAIL (true defect still caught)
   C no outgroup tag, real dominator                                          -> FAIL (backward compatible)
   D outgroup present AND a real ingroup dominator                            -> FAIL (exemption never masks it)
   E untagged outgroup exempted only via an explicit --outgroup token or identity
 
-NOTE (Aquarius, .398 cut staging): VGP-398's packet-local test loaded `tree_sanity_check.py.before`
+NOTE (.398 cut staging): 398's packet-local test loaded `tree_sanity_check.py.before`
 and `.after` as sibling files, which are not present in the bundle `tests/` dir and errored on
 collection (would break the bundle suite). This is the equivalent bundle test against the shipped
-(patched) module; the fail-before half was verified in the VGP packet. VGP should repackage its
+(patched) module; the fail-before half was verified in the audit-lane packet. The audit lane should repackage its
 patch to add a shippable test. Class-level taxonomy context; judgment deferred.
 """
 from pathlib import Path
@@ -67,7 +67,7 @@ def test_E_explicit_outgroup_flag(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# v9.7.413 — NO_OUTGROUP. Standing rule (Alex, 2026-09-07): a tree with no recognisable outgroup is
+# v9.7.413 — NO_OUTGROUP. Standing rule (2026-09-07): a tree with no recognisable outgroup is
 # itself a gate failure. Cases F/G/H per EGGPLANT_413_gate_outgroup_awareness. F is the deliberate
 # behaviour change (PASS -> FAIL); the rest assert the two escape hatches, the truncation case that
 # motivated the rule, and the CLI. Class-level structural check; judgment deferred.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""tailoring_extract.py — tailoring-enzyme extraction for domain trees (VGP-399, card 2/3).
+"""tailoring_extract.py — tailoring-enzyme extraction for domain trees (399, card 2/3).
 
 DESIGN-CRITICAL distinction vs mamey/ks_phylogeny.py: module-core domains are aSDomain features
 (sub-CDS spans with their own /translation). Tailoring enzymes are WHOLE-CDS calls carried as

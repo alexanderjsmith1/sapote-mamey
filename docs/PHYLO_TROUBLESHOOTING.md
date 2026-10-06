@@ -1,4 +1,4 @@
-# TROUBLESHOOTING — EPA-ng placement + phylo tooling (Eggplant, 2026-09-06)
+# TROUBLESHOOTING — EPA-ng placement + phylo tooling (2026-09-06)
 
 Hard-won gotchas from building the Actinomadura + rare-genus 16S EPA-ng trees. Each entry: symptom →
 cause → fix/receipt. Read this before debugging a phylo run.

@@ -1,4 +1,4 @@
-"""Three-layer receipt locks (V4 §5 / §15 "Layer independence" — Black Cherry-4).
+"""Three-layer receipt locks (V4 §5 / §15 "Layer independence" — 4).
 
 A can be READY while B and C are held; B can be READY while C is held; C cannot be READY
 without a digest-bound manifest + explicit denominator; prefixes are never membership;

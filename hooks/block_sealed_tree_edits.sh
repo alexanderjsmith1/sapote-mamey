@@ -30,8 +30,14 @@ try:
     d = json.load(sys.stdin)
 except Exception:
     sys.exit(1)
+import os
 ti = d.get("tool_input") or {}
-sys.stdout.write(ti.get("file_path") or "")')
+p = ti.get("file_path") or ti.get("notebook_path") or ""
+if p:
+    # NotebookEdit carries notebook_path (audit F05). Resolve relative paths against the session cwd and follow
+    # symlinks, so an alias cannot hide a sealed destination.
+    p = os.path.realpath(os.path.join(d.get("cwd") or os.getcwd(), os.path.expanduser(p)))
+sys.stdout.write(p)')
 [ -z "$path" ] && exit 0
 
 # is the target inside a sealed CODE tree?  (build stamp form: -CODE-2026....)

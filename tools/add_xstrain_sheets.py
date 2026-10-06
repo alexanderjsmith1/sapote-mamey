@@ -41,6 +41,23 @@ DIAGNOSTICS = {
 }
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(path, *, encoding="utf-8"):
     import json
 
@@ -63,8 +80,9 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+@_bank_reader_scope
 def main(argv=None) -> int:
-    args = _parser().parse_args(argv)
+    args = _parser().parse_args(argv); _bank_read_guard(getattr(args, "banked_dir", None))
     workbook_path = os.path.abspath(args.out)
     banked_dir = os.path.abspath(args.banked_dir)
 

@@ -108,7 +108,7 @@ def test_georgia_resolves_once_part_a_of_purple_patch_is_also_applied(raw):
         pytest.skip("Purple's Part A (_KNOWN_COUNTRIES += Georgia) not applied in this tree yet")
     result = m.normalize_geography_continent(raw)
     assert result["display_country"] == "Georgia"
-    # Alex ruled "Europe" 2026-09-14 (NCBI BioSample convention).
+    # The owner ruled "Europe" 2026-09-14 (NCBI BioSample convention).
     assert result["display_continent"] == "Europe"
 
 

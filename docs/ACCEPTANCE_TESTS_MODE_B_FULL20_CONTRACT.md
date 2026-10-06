@@ -1,5 +1,7 @@
 # ACCEPTANCE_TESTS_MODE_B_FULL20_CONTRACT.md
 
+> **Historical (superseded).** This document describes the retired §1–§20 count. It is not a current completion definition or acceptance specification. For the current profiles see `MODEB_PROFILE_MATRIX.md`.
+
 ## Contract tests to add or maintain
 
 ### Test 1 — Full Mode B requires all 20 exact corrective-protocol sections

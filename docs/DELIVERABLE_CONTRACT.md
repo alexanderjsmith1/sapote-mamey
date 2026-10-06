@@ -36,10 +36,21 @@ These are mandatory for every strain. Missing items must be logged in the deferr
 
 ### A1 — Mamey extraction outputs (CODE_BACKED)
 
-> **Authoritative file list = `mamey/validate.py:REQUIRED_SUFFIXES`.** The table below matches the
-> current engine output (v1.9.x). Scan results are consolidated into `manifest.json` and
-> `_3_scan_states.json` rather than emitted as separate per-scan CSVs; a validator should check
-> `REQUIRED_SUFFIXES`, not the older per-scan filenames.
+**Four layers, four different checks.** Passing one does not establish the next.
+
+1. **Core extraction, checked by `validate`.** These are the 14 suffixes in `mamey/validate.py:REQUIRED_SUFFIXES`,
+   the owner of this list; if they ever disagree, the code wins: `manifest.json`, `checksums_sha256.txt`, `1_intake.json`, `2_inventory.csv`, `3_scan_states.json`, `4A_RGGMCI_full.json`, `4A_RGGMCI_ranked_pairs.csv`, `4A_RGGMCI_evidence.csv`, `4_triage_board.csv`, `5_workbook.xlsx`, `commit_receipt.json`, `issue_log.md`, `Project_Memory_Snapshot.json`, `7_cell_provenance.csv`.
+   A pass means the extraction package is structurally complete. It says nothing about interpretation.
+2. **Post-seal enrichment, checked when `enrichment_check` is on:** `OPEN_ME_FIRST.html`, `manifest_short.json`.
+   The reporting-v2 files (`REPORTING_V2_SUFFIXES`) are checked only when that reporting is enabled.
+3. **Deferred rendering.** The strain brief PDF and figures, and the locus maps, can be deferred: `--capped-session`
+   turns the brief off, and turns maps off when they were left on `auto`. Their absence after a capped run is a rendering choice, not an invalid extraction.
+   Re-run figures post-seal (`docs/FIGURES_START_HERE.md`).
+4. **Authored interpretation.** Mode B cards and Sapote documents (A2 below) are never established by `validate`.
+
+The table below is an **output catalog**: what a full run can write and what each file holds. It is not the
+validator checklist. Scan results are consolidated into `manifest.json` and `_3_scan_states.json`, not separate
+per-scan CSVs.
 
 | Deliverable | File | Required content |
 |---|---|---|
@@ -94,11 +105,11 @@ The export carries its caveats inline (kcb_cumulative is a score not a percent; 
 
 #### A2.5 — Per-BGC page layout in the Mode B / gene-by-gene compilation (co-location mandate)
 
-In any compiled deliverable that pairs a BGC locus map with its analysis (the gene-by-gene deep-dive, the Technical Report's Mode B section, the consolidated PDF), **each BGC is a single page-unit**: the locus map and the analysis that interprets it must render **on the same page**, never split. The historical failure mode — and the one to prevent — is one locus map per page with the rest of the page left blank and the §1–§20 Mode B prose pushed to a following page. Required per-BGC unit, top to bottom:
+In any compiled deliverable that pairs a BGC locus map with its analysis (the gene-by-gene deep-dive, the Technical Report's Mode B section, the consolidated PDF), **each BGC is a single page-unit**: the locus map and the analysis that interprets it must render **on the same page**, never split. The historical failure mode — and the one to prevent — is one locus map per page with the rest of the page left blank and the Mode B prose pushed to a following page. Required per-BGC unit, top to bottom:
 
 1. **Locus map** — occupies roughly the **top 45%** of the page (the gene-arrow panel for that BGC).
 2. **Predicted BGC class line** — a single line immediately under the map: `BGC_ID (contig · regionXXX) · predicted class: <class> · boundary: <Interior/Edge/Full-contig> · KCB: <similarity note>`. Claim-safe (class-level capacity, KCB = similarity).
-3. **Mode B card** — the §1–§20 Mode B analysis for that BGC fills the **remaining ~55%** below the class line.
+3. **Mode B card** — the Mode B analysis for that BGC, in the selected profile (`docs/MODEB_PROFILE_MATRIX.md`), fills the **remaining ~55%** below the class line.
 
 Rules: do **not** page-break between a locus map and its class line + Mode B card. Only spill to a second page when a single BGC's Mode B card genuinely overflows one page (then the map stays with §1–§4 and §5–§8 continues overleaf, with a "cont." marker). The full layout spec with a worked example is `docs/PER_BGC_PAGE_LAYOUT_SPEC.md`; the ChatGPT-side compiler inherits it via `prompts/figure_prompts/deliverable_maps/map_gene_by_gene.md`.
 
@@ -210,7 +221,7 @@ Every BGC in every strain must carry one of these treatment status values:
 
 | Status | Meaning |
 |---|---|
-| `full Mode B` | Full prose-first §1–§20 corrective-protocol Mode B report produced |
+| `full Mode B` | A finished card of the selected profile: `FINISHED_FULL48_CURRENT_EVIDENCE` by default, or `FINISHED_FULL50_CURRENT50_V2` when selected (`docs/MODEB_PROFILE_MATRIX.md`). A §1–§20 report is historical and is not full. |
 | `candidate card` | Abbreviated candidate card produced (MEDIUM priority) |
 | `minimum candidate card` | Minimum-field interpreted card produced for LOW/DEPRIORITIZED or evidence-thin BGCs; must include locator, class/hypothesis, boundary, KCB/null, one interpretive sentence, and next action |
 | `deferred` | Not analyzed in this run; reason and completion path logged |
@@ -231,7 +242,7 @@ An item not logged in the deferred ledger is considered missing, not deferred.
 
 ---
 
-*Sapote-Mamey Bundle v9.4 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md | 2026-06-09*
+*Sapote-Mamey Bundle v9.4 | Operational authority: AGENTS.md + docs/ASSISTANT_GOVERNANCE.md; analytical reference: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md | 2026-06-09*
 
 
 ---
@@ -289,6 +300,6 @@ Current compact lead tables use `interpretation_scope` for reader-facing scope. 
 
 An exploratory / N-limited comparative deliverable produced after the per-strain runs, alongside the pangenome and normalization matrices: **`cross_strain_GCFs.tsv` + the browsable BiG-SCAPE HTML**. BiG-SCAPE clusters antiSMASH BGCs into gene cluster families by Pfam-domain content; the tsv lists, per cutoff, each family's spanned strains, dominant product, contains-MIBiG flag, and member `strain:node.region` locators — which join 1:1 onto the triage boards / Mode B cards. It is the whole-cluster-family complement to the pangenome's orthogroup sharing; cite them side by side, not interchangeably. BiG-SCAPE / Pfam are an external prerequisite (not vendored). Workflow + receipts: `docs/BIGSCAPE_GCF_WORKFLOW.md`. Framing is capacity / similarity, not identity or confirmed product.
 
-#### A2.8  Known-vs-novel cross-strain GCF status (parallel MIBiG anchoring) — A-series cohort deliverable
+#### A2.8  Reference-anchored versus unanchored cross-strain GCF status — A-series cohort deliverable
 
-`known_vs_novel_GCFs.tsv` = the base `cross_strain_GCFs.tsv` columns + `status` (KNOWN/NOVEL) + `n_members_known` + `mibig_matches`, produced by `bigscape_merge_anchors.py` unioning per-chat `bigscape_mibig_anchors.py` outputs against the no-MIBiG base. KNOWN = ≥1 family member anchors (shares a BiG-SCAPE family) to a characterised MIBiG reference; NOVEL = none — the cross-strain novelty candidates. Anchoring is domain-content similarity, not compound identity; NOVEL is candidate-novel, not confirmed. Exploratory / N-limited, like the pangenome and GCF-network layers. Workflow: `docs/BIGSCAPE_GCF_WORKFLOW.md` (parallel MIBiG anchoring across sessions).
+`known_vs_novel_GCFs.tsv` = the base `cross_strain_GCFs.tsv` columns + `status` (KNOWN/NOVEL) + `n_members_known` + `mibig_matches`, produced by `bigscape_merge_anchors.py` unioning per-chat `bigscape_mibig_anchors.py` outputs against the no-MIBiG base. KNOWN = ≥1 family member anchors (shares a BiG-SCAPE family) to a characterised MIBiG reference; NOVEL = no MIBiG member in that run's loaded reference panel at the stated cutoff — a reference-unanchored family in this scope. These legacy KNOWN/NOVEL tokens describe reference membership, not biological novelty or compound identity. Record the run, cutoff, panel identity and member denominator; a run without loaded MIBiG references cannot establish a broader anchoring or novelty conclusion. See `docs/STRAIN_BIGSCAPE_REPORT.md`. Exploratory / N-limited, like the pangenome and GCF-network layers. Workflow: `docs/BIGSCAPE_GCF_WORKFLOW.md` (parallel MIBiG anchoring across sessions).

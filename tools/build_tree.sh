@@ -29,6 +29,14 @@ set -euo pipefail
 
 TREE_DIR="${1:?usage: build_tree.sh <tree_dir> [gtotree args...]}"
 shift || true
+TREE_DIR="$(cd "$TREE_DIR" && pwd -P)"
+# Additional engine tuning must not replace the byte-bound source list/output.
+for ARG in "$@"; do
+    case "$ARG" in
+        -f*|-o*|-a*|-g*|--fasta-files|--fasta-files=*|--output|--output=*|--outdir|--outdir=*)
+            echo "TREE_INPUT_OVERRIDE_REFUSED: input/output paths are owned by build_tree.sh" >&2; exit 2 ;;
+    esac
+done
 
 HERE="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 : "${PROJECT_ROOT:=$(cd -P "${HERE}/.." && pwd)}"
@@ -83,13 +91,30 @@ fi
 gtotree_preflight || exit 1
 
 cd "$TREE_DIR"
-ls genomes/*.fna > genome_list.txt
+# Stable absolute locators support the same exact query/source binding from any cwd.
+"$PY" - "$TREE_DIR" <<'PYLIST'
+from pathlib import Path
+import sys
+root=Path(sys.argv[1]);files=sorted((root/'genomes').glob('*.fna'))
+if not files:raise SystemExit('TREE_INPUTS_EMPTY')
+(root/'genome_list.txt').write_text(''.join(str(p.resolve())+'\n' for p in files))
+PYLIST
+if ! "$PY" "${HERE}/build_tree_retention.py" --bind --genome-list genome_list.txt --tree-spec TREE_SPEC.json --binding tree_input_binding.json; then
+    echo "TREE_RETENTION_INPUT_ADMISSION_REFUSED" >&2
+    exit 3
+fi
 echo "=== building $(wc -l < genome_list.txt | tr -d ' ') genomes ==="
 # BUILD_TREE_JOBS / BUILD_TREE_THREADS: CPU tunables (default 4/4 = prior hardcoded behavior).
 # Added after 2026-09-01, when two tree builds in parallel chats shared one machine and "use less
 # cpu cores" required editing this sanctioned script (GToTree -j was overridable via "$@", IQ-TREE
 # -T was not). Now: BUILD_TREE_JOBS=2 BUILD_TREE_THREADS=2 tools/build_tree.sh <tree_dir>
 GToTree -f genome_list.txt -H "${GToTree_HMM_dir}/Actinobacteria.hmm" -N -j "${BUILD_TREE_JOBS:-4}" -o gtotree "$@"
+
+# GToTree may return zero while dropping a query. Refuse before ML execution.
+if ! "$PY" "${HERE}/build_tree_retention.py" --genome-list genome_list.txt --tree-spec TREE_SPEC.json --binding tree_input_binding.json --out-dir gtotree; then
+    echo "TREE_RETENTION_REFUSED: inspect tree_retention_status.json and DROPPED_BY_QC.tsv" >&2
+    exit 5
+fi
 
 # --- IQ-TREE, in the same script, to completion --------------------------------------------
 # WHY THIS IS HERE: running IQ-TREE as a separate hand-typed step invited a foreground timeout
@@ -113,7 +138,7 @@ MODEL="${BUILD_TREE_MODEL:-LG+F+G4}"
 SEED_ARGS=()
 [ -n "${BUILD_TREE_SEED:-}" ] && SEED_ARGS=(--seed "${BUILD_TREE_SEED}")
 echo "=== IQ-TREE (${MODEL}, 1000 UFBoot + 1000 SH-aLRT${BUILD_TREE_SEED:+, seed ${BUILD_TREE_SEED}}), outgroup ${OG} ==="
-iqtree -s "$ALN" -m "$MODEL" -B 1000 -alrt 1000 -T "${BUILD_TREE_THREADS:-4}" -o "$OG" --prefix iqtree -redo "${SEED_ARGS[@]}"
+iqtree -s "$ALN" -m "$MODEL" -B 1000 -alrt 1000 -T "${BUILD_TREE_THREADS:-4}" -o "$OG" --prefix iqtree -redo ${SEED_ARGS[@]+"${SEED_ARGS[@]}"}
 # A build is complete only when the consensus tree exists, the treefile carries support labels,
 # and the IQ-TREE log says "Total wall-clock time". A bare .treefile means the bootstrap was
 # interrupted. The typed check lives in gtotree_execution_gate.py so every caller agrees.
@@ -121,5 +146,10 @@ if ! "$PY" "${HERE}/gtotree_execution_gate.py" --check-completion iqtree; then
     echo "  IQ-TREE run is INTERRUPTED (needs iqtree.contree + support labels + 'Total wall-clock time')." >&2
     echo "  Do NOT render or publish iqtree.treefile; re-run to completion." >&2
     exit 1
+fi
+# Repeat source/retention admission against the supported final ML tree.
+if ! "$PY" "${HERE}/build_tree_retention.py" --genome-list genome_list.txt --tree-spec TREE_SPEC.json --binding tree_input_binding.json --out-dir gtotree --final-tree iqtree.treefile; then
+    echo "TREE_FINAL_RETENTION_REFUSED: completed support alone is insufficient" >&2
+    exit 5
 fi
 echo "=== tree complete: iqtree.treefile (with support), iqtree.contree ==="

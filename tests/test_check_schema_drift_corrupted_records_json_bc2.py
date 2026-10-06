@@ -1,4 +1,4 @@
-"""BC2-SD-01 (v9.7.395): check_schema_drift.py's _records() must not silently degrade coverage
+"""SD-01 (v9.7.395): check_schema_drift.py's _records() must not silently degrade coverage
 when a source's *_records.json exists but fails to parse.
 
 _records() prefers *_records.json (the richer, more-authoritative BGC record source) over the

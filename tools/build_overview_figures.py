@@ -23,6 +23,23 @@ except ImportError:  # bare-script run: bundle root is one level up
 import matplotlib; matplotlib.use('Agg')
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -95,10 +112,11 @@ def venn_fig(vn, out):
                  fontsize=11.5,pad=10)
     plt.tight_layout(); plt.savefig(out,dpi=150,bbox_inches='tight'); plt.close()
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--banked-dir',default='cohort'); ap.add_argument('--out-dir',default='figures'); ap.add_argument('--replot',action='store_true')
-    a=ap.parse_args(); os.makedirs(a.out_dir,exist_ok=True)
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None)); os.makedirs(a.out_dir,exist_ok=True)
     rcsv=os.path.join(a.out_dir,'fig_cohort_radar_data.csv'); vcsv=os.path.join(a.out_dir,'fig_convergence_venn_data.csv')
     if a.replot and os.path.exists(rcsv) and os.path.exists(vcsv):
         radar=[(r['class'],int(r['pct_strains'])) for r in csv.DictReader(open(rcsv))]

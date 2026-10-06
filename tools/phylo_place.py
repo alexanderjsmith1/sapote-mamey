@@ -391,7 +391,7 @@ def _species_key(header):
     from the parent species so a real subsp. (e.g. N. salmonicida subsp. cummidelens) is never
     silently merged into the species.
 
-    AMBER_396 fix: NCBI 16S RefSeq titles LEAD with the accession ('NR_######.#  Genus species ...').
+    P396 fix: NCBI 16S RefSeq titles LEAD with the accession ('NR_######.#  Genus species ...').
     The old code read toks[0] toks[1] = 'NR 115365.1' as the binomial, so every reference got a
     UNIQUE species key = its own accession and `one_per_species` collapsed NOTHING by species
     (2x S. kasugaensis, 2x S. albiaxialis, 6x S. griseus all survived). Strip a leading accession

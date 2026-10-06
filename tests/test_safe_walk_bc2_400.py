@@ -1,5 +1,5 @@
-"""BC2 .400 audit: tools/_safe_walk.py — shared unreadable-dir-aware walk helper, consolidated
-per Alex's direction after the identical `rglob()`-swallows-`OSError` defect was found and
+"""An audit-lane .400 audit: tools/_safe_walk.py — shared unreadable-dir-aware walk helper, consolidated
+per the owner's direction after the identical `rglob()`-swallows-`OSError` defect was found and
 independently fixed in three release/CI-hygiene gates this round (`check_no_brace_paths.py`,
 `check_duplicate_dict_keys.py`, `public_release_audit.py`). This file tests the shared helper
 directly, in isolation from any one gate's own business logic.

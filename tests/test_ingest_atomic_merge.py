@@ -36,7 +36,7 @@ def _seed_bank(d):
 
 def _entry(sid="SID222"):
     return {
-        "sid": sid,
+        "workflow_version": "synthetic-v1", "sid": sid,
         "strain": {"cohort": "SID", "gca": None, "organism": "Streptomyces sp.", "ww": "", "samn": ""},
         "bgcs": [{"sid": sid, "bgc_id": f"{sid}_BGC01",
                   "fingerprint": "unique-not-a-dup"}],

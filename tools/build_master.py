@@ -21,6 +21,16 @@ import argparse as _ap_, os as _os_, sys as _sys_
 from _wbio import atomic_save
 
 
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -40,7 +50,7 @@ emit(
 _p=_ap_.ArgumentParser()
 _p.add_argument("--banked-dir", default=_os_.environ.get("MAMEY_BANKED_DIR", _os_.path.join(_os_.path.dirname(__file__), "..", "cohort")))
 _p.add_argument("--out", default=_os_.path.join(_os_.getcwd(), "Sapote-Mamey_Master_Workbook.xlsx"))
-_a=_p.parse_args(); _OUT=_os_.path.abspath(_a.out); _os_.chdir(_os_.path.abspath(_a.banked_dir))
+_a=_p.parse_args(); _bank_read_guard(getattr(_a, "banked_dir", None)); _OUT=_os_.path.abspath(_a.out); _os_.chdir(_os_.path.abspath(_a.banked_dir))
 import json
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side

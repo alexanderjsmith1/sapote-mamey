@@ -20,7 +20,7 @@ Checks (each maps to a figure defect that reached a rendered figure at least onc
                        (host clauses like 'Streptomyces-Hymenoptera-Unidentified-New-Jersey')
   F5 OMISSIONS_DECLARED if TREE_SPEC.json (in --spec or beside the treefile's tree dir) declares
                        omitted_strains, the caller MUST acknowledge them via --omitted so the
-                       caption names them (Alex convention 2026-09-01)
+                       caption names them (convention 2026-09-01)
 
 Usage:
   figure_check.py <labeled.treefile> [--hostmap hostmap.json] [--spec TREE_SPEC.json]

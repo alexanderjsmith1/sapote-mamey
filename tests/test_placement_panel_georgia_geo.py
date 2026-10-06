@@ -1,4 +1,4 @@
-"""v9.7.436 (Amber): the placement-panel input builder must bin the country "Georgia" to Europe.
+"""v9.7.436: the placement-panel input builder must bin the country "Georgia" to Europe.
 
 Ruling: Georgia -> Europe, 2026-09-14, NCBI BioSample convention (a bare `geo_loc_name` of "Georgia"
 is the nation, not the US state). The engine already honours this in tools/_phylo_metadata.py
@@ -7,7 +7,7 @@ and test_phylo_metadata_georgia_display_v97431.py). tools/build_placement_panel_
 second, independent GEO_RULES table that put Georgia in Asia; this test pins the fix and guards the
 two layers from drifting apart again. The US state ("USA: Georgia") must stay "US".
 
-Drop into tests/. Fails on the .435 tool; passes with AMBER_436 georgia.diff applied.
+Drop into tests/. Fails on the .435 tool; passes with P436 georgia.diff applied.
 """
 import importlib.util
 import sys

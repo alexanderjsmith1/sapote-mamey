@@ -4,6 +4,23 @@ from _console import emit  # noqa: E402
 import os
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -39,7 +56,7 @@ def _diagnostic_tigrfam_ids():
     """The TIGRFAM accessions this tool should count, sourced from the engine's
     DIAGNOSTIC_TIGRFAM so the fallback path can't re-collapse to a stale 4-ID panel.
 
-    BC2-398: this was exactly that stale-4-ID panel — the sibling tools/ingest_package.py's own
+    398: this was exactly that stale-4-ID panel — the sibling tools/ingest_package.py's own
     `_diagnostic_tigrfam_ids()` already carries this same warning and the full 13-ID fallback
     (fixed there for "the v9.6.15 tigr8 fix; this was its second instance"), but this file's copy
     was never updated to match, silently missing all 9 of the v9.6.15-tigr8 diagnostic-combination
@@ -100,8 +117,10 @@ def tigr_by_bgc(evpath, snap):
             for bid in by_contig.get(contig,[]): out[bid]|=found
     return out
 
+@_bank_reader_scope
 def main():
     banked_dir=sys.argv[1] if len(sys.argv)>1 else os.getcwd()
+    _bank_read_guard(banked_dir)
     # v9.7.443: ROOT falls back to the current directory; refuse output inside the code bundle.
     _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
     from mamey.path_safety import OutputInsideBundle, assert_output_outside_bundle

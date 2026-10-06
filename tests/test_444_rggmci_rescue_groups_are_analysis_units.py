@@ -1,7 +1,7 @@
 """RG-GMCI candidate groups are one analysis unit: one GenBank file per group, read fragment by fragment.
 
 Before, every gene-reading tool took one antiSMASH region at a time. A rescued fragment measured alone had the genes on
-its partner reported as missing, and read as "a genuine biological difference" (Alex, 2026-09-27: clinker pages show
+its partner reported as missing, and read as "a genuine biological difference" (2026-09-27: clinker pages show
 half of a pathway). The engine now writes each group's regions into one file, and `cluster_completeness` reads such a
 file per fragment and together.
 """

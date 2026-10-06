@@ -42,7 +42,7 @@ if [ -n "$staged" ]; then
   exit 0   # something in the queue already references this file — assume staged
 fi
 
-cat <<EOF
+msg=$(cat <<EOF
 REMINDER (the Developer or User standing rule, 2026-08-17): you just edited guardrail infrastructure
 ($base) in the WORKSPACE. Sapote Mamey is a software product replicating this
 workflow — hooks, Tools/*.py, and the asset registry SHIP IN THE BUNDLE. Stage a
@@ -51,4 +51,7 @@ Bundle targets: hooks/ (portable via \$SAPOTE_WORKSPACE_ROOT — see
 tests/test_hooks_workspace_portability.py), tools/, and the registry as a
 schema+example. Do not end the session with this unstaged.
 EOF
+)
+# plain PostToolUse stdout is not shown to Claude (audit F03); additionalContext is, next to the tool result
+printf '%s' "$msg" | python3 -c 'import json, sys; print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": sys.stdin.read()}}))'
 exit 0

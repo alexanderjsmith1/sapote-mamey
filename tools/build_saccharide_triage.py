@@ -28,6 +28,23 @@ from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH
 from _wbio import atomic_save
 
 
+
+def _bank_reader_scope(func):
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import reader_scope
+    return reader_scope(func)
+
+def _bank_read_guard(bank):
+    if bank is None:
+        return
+    import sys as _bank_sys
+    from pathlib import Path as _BankPath
+    _bank_sys.path.insert(0, str(_BankPath(__file__).resolve().parent.parent))
+    from mamey.bank_transaction import hold_reader
+    hold_reader(bank)
+
 def _read_json(_path, *, encoding="utf-8"):
     """P3b: context-managed JSON read; closes the handle a bare open() leaked."""
     import json as _json
@@ -78,10 +95,11 @@ def classify(b):
         return ('UNCHARACTERIZED_STANDALONE', f'{length:.0f} kb, anchor: {(cp[:30] or "none")}')
     return ('MACHINERY', f'{length:.0f} kb (small), anchor: {(cp[:24] or "none")}')
 
+@_bank_reader_scope
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--workbook', required=True); ap.add_argument('--banked-dir', default='cohort')
-    a=ap.parse_args()
+    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None))
     bgc=_read_json(os.path.join(a.banked_dir,'bgc_data.json')); bgcs=bgc['bgcs']
     rows=[]; counts={'CANDIDATE_PRODUCT':0,'DEOXYSUGAR_SUBCLUSTER':0,'UNCHARACTERIZED_STANDALONE':0,'TAILORING':0,'MACHINERY':0}
     for b in bgcs:

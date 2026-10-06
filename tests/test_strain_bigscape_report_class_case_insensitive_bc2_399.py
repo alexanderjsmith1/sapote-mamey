@@ -1,4 +1,4 @@
-"""BC2 .399 audit: tools/strain_bigscape_report.py's "BGC class distribution" section shows a
+"""An audit-lane .399 audit: tools/strain_bigscape_report.py's "BGC class distribution" section shows a
 class line unconditionally when its count is 1 IF the class name is PKS/NRPS/RiPP-family --
 the code's own comment documents this as "always surface scientifically important classes even
 as singletons." That check compared the raw antismash_class TSV value against these three

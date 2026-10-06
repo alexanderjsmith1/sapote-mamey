@@ -1,4 +1,4 @@
-"""BC2 .398 audit: hooks/session_cost_ledger.py::identify() carried the same broken
+"""Example Lane .398 audit: hooks/session_cost_ledger.py::identify() carried the same broken
 "sessions/<Name>/STATE.md" pattern already found and fixed at v97395 in the sibling
 tools/session_cost_audit.py::identify() (see tests/test_session_cost_audit_identify_v97395.py)
 and again in hooks/block_subagent_spawn.py::whoami() (see
@@ -47,8 +47,8 @@ def test_identify_recognizes_the_real_convention_regardless_of_parent_dir_name(t
 def test_identify_still_recognizes_legacy_sessions_convention(tmp_path):
     """No regression: the old sessions/<Name>/STATE.md shape still resolves."""
     p = tmp_path / "fake_legacy.jsonl"
-    _write_fake_transcript(p, "/some/old/path/sessions/Aquarius/STATE.md")
-    assert scl.identify(str(p)) == "Aquarius"
+    _write_fake_transcript(p, "/some/old/path/sessions/Example Lane/STATE.md")
+    assert scl.identify(str(p)) == "Example Lane"
 
 
 def test_identify_does_not_hardcode_a_workspace_specific_literal():

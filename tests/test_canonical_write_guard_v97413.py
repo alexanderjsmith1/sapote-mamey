@@ -1,4 +1,4 @@
-"""v9.7.413 (BC2) — the canonical-overwrite guard.
+"""v9.7.413 — the canonical-overwrite guard.
 
 Behavioural contract for `mamey/canonical_write_guard.py`. The guard exists because a per-command
 `--out` flag fixes one command at a time while the next one-off script repeats the same mistake;

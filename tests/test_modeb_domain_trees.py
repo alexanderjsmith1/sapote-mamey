@@ -1,4 +1,4 @@
-"""Engine tests for mamey/modeb_domain_phylogeny.py — generalized domain-tree subsections (VGP-400).
+"""Engine tests for mamey/modeb_domain_phylogeny.py — generalized domain-tree subsections (400).
 
 IN-TREE: imports the INSTALLED module. A `.before` copy cannot exist in a shipped tree, so the
 byte-compatibility claim is expressed here as CURRENT-BEHAVIOR INVARIANTS on `domain_phylogeny()`
@@ -38,7 +38,7 @@ def test_4d_section_invariants_unchanged(tmp_path):
     assert out.startswith("#### Domain phylogeny (KS/AT two-proof · _4D)")
     assert "gate-safe subsection" in out
     assert "KS_CLADE_ONLY" in out and "BGC002" in out
-    # Composer narrowing (Black Cherry, .400 staging): the SEALED .360 claim-safety comment
+    # Composer narrowing (.400 staging): the SEALED .360 claim-safety comment
     # itself contains the literal "(no §N marker; …)" (modeb_domain_phylogeny.py:138, sealed
     # .399, gate-passing) — a blanket no-§ assert fails on byte-untouched legacy output. Every
     # "§" must belong to that known comment phrase; anything else is a leak.

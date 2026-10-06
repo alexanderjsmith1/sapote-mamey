@@ -1,4 +1,4 @@
-"""Tree-portable regression for signoff/tree_sanity outgroup PARITY (VGP .399 phylo patch 3).
+"""Tree-portable regression for signoff/tree_sanity outgroup PARITY (an audit lane .399 phylo patch 3).
 
 `tools/signoff_check.py` gained `_is_outgroup_tip` + `--outgroup` so the advisory sign-off gate
 and the HARD `tree_sanity_check` gate can never disagree about which tip is the outgroup: a

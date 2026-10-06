@@ -17,7 +17,7 @@ Design (matches the other modeb_subsections):
     provided (workspace runs); otherwise the section cites the canonical tree path as provenance and
     marks distance/baseline as not co-located — a MEASUREMENT gap, never a biological negative.
 
-Field spec: Amber (AMBER P358, 2026-08-10). Join key: the `_4D` row's contig token
+Field spec: The phylogeny lane (P358, 2026-08-10). Join key: the `_4D` row's contig token
 (`NODE_\\d+` for AS SPAdes; WGS accession for SID) matches the tree tip PREFIX; keep the node token,
 never the BGC ordinal alone (BGC node-naming rule).
 
@@ -102,7 +102,7 @@ def _strain_baseline(strain, tree_root):
 
 
 def _ks_distance(strain, conta, contb, tree_root):
-    """Min cross-region patristic distance between two contigs from Amber's fragment_candidates.tsv.
+    """Min cross-region patristic distance between two contigs from the phylogeny lane's fragment_candidates.tsv.
     Returns (formatted_str | None). Only available with a co-located tree_root."""
     if not tree_root:
         return None
@@ -195,7 +195,7 @@ def domain_phylogeny(pkg, bgc_id, tree_root=None) -> str:
     return "\n".join(L)
 
 
-# ── VGP-399 card 3/3: generalized per-class domain-tree subsections ─────────────────────────────
+# ── 399 card 3/3: generalized per-class domain-tree subsections ─────────────────────────────
 # Consumes the `{class}_domain_tree_summary.tsv` contract written by mamey/domain_tree.py (the gated
 # builder). ADDITIVE: domain_phylogeny() above is byte-unchanged; emitters opt in by also calling
 # domain_tree_sections(). Same gate-safety mechanism (#### blocks, no §N marker) and the same

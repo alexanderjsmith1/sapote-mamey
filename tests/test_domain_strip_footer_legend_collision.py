@@ -1,7 +1,7 @@
 """mamey/domain_figures.py: the domain-strip figure's role legend visually collided with the
 mandatory claim-safety footer.
 
-Found by running the real pipeline (BC2-408): `mamey domain-level --emit-figures` against this
+Found by running the real pipeline (408): `mamey domain-level --emit-figures` against this
 cycle's own real AS-705 package, then visually inspecting the rendered PNGs (figure-inspection-
 before-send). `AS705_BGC031_domain_strip.png`'s legend swatches/labels ("PKS domain", "PKS
 ketosynthase", ...) rendered directly on top of the bold claim-safety sentence every figure in this

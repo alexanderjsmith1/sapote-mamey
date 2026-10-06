@@ -1,7 +1,7 @@
 """v9.7.383 — WAC/DSM audit: A-02 (offline build wheels ship) and A-05 (figure-state marker).
 
 A-02: `pyproject` requires setuptools>=68 + wheel under build isolation; a fresh no-network venv
-can't fetch them. Option A (Alex): ship the MIT build wheels in the bundle and point bootstrap at
+can't fetch them. Option A (owner): ship the MIT build wheels in the bundle and point bootstrap at
 them. These pin that they ship and that bootstrap references them.
 
 A-05: NO_FIGURES_RENDERED.md was written early (--brief none) and never cleared when a later figure

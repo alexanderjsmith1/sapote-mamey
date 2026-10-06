@@ -1,7 +1,7 @@
-"""Currency-stamp lock (.402, ROSTER_402 seed #2 — Black Cherry-4).
+"""Currency-stamp lock (.402, ROSTER_402 seed #2 — 4).
 
 Verified field failure: `docs/EXTERNAL_TOOL_INVENTORY.md` carried a stale 9.7.400 currency
-header through Black Cherry's .401 composition and was caught BY HAND at the seal gate — no
+header through an audit lane's .401 composition and was caught BY HAND at the seal gate — no
 sync_version rule owned it and no test pinned it (the same rotting-field class that let
 CURRENT_DOCS_INDEX.md freeze three times before v9.7.371 adopted it). Reproduced this
 session: with the header staled to 9.7.400, the sealed `sync_version --check` still passed.
@@ -86,7 +86,7 @@ def test_sync_version_owns_both_stamps():
         assert f'("{rel}"' in src, f"tools/sync_version.py has no rule for {rel}"
 
 
-# --- v9.7.413 (Goldenrod) — the SECOND currency convention -------------------------------
+# --- v9.7.413 — the SECOND currency convention -------------------------------
 # STAMPED/HEADER above govern one form: "**Bundle vX · engine Mamey Y · compiled DATE**".
 # A parallel convention exists in prose — "current to bundle vX / engine Mamey Y" — and nothing
 # owned it. Three wiki guides used it (a footer, a capitalised standalone line, and one

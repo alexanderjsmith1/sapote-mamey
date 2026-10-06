@@ -106,7 +106,7 @@ def test_outgroup_registry_parses_locked_rows():
     """The parser must return what the registry SAYS — not a genus this test remembers.
 
     v9.7.416. This test used to assert `find_row("Streptomyces")["outgroup_genus"] ==
-    "Kitasatospora"`. Alex RULED that row to Gordonia on 2026-09-07 (the registry's own rationale
+    "Kitasatospora"`. Owner RULED that row to Gordonia on 2026-09-07 (the registry's own rationale
     column records the ruling and the three measured gate margins: -5.9, -1.5, -6.6 on Gordonia
     versus +0.2 / +1.5 / +1.2 on Kitasatospora). The registry is the source of truth for that
     decision; this file is not. By hardcoding the answer, the test became a SECOND, competing

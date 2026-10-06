@@ -103,7 +103,7 @@ def test_module_default_mirrors_official_data_json():
         "cohort pack 'governed' has drifted from the ratified SSOT (_RULED)"
     )
     # strain_of_record is a dict (not a list) -- compare it directly so the
-    # JSON<->_DEFAULT mirror is fully locked (Amber refinement, .358).
+    # JSON<->_DEFAULT mirror is fully locked (phylogeny-lane refinement, .358).
     assert data.get("strain_of_record", {}) == {"AS-922": "synthetic_strain_of_record"}, (
         "cohort pack 'strain_of_record' has drifted from the ratified SSOT"
     )

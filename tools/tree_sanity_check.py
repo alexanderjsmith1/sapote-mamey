@@ -200,7 +200,7 @@ def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require
     DOMINATING_BRANCH offender sets and reported as an informational line, never a FAIL. A dominating
     ingroup/query branch (a bad genome) still FAILs.
 
-    v9.7.413 (standing rule, Alex 2026-09-07): with NO recognisable outgroup the gate no longer
+    v9.7.413 (standing rule, the owner 2026-09-07): with NO recognisable outgroup the gate no longer
     degrades silently to "no exemptions" — it FAILs with NO_OUTGROUP, because the exemption the tree
     depends on was never applied and the operator would otherwise be told to prune a legitimate
     outgroup stem. Two producers were found dropping the marker (a fixed-width tip-label truncation

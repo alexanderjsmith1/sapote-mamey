@@ -40,7 +40,7 @@ def _tier_from_score(s):
     return {"3": "HIGH", "2": "MED", "1": "WATCH"}.get(str(s).strip(), "")
 
 
-# v9.7.443: claim wording stays off the canvas (Alex, 2026-09-24). The ceiling goes to the
+# v9.7.443: claim wording stays off the canvas (2026-09-24). The ceiling goes to the
 # caption sidecar beside the PNG; the drawn note keeps only what the board shows.
 CEILING = "Class-level hypotheses; bioactivity metadata is optional strain-level context."
 

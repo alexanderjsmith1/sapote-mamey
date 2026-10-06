@@ -1,7 +1,7 @@
 """FIGURES_434: a rendered figure caption must not carry operator-governance prose.
 
 Captions observed live 2026-09-18 ended with "Screening signal is class-level; no compound,
-structure, or potency claim is implied. Judgment deferred to Alex." That is written for the
+structure, or potency claim is implied. Judgment deferred to the owner." That is written for the
 operator. In a publication figure it reads as hedging and names the operator inside the caption.
 """
 from pathlib import Path
@@ -17,7 +17,7 @@ from caption_guard import BLOCKED, CaptionGovernanceError, check_caption, scan_p
 REAL_OFFENDER = (
     "ACTIVITY STRIPS. Four states, never coerced: '+' active (best recorded inhibition >=80%). "
     "Screening signal is class-level; no compound, structure, or potency claim is implied. "
-    "Judgment deferred to Alex."
+    "Judgment deferred to the owner."
 )
 
 CLEAN = (

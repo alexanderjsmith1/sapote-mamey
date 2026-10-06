@@ -131,7 +131,7 @@ def main(argv=None) -> int:
         return layer_main(argv[1:])
     if argv and argv[0] == "build-mibig-db":
         from .ref_completion import main as completion_main
-        return completion_main(argv)
+        return completion_main(argv, prog="rggmci")
     ap = argparse.ArgumentParser(prog="rggmci", description="Candidate BGC fragments that may belong to one "
                                  "pathway, from antiSMASH results. Candidates only: check each one at gene level.")
     ap.add_argument("inputs", nargs="+", type=Path, help="antiSMASH result ZIP(s), or folders of them")

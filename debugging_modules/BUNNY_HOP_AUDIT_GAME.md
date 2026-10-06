@@ -177,4 +177,4 @@ Good luck. Keep rolling until you have a solid patch card or run out of time.
 
 ---
 *Bunny Hop Audit Game — Protocol v1.0 | Sapote–Mamey Pipeline*
-*Originated: June 2026 analysis session (Alexander J. Smith / )*
+*Originated: June 2026 analysis session.*

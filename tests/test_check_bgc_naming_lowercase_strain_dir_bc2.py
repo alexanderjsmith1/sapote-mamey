@@ -1,4 +1,4 @@
-"""BC2-CASE-01 (v9.7.395): tools/check_bgc_naming.py scan() must not go blind on a lowercase (or
+"""CASE-01 (v9.7.395): tools/check_bgc_naming.py scan() must not go blind on a lowercase (or
 mixed-case) AS-strain directory.
 
 scan()'s strain-detection line used a bare `re.search(r"AS-\\d+", dirpath)` with no

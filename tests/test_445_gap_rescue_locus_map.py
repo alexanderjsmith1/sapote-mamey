@@ -1,6 +1,6 @@
 """tools/gap_rescue_locus_map.py: which contigs the gap-rescue figure draws.
 
-Alex, 2026-09-30, on the first automatic figure: the hand-made two-row map "looked a lot better"; the automatic one
+The owner, 2026-09-30, on the first automatic figure: the hand-made two-row map "looked a lot better"; the automatic one
 pulled in unrelated contigs (a transposase, a P450, an esterase from the reference's flanks). Then: "we could have a
 secondary 35% threshold that can help find more rescues", because a real cluster can have low homology to MIBiG.
 """

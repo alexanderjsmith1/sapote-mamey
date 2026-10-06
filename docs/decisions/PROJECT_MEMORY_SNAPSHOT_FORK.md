@@ -33,4 +33,4 @@ RESOLVED (v9.7.400) rather than carrying it as "open".
 What would change this: evidence that a downstream tool mis-reads the stub as a full snapshot
 (none found — all four in-bundle readers follow `alias_of`).
 
-Owner ruling: ____ (Alex). Until ruled, nothing changes.
+Owner ruling: ____ (owner). Until ruled, nothing changes.

@@ -1,4 +1,4 @@
-"""v9.7.413 (BC2) — `modeb-compile` must be able to write somewhere other than the two canonical
+"""v9.7.413 — `modeb-compile` must be able to write somewhere other than the two canonical
 targets.
 
 `deliverable_tools/build_modeb_compilation.py` writes, per strain and unconditionally, to BOTH

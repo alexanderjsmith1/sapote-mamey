@@ -11,8 +11,6 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import threading
-import time
 import zipfile
 
 import pytest
@@ -35,12 +33,12 @@ def _source(tmp_path: Path) -> Path:
     )
     (src / "CITATION.cff").write_text("version: 0.0.0\n", encoding="utf-8")
     (src / "generic_payload.txt").write_text("fresh generic payload\n", encoding="utf-8")
-    for name in ("tracked_file_policy.py", "check_release_manifest.py"):
+    for name in ("tracked_file_policy.py", "check_release_manifest.py", "cut_preflight.sh"):
         shutil.copy2(ROOT / "tools" / name, src / "tools" / name)
     return src
 
 
-def _run(src: Path, out: Path, *, env_extra: dict[str, str] | None = None):
+def _run(src: Path, out: Path, *, env_extra: dict[str, str] | None = None, builder: Path = BUILDER):
     env = {
         **os.environ,
         "SAPOTE_ENABLE_DISABLED_TIERS": "1",  # v9.7.444: the merged tier is disabled by default
@@ -49,7 +47,7 @@ def _run(src: Path, out: Path, *, env_extra: dict[str, str] | None = None):
         **(env_extra or {}),
     }
     return subprocess.run(
-        ["bash", str(BUILDER), "merged", str(src), str(out)],
+        ["bash", str(builder), "merged", str(src), str(out)],
         cwd=ROOT,
         env=env,
         capture_output=True,
@@ -93,55 +91,39 @@ def test_fresh_archive_is_created_from_only_the_current_stage(tmp_path: Path):
 
 @pytest.mark.skipif(not shutil.which("bash") or not shutil.which("zip"), reason="bash/zip unavailable")
 def test_concurrent_final_path_claim_is_refused_without_overwrite(tmp_path: Path):
-    """A claim on the final path AFTER the preflight and BEFORE the commit must be refused.
+    """Claim the destination at its actual precommit boundary, with an injection witness.
 
-    THE SEAM MOVED AT v9.7.405, THE CLAIM DID NOT. This test used to inject the race by shimming
-    the `zip` binary: the shim claimed the path, then exec'd the real `zip`. At v9.7.405 the
-    CODEX_392 transaction finalizer replaced the shell's zip-then-hard-link commit, so `zip` is
-    no longer invoked, the shim could never fire, and the test passed vacuously against a run
-    that had no race in it at all. The race is now driven where it actually happens rather than
-    at any implementation seam: a watcher claims the destination the instant the finalizer's
-    temporary archive appears, which is inside the write/audit/hash window between the preflight
-    and `commit_noreplace`. That injection depends on no hook and no binary, so it survives the
-    next change of committer too.
-
-    Re-pointing this test found a real defect, which is the argument for re-pointing rather than
-    retiring it: the finalizer had no typed refusal on the lost-race path, so `FileExistsError`
-    escaped `_main` and the tool exited with a traceback instead of its refusal receipt. The
-    safety properties were already sound; the contract was not. The three assertions below are
-    unchanged from the v9.7.401 original.
+    The builder and native committer run on the same tiny generic fixture. A local
+    wrapper injects an exclusive competing claim immediately before the final
+    native no-replace call. Capability-probe names are excluded. This avoids both
+    obsolete temporary filenames and guessed scheduling windows.
     """
     src = _source(tmp_path)
     out = tmp_path / "release output"
     out.mkdir()
     archive = out / ARCHIVE_NAME
-    claimed = threading.Event()
-
-    def claim_when_transaction_opens() -> None:
-        # The finalizer's temporary is ".<final name>.archtxn.tmp" beside the destination. Its
-        # existence is the deterministic marker that the transaction is past its preflight and
-        # has not yet committed; poll for it rather than sleeping a guessed interval.
-        temporary = out / f".{ARCHIVE_NAME}.archtxn.tmp"
-        deadline = time.monotonic() + 110
-        while time.monotonic() < deadline:
-            if temporary.exists():
-                archive.write_bytes(b"concurrent claimant\n")
-                claimed.set()
-                return
-            time.sleep(0.0005)
-
-    watcher = threading.Thread(target=claim_when_transaction_opens, daemon=True)
-    watcher.start()
-    result = _run(src, out)
-    watcher.join(timeout=5)
-
-    # Fail loudly rather than passing vacuously if the window was never observed — a green result
-    # from an uninjected race is exactly the failure mode that hid here between .405 and this fix.
-    assert claimed.is_set(), (
-        "the watcher never saw the finalizer's temporary archive, so no race was injected; "
-        "this assertion exists so a missed window can never be mistaken for a passing test\n"
-        + result.stdout + result.stderr
+    witness = tmp_path / "claim.witness"
+    harness = tmp_path / "builder harness"
+    harness.mkdir()
+    owned_builder = harness / "make_public_tier.sh"
+    shutil.copy2(BUILDER, owned_builder)
+    finalizer = ROOT / "tools/finalize_public_archive.py"
+    wrapper = harness / "finalize_public_archive.py"
+    wrapper.write_text(
+        "from pathlib import Path\nimport importlib.util, os, sys\n"
+        + "spec=importlib.util.spec_from_file_location('fixture_finalizer', " + repr(str(finalizer)) + ")\n"
+        + "module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)\n"
+        + "original=module.commit_noreplace\n"
+        + "def competing_claim(source_dirfd,source_name,destination_dirfd,destination_name):\n"
+        + "    if destination_name == " + repr(ARCHIVE_NAME) + ":\n"
+        + "        fd=os.open(destination_name,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600,dir_fd=destination_dirfd)\n"
+        + "        with os.fdopen(fd,'wb') as handle:handle.write(b'concurrent claimant\\n');handle.flush();os.fsync(handle.fileno())\n"
+        + "        Path(" + repr(str(witness)) + ").write_text('actual precommit claim')\n"
+        + "    return original(source_dirfd,source_name,destination_dirfd,destination_name)\n"
+        + "module.commit_noreplace=competing_claim\nraise SystemExit(module._main())\n"
     )
+    result = _run(src, out, builder=owned_builder)
+    assert witness.read_text() == 'actual precommit claim', result.stdout + result.stderr
     assert result.returncode == 9, result.stdout + result.stderr
     assert "claimed before commit" in result.stderr
     assert archive.read_bytes() == b"concurrent claimant\n"

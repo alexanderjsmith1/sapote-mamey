@@ -1,11 +1,11 @@
-"""test_domain_phylo_rescue.py — P358-003 (Aquarius, 2026-08-10).
+"""test_domain_phylo_rescue.py — P358-003 (2026-08-10).
 
 Pins the two-proof discipline of the advisory domain-phylogeny corroborator (Idea A.2 + guard E):
   * a supported cross-BGC KS clade WITH an RG-GMCI homology row  -> CORROBORATED_SPLIT (rescue).
   * a supported cross-BGC KS clade WITHOUT RG-GMCI               -> DOMAIN_ONLY_HINT (never a rescue).
   * FAS / fatty_acid (outgroup) and DROP-class domains never corroborate.
   * a low-support clade never corroborates.
-Fixtures mirror Amber's AS-705 KS tree (NODE_24/NODE_30 trans-AT; NODE_58/NODE_216 cis-AT; NODE_74/72 FAS).
+Fixtures mirror the phylogeny lane's AS-705 KS tree (NODE_24/NODE_30 trans-AT; NODE_58/NODE_216 cis-AT; NODE_74/72 FAS).
 """
 from __future__ import annotations
 

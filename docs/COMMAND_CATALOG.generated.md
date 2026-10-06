@@ -1,6 +1,6 @@
 # Command catalog (generated)
 
-*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.446 · engine 1.9.172. Do not edit by hand; `--check` fails the build when stale.*
+*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.448 · engine 1.9.173. Do not edit by hand; `--check` fails the build when stale.*
 
 Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root (the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take `--package <sealed package dir>`; `run` is the only command that creates a package. Claim-safety: every output is a class-level hypothesis with judgment deferred.
 
@@ -78,6 +78,7 @@ _Scaffolds and gates for LLM judgment; the triage table is NOT a finished card._
 | `build-bgc-drafts` | Build locator-first L0 BGC drafts from hash-bound external evidence roots |
 | `claim-safety` | Run the post-hoc claim-safety linter on a Mode B card or compendium markdown |
 | `class-believability` | committed-step class believability (HIGH/MEDIUM/LOW/SUSPECT) per BGC and pooled per strain; non-blocking, reads a sealed package |
+| `two-proof-rescue` | External two-proof reader with explicit recorded alternative non-KS position policy |
 
 ## Evidence channels (BLASTp / MIBiG / BiG-SCAPE)
 
@@ -105,6 +106,8 @@ _Optional deeper evidence; every channel stays a separate lane._
 | `blastp-followup` | Parse NCBI BLASTP Hit Table/XML2 results and make the next iterative FASTA batch |
 | `cohort-proteins` | Build/query an exact-locus within-project BGC-protein occurrence catalog |
 | `resistance-dossier` | post-seal: per-BGC resistance-focused gene-by-gene dossiers (resistance loci via domain_reference + nr BLASTp + MIBiG). Non-blocking. |
+| `gecco-crosscheck` | Optional external GECCO 0.11 class-level second opinion |
+| `export-metabolomics` | Genome-side class hypotheses and hash-bound region GBKs for MS review |
 
 ## Cohort and cross-strain
 
@@ -178,4 +181,4 @@ _Retained for existing scripts and specialized maintenance. They are not additio
 | `codex-bigscape-figure-sets` | Legacy-named Figure Factory command: render the optional BiG-SCAPE figure extension |
 | `codex-heatmaps` | Legacy-named Figure Factory command: convert matrix CSVs into SVG/HTML figure packs |
 
-_113 canonical commands catalogued; 2 aliases folded into those rows._
+_116 canonical commands catalogued; 2 aliases folded into those rows._

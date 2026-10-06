@@ -4,14 +4,14 @@ from __future__ import annotations
 import argparse, hashlib, json, os, re, sys
 from pathlib import Path, PurePosixPath
 
-# BC2-407: this tool did not previously import from mamey.* at all, so it never needed the
+# 407: this tool did not previously import from mamey.* at all, so it never needed the
 # sys.path guard every sibling tools/*.py that does carries (see tests/test_tool_front_doors.py,
 # which fails any mamey-importing tool that omits this). Required as soon as the shared-gate
 # import below was added -- discovered by a composed-set full-suite run, not by this card's own
 # original (too-narrow) verification scope.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# BC2-407: use the canonical typed gate from publication_bridge instead of a second,
+# 407: use the canonical typed gate from publication_bridge instead of a second,
 # independently-drifting string check on the same "binding_state == PROVISIONAL_BINDING"
 # signal -- see PATCH_CARD for the tick that found the two checks living apart.
 from mamey.interactive_figures.publication_bridge import (  # noqa: E402

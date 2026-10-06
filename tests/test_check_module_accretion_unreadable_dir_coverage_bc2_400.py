@@ -1,4 +1,4 @@
-"""BC2 .400 audit: tools/check_module_accretion.py's own docstring states its purpose is
+"""An audit-lane .400 audit: tools/check_module_accretion.py's own docstring states its purpose is
 making a silently-added mamey/ module "visible and bounded at cut time." `current_modules()`
 used `MAMEY.rglob("*.py")`, which silently swallows a per-directory `OSError` -- a module
 hidden inside an unreadable mamey/ subdirectory is simply absent from the scan, with no signal,

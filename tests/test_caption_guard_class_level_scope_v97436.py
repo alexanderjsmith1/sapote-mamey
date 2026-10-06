@@ -1,7 +1,7 @@
 """BLIZZARD_BLUE_436: 'class-level' as a caption phrase must distinguish governance hedging
 ("screening signal is class-level;") from legitimate scientific vocabulary ("class-level
 composition of biosynthetic gene clusters"). The flat substring match in BLOCKED could not
-tell them apart; reported by Goldenrod (.436), fixed here as a standalone regex check.
+tell them apart; reported by an audit lane (.436), fixed here as a standalone regex check.
 """
 from pathlib import Path
 import sys
@@ -13,7 +13,7 @@ from caption_guard import check_caption  # noqa: E402
 
 
 def test_class_level_as_noun_modifier_is_not_blocked():
-    """Goldenrod's three reported false positives must pass clean."""
+    """an audit lane's three reported false positives must pass clean."""
     for caption in [
         "Class-level composition of biosynthetic gene clusters across 44 isolates.",
         "Class-level phylogenetic placement of 89 public strains.",

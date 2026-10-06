@@ -1,7 +1,7 @@
 """tools/build_modeb_deepdive.py: the printed run summary ("N CONFIRM, N DOWNGRADE, N DROP") must
 agree with what the document it just wrote actually says.
 
-Found via a real deliverable run (BC2-408): a --targets-only invocation with no modeb_verdicts.csv
+Found via a real deliverable run (408): a --targets-only invocation with no modeb_verdicts.csv
 present (vmap == {}) produced a document where every single card rendered "Verdict — CONFIRM" (the
 card body and section-header grouping in main() default a missing verdict row to 'CONFIRM' --
 `st=(v or {}).get('status','CONFIRM')`), while the run summary line printed "0 CONFIRM, 0

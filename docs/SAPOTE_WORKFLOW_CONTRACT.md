@@ -39,7 +39,7 @@ order) collapsed onto the artifacts and gates that actually exist in a sealed pa
 | **W0** | Sealed Mamey package | M | `mamey validate <pkg>` | `manifest.json` + `gate_validation.json` (`MAMEY_COMPLETE`) + `checksums_sha256.txt` |
 | **W1** | First-pass scans + triage board | M | file present | `<ID>_4_triage_board.csv` (+ `source_scans` in manifest / `tools/build_first_pass_scans.py`) |
 | **W2** | Lead boards / DAPR (AB + AF) | M | files present | `<ID>_4c_AB_lead_board.csv`, `<ID>_4c_AF_lead_board.csv` (`tools/lead_board.py`, `apply_dapr_boards.py`) |
-| **W3** | Mode B §1–§30 templates emitted | M | dir populated | `mode_b_templates/*BGC*.md` via `mamey emit-modeb-template --batch` |
+| **W3** | Selected-profile Mode B templates emitted (default full48; opt-in current50 v2) | M | dir populated | `mode_b_templates/*BGC*.md` via `mamey emit-modeb-template --batch`; add `--contract current50_v2` for v2 and carry it into W4 verification |
 | **W4** | Mode B cards authored **and** verified | M | register + gate | `<ID>_judgment_register.json` COMPLETE entries; each card passes `mamey verify-modeb`; persisted by `ingest-receipts` |
 | **W5** | BGC Guide(s) authored + verified | cond | `verify-guide` | `<BGC>_Guide.md` with no residual `<!-- LAY: -->` slots (`mamey guide` → `verify-guide`) |
 | **W6** | Narrative set (lay guide / ecology / ferm) | M | files present | Layperson Guide + Ecological Synthesis + Fermentation Card (`DELIVERABLE_CONTRACT` A2) |
@@ -52,7 +52,7 @@ order) collapsed onto the artifacts and gates that actually exist in a sealed pa
 (fires when the predicate holds — e.g. W5 only when a Guide is requested — and never blocks).
 
 ### Conditional-section note (inside W4)
-W4's per-card structure is the canonical **§1–§30 Mode B contract**
+W4's per-card structure historically followed the conditional **§1–§30 Mode B contract**; the current finished profile is §1–§48 (`docs/MODEB_PROFILE_MATRIX.md`). The historical rule was
 (`modeb_corrective_full30_v1`): §1–§20 + §28 + §30 always required; §21–§27/§29 fire on
 predicate (RiPP, MATURATION_GAP, novel/no-MIBiG, isolation-worthy, fermentation-selected,
 antimicrobial-candidate, >3 HIGH-tier BGCs). The driver does not re-adjudicate section
@@ -92,7 +92,7 @@ record of exactly where the judgment layer stands and what the next mandatory ac
 
 - `FULL_RUN_PROFILE.md` §A — the prose source of the delivery order. This contract is its
   enforced form; the profile still governs per-BGC Mode B card structure and batching.
-- `docs/CHATGPT_EXECUTION_SLICE_v97147.md` — the default execution controller; §0 authority
-  order still wins on any conflict. The driver implements, it does not override.
+- `docs/CHATGPT_EXECUTION_SLICE_v97147.md` — a historical execution slice. `AGENTS.md` and
+  `docs/ASSISTANT_GOVERNANCE.md` govern on any conflict. The driver implements; it does not override.
 - `docs/DELIVERABLE_CONTRACT.md` — Part A/B item definitions that W6/W8 check against.
 - `tools/session_checklist.py` — W10's close artifact (data-loss advisory + menu).

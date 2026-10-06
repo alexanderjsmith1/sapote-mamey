@@ -919,7 +919,7 @@ def omit_saccharides(bgcs, get_products=lambda b: b.get("products"), enabled: bo
     return [b for b in bgcs if not is_pure_saccharide(get_products(b))]
 
 
-# v9.7.442. Wording that must not appear on a rendered figure (Alex, 2026-09-24): "remove the claim
+# v9.7.442. Wording that must not appear on a rendered figure (2026-09-24): "remove the claim
 # safety statements from figures entirely". Footers and internal-notes bands count. Provenance and
 # guard text belong in the receipt, the caption sidecar and the report, not on the page. This is
 # the fail-closed check the 2026-09-24 publication builder ran on its SVG copies, made reusable so

@@ -1,6 +1,6 @@
 """REVIEWED_SCOPE_LIMIT: a third §28 section-disposition state (v9.7.412).
 
-Motivating finding (Black Cherry audit, .412, "Corrections adopted after Codex review",
+Motivating finding (an audit lane audit, .412, "Corrections adopted after Codex review",
 item 1): the two-state vocabulary {SUBSTANTIVE, REASONED_NOT_APPLICABLE} cannot express a
 section that was reviewed but whose bound evidence is genuinely incomplete or unbound --
 an author facing that state had to pick a wrong answer either way. This adds a third,

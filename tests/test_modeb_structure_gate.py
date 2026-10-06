@@ -235,7 +235,7 @@ def test_summarise_renders_human_text():
     assert "ERROR" in s2
 
 
-# --- BC2-405: a missing/malformed bundled contract must surface loudly, never silently ---------
+# --- 405: a missing/malformed bundled contract must surface loudly, never silently ---------
 # recognised_section_numbers() used to call load_contract() INSIDE a bare `except Exception: pass`
 # -- catching exactly the FileNotFoundError/ValueError load_contract() is documented to raise on a
 # missing or malformed bundle, and silently falling back to a hard-coded section-number range
