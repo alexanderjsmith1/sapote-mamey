@@ -47,11 +47,14 @@ def test_release_folder_creation_after_a_heredoc_is_still_checked(tmp_path):
     assert run("block_top_level_release_folder.sh", "Bash", {"command": HEREDOC + plain}, tmp_path)
 
 
-def test_notebook_edit_into_a_sealed_tree_is_denied(tmp_path):
+def test_notebook_edit_into_a_sealed_tree_is_denied():
+    # The guard allows /tmp working copies, and pytest's tmp_path is under /tmp on Linux runners. The guard only
+    # resolves the path and never touches the file, so the session cwd is the filesystem root: no temp directory.
+    root = Path(os.path.abspath(os.sep))
     nb = {"notebook_path": f"{SEALED}/notebooks/x.ipynb", "new_source": "x"}
-    assert run("block_sealed_tree_edits.sh", "NotebookEdit", nb, tmp_path)
-    assert run("block_sealed_tree_edits.sh", "Edit", {"file_path": f"{SEALED}/mamey/cli.py"}, tmp_path)
-    assert not run("block_sealed_tree_edits.sh", "NotebookEdit", {"notebook_path": "work/x.ipynb"}, tmp_path)
+    assert run("block_sealed_tree_edits.sh", "NotebookEdit", nb, root)
+    assert run("block_sealed_tree_edits.sh", "Edit", {"file_path": f"{SEALED}/mamey/cli.py"}, root)
+    assert not run("block_sealed_tree_edits.sh", "NotebookEdit", {"notebook_path": "work/x.ipynb"}, root)
 
 
 def test_a_symlink_alias_cannot_hide_a_sealed_destination(tmp_path):

@@ -1,5 +1,6 @@
-# v9.7.448 (2026-10-05), build 20261005v97448a — unsealed cut candidate
+# v9.7.448 (2026-10-05), build 20261005v97448b — unsealed cut candidate
 
+- **The sealed-tree notebook guard test runs on Linux (build b).** On GitHub CI, build a reported one failure: the test resolved its path under pytest's temporary folder, which is `/tmp/…` on Linux, where the guard deliberately allows working copies. The test now resolves against the filesystem root; the guard is unchanged. Build b changes only that test file; the engine (1.9.173), tools, outputs and scientific rules are the same as build a.
 - **Strain-slide evidence and labels.** Reference-structure gallery and region structures; exact contig, locus-tag and normalized-protein binding for gene-label fallback; class-domain fallback and typed class steps; clearer strip labels and PCoA label placement.
 - **Locus comparison slides.** Partner contigs are placed under the reference genes they match, not pushed past the right edge. Each partner track is named by the antiSMASH region that holds its matched genes, from the rescue table; when they lie in more than one place the identity is held. Contig-end and missing-stop markers are drawn for short contigs and genes cut by a contig end.
 - **Multi-reference comparisons.** Per-strain comparison slides: best MIBiG or reference-genome matches, one row per compound across name variants, two-line headings, and a ribbon slide against the top match.

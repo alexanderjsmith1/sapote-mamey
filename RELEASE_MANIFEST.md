@@ -5,7 +5,7 @@
 **Bundle version:** `sapote-mamey-v9.7.448`  
 **Authoritative bundle version:** `9.7.448`  
 **Engine:** Mamey v1.9.173  
-**Build stamp:** 20261005v97448a  
+**Build stamp:** 20261005v97448b  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
@@ -48,7 +48,7 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20261005v97448a`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20261005v97448b`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
