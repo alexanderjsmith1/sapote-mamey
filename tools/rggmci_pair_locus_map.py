@@ -2,14 +2,18 @@
 """rggmci_pair_locus_map.py — a locus map for each RG-GMCI fragment pair.
 
 RG-GMCI links two contig-edge fragments when they hit complementary parts of the same reference clusters
-(<strain>_4A_RGGMCI_ranked_pairs.csv in a Mamey package). This tool draws that link the way the gap-rescue screen draws
-its finds (tools/gap_rescue_locus_map.py):
-- on top, the shared MIBiG reference cluster;
-- below, fragment A's contig end, a link marker, then fragment B's contig end;
-- ribbons from each reference gene to its match, shaded by protein identity.
+(<strain>_4A_RGGMCI_ranked_pairs.csv in a Mamey package). This tool draws that link with the locus-comparison renderer
+(mamey/figures/locus_comparison.py, the same view as tools/rescue_locus_comparison.py):
+- the fragment with more matched reference genes on top, the shared MIBiG reference in the middle, the other fragment
+  below;
+- each fragment sits under the reference genes it matches, on one kb scale counted from the reference's first gene;
+- ribbons join each matched reference gene to its best hit, and each AS gene label ends with that hit's identity.
+Each contig is its own track and keeps its own contig ends: nothing is joined.
 
 Which pairs:
 - --pair BGC050:BGC054 (repeatable); or --top N, the N best-scoring MODERATE or HIGH pairs;
+- both fragments must hold at least one of the reference's genes (in the region, reciprocal best match); otherwise the
+  pair is refused with that reason, since there is no pair to draw;
 - both fragments must touch a contig end (Edge or Full-contig). RG-GMCI pairs edge fragments only, so an interior
   fragment is refused, never drawn;
 - each fragment needs its full identity (strain / contig / region / BGC alias) from the antiSMASH ZIP. An identity
@@ -17,8 +21,9 @@ Which pairs:
 - the reference is the first MIBiG cluster in the pair's best_sources whose GenBank file is in --mibig-dir. A pair
   supported only by non-MIBiG ClusterBlast loci is refused: no local GenBank to draw.
 
-Outputs, per pair: <out>/<A>_<B>_vs_<MIBiG>/rggmci_pair_map.png and .pdf, rggmci_pair_map.tsv (the reference gene table),
-rggmci_pair_receipt.json; plus <out>/RGGMCI_PAIR_MAPS.tsv, one row per requested pair, drawn or refused with the reason.
+Outputs, per pair: <out>/<A>_<B>_vs_<MIBiG>/rggmci_pair_map.png and .pdf (copies of render/comparison.png and .pdf),
+render/ (the renderer's own files and receipt), input.json (the manifest), rggmci_pair_map.tsv (the reference gene
+table), rggmci_pair_receipt.json; plus <out>/RGGMCI_PAIR_MAPS.tsv, one row per requested pair, drawn or refused with the reason.
 
 Claim-safety: the link is homology-guided linkage between two contig ends, not a joined sequence, a closed gap or one
 proven pathway. Similarity to a MIBiG cluster is not product identity.
@@ -35,13 +40,14 @@ import sys as _sys
 
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 import gap_directed_rescue as gdr  # noqa: E402
+import rescue_locus_comparison as rlc  # noqa: E402
 from _console import emit  # noqa: E402
-from gap_rescue_locus_map import draw_locus_map  # noqa: E402
 
 import argparse  # noqa: E402
 import csv  # noqa: E402
 import json  # noqa: E402
 import re  # noqa: E402
+import shutil  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 EDGE_OK = {"Edge", "Full-contig"}
@@ -92,6 +98,8 @@ def mibig_reference(pair: dict, mibig_dir: Path) -> Path | None:
     return None
 
 
+OVERLAP_SUBTITLE = {"the same part of the reference: overlap, not complement": "same reference genes as",
+                    "partly overlapping": "partly the same reference genes as"}
 LINK_WORD = {"the same part of the reference: overlap, not complement": "same genes in both, not a rescue",
              "partly overlapping": "partly overlapping",
              "one fragment holds none of this reference's genes": "one side has no match"}
@@ -119,40 +127,122 @@ def region_by_alias(regions: list[dict], alias: str) -> dict | None:
     return hits[0] if len(hits) == 1 else None
 
 
-def draw_pair(label, prots, regions, a, b, pair, reference, names, out_root, threads, sensitivity, hits_cache):
+def _fragment_track(tid, label, region, prots, matched):
+    """One fragment as a locus-comparison track: its region's genes, each matched gene in its reference gene's group."""
+    ident = region["identity"].split(" / ")
+    genes = sorted((p for p in prots.values() if p["contig"] == region["contig"] and p["start"] >= region["start"]
+                    and p["end"] <= region["end"]), key=lambda p: p["start"])
+    group = {prots[r["best_protein"]]["tag"]: f"G{k + 1}" for k, r in matched.items()}
+    track = {"id": tid, "label": f"{label} {ident[-1]}", "kind": "bgc", "orientation": 1,
+             "identity": {"strain": ident[0], "contig": ident[1], "region": ident[2], "bgc": ident[3]},
+             "genes": [{"id": p["tag"], "label": "", "start": p["start"], "end": p["end"], "strand": p["strand"],
+                        "aa_sha256": rlc.aa_hash(p["aa"]), "group": group.get(p["tag"], ""),
+                        "missing_stop_codon": bool(p.get("missing_stop", False))} for p in genes]}
+    rlc.with_contig_ends(track, genes[0]["contig_len"] if genes else 0)
+    return track
+
+
+def _one_per_gene(rows, keep):
+    """{reference index: row} for the matched rows, one per AS gene: a protein that is the best hit of several
+    reference genes keeps its strongest one, so every ribbon joins one reference gene to one AS gene."""
+    best = {}
+    for k in keep:
+        r = rows[k]
+        q = r["best_protein"]
+        if q not in best or float(r["best_identity_pct"] or 0) > float(rows[best[q]]["best_identity_pct"] or 0):
+            best[q] = k
+    return {k: rows[k] for k in best.values()}
+
+
+def pair_manifest(label, prots, ra, rb, ref, ref_desc, acc, rows, rows_b, in_a, in_b, names, sources=(), reading=""):
+    """A locus-comparison-v1 manifest for one pair: the fragment with more matched reference genes on top, the
+    reference in the middle, the other fragment below, each fragment levelled under the reference genes it matches.
+    When both fragments match the same reference genes (an overlap reading: duplicated or paralogous genes, not two
+    halves of one pathway), the lower fragment's grey subtitle says so, so an overlap never reads as a split."""
+    ma, mb = _one_per_gene(rows, in_a), _one_per_gene(rows_b, in_b)
+    (top_r, top_m), (low_r, low_m) = sorted(((ra, ma), (rb, mb)), key=lambda x: -len(x[1]))
+    top = _fragment_track("core", label, top_r, prots, top_m)
+    low = _fragment_track("p1", label, low_r, prots, low_m)
+    used = {f"G{k + 1}" for k in list(top_m) + list(low_m)}
+    name = names.get(acc, "")
+    ref_track = {"id": "ref", "label": f"MIBiG {acc}" + (f": {name}" if name else ""), "kind": "reference",
+                 "identity": {"accession": acc, "description": ref_desc if len(ref_desc) <= 80 else ref_desc[:77].rstrip(" ,") + "..."},
+                 "orientation": 1,
+                 "genes": [{"id": g["id"], "label": rlc.short_gene_name(g["name"]), "start": g["start"], "end": g["end"],
+                            "strand": g["strand"], "aa_sha256": rlc.aa_hash(g["aa"]),
+                            "group": f"G{k + 1}" if f"G{k + 1}" in used else ""} for k, g in enumerate(ref)]}
+    rg = {g["group"]: g for g in ref_track["genes"] if g["group"]}
+    ev = "RG-GMCI pair map best hit (DIAMOND)"
+    links = []
+    for track, matched in ((top, top_m), (low, low_m)):
+        tg = {g["id"]: g for g in track["genes"]}
+        for k, r in matched.items():
+            links.append({"a": [track["id"], prots[r["best_protein"]]["tag"]], "b": ["ref", rg[f"G{k + 1}"]["id"]],
+                          "evidence": ev, "identity_pct": float(r["best_identity_pct"]),
+                          "query_coverage_pct": float(r.get("best_coverage_pct") or 0)})
+        agree = sum(tg[prots[r["best_protein"]]["tag"]]["strand"] == rg[f"G{k + 1}"]["strand"] for k, r in matched.items())
+        track["orientation"] = 1 if agree * 2 >= len(matched) else -1
+        best = max(matched.items(), key=lambda kr: float(kr[1]["best_identity_pct"] or 0))
+        track["anchor_gene"] = prots[best[1]["best_protein"]]["tag"]
+        if track is top:
+            ref_track["anchor_gene"] = rg[f"G{best[0] + 1}"]["id"]
+    # the reference follows the top fragment's strand; the bottom fragment then follows the reference
+    if top["orientation"] == -1:
+        ref_track["orientation"], top["orientation"] = -1, 1
+        low["orientation"] = -low["orientation"]
+    tracks = [top, ref_track, low]
+    rlc.level_partners(tracks, ref_track)
+    rlc.sides(tracks, links)
+    same = OVERLAP_SUBTITLE.get(reading)
+    if same:
+        ident = low["identity"]
+        base = low.get("subtitle") or " / ".join(str(ident[k]) for k in ("strain", "contig", "region", "bgc"))
+        low["subtitle"] = f"{base}; {same} {top['identity']['contig'].split('_length')[0]}"
+    return {"schema": "locus-comparison-v1", "synthetic": False,
+            "sources": [{"path": str(Path(s).resolve()), "sha256": rlc.sha_file(s)} for s in sources],
+            "title": f"{label} {top['label'].split()[-1]} + {low['label'].split()[-1]} and MIBiG {acc}",
+            "display": {"label_rotation": 40, "font_size": 10.5, "width_in": 17, "axis_zero_track": "ref",
+                        "axis_label": "kb along the MIBiG reference locus (0 = its first gene as drawn); same scale on every track"},
+            "tracks": tracks, "links": links}
+
+
+def draw_pair(label, prots, regions, a, b, pair, reference, names, out_root, threads, sensitivity, hits_cache,
+              sources=()):
     ra, rb = region_by_alias(regions, a), region_by_alias(regions, b)
     for alias, r in ((a, ra), (b, rb)):
         if r is None or r["identity"].endswith("IDENTITY_HOLD"):
             return None, f"identity hold: {alias} has no single bound strain / contig / region / alias record"
     if ra["contig"] == rb["contig"]:
         return None, "both fragments on one contig: a related-loci question, not a contig-end link"
-    ref, _ = gdr.load_reference(reference)
+    ref, ref_desc = gdr.load_reference(reference)
     acc = reference.stem.split(".")[0]
     if acc not in hits_cache:
         hits_cache[acc] = gdr.run_diamond(ref, prots, threads, None if sensitivity == "default" else sensitivity)
     hits = hits_cache[acc]
     rows, _ = gdr.search(ref, prots, regions, hits, ra)
     rows_b, _ = gdr.search(ref, prots, regions, hits, rb)   # the same reference, searched from fragment B's side
-    # counted by the rule the map draws by (in the region and a reciprocal best match), so the footnote and the
+    # counted by the rule the map draws by (in the region and a reciprocal best match), so the receipt's counts and the
     # ribbons agree: one long PKS protein that weakly matches two reference genes counts once, for its best one
     in_a = {k for k, r in enumerate(rows) if r.get("status") == "PRESENT_IN_CORE" and drawn_rule(r)}
     in_b = {k for k, r in enumerate(rows_b) if r.get("status") == "PRESENT_IN_CORE" and drawn_rule(r)}
     both = in_a & in_b
-    splits, _ = gdr.split_genes(ref, prots, regions, hits)
     out = out_root / f"{a}_{b}_vs_{acc}"
-    out.mkdir(parents=True, exist_ok=True)
     name = names.get(acc, "")
     reading = overlap(in_a, in_b)
     rescue = reading == "complementary parts of the reference"
-    note = (f"RG-GMCI pair {a} + {b}: score {pair.get('rggmci_score', '')}, {pair.get('rggmci_confidence', '')}; "
-            f"shared reference {acc}; reference genes in A {len(in_a)}, in B {len(in_b)}, in both {len(both)} "
-            f"({reading}). "
-            + ("Homology-guided linkage between two contig ends, not a joined sequence." if rescue else
-               "Not a rescue: the fragments do not hold complementary parts of this reference."))
-    res = draw_locus_map(reference, rows, splits, prots, regions, ra, label, name, out / "rggmci_pair_map.png",
-                         out / "rggmci_pair_map.pdf", partner=rb, pair_note=note, partner_rows=rows_b,
-                         link_label="RG-GMCI link" if rescue else "RG-GMCI pair: " + LINK_WORD.get(reading, reading),
-                         link_colour="#6D28D9" if rescue else "#6B7280")
+    res = {"view": None, "contigs_drawn": []}
+    if in_a and in_b:
+        out.mkdir(parents=True, exist_ok=True)   # only for a pair that is drawn: a refusal leaves no empty folder
+        spec = pair_manifest(label, prots, ra, rb, ref, ref_desc, acc, rows, rows_b, in_a, in_b, names,
+                             [*sources, reference], reading=reading)
+        res["view"] = rlc.render_with_fallback(spec, out)
+        if res["view"] is None:
+            return None, "the renderer found no view without overlapping text"
+        for ext in ("png", "pdf"):
+            shutil.copyfile(out / "render" / f"comparison.{ext}", out / f"rggmci_pair_map.{ext}")
+        res["contigs_drawn"] = [t["identity"]["contig"] for t in spec["tracks"] if t["kind"] == "bgc"]
+    else:
+        return None, "one fragment holds none of this reference's genes: nothing to compare"
     on = {ra["contig"]: "A", rb["contig"]: "B"}
     with open(out / "rggmci_pair_map.tsv", "w", newline="") as fh:
         w = gdr.SafeWriter(fh, delimiter="\t", lineterminator="\n")
@@ -167,8 +257,10 @@ def draw_pair(label, prots, regions, a, b, pair, reference, names, out_root, thr
                "reference": reference.name, "reference_name": name, "rggmci_score": pair.get("rggmci_score"),
                "rggmci_confidence": pair.get("rggmci_confidence"), "reference_genes": len(rows),
                "reference_genes_in_fragment_a": len(in_a), "reference_genes_in_fragment_b": len(in_b),
-               "reference_genes_in_both": len(both), "reading": reading, "complementary": rescue,
-               "link_drawn": res["link_drawn"], "contigs_drawn": res["contigs_drawn"],
+               "reference_genes_in_both": len(both), "reading": reading, "reading_short": LINK_WORD.get(reading, "complementary"),
+               "complementary": rescue,
+               "renderer": "mamey.figures.locus_comparison (locus-comparison-v1)", "view": res["view"],
+               "contigs_drawn": res["contigs_drawn"],
                "non_claims": ["homology is similarity, not product identity",
                               "an RG-GMCI link is homology-guided linkage between contig ends, not a joined sequence",
                               "a drawn pair is a candidate for review, not one proven pathway"]}
@@ -210,7 +302,7 @@ def main(argv=None) -> int:
         if not why:
             try:
                 rec, why = draw_pair(args.label, prots, regions, a, b, pair, ref, names, args.out, args.threads,
-                                     args.sensitivity, cache)
+                                     args.sensitivity, cache, sources=(args.zip, args.pairs))
             except Exception as exc:  # one pair that cannot be drawn never stops the others; its reason is kept
                 rec, why = None, f"drawing failed: {type(exc).__name__}: {exc}"
         index.append([a, b, pair.get("rggmci_score", "") if pair else "", pair.get("rggmci_confidence", "") if pair else "",

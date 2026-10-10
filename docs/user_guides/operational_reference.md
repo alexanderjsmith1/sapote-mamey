@@ -1,9 +1,19 @@
 # Sapote–Mamey Operational Reference
 
+Before any `doctor` example below, read the [write-probe boundary](../INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
+untouched. The current diagnostic can overwrite or remove its probe file.
+
 Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
 
+> **Review scope:** This compilation retains dated workflow and defect records. A current bundle
+> footer is packaging identity, not proof that every section is current. Use the task router,
+> INSTALL, ONLINE_BLASTP_PROTOCOL, MODE_B_USER_WALKTHROUGH and CUT_PROTOCOL for current operation.
+> Sections 16 onward are historical inspection records; their old commands/status claims require
+> current source checking before reuse. Execute only the user's selected authorized operation.
+
 ## Workflow, Protocols, and Standard Operating Procedures
-**Bundle v9.7.448 · Engine 1.9.173**
+**Bundle v9.7.449 · Engine 1.9.174**
 Hamilton, Ontario
 
 *Sourced from: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`. All content from source files; no inference.*
@@ -17,14 +27,17 @@ Hamilton, Ontario
 Python 3.12 or later is required. Python 3.12 is recommended for the bundled wheel set. Check: `python3 --version`. The bundle operates from within its own directory.
 
 ```bash
-unzip sapote-mamey-v9.7.448-CODE-20261005v97448b.zip
-cd sapote-mamey-v9.7.448-CODE-20261005v97448b
-pip install -e .
-# On managed/Debian systems:
-pip install -e . --break-system-packages
+cd path/to/actual-bundle-root
+python3 --version  # Python 3.12 or newer
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -e .
 ```
 
-This installs the `mamey` command and the two core dependencies (openpyxl for workbooks; ijson is vendored inside the bundle and works offline automatically).
+Use [INSTALL](../INSTALL.md) for platform-specific activation and optional extras. The declared core
+dependencies are openpyxl, ijson, reportlab and PyYAML; a vendored parser fallback does not remove
+normal package-resolution requirements. Use compatible offline wheels when needed. Do not bypass
+system-Python protections or rename an incompatible wheel's platform/Python tags.
 
 ### Addon installation
 
@@ -33,19 +46,22 @@ bash bundle_support/install_sapote_addons.sh           # auto-discovers every at
 bash bundle_support/install_sapote_addons.sh /path/    # or point at a specific directory
 ```
 
-The installer pools all `.whl` files it finds across all named paths and installs them in a single `pip install --no-index --find-links` call. Core science stack (pyhmmer, pyskani, biopython, etc.) must install before figure stack (matplotlib, numpy, pandas, scipy) because several figure modules import from science stack packages. The installer handles this ordering.
-
-**Biopython filename note:** the wheel filename must use dots, not underscores, in the version and platform tags. A file transfer that replaced dots with underscores must be renamed before installation: `biopython-1.87-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl` (correct form).
+The installer pools discovered wheels, installs required core packages first, then attempts the
+optional figure/analysis group as a separate best-effort pass. It is offline by default; `--online`
+permits the documented missing-wheel index fallback only within authorized network scope. Use the
+intended interpreter/virtual environment. Its import verification is bounded by its listed modules,
+not proof that every optional workflow is ready. Inspect actual platform/ABI tags rather than
+renaming a Linux/x86_64 wheel to make it appear compatible with another machine.
 
 ### Verification
 
 ```bash
 python mamey_run.py doctor                          # pre-flight: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # → engine 1.9.173, bundle 9.7.448
+python3 tools/sync_version.py --check # → engine 1.9.174, bundle 9.7.449
 PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -p no:cacheprovider --run-slow --run-network  # configured full suite
 ```
 
-The startup banner on every `python mamey_run.py run` prints a dependency line showing which optional stack is available. `ijson(vendored)✓` means the pure-Python bundled copy is active; `ijson(system)✓` means the C-backend system install is active (faster). Both are correct.
+The startup banner on every `python mamey_run.py run` prints a dependency line showing which optional stack is available. `ijson(vendored)✓` means the pure-Python bundled copy is active; `ijson(system)✓` indicates an imported system installation; inspect its backend/version rather than assuming it is the C backend. A presence label is not evidence-channel completeness.
 
 ### Bundle tiers
 
@@ -59,7 +75,12 @@ Tier names are defined in `tools/tier_vocabulary.py` (five tiers; `SID-public` i
 | MERGED-PRIVATE-scaffold | Full internal working scaffold including any private tree and real strain identifiers | PRIVATE by construction — never distribute |
 | PUBLIC-RELEASE | Same content as the code tier; an explicit promotion, not part of the standard cut set | The public release artifact |
 
-Use CODE for all internal analysis. `AS-` / `AJS-` / `PENDING-` strains are unpublished and always PRIVATE. `SID-` / `WW-` are public.
+Current release_cut defaults to CODE. Other tier branches remain disabled by default; table
+entries describe capability, not distribution permission. Legacy package derivation defaults AS
+identifiers to PUBLIC under its recorded rule, while AJS/PENDING/private-registry safeguards and
+optional published-registry narrowing remain. A selected privacy profile has its own exact policy.
+Neither prefix nor tag grants disclosure of the user's materials. Read the current
+[privacy/tier guide](../CUSTOM_PRIVACY_TIERS.md).
 
 ---
 
@@ -80,16 +101,16 @@ python mamey_run.py run \
   --outdir runs/
 ```
 
-**Required flags:**
+**Intake and optional tag fields:**
 - `--input-zip` — antiSMASH output ZIP (not a raw FASTA; see Common Mistakes §1)
-- `--strain` — meaningful label, not an NCBI accession (see Common Mistakes §3)
-- `--release PUBLIC|PRIVATE` — hard-guarded; AS-/AJS-/PENDING- must be PRIVATE
+- `--strain` — bind the exact intended strain label; an accession can be a fallback when no stronger designation is supplied, but does not create missing taxonomy/source evidence
+- `--release PUBLIC|PRIVATE` — optional local artifact tag subject to current derivation/profile rules; PRIVATE is always the more restrictive selection, not a disclosure grant
 
 **Key optional flags:**
 - `--mode gold` — enables gene-by-gene Mode B depth layer; recommended for strains headed to deep analysis
-- `--json-evidence bounded` — enables RiQ scores and A-domain substrate predictions from antiSMASH region JSONs; falls back to `off` when ijson unavailable (silent fallback — check the startup banner)
+- `--json-evidence bounded` — bounded streaming can surface RiQ/substrate evidence when present; preserve budget/truncation/fallback notes and actual channel states rather than assuming completeness
 - `--json-evidence off` — fastest; excludes RiQ and A-domain data
-- `--capped-session` — applies timeout-safe defaults (suppresses figures, caps streaming); for resource-limited environments
+- `--capped-session` — forces main JSON walker off, brief none, required workbook and default-disabled locus maps; explicit flags may restore selected outputs. It overrides a simultaneous bounded/full request
 - `--taxonomy` — prevents the `.` display name (see Common Mistakes §7)
 - `--source` — provenance string; when absent, habitat falls to ENGINE_DEFAULT_PLACEHOLDER
 
@@ -101,6 +122,7 @@ python mamey_run.py validate runs/AS-XXX/package
 Status vocabulary: `MAMEY_COMPLETE` (all required files present and checksums valid) · `MAMEY_COMPLETE_WITH_ISSUES` (core valid, peripheral issues logged) · `VALIDATION_FAIL` (do not use — diagnose issue log first).
 
 **Post-seal figures:**
+Use a separately identified working package copy when preserving the original seal. In .447, `render-all-figures` can write package data and refresh `post_seal_checksums.txt`; an external figure destination does not make the wrapper read-only. See [post-seal write boundaries](../POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447), then inspect actual per-set results rather than treating exit 0 as every requested figure being present.
 If the run used `--capped-session` or figures were skipped for any reason (`NO_FIGURES_RENDERED.md` present):
 ```bash
 python mamey_run.py render-all-figures --package runs/AS-XXX/package
@@ -130,19 +152,44 @@ The cross-strain pattern needs to be visible before spending judgment time on in
 
 **Building the master workbook (supported path):**
 ```bash
-# Option A: one-step intake
-python tools/mamey_intake.py --packages runs/ --banked-dir cohort/ --workbook project_master.xlsx
+# Option A: package intake into a separately selected writable bank
+python tools/mamey_intake.py --packages ../review_inputs/packages/ \
+  --banked-dir ../review_output/cohort_bank/ \
+  --workbook ../review_output/project_master_new.xlsx
 
 # Option B: explicit two-step
 python tools/ingest_package.py --package runs/AS-XXX/package --ww WWGP0000000 --merge --banked-dir cohort
 python tools/build_workbook.py --workbook project_master.xlsx --banked-dir cohort --full
 ```
 
-**Do not use `mamey/master_workbook.py` (`--master` flag) directly** — it is mid schema-migration and emits doubled, non-conformant workbooks. The supported path is `ingest_package.py → build_workbook.py` or `mamey_intake.py`.
+`mamey_intake.py` recursively discovers `*Project_Memory_Snapshot.json` under the supplied directories. It derives a discovery key from the first `SID<digits>`/`AS-?<digits>` filename match or the snapshot's parent basename, then keeps only the first snapshot per key. It does not admit an explicit package roster or refuse duplicate/conflicting snapshots. Inventory the intended packages, hashes and unique strain identities beforehand; use narrowly selected package directories, not a mixed evidence/archive tree. A discovery count is not an independently validated package count.
+
+Snapshot aliases are followed with an ordinary path join; a target outside the package can be read without a containment check. Before intake, verify each alias resolves to the intended package manifest and bind both files. Accessions come from snapshot metadata or an explicit `--accession-map` (CSV/TSV/JSON). The map reader matches its own extension/header aliases and keeps the last repeated strain entry; it does not verify accession syntax or source identity. Missing accessions are logged as `SKIPPED` and do not make the overall command fail.
+
+Intake initializes missing bank files before validating every input and skips discovery keys already in the bank without checking whether the source package changed. Each new package is ingested through its own child command; an ingest failure stops later packages but does not undo earlier committed bank entries. Review [bank transaction and recovery rules](../COHORT_BANK_TRANSACTIONS.md), retain the discovered/skipped/committed roster and inspect the actual bank state before a retry. Use an explicit correction/update route for changed already-banked sources rather than expecting intake to refresh them automatically.
+
+The workbook child runs after ingestion. Its failure is printed as `build error`, but intake still prints its summary and normally exits zero; that zero does not establish a current workbook. Preserve the full console output and independently verify the selected workbook and build result. With `--no-workbook`, `--workbook` remains a required parser argument even though no workbook build occurs. Choose a fresh workbook destination, retain prior/partial outputs and bind current output hashes separately: the wrapper emits no complete-batch source/output receipt. It runs real child commands and mutates the selected bank/workbook; a prior bank or workbook filename is not a resume certificate.
+
+**Workbook-builder scope:** use the selected `ingest_package.py → build_workbook.py` route or `mamey_intake.py` for this cohort-bank workflow. The direct `mamey/master_workbook.py`/`--master` route has a different schema contract; reconcile its current schema and source-owner guidance before combining those outputs.
 
 `build_workbook.py --full` order (each step idempotent): deep-data bank → marker bank → `build_master` → cross-strain overlays → DAPR boards → D5/Activity_Ref → Lead_Board with RG-GMCI rescue flags + Mode B verdict fold.
 
 ---
+
+### Export a saved transcript for reading
+
+`tools/build_chat_export.py` formats a saved text transcript; it does not retrieve chat history or verify attachment contents. Use a preserved input and a fresh output directory separate from all source files:
+
+```bash
+python tools/build_chat_export.py --transcript inputs/session.txt \
+  --out-dir outputs/session_export_new --title "Session notes"
+```
+
+The parser recognizes standalone, case-sensitive `Human:` and `Assistant:` lines. Inline speaker labels or other role names are not equivalent; an unrecognized transcript can produce a zero-turn export without refusal. Check the prompt/reply count and compare the resulting Markdown with the original. Assistant bodies can contain JSON arrays of event objects with supported `type` fields. Unknown event types and tool results are omitted; tables become placeholders, local resources show only a basename, and tool calls show only the tool name. Keep the original transcript and referenced files as evidence. `--include-thinking` adds recognized thinking events with each text truncated to 1,200 characters; JSON blocks are truncated to 600 characters. This is a reading view, not a lossless archive or evidence-admission receipt.
+
+The transcript basename determines `<basename>.md`, `.html` and `.pdf` under `--out-dir`. Existing Markdown/HTML files are replaced individually. If the input itself is a same-named Markdown or HTML file in that directory, output can overwrite it; confirm resolved paths are disjoint before running. The Markdown is written first. HTML requires the optional `markdown` package; PDF additionally invokes an installed `wkhtmltopdf` executable. A missing `markdown` package skips HTML/PDF after writing Markdown and normally exits zero. A nonzero PDF renderer result is printed as `pdf FAILED` without making the wrapper fail; a missing executable can instead raise after HTML publication. A reused directory can retain an old HTML/PDF after a skipped or failed pass. Inspect current console results and bind the new files' hashes; existence or exit zero alone does not establish a current PDF. Preserve partial outputs and retry into another fresh directory after resolving the missing dependency or renderer failure.
+
+The `INTERNAL` banner is a case-insensitive `AS-` plus two-to-four-digit text heuristic, not a privacy review or redactor. Its absence does not establish permission to share the transcript. Review private content, referenced attachments and any raw HTML/links before optional HTML/PDF rendering or distribution. No source/output hash receipt or rendered-page validation is produced by this helper.
 
 ## Section 3: JSON Evidence Modes and Deep Sheet Completeness
 
@@ -150,13 +197,13 @@ The `--json-evidence` setting determines which workbook sheets can be fully popu
 
 | Mode | What it enables | What it omits |
 |---|---|---|
-| `off` | Fastest; KCB from TXT only; no RiQ | RiQ scores, A-domain substrates, active sites, RiPP cores |
-| `bounded` (default) | Streams region JSON; enables RiQ; A-domain, active site, RiPP from JSON | Nothing — recommended default |
-| `full` | Richest active-site and substrate data from full JSON parse | Slower on large genomes |
+| `off` | Main JSON walker disabled; record-level extraction and GBK paths are separate | Inspect channel receipts: do not equate off with no domain evidence |
+| `bounded` (default) | Streams within byte/leaf/time limits when parser is available | Truncation, omitted source keys and fallback remain possible; not “nothing omitted” |
+| `full` | Legacy full flattening of admitted files | Hard refusal above 80,000,000 uncompressed bytes; admitted files may need substantially more RAM |
 
 **GBK recovery note:** three of the four fine workbook sheets do NOT require bounded mode. antiSMASH writes A-domain substrate predictions, KR active-site/stereochemistry calls, and protocluster class+category into region GBKs regardless of json mode. So `Gene_NRPS_PKS_Substrates`, `Gene_Active_Sites`, and `BGC_Class_Predictions` are recoverable offline from GBKs (tagged `Source = GBK-offline`). Only `Gene_RiPP_Cores` genuinely requires the region JSON.
 
-The `OFFLINE-LIMITED` line from `build_deep_data.py` lists specific strains whose fine sheets are empty due to offline runs. To recover: re-run those strains on a networked machine with `--json-evidence bounded`.
+The `OFFLINE-LIMITED` line from `build_deep_data.py` lists specific strains whose fine sheets are empty due to offline runs. First inspect the bound local GBK/JSON evidence, recovery capability and source receipt. Parsing an existing antiSMASH archive does not inherently require network access. Any authorized new run must preserve original inputs and record changed parameters and evidence scope.
 
 ---
 
@@ -392,7 +439,7 @@ PASS required before handing off. Known gaps (empty B4 scan columns for benchmar
 
 ## Section 9: Deliverable Menu — Natural Language Triggers
 
-Source: `docs/GUIDE/02_Quick_Guide.md`. Every phrase listed here is tested against actual pipeline behaviour.
+The phrases below are retained request vocabulary from earlier workflow records, not executable command names or fresh end-to-end acceptance evidence. Use [Choose a task](../USER_TASK_ROUTER.md) and the selected owning guide for current inputs, outputs, available channels and completion limits. “Full plate”, CM bundles and “give me everything” require an explicit requested output roster; they do not guarantee every evidence channel, authored judgment or publication deliverable.
 
 ### Getting started
 - `"Can you work from this to get me the full deliverables?"` — the single most useful phrase; works from antiSMASH ZIP or sealed package; works mid-session to continue
@@ -487,25 +534,12 @@ The two polyoxin accessions (same compound, different genomic context) test cros
 
 ## Section 11: Release Checklist Summary
 
-Source: `docs/RELEASE_CHECKLIST_v9.md`. 7 gates, each with mandatory items. Summary:
-
-**Gate 1 (Document sync):** One active controller; no stale term occurrences (`v8.1`, retired codename, `Davey`, `optional RG-GMCI`, `PENDING` in required fields, `Full Coverage Mode`); affiliation throughout; DELIVERABLE_CONTRACT consistent with CLAUDE_SYSTEM_PROMPT.
-
-**Gate 2 (Prompt quality):** Both prompts mandate all deliverables without asking user; failure codes match across all docs; no aspirational behavior presented as available.
-
-**Gate 3 (Schema verification):** WORKBOOK_SCHEMA.md matches produced workbook columns; scan_states.json schema matches what mamey_run.py emits; checkpoint CSV schema matches engine output.
-
-**Gate 4 (CLI verification):** `python mamey_run.py --help` matches HOW_TO_USE; `smoke/standard/gold` all documented and functional; failure codes match prompts.
-
-**Gate 5 (Test matrix):** Six behavioral tests (see checklist for full list). Note: many are target/Release-2 acceptance tests, not yet implemented in the current suite.
-
-**Gate 6 (Examples and references):** Test data present; layperson guide exemplar populated; CITATION.cff updated; CHANGELOG has a v9.7.241 entry.
-
-**Gate 7 (Public readiness):** README accurate; RELEASE_MANIFEST.md has honest known limitations; SHA-256 checksums computed for all release files.
-
-**Tier parity gates (added v9.7.6):** `tools/check_tier_parity.py` must pass for all four tiers before tag/push. Per-tier: registry present, build caches clean (0 `__pycache__`/`*.pyc`), pytest passes in-tier, leak audit clear (0 AS-strain IDs in public tiers), checksums self-verify.
-
-**Multi-tier disclosure rule:** per-tier patch/verification status must be recorded at delivery. Never assume a fix propagated to all tiers — explicitly confirm and prominently flag if any fix landed in only some tiers.
+Use the [current release checklist](../RELEASE_CHECKLIST_v9.md) and
+[CUT_PROTOCOL](../../CUT_PROTOCOL.md). Old smoke-mode defaults, four-tier test totals and mandatory
+prompt-deliverable defaults from the v9.4 checklist are not current gates. Bind prepared-source,
+staged-tier and extracted-archive identities separately. The normal driver runs convergence/final
+source suites and skips its child in-tier suite; report each actual phase, and retain the separately
+required artifact checks. No checklist summary or local tag grants sealing/distribution authority.
 
 ---
 
@@ -636,7 +670,7 @@ Class A = CONFIRM + SARP. Class B = one strong axis only. Class C = KCB or weake
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.448. Historical run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.449. Historical run facts retain their original version labels.*
 
 ---
 
@@ -689,7 +723,7 @@ python mamey_run.py verify-modeb --package <sealed_pkg> --bgc <BGC_ID>
 # → PHANTOM_LOCUS ERROR, readiness_state: DRAFT
 ```
 
-Delete every §4 and §16 paragraph containing `ctg12_71`. Then re-run `verify-modeb`. If per-gene BLASTp evidence is genuinely wanted for that BGC, produce it — offline-preferred as of v9.7.260: if you already have NCBI results, `python mamey_run.py ingest-blastp --hit-table <hits.csv> [--xml <aln.xml>] --package <pkg>` (zero network); otherwise `python mamey_run.py blastp-online --package <pkg> --bgc <BGC_ID>` — then author §4 from the real result.
+Delete every §4 and §16 paragraph containing `ctg12_71`. Then re-run `verify-modeb`. If per-gene BLASTp evidence is genuinely wanted for that BGC, produce it — offline-preferred as of v9.7.260: if you already have NCBI results, `ingest-blastp` with the current required master-workbook and strain arguments plus the bound hit table, optional alignment/package inputs and provenance; use ONLINE_BLASTP_PROTOCOL for the exact command (zero network); otherwise `python mamey_run.py blastp-online --package <pkg> --bgc <BGC_ID>` — then author §4 from the real result.
 
 ### If `LOCUS_BGC_MISMATCH` fires (v9.7.256)
 
@@ -703,16 +737,16 @@ The card states a per-gene BLASTp result for a BGC that has **no BLASTp panel** 
 
 ## Section 17: Pre-Release Gate Sequence (v9.7.246)
 
-Two gates were added to the release path in v9.7.243. The full sequence, in order:
+The following is a retained v9.7.246 sequence, with the doctor invocation corrected. Reconcile it against the next cut’s actual release owners and environment; it is not a current execution receipt or a universal gate list. Network-marked tests need the intended network environment and scope; retain their actual run logs and exit status.
 
 ```bash
 # 1. Environment and bundle integrity
-python3 -m python mamey_run.py doctor
-python3 tools/sync_version.py --check # → engine 1.9.173, bundle 9.7.448
+python3 mamey_run.py doctor
+python3 tools/sync_version.py --check # → engine 1.9.174, bundle 9.7.449
 
 # 2. Documentation anchors
 python3 tools/check_monolith_freshness.py          # exit 1 on stale anchor or retired doctrine
-python3 tools/check_dangling_refs.py --strict-paths # path-qualified reference ratchet
+python3 tools/check_dangling_refs.py --scope all --strict-paths # examples plus qualified tool/module references
 python3 tools/gen_marker_catalog.py --check        # catalog in sync with source_scans.py
 
 # 3. Fast pre-validation
@@ -740,7 +774,9 @@ surrogate gate: PASS (22 pytest files, 13.4s step-sum)
 full suite: 2884 passed, 152 skipped, 2 warnings in 262.98s (0:04:22)
 ```
 
-**Note on `check_monolith_freshness`.** It does not demand that the monolith be re-read. It demands that the monolith state, truthfully, how far behind it is. A drift of 4 patches with an honest anchor passes. A drift of 185 patches with an anchor claiming a recent read-through — the v9.7.242 state — fails.
+**Scope of ZIP hygiene.** This is a name/declared-size release-packaging scan, with coarse basename exceptions preceding path ceilings. It does not read payloads or replace antiSMASH intake, source binding or release checks. Read [preflight/manifest contracts](../reference/06_CURRENT_SOURCE_SCOPE.md#input-manifests-and-zip-preflight-scopes) for exact exceptions, exit/recovery and the distinct directory checker.
+
+**Scope of `check_monolith_freshness`.** It checks selected anchor/retired-phrase rules, with default max-drift60. First full/spot anchor matches are compared by final version component; engine identity and actual review are not verified. A spot anchor can pass without establishing a full read-through. Retain honest review provenance and source hashes rather than restamping to force PASS. See [current source scope](../reference/06_CURRENT_SOURCE_SCOPE.md#receipt-timestamps-and-monolith-freshness-gates) for the separate receipt timestamp limits.
 
 ---
 
@@ -779,4 +815,8 @@ The v9.7.246 fabrication passed claim-safety, evidence-presence, citation, and p
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.448. Historical v4 section labels and run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.449. Historical v4 section labels and run facts retain their original version labels.*
+
+## Version reference
+
+Current archive naming example: `sapote-mamey-v9.7.449-CODE-20261009v97449a.zip`. Bind the actual supplied archive and hash before extracting.

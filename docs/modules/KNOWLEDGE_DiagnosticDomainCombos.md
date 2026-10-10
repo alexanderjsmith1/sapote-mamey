@@ -10,7 +10,7 @@
 
 ## 1. Why this exists / who reads it
 
-A single domain rarely names a class; a *combination* often does. Mamey reliably extracts domains (bitscore, locus tag, Pfam/TIGRFAM accession) but stops short of the class inference — by design, since inference is judgment. This module is the judgment table the Sapote layer applies. It is read whenever a BGC's class call needs to rise above the bare antiSMASH product label (every Mode B §1/§4, every lead-board verdict).
+A single domain rarely names a class; a *combination* often does. Mamey extracts admitted domains and also runs source-scan/CCTT and scoring rules; this table remains a prompt interpretation aid. Extraction coverage depends on the admitted source/channel, and descriptive registry profiles are not evidence that their HMM scan ran. This module is the judgment table the Sapote layer applies. It is read whenever a BGC's class call needs to rise above the bare antiSMASH product label (every Mode B §1/§4, every lead-board verdict).
 
 **Skip-not-fake.** A combination is asserted only when *all* its required domains are present in Mamey's extraction at the stated tier. A partial match is reported as "partial — N of M diagnostic domains present," never rounded up to the class call.
 
@@ -32,7 +32,7 @@ A single domain rarely names a class; a *combination* often does. Mamey reliably
 |---|---|---|
 | TIGR04462 + TIGR04460 | Enduracididine-type NRPS; **lipid II inhibitor** class | class-level; "consistent with" |
 | TIGR03550 + TIGR03551 + TIGR03620 | F420-embedded polyketide | class-level |
-| PF12029 + TIGR02353 | NAPAA / poly-amino-acid candidate | **comparative-EXCLUDED** per NAPAA standing constraint |
+| PF12029 + TIGR02353 | NAPAA / poly-amino-acid candidate | neutral under the current rules registry; no blanket comparative exclusion |
 | TIGR04363 + TIGR04364 | FxLD class-I lanthipeptide | class-level |
 | PF19402 ×3 | Triple-precursor class-III lanthipeptide | class-level |
 | PF00109 + PF02514 + TIGR01181 + PF01041 | Glycosylated T2PKS | class-level |
@@ -61,14 +61,14 @@ This module emits no file; it governs the **class-call cell** wherever a BGC is 
 | Live domain extraction | `mamey/antismash_evidence.py` (regex + GBK Pfam) |
 | Marker/cassette vocabulary (descriptive) | `mamey/sapote_cassettes.py`, `mamey/mamey_markers.py` |
 | Combination → class logic | **this module** (portable copy) |
-| Future scanning backend | Release-2 HMMER/DIAMOND — **pyhmmer + targeted `.hmm` set would activate it in-sandbox** |
+| Future scanning backend | A proposed HMMER/DIAMOND or pyhmmer adapter requires its named local dependencies, admitted reference data and separate implementation verification. |
 | Cross-check triggers | kernel MODULE 5 (§34), MODULE 6 (§43 CCTT) |
 
 ---
 
 ## 7. Worked next-paths closer (SID-XXX)
 
-> Applied DDC to SID-XXX: BGC047 → enediyne (ene_KS 830.8 + TIGR03604 + YcaO; [E-signal]), BGC012 → thioamitide (TfuA+YcaO), BGC063 → phosphonate (PepM; 31P-NMR gate), BGC007/024/032/041 → CDPS/DKP, BGC003/019/042 → NAPAA (comparative-excluded). Next paths:
+> Applied DDC to SID-XXX: BGC047 → enediyne (ene_KS 830.8 + TIGR03604 + YcaO; [E-signal]), BGC012 → thioamitide (TfuA+YcaO), BGC063 → phosphonate (PepM; 31P-NMR gate), BGC007/024/032/041 → CDPS/DKP, BGC003/019/042 → NAPAA (current registry neutral). Next paths:
 > 1. Feed these class calls into the Mode B §1 tables for the top leads.
 > 2. Activate the §8 HMM backend with a targeted pyhmmer profile set (enediyne/PepM/TfuA-YcaO/CDPS).
 > 3. Cross-check each call against its §34 Hallucination-Trap row.

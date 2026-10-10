@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.448 stamp=20261005v97448b
+# TIER_MANIFEST tier=code version=9.7.449 stamp=20261009v97449a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -35,6 +35,7 @@
 ./Wheelhouse/validations/selvamicin_validation.json
 ./bootstrap.sh
 ./bootstrap_contract.yml
+./bundle_support/README.md
 ./bundle_support/deliverable_menu_widget.html
 ./bundle_support/install_r_figure_packages.R
 ./bundle_support/install_sapote_addons.sh
@@ -47,6 +48,7 @@
 ./debugging_modules/BUG_HUNT_PROTOCOL.md
 ./debugging_modules/BUNNY_HOP_AUDIT_GAME.md
 ./debugging_modules/BUNNY_HOP_REQUEST_TEMPLATE.md
+./debugging_modules/CURRENT_AUDIT_REQUEST.md
 ./debugging_modules/README.md
 ./deliverable_tools/README.md
 ./deliverable_tools/TOOLS_INDEX.md
@@ -120,12 +122,14 @@
 ./docs/ANTISMASH_INPUTS_CONSUMED.md
 ./docs/ANTISMASH_PROFILE.md
 ./docs/ANTISMASH_WEB_SUBMISSION_SOP.md
+./docs/ARTIFACT_MAP_LIMITS.md
 ./docs/ASSISTANT_GOVERNANCE.md
 ./docs/ASSISTANT_RUNTIME_PROFILES.md
 ./docs/ASSISTANT_USER_GUIDE.md
 ./docs/AS_batch1_BiGSCAPE_run_guide.md
 ./docs/B2_PHASE2_INACTIVE_MARKER_WORKLIST.json
 ./docs/B2_REGISTRY_WIRING_SPEC.md
+./docs/BARRNAP.md
 ./docs/BERT_MODE_PROTOCOL.md
 ./docs/BGC_BLASTP_PANEL_v9.7.142.md
 ./docs/BGC_DELIVERABLES.md
@@ -133,6 +137,7 @@
 ./docs/BGC_FUNCTIONAL_LOGIC_WORKUP.md
 ./docs/BGC_size_by_type.md
 ./docs/BIGSCAPE_CLASS_GLOSSARY.md
+./docs/BIGSCAPE_CLASS_READING_GUIDE.md
 ./docs/BIGSCAPE_COHORT_NETWORK_GUIDE.md
 ./docs/BIGSCAPE_COHORT_WALKTHROUGH.md
 ./docs/BIGSCAPE_FIGURES.md
@@ -145,9 +150,11 @@
 ./docs/BLASTP_NOVELTY_WORKFLOW.md
 ./docs/BOOTSTRAP_FILE_AUDIT.md
 ./docs/BUNDLE_CAPABILITIES.md
+./docs/BUNDLE_METADATA_READERS.md
 ./docs/BUNNY_HOP_AUDIT_GAME.md
 ./docs/BUNNY_HOP_WISHLIST_v9.7.150e.md
 ./docs/CALIBRATION_CORPUS_KNOWN_BGCS.md
+./docs/CATALOG_MAINTENANCE.md
 ./docs/CHANGELOG_note.md
 ./docs/CHANGELOG_v9_7_302_note.md
 ./docs/CHATGPT_EXECUTION_SLICE_v97147.md
@@ -155,6 +162,7 @@
 ./docs/CHATGPT_SURROGATE_GATE_v9.7.141.md
 ./docs/CHITIN_REFERENCE_EVALUATION.md
 ./docs/CITATION_COMPACT_MODE.md
+./docs/CITATION_COMPACT_READERS.md
 ./docs/CI_REFERENCE_FIXTURES_GUIDE.md
 ./docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md
 ./docs/CLEAR_MATCH_FINDER.md
@@ -172,6 +180,7 @@
 ./docs/COMMON_MISTAKES.md
 ./docs/COMPANION_CLASS_EVIDENCE.md
 ./docs/COMPANION_FILES.md
+./docs/COMPANION_RUN_CONTRACTS.md
 ./docs/COMPANION_TOOL_GUIDE.md
 ./docs/COMPARE_RESOURCE_CONTROL.md
 ./docs/CONSOLIDATED_PUNCHCARD_v9.7.254.md
@@ -182,6 +191,7 @@
 ./docs/DELIVERABLE_MANIFEST_TEMPLATE.md
 ./docs/DELIVERABLE_MENU.md
 ./docs/DELIVERABLE_MENU_v97146.md
+./docs/DELIVERABLE_QUEUE.md
 ./docs/DISCOVER_DESIGN_AND_FIGURES.md
 ./docs/DOCUMENTATION_MAP.md
 ./docs/DOMAIN_TREE_CONTRACT.md
@@ -226,7 +236,10 @@
 ./docs/GUIDE/04_Glossary.md
 ./docs/GUIDE/05_RunObservations_TEMPLATE.md
 ./docs/GUIDE/06_Concepts_QandA.md
+./docs/GUIDE/07_LARGE_REFERENCE_ENTRY.md
 ./docs/HOW_TO_USE.md
+./docs/HTML_EVIDENCE_VIEWS.md
+./docs/HTML_TEMPLATE_READERS.md
 ./docs/INGEST_AND_PRINCIPLES_WHITEPAPER.md
 ./docs/INSTALL.md
 ./docs/INSTRUCTIONS_cohort_wide_blastp.md
@@ -239,6 +252,7 @@
 ./docs/LITERATURE_REVIEW_MODES.md
 ./docs/LITERATURE_SEARCH_PROTOCOL.md
 ./docs/LLM_COMPANION_TOOL_PROTOCOL.md
+./docs/LOCUS_AND_PCOA_TOOLS.md
 ./docs/LOCUS_COMPARISON.md
 ./docs/LOCUS_MAP_REVIEW_CONTRACT.md
 ./docs/LOCUS_MAP_V8.md
@@ -247,7 +261,9 @@
 ./docs/MASTER_SCHEMA_FROZEN_v1_1.md
 ./docs/MASTER_WALKTHROUGH.md
 ./docs/METHODS_REPORTING_CHECKLIST.md
+./docs/MODEB_50_CONTRACT_READING_GUIDE.md
 ./docs/MODEB_50_SECTION_CONTRACT_CANDIDATE.md
+./docs/MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md
 ./docs/MODEB_CORRECTIVE_PROTOCOL.md
 ./docs/MODEB_CURRENT50_V2_CONTRACT.md
 ./docs/MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md
@@ -308,6 +324,7 @@
 ./docs/PREREQUISITES.md
 ./docs/PREVALENCE_WORKFLOW.md
 ./docs/PRODUCT_MAP.md
+./docs/PROJECT_CATALOG.md
 ./docs/PROJECT_DATA_HOME.md
 ./docs/PROJECT_NAMING.md
 ./docs/PROPOSED_IMPLEMENTATION_RESIDUE_AWARE_BATCHING.md
@@ -318,6 +335,7 @@
 ./docs/REFERENCE_BGC_STRUCTURAL_VALIDATOR.md
 ./docs/REGISTRY_JSON_CSV_PARITY_NOTE_v9.7.141.md
 ./docs/RELEASE_CHECKLIST_v9.md
+./docs/RELEASE_RECORDS_GUIDE.md
 ./docs/RGGMCI_RESCUE_ATLAS.md
 ./docs/RIPP_TREE_OPTIONS.md
 ./docs/ROUND2_PUBLIC_STRAIN_WALKTHROUGH.md
@@ -358,6 +376,7 @@
 ./docs/STRAIN_LEVEL_BGC_LOGIC.md
 ./docs/STRAIN_SLIDES.md
 ./docs/STRUCTURED_DOMAIN_MOTIF_EXTENSION.html
+./docs/STRUCTURED_DOMAIN_MOTIF_EXTENSION.md
 ./docs/SUPPORT_CARD_EVIDENCE_MATRIX.tsv
 ./docs/Sapote-Mamey.bib
 ./docs/Sapote_Mamey_ROADMAP.md
@@ -380,15 +399,19 @@
 ./docs/TYPE_STRAIN_WALKTHROUGHS.md
 ./docs/USER_CATALOG.generated.json
 ./docs/USER_CATALOG.generated.md
+./docs/USER_TASK_ROUTER.json
+./docs/USER_TASK_ROUTER.md
 ./docs/WHATS_NEW_415.md
 ./docs/WIDGET_DELIVERABLES.md
 ./docs/WISE_WORKFLOW_DOCTRINE.md
 ./docs/WORKBOOK_SCHEMA.md
+./docs/WORKBOOK_VALIDATION.md
 ./docs/WORKED_EXAMPLE.md
 ./docs/WORKFLOW_GATES_GUIDE.md
 ./docs/WORKFLOW_GUIDE.md
 ./docs/archive/B2_REGISTRY_WIRING_PHASE2_SPEC.md
 ./docs/archive/PATCH_APPLY_LOG.txt
+./docs/archive/README.md
 ./docs/archive/READ_ME_FIRST.txt
 ./docs/archive/RECONCILIATION_locus_renderer_to_analysis.md
 ./docs/archive/RESEARCH_START_v9.7.138.md
@@ -457,6 +480,7 @@
 ./docs/modules/MODE_B_BATCH_RUN.md
 ./docs/modules/MODE_B_DEPTH_POLICY.md
 ./docs/modules/MODE_B_WRITE.md
+./docs/modules/README.md
 ./docs/modules/SAPOTE_LEAD_DETAIL_MODULE.md
 ./docs/modules/THESIS_HANDOFF.md
 ./docs/modules/_TEMPLATE_Module.md
@@ -488,6 +512,7 @@
 ./docs/reference/03_Plumbing_Reference.md
 ./docs/reference/04_RGGMCI_ClusterBlast_Utilization.md
 ./docs/reference/05_VolII_ClusterG_Figure_System.md
+./docs/reference/06_CURRENT_SOURCE_SCOPE.md
 ./docs/reference/10_Math_Reference_GeneralAudience.md
 ./docs/reference/METHODS_TECHNICAL_APPENDIX.md
 ./docs/reference/SCANNER_PFAM_MANIFEST.md
@@ -525,6 +550,10 @@
 ./docs/troubleshooting/PROTEIN_FASTA_WORKFLOW.md
 ./docs/troubleshooting/README_TROUBLESHOOTING.md
 ./docs/troubleshooting/SINGLE_REGION_ACCESSION_INPUTS.md
+./docs/user_guides/CHOOSE_NEXT_COMMAND.md
+./docs/user_guides/FIRST_RUN_ORIENTATION.md
+./docs/user_guides/READ_EXISTING_RESULT.md
+./docs/user_guides/WORKFLOW_RECOVERY.md
 ./docs/user_guides/comprehensive_glossary.md
 ./docs/user_guides/development_issues_compendium.md
 ./docs/user_guides/math_reference_vol1.md
@@ -542,6 +571,7 @@
 ./docs/working/RELEASE_MANIFEST_remediation_v9_7_154_APPLIED.md
 ./docs/working/REPORT_THEME_TOKENS.json
 ./docs/working/methods_section_DRAFT.md
+./examples/README.md
 ./examples/bench_guide_exemplar.md
 ./examples/bioassay_observations_template.tsv
 ./examples/citation_library_exemplar.md
@@ -1232,6 +1262,7 @@
 ./tests/conftest.py
 ./tests/data/type_reference_rerun_targets.tsv
 ./tests/figure_page_text_ratchet.py
+./tests/fixtures/README.md
 ./tests/fixtures/bgc006_online_blastp.csv
 ./tests/fixtures/blast_online_sample.xml
 ./tests/fixtures/cohort_pack/exclusions.json
@@ -1526,6 +1557,20 @@
 ./tests/test_448_strain_slides_structure_gallery.py
 ./tests/test_448_strain_slides_typed_rules.py
 ./tests/test_448_write_guard_reference_operands.py
+./tests/test_449_contig_names_keep_coverage_zeros.py
+./tests/test_449_csv_import_order.py
+./tests/test_449_gap_rescue_gene_table_with_map.py
+./tests/test_449_gap_rescue_map_main_block.py
+./tests/test_449_gap_rescue_partner_contig_context.py
+./tests/test_449_gap_rescue_post_run_step.py
+./tests/test_449_gap_rescue_split_piece_labels.py
+./tests/test_449_locus_reading_pages.py
+./tests/test_449_partner_headings_never_move_contigs.py
+./tests/test_449_pcoa_explorer_3d_view.py
+./tests/test_449_protein_pcoa_compare.py
+./tests/test_449_region_structure_follows_map_reference.py
+./tests/test_449_rggmci_pair_map_uses_locus_comparison.py
+./tests/test_449_tool_logging.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_absent_median_is_not_a_zero_v97438.py
 ./tests/test_activity_decision_tree_portable.py
@@ -2109,6 +2154,7 @@
 ./tests/test_full_locus_synthetic_fixture_v97410.py
 ./tests/test_g1_module_contracts.py
 ./tests/test_g3b_n50_floor_v97407.py
+./tests/test_gap_rescue_map_redraw_fixes.py
 ./tests/test_gate_completeness_v97409.py
 ./tests/test_gate_mutation_probe_v97407.py
 ./tests/test_gate_stem_engine_binding_mutation_candidate.py
@@ -3006,6 +3052,7 @@
 ./tests/test_zip_nonregular_member_intake_v97401.py
 ./tests/test_ziputil_safe_extract_v9_7_382.py
 ./tests/trees_432_panel_fixture.py
+./tools/BIGSCAPE_READER_RECOVERY.md
 ./tools/FIGURE_R_MANIFEST.tsv
 ./tools/SLIM_KERNEL_PATCHES_v1.9.7.md
 ./tools/TREE_SPEC.example.json
@@ -3246,6 +3293,7 @@
 ./tools/full_suite_receipt.py
 ./tools/gap_directed_rescue.py
 ./tools/gap_rescue_all_regions.py
+./tools/gap_rescue_gene_table.py
 ./tools/gap_rescue_locus_map.py
 ./tools/gate_mutation_probe.py
 ./tools/gate_mutation_table.tsv
@@ -3293,6 +3341,7 @@
 ./tools/lead_propagation_gate.py
 ./tools/llm_trustworthiness.py
 ./tools/locator_reconciliation.py
+./tools/locus_reading_pages.py
 ./tools/log_release.py
 ./tools/make_public_tier.sh
 ./tools/make_release_tarball.sh
@@ -3360,6 +3409,7 @@
 ./tools/preview_figure_themes.py
 ./tools/professionalism_linter.py
 ./tools/project_catalog.py
+./tools/protein_pcoa_compare.py
 ./tools/protein_pcoa_ordinate.py
 ./tools/protein_pcoa_render.R
 ./tools/protein_pcoa_render.py

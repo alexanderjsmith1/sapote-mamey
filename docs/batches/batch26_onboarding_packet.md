@@ -3,6 +3,20 @@
 
 **v9.7.149a** | Last updated: 2026-06-29
 
+
+## Current onboarding route
+
+The week plan and project assumptions below are retained from v9.7.149a. Several named batch guides are absent. Start with [Start here](../START_HERE.md), then [the first analysis guide](../MASTER_WALKTHROUGH.md), [reading results](../READING_YOUR_RESULTS.md), and [the assistant guide](../ASSISTANT_USER_GUIDE.md). [The corrected batch index](batch15_master_index.md) lists actual retained filenames; the session note is [batch27](batch27_session_handoff_protocol.md), not a nonexistent batch26 session file.
+
+Before interpreting a locus, preserve `strain / full node-or-contig / region / BGC alias` and the source hash. Mode B uses a selected [profile contract](../MODEB_PROFILE_MATRIX.md); historical 8–20-section/two-page summaries do not define current requirements. AB/AF/ranks are routing evidence, not confirmed activity or molecule identity. Never turn missing assay data into assumed MRSA/Candida activity or inactivity. Recorded observations require their own source, conditions, denominator and acceptance owner.
+
+Privacy follows explicit strain assignment and evidence binding, not an AS/SID prefix. See [portable privacy/evidence](../PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md) and [project catalog](../PROJECT_CATALOG.md). A public-looking ID is not permission to share a package or evidence with a service.
+
+`MAMEY_COMPLETE` is scoped extraction completion with judgment pending; issues may be material. Review issue/phase/validator/checksum receipts and actual outputs before proceeding. Default validation can write its mutable status receipt (`mamey/validate.py:1003–1045,1085–1106`). Assistant names and fixed session strain counts do not guarantee timeout avoidance. No installation, extraction, assay interpretation or submission was performed for this documentation overlay.
+
+## Historical v9.7.149a record — preserved below
+
+
 ---
 
 ## Welcome
@@ -122,6 +136,8 @@ A: No. Mamey runs completely without Claude. Claude (Sapote layer) is for writin
 A: A BGC is the DNA sequence encoding the machinery to potentially make a compound. The compound is the actual molecule. Mamey tells you about BGCs; what compound (if any) gets made requires wet-lab work to confirm.
 
 **Q: Can I run multiple strains at once?**
+Current batch sizing depends on the selected tools, input sizes and available resources. Begin with a bounded run and use measured timing/memory before increasing concurrency; the historical assistant comparison below is not a platform guarantee.
+
 A: Yes, but limit to 2–3 per session to avoid timeouts (especially in ChatGPT). Claude can handle more.
 
 ---

@@ -52,9 +52,7 @@ compatible R renderers. The R scripts themselves remain reviewable source files 
 Maximum inhibition is supported only as the explicit `fraction_set_max` view: one target, time
 point, final assay concentration, material type, named fraction set per strain, and a declared
 activity threshold. Its selection details retain the winning fraction, measured and active fraction
-counts, and summed recorded material amount. It is not the default and it does not mix experiments,
-targets, doses, or material types. An average is valid only within the exact grouping stated in the
-summary and selection receipt.
+counts, and summed recorded material amount. It is not the default and does not combine different selected targets, final doses or material types. Matching observation rows can still span multiple experiments: the producer's grouping key has no experiment ID, weights included rows equally, and the tree selector has no experiment-roster filter. `fraction_set_max` chooses among those material summary means, not independent experiment-specific maxima. Resolve experiment/replication scope through the admitted input dispositions before production and retain experiment/observation counts and the original selection receipt. Do not infer an equal-experiment mean or a no-pooling guarantee from the plot.
 
 ## Still needed
 
@@ -75,3 +73,11 @@ reference or comparator and preserve its structure identifier, source record, an
 ## Exact selected assay tracks
 
 The portable [tree assay track workflow](TREE_ASSAY_TRACK_RENDERING.md) uses `build_tree_tracks.py`, `render_tree_one_bar_row.R` and `render_tree_bar_groups.R`. It preserves the Figure Factory selection receipts and exact tip IDs; it does not aggregate across assay scopes.
+
+## R output binding and locus-map limits
+
+The R templates consume sidecars directly. `figure_factory_next_ggplot.R` checks required columns, nonempty data, and cohort palette entries; it does not verify the Python receipt hashes, re-admit rows, or certify the numeric fields against the source. Verify the consumed sidecar against its producer receipt first, then record the exact R/theme source hashes, arguments, session/library versions and new output hashes. Use a new output prefix: `sapote_save_pair` calls `ggsave` directly and has no existing-output refusal. R outputs do not inherit the Python artifact hashes or receipt status.
+
+`sapote_locus_map.R` draws gene arrows and two alternating label rows. It reads the exact `panel` subtitle but does not render the v8 comparator/evidence panel, enforce collision-free dense labels, or emit a v8 receipt. Its required visibility field is `label_displayed` (YES); a different legacy visibility schema needs an explicit checked adapter. Treat this as an alternate arrow view, with its content gaps recorded. For review-grade v8 maps use [LOCUS_MAP_V8](LOCUS_MAP_V8.md), retain the rich CSV, and inspect dense labels at the intended size. Do not label an R redraw as v8 parity without content and identity verification.
+
+Source owners: `tools/figure_factory_next_ggplot.R:42–67,106–110`; `tools/sapote_figure_theme.R:143–150`; `tools/sapote_locus_map.R:36–57,130–143`.

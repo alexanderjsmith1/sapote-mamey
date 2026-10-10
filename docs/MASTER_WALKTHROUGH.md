@@ -40,8 +40,8 @@ for less: just inspect the ZIP, or just explain an existing package.
 ## Route B: run the commands yourself
 
 These commands are for **macOS/Linux** and run in Terminal, not inside Python or a chat box.
-For Windows environment activation see [INSTALL](INSTALL.md); this route was not tested on
-Windows. A quoted path can contain spaces. Lines starting with `#` are comments. Replace the
+Windows users should follow [INSTALL](INSTALL.md) for environment activation and adapt the
+macOS/Linux shell syntax below to their shell. A quoted path can contain spaces. Lines starting with `#` are comments. Replace the
 sample paths before running anything; do not paste the words "absolute/path" as a real location.
 
 ### 1. Find your three locations
@@ -71,7 +71,10 @@ An environment is a private set of Python packages for this project. It is not a
 input, and it should not be copied to another laptop as a portable installation.
 
 Follow [INSTALL](INSTALL.md) to create and activate the environment and install the extras you
-want. For this example, core plus figures and Biopython is enough. Then confirm:
+want. For this example, core plus figures and Biopython is enough. Before the
+commands below, check the [doctor write-probe boundary](INSTALL.md#doctor-scope-and-write-probe):
+use an editable working installation and do not run the probe if `runs/_doctor_probe`
+is already occupied. Then confirm:
 
 ```bash
 python --version
@@ -147,7 +150,9 @@ python mamey_run.py list-bgcs "$PACKAGE"
 ```
 
 The validator checks encoded rules. It does not confirm that every requested output exists,
-that JSON evidence is exhaustive, or that interpretation is finished. Now go to
+that JSON evidence is exhaustive, or that interpretation is finished. Read the main result and
+`WORKBOOK_CONTENT` separately: even `--workbook-strict` can report `SKIP` for an absent workbook.
+Confirm any required workbook path/current receipt independently; see the [inspector and validator scope](SOPs/SOP-01_Intake_RawAntiSMASH_vs_MameyPackage.md#inspector-and-validator-scope). Now go to
 [Read your results](READING_YOUR_RESULTS.md) to open the workbook and the status files.
 
 ## When something goes wrong
@@ -222,7 +227,7 @@ home-directory boundary, but an explicit root is better when evidence is outside
 project. A `BLASTP_DISCOVERY_HOLD` means discovery could not finish; fix the root or access
 problem and retry.
 
-Then use [Mode B authoring](MODEB_GATE_CLEAN_AUTHORING.md) and the package's active contract to
+Then use [Mode B authoring](MODE_B_USER_WALKTHROUGH.md), the [profile matrix](MODEB_PROFILE_MATRIX.md) and the package's selected contract to
 emit, author and verify the card. A generated template is a scaffold, not an authored card. Do
 not splice section numbers from different profiles. Having a citation does not mean the passage
 was reviewed or the science accepted. Keep unresolved evidence states, and check every generated
@@ -279,3 +284,5 @@ specialist and historical records.
 [The Mode B user walkthrough](MODE_B_USER_WALKTHROUGH.md) covers package inputs, exact identity,
 runnable preparation/verification examples, profile differences and the complete 50-section
 requirement map. The native scaffold is not a finished 50-section card.
+
+For named optional deliverables, use [Choose a task](USER_TASK_ROUTER.md). Before native follow-on authoring, figure rendering or BLASTp ingest, read [post-seal write boundaries](POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447). In .447 an external output folder does not always prevent package-integrity refresh; preserve the original and use a bound working package copy for those commands.

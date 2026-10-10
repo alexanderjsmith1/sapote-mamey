@@ -1,3 +1,11 @@
+## Current reading boundary — v9.7.447
+
+The historical provenance below is retained verbatim. Its “current engine 1.9.97” refers to the historical boundary, not this bundle's engine 1.9.172. The stored bank remains engine 1.9.96-pinned. Historical public/identity/comparability assertions and numerical receipts have not been independently reaccepted by this documentation audit.
+
+`mamey/genus_reference.py` reads the stored CSVs; it does not recalculate prevalence or rescore. `assert_comparable_with(current_engine)` compares exact version strings when explicitly called. A source-wide search found no non-test call site outside its own definition/docstring, so its existence is not automatic enforcement across consumers. The prevalence reader trusts the CSV and does not prove engine robustness, current taxonomic/reference completeness or binding to a new cohort. `genus_core_classes` filters the residual other bucket but uses the stored `genus_core_7of7` flag; generalizing to another denominator requires a separately bound calculation.
+
+Reference evidence in place by path/hash, keep roster, annotation mode and engine scope explicit, and do not pool pinned capacity scores into a current-engine cohort without an accepted comparability record. Reading the historic bank does not authorize regenerating or replacing it. A release flag is stored metadata, not universal publication or redistribution clearance.
+
 # Nocardia genus reference bank — PROVENANCE
 
 **What:** comparative reference for the genus *Nocardia*, used by `mamey/genus_reference.py` to supply

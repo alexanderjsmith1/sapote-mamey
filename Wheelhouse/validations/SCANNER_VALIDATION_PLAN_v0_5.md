@@ -1,5 +1,7 @@
 # Scanner Validation Plan — v0.5 (UNTESTED class-priors + RS01)
 
+> Historical validation proposal, not an implemented runner or current validation receipt. The helper named below has no scan/gate command dispatcher (`Wheelhouse/engine/pyhmmer_scanner_engine.py:54–55`); [the recipe hold](../reports/SCANNER_RUN_RECIPE.md) explains the interface gap. Individual registry status strings describe recorded metadata, not a new run. The gate/positive/negative reviews below remain proposals requiring independent scientific review and exact source/input/version/run binding before any status promotion.
+
 **Status: plan, not results.** These scanners have not been run. Each shares
 `test_note: "no domain-name proxy available; needs HMM to test"` — their gate domains
 aren't in the 35-family `scanner_pfam.hmm`, so validation requires building discriminating

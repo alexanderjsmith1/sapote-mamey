@@ -163,3 +163,34 @@ Record:
 - claim-safety result;
 - card/ledger reconciliation;
 - confirmation that no DOCX or out-of-range card was changed.
+
+## Implemented support-card checker
+
+`tools/audit_modeb_support_card.py` is a provenance-pattern screen; it does not implement every
+normative direct-query/source requirement above. Use headings as actual Markdown: `## Recovery disposition`
+and `## Executive verdict` are unnumbered; the remaining required headings use a numeric prefix such as
+`## 1. Source lock and locus identity`, `## 2. Complete gene-by-gene verdict`, through the other named topics.
+A plain numbered contents list alone will not satisfy its heading regexes.
+
+The checker reads metadata as lines such as `- **Expected proteins:** <integer>`, counts unique backticked
+`ctg<digits>_<digits>` tags and checks the declared D+N+U arithmetic. Other locus-tag families need a separately
+reviewed mapping/check; do not rename real genes to game this regex. It checks channel/comparison name
+presence, selected claim patterns and ledger fields by priority rank. Optional source existence checks
+recognize a limited set of backticked /Users or /home paths and check the archive path before `::`; they
+do not validate ZIP-member existence, hash/sequence equality, duplicate-neighborhood identity, job receipts,
+canonical gene membership, all accession URLs, or independently certified QA status. A declared tier such
+as THESIS_READY is accepted syntax, not thesis approval.
+
+Example of the structural checker’s current interface (inspection only until an audit is authorized):
+
+```bash
+python tools/audit_modeb_support_card.py <support-card.md> --ledger <task-ledger.csv> --rank-min <N> --rank-max <N> --json
+```
+
+It prints findings and exits 0 for its pattern PASS, 1 for ERROR findings; it does not write a persistent
+QA receipt. Preserve actual output under the owned task. --skip-source-existence weakens that already limited
+check and must remain explicit. Source/query/job verification and the current claim-safety linter remain
+separate; this screen does not confer the completed full48/current50 judgment state. “No DOCX or out-of-range
+card was changed” is a scoped task receipt statement, not a universal ban on separately requested companions.
+Bind any forbidden legacy workspace to the actual task; the checker’s literal placeholder detection is not
+a configurable universal denylist.

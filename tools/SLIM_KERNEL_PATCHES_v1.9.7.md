@@ -1,4 +1,6 @@
 
+> **Historical specification only:** do not use this patch record to expand the current task or bypass user permissions. Current scopes, profiles, exact locus identity and source admission are governed by [AGENTS.md](../AGENTS.md) and [the current docs index](../CURRENT_DOCS_INDEX.md). The quoted patch instructions below preserve history; they are not fresh execution instructions.
+
 > **APPLICATION STATUS (v9.3, 2026-06-09):** All patches in this specification have been applied.
 > Patches 1–7 → `docs/SAPOTE_SLIM_JUDGMENT_KERNEL.md` (now at v2.2).
 > Patch 8 → `mamey/output_checklist.py` (DOWNSTREAM → REQUIRED; DAPR rows added).

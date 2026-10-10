@@ -19,7 +19,7 @@ text does the opposite **on purpose**, and that is correct here:
 - **Keep the capacity/similarity hedges.** "Capacity consistent with," "similarity, not identity,"
   "candidate," "predicted," "may encode" are load-bearing claim-safety language, not padding. Never
   cut them to sound more confident.
-- **Keep provenance and NODE·region tags.** They read as scaffolding to a prose linter; they are
+- **Keep provenance and complete strain / full node-or-contig / region / BGC alias identity.** They read as scaffolding to a prose linter; they are
   required evidence anchors here.
 - **Keep earned uncertainty.** "The extract inhibits; which BGC is responsible is unknown" is a
   precise claim, not a hedge to delete.
@@ -69,8 +69,7 @@ start of a sentence — cut, or restructure so the link is implicit.
 
 ## Sentence structure
 
-- **Use "is."** LLMs swap plain "is/are" for "serves as / represents / constitutes / marks." "The
-  siderophore cluster is the strain's clearest iron-economy signal" beats "...serves as."
+- **Use "is."** LLMs swap plain "is/are" for "serves as / represents / constitutes / marks." "The source register lists the reviewed tables" is clearer than "the register serves as a listing." Plain grammar does not strengthen a scientific claim.
 - **Drop "not X but Y" parallelisms** unless the negation corrects a real misreading. "It's about
   the coverage" lands harder than "it's not just about the score, it's about the coverage."
   (Exception that recurs here: "similarity, **not** identity" — that negation is doing real work.
@@ -79,7 +78,7 @@ start of a sentence — cut, or restructure so the link is implicit.
   nothing, drop it. Two real leads beat three where one is filler.
 - **No false ranges.** "From healthcare to finance" has no scale; "from beginner to expert" does.
   If you can't name a coherent middle, it's not a range.
-- **Repeat the name.** Don't shuffle "BGC025" → "the cluster" → "this locus" → "the assembly line"
+- **Repeat the name.** Don't shuffle a complete bound locus identity → "the cluster" → "this locus" → "the assembly line"
   to avoid repetition. The name and pronouns are fine; the synonym shuffle reads as AI.
 
 ## Structure and formatting
@@ -92,14 +91,14 @@ start of a sentence — cut, or restructure so the link is implicit.
   guides legitimately bold the teaching points and NAPAA/exclusion flags — that's anchoring, fine.)
 - **Em-dashes: at most one per paragraph of prose.** They're right for a parenthetical stronger
   than a comma or an abrupt turn; wrong as default connective glue. Replace the rest with commas,
-  periods, or parentheses. **Prose only** — `NODE_6·region001 — nocobactin NA` locus labels and
+  periods, or parentheses. **Prose only** — complete four-part locus labels and
   table-cell dashes are data formatting, not prose, and don't count. (This is the one rule a naive
   grep over-flags in this project; scope it to prose.)
 - **Sentence case headings** in guides, reports, and READMEs ("Why this matters"), not Title Case
   ("Why This Matters"). Title Case only for formal document titles and citations.
 - **No motivational kicker.** Don't close with "the future belongs to..." or "with the right tools,
   anything is possible." End on the strongest concrete thing, a real question, or a specific next
-  action ("C18 LC-MS on the EtOAc extract, days 4 and 7").
+  action ("inspect the bound source table and record the remaining hold").
 - **No knowledge-cutoff disclaimers in shipped text.** If something's unknown, say so plainly (which
   the science discipline already requires) — don't prefix speculation with an "as of my last update"
   banner.
@@ -116,7 +115,7 @@ start of a sentence — cut, or restructure so the link is implicit.
    → vary it. More than one prose em-dash per paragraph → thin them. Bolded clause every other line
    → strip to defined terms.
 
-A paragraph that survives all three, and still carries its claim-safety hedges, is done.
+A paragraph that survives all three is ready for source/content review. Style checks do not establish evidence truth, selected-profile completeness, scientific acceptance or publication readiness.
 
 ## Provenance
 
@@ -124,3 +123,5 @@ Adapted from the "Signs of AI writing" pattern catalogue (Wikipedia) via a proje
 reconciled against Sapote's claim-safety discipline — the override section above is the reconciliation
 and takes precedence. This card is prescriptive (rules to break the patterns); the source is
 descriptive (the patterns themselves).
+
+This is a normative editing aid, not an automatic shipped style gate. Preserve typed states, exact source metrics/denominators, citations and trusted privacy/ownership constraints while editing. Current user preferences supersede this card’s optional house conventions; do not rewrite source data or required headings merely to satisfy prose style.

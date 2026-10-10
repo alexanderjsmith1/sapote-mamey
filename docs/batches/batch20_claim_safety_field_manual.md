@@ -1,4 +1,29 @@
 # Claim-Safety Field Manual
+
+## Current rule and claim boundary
+
+The original June 2026 body below is historical, not the current rule registry. Consult the scoped
+[glossary](../GLOSSARY.md), [claim safety guide](../GUIDE/06_Concepts_QandA.md) and
+[profile matrix](../MODEB_PROFILE_MATRIX.md). Preserve complete four-part locus identity on each individual
+locus reference rather than using the shortened-node/bare-alias examples below. A missing identity component
+is a hold. Affiliation must come from trusted project/task metadata; a blank historic field is not a value.
+
+Current `mamey/data/rules_registry.json` makes NAPAA neutral/nonblocking and hglE-KS/PREV-001 informational/
+nonblocking. The retired Nosema hypothesis does not exclude NAPAA from comparisons. Saccharide's actual
+rule scope is lead prioritization; it is not a universal ban on a transparently scoped inventory comparison.
+Declare actual comparison inclusion rules and denominators instead of applying the old blanket exclusions.
+
+Keep reported sequence identity, positives/similarity, coverage and denominators distinct; do not rename
+percent identity to similarity to satisfy the quick-reference card. KCB scores are separate cluster comparison
+metrics. No KCB/CCTT signal establishes novelty, and raw/domain counts do not verify compound identity.
+MRSA/Candida assumptions are not assay observations. Fraction activity alone does not prove a specific BGC
+caused it; stronger attribution needs admitted supporting evidence. Missing tests are unknown, not inactive.
+
+The named “traps” are normative examples, not proof every phrase is enforced by one linter. Authored-card
+CLI uses `tools/claim_safety_linter.py`, while package validation uses `mamey/claim_safety_gate.py` with a
+separate scope. Preserve findings and exit mode; neither a zero exit nor a clean heuristic is acceptance.
+
+<!-- CP018 preserved original body follows. -->
 **Language rules, hallucination traps, and standing exclusions**
 
 **v9.7.149a** | Source: `docs/GLOSSARY.md`, `AGENTS.md`, `docs/DELIVERABLE_CONTRACT.md` | Last updated: 2026-06-29

@@ -13,17 +13,17 @@ branch lengths or support values between trees.
 
 ## Recommended linked figure
 
-```text
-138-SCG organismal tree       PKS/RiPP tree or network
-strain A ────────────────┐    A|BGC012|KS.1
-strain B ─────────────┐  ├──  A|BGC021|KS.2
-strain C ──────────┐  │  └──  B|BGC004|KS.1
-reference genomes  │  └─────  MIBiG/reference domains
-                   └────────  C|BGC007|KS.1
-```
+| Figure component | Exact binding |
+|---|---|
+| Organismal tree tip | Bound strain and genome assembly identity |
+| Biosynthetic tip | `strain / full node-or-contig / region / BGC alias`, plus locus tag and domain ID |
+| Link between panels | Exact source-record join from each biosynthetic tip to its strain/genome tip |
 
-The link key is exact strain+BGC+locus/domain. A genome can legitimately link to
-multiple biosynthetic tips. Link color may encode BGC class or family, while
+A genome can legitimately link to multiple biosynthetic tips. Carry the full
+four-part locus identity in the crosswalk and display; do not teach a bare
+BGC-alias label as if it were globally unique.
+
+The link key retains the full four-part BGC identity plus locus/domain. Link color may encode BGC class or family, while
 line style can encode AS, SID, or reference provenance.
 
 ## Interpretation ladder
@@ -43,7 +43,9 @@ paralogy, gene order, flanking mobility, composition, and assembly boundaries.
 
 - one alignment/tree pipeline uses one core;
 - at most four independent pipelines may run concurrently;
-- GToTree: `-j 1 -n 1 -M 1` per tree;
+- GToTree 1.8: `-j 1 -n 1 -M 1` per tree; the v2 runner omits `-n`.
+  Verify the installed interface and the planner compatibility hold in
+  [companion run contracts](COMPANION_RUN_CONTRACTS.md);
 - MAFFT: `--thread 1`;
 - IQ-TREE: `-T 1 --mem 2G`;
 - run at reduced priority when other workstation work is active.

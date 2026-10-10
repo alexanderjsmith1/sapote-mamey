@@ -1,75 +1,38 @@
-# Deliverable Instruction — TEMPLATE (Sapote–Mamey)
+# Source-bound deliverable request template
 
-Paste one filled copy of this block to request a deliverable. It is self-contained: it states what to build, from
-which banked data, in what format, under which claim-safety guards, and how to hand the result back. Keep it
-deterministic where a tool exists; only ask the Sapote (LLM) layer to judge where judgment is actually needed.
+Fill every relevant field. Unknown inputs or authority remain explicit holds; this template does not authorize fetching, rescanning, mutation, external messaging or publication.
 
-> **Deliv_ID:** `DLV-XXX` · **Version:** v1.0 · **Owner chat:** [which chat] · **Priority:** HIGH / MED / LOW
+## Request
 
-### 1. Goal (one line)
-[What this deliverable is and why, in a single sentence.]
+- Deliverable ID and version: `<id / version>`
+- Owner and intended reader: `<owner / human, LLM or both>`
+- Goal and exact output format: `<question / Markdown, table, figure, deck, etc.>`
+- Builder: `<named shipped workflow, owning source path and declared command>`
+- Input package/bank/workbook: `<absolute paths, schema/version, SHA-256, cohort membership and provenance>`
+- Individual locus: `<strain / full node-or-contig / region / BGC alias>`; keep all four fields even when a display alias is used.
+- Selection and denominator: `<explicit roster/filter; count convention; inclusion/exclusion and missingness>`
+- Output destination: `<fresh absolute path; filename/version; expected artifacts>`
+- Mutation scope: `<which working files may change, backups and concurrency assumptions>`
+- Privacy/release scope: `<actual profile and authorized audience; unresolved policy means held>`
 
-### 2. Type
-[ Figure | BGC Atlas (HTML) | Table (xlsx sheet) | Report (md) | Card ]
+## Method and evidence
 
-### 3. Inputs — banked data only (do not re-scan packages)
-- **Primary bank(s):** `merged_cohort/bgc_data.json` (+ `bgc_markers.json`, `tfbs_coupling.json`,
-  `modeb_verdicts.csv`, `strains.json` as needed)
-- **Filter:** [e.g. product tag == `azoxy-crosslink`; or strain == `AS-XXX`; or modeb_class == Class-A]
-- **Params:** [strictness note, count convention, thresholds]
+Verify input existence and source bindings first. Do not assume `merged_cohort` is populated or current. Use the [task router](../docs/USER_TASK_ROUTER.md) and the tool's declared parser; tools do not share a universal `--banked-dir ... --out` interface. Specify the working directory and environment. Prefer fresh destinations and working workbook copies where a command rewrites sheets.
 
-The merged banks are already populated — skip `build_deep_data` / `build_bgc_markers` (they re-scan packages and
-are slow).
+Separate deterministic extraction/rendering from bounded interpretation. For every claim or number, record input file/hash, field/row, denominator and transformation. For each individual locus, preserve the complete four-part identity. A KCB/MIBiG match is a similarity anchor; lack of an anchor is unresolved reference coverage, not proof of novelty. Predictions and workflow CONFIRM/status labels do not establish a product, activity or experimental confirmation. Only supplied, typed, strain-bound assay metadata may support assay wording; otherwise use `NOT_SUPPLIED` or the source's explicit missing state. Never impute an assay target or inactivity.
 
-### 4. Method
-- If a tool exists, name it and give the command (deterministic, reproducible):
-  `python tools/<script>.py --banked-dir merged_cohort [flags] --out <path>`
-- Only then the Sapote judgment step, if any: [what the LLM layer decides — e.g. lead ordering, caption prose].
-  State the judgment scope narrowly.
+If using an adjusted count such as Interior + 0.5 × Edge + 0.25 × Full-contig, name it as that workflow's weighting convention, show raw counts and explain the denominator. Do not present a heuristic as a validated census. Colours may distinguish source/status categories, with a literal legend; avoid assigning biological confidence from colour alone.
 
-### 5. Output spec
-- **Filename:** `[exact_name_with_version].[ext]` (PRIVATE if it contains AS strains)
-- **Format / dimensions:** [panels, columns, px/figure size, HTML sections]
-- **Encoding conventions:** colour by confidence tier — Confirmed / Predicted-functional / KCB-anchored /
-  Candidate-novel (no anchor). Label loci as `Strain / Region · class · KCB anchor · edge-status`.
-- **Caption / legend:** [what the caption must state, including the claim-safety line.]
+## Acceptance and hand-back
 
-### 6. Claim-safety guards (must hold in the output)
-- KCB = similarity anchor, **not identity**. `azoxy-crosslink`, `~enediyne`, `~halogenase` are antiSMASH
-  **E-signals**, not structures.
-- Use only typed strain-specific bioactivity metadata; otherwise state `NOT_SUPPLIED` without naming an assay target.
-- AS verdicts are `[EG]` (offline) unless verified-literature-upgraded — tag accordingly.
-- Corrected BGC count = Interior + ½·Edge + ¼·Full-contig.
-- AS strains are unpublished → any deliverable containing them is **PRIVATE** (no public release / GitHub /
-  Zenodo) — PRIVATE.
+- [ ] Requested roster, complete identities, hashes and schema/version recorded.
+- [ ] Declared command and dependencies checked; actual run receipt distinguished from source-only review.
+- [ ] Expected output files exist, are current, readable and individually hash-bound.
+- [ ] Tables/figures match source rows and declared denominator; missing and held states remain visible.
+- [ ] Evidence limits, privacy scope and unresolved code/data issues stated.
+- [ ] Requested formats verified; rendered pages inspected if visual QA is claimed.
+- [ ] Completion is limited to the accepted deliverable and does not imply whole-suite or scientific adoption.
 
-### 7. Acceptance checklist
-- [ ] Built only from banked data (no package re-scan)
-- [ ] Every locus carries strain / region / class / KCB anchor / edge-status
-- [ ] Tier colouring applied; legend present
-- [ ] Claim-safety line in caption; E-signals flagged
-- [ ] PRIVATE marked if AS strains present
-- [ ] Filename + version correct; reports back to the HIVE board row
+Return output paths, evidence/check receipt, unresolved holds and one bounded next action. Update a tracking board only if the actual board is supplied, its row is bound and the user authorized the update. This CODE bundle contains no `HIVE_Board.csv`; do not fabricate a DONE receipt.
 
-### 8. Hand-back
-Return the file + a 2–3 line note (what it shows, any caveats). Update HIVE `Board` row `[HB-xxx]` status →
-DONE and drop the output path in `Output_Location`.
-
----
-
-## Standard encodings (apply across deliverables)
-
-**Confidence-tier palette** (use consistently in figures/atlases/tables):
-
-| tier | meaning | colour |
-|---|---|---|
-| Confirmed | Mode B CONFIRM, verified-literature-upgraded | `#2E7D32` green |
-| Predicted-functional | intact core + self-resistance/SARP, offline `[EG]` | `#2E86AB` blue |
-| KCB-anchored | named KCB/MIBiG similarity anchor only | `#E59866` amber |
-| Candidate-novel | no anchor (UNRESOLVED / dark) | `#7F8C8D` grey |
-
-**Locus label format:** `SID####/REGION · <class> · ~<KCB anchor> · <edge-status>`
-(e.g. `SID-XXX/region003 · transAT-PKS · ~cycloheximide · Interior`). The `~` marks KCB as a similarity anchor.
-
-**Verdict tags:** `[EG]` = offline antiSMASH/extraction-grade; `[VL]` = verified-literature-upgraded;
-`[DROP]`/`[DOWNGRADE]` as in `modeb_verdicts.csv`.
+The [manifest/checker guide](../docs/DELIVERABLE_MANIFEST_TEMPLATE.md) explains why the legacy suite checker cannot replace file, hash, identity or content checks. Use the [incoming figure handoff](incoming_figures/README.md) when incorporating artwork from another workflow.

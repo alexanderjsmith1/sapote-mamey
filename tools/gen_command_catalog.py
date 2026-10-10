@@ -42,7 +42,7 @@ GROUPS: list[tuple[str, str, tuple[str, ...]]] = [
       "modeb-gene-first", "build-bgc-drafts", "claim-safety", "class-believability", "two-proof-rescue")),
     ("Evidence channels (BLASTp / MIBiG / BiG-SCAPE)", "Optional deeper evidence; every channel stays a separate lane.",
      ("tool-database-inspect", "ingest-blastp", "ingest-blastp-trove", "blastp-status", "blastp-online", "blastp-ebi", "blastp-round",
-      "auto-blastp", "blastp-availability", "bigscape", "gcf-network", "clinker", "hmm-adjudicate",
+      "auto-blastp", "blastp-availability", "bigscape", "gcf-network", "clinker", "hmm-adjudicate", "gap-rescue",
       "domain-reference", "domain-level", "reference-dark", "kcb-frontpage", "comparator-coverage",
       "bgc-blastp-panel", "blastp-followup", "cohort-proteins", "resistance-dossier",
       "gecco-crosscheck", "export-metabolomics")),

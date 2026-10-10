@@ -1,11 +1,17 @@
+> **Profile scope:** These numeric thresholds describe the legacy `mode_b_quality_gate`
+> content heuristic, not all current finished-card checks. Current finished cards use
+> FINISHED_FULL48_CURRENT_EVIDENCE and the [user walkthrough](../MODE_B_USER_WALKTHROUGH.md).
+> Token mentions and character floors measure content structure, not actual completed BLASTp,
+> evidence accuracy or biological validity. New evidence retrieval requires its own authorization.
+
 # Mode B — depth policy, data sources, and per-class exemplars
 
 *v9.7.205. Raises the depth bar and re-centers it on domain-level substance. Companion to
-`DOMAIN_LEVEL_MODE_B.md` (the tool that surfaces the data) and the §1–§30 contract
+`DOMAIN_LEVEL_MODE_B.md` (the tool that surfaces the data) and the historical §1–§30 contract
 (`mamey/data/mode_b/modeb_full30_corrective_contract.json`). Enforced by
 `mamey.mode_b_quality_gate`.*
 
-## The bar (v9.7.205)
+## The legacy quality bar (v9.7.205)
 
 A full Mode B card is now expected to be **heavy on aSDomain-level detail plus per-gene BLASTp**, not
 prose. The gate enforces two things together:
@@ -41,7 +47,11 @@ Making the domain-heavy standard the default *necessitates* this — accept it r
 | **Domain roles / burden / claim ceiling** | `domain-level` module output | role category + per-BGC burden + safe/unsafe claim pair (architecture/family-level only). |
 | **Gene table** (`sec_met_domains`, products) | `<strain>_gene_by_gene_all_bgcs.csv` | note the `sec_met_domains` re-tokenization caveat (micKC↔Pkinase etc.) — weakly-supported, never "lacks domain". |
 | **KCB / MIBiG** (similarity, not identity) | `knownclusterblast` / triage `KCB_top` | corpus provenance; feeds §8 and the §24 novelty axis. |
-| **Deep domain hits / active sites** | `deep_data.json` (`domain_hits`, `bgc_profile`) | note: `active_sites` is empty under `json_mode:off` — do not report 0% as measured. |
+| **Deep domain hits / active sites** | `deep_data.json` (`domain_hits`, `bgc_profile`, `active_sites`) | Check the parsed evidence and per-BGC profile roster. Empty arrays do not establish measured absence; the exporter reads saved evidence rather than a `json_mode` argument. |
+
+Before using these exports in a card, match the profile to the bound `strain / full node-or-contig / region / BGC alias`. Profile rows carry only `sid` and `bgc_id`; domain-hit `region_key` holds the contig value, and hit rows omit the BGC alias and region. Do not treat that field as a complete regional identity or the hit-row count as a unique-domain total. Missing score fields remain JSON `null`.
+
+The deep-dive scaffold accepts absent deep/gene files, substitutes an empty profile when a target has none, and defaults a missing verdict to `CONFIRM`. Its “No modular PKS/NRPS core resolved” text can therefore reflect unavailable profile data. Check the required inputs before adopting that wording or status; neither is independent verification (`mamey/deep_data.py:32–59`; `tools/build_modeb_deepdive.py:143–163, 231–239`).
 
 Cite every BGC **node·region**, tag provenance (**store-backed** vs **reconstructed** vs **corpus**), and
 keep claim language capacity-level ("consistent with", never "produces"); BLASTp/KCB is similarity, not

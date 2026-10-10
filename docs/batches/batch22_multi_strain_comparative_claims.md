@@ -1,4 +1,65 @@
 # Multi-Strain Comparative Claims Guide
+
+## Current comparison and command scope
+
+This June 2026 companion is retained as history. Read the scoped [glossary](../GLOSSARY.md),
+[cohort rescoring plan](../COHORT_RESCORING_PLAN.md), [tools reference](../user_guides/tools_reference.md)
+and [profile matrix](../MODEB_PROFILE_MATRIX.md). Current registry gives NAPAA neutral and hglE-KS informational
+nonblocking states; saccharide scope is lead prioritization, not automatic exclusion from every comparison.
+State inclusion/exclusion rules and preserve exact source populations. Corrected count is a deterministic
+weighted diagnostic (`mamey/assembly.py:124–137`), not a physically reconciled cluster census or a universal
+replacement for presence/absence prevalence denominators. Report what was counted and its denominator.
+
+The original scoring example has wrong flags; the denominator example below is corrected to its current positional interface. Current parser shapes, for an authorized
+read-only check against existing inputs, are:
+
+```bash
+python tools/cohort_scoring_version_gate.py --workbooks-dir <per-strain-workbooks> --engine <pinned-engine>
+python tools/cross_strain_denominator_audit.py <existing-cohort-workbook.xlsx>
+python tools/check_antismash_profile.py <existing-packages-root>
+```
+
+The scoring gate checks recorded versions against the supplied engine; it does not rerun or prove all
+measurements comparable. Profile guard rejects empty/unknown/mixed/duplicate identities by default, but
+`--warn-only` softens exit behavior. The denominator audit scans N/M tokens on four selected sheets and can PASS when none are present. It counts nonempty rows rather than unique identities, allows registry/BGC row totals and has a detector window: PASS_WITH_REVIEW_NOTES exits zero. Read [the exact detector/coverage contract](../reference/06_CURRENT_SOURCE_SCOPE.md#cross-strain-denominator-and-conservation-audit-coverage). It does not verify every
+claim, subset denominator or numerical/statistical comparison. Inspect findings, scope and actual sources.
+
+`tools/hub_merge.py:68–120` delegates normalized workbook-row merging to `tools/merge_workbooks.py:295+`;
+this does not automatically rebuild pan-genome families, prevalence layers or biological interpretation.
+Use each actual owner and version-bound receipt for required derived layers. Reruns/re-scoring require the
+user's execution scope; an archived instruction is not authorization to launch them. Existing task evidence
+stays in place with source path/SHA-256 bindings and one candidate.
+
+The subset panel command's flags exist, but its fixed CSV/PNG destinations may replace prior output
+(`tools/build_subset_panel.py:137–151`). Its display labels (including Confirmed/Candidate-novel) are tool
+routing labels, not accepted production/novelty or publication verdicts. Keep source review and rendered QA
+separate. Check the original source and run records before reusing historical example statistics or citations.
+
+## Separate manifest/schema-drift screen
+
+```bash
+python tools/check_schema_drift.py --packages '<package-a>' '<package-b>' --expect '<required-workflow-version>'
+```
+
+This read-only screen is separate from workbook merging and normalization. `--packages` and `--manifests` selections are concatenated; a directory selection reads its `manifest.json`. It compares recorded workflow-version strings, top-level manifest key sets, available neighboring workbook sheet-name sets, extracted nonempty `strain:bgc_id` keys and accession-shaped text in nonempty `kcb_top` fields. It does not compare engine versions, field types/values, all workbook headers/formulas or complete strain / full contig / region / BGC alias identities. Keep those acceptance requirements and original evidence separately (`tools/check_schema_drift.py:89–117,148–229`).
+
+Without a required `--expect`, sources can agree on `MISSING`; an empty object can report no drift with zero record keys and zero claims. A neighboring `*_records.json` with no `records` key can similarly supply an empty record set without a degraded-state flag. Missing/blank BGC keys are omitted from uniqueness counts. Only the first glob-selected records/workbook companion is used; other candidates are not reconciled. Missing workbooks and workbook-reader errors both become unavailable sheet checks rather than failure. Preserve the intended source/record/companion roster and every skipped comparison before interpreting zero drift (`:41–86,148–195`).
+
+A malformed existing richer records file normally sets a degraded state and causes nonzero refusal even though manifest records are used for the remaining diagnostics. Manifest load errors are reported, but some wrong top-level/row types can escape later processing without a normal report. A recorded accession-shaped token is lexical evidence only: it is not checked against a reference, exact record or biological claim. The final “safe to merge” message does not establish scientific, disclosure or complete schema acceptance. Normal drift/read/degraded findings exit 1; normal no-drift exits 0; no selections produces a refusal. Retain complete diagnostics, actual status, source/helper/companion paths and SHA-256 hashes in a fresh disjoint receipt; no hash-bound report is saved by this helper (`:101–144,197–233`).
+
+## What the workbook merge retains
+
+Before merging, retain the original workbooks and an input list with absolute paths and SHA-256 hashes. Use distinct output and report paths in an existing writable directory. The merge rejects aliases between these outputs and its inputs, but replaces existing unrelated destinations. A collision refusal leaves prior output files in place; their existence does not establish a successful current merge.
+
+The output contains the selected master sheet, a newly built `A2_Strain_Registry`, `_MERGE_LEDGER` and `_SCHEMA_INFO`. It does not carry every worksheet, formula, style or existing registry annotation from the inputs. Reads use cached formula values. If the requested master sheet is missing, the reader falls back to the first sheet; check actual sheet names before the run.
+
+Review the mapping against every source schema. Only mapped canonical fields, explicit conserved targets and raw fallbacks for unknown transforms survive normalization. Other source columns can be omitted, and canonical fields without supplied values remain blank. `--force-schema` bypasses the hub's drift refusal; without an explicit mapping, it synthesizes one from columns shared with the first source. It does not repair divergent schemas in later sources. The merge ledger counts filled cells across merged rows, rather than proving conservation for each source or preserving complete locus identity. Keep strain / full contig / region / BGC alias bindings with the original evidence.
+
+Check the actual appended-row total against your input list. The report's source counts and `_src` labels use basenames, so inputs from different directories with the same filename share a label and overwrite a count entry. Duplicate primary keys are refused by default. `--allow-collisions` retains them; a success message containing “unique” does not override a nonzero collision count. Release tagging is a generated classification, not a privacy review of all workbook content.
+
+Workbook and report publication are separate atomic replacements. A later report failure can leave a new workbook beside an old or missing report. The hub appends its gate section in a further replacement. Review the exit status and current output hashes together; preserve incomplete-run outputs as such. Rebuild downstream comparative layers through their owning tools after the row merge.
+
+<!-- CP018 preserved original body follows. -->
 **How to make valid cross-strain claims and what you cannot claim**
 
 **v9.7.149a** | Source: `docs/COHORT_RESCORING_PLAN.md`, `docs/GLOSSARY.md`, `AGENTS.md` | Last updated: 2026-06-29
@@ -102,12 +163,11 @@ Never generalise from small N. "HSAF-class biosynthetic capacity was detected in
 Before any comparative statement, run:
 
 ```bash
-python tools/cross_strain_denominator_audit.py \
-  --workbook master_workbook.xlsx
-# Verifies consistent cohort sizes across all comparative claims
+python3 tools/cross_strain_denominator_audit.py '<existing-cohort-workbook.xlsx>'
+# Scans selected cached-value N/M tokens; review coverage and intended units separately
 ```
 
-Every comparative claim in a deliverable must carry the same denominator as the denominator audit confirms. Discrepancies between claims and the audit = non-conformant deliverable.
+Every comparative claim must name its actual eligible population and counting unit. Different reviewed subsets can legitimately have different denominators. This token audit does not establish those populations; reconcile any flagged token with the exact source roster before changing the claim.
 
 ---
 

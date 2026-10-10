@@ -1,5 +1,7 @@
 # Corrective Protocol for Real Mode B Cards
 
+**Historical corrective narrative and prose-quality guidance.** The original §§1–20/30 planning text and alias-only target suggestions below are preserved as history, not current assignments or finished-profile definitions. Resolve an authorized current target with the complete `strain / full node-or-contig / region / BGC alias`; the old aliases do not supply those missing fields. Use `MODEB_PROFILE_MATRIX.md`, the selected emitted template and its verifier for current full48/current50 requirements. `mamey/validators/modeb_full20.py` derives a legacy first-20 subset; it is not the full finished-card gate.
+
 ## Why the previous approach failed
 
 The previous AS-XXX work drifted into a data-extraction workflow. It produced inventories, character counts, and large tables, but it did not consistently produce scientific Mode B cards.

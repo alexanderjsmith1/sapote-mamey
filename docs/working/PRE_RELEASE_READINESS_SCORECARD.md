@@ -1,3 +1,9 @@
+## Current reader scope — historical .96 readiness opinion
+
+The grades, test counts, “release-ready” assessment and recommended rescoring/publication sequence below are the June opinion for .96. They do not grade .447, authorize scientific recomputation or establish readiness to publish. A current release candidate needs its own source/version bindings, complete relevant checks and the designated owner's adoption decision. See the current [cut protocol](../../CUT_PROTOCOL.md) and [metadata-reader guidance](../BUNDLE_METADATA_READERS.md). This documentation audit makes no release-readiness or reference-data correctness claim; the original scorecard is preserved unchanged below.
+
+---
+
 # PRE-RELEASE READINESS SCORECARD — Sapote–Mamey v9.7.96
 
 **From:** Patch Chat · **Date:** 2026-06-20 · **Purpose:** the "are we actually ready to ship/publish" view, per area, with ranked open risks. Honest grades, not reassurance.

@@ -7,9 +7,11 @@ This is the ritual the Patch Chat follows. It is binding on the Patch Chat, not 
 
 ## The rule
 
-0. **Upload pytest at session start.** The cut gates need pytest (+ pluggy + iniconfig). Download
-   the wheels from PyPI and upload them into the chat. Takes 2 minutes. Without it, the post-cut
-   invariant and the in-tier pytest gate cannot run and the Patch Chat is blocked.
+0. **Verify the configured test environment.** Check the selected compatible Python/pytest and
+   dependencies before an authorized cut. Reuse a verified environment or approved compatible
+   wheelhouse; do not download/upload wheels every session as a ritual. Network installs and the
+   configured `--run-network` test profile have their own task/resource scope. Missing prerequisites
+   are a hold, not permission to bypass the tests.
 
 1. **A cut is PROPOSED until the Developer or User explicitly says go.** "Looks good", a thumbs-up on an analysis, or
    "yes that's the right fix" approves the *patch*, not the *cut*. The Patch Chat does not run
@@ -25,21 +27,30 @@ This is the ritual the Patch Chat follows. It is binding on the Patch Chat, not 
    six streams; three of them independently re-derived the same `make_public_tier.sh` at different
    completeness — arrival order would have shipped the weakest.)
 
-4. **Verify out-of-band, then cut with the gates live.** Run the configured full suite once on the
-   assembled cut source. The ordinary `release_cut.sh` route runs that suite itself. Its
+4. **Verify out-of-band, then cut with the gates live.** The ordinary `release_cut.sh` route mutates its source tree: identity rewrite, version sync,
+   generated surfaces and source integrity precede the cut. Use an authorized candidate copy,
+   not an immutable reviewed baseline. Its normal test route runs a measured convergence baseline
+   followed by a final configured full-suite run; the baseline may fail and is evidence seed only.
+   Only the final successful run is the source test gate. Its
    shell exports `PYTHONDONTWRITEBYTECODE=1` before Python starts: the parent pytest process
    can create unmarked caches during collection before `tests/conftest.py` sets the child
    environment, causing the bundle runner to refuse later tests. Start a manual source-suite
    run with that setting too, and use a clean source tree; the setting does not remove old caches.
    The `--skip-tests` route accepts only a hash-pinned structured external-validation receipt verified by
    `tools/verify_external_validation_receipt.py`; a free-text `PYTEST_LOG`, typed pass count, or
-   `SKIP_INTIER_PYTEST=1` environment variable is not external-validation authority. The receipt must
+   `SKIP_INTIER_PYTEST=1` environment variable is not external-validation authority at the release
+   orchestrator. The low-level `make_public_tier.sh` does accept that variable without verifying
+   a structured receipt itself; that is a technical bypass, not an authorization to use it. The receipt must
    bind the exact source-tree digest; the canonical `python -m pytest -q -p no:cacheprovider --run-slow --run-network` command
-   and `configured-full-suite` profile; zero process exit code; UTC start/completion times no more than
-   24 hours old; Python, pytest, and platform identity; and SHA-256-bound log, exact node-ID list, and
+   and `configured-full-suite` profile; zero process exit code; ordered UTC start/completion times and a completion no more than 24 hours old
+   (the verifier permits at most five minutes of future clock skew); Python, pytest, and platform identity; and SHA-256-bound log, exact node-ID list, and
    per-node outcome TSV. The identity and outcome node sets and all declared outcome counts must agree,
    with zero failures/errors. Keep the receipt and its three artifacts outside the source tree so the
-   tree digest is not circular. Never skip the un-skippable gates: `sync_version --check`, the leak
+   tree digest is not circular. The gate compares supplied artifacts; it does not execute pytest
+   or authenticate authorship. Preserve the independently observed run evidence, not just its labels.
+   In `release_cut.sh`, receipt verification happens after source preparation. A receipt bound to
+   pre-bump/pre-regeneration bytes is stale at that point and must not be reused as if it covered
+   the prepared tree. Never skip the un-skippable gates: `sync_version --check`, the leak
    audit, tier-derivation parity, and redaction.
 
 5. **Verify the artifact, not just the source.** At this point the tier ZIP is an **engineering build
@@ -90,9 +101,9 @@ generated block" failures that look alarming but are just sequencing, not real d
    by default and only `--check` makes it check-only and refuse to write**).
 5. `python3 -c "import sys; sys.path.insert(0,'tools'); import sync_version as sv; sv.sync_build_stamp_patch(check=False)"`
    — derives `BUILD_STAMP.txt`'s `patch=` line from the CHANGELOG head you just wrote.
-6. `python3 tools/render_bootstrap_contract.py --apply` — **after** step 4, not instead of it; this
-   regenerates the "generated block" sections (`AGENTS.md`'s initiation prompt and known-
-   gotchas section, `docs/BOOTSTRAP_FILE_AUDIT.md`) that step 4's plain regex substitutions don't reach.
+6. `python3 tools/render_bootstrap_contract.py --apply` — the explicit generator step can confirm the owner output. Current sync_version already delegates
+   bootstrap regeneration before its anchored writes; do not describe it as regex-only.
+   This owner renders AGENTS generated blocks, its CLAUDE mirror and BOOTSTRAP_FILE_AUDIT.
    Then regenerate every other version-bearing generated surface with
    `python3 tools/gen_command_catalog.py`, `python3 tools/generate_deliverables_menu.py --apply`,
    and `python3 tools/gen_tools_inventory.py`; `release_cut.sh` performs all four regenerations.
@@ -120,14 +131,20 @@ cd <cutsrc>
 # Preferred: release_cut.sh runs and captures the configured full suite itself.
 RELEASE_DATE=<YYYYMMDD> bash tools/release_cut.sh <bundle-version> . <OUT> <build-letter>
 
-# External-validation route: first compute the exact tree digest using the shipped verifier,
-# then produce the structured receipt + bound log/node-ID/outcome artifacts outside <cutsrc>.
+# External-validation route: bind the exact prepared tree at the later receipt-verification boundary,
+# produce observed full-suite evidence and receipt outside <cutsrc>; any later source mutation invalidates the binding.
 python3 tools/verify_external_validation_receipt.py --root . --emit-tree-sha256
 PYTEST_RECEIPT=/absolute/path/external-validation-receipt.json \
 PYTEST_RECEIPT_SHA256=<sha256-of-receipt> \
 RELEASE_DATE=<YYYYMMDD> \
   bash tools/release_cut.sh <bundle-version> . <OUT> <build-letter> --skip-tests
 ```
+
+The normal driver exports `SKIP_INTIER_PYTEST=1` before invoking the tier builder, even when it
+ran its own source suite. Thus its cut log may say the child in-tier gate was skipped. Neither source
+testing nor that line proves extracted-archive testing occurred; step 5 remains a separate artifact
+check. Bind each tested object's bytes and report SOURCE, STAGED TIER and EXTRACTED ARCHIVE phases
+separately instead of claiming a blanket “all gates tested” result.
 
 The structured receipt schema is `sapote-mamey.external-pytest-validation.v1`. Its result artifact is
 a two-column UTF-8 TSV with the exact header `nodeid<TAB>outcome`; allowed outcomes are `passed`,
@@ -144,13 +161,13 @@ force past it — fix the source (allowlist a genuine synthetic token; redact a 
 
 2026-09-28: the four other tiers (CODE-analysis-free `clean`, `cohort` (formerly `sid`), `merged` and `public`)
 are no longer part of the cut. `tools/release_cut.sh` cuts the CODE tier only, which still runs its own leak audit,
-derivation check and checksums. The tooling for the other tiers stays in the bundle, disabled:
+derivation check and checksums. The tooling for the other tiers stays in the bundle, disabled by default:
 - the `clean`, `cohort`/`sid`, `merged` and `public` branches of `tools/make_public_tier.sh`, and the four-tier driver
   `tools/release.sh`, refuse to run unless `SAPOTE_ENABLE_DISABLED_TIERS=1` is set;
 - `tools/check_tier_parity.py`, `tools/tier_vocabulary.py` and the redaction and leak-scan tools stay live, because
   the CODE tier and the release manifest still use them.
 
-To cut the old tier set again: `SAPOTE_ENABLE_DISABLED_TIERS=1 CUT_TIERS="code clean cohort merged public" bash
+The following is a capability reference for a separately authorized policy change, not a standing instruction to re-enable retired tiers: `SAPOTE_ENABLE_DISABLED_TIERS=1 CUT_TIERS="code clean cohort merged public" bash
 tools/release_cut.sh …`. For a CODE-only cut the disclosure block below has one row, CODE.
 
 ## Release tarball (only when one is published)
@@ -171,18 +188,16 @@ collection and failed `--strict-membership`.
 
 ## The per-tier disclosure block (paste, fill, never skip)
 
-```
-Bundle vX.Y.Z / engine A.B.C / build <stamp>
-Full suite (out-of-band): <P> passed / <S> skipped / <F> failed
-Per tier — leak audit | parity gate | version-sync gate | files:
-  CODE                : <0 AS> | OK | OK | <n>
-  CODE-analysis-free  : <0 AS> | OK | OK | <n>
-  SID-public          : <0 AS> | n/a | OK | <n>
-  MERGED-PRIVATE      : n/a    | n/a | OK | <n>
-Fixes that landed in ALL tiers: <list>
-Fixes that landed in SOME tiers only: <list — TOP OF HANDBACK, or "none">
-Expected synthetic-ID noise (do not re-chase): <list>
-NOT in this cut (flagged, your call): <list>
+```text
+Bundle / engine / build: <actual identities>
+Source identity and configured-suite receipt: <hash; command; outcomes; holds>
+Built tier: CODE (other tiers NOT BUILT unless separately authorized)
+Tier derivation / content-audit / version / membership checks: <actual receipts>
+Child in-tier pytest: <RAN with outcomes / SKIPPED with reason>
+Extracted archive identity / complete-suite check: <hash; command; outcomes / NOT RUN>
+Archive publication state: <published engineering candidate / refusal / recovery hold>
+Seal / promotion / publication authority: <separate owner decision / NOT GRANTED>
+Changed scope and unresolved limitations: <specific records>
 ```
 
 ## Generator mandate (v9.7.148h)

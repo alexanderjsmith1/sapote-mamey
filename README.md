@@ -1,6 +1,10 @@
 # Sapote-Mamey
 
-Sapote-Mamey is a python-based analysis pipeline for actinomycete genomes created with assistance of LLM (artificial intelligence). The program was developed with actinomycete genomes across most common genera (Streptomyces, Micromonospora, Actinomadura, etc). 
+Before any `doctor` example below, read the [write-probe boundary](docs/INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
+untouched. The current diagnostic can overwrite or remove its probe file.
+
+Sapote-Mamey is a Python-based analysis pipeline for actinomycete genomes, developed with assistance from large language models (LLMs). It was developed using genomes from common actinomycete genera, including Streptomyces, Micromonospora and Actinomadura.
 
 Sapote-Mamey is under continuous development and can help users run research tools and interpret their outputs. Its development has involved providing antiSMASH results (downloaded ZIP files) to LLMs and using those results to refine the analysis and reporting workflows.
 
@@ -90,6 +94,8 @@ The program was occasionally tested with other bacterial orders, and several bas
 | How do biosynthetic features vary across a tree? | Route 16S sequences or build a genome tree, then supply matched annotation tracks | Trees with metadata or strain-level heatmap overlays, plus the data and methods needed to reproduce them |
 | What does the combined evidence suggest? | Author and verify a Mode B card | A traceable gene-by-gene interpretation incorporating available protein, domain, cluster-family, and comparative evidence |
 
+**Optional tools:** see the [tool downloads and licenses](#tool-downloads-and-licenses) table for external programs, what each adds, and official installation links. Add only the tools needed by your selected workflow.
+
 ## Beyond extraction
 
 **Optional class-evidence commands.** `gecco-crosscheck --package <package> --zip <source.zip>` runs an externally installed GECCO 0.11 adapter with the source CDS calls. `export-metabolomics --package <package> --source-zip <source.zip>` stages broad class hypotheses and exact region GBKs for operator MS review. `two-proof-rescue --package <package> --policy nonks_position_v1 --scorecard <scorecard.tsv>` enables the named alternative position rule; the default KS rule remains unchanged. All three write fresh external sibling outputs with source/policy receipts. See the [class-evidence command guide](docs/COMPANION_CLASS_EVIDENCE.md) for inputs, claim ceilings and operating choices.
@@ -127,9 +133,12 @@ proposed rescue. "Rescue" here means recovering an interpretable candidate pathw
 It does not join contigs or reconstruct missing sequence. See
 [fragment review](docs/GUIDE/02_Quick_Guide.md#fragmented-pathway-review).
 
-**Immutable reader outputs.** Report compilation, compound-family reports, assembly-line
-reports and lead pages use sibling `post_seal/<command>/` folders. Compiled reports
-retain an external source snapshot and byte-bound receipt. See
+**External reader outputs.** For sealed inputs, report compilation, compound-family
+reports, assembly-line reports and lead pages use sibling `post_seal/<command>/`
+folders. Compiled reports retain a source snapshot and byte-bound receipt, but
+.447 pre-validation can refresh the supplied package’s mutable status receipt
+before that binding. Use an identified working copy when preserving every
+original byte, and fresh output paths when retaining earlier reports. See
 [post-seal readers and portable PDF routes](docs/POSTSEAL_READERS.md).
 
 **Cluster families.** `bigscape` stages region GBKs, runs an externally installed BiG-SCAPE 2.x,
@@ -202,8 +211,9 @@ and reference databases have their own terms. Check the license shipped with the
 install. In practice: MIT, BSD, Apache, PSF and similar permissive licenses generally require you
 to keep their copyright and license notices when redistributing the software. GPL and AGPL tools
 carry source and license obligations when redistributed or modified; LGPL has its own linking and
-redistribution conditions. The tools below are installed separately and are not copied into the
-core Sapote-Mamey package. "Public domain" applies to the named software, not automatically to
+redistribution conditions. External executables and native libraries require separate setup. Python bindings
+and any supplied companion wheels have their own distribution notices; inspect the actual
+bundle inventory before assuming a component is supplied or absent. "Public domain" applies to the named software, not automatically to
 records in a database it searches. Follow the linked upstream text for the exact version and
 distribution you use.
 
@@ -213,10 +223,13 @@ distribution you use.
 | [antiSMASH](https://github.com/antismash/antismash#installation) | Generate the input results; a supplied result ZIP avoids a local antiSMASH installation | AGPL-3.0-or-later |
 | [NCBI BLAST+](https://www.ncbi.nlm.nih.gov/books/NBK279690/) | Local protein/nucleotide searches and 16S routing; not needed merely to export FASTA or use the web runner | [NCBI public-domain software notice](https://blast.ncbi.nlm.nih.gov/doc/blast-help/developerinfo.html) |
 | [BiG-SCAPE 2](https://github.com/medema-group/BiG-SCAPE) | Optional gene-cluster family analysis | AGPL-3.0 |
+| [GECCO](https://github.com/zellerlab/GECCO) | Optional independent BGC predictions; [integration and supplied-result guidance](docs/companion_tools.md#gecco) | GPL-3.0-or-later; model/data terms separately |
 | [HMMER](https://github.com/EddyRivasLab/hmmer) | Profile searches and pressed Pfam preparation for relevant companion workflows | [BSD-3-Clause](https://github.com/EddyRivasLab/hmmer/blob/master/LICENSE) |
 | [clinker](https://github.com/gamcil/clinker#installation) | Optional gene-cluster comparison views | MIT |
 | [DIAMOND](https://github.com/bbuchfink/diamond) | Optional accelerated local protein comparisons | GPL-3.0 |
-| [GToTree](https://github.com/AstrobioMike/GToTree) | Optional genome-marker phylogeny workflow | GPL-3.0; dependencies retain their own licenses |
+| [GToTree](https://github.com/AstrobioMike/GToTree) | Optional genome-marker phylogeny workflow | [MIT](https://github.com/AstrobioMike/GToTree); dependencies retain their own licenses |
+| [Barrnap](https://github.com/tseemann/barrnap) | Optional rRNA annotation for marker workflows; [the bundled planner prints a recipe](docs/BARRNAP.md) | GPL-3.0; reference data retain their own terms |
+| [SeqKit](https://github.com/shenwei356/seqkit) | Optional FASTA/FASTQ inspection and sequence-file preparation | MIT |
 | [Prodigal](https://github.com/hyattpd/Prodigal) | Gene prediction where required by the selected genome workflow | GPL-3.0 |
 | [MUSCLE](https://github.com/rcedgar/muscle) | Alignment in workflows configured for MUSCLE | [GPL-3.0 for the current upstream distribution](https://github.com/rcedgar/muscle/blob/main/LICENSE); verify the required CLI version |
 | [MAFFT](https://mafft.cbrc.jp/alignment/software/index.html) | Alignment for the placement workflow | BSD for the core distribution; bundled extensions have separate terms |
@@ -227,8 +240,18 @@ distribution you use.
 | [EPA-ng](https://github.com/pierrebarbera/epa-ng) | Placement of query sequences on a reference tree | AGPL-3.0 |
 | [gappa](https://github.com/lczech/gappa) | Phylogenetic placement processing | GPL-3.0 |
 | [FastANI](https://github.com/ParBLiSS/FastANI) | Optional genome ANI comparisons | Apache-2.0 |
+| [skani](https://github.com/bluenote-1577/skani) / [pyskani](https://github.com/althonos/pyskani) | Optional genome ANI and aligned-fraction comparisons; the in-process comparison uses the Python binding, not a required skani executable | MIT for both projects; vendored dependencies retain their own terms |
+| [Pandoc](https://pandoc.org/installing.html) | Optional `md_to_docx.sh` Word route and alternate Markdown-to-PDF fallback; primary ReportLab rendering does not require it | [GPL, see upstream COPYING](https://github.com/jgm/pandoc/blob/main/COPYING.md); PDF engines separately licensed |
+| [Cairo](https://cairographics.org/download/) | Native graphics library needed by the optional CairoSVG route; installing the Python extra alone may not supply it | [LGPL-2.1 or MPL-1.1](https://cairographics.org/), at the user's option; dependencies separately licensed |
+| [librsvg / rsvg-convert](https://gnome.pages.gitlab.gnome.org/librsvg/devel-docs/product.html) | Alternative SVG-to-PDF/PNG converter for compiled reports when the preceding CairoSVG route is unavailable | See the selected upstream release's COPYING notices; verify distribution terms |
+| [Inkscape](https://inkscape.org/release/) | Another SVG-to-PDF/PNG fallback for compiled reports; install only if selecting this conversion route | [Upstream COPYING](https://gitlab.com/inkscape/inkscape/-/blob/master/COPYING); retain selected-release and dependency notices |
 | [R](https://www.r-project.org/) | Optional R plotting scripts | [GPL-2 or GPL-3](https://www.r-project.org/Licenses/) |
+| [ITSx](https://microbiology.se/software/itsx/) | Optional fungal ITS identification/extraction in the [fungal workflow](docs/PHYLO_FUNGAL_WORKFLOW.md) | See `license.txt` in the upstream download; dependencies separately licensed |
+| [BUSCO](https://busco.ezlab.org/) | Optional genome completeness and single-copy marker assessment in the fungal workflow | MIT software; BUSCO datasets have separate CC-BY-ND-4.0 terms |
+| [compleasm](https://github.com/huangnengCSU/compleasm) | Optional genome completeness assessment in workflows selected for compleasm; retain its own run/model receipt | Apache-2.0; dependencies/data separately licensed |
+| [NCBI Datasets CLI](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/) | Optional reference-genome and metadata retrieval for [genome-tree workflows](docs/GTOTREE_WORKFLOW.md); supplied local references can avoid downloading | See upstream software notices; retrieved records retain their source terms |
 | [ggplot2](https://ggplot2.tidyverse.org/) | R plotting | MIT |
+| [RDKit](https://github.com/rdkit/rdkit) | Optional rendering of a characterized reference structure in the [NP Atlas workflow](docs/NPATLAS_PROVISIONING.md); provisioning does not require it | BSD-3-Clause; dependencies separately licensed |
 | [ggtree](https://bioconductor.org/packages/release/bioc/html/ggtree.html) | R tree visualization | Artistic-2.0 |
 | [patchwork](https://patchwork.data-imaginist.com/) | R composite layouts | MIT |
 | [svglite](https://svglite.r-lib.org/) | SVG output for R renderers using ggplot2's SVG device | GPL-2.0-or-later |
@@ -323,7 +346,7 @@ Sapote-Mamey uses citation-compact outputs to separate runtime evidence structur
 
 - **antiSMASH 8.0** is recorded as method/database provenance for BGC detection and product/region calls: DOI `10.1093/nar/gkaf334`.
 - **MIBiG 4.0** is recorded as reference-database provenance for curated BGC entries and KnownClusterBlast dereplication context: DOI `10.1093/nar/gkae1115`.
-- **`PASS_STRUCTURE`** means the package structure, citation ledger, work-order files, compact reports, manifest tracking, and checksum tracking passed validation. It does **not** mean every literature claim has been manually verified.
+- **`PASS_STRUCTURE`** means the producing check reported structural success. Citation-compact QA checks its encoded citation-coverage and caveat rules; it does not validate every package artifact or verify primary literature. Read the named producer’s receipt and run package validation separately.
 - **`operator_supplied`** means the citation/provenance row came from runtime evidence or comparator fields already present in the package.
 - **`citation_needed`** means literature support is missing and should be filled by a separate literature-search pass.
 - **`Literature_Search_WorkOrder.md/json`** is a safe handoff for another literature session — a search instruction, not a verified fact.
@@ -356,4 +379,8 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.448 / engine 1.9.173 · build 20261005v97448b · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.449 / engine 1.9.174 · build 20261009v97449a · release profile: CODE (see RELEASE_MANIFEST.md)*
+
+## Choose a task by name
+
+Use [Choose a task](docs/USER_TASK_ROUTER.md) to turn your request into a named workflow, required inputs, owning guide and reviewable outputs. Assistants can use its [JSON routes](docs/USER_TASK_ROUTER.json), under the scope and source rules in [AGENTS.md](AGENTS.md).

@@ -1,13 +1,22 @@
-# Quarantine recovery support card — `<STRAIN> <BGC_ID>`
+# Quarantine recovery support card — `<STRAIN> / <FULL_NODE_OR_CONTIG> / <REGION> / <BGC_ALIAS>`
+
+
+Manual support template; placeholders are not observations, QA results or approved prose. Bind all four
+identity fields from one source record and use them in the owned output filename. Select actual task,
+source package/profile, complete roster and scope before filling fields. This template is a companion
+review surface, not the native full48/current50 emitted card or its finished acceptance contract.
+Keep one owned candidate and source index; reference existing evidence by path/portable locator plus
+SHA-256 and line/member, without copying source packages/databases/report assets. Actual source/job,
+claim-safety, profile/content and owner review remain separate; no placeholder or tier label runs them.
 
 ## Recovery disposition
 
 - **Priority rank:** `<RANK>`
 - **Value tier:** `<THESIS_READY|USEFUL_WITH_LIMITATIONS|CONTEXT_ONLY|HOLD>`
-- **Worker status:** `COMPLETE`
+- **Worker status:** `<actual task work state; do not predeclare completion>`
 - **QA status:** `PENDING_FINAL_VALIDATION`
 - **Expected proteins:** `<E>`
-- **Direct-hit union:** `<D>/<E>`
+- **Direct-hit union:** `<D>` (count; display D/E separately below)
 - **No-significant-hit proteins:** `<N>`
 - **Unresolved/unavailable direct-query proteins:** `<U>`
 - **Claim ceiling:** `<maximum defensible capacity-level statement and explicit exclusions>`
@@ -20,7 +29,7 @@
 
 | Item | Exact audited source | Result |
 |---|---|---|
-| Assignment row | `<assignment workbook and row/rank>` | `<strain / BGC / path match>` |
+| Assignment row | `<assignment workbook and row/rank>` | `<complete four-part identity / owned path / source binding>` |
 | Current manifest | `<current package>/manifest.json` | `<workflow version and assembly tier>` |
 | Crosswalk | `<current package>/<crosswalk.csv>` | `<BGC → node, region, coordinates, boundary>` |
 | Inventory | `<current package>/<inventory.csv>` | `<length, products, architecture, claim ceiling>` |
@@ -159,3 +168,5 @@ Not defensible:
 - Card/ledger reconciliation: `<PASS/FAIL>`.
 - DOCX writes: `NONE`.
 
+
+Use docs/MODE_B_SUPPORT_CARD_CONTRACT.md for exact checker headings/metadata and scope. tools/audit_modeb_support_card.py is a pattern/count/limited-source-existence screen; it does not verify raw query SHA-256, job receipts, every URL or canonical membership. Its ctg-tag regex must not cause renaming of real genes. PENDING_FINAL_VALIDATION intentionally blocks that screen; update QA only from actual retained findings and independent source review. DOCX writes NONE is a task-specific receipt to confirm, not a pre-filled historical fact or a universal companion ban.

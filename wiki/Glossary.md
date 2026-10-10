@@ -212,7 +212,9 @@ Two reading notes before you start:
 - **Full name:** Marker-aware diagnostic bonus; diagnostic floor.
 - **Aliases:** the floor; KCB-dark protection.
 - **Category:** Scoring rule.
-- **Definition:** Marker-aware scoring reads per-BGC diagnostics so that genuinely bioactive but *KCB-dark* clusters (no database match) are not buried by a KCB-only score; the **floor** guarantees a Tier-1 diagnostic cluster cannot sit below MEDIUM tier.
+- **Definition:** Marker-aware scoring reads per-BGC diagnostics so that diagnostic-bearing clusters with unavailable or weak KCB comparison evidence are not buried by a KCB-only score; the **floor** can raise eligible, corroborated class-diagnostic candidates to Medium.
+  Tailoring-only exclusions and corroboration/cargo eligibility can prevent the floor; later
+  standing-rule or RiPP downgrades can override it. Presence of a marker does not guarantee a tier or activity.
 - **Operates on:** CCTT/resistance diagnostics + chitin context (CGAD).
 - **Key fields:** `AF_DIAGNOSTIC_TRIGGERS` (the antifungal markers that fire the floor); the floored tier.
 - **Claim ceiling:** the floor changes *routing*, not claim strength — a floored cluster is "worth screening," not "confirmed active."
@@ -627,11 +629,11 @@ candidate from an authorized release.
 | Channel-separated BLASTp | NCBI nr, NCBI ClusteredNR, and local Swiss-Prot are separate evidence channels with separate named-match, alignment-metric, state, and coverage fields. Missing or unbound evidence in one channel is never filled from another. ClusteredNR is not nr; percent positives is not percent identity; similarity is not functional proof. |
 | `document_state` / `evidence_state` | Two orthogonal Mode B axes. `document_state` says where the card is in the authoring/review ladder; `evidence_state` records bound, unbound, quarantined, unavailable, or not-applicable evidence. A mechanically validated state is not maintainer acceptance or publication approval. |
 | Privacy profile | User-owned policy mapping exact strain IDs to named access tiers. Unassigned strains inherit a required non-public default. Only a tier explicitly marked `public_export: true` maps to package `PUBLIC`; all others map to `PRIVATE`. Privacy policy is not scientific evidence or publication approval. |
-| Package `PUBLIC` / `PRIVATE` | A binary export label used by package consumers. It is derived fail-closed from the active privacy policy and does not replace staged-tree leak audits, governance decisions, or publication authorization. |
+| Package `PUBLIC` / `PRIVATE` | A binary export label used by package consumers. When a privacy profile is selected it follows that profile; legacy derivation otherwise applies its recorded prefix/registry rules, including the AS default. The local label does not replace staged-tree leak audits, governance decisions, or publication authorization. |
 | Release/archive transaction states | **Source tree**, **staged tier tree**, **archive candidate**, and **verified archive** are distinct objects. A clean source does not prove the stage; a clean stage does not prove the ZIP; a matching ZIP or local gate does not promote a candidate. `PUBLIC_RELEASE` is a separately authorized promotion state; a CODE or `NOT_FOR_PUBLIC_RELEASE` candidate is not one. |
 | Portable / offline core | The application, small reference assets, vendored fallbacks, and local wheel paths are designed to run without network access. Optional commands whose names or help explicitly say online may contact their named service and must retain provenance; their absence is an evidence gap, not a failed core extraction. |
 | Sealed package | A package that passed the deterministic extraction and package-integrity gates for its recorded engine and inputs. `MAMEY_COMPLETE` means that extraction handoff is complete; it does not mean Sapote judgment, biological validation, acceptance, release, or publication is complete. |
-| Post-seal tool | An additive consumer of an already sealed package, such as Mode B, domain-level, receipt ingestion, comparison, cohort, or figure tooling. "Post-seal" and "non-blocking" mean the core extraction does not depend on it; they do not guarantee the added output is complete, correct, accepted, or release-ready. |
+| Post-seal tool | An additive consumer of an already sealed package, such as Mode B, domain-level, receipt ingestion, comparison, cohort, or figure tooling. "Post-seal" and "non-blocking" mean the core extraction does not depend on it; they do not guarantee the added output is complete, correct, accepted, or release-ready. Authoring can write package artifacts and refresh post-seal checksums; validation normally writes a mutable status receipt. |
 | Mechanical gate / authority ceiling | A validator may establish schema, hash, identity, or completeness facts only. It cannot grant scientific acceptance, owner acceptance, integration, release, or publication authority unless a separate governing decision explicitly does so. |
 
 Contract sources: `PORTABLE_EVIDENCE_WORKSPACE.md`,
@@ -707,6 +709,12 @@ and promotion to a public release are separate controls.
 ---
 
 ## Failure / status codes
+
+Current `package_status.json` uses MAMEY_COMPLETE, RECOVERY_VALIDATED, RECOVERY_NEEDED and
+PARTIAL_FAILED. Package recovery status, terminal run status, scan/channel state and historical
+work-order failure codes are different dimensions; copy the producer's actual code rather than
+normalizing every condition to the mixed historical vocabulary below. DEFERRED is a work decision,
+not an engine completion status.
 
 | Code | Meaning |
 |---|---|
@@ -843,7 +851,7 @@ or revise the definition here and point other documents here. Keep counts,
 formulas, and status enumerations tied to their code/schema source and keep
 claim-safe framing in every definition.*
 
-*Maintenance note: version-sync marker for the installed engine 1.9.173.*
+*Maintenance note: version-sync marker for the installed engine 1.9.174.*
 
 ---
 

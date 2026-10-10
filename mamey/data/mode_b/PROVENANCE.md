@@ -1,7 +1,13 @@
-# Mode B contract data provenance
+# Mode B machine contract data provenance
 
-`modeb_full30_corrective_contract.json` (schema_version `modeb_corrective_full48_v1`) is the single machine-readable section and artifact-drift contract for current prose-first Mode B cards. It defines the §1–§48 finished-deliverable profile and is the file loaded by `mamey/modeb_structure_gate.py`, the template emitter, and `tools/regen_modeb_contract_docs.py`. Note: the `full30` in the filename is historical (code and tests bind to that name); the authoritative section count is `schema_version` / the `sections[]` list, i.e. §1–§48.
+The historically named `modeb_full30_corrective_contract.json` contains schema `modeb_corrective_full48_v1` and the full48 finished profile. It is the default loaded by `mamey/modeb_structure_gate.py` and default native authoring helpers. The filename's “full30” is historical; use its schema/profile and actual section list rather than inferring a count from the filename.
 
-Current policy: the §1–§48 titles are owned by that contract JSON and its generated doc (see `docs/CURRENT_DOCS_INDEX.md` for the canonical section doc). Assistants and renderers must not invent, rename, reorder, or substitute sections. Evidence tables are appendices/supporting material, not substitutes for the card body.
+This is **one** current profile. `modeb_current50_v2_contract.json` defines the opt-in current50_v2 profile, selected explicitly by native emission/verification. Carry the same selection through both operations. A default full48 check does not prove current50_v2 acceptance; fixed48 document renderers have a separate contract and must not be used to truncate a selected 50-section card.
 
-Legacy: the earlier standalone `modeb_full20_corrective_contract.json` (§1–§20) has been retired and now lives at `legacy/modeb_full20_corrective_contract_legacy_v97144.json`. It is an era record, not the live contract; do not cite it as current.
+Read [the profile matrix](../../../docs/MODEB_PROFILE_MATRIX.md), [native user walkthrough](../../../docs/MODE_B_USER_WALKTHROUGH.md) and [current docs index](../../../CURRENT_DOCS_INDEX.md). The earlier `docs/CURRENT_DOCS_INDEX.md` path does not exist in this cut; the index is at bundle root.
+
+Contract JSON owns its exact section titles/order and selected requirements. Generated contract documentation belongs to its declared generator; assistants must not substitute invented sections or count a scaffold/evidence appendix as completed authored prose. Verify actual identity, evidence and selected-profile content, and retain source/artifact hashes and unresolved holds. Structural PASS is not scientific adoption.
+
+The retired standalone 20-section contract at `legacy/modeb_full20_corrective_contract_legacy_v97144.json` remains historical. A specialized legacy scaffold may still use 20-section checks; that does not make it the current finished native profile. Keep historical artifacts rather than silently migrating their claims.
+
+The default full48 profile spans §1–§48; the explicitly selected current50 route remains a distinct contract.

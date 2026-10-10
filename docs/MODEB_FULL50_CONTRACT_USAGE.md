@@ -22,3 +22,11 @@ Keep the source Markdown unchanged while existing configurations pin its hash. A
 The separate `mamey/data/mode_b/modeb_full30_corrective_contract.json` contains the 48-section corrective profile. Its filename is historical. The 50-section reference does not supersede it.
 
 Section requirements describe scope. Their presence does not supply evidence or establish biological conclusions. Judgment deferred.
+
+## Reader contract versus finished-card verification
+
+Current50 v1's 50-row shape is distinct from the opt-in `current50_v2` **card** profile. Passing a consumer's row/hash/database-profile checks does not run `verify-modeb`, author a completed card, or establish independent roster/channel completeness. Keep the selected contract identity, pinned source bytes and downstream receipt with that consumer. Changing the contract text requires a new explicit binding; do not silently reuse a v1 pin for v2.
+
+Use the [profile matrix](MODEB_PROFILE_MATRIX.md) for the actual verifier/export handoff. The normative [v2 requirement text](MODEB_CURRENT50_V2_CONTRACT.md) remains unchanged in this documentation checkpoint to preserve existing consumer selections. Its own source-version/authority record and machine requirements remain separate from the pass/fail status of any card. A verifier receipt requires additional exact card/source hashes and argument binding before it can identify an immutable attempt.
+
+Source owners: `mamey/data/mode_b/modeb_full50_contract.json:12–44`; `mamey/data/mode_b/modeb_current50_v2_contract.json:1–25`; `mamey/authored_verify.py:68–109,591–680`.

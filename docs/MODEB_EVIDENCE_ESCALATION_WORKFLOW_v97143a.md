@@ -1,5 +1,28 @@
 # Mode B Evidence-Escalation Workflow — v9.7.143a
 
+## Current helper and review boundary
+
+The original policy and transition table below remain intact. `mamey/modeb_evidence_state.py:44–76`
+implements a pure transition validator returning a record; it does not mutate a source, open a locator,
+hash source bytes, persist a ledger, authenticate its producer or scientifically adjudicate admission.
+Evidence-bearing transitions require a nonempty locator and syntactically valid hash, which is different
+from independently verifying that locator/hash against actual evidence. Same-state transitions still require
+reason/binding, and SUPERSEDED still requires replacement_id. The table's transition rules match the helper.
+
+Inspected production call sites import its vocabulary (`modeb_blastp.py`, `modeb_round.py`,
+`modeb_publication_gate.py`); no production caller of transition_evidence was located. Thus the helper is
+implemented, but the doc's “one machine-checked lifecycle” is not proof every stream runs through it.
+Retain actual transition receipts and source verification separately; emitting queries remains UNBOUND.
+Use the [profile matrix](MODEB_PROFILE_MATRIX.md), [contract/gate scope](MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md)
+and [support-card contract](MODE_B_SUPPORT_CARD_CONTRACT.md) for the selected route.
+
+The final node-only regression bullets are historical incomplete identities, not current exact-locus
+assignments or proof their scientific model was accepted. Obtain strain / full node-or-contig / region /
+BGC alias and bound source evidence before reviewing any particular locus. Preserve contradictions,
+conditional interpretations and holds rather than initiating new external jobs from those bullets.
+
+<!-- Historical source text follows. -->
+
 ## When to escalate evidence
 
 The evidence-escalation workflow applies when the

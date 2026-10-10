@@ -3,6 +3,20 @@
 
 **v9.7.149a** | Source: `docs/DELIVERABLE_CONTRACT.md` | Last updated: 2026-06-29
 
+
+## Current delivery and acceptance boundary
+
+This is a retained v9.7.149a plain-English summary. The universal output requirements, 20-section layout and verbatim scientific caveats below are historical, not an executable current schema. Use [the canonical deliverable contract](../DELIVERABLE_CONTRACT.md), [per-mode artifact scope](../PER_MODE_ARTIFACT_SET.md), [selected Mode B profile](../MODEB_PROFILE_MATRIX.md) and [artifact/menu limits](../ARTIFACT_MAP_LIMITS.md).
+
+A delivery should surface the exact source/input identity, actual available files, selected options, per-phase status, scoped checksums and unresolved judgment/acceptance holds. An optional brief/figure that was disabled or failed is not a present output; preserve its reason rather than inventing a PDF or CSV. Extraction completion and a persisted card/register state are separate from a scientifically accepted interpretation or shareable final report. User format and scope preferences govern the requested deliverable.
+
+`checksums_sha256.txt` does not certify every possible post-seal output. Covered additive package writes and separate sibling readers have different integrity scopes; preserve core and applicable post-seal receipts. The `check_deliverable_suite.py` check parses the supplied manifest's reported rows and gates, not actual file bytes, hashes or unique locus coverage (`tools/check_deliverable_suite.py:25–81`). Its default mode is standard; its legacy mode choices are independent of current extraction modes. PASS is a scoped manifest-text check, not finished scientific delivery.
+
+For a failed/missing output, inspect receipts and [recovery guidance](../COMMON_MISTAKES.md). Generation, suite checks, package validation and publication acceptance each require their own current evidence.
+
+## Historical v9.7.149a record — preserved below
+
+
 ---
 
 ## The core rule

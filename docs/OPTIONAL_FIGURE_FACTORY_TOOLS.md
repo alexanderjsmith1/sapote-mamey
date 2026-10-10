@@ -20,3 +20,11 @@ logical locators rooted at the new output directory. All outputs are local
 deterministic SVG, JSON, or HTML artifacts. No browser, network service, PDF,
 or DOCX renderer is required. The galleries remain static prototypes and are
 not wired into the Mamey run pipeline.
+
+## Receipt and collision scope
+
+`PASS` confirms the static gallery bundle was written; the printed receipt contains counts and portable output locators, not input/source/artifact hashes or scientific/visual acceptance. These previews use fixed example data and do not consume a real package, establish a scientific theme choice, or issue the Figure Factory's analysis receipt. Theme IDs belong to these galleries; do not assume a gallery theme ID is accepted by a different renderer/export command.
+
+The output writer refuses an already-existing destination and a deterministic hidden `.<name>.staging` sibling. If interrupted, preserve/inspect any leftover staging folder before choosing a new output name; do not merge its contents into a completed gallery. Ordinary `os.replace` publication is atomic but is not the hardened concurrent no-replace transaction used by the review queue. Avoid concurrent writers to the same destination. If a destination appears after preflight, an empty directory can be replaced on POSIX. Bind source and artifact hashes separately if distributing a preview.
+
+Source owners: `mamey/interactive_figures/theme_gallery.py:179–205`; `mamey/interactive_figures/component_gallery.py:269–297`; `mamey/interactive_figures/optional_output.py:20–71`.

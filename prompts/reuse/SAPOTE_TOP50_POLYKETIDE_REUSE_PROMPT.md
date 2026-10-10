@@ -16,7 +16,7 @@ Build a Top 50 polyketide-containing BGC deliverable from the cumulative dataset
    POOR/VERY_POOR assemblies; do NOT auto-demote strong Interior/A BGCs solely because the strain
    assembly is poor. Label strain-level weighting as exploratory Sapote heuristic, not a monolith rule
    (G5).
-3. Per row: rank · strain · `BGC_ID (contig · regionXXX)` · products · polyketide subfamily · boundary ·
+3. Per row: rank · strain · `strain / full node-or-contig / region / BGC alias` · products · polyketide subfamily · boundary ·
    architecture · assembly tier · genus · host · AB · AF · novelty · Sapote lane/register · Sapote
    priority score · KCB score + top hit · closest candidate known natural product · closest MIBiG
    accession · similar-protein count + denominator (state query-CDS vs reference-cluster-gene) ·

@@ -1,4 +1,36 @@
 # Literature Deep-Dive Protocol
+
+## Current route and verification scope
+
+Use the scoped [literature search protocol](../LITERATURE_SEARCH_PROTOCOL.md),
+[review modes](../LITERATURE_REVIEW_MODES.md) and [Bert protocol](../BERT_MODE_PROTOCOL.md).
+The original June 2026 body is preserved as history. Its §8 literature route is obsolete for current
+full48 (comparator §8; literature relevance spans the selected content) and current50-v2 (literature
+§48/§49, evidence §50). A work-order or model label does not authorize dispatch, fetching or another chat.
+
+The reference bank's recorded verification date is historical metadata, not current-session lookup,
+full-text consultation, correction checks or claim support. OPERATOR_SUPPLIED describes provenance,
+not verified acceptance. Retain source receipts and distinguish bibliographic verification from inspected
+passages/full text; do not require every source to have both a DOI and a PMID. A bounded no-hit search does
+not prove no prior characterization or novelty. Verify each bank citation against its actual source before reuse.
+
+The preserved punch-card command has wrong flags. Actual `tools/build_punchcard.py:267–278` takes
+`--packages` (one or more existing packages) and an explicit `--out` file; it writes that destination,
+not an automatic per-strain file under `--outdir`. Within an authorized task the current parser shape is:
+
+```bash
+python tools/build_punchcard.py --packages <existing-package> --out <candidate-punchcard.md>
+```
+
+Choose a new output file outside every selected input package and evidence directory, with its parent already present. The helper reads each package's `manifest.json`, prepares the whole Markdown text, then atomically replaces the single `--out` destination. It neither refuses an existing output nor protects input/output overlap: `--out` can overwrite a selected input manifest. Keep original packages immutable, confirm resolved destinations are separate and retain partial/previous files after failure. Success prints counts but provides no consumed-input/output hash receipt; independently retain the input roster, source hashes, options and current output hash. It does not run a literature search or write a returned answer back into packages.
+
+The manifest must contain a `bgcs` array with the selected row fields. Missing `strain_id` falls back to the package basename, which may be a generic folder name rather than a strain identity. Identity checks require truthy strain, contig/node, region and BGC alias values, but do not validate that their spelling, types or linkage are authoritative; whitespace can pass. Admit the actual package roster and complete `strain / full node-or-contig / region / BGC alias` identity before using a question. Duplicate packages/rows are not refused. Shared anchors are grouped by accession plus a product name truncated to 48 characters; question counts describe grouped prompts, not unique validated loci or complete literature coverage.
+
+Optional `--gbk-dirs` entries align with packages by position. Fewer entries silently leave later packages without a marker scan; extra entries are unused. The scanner selects files by the numeric `NODE_` token and text-matches annotations across each matching file, without verifying the region, full contig identity, source strain or gene linkage. The same contig-level match can be attached to more than one region. A row using only `node_id` can have a complete display identity while producing no scan selector, because this selector reads `contig`. Treat emitted marker questions as unbound hypotheses until independently reconciled with exact source/gene/region evidence; no marker output is not a verified absence.
+
+Standard mode summarizes unresolved classes and displays at most ten identities per class, with a remaining count. `--directed` focuses on named anchors and marker questions and omits those unresolved-class questions even though the console still counts cryptic classes. Keyword buckets and built-in deprioritization labels are prompt-routing choices, not assay observations or current policy adjudication. Preserve the entire intended roster alongside either reading view. Questions emitted from package anchors are search prompts, not verified scientific findings. Reference existing evidence by path/SHA-256 without copying packages into a handoff or treating preparation as completed research. Source: `tools/build_punchcard.py:67–114,117–263,266–283`.
+
+<!-- CP018 preserved original body follows. -->
 **How to run literature reviews, close §8 deferrals, and use the punch-card**
 
 **v9.7.149a** | Source: `docs/LITERATURE_REVIEW_MODES.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md` | Last updated: 2026-06-29

@@ -6,6 +6,22 @@ only that the evidence is presented for scientific review. It does not establish
 production, activity, novelty, owner acceptance, integration, rendering approval, release, or
 publication approval.
 
+## Normative contract and implemented gate scope
+
+This is the scientific authoring/audit requirement for the selected current50 lineage, not a claim
+that every item below is automatically enforced. Use the current named profile in MODEB_PROFILE_MATRIX.md
+and `verify-modeb --contract current50_v2` for the saved v2 card. Its route runs the shared structure/depth,
+class/claim/evidence checks plus `mamey/modeb_current50_v2.py` checks. It does not run the legacy full48
+`mamey/modeb_publication_gate.py` section-numbered publication/semantic gates on the rearranged 50-section
+card. A direct call to that legacy function cannot substitute for a profile-correct review.
+
+The v2 literature screen detects citation identifiers and relevance language; it does not retrieve a
+paper, validate identifiers against a publisher, determine primary versus review status, verify passages,
+or certify full-text consultation. External source/query/job and predecessor-retention requirements
+below remain normative independent-review obligations wherever automated coverage is narrower. Zero
+findings means the checks actually invoked returned none, not the whole scientific contract was accepted.
+Record enabled checks, bound roster, source receipts, actual findings and external holds explicitly.
+
 ## Gate timing and authoring route
 
 The template emitter and publication gate serve different lifecycle stages. A fresh
@@ -24,8 +40,7 @@ Use this route:
 
 Do not run the publication gate against a fresh template and interpret its expected placeholder
 findings as an emitter failure. Conversely, do not call an authored card publication-gate-clean
-until the actual saved candidate returns zero findings. See `MODEB_GATE_CLEAN_AUTHORING.md` for the
-operational recipe.
+until the actual saved candidate returns zero findings. See `MODEB_GATE_CLEAN_AUTHORING.md` for the operational recipe, with its selected-profile and historical scope checked before reuse.
 
 ## Identity and source rules
 
@@ -139,3 +154,5 @@ publication approval. Those remain distinct external gates.
 Each §48/§49 entry supplies an identifiable citation and direct DOI/PMID/publisher link, what the source supports, its relevance to the focal locus, and its transfer limits. State abstract-only versus full-text consultation. Prefer primary sources for mechanistic claims; label reviews as synthesis. No arbitrary citation quota, invented references, or generic relevance filler. A paper may appear in both sections only with distinct relevance. Broader taxa/topics are permitted when justified.
 
 Migrate the former §48 synthesis into §19 without loss and the former §4 matrix into §50 without duplication. Update navigation, anchors, section reconciliation and layout consumers together. Legacy 48-section cards remain readable as legacy; do not silently reinterpret their §48. This document change alone does not migrate emitters, gates or parsers.
+
+Preserve existing predecessor/package/V7 sources by path or portable locator plus SHA-256; the source freeze is a source register, not a requirement to copy whole packages, databases or report assets. This retained requirements table does not authorize searches, experimentation, external messaging, writes or adoption beyond the current user task.

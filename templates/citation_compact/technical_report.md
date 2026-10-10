@@ -1,5 +1,7 @@
 # Technical Report — Citation Compact
 
+The example row uses the first triage row; the complete appended table retains input order. Structural QA accepts citation_needed markers and does not verify literature. Check original references: the current ledger conversion drops supplied DOI/PMID/URL fields and method entries can have an overbroad scope label. Preserve strain, full node/contig, region and BGC alias for individual loci.
+
 {{GLOBAL_BGC_CAVEAT}}
 
 ## Executive Lead Table

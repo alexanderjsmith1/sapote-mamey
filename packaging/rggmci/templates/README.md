@@ -1,11 +1,18 @@
 # rggmci: Reference-Guided Genome Mining Candidate Inference (RG-GMCI)
 
+> This is a package-build template, not an already assembled standalone release. `build_rggmci_package.py` combines lifted/copied source, templates and a generated provenance file (`:140–194`). The standalone project version comes from its own `pyproject.toml` (`1.0.0rc3`, Python ≥3.12); it is distinct from the Sapote-Mamey bundle version. Inspect the generated artifact's provenance and source bindings before use. Do not install the template directory as if all generated modules were present. Installation examples below require an explicitly selected artifact/environment; template contents alone do not establish a completed installation or search.
+
+## Output and result-scope checks
+
+Use a fresh output destination. The standalone CLI writes ordinary files into existing directories and does not guard against two input ZIPs with the same basename overwriting each other's outputs (`src/rggmci/cli.py:170–209`). It records per-input exceptions in SUMMARY and returns 1 if any input errored; earlier successful outputs remain. Pair tables are written only when pairs exist, so no new table is not by itself a failed run or a verified negative, and reuse can leave stale old tables.
+
+The BLASTp layer returns 0 even when result queries are unmapped and excluded (`:105–117`). Review NOT_IN_RESULTS, unmapped queries and the exact query/result roster rather than interpreting a zero exit as complete coverage. Keep original files, generated manifest and input hashes. No cross-locus evidence transfer follows from a matching alias alone.
+
 RG-GMCI surfaces antiSMASH regions in a fragmented genome assembly that may belong to one biosynthetic
 pathway: fragments that the assembly left on separate contigs. It reads biosynthetic logic through the
 ClusterBlast and KnownClusterBlast results that antiSMASH already wrote.
 
-It is a homology-guided candidate method, not a contig joiner. If the reads had supported a join, the
-assembler would have made it. A candidate is a hypothesis to check at gene level.
+It is a homology-guided candidate method, not a contig joiner. Assembly fragmentation can have several causes; this reader does not determine which caused a particular break. A candidate is a hypothesis to check at gene level.
 
 It has no required dependencies. Biopython is used when installed; otherwise a built-in
 GenBank reader is used.

@@ -16,9 +16,9 @@ The stage directory and every per-locus output filename carry the same four comp
 
 The five prepared inputs are an identity record, ordered gene roster, normalized evidence table, locus-context record, and producer-receipt table. The stage sealer validates them before writing one self-excluding receipt.
 
-The query-roster digest binds the complete identity and each ordered `(gene_order, locus_tag, protein_sha256)` tuple. Each producer receipt separately binds its tool and version, parameter fingerprint, query-roster digest, database or model snapshot, normalized output, resource policy, and recorded thread count. Every evidence row must match its producer's channel, output locator and SHA-256, receipt SHA-256, and database fields.
+The query-roster digest binds the complete identity and each ordered `(gene_order, locus_tag, cds_start, cds_end, strand, membership, protein_sha256)` tuple. Each producer receipt separately binds its tool and version, parameter fingerprint, query-roster digest, database or model snapshot, normalized output, resource policy, and recorded thread count. Every evidence row must match its producer's channel, output locator and SHA-256, receipt SHA-256, and database fields.
 
-A changed query, database snapshot, parameter fingerprint, or normalized producer output produces a different stage ID. Sealed members and unexpected extra members are rejected on reload.
+A changed prepared member produces a different stage ID. An external query, database snapshot, parameter fingerprint or producer-output change must be accurately reflected in those members and their recorded hashes; the stage cannot detect an unrecorded external change. Sealed members and unexpected extra members are rejected on reload.
 
 ## Required separated channels
 
@@ -100,3 +100,22 @@ The overlay refuses `GENE`, `DOMAIN`, `MODULE`, `CASSETTE`, `NEIGHBORHOOD`, and 
 These modules are an additive portable candidate. They do not wire a CLI, integrate into a release, change a version, modify existing cards or renderers, export data, establish scientific acceptance, or support a publication claim.
 
 Similarity is not identity. Capacity is not production. Judgment remains deferred.
+
+## API, hash and publication boundaries
+
+Use the actual candidate APIs `mamey.mode_b.gene_first_stage_v2.seal_stage` / `load_sealed_stage`
+and `mamey.mode_b.gene_first_interpret_v2.write_authoring_outputs`; no gene-first-v2 CLI is registered.
+The caller prepares five compact members in the complete-identity directory. Sealing hashes those
+local member bytes and validates declared producer/evidence field agreement. External package/region,
+database/model, producer-output and producer-receipt hashes are recorded fields; these APIs do not
+open those external locators or certify the source bytes, actual tool execution/thread use or owner
+signatures. Obtain their independently governed receipts before preparing the stage. BOUND here
+must not be promoted into independent assembly/query/job admission just because its row is consistent.
+
+Stage receipt creation is exclusive and refuses an existing receipt. Reload rehashes local members
+and rejects extras/drift. Authoring output requires an existing root and a new identity child, then writes
+four members and the receipt exclusively in sequence. A failure can leave a partial directory; collision
+refusal is not whole-set rollback. Retain the hold under the same owned candidate and source index.
+The summary overlay checks its own declared identity/stage and retained authoring bytes; it does not
+change the scientific admission ceiling or grant publication. No full packages/databases are copied
+by these APIs or required merely to inspect their contracts.

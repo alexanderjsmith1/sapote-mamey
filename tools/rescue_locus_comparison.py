@@ -67,16 +67,19 @@ def _mid_x(track, gene_id):
 
 def level_partners(tracks, ref, kb_per_in=None):
     """Partner contigs share one row under the reference, each shifted so its anchor gene sits under the reference gene
-    it matches. A partner's heading may run right from its first gene or left from its last; the side that fits is
-    chosen, and a partner is moved only when neither side fits, by the smallest distance either way, so it stays as
-    close as possible to its match. Headings are short: strain, node, region and alias in bold, the full contig below."""
+    it matches. Contigs are kept apart by their genes only: a partner moves only when its genes would overlap another
+    partner's, and then by the smallest distance either way. Headings never move a contig. A heading runs right from the
+    first gene, or left from the last when running right would pass the right edge of the figure; the renderer stacks a
+    heading below another one it would overlap. (Reserving heading width here pushed the second of two partners up to
+    20 kb away from its matches: 106 of 1,131 v2u bee locus figures.) Headings are short: strain, node, region and alias
+    in bold, the full contig below."""
     parts = [t for t in tracks if t["id"].startswith("p")]
     if not parts:
         return
     span = max(abs(_mid_x(ref, g["id"])) for g in ref["genes"]) * 2 or 1
     kb_per_in = kb_per_in or span / 1000 / 15
     right_edge = max(max(_mid_x(x, g["id"]) + x.get("offset_bp", 0) for g in x["genes"]) for x in tracks if not x["id"].startswith("p"))
-    placed = []
+    placed, heads = [], []   # gene spans and heading spans already on the partner row
     for t in parts:
         grp = next(g["group"] for g in t["genes"] if g["id"] == t["anchor_gene"])
         rg = next(g["id"] for g in ref["genes"] if g["group"] == grp)
@@ -87,20 +90,25 @@ def level_partners(tracks, ref, kb_per_in=None):
         t["subtitle"] = ident["contig"]
         xs = [_mid_x(t, g["id"]) + t["offset_bp"] for g in t["genes"]]
         glo, ghi = min(xs) - 1500, max(xs) + 1500
-        head_bp = max(min(len(t["label"]), 34) * 12, min(len(t["subtitle"]), 48) * 9) * 0.62 / 72 * kb_per_in * 1000
-        best = None
-        for align in ("left", "right"):
-            lo, hi = (glo, max(ghi, glo + head_bp)) if align == "left" else (min(glo, ghi - head_bp), ghi)
-            shifts = [0] + [phi - lo + 1500 for _, phi in placed] + [plo - hi - 1500 for plo, _ in placed]
-            ok = [s for s in shifts if all(not (lo + s < phi and hi + s > plo) for plo, phi in placed)]
-            s = min(ok, key=abs)
-            cost = (abs(s), align == "left" and hi + s > right_edge)  # nearest first; a heading past the right edge loses ties
-            if best is None or cost < best[0]:
-                best = (cost, align, s, lo + s, hi + s)
-        _, align, s, lo, hi = best
+        shifts = [0] + [phi - glo + 1500 for _, phi in placed] + [plo - ghi - 1500 for plo, _ in placed]
+        ok = [s for s in shifts if all(not (glo + s < phi and ghi + s > plo) for plo, phi in placed)]
+        s = min(ok, key=abs)
         t["offset_bp"] += int(s)
-        if align == "right":
-            t["heading_align"] = "right"
+        head_bp = max(min(len(t["label"]), 34) * 12, min(len(t["subtitle"]), 48) * 9) * 0.62 / 72 * kb_per_in * 1000
+        # The heading takes the side that is free: running right from the first gene (left-aligned) unless that passes
+        # the figure edge or meets another heading, else running left from the last gene. If neither side is free, it
+        # runs right and the renderer stacks it under the other heading. The contig itself never moves for a heading.
+        lo, hi = glo + s, ghi + s
+        free = lambda a, b: all(not (a < hb and b > ha) for ha, hb in heads)
+        if lo + head_bp <= right_edge and free(lo, lo + head_bp):
+            span_h = (lo, lo + head_bp)
+        elif free(hi - head_bp, hi):
+            t["heading_align"] = "right"; span_h = (hi - head_bp, hi)
+        elif lo + head_bp > right_edge:
+            t["heading_align"] = "right"; span_h = (hi - head_bp, hi)
+        else:
+            span_h = (lo, lo + head_bp)
+        heads.append(span_h)
         placed.append((lo, hi))
 
 

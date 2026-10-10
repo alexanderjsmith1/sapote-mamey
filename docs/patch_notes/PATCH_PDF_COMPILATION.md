@@ -1,3 +1,18 @@
+## Current reader scope — historical compilation-gate design
+
+The G1–G5 proposal, renderer description and unchecked implementation list below record .121; they are not proof of present wiring. The .447 `tools/compilation_gate.py` exists as a separate CLI. It calls the 13-row manifest checker and the structure/depth helpers, counts distinct BGC aliases against a supplied number, applies Markdown heuristics and optionally counts PDF pages. It does not independently reconcile an exact strain/node/region/BGC roster. Locator reconciliation is warning-only. Without `--pdf`, G3 is deferred and can be true with no page count; a pre-render PASS is not a checked PDF. Page and heading counts do not certify evidence or visual layout.
+
+`tools/md_to_pdf.sh` first attempts the ReportLab renderer and uses preflight/pandoc/XeLaTeX as fallback; it does not call the compilation gate or automatically rename a failure to `_PARTIAL_`. Existing output paths can be replaced. Keep the separately selected gate receipt, inspect actual rendered pages and review the [current export contract](../PDF_OUTPUT_CONTRACT_v97144.md). Select the [Mode B profile](../MODEB_PROFILE_MATRIX.md) separately: the compilation helper's legacy prose does not establish current-profile acceptance. This patch changes documentation only.
+
+The Markdown preflight is a table-routing helper, not the renderer or a complete
+export validator. Its processed-body PASS does not cover routed appendix tables.
+Without `--appendix-md`, the CLI does not save those tables; output files can be
+written even on failure. Select explicit fresh destinations and review all
+requested sidecars. See [current preflight and lint usage](../user_guides/tools_reference.md#markdown-preflight-and-advisory-text-lint)
+for output, status and skipped-scope limits.
+
+---
+
 # PATCH — Gated PDF Compilation (100+ page full-genome compendium)
 **Patch ID:** PDF_COMPILATION_GATE_20260624  
 **Applies to:** Sapote (Claude / LLM tier) + the per-session compendium generator  

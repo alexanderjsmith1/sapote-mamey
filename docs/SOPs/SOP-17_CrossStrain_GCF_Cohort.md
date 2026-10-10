@@ -33,6 +33,10 @@ universal novelty, and it does not edit sealed Mamey outputs by default.
 12. If the user separately authorizes reconciliation, add source-preserving overlays to Mode B or
    triage products and retain original hashes. Do not silently mutate canonical cards.
 
+## Reader implementation limits
+
+The cohort procedure above requires exact completed-run selection and count reconciliation. Some auxiliary family readers filter only by cutoff and can return 0 with empty, skipped or failed output rows. Their present behavior does not enforce all SOP gates. Read [the reader recovery guide](../../tools/BIGSCAPE_READER_RECOVERY.md), inspect per-output status tables and keep an explicit hold when the database contains unresolved/mixed run memberships. Never infer completion from the process exit status alone.
+
 ## Portable join key
 
 Use `(source_run_id, cutoff, strain, bgc_id, contig·region)` for memberships. Retain the local

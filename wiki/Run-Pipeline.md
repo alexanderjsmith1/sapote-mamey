@@ -41,7 +41,11 @@ deterministic stages; data flows as typed objects from `models.py` (`RunContext`
    PASS / PASS_WITH_ISSUES / MAMEY_COMPLETE.
 
 Post-seal subcommands (`render-figures`, `cohort-figures`, `mode-b`, `domain-level`,
-`ingest-receipts`) consume an already-sealed package and never fail the core run.
+`ingest-receipts`) consume an already-sealed package after extraction. A post-seal command can fail or skip its
+own requested output even though it does not rerun the core analysis. Authoring commands such as
+`mode-b`, `render-figures` and `domain-level` can write package artifacts and refresh post-seal
+integrity checksums; `validate` normally writes a mutable `package_status.json` receipt. Preserve
+original package bytes on a separate working copy when required and inspect each command result.
 
 ## Run modes
 

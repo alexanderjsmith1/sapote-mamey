@@ -27,7 +27,7 @@ The strain-like label is often an accession such as `KY089035.1`, where `.1` is 
 
 1. Do not treat this as a full strain genome.
 2. Do not try to manually parse the large antiSMASH JSON in chat.
-3. Run `python -m mamey inspect <zip>` first.
+3. Run `python mamey_run.py inspect <zip>` first.
 4. If inspect passes, run gold mode; add `--capped-session` when the session has a time limit.
 5. Explain that assembly completeness warnings may be expected because the input is one accession/one region.
 6. Treat exact KnownClusterBlast matches as reference/control evidence, not as a discovery result.
@@ -41,10 +41,10 @@ For this input class, statuses such as `MAMEY_COMPLETE_WITH_ISSUES` with `VERY_P
 ## Recommended first-run command
 
 ```bash
-python -m mamey inspect KY089035.1.zip
+python mamey_run.py inspect KY089035.1.zip
 
-python -m mamey run \
-  --strain KY089035.1 \
+python mamey_run.py run \
+  --strain KY089035.1 --allow-accession-strain-id \
   --input-zip KY089035.1.zip \
   --taxonomy "<organism from GBK LOCUS/SOURCE>" \
   --source "public GenBank sequence" \
@@ -53,6 +53,10 @@ python -m mamey run \
   --json-evidence off \
   --brief none
 ```
+
+Run from the selected bundle root with its compatible Python environment. The example deliberately retains the accession as the output identity. Without `--allow-accession-strain-id`, an explicit accession label can be refused when the archive supplies an organism-based identity. To use that archive identity instead, pass `--strain auto` and omit the override; record the resulting strain ID rather than assuming it equals the ZIP stem. The internal accession remains a sequence locator.
+
+This recipe consumes an existing antiSMASH ZIP. `run --accession` does not download or preprocess a genome; it is an unsupported placeholder when no `--input-zip` is supplied.
 
 ## BLASTP panel policy
 

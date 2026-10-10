@@ -27,7 +27,7 @@ Before running analysis, decide what kind of input was uploaded.
 ## Standard decision tree
 
 1. If it is an antiSMASH ZIP, run `inspect` first.
-2. If `inspect` passes, run smoke mode before full/gold.
+2. If `inspect` passes and execution is authorized, run gold directly; use `--capped-session` when runtime limits apply. The removed `smoke` mode is not a first-run gate.
 3. If it is a Mamey package, validate it instead of re-running.
 4. If it is BLASTP output, parse and reprioritize, do not rerun Mamey.
 5. If it is a patch packet, audit contents before applying.
@@ -49,13 +49,13 @@ The assistant should say what the file appears to be before running commands:
 | No region GBKs | Not parseable as antiSMASH intake |
 | No KnownClusterBlast | Still parseable, but KCB evidence unavailable |
 | Single region only | Treat as accession/reference/test, not full genome |
-| Huge region count | Use ChatGPT-safe smoke and batching |
+| Huge region count | Use a capped gold run and the intake harness with explicit resource limits |
 | Mac dotfiles present | Warn but ignore if real GBKs parse |
 | Filename differs from internal accession | Use uploaded filename for `--input-zip`; internal accession can be strain label |
 
 ## Bug-hunt checks
 
-1. `inspect` must classify raw antiSMASH vs Mamey package vs BLASTP results.
+1. Classify the uploaded file before choosing a command. `inspect` accepts an antiSMASH ZIP; it is not a universal detector for workbooks, FASTA, BLASTP CSVs or package directories.
 2. Single-region antiSMASH ZIPs must not trigger misleading full-genome failure language.
 3. ChatGPT should never parse antiSMASH JSON manually when Mamey can inspect.
 4. The command recommendation must match input type.

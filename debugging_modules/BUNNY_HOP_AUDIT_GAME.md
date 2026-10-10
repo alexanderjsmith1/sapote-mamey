@@ -17,42 +17,30 @@ The Bunny Hop Audit Game is a structured, random-sampling audit of the Sapote–
 
 ### Setup
 
-1. Load the Sapote–Mamey CODE bundle (the `CODE-YYYYMMDD.zip` tier, not analysis-free or public).
-2. Start a fresh audit markdown file (e.g., `PIPELINE_AUDIT_SESSION_v2.md`).
-3. This intro goes at the top of that file.
-4. Start a new findings list — do NOT continue a previous session's list. Starting fresh lets you randomly re-examine a file that was audited before, which is fine and sometimes valuable (designs change across versions).
+1. Identify the exact source tree or archive tier, version and source hashes. Read current user instructions, privacy/profile boundaries and generated-file ownership.
+2. Create or reuse one indexed Markdown audit record. Link prior evidence in place and check source hashes before carrying a finding forward. No package-wide copy or source cleanup is implied.
+3. Declare the eligible file pool, exclusions and review objective. A Python-only sample cannot establish documentation or whole-bundle coverage.
 
-### Rolling for Files
+### Rolling for files
 
-Each round, use Python to sample randomly from the candidate pool:
+This example lists a local source tree without extracting an archive, executing project imports or copying source files. Substitute the exact accessible tree. It samples up to six files, including when the pool is smaller. Record the seed, sorted eligible roster, sampled paths and file hashes in the audit evidence; the same seed only reproduces a sample when the roster and Python sampling behavior are unchanged.
 
 ```python
-import zipfile, random
-from io import BytesIO
-
-outer_zip = '/mnt/user-data/uploads/Sapote_Mamey_vX_Y_Z.zip'
-with zipfile.ZipFile(outer_zip, 'r') as z:
-    code_zip_name = [n for n in z.namelist() if 'CODE-' in n and 'analysis-free' not in n][0]
-    inner_z = zipfile.ZipFile(BytesIO(z.read(code_zip_name)), 'r')
-    all_files = inner_z.namelist()
-
-candidates = [f for f in all_files
-              if (f.startswith('mamey/') or f.startswith('tools/'))
-              and f.endswith('.py')
-              and '__pycache__' not in f
-              and '_vendor' not in f
-              and f not in ('mamey/__init__.py', 'tools/__init__.py')]
-
-sample = random.sample(candidates, 6)   # roll 6, pick 2–3 to audit this round
-for i, f in enumerate(sample, 1):
-    print(f"{i}. {f}")
+from pathlib import Path
+import hashlib, random
+root = Path("/absolute/path/to/exact/CODE-tree")
+seed = 20261004
+candidates = sorted(p.relative_to(root).as_posix()
+                    for prefix in ("mamey", "tools")
+                    for p in (root / prefix).rglob("*.py")
+                    if "__pycache__" not in p.parts and "_vendor" not in p.parts)
+sample = random.Random(seed).sample(candidates, min(6, len(candidates)))
+print("seed", seed, "eligible", len(candidates))
+for rel in sample:
+    print(rel, hashlib.sha256((root / rel).read_bytes()).hexdigest())
 ```
 
-**Picking:** Take the first 2–3 from the sample, or pick the ones that look most interesting. Either is fine — the randomness is in the roll, not the pick.
-
-**Re-rolls are allowed.** If the sample is all tiny utility files, re-roll. If a file comes up that was audited in a previous session (of this or any other chat), audit it anyway — it might look different now, or catch something that was missed.
-
-**The Bunny Hop move:** At any point, instead of rolling randomly, you can "hop" to a file that the current file references or depends on. If `workbook.py` imports from `mamey/models.py`, hop to `models.py` next. This lets you follow design threads without losing the random-sampling discipline.
+Audit all selected files, or declare the first fixed number before drawing. Record every reroll and its reason. Picking the interesting files or discarding an inconvenient draw creates a targeted sample; label it accordingly. Dependency hops are valuable targeted review and should be recorded separately from the random draw. No sampled result establishes an unbiased whole-tree verdict or a prevalence estimate.
 
 ---
 
@@ -61,7 +49,7 @@ for i, f in enumerate(sample, 1):
 For each file:
 
 ### 1. Read the file
-Extract and read the full source. For files over ~200 lines, read the first 130–150 lines and the final 30 lines; then request more if needed.
+Read the relevant source in place, including callers, error branches, writes and consumers. Record the exact functions or line ranges inspected. A first/last-page skim is partial review; do not label the entire file reviewed until the remaining source has been assessed. Reading an import is not proof that a branch executes.
 
 ### 2. Write a brief description
 One short paragraph: what the file IS, what it does, approximate line count, key design features.
@@ -132,19 +120,16 @@ Effort scale: XS (5 min), S (15–30 min), M (1–2 hrs), L (half-day), XL (mult
 
 ---
 
-## Meta-Patterns to Watch For
+## Patterns to investigate
 
-Previous sessions have identified recurring design patterns across the pipeline. When you see these, they're usually intentional — don't flag them as issues unless there's a specific violation:
+Treat these as questions, not proof that a design is good or defective:
 
-1. **Single source of truth** — Logic is imported, not duplicated. (e.g., `verify_tier_derivation.py` imports live redaction logic; was previously broken when it had an inlined copy.)
-2. **Fail-closed logic** — Incomplete state → explicit non-zero exit, never silent pass.
-3. **Intentional brittleness** — Hardcoded positions, hardcoded lists, hardcoded registries are BY DESIGN. They're auditable. Don't reflexively externalize them.
-4. **Frozen/immutable design** — Frozen dataclasses, frozensets, frozen tuples prevent accidental mutation.
-5. **Evidence-based constraints** — Hardcoded exclusions and thresholds are calibrated against the 32-ref MIBiG set. They're not arbitrary.
-6. **Policy at code time** — Policy enforced in code (not config), intentional (not laziness).
-7. **Atomic writes** — `.tmp` + `os.rename()` is the standard pattern for output integrity. Flag any output writer that doesn't use it.
-8. **Graceful degradation** — Report what you can; don't crash on partial failure.
-9. **Regression anchors** — Parity tests, positional pairing, backward-compatibility layers are intentional constraints, not tech debt.
+- Follow shared logic to its actual callers; an import, regex hit or duplicate name alone does not establish execution or dead code.
+- Check refusal and partial-result paths. A zero exit or graceful fallback may omit required evidence; record missingness and the consumer's acceptance rule.
+- Assess hardcoded thresholds against the named profile and version. A historical calibration statement does not validate every current use.
+- Check output overwrite, source/output aliasing and multi-file consistency. Temporary-file replacement can protect one file without making a whole output set transactional. Recommend atomic writes when the failure scenario warrants them.
+- Verify generated-file ownership, provenance and dependency availability before proposing deletion, a rewrite or an install. Preserve source evidence; recommendations do not authorize removal.
+- Select meaningful verification for the changed behavior. Record commands, test selection, environment, exit status, passes/failures/skips and unavailable dependencies. The default test partition skips explicitly marked slow/network tests, and test fixtures replace the operator's registry environment; tests do not validate the real cohort by default.
 
 ---
 
@@ -152,7 +137,7 @@ Previous sessions have identified recurring design patterns across the pipeline.
 
 - Adopt the audit role requested by the user; the game does not assign a model identity or authorize additional agents.
 - **Claim-safe language always.** Even in audit notes: "BGC" not "compound," "biosynthetic capacity" not "produces."
-- If you find a BGC referenced in a file, always note the node or contig alongside it.
+- If you find a BGC referenced in a file, preserve the full strain / node-or-contig / region / BGC alias identity. Hold an unresolved join rather than guessing it.
 - **Never make a public-tier claim based on auditing the PRIVATE code tier.** If you audit `make_public_tier.sh`, describe what it does — don't infer what the public tier contains.
 - Assess disclosure against the current user-selected privacy profile and actual source metadata. A strain prefix alone does not establish private or public status; hold uncertain public export without blocking unrelated review.
 - Inspector and Defender are both you. Play both roles honestly. Don't let Defender capitulate easily; don't let Inspector be contrarian for its own sake.

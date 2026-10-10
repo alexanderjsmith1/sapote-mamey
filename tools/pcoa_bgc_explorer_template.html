@@ -8,18 +8,18 @@
 /* Layout: control bar on top; protein map (canvas) beside the BGC panel, stacked on phones. Tokens mirror the PCoA figures. */
 :root {
   --bg: #f6f7f4; --panel: #ffffff; --fg: #1c211e; --muted: #626b66; --line: #dde2db; --soft: #eef1ec;
-  --c0: #d9532c; --c1: #2e9e5b; --c2: #8a5bb8; --cx: #9a7b2f; --mibig: #6f9bc9; --ref: #c3c8c1; --sid: #d9ddd6;
+  --c0: #d9532c; --c1: #2e9e5b; --c2: #8a5bb8; --c3: #1f7fa8; --c4: #c2457a; --c5: #7a8a1e; --cx: #9a7b2f; --mibig: #6f9bc9; --ref: #c3c8c1; --sid: #b07aa8;
   --k-core: #c2410c; --k-add: #e9a47e; --k-transport: #4f7fb8; --k-reg: #3f9a5c; --k-other: #c4c9c3; --sel: #1c211e;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #111513; --panel: #181d1a; --fg: #e5eae6; --muted: #98a29c; --line: #2b322e; --soft: #1f2522;
-  --c0: #ee6c43; --c1: #4cc07c; --c2: #a985d6; --cx: #c9a54a; --mibig: #82acd9; --ref: #4b534e; --sid: #3a413d;
+  --c0: #ee6c43; --c1: #4cc07c; --c2: #a985d6; --c3: #4aa6cf; --c4: #e06c9b; --c5: #a6b83a; --cx: #c9a54a; --mibig: #82acd9; --ref: #4b534e; --sid: #c99bc2;
   --k-core: #f07a42; --k-add: #b8775a; --k-transport: #6b9ad3; --k-reg: #5cb878; --k-other: #4b534e; --sel: #f4f7f5; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #111513; --panel: #181d1a; --fg: #e5eae6; --muted: #98a29c; --line: #2b322e; --soft: #1f2522;
-  --c0: #ee6c43; --c1: #4cc07c; --c2: #a985d6; --cx: #c9a54a; --mibig: #82acd9; --ref: #4b534e; --sid: #3a413d;
+  --c0: #ee6c43; --c1: #4cc07c; --c2: #a985d6; --c3: #4aa6cf; --c4: #e06c9b; --c5: #a6b83a; --cx: #c9a54a; --mibig: #82acd9; --ref: #4b534e; --sid: #c99bc2;
   --k-core: #f07a42; --k-add: #b8775a; --k-transport: #6b9ad3; --k-reg: #5cb878; --k-other: #4b534e; --sel: #f4f7f5; color-scheme: dark; }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.45; }
@@ -53,6 +53,8 @@ canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: 
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 4px 12px 12px; font-size: 12px; color: var(--muted); }
 .legend span { display: inline-flex; gap: 6px; align-items: center; }
 .ring { width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--c0); display: inline-block; }
+.sq { width: 8px; height: 8px; display: inline-block; }
+.diam { width: 8px; height: 8px; display: inline-block; transform: rotate(45deg); }
 .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
   font-size: 12px; max-width: 280px; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
 aside { padding: 12px 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
@@ -104,6 +106,11 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
         <select id="axes"><option value="0,1">PCoA 1 × 2</option><option value="0,2">PCoA 1 × 3</option><option value="1,2">PCoA 2 × 3</option></select></label>
       <label for="color"><span class="lbl">Colour</span>
         <select id="color"><option value="cohort">by cohort (as figures)</option><option value="genus">by genus</option></select></label>
+      <label for="genusf"><span class="lbl">Genus</span>
+        <select id="genusf"><option value="">all genera</option></select></label>
+      <label class="chip" for="view3d"><input type="checkbox" id="view3d"> 3D: PCoA 1, 2 and 3</label>
+      <button id="flat" hidden>Flat: PCoA 1 × 2</button>
+      <label class="chip" id="subbox" for="subsplit" hidden><input type="checkbox" id="subsplit"> subgroups apart</label>
       <label for="find"><span class="lbl">Strain</span>
         <input id="find" type="search" placeholder="strain id" list="strainlist" size="10"></label>
       <datalist id="strainlist"></datalist>
@@ -157,10 +164,66 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
   const KIND = { "biosynthetic": "--k-core", "biosynthetic-additional": "--k-add", "transport": "--k-transport", "regulatory": "--k-reg" };
   const KIND_NAME = { "biosynthetic": "core biosynthetic", "biosynthetic-additional": "additional biosynthetic", "transport": "transport", "regulatory": "regulatory", "": "other" };
   const GENUS_COL = ["#d9532c","#3f7cc0","#2e9e5b","#8a5bb8","#c99a1e","#1aa3a3","#c2457a","#6b8e23","#7a5c3e","#e07b39","#5468a8","#9c3d3d"];
-  const COHORT_VAR = ["--c0", "--c1", "--c2", "--c0", "--c1", "--c2"];
-  const cohortVar = c => c === "excluded" ? "--cx" : COHORT_VAR[Math.max(0, st.index.cohorts.filter(x => x !== "excluded").indexOf(c)) % COHORT_VAR.length];
+  /*PBX3-PURE-BEGIN*/
+  // Pure helpers for the 3D view, the identity code, point labels and the genus filter. No DOM: the tests run this block.
+  const PBX3 = (() => {
+    const I = () => [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    const mul = (A, B) => A.map(r => [0, 1, 2].map(j => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j]));
+    const rotX = t => [[1, 0, 0], [0, Math.cos(t), -Math.sin(t)], [0, Math.sin(t), Math.cos(t)]];
+    const rotY = t => [[Math.cos(t), 0, Math.sin(t)], [0, 1, 0], [-Math.sin(t), 0, Math.cos(t)]];
+    // a drag turns the cloud about the screen's vertical axis (dx) and horizontal axis (dy), after the current rotation
+    const turn = (R, dx, dy) => mul(mul(rotX(dy), rotY(dx)), R);
+    // orthographic projection: rows 0 and 1 of R·(p − c) are the screen axes, row 2 is depth
+    const project = (p, R, c) => {
+      const v = [p[0] - c[0], p[1] - c[1], p[2] - c[2]];
+      return R.map(r => r[0] * v[0] + r[1] * v[1] + r[2] * v[2]);
+    };
+    const center = P => {
+      const c = [0, 0, 0]; for (const p of P) { c[0] += p[0]; c[1] += p[1]; c[2] += p[2]; }
+      const n = P.length || 1; return c.map(x => x / n);
+    };
+    // identity code: only a cohort point WITH an identity value is filled (< 70%) or open (>= 70%); every other point,
+    // and a cohort point without one, is "noid" and gets its own symbol
+    const marker = p => p[3] !== "i" || p[13] === null || p[13] === undefined ? "noid" : (p[13] < 70 ? "filled" : "open");
+    // one-genus filter: cohort, SID and reference points of that genus; MIBiG points carry no genus and always stay
+    const keep = (p, genus, S) => !genus || p[3] === "m" || S[p[4]] === genus;
+    // what a non-cohort point is (cohort points keep the detail panel)
+    const label = (p, D) => {
+      const S = D.strings, name = S[p[5]] || "", gene = p.length > 9 ? S[p[9]] || "" : "";
+      const file = p.length > 10 ? S[p[10]] || "" : "";
+      const contig = (file.startsWith(name + "__") ? file.slice(name.length + 2) : file.replace(/^.*?__/, "")).replace(/\.gbk$/, "");
+      if (p[3] === "m") {
+        const info = (D.mibig || {})[name];
+        return [`MIBiG cluster ${name}`, info && info[0] ? info[0] : "compound not in the MIBiG index given",
+                info && info[1] ? `producer: ${info[1]}` : "", gene ? `gene ${gene}` : ""].filter(Boolean);
+      }
+      if (p[3] === "s") {
+        const org = (D.sid_org || {})[name];
+        return [`SID collection genome ${name}`,
+                org ? org : (S[p[4]] ? `${S[p[4]]} (genus from the PCoA table; no deposited organism given)` : "organism not given"),
+                contig ? `contig ${contig}` : "", gene ? `gene ${gene}` : ""].filter(Boolean);
+      }
+      if (p[3] === "r") return ["Reference genome", name.replace(/_/g, " "), gene ? `gene ${gene}` : ""].filter(Boolean);
+      return [];
+    };
+    return { I, mul, rotX, rotY, turn, project, center, marker, keep, label };
+  })();
+  /*PBX3-PURE-END*/
+  const COHORT_VAR = ["--c0", "--c1", "--c2", "--c3", "--c4", "--c5"];
+  const cohortVar = c => c === "excluded" ? "--cx" : COHORT_VAR[Math.max(0, (st.keys || []).indexOf(c)) % COHORT_VAR.length];
   const cohortName = c => c === "excluded" ? "left out of the default view" : String(c || "").replace(/_/g, " ");
-  const st = { index: null, set: null, data: null, view: null, sel: null, regions: {}, find: "", hover: null, genusCol: {} };
+  const st = { index: null, set: null, data: null, view: null, sel: null, regions: {}, find: "", hover: null, genusCol: {},
+               mode3: false, R: null, c: [0, 0, 0], XY: [], genus: "", keys: [] };
+  // colour slots: each cohort, and with "subgroups apart" each cohort · subgroup
+  const split = () => !!($("subsplit") && $("subsplit").checked);
+  function colourKeys() {
+    const keys = st.index.cohorts.filter(x => x !== "excluded");
+    if (split()) for (const [s, g] of Object.entries(st.index.subgroup_of || {})) {
+      const k = `${st.index.cohort_of[s] || "cohort"} · ${g}`; if (!keys.includes(k)) keys.push(k);
+    }
+    st.keys = keys;
+  }
+  const colourKey = p => { const g = split() && (st.index.subgroup_of || {})[st.data.strings[p[5]]]; return g ? `${p[12]} · ${g}` : p[12]; };
 
   // ---------- data ----------
   // data files are scripts that call __PBX.put(key, value), so the page also works when opened from disk
@@ -191,6 +254,10 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
   const pad = { l: 44, r: 12, t: 12, b: 34 };
   function axes() { return $("axes").value.split(",").map(Number); }
   function fitView() {
+    if (st.mode3) {   // a fixed square around the centred cloud, so rotating never rescales it
+      let r = 0; for (const p of st.data.pts) { const v = PBX3.project(p, PBX3.I(), st.c); r = Math.max(r, Math.hypot(v[0], v[1], v[2])); }
+      r = (r || 0.01) * 1.04; st.view = { x0: -r, x1: r, y0: -r, y1: r }; return;
+    }
     const [a, b] = axes(); const P = st.data.pts;
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
     for (const p of P) { if (p[a] < x0) x0 = p[a]; if (p[a] > x1) x1 = p[a]; if (p[b] < y0) y0 = p[b]; if (p[b] > y1) y1 = p[b]; }
@@ -203,84 +270,133 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
   const iy = py => st.view.y0 + (H - pad.b - py) / (H - pad.t - pad.b) * (st.view.y1 - st.view.y0);
 
   function shown(p) {
+    if (!PBX3.keep(p, st.genus, st.data.strings)) return false;
     if (p[3] !== "i") return true;
     const box = document.querySelector(`input[data-cohort="${CSS.escape(String(p[12]))}"]`);
     return !!(box && box.checked);
   }
   function isoColor(p) {
     if ($("color").value === "genus") return st.genusCol[st.data.strings[p[4]]] || css("--muted");
-    return css(cohortVar(p[12]));
+    return css(cohortVar(colourKey(p)));
   }
   function ticks(lo, hi, n) {
     const step0 = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
     const step = [1, 2, 5, 10].map(m => m * mag).find(s => s >= step0) || mag * 10;
     const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-12; v += step) out.push(+v.toFixed(10)); return out;
   }
+  // data-space coordinates of every point, in the order of st.data.pts: the chosen axis pair, or the 3D projection
+  function coords() {
+    const P = st.data.pts;
+    if (st.mode3) return P.map(p => PBX3.project(p, st.R, st.c));
+    const [a, b] = axes(); return P.map(p => [p[a], p[b], 0]);
+  }
+  function gizmo(fg, muted) {   // the three PCoA axes as they point after rotation
+    const ox = pad.l + 34, oy = H - pad.b - 34, L = 26, pct = st.data.pct || [];
+    ctx.lineWidth = 1.5; ctx.font = "11px " + css("--font"); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    let deep = 0;
+    for (let k = 0; k < 3; k++) {
+      const dx = st.R[0][k], dy = st.R[1][k], x = ox + dx * L, y = oy - dy * L;
+      ctx.strokeStyle = muted; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(x, y); ctx.stroke();
+      const name = `PCoA ${k + 1}${pct[k] != null ? ` (${pct[k]}%)` : ""}`;
+      ctx.fillStyle = fg;
+      if (Math.hypot(dx, dy) > 0.35) {   // label just past the end of its line, on the side the line points to
+        ctx.textAlign = dx > 0.3 ? "left" : dx < -0.3 ? "right" : "center";
+        ctx.fillText(name, ox + dx * (L + 6), oy - dy * (L + 10));
+      }
+      else {   // an axis seen end-on: its label goes beside the key instead of on top of another one
+        ctx.textAlign = "left"; ctx.fillText(name + " (depth)", ox + L + 30, oy - 26 + 13 * deep++);
+      }
+    }
+    ctx.textAlign = "center";
+  }
+  function dot(x, y, r, shape) {
+    if (shape === "sq") { ctx.rect(x - r, y - r, 2 * r, 2 * r); return; }
+    if (shape === "diam") { ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); return; }
+    ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, 6.2832);
+  }
   function draw() {
     if (!st.data || !W) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-    const [a, b] = axes(), P = st.data.pts, pct = st.data.pct || [];
+    const P = st.data.pts, pct = st.data.pct || [];
+    const XY = st.XY = coords();
     const fg = css("--fg"), muted = css("--muted"), line = css("--line");
-    // axes and ticks
-    ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = "11px " + css("--font");
-    ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H - pad.b); ctx.lineTo(W - pad.r, H - pad.b); ctx.stroke();
-    ctx.textAlign = "center"; ctx.textBaseline = "top";
-    for (const v of ticks(st.view.x0, st.view.x1, 5)) { const x = sx(v); ctx.fillText(v.toFixed(2), x, H - pad.b + 5); }
-    ctx.textAlign = "right"; ctx.textBaseline = "middle";
-    for (const v of ticks(st.view.y0, st.view.y1, 5)) { const y = sy(v); ctx.fillText(v.toFixed(2), pad.l - 5, y); }
-    ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillStyle = fg;
-    ctx.fillText(`PCoA ${a + 1} (${pct[a] ?? "?"}%)`, pad.l + (W - pad.l - pad.r) / 2, H - 2);
-    ctx.save(); ctx.translate(11, pad.t + (H - pad.t - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = "middle";
-    ctx.fillText(`PCoA ${b + 1} (${pct[b] ?? "?"}%)`, 0, 0); ctx.restore();
+    if (!st.mode3) {
+      const [a, b] = axes();
+      // axes and ticks
+      ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.fillStyle = muted; ctx.font = "11px " + css("--font");
+      ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H - pad.b); ctx.lineTo(W - pad.r, H - pad.b); ctx.stroke();
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      for (const v of ticks(st.view.x0, st.view.x1, 5)) { const x = sx(v); ctx.fillText(v.toFixed(2), x, H - pad.b + 5); }
+      ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      for (const v of ticks(st.view.y0, st.view.y1, 5)) { const y = sy(v); ctx.fillText(v.toFixed(2), pad.l - 5, y); }
+      ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillStyle = fg;
+      ctx.fillText(`PCoA ${a + 1} (${pct[a] ?? "?"}%)`, pad.l + (W - pad.l - pad.r) / 2, H - 2);
+      ctx.save(); ctx.translate(11, pad.t + (H - pad.t - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = "middle";
+      ctx.fillText(`PCoA ${b + 1} (${pct[b] ?? "?"}%)`, 0, 0); ctx.restore();
+    } else {
+      ctx.fillStyle = muted; ctx.font = "11px " + css("--font"); ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+      ctx.fillText("3D view: drag to turn, wheel to zoom, Flat to return to PCoA 1 × 2", pad.l, H - 2);
+    }
     ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
     const find = st.find, dim = !!find;
-    // background: SID, references, MIBiG
-    const layers = [["s", css("--sid"), 1.6], ["r", css("--ref"), 1.7], ["m", css("--mibig"), 2.1]];
-    for (const [code, col, r] of layers) {
+    // background, all without an identity value: references (grey dots), SID collection (squares), MIBiG (blue dots)
+    const layers = [["r", css("--ref"), 1.7, "dot"], ["s", css("--sid"), 1.9, "sq"], ["m", css("--mibig"), 2.1, "dot"]];
+    for (const [code, col, r, shape] of layers) {
       ctx.fillStyle = col; ctx.globalAlpha = dim ? 0.45 : 1; ctx.beginPath();
-      for (const p of P) if (p[3] === code) { const x = sx(p[a]), y = sy(p[b]); ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, 6.2832); }
+      for (let i = 0; i < P.length; i++) { const p = P[i]; if (p[3] === code && shown(p)) dot(sx(XY[i][0]), sy(XY[i][1]), r, shape); }
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-    // isolates: solid when the best reference/MIBiG match is below 70 % identity, hollow otherwise
-    const labels = [];
-    for (let i = 0; i < P.length; i++) {
-      const p = P[i]; if (p[3] !== "i" || !shown(p)) continue;
+    // isolates: filled when the best reference/MIBiG match is below 70 % identity, open at 70 % or more, a diamond when the
+    // point has no identity value. In 3D the nearer points are drawn last (painter's order); the data order never changes.
+    const labels = [], order = [];
+    for (let i = 0; i < P.length; i++) if (P[i][3] === "i" && shown(P[i])) order.push(i);
+    if (st.mode3) order.sort((u, v) => XY[u][2] - XY[v][2]);
+    for (const i of order) {
+      const p = P[i];
       const hit = find && st.data.strings[p[5]].toUpperCase() === find;
       if (dim && !hit) ctx.globalAlpha = 0.25;
-      const x = sx(p[a]), y = sy(p[b]), col = isoColor(p), r = hit ? 6 : 4.2;
-      const low = p[13] !== null && p[13] < 70;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832);
-      if (low) { ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = fg; ctx.stroke(); }
-      else { ctx.fillStyle = css("--panel"); ctx.fill(); ctx.lineWidth = 1.8; ctx.strokeStyle = col; ctx.stroke(); }
+      const x = sx(XY[i][0]), y = sy(XY[i][1]), col = isoColor(p), r = hit ? 6 : 4.2, mk = PBX3.marker(p);
+      ctx.beginPath();
+      if (mk === "noid") { dot(x, y, r, "diam"); ctx.fillStyle = col; ctx.fill(); }
+      else {
+        ctx.arc(x, y, r, 0, 6.2832);
+        if (mk === "filled") { ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = fg; ctx.stroke(); }
+        else { ctx.fillStyle = css("--panel"); ctx.fill(); ctx.lineWidth = 1.8; ctx.strokeStyle = col; ctx.stroke(); }
+      }
       ctx.globalAlpha = 1;
       if (($("labels").checked && p[17]) || hit) labels.push([x, y, st.data.strings[p[5]]]);
     }
     ctx.font = "11px " + css("--font"); ctx.textAlign = "left"; ctx.textBaseline = "bottom";
     for (const [x, y, t] of labels) { ctx.lineWidth = 3; ctx.strokeStyle = css("--panel"); ctx.strokeText(t, x + 6, y - 4); ctx.fillStyle = fg; ctx.fillText(t, x + 6, y - 4); }
     if (st.sel !== null && st.data.pts[st.sel]) {
-      const p = st.data.pts[st.sel], x = sx(p[a]), y = sy(p[b]);
+      const x = sx(XY[st.sel][0]), y = sy(XY[st.sel][1]);
       ctx.lineWidth = 2.5; ctx.strokeStyle = css("--sel"); ctx.beginPath(); ctx.arc(x, y, 9, 0, 6.2832); ctx.stroke();
     }
     ctx.restore();
+    if (st.mode3) gizmo(fg, muted);
   }
   function nearest(px, py, isolatesOnly) {
-    const [a, b] = axes(); let best = null, bd = 144;
+    const XY = st.XY.length === st.data.pts.length ? st.XY : coords(); let best = null, bd = 144;
     st.data.pts.forEach((p, i) => {
       if (isolatesOnly && p[3] !== "i") return;
-      if (p[3] === "i" && !shown(p)) return;
-      const dx = sx(p[a]) - px, dy = sy(p[b]) - py, d = dx * dx + dy * dy;
+      if (!shown(p)) return;
+      const dx = sx(XY[i][0]) - px, dy = sy(XY[i][1]) - py, d = dx * dx + dy * dy;
       if (d < bd || (best !== null && st.data.pts[best][3] !== "i" && p[3] === "i" && d < 144)) { bd = d; best = i; }
     });
     return best;
   }
   // pan, zoom, click
   let drag = null;
-  cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); drag = { x: e.offsetX, y: e.offsetY, v: { ...st.view }, moved: false }; });
+  cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); drag = { x: e.offsetX, y: e.offsetY, lx: e.offsetX, ly: e.offsetY, v: { ...st.view }, moved: false }; });
   cv.addEventListener("pointermove", e => {
     if (drag) {
       const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
       if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+      if (drag.moved && st.mode3) {
+        st.R = PBX3.turn(st.R, (e.offsetX - drag.lx) * 0.01, (e.offsetY - drag.ly) * 0.01);
+        drag.lx = e.offsetX; drag.ly = e.offsetY; draw(); return;
+      }
       if (drag.moved) {
         const kx = (drag.v.x1 - drag.v.x0) / (W - pad.l - pad.r), ky = (drag.v.y1 - drag.v.y0) / (H - pad.t - pad.b);
         st.view = { x0: drag.v.x0 - dx * kx, x1: drag.v.x1 - dx * kx, y0: drag.v.y0 + dy * ky, y1: drag.v.y1 + dy * ky }; draw();
@@ -292,7 +408,8 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
     const p = st.data.pts[i], S = st.data.strings;
     tip.innerHTML = p[3] === "i"
       ? `<b>${S[p[5]]}</b> · ${S[p[4]]}<br>${S[p[7]] || ""} · best match ${p[13] ?? "?"}% identity<br><span style="color:var(--muted)">click to open the BGC</span>`
-      : `${{ r: "Reference genome", m: "MIBiG cluster", s: "SID collection genome" }[p[3]]}<br><b>${esc(S[p[5]]).replace(/_/g, " ")}</b><br>${S[p[7]] || ""}${p[6] > 1 ? ` · stands for ${p[6]} proteins` : ""}`;
+      : PBX3.label(p, st.data).map((t, k) => k === 1 ? `<b>${esc(t)}</b>` : esc(t)).join("<br>")
+        + `<br>${esc(S[p[7]] || "")}${p[6] > 1 ? ` · stands for ${p[6]} proteins` : ""}<br><span style="color:var(--muted)">no identity value</span>`;
     tip.hidden = false;
     const bx = Math.min(e.offsetX + 14, W - 290); tip.style.left = Math.max(4, bx) + "px"; tip.style.top = (e.offsetY + 14) + "px";
   });
@@ -321,15 +438,18 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
   }
   function legend() {
     const D = st.data, P = D.pts, S = D.strings;
-    const n = c => P.filter(p => p[3] === c).reduce((s, p) => s + p[6], 0);
+    const n = c => P.filter(p => p[3] === c && shown(p)).reduce((s, p) => s + p[6], 0);
     const iso = P.filter(p => p[3] === "i" && shown(p));
-    const low = iso.filter(p => p[13] !== null && p[13] < 70);
-    let h = `<span><span class="dot" style="background:var(--ref)"></span>reference genomes (${n("r").toLocaleString()} proteins)</span>`
-      + `<span><span class="dot" style="background:var(--sid)"></span>SID collection (${n("s").toLocaleString()})</span>`
-      + `<span><span class="dot" style="background:var(--mibig)"></span>MIBiG (${n("m").toLocaleString()})</span>`;
+    const mk = k => iso.filter(p => PBX3.marker(p) === k).length;
+    let h = `<span><span class="dot" style="background:var(--ref)"></span>reference genomes (${n("r").toLocaleString()} proteins; no identity value)</span>`
+      + `<span><span class="sq" style="background:var(--sid)"></span>SID collection (${n("s").toLocaleString()}; no identity value)</span>`
+      + `<span><span class="dot" style="background:var(--mibig)"></span>MIBiG (${n("m").toLocaleString()}; no identity value)</span>`
+      + `<span><span class="dot" style="background:var(--muted);outline:1px solid var(--fg)"></span>isolates, best match &lt; 70% identity (${mk("filled")})</span>`
+      + `<span><span class="ring" style="border-color:var(--muted)"></span>isolates, best match ≥ 70% (${mk("open")})</span>`
+      + (mk("noid") ? `<span><span class="diam" style="background:var(--muted)"></span>isolates, no identity value (${mk("noid")})</span>` : "");
     if ($("color").value === "cohort") {
-      h += `<span><span class="dot" style="background:var(--c0);outline:1px solid var(--fg)"></span>isolates, best match &lt; 70% identity (${low.length})</span>`
-        + `<span><span class="ring"></span>isolates, best match ≥ 70% (${iso.length - low.length})</span>`;
+      const ks = [...new Set(iso.map(colourKey))];
+      h += ks.map(k => `<span><span class="dot" style="background:var(${cohortVar(k)})"></span>${esc(cohortName(k))}</span>`).join("");
     } else {
       const gs = [...new Set(iso.map(p => S[p[4]]))].sort();
       h += gs.map(g => `<span><span class="dot" style="background:${st.genusCol[g]}"></span><i>${esc(g)}</i></span>`).join("");
@@ -348,6 +468,12 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
     const gs = [...new Set(st.data.pts.filter(p => p[3] === "i").map(p => st.data.strings[p[4]]))].sort();
     gs.forEach((g, i) => { if (!st.genusCol[g]) st.genusCol[g] = GENUS_COL[Object.keys(st.genusCol).length % GENUS_COL.length]; });
     $("ptitle").textContent = `${s} · ${st.data.title}`;
+    const gc = new Map();
+    for (const p of st.data.pts) if (p[3] !== "m") { const g = st.data.strings[p[4]]; if (g) gc.set(g, (gc.get(g) || 0) + (p[3] === "i" ? 1000 : 1)); }
+    const gl = [...gc.entries()].sort((x, y) => y[1] - x[1]).map(x => x[0]);
+    if (st.genus && !gl.includes(st.genus)) st.genus = "";
+    $("genusf").innerHTML = `<option value="">all genera</option>` + gl.map(g => `<option value="${esc(g)}" ${g === st.genus ? "selected" : ""}>${esc(g)}</option>`).join("");
+    st.c = PBX3.center(st.data.pts); if (!st.R) st.R = PBX3.I();
     fitView(); legend(); draw();
     if (then !== undefined) selectPoint(then);
   }
@@ -494,6 +620,8 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
     for (const s of st.index.sets) { if (!groups[s.group]) { groups[s.group] = []; order.push(s.group); } groups[s.group].push(s); }
     $("set").innerHTML = order.map(g => `<optgroup label="${esc(g)}">`
       + groups[g].map(s => `<option value="${esc(s.set)}">${esc(s.set)} · ${esc(s.title)} (${s.shown} cohort points)</option>`).join("") + `</optgroup>`).join("");
+    colourKeys();
+    if (Object.keys(st.index.subgroup_of || {}).length) $("subbox").hidden = false;
     const box = $("cohorts");
     st.index.cohorts.forEach((c, i) => {
       const lab = document.createElement("label"); lab.className = "chip";
@@ -524,6 +652,14 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
   $("set").onchange = e => loadSet(e.target.value);
   $("axes").onchange = () => { fitView(); draw(); };
   $("color").onchange = () => { legend(); draw(); };
+  $("genusf").onchange = e => { st.genus = e.target.value; legend(); draw(); };
+  $("subsplit").onchange = () => { colourKeys(); legend(); draw(); };
+  $("view3d").onchange = e => {
+    st.mode3 = e.target.checked; $("flat").hidden = !st.mode3; $("axes").disabled = st.mode3;
+    if (st.mode3) { st.c = PBX3.center(st.data.pts); st.R = PBX3.I(); }
+    fitView(); draw();
+  };
+  $("flat").onclick = () => { st.R = PBX3.I(); fitView(); draw(); };
   $("find").oninput = e => { st.find = e.target.value.trim().toUpperCase(); draw(); };
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
   new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });

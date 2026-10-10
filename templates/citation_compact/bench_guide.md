@@ -1,5 +1,7 @@
 # Bench Guide — Citation Compact
 
+This generated plan uses fixed generic substitutions for detection, assay and decision-threshold wording. They require evidence-specific review before use; they are not measured outcomes or validated experimental decisions. The example row uses the first triage row, not an independently ranked strongest lead. Preserve strain, full node/contig, region and BGC alias when relating a plan to evidence.
+
 ## Priority Assay Plan
 
 | Lead | Target hypothesis | Detection method | Primary assay | Citation basis | Decision threshold |

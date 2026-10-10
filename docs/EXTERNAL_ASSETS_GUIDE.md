@@ -1,5 +1,9 @@
 # External Assets Guide — what Sapote-Mamey can use, and how to get it
 
+Before any `doctor` example below, read the [write-probe boundary](INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
+untouched. The current diagnostic can overwrite or remove its probe file.
+
 *Intended bundle home: `docs/EXTERNAL_ASSETS_GUIDE.md`, linked from the front-door docs
 (`README.md`, `AGENTS.md`, `CURRENT_DOCS_INDEX.md`, `docs/PREREQUISITES.md`).
 CANDIDATE — the Developer or User seals. the patch lane, 2026-08-26.*
@@ -34,9 +38,12 @@ all output destinations. Announce file creation and include it in the session in
 
 ## How the engine finds an asset once it is present
 
-The engine-registered datasets are resolved by `mamey/external_data.py` in this order (first hit
-wins): the dataset's own `MAMEY_*` variable → `$MAMEY_DATA_ROOT/<subdir>` → a legacy in-tree path,
-if one still exists. `python mamey_run.py doctor` reports which of these datasets are provisioned.
+Most engine-registered datasets use `mamey/external_data.py`: the dataset-specific variable,
+then `$MAMEY_DATA_ROOT/<subdir>`, then a surviving legacy location. A candidate counts only when
+its required probe exists; an invalid override can fall through. The `hmm` dataset is an
+exception: it delegates to the scanner resolver described below. Governed exclusions also have
+their own exclusive-override rules in `mamey/exclusions.py`; the generic dataset fallback is not
+a guarantee that an invalid governance override will be ignored. `python mamey_run.py doctor` reports which of these datasets are provisioned.
 Assets that are consumed by a companion tool rather than by the engine are passed on that tool's
 command line (for example `--pfam`, `--mibig-dir`) or located through a tool-specific variable.
 If a variable is unset, inspect that workflow's actual error or fallback receipt. Missing optional
@@ -50,8 +57,8 @@ Environment variables the code actually reads (verified against `mamey/` and `to
 | `MAMEY_MIBIG_DIR` | folder containing `mibig_reference_index.bacterial.json` | `mamey/external_data.py` (`mibig`); `mamey/fragment_ceiling.py` |
 | `MAMEY_MIBIG_NEIGHBORHOODS_DIR` | folder containing `PROVENANCE.md` and the KS/AT/C/A/glyc/resi neighborhood partitions | `mamey/external_data.py` (`mibig_neighborhoods`); `mamey/mibig_neighborhoods_api.py` |
 | `MAMEY_LITERATURE_CORPUS` | folder containing `literature_corpus.jsonl` | `mamey/external_data.py` (`literature`); `mamey/literature_lookup.py` |
-| `MAMEY_HMM_DIR` | folder containing `scanner_pfam.hmm` | `mamey/external_data.py` (`hmm`) — this is what `doctor` reports |
-| `SM_HMM_DB` | the HMM **file** itself (`.../scanner_pfam.hmm` or `.../scanner_pfam_150.hmm`) | `mamey/wheelhouse.py:resolve_hmm_database` — the scanner's runtime override; checked before any in-tree or add-on location |
+| `MAMEY_HMM_DIR` | folder containing `scanner_pfam_150.hmm` (148 models) or `scanner_pfam.hmm` (35 models) | scanner resolver in `mamey/wheelhouse.py`, shared by `mamey/external_data.py` and `doctor` |
+| `SM_HMM_DB` | the HMM **file** itself (`.../scanner_pfam.hmm` or `.../scanner_pfam_150.hmm`) | `mamey/wheelhouse.py:resolve_hmm_database` — the scanner's runtime override; checked before `MAMEY_HMM_DIR`, `$MAMEY_DATA_ROOT/hmm`, in-tree or add-on locations |
 | `MAMEY_OFFICIAL_DATA` | folder containing `exclusions.json` (governed denominator / exclusion SSOT) | `mamey/external_data.py` (`official_data`); `mamey/exclusions.py`, `mamey/reference_strain_registry.py` |
 | `MAMEY_NPATLAS_DIR` | folder containing `np_atlas.json` (`SM_NPATLAS_DIR` is a warned legacy alias) | `mamey/external_data.py` (`npatlas`); `mamey/npatlas_resolver.py`, `mamey/npatlas_structure.py` |
 | `BLAST_BIN` | folder containing the BLAST+ executables | `tools/outgroup_registry.py`, `tools/phylo_refset.py`, `tools/_phylo16s.py` |
@@ -88,16 +95,29 @@ specific downstream stage). **Fallback:** what happens when it is absent.
   their own release for provenance.
 
 ### 3. Scanner Pfam subset — *engine profile scanner*
-- **Purpose / stage:** a small curated HMM profile subset (`scanner_pfam.hmm`, 35 families) used by the
-  engine's internal scanner.
+- **Purpose / stage:** a curated profile subset used by the internal scanner. Recognized filenames are
+  `scanner_pfam_150.hmm` (148-model hint despite the filename) and `scanner_pfam.hmm`
+  (35-model hint). These counts are resolver hints, not validation of file content.
 - **Need:** OPTIONAL. **Fallback:** without it the scanner uses the regex path and HMMER cells report
   `NEEDS_HMMER_DOMTBLOUT`; core triage does not depend on it. The file is not bundled; tests forbid it
   in the tree.
-- **How:** **rebuild it from the full Pfam-A** with the `hmmfetch` recipe in `docs/PUBLIC_RELEASE_DATA.md`
-  (there is no builder script in `tools/`) — or have the operator supply a copy. Then either
+- **How:** **build a source-bound subset from a compatible local Pfam-A file** using
+  `python tools/build_scanner_hmm.py --source /path/to/Pfam-A.hmm --preset 148
+  --out /path/to/new/scanner_pfam_150.hmm`. Use `--preset 35` for the smaller list, or
+  `--accessions <selectors.txt>` for an explicit list. The builder runs local HMMER,
+  requires exact versioned selectors and fresh HMM/index/receipt paths, and performs
+  no download. Review the source/selector/output hashes and pressed-index checks in
+  `<out>.build_receipt.json`. It creates a new-source artifact, not certified historical
+  bytes. See [the provisioning contract](447_COMPANION_RETRIEVAL_CONTROLS.md#scanner-subset-provisioning)
+  and [historical reconstruction context](PUBLIC_RELEASE_DATA.md). An operator can also
+  supply a separately source-bound copy. Then either
   set `SM_HMM_DB` to the file path (this is what the scanner's resolver reads first), or place the
-  file at `$MAMEY_DATA_ROOT/hmm/scanner_pfam.hmm` / set `MAMEY_HMM_DIR` to its folder so that
-  `doctor` reports it as provisioned. Setting both is the safe choice.
+  file in `$MAMEY_DATA_ROOT/hmm/` or set `MAMEY_HMM_DIR` to its folder. Since .432,
+  `doctor` and the scanner use the same resolver; setting both variables is unnecessary.
+  Resolution order is: existing `SM_HMM_DB` file → `MAMEY_HMM_DIR` → shared-root `hmm/`
+  → bundle-local 148 set → discovered add-on 148 set → bundle-local 35 set. Within each
+  operator directory, the 148 filename wins. Keep the returned path, tier and actual file hash.
+  Provisioning does not validate HMM syntax or establish that a scan ran.
 - **Note:** this is a *derived* subset of asset #2, not a separate download; ship the profile list + build
   step, not the HMM.
 
@@ -143,9 +163,11 @@ specific downstream stage). **Fallback:** what happens when it is absent.
 - **NP Atlas** (dereplication; optional, never bundled): download from npatlas.org (CC BY-NC 4.0,
   non-commercial; do not redistribute). Set `MAMEY_NPATLAS_DIR` to the folder containing `np_atlas.json`
   (or `$MAMEY_DATA_ROOT/npatlas/`).
-- **Literature corpus** (§5 literature enrichment; optional): build it locally with
-  `mamey/data/literature/_corpus/pubmed_ingest.py` under your own institutional access — abstracts are
-  publisher-copyrighted and are not redistributable. Set `MAMEY_LITERATURE_CORPUS` to the folder
+- **Literature corpus** (§5 literature enrichment; optional): build it from authorized local PubMed search-result PDF exports using
+  `python mamey/data/literature/_corpus/pubmed_ingest.py <pdf_dir> <out_dir>`. This helper
+  reads local PDFs with `pypdf`; it does not fetch PubMed records or use E-utilities.
+  It writes JSONL, SQLite and `_manifest.json` in the selected output directory.
+  See [external data](EXTERNAL_DATA.md#2-literature-corpus--pmids-dois-titles-abstracts). Set `MAMEY_LITERATURE_CORPUS` to the folder
   containing `literature_corpus.jsonl` (or `$MAMEY_DATA_ROOT/literature/`). If absent, enrichment
   renders NOT MEASURED.
 - **OFFICIAL_DATA** (governance, not third-party): the release owner's `exclusions.json` / `EXCLUSIONS.md`
@@ -171,7 +193,7 @@ specific downstream stage). **Fallback:** what happens when it is absent.
   first (path 1), else download (#2 source), ~2 GB, pin the release.
 - **Local BLASTp homology** → BLAST+ + Swiss-Prot (#4); small, local, no rate limit.
 - **A tree / taxonomy** → GToTree + GTDB (#6); separate from extraction, large GTDB download.
-- **Always:** search the machine before downloading anything large (path 1), name the license and size
+- **Always:** inspect the permitted project inventory before downloading anything large, name the license and size
   before fetching (path 2/3), and set the variable from the table above so the engine finds it.
   Confirm with `python mamey_run.py doctor`. Never redistribute a licensed asset to make the repo
   self-contained.

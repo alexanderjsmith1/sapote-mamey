@@ -3,18 +3,21 @@
 The bacterial workflows (`PHYLOGENETICS_WORKFLOW.md`, `PHYLO_PLACEMENT_WORKFLOW.md`, `GTOTREE_WORKFLOW.md`)
 do NOT apply to fungi: different loci, different alphabet, different reference world, and
 `outgroup_registry.tsv` is actinomycete-only. This is the fungal sibling — for any fungal isolate that
-turns up as a comparator (e.g. a Chaetothyriales black yeast from an insect host). Generic; carries no
-project specifics.
+turns up as a comparator (e.g. a Chaetothyriales black yeast from an insect host). This is a workflow design and recorded troubleshooting guidance, not a shipped
+one-command fungal runner or proof that its external binaries/assets are installed.
+Bind the selected fungal input/reference scope, software and resource budget before
+execution; reference downloads are separate from local analysis.
 
 ## Two tiers (same philosophy as the bacterial two-tier)
 1. **rDNA screen (fast, low CPU)** — find the isolate's family/genus neighbourhood.
-   - **ITS** (ITS1-5.8S-ITS2, the fungal barcode) via **ITSx**; **18S/SSU** and **28S/LSU** via **barrnap
-     `--kingdom euk`**; or `blastn` the assembly with a reference operon when a tool is unavailable.
+   - **ITS** (ITS1-5.8S-ITS2, the fungal barcode) via **ITSx**; **18S/SSU** and **28S/LSU** via **Barrnap with the installed version’s fungal model** (see [version guidance](BARRNAP.md)); or `blastn` the assembly with a reference operon when a tool is unavailable.
    - Align per locus (MUSCLE), trim (trimAl), IQ-TREE, root on the registry outgroup, gate.
-   - **Marker caveat (enforced):** 18S is conserved (family/genus neighbourhood only); ITS resolves
+   - **Marker design caveat:** 18S is conserved (family/genus neighbourhood only); ITS resolves
      WITHIN a genus but is UNALIGNABLE across divergent genera — never concatenate family-wide ITS.
-     A **matched whole-operon (18S+ITS+28S) matrix** from full-operon records is the strongest rDNA tree.
-2. **Genome MLSA (definitive, CPU-heavy) = the fungal GToTree equivalent** — **BUSCO** single-copy
+     A matched whole-operon (18S+ITS+28S) matrix can provide additional rDNA context
+     when alignment and source correspondence are defensible; its resolution and
+     acceptance remain dependent on the sampled records and analysis.
+2. **Genome ortholog analysis (additional resolution, CPU-heavy)** — **BUSCO** single-copy
    orthologs (lineage `ascomycota_odb10`/`dothideomycetes_odb10`) on the query + reference genomes
    (fetched with NCBI `datasets`), concatenate hundreds of loci → partitioned IQ-TREE → gate. Use when
    rDNA markers disagree on genus (the usual case for a divergent/novel lineage). **compleasm** is a
@@ -30,8 +33,9 @@ A genuinely divergent/novel query can itself be the longest branch — that is a
 proper outgroup, not hidden; but it must not dominate an artifactual alignment.
 
 ## Claim-safety
-ITS/rDNA = family/genus neighbourhood, NOT a species call; genome MLSA (+ ANI/AAI) delimits species;
-judgment deferred. State the nearest named genus with % identity as an anchor, never as an identification.
+ITS/rDNA = family/genus neighbourhood, NOT a species call; genome marker trees and appropriate genome-similarity methods provide additional
+comparison evidence. They do not automatically delimit or name species, and bacterial
+ANI thresholds are not a universal fungal naming rule. Judgment deferred. State the nearest named genus with % identity as an anchor, never as an identification.
 
 ## Hard-won rules (v9.7.406) — each of these cost a real detour
 
@@ -67,4 +71,8 @@ its fraction of tree depth, say which check failed and why, and let the number c
 
 ### R6. Never resume a partial ortholog run
 compleasm writes `miniprot.done` before hmmsearch completes; resuming after an interrupt yields a
-silently truncated ortholog set. Delete the output directory and restart that genome.
+silently truncated ortholog set. Preserve the interrupted directory and logs as
+failure evidence; start that genome in a fresh output directory. A cleanup decision
+requires separately authorized removal and must not discard the only evidence of
+the failed run. This warning describes the recorded failure mode, not validation
+of every installed compleasm version.

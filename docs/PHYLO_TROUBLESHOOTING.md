@@ -1,7 +1,9 @@
-# TROUBLESHOOTING — EPA-ng placement + phylo tooling (2026-09-06)
+# EPA-ng troubleshooting — historical incident reference
+
+This page preserves September6,2026 incident notes and earlier patch labels. Local cohort counts, workstation environments, private filenames and “live/open fix” labels describe that incident; they are not current setup requirements or proof a defect remains in this bundle. Start with [the current phylogenetics workflow](PHYLOGENETICS_WORKFLOW.md) and [installation](INSTALL.md). Use your actual bound inputs and configured Python/tool paths, not the historical workstation paths below. Reproduce a symptom against the selected version before applying an old workaround.
 
 Hard-won gotchas from building the Actinomadura + rare-genus 16S EPA-ng trees. Each entry: symptom →
-cause → fix/receipt. Read this before debugging a phylo run.
+cause → fix/receipt. Use these notes to investigate a matching historical symptom; reconcile its source/version before treating a workaround as current.
 
 ## Environment / EDirect
 - **`efetch` fails: `error adding trust anchors ... ssl/cacert.pem` (curl 77).** The `blast` conda env's

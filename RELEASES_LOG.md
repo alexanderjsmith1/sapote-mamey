@@ -2,15 +2,19 @@
 
 > **Partial record.** `tools/release_cut.sh`, the current cut route, does not call `tools/log_release.py`, so
 > cuts made through it are not listed. The table has v9.7.428 and then jumps to v9.7.252. v9.7.253 to v9.7.427
-> and v9.7.429 onwards are missing. `CHANGELOG.md` is the complete per-cut record.
+> and v9.7.429 onwards are missing. `CHANGELOG.md` records source-version history, including candidate entries; it is not a complete archive acceptance record.
 
-Chronology of every stamped release cut, newest first. Filenames follow
-`sapote-mamey-v<version>-<TIER>-<YYYYMMDD>-<HHMMSS>.zip`. All three tiers of a build share one
-build stamp (pass `BUILD_STAMP` to `tools/make_public_tier.sh`). CODE/SID rows are leak-audited
-(0 AS strain IDs) by the cut script, which refuses to ship otherwise; MERGED is the private scaffold
-and intentionally retains real AS identifiers.
+This is a partial historical cut log, not a current release acceptance record. Preserve its rows
+as dated evidence; their filenames, multi-tier policy and leak labels do not define current defaults.
+`tools/log_release.py` inserts a supplied stamp/tier/leak-audit label and a truncated CHANGELOG
+headline; it does not build archives or perform that leak audit. The current `release_cut.sh` does
+not call this logger. Missing rows must not be reconstructed without the actual cut evidence.
 
-> **Scope & currency.** This is a *manually maintained cut log* (build stamps, tiers shipped, public leak-audit). It fell behind after v9.7.22 and was not back-filled — reconstructing the intervening build stamps would be fabrication. **`CHANGELOG.md` is the authoritative per-version change history** (every version v9.7.23→present is recorded there). Recent cuts are re-logged below from verified build artifacts; older rows are retained as-is.
+`CHANGELOG.md` records per-version source changes, including unsealed candidates; it does not prove
+that every entry was cut, signed off or distributed. Current cut/tier/privacy behavior belongs to
+[CUT_PROTOCOL](CUT_PROTOCOL.md), the actual scripts and archive-bound receipts. The old table’s
+“0 AS” label is a historical operator-supplied field, not a universal current disclosure policy.
+See [release record scopes](docs/RELEASE_RECORDS_GUIDE.md).
 
 | Build stamp | Version | Tiers | Headline change | Public leak-audit |
 |---|---|---|---|---|

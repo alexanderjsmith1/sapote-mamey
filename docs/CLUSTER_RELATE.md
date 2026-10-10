@@ -37,3 +37,11 @@ The dendrogram needs SciPy, plotting needs Matplotlib, and alignment needs
 Biopython. Tests check the assignment against an independent exhaustive oracle,
 copy-count behavior, symmetry, bounds, engine route and legacy refusals. These
 controls verify the declared computation, not a biological interpretation.
+
+## Receipt binding and publication limits
+
+The contract JSON records the metric, threshold, requested/effective engine and inventory counts; it does not contain source paths/hashes, output hashes or validated full-locus identities (`tools/cluster_relate.py:428–434`). Preserve a separate path+SHA-256 roster containing strain, full contig/node, region and alias where applicable. Inventory extraction concatenates translated CDS across every GenBank record; untranslated CDS do not enter the denominator (`47–57`). A descriptive comparison of a multi-record file does not establish physical linkage.
+
+The CLI requires at least two inputs. It computes comparisons before checking destination freshness, then stages the complete expected output set with `fresh_output_set` (`400–445`). Existing destinations are refused, and ordinary publication failures trigger ownership-aware rollback. This is not crash-atomic across the flat-file set; interruption may leave a partial set, and staging cleanup failure can return an error after published outputs remain. Inspect the complete output roster and cleanup diagnostics before any retry; do not overwrite or discard prior evidence (`mamey/output_transaction.py:1–5,70–142`).
+
+`dendrogram.png` uses a width of `2.2 + 1.2 × number of labels` inches, height 4.2 inches, and 150 dpi. Optional PDF uses Letter pages with an image-width/height cap, not guaranteed aspect-preserving publication layout (`318–340,365–397`). There is no SVG output or visual-QA receipt. Zero exit means the requested output set was produced; metric controls and source inspection do not certify rendering or scientific interpretation.

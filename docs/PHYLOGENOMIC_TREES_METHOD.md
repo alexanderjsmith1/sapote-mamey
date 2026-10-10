@@ -1,6 +1,14 @@
 # Working method — cohort phylogenomic trees (Sapote-Mamey)
 
-**Status:** working method, in use 2026-08-26. Two trees built this way passed the owner's sign-off
+**Status:** historical working-method record from 2026-08-26; not the current portable execution recipe.
+Use [the current companion contracts](COMPANION_RUN_CONTRACTS.md),
+[phylogenomics](phylogenomics.md) and [preflight](GTOTREE_IQTREE_PREFLIGHT.md)
+for .447 behavior and authority. The prior source records, timing claims and owner
+sign-offs below are retained history requiring their original run packets before reuse.
+They do not authorize rebuilding,
+upgrading or relabeling a current tree.
+
+Recorded historical status: Two trees built this way reportedly received reviewer sign-off
 review (bee/wasp Pseudonocardiaceae and bee/wasp *Nocardia*). This is the reproducible recipe
 plus the reasoning behind each governed choice, so the next tree is a parameter change, not a
 re-derivation.
@@ -41,9 +49,10 @@ The recorded 1294 passed, 1 skipped result is historical and unverified against 
 checkout for this documentation change; it does not establish current installation compatibility.
 Author correspondence is excluded from the bundle.
 
-## The recipe (reproducible)
+## Historical recipe and current portability holds
 
-```bash
+```text
+# Historical commands, not a copy/paste recipe for the portable .447 bundle.
 # 1. Stage a tree directory:  <dir>/genomes/  +  <dir>/TREE_SPEC.json
 #    - queries: pulled from OFFICIAL_DATA/STRAIN_METADATA.tsv, filtered to one cohort,
 #      genus as required, excluded==Y dropped
@@ -62,6 +71,20 @@ iqtree -s gtotree/Aligned_SCGs.faa -m LG+F+G4 -B 1000 -alrt 1000 -T 4 -o <OUTGRO
 Tools/bin/python3 amber_phylo/render_all.py <dir>/iqtree.treefile <dir>/genomes <out.png> "Title||Subtitle"
 miniconda3/envs/phylo/bin/python tools/phylo_postflight.py <dir>/iqtree.treefile --scope family
 ```
+
+Current source differs from this recorded recipe: `build_tree.sh` now runs
+IQ-TREE internally through supported completion and final retention checks. Running
+the historical standalone IQ-TREE command afterward would duplicate/overwrite
+inference. The shell wrapper selects Python from
+`$PROJECT_ROOT/miniconda3/envs/phylo/bin/python`; it is not an arbitrary activated
+interpreter. Its default GToTree jobs and IQ-TREE threads are four, not the default
+one-core policy. Bind the actual environment and explicit resource settings before
+considering that specialized workspace route. The portable `phylo-run` interface
+has its own defaults and preflight boundaries described in the linked guide.
+
+The external historical renderer shown above is not a bundle command; the shipped
+helper is `tools/render_all.py`. Select the maintained Figure Factory or prepared
+series route for current rendering and retain the original methods and topology.
 
 ## The governed choices (do not re-decide these per tree)
 
@@ -82,13 +105,15 @@ miniconda3/envs/phylo/bin/python tools/phylo_postflight.py <dir>/iqtree.treefile
   candidate novel genus. This keeps "no comparator = novel genus" from ever silently meaning
   "I forgot to stage a comparator".
 
-## What the gate checks (phylo_preflight.py, before any CPU)
+## What the gate checks (phylo_preflight.py, before expensive tree analysis)
 
-S1 spec present · E1/E1b/E1c environment + HMM dir + `file` magic · G1/G2 file integrity +
+S1 spec present · E1/E1b/E1c/E2 environment + HMM presence + local `file`/version probes · G1/G2 file integrity +
 byte-identical duplicates · G3/G3b assembly quality · G4 superseded assembly · H1 cohort
 coherence · H2 no excluded strain staged · H3 strain-in-canonical · T1 genus resolution ·
 T2 family/order coherence (scope-aware) · T3 order span · O1/O2/O3 outgroup sanity ·
 C1 comparator ratio · C2/C2n per-genus comparators + novel-genus exemption · R1 registry sanity.
+
+This is a conditional checklist, not proof that every named check ran. In current source, multiple filename-matched outgroups produce a warning and skip O2/O3; warning-only results can exit0. Read the saved per-check rows and retain pinned input/tool evidence. See [the current preflight scope and recovery contract](reference/06_CURRENT_SOURCE_SCOPE.md#phylogeny-preflight-local-probes-and-conditional-checks). Historical threshold/rooting rationales above remain unverified by this documentation change.
 
 ## Files (candidate homes in the bundle)
 

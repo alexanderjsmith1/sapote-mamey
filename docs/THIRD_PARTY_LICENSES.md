@@ -14,12 +14,11 @@ is retained alongside it:
 
 The full license text is at `mamey/_vendor/ijson/LICENSE.txt` and is preserved unmodified.
 
-## Runtime dependencies (installed separately, not redistributed here)
+## Runtime dependency license records (verify exact obtained distribution)
 
-These packages are declared in `requirements.txt` and the offline companion stack (see
-`docs/PREREQUISITES.md`). Their code is **not** included in this repository — it is installed via `pip`
-or the companion wheel archive — so their licenses apply per the upstream project, not this repo.
-Listed here for transparency; consult each project for authoritative, current license text.
+The tables below are reference labels for separately obtained runtime libraries. They are not a complete machine environment or redistribution audit. Declaration in requirements/pyproject, import availability, an installed wheel and bundled bytes are different evidence. Consult the exact upstream/distribution license and retain notices before changing or sharing obtained code/data.
+
+This CODE tree also contains three bootstrap wheel archives under `wheels/` (wheel, setuptools and packaging), separate from the optional runtime wheel collection; these redistributed artifacts have their own retained licensing metadata. Bind wheel filename, metadata/version, SHA256 and retained license files. [Wheel manifest](../wheels/WHEELS_MANIFEST.md) and [bundle support](../bundle_support/README.md) describe their roles; verify licensing for the exact redistributed or installed artifact before release. The ijson source/license entry above is another redistribution case.
 
 | Package | Upstream license (for reference) |
 |---|---|
@@ -35,8 +34,7 @@ Listed here for transparency; consult each project for authoritative, current li
 | gffutils, bcbio-gff | MIT / BSD (per project) |
 | psutil | BSD 3-Clause |
 
-antiSMASH (the upstream BGC-detection tool this pipeline consumes output from) is not bundled and
-carries its own license; cite antiSMASH 8.0 (Blin et al.) when publishing.
+antiSMASH output is consumed separately from the upstream software. Bind the actual tool/database versions and citations from the selected input and run receipt; an inventory entry does not establish that every input used antiSMASH 8.0.
 
 *If a license listed here is inaccurate for the version you install, the upstream project's own
 license file governs. This notice is a convenience, not a substitute for it.*
@@ -53,9 +51,7 @@ applies to the installed package, which the operator obtains from PyPI.
 ## Runtime dependencies added to the inventory (v9.7.409 reconciliation)
 
 These are pip-installed dependencies (not bytes redistributed in this repository); their license
-applies to the installed package, which the operator obtains from PyPI. All are permissive — no
-conflict with the MIT bundle. Added here to close the completeness gap flagged in the supply-chain
-audit (SC-4).
+applies to the exact installed/redistributed distribution. Recorded permissive labels below are convenience metadata, not a blanket legal conflict or redistribution conclusion. Added here as a historical supply-chain inventory reconciliation (SC-4).
 
 `documents` extra (`pyproject.toml` — governed DOCX/PDF authoring):
 
@@ -92,3 +88,11 @@ tool's upstream terms rather than relying on Sapote-Mamey's MIT license.
 The core repository's MIT license does not replace any external tool's license. The separately
 tracked GToTree source patch in this tree is a redistribution case and must retain the upstream
 license and notices appropriate to that patch.
+
+## Source, patch, data and external-service boundaries
+
+Software, model/reference data and service conditions are separate provenance/license records. Pfam/MIBiG/NPAtlas/sequence database labels do not share one universal software license. Source-bound model builds retain operator source/list/output hashes; a build receipt is not legal or scientific acceptance. The retained GToTree compatibility patch is distinct from invoking a GToTree installation; its upstream revision/license-notice binding remains scoped by its [patch provenance note](../tools/upstream_gtotree2/COMPATIBILITY_PATCH_NOTES.md).
+
+The current [GToTree upstream repository](https://github.com/AstrobioMike/GToTree) identifies MIT, and the current [FastTree LICENSE](https://github.com/morgannprice/fasttree/blob/main/LICENSE) is GPL version3. These upstream declarations apply to their named distributions. Verify each older binary, derivative patch and companion dependency separately. Treat other table entries as recorded convenience labels until checked against the exact artifact.
+
+No source license text, wheel, package, database or model was changed, downloaded to the workspace or installed. No blanket conclusion about copyleft reach, legal conflict or publication/redistribution approval is asserted.

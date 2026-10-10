@@ -79,7 +79,7 @@ Escalation triggers (large modular proteins, repeated comparator hits, split/com
       bioactivity extract-level only. Keep certainty copulas away from KCB compound names
       (`identity_overclaim` fires on "class is robust/known(<compound>)", "<compound>-like product").
 
-## Step 3 — Run all THREE gates and report receipts
+## Step 3 — Run the selected mechanical gates and retain their actual outputs
 
 - [ ] From the bundle root, use `python mamey_run.py verify-modeb <authored-card.md>
       --package <pkg> --bgc <BGC>` for default full48. For current50 v2, use
@@ -105,3 +105,12 @@ identity such as `STRAIN__FULL_CONTIG__REGION__BGC_ALIAS__ModeB_card.md` and a c
 binding source files/hashes, the selected profile, actual gate outputs and unresolved holds.
 The recipient checks those bindings and any required gates. Mechanical gate results do not grant
 scientific acceptance, integration, publication or sealing authority.
+
+`verify-modeb`/`claim-safety` findings are mechanical outputs, not an independent auditor receipt.
+The claim-safety command prints findings; it writes a CSV only when --report is selected, and warn mode
+returns zero with findings. Preserve the actual output and destination rather than assuming an automatic
+persistent receipt. The additive library depth check does not replace the selected profile’s full review
+path. The availability planner’s CURRENT/promotion label is an aggregate indicator, not sequence/admission
+or complete-channel verification; review the actual source rows and profile requirements.
+
+Ordinary default structure lint recognizes 48 sections but has optional and conditional §31–§48 extensions. Optional omissions are permitted; conditional omissions depend on actual applicability context, with warning-first handling when context is unknown. Declare and verify the intended finished profile and its source-bound review path explicitly; do not infer all-48 substantive acceptance from the default command’s exit zero alone.

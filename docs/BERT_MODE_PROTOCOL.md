@@ -28,6 +28,16 @@ These are digest labels. They do not substitute for a citation store's `SOURCE_V
 `OWNER_ACCEPTED`, `UNBOUND` or hold states. Transcription verification does not confer scientific
 acceptance. Preserve the store's own status and provenance alongside any digest label.
 
+## Local resolver boundary
+
+`mamey/citations/resolver.py` is a separate work-order/ledger writer. It normalizes supplied status
+strings and extracts identifiers; it does not resolve DOI records or read primary full text.
+Its `PASS_VERIFIED_PRIMARY` is computed from accepted row flags, and can include only method/database
+or user-supplied reference rows. Therefore that gate is not equivalent to this protocol’s Verified
+full-text/claim review. Retain source/passage receipts independently, and do not translate one status
+vocabulary into another merely because the names sound similar. Its writer uses fixed filenames
+and can overwrite an existing output directory; preserve original evidence and use an owned output.
+
 ## Output
 
 A short digest can use one item per finding: supported summary, citation, evidence type,

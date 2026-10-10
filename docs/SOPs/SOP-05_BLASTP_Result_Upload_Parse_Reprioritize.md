@@ -22,7 +22,7 @@ Accepted inputs:
 python mamey_run.py blastp-followup --hit-table <HitTable.csv> --xml2 <Alignment.xml> --outdir <outdir>
 ```
 
-XML2 should be optional. Hit Table CSV should be enough for triage.
+XML2 is optional. Omit `--xml2` when no XML2 file exists; do not pass a fabricated placeholder path. Hit Table CSV can provide triage while unknown query lengths/coverage remain unknown. Use a fresh external output directory: existing filenames can be replaced. This command writes review files; it does not append to a master workbook or admit evidence into a sealed package. Those separate mutation workflows are documented in [the BLASTP protocol](../ONLINE_BLASTP_PROTOCOL.md).
 
 ## Required parser behavior
 
@@ -44,27 +44,32 @@ When a headerless NCBI Hit Table row contains commas inside the query title, the
 
 ## Required outputs
 
-Each parse should produce:
+The implemented output set is:
 
-- normalized hit table,
-- query-level summary,
-- BGC-level summary when BGC IDs are available,
-- reprioritization table,
-- follow-up user guide,
-- optional next FASTA batch.
+- `BLASTP_hit_table_normalized.csv`: parsed hit rows;
+- `BLASTP_query_summary.csv`: one selected top hit and decision per observed query;
+- `BLASTP_reprioritization.csv`: the same query-level rows for sorting;
+- `BLASTP_followup_summary.json`: counts and optional next-batch metadata;
+- `BLASTP_FOLLOWUP_USER_GUIDE.md`: interpretation and file guide;
+- `BLASTP_FOLLOWUP_next_batch_round001_for_BLASTP.faa`: only when both `--previous-selection` and `--panel-dir` are supplied. It can be empty when nothing qualifies.
+
+BGC metadata can occur in query rows, but this command does not write a separately aggregated BGC summary. Queries absent from the Hit Table are not automatically censused as no-hit queries. Reconcile searched and returned query IDs against the original panel before interpreting missingness.
+
+Exit status is 0 when at least one query was parsed and 1 when no query was parsed. Files may already exist after a zero-query result; their existence alone is not success.
 
 ## Decision labels
 
-Recommended labels:
+Current `classify_followup` labels are:
 
 - `DOWNGRADE_CONFIRMED_REDUNDANT`
 - `RETAIN_PROOF_RELEVANT`
 - `RETAIN_CONTEXT_RELEVANT`
+- `UPGRADE_WEAK_OR_PARTIAL`
 - `UPGRADE_UNINFORMATIVE_TOP_HIT`
 - `ISOLATE_GIANT_OR_DOMAIN_FOLLOWUP`
-- `RERUN_MORE_DIAGNOSTIC_PROTEIN`
-- `SEND_RELATED_GENOME_TO_ANTISMASH`
-- `NO_ACTION_LOW_VALUE`
+- `REVIEW_AMBIGUOUS`
+
+`UPGRADE_NO_HIT` is defined for an absent hit passed to the classifier, but the current summary iterates observed hit queries. Do not assume every searched zero-hit query receives that row. These labels guide review; “confirmed redundant” does not confirm a molecule or biological phenotype.
 
 ## Bug-hunt checks
 

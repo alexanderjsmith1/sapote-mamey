@@ -1,3 +1,11 @@
+# Changelog template provenance
+
+This retained file is repository-extra source, not the current bundle's release changelog or proof of an installed standalone release. The literal `{version}` placeholder is replaced by `make_repo_candidate.py:94–103` using the generated package provenance; the plain standalone builder does not copy repo_extras. The template package version is `1.0.0rc3` and is independent of Sapote-Mamey's bundle/engine version. Source: template `pyproject.toml:5–13`; `build_rggmci_package.py:188–193`.
+
+Historical rc1/rc2 behavior and testing claims below are preserved as change records, not newly verified runtime/scientific results. The generated small MIBiG/engine-parity tests do not establish all database, platform or biological claims. Installed package identity must be checked against its own provenance and available source/receipts; installation, model builds, engine probes and tests need their own execution records. See the neighboring [contribution boundary](CONTRIBUTING.md) and the generated source tree's `docs/OUTPUT_GUIDE.md` (retained bundle template: `packaging/rggmci/templates/docs/OUTPUT_GUIDE.md`).
+
+## Retained changelog template — unchanged below
+
 # Changelog
 
 ## {version}

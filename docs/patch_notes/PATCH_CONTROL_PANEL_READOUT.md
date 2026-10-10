@@ -1,3 +1,9 @@
+## Current reader scope — historical progress template
+
+The mandatory/ACTIVE wording and 13-item panel below belong to the June .121 reporting record. They do not activate that workflow or override the user's scope and [assistant governance](../ASSISTANT_GOVERNANCE.md). Current sessions report completed work, evidence, holds and a useful bounded next action; use the selected work order's actual deliverables and denominator. The existing `check_deliverable_suite.py` checks 13 numbered manifest rows and status/artifact text, not artifact existence, scientific content or a validated Mode B card. A filled panel is a reporting aid rather than certification. Mode B authors select the [current profile](../MODEB_PROFILE_MATRIX.md); do not treat the old §1–§8 card depth or this fixed panel as the current contract.
+
+---
+
 # Control Panel Readout Contract
 **Historical patch ID:** PROGRESS_REPORTING_20260624 / CONTROL_PANEL  
 **Applies to:** Sapote (Claude / LLM judgment tier)  

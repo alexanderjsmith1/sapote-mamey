@@ -3,6 +3,27 @@
 
 **v9.7.149a** | Last updated: 2026-06-29
 
+
+## Current navigation
+
+The v9.7.149a tables below are a historical navigation snapshot. Their time estimates, smoke/20-section profiles, batch filenames and platform assignments are not current instructions. Use these verified local routes:
+
+| Task | Current guide |
+|---|---|
+| First use and input selection | [Start here](../START_HERE.md), [first analysis](../MASTER_WALKTHROUGH.md), [antiSMASH input scope](../ANTISMASH_INPUTS_CONSUMED.md) |
+| Environment/setup | [Install](../INSTALL.md), [prerequisites](../PREREQUISITES.md) |
+| Run status, recovery, optional outputs | [Common mistakes](../COMMON_MISTAKES.md), [result reading](../READING_YOUR_RESULTS.md), [per-mode artifacts](../PER_MODE_ARTIFACT_SET.md) |
+| Mode B profile and completion | [Profile matrix](../MODEB_PROFILE_MATRIX.md), [deliverable contract](../DELIVERABLE_CONTRACT.md) |
+| Builder or named outcome | [Product map](../PRODUCT_MAP.md), [menu/atlas limits](../ARTIFACT_MAP_LIMITS.md) |
+| Assistant and session handoff | [Assistant guide](../ASSISTANT_USER_GUIDE.md), [current handoff protocol](../CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md) |
+| Figures | [Figures start here](../FIGURES_START_HERE.md) |
+| Full current document index | [Current docs index](../../CURRENT_DOCS_INDEX.md) |
+
+The historical batch set contains 18 actual files, not all 28 advertised. Use [the corrected batch index](batch15_master_index.md) to locate retained notes. File existence does not certify that a procedure is executable, scientifically validated or authorized for external work.
+
+## Historical v9.7.149a record — preserved below
+
+
 ---
 
 ## Quick lookup by task

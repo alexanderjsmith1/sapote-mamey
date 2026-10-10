@@ -1,3 +1,13 @@
+# Current scope of the historical methods draft
+
+The draft below remains a verbatim v9.7.96-era writing artifact. Do not copy it as current Methods or treat its test count, release tiers, blanket byte-determinism claim, scoring ownership, or retired ecological policy as an execution record. Start a study-specific narrative from the [prospective current template](../templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md), [technical appendix](../reference/METHODS_TECHNICAL_APPENDIX.md), and [reporting checklist](../METHODS_REPORTING_CHECKLIST.md).
+
+Current concrete differences: `make_public_tier.sh` disables all but CODE by default; its historical alternative branches require an explicit environment override. Selected timing/judgment records are mutable and selected post-seal images/PDFs are outside checksum scope, so reproducible analytical fields do not imply universal byte-identical packages. Source/test paths and historical test totals do not demonstrate a current successful study run or scientific validation. Record actual commands, complete locus identity, source hashes, database/configuration versions, excluded inputs, and reviewer disposition before manuscript adoption.
+
+---
+
+## Historical draft (verbatim)
+
 # Methods — Sapote–Mamey pipeline (DRAFT, against engine 1.9.96 / bundle v9.7.96)
 
 > Working draft for the methods paper (target: *NAR Genomics & Bioinformatics* / *Bioinformatics*). Claude's natural voice; the Developer or User does the final formality pass. **Citation placeholders are marked `[CITE: …]` — verify metadata before use; none are invented DOIs.** Affiliation throughout: 

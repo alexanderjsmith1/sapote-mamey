@@ -1,5 +1,5 @@
-version=9.7.448
-build=20261005v97448b
-engine=1.9.173
-patch=The sealed-tree notebook guard test runs on Linux (build b).; Strain-slide evidence and labels.; Locus comparison slides.; Multi-reference comparisons.; Neighbour panels.; Cut preflight and portability.; Shipped text names no person or working lane.; New tools meet the existing guards.
+version=9.7.449
+build=20261009v97449a
+engine=1.9.174
+patch=Partner headings preserve contig placement.; Structures follow the map reference.; Optional post-run gap-rescue command.; Reference-centred pair maps.; Gene tables paired with maps.; Isolate labels clear ribbons.; Bounded distant-match display.; Split-piece labels.
 tier=code

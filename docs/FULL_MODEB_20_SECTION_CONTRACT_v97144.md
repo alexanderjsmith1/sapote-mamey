@@ -1,5 +1,22 @@
 # FULL_MODEB_20_SECTION_CONTRACT_v97144.md — DEPRECATED (v9.7.150e+)
 
+## Current entry and implementation scope
+
+Select the actual task profile in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md),
+then use [MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md](MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md)
+for the owner/legacy boundaries. Preserve every individual locus as strain / full node-or-contig /
+region / BGC alias from a bound source. A section count, phrase, typed label or zero-finding pattern
+check is not scientific adjudication, independent source verification, owner acceptance or publication approval.
+Existing evidence remains in place with path/SHA-256 bindings; use the selected candidate and retained
+receipts rather than copying a package or inventing completed work.
+
+This redirect is historical. Its full48-only sentence and old authority-order list do not exclude the
+explicit current50-v2 selection. Use the profile matrix and current contract owner rather than treating a
+v9.7.147 execution slice as the present task authority. The 20-section facade still exists for limited
+compatibility diagnostics; it is not whole-profile finished-card verification.
+
+<!-- Historical source text follows. -->
+
 > **This file is retained as a redirect pointer only.** The §1–§30 contract that
 > replaced it is itself now the legacy `MODEB_CANDIDATE_30` profile. The historical "§1–§20 only" reading
 > of this document was the documented root cause of the recurring

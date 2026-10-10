@@ -1342,3 +1342,7 @@ Future engine bumps must include:
 ---
 
 *Last updated: v9.7.145 · 2026-06-29 · Lineage audit finding from v9.7.145 testing chat*
+
+## Engine 1.9.174 — bundle 9.7.449, unsealed candidate
+
+The CLI adds the optional post-run gap-rescue wrapper. Companion region binding preserves full assembler contig identifiers through the existing parser rule. Scoring formulas and thresholds are unchanged; engine identity changes because engine source changed. Existing delivered packages are not rewritten.

@@ -6,6 +6,8 @@ This SOP describes the recommended BLASTP workflow for validating biosynthetic g
 
 The goal is not to identify a final compound from sequence alone. The goal is to generate defensible evidence for BGC class calls, gene-function annotations, conserved-neighborhood hypotheses, and follow-up prioritization.
 
+Live submission is a separate authorized action that sends query sequence and headers to an external service. A local PRIVATE/PUBLIC release tag does not by itself authorize disclosure. For current channel admission, provenance and mutation boundaries, read [the BLASTP protocol](../ONLINE_BLASTP_PROTOCOL.md). Numeric batch suggestions below are operator heuristics, not hard guarantees or enforced limits of every exporter.
+
 ## Principle
 
 BLASTP should be run iteratively in small, evidence-driven batches.
@@ -105,7 +107,7 @@ Generic function evidence is valuable but should not be treated as equivalent to
 
 ## Public/private header safety
 
-Private BLASTP runs may include raw AS/SID strain labels in FASTA query titles. That is acceptable only inside private-tier work.
+Private local evidence may retain raw strain labels with authorized custody. Sending those labels or their associated sequences to a remote service requires authorization for that disclosure; calling a run private does not keep remote submissions local.
 
 Public-safe BLASTP exports should use sanitized query headers such as `PUBLIC-FIXTURE-001|BGC...` rather than raw AS-series or private SID labels. Any public workbook or public report derived from BLASTP outputs must be scanned for private strain IDs before release.
 

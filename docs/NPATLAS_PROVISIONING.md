@@ -41,10 +41,10 @@ python tools/npatlas_provision.py provision \
   filename is valid as a standalone subset, but is not automatically loaded. Keep its actual
   filter and included/excluded counts in the receipt; a filename does not establish complete
   taxonomic coverage. Provisioning a file is not scientific acceptance of its references.
-- **Streaming.** The official JSON download is ~475 MB. `inspect`/`provision` stream it with
+- **Input streaming and memory.** The historical official JSON download is approximately 475 MB; measure your selected release. `inspect`/`provision` read its records with
   `ijson` (system install if present, else the vendored copy at `mamey/_vendor/ijson` — same
   dual-name fallback pattern as `mamey/antismash_evidence.py`) — the file is never
-  `json.loads`-ed whole. A plain-text `.sdf` source streams its declared property blocks the same
+  `json.loads`-ed whole at input. However, `provision` retains every selected record in a Python list and serializes the complete output in memory; a broad or empty filter can consume substantial memory. The downstream resolver also reads each discovered subset whole. Input streaming is not a bounded-memory guarantee for this workflow. A plain-text `.sdf` source streams its declared property blocks the same
   way, with no chemistry-toolkit dependency for provisioning (RDKit is only needed for the
   separate structure-*rendering* path below).
 - **Root-shape auto-detection.** A bare top-level JSON array (the official download's shape) is
@@ -68,7 +68,17 @@ python tools/npatlas_provision.py provision \
   sampled keys. By default it writes the report only to stdout; `--out-json <report.json>`
   additionally persists that report to the selected path.
 - **`doctor`** reports whether `ijson` is available (and from where) and whether `rdkit` is
-  importable, plus the NP Atlas dataset's own provisioning status via `mamey.external_data`.
+  importable, plus the NP Atlas dataset's own provisioning status via `mamey.external_data`. The CLI returns 0 for this report even when a dependency or dataset is unavailable; inspect the reported states before proceeding.
+
+## Outputs, recovery and consumer limits
+
+Before provisioning, use distinct resolved paths for the source, subset, inspect report and receipt. The library does not refuse a source/output alias: `--out` pointing to the source can replace that source after reading it. The CLI's report/receipt paths must also be kept distinct from source and subset. Preserve source evidence and write the candidate subset to a fresh path; existing destinations can be overwritten.
+
+The subset uses a fixed sibling `<out>.tmp` and `os.replace`; this publishes one file, not an atomic subset-plus-receipt transaction. Concurrent writers can collide at that fixed temporary path. A failed receipt write may leave the subset already published. Check exact destination paths and hashes before a retry; do not delete source evidence or blindly rerun into an existing directory. Library output parents are created, but explicitly create the report/receipt parent directories before the CLI's atomic writer is used.
+
+An empty clause list selects all emitted dictionary records. Repeated phylum/genus values are allowlists; separate taxon-substring clauses are ANDed. Non-dictionary JSON entries are skipped. An incorrect JSON root can yield zero records without a refusal; `provision` can successfully write `{"compounds": []}`. Inspect the actual root, record count, normalized field names and selected count before accepting the subset. A successful write is not proof that the intended population was selected. `inspect` makes a full counting pass, and its stdout/report contains sampled records as well as keys; review those contents before sharing it.
+
+The resolver discovers two named files across the configured directory and fallback locations; setting `MAMEY_NPATLAS_DIR` prioritizes a directory rather than restricting loading to it. It combines readable files, uses the first record for each lowercased name and caches its index. Changing environment variables or replacing files in an already running process does not automatically refresh that cache; start a fresh process after changing provisioned references. The resolver does not automatically reopen provisioning receipts or verify their hashes. Record which files contributed, retain their hashes and inspect duplicate-name/source conflicts separately. Availability means a nonempty loaded index, not accepted identity, provenance or scientific completeness.
 
 ## Structure rendering (NPA-03 — `mamey/npatlas_structure.py::render_structure_svg`)
 

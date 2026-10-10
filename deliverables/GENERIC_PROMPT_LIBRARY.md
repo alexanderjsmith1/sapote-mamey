@@ -1,70 +1,71 @@
-# Sapote–Mamey — Generic Deliverable Prompt Library (v1)
+# Generic deliverable prompts — source-bound requests
 
-Reusable, parameterized prompts. Paste **GLOBAL GUARDS** once per session, then any G-block, filling `{PARAMS}`.
+These are request patterns, not readiness certificates. Supply actual inputs, verify the chosen parser and record a run receipt. G7 and G8 are bounded authoring steps; they are not deterministic tools. The old v9.5.9 “all nine tool-backed” audit and DLV-008 closure do not establish current artifact readiness.
 
-## Readiness audit (against the v9.5.9 toolset)
+Use the [request template](DELIVERABLE_INSTRUCTION_TEMPLATE.md) for input hashes, schema/version, privacy, mutation scope and acceptance. Every individual locus must retain `strain / full node-or-contig / region / BGC alias`. Distinguish predictions, similarity, missing data and measured evidence. An absent anchor cannot support a novelty ranking; no activity ranking without supplied typed assay data. Do not assume populated banks, fixed historical cohort counts or a tracking board.
 
-| prompt | driving tool | status | note |
-|---|---|---|---|
-| **G1** BGC Atlas | `tools/generate_bgc_atlas.py` | ✅ **READY** | built this cycle (was missing); emits tier-coloured HTML |
-| **G2** Cross-Cohort Panel | `build_subset_panel.py --tag {TAG}` | ✅ **READY** | closed via DLV-008; deterministic filter→CSV→panel |
-| **G3** Strain Lead One-Pager | `build_priority_leads.py` → md/PDF | ✅ READY | tool yields the ranked leads; one-pager assembly is the narrow Sapote step |
-| **G4** Single-BGC Mode B | `build_modeb_deepdive.py --targets {S}:{B}` | ✅ READY | deterministic; §1–§8 |
-| **G5** Cross-Strain Table | `add_xstrain_sheets.py` | ✅ READY | confirm it covers `{AXIS}`; else per-strain tally fallback |
-| **G6** Priority-Leads Figure | `build_priority_leads.py` + `build_subset_panel.py --strain-set` | ✅ **READY** | subset figure now via build_subset_panel (DLV-008) |
-| **G7** Layperson Guide | (Sapote LLM step) | ✅ READY | no tool; ranked + plain-language |
-| **G8** Manuscript Paragraph | (Sapote LLM step) | ✅ READY | every number sourced to a bank |
-| **G9** Pangenome / Rarefaction | `build_pangenome.py [--replot]` | ✅ READY | families are anchor-based/approximate |
+Commands below name source-declared interfaces only. Run from the bundle root in a working copy with the intended environment, after verifying inputs/dependencies and choosing fresh destinations. No command shown here has been run as part of this documentation audit.
 
-**DLV-008 closed.** `tools/build_subset_panel.py` provides the deterministic filter→CSV→panel for G2 (`--tag`) and G6 (`--strain-set`). All nine prompts are now tool-backed. See `docs/modules/DELIVERABLE_SubsetPanel.md`.
+## G1 — BGC atlas
 
----
+Request a browsable inventory for the named strain and explicit bank roster. Interface:
 
-## GLOBAL GUARDS (paste once per session)
-- Build from **banked data only** (`merged_cohort/*.json`, `modeb_verdicts.csv`); never re-scan packages (skip `build_deep_data` / `build_bgc_markers`).
-- **KCB = similarity anchor, not identity.** `azoxy-crosslink`, `~enediyne`, `~halogenase` are antiSMASH **[E-signals]**, not structures.
-- **Bioactivity metadata is optional and typed.** Without supplied metadata, use `NOT_SUPPLIED` and do not name an assay target.
-- **AS verdicts are `[EG]`** (offline) until verified-literature-upgraded — tag them.
-- **Corrected BGC count = Interior + ½·Edge + ¼·Full-contig.**
-- **Confidence tiers:** Confirmed · Predicted-functional · KCB-anchored · Candidate-novel (no anchor). Palette in `DELIVERABLE_INSTRUCTION_TEMPLATE.md`.
-- **Any deliverable containing AS strains is PRIVATE** — no public release. Don't surface AS strain IDs in public-facing text.
-- Every locus shown carries: `Strain / Region · class · ~KCB anchor · edge-status · SARP y/n · ModeB verdict`.
-- On finish: hand back the file + a 2–3 line note, and update the relevant HIVE Board row → DONE.
+```bash
+python tools/generate_bgc_atlas.py --strain STRAIN_ID --banked-dir /absolute/path/to/bank --out /absolute/path/to/new-atlas.html
+```
 
-**Parameter glossary:** `{STRAIN}` · `{BGC}` region/NODE id · `{PRODUCT_TAG}` antiSMASH class tag · `{COHORT}` merged/SID/AS/habitat · `{STRAIN_SET}` comma list · `{AXIS}` feature axis · `{SECTION}` manuscript section.
+Verify every displayed locus against source rows. Keep machinery/reference categories separate from activity; do not invent bioactivity axes from class names. See [rescue atlas scope](../docs/RGGMCI_RESCUE_ATLAS.md).
 
----
+## G2 — Cross-cohort subset panel
 
-## G1 — BGC Atlas for `{STRAIN}`
-**Goal:** browsable HTML atlas of `{STRAIN}`'s BGC inventory. **Type:** BGC Atlas (HTML).
-**Method:** `python tools/generate_bgc_atlas.py --strain {STRAIN} --banked-dir merged_cohort [--out {STRAIN}_BGC_Atlas[_PRIVATE].html]`. Sapote step (narrow): bucket regions into bioactivity axes; unassignable → "Other / cryptic."
-**Output:** header (strain/host/region+corrected count/strictness); one card per region (class · ~KCB anchor · kb · edge · tier · ModeB); legend; claim-safety footer. **Accept:** all regions · corrected count · tiers+legend · PRIVATE if AS.
+Request the exact product-tag filter and cohort roster, preserving distinct anchors and metadata missingness:
 
-## G2 — Cross-Cohort Panel for `{PRODUCT_TAG}`
-**Goal:** comparative figure of every `{PRODUCT_TAG}` locus in `{COHORT}`, grouped by host/habitat.
-**Method:** `python tools/build_subset_panel.py --banked-dir merged_cohort --tag {PRODUCT_TAG} --out-dir figures` (deterministic filter→CSV→panel; lanes by genus, habitat when available). **Do not infer a shared product** — KCB anchors may differ. Caption: the shared thread is the `{PRODUCT_TAG}` **[E-signal]/machinery, not one compound**. **Accept:** all tagged loci · habitat from strains.json · SARP+`[EG]` shown · PRIVATE if AS.
+```bash
+python tools/build_subset_panel.py --banked-dir /absolute/path/to/bank --tag PRODUCT_TAG --out-dir /absolute/path/to/new-panel-directory
+```
 
-## G3 — Strain Lead One-Pager for `{STRAIN}`
-**Goal:** one-page ranked-lead + arsenal summary. **Method:** `build_priority_leads.py` rows for `{STRAIN}` → rank Class-A→C; Sapote writes ≤1-line rationale per lead; emit md/1-page PDF. **Accept:** ranked+tiered · rationale ≤1 line · claim-safety footer · PRIVATE if AS.
+`--strain-set` is also declared. This helper's existence does not prove every requested filter or scientific claim is supported; inspect emitted rows and denominator. Never equate a shared machinery tag with a shared compound.
 
-## G4 — Single-BGC Mode B Deep Dive for `{STRAIN}/{BGC}`
-**Goal:** §1–§8 dive on one cluster. **Method:** `python tools/build_modeb_deepdive.py --banked-dir merged_cohort --targets {STRAIN}:{BGC} --out {STRAIN}_{BGC}_ModeB.md`. **Accept:** all 8 sections · anchor flagged as similarity · verdict + next-step.
+## G3 — Strain lead summary
 
-## G5 — Cross-Strain Comparison Table for `{STRAIN_SET}` on `{AXIS}`
-**Goal:** side-by-side `{STRAIN_SET}` × `{AXIS}` table. **Method:** `tools/add_xstrain_sheets.py` if it covers `{AXIS}`, else deterministic per-strain tallies; Sapote 2–3 sentence read-out. Flag **strictness confounds** if loose vs relaxed mixed. **Accept:** all strains · strictness flagged · ≤3-sentence note · PRIVATE if AS.
+Request a source-grounded summary of the specified rows, with the ranking rule and limitations visible. The helper consumes a workbook with `Lead_Board`, **not** a bank-only input:
 
-## G6 — Priority-Leads Figure for `{COHORT}`
-**Goal:** two-panel ranked-leads-over-field figure. **Method:** `build_priority_leads.py` for data; figure via `build_figures.py` (cohort-subset needs the G2 `--subset` fallback). Harmonize strictness before cross-cohort class-count claims. **Accept:** Class-A highlighted · counts match banks · PRIVATE if AS.
+```bash
+python tools/build_priority_leads.py --workbook /absolute/path/to/working-copy.xlsx --out-dir /absolute/path/to/new-leads-directory
+```
 
-## G7 — Layperson Ranked Guide for `{STRAIN}`
-**Goal:** plain-language ranked cluster guide. **Method:** rank by novelty+tier+bioactivity; Sapote writes 2–4 jargon-free sentences/lead. **Accept:** ranked · jargon-free · confidence in plain terms · PRIVATE if AS.
+It rewrites the workbook's `Priority_Leads` sheet. A/B/C classes are heuristic workflow categories, not experimental confirmation. Supply a working copy and inspect row identity before drafting a one-page narrative.
 
-## G8 — Claim-Safe Manuscript Paragraph for `{SECTION}`
-**Goal:** drop-in `{SECTION}` paragraph grounded in banked facts. **Method:** Sapote drafts ≤1 paragraph; every number tied to `[bank: file/field]`; flag any `[EG]`-dependent sentence. **Accept:** every number sourced · `[EG]` flagged · ≤1 paragraph.
+## G4 — Individual-locus Mode B
 
-## G9 — Pangenome / Rarefaction for `{COHORT}`
-**Goal:** pan-BGC-ome + rarefaction. **Method:** `python tools/build_pangenome.py --banked-dir merged_cohort [--replot] --out fig_pangenome_{COHORT}.png`. **Accept:** core/accessory/private counts · approximate-families caveat · saturation noted.
+For current native authoring, use the [Mode B walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md), stating the exact profile and full locus identity. The historical `tools/build_modeb_deepdive.py --targets STRAIN:ALIAS` emits a legacy eight-section banked report; it does not establish completion under full48 or current50_v2. Verify alias-to-full-identity mapping before using any legacy report.
 
----
-### Adding a new generic prompt
-Copy a block → `G{n} — {Deliverable} for {PARAM}`; list `{PARAMS}`; point Inputs at the banks; name the driving tool (or the Sapote judgment step); keep **Guards: GLOBAL**; register a HIVE board row and add it to the readiness audit. New blocks must also conform to the authoring discipline in `prompts/CLAUDE_SYSTEM_PROMPT.md` §13 (source-grounded claims, bounded claim language, format-from-example).
+## G5 — Cross-strain comparison table
+
+Request a fixed strain roster, axis definition, schema/version and inclusion/missingness rules. Check whether `tools/add_xstrain_sheets.py` covers that axis before proposing a command. Unsupported axes remain held; any alternate tally needs an explicit reproducible transformation. State strictness and denominator differences before comparisons.
+
+## G6 — Priority-lead subset figure
+
+Bind the requested roster to reviewed lead rows and use `tools/build_subset_panel.py --strain-set` only after checking its selection/output contract. There is no generic `--subset` fallback established here. Separate the workbook-mutating G3 stage from panel rendering; compare selected rows and identities between stages.
+
+## G7 — Plain-language guide
+
+Write a short explanation of the supplied, reviewed rows for the requested reader. Explain source confidence and unknowns in ordinary language. Use an explicit supplied ordering; if no justified rank exists, group neutrally. Do not manufacture novelty, activity or compound assignments. Record fact-to-source links and keep every locus identity recoverable.
+
+## G8 — Manuscript passage
+
+Draft the requested passage from a claim ledger binding each statement/number to input hash, field/row, denominator and evidence level. Hold unsupported causal, functional, novelty, taxonomy or activity claims. Authoring is not scientific adoption or publication approval.
+
+## G9 — Approximate anchor-family rarefaction
+
+The source declares `--out-dir`, not `--out`:
+
+```bash
+python tools/build_pangenome.py --banked-dir /absolute/path/to/bank --out-dir /absolute/path/to/new-pangenome-directory
+```
+
+Families are approximate nearest-reference anchor groupings. Blank/UNRESOLVED anchors are reference-unresolved, not proven novel; “private” means within this cohort. Default core threshold is `max(2, n_strains // 2)`; record any explicit `--core-min`. Empty bank content can exit successfully without a report. Output figure is `fig_pangenome_rarefaction.png`, with data CSV and summary outputs on a normal non-replot run. Optional `--workbook` rewrites `Pangenome_Novelty`; use a copy. `--replot` can reuse an existing CSV without checking its cohort/source binding and returns before summary/workbook refresh. Validate cached CSV identity and the expected artifact set, rather than relying on exit zero or a plot's existence.
+
+## Add a request pattern
+
+Name the goal, supplied input contract, exact declared interface (or bounded authoring step), mutation/output contract and acceptance evidence. Link its current workflow guide. Readiness must be demonstrated for the actual input/run; do not add a blanket READY badge merely because a script exists.

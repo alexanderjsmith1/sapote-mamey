@@ -20,7 +20,7 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from mamey.parsers import _guarded_read_bytes, read_genbank_records
+from mamey.parsers import _guarded_read_bytes, _record_contig_id, read_genbank_records
 from mamey.ziputil import duplicate_member_names, regular_file_names
 
 
@@ -119,7 +119,7 @@ def assembly_from_zip(path: Path, *, member: str | None = None,
                 for name, record in parsed:
                     if name not in by_name:
                         continue
-                    contig = str(record.id).split()[0]
+                    contig = str(_record_contig_id(record)).split()[0]   # rec.id drops a 0 after a SPAdes coverage's point
                     seq = str(record.seq).upper()
                     if not LABEL.fullmatch(contig) or not seq or set(seq) - DNA:
                         raise ValueError("ASSEMBLY_GENBANK_INVALID: unsafe contig ID or sequence")

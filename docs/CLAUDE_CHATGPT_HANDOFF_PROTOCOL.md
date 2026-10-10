@@ -1,5 +1,5 @@
 # Claude ↔ ChatGPT Handoff Protocol
-**Version:** 1.1 · Mamey v1.9.173 / Sapote v9.7.448  
+**Version:** 1.1 · Mamey v1.9.174 / Sapote v9.7.449  
 **File location:** `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`
 
 ---
@@ -15,14 +15,14 @@ agent resumes from those files and does not rediscover or rerun verified work.
 
 ## Overview
 
-The Sapote-Mamey system splits work across two LLM platforms:
+This historical workbook loop assigned roles to two platforms; current roles are task assignments, not capabilities bound to a model name:
 
 - **Claude (Sapote tier):** Judgment, scoring, ecology, literature, hallucination-trap audit. Writes C1–C4, D3, E1–E4, F1–F3, G1–G3.  
 - **ChatGPT (Mamey tier):** Extraction, assembly stats, RGGMCI computation. Writes A2 (assembly stats), A3, B1–B4, D1–D2.
 
-The master workbook (`SID-XXX_master_v1_0_Claude_filled_N.xlsx`) is the shared contract. Both platforms validate schema on receipt and log every write to H1_Handoff_Log before handing back.
+The master workbook (`SID-XXX_master_v1_0_Claude_filled_N.xlsx`) is the shared contract. Both platforms validate schema on receipt and log every write to H1_Handoff_Log before handing back within an authorized workbook task; these are protocol requirements, not an automatically enforced merge transaction.
 
-This document defines when Claude automatically triggers a follow-up request to ChatGPT, what format that request takes, and how the loop closes.
+The trigger thresholds below are assistant workflow conventions. No Python trigger dispatcher or automatic assistant messaging is established by this document. Preparing a handoff brief is distinct from sending it, launching its commands or merging its returned workbook; each action must be within the user’s actual authorization.
 
 ---
 
@@ -71,9 +71,9 @@ Claude evaluates these at the **end of every session** in which the workbook is 
 Claude uses `prompts/CHATGPT_TASK_BRIEF_TEMPLATE.md` to produce a filled brief. The brief is always:
 
 - Named: `CHATGPT_TASK_BRIEF_batch{{N}}_{{YYYY-MM-DD}}.md`  
-- Self-contained: ChatGPT needs no additional context to execute it  
+- Self-contained pointers and scope: the receiver still checks source binding and authorization before execution  
 - Versioned: includes current workbook filename, strain count, BGC count  
-- Closed-loop: ends with "Claude will merge automatically on receipt"
+- Closed-loop: names the authorized merge owner, merge conditions and verification; it does not promise an automatic merge
 
 The brief is presented as a downloadable file in the Claude response. The user copies it to ChatGPT.
 
@@ -90,13 +90,13 @@ Streptomyces_benchmark_batchN_summary_vN.csv
 [per-strain package zips — optional]
 ```
 
-The master xlsx must have all existing strains intact plus new strains appended. Claude validates this on receipt.
+The master xlsx must have all existing strains intact plus new strains appended. The receiver compares exact source/output identities and checks the selected schema before an authorized merge.
 
 ---
 
 ## §4 — Claude merge procedure (on receipt)
 
-1. Read `H3_Schema_Version` — confirm ≤ current schema version.
+1. Identify the exact workbook family and schema contract. `workbook_schema_check.py` accepts the coded master-workbook family, not every per-strain workbook; a numerical ≤ comparison of H3 alone is not its acceptance rule.
 2. Filter new strains from `BGC_Master` (strains not already in B1).
 3. Map columns to B1 schema (see `docs/WORKBOOK_SCHEMA.md` §Column specs).
 4. Apply heuristic ab_auto / af_auto / novelty_auto scoring (0–20 cap).
@@ -119,7 +119,7 @@ Before any platform hands off the workbook, run:
 python mamey/workbook_schema_check.py path/to/workbook.xlsx
 ```
 
-A `PASS` result is required before handing off. Known gaps (e.g. empty B4 scan columns for benchmark strains) are acceptable if documented in H2_Gap_Queue.
+A `PASS` result establishes the checker’s implemented coded-sheet/header/dimension/consistency scope, not independent correctness of every value, locus identity or scientific claim. Keep its warnings and input hash. Known gaps (e.g. empty B4 scan columns for benchmark strains) are acceptable if documented in H2_Gap_Queue.
 
 ---
 

@@ -3,10 +3,30 @@
 
 **v9.7.149a** | Last updated: 2026-06-29
 
+
+## Current recovery route
+
+The matrix and shell blocks below are retained historical examples; **do not execute them as a current recovery recipe**. Earlier top-level corrections do not repair every older section. Use [Common mistakes](../COMMON_MISTAKES.md) and preserve the original package/input hashes and diagnostics before any governed repair.
+
+| Symptom | Current bounded action |
+|---|---|
+| Command/import missing | Inspect the selected interpreter and [installation](../INSTALL.md); use an intended environment. Historical `--break-system-packages` examples are not the normal setup path. |
+| Run/validation failure | Read actual issue and phase receipts; failure has multiple causes. A new antiSMASH submission or replacement run is separate work, not an automatic recovery step. |
+| No region records / version unknown | Inspect actual ZIP members, retained records and [input scope](../ANTISMASH_INPUTS_CONSUMED.md). Exact `regions/` and `json/` folders are not universal required paths. |
+| KCB/JSON missing | Review selected JSON options, budgets and channel/source bindings; bootstrap instructions cannot create missing biological evidence. |
+| Checksum mismatch | Compare the same artifact and byte scope; retain the mismatch until explained. Never accept different bytes based on a presumed timestamp cause. |
+| Card incomplete, wrong locator or not persisted | Preserve the draft and full identity, use the selected [Mode B profile](../MODEB_PROFILE_MATRIX.md), and inspect per-card ingestion/register states. A skipped card is not completion. |
+| Figures/brief absent | Inspect selected options and phase states. [Per-mode artifacts](../PER_MODE_ARTIFACT_SET.md) explains optional or failed enrichment; no automatic source/package rewrite. |
+
+Source boundaries: input/profile selection `mamey/cli.py:1405–1426`; optional enrichment/figure failure `:471–555,870–897,1598–1609`; validation receipt writes `mamey/validate.py:1085–1106`; current receipt flow `mamey/mode_b_receipt.py:2463–2641`. Default validation may rewrite its mutable status receipt, so it is not assumed byte-preserving. Workflow execution and installation need their own current run records.
+
+## Historical v9.7.149a record — preserved below
+
+
 > **Safety note (v9.7.447):** this page is a historical quick-lookup. Where a row below disagrees with
 > [Troubleshooting a Sapote–Mamey run](../COMMON_MISTAKES.md), follow that page. Never accept a checksum mismatch,
 > rename a source BGC ID, or regenerate assistant instruction files as a recovery step: those rows have been
-> replaced with the current route. Releases cut CODE only and the release owner alone seals; see `CUT_PROTOCOL.md`.
+> replaced with the current route. Releases cut CODE only and the release maintainer alone approves sealing; see `CUT_PROTOCOL.md`.
 >
 > **Currency note (v9.7.409):** the recovery commands below have been updated from `--mode smoke` to
 > `--mode gold`. `smoke` was removed at v9.7.161 — `mamey run` accepts only `{standard,gold}` and now
@@ -39,7 +59,7 @@
 | "No Python execution available" in ChatGPT | Text-only session (no code interpreter) | Switch to Claude, or run Mamey locally then hand results to text-only ChatGPT for interpretation. | 0 min |
 | Claude context window full mid-response | Batch too large for one session | Split into smaller batches (5 BGCs per session). Continue in next session. | 0 min |
 | Mode B has wrong BGC ID in header | Mismatch between LLM data and package | Run: `locator_reconciliation.py --card mode_b.md --package package/`. Edit header to match. | 2 min |
-| Evidence conservation audit fails | Fields dropped between source and package | Run `evidence_conservation_audit.py`. Check `issue_log.md` for missing fields. Re-run Mamey if critical. | 5 min |
+| Evidence conservation audit fails | Selected diagnostic token/category drop reported; exact locus conservation remains separately checked | Capture stdout/stderr and exact raw/package JSON hashes. The tool does not write `issue_log.md`. Reconcile the affected owner/category and preserve source evidence before any separately authorized rerun; see [audit scope](../reference/06_CURRENT_SOURCE_SCOPE.md#cross-strain-denominator-and-conservation-audit-coverage). | Diagnostic review; runtime unmeasured |
 | "Cannot compare fragments across assembly tiers" | Mixing GOOD and POOR assemblies in cohort | Run `build_normalization_matrix.py` to produce assembly-adjusted counts. Use corrected counts for claims. | 3 min |
 | Checksum doesn't match after recompute | Different bytes, or a different artifact or byte scope compared | Unresolved until explained. Compare the same artifact over the same byte scope: a file's SHA-256 does not change with its timestamp. A repackaged archive can differ while its extracted files match; that needs its own documented derivation check. See [Package fails after transfer](../COMMON_MISTAKES.md#package-fails-after-transfer-or-files-seem-missing). | 5 min |
 
@@ -210,7 +230,7 @@ KCB similarity is 45% (moderate); actual compound may differ."
 
 ### Error: "Tier parity check failed" / "Private data detected in public tier" (historical)
 
-Multi-tier cuts are retired: releases cut CODE only, and the release owner alone seals (`CUT_PROTOCOL.md`). Do not delete
+Multi-tier cuts are retired: releases cut CODE only, and the release maintainer alone approves sealing (`CUT_PROTOCOL.md`). Do not delete
 release ZIPs, re-run tier scripts or redact by hand. Privacy follows each strain's exact assignment profile
 (`docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md`), never an ID prefix. Report the message to the release owner.
 

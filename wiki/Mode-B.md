@@ -10,8 +10,9 @@ Mode B is the **per-BGC interactive evidence-escalation workflow** — the struc
 turns a triaged BGC into a written, gate-checked judgment card. It is explicitly *not* a static
 BLASTp table: the card walks gene-level evidence, comparators, and alternatives, and every
 interpretive statement carries OBSERVATION / INFERENCE / ALTERNATIVE / FALSIFIER structure.
-Cards are produced on demand from a **sealed** package (`mode-b` is a post-seal subcommand); the
-deterministic run is never altered by them.
+Cards are produced on demand from a **sealed** package (`mode-b` is a post-seal subcommand); the deterministic extraction is not rerun. Native `mode-b` authors post-seal output and
+refreshes `post_seal_checksums.txt`, including when an external output directory is selected.
+Use an authorized working package copy when original package bytes must remain unchanged.
 
 ## The section contracts
 
@@ -21,7 +22,11 @@ validators): **§1–§10** core card with the §9/§10 gate → **§11–§20**
 ("full48 gate binding"). Priority tier sets the depth floor; genuine fragments carry a documented
 exemption rather than fake depth. `mamey/mode_b_quality_gate.py` checks section presence, length
 floors, and enrichment blocks; `mamey/validators/modeb_full20.py` validates the corrective-protocol
-sections. The exemplar for current authoring is the phosphonate full48 reference card
+sections. The CLI defaults to `--contract full48`; opt-in `--contract current50_v2` must be selected
+consistently for emission and verification. Historical 10/20/30-section formats are not substitutes
+for that selected contract. Verify the actual authored Markdown file, for example
+`python mamey_run.py verify-modeb project/card.md --contract full48 --package project/package`.
+A template or generated top-leads table is not a finished card. The full48 exemplar is the phosphonate reference card
 (`docs/reference/modeb_exemplars/`).
 
 ## Gene-first, not label-first

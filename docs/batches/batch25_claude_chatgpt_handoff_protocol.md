@@ -3,6 +3,18 @@
 
 **v9.7.149a** | Source: `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md` v1.1 | Last updated: 2026-06-29
 
+
+## Current assistant handoff boundary
+
+The platform division, automatic merge promise, trigger table and workbook operations below are a v9.7.149a workflow record. They do not authorize messaging another assistant, installing software, contacting external services, modifying a workbook or running a new analysis. Use [the assistant guide](../ASSISTANT_USER_GUIDE.md) and [canonical handoff protocol](../CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md), with the user's actual authorized scope.
+
+A usable handoff names the source/build/input paths and hashes, full locus identities, selected profile, files actually produced, check receipts, missing/skipped/failed states, owner decisions, blockers and one next bounded action. Bind an incoming workbook to its schema and source receipts; do not overwrite the accepted workbook or rescore biological evidence merely because an old handoff table says to merge automatically. Keep source evidence in place and stage only authorized modified artifacts.
+
+Capabilities depend on the current environment and granted tools, not the name Claude or ChatGPT. An import/doctor/schema check is scoped software evidence, not proof of a complete package or accepted interpretation. Package authoring commands can write evidence/integrity receipts (`mamey/cli.py:8550–8569`); individual card and auto-detect receipt routes have distinct status/write behavior (`mamey/mode_b_receipt.py:2463–2641`). Preserve that distinction in the handoff. This overlay sent no messages to another chat and ran no workflow.
+
+## Historical v9.7.149a record — preserved below
+
+
 ---
 
 ## The division of labour
@@ -63,6 +75,8 @@ Claude uses `prompts/CHATGPT_TASK_BRIEF_TEMPLATE.md` to produce a filled brief. 
 - **Named:** `CHATGPT_TASK_BRIEF_batch{{N}}_{{YYYY-MM-DD}}.md`
 - **Self-contained:** ChatGPT needs no additional context to execute it
 - **Versioned:** includes current workbook filename, strain count, BGC count
+Current handoff boundary: the receiving maintainer reviews and integrates the patch under the current task’s authority. A quoted promise of automatic merging is historical wording, not permission to merge or publish.
+
 - **Closed-loop:** ends with "Claude will merge automatically on receipt"
 
 The brief is presented as a downloadable file. The user copies it to ChatGPT.

@@ -14,14 +14,18 @@ different architectures rather than homologous catalytic units. The normalized
 antiSMASH module export already supplies domain-level translations, coordinates,
 domain IDs, active-site annotations, and often a `domain_subtypes` value.
 
-Each KS domain therefore receives its own tip:
+The pool-design requirement is a separate identity for every KS domain:
 
 ```text
-strain|BGC|locus|domain_id|subtype
+strain|BGC_alias|locus|domain_id|subtype  # preparer token, incomplete locus identity
 ```
 
-Multiple tips from one locus, BGC, or strain are retained. Exact sequence
-duplicates are reported but not silently collapsed.
+The preparation ledger retains multiple entries from one locus, BGC or strain
+and reports exact sequence groups. The separate native domain-tree runner
+`tools/build_domain_tree.py` collapses identical sequences into one staged tip
+and records `DUP_OF` rows in its provenance table. Retain that crosswalk when
+comparing pool entries with tree tips. See [the domain-tree contract](DOMAIN_TREE_CONTRACT.md#current-retry-and-output-boundaries)
+for retry behavior and the limits of staging success and summary output.
 
 ## Separate target pools
 
@@ -55,7 +59,7 @@ python tools/prepare_biosynthetic_tree_inputs.py sources.tsv pks_iterative_pool 
 
 Review:
 
-- `sequence_ledger.tsv`: exact strain+BGC+locus/domain decisions;
+- `sequence_ledger.tsv`: alias-level strain/BGC/locus-domain decisions, with source-row bindings;
 - `exact_sequence_groups.tsv`: retained identical copies;
 - `receipt.json`: source hashes, counts, parameters, and claim ceiling;
 - `sequences.faa`: alignment-ready sequences only.
@@ -202,13 +206,30 @@ python tools/gap_directed_rescue.py --zip <antiSMASH.zip> --label <strain> --cor
 
 ## Required gates
 
-- exact `(strain_id, bgc_id, locus_tag, domain_id)` label;
+- exact `strain / full node-or-contig / region / BGC alias` crosswalk, plus locus tag and domain ID;
 - current mapped BGC in the matching inventory;
 - valid amino-acid sequence and minimum length;
 - one explicit KS subtype per default tree;
 - active-site/motif review and long-branch inspection;
 - architecture/synteny review for any biological interpretation;
 - no silent duplicate collapse or one-tip-per-strain reduction.
+
+
+## Current preparation identity boundary
+
+The .447 `tools/prepare_biosynthetic_tree_inputs.py` checks a strain-local BGC alias
+against the supplied inventory and records source file/row, locus, sequence digest
+and its generated tip token. Its inventory reader retains products by `bgc_id`;
+the emitted sequence ledger and FASTA tip do **not** carry the full contig/node and
+region components of `strain / full node-or-contig / region / BGC alias`.
+
+A `MAPPED` row, alias membership or `READY_FOR_ALIGNMENT` count therefore does not
+establish the complete locus identity. Before using an individual locus as an
+alignment/figure tip, make an exact join to the bound current inventory/module
+record and retain all four identity components plus locus/domain and source hashes.
+Do not infer those missing fields from tip order or the alias. Unresolved or
+conflicting joins remain identity holds. The preparer currently needs an owning
+code change to emit and verify that complete crosswalk automatically.
 
 ## Claim ceiling
 

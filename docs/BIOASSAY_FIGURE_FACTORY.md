@@ -37,12 +37,18 @@ python tools/bioassay_plate_map.py annotate \
   --out plate_reader_export_mapped.tsv
 ```
 
-The mapper preserves every input row. A destination well outside the selected profile receives
-`mapping_state=UNMAPPED`, and the command reports `PASS_WITH_HOLDS`; it never assigns that row a
-source well or concentration. The named profile must match the physical plate-transfer method.
+The annotator retains the parsed row count, but that is not a byte-faithful copy of every original field. Existing `mapping_profile`, `source_well`, `destination_well`, `quadrant`, `final_concentration_ug_ml` and `mapping_state` columns are replaced by the selected profile's values. Keep the raw well column under a distinct name such as `Well_384` and preserve the original input separately. Formula-leading text may receive a leading apostrophe from the spreadsheet-safe writer; plain signed numbers are retained.
+
+Input/output suffixes select the delimiter independently: `.tsv` or `.tab` means tabs, anything else means commas. Destination wells normalize case, surrounding/internal row-column whitespace and zero-padded column numbers within A–P / 1–24. A destination outside that grammar receives `mapping_state=UNMAPPED` with blank source/quadrant/concentration, and the command prints `PASS_WITH_HOLDS` while still returning zero. Header-only input with the selected well column can print `PASS` with no observations. Compare the source/output row roster and mapping states before adoption; zero exit is not a complete observed plate or source/measurement admission. Require unique nonblank headers and complete-width input rows: the current parser does not enforce those properties, and extra cells can be ignored on writing. The named profile must match the physical plate-transfer method.
 It supplies geometry and dose fields only, so sample identity, controls, exclusions, timepoints,
 targets, material lineage, and inhibition calculations still require explicit admission into the
 observation table.
+
+### Plate-map output and recovery
+
+`--out` is a replacement destination, not a fresh-only publication contract. The mapper creates its parent and writes a unique temporary sibling, flushes it, then replaces the selected file. It can overwrite an existing mapped table or even the input if both paths name the same file. Use a fresh explicit output outside source evidence and the code bundle; this mapper has no source/output separation or bundle-root guard. Ordinary caught write failures remove the temporary file, but a process crash may leave a temporary sibling. Preserve prior outputs and inspect actual files/diagnostics before retrying. No source/output hash receipt is emitted; bind the input path/hash, selected profile, well column, output hash, row count and UNMAPPED count separately.
+
+The separate `emit` command creates the profile's complete 384 source/destination-pair geometry table. `validate` checks that complete table's unique pair roster and exact profile/quadrant/concentration strings. It is not a validator for a partial assay export, repeated well measurements, sample identity or the canonical observation schema; duplicate pairs and incomplete coverage are refused. Its checks do not use `mapping_state`, so a geometry PASS cannot clear an observation hold.
 
 ## What the observation table preserves
 
@@ -153,3 +159,15 @@ Chemical structures are a separate reference-context layer. A structure for a kn
 or KnownClusterBlast comparator can be displayed when its source database record, structure
 identifier, license, and relationship to the current evidence are recorded. Such a display does
 not identify the assayed material or the product of a biosynthetic locus.
+
+## Aggregation, display and receipt qualifications
+
+The summary mean weights each included **observation row** equally within its exact key. Experiment and replicate counts are descriptive; this is not an equal-experiment mean or independent biological-replicate analysis. Rows have unique observation IDs, but this does not independently verify distinct physical wells or replicate independence. The key also preserves parent/lineage state, target state, dose state, stock concentration and delivered amount. Ambiguous targets can remain included under valid control/measurement rules and are visually labeled; inclusion is not organism-resolution acceptance (`mamey/bioassay_figure_factory.py:408–525`).
+
+The observation table records portable source locators and the factory binds the whole admitted-input file hash. It does not hash or read every raw file named by an observation's source locator. Retain the raw-source mapping and hashes separately; an input table's hash does not validate its source interpretation or experimental authority. Raw-column inventory and adjudication/ruling inputs, when supplied, have their own admission and hash contracts; their presence is not implied by a figure receipt.
+
+The R view uses strain/material/type as row labels and target/timepoint/final-dose as columns. Those display keys omit some distinctions retained in summary keys (parent/lineage, stock/delivered dose and most target/dose states); distinct rows can consequently occupy the same visual cell. Inspect the summary for duplicate display coordinates and hold an ambiguous overplot before adoption. The sidecar remains authoritative for the retained groups. SVG/PNG canvas width is 7.2 inches for DOUBLE_COLUMN and 4.25 inches otherwise; height is `max(3.4,1.7 +0.34 × displayed material rows)` inches, PNG 300 dpi. There is no automatic readable-column density check or visual-QA receipt (`tools/sapote_bioassay_figure.R:41–73`).
+
+`PASS_DATA_READY_R_NOT_REQUESTED` means data production without rendering. `PASS_FIGURE_FACTORY_RENDERED` means R returned 0 and both files exist; it does not test nonempty graphics, visual legibility or scientific validity. Output hashes bind emitted artifacts; the receipt excludes itself and lacks config/source-code/R-script/runtime-version hashes. Preserve those externally. The producer requires a new output directory, stages artifacts and renames it on success; exceptions remove its temporary stage. Stable inputs and a sole reviewed output writer remain assumptions, and leftover temporary stages after a process crash are not completed output (`729–812`).
+
+Tree-track `OBSERVED` and `NOT_MEASURED` are material/target/time/dose-selected states, not locus activity or strain-wide absence. Preserve track hash, selection details and exact tree-tip crosswalk independently; plotting cannot clear upstream identity, control or acquisition holds.

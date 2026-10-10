@@ -31,3 +31,11 @@ strain / full node-or-contig / region / BGC alias
 The source-artwork outputs are an SVG with live text, a complete plot-data CSV, caption/methods JSON, separate empty owner-notes JSON, provenance JSON, and a receipt. The SVG is a source-artwork candidate only. A final delivery PDF remains subject to the shared post-embed PDF gate.
 
 If any binding is absent, stale, malformed, duplicate, or incomplete, F13 writes `F13_bgc_domain_pca_2d_HOLD.json` and creates no new F13 artwork.
+
+## Invocation limits, held outputs, and recovery
+
+F13 is invoked by the **multi-strain F-series branch**. A single loaded strain uses the single-strain panels instead; G/D-only series do not invoke F13. Supplying F13 flags does not itself guarantee an F13 attempt. Record the loaded roster and series before checking the expected receipt.
+
+`cohort-figures` can exit 0 when other figures exist while F13 is held. A hold writes/overwrites `F13_bgc_domain_pca_2d_HOLD.json` and lists `preexisting_f13_artwork_detected`; it leaves old SVG/PNG/PDF files in place. Output-directory reuse also permits replacement of successful artwork and caption files, and overall PNG counts can include old files. Use a fresh output directory for each bound attempt. Inspect the current F13 status, source/config hashes and expected outputs; never treat an old SVG or overall suite count as evidence that a held attempt succeeded. Preserve the hold and diagnose its code before retrying with corrected, independently governed inputs.
+
+Source owners: `mamey/cohort_figures.py:215–238,558–560,1196–1226`; `mamey/cli.py:5296–5332`.

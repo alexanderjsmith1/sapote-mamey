@@ -1,3 +1,11 @@
+## Current roadmap and implementation status (.447)
+
+This is the dated .172 development roadmap with a .338 extension, not the current implementation contract. Its §1–30 authoring route, scanner counts, execution sequence and validation examples retain their original version scope. Select a named current Mode B profile from [profile matrix](MODEB_PROFILE_MATRIX.md), and use [current task router](USER_TASK_ROUTER.md) and [stored BLASTp evidence guidance](ONLINE_BLASTP_PROTOCOL.md). Existing evidence should be read first; old instructions to run online homology do not authorize a new sequence submission.
+
+A KCB hit supports similarity context, not product identity. Current emission and export checks differ from the roadmap's “template prevents” wording: an instruction in a template is not proof a channel ran or a biological claim is correct. Current CLI/parser, profile and verifier sources own admission. The historical outcomes, missing-compound anecdote and benchmark/scientific statements below were not rerun or independently certified. Preserve full strain, node/contig, region and BGC alias for individual loci. Original body follows unchanged.
+
+---
+
 # Sapote–Mamey — What It Actually Does, and Where It's Going
 
 *· 2026-07-02 · a development-stage roadmap, written honestly after the mycotrienin miss.*

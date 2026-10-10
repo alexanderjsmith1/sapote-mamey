@@ -1,3 +1,20 @@
+# BGC class vocabulary: historical batch21 and current annotation limits
+
+The .149a class explainer dated2026-06-29 is a historical teaching document, not an executable classifier, complete current marker registry or source of newly accepted chemistry/activity. Its named products, domain-to-function mappings and “ecology signals” require their own evidence/citation review. A known reference neighbor does not identify an unknown locus or establish activity. Preserve strain / full node-or-contig / region / BGC alias, source versions and missingness.
+
+## Reading current outputs
+
+[The gene-level guide](../GENE_LEVEL_ANALYSIS_GUIDE.md) documents the current fixed-ID domain parser, per-gene counts, filename identity truncation and heuristic chemistry labels. A domain count is not a measured module consequence; a whole-region keyword or substrate sum can combine adjacent candidates. “Complete” helper cores describe a small presence rule, not complete pathways. [KCB provenance](../KCB_SCORE_PROVENANCE.md) documents score/source/reference binding limitations and why unavailable evidence is not novelty. [The DAPR framework](../DAPR_CLASS_FRAMEWORK.md) separates routing priors, historical vocabulary and owner judgments.
+
+This document itself does not enforce PFAM accession mappings, marker thresholds, transfer from class to target, safety classifications or card floors. Treat the old DH-ratio/ER-novelty/short-cluster-known/ornithine-route claims as hypotheses requiring exact locus evidence, not deterministic rules. The historical cytotoxicity and biosafety language does not assign an organism containment level or authorize experimental work. No scientific association or safety classification was re-verified in this software audit.
+
+Use the [current50 contract](../MODEB_CURRENT50_V2_CONTRACT.md) for section/identity/admission requirements; the old section numbers and registry path are version-scoped references. Related metadata examples only test structural input handling, not assay observations or class-level truth. Review missingness and validator gaps in [bioactivity metadata](../BIOACTIVITY_METADATA_CONTRACT.md).
+
+## Original .149a teaching record — not current rule/adoption
+
+The original text is retained verbatim for provenance and comparison. Read its mechanistic/activity/safety/novelty assertions with the explicit holds above; do not copy a template claim into a current card without source admission.
+
+````text
 # BGC Class Reference
 **What each biosynthetic class looks like and what to watch for in Mode B**
 
@@ -215,3 +232,5 @@ Find your BGC class. Read what the core genes look like, what KCB anchors are ty
 - **CCTT trigger registry:** `bundle_support/registry_inventory_v1.9.4.json`
 - **Glossary (PKS/NRPS domains):** `docs/GUIDE/06_Concepts_QandA.md` Bank 78–84
 - **DAPR class framework:** `docs/DAPR_CLASS_FRAMEWORK.md`
+
+````

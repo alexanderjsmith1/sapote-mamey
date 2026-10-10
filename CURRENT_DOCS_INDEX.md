@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.448 · engine 1.9.173 · build 20261005v97448b
+# Current Docs Index — v9.7.449 · engine 1.9.174 · build 20261009v97449a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -6,13 +6,34 @@ The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) is the compact and advanced comm
 generated `CLAUDE.md` copy supports Claude discovery; other assistants must be directed to AGENTS
 or receive it through their supported instruction mechanism.
 
+- [Choose a task](docs/USER_TASK_ROUTER.md): named human requests, required inputs, owning guides and completion evidence; [JSON routes](docs/USER_TASK_ROUTER.json) for assistants.
+
 ## Operating guides
+
+- [Citation-compact report readers](docs/CITATION_COMPACT_READERS.md): template substitutions, citation preservation, sequential writes and structural QA limits.
+
+- [HTML template readers](docs/HTML_TEMPLATE_READERS.md): owning builders, browser/server routes, output writes and recovery boundaries.
+- [Structured domain/motif sidecar readers](docs/STRUCTURED_DOMAIN_MOTIF_EXTENSION.md): source admission, partial-output recovery and receipt scope.
+
+- [Use the large Sapote reference guides](docs/GUIDE/07_LARGE_REFERENCE_ENTRY.md): navigation, version differences and historical/deprecated sections.
+
+- [Bundle metadata and integrity readers](docs/BUNDLE_METADATA_READERS.md): versions, checksum/membership scope, accretion baseline and required-artifact holds.
 
 - [Immutable package readers](docs/POSTSEAL_READERS.md): external report destinations and source-bound BiG-SCAPE staging.
 - [Companion provisioning and retrieval controls](docs/447_COMPANION_RETRIEVAL_CONTROLS.md): clone installations, scanner subsets, optional R, protein input admission and RID checkpoints.
 - [Cohort bank transactions](docs/COHORT_BANK_TRANSACTIONS.md): schema admission, coherent readers and explicit interrupted-write recovery.
 
-- [Companion Tool Guide](docs/COMPANION_TOOL_GUIDE.md): standalone use, inputs/outputs and actual integration roles.
+- [Companion Tool Guide](docs/COMPANION_TOOL_GUIDE.md): standalone use, inputs/outputs and integration roles.
+- [Companion run contracts](docs/COMPANION_RUN_CONTRACTS.md): planner, runner and placement receipts and writes.
+- [Multi-Cohort Comparison Toolkit](deliverable_tools/README.md): named roster/dossier/cohort tools, per-tool dependencies and writes.
+- [Examples index](examples/README.md): fixtures and illustrative or historical evidence, with current source contracts.
+- [Project catalog and private handoff](docs/PROJECT_CATALOG.md): manifest-bound package locations, write behavior and partial-archive/import recovery.
+- [Deliverable queue](docs/DELIVERABLE_QUEUE.md): discovery states, package mutations, resume binding and per-strain recovery.
+- [Deliverable request templates](deliverables/README.md): supplied inputs, complete identity, bounded authoring and conversion contracts.
+- [Catalog reading and maintenance](docs/CATALOG_MAINTENANCE.md): generated owners, check scope and source-help limitations.
+- [Master workbook validation](docs/WORKBOOK_VALIDATION.md): deployed schema, fast/full scope, roster/hash checks and retained freeze discrepancies.
+
+- [Optional Barrnap](docs/BARRNAP.md): rRNA recipe versus execution, version/model checks and external setup.
 
 - [Runtime profiles](docs/ASSISTANT_RUNTIME_PROFILES.md): environment-dependent limits and migration from hosted sessions.
 
@@ -34,6 +55,7 @@ or receive it through their supported instruction mechanism.
 - [Mode B expanded locus](docs/MODEB_EXPANDED_LOCUS.md): independently source-bound CDS inventories and bounded supported-anchor context; use `--require-expanded-locus` for an expanded work order. Core membership remains separate.
 - [Mode B gap-rescue reader](docs/MODEB_GAP_RESCUE_READER.md): supplied rescue context and existence checks; this does not adopt rescued genes into a locus.
 - [Mode B profiles](docs/MODEB_PROFILE_MATRIX.md): which card is which (scaffold, candidate, finished §1–§48, opt-in current50 v2), with each profile's producer, verifier and the status it can claim. "Full Mode B" means the selected finished profile.
+- [Mode B exemplar reader guide](docs/reference/modeb_exemplars/README.md): historical class sketches and a 48-section format reference. Use the example register to identify their scope; their locus-specific evidence and old pass labels do not validate a current 50-section finished card.
 - [BLASTp evidence](docs/ONLINE_BLASTP_PROTOCOL.md): existing results first (rollups to reservoir; trove to package overlay; HitTable to workbook), optional live submission.
 - [antiSMASH web submission](docs/ANTISMASH_WEB_SUBMISSION_SOP.md): the procedure for sending reference genomes to the public antiSMASH server; light-touch queue rule, loose with all 11 features, no email, one authorised batch at a time.
 - [BiG-SCAPE cohort walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md) and [troubleshooting](docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md): stage region files, run a cohort, inspect family verdicts and figures.
@@ -59,7 +81,7 @@ The [Master Walkthrough](docs/MASTER_WALKTHROUGH.md) connects installation to va
 
 ## Tool and contract pages
 
-These pages document shipped tools, commands and contracts. They were not linked from here before.
+Use these guides for specialized tools, commands and input/output contracts.
 
 - [Optional external AB/AF activity-prediction channel](docs/AB_AF_EXTERNAL_ACTIVITY_CHANNEL.md)
 - [BGC functional logic workup](docs/BGC_FUNCTIONAL_LOGIC_WORKUP.md)
@@ -91,7 +113,7 @@ These pages document shipped tools, commands and contracts. They were not linked
 - [FA6 — Mode B card exporter (modeb-export)](docs/MODEB_EXPORT_HOOK.md)
 - [Mode B gene-first exploration](docs/MODEB_GENE_FIRST_EXPLORATION.md)
 - [RATIFIED status vocabulary — Sapote-Mamey Mode B (the Developer or User ratification 2026-08-21)](docs/MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md)
-- [NPBDetect optional-adapter guard](docs/NPBDETECT_ADAPTER_GUARD.md)
+- [NPBDetect non-admissible prediction guard](docs/NPBDETECT_ADAPTER_GUARD.md): local NPBDetect model IDs permit only OUT_OF_DOMAIN/FAILED with null AB/AF probabilities and HOLD; preserved upstream audit notes do not grant admission.
 - [Outgroup generator + right-sized reference sets (outgroup_registry.py, phylo_refset.py)](docs/OUTGROUP_AND_REFSET_WORKFLOW.md)
 - [Owner-kept Figure Factory inputs](docs/OWNER_KEPT_FIGURE_INPUTS.md)
 - [Spec — Cohesive Per-BGC Report (L0–L3) + Comparison Matrix](docs/PER_BGC_REPORT_CARD_SPEC.md)
@@ -123,6 +145,7 @@ These pages document shipped tools, commands and contracts. They were not linked
 Encyclopedia and newsletter. A current bundle stamp identifies packaging; it does not prove that
 every scientific statement or historical experiment was revalidated for that cut.
 
+[Version-specific reference notes](docs/reference/06_CURRENT_SOURCE_SCOPE.md) explain equations, rule differences and figure limitations.
 [Engine reference](docs/reference/00_README.md) and [Encyclopedia currency](wiki/Encyclopedia-Currency.md)
 record reference scope. Consult current code and named schemas for numerical behavior.
 [Methods technical appendix](docs/reference/METHODS_TECHNICAL_APPENDIX.md) records release-sensitive
@@ -159,3 +182,13 @@ do not turn a version-stamp update into a claim of a full content review.
 - [Experimental dominated diagnostic report](docs/DOMINATED_DIAGNOSTIC.md) — report-only thresholds and calibration hold.
 
 - [Optional GECCO, metabolomics bridge and explicit non-KS policy](docs/COMPANION_CLASS_EVIDENCE.md) — external reader outputs, source binding and class-level interpretation.
+
+## Human entry guides
+
+- [Read an existing result](docs/user_guides/READ_EXISTING_RESULT.md).
+- [Start a first run](docs/user_guides/FIRST_RUN_ORIENTATION.md).
+- [Troubleshoot and maintain a workflow](docs/user_guides/WORKFLOW_RECOVERY.md).
+- [Read locus maps, tables and protein PCoA comparisons](docs/LOCUS_AND_PCOA_TOOLS.md).
+- [Choose the next command](docs/user_guides/CHOOSE_NEXT_COMMAND.md).
+
+[BiG-SCAPE class reading limits](docs/BIGSCAPE_CLASS_READING_GUIDE.md) accompany the generated vocabulary.

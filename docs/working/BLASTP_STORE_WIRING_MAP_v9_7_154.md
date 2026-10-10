@@ -1,5 +1,7 @@
 # BLASTP evidence-store wiring map — PATCH-005 parts 2 & 3
 
+> Historical design record for v9.7.153–154. “Today”, “missing” and “complete/unit-tested” below describe that investigation, not current verification. The proposed CLI block is not a runnable .447 command. Current `ingest-blastp` requires `--master`, `--strain`, `--hit-table`, uses optional `--xml`, and can write workbook/package evidence (`mamey/cli.py:6911–6929`). It does not accept this proposed `--bgc --round --xml2 --store-dir` interface. Use [the current protocol](../ONLINE_BLASTP_PROTOCOL.md) or [the side-artifact reader](../BLASTP_FOLLOWUP_v9.7.142.md). The original plan is retained for provenance.
+
 **Status:** investigation + scoped plan. **Not implemented in v9.7.154.** This documents what
 already exists, what is missing, and the exact insertion points, so the feature can be cut
 deliberately with the path/schema forks surfaced rather than picked silently.

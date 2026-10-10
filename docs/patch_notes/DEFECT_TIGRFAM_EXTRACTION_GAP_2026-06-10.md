@@ -1,3 +1,9 @@
+## Current reader scope — historical extraction repair
+
+The dated failure counts and real-genome verification below are the original June record, not a .447 validation receipt. The current `mamey/antismash_evidence.py` diagnostic dictionary has 13 entries, rather than the original four; selected TIGRFAM records are gathered through the shared record driver and merged append-only into the extracted domain hits. This remains a selected-diagnostic extractor, not a census of every upstream model hit. Its presence does not establish class identity, product, activity or complete recovery for a new source. Preserve raw evidence and distinguish absent, unavailable and unextracted evidence. No diagnostic dictionary or scoring rule is changed by this documentation patch.
+
+---
+
 # PIPELINE DEFECT — TIGRFAM diagnostics dropped in evidence extraction
 **Logged:** 2026-06-10 · **Severity:** HIGH (affects class calls for TIGRFAM-diagnosed pathways)
 **Found via:** rifamycin recovery test on *A. rifamycini* DSM 43936 (validation benchmarking).

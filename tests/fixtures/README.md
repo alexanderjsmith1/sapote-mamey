@@ -1,0 +1,10 @@
+# Test fixture roles and evidence limits
+
+These are test inputs, not current experimental observations or release receipts. Preserve source payloads in place; documentation changes do not authorize replacing them with new biological data.
+
+- [Synthetic structured-evaluator rows](tiny_public/b2_structured_evaluators/README.md) exercise deterministic annotation logic. They establish scoped software behavior only when the corresponding tests actually run.
+- [Optional bacterial marker-debug references](tiny_public/bacterial_pks_marker_debug/README.md) are not shipped as GBK/TXT payloads in this inspected directory. Tests can skip their evidence cases.
+- `compilation_gate/full_compendium.md`, `stub_compendium.md`, `manifest_pass.md` and `manifest_fail.md` are intentionally shaped positive/negative mechanical fixtures consumed by `tests/test_compilation_gate.py:23–122`. Repeated prose and incomplete identifiers serve parser/gate cases, not exemplar scientific cards. Do not “improve” them as user deliverables or read a synthetic pass as claim verification.
+- Other ZIP/binary fixtures have their own owning tests and provenance. A filename, public label or restored path does not establish full biological identity, accuracy or sharing permission.
+
+See [the test-scope guide](../README.md), [reference fixture admission](../../docs/CI_REFERENCE_FIXTURES_GUIDE.md) and [example roles](../../examples/README.md). For compilation fixtures, a pre-render `PASS` can include `G3=True` with `post_render=False` and `page_count=None`; the PDF page-count check is deferred. The supplied scorable-count denominator is not independently reconstructed from a current real package by these fixture cases. Retain the test's exact arguments and observed receipt fields instead of promoting a stored fixture label or all-true check set to current rendered completeness. Source: `tests/test_compilation_gate.py:23–122`; see the [external receipt reader limits](../README.md#reading-an-external-test-validation-receipt) for a separate kind of test-evidence `PASS`.

@@ -46,3 +46,16 @@ The authoring process may receive the public contract and one coarse route:
 `PASS_TO_HUMAN_REVIEW`, `HOLD_FOR_REWRITE`, or `UNSCORABLE_EVIDENCE_UNBOUND`. Do not expose exact
 threshold misses or allow repeated probing of the same authoring pass. Blinding reduces metric gaming,
 but source authority still requires evidence production and owner review outside the authoring process.
+
+## Enforcement and trusted task context
+
+This is a context-preparation policy, not a shipped automatic prompt sanitizer. The review receipt
+consumer can check a supplied blinded_score PASS_TO_HUMAN_REVIEW route and hash-shaped bindings;
+that check does not prove blinding, certify a private scorer or establish an independent audit.
+Do not infer a scorer run from any of the three route labels.
+
+Keep scientific evidence context concise, but retain the current trusted task’s ownership, privacy,
+redaction, allowed-input and write-destination constraints in the assistant’s operational context.
+Excluding release labels from scientific prose does not suspend those controls or authorize disclosure.
+Portable source locators/hashes must still resolve to the source register; an opaque logical name alone
+is not exact-source binding. This policy does not authorize constructing or sending a prompt externally.

@@ -1,4 +1,6 @@
-# Sapote-Mamey Deliverable Contract — v9.4
+# Sapote-Mamey deliverable contract
+
+Current workflow boundaries for the selected bundle; older v9.4/v9.6 module labels below identify document lineage rather than an alternate installed release. Check the exact loaded version and code-owned output contracts.
 
 This document is the canonical source for what the bundle must produce. It is referenced by `CLAUDE_SYSTEM_PROMPT.md` (§4, §5), `MAMEY_CHATGPT_EXECUTION_PROMPT.md` (§3, §5), and `RELEASE_CHECKLIST_v9.md`. This document defines artifacts within the selected workflow. `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md` govern task scope, permissions and conflicts; no parent or legacy template expands them.
 
@@ -32,7 +34,7 @@ A deliverable with unsupported locus attribution or metadata contrary to its sel
 
 ## Part A — Per-strain deliverables
 
-These are mandatory for every strain. Missing items must be logged in the deferred ledger with reason and completion path.
+For the selected full-strain delivery workflow, account for each applicable deliverable. A bounded review or documentation request does not authorize every artifact here. Distinguish required extraction files, optional/deferred rendering and separately authored interpretation; log an applicable missing item with its reason and completion path.
 
 ### A1 — Mamey extraction outputs (CODE_BACKED)
 
@@ -40,7 +42,7 @@ These are mandatory for every strain. Missing items must be logged in the deferr
 
 1. **Core extraction, checked by `validate`.** These are the 14 suffixes in `mamey/validate.py:REQUIRED_SUFFIXES`,
    the owner of this list; if they ever disagree, the code wins: `manifest.json`, `checksums_sha256.txt`, `1_intake.json`, `2_inventory.csv`, `3_scan_states.json`, `4A_RGGMCI_full.json`, `4A_RGGMCI_ranked_pairs.csv`, `4A_RGGMCI_evidence.csv`, `4_triage_board.csv`, `5_workbook.xlsx`, `commit_receipt.json`, `issue_log.md`, `Project_Memory_Snapshot.json`, `7_cell_provenance.csv`.
-   A pass means the extraction package is structurally complete. It says nothing about interpretation.
+   Required-file presence is one validator gate. The validator also checks integrity and applicable content/provenance gates; read their actual reported states. Structural completion does not establish interpretation or scientific acceptance. The CLI normally rewrites the mutable package-status receipt, and workbook-content warnings only affect its exit code when `--workbook-strict` is selected.
 2. **Post-seal enrichment, checked when `enrichment_check` is on:** `OPEN_ME_FIRST.html`, `manifest_short.json`.
    The reporting-v2 files (`REPORTING_V2_SUFFIXES`) are checked only when that reporting is enabled.
 3. **Deferred rendering.** The strain brief PDF and figures, and the locus maps, can be deferred: `--capped-session`
@@ -64,13 +66,13 @@ per-scan CSVs.
 | Diagnostic Rescue (4B) | `[StrainID]_4B_Diagnostic_Rescue_Leads.{csv,json,md}`, `_4B_Diagnostic_Rescue_Tiling.csv` | Auto-emitted rescue leads + tiling (via `package_addons`) |
 | Workbook | `[StrainID]_5_workbook.xlsx` | Per-strain workbook (coded sheets) |
 | Output checklist | `[StrainID]_6_output_checklist.{csv,md}` | Per-run completeness checklist |
-| Cell provenance | `[StrainID]_7_cell_provenance.csv` (+ README) | Status code per workbook cell (no silent blanks) |
+| Cell provenance | `[StrainID]_7_cell_provenance.csv` (+ README) | Status/workflow rows for selected workbook/evidence fields; generic external-evidence rows remain pending placeholders, not an audit of every cell |
 | Strain brief + figures | `[StrainID]_8_strain_brief.pdf`, `_8a`…`_8m_fig_*.png` (+ `_data.csv` each) | PDF brief binding all auto-emitted figures, each with companion data CSV |
 | Manifest | `manifest.json` | Authoritative handoff object: all key findings, scan statuses, evidence pointers, version |
 | Provenance aliases | `[StrainID]_Project_Memory_Snapshot.json`, `_records.json`, `_verdicts.json`, `ANALYSIS_FORWARD.md` | Machine-readable handoff + analysis-forward next steps |
 | Commit receipt | `commit_receipt.json` | Run provenance / commit record |
 | Issue log | `issue_log.md` | Per-run issues and caveats |
-| Checksums | `checksums_sha256.txt` | SHA-256 for every file in the package |
+| Checksums | `checksums_sha256.txt` | Core tracked-file integrity; mutable receipts are exempt and post-seal tracking has its own anchored contract. Inspect actual validator integrity/coverage results |
 
 ### A2 — Sapote interpretation documents (PROMPT_BACKED)
 
@@ -82,7 +84,7 @@ per-scan CSVs.
 
 #### A2.1 — Cross-Strain Cohort Context block (required in every per-strain deliverable)
 
-Situates the single strain against the current banked cohort so a one-strain package is never read in isolation. Sourced from the `Strain_Cohort_Context` and `Cross_Strain_Class_Prevalence` workbook sheets. Required contents: corrected-BGC **rank in cohort** and assembly tier; **shared accessory chemistry** (each notable class with the count of other strains carrying it, e.g. "T2PKS — shared with 13 others"); **strain-unique classes** in the cohort (provisional, sample-limited); **novelty footprint** = this strain's fully KCB-dark region count expressed as a fraction of the cohort total (the only strict novelty floor); **diagnostics carried** vs the cohort. All figures are presence/prevalence over antiSMASH product-class calls — class-level, never assayed chemistry. The four universal classes (saccharide, fatty_acid, other, terpene) are excluded from shared/novel statements.
+Situates the single strain against the current banked cohort so a one-strain package is never read in isolation. Sourced from the `Strain_Cohort_Context` and `Cross_Strain_Class_Prevalence` workbook sheets. Required contents: corrected-BGC **rank in cohort** and assembly tier; **shared accessory chemistry** (each notable class with the count of other strains carrying it, e.g. "T2PKS — shared with 13 others"); **strain-unique classes** in the cohort (provisional, sample-limited); **reference-dark footprint** = this strain's fully KCB-dark region count expressed as a fraction of the stated cohort total (database/coverage-limited; not a strict floor on chemical novelty); **diagnostics carried** vs the cohort. All figures are presence/prevalence over antiSMASH product-class calls — class-level, never assayed chemistry. The four universal classes (saccharide, fatty_acid, other, terpene) are excluded from shared/novel statements.
 
 #### A2.2 — Method Caveats block (inherited boilerplate; every deliverable carries it verbatim)
 
@@ -97,11 +99,27 @@ Rather than writing the literature review inline (which serialises the work behi
 
 #### A2.4 — Figure-Ready Tidy Export (standardised, portable; for downstream figure workflows)
 
-The master workbook is human-optimised (coded sheets, wide matrices, formulas, units in headers) and is **not** what a third party should plot from directly. Every deliverable set therefore also ships a **figure-ready tidy export** so anyone can turn the outputs into figures in their own workflow (ggplot2, seaborn/matplotlib, Tableau) without wrangling. Produced by `tools/export_figure_ready.py <master_workbook.xlsx>`, which reads only the standard sheets and emits a `figure_ready/` folder of tidy CSVs — one observation per row, snake_case headers, no formulas, no merged cells, plus a `DATA_DICTIONARY.md`:
+For downstream figures, export the selected master workbook to tabular CSVs, then validate the values and plotting assumptions. The export is a separate command; confirm it ran for the current workbook. Use `tools/export_figure_ready.py` with the selected bundle's Python, `openpyxl` and bundled CSV helper. It reads a master workbook without writing it and emits CSVs plus `DATA_DICTIONARY.md`; it is an export adapter, not schema validation or scientific acceptance.
 
-- `strain_summary.csv` (one row / strain), `bgc_inventory.csv` (one row / BGC), `bgc_class_long.csv` (one row / BGC×class), `class_by_strain.csv` (one row / strain×class), `class_prevalence.csv` (one row / class, banded), `diagnostics_long.csv` (one row / strain×TIGRFAM), `cross_strain_findings.csv`.
+```bash
+python tools/export_figure_ready.py \
+  "../review_inputs/master_workbook.xlsx" "../review_output/figure_ready_new"
+```
 
-The export carries its caveats inline (kcb_cumulative is a score not a percent; universal classes flagged non-informative). `tools/plot_examples.py <figure_ready_dir>` builds three reference figures from the CSVs (fragmentation-loss gradient, class prevalence, class×strain heatmap) as a starting recipe — these are examples, not the only supported plots. **Standardisation rule:** column names, types, and the data dictionary are stable across runs; downstream code may depend on them, so they are versioned with the bundle, not changed ad hoc.
+The second positional argument is the output directory; there is no `--outdir` option. If omitted, output defaults to `figure_ready` beside the workbook. Select a fresh directory outside source evidence: the adapter creates/reuses the directory, directly overwrites emitted filenames sequentially, and neither rolls back a failed export nor removes stale optional outputs. Its standalone argument handling ignores additional tokens after those two positional inputs; a mistyped flag is not a reliable refusal.
+
+Required sheets are `A2_Strain_Registry` and `B1_BGC_Master`; optional `A3_Run_Manifest` supplies raw/corrected counts by strain, with the last repeated strain row winning. Headers are matched exactly, but no header/schema/duplicate-row/locus-identity admission is performed by this exporter. Check the actual builder/checker schema and roster before export. It uses `data_only=True`: formula results come from saved workbook caches, and missing or stale caches are not recalculated. No formula text in a CSV does not establish fresh measured values.
+
+Outputs on a completed fresh export:
+
+- `strain_summary.csv`, `bgc_inventory.csv`, `bgc_class_long.csv`, `class_by_strain.csv` and `class_prevalence.csv` are emitted by the normal completed path. The first two retain source rows, and class rows reflect semicolon-separated product tokens; unique biological observations are a validated input obligation.
+- `diagnostics_long.csv` is emitted only when `TIGRFAM_Check` supplies non-null diagnostic cells; `cross_strain_findings.csv` only when `Cross_Strain_Findings` supplies nonempty finding rows. Both can be absent, while the dictionary still lists them with zero rows. A reused destination can retain older optional CSVs, and the final console list checks existence rather than whether this invocation wrote each file. Preserve previous exports and use a new directory.
+
+The exporter does not validate diagnostic-cell meaning. A non-null nonnumeric TIGRFAM value becomes zero hits/not present; negative counts are admitted, and positive fractions can yield `present=1` with zero truncated hits. Nonfinite values can fail integer conversion. Hold unmeasured/invalid cells for source-owner reconciliation rather than accepting those derived zeros as absence. Missing corrected counts stay blank, while strain-summary sort treats a missing count like zero for ordering; that ordering is not a measured rank.
+
+Class prevalence divides distinct B1 strain values per class by the number of A2 rows, not an independently checked eligible-strain roster. Repeated registry rows, B1 strains outside that registry, repeated product tokens or missing product values can change counts and percentages. An empty A2 registry with nonempty class rows causes division by zero after earlier CSVs have been written. Bind the intended roster and full `strain / full node-or-contig / region / BGC alias` inventory before interpretation; generated CSV shape does not prove that join. On failure, preserve partial outputs and correct the inputs before exporting to a new directory. No completion/hash receipt is written; save the console result, exit status and external workbook/output hashes. Spreadsheet formula escaping can change formula-leading text cells, so retain original source text separately.
+
+The export carries its caveats inline (`kcb_score` is a cumulative score rather than a percent; four class names are flagged non-informative by a fixed rule). `tools/plot_examples.py <figure_ready_dir>` builds three reference figures from the CSVs (fragmentation-loss gradient, class prevalence, class×strain heatmap) as a starting recipe — these are examples, not the only supported plots. **Compatibility:** output header names are defined by the selected bundle. Preserve its version with the export; source-cell types and missing-value states still require validation before downstream use.
 
 #### A2.5 — Per-BGC page layout in the Mode B / gene-by-gene compilation (co-location mandate)
 
@@ -175,7 +193,7 @@ Registered so each is auto-built/auto-offered per the Offer Protocol (the user m
 
 ## Part B — Project-bundle deliverables
 
-Mandatory when all strains are complete or at user request. Produced by Claude (Sapote tier).
+Applicable when the authorized task includes project-level synthesis. Produced by the Sapote interpretation layer using bound inputs and reviewed evidence, regardless of assistant brand.
 
 | Deliverable | Required content | Status |
 |---|---|---|
@@ -193,11 +211,29 @@ Mandatory when all strains are complete or at user request. Produced by Claude (
 
 ---
 
+## Record a bounded judgment-completeness result
+
+`tools/sapote_judgment_receipt.py` writes a separate JSON receipt from a package raw-BGC count, a judgment-register or legacy card count, and the selected deliverable-manifest checker result. It does not update the package manifest, gate receipt or judgment register. A saved receipt is a mechanical snapshot, not scientific acceptance or authorization to change a sealed package.
+
+```bash
+python tools/sapote_judgment_receipt.py \
+  --package "../review_inputs/package" \
+  --register "../review_inputs/package/strain_judgment_register.json" \
+  --manifest "../review_inputs/DELIVERABLE_MANIFEST_strain.md" \
+  --mode gold --out "../review_output/judgment_receipt.json"
+```
+
+Replace the example locators with the reviewed inputs. Use the selected bundle's Python and bundled helpers, create the output parent first, and choose an explicit fresh output outside source evidence. The default output is `sapote_judgment_receipt.json` in the current working directory. Publication uses a sibling temporary file and replacement, so an existing selected output can be overwritten. Preserve earlier receipts and source hashes separately.
+
+This command actually invokes the bundled `check_deliverable_suite.py` in a subprocess with a 120-second timeout; it is not an inert receipt reader. That checker parses the manifest's declared item statuses, paths/reasons and selected completion lines, rather than opening every declared artifact or verifying hashes. Missing checker/manifest, timeout or unparseable checker stdout leaves its result unmeasured and completion pending. The receipt wrapper consumes the parsed `pass` field without checking subprocess return code. Keep the manifest and count sources stable, and retain independent artifact/identity evidence.
+
+Prefer an explicit register file: a directory argument selects the first matching register without an ambiguity check. A readable non-null `complete_bgcs` takes precedence over `--modeb` globs; an unavailable/unreadable register can fall back to supplied globs. Register counts are not bound to this package's strain, exact locus roster, current card files or hashes, and `register_total_bgcs` is recorded without denominator reconciliation. Legacy globs count unique numeric aliases across matched files after the structure gate, skip unreadable files and do not establish full source identity. Reconcile the actual package/card/register roster independently; aggregate counts alone cannot establish every intended locus has a valid current card.
+
+All three parser modes (`smoke`, `standard`, `gold`) require card count at least the package raw count and checker `pass` exactly true for this wrapper's `COMPLETE`; the checker itself has mode-specific checks. Use the reviewed current mode rather than assuming this compatibility parser defines the engine's available modes. `COMPLETE` exits 0 and `JUDGMENT_PENDING` exits 1 after writing a receipt; output contains JSON followed by a human status line, so stdout is not a single JSON document. Parser or unexpected input/write errors can fail before any receipt is published. Preserve the error/partial evidence, correct the inputs and rerun into a fresh destination. The receipt does not include consumed input/card/output hashes or prove four-component locus identity, current-profile scientific depth, rendered-page quality or owner acceptance.
+
 ## Handoff gate — run before handing work over
 
-`tools/handoff_gate.py` is one fail-closed check before a patch folder, a deliverable folder or a reply goes to the
-owner, a reviewer or another assistant. It prints a PASS/FAIL table and writes a JSON receipt; exit 0 only when every
-check passes.
+`tools/handoff_gate.py` performs the selected structural handoff checks and writes a JSON receipt. Exit 0 means its executed checks passed; it does not establish full coverage of every artifact, exact source identity or science. Run it only in an authorized review/output workspace. `--replay` actually executes the supplied compose shell script and can apply changes; inspect that script and bind its destinations first. This flag is not a read-only dry run.
 
 ```bash
 python tools/handoff_gate.py patches <patch folder> --compose <compose script> --replay
@@ -208,12 +244,10 @@ python tools/handoff_gate.py reply <draft.md> --root <project root>
 - **patches:** every compose step names an existing file; the short hash the queue gives a diff (on its own line) is
   that diff's current hash; every `HASHES.txt` line matches its file; every card with a diff is composed or explicitly
   excluded; `tools/patch_packet_preflight.py` finds no bloat; `--replay` reruns the composition.
-- **deliverable:** `tools/check_md_links.py` passes; every file an index links exists and every figure is linked; BGC
-  identities carry all four components (`strain / node / region / BGC`); no figure script draws wording that
-  `mamey.figure_policy` bans from figures.
+- **deliverable:** checks Markdown links, selected index targets and PNG linkage under supplied figure directories. Its short-identity regex scans Markdown and root-level TSVs; it does not independently bind four-component identities to source records. Figure-text checking scans root-level Python draw-call strings, not all generated pixels or nested renderers. Inspect source identity and actual rendered figures separately.
 - **reply:** links open files under the project root, with spaces as `%20` and parentheses as `%28 %29`.
 
-A PASS is a structural result. It does not review the science, and it does not seal or release anything.
+A PASS is a structural result. It does not review the science, and it does not seal or release anything. The receipt is written into the checked folder by default (reply mode beside the draft); use an explicit authorized receipt destination when preserving input bytes. See [validation and recovery](COMMON_MISTAKES.md#a-validation-or-seal-command-returns-zero).
 
 ## Part C — Treatment status vocabulary
 
@@ -298,7 +332,7 @@ Current compact lead tables use `interpretation_scope` for reader-facing scope. 
 
 #### A2.7  Cross-strain GCF network (BiG-SCAPE) — A-series cohort deliverable
 
-An exploratory / N-limited comparative deliverable produced after the per-strain runs, alongside the pangenome and normalization matrices: **`cross_strain_GCFs.tsv` + the browsable BiG-SCAPE HTML**. BiG-SCAPE clusters antiSMASH BGCs into gene cluster families by Pfam-domain content; the tsv lists, per cutoff, each family's spanned strains, dominant product, contains-MIBiG flag, and member `strain:node.region` locators — which join 1:1 onto the triage boards / Mode B cards. It is the whole-cluster-family complement to the pangenome's orthogroup sharing; cite them side by side, not interchangeably. BiG-SCAPE / Pfam are an external prerequisite (not vendored). Workflow + receipts: `docs/BIGSCAPE_GCF_WORKFLOW.md`. Framing is capacity / similarity, not identity or confirmed product.
+An exploratory / N-limited comparative deliverable produced after the per-strain runs, alongside the pangenome and normalization matrices: **`cross_strain_GCFs.tsv` + the browsable BiG-SCAPE HTML**. BiG-SCAPE clusters antiSMASH BGCs into gene cluster families by Pfam-domain content; the tsv lists, per cutoff, each family's spanned strains, dominant product, contains-MIBiG flag, and member `strain:node.region` locators — which require a validated source-run and complete-locus crosswalk before joining triage boards / Mode B cards. Filename or alias agreement does not guarantee a 1:1 join. It is the whole-cluster-family complement to the pangenome's orthogroup sharing; cite them side by side, not interchangeably. BiG-SCAPE / Pfam are an external prerequisite (not vendored). Workflow + receipts: `docs/BIGSCAPE_GCF_WORKFLOW.md`. Framing is capacity / similarity, not identity or confirmed product.
 
 #### A2.8  Reference-anchored versus unanchored cross-strain GCF status — A-series cohort deliverable
 

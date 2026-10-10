@@ -1,12 +1,12 @@
 # Outgroup generator + right-sized reference sets (outgroup_registry.py, phylo_refset.py)
 
-Two companion tools to `phylo_place.py`. Together they turn "I have query 16S for cohort X" into a clean,
-de-duplicated, correctly-rooted reference set with one command — no bulk downloads, no duplicate tips, no
+Two companion tools to `phylo_place.py`. Together they turn "I have query 16S for cohort X" into an annotation-selected,
+de-duplicated candidate reference set with explicit rooting review — no bulk downloads, no duplicate tips, no
 ad-hoc outgroup.
 
 ## 1. outgroup_registry.py — the outgroup generator
 
-Enter a genus, get the *decided* outgroup. It reads the already-curated
+Enter a genus, get the selected registry outgroup. It reads the already-curated
 external project registry (the taxon→sister-outgroup table with real accessions) and adds a
 **sequence layer** on top; it never edits the TSV. Select that governed registry explicitly with
 `OUTGROUP_REGISTRY`; a path selection records provenance and does not itself grant scientific
@@ -38,12 +38,11 @@ python tools/outgroup_registry.py cache-16s --all      # pre-populate the whole 
 ```
 
 - **16S track** — extracts the outgroup species' 16S from the local `ncbi_16S_RefSeq` BLAST DB (offline) and
-  caches it at `OFFICIAL_DATA/outgroup_cache/16S/<Genus>_<species>.fasta`. So the correct, *consistent*
-  outgroup is one call away every time that genus shows up (the K. setae vs K. albolonga drift can't recur).
+  caches it at `OFFICIAL_DATA/outgroup_cache/16S/<Genus>_<species>.fasta`. Cache reuse requires verifying the current registry/accession binding; filename reuse alone does not prevent drift.
 - **genome track** — returns the assembly accession and, with `--fetch`, writes a `datasets` fetch script.
   It does NOT download — downloading is a permissioned action; run the script yourself.
 - **rule of two rows**: a GENUS tree roots on a sister genus (same family); a FAMILY tree roots outside the
-  family. Pass `--scope family` for a backbone tree. This is what makes sign-off gate #1 pass by construction.
+  family. Pass `--scope family` for a backbone tree. The requested scope and selected row still require review; this does not establish sign-off by construction.
 
 ## 2. phylo_refset.py — right-sized + de-duplicated reference sets
 
@@ -84,3 +83,13 @@ if you didn't already build the refset with `phylo_refset.py`.
 16S is an anchor, not a species call. A right-sized reference set gives "nearest among the chosen refs";
 dedup removes redundant tips but does not change that. Judgment deferred; the Developer or User approves reference-tree CPU
 and seals any cut.
+
+## Registry, cache, scope and output holds
+
+`find_row` prefers an unambiguous LOCKED exact-scope row when available, but multiple unlocked candidates use file order with a warning. If no exact-scope row exists, it falls back to the first same-taxon row of **any** scope. A family request can therefore select a genus row; inspect and hold scope mismatch rather than assuming the rule-of-two-rows is enforced (`tools/outgroup_registry.py:102–146`). Registry provenance identifies the selected file, not biological outgroup suitability.
+
+The 16S cache filename derives from outgroup genus/species/strain text, not registry SHA-256, database hash or ruled accession. A nonempty cached FASTA is checked for admissible header shape but not rebound to the current ruled accession. If a ruled accession is missing locally, extraction falls back to a name-based choice and checks genus, not exact accession/strain equivalence. Preserve that fallback as an authority hold until reviewed; do not describe it as the exact ruled sequence. Force/re-extraction writes the cache directly and may remove a rejected newly written cache file; optional `--out` copies over its destination (`253–312`). Keep authoritative sources disjoint from writable derived cache/output paths and externally bind sequence/cache hashes.
+
+`cache-16s` returns 0 even when its missing list is nonempty. `list` displays registry rows without lookup's project-authority gate. Neither result admits all rows/sequences as approved current outgroups (`355–396`).
+
+`phylo_refset` marker retrieval skips individual failed/empty `blastdbcmd` extractions and can write fewer records, even an empty marker-only set, with zero exit. A build can still contain just an appended outgroup. Check query/reference/extraction denominators before tree inference. Dedup reports and FASTAs overwrite directly; the report name uses literal `.replace('.fasta', '_DEDUP_REPORT.tsv')`, so an output without `.fasta` can collide with the FASTA and lose its report. Use distinct explicitly reviewed paths and retain output hashes. There is no integrated source/database/code/output hash receipt or fresh-destination guard (`tools/phylo_refset.py:223–232,236–281,304–337`). The proposed sequence collapse is display/reference reduction, not physical strain identity or taxonomy acceptance.

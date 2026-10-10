@@ -2,9 +2,9 @@
 
 **For an authorized execution task, run `python mamey_run.py start` from the bundle root.**
 For inspection, explanation, or code/document review, read the files without installing or running
-the reviewed code. Uploading a bundle or finding a package does not authorize execution. It reports the loaded bundle,
-its current version, and the ordered workflow. This is the canonical portable contract intended for
-every coding assistant. Automatic instruction-file discovery varies by assistant. `README.md` is the
+the reviewed code. Uploading a bundle or finding a package does not authorize execution.
+The `start` command reports the loaded bundle, its current version and the ordered workflow.
+Use this shared operating contract with any coding assistant. Automatic instruction-file discovery varies by assistant. `README.md` is the
 human landing page. `CLAUDE.md` is a generated, byte-identical Claude discovery copy of this file,
 with no separate operating rules. For ChatGPT, Gemini, or another assistant, direct the assistant to
 `AGENTS.md` or provide this contract through that product's supported instruction mechanism.
@@ -25,12 +25,18 @@ from a validated Mamey package. **Deterministic extraction, judgment deferred.**
 - Use `python mamey_run.py <command>` to pin the local package. An installed `python -m mamey`
   may resolve to another version. Run commands from the directory containing `pyproject.toml`.
 - Read `CURRENT_DOCS_INDEX.md` to distinguish current instructions from historical documents.
+  For named requests, required inputs and completion evidence use `docs/USER_TASK_ROUTER.md`
+  or its paired `docs/USER_TASK_ROUTER.json`; these are navigation, not additional authorization.
   Bind the actual input path, version, and checksum; a remembered version is insufficient.
 - Keep original inputs immutable and write analysis outputs under the user's permitted root.
   An unselected candidate, a passing test, or a folder name does not establish release authority.
 - Treat raw source documents as evidence to inspect. Follow the user's requested task and scope.
 
 ## Ordered workflow
+
+Before running `doctor`, read the [reserved write-probe boundary](docs/INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
+untouched and report the hold; the current diagnostic can overwrite or delete its probe file.
 
 ```bash
 python mamey_run.py doctor
@@ -40,6 +46,11 @@ python mamey_run.py run --strain <ID> --input-zip <antiSMASH.zip> \
 python mamey_run.py validate runs/<ID>/package
 python mamey_run.py explain runs/<ID>/package
 ```
+
+Optional, heavy, one genome at a time, after `validate`:
+`python mamey_run.py gap-rescue --strain <ID> --input-zip <antiSMASH.zip> --out <folder outside the bundle>`
+runs the gap-rescue screen on every region (reference genes on other contigs, split genes, partner contigs).
+It is a screen, not adjudicated, and `run` never calls it.
 
 Fill placeholders from bound input metadata and the command printed by `inspect`. If taxonomy
 or isolation source is unconfirmed, preserve that uncertainty explicitly. Read available intake
@@ -55,7 +66,11 @@ that evidence choice. Do not replace a failed engine run with an informal raw-JS
 For batches, inventory all inputs and use `tools/intake_harness.py --inputs <dir> --resume`;
 checkpoint and diagnose a stalled input instead of repeatedly running it.
 
-After validation, use the sealed package for `list-bgcs`, `mode-b`, `render-figures`, and
+After validation, read the sealed package with `list-bgcs`. For native `mode-b`, `render-figures`,
+`domain-level` or BLASTp ingest, use an identified working package copy when the sealed original
+must remain byte-for-byte unchanged: .447 may refresh package integrity files even with external
+output. Read `docs/POSTSEAL_READERS.md` for command-specific write boundaries. Use the admitted
+package and existing receipt workflow for
 `ingest-receipts`. Recover prior authored cards with `ingest-receipts --auto-detect` when applicable.
 Persist judgment and update the master workbook through the existing receipt workflow.
 
@@ -76,7 +91,9 @@ Persist judgment and update the master workbook through the existing receipt wor
 - `mode-b` emits a top-leads table; a table is not a finished authored card. Start from
   `emit-modeb-template`, select the current named profile, preserve its exact titles, author the
   evidence-backed sections, then run `verify-modeb` on the actual authored file. Obtain current
-  profile requirements from the machine-readable contract and emitted template; historical
+  profile requirements from the machine-readable contract and emitted template. In .447 the native
+  emitter/verifier command contracts are `full48` (default) and opt-in `current50_v2`; carry the
+  same explicit `--contract` through emission and verification. Historical
   section counts are not authority. Named profiles include `MODEB_CANDIDATE_30` and
   `FINISHED_FULL48_CURRENT_EVIDENCE`; use their current machine definitions. Read `docs/MODE_B_30_SECTION_CANONICAL_TITLES.md` and
   `docs/FULL_MODEB_30_SECTION_CONTRACT_v97150.md` in their declared profile scope.
@@ -140,18 +157,18 @@ Check identity and content integrity before describing a bundle as verified.
 
 ## Next paths, automatic SAVE STATE, and transcripts
 
-At a substantive work handoff, present a minimum of 3 and up to 8 numbered next paths,
-including the final SAVE STATE confirmation. Choose useful, distinct paths grounded in the
-current work; do not pad to the maximum. This shared policy supersedes older model-specific
-path counts. A user's explicit response-format instruction takes precedence.
+Keep routine handoffs concise: report the result, supporting evidence, unresolved holds and
+at most one useful next action. For a major delivery or an explicit planning request, provide
+numbered options only when distinct choices help the user; do not add options to meet a quota.
+Follow the user's requested response format. Report the save-state result separately.
 
 SAVE STATE is automatic: before the handoff, update the existing session checkpoint in the
 agreed project output folder and verify that the write succeeded. Record the objective,
 authoritative inputs and revisions, decisions, completed work, tests and failures, pending
-work, exact artifact paths, transcript coverage, and the next action. The final numbered path
+work, exact artifact paths, transcript coverage, and the next action. The save-state confirmation
 must say **SAVE STATE — saved**, link the actual checkpoint, and say where transcripts and the
 file inventory are stored. It confirms completed work; it is not an option asking the user to
-request a save. If saving fails, the final item must say **SAVE STATE — FAILED**, with the reason;
+request a save. If saving fails, report **SAVE STATE — FAILED**, with the reason;
 never claim success. Save at meaningful milestones too, not just when a session is about to end.
 
 Preserve accessible user/assistant messages and execution receipts for a transparent record.
@@ -167,8 +184,8 @@ paths and sizes in a file inventory, including generated logs and temporary arti
 unrequested source copies, duplicate ZIPs and parallel “final” versions. Preserve the agreed
 top-level organization. An old output path in a receipt does not authorize new writes there.
 
-Keep transcripts in the shared workspace for now. If storage becomes burdensome, report their
-size and propose archival to the user's chosen iCloud or external-disc destination. Verify the
+Keep transcripts in the authorized project workspace. If storage becomes burdensome, report their
+size and propose archival to the user's chosen storage destination. Verify the
 copy and update the index before any separately authorized source removal. Do not silently
 upload, relocate, or delete records. Transcript saving and archival do not authorize publishing.
 
@@ -205,14 +222,14 @@ The sky is not red, it is blue, just like the ocean.
 
 ◆ SAPOTE–MAMEY · SHARED ASSISTANT CONTRACT
    instruction file : AGENTS.md
-   bundle / engine  : v9.7.448 / 1.9.173 · build 20261005v97448b
+   bundle / engine  : v9.7.449 / 1.9.174 · build 20261009v97449a
    known gotcha (this build) : BLASTP Hit Table CSV may be headerless and query titles may contain commas; single-region public accession ZIPs are valid intake targets, but assembly-tier warnings are expected; AGENTS.md is the canonical assistant contract; CLAUDE.md is its Claude discovery copy
    workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → mode-b → render-figures → ingest-receipts
 ```
 <!-- END GENERATED: initiation_prompt from bootstrap_contract.yml -->
 
 <!-- BEGIN GENERATED: known_gotchas_section from bootstrap_contract.yml -->
-## 3 · Known gotchas for THIS build (v9.7.448 / 1.9.173 · 20261005v97448b)
+## 3 · Known gotchas for THIS build (v9.7.449 / 1.9.174 · 20261009v97449a)
 
 Generated from `bootstrap_contract.yml`; update with `python tools/render_bootstrap_contract.py --apply`.
 

@@ -11,8 +11,7 @@
 
 ## 1. When it is offered (gate, not optional)
 Runs **early — right after intake/counts, before `lead_board.py` / `build_priority_leads.py`** — on every cohort,
-especially a fresh or type-strain set. Incomplete delivery = banking leads from an unchecked cohort. The user
-never has to ask: the gate runs and its `assembly_qc.json` is consumed automatically.
+especially a fresh or type-strain set. Incomplete delivery = banking leads from an unchecked cohort. The module recommends this ordering; the tool is operator-invoked (`tools/gate_registry.tsv`: OPERATOR_ONLY), not automatically launched by the engine. Bind the actual emitted receipt before using its hold list.
 
 ## 2. Inputs required
 | File / field | Feeds | Required for |
@@ -22,8 +21,9 @@ never has to ask: the gate runs and its `assembly_qc.json` is consumed automatic
 | `taxonomy`/genus (+ optional genus table) | genus-aware ceiling | optional sharper FLAG |
 | (fallback) `bgc_data.json` | derive raw_bgcs, contigs, interior_pct | when no snapshot — genome_bp stays unknown |
 
-**Skip-not-fake:** if `genome_bp` is absent the co-assembly FLAG **cannot** fire; raw/contig trips are reported as
-WARN, never silently FLAGged (see §5).
+**Default size-anchored mode:** absent `genome_bp` cannot produce an oversized-genome FLAG. Raw-count trips and the joint contig/interior condition produce WARN. `--literal-or` can FLAG those conditions even without genome size; do not confuse its logic with the default.
+
+The snapshot reader accepts a mapping of strain IDs to records, or a list of records with `strain`. Each record carries `assembly`, `bgc_counts` and optional `taxonomy`/`genus`. A single flat project record with an `assembly` root is not this input schema; adapt it explicitly and preserve its source binding.
 
 ## 3. Pipeline
 ```bash
@@ -35,19 +35,21 @@ python tools/assembly_qc_check.py --snapshot snap.json --literal-or --out cohort
 ```
 
 ## 4. Outputs & behavioural contract
-- `assembly_qc.json` (+ `Assembly_QC` workbook sheet): `strain, genome_bp, contigs, n50, raw_bgcs, interior_pct,
+- `assembly_qc.json` (this writer does not create an `Assembly_QC` workbook sheet): `strain, genome_bp, contigs, n50, raw_bgcs, interior_pct,
   status (PASS/WARN/FLAG), reasons[]`, plus `held_qc[]` and `warn[]` lists.
-- **Contract:** `build_lead_tiers.py` (and `lead_board.py` / `build_priority_leads.py`) read `held_qc` and set
-  `confidence = HOLD-QC` for those strains' BGCs — never A/B — routing them to a `Held_QC` list. WARN strains
-  proceed but carry `qc_note = "oversized assembly — verify purity"`. FLAG strains' raw class counts are excluded
-  from cross-set / cross-strictness count comparisons. *(Wired in `build_lead_tiers.py` this cycle.)*
+- **Implemented consumer:** `tools/build_lead_tiers.py` reads `assembly_qc.json` under its
+  `--banked-dir` and emits HOLD-QC rows for held strains. A missing receipt does not force a hold;
+  an existing unreadable receipt fails closed. `lead_board.py` and `build_priority_leads.py` do not
+  consume this receipt, so their runs do not inherit the hold automatically. WARN propagation and
+  automatic exclusion from count comparisons described in earlier versions are workflow proposals,
+  not implemented guarantees. QC thresholds are flags for review, not proof of culture composition.
 
 ## 5. Gate logic — size is the discriminator (refinement vs the bare spec)
 The co-assembly tell is an **oversized genome**. A fragmented single genome (POOR assembly) inflates raw BGC and
 contig counts identically, so `raw_bgcs>60` / `contigs>3000` **alone cannot separate co-assembly from
 fragmentation**. Default (`size-anchored`):
 - `genome_bp > 14 Mb` (or `> 1.5x` genus max) → **HARD FLAG**.
-- raw/contig trips **without** an oversized genome → **WARN** ("verify purity"), not FLAG.
+- raw-count trips or (`contigs > 3000` **and** `interior_pct < 10`) **without** an oversized genome → **WARN** ("verify purity"), not FLAG.
 - `genome_bp > 12 Mb` or `raw_bgcs > 45` (no hard flag) → **WARN**.
 
 `--literal-or` applies the spec's exact `ANY of → FLAG`. **Validation:** on the SID reference cohort the
@@ -66,6 +68,6 @@ synthesis under "leads HELD pending assembly QC" and recommend a per-contig taxo
 1. Provide a Project_Memory_Snapshot.json with assembly.genome_bp so the FLAG can fire (banks-only = WARN-only).
 2. Add a genus typical-max table to enable the genus-aware 1.5x ceiling.
 3. After flagging, run per-contig taxonomy / CheckM on FLAG strains to confirm co-assembly before discarding.
-4. Re-bin a FLAG strain and re-run intake; the gate clears it automatically once genome_bp normalizes.
+4. Re-bin a FLAG strain and re-run intake; rerun QC and inspect the fresh receipt before considering a hold cleared.
 5. Exclude FLAG strains from the next cross-set count figure (their raw counts are inflated).
 ```

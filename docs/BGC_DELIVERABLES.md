@@ -4,7 +4,7 @@ bgc_figures.py (locus/GCF/BLASTp figures, RGB-safe), bgc_deliverable_pdf.py (cov
 Figures MUST be RGB-on-white (RGBA won't load in many viewers). See README_PATCH v9.7.319.
 
 ## v9.7.338 interpretive & cohort add-ons (report-only, non-scoring; capacity-level, judgment deferred)
-All read already-sealed package outputs and change no score / tier / gate / manifest / version. Similarity
+These are report-oriented add-ons, not a guarantee that every operation is a read-only or transactional reader. Inspect each command's source and destination contract; use preserved package copies and fresh output paths when originals must remain immutable. See [post-seal reader boundaries](POSTSEAL_READERS.md) and the [deliverable queue](DELIVERABLE_QUEUE.md). Similarity
 is not identity; measured bioactivity is strain-level context, never a per-BGC production claim.
 - good_guesses.py (`good-guesses`) — single best claim-safe interpretive read per notable BGC (Exceptional/High
   leads), tagged SOLID / RARE / REMARKABLE / NOTABLE / INTERESTING with a HIGH / MEDIUM / FRONTIER / LOW
@@ -12,7 +12,7 @@ is not identity; measured bioactivity is strain-level context, never a per-BGC p
   footer; a reference-dark guess is a novelty prior, not proof of a new compound).
 - modeb_export.py (`modeb-export`) — an authored Mode-B card .md (or a package mode_b/ dir, batch) → .docx
   (every §-table, §4 evidence grid included, a real Word table) + .pdf (page number + claim-safety footer on
-  every page). The card's own claim-safety language is preserved verbatim; degrades gracefully with no python-docx.
+  every page). The card's own claim-safety language is preserved verbatim; missing python-docx can skip DOCX, and `--format both` fails if either requested format is not written. A PDF can already exist when the combined result fails; inspect actual artifacts before retrying.
 - af_dossier.py (`af-dossier`) — AF lead board × optional measured Candida-activity crosswalk → AF_LEAD_DOSSIER.csv/.md;
   Standout shortlist = strains measured Candida-positive AND carrying a High AF-capacity lead. Capacity (class-level
   routing prior) and measured activity (strain-level context) stay in separate columns; runs with no wet-lab input.
@@ -23,7 +23,7 @@ is not identity; measured bioactivity is strain-level context, never a per-BGC p
   siblings, optional .xlsx) without the O(N^2) master rewrite; the figure-ready cohort substrate.
 - mibig_comparator_coverage.py (`comparator-coverage`) — re-expresses every named MIBiG comparator against two denominators
   (all-locus vs defining-core genes) + collision / within-BGC-specificity / cohort-promiscuity flags →
-  _3b_comparator_coverage.csv (+ _summary.json). The named-family false-positive killer for the AF lead list.
+  _3b_comparator_coverage.csv (+ _summary.json). A diagnostic comparator-context report; its flags do not independently adjudicate named-family identity.
 - domain_reference.py (`domain-reference`) — Mode-B domain functional-context dictionary emitted from sealed package(s).
 - realistic_bgc_count.py (`realistic-count`) — corrected-denominator BGC count (marginal-drop + HIGH RG-GMCI merge); advisory.
 - build_novelty_shortlist.py (`novelty-shortlist`) — composite multi-signal novelty shortlist (KCB-dark + low recognizability

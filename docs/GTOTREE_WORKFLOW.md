@@ -1,22 +1,29 @@
 # The Sapote-Mamey GToTree Workflow — execution guide (two-tier MLSA → approved core-genome)
 
+Before any `doctor` example below, read the [write-probe boundary](INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
+untouched. The current diagnostic can overwrite or remove its probe file.
+
 Run engine examples from the selected bundle directory containing `pyproject.toml` and `mamey_run.py`, using its compatible activated Python interpreter; bind external inputs separately.
 
 
-**Version:** rebased onto v9.7.348 for the v9.7.349 line · companion workflow (detected, not bundled)
+**Source scope:** reviewed against v9.7.447 · companion workflow (detected, not bundled).
+Historical cohort/version examples below are context, not proof of current installed assets.
 **Scope:** downstream of a sealed Mamey package. It **never blocks or alters a core run.**
 **Governance authority:** [`docs/phylogenomics.md`](phylogenomics.md) and, for the LLM contract,
 `docs/LLM_COMPANION_TOOL_PROTOCOL.md`. This document is the **execution** companion to those; where
 they govern *what is allowed and what needs approval*, this one gives the *commands that carry it out*.
 
-> **Two-speed rule (governing).** **MLSA trees are cheap — build as many as you like, un-gated.**
+> **Two-speed rule (governing).** The shipped MLSA screen has no approval flag, but executes external tools and
+> consumes CPU. Use the user's authorized inputs, output root and resource budget;
+> an absent flag is not unlimited execution permission.
 > The **expensive 138-SCG core-genome + long IQ-TREE inference is approval-gated**: no CPU cores are
 > committed until you have seen and approved the compute preflight (`plan_gtotree_iqtree.py` leaves a
 > run in `PLANNED_AWAITING_APPROVAL`). Codex's panel/preflight tools are **plan-only by design** — that
 > is the gate working, not a missing builder.
 
-> **Claim-safety.** A genome tree strengthens *topology*; **whole-genome ANI delimits species**
-> (~95–96%). "Candidate novel" is a **prior**, not a rank; 16S over-lumps; AAI ≠ ANI. BGC content is
+> **Claim-safety.** A genome tree strengthens *topology*; ANI and aligned fraction support taxonomic comparison; thresholds
+> around 95–96% are interpretation aids and do not automatically delimit or name species. "Candidate novel" is a **prior**, not a rank; 16S over-lumps; AAI ≠ ANI. BGC content is
 > an **annotation track**, never a character used to infer the organismal tree. Class-level
 > hypotheses, judgment deferred; no bioactivity/structure claims.
 
@@ -35,13 +42,13 @@ raw antiSMASH ClusterBlast channel
                                                          → candidate panel TSV; discovery+downloads
                                                          are network/approval-gated, plan-only)
   → [ OPTIONAL cheap screen, this workflow:                                            ]
-  →   tools/build_mlsa.py            (5-locus full-pool MLSA — cheap, un-gated, MANY ok) ]
+  →   tools/build_mlsa.py            (5-locus MLSA; authorized inputs, output and CPU budget) ]
   →   tools/prune_neighbors_from_tree.py --emit-panel-tsv   (≤60-tip bounded panel)     ]
   → tools/build_phylo_panel.py                          (Codex: membership, 1 outgroup, dedup)
   → tools/plan_gtotree_iqtree.py --prepared-panel        (Codex: immutable compute preflight)
   → ★ USER APPROVAL ★                                    (cores committed only past this point)
   → GToTree 138-SCG alignment  →  IQ-TREE inference      (this workflow: §4–§5)
-  → fastANI species calls (§6)  +  tools/signoff_check.py (§7)
+  → fastANI assembly comparisons (§6)  +  tools/signoff_check.py (§7)
   → tree × BGC overlay figure (§8, docs/TREE_BGC_OVERLAY.md)
 ```
 
@@ -62,26 +69,23 @@ python mamey_run.py doctor --companions       # confirm detection
 The drivers here find binaries via `--bin-dir`, then `$MAMEY_PHYLO_BIN`, then `PATH` — nothing is
 hardcoded to any one machine.
 
-## 3. Tier 1 — full-pool MLSA (cheap, un-gated, build many)
+## 3. Tier 1 — full-pool MLSA within the authorized resource budget
 
 ```bash
-# genomes_dir holds *.fna; exactly one may carry an _OUTGROUP suffix in its filename
+# genomes_dir holds immediate *.fna; _OUTGROUP is an inert label here, not a rooting flag
 python tools/build_mlsa.py  <genomes_dir>  <out_dir>  --threads 4
 ```
 
-Prodigal → `blastp` the five bundled seed proteins (atpD, gyrB, recA, rpoB, trpB;
-`mamey/data/phylo_seeds/*.faa`) against each proteome → best-bitscore ortholog's **CDS** → MUSCLE →
-trim >50%-gap columns → **partitioned** supermatrix → IQ-TREE (`-m MFP`, DNA models, 1000 UFBoot +
-1000 SH-aLRT, seed 12345). Outputs `<out>/tree.treefile`, `<out>/loci_report.tsv` (per-taxon seed
-%id — your data-quality read), `<out>/mlsa.log`.
+Prodigal → `blastp` the five bundled seed proteins (atpD, gyrB, recA, rpoB, trpB; `mamey/data/phylo_seeds/*.faa`) against each proteome → highest-bitscore returned subject's **CDS** → MUSCLE → trim >50%-gap columns → available-locus **partitioned** supermatrix → IQ-TREE (`-m MFP`, DNA models, 1000 UFBoot + 1000 SH-aLRT, seed 12345). Best-hit selection does not establish orthology. Outputs include `<out>/tree.treefile`, `<out>/loci_report.tsv`, `<out>/taxon_map.tsv`, `<out>/run_status.json`, `<out>/mlsa.log` and alignment/partition files. Reconcile per-locus HIT/NO_HIT rows and retained tips/partitions: successful output can omit a locus or a genome without any retained locus. See [MLSA completion and recovery](COMPANION_RUN_CONTRACTS.md#mlsa-inputs-completion-and-recovery) for source bindings, output reuse, thread forwarding and the nonempty-tree-only completion check.
 
 - **This is the 5 protein-coding loci only.** The project's **6th locus, 16S rRNA, is built
   separately** (rRNA cannot be blastp-seeded; extract with e.g. `barrnap`) and kept as its own
   analysis — never disguised as a GToTree protein HMM (see `phylogenomics.md`).
 - **Nucleotide loci — pass no protein `-mset`.** ModelFinder must pick DNA models; `LG/WAG/JTT` here
   throws `File not found LG`. (The driver already omits it.)
-- Fast even at ~293 tips. Run one per family, run them for sub-panels, run them freely — MLSA does not
-  need the compute-approval preflight.
+- Fast even at ~293 tips. A five-locus screen can precede the expensive core-genome preflight;
+  record actual input counts, runtime and threads. Execute only within the existing
+  user authorization rather than treating this as unrestricted fan-out.
 
 ## 4. Prune → bounded panel (the bridge into Codex's chain)
 
@@ -99,7 +103,10 @@ the outgroup are never dropped; if the set would exceed `--max-tips` (hard ceili
 
 ```bash
 python tools/build_phylo_panel.py panel_candidates.tsv staged_panel/ --panel-size <N>
-python tools/plan_gtotree_iqtree.py plan --prepared-panel staged_panel/ ...   # preflight only
+python tools/plan_gtotree_iqtree.py plan --prepared-panel staged_panel/ \
+    --workspace /path/to/writable/phylo_workspace \
+    --run-id gtotree_candidate_001 --hmm /path/to/Actinobacteria.hmm \
+    --threads-per-tree 1 --max-concurrent-cores 4   # preflight only
 #   → review the preflight, then APPROVE before anything below runs
 ```
 
@@ -142,6 +149,7 @@ This never builds a heavy core-genome tree; it only orchestrates cheap MLSA runs
 Only after you approve the preflight:
 
 ```bash
+# GToTree 1.8 interface; reconcile flags for v2 before execution.
 GToTree -f genomes.txt -H Actinobacteria -m labels.tsv -j 1 -n 1 -M 1 -N -k -o run/gtotree_align
 #   -H Actinobacteria : the 138-SCG set. Make -n/-M/-j explicit — GToTree defaults can exceed the
 #                       project core ceiling. Use -B only after documenting the multicopy tradeoff
@@ -154,20 +162,22 @@ iqtree3 -s <discovered-alignment> -m MFP -mset LG,WAG,JTT,Q.pfam -mrate G,I,I+G 
 #   One core-committed tree per approval; a dispatcher must prove the combined ceiling ≤ 4 cores.
 ```
 
-## 6. Delimit species with ANI
+## 6. Compare assemblies with ANI
 
 ```bash
 fastANI --query AS-XXX.fna --refList comparators.txt -o AS-XXX.ani.tsv
 ```
 
-The tree shows relationships; **fastANI makes the species call** — reported to the nearest *named*
-species, not a sibling query. Calls within ~1% of 95% are boundary/indeterminate; say so.
+Record the exact query/reference assembly identities, raw identity, matched-fragment
+count and total query fragments. Preserve the comparison direction and calculated
+aligned fraction. A missing row is not zero identity: it may be outside the method's
+reporting range or reflect an execution/input problem. Compare to selected, verified
+reference material and describe the sampled panel.
 
-| Level | ANI to closest | Worked example |
-|---|---|---|
-| known species | ~98–99% | AS-XXX = *S. antibioticus* |
-| candidate novel **species** | ~85–90% | AS-XXX vs *Peterkaempfera bronchialis* (~87%) |
-| candidate novel **genus** | ≤ ~78% | AS-XXX (sister *Labedaea*, outside the *Pseudonocardia* crown) |
+ANI thresholds alone do not make species or genus calls. High ANI supports close
+assembly similarity within the compared panel; low ANI to one named reference does
+not establish novelty, and ANI is not a universal genus delimiter. Report uncertainty
+and investigate assembly quality, duplicates and reference provenance before adoption.
 
 ## 7. Sign-off gate — run on every tree
 
@@ -239,6 +249,10 @@ the established 138-marker Actinobacteria workflow.
 | 2.0.x | admitted; its trees are not pooled with 1.8.19 trees without the migration above |
 | 1.8.16 and anything else | refused (1.8.16 also has the interactive-prompt hang fixed in 1.8.19) |
 
-The planner still checks the installed help text for every flag it writes, so a version whose flags
-differ holds at `HOLD_HELP_DRIFT`. `--threads-per-tree N` (1–4, default 1) gives one approved tree N
+The planner checks installed help tokens, but its .447 command builder still emits
+the v1 `-n` flag for every accepted version. The runner omits `-n` for v2. Treat
+this as an interface-review hold whenever v2 lacks that option; acceptance in the
+version list alone is insufficient. See [companion run contracts](COMPANION_RUN_CONTRACTS.md). `--threads-per-tree N` (1–4, default 1) gives one approved tree N
 threads; trees run at once = `--max-concurrent-cores` ÷ N, so the four-core ceiling is unchanged.
+
+For the optional Barrnap route, see [version and integration scope](BARRNAP.md). The marker planner prints a recipe; the separate comparator selector has a BLASTn route that does not require Barrnap. Neither a printed plan nor an absent tool is evidence that marker extraction ran.

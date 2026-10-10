@@ -4,8 +4,11 @@
 
 ---
 
-You have the Sapote–Mamey v9.7.448 bundle and one or more antiSMASH genome-mining ZIP(s).
-Run the full pipeline and produce the diagnosis deliverables.
+You have the Sapote–Mamey v9.7.449 bundle and one or more antiSMASH genome-mining ZIP(s).
+Use this template only for an explicitly authorized diagnosis run, not merely because files
+were attached. Bind the selected strain inputs and follow `AGENTS.md` and
+`docs/ASSISTANT_GOVERNANCE.md`; this template does not grant network, external messaging, release
+or experiment authority. Run the selected pipeline and requested diagnosis deliverables.
 
 1. **Mamey extraction (deterministic):** run Mamey on each uploaded antiSMASH ZIP. Process every
    strain; append into one cumulative master workbook (key rows by Strain + BGC_ID; do not replace
@@ -29,7 +32,8 @@ Run the full pipeline and produce the diagnosis deliverables.
 
 **Claim-safety (non-negotiable):** compound identities are genome-mining predictions — use
 "candidate"/"predicted"/"consistent with", never "produces X" without isolation data. KCB is
-similarity, not identity. Every BGC referenced as `BGC_ID (contig · regionXXX)`, never a bare ID.
+similarity, not identity. Display every individual locus as `strain / full node-or-contig / region / BGC alias`,
+in that order, copied from one bound record. Hold missing or conflicting identity components.
 Never emit an unverified PMID/DOI — use a PubMed search URL labeled `UNVERIFIED — lookup only`.
 Flag missing evidence as `NEEDS_*` rather than guessing.
 *(Canonical guard text: `prompts/reuse/_SHARED_GUARD_BLOCK.md` — G1–G5. This block restates it; if the two ever diverge, the shared block wins.)*

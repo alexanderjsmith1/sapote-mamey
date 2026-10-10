@@ -1,4 +1,7 @@
 # Short ID Registry
+
+> Historical project display-name convention and benchmark record. This table is not an executable alias registry, current privacy policy or validated accession/locus crosswalk. Original chemistry/field-isolate-publication assertions below are preserved as historical claims, not reverified evidence. Keep source strain IDs, exact accession **versions**, assembly/input hashes and full contig/region/BGC identities independently of any shortened display label. Stripping version or punctuation can collapse distinct source records; do not overwrite or merge them on a short name alone.
+
 **Project:** Sapote-Mamey Actinomycete Natural Product Discovery  
 **Repository:** `sapote-mamey` (https://github.com/alexanderjsmith1/sapote-mamey)  
 **Version:** 1.0 — 2026-06-08
@@ -28,7 +31,7 @@
 
 ---
 
-## Benchmark strains (12 strains)
+## Historical benchmark table (11 listed rows)
 
 | Short ID | Full strain name | Key known chemistry | Collection | Dot/hyphen handling |
 |---|---|---|---|---|
@@ -48,9 +51,9 @@
 
 ## Platform-specific notes
 
-**When ChatGPT runs Mamey:** use the full strain identifier in `BGC_Master` Strain column (e.g., `Streptomyces_coelicolor_GCA_008931305.1_ASM893130v1(4)`). Claude converts to short ID automatically on merge.
+**When ChatGPT runs Mamey:** use the full strain identifier in `BGC_Master` Strain column (e.g., `Streptomyces_coelicolor_GCA_008931305.1_ASM893130v1(4)`). The historical workflow expected a short display label at merge; this Markdown does not implement that conversion. Select and review the actual reader/mapping explicitly.
 
-**When Claude writes to workbook:** all sheets use the short ID as the strain key. Never use the full Mamey strain identifier inside the workbook.
+**When Claude writes to workbook:** all sheets use the short ID as the strain key. This was a historical display convention, not permission to discard source identifiers or mutate a current workbook’s keys. Current schema and identity bindings govern the actual workbook.
 
 **When publishing:** the short IDs appear in supplementary tables and the workbook deposited to Zenodo. The full strain names appear in the Methods section text.
 
@@ -71,3 +74,11 @@
 | v | Date | Change |
 |---|---|---|
 | 1.0 | 2026-06-08 | Initial registry; 28 SID strains + 11 benchmark strains defined |
+
+## Current identity and collision checks
+
+`mamey/strain_identity.py:174–227` resolves supplied/archive labels or a filename fallback with warnings. It does not treat this table as proof of strain identity or accession-version equivalence. Preserve the returned source/evidence and reconcile the archive before assigning a display alias.
+
+Some tools accept an explicit `source_strain,display_strain` mapping. For example, `tools/definitive_bgc_ranker.py:121–130,333–338` requires nonblank fields but assigns repeated source keys last-write-wins and can reuse one display label for different sources. Validate uniqueness and exact source/version/hash binding independently before using that tool; do not assume every consumer shares its semantics. A friendly label is not an evidence-transfer receipt or disclosure decision.
+
+Publications and sharing follow actual assignments and release review; neither SID/AS prefix nor a historical “public” annotation grants new authority. Source evidence and historical table remain unchanged in the baseline. See [privacy and evidence](PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md) and [naming](PROJECT_NAMING.md).

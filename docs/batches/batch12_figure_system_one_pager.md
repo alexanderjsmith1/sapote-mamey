@@ -1,3 +1,14 @@
+# Historical figure-system one-pager: current boundary
+
+The .149a one-pager dated2026-06-29 below is a historical design/teaching record. Its five-minute timing, uniform palette/width/dpi/CSV guarantees, automatic all-locus maps, illustrative catalog IDs and “ready for paper” conclusion are not current verified behavior. Copying source tables and changing values is not a substitute for governed admission; retain raw evidence and use separately recorded display transforms.
+
+Current producers have distinct schemas/formats and per-set missing/held/skipped/error states. Figure presence is not completeness, and a summary PASS can include skips. KCB cumulative scores are not identity percentages; the old `kbc_identity` example does not provide a real current source field or a full locus identity. Missing assay values are not zero and a generic “mean±SD, n=X” caption cannot manufacture replication. Source/profile/version/denominator and strain / full node-or-contig / region / BGC alias must be explicit.
+
+Start with [current figure catalog](../FIGURE_CATALOG.md), [style scope](../FIGURE_STYLE.md), [reproducibility contracts](../FIGURE_REPRODUCIBILITY.md), [render/tool statuses](../OPTIONAL_FIGURE_FACTORY_TOOLS.md), and [KCB provenance](../KCB_SCORE_PROVENANCE.md). Rendering, visual QA, owner acceptance and release are separate. Current50 cards use the actual profile, not the old layout section numbers. No figure generation or scientific adoption was performed here.
+
+## Preserved historical record — not current instructions or acceptance
+
+````text
 # Figure System One-Pager
 **How to make, style, and deliver publication-ready figures**
 
@@ -360,3 +371,5 @@ python tools/generate_bgc_atlas.py \
 - **Reproducibility:** `docs/FIGURE_REPRODUCIBILITY.md` (best practices)
 - **Prompt library:** `prompts/figure_prompts/_INDEX.md` (LLM-assisted figure generation)
 
+
+````

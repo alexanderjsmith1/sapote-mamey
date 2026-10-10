@@ -10,7 +10,7 @@
 
 ## 1. When it is offered (Deliverable Offer Protocol)
 
-Auto-build for every Full-Run Profile; the `Metabolomics_Readiness` workbook sheet is part of the Excel deliverable. Offer as a next-path whenever leads have a class call but no analytics plan. **Incomplete delivery** = naming a lead's class without its detection/extraction handle, or giving exact masses/formulas (forbidden — §37.4).
+Assistant workflow recommendation for a selected Full-Run Profile; this standalone writer is not automatically invoked by the base engine, and the `Metabolomics_Readiness` workbook sheet is part of the Excel deliverable. Offer as a next-path whenever leads have a class call but no analytics plan. **Incomplete delivery** = naming a lead's class without its detection/extraction handle, or giving exact masses/formulas (forbidden — §37.4).
 
 ---
 
@@ -27,7 +27,7 @@ Auto-build for every Full-Run Profile; the `Metabolomics_Readiness` workbook she
 
 ## 3. Pipeline
 
-`PROMPT_BACKED`: map each lead's class to the §3a defaults, then adjust for strain-specific evidence (e.g. DHB siderophore → CAS assay + iron-limited culture). To promote to `SCHEMA_BACKED`: `tools/build_metabolomics_readiness.py --package-dir <pkg>` emits the sheet.
+`PROMPT_BACKED`: map each lead's class to the §3a defaults, then adjust for strain-specific evidence (e.g. DHB siderophore → CAS assay + iron-limited culture). The writer already exists. Invoke `python tools/build_metabolomics_readiness.py --package-dir <pkg> --out-dir <dir>` for a CSV and a separate XLSX; it does not modify the master workbook. XLSX errors are caught and reported as skipped, so verify both requested files rather than treating exit zero as complete delivery.
 
 ---
 
@@ -61,7 +61,7 @@ Last three rows extend §37.3 with classes the SID-XXX run surfaced.
 
 ## 3b. Per-BGC fields (the sheet)
 
-`BGC # · Product class · Arch · Expected MW range · Ionization · UV/Vis · Polarity · Extraction recommendation · Dereplication target · HRMS priority · Bioassay pairing · Caveat`
+Current emitted columns: `locator`, `bgc_id`, `class`, `MW_range`, `ionization`, `UV_handle`, `polarity`, `extraction_route`, `dereplication_target`, `claim_ceiling`. Architecture, HRMS priority and bioassay pairing in the older proposed schema are not current writer columns.
 
 ---
 
@@ -99,4 +99,4 @@ Last three rows extend §37.3 with classes the SID-XXX run surfaced.
 > 2. Pair the 31P-NMR screen with GNPS LC-MS/MS as the strain's two decisive runs.
 > 3. Flag every polar lead (phosphonate, siderophore) for IEX-first fractionation.
 > 4. Cross-link each row to its Wet-Lab dereplication priority.
-> 5. Promote to SCHEMA_BACKED with a sheet-writer tool.
+> 5. Inspect the existing writer’s CSV and separate XLSX against the requested output contract.

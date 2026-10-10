@@ -4,7 +4,7 @@
 > Historical section counts, role assignments and examples below cannot replace a current profile.
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
-# Sapote-Mamey / Mamey Execution Prompt — v9.7.448
+# Sapote-Mamey / Mamey Execution Prompt — v9.7.449
 
 **Role:** Mamey deterministic extraction/scoring layer.  
 **Active controller:** `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`  
@@ -20,7 +20,7 @@ Mamey extracts, scores, and validates. It does not interpret biology, assign eco
 
 If a value cannot be extracted from the input files, Mamey records `not_available`, `failed`, or `deferred` — never a fabricated placeholder.
 
-**Citation rule (standing):** every BGC is cited as `BGC_ID (contig · regionXXX)`, never a bare ID — the node/contig travels with the BGC in every output, table, and card. *(Full claim-safety guards: `prompts/reuse/_SHARED_GUARD_BLOCK.md` G1–G5 — canonical; this prompt inherits them.)*
+**Citation rule (standing):** every BGC is cited as `strain / full node-or-contig / region / BGC alias`, never a bare ID — the node/contig travels with the BGC in every output, table, and card. *(Full claim-safety guards: `prompts/reuse/_SHARED_GUARD_BLOCK.md` G1–G5 — canonical; this prompt inherits them.)*
 
 ---
 
@@ -164,7 +164,7 @@ All ten deterministic scans are recorded inside `3_scan_states.json` (and `evide
     "interior_pct": 0.0,
     "assembly_tier": "GOOD | MODERATE | POOR | VERY_POOR"
   },
-  "package_status": "MAMEY_COMPLETE | MAMEY_FAILED | PARTIAL | RECOVERY_NEEDED"
+  "package_status": "MAMEY_COMPLETE | RECOVERY_VALIDATED | RECOVERY_NEEDED | PARTIAL_FAILED"
 }
 ```
 
@@ -181,7 +181,7 @@ Append one row per strain after every completed, failed, or deferred strain.
 | strain_id | strain identifier |
 | run_date | ISO-8601 |
 | run_mode | gold (the only analysis mode — `smoke` removed v9.7.161, `standard` a deprecated alias of `gold`) |
-| package_status | MAMEY_COMPLETE / MAMEY_FAILED / PARTIAL / RECOVERY_NEEDED / DEFERRED |
+| package_status | Copy the actual receipt: MAMEY_COMPLETE / RECOVERY_VALIDATED / RECOVERY_NEEDED / PARTIAL_FAILED; track an unstarted/deferred work unit separately |
 | scans_complete | comma-separated list of MAMEY_COMPLETE scans |
 | scans_failed | comma-separated list with reason in brackets |
 | scans_deferred | comma-separated list |
@@ -191,7 +191,13 @@ Append one row per strain after every completed, failed, or deferred strain.
 
 ---
 
-## 8. Failure codes — use only these
+## 8. Failure vocabulary and recovery
+
+The table below is a historical work-order vocabulary, not the current validator's exclusive
+code set. Preserve the actual emitted issue codes and `package_status.json`; do not translate a
+current code into this table or write a completion status yourself. `mamey/recovery_status.py`
+defines the four package states shown in §7. Scan status, terminal run status, package recovery
+status and authoring status are separate dimensions.
 
 | Code | Trigger condition |
 |---|---|
@@ -251,8 +257,10 @@ The file to pass is always the most recent `Mamey_v*_Master_After_<PreviousStrai
 ## 11. Post-seal deliverable subcommands (v9.7.338 — non-scoring, non-blocking)
 
 These consume an **already-sealed** package (or a runs dir of them) and, like `render-figures` /
-`cohort-figures`, are **post-seal and never fail the core run**. They read sealed outputs and never touch
-any scan, scorer, gate, manifest, or version string — every read is a **class-level capacity hypothesis**
+`cohort-figures`, are **post-seal and never fail the core run**. They do not rerun extraction or scoring; their output/write contracts differ. Some write
+inside the package and refresh post-seal integrity checksums. `render-figures`, for example, can
+refresh `post_seal_checksums.txt` even with external figure output. Use a working package copy
+when original bytes must remain unchanged. They read existing evidence — every read is a **class-level capacity hypothesis**
 (judgment deferred, similarity not identity; no structure/product/activity claim). Offer them after a
 strain or cohort is sealed:
 
@@ -267,7 +275,7 @@ strain or cohort is sealed:
 | `comparator-coverage <package>` | two-denominator MIBiG comparator coverage (low-specificity collision flag) |
 | `domain-reference` / `realistic-count` / `novelty-shortlist` | domain functional-context dictionary; corrected-denominator ("honest") BGC count; composite novelty shortlist |
 | `signoff [tree ...]` | analysis sign-off QC gate on phylogenetic trees (advisory, exit 0) |
-| `verify-modeb --interp <card>` | structure verify + advisory Mode-B interpretation gate (`INTERP_*` WARN, non-blocking) |
+| `verify-modeb <card.md> --contract full48 --interp` | structure verify + advisory Mode-B interpretation gate (`INTERP_*` WARN, non-blocking) |
 
 `cohort-leads` / `cohort-assemble` carry a MIXED-ENGINE comparability caution when strains span engine versions.
 
@@ -277,8 +285,10 @@ strain or cohort is sealed:
 
 Report completed work, evidence, unresolved holds and the next bounded action when useful. Do not expand the task to populate a menu.
 
-**8-path uniqueness gate:** the eight paths must be genuinely different, not wording variants. Cover distinct downstream goals when possible: (1) continue/run the next batch, (2) deep-dive a named lead/BGC, (3) cross-strain comparison or merge action, (4) figures/visual deliverable, (5) wet-lab/metabolomics/literature follow-up, (6) package/checksum/manifest handoff, (7) patch/debug/validation improvement, (8) documentation/release or public-facing artifact. Ground every item in the current state (strain, BGC, package status, validation, or file name). If fewer than eight seem available, split by genuinely different user goals; do not pad with generic filler. Before final delivery, self-check: exactly 1–8, no duplicate lead verbs/objects, no "ask me what next" without the menu.
+Use the current user's response preference and the shared AGENTS handoff policy. Routine
+status checks can report one bounded next action; a major delivery can present distinct choices
+when useful. Do not invent extra work or repeat a mandatory historical eight-path ritual.
 
 ---
 
-*Sapote-Mamey Bundle v9.7.448 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md | Release profile: PUBLIC_RELEASE*
+*Sapote-Mamey Bundle v9.7.449 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md | Prompt provenance only: this footer does not establish the loaded candidate release profile*

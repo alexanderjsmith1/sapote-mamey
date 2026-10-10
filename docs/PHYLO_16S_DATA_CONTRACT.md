@@ -19,7 +19,11 @@ The first two commands illustrate separate source selections; include both sourc
 
 Inputs must be closed, checkpointed SQLite snapshots without WAL or journal sidecars. Transformations use an in-memory copy and publish a completed database with an `operation_event` receipt. Input hashes are checked before publication. Memory use includes the database copy and serialized output; large stores require adequate memory and separate performance validation.
 
-All CLI dry runs validate inputs and display plans without publishing files or running network/BLAST/MAFFT operations. Database dry runs may read an in-memory copy. Dry-run counts that would require remote operations remain unmeasured.
+The additive database CLI dry runs validate selected inputs and display plans without publishing files or running network/BLAST/MAFFT operations. The standalone defect validator has no `--dry-run`; its optional report writer is a separate mutation contract. Database dry runs may read an in-memory copy. Dry-run counts that would require remote operations remain unmeasured.
+
+## Store defect validator and merge-screen recovery
+
+Use `python3 tools/phylo_16s_validate_db.py --db CLOSED_SNAPSHOT --out-dir FRESH_REPORTS` for the two historical defect screens. REVIEW_NEEDED genus candidates can coexist with exit0, and this reader does not enforce the additive path's WAL/journal refusal or hash binding. It publishes four reports sequentially; a collision/failure can leave partial outputs. The merge screen retains MERGE_ACCEPTANCE_HELD, including zero-pair events, and its direct exclusive database write can remain partial after failure. Preserve attempts, pinned snapshots and diagnostics and recover to fresh paths. See [the exact validator/merge contracts](reference/06_CURRENT_SOURCE_SCOPE.md#16s-store-defect-validation-and-additive-merge-screening) for denominators, output roster, status and recovery.
 
 ## Sequence and accession identity
 
@@ -84,6 +88,40 @@ rejects short 16S fragments, cross-genus records, missing metadata, duplicate
 type-species representatives, and identical query sequences from the same biological
 sample. Metadata may travel beside the sequence in the roster; FASTA descriptions are
 convenience labels and are never the sole authority.
+
+Run the admission check explicitly after preparing the bound roster:
+
+```bash
+python tools/phylo_sequence_admission.py --roster admitted_roster.tsv \
+  --fasta candidate_sequences.fasta --molecule 16S --json new_admission.json
+```
+
+The full required columns are `tip`, `role`, `organism`, `expected_genus`,
+`accession`, `sequence_sha256`, `type_status`, `isolation_source`, `geography`,
+`sequence_evidence`, `metadata_evidence`, `biological_sample_id`, and `admission`.
+Roles are `query/reference/outgroup`; type status is `type/non_type/not_applicable`
+(the latter only for queries), and admission must be `admitted`. The default
+normalized 16S length interval is 900–2,000; `--min-length` and `--max-length`
+change it. `--molecule genome` skips that length interval, not the metadata/identity
+checks. This command validates prepared data; it performs no alignment or retrieval.
+
+The gate's sequence digest uses uppercase, U-to-T conversion, and removal of both
+`-` and `.` gap characters. It is distinct from a raw-file SHA-256. Preserve both
+when binding original files to the normalized sequence roster. The gate requires
+nonempty accession/evidence fields, but does not authenticate evidence locators or
+check accession-version syntax; source-bound versions remain an operator requirement.
+
+The current same-sample duplicate guard refuses a sample only when every sequence
+for that sample is identical. If a sample carries an identical pair plus a third,
+different sequence, that pair is not refused by this implementation. Inspect the
+returned `exact_sequence_groups` against biological-sample IDs and retain such a
+case as a manual admission hold. Repairing the per-sample pairwise duplicate guard
+remains owning-code work. No admission pass proves independent biological samples.
+
+`--json` writes the selected path after validation and overwrites an existing file;
+choose a new receipt path to retain prior evidence. Failure is nonzero and may print
+a traceback rather than a typed failure receipt. Do not treat a stale JSON file from
+an earlier pass as the current outcome.
 
 The controlled display geography is `US`, `Canada`, or a continent, with `Indian
 Ocean` retained for marine records when that is the best supported location. Raw

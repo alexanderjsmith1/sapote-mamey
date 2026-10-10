@@ -1,5 +1,32 @@
 # Gate-clean Mode B authoring route
 
+## Current entry and implementation scope
+
+Select the actual task profile in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md),
+then use [MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md](MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md)
+for the owner/legacy boundaries. Preserve every individual locus as strain / full node-or-contig /
+region / BGC alias from a bound source. A section count, phrase, typed label or zero-finding pattern
+check is not scientific adjudication, independent source verification, owner acceptance or publication approval.
+Existing evidence remains in place with path/SHA-256 bindings; use the selected candidate and retained
+receipts rather than copying a package or inventing completed work.
+
+The recipe below is scoped to the default full48 contract. Its §4 matrix, §48 synthesis and
+`publication_quality_findings` API are not a current50-v2 recipe. Select `--contract full48` explicitly
+when relying on these mappings; select `--contract current50_v2` and its owner guide for the other route.
+The single-BGC example without `--out` emits to stdout; it does not itself save an authored candidate.
+Choose a destination inside the authorized task, inspect the emitter's actual write/overwrite policy,
+and retain the saved bytes plus actual report before making a gate-clean claim.
+
+The direct API example omits all prospective opt-in flags, which default false
+(`mamey/modeb_publication_gate.py:2735–2748`). It does not enable every later semantic, reconciliation,
+selection or figure check. Passing an independently supplied locus-tag list checks roster correspondence;
+it does not open or verify every supporting source. Receipt-shaped/hash cells and lexical anchors remain
+checker inputs, not evidence that a file, experiment or source conclusion has been independently verified.
+The writer/source-receipt separation below remains normative: this API alone cannot enforce who authored
+a receipt. Use the actual selected verifier flags and retain independent review separately.
+
+<!-- Historical source text follows. -->
+
 This recipe bridges the canonical §1–§48 template to a publication-gate-clean authored candidate.
 It governs tooling and evidence presentation; it does not establish scientific correctness,
 owner acceptance, release, or publication approval.
@@ -111,3 +138,9 @@ assert findings == []
 
 Run this after saving. A zero-finding in-memory draft does not prove the bytes on disk passed, and a
 zero-finding publication gate does not confer scientific correctness or publication approval.
+
+## Persistence and admission receipts
+
+Use the receipt admission results separately from passive store warnings and legacy depth stamps. Preserve recorded, overridden, identity/structure/content skips and persistence warnings. The aggregate receipt quality count can include candidates that were not recorded and can use different rank/fragment context from per-card storage. It is not an accepted-card denominator.
+
+Re-ingest can overwrite a card, append prose again and update register timestamps; these writes are not one transaction or immutable history. A legacy FULL register stamp and `compile_ready` result do not verify card presence, hashes, current profile or complete physical-locus identity. Retain prior authored bytes, the independently expected roster and actual current card/profile receipts. See [store and receipt contracts](reference/06_CURRENT_SOURCE_SCOPE.md#plumbing-part-7-stored-depth-receipt-admission-and-legacy-readiness).

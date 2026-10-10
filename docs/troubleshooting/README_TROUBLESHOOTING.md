@@ -8,7 +8,7 @@ Every major output field should have one of three things:
 2. a status code explaining why the value is missing or low-confidence; or
 3. a workflow telling the user how to generate the needed evidence.
 
-Release 1 is intentionally standalone. It flags missing inputs and tells the user what to provide. Release 2 can automate some of those recovery steps with a server.
+Historical Release 1 / Release 2 wording describes design stages; it is not a current hosted-service promise. See [the current user task router](../USER_TASK_ROUTER.md) for implemented workflows. The cell-provenance table covers selected fields, not a guaranteed audit of every workbook cell. Generic external-evidence rows are pending placeholders and do not automatically change when a search file exists.
 
 ## Key files
 
@@ -22,7 +22,9 @@ Release 1 is intentionally standalone. It flags missing inputs and tells the use
 
 ## Rule
 
-No silent blanks. Every empty or low-confidence field should receive a status code, reason, and next action.
+The intended rule is no unexplained blanks: retain a status, reason and next action for missing or low-confidence evidence. The present provenance builder does not guarantee coverage of every cell or automatically import arbitrary HMMER/DIAMOND files. Confirm each claimed completed field against its source and integration receipt.
+
+Package `Troubleshooting/` files are generated from `mamey/cell_provenance.py` literals and are separate from these source guides. A Markdown-only correction here does not update the generator or previously sealed packages.
 
 ## Single-region accession antiSMASH ZIPs
 

@@ -1,5 +1,7 @@
 # Fermentation Card — Format Exemplar + Regulator→Induction Lookup
 
+> **Historical planning example:** the lookup and worked conditions below are retained context, not source-validated experimental instructions. Motif scores do not establish induction, activity or universal chemical novelty. For current evidence-first format use [the bench guide exemplar](bench_guide_exemplar.md); leave experimental fields unresolved until their specific sources and approvals are bound. The historical shortened loci must not be reused: each target requires `strain / full node-or-contig / region / BGC alias`.
+
 **Sapote-Mamey Bundle v9.7.96 | Layer C fermentation-planning deliverable**
 **[EXAMPLE: all strain IDs, BGC numbers, and values below are illustrative. Replace with real data from the Mamey scan output (TFBS counts, RiQ, bldA tiers).]**
 Source reference: AS-XXX / AS-XXX Fermentation Cards, Actinomycetes Project, May 2026.

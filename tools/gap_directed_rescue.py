@@ -142,40 +142,56 @@ def load_genome(zip_path: Path, label: str) -> tuple[dict, list]:
              if n.endswith(".gbk") and ".region" not in n and "__MACOSX" not in n and not Path(n).name.startswith("._")]
     if not names:
         raise SystemExit("no whole-genome GenBank file in the ZIP")
-    # the engine parser is the bound source for contig names and aliases; the whole-genome GenBank can carry a
-    # mangled record name (a SPAdes coverage suffix with a digit dropped), so regions are matched on
-    # region number and coordinates, not on the name
+    # the engine parser is the bound source for contig names and aliases. Regions are matched on region number and
+    # coordinates, not on the name. A record's contig name comes from the engine's rule (parsers._record_contig_id):
+    # Biopython's rec.id is the VERSION line, which drops a 0 right after the point of a SPAdes coverage
+    # (cov_65.032271 reads cov_65.32271); the LOCUS name keeps it
     parsed = [(int(re.sub(r"\D", "", b.antismash_region or "0") or 0), int(b.start or 0), int(b.end or 0), b)
               for b in parsers.parse_bgcs_from_zip(zip_path, json_mode="off")]
     prots, regions = {}, []
+    pfam_desc = {}   # locus tag -> antiSMASH Pfam descriptions, for the gene table's protein family
     text = zipfile.ZipFile(zip_path).read(names[0]).decode(errors="replace")
     for rec in _seqio().parse(io.StringIO(text), "genbank"):
+        cid = parsers._record_contig_id(rec)
         dm = re.search(r"(\S+?),? whole genome", rec.description or "")
-        node = dm.group(1) if dm and dm.group(1) not in rec.id and rec.id not in dm.group(1) else ""
-        shown = f"{node} = {rec.id}" if node else rec.id
+        node = dm.group(1) if dm and dm.group(1) not in cid and cid not in dm.group(1) else ""
+        shown = f"{node} = {cid}" if node else cid
         for f in rec.features:
             if f.type == "region":
                 n = int(f.qualifiers.get("region_number", ["0"])[0])
                 s0, e0 = int(f.location.start), int(f.location.end)
                 hits = [b for k, s, e, b in parsed if k == n and abs(s - s0) <= 1 and abs(e - e0) <= 1
-                        and (b.contig[:12] == rec.id[:12])]
+                        and (b.contig[:12] == cid[:12])]
                 b = hits[0] if len(hits) == 1 else None
                 node = f"{shown.split(' = ')[0]} = " if " = " in shown else ""
                 name = f"{node}{b.contig}" if b else shown
-                regions.append({"contig": rec.id, "start": s0, "end": e0, "n": n,
+                regions.append({"contig": cid, "start": s0, "end": e0, "n": n,
                                 "edge": f.qualifiers.get("contig_edge", [""])[0],
                                 "identity": f"{label} / {name} / region{n:03d} / {b.bgc_id if b else 'IDENTITY_HOLD'}"})
+            elif f.type == "PFAM_domain":
+                d = f.qualifiers.get("description", [""])[0]
+                if d:
+                    pfam_desc.setdefault(f.qualifiers.get("locus_tag", [""])[0], []).append(" ".join(d.split()))
             elif f.type == "CDS" and "translation" in f.qualifiers:
                 pid = f"q{len(prots) + 1:06d}"
                 doms = [d.split(" (")[0] for d in f.qualifiers.get("sec_met_domain", [])]
-                prots[pid] = {"contig": rec.id, "shown": f"{label} / {shown}", "start": int(f.location.start),
+                prots[pid] = {"contig": cid, "shown": f"{label} / {shown}", "start": int(f.location.start),
                               "end": int(f.location.end), "strand": f.location.strand or 1,
                               "tag": f.qualifiers.get("locus_tag", [pid])[0], "aa": f.qualifiers["translation"][0],
                               "contig_len": len(rec.seq), "kind": f.qualifiers.get("gene_kind", [""])[0],
                               "missing_stop": lacks_stop(str(f.extract(rec.seq)[-3:])),
+                              "family": _smcog(f.qualifiers.get("gene_functions", [])),
                               "modular": any(d == "PKS_KS" or d.startswith("Condensation") for d in doms)
                               or doms.count("AMP-binding") >= 2}
+    for p in prots.values():   # no smCOG: the antiSMASH Pfam descriptions, in order, without repeats
+        if not p["family"]:
+            p["family"] = "; ".join(dict.fromkeys(pfam_desc.get(p["tag"], [])))
     return prots, regions
+
+
+def _smcog(gene_functions) -> str:
+    from gap_rescue_gene_table import smcog
+    return smcog(gene_functions)
 
 
 SENSITIVITY_DEFAULT = "ultra-sensitive"  # DIAMOND's fast default misses pathway genes at 25-40% identity
@@ -247,7 +263,9 @@ def load_mibig_names(path) -> dict:
     if str(path).endswith(".json"):
         data = json.loads(text)
         entries = data.get("entries", data) if isinstance(data, dict) else data
-        return {e["accession"]: "/".join(e.get("compounds") or [])[:60] for e in entries if isinstance(e, dict)}
+        # the compound list is kept whole: a [:60] cut landed mid-word and the figure title showed the cut text
+        # ("everninomici cluster"). The renderer wraps a long name instead.
+        return {e["accession"]: "/".join(e.get("compounds") or []) for e in entries if isinstance(e, dict)}
     return {p[0]: p[1] for p in (line.split("\t") for line in text.splitlines()) if len(p) >= 2}
 
 
@@ -296,7 +314,7 @@ def choose_reference(zip_path, core, prots, reference=None, reference_name="", m
 
 def analyse_region(label, prots, regions, core, reference, ref_name, source, out, hits=None, threads=4,
                    sensitivity=SENSITIVITY_DEFAULT, mibig_db=None, pfam=None, figure=True, write_proteins=True,
-                   anchor=None) -> dict:
+                   anchor=None, gene_table=True) -> dict:
     """Search one core region against one reference and write every output; returns the receipt."""
     ref, desc = load_reference(reference)
     out.mkdir(parents=True, exist_ok=True)
@@ -341,6 +359,11 @@ def analyse_region(label, prots, regions, core, reference, ref_name, source, out
     if figure:
         draw_locus_map(reference, rows, splits, prots, regions, core, label, ref_name, out / "gap_rescue.png",
                        out / "gap_rescue.pdf", anchor=anchor)
+    if gene_table:   # the per-gene table, paired with the map (gene_table.*, map_and_table.*)
+        from gap_rescue_gene_table import edge_shares, write_gene_table
+        fams = {k: v.get("family", "") for k, v in prots.items()}
+        write_gene_table(out, rows, splits, core["identity"], label, reference, fams, ref_name or desc,
+                         edge_shares(rows, prots, core))
     return receipt
 
 
@@ -414,6 +437,7 @@ def main(argv=None) -> int:
     ap.add_argument("--sensitivity", default=SENSITIVITY_DEFAULT,
                     help="DIAMOND search mode (default ultra-sensitive; 'default' uses DIAMOND's own fast mode)")
     ap.add_argument("--no-figure", action="store_true")
+    ap.add_argument("--no-gene-table", action="store_true", help="skip gene_table.* and map_and_table.*")
     a = ap.parse_args(argv)
     if a.redraw:
         if not a.mibig_dir:
@@ -435,7 +459,7 @@ def main(argv=None) -> int:
         raise SystemExit(f"[gap_directed_rescue] {core['identity']}: {source}")
     receipt = analyse_region(a.label, prots, regions, core, reference, name, source, a.out,
                              read_hits(a.hits) if a.hits else None, a.threads, a.sensitivity, a.mibig_db, a.pfam,
-                             not a.no_figure, anchor=a.anchor)
+                             not a.no_figure, anchor=a.anchor, gene_table=not a.no_gene_table)
     _say(summary_line(receipt, a.out))
     return 0
 

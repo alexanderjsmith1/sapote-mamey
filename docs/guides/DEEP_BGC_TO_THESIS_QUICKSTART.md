@@ -41,7 +41,7 @@ Start with the claim ceiling and boundary status. Then read the locus map and ge
 
 ## Using the metabolomics and activity decision tree
 
-The generated sequence is deliberately conservative:
+The generated sequence is a fixed planning template, not a computed assessment of completed assay gates:
 
 1. Establish expression under a defined condition.
 2. Establish genetic linkage with a perturbation or orthogonal genotype.
@@ -53,7 +53,7 @@ Record a failed or unrun gate as evidence required. Do not turn absence of a tes
 
 ## Building the thesis handoff
 
-Use a caller-selected `--input-root`. In the handoff TSV, point to reports, maps, receipts, and optional activity trees using relative paths beneath that root. Supply an explicit gaps statement and claim ceiling for every complete locus identity. The packager copies only listed artifacts, writes an index and gap ledger, hashes each member, builds a deterministic ZIP, and performs a CRC check.
+Use a caller-selected `--input-root`. In the handoff TSV, point to reports, maps, receipts, and optional activity trees using relative paths beneath that root. Supply an explicit gaps statement and claim ceiling for every complete locus identity. The packager copies the listed artifacts, writes an index and gap ledger, hashes the copied members, uses fixed ZIP member timestamps and sorted entries, and performs a CRC check. This is archive integrity, not independent verification of report contents or prior output bindings.
 
 The handoff is compact evidence for writing and review. It is not a Sapote-Mamey release, an integration receipt, or owner acceptance.
 
@@ -71,6 +71,16 @@ A browser assistant may help inspect a rendered report or navigate user-authoriz
 - `artifact locator escapes configured root`: replace the absolute or parent-traversal path with a relative locator beneath `--input-root`.
 - `report receipt exact identity mismatch`: rebuild or select the receipt for the same complete locus.
 - Existing output directory: choose a fresh handoff directory so earlier evidence is not silently overwritten.
+
+## Software checks and recovery limits
+
+The deep builder validates the locus/gene slice and admitted evidence before creating its output directory, but later whole-region fraction validation happens after writing the roster and SVG (`mamey/deep_bgc_report.py:165–189`). It allows an existing directory and directly replaces named files; a late error can leave a partial or mixed-age candidate. Use one governed candidate and preserve source files. A receipt records hashes of the current input and three outputs, plus `protein_hash_binding.state` and the compared/unverifiable row counts (`139–162,202–214`). `EXACT_IDENTITY_BOUND_ONLY`, partial binding and `NO_EVIDENCE_SUPPLIED` are explicit limitations; even `PROTEIN_HASH_BOUND` describes admitted evidence rows, not completeness of every possible evidence channel or canonical protein roster. The module does not verify caller-supplied protein hashes by recomputing protein sequences.
+
+The activity-tree consumer checks safe relative receipt locators, exact identity, duplicate loci and a claim ceiling. It does not check the report receipt schema, its output hashes, boundary hold, or protein binding state (`mamey/activity_decision_tree.py:26–57`). Every generated row is `EVIDENCE_REQUIRED` with `next_gate=expression`, regardless of an existing assay's progress (`64–85`). Its receipt binds the leads TSV and two generated outputs, but does not hash the report receipts it read. A tree is a static checklist, not authorization for biological work or proof of evidence readiness.
+
+The handoff checks exact receipt identity, safe file locators, duplicate loci and nonempty gaps/claim text before creating a fresh directory (`mamey/thesis_handoff.py:20–52`). It does **not** compare the selected report/map bytes to the report receipt's output hashes or validate the optional activity tree's identity/receipt, report boundary state or protein binding state. Verify these bindings independently and retain unresolved holds. Per-locus basename collisions are detected after directory creation and can leave partial copied output (`57–65`); later copying/ZIP/receipt errors are also not rolled back. Preserve that partial candidate as failure evidence, reconcile its inventory and prepare the corrected single candidate without modifying sources.
+
+`SHA256SUMS.txt` covers copied artifacts plus generated index/gaps; it does not hash itself. The ZIP contains those files and the checksum list, while `HANDOFF_RECEIPT.json` is written afterward outside the ZIP and binds the index input and ZIP hash (`68–86`). Fixed timestamps do not promise identical compressed bytes across all environments. `zip_crc: PASS` establishes only that the built archive passed its CRC check; it does not clear identity/content/biological/visual/adoption holds. The three wrapper CLIs return 0 after their builder returns; failures can raise rather than producing a complete failure receipt. No build, copying, assay work or visual QA was performed during this source audit.
 
 ## Glossary
 

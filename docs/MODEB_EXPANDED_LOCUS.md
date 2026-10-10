@@ -17,13 +17,13 @@ member and the private package's CDS table:
 
 ```sh
 python tools/build_modeb_locus_inventory.py --input assembly.zip \
-  --gbk-member strain.gbk --package package_copy --strain AS-XXX --out inventory.json
-python mamey_run.py emit-modeb-template --package package_copy --bgc BGC001 \
+  --gbk-member strain.gbk --package selected_package --strain AS-XXX --out inventory.json
+python mamey_run.py emit-modeb-template --package selected_package --bgc BGC001 \
   --contract current50_v2 --gap-rescue-dir rescue_folder \
   --rescue-gene-adjudication-tsv reviewed_gene_rulings.tsv \
   --rescue-locus-inventory inventory.json --out MODE_B.md
 python mamey_run.py verify-modeb MODE_B.md --contract current50_v2 \
-  --package package_copy --bgc BGC001 --require-expanded-locus
+  --package selected_package --bgc BGC001 --require-expanded-locus
 ```
 
 The explicit gene-adjudication file overrides the conventional automatic lookup.
@@ -119,3 +119,19 @@ Expanded-specific emitter flags require `--contract current50_v2`; a legacy emit
 refuses them explicitly. The full50 wrapper selects native `current50_v2` when those
 flags are supplied and preserves its existing 50 sections without legacy remapping.
 Without expanded-specific flags, the wrapper retains its existing migration route.
+
+## Owned outputs and source selection
+
+`selected_package` in the example is the explicitly selected existing source package, not an instruction
+to duplicate a bundle or database. Reference the whole-assembly archive/member and package CDS table
+in place by path and SHA-256. The inventory exporter refuses a destination aliasing either input by
+path or inode, but it replaces an unrelated existing --out file and creates parent directories. Select
+an owned inventory destination and preserve the authoritative prior receipt; this is not an overwrite
+refusal for every destination or an all-output transaction.
+
+Recorded inventory/source bytes and selected-gene existence are mechanical bindings. Their successful
+rebuild does not establish that the operator selected the scientifically appropriate assembly, rescue
+ruling or comparison scope. `verify-modeb --report-json <owned-receipt.json>` persists the optional
+verification report and can replace an existing report; without that flag the command prints findings.
+Keep the saved candidate, selected contract, required-expanded flag, exact source hashes, actual findings
+and independent review separate. Do not infer acceptance or visual QA from a rehashed scope declaration.

@@ -13,7 +13,8 @@ def test_literature_guide_uses_the_helper_positional_contract() -> None:
     assert "Usage: python pubmed_ingest.py <pdf_dir> <out_dir>" in helper
     assert "pubmed_ingest.py --out" not in doc
     assert "/path/to/pubmed-search-result-pdfs" in doc
-    assert '"$MAMEY_DATA_ROOT/literature"' in doc
+    assert '"$MAMEY_DATA_ROOT/literature_candidate_new"' in doc
+    assert "MAMEY_LITERATURE_CORPUS" in doc
 
 
 def test_literature_guide_discloses_local_pdf_and_optional_reader_contract() -> None:

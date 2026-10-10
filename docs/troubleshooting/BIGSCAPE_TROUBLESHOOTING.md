@@ -1,13 +1,21 @@
 # BiG-SCAPE troubleshooting
 
 Symptoms first, then the cause and the fix. Every entry here happened at least once on a real cohort run.
-Walkthrough: `docs/BIGSCAPE_COHORT_WALKTHROUGH.md`. Rules: `docs/BIGSCAPE_GCF_WORKFLOW.md`.
+Walkthrough: [cohort walkthrough](../BIGSCAPE_COHORT_WALKTHROUGH.md). Rules: [cohort workflow](../BIGSCAPE_GCF_WORKFLOW.md). For exact reader selection, skipped/failed outputs and recovery receipts, read [BiG-SCAPE reader recovery](../../tools/BIGSCAPE_READER_RECOVERY.md).
+
+## Launcher preflight and writes
+
+The launcher requires `BIGSCAPE_ENV_BIN` and `PFAM_HMM`; it does not create or install that environment. Pass an explicit resource choice such as `--cores 1`: the shipped shell launcher defaults to four cores, while the cohort SOP recommends one unless more are approved. Read the selected input/output paths before execution.
+
+`--mibig-dir` changes a symlink inside the installed BiG-SCAPE package (`MIBiG/mibig_antismash_<name>_gbk`) before checking the reference count. This mutates the dependency environment as well as writing run outputs. A rejected reference-count check can leave the new symlink in place. Use an authorized writable environment and record the previous target if recovery is required; do not assume a failed launch made no changes. The launcher checks for at least 2,000 reference GBKs, so a deliberately small custom panel will be refused by this wrapper even if another workflow could use it.
+
+The launcher explicitly checks the HMM file and its `.h3i` companion. Independently verify all pressed-library companions, asset hashes and versions; that limited filename check alone is not full Pfam consistency validation.
 
 ## The run
 
 **`FileNotFoundError: fasttree` (or hmmsearch, diamond) after hours of clustering.**
 The bigscape binary was called by absolute path without the env on PATH; its subprocess tools are looked up by bare
-name at the per-family tree step, which runs after clustering. The database is half-written and the run is lost.
+name at the per-family tree step, which runs after clustering. The database can be incomplete. Preserve the log and database before deciding whether a governed recovery is possible.
 Fix: run through `tools/bigscape_launch.sh` (it exports the env bin onto PATH and refuses to start without
 `fasttree`). If you must call bigscape directly, `export PATH=<env>/bin:$PATH` first.
 
@@ -20,9 +28,7 @@ Fix: `--mibig-dir <folder> --mibig-name <name>` on the launcher, which relinks t
 the link resolves to at least 2,000 files. Read the loaded counts at the end of every run.
 
 **The run ran but `BIGSCAPE_EXIT` is not 0.**
-Read `<out>/run.log`; the launcher prints the first `Traceback`/`Error` lines. A crash at the tree step with a full
-`family` table means the clustering finished; the database is still usable for verdicts, but families have no
-`newick` and the family figure will refuse them ("no tree stored").
+Read `<out>/run.log`; the launcher prints the first `Traceback`/`Error` lines. A tree-step crash can leave family rows but absent `newick` trees. The figure reader refuses a family without a stored tree. A populated family table is not sufficient evidence that clustering and membership QA completed; retain the failed run as incomplete until exact completed scope and counts are verified.
 
 **It is much slower than expected.**
 Cores above 4 do not help on a laptop and starve everything else. 18,000 records took about 3 hours at 4 cores;
@@ -41,7 +47,7 @@ Say "private among placed records" and give both numbers. Never compute a privat
 `bgc_record` count (that table also holds protoclusters and candidate clusters; use `record_type = 'region'`).
 
 **Family ids differ between two runs of the same input.**
-They always will. Family ids are local to a database. Join runs on strain + contig + region, never on family id.
+Family ids can differ and are local to a database/run. Use the governed join including source run ID, cutoff and complete locus binding; never rely on local family IDs or visual FAM labels as portable identity.
 
 **The same accession appears under two layers.**
 The staging copied one genome into two layers (for example a type strain that is also in a second reference set
@@ -81,7 +87,7 @@ v9.7.432 used a fixed label strip; v9.7.433 wraps the label onto two lines and w
 label. Re-render with the current tool.
 
 **A family of 100+ members renders a figure taller than a page.**
-Use `--max-tips 40 --focal <strain>`: every query and MIBiG member is kept, the reference members nearest the focal
+Use `--max-tips 40 --focal <strain>` as a display target: it is not a hard ceiling because every query and MIBiG member is kept, the reference members nearest the focal
 rows fill the rest, and the title carries `[pruned view: k of N members]`. The full membership stays in the verdicts
 table; a pruned figure never changes a count.
 
@@ -89,7 +95,7 @@ table; a pruned figure never changes a count.
 The homology links are BLOSUM62 global alignments between every gene pair of neighbouring rows; PKS/NRPS genes of
 2,000 to 5,000 aa cost 0.1 s per pair and a 40-row family has thousands of pairs. Use the Pfam/length prefilter
 (`--prefilter-db <bigscape.db>`): only pairs whose length ratio allows the identity threshold and that share a Pfam
-domain in the BiG-SCAPE scan are aligned. Links reported are the same alignments; the caption states the candidate
+domain in the BiG-SCAPE scan, or both lack one, are aligned. The filter selects candidate pairs; do not claim equivalence to all unfiltered links without checking the result. The caption states the candidate
 count.
 
 **The clinker PDF splits a tall page across many sheets.**

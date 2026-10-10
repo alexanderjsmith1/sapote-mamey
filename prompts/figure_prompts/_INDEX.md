@@ -16,7 +16,7 @@
 | cohort | `fig_edge_status_composition` | figure_ready/bgc_inventory.csv |
 | cohort | `fig_diagnostic_landscape_heatmap` | figure_ready/diagnostics_long.csv |
 | cohort | `fig_domain_burden_heatmap` | domain_level/domain_role_counts_by_bgc.csv |
-| cohort | `fig_fragment_rescue_landscape` | `Fragment_Rescue_Tiers` sheet (or figure_ready join of strain_summary + scan_agg) |
+| cohort | `fig_fragment_rescue_landscape` | prepared `Fragment_Rescue_Tiers` workbook sheet; not a standard figure-ready CSV export |
 | novelty | `fig_kcb_dark_by_strain` | figure_ready/bgc_inventory.csv |
 | novelty | `fig_novelty_vs_fragmentation` | figure_ready/bgc_inventory.csv + strain_summary.csv |
 | per_strain | `fig_per_strain_bgc_ranking` | figure_ready/bgc_inventory.csv |

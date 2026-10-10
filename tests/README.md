@@ -1,20 +1,25 @@
-# Test suite — what runs and what is gated
+# Tests: selected scope, fixtures and skipped coverage
 
-Most tests run with no setup. A block of tests SKIP by design because they need local antiSMASH
-outputs that are not shipped (they are large and/or strain-private). Skips here mean "gated," not
-"broken."
+Use the selected compatible interpreter/environment and bundle root. Documentation/source inspection does not authorize tests, provisioning, external-data runs or network work. Use the recorded test command, source digest and actual result to describe test outcomes.
 
-## Always run
-Engine logic, scans, scorers, schema, rules registry, claim-safety, redaction invariant
-(`test_no_unpublished_ids_in_public_tier.py`), version/build-stamp drift, marker catalog parity.
+The default configured discovery paths are `tests`, `tools` and `deliverable_tools` (`pyproject.toml:70–82`). Restricting a command to `tests/` omits the other two configured paths. Explicit `slow` and `network` marks are skipped by default; `--run-slow` and `--run-network` include those marked partitions (`tests/conftest.py:125–155`). Fixture/dependency/renderer admission may still skip tests after those flags. A default green summary, selected partition or interrupted run is not full-suite clearance.
 
-## Gated (skip unless local data is present)
-- `test_reference_panel.py` — signature concordance over the reference BGCs. Needs antiSMASH zips.
-  Set `MAMEY_REF_ZIPS=/path/to/ref_zips`, or commit a small public slice (see
-  `docs/CI_REFERENCE_FIXTURES_GUIDE.md`) so a live slice runs in CI.
-- `test_boundary_live.py` and other *_live fixtures — need specific local antiSMASH outputs
-  (e.g. philanthi / rifamycini).
+For an authorized bounded test task, select a relevant test file first with the chosen interpreter's `-m pytest`; retain the exact command, exit status, complete log, selected/passed/failed/skipped counts and reasons. A command fragment with `PYTHONPATH=...` is not a configured environment. Review collection/dependency errors and default skipped partitions before reporting coverage.
 
-## Run
-    PYTHONPATH=... pytest tests/ -q
-Skip count ≈ the gated set above; if a normally-green test starts skipping, that is a signal, not noise.
+## Reading an external test-validation receipt
+
+`tools/verify_external_validation_receipt.py` reads an existing external receipt and its log, collected-node identity list and per-node outcome TSV; it does not run pytest or independently collect the current suite. Its `PASS` means the supplied metadata/hashes and checked counts agree under this verifier, not that every current real-run case was independently observed. The receipt uses `sapote-mamey.external-pytest-validation.v1`; do not substitute the separate candidate recorder's schema or tree digest.
+
+The source-tree digest includes file paths, modes, sizes and content, while excluding configured cache names/directories, bytecode and `.egg-info` paths; eligible symlinks are refused. Receipt and referenced artifacts must resolve outside that source root to avoid a circular hash. Artifact paths can be absolute or relative to the receipt directory. Retain their original bytes and the independently supplied expected receipt hash. The receipt must declare the exact configured command/profile, execution metadata, nonfailed results and completion within the default 24-hour window. Recorded `skipped`, `xfailed` and `xpassed` outcomes are permitted; inspect them rather than reporting every selected case as passed.
+
+Review the whole current log as well as the displayed verifier result. In this implementation, summary parsing selects the last duration-bearing line that contains a numeric `passed` count. A later errors-only or other failure summary can be ignored; an accepted receipt therefore does not establish that the selected line is the actual terminal result of one complete invocation. Reconcile invocation boundaries, collection completion, final result, exact selected node roster and all skips/errors from independently observed execution evidence before reusing validation.
+
+The outcome TSV requires the exact `nodeid`/`outcome` header and unique recognized outcomes matching the supplied identity list, but extra per-row cells are ignored. Whitespace-only identity strings and a boolean identity count are not refused by those helper checks. Inspect exact nonblank node identifiers, integer counts and two-cell rows before admission. A valid JSON value with the wrong top-level type can raise an uncaught error instead of the typed `REFUSED` message. Preserve original receipts/logs and retain the error as a failed review; do not edit evidence merely to obtain `PASS`. `--emit-tree-sha256` returns a digest without validating any receipt, while `--print-log-path` prints the selected log path only after receipt acceptance. Neither output is execution evidence. Source: `tools/verify_external_validation_receipt.py:37–215,218–250`.
+
+## Reference and fixture scope
+
+- [Reference-panel guidance](../docs/CI_REFERENCE_FIXTURES_GUIDE.md): library-integrity checks and external-ZIP regression concordance have different inputs. The entire module skips if the curated library is absent; otherwise individual source-ZIP cases can still skip. The .447 baseline has the library. Concordance compares recorded marker observations for the largest parsed region, not an independently blinded biological answer key.
+- External live/domain references remain optional sidecars; `SAPOTE_TEST_REFERENCE_ROOT` and particular tests' paths/input admission determine which cases can run (`tests/conftest.py:93–120`). An environment variable does not prove the supplied source version or identity.
+- [Fixture index](fixtures/README.md): synthetic rows, optional bacterial reference files and structural compilation Markdown have distinct purposes. Keep source payloads unchanged during documentation review.
+
+A test's name, `public` mark or a tiny fixture does not establish redistribution authority, privacy clearance, current release acceptance or scientific accuracy. The source disclosure policy and owner adoption remain separate. The historically named `test_no_unpublished_ids_in_public_tier.py` is not a universal AS-identifier ban.

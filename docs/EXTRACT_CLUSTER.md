@@ -25,3 +25,11 @@ Synthetic tests check terminal intervals and both strands. Historical example
 runs do not establish current-byte biological validation.
 
 Output artifacts are serialized before publication and ordinary write failures roll back owned files. Publication is not crash-atomic; stable inputs and no uncooperating output writer are required. Nonfinite identities or hit indices outside the supplied roster refuse before region admission.
+
+## Status and evidence binding
+
+`present` in the JSON is marker-window admission under the declared method; the console's `PRESENT` or `absent/insufficient` strings are not biological presence/absence findings. The CLI returns zero after either admitted output or JSON-only non-admission. Require the current JSON and expected GBK roster rather than accepting zero exit or a previously existing GBK as confirmation (`tools/extract_cluster.py:145–171,174–220`).
+
+The JSON retains label, called-gene count, marker requirement, marker names and admitted coordinates; it does not record input genome/marker hashes, caller/alignment versions, every window/flank/identity parameter, output hashes or a validated four-part antiSMASH locus identity. Preserve a separate source/parameter receipt, using the source FASTA contig and extracted interval as candidate coordinates; do not invent a region number or BGC alias before a separately reviewed binding exists. Marker labels remain supplied-match labels, not functional annotation proof.
+
+Both possible destination names must be fresh even when only JSON is eventually emitted. Ordinary rollback preserves pre-existing files and removes owned new outputs; interruption or cleanup failure still requires actual-file inspection. Keep the source files in place and record path+SHA-256 rather than copying genomes into the documentation candidate.

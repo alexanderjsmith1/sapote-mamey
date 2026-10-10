@@ -26,7 +26,7 @@ An optional `--evidence-index evidence.tsv` can bind external evidence without s
 channel  strain  full_node  region  bgc_alias  gene  evidence_state  source_locator  source_sha256  note
 ```
 
-Tabs are required. Every row must carry the same complete exact identity. `BOUND` rows require a portable relative or `evidence://` locator and a 64-character SHA-256. Allowed evidence states are `BOUND`, `UNBOUND`, `MISSING`, and `NOT_RUN`. Historical cards use the separate `historical_card` channel and must be `LEAD_ONLY`; they never contribute evidence support or ranking.
+Tabs are required. Every row must carry the same complete exact identity. `BOUND` rows require a portable relative, `evidence://` or `package://` locator and a 64-character SHA-256. Allowed evidence states are `BOUND`, `UNBOUND`, `MISSING`, and `NOT_RUN`. Historical cards use the separate `historical_card` channel and must be `LEAD_ONLY`; they never contribute evidence support or ranking.
 
 The ten evidence families remain separate: nr, ClusteredNR, local Swiss-Prot, MIBiG/KnownClusterBlast, ClusterBlast, BiG-SCAPE, RG-GMCI, cohort comparison, domain/HMM, and literature context. No channel substitutes for another.
 
@@ -93,3 +93,25 @@ fields remain inspectable in the receipt; source metric holds remain in force.
 This optional interface is an engineering candidate. Source provenance recorded
 in a frozen database is retained, but external XML/job artifacts are not reopened.
 No search, extraction, literature retrieval or phylogenetic work is performed.
+
+## Input-admission and write boundaries
+
+An already governed/sealed package is a required source selection, not a state this command certifies.
+The command binds the requested identity to manifest data and materializes/hashes safe source-scan
+aliases; it does not rerun whole-package sealing/checksum validation. Without the optional database
+bridge, --gene-table may be an external file. Its rows are checked for the target alias, contig, unique
+non-placeholder tags and positive lengths; they are not independently compared with the full sealed
+canonical sequence/CDS roster. The receipt currently labels even an external gene-table basename as
+package://, so retain its actual supplied path and SHA-256 in the task source register.
+
+External-index BOUND is a declared state with locator/hash syntax and known-gene/identity checks.
+The index’s own bytes are hashed, but the referenced source is not opened, rehashed or reconciled to
+an external query/job receipt by this path. Such rows require independent source admission before
+scientific use. Package/domain observations and selected frozen-database observations have their own
+binding paths; keep those origins distinct. Locator syntax is not a source resolver.
+
+The child output directory must be new; the root must already exist. Each output is written separately
+before the final receipt. Failure after directory creation can leave a partial set that a retry refuses;
+there is no all-output rollback or arbitrary concurrent-writer guarantee. Use the single owned candidate
+and record a failure/hold rather than copying the source package or proliferating packets to hide it.
+The receipt’s named outputs exclude the receipt itself. No named channel status is finished-card acceptance.

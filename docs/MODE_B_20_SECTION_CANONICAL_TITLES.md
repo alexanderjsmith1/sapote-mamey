@@ -1,5 +1,23 @@
 # MODE_B_20_SECTION_CANONICAL_TITLES.md — DEPRECATED (v9.7.150e+)
 
+## Current entry and implementation scope
+
+Select the actual task profile in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md),
+then use [MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md](MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md)
+for the owner/legacy boundaries. Preserve every individual locus as strain / full node-or-contig /
+region / BGC alias from a bound source. A section count, phrase, typed label or zero-finding pattern
+check is not scientific adjudication, independent source verification, owner acceptance or publication approval.
+Existing evidence remains in place with path/SHA-256 bindings; use the selected candidate and retained
+receipts rather than copying a package or inventing completed work.
+
+This deprecated redirect is not one of the two outputs owned by `tools/regen_modeb_contract_docs.py`.
+Its title list is historical and its full48-only routing sentence does not replace explicit current50-v2
+selection. The historical 20-section JSON is retained for reference; the current compatibility facade
+`mamey/validators/modeb_full20.py:30–65` derives its first twenty titles from the loaded default contract.
+Preserve this redirect's history without making the facade a finished current-evidence acceptance gate.
+
+<!-- Historical source text follows. -->
+
 > **This file is retained as a redirect pointer only.** It listed §1–§20 titles
 > when the contract was a §1–§20-only spec. The §1–§30 contract that replaced it
 > is itself now the legacy `MODEB_CANDIDATE_30` profile.

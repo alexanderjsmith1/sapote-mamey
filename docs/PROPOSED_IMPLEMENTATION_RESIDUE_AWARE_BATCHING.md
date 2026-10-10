@@ -1,5 +1,27 @@
 # Proposed Implementation — Wise Fragmented PKS FASTA Batching
 
+## Proposal versus shipped implementation
+
+The body below is a design proposal and illustrative tests, preserved without adoption. It is not the
+shipped helper; inspect `mamey/wise_fragmented_pks.py:83–109` and `mamey/cli.py:8055–8064` through the
+[queue handoff](NEXT_CHAT_HANDOFF_WISE_FRAGMENTED_PKS_WORKFLOW.md). Actual code sorts by rank, flushes
+an existing batch before an oversized record and retains a warning-bearing singleton exception. Its writer
+can emit that exception as ready_to_run with under_100k=false; this remains an explicit implementation hold,
+not proof the universal proposed no-oversize acceptance criterion was met.
+
+The proposed snippet does not flush accumulated records before appending its oversized record, and its
+final guard raises for that same oversized singleton. The proposed chooser also indexes batches_85k[0]
+without an empty-input check. Its tests refer to example fixtures/render helpers and rank_range attributes
+not supplied by the returned list-of-lists. They are requirements/examples, not tests run or proven here.
+Treat the proposed snippet as unimplemented until its owner supplies a separately validated patch and runtime evidence.
+
+Residue targets are software parameters; current online limits were not verified. Preparing a queue does
+not authorize or execute submission, search, admission, biological interpretation or re-ranking. Use one
+candidate destination and existing path/SHA-256 evidence, and inspect actual output replacement behavior
+before an authorized run. Do not copy an evidence/package corpus to implement this historical proposal.
+
+<!-- Historical source text follows. -->
+
 ## Core idea
 
 This is not complicated. The assistant should avoid obvious bad defaults.

@@ -37,3 +37,13 @@ outgroup or functional assignment follows from this comparison. Truncated inputs
 and approximate gene boundaries limit the supplied inventory.
 
 Global alignment uses canonical sequence orientation to preserve tie behavior when inputs are swapped. Group metadata records identity/coverage thresholds and the requested engine.
+
+## Inventory, receipt and rendering boundaries
+
+Inventory extraction includes translated CDS from **all** GenBank records, with zero-based half-open feature coordinates and record/gene indices. Labels identify comparison inputs; they are not validated four-part locus identities. Retain strain, full contig/node, region, BGC alias and each input path/hash separately. A multi-record comparison does not establish physical linkage (`tools/cluster_gene_compare.py:52–70`).
+
+Coverage is alignment columns containing residues in both sequences divided by the longer input protein length; it is not query-only coverage. Admission uses unrounded identity/coverage, while exported measured pairs round identity to one decimal and coverage to an integer. Near-threshold inspection must use the declared computation, not infer admission by re-thresholding the rounded CSV (`85–100,137–164`).
+
+There is no comparison-contract JSON, source-hash manifest or output-hash receipt in the emitted roster. Qualifier metadata records grouping parameters but does not bind source bytes or scientific acceptance. The heatmap is 150 dpi with width `1.6 + 1.15 × inputs` inches and height `max(3.5,0.32 × groups +1.2)` inches; labels truncate at 34 characters and no SVG is emitted. Full identity belongs in the canonical tables/receipt, not an abbreviated axis (`294–338,417–467`).
+
+The fresh complete-set transaction rolls back owned publication links on ordinary failure; it is not crash-atomic. Cleanup failure can return an error after outputs were published. Inspect the actual roster and diagnostics before retrying, without overwriting prior outputs. Zero exit is software output production, not absence, orthology, visual clearance or scientific adoption. See the [cluster relationship guide](CLUSTER_RELATE.md) for the shared transaction limits.

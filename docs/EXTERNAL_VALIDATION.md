@@ -1,5 +1,9 @@
 # Sapote–Mamey — External Validation Record
 
+> **Historical observations; current acceptance held.** The table/narrative below records v9.6.x-era reports, not an independent current-cut validation receipt. Their software labels, ecological/chemical interpretations, original input files, full locus identities and run claims need their original source and run receipts before reuse. Missing/partial accession fields and bare BGC aliases are identity holds; do not infer missing contigs/regions or transfer findings to a current package. These reported runs cannot certify .447 whole-suite accuracy, current standalone behavior, biological production/activity or manuscript adoption.
+>
+> `resources/validation_runs.csv` is a historical plotting input, not a complete authoritative experiment ledger: it lacks per-row input/cut/receipt hashes and includes later rows absent from this six-run table. Two later rows have unreconciled retention values relative to raw/corrected pairs (51/50.5 with 31; 67/67 with 22). Preserve them as observations pending definition/receipt recovery; do not silently recalculate or present a regenerated figure as reconciled validation. See [resource limits](../resources/README.md) and [older validation records](../validation/README.md).
+
 *Blind/external validation of the public **CODE tier** (data-free, no banks) on **public NCBI genomes** —
 a mix of type strains and other public isolate assemblies, independent of the symbiont discovery cohort. Updated as runs accrue. All statements are class-level and
 KCB-anchored (similarity, not identity); bioactivity metadata is optional strain-level context; these are public
@@ -95,13 +99,10 @@ High), *S. griseoluteus* more even (23 Medium / 21 Inventory, T2PKS aromatics co
 chemistry); the MAR4 strain headlines on halogenated meroterpenoids (1 High / 19 Medium / 21 Inventory), its
 lineage signature. Leads are class-level hypotheses; KCB anchors are similarity; activity is the extract-level default.
 
-## How to add a run (one-row append)
-1. Run the public CODE bundle on a fresh type strain.
-2. Append one row to **`resources/validation_runs.csv`** (`strain, short, niche, public, raw_bgcs, corrected_bgcs,
-   assembly_tier, retention_pct, raw_pct, corr_pct, label_pos`). `short` is the figure label; `label_pos` is one of
-   `above`/`below`/`left`/`right` to avoid collisions.
-3. Regenerate the figure: `python tools/build_validation_panel.py --csv resources/validation_runs.csv --out-dir figures`.
-4. Add the matching row to the runs table above + a one-line note on what it validated (standalone run / count
-   discrimination / a specific fix exercised, e.g. a nucleoside locus re-confirming the diagnostic floor).
-The CSV is the single source of truth; keep public NCBI genomes here, de-identify any private symbiont to a single
-contrast point (`public=no`, `strain='symbiont (private)'`).
+## Admitting additional validation evidence
+
+A one-row plotting append is insufficient to establish a new validated run. First bind the evaluated software/cut, task, source accessions/versions, input and artifact hashes, exact locus identities where discussed, expected outcome provenance, observed result, all skips/holds and the complete run receipt. Keep inputs in place with locators/hashes rather than copying packages into the code bundle. External execution and adoption need the current user's authorized scope.
+
+Only after reconciliation should the selected plotting metadata and reader-facing account be updated consistently. `tools/build_validation_panel.py:35–84` reads the CSV and uses stored retention values in labels; it does not reconstruct input provenance or verify scientific claims. Preserve the original historical values and identify a separately admitted replacement if one is needed. Private de-identification is not itself a disclosure authorization or proof that remaining metadata is safe.
+
+Retain the historical narrative and unresolved values for source traceability. Record any new run, figure, corrected CSV or scientific adoption separately, with its evidence and scope.

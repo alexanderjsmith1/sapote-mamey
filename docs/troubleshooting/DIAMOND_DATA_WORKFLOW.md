@@ -1,32 +1,15 @@
-# DIAMOND Data Workflow
+# DIAMOND evidence and integration limits
 
-> **Release 1 limitation:** `reference_proteins.faa` (the MIBiG/Mamey reference protein set) and the prebuilt `mamey_ref` DIAMOND database are not included in this release. These are Release 2 deliverables. To use DIAMOND in Release 1, supply your own reference protein FASTA (e.g., download MIBiG proteins from mibig.secondarymetabolites.org) and build a database with `diamond makedb`. Until the reference set is bundled, DIAMOND-dependent cells receive `NEEDS_DIAMOND_TSV` status.
+DIAMOND reports protein sequence alignments against a selected reference set. Record the query source, reference roster/hash, search settings and raw output; database choice changes the comparison scope. Similarity is not product identity or measured activity.
 
-DIAMOND is the preferred standalone path for large BLASTP-like protein homolog searches. Use it when users have thousands of antiSMASH or genome proteins.
+## Available implementation
 
-## Example commands
+The optional `mamey/diamond_align.py` alignment helper accepts query and reference protein FASTAs. Its `align_fasta` path can use a working `diamond4py` binding or a `diamond` executable on PATH and returns explicit availability/input failure reasons. This is an alignment helper, not a general workbook TSV importer. Consult the caller's user guide before choosing a workflow.
 
-```bash
-diamond makedb --in reference_proteins.faa -d mamey_ref
+The helper's structured alignment fields include query and subject identifiers, percent identity, aligned length, mismatch/gap counts, coordinates, e-value, bitscore and query/subject coverage. A manually generated seven-column TSV is not automatically interchangeable with that contract.
 
-diamond blastp \
-  -d mamey_ref \
-  -q STRAIN_proteins.faa \
-  -o STRAIN_diamond_hits.tsv \
-  --outfmt 6 qseqid sseqid pident length evalue bitscore stitle \
-  --max-target-seqs 5 \
-  --threads 8
-```
+## Current workbook limitation
 
-## Cells this fills
+`mamey/cell_provenance.py` unconditionally emits generic `NEEDS_DIAMOND_TSV` placeholders and per-locus empty homolog fields. Supplying a TSV does not automatically fill these cells. The main extraction CLI has no general `--diamond-tsv` importer. Preserve independent results and reconcile identifiers in a review workspace; do not mark a field completed without evidence of the selected integration step.
 
-- best homolog;
-- percent identity;
-- e-value;
-- bitscore;
-- homolog description;
-- known enzyme or product-family support.
-
-## Release 1 rule
-
-DIAMOND is optional evidence. Missing DIAMOND data should be flagged as `NEEDS_DIAMOND_TSV`, not guessed.
+Do not treat historical “Release 1 / Release 2” wording as a promise that a universal reference FASTA, hosted service or automatic importer exists. Inspect configured local assets and the chosen tool contract. Package `Troubleshooting/DIAMOND_Data_Workflow.md` is generated separately from Python literals; older copies can imply an import path absent from the current worklist implementation.

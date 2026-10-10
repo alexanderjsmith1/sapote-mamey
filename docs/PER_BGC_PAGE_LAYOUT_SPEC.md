@@ -1,3 +1,22 @@
+# Per-BGC page units: current reading guidance and historical layout specification
+
+The original single-page §1–§8/20 specification is retained below as historical design evidence. It does not describe the current full48/current50 card shape or prove that any shipped compiler enforces co-location. Its short-node examples and biological interpretations are illustrative history, not source-bound accepted loci or current scientific findings.
+
+## Current review contract
+
+Use one continuous **exact-locus review unit** with its full strain / full node-or-contig / region / BGC alias, bound map/roster, predicted-class/boundary line and selected-profile interpretation. Co-locate the map with the beginning of its analysis at intended reader size, and keep continuations explicitly linked to the same complete identity. Avoid a bare-map page followed by unrelated or ambiguous prose. A full48/current50 card may span more than two pages; never truncate sections, shrink text below the declared artwork gate, or treat a fixed 45%/55% page band as completion authority.
+
+This is a staged resolution of the obsolete page-count examples, not a claim of scientific-owner acceptance of a new layout. If a delivery/work order requires the old literal one/two-page constraint, retain a layout-policy hold and request an explicit owner resolution against complete-profile/readability requirements. Preserve the full card and exact evidence while reviewing that conflict.
+
+The current `compile_report` assembler separately collects recursive image references in section 6 and registered COMPLETE card files in section 9. It attempts top-five locus maps but does not automatically implement this page-unit mandate or bind each image to a complete accepted card. PNG/SVG siblings can be duplicate references for one figure. The COMPLETE register itself is separate from current-profile verification. Do not label the assembled report co-location-compliant because the files exist. Use an explicit artifact-to-locus/card crosswalk and inspect the actual final pages, including overflow/continuations and every evidence layer.
+
+Source owners: `mamey/compile_report.py:522–560,594–609,791–819`; `mamey/judgment_store.py:679–704,727–788`; `mamey/locus_map_v8.py:869–909`. See [current profiles](MODEB_PROFILE_MATRIX.md), [locus-map review](LOCUS_MAP_REVIEW_CONTRACT.md) and [export boundary](MODEB_EXPORT_HOOK.md).
+
+## Historical specification — not current executable instructions
+
+The following text records the old observed-layout rationale and proposed design. Historical status labels, implementation suggestions, sample section counts and biological prose do not supersede the current profile or source-bound review requirements above.
+
+````text
 # Per-BGC Page Layout Spec — locus map + class + Mode B co-location
 
 **Status:** normative. Referenced by `docs/DELIVERABLE_CONTRACT.md` §A2.5 and `prompts/figure_prompts/deliverable_maps/map_gene_by_gene.md`. Applies to every compiled deliverable that pairs a BGC locus map with its analysis: the gene-by-gene deep-dive, the Technical Report's Mode B section, and the consolidated PDF.
@@ -84,3 +103,5 @@ Never spill merely because the template defaults to one figure per page.
 - ✅ Two pages only when one BGC's Mode B overflows.
 - ❌ One locus map per page with blank lower half and Mode B on the following page.
 - ❌ A "figures section" of bare locus maps separated from a "text section" of Mode B cards.
+
+````

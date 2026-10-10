@@ -29,5 +29,7 @@ annotation: axis labels, legend, title, colorbar, and value labels flush at bar 
 - Color-code the diagnostic column consistently with the deck theme.
 
 ## Build note
-Reproducible from the tidy export (`tools/export_figure_ready.py`) following the
-`tools/plot_examples.py` pattern. Keep the slug and column names stable so decks don't break.
+The tidy export (`tools/export_figure_ready.py`) supplies inventory and isolate context only.
+It does not emit the required locus-specific diagnostic join or a ranked leads table. Prepare and
+validate that additional source-bound table before rendering; `tools/plot_examples.py` is a plotting
+pattern, not an implementation of this recipe. Keep the slug and column names stable so decks don't break.

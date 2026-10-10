@@ -1,27 +1,27 @@
 # Sapote-Mamey figure catalog
 
-An evaluation of every figure the pipeline emits, in three tiers: **single-strain gold** (auto-emitted
+A descriptive catalog of the principal historical figure families; actual emitted coverage depends on inputs, mode, selected series and per-channel holds. It is not an exhaustive runtime receipt. This catalogs figures, in three tiers: **single-strain gold** (auto-emitted
 in each gold run), **cross-strain cohort — standard** (`cohort-figures` F-series), and **cross-strain
 cohort — extended** (the 11-figure suite fused in at v9.7.319). Each entry: what it plots, what it's for,
 and how to read it honestly. Domain-level definitions (Pfam/antiSMASH/TIGRFAM accession + catalytic
-signature) are in `COHORT_FIGURE_CAPTIONS.md`; every "domain" is an HMM call and every count is a
-**capacity** signal, not a product or phenotype. Read all counts against fragmentation (boundary tier):
+signature) are in `COHORT_FIGURE_CAPTIONS.md`; a displayed domain token is a retained annotation occurrence whose source class must be checked; every count is an
+**annotation-capacity** summary, not a product or phenotype. Read all counts against fragmentation (boundary tier):
 edge/full-contig BGCs are fragment-limited and inflate apparent numbers relative to interior clusters.
 
 ---
 
 ## Tier 1 — Single-strain gold figures (per gold run)
 
-Auto-emitted to `package/gold_figures/` (22 panels) and `package/locus_maps/` (one per BGC).
+Gold mode attempts figures in `package/gold_figures/`; panel counts vary with admitted input fields. Locus-map selection depends on the calling worklist/top-N and can include skipped loci; it is not always one map per inventory BGC. Check actual receipts and coverage.
 
 ### D-series — dashboards / scatter (per-BGC relationships)
 - **D01 bubble_productclass_size_length** — product class vs size vs length; bubble map of where the big
   clusters sit by class.
 - **D02 bubble_rare_triggers** — rare cryptic-chemistry triggers per BGC; flags unusual chemistry.
 - **D03 scatter_size_vs_domains** — BGC size vs domain count; the size/complexity relationship within one strain.
-- **D04 scatter_kcb_vs_size** — KCB similarity vs size; large + KCB-dark = the notable novel-and-big quadrant.
+- **D04 scatter_kcb_vs_size** — KCB similarity vs size; large size plus low loaded KCB similarity; neither establishes novelty.
 - **D05 scatter_raw_vs_corrected** — raw vs boundary-corrected BGC count; shows the fragmentation discount.
-- **D06 strip_kcb_per_strain** — KCB score strip; the novelty spread for the strain.
+- **D06 strip_kcb_per_strain** — KCB score strip; the loaded similarity-score distribution.
 - **D07 scatter_rarechem_vs_bgcs** — rare-chemistry load vs BGC count.
 - **D08 bubble_tailoring** — tailoring-enzyme load per BGC (decoration potential).
 - **D09 bubble_regulators** — regulatory-gene load per BGC.
@@ -80,11 +80,10 @@ Auto-emitted by `cohort-figures` (default; `--no-extended` to skip) and regenera
 - **fig4 enriched_locus** — the enriched locus map: gene arrows by function + per-gene domain track +
   gene-specific T2/T3-resistance (◇) and CCTT (★) badges; BGC-wide resistance/TTA in the title.
 - **fig5 archetype** — BGC biosynthetic-class composition per strain (NRPS / PKS / hybrid / RiPP / terpene / …).
-- **fig6 kcb_novelty** — BGCs per strain by KCB tier as a stacked count (dark <1 = candidate-novel; similarity, not identity).
+- **fig6 kcb_novelty** — BGCs per strain by KCB tier as a stacked count (low loaded KCB similarity; global novelty remains unresolved).
 - **fig7 cctt_triggers** — CCTT trigger family × strain, counted as BGCs carrying each.
 - **fig8 boundary_profile** — interior / edge / full-contig BGCs per strain: the assembly-quality lens on every count.
-- **fig9 domain_cooccur** — domain co-occurrence matrix (pooled cohort); which biosynthetic modules travel
-  together. Diagonal = domain frequency. **Every domain defined in the caption glossary.**
+- **fig9 domain_cooccur** — domain co-occurrence matrix (pooled cohort); which retained domain tokens co-occur within the counted input units; this is not physical transfer or pathway coupling. Diagonal = domain frequency. **Every domain defined in the caption glossary.**
 - **fig10 resistance_map** — BGCs per strain by source-derived resistance-related tier; counts only.
   The annotation does not measure compound potency or confirm self-protection.
 - **fig11 tta_profile** — BGCs per strain by TTA burden tier (T1 = zero; T4 = six or more);
@@ -98,18 +97,25 @@ count-based cut in Tier 3):
 - **census** → F01 (Tier 2) = fig1 (Tier 3, no tier strip).
 - **CCTT** → F05 (metric × strain heatmap) vs fig7 (BGCs carrying each).
 - **resistance** → F06 (signal heatmap) vs fig10 (per-strain stacked BGC counts).
-- **strain layout** → F15 (strain ordination) vs fig3 (per-BGC size/richness scatter).
+- **strain layout** → actual strain-ordination filename (historical F15 label) vs fig3 (per-BGC size/richness scatter).
 Prefer the Tier-3 cut when you want counts by source-derived tier; prefer Tier 2 when you
 want the fine-grained family × strain matrix.
 
-## Companion (external) — BiG-SCAPE GCF network
-Not a Mamey figure: `AS_batch1_BiGSCAPE_run_guide.md` drives a BiG-SCAPE 2.0 gene-cluster-family analysis
-on the 624-BGC / 11-strain set. It is the network/GCF complement — Mamey gives per-BGC architecture + KCB
-anchors; BiG-SCAPE gives the cross-strain family graph. Cite them side by side, not interchangeably.
+## BiG-SCAPE supporting figures
+
+The bundle ships [strain-centric GCF and clinker consumers](BIGSCAPE_FIGURES.md). They are separate from inferred biosynthetic architecture and KCB, with their own run/cutoff/source roster and incomplete-attempt states. Historic private panel sizes/path names are not portable examples or the current denominator.
 
 ## Honest caveats to carry into any manual text
 - Domain presence = **capacity**; never state a strain "produces" a compound from a figure.
-- KCB / BLASTp = **similarity, not identity**; "dark" = candidate-novel, not confirmed novel.
+- KCB / BLASTp = **similarity, not identity**; "dark" describes the loaded comparator/search scope; absence of a named match is not global novelty.
 - Resistance and TTA tiers are **source-derived mechanism calls**, not measured phenotype or expression.
 - Counts are inflated by fragmentation — always read against fig8 / G04 boundary status.
 - Per-BGC-count figures count a BGC once regardless of how many of its genes carry a mark.
+
+## Actual emitted-artifact census
+
+Single-strain gold emission is best-effort and does not block package seal/validation; inspect `GOLD_FIGURES_SKIPPED.md`, `RUNS_DIR_NOTE.md`, logs, output data and expected-panel census. Cohort figures are a separate path; extended failure is warned/skipped while the surrounding command can succeed. Existing output reuse can include stale figures in an overall count. Use actual filenames, per-attempt receipts/holds and fresh output directories rather than assuming F/G/D aliases or catalog counts certify coverage.
+
+F11/F13 holds are separate channel results. [F13 input/status guidance](F13_BGC_DOMAIN_PCA.md) describes its multi-strain F-series invocation and stale-artwork limits. Default compile-report attempts v8 only for the top five triage targets, then collects package images recursively; paired PNG/SVG may be two file references for one figure. The default inventory/recursive image count is not an admitted panel denominator.
+
+Source owners: `mamey/cli.py:791–859,5296–5332`; `mamey/cohort_figures.py:1196–1226`; `mamey/compile_report.py:522–560,791–819`; `mamey/locus_map_v8.py:869–909`.

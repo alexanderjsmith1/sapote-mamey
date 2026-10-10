@@ -1,8 +1,31 @@
 # The Mathematics of Sapote-Mamey
 
+## Using current source behavior
+
+Use [current source scope](06_CURRENT_SOURCE_SCOPE.md) to interpret counts, tiers and raw pair scores.
+Check scoring guards, calibration and scientific interpretation separately. The discounted count is
+round(Interior +0.5 Edge +0.25 Full-contig,2), and assembly tiers use 70/45/20 with unknown when missing
+(`mamey/assembly.py:124–137`). These are weighted diagnostics and routing labels, not a physically reconciled
+cluster census or calibrated probability that a count is trustworthy. Preserve raw counts and exact scope.
+
+The original §6.6 three-permanent-downgrades statement is superseded by the actual current registry:
+NAPAA is neutral/action-none/nonblocking; HGLE-KS-PREV-001 is noted/flag/informational/nonblocking;
+saccharide is excluded/downgrade for lead prioritization. Old NAPAA/hglE blanket rank/comparison bans are
+not current source behavior (`mamey/data/rules_registry.json:6–29,:68–80`). Scoring's retired branch comments
+are not stronger authority than the loaded registry. No low/no KCB match or preserved novelty-score field
+establishes scientific novelty, compound identity, production or activity.
+
+Selected §7.1 component weights and 14/9 raw thresholds agree with `_pair_score`
+(`mamey/rggmci.py:926–984`), but final aggregation and gate cascade may change the saved confidence;
+raw score is not the final verdict or nucleotide joining proof. Coordinate and LOCUS_PROXY adjacency carry
+different units. Preserve full strain/node-or-contig/region/BGC identity, exact denominators, current profile,
+source paths/hashes and actual receipts. Verify actual pair results and source provenance before drawing biological conclusions.
+
+
+
 ### Counting, scoring, and reconstruction formulae in the deterministic extraction engine
 
-**Version of record:** Mamey engine v1.9.173 · bundle v9.7.448 · re-grounded 2026-09-14 (core formulas unchanged since v1.9.110; CCTT trigger roster expanded 14→18 at v1.9.99; constants last verified against engine source 2026-07-13)
+**Version of record:** Mamey engine v1.9.174 · bundle v9.7.449 · re-grounded 2026-09-14 (core formulas unchanged since v1.9.110; CCTT trigger roster expanded 14→18 at v1.9.99; constants last verified against engine source 2026-07-13)
 **Author:** Alexander J. Smith
 **Status:** Methods reference. Every formula below is transcribed from the engine source and cited to its module; nothing here is reconstructed from memory.
 

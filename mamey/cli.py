@@ -5221,6 +5221,117 @@ def comparator_coverage_command(args) -> int:
     return 0
 
 
+GAP_RESCUE_SCOPE = "screen, not adjudicated"
+
+
+def _gap_rescue_inputs(args, start) -> dict:
+    """The gap-rescue screen's inputs, each as {"path", "how"}. Order: explicit flag > SAPOTE_* (the screen's own
+    variables) > RGGMCI_* (reference completion's) > the workspace asset registry above `start`. Never searches the
+    disk. A missing required input is a refusal that names its flag."""
+    from pathlib import Path
+    from . import ref_completion as rc
+
+    def first(flag, env, row=None, kind="file"):
+        for how, cand in (("flag", flag), (f"env {env}", os.environ.get(env))):
+            if cand:
+                return {"path": str(cand), "how": how}
+        if row:
+            path, how = rc._registry_path(row, start)   # the same registry rows reference completion reads
+            if path is not None and (path.is_dir() if kind == "dir" else path.is_file()):
+                return {"path": str(path), "how": f"registry {row}"}
+        return {"path": None, "how": "not_found"}
+
+    got = {"mibig_dir": first(args.mibig_dir, "SAPOTE_MIBIG_GBK_DIR", "mibig_local2088_gbk", "dir"),
+           "mibig_names": first(args.mibig_names, "SAPOTE_MIBIG_NAMES", "mibig_reference_index_bacterial")}
+    dmnd = first(args.mibig_db, "SAPOTE_MIBIG_DMND")
+    if dmnd["path"] is None:   # $RGGMCI_MIBIG_DB, then the registry: a database FOLDER, whose DIAMOND file is used
+        folder, how = rc.resolve_mibig_db(None, registry_from=start)
+        dmnd = {"path": str(Path(folder) / (rc.DB_DMND + ".dmnd")) if folder else None,
+                "how": {"env": "env RGGMCI_MIBIG_DB", "registry": f"registry {rc.MIBIG_DB_ASSET}"}.get(how, how)}
+    elif Path(dmnd["path"]).is_dir():
+        dmnd["path"] = str(Path(dmnd["path"]) / (rc.DB_DMND + ".dmnd"))
+    got["mibig_db"] = dmnd
+    if args.no_pfam:
+        got["pfam"] = {"path": None, "how": "opted_out (--no-pfam)"}
+    else:
+        pf = first(args.pfam, "SAPOTE_PFAM_HMM")
+        if pf["path"] is None:
+            path, how = rc.resolve_pfam_hmm(None, registry_from=start)
+            pf = {"path": path, "how": {"env": "env RGGMCI_PFAM_HMM", "registry": f"registry {rc.PFAM_ASSET}"}.get(how, how)}
+        got["pfam"] = pf
+    return got
+
+
+def gap_rescue_command(args) -> int:
+    """Optional post-run step: the gap-rescue screen (tools/gap_rescue_all_regions.py) on every antiSMASH region of one
+    genome. Heavy; one genome at a time; `run` never calls it. It reads the antiSMASH ZIP, not the package, and writes
+    one folder per region plus SUMMARY.tsv to --out, which must lie outside the bundle. Screen only: the partner verdicts
+    are not adjudicated. Inputs resolve as `_gap_rescue_inputs` says; DIAMOND must be on PATH, and the Pfam
+    housekeeping check needs Pfam-A.hmm and pyhmmer unless --no-pfam is given."""
+    import importlib.util
+    import sys as _sys
+    from pathlib import Path
+    from .path_safety import OutputInsideBundle, assert_output_outside_bundle
+
+    tools = Path(__file__).resolve().parent.parent / "tools"
+    if not (tools / "gap_rescue_all_regions.py").is_file():
+        raise SystemExit("GAP_RESCUE_UNAVAILABLE: tools/gap_rescue_all_regions.py is not here (an installed wheel ships "
+                         "mamey only). Run this from a Sapote-Mamey bundle.")
+    try:
+        assert_output_outside_bundle(args.out, __file__, kind="gap-rescue output")
+    except OutputInsideBundle as exc:
+        raise SystemExit(f"GAP_RESCUE_REFUSED: {exc}") from None
+    if not Path(args.input_zip).is_file():
+        raise SystemExit(f"GAP_RESCUE_REFUSED: --input-zip not found: {args.input_zip}")
+    if shutil.which("diamond") is None:
+        raise SystemExit("GAP_RESCUE_REFUSED: no DIAMOND on PATH. Every region is searched with DIAMOND; without it the "
+                         "regions with no KnownClusterBlast hit would be listed, not run. Put diamond on PATH and rerun.")
+    inputs = _gap_rescue_inputs(args, Path.cwd())
+    gbk, dmnd = inputs["mibig_dir"], inputs["mibig_db"]
+    if not gbk["path"] or not Path(gbk["path"]).is_dir():
+        raise SystemExit(f"GAP_RESCUE_REFUSED: no MIBiG GenBank folder ({gbk['how']}: {gbk['path']}); pass --mibig-dir")
+    if not dmnd["path"]:
+        raise SystemExit(f"GAP_RESCUE_REFUSED: no MIBiG protein database found ({dmnd['how']}); pass --mibig-db")
+    if not Path(dmnd["path"]).is_file():
+        folder = Path(dmnd["path"]).parent
+        if (folder / "mibig_proteins.faa").is_file():   # the database folder resolved, but its DIAMOND file was never built
+            raise SystemExit(f"GAP_RESCUE_REFUSED: {folder} has no {Path(dmnd['path']).name}; build it with `diamond makedb "
+                             f"--in mibig_proteins.faa -d mibig_proteins` in that folder, or pass --mibig-db")
+        raise SystemExit(f"GAP_RESCUE_REFUSED: MIBiG DIAMOND file not found ({dmnd['how']}: {dmnd['path']}); pass --mibig-db")
+    names = inputs["mibig_names"]
+    if names["path"] and not Path(names["path"]).is_file():   # a wrong path would silently drop every compound name
+        raise SystemExit(f"GAP_RESCUE_REFUSED: MIBiG name index not found ({names['how']}: {names['path']}); "
+                         "pass --mibig-names")
+    if not args.no_pfam:
+        pf = inputs["pfam"]
+        if not pf["path"] or not Path(pf["path"]).is_file():   # a typo would fail only after minutes of DIAMOND
+            raise SystemExit(f"GAP_RESCUE_REFUSED: no Pfam-A.hmm found ({pf['how']}: {pf['path']}); pass --pfam, or "
+                             "--no-pfam to skip the housekeeping-neighbour check")
+        if importlib.util.find_spec("pyhmmer") is None:
+            raise SystemExit("GAP_RESCUE_REFUSED: the Pfam housekeeping check needs pyhmmer, which this Python lacks; "
+                             "install it, or pass --no-pfam to skip the check")
+    argv = ["--zip", str(args.input_zip), "--label", args.strain, "--out", str(args.out), "--threads", str(args.threads),
+            "--mibig-dir", inputs["mibig_dir"]["path"], "--mibig-db", inputs["mibig_db"]["path"]]
+    if inputs["mibig_names"]["path"]:
+        argv += ["--mibig-names", inputs["mibig_names"]["path"]]
+    if inputs["pfam"]["path"]:
+        argv += ["--pfam", inputs["pfam"]["path"]]
+    argv += [x for x, on in (("--edge-only", args.edge_only), ("--no-figure", args.no_figure)) if on]
+    _sys.path.insert(0, str(tools))
+    import gap_rescue_all_regions
+    import gap_directed_rescue
+    rc_code = gap_rescue_all_regions.main(argv)
+    receipt = Path(args.out) / "run_receipt.json"
+    data = json.loads(receipt.read_text()) if receipt.is_file() else {}
+    data["command"] = {"command": "mamey_run.py gap-rescue", "strain": args.strain, "scope": GAP_RESCUE_SCOPE,
+                       "sensitivity": gap_directed_rescue.SENSITIVITY_DEFAULT, "inputs": inputs,
+                       "edge_only": bool(args.edge_only), "figures": not args.no_figure, "threads": args.threads}
+    receipt.write_text(json.dumps(data, indent=2) + "\n")
+    _logging.getLogger(__name__).info("gap-rescue %s: %s -> %s", args.strain, GAP_RESCUE_SCOPE,
+                                      Path(args.out) / "SUMMARY.tsv")
+    return rc_code
+
+
 def signoff_command(args) -> int:
     """FA4: analysis sign-off QC gate (advisory; the "would a master's student sign off?"
     objective checks on Newick trees). Always exit 0 -- advisory only."""
@@ -6851,6 +6962,25 @@ def build_parser():
     p_nov.add_argument("--out", default=None)
     p_nov.add_argument("--top", type=int, default=30)
     p_nov.set_defaults(func=_d3_tool_command, _d3_tool="novelty-shortlist")
+
+    # --- gap-rescue: optional post-run step (heavy; screen only, not adjudicated) ---
+    gr = sub.add_parser("gap-rescue",
+                        help="Optional, heavy, one genome at a time: the gap-rescue screen on every antiSMASH region "
+                             "(reference genes found elsewhere, split genes, partner contigs). Screen only, not "
+                             "adjudicated. --out must lie outside the bundle.")
+    gr.add_argument("--strain", required=True, help="strain label, as in run --strain")
+    gr.add_argument("--input-zip", required=True, help="the antiSMASH result ZIP the package was built from")
+    gr.add_argument("--out", required=True, help="output folder, outside the bundle")
+    gr.add_argument("--edge-only", action="store_true", help="only regions antiSMASH marks as on a contig edge")
+    gr.add_argument("--threads", type=int, default=4)
+    gr.add_argument("--no-figure", action="store_true", help="skip the per-region locus maps")
+    gr.add_argument("--no-pfam", action="store_true", help="skip the Pfam housekeeping-neighbour check (recorded)")
+    gr.add_argument("--mibig-dir", default=None, help="MIBiG GenBank folder (default: $SAPOTE_MIBIG_GBK_DIR, registry)")
+    gr.add_argument("--mibig-db", default=None, help="MIBiG DIAMOND file or database folder (default: "
+                    "$SAPOTE_MIBIG_DMND, $RGGMCI_MIBIG_DB, registry)")
+    gr.add_argument("--mibig-names", default=None, help="MIBiG compound-name index (default: $SAPOTE_MIBIG_NAMES, registry)")
+    gr.add_argument("--pfam", default=None, help="pressed Pfam-A.hmm (default: $SAPOTE_PFAM_HMM, $RGGMCI_PFAM_HMM, registry)")
+    gr.set_defaults(func=gap_rescue_command)
 
     # --- signoff (FA4): analysis sign-off QC gate (advisory; exit 0) ---
     sg = sub.add_parser("signoff",

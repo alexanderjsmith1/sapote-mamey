@@ -5,9 +5,11 @@
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
 # Sapote–Mamey CO-EXECUTION PROMPT — Claude directs ChatGPT, judgment runs alongside
-**Bundle:** v9.7.448 · **Reviewed:** 2026-09-10 · **Active controller:** `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`
+**Bundle:** v9.7.449 · **Reviewed:** 2026-09-10 · **Active controller:** `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`
 **Use when:** a sealed Mamey package already exists (extraction done, `MAMEY_COMPLETE`/`JUDGMENT_PENDING`)
-and you want Claude to do the Sapote judgment WHILE directing ChatGPT to run the deterministic
+and the user has authorized parallel roles and their execution scope. Assistant names are
+historical examples, not required products or permission to message another task. Judgment may
+continue while an authorized worker runs the selected deterministic
 follow-on work the package flagged as `NEEDS_*`. This is a parallel loop, not the sequential
 "Mamey finishes, then Sapote starts" flow of the standalone prompts.
 
@@ -28,11 +30,17 @@ and folds ChatGPT's returned evidence back in when it arrives. Neither layer wai
 
 ## 1. Claude's session-start actions (do these before writing any deliverable)
 
-1. **Confirm the sealed package.** Verify `gate_validation.json` status and that
-   `checksums_sha256.txt` validates. Do not interpret an unsealed/failed package.
+1. **Confirm the bound package.** Review the manifest, core and post-seal checksum receipts,
+   validator result and recovery status separately; a filename or old gate receipt is insufficient.
+   `validate` normally writes `package_status.json`, so use a working copy when original bytes must
+   remain fixed. Do not interpret a failed package as a completed extraction.
 2. **Read the evidence-state map.** From `*_3_scan_states.json`:
-   - `scans[]` — which of the ten deterministic scans PASSed (these are judgment-ready NOW).
-   - `evidence_channels` — which are `COMPLETED_*` (use now) vs `NEEDS_*` (this is the ChatGPT work order).
+   - `scans[]` — `(name, state, detail)` tuples (JSON arrays). A scan PASS is a bounded scan result,
+     not blanket permission or scientific acceptance of every claim in that scan.
+   - `evidence_channels` — objects whose `status` and `reason` describe recorded channel state.
+     `COMPLETED_SOURCE_DERIVED` can still mean extraction was skipped or sources absent: inspect
+     `gbk_regions_with_pfam`, `tier1_diagnostic_hits`, the reason and actual bound hits. A NEEDS state
+     is a gap, not automatic authorization to compute or submit anything.
 3. **Read the gap census.** From `*_7_missing_data_worklist.csv` and `*_7_cell_provenance.csv`:
    tally each `status_code`. The `NEEDS_*` rows define exactly what to hand ChatGPT and what claims
    they block (`blocking_for_claims` column).
@@ -50,7 +58,7 @@ and folds ChatGPT's returned evidence back in when it arrives. Neither layer wai
 - `MANUAL_BLASTP_OPTIONAL` — only the selected top-lead proteins, never bulk; remote NCBI BLASTp is
   for spot-checks only.
 - ChatGPT-side batch summarization / compression of low-value inventory-tier BGCs (e.g. large
-  saccharide sets) so Claude can compress them in judgment without hand-reading each.
+  saccharide sets) so the reviewing assistant can summarize them during interpretation without hand-reading each.
 
 **Claude does NOW (no tool dependency — evidence already in the package):**
 - **Complete exact-locus identity mandate:** display every individual BGC as
@@ -58,8 +66,8 @@ and folds ChatGPT's returned evidence back in when it arrives. Neither layer wai
   every summary. Copy all four fields from one bound source record. If a field is missing or conflicting,
   stop with an identity hold; do not guess, shorten the node/contig, or fall back to the alias.
 - **FIRST: read `[StrainID]_AntiSMASH_Evidence_Parse.json` → `gbk_pfam_hits`** (per-locus HMM hits
-  with `tier1_diagnostic` flags). This is antiSMASH's pre-computed HMMER and is sufficient for
-  class-level calls. **Do this before deciding anything is `EVIDENCE_PENDING` or before listing a
+  with `tier1_diagnostic` flags). These are source domain results whose availability, coverage
+  and class specificity must be checked before a class-level call; their mere filename is insufficient. **Do this before deciding anything is `EVIDENCE_PENDING` or before listing a
   protein for BLASTp** — a class call's diagnostic core often sits at a locus the triage CSV never
   surfaces (e.g. a radical-SAM+SPASM maturase confirming a ranthipeptide). A claim is only
   `EVIDENCE_PENDING` if the JSON's HMM hits genuinely do not resolve it. Never stage a BLASTp query
@@ -68,7 +76,8 @@ and folds ChatGPT's returned evidence back in when it arrives. Neither layer wai
 - Everything keyed to `COMPLETED_*` channels: antiSMASH-precomputed Pfam/sec_met domain hits
   (tier-1 diagnostics), KCB sweep, RG-GMCI pairs, CCTT triggers, CGAD, UMED, EFLS, resistance,
   bldA/TTA, TFBS.
-- The §1–§48 deliverables for every BGC whose class call does not depend on a `NEEDS_*` cell.
+- The selected current profile's deliverables for authorized BGCs whose claims are supported by
+  available exact-locus evidence. full48 is the default CLI profile; opt-in current50_v2 is distinct.
 - Lead ranking, claim-ceiling assignment, and the convention checks (hglE-KS PREV-001, NAPAA
   exclusion, corrected BGC count, habitat class).
 - Flag — but do not resolve — any claim that the `blocking_for_claims` column says depends on
@@ -84,7 +93,7 @@ value. A pending cell stays pending with its status code until real evidence fil
 
 ```text
 MAMEY FOLLOW-ON WORK ORDER  (issued by Claude/Sapote)
-Strain: [StrainID]   Package: [zip name]   Bundle: v9.7.448
+Strain: [StrainID]   Package: [zip name]   Bundle: v9.7.449
 Source of truth: the sealed package you produced; do NOT re-extract or re-run the ten scans.
 
 TASK 1 — Protein FASTA (GATING; everything below blocks on this)
@@ -160,5 +169,5 @@ sign-off QC gate on trees), and `verify-modeb --interp` (Mode-B interpretation g
 class-level capacity — judgment deferred, similarity not identity, no structure/product/activity claim.
 
 ---
-*Sapote-Mamey Bundle v9.7.448 | This prompt orchestrates the parallel loop; the role boundary and
+*Sapote-Mamey Bundle v9.7.449 | This prompt orchestrates the parallel loop; the role boundary and
 claim-safety rules are inherited unchanged from CLAUDE_SYSTEM_PROMPT.md and the Mamey execution prompt.*

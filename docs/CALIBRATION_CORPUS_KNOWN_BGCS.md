@@ -1,3 +1,22 @@
+# Historical known-BGC narrative corpus and calibration boundary
+
+This is a **human narrative-review catalog**, assembled 2026-06-30, not a runnable calibration dataset or current source of scientifically accepted compound identities. Its 15-entry table contains explicit unconfirmed records. Preserve the original source record, declared reference versions, GBK/antiSMASH input hashes and citation decisions before an entry is used as an answer key. Public accession metadata alone does not establish redistribution/license scope or publication permission.
+
+## Distinguish the three surfaces
+
+1. This historical document lists selected comparator accessions and narratives. It does not contain hash-bound region inputs or a machine-readable baseline and is not consumed by `tools/calibration_run.py`.
+2. Small CI/reference fixtures exercise specific software contracts. Passing their checks does not establish all biology or independent detector accuracy.
+3. The current portable detector runner consumes `mamey/data/calibration_panel.json`, its hash-bound `calibration_baseline.json`, and a bound `reference_bgc_library.json`. The reference controls carry expected metadata and are explicitly **`NOT_EXERCISABLE`** without runnable, hash-bound antiSMASH regions (`tools/calibration_run.py:130–201,212–241`).
+
+The runner's executed denominator is synthetic cases. Reference controls remain unexercisable and live targets unexecuted. `--live-input-root` checks region file containment/hashes only: `LIVE_INPUTS_HASH_VERIFIED` is not biological analysis or detector execution on live data. Preserve those denominators in any reported metrics. `PASS` is based on no baseline call flips; metrics/drops are recorded separately. CLI status0 does not turn metadata controls or hash-only targets into tested positives. Output JSON/TSVs are sequential direct writes without a complete code/output hash receipt (`:173–201,281–295`). Record the executed case/input scope with every calibration result.
+
+Known-neighbor similarity is not identity of an unknown locus. The historical “same compound,” chemistry, pathway and public-domain assertions below require source-level confirmation before current adoption. Keep unresolved table entries held; do not count them as verified reference truth. For a locus under review, use strain / full node-or-contig / region / BGC alias; versioned reference accession remains a separate identity. A calibration narrative is not a finished current50 card: see [the current profile contract](MODEB_CURRENT50_V2_CONTRACT.md).
+
+## Preserved historical record — not current instruction or accepted biology
+
+The original catalog and recipe are retained verbatim for provenance. References to forthcoming batches, public-tier permissions and older card sections describe that historical session. They do not authorize new computation, disclosure or adaptation.
+
+````text
 # Calibration Corpus — Known-Compound Reference BGCs
 
 *A catalog of well-characterized biosynthetic gene clusters with published structures, for spot-checking Mode B interpretive quality against ground truth. Use this corpus when training a new analysis chat, validating a class-call heuristic, or auditing whether claim-safe language and KCB-scoring intuition have drifted.*
@@ -68,3 +87,5 @@ All entries below are public MIBiG reference clusters or named-compound GenBank 
 Corpus assembled 2026-06-30 from two batches of antiSMASH output: a MIBiG reference set (BGC0000002–BGC0002573, 10 entries) and a named-compound GenBank set (polyoxin ×2, venturicidin, trioxacarcin A, bafilomycin, 5 entries). Four further batches are expected in subsequent sessions — append new entries to the inventory table above rather than creating parallel documents.
 
 All entries are public domain / MIBiG-curated. None require PRIVATE tagging. Safe for inclusion in any tier including SID-public.
+
+````

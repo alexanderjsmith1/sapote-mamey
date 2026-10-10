@@ -67,3 +67,13 @@ The same renderer and contract apply whether the run covers 10, 1,200, or the fu
 ## 7. Claim ceiling
 
 Gene roles, domain calls, BLASTp, KCB/MIBiG, and GCF context are evidence channels. They support class-level hypotheses and experimental prioritization; they do not by themselves establish compound identity, production, activity, novelty, or causality.
+
+## 8. Contract checks versus current renderer guarantees
+
+This is an acceptance contract, not a claim that every renderer enforces all requirements. The v8 sidecar uses `label_displayed=YES` and includes complete identity in `panel`; it does not provide each required identity component as a separate column. An adapter may derive explicit columns only from the verified receipt/package crosswalk, preserving the original panel and source binding. Do not infer identity from a BGC alias or shortened filename.
+
+For v8, reconcile raw source rows with accepted CSV rows because malformed gene rows may be skipped. Check recorded identity and source hashes independently of output-triple validation, inspect the non-blocking adapter's skipped results, and retain the exact ranked/full-inventory scope. R arrow redraws lack the v8 evidence panel and receipt, so acceptance requires their own layer accounting and visual review. See [current v8 limits and recovery](LOCUS_MAP_V8.md).
+
+The required capacity-level note here and the [house rules](FIGURE_HOUSE_RULES.md) placement policy need an explicit per-delivery decision: preserve the scientific ceiling in the caption/methods and review receipt, and record any on-artwork note requirement as a policy hold if its renderer's text gate refuses it. Do not silently remove required evidence wording or declare all policies passed.
+
+Source owners: `mamey/locus_map_v8.py:352–398,748–788,815–853,894–908`; `tools/sapote_locus_map.R:36–57,130–143`.

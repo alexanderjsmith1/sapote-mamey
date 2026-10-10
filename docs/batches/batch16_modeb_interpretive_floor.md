@@ -1,4 +1,21 @@
 # Mode B Interpretive Floor
+
+## Current scope: historical examples are not evidence
+
+This June 2026 companion retains its original body for history. Read the scoped canonical
+[interpretive floor](../MODEB_INTERPRETIVE_FLOOR_v97146.md), [profile matrix](../MODEB_PROFILE_MATRIX.md)
+and [contract/gate scope](../MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md) before authoring.
+The companion's “no MIBiG hit implies novel class” rule conflicts with its corrected canonical source:
+report a scoped search-negative, not novelty. Enzyme counts/domain labels do not determine a product or
+modification; absent broad markers do not uniquely reject an alternative mechanism. Historical example scores, identities, architecture grades, prevalence fractions and citations require their original evidence records before reuse.
+
+Preserve exact locus identity (strain / full node-or-contig / region / BGC alias), actual metrics and
+admitted evidence. KCB aggregate scores are not measured protein identity percentages. Bioactivity cannot
+be assigned by an MRSA/Candida project default, and a class inference does not establish ecological function.
+An unsupported floor remains a hold; do not add chemistry, ecology or a fabricated contrary observation
+simply to complete a checklist. Lexical/structural gate compliance is distinct from scientific review.
+
+<!-- CP018 preserved original body follows. -->
 **Minimum requirements per section — floors, not ceilings**
 
 **v9.7.149a** | Source: `docs/MODEB_INTERPRETIVE_FLOOR_v97146.md` | Last updated: 2026-06-29

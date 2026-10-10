@@ -30,7 +30,7 @@ The tool refuses empty identities, duplicate exact loci, malformed region/BGC al
 
 Successful measurements are written atomically as comma-separated CSV so the historical seed-library consumer remains compatible. New columns bind the complete identity, source ZIP hash, inclusive coordinates, exact base-pair length, engine/bundle versions, citation, marker scope, and full untruncated KCB anchor.
 
-A sibling `*.failures.tsv` is always written. If any reference is held, the failure TSV records its exact locus, source ZIP, typed hold code, and detail; the main structural CSV is not replaced. The process exits with status 2.
+A sibling `*.failures.tsv` is written after manifest admission and reference processing (see early-failure exceptions below). If any reference is held, the failure TSV records its exact locus, source ZIP, typed hold code, and detail; the main structural CSV is not replaced. The process exits with status 2.
 
 `engine_markers_fired` remains for downstream compatibility but is explicitly scoped by `marker_scope=CCTT_PER_BGC_ONLY`. It is not a claim that every engine detector was surveyed.
 
@@ -43,3 +43,13 @@ The generic Sapote-Mamey component and its generated artifacts use `reference_bg
 ## Evidence and claim ceiling
 
 Expected reference facts must come from a versioned local manifest with citations and curator authority. Model-generated prose is not reference truth. Observed similarity and markers support reference-panel navigation and structural concordance only; they do not establish product identity, production, activity, novelty, or biological validation.
+
+## Failure receipt and write-safety qualifications
+
+The failures TSV is written after valid manifest loading and per-reference processing, including as a header-only file on success. It is **not always written**: configuration collisions and manifest read/schema failures return 2 before that step, and engine-load/hash-read failures may raise before the failure writer. An old sidecar can remain. Check current exit status and invocation identity; sidecar presence alone is not a current receipt (`tools/reference_bgc_structural_validator.py:339–404`).
+
+Expected sizes, core-gene text and marker sets are supplied metadata; size/core values are copied into the output, not tested as acceptance gates. Marker intersection is reported without requiring all expected markers. Hash-bound exact selection validates source bytes and locus admission, not curator truth, expected biological facts or a panel-wide detector survey (`277–336`). Input SHA-256 text is normalized to lowercase before validation, so uppercase hex is accepted and recorded lowercase (`155–191`).
+
+Atomic replacement protects each table separately; it allows overwriting existing destinations and is not an atomic commit of structural CSV plus failure TSV. The explicit path collision guard protects the manifest and separates the two outputs, but does not compare output paths with every source ZIP or prove symlink-resolved containment under input-dir. Before use, require reviewed source-resolved paths and output destinations disjoint from all inputs. Use a fresh candidate output rather than risking source replacement. A held panel leaves an older main CSV unchanged; consumers must not reuse it as current PASS (`175–177,231–259,339–404`).
+
+CSV rows bind source ZIP hash, full identity and reported engine/bundle versions, but not the manifest hash, owner-code hash or output file hashes. Retain an external receipt binding those before downstream seed-library admission. Zero exit is exact-bound extraction, not biological validation or scientific acceptance.

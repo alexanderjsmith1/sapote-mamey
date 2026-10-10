@@ -115,6 +115,31 @@ def poll_interval(age_s: float, errors: int = 0) -> float:
     base = 60.0 if age_s < 600 else 300.0 if age_s < 3600 else 900.0
     return min(1800.0, base * (2 ** min(errors, 5)))
 
+# Fleet pacing: the gap between this lane's submissions grows with the number of runners alive on
+# this machine, so adding lanes does not multiply the load on NCBI. 1-4 runners: --sleep as given;
+# 5-8: at least 12 min; 9-16: at least 20 min; 17 or more: at least 30 min. The count is refreshed
+# once a minute and includes runners of any version.
+_PACE = {"t": 0.0, "n": 1, "gap": None}
+_RUNNER_CMD = re.compile(r"^\S*python[\d.]*\s+\S*nr_rid_runner\.py\s+run\b", re.IGNORECASE)
+
+def live_runner_count() -> int:
+    try:
+        out = subprocess.run(["ps", "-Ao", "command="], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return _PACE["n"]
+    return max(1, sum(1 for line in out.splitlines() if _RUNNER_CMD.match(line.strip())))
+
+def paced_sleep(base: float) -> float:
+    if time.time() - _PACE["t"] >= 60:
+        _PACE["t"] = time.time(); _PACE["n"] = live_runner_count()
+    n = _PACE["n"]
+    gap = (base if n <= 4 else max(base, 720.0) if n <= 8 else max(base, 1200.0) if n <= 16
+           else max(base, 1800.0))
+    if gap != _PACE["gap"]:
+        _PACE["gap"] = gap
+        log(f"  PACE {n} runner(s) live: one new submission per {gap / 60:.0f} min on this lane")
+    return gap
+
 def read_fasta(text: str) -> list[tuple[str, str]]:
     recs, head, seq = [], None, []
     for line in text.splitlines():
@@ -684,7 +709,7 @@ def _run_lane(args):
         # SUBMIT (only when paced AND not inside a backoff window)
         held = sum(1 for v in inflight.values() if nowt - v[2] >= args.hold_after)
         active = len(inflight) - held
-        if (pending is not None and nowt - last_submit >= args.sleep and nowt >= next_submit_ok
+        if (pending is not None and nowt - last_submit >= paced_sleep(args.sleep) and nowt >= next_submit_ok
                 and active < args.max_inflight and held < args.max_held):
             faa = pending
             key = relkey(faa); strain, bgc = Path(key).parts[0], Path(key).parts[1]

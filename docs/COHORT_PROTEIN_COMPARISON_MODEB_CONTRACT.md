@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`mamey cohort-proteins` creates a portable, within-project protein-comparison channel. It answers a question that external BLASTp and whole-region BiG-SCAPE do not answer directly: for a selected gene in one exact BGC, which proteins in the measured AS, SID, type/reference, or other configured cohorts are closest, and do several of those proteins recur together in the same comparator BGC neighborhood?
+`python mamey_run.py cohort-proteins` creates a portable, within-project protein-comparison channel. It answers a question that external BLASTp and whole-region BiG-SCAPE do not answer directly: for a selected gene in one exact BGC, which proteins in the measured AS, SID, type/reference, or other configured cohorts are closest, and do several of those proteins recur together in the same comparator BGC neighborhood?
 
 This channel is intended primarily for Mode B §45, but its evidence can be routed into other sections when the section names the exact genes and preserves the claim ceiling.
 
@@ -12,7 +12,7 @@ This channel is intended primarily for Mode B §45, but its evidence can be rout
 2. An occurrence is identified by `strain / full node-or-contig / region / BGC alias`, locus tag, and protein SHA-256.
 3. Identical proteins in overlapping antiSMASH regions remain visible occurrences but do not become independent strain observations.
 4. Every comparison states the measured cohort denominator as distinct strains, exact BGC loci, protein occurrences, and distinct protein sequences.
-5. The focal strain is excluded from its own cohort comparison when `--query-cohort` is supplied. This prevents the focal protein or overlapping calls from winning as a false non-self comparison.
+5. Self-exclusion applies only inside the cohort whose label exactly equals `--query-cohort`, using the focal strain string. The supplied label is not validated as a cohort-membership assertion; a misspelling or duplicate inclusion in another cohort can leave self matches. Check the actual cohort labels and selected strains before calling results non-self. Reported cohort denominators are whole-catalog counts before self-exclusion, not candidate counts after exclusion.
 6. Missing package protein FASTAs, unresolved aliases, and incomplete exact-locus identities are typed quarantine states, not biological absences.
 
 ## Commands
@@ -20,7 +20,7 @@ This channel is intended primarily for Mode B §45, but its evidence can be rout
 Build a reusable database from any named package roots:
 
 ```bash
-mamey cohort-proteins build \
+python mamey_run.py cohort-proteins build \
   --cohort AS=/path/to/as/runs \
   --cohort SID=/path/to/sid/runs \
   --cohort TYPE=/path/to/type/runs \
@@ -30,7 +30,7 @@ mamey cohort-proteins build \
 Legacy packages that predate `*_proteins.faa` can enter through an exact-locus GBK register instead of being treated as absent:
 
 ```bash
-mamey cohort-proteins build \
+python mamey_run.py cohort-proteins build \
   --cohort AS=/path/to/current/as/runs \
   --gbk-register /path/to/governed_sid_region_gbks.tsv \
   --out project_evidence/cohort_proteins.sqlite
@@ -41,7 +41,7 @@ The tab-separated register requires `cohort`, `strain`, `full_node_or_contig`, `
 Compare the automatically selected core, resistance-routing, and transporter genes of one exact BGC:
 
 ```bash
-mamey cohort-proteins compare \
+python mamey_run.py cohort-proteins compare \
   --database project_evidence/cohort_proteins.sqlite \
   --package runs/STRAIN/package \
   --bgc "$SECONDARY_ALIAS_RESOLVED_INSIDE_PACKAGE" \
@@ -58,7 +58,7 @@ The current portable implementation uses a disclosed two-stage method:
 1. length-gated 4-mer prefilter, retaining the top 40 candidates per query gene and cohort;
 2. local BLOSUM62 alignment with gap-open -11 and gap-extension -1.
 
-Ranking uses local alignment score, then query coverage, identity, and deterministic exact-locus/gene tie breakers. The result table always provides identical-residue count, alignment-column denominator including gaps, BLOSUM-positive count, identity, positives, query coverage, subject coverage, protein SHA-256 values, and exact source paths.
+Ranking uses local alignment score, then query coverage, identity, and deterministic exact-locus/gene tie breakers. For aligned candidates the table provides identical-residue count, alignment-column denominator including gaps, BLOSUM-positive count, identity, positives, query coverage, subject coverage, protein SHA-256 values and comparator source-package paths. The prefilter restricts subject length to approximately 0.55–1.80 times query length, drops zero shared 4-mer candidates and aligns only the retained set. A missing row is not an exhaustive no-homology result. Ranking is within that screened set.
 
 The states are navigation labels, not biological verdicts:
 
@@ -66,7 +66,36 @@ The states are navigation labels, not biological verdicts:
 - `MODERATE_WHOLE_PROTEIN_FAMILY_NAVIGATION`: at least 40% identity and 70% bilateral coverage;
 - `WEAK_CLOSEST_AVAILABLE`: the highest-ranked measured candidate does not meet the moderate threshold.
 
-Weak rows are retained so a card can say “closest measured protein” rather than the misleading “nothing found.” They must be described as weak.
+Weak aligned rows are retained for within-screen navigation. Inspect `alignment_skipped` before describing any row as measured: a pair with either sequence longer than `MAMEY_MAX_ALIGN_AA` (default 10,000) is not aligned and receives placeholder zero metrics plus a skip reason; the current navigation state still reads `WEAK_CLOSEST_AVAILABLE`. Those placeholders are unavailable alignment evidence, not measured zero identity or a tested weak match. If explicit `--genes` entries lack sequences, the loader skips them; compare requested and resolved query lists and retain omissions as holds.
+
+## Outputs, mutation and recovery
+
+Build writes the selected SQLite path and its sibling `.receipt.json`, with database
+hash, occurrence/cohort counts and quarantine summary. Missing packages or failed
+bindings can still yield `PASS_WITH_TYPED_QUARANTINE`, including an empty catalog;
+zero exit does not establish complete cohort coverage. Inspect quarantine and input
+counts. Package catalog ingestion currently builds an alias-to-row dictionary,
+so conflicting duplicate inventory aliases are not independently quarantined;
+require the supplied inventory's alias uniqueness before using its joins.
+
+An existing catalog is refused unless `--replace` is selected. Replacement swaps
+the database before writing its receipt; it is not a crash-atomic database/receipt
+pair. Preserve the old catalog and receipt for a separately authorized rebuild.
+After interruption, verify that the receipt's database hash matches current bytes.
+
+Compare opens the database read-only/immutable, so use a closed, checkpointed
+snapshot; the handler does not check WAL/journal sidecars. It creates `--outdir`
+with `exist_ok=True` and overwrites same-stem TSV/Markdown/receipt files. Use a fresh
+output folder to retain earlier evidence; the label “additive” does not provide an
+existing-output guard. Outputs are `__COHORT_PROTEIN_MATCHES.tsv`,
+`__COHORT_NEIGHBORHOOD_SUMMARY.tsv`, `__MODEB_SECTION45_PAYLOAD.md` and
+`__COHORT_PROTEIN_COMPARISON_RECEIPT.json` beneath an exact-locus-derived stem.
+
+The comparison receipt binds output hashes but does not bind the input database or
+focal package files. Retain an external run record binding those inputs, parameters,
+actual query roster and matching build receipt; the comparison's `PASS` alone is
+not sufficient for reproducible input identity. A version-aware input-binding and
+skip-state repair remains owning-code work.
 
 ## Neighborhood extension
 

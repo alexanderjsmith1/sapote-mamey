@@ -98,24 +98,23 @@ a **candidate**, never asserted as a taxonomic confirmation on its own.
 
 ```bash
 # From a sealed package's manifest.json
-python tools/chitin_reference_eval.py \
+python3 tools/chitin_reference_eval.py \
     --package ./runs/<strain>/package --registry my_reference_registry.tsv
 
 # From a standalone CGAD counts JSON (e.g. testing, or a strain without a full package)
-python tools/chitin_reference_eval.py \
+python3 tools/chitin_reference_eval.py \
     --cgad-json cgad_counts.json --registry my_reference_registry.tsv \
     --strain-id <id> --taxon <genus>
 
 # TSV row instead of the JSON receipt; also write both to disk
-python tools/chitin_reference_eval.py \
+python3 tools/chitin_reference_eval.py \
     --package ./runs/<strain>/package --registry my_reference_registry.tsv \
     --format tsv --out-json out.json --out-tsv out.tsv
 ```
 
 `stdout` is the deliverable (JSON receipt by default, or a TSV row with `--format tsv`). A typed
 refusal (bad input, unreadable package, malformed registry, missing CGAD scan) is written to
-`stderr` and exits non-zero — the two streams are never mixed, so a caller can always trust that
-anything on `stdout` is a real receipt.
+`stderr` and exits non-zero — the two streams are never mixed, but stdout is emitted before optional disk outputs are written. A later output error can leave stdout populated and partial disk outputs; successful stdout is not proof that all files were published.
 
 ## What this module deliberately does not do
 
@@ -133,3 +132,15 @@ Vocabulary, thresholds, and claim-ceiling text are carried over from the source 
 the Codex workroom script `build_per_strain_chitin_evaluations` (2026-08-21; `architecture()`, `reference_quality()`) rather
 than reinvented. See that workroom's `PER_STRAIN_CHITIN_EVALUATION_INDEX__2026-08-21.md` and
 `SAVE_STATE.md` for the original 46-strain / 81-reference evidence run this module generalises.
+
+## Current validation and reference-selection limits
+
+Package mode reads manifest fields but does not verify sealing, scan coverage, whole-genome completeness or source hashes (`tools/chitin_reference_eval.py:52–96,140–173`). An all-zero/empty count dictionary can yield `ABSENT_NO_MEASURED_CHITIN_DOMAINS` because missing known family keys become zero. Values are `int()`-coerced (including truncatable floats and booleans); unknown family keys are ignored. Admit a complete, source-bound scan independently before interpreting an “absent” or “measured” label (`mamey/chitin_reference_eval.py:161–203`). The five-family total is saved annotation capacity, not a protein/gene count or biochemical measurement.
+
+Registry matching is exact and case-sensitive on taxon/genus or supplied aliases. No taxonomy resolver, duplicate-reference rejection, required source-path/hash validation or hash verification runs automatically. Missing reference identity/path/hash fields become `NR`; declared hashes simply pass through. `verify_reference_hash` is an optional separate file reader, returning `None` when uncheckable; its result is not called or included by the evaluator. Do not infer verified reference bytes from a reference-panel row. Retain the registry's own hash and the separately checked source hashes in the owner record (`:224–253,294–313`).
+
+Optional numeric ANI/aligned-fraction values are parsed without finite/range checks. Reject nonfinite/out-of-range ANI/fractions upstream. Row state uses aligned fraction **0.2**, while the high-quality thresholds use **0.5**. Quality and `top_reference` select the **maximum ANI among all scored rows**, not the best row that passes 0.5. A highest-ANI row below the fraction cutoff can therefore prevent a high-quality state even where another row qualifies. `DISTANT_AVAILABLE_TAXON_MATCHED_REFERENCE_CONTEXT` can reflect inadequate/missing fraction rather than biologically distant ANI. Preserve the full panel and separate reason; these state names do not establish taxonomy (`:206–269,283–290`).
+
+The emitted evaluation is typed data, not an independently hash-bound receipt: it does not hash the source counts/manifest, registry, code, parameters, outputs or itself. Optional JSON/TSV files are each written through atomic helpers after stdout; the pair is not one transaction and can replace existing destinations. Normal typed refusals return1; numeric parsing and output errors outside those catch classes can raise exceptions. Use unused external destinations, verify process status and every expected file, retain partial attempts, and record actual input/output/code hashes separately. Use the original decision and run receipts for historical workroom decisions and 46-strain/81-reference counts; keep current scientific adoption separately recorded.
+
+This remains a strain/whole-genome context lane. If any separate report mentions a BGC, retain strain / full node-or-contig / region / BGC alias; no chitin state assigns causality to that locus. Typed bioactivity examples are shape fixtures, not measured evidence: see [the metadata validator boundary](BIOACTIVITY_METADATA_CONTRACT.md).

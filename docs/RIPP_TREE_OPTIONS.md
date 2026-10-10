@@ -101,7 +101,7 @@ hit to the query BGC.
 
 ## Required gates
 
-- exact strain+BGC+locus and, where relevant, motif/domain index;
+- exact `strain / full node-or-contig / region / BGC alias`, plus locus tag and, where relevant, motif/domain index;
 - exact current inventory join;
 - one explicit RiPP family/class per default pool;
 - full sequence and coordinate provenance;
@@ -110,6 +110,23 @@ hit to the query BGC.
 - enzyme architecture and precursor-context review;
 - tree-versus-network choice recorded;
 - claim-safe caption and source receipt.
+
+
+## Current preparation identity boundary
+
+The .447 `tools/prepare_biosynthetic_tree_inputs.py` checks a strain-local BGC alias
+against the supplied inventory and records source file/row, locus, sequence digest
+and its generated tip token. Its inventory reader retains products by `bgc_id`;
+the emitted sequence ledger and FASTA tip do **not** carry the full contig/node and
+region components of `strain / full node-or-contig / region / BGC alias`.
+
+A `MAPPED` row, alias membership or `READY_FOR_ALIGNMENT` count therefore does not
+establish the complete locus identity. Before using an individual locus as an
+alignment/figure tip, make an exact join to the bound current inventory/module
+record and retain all four identity components plus locus/domain and source hashes.
+Do not infer those missing fields from tip order or the alias. Unresolved or
+conflicting joins remain identity holds. The preparer currently needs an owning
+code change to emit and verify that complete crosswalk automatically.
 
 ## Claim ceiling
 

@@ -1,89 +1,37 @@
-# BiG-SCAPE ↔ Sapote-Mamey ↔ antiSMASH — true integration (v9.7.319)
+# BiG-SCAPE integration adapters: current limits and historical scope
 
-> **LEGACY IMPLEMENTATION NOTE.** This document explains older adapters; it is not permission to
-> run a one-shot pipeline or mutate cards/triage boards. LLMs must follow
-> `docs/LLM_COMPANION_TOOL_PROTOCOL.md` and `docs/BIGSCAPE_GCF_WORKFLOW.md`. Default output is an
-> additive locator-keyed overlay. `bigscape_ingest_to_mamey.py` requires separate user authorization
-> and source-preserving reconciliation. “KNOWN/NOVEL” is prohibited on cohort-only databases.
+Read the [companion protocol](LLM_COMPANION_TOOL_PROTOCOL.md) and [GCF workflow](BIGSCAPE_GCF_WORKFLOW.md). Default reconciliation is a reviewed additive overlay. The shipped ingest tool directly rewrites cards, so using it on canonical/sealed cards requires the separately authorized, source-preserving reconciliation described there. Use this guide to check input identity, selected database scope and card-write behavior before choosing a workflow.
 
+> **LEGACY IMPLEMENTATION NOTE:** The adapter behavior described here includes retained legacy status and write semantics. Use the linked current workflow for a new task; historical labels do not establish scientific acceptance.
 
-Prior state (v9.7.319): the bundle could *prep* antiSMASH/Mamey inputs for BiG-SCAPE, *run*
-clustering + MIBiG anchoring, and emit a locator-keyed cross-strain TSV. But "ingest GCFs back
-into the Mamey locator space" was a manual join — nothing wrote the cross-strain / known-vs-novel
-result **into** the per-BGC deliverables. The following records the historical adapter implementation. Use the current workflow linked above for analysis.
+## Exact run and portable identity
 
-## The shared key
-antiSMASH emits `*.regionNN.gbk`; `bigscape_prep.py` strain-prefixes them to
-`<STRAIN>_NODE_..._.regionNN.gbk`. The parsed `strain : node.region` is the single join key across
-all three layers. Mode B cards are named `<STRAIN>_BGC###_ModeB.md` (a BGC *number*, not a
-locator), so the **triage board is the bridge** — it carries both the BGC number and the
-node.region. No triage board → the ingest refuses rather than guess (matches the "reconcile BGC
-numbering before authoring" discipline).
+`tools/bigscape_ingest_to_mamey.py` requires `--run-id` with `--db`, selects region-level memberships in that run and normalized cutoff, and rejects conflicting family assignments. Family namespace combines run, cutoff and family ID; family ID alone is not a portable cross-run join key. Membership selection does not verify completed-run status or reference provenance.
 
-## Historical adapter implementation
+The triage bridge maps strain+BGC alias to a normalized locator. Duplicate bridge entries overwrite earlier ones; a strain-less fallback is permitted. Package discovery chooses the first matching triage CSV and card directory, rather than enforcing unique candidates. Explicitly bind the reviewed bridge and input directory, and retain strain, full contig/node, region and alias with hashes. Coverage-stripped locator normalization is not proof that differently named biological records are identical.
 
-### `tools/bigscape_ingest_to_mamey.py`  — the missing half
-Reads an anchored BiG-SCAPE 2 DB and, for every strain BGC, computes a GCF context: family id +
-KNOWN/NOVEL at the chosen cutoff, the MIBiG accession(s) sharing the family (with compound names
-from the bundle's `mibig_reference_index.bacterial.json`), the nearest characterized cluster and
-its GCF distance, and the other cohort strains in the family. It then **writes a fenced
-`GCF cross-strain context` block into each Mode B card** (under §8 Comparator/KCB) and can add GCF
-columns to the triage board. Idempotent (re-runs replace the block), capacity-worded, and
-provenance-tagged `[store-backed GCF | BiG-SCAPE]`. Tested end-to-end (`tests/…_v9_7_291.py`) on a
-synthetic anchored DB *and* verified against the real 36-strain anchored DB.
+## Membership, distance and legacy status limits
 
-### `tools/bigscape_pipeline.py`  — one command, whole loop
-`prep → cluster+anchor → known_novel + cross_strain → ingest`. Pure orchestration of the shipped
-adapter tools + the external BiG-SCAPE binary; adds no new science. Resumable (`--skip-cluster`),
-and MIBiG anchoring routes through the guarded launcher with an explicit `-m` slot.
-`--chunk-mibig` is held: multiple calls do not yet have a proven combined reference/run identity.
+DB family membership is selected by exact run/cutoff, but the nearest-MIBiG calculation scans the entire distance table without a run/parameter filter (`109–184`). It can therefore attach a nearest-reference result from a different comparison history. Hold that field until an independently scoped distance receipt establishes the selected run and parameters.
 
-### `tools/bigslice_query.py`  — BiG-SLiCE as a second opinion
-BiG-SCAPE clusters by pairwise domain alignment against **2,088 MIBiG** references. BiG-SLiCE
-embeds each BGC as a BiG-FAM feature vector (super-linear) and can **query against the ~1.2M-GCF
-BiG-FAM model built from all of NCBI** — turning "novel vs MIBiG" into "novel vs essentially all
-sequenced bacterial biosynthesis". Modes: `cluster` (de novo on the cohort, diff against the
-BiG-SCAPE families — agreement = robust family, disagreement = inspect), and `query` (vs a
-downloaded BiG-FAM model). Verified: BiG-SLiCE 2.x installs (`pip install bigslice`) and the CLI
-matches this tool's invocations. **Not run end-to-end here** — a real run needs the BiG-SLiCE
-sub-Pfam HMM DB and (for `query`) the multi-GB BiG-FAM `full_run_result`, both external downloads
-like antiSMASH/Pfam. Treat BiG-SLiCE as an optional prerequisite, not a vendored dependency.
+`KNOWN` means a parsed MIBiG accession shares the selected family; `NOVEL` is the emitted legacy fallback, not demonstrated novelty. On cohort-only data, suppress known/novel interpretation and report only measured within-panel membership. TSV ingest converts every non-KNOWN status to NOVEL; absent/unknown status must remain a hold rather than an adopted novelty call. Missing/malformed MIBiG name indexes silently yield `?` labels. The block's “no characterized analog” wording overstates absence when reference loading has not been verified.
 
-## Recommended flow
-```
-# 1-4 in one shot (antiSMASH zips or sealed Mamey packages as --inputs):
-# BIGSCAPE_ENV_BIN points to the active BiG-SCAPE environment bin directory.
-export BIGSCAPE_ENV_BIN=/path/to/bigscape-env/bin
-python tools/bigscape_pipeline.py \
-    --inputs <pkg-or-antismash>... --pfam /path/to/pressed/Pfam-A.hmm \
-    --mibig-dir /path/to/mibig_gbks --mibig-name local_set \
-    --workdir bigscape_run/ --ingest-package <MameyPackage/> \
-    --mibig-index mamey/data/mibig/mibig_reference_index.bacterial.json
+Portable TSV mode lacks cohort co-member detail even when family namespace fields are available. Empty co-member lists in DB mode describe selected-family membership only; they do not demonstrate organism rarity or absence of related loci elsewhere.
 
-# optional global-novelty second opinion:
-python tools/bigslice_query.py cluster --input bigscape_run/input --out bigslice_out/
-python tools/bigslice_query.py read --out bigslice_out/ --bigscape-tsv bigscape_run/cross_strain_GCFs.tsv
-```
+## Card writes, placement and recovery
 
-## Reading the injected block (discipline)
-KNOWN = the family shares a bin with a MIBiG reference → **architecture-consistent, capacity-level**,
-never a compound-identity claim. GCF distance is domain-architecture distance (0 identical … 1
-maximal). The block explicitly defers to the card's own KCB/Mode B evidence for per-BGC calls.
-Bioactivity stays extract-level; nothing here is a per-BGC phenotype claim.
+The ingest CLI has `--dry-run`; its updated count then means proposed changes. Actual writes replace the existing fenced GCF block, otherwise insert near a literal section8 heading, otherwise append at the end. Current full-profile section numbering may have a different meaning, so automatic placement needs a content/layout review. Repeated replacement is text-idempotent, not proof of source/version binding.
 
-## What is and isn't tested in this cut
-- **Tested:** `bigscape_ingest_to_mamey.py` (synthetic DB unit test + real 36-strain anchored DB;
-  KNOWN/NOVEL split, MIBiG accession+compound resolution, nearest-distance, idempotency, §8
-  placement, capacity wording).
-- **Orchestration only (not a new algorithm):** `bigscape_pipeline.py` chains existing tools. Its MIBiG route requires an explicit `-m` slot and a positive loaded-count log. Real small/cohort pilot evidence is still needed before describing this route as scientifically accepted.
-- **CLI-verified but not executed here (external model DB required):** `bigslice_query.py`.
+Writes use atomic replacement per card, with no whole-batch transaction, original-hash gate, input/output hash receipt or current-profile verifier. A partial batch can survive failure. Cards lacking a locator/context match are skipped; zero exit can mean every card skipped. Inspect updated/skipped/context counts and every proposed locus binding. Despite historical help text, the current CLI does not add GCF columns to the triage CSV (`280–401`). Preserve sources; stage a separately reviewed additive overlay rather than testing mutation on them.
 
-## Supplement — antiSMASH ↔ BiG-SCAPE reconciliation (`tools/antismash_bigscape_join.py`)
-antiSMASH and BiG-SCAPE each compare a BGC to MIBiG by different methods: antiSMASH
-KnownClusterBlast (gene-level BLAST → % similarity) vs BiG-SCAPE GCF (domain-architecture family
-→ KNOWN if it contains a MIBiG ref). This tool joins them per BGC on the node.region locator and
-flags agreement/disagreement (a disagreement is the BGC worth a look). It is DB-free and portable:
-reads antiSMASH region GBKs (aSDomain architecture) + the small BiG-SCAPE cross_strain/known_novel
-TSV; optionally reads antiSMASH `knownclusterblast/` for the actual KCB accessions. Verified on the
-51-strain cohort (1,608 BGCs joined; correctly links a cohort strain's T1PKS to its novel family with
-full KS-AT-KR-ACP-TE domain architecture; specific strain→family pairings withheld from the public code tier). Upload the antiSMASH `knownclusterblast/` dirs to enable the KCB column.
+## Pipeline integration hold
+
+`tools/bigscape_pipeline.py` proves an explicit run exists or that exactly one new run row appeared. Skip-cluster and pre-existing/shared databases require explicit IDs; MIBiG chunking remains held. The normal prep call lacks the strictness option required by `bigscape_prep.py`, so the unmodified one-shot prep path fails. No-MIBiG execution still routes through legacy known/novel export, and optional `--ingest-package` writes cards without an approval gate inside the script. The runbook is the approval/provenance authority, not the presence of those flags. See the [GCF workflow](BIGSCAPE_GCF_WORKFLOW.md) for the detailed recovery hold.
+
+## antiSMASH join and BiG-SLiCE limitations
+
+`tools/antismash_bigscape_join.py` validates family namespaces but joins GBK names using the first underscore-delimited strain token and a filename locator. Its optional KCB parser keys hits by strain+region only, uses the first accession/percent regex matches and can overwrite duplicate region keys across contigs. Its agreement label tests KCB hit presence versus family KNOWN status; it does **not** test equality of anchor accessions or methods. Missing KCB context is unmeasured, not disagreement. Output TSV is overwritten directly and can be header-only with zero exit; it has no source/output hash receipt (`54–179`).
+
+`tools/bigslice_query.py` is an external-tool adapter, not universal bacterial novelty evidence. Reference-panel size, model date/sampling and installed-version compatibility require their own receipts. Cluster mode reuses existing symlinks and output paths; read mode may choose the first recursive DB, assigns duplicate locators by last row, and reports only the number of overlapping assignments rather than a quantified agreement score. Query mode requires `--out` in its parser but sends results to the model route and does not use that option (`43–131`). Hold stale outputs and unbound database/model selection. Do not transfer historical 2,088-reference/~1.2M-model or 36-/51-strain test counts to a current run.
+
+Earlier v9.7.319 accounts and named cohort examples are historical implementation reports. Use their original test/run receipts for historical claims and separate scientific acceptance from implementation status. Source owners: `tools/bigscape_ingest_to_mamey.py`, `tools/bigscape_pipeline.py`, `tools/antismash_bigscape_join.py`, `tools/bigslice_query.py`.

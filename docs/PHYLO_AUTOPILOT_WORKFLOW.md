@@ -36,9 +36,12 @@ running. Python package installation alone does not provision these databases or
 ```
 python tools/phylo_autopilot.py plan <uploads_dir>
 ```
-Classifies every FASTA under the directory as `rrna`, `genome`, or `protein`. Classification is by
-sequence **length**, so a single multi-FASTA of many 16S sequences (one per strain) is correctly
-`rrna`, never mistaken for a genome.
+Classifies discovered FASTA files as `rrna`, `genome`, `protein`, or `empty`. It first
+checks protein-only symbols in the first five records, then assigns `genome` when the longest
+record is at least 10,000 bases or total sequence length is at least 500,000. Otherwise, all
+records at most 5,000 bases are routed as `rrna`; this is a heuristic, not marker identification.
+A sufficiently large multi-FASTA of short 16S records can therefore be classified as `genome`.
+Inspect the actual sequences and do not treat classification as assembly or 16S validation.
 
 ### 2. `route` — assign a genus and route every 16S  (BLAST, no ML)
 ```
@@ -49,7 +52,7 @@ Writes a routing table (`query, tophit_genus, pident, aln_len, routing_state, al
 route_class, group, tophit_title`). Up to five ranked hits are retained during routing. A different-
 genus hit within 0.5 percentage points of the top identity and at least 95% of its aligned length is
 recorded as `GENUS_CONFLICT` and is not automatically admitted to either reference group.
-and prints the per-class tally plus the reference genera each group will need. **Read this table
+The command prints the per-class tally plus the reference genera each group will need. **Read this table
 before building anything** — it is where you catch a contaminant or a mis-sort.
 
 ### 3. `run-16s` — build the gated tree for one group  (auto-reference → phylo_place)
@@ -63,13 +66,23 @@ observed genera, plus a few sentinels + a distant outgroup, pulled from the DB),
 `phylo_place all`. **`--approved-by` is required** — without it the command refuses and tells you to
 use `--dry-run`. This is the standing **tree-approval gate**; the autopilot never bypasses it, and
 the heavy ML still runs inside `phylo_place`, which enforces the gate itself. Use `--dry-run` to
-produce the reference + query FASTAs and stop, so you can inspect them before committing compute.
+prepare local routing/QC tables, the selected reference accession list and reference/query
+FASTAs, then stop before placement. **This dry run still executes local `blastn` and
+`blastdbcmd` and writes under `--outdir`; it is not a no-compute or no-write inventory.**
+Use a fresh, authorized output directory outside the code bundle. Reference selection is
+by database title, definition screening and per-genus caps; it does not independently prove
+that every selected record is type material. Bind supplied metadata before using `[Type]` labels.
 
 ## Whole-genome workflow
 
 Run `python mamey_run.py phylo-run --help` to prepare the genome list, space-free work directory,
 outgroup, and compute settings. The `--approved` flag is required for execution. ANI is optional:
-supply the corresponding reference/query genome lists if you need that comparison. A tree alone
+supply the corresponding reference/query genome lists if you need that comparison. Specify
+`--threads 1 --parallel 1 --iqtree-threads 1` for the default one-core policy: the .447
+CLI/runner defaults are four threads and two parallel GToTree jobs, so omitting these
+settings does not implement that policy. `phylo-run` writes `run_status.json` in its workdir
+and does not automatically update the planner's `RUN_STATE.json`; reconcile both records
+with the same bound inputs and actual output paths. A tree alone
 does not provide ANI or a species identification.
 
 ## Review and annotate the results

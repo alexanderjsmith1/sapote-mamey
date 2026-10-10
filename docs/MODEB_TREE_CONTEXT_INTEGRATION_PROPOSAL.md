@@ -2,6 +2,10 @@
 
 Status: proposal for the next cut, not implemented runtime behavior or release clearance. This extends the owner-requested 50-section layout. It consumes existing tree outputs; no new placement, alignment, genome tree or biological scan is requested.
 
+## Compatibility boundary
+
+This is an integration proposal for an optional tree-context panel, not a user command or evidence that the selected builder implements it. Bind the actual builder/profile through [the profile matrix](MODEB_PROFILE_MATRIX.md) before relying on its section numbers or assets. Proposed execution/validation status does not override a current task instruction.
+
 ## Presentation
 
 Place an optional **Strain phylogenetic and isolation-source context** panel after the card identity and concise orientation, before the numbered scientific sections. Keep the familiar numbering intact: §48 biosynthetic citations/relevance, §49 genus/broader citations/relevance, §50 full gene evidence table.
@@ -39,7 +43,7 @@ Prefer the compact approved SVG when legible and small; retain an explicit size 
 
 Trees are optional evidence. While work is in progress, show **tree pending** or the owner-approved draft state; do not substitute an unrelated genus, stale figure or unlabeled draft. A missing figure must not block card production. Use source data to generate tip/host labels rather than manually editing a figure to imply metadata certainty.
 
-Legacy cards and cards without trees must remain readable. The program's canonical report/figure interface should own this feature; avoid a parallel workstation-specific tree registry. The current owner-requested pause on card validation remains in effect. Any eventual software tests/release checks require the cut workflow; this proposal does not claim they ran.
+Legacy cards and cards without trees must remain readable. The program's canonical report/figure interface should own this feature; avoid a parallel workstation-specific tree registry. Validation status belongs to the separately selected implementation record; this proposal does not set current task-execution policy. Any eventual software tests/release checks require the cut workflow; this proposal does not claim they ran.
 
 ## Handoff boundary
 

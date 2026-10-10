@@ -1,49 +1,28 @@
-# MODE_B_BATCH_RUN — full §1–§10 Mode B in rank-ordered batches (v9.7.112)
+# Mode B batches: progress, verification, and completion
 
-## Why batches
+Use small, source-bound batches to author and review the selected exact-locus roster. Batch size is a scheduling choice, not an evidence denominator or a current-profile requirement. Preserve complete strain / full node-or-contig / region / BGC alias for each work unit; triage rank is a routing prior rather than biological truth.
 
-A full strain analysis is large: AS-NNN has 64 BGCs, and a full §1–§10 card runs 9k+ chars for a
-HIGH-priority cluster — so all-of-AS-NNN is ~640 sections and 2+ hours of generation. That does not
-fit one session. The run is **batched**, and batches are **rank-ordered**: the highest-priority BGCs
-are analyzed first, so a token-limited session completes the most valuable cards before it stops.
+## Current sequence
 
-## Run shape
+1. Bind the package/version, exact locus roster, source hashes and selected `full48` or `current50_v2` work-order contract. Use the [profile matrix](../MODEB_PROFILE_MATRIX.md); older §1–§10/20/30 descriptions are history.
+2. Author each saved card from the bound evidence, retaining missingness and contradictory channels. Accessible evidence, scientific interpretation and independent review have their own authority.
+3. If persisting through `record_mode_b`, inspect returned quality/locator/claim findings and `persistence_warnings`. The passive register does not refuse an incomplete draft. See [write behavior](MODE_B_WRITE.md).
+4. Run the actual selected-profile verifier on each final saved card with the bound package and alias. Preserve its warning/error census, roster/coverage flags, invocation and card/source hashes. Update a per-card review ledger separately from legacy register progress.
+5. Resume from that ledger and inspect actual file bytes. `batch_status` reports cached legacy quality state; it does not validate a saved card or infer current source freshness.
+6. Before compiling a full-strain delivery, reconcile the complete expected roster, all card verification receipts and unresolved holds. Apply the separate artifact/layout and owner review gates. A partial source-bound draft may be retained, with its actual coverage stated.
 
-1. **Mamey seal** — run the deterministic engine; produce the sealed package (triage board, RG-GMCI
-   pairs, gene context, RGGMCI_HOWTO in START_HERE.md).
-2. **Rank order** — take the triage-board rank (1 = highest priority). Assign BGCs to batches in rank
-   order: ranks 1..N → batch 1, N+1..2N → batch 2, … Default batch size **N = 8** (parameter — drop
-   to 4–6 per session at this depth if a batch is too heavy; nothing hardcodes 8).
-3. **Mode B per BGC** — write the full §1–§10 card (see MODE_B_WRITE.md), then call
-   `record_mode_b(..., rank=<triage rank>)`. The write-time gate stamps the quality verdict
-   (FULL / SHALLOW / STUB + missing sections) into the register. A card that stops short of §9/§10,
-   or falls below the priority char floor (HIGH 9k / MID 8k / LOW 6k), is recorded **SHALLOW** — it
-   does not silently pass as done.
-4. **Per-batch checkpoint** — after each batch, `batch_status(package_dir, ranked_bgc_ids)` prints
-   e.g. `AS-NNN: 64 BGCs | 16 FULL / 2 SHALLOW / 0 STUB / 46 not-started`. Re-do any SHALLOW card in
-   the same batch before moving on.
-5. **Resume (CDSW)** — a new session calls `batch_status` first; the rank-ordered `per_bgc` list shows
-   exactly which ranks are done and which is next. No re-explaining needed.
-6. **Compile gate** — the compiled master PDF should only build when `compile_ready(package_dir,
-   ranked_bgc_ids)` returns True (every BGC FULL §1–§10). A partial run cannot masquerade as a
-   finished strain.
+## What the helper states mean
 
-## Helpers (mamey.judgment_store)
+`record_mode_b` marks register status COMPLETE while separately storing `quality_tier`; SHALLOW/UNKNOWN cards can therefore increase `completion_pct`. `record_batch_complete` can mark aliases without card content. `batch_status` requires status COMPLETE plus cached `quality_tier=FULL` for its FULL count, and appends any registered aliases outside a caller's supplied order. Its denominator is the resulting alias list, not a freshly validated complete inventory.
 
-- `record_mode_b(package_dir, bgc_id, mode_b_md, ..., rank=<int>)` — write a card; returns
-  `{"path", "verdict"}`. The verdict tells you immediately if the card is FULL or stopped short.
-- `batch_status(package_dir, ranked_bgc_ids)` — rank-ordered progress (counts + per-BGC state).
-- `incomplete_cards(package_dir)` — every recorded card that is not FULL (to re-do).
-- `compile_ready(package_dir, ranked_bgc_ids)` — `(ok, reason)` compile gate.
+`compile_ready(package_dir, ranked_bgc_ids)` returns `(ok, reason)`, not a boolean. Test `ok`, because even `(False, reason)` is a truthy Python tuple. Its legacy gate uses cached FULL tiers and blocks an unrecovered corrupt register; it does not run a current-profile verifier, check card hashes, or grant scientific acceptance. A regenerated source or edited card invalidates old cached verdicts until rechecked.
 
-## Token-budget discipline
+## Legacy quality policy
 
-Because batches are rank-ordered, a run that stops early still delivers the top BGCs complete. Prefer
-**finishing fewer cards fully** over starting many cards shallow — a SHALLOW card is recorded as not
-done and must be redone, so a half-written card is wasted budget. Concise is good; complete is required.
+The passive evaluator's current character floors are HIGH 12,000 (rank 1–10), MID 11,000 (11–25), LOW 10,000 (otherwise). It also checks structural/gene-density conditions and a 2,000-character enrichment floor. A boundary Edge/Full-contig locus with supplied CDS count no greater than 22 can use a 2,500-character floor; missing boundary/CDS values do not grant this reduction. Text below 2,000 characters is STUB. These are legacy engineering thresholds, not licenses to pad text or bypass the selected finished profile.
 
-## Fragments
+## Failure and safe continuation
 
-Single-ORF / full-contig fragments (sub-2k chars) are STUB-exempt from the §9/§10 length requirement —
-§10(D) RG-GMCI linkage is their key section. Don't pad a fragment to hit a floor; that violates
-evidence-conservation.
+Preserve current and prior card files, register/last-good backup and review receipts. File writes are individually atomic but card/note/register publication is not one transaction. Repeating a write can duplicate optional reader notes; reconcile those files deliberately. Do not fix a corrupt roster by guessing its denominator or resetting history. Resume only from source-bound identities and a reconciled expected roster, then independently verify the current saved cards.
+
+Source owners: `mamey/judgment_store.py:346–484,489–512,679–820`; `mamey/mode_b_quality_gate.py:60–99,264–291`; `mamey/authored_verify.py:68–109,591–680,804–891`.

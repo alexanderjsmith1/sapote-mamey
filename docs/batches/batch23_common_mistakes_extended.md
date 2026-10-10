@@ -1,4 +1,30 @@
 # Common Mistakes — Extended Reference
+
+## Current recovery entry
+
+Use [COMMON_MISTAKES.md](../COMMON_MISTAKES.md), [prerequisites](../PREREQUISITES.md),
+[current workflow guide](../GUIDE/02_Quick_Guide.md) and the [profile matrix](../MODEB_PROFILE_MATRIX.md).
+The original June 2026 examples below remain historical. They are not install, rerun, external submission,
+release or chat-dispatch authority. Do not apply old `--break-system-packages` or blanket reinstall recipes
+without an actual current environment/task requirement. Preserve existing evidence and inspect dependencies
+and receipts before deciding a bounded recovery action.
+
+Current section placement differs from the old §2 KCB/§3 domain examples; use selected contract titles
+and §4/default or §50/v2 evidence. Missing KCB does not mean no family evidence; domain/context evidence
+may remain available. Missing a workbook does not establish absence of underlying annotation, and a raw
+source analysis is not automatically accepted or invalid merely because it bypasses one packaging route.
+Name unavailable diagnostics and exact input/profile limits instead. A '.' organism is missing metadata,
+not proof of an actinomycete genus. Do not fill taxonomy, substrate or bioactivity from defaults.
+
+The ingest-receipts parser exists (`mamey/cli.py:7389–7417`) and `--master` is optional. Actual ingest skips
+unknown, empty or identity-conflicting cards; structure errors are skipped unless force-structure is used
+(`mamey/mode_b_receipt.py:244–318`). Advisory depth quality does not block ingest (`:320–331`). Persisting
+cards/register state is not sealing a package, finished-profile scientific verification or owner acceptance;
+COMPLETE is not a publication verdict. Inspect actual recorded/skipped findings and workbook status rather
+than assuming every card flips COMPLETE or every workbook reconciles. The simplified historical JSON shape
+is not the whole current receipt/profile contract.
+
+<!-- CP018 preserved original body follows. -->
 **11 documented failure modes with context, fixes, and Mode B implications**
 
 **v9.7.149a** | Source: `docs/COMMON_MISTAKES.md` | Last updated: 2026-06-29

@@ -1,5 +1,77 @@
 # Sapote–Mamey Playbook
-**Version:** v9.7.448 | **Bundle:** sapote-mamey-v9.7.448 | **For:** ChatGPT (single-model or dual-model with Claude)
+
+## Current task, profile and command entry
+
+Start with [assistant governance](ASSISTANT_GOVERNANCE.md), the [human guide](GUIDE/00_README.md),
+[profile matrix](MODEB_PROFILE_MATRIX.md), [contract/gate scope](MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md)
+and actual [tools reference](user_guides/tools_reference.md). The numbered tiers and “Go deeper” phrases
+below are assistant planning labels, not parser flags or native automatic workbook/schema selectors.
+They never expand a read-only or Markdown-only task into all-tier analysis, mandatory Excel, experimental
+work or another-model dispatch. The five named S1–S5 sheets have no standalone automatic emitter identified in the current bundle.
+Treat those sheets as a specifically selected manual deliverable plan,
+not proof of an automatic installed workflow or the sole accepted output format.
+
+The post-seal list is discovery, not a closed universal read-only package route. For example, modeb-export
+consumes authored Markdown without requiring a package seal and writes companion outputs; signoff_check
+reads tree artifacts and always returns advisory zero (`tools/signoff_check.py:1–28`). Use each command's
+actual inputs, profile, receipt and write/overwrite policy. “Never changes priors” does not mean no artifacts
+or status records are written. A default export/check does not certify scientific content, source provenance,
+selected-profile completeness, rendered visual QA or acceptance.
+
+### Current advisory sign-off selection
+
+Use explicit current artifact paths when requesting sign-off review:
+
+```bash
+python mamey_run.py signoff '<tree.treefile>'
+```
+
+The bundle CLI exposes files and `--minutes` only. Use the direct helper when
+selection requires its additional options:
+
+```bash
+python tools/signoff_check.py --root '<review-root>' --outgroup '<declared-tip-token>' '<tree.treefile>'
+```
+
+The helper accepts repeated/comma-separated outgroup terms; recognizing a label
+is not approval of outgroup choice. Without explicit files, it walks the selected
+root for case-sensitive `.treefile` names modified in the last 90 minutes by
+default. Hidden directories and its named environment/database/reference pruning
+list are excluded; `SIGNOFF_PRUNE_DIRS` adds exclusions. This is a selected recent
+file sweep, not the authoritative artifact roster or proof of current-run input
+binding. Record the exact files, hashes, source/run identities, scan window and
+exclusions separately. Use explicit paths for required older or pruned artifacts.
+
+The report checks regex-extracted labels and support-like text rather than fully
+validating Newick structure, every numeric measurement or provenance. It does not
+read ANI data, validate comparator downloads or make biological sign-off decisions.
+Those are independent review requirements. No structured receipt or report file
+is saved by the helper; retain console diagnostics with the selected input hashes.
+
+Valid advisory invocations return 0 for issues, read failures, an incomplete walk
+and no selected files. `--quiet-if-clean` can suppress the no-selection message or
+caution notes when no issues were found. Silence is not a completed clean review.
+The direct helper manually parses its listed options: unknown tokens, including
+`--help`, are treated as filenames; missing option values or invalid numbers can
+raise exceptions. Do not use its exit alone for input admission or completion.
+The bundle CLI's own help has a separate parser and does not grant these extra
+helper options.
+
+Default authored full48 uses §4 evidence; explicit current50-v2 uses §50 and literature §48/§49.
+A KCB-dark or low-reference-match observation does not establish novelty, priority or a particular biological
+mechanism. Domain combinations are evidence under source/model limits, not universal diagnostic proof.
+Never fill product/function/assay/physical-linkage gaps with a plausible pathway story. Preserve metrics and
+claim ceilings, contradicted interpretations, actual source receipts and complete four-part locus identities:
+strain / full node-or-contig / region / BGC alias. Missing source fields remain typed holds.
+
+The run example is a recipe only for an authorized execution task. If flags differ, inspect actual parser
+choices and selected parameters rather than silently choosing “strongest” behavior. Capped-session changes
+brief/JSON/workbook/locus-map/compression/heartbeat settings (`mamey/cli.py:4226–4261`); it is not reduced
+scientific acceptance. Report actual files, skipped outputs, findings and unresolved holds, not a blanket
+FABRICATION_CHECK or completeness assertion. Source paths/hashes stay in place with one candidate.
+
+<!-- Historical source text follows. -->
+**Version:** v9.7.449 | **Bundle:** sapote-mamey-v9.7.449 | **For:** ChatGPT (single-model or dual-model with Claude)
 
 ---
 

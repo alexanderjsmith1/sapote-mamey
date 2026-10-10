@@ -1,47 +1,23 @@
 # Optional external AB/AF activity-prediction channel
 
-## Purpose
+This is optional model evidence, separate from Mamey's deterministic routing priors and from measured strain-level assay context. The shipped `mamey/activity_predictions.py` validates supplied prediction documents and writes JSON. This guide does not establish a working inference adapter for every named third-party model.
 
-Sapote-Mamey may ingest or run compatible third-party models that predict antibacterial or antifungal
-activity from BGC sequence-derived features. These results are optional post-seal evidence. They do not
-replace Mamey's deterministic AB/AF routing priors.
+## Implemented contract
 
-## Output boundary
+The schema is `sapote.optional_activity_predictions/1`. The authoritative record key is `(strain, bgc_id, contig_region, model_id)`; duplicate keys are refused. Across-strain joins by BGC alias alone are prohibited. The validator checks nonempty identity fields and BGC alias format; it does not parse `contig_region` into a verified full node and region or join it to the package inventory. Where a locus is discussed, retain and verify all four parts: strain / full node-or-contig / region / BGC alias, alongside model identity.
 
-An adapter reads a sealed package and writes a sibling result directory. It must never write within,
-rewrite, or re-seal the source package. The authoritative join key is:
+`applicability_status` is `IN_DOMAIN`, `LIMITED`, `OUT_OF_DOMAIN` or `FAILED`. Probabilities, when present, must be finite values in [0,1]. `OUT_OF_DOMAIN` and `FAILED` require null probabilities and a HOLD. `IN_DOMAIN` requires model, environment, feature-schema and input hash fields and is restricted by fragment adequacy **when that optional field is present**. Legacy rows without it do not pass through this fragment check; absence is not evidence of completeness. Hash-field syntax validation does not read and verify the corresponding files. Keep the actual referenced bytes and verify hashes separately. The NPBDetect model identifier is restricted to `OUT_OF_DOMAIN`/`FAILED`; the former phrase “experimental” did not mean it could be admitted as an in-domain prediction.
 
-`(strain, bgc_id, contig_region, model_id)`
+`write_predictions(doc, package_dir, out_dir=None)` validates the document, refuses a resolved output path inside the package, and writes **`optional_activity_predictions.json`**. The default directory is a sibling of the package; an explicit output may be elsewhere outside it. It creates or reuses that directory and atomically replaces the JSON through a fixed sibling `.tmp` file. This is not an exclusive new-output or concurrency guard. The writer does not verify package sealing, check that declared source hashes match the package, or emit a multi-file receipt. Use a unique output directory and retain a separately verified source/package, code and output hash record before adoption.
 
-Across-strain joins by `bgc_id` alone are prohibited.
+## Adapter artifact policy versus current writer
 
-## Required artifacts
+A separately governed adapter is expected to supply `<strain>_6_optional_activity_predictions.csv`, `<strain>_6_optional_activity_predictions.json`, `optional_activity_prediction_manifest.json`, `optional_activity_prediction_validation.json`, and `SHA256SUMS.txt`. These are adapter deliverable requirements, **not artifacts automatically produced by the generic writer**. Do not infer that the five-file package exists from a successful JSON write. The adapter registry's `core_tier_influence: false` prevents policy declarations from authorizing changes to core tiers; it does not execute a model or certify its environment.
 
-- `<strain>_6_optional_activity_predictions.csv`
-- `<strain>_6_optional_activity_predictions.json`
-- `optional_activity_prediction_manifest.json`
-- `optional_activity_prediction_validation.json`
-- `SHA256SUMS.txt`
+## Interpretation and model holds
 
-## Interpretation
+`ab_score`/`af_score` and `ab_recall`/`af_recall` are routing/recall priors. `antibacterial_probability`/`antifungal_probability` are one named model's predictions, with that model's applicability, provenance and threshold. A model threshold is not cohort calibration. Agreement can prioritize review; it does not establish compound identity, production, activity, potency, mechanism or producer immunity.
 
-| Field family | Meaning |
-|---|---|
-| `ab_score`, `af_score` | Transparent Mamey routing priors |
-| `ab_recall`, `af_recall` | Guarded family-level antimicrobial recall priors |
-| `antibacterial_probability`, `antifungal_probability` | One named external model's predicted probabilities |
-| `reference_threshold` | Threshold distributed or reported with that model; not cohort calibration |
-| `applicability_status` | Whether the model's input contract was met |
-| `warning_codes` | Boundary, version, feature, truncation, or provenance limitations |
+Earlier policy names Walker–Clardy, DeepBGC, NPBDetect, BGC-MLM and PRISM as possible external channels. Those names are policy/research scope, not installed capability, an instruction to reimplement a model, or evidence of a validated adapter. Exact model/environment provenance and the owner's admission decision remain required. In particular, fragment and deterministic-inference holds remain unresolved by formatting a prediction document.
 
-Agreement among channels may increase review priority. It does not establish compound identity,
-production, activity, potency, mechanism, or producer immunity.
-
-## Initial adapter policy
-
-- Walker–Clardy: isolated optional adapter after exact model/environment pinning.
-- DeepBGC: reproduce the domain-only method in current libraries rather than installing the legacy stack.
-- NPBDetect: experimental until implementation and fragment perturbations are resolved.
-- BGC-MLM: research-only until edge, length, padding, and deterministic inference gates pass.
-- PRISM: ingest attributable user-supplied results; absence of a predicted structure is a channel-specific HOLD.
-
+Source: `mamey/activity_predictions.py:94–202,246–290`. For measured context see [Bioactivity metadata](BIOACTIVITY_METADATA_CONTRACT.md).

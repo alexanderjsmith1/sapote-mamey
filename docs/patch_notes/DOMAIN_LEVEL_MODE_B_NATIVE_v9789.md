@@ -1,3 +1,9 @@
+## Current reader scope — v9.7.89 implementation history
+
+The original release note below records .89, including then-deferred features and then-reported tests. It is not current installation, coverage or acceptance guidance. The .447 owner now includes `load_architecture_templates()` and the architecture-template JSON, so the old deferred-template list must not be read as a current absence. Domain enrichment distinguishes source and limited gene-context paths; source parsing can fall back with warnings. Handled failures may produce skip receipts, but “never raises” is not a guarantee that every filesystem write or caller succeeds. Inspect the actual receipt and written files; a success code alone does not prove coverage or package integrity. Select the current [Mode B profile](../MODEB_PROFILE_MATRIX.md) for authoring and verification; these supplements do not certify a card.
+
+---
+
 # Patch note — native domain-level Mode B + figure pack (v9.7.89)
 
 **Engine:** mamey 1.9.89 -> 1.9.90 · **Bundle:** 9.7.88 -> 9.7.89

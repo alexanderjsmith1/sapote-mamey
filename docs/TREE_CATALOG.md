@@ -53,8 +53,11 @@ Each catalog entry states:
 
 The tool does not infer that a type strain is representative, merge cohorts,
 choose an outgroup, or admit a non-type reference. Those decisions belong to the
-upstream placement run and its receipts. A spotlight entry must point to a
-placement run prepared with that declared query subset; the renderer refuses to
+upstream placement run and its receipts. The .447 catalog renderer refuses any nonempty `spotlight_queries` field with
+`SPOTLIGHT_REQUIRES_DECLARED_QUERY_SUBSET_RUN`; even pointing that flagged entry
+to an already subsetted run does not bypass the refusal. Prepare and review a
+separate upstream subset run, then catalog that run with an empty/omitted
+`spotlight_queries` field and its true bound query roster. The renderer does not
 silently prune a full-cohort analysis into a rarity claim.
 
 The `publication` view reduces long deposited isolation phrases to one readable
@@ -112,6 +115,12 @@ refuse the display instead of being replaced silently by another neighbor.
 ```bash
 python3 tools/tree_catalog.py plan TREE_CATALOG.json --out tree_catalog_plan.json
 ```
+
+The planner resolves the declared run/metadata paths and requires them to exist;
+placeholder paths are not executable inputs. It creates parent directories and
+writes `--out`, overwriting that file if present. Choose a fresh planning output
+or an explicitly selected operational update path. Rendering has the stricter
+existing-directory refusal described below.
 
 The plan expands every entry across its ratios and views. Three ratios times
 three views create nine proposed displays. Inspect the job count, query scope,
@@ -271,8 +280,10 @@ a receipt; the series is complete only when the full requested matrix succeeds.
 This prepared-input consumer does not implement reference discovery or upstream
 sequence admission and does not turn provisional metadata into confirmed facts.
 
-This candidate depends on the separately reviewed annotation-gate patch, which
-supplies `tools/tree_annotation_geometry.R`; apply that dependency first. The
+The selected .447 bundle includes `tools/tree_annotation_geometry.R`, the shared
+annotation-gate helper. Check that it is present in the selected extraction; a
+partial or standalone export must explicitly retain it. A missing helper is an
+installation/export hold, not an instruction to apply an unidentified historical patch. The
 complete extracted bundle supplies the normalizer, stem-aware gate and its
 `mamey.csv_safety` dependency. A standalone export must retain those dependencies
 rather than relying on an unrelated installed Mamey version.

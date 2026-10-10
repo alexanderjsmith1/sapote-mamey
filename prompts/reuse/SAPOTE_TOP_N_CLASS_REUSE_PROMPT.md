@@ -25,7 +25,7 @@ Sapote layer over sealed package(s). Do not re-run scans. First:
 3. Pull CCTT triggers (`6_cctt`), KCB, and the class-relevant scan states.
 
 ## What to produce
-- **Ranked top-N table for CLASS_TARGET**, columns: `BGC_ID (contig · regionXXX)`, strain, the
+- **Ranked top-N table for CLASS_TARGET**, columns: `strain / full node-or-contig / region / BGC alias`, strain, the
   grounding diagnostic domain(s) + bitscore, KCB top hit + score, boundary/Arch, novelty, WL score,
   claim ceiling. Rank by evidence weight (diagnostic-core present > label-only).
 - **Grouped-frequency block:** counts of the class across strains/habitats (feeds B2_Product_Class_Matrix

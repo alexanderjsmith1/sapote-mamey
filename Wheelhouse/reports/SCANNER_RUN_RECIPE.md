@@ -1,23 +1,9 @@
-# Scanner Run Recipe — first worked example (staged; awaiting fasta)
+# Scanner recipe: historical plan with an interface hold
 
-**Item 4.** Runs the v0.5 scanner set on one real strain to produce its AB/AF capacity
-profile — the first worked example for the thesis-atlas scoring bridge. Blocked only on
-input: a proteome (`.faa`) or genome/antiSMASH output for one cohort strain (e.g. AS-XXX).
+The earlier recipe supplied `--proteome`, `--registry` and `--hmm` to `Wheelhouse/engine/pyhmmer_scanner_engine.py`. That command is unsupported by the shipped implementation. Its main block only prints “pyHMMER scanner engine loaded” (`:54–55`) and does not parse arguments, scan proteins, apply registry gates or write an AB/AF profile. A normal exit would not prove any scanner ran.
 
-## Inputs needed (from the Developer or User)
-- One strain proteome `AS-XXX.faa` (preferred) OR its antiSMASH `.gbk`/region output.
+The module imports pyhmmer and Biopython (`:2–5`), extracts translated CDS of at least 40 amino acids from matching `*.region*.gbk` files (`:8–22`), collects annotated domain sequences (`:24–38`) and constructs HMMs (`:40–52`), using pyfamsa for multiple sequences. The extractor is not a whole-genome proteome reader and can encounter the same CDS in multiple overlapping region files. A `.faa` path is not accepted by this extractor.
 
-## Procedure
-1. Place the proteome in `Wheelhouse/reports/inputs/`.
-2. Build/scan with the engine:
-   `python Wheelhouse/engine/pyhmmer_scanner_engine.py --proteome <faa> --registry Wheelhouse/scanners/scanner_registry_v0.5.json --hmm Wheelhouse/hmm/scanner_pfam.hmm`
-   (requires `pyhmmer` + `pyfamsa`).
-3. For each scanner: record gate fired (yes/no), supporting domains, cluster/region.
-4. Emit an AB-axis and AF-axis capacity profile per the thesis-atlas
-   `scoring/SCANNER_SCORING_BRIDGE.md` — confidence-weighted by each scanner's
-   `test_status` (PASS full weight; TIGHTEN/REVIEW reduced; UNTESTED/NEW flagged).
+Hold: there is no implemented registry-scan/profile dispatcher here. Do not fabricate an output profile or promote registry `test_status` after loading the helper. Find the selected task's actual supported pipeline interface and source-bound evidence route before authorizing a run. Dependencies, HMM payloads, input identities and gate validation are separate prerequisites; input FASTA alone does not clear this hold.
 
-## Claim-safety
-Output is capacity prioritization, not activity prediction. A fired scanner = "capacity
-consistent with class X"; never "produces X" or "active against Y". Bioactivity stays
-extract-level.
+Capacity hypotheses remain distinct from product or activity evidence. This source review did not run the helper, build models or execute searches. See [Wheelhouse inventory and writes](../README.md) and [external-data routes](../../docs/EXTERNAL_DATA.md).

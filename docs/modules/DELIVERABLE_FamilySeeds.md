@@ -30,8 +30,10 @@ Auto-run **after the BGC inventory** for every strain (this is the v7.5 "cross-s
 ## 3. Pipeline
 
 ```bash
-python tools/build_gcf_tags.py --banked-dir <cohort_dir> --workbook <master.xlsx> --out-dir <dir>   # emits/updates seed rows
+python tools/build_gcf_tags.py --banked-dir <cohort_dir> --workbook <master.xlsx> --out-dir <dir>   # writes GCF tag outputs; optional workbook is modified
 ```
+This command writes GCF product-family tags, not `CrossStrain_Family_Seeds` rows. It emits `GCF_Tags` in the supplied workbook (replacing an existing sheet of that name). Seed-row composition and threshold checks remain assistant workflow proposals.
+
 Then (PROMPT_BACKED) the threshold check: scan the master for classes with seeds in ≥3 strains; for each, surface the CCSM trigger. **Project-wide audit rule:** after every fifth strain, run a full family-seed audit against the master JSON.
 
 ---
@@ -56,7 +58,7 @@ Run cross-strain BGC family clustering for [class/family].
 
 ## 4. Outputs & contract surface
 
-`CrossStrain_Family_Seeds` workbook sheet (Schema v1.0) with the 16 columns of §35.2 + any fired CCSM trigger lines. Registration into the schema (not hand-editing) is the source of truth.
+`CrossStrain_Family_Seeds` is a requested workflow output, not an output of this Python writer. The current writer emits six-column `GCF_Tags` and tag summaries; any separate seed table and CCSM trigger must be explicitly produced and validated. The ≥3 and fifth-strain rules are prompt conventions, not engine-enforced thresholds.
 
 ---
 

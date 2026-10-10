@@ -1,5 +1,9 @@
 # Public release — user guide
 
+Before any `doctor` example below, read the [write-probe boundary](INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
+untouched. The current diagnostic can overwrite or remove its probe file.
+
 > **Current-tree status.** This CODE archive records its validation results in the release manifest. [`pyproject.toml`](../pyproject.toml) and the synced package identity define its canonical bundle version; [`RELEASE_MANIFEST.md`](../RELEASE_MANIFEST.md) defines its current release status.
 
 This supporting guide describes public-release setup and network behavior. Start at [README](../README.md). It covers what the release contains
@@ -19,7 +23,7 @@ evidence state does not establish that an HMM scan ran.
 
 Follow [INSTALL](INSTALL.md) using **Python 3.12 or newer** and an isolated environment.
 Install the core with `python -m pip install -e .`; optional extras include `figures`, `documents`,
-and `bio`, or `all` together. Run `python mamey_run.py start` and `python mamey_run.py doctor`
+and `bio`, or `all` for the declared combined extras (including slides/render/documents in this source). Run `python mamey_run.py start` and `python mamey_run.py doctor`
 from the bundle root, then follow the [Quick Guide](GUIDE/02_Quick_Guide.md).
 Offline wheels must match the selected Python ABI, operating system, and architecture.
 
@@ -47,31 +51,21 @@ use an environment-level network restriction when a zero-network guarantee is re
 
 To run with zero network access:
 
-1. The Pfam HMM (`scanner_pfam.hmm`) is **not bundled** — the public-tier tests forbid it in the tree — so
-   HMM-based scanning does not work out of the box. Before going offline, rebuild it from Pfam-A with
-   the `hmmfetch` recipe in `docs/PUBLIC_RELEASE_DATA.md` (or obtain a copy), carry the file in, and
-   point the engine at it: set `SM_HMM_DB` to the file path, and/or place it at
-   `$MAMEY_DATA_ROOT/hmm/scanner_pfam.hmm` (or set `MAMEY_HMM_DIR` to its folder) so `doctor` reports it
-   (see `docs/EXTERNAL_ASSETS_GUIDE.md`). Without it the scanner uses the regex fallback, or you can
-   supply antiSMASH `--fullhmmer` output instead. `bundle_support/install_sapote_addons.sh` installs the
-   add-on Python stack (`pyhmmer` etc.), not the HMM file itself.
-2. Produce your antiSMASH result ZIP(s) on a connected machine or a local antiSMASH install.
-3. For BLASTp evidence, run BLASTp externally and bring in the Hit Table (CSV) + XML2, then use
-   `ingest-blastp` (no network).
-4. Everything else — extraction, boundary/assembly tiering, KCB triage, Mode B cards, figures,
-   packaging, gates, and reporting — runs locally with no network.
+1. Provision the exact local inputs, dependencies, external binaries and reference data needed by the selected workflow before the offline run. For operator-provisioned scanner models, follow [the source-bound data guide](PUBLIC_RELEASE_DATA.md) and [scanner manifest limits](reference/SCANNER_PFAM_MANIFEST.md). A filename/doctor path check does not verify the model bytes, membership or scan execution. `SM_HMM_DB` wins when its path exists; directory discovery then checks `MAMEY_HMM_DIR`, `$MAMEY_DATA_ROOT/hmm` and source/add-on locations (`mamey/wheelhouse.py:60–126`).
+2. Retain the selected antiSMASH result ZIP and version/options provenance. Saved `--fullhmmer` annotations and a regex fallback are separate evidence paths; neither proves a local scanner HMM run or fills a missing custom HMMER domtblout channel.
+3. Bring in already saved BLASTP results with their query/run/database binding and use the [stored-result ingestion protocol](ONLINE_BLASTP_PROTOCOL.md). Saved evidence ingestion is separate from authorizing or performing online searches.
+4. Select commands documented to use local inputs and enforce the required environment-level network restriction. Review invoked companions, dependency provisioning and configurations separately; local availability does not guarantee every possible workflow in the bundle is offline or complete.
 
 Under an enforced offline environment, provision required inputs before the run; fetching is an explicit preparation step you perform
 yourself, on your terms, ahead of time.
 
-## 6. Graceful degradation summary
+## 6. Missing capability and output states
 
-| Missing | Effect | Fix |
-|---------|--------|-----|
-| `scanner_pfam.hmm` — **not bundled (operator-acquired)** | Absent by default: scanner uses regex; HMMER cells report `NEEDS_HMMER_DOMTBLOUT` | Rebuild from Pfam-A per `docs/PUBLIC_RELEASE_DATA.md` (or obtain a copy), then set `SM_HMM_DB` / `MAMEY_HMM_DIR` as in §5 |
-| cairosvg (`render` extra) | Compiled-PDF SVG figures are dropped, not embedded; render still succeeds | `pip install '.[render]'`, or install a system `rsvg-convert`/`inkscape` |
-| figure stack (`matplotlib`/…) | Figure generation is skipped | `pip install '.[figures]'` or `'.[all]'` |
+| Missing capability | Source-backed consequence | Recovery |
+| --- | --- | --- |
+| Operator-provisioned scanner HMM | Discovery may have no model path; a regex-path result does not establish HMM scanning. Custom-marker HMMER evidence can remain `NEEDS_HMMER_DOMTBLOUT` independently of scanner discovery (`mamey/wheelhouse.py:60–126`; `mamey/cell_provenance.py:117–145`). | Bind the exact model source/receipt for the selected owner; preserve each evidence channel's missingness. |
+| SVG converter | Compiled-report publication artwork tries vector conversion, then a resolution-bound raster fallback. If neither works it raises `FIGURE_VECTOR_EMBED_UNAVAILABLE`; missing/escaping artwork also raises (`mamey/compile_report.py:950–1045`). It does not silently drop required SVG artwork and claim success. | Use the selected renderer's local converter prerequisites and retain the error/receipt. |
+| Figure dependencies | Behavior depends on the owner: some tools have hard imports; BiG-SCAPE network output returns `SKIPPED_NO_DEPS` when networkx/matplotlib imports fail (`mamey/bigscape_figures.py:88–95`). | Follow [external-tool prerequisites](EXTERNAL_TOOL_INVENTORY.md) and inspect each required output/status; skipped is not completed. |
+| Primary PDF renderer or fallback toolchain | `tools/md_to_pdf.sh:25–49` tries ReportLab, then requires pandoc and xelatex; missing fallback tools exits 2. Later artwork/render errors can also fail. | Preserve canonical Markdown and render diagnostics; install/provisioning and rendered-page review are separate authorized work. |
 
-Nothing in this list blocks a run from reaching completion; each is a graceful fallback, not a failure.
-A fallback is not the missing capability, though: HMM-based scanning is unavailable until you provision
-the HMM, and a regex-path result must not be reported as an HMM scan.
+No global completion guarantee follows from a fallback. Check required files, per-output states, bound inputs and current acceptance holds; report incomplete deliverables explicitly. See [installation](INSTALL.md), [result reading](READING_YOUR_RESULTS.md) and [deliverable contract](DELIVERABLE_CONTRACT.md). This documentation patch performs no installation, network workflow, render, cut or release.

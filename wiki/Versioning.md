@@ -5,9 +5,9 @@ up is the single most common citation error, so learn the trio:
 
 | stream | where it lives | example | what it means |
 |---|---|---|---|
-| **Engine version** | `mamey/__init__.py::__version__` + `pyproject.toml [project].version` | `1.9.143` | the deterministic extraction code; gate/checkpoint rules tie to it |
-| **Bundle version** | `BUNDLE_VERSION` in `__init__.py`, mirrored in `pyproject.toml [tool.sapote]` | `9.7.398` | the public Sapote-Mamey release line users cite |
-| **Build stamp** | `BUILD_STAMP.txt` / `TAG` | `build=20260901v97398a` | the physical cut + patch notes |
+| **Engine version** | `mamey/__init__.py::__version__` + `pyproject.toml [project].version` | `1.9.172` | the deterministic extraction code; gate/checkpoint rules tie to it |
+| **Bundle version** | `BUNDLE_VERSION` in `__init__.py`, mirrored in `pyproject.toml [tool.sapote]` | `9.7.447` | the public Sapote-Mamey release line users cite |
+| **Build stamp** | `BUILD_STAMP.txt` / `TAG` | `build=20261003v97447a` | the physical cut + patch notes |
 
 The engine bumps only when deterministic behavior changes; most cuts are bundle-only (docs, data,
 protocols, tools). Output package names embed both:
@@ -16,10 +16,13 @@ self-identifying even when found loose.
 
 ## Keeping them aligned
 
-`tools/sync_version.py` writes the versions everywhere they appear;
+`tools/sync_version.py` writes its declared anchored version surfaces; historical versions and unowned prose may intentionally remain unchanged. It does not discover and certify every version-like value automatically;
 `tests/test_version_sync.py`, `test_no_stale_version_literals_*`, and
-`test_docs_version_drift.py` fail the build on drift. **When you bump a version, run sync_version
-and re-run the version tests** — that is the whole ritual.
+`test_docs_version_drift.py` fail the build on drift. For a separately authorized version bump, run the synchronizer and required checks in the
+candidate tree. `python tools/sync_version.py --check` checks without writing; invoking it without
+`--check` writes anchored files and delegates bootstrap regeneration. Do not run its write mode
+on an immutable source while merely reviewing documentation. Version checks do not replace
+release identity, tier/archive integrity, governance or owner acceptance gates.
 
 ## Why the paranoia — the documented freeze history
 
@@ -44,5 +47,4 @@ sealing. Never hand-edit a version literal; let the sync tool own every copy.
   against the current engine before asserting a defect or building on its content.
 - **Reading docs**: `CURRENT_DOCS_INDEX.md` in the current bundle decides which docs are current;
   historical root notes are shipped but superseded.
-- **Cut procedure**: version bump → `sync_version.py` → version tests → seal. Only the project
-  owner seals a cut.
+- **Cut procedure**: use the current `CUT_PROTOCOL.md` and release manifest. Synchronization and version tests are bounded steps; a passing check does not authorize sealing, promotion or publication.

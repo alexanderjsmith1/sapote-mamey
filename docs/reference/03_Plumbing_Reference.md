@@ -1,8 +1,10 @@
+> Current operations: read [the source-contract corrections](06_CURRENT_SOURCE_SCOPE.md#plumbing-part-1-current-cli-contracts) before using Part 1. Also read [the master-writer corrections](06_CURRENT_SOURCE_SCOPE.md#plumbing-part-2-master-writer-and-retained-values). This historical body retains older defaults, workbook descriptions and conflicting release descriptions. Its synchronized version stamp does not certify every section.
+
 # Sapote-Mamey: The Plumbing Reference
 
 ### CLI, workbook, figures, packaging, stores, and parse layer of the Mamey engine
 
-**Version of record:** Mamey engine v1.9.173 · bundle v9.7.448 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23; architecture unchanged — B4 workbook column list may not reflect triggers added at v1.9.99)
+**Version of record:** Mamey engine v1.9.174 · bundle v9.7.449 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23; architecture unchanged — B4 workbook column list may not reflect triggers added at v1.9.99)
 **Author:** Alexander J. Smith
 **Companion to:** *The Mathematics of Sapote-Mamey* (Volumes I & II — the engine's quantitative core and subsystems).
 **Status:** Architecture reference. Every component is transcribed from engine source and cited to `module.py:symbol`; nothing is reconstructed from memory. Each cluster was verified against source; corrections made during review are noted inline.
@@ -1329,6 +1331,12 @@ Reads `2_inventory.csv`, counts BGCs with `Depth_floor` assigned. If depth-floor
 ---
 
 ### 7. `deep_data.py` — Gold Deep-Data Files
+
+> **Current reader guidance:** `bgc_profile` follows the saved `source_scans.domain_architecture.per_bgc` roster, rather than rebuilding or validating the complete BGC inventory. The current producer initially seeds that roster from the supplied BGC list; the exporter alone cannot certify that its saved input is complete. Profile domain columns and `tta_codons`/`tta_cds` use zero defaults when their source entries are missing. Preserve the source scan's coverage/applicability state before interpreting those zeros.
+>
+> `total_domains` is the sum of **all class-counter values** supplied in `domain_counts`, including classes outside the twelve named profile columns. It is not a gene count, a normalized burden, or necessarily a unique feature count: a feature can match multiple classes. In the current producer, overlapping BGCs can each receive the same feature, and module/motif features are retained in `domains` while excluded from class-counter increments. Consequently `domain_hits` rows and `total_domains` have different counting rules; do not use one as the other's denominator (`mamey/source_scans.py:1049–1112`; `mamey/deep_data.py:32–59`).
+>
+> Finer evidence prefers `by_region` separately for substrates, active sites, class predictions and RiPP rows. A top-level fallback array is read only when the entire corresponding category has no extracted `by_region` rows. This is category-wide fallback, not a per-locus merge: partial legacy evidence can suppress additional top-level rows. Compare both source layouts before claiming complete coverage; an empty `tfbs` object in `gene_data.json` is an exporter placeholder (`mamey/deep_data.py:62–120, 147`).
 
 **Source:** `deep_data.py:build_deep_data_files`, `deep_data.py:modeb_verdict_rows`
 

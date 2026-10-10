@@ -18,7 +18,7 @@ Use after a cumulative master workbook + per-strain outputs exist.*
 4. If <20 strict candidates exist (likely, given G4), make a strict section AND an explicitly separate
    nucleoside-adjacent lookup-target section with cautious evidence tiers. **State that strict counts
    are provisional pending the extractor fix.**
-5. Per row: strain · `BGC_ID (contig · regionXXX)` · products · boundary · architecture · assembly tier ·
+5. Per row: strain · `strain / full node-or-contig / region / BGC alias` · products · boundary · architecture · assembly tier ·
    genus · host · AB/AF/novelty · Sapote lane · KCB score + top hit · closest candidate product ·
    similarity count + denominator · MIBiG URL · PubMed lookup URL · marker triggers · TIGRFAM-source
    note (package vs genomic) · claim-safe why-interesting paragraph.

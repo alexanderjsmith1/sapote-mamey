@@ -102,7 +102,7 @@ def load_genome(zip_path: Path, label: str) -> tuple[dict, dict]:
             if not recs:
                 continue
             r, b = recs[0], bgcs.get(Path(n).name)
-            contig = b.contig if b else r.id
+            contig = b.contig if b else parsers._record_contig_id(r)
             dm = re.search(r"(\S+?),? whole genome", r.description or "")
             node = dm.group(1) if dm and dm.group(1) not in contig and contig not in dm.group(1) else ""
             ident = f"{label} / {node + ' = ' if node else ''}{contig} / {m.group(2)} / {b.bgc_id if b else '?'}"

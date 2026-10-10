@@ -1,97 +1,65 @@
-# From extraction to a Mode B card
+# From extraction to an authored Mode B card
 
-This guide connects the first-run walkthrough to authored interpretation. A complete extraction does not create a scientifically finished card. Begin with the whole validated package, the original input when needed, and an exact strain / full contig / region / BGC identity. Supply available evidence-channel files and their provenance; a manifest names files but does not contain all their evidence.
+Start with a validated Mamey package and one source-bound identity: **strain / full node-or-contig / region / BGC alias**. A complete extraction, ranked table or emitted template is not an authored scientific interpretation. This walkthrough is bound to .447 / engine 1.9.172; use the selected bundle's launcher from its root.
 
-## Choose the actual profile
+## Choose the profile before writing
 
-The always-required 1–20 core, older 30-section candidate/calibration profile, 48-section corrective profile and 50-section publication-candidate requirements are different objects. The intended 50-section deliverable must not be called complete because a shorter scaffold exists. Conversely, renaming a 48-section status does not implement 50-section verification.
+Use the [profile matrix](MODEB_PROFILE_MATRIX.md). The native emitter and verifier accept two named command contracts in .447:
 
-The installed 48-section corrective profile still has consumers. The [50-section usage contract](MODEB_FULL50_CONTRACT_USAGE.md) lists the consumers that require exactly 50 sections and their Markdown/database bindings. The frozen source contract is [here](MODEB_50_SECTION_CONTRACT_CANDIDATE.md). Do not edit its hash-pinned text in place or feed the JSON reference to a Markdown reader. A full producer/consumer migration has not been performed in this cut.
+| Command contract | Card profile | Scope |
+|---|---|---|
+| `full48` | `FINISHED_FULL48_CURRENT_EVIDENCE` | Default 48-section current-evidence profile |
+| `current50_v2` | `FINISHED_FULL50_CURRENT50_V2` | Opt-in 50-section profile, with GECCO in §22, rescued-contig evidence in §26, literature relevance in §48–§49 and the evidence matrix last at §50 |
 
-## Runnable preparation and review
+Select the requested profile explicitly and carry the same contract through template emission and verification. The [current50 v2 guide](MODEB_CURRENT50_V2_CONTRACT.md) explains its independent roster checks and scientific limits. The machine definitions are `mamey/data/mode_b/modeb_full30_corrective_contract.json` (historical filename, current full48 schema) and `mamey/data/mode_b/modeb_current50_v2_contract.json`. Preserve their pinned bytes; the emitted titles and selected machine contract govern coverage.
 
-Use a separate review destination. Replace the sample paths with real locations and select a locus from the same package:
+The frozen [current50 v1 reference](MODEB_50_SECTION_CONTRACT_CANDIDATE.md) and its [four-consumer usage contract](MODEB_FULL50_CONTRACT_USAGE.md) remain separate reference objects. They are not the current50 v2 card profile. Older 20/30-section instructions and the former .429/.430 migration notes are history, not completion requirements for a new .447 card. Do not use a copied section map from another profile.
 
-```bash
-python mamey_run.py mode-b --package '/path/to/package' --top-n 1 --outdir '/path/to/review/mode_b'
-python mamey_run.py verify-modeb '/path/to/review/authored-card.md' --package '/path/to/package' --bgc BGC001 --summary-only --report-json '/path/to/review/card-verification.json'
-```
+## Prepare a bounded review
 
-The first command prepares native Mode B output; it is not a universal 50-section author or a finished biological interpretation. Inspect the emitted files and named profile. The second checks an existing authored Markdown card under the installed verifier and selected gates; it does not perform online literature or protein searches. A JSON report retains findings; a nonzero exit requires review. Do not use force or weaker depth settings simply to make a finished card pass. Ask the operator to check the exact command help before adding prospective semantic gates, and record which gates actually ran.
-
-To start a card, emit its template with the cross-source inputs. Without them, §25, §40, §44, §46 and §47 are emitted as "Source not supplied" holds:
+Use a fresh external review folder. Replace paths and `<alias>` with the local selector copied from your bound package; keep all four identity components in the authored file. Inspect available evidence, missing channels and source provenance before selecting a locus.
 
 ```bash
-python mamey_run.py emit-modeb-template --package '/path/to/package' --bgc BGC001 --out '/path/to/review/template.md' \
-  --cohort-dir '/path/to/cohort_packages' --reference-dir '/path/to/reference_packages' \
-  --strain-metadata '/path/to/strain_metadata.tsv' --bigscape-regions-dir '/path/to/region_gbks'
+python mamey_run.py mode-b --package '/path/to/working-package' --top-n 1 --outdir '/path/to/review/mode_b'
 ```
 
-`modeb-round`, `deliverable-queue` and `tools/emit_modeb_template_full50.py` take the same four flags. The strain-metadata table is read as deposited.
+This prepares native top-lead output, not a finished card. Supply a working copy: the .447 CLI can refresh its package integrity files even with an external output folder. Keep the original sealed package and source hashes; see [post-seal boundaries](POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447). `--top-n` is cumulative: 3 covers ranks 1–3. It does not select only the third lead. Review output files rather than inferring completion from the command name.
 
-A useful assistant request is: “Use this complete package and the selected four-part locus identity. Inventory the available evidence, identify the intended profile and its actual verifier, and draft a bounded interpretation. Preserve alternatives, missing evidence and per-claim sources. Do not submit anything online. Save the card, evidence mapping and verification report in this review folder. Tell me which publication requirements remain unverified.”
+## Emit, author, then verify
 
-## Read and resume
+The example selects current50 v2. Use `--contract full48` in both commands if that is the requested profile.
 
-Start with the [worked phosphonate reference card](reference/modeb_exemplars/phosphonate_reference_full48_no_blastp_exemplar.md) and [exemplar scope](reference/modeb_exemplars/README.md). This is an explicitly limited 48-section reference, not a finished 50-section card. The v9.7.429 cut is an internal review base. The requested migration—preserve the 48-section content, add two relevant literature sections, and place the evidence table last at §50—is queued as a v9.7.430 placeholder. It does not block this internal cut. A source-bound historical card will help test the later migration.
+```bash
+python mamey_run.py emit-modeb-template --package '/path/to/package' --bgc '<alias>' \
+  --contract current50_v2 --out '/path/to/review/template.md'
+```
 
-Keep the authored card, exact-source mapping, evidence receipts, selected contract hash, verification JSON and checkpoint together. Reopen them to resume; do not rebuild identity from a BGC alias alone. If a file or database binding is unavailable, record the required asset and decision it would resolve. Updating evidence requires a versioned review, not silently relabeling the previous card as current.
+Supply applicable cross-source inputs with `--cohort-dir`, `--reference-dir`, `--strain-metadata` and `--bigscape-regions-dir`; the strain metadata is read as supplied. The source-argument helper also serves `modeb-round`, `deliverable-queue` and `tools/emit_modeb_template_full50.py`. Missing source fields remain holds. A flag's existence does not establish that its input was available or admitted.
 
-Use the [interpretive floor](MODEB_INTERPRETIVE_FLOOR_v97146.md), [data availability and writing contract](MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md), [evidence escalation workflow](MODEB_EVIDENCE_ESCALATION_WORKFLOW_v97143a.md), and [claim-safety audit](MODE_B_CARD_CLAIM_SAFETY_AUDIT.md). Section requirements are not evidence and mechanical validation is not owner scientific acceptance.
+Author the saved template from admitted evidence. Preserve exact titles, channel separation, full identities, alternatives and per-claim sources. Do not fill missing evidence with plausible prose. Save the authored card separately from the template, then verify that actual file:
 
-## Complete 50-section requirement map
+```bash
+python mamey_run.py verify-modeb '/path/to/review/authored-card.md' \
+  --package '/path/to/package' --bgc '<alias>' --contract current50_v2 \
+  --summary-only --report-json '/path/to/review/card-verification.json'
+```
 
-The rows below are copied from the installed frozen reference, not newly invented titles. Sections 48 and 49 cover citation/relevance requirements; section 50 is the complete gene-by-gene evidence-channel matrix. The profile's own conditions determine applicability; an unsupported section needs an explicit, justified state rather than invented detail.
+The verifier requires the authored file as its first positional argument. Keep the JSON receipt and nonzero-exit findings. It does not perform online literature or protein searches. Do not force a finished pass or weaken depth simply to remove errors.
 
-| Section | Requirement |
-|---:|---|
-| 1 | Exact four-part identity; assembly/profile; region interval and sequence/CDS binding; protein-hash/neighborhood identity policy; canonical versus source-local alias distinction. |
-| 2 | Evidence-based selection rationale; current triage context; why this exact locus merits attention; no score-as-truth shortcut. |
-| 3 | Exact boundary geometry; truncation/overmerge assessment; displayed exact/context denominators; what assembly state permits and prevents. |
-| 4 | Short gene-role overview and pointer to §50. Preserve exact/context membership and the core, tailoring, transport, regulator and context distinctions without duplicating the full table. |
-| 5 | Exact committed-step genes; reaction-level roles; conditional ordered pathway; minimal-gene-set/on-contig audit; strongest false-positive alternative; evidence for/against; positive and negative claim ceilings. |
-| 6 | Direct tailoring candidates separated from broad metabolic context; conditional order; non-diagnostic families; comparator conflicts; coupling evidence; discriminating tests. |
-| 7 | Independent transport, resistance, and regulation adjudications; direction/substrate/mechanism/operon holds; no proximity-to-function leap; no exact-bound evidence distinguished from biological absence. |
-| 8 | KCB, MIBiG, ClusterBlast, and named comparator convergence/conflict; gene coverage and core-versus-generic-flank distinction; similarity never identity. |
-| 9 | At least two locus-specific alternatives when evidence permits; strongest rival model; observations that discriminate each model. |
-| 10 | Fragment/co-capture/overmerge risks; exact edge distances; partner-locus possibilities; RG-GMCI claim ceiling; no physical join without nucleotide proof. |
-| 11 | Product-family capacity model from core grammar; exact compound held unless independently established; comparator conflicts retained. |
-| 12 | Bee/microbe context from verified strain metadata and prevalence; chitin/ecology signals treated as strain context unless exact-locus coupled. |
-| 13 | Class-level antibacterial/antifungal relevance; extract phenotype separated from locus attribution; literature claim and organism scope explicit. |
-| 14 | Explicit forbidden claims: exact product, production, activity attribution, novelty, ecological function, physical linkage, and expression as applicable. |
-| 15 | Typed remaining gaps only after accessible sources are searched; distinguish unavailable, unbound, not run, running, ingest gap, measured-none, and not applicable. |
-| 16 | Current BLASTp/HMM/domain evidence plus only unresolved next tests; later nr/ClusteredNR additions are versioned, additive updates rather than a card-wide blocker. |
-| 17 | Testable LC-MS/fermentation implications derived from the conditional product-family model; no predicted mass asserted as detected. |
-| 18 | Lossless future-map payload requirements: every displayed gene, label, coordinates, strand, domains, selected genes, named matches and holds; V7 comparator preserved. Rendering remains a separate gate. |
-| 19 | One integrated judgment and cross-cohort synthesis, preserving support, contradictions, strongest alternative, confidence, final claim ceiling and unresolved discriminating evidence. No publication-ready claim from mechanical checks. |
-| 20 | Prioritized bounded actions with decision rules and owners; accessible evidence is obtained/reconciled rather than labeled pending. |
-| 21 | For RiPP/NRPS-relevant loci, conditional precursor/monomer ladder with assumptions; otherwise reasoned not-applicable. |
-| 22 | RiPP search scope, databases, precursor/maturation evidence and negative-result ceiling; otherwise reasoned not-applicable. |
-| 23 | Heterologous-expression rationale, minimum construct and controls, host limitations, and result interpretation; otherwise reasoned not-applicable. |
-| 24 | Novelty evidence decomposed into architecture, homology, cohort prevalence and comparator distance; “no hit” is not novelty. |
-| 25 | Exact genomic-neighborhood conservation from ClusterBlast/current comparisons; core versus generic conserved context distinguished. |
-| 26 | OSMAC plan tied to plausible pathway regulation/product chemistry and measurable outcomes; otherwise reasoned not-applicable. |
-| 27 | Mechanism-specific self-resistance evidence, exact gene coupling, alternatives and required validation; broad transporter/family names are insufficient. |
-| 28 | Claim-by-claim provenance; 14-stream disposition table; historical source-loss table; 50-row section reconciliation matrix. |
-| 29 | Cross-cluster hypotheses with exact four-part partner identities, evidence state and physical-linkage ceiling; otherwise reasoned not-applicable. |
-| 30 | Branching experimental decision tree: question, experiment, positive/negative decision rule, and program consequence. |
-| 31 | Exact region CDS census plus boundary-context census; independently reconciled denominators; no denominator-difference identity failure. |
-| 32 | Assembly-line enzyme/domain inventory from measured architecture; absent modules distinguished from unmeasured modules. |
-| 33 | Module programming, substrate/extension/reduction logic and uncertainty; no collinearity assumption without support. |
-| 34 | Initiation/loading and release/cyclization logic, candidate genes, alternatives and missing functions. |
-| 35 | Per-protocluster decomposition for mixed/overmerged regions; each core and accessory set assigned or held separately. |
-| 36 | Boundary, overmerge and locus-splitting adjudication integrated with exact intervals and sequence/CDS evidence. |
-| 37 | Partner/accessory proteins classified as direct, plausible, broad context, or unbound; mechanism and coupling evidence stated. |
-| 38 | Resistance/efflux signals with exact locus, mechanism specificity, direction, coupling and phenotype ceiling. |
-| 39 | Cross-strain identity/coverage on exact orthologous genes/loci with denominators and channels; no alias-only comparison. |
-| 40 | BiG-SCAPE family, cutoff, run receipt, cohort/reference membership and private/shared scope; new run may update additively. |
-| 41 | Protein/domain phylogeny target, sequence binding, reference set, model limits and supported clade-level inference. |
-| 42 | HGT/composition evidence relative to a declared genomic baseline; mobile/context alternatives; GC deviation alone is insufficient. |
-| 43 | RG-GMCI/cross-contig candidates with exact partner identity, component signals and explicit “candidate, not nucleotide join” ceiling. |
-| 44 | Within-cohort prevalence with exact numerator/denominator, profile/class definition and governed exclusions. |
-| 45 | Supervisor/university cohort comparison with declared cohort, comparable denominator and source receipt; otherwise reasoned not-applicable. |
-| 46 | Type/reference-strain comparison on exact comparable loci and genes, including Mamey/antiSMASH profile compatibility and divergence. |
-| 47 | Host-matched unrelated reference comparison with verified host metadata, comparator rationale and transfer limits. |
-| 48 | Biosynthetic gene, domain and machinery citations with explicit relevance to named genes, domain logic, alternatives or experiments; source scope and limits of transfer stated. |
-| 49 | Genus secondary-metabolite and broader biological-context citations with explicit relevance; justify broader taxa/topics and distinguish reference phenotype from focal-strain evidence. |
-| 50 | Complete contiguous named-match table formerly in §4, with unchanged full gene roster, geometry, protein binding, channel separation, result/admission states and typed holds. |
+For an expanded-locus work order, follow [Expanded locus](MODEB_EXPANDED_LOCUS.md) and add `--require-expanded-locus` to the current50 v2 verification command. Supply repeated `--rescue-tsv` files only when the work order admits that context; [gap-rescue reader](MODEB_GAP_RESCUE_READER.md) explains that existence checks do not grant BGC membership.
+
+## What a pass proves
+
+Inspect the exact selected contract and gate receipt. A card-only current50 v2 check cannot certify the package's gene roster; supply the matching package and alias. A structural/depth pass does not verify every biological section, literature claim, physical linkage, compound identity or production. The current50 v2 route does not apply the full48 semantic publication gates to its different section numbers. Independent source/content review and owner scientific acceptance remain separate.
+
+A useful request:
+
+> Author one Mode B card for [full four-part identity] using [full48 or current50_v2], the validated package at [path] and admitted evidence at [paths]. Emit the selected template, author from the evidence, then verify the saved card with the same contract. Keep missing channels and alternatives explicit. Save the source mapping, verification receipt and unresolved scientific holds under [review folder].
+
+## Recover and resume
+
+Keep the template, authored card, source mapping, selected contract hash, input receipts, verification JSON and checkpoint together. Use [authoring preflight](MODE_B_AUTHORING_PREFLIGHT.md) to distinguish a permissible draft from a finished-profile hold. Reconcile a source or identity mismatch before continuing the affected claim. A failed check is not permission to edit sealed evidence or reduce requirements.
+
+The [worked full48 reference card](reference/modeb_exemplars/phosphonate_reference_full48_no_blastp_exemplar.md) has [explicit scope limits](reference/modeb_exemplars/README.md); it is not a finished current50 v2 example. For updated evidence, retain the prior review and create a versioned update. A BGC alias alone cannot rebind a locus across runs.
+
+For deeper writing guidance, use the [data availability contract](MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md), [interpretive floor](MODEB_INTERPRETIVE_FLOOR_v97146.md) and [claim-safety audit](MODE_B_CARD_CLAIM_SAFETY_AUDIT.md) in the selected profile's scope. Their requirements are not evidence or release approval.

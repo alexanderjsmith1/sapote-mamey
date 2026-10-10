@@ -1,3 +1,15 @@
+# Reader scope — v9.7.447 documentation audit
+
+This preserved full48 format reference is not a current50_v2 finished-card exemplar. New current50_v2 cards require the explicit 50-section contract: literature in §48–§49 with relevance, data evidence table last in §50, and the complete identity `strain / full node-or-contig / region / BGC alias`. Historical pass/FULL labels below have not been rerun or scientifically certified here.
+
+Reuse structure and bounded register only. Do not transfer these genes, homology results, comparators, numerical scores, inferred mechanisms, activity language or proposed experiments into another locus. Provenance statements in §28 are assertions to trace to the original source files and receipts; verify the underlying search outputs and biological interpretation independently before reuse. Similarity and boundary labels alone do not establish product identity, pathway completeness, production, activity, novelty or physical linkage. Report missing independent evidence as a typed, reasoned limitation rather than filling it with teaching text.
+
+[Collection reader guide](README.md) describes the profile and historical-status boundaries.
+
+---
+
+## Preserved exemplar body
+
 # Mode B reference authoring exemplar
 
 **Exact locus:** `Kitasatospora setae KM-6054T / NC_016109.1 / region016 / BGC016`  

@@ -50,8 +50,10 @@ If inspect passes, run gold mode directly — gold has been the only analysis mo
 (`smoke` was removed; `standard` is a deprecated alias of `gold`):
 
 ```bash
-python mamey_run.py run --input-zip <accession_zip> --mode gold --capped-session --json-evidence off --brief none
+python mamey_run.py run --strain auto --input-zip <accession_zip> --mode gold --capped-session --json-evidence off --brief none
 ```
+
+`--strain auto` resolves the organism identity from the archive when available. If keeping the accession as the output label is intentional, use `--strain <accession> --allow-accession-strain-id` instead and record that decision. Public accession origin does not grant disclosure/release permission or determine every local privacy tag.
 
 ## Warning interpretation
 

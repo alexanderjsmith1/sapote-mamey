@@ -13,7 +13,7 @@ Use a native path for your operating system. The four-part example identity is `
 
 ## Manifest contract
 
-The supported envelope is `tool_database_release_manifest/1`, with required `database`, lowercase `database_sha256`, and integer `bytes`. When `files` is present it must contain exactly one matching database entry with agreeing hash and size. Other files and dependency roots are not opened. Their closure is not verified.
+The supported envelope is `tool_database_release_manifest/1`, with required `database`, lowercase `database_sha256`, and integer `bytes` of at least 100. When `files` is present it must contain exactly one matching database entry with agreeing hash and size. Other files and dependency roots are not opened. Their closure is not verified.
 
 `--manifest-sha256` optionally supplies an externally expected manifest hash. Without it, a self-consistent manifest is user-selected, not independently authenticated. Integrity checks cover database bytes, size, SQLite quick_check and pre/post file stability. These checks do not validate scientific claims or authenticate the producer.
 
@@ -40,13 +40,21 @@ Swiss-Prot search selector `1` is scoped to the query's single outcome; it is no
 
 Follow `next_offset` for the selected view. `total_records` and `omitted_records` refer only to source-retained data; they do not describe all possible matches in the reference database. Raw requested retention settings, when recorded, stay in search provenance. A locus may contain at most 10,000 genes per inspection; a compressed or uncompressed evidence unit is capped at 8 MiB, and provenance metadata/jobs at 256 rows per unit. The two-MiB total response ceiling still applies. Over-budget evidence is a typed hold, not a silent top-N result. These are inspection safety limits, not biological thresholds.
 
+### Saved package-scan adapters
+
+`package-scan-states-v1` and `package-scan-genes-v1` inspect the separate `current_package_scan_states` v0.1.0 database layout. The first returns recorded signals, the second recorded genes; neither runs new scans or matching. With exact locus identity they preserve separate package occurrences and source/frozen-context guards. Multiple occurrences are labeled MULTIPLE_PACKAGE_OCCURRENCES_NOT_MERGED rather than silently selecting a newest package. The CLI default `--view genes` is a generic selector for these adapters; their actual response view is controlled by the adapter.
+
+### Python-only history view
+
+The Python API additionally accepts `view="history"` for BLASTP adapters, while this build's CLI --view choices are only genes/searches/hits/hsps. History collects recorded searches per selected gene and one lowest retained source-rank representative per search. That representative is not a cross-search best comparator. It can hold when per-gene history exceeds its fixed retained-search budget or the total response budget. Do not request --view history through the current CLI; use its supported paginated views or an authorized API caller.
+
 ## Query and response
 
 The Python entry point is `inspect_tool_database(root, manifest, *, adapter="manifest", identity=None, limit=100, offset=0, expected_manifest_sha256=None)` in `mamey.tool_database_reader`. Identity is a four-item tuple or list in strain/full-contig/region/alias order, validated through the existing exact-identity owner.
 
 Responses separate `integrity_state`, `source_status`, `declared_coverage_not_recomputed`, `results.observed_counts`, and `scientific_admission=NOT_PERFORMED`. Concrete adapters return the full identity on every gene row. Missing loci, duplicate/conflicting identity, duplicate gene order, and loci without gene rows have typed missing/held states. Source row holds remain unchanged. An ordinary returned row is recorded evidence, not admitted evidence.
 
-Use `limit` from 1 through 1000 and a nonnegative `offset`; follow `next_offset` until null. Total and returned record counts are explicit. Queries use bound parameters and fixed adapter SQL, with a ten-second SQL execution budget and a two-MiB serialized response ceiling. There is no arbitrary SQL or write mode. Errors raise `ToolDatabaseInspectionError` with a stable code; the CLI emits HELD JSON and exits 2. Result-adapter-not-selected and missing-locus states are inspectable responses, not scientific successes.
+Use `limit` from 1 through 1000 and a nonnegative `offset`; follow `next_offset` until null. Total and returned record counts are explicit. Queries use bound parameters and fixed adapter SQL, with a ten-second SQLite progress-handler budget and a two-MiB serialized response ceiling. The SQL budget does not impose a ten-second wall-clock cap on hashing, input reads, decompression or response serialization. There is no arbitrary SQL or write mode. Errors raise `ToolDatabaseInspectionError` with a stable code; the CLI emits HELD JSON and exits 2. Result-adapter-not-selected and missing-locus states are inspectable responses, not scientific successes.
 
 ## Platform and concurrency limits
 

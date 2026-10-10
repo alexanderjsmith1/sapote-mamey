@@ -1,6 +1,6 @@
 # Command catalog (generated)
 
-*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.448 · engine 1.9.173. Do not edit by hand; `--check` fails the build when stale.*
+*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.449 · engine 1.9.174. Do not edit by hand; `--check` fails the build when stale.*
 
 Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root (the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take `--package <sealed package dir>`; `run` is the only command that creates a package. Claim-safety: every output is a class-level hypothesis with judgment deferred.
 
@@ -97,6 +97,7 @@ _Optional deeper evidence; every channel stays a separate lane._
 | `blastp-availability` | Declare BLASTp availability (available-vs-ingested) per strain/channel |
 | `bigscape` | RUN BiG-SCAPE 2.x on a package/cohort's region GBKs -> cohort DB (+ chained matrix/clinker widgets). Post-seal, non-blocking. |
 | `hmm-adjudicate` | Ordered HMM domain readout for a BGC (intrinsic structure; complements BLASTp) |
+| `gap-rescue` | Optional, heavy, one genome at a time: the gap-rescue screen on every antiSMASH region (reference genes found elsewhere, split genes, partner contigs). Screen only, not adjudicated. --out must lie outside the bundle. |
 | `domain-reference` | emit the Mode-B domain functional-context dictionary from sealed package(s) (DOMREF-01) |
 | `domain-level` | Post-seal domain-level Mode B enrichment from a sealed package (role mapping, complexity, claim ceilings) |
 | `reference-dark` | Write a non-ranking report of loci with limited admitted reference coverage |
@@ -181,4 +182,4 @@ _Retained for existing scripts and specialized maintenance. They are not additio
 | `codex-bigscape-figure-sets` | Legacy-named Figure Factory command: render the optional BiG-SCAPE figure extension |
 | `codex-heatmaps` | Legacy-named Figure Factory command: convert matrix CSVs into SVG/HTML figure packs |
 
-_116 canonical commands catalogued; 2 aliases folded into those rows._
+_117 canonical commands catalogued; 2 aliases folded into those rows._

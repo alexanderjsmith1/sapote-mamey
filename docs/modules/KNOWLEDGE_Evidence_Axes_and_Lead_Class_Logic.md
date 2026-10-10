@@ -67,7 +67,7 @@ recall view that surfaces CONFIRMED-but-benched leads alongside it).
 ---
 
 ## 4. The canonical Class-A count — **12 (6 SID + 6 AS)** — and the 17 reconciliation
-**Canonical: 12 Class-A = 6 SID + 6 AS.** Every figure and caption uses 12. Full field at the time of this
+**Historical cohort receipt: 12 Class-A = 6 SID + 6 AS.** This is not a global constant for another cohort, version or input set; every figure/caption must use its own bound output and denominator. Full field at the time of this
 module: **247 leads → 12 A, 148 B, 87 C, 1,784 evaluated.**
 
 **Why not 17.** An earlier handoff estimate of "17 Class-A (6 SID + 11 AS)" assumed *all 11 banked AS Mode B
@@ -108,7 +108,7 @@ because nothing is hand-maintained.
   strain-specific assay data takes priority over the default.
 - **Corrected BGC count = Interior + ½·Edge + ¼·Full-Contig.** Use the corrected count in cross-strain figures.
 - **Locked exclusions:** `hglE-KS-PREV-001` (prevalent glycolipid domain; structural novelty stands, but no
-  habitat-exclusive claim); **NAPAA** (ε-poly-L-lysine class) excluded from all comparative/ecological claims;
+  habitat-exclusive claim); **NAPAA** is neutral under the current rules registry (no blanket comparative/ecological exclusion; the old specific hypothesis remains retired);
   ubiquitous saccharide machinery is not ecologically informative.
 
 ---

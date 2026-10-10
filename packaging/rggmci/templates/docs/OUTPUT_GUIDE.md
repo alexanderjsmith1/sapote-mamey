@@ -1,3 +1,19 @@
+# Current standalone output and source-location boundary
+
+This is a documentation template for the standalone `rggmci` package, not the Sapote-Mamey CLI's per-strain package schema. The build copies this directory to the generated source tree's `docs/`; normal wheel package data declares only `rggmci/PROVENANCE.json`, so a pip installation does not promise this guide exists beside installed code. Keep the source documentation with its generated provenance and exact package version. Sources: `packaging/rggmci/build_rggmci_package.py:176–193`, template `pyproject.toml:25–31`.
+
+## Exact writes, missing states and batch recovery
+
+The normal CLI accepts antiSMASH ZIP files or folders recursively discovered for `*.zip`. Missing/no inputs or multiple inputs without `--out-dir` return 2. For a batch, each ZIP run failure is recorded in `SUMMARY.tsv` and processing continues; exit 1 means at least one input failed. Successful earlier per-genome outputs can therefore exist during batch failure. Filesystem write errors outside the guarded per-ZIP analysis call can propagate. No input processing was run for this guide.
+
+With `--out-dir`, successful inputs write `<zip-stem>.json`, pair/related-locus TSVs only when those lists are nonempty, three completion TSVs, `SUMMARY.tsv` and `CANDIDATE_GROUPS.tsv`. Individual files use direct overwrite, not a group transaction; an existing destination is accepted. Same ZIP basenames from different folders can collide. Empty pair/related results do not remove prior TSV files, so stale files can survive a repeated run. Keep input path+hash and distinct output identity together, preserve an accepted prior result, and inspect the new summary/per-genome receipt before using surviving files. Sources: template `src/rggmci/cli.py:25–40,158–210`.
+
+Completion tables are emitted with a tier row even when no gene/split/partner rows exist (`mamey/ref_completion.py:1202–1219`, copied into generated standalone source). Read `completion_tier` and aligner/evidence availability; non-FULL is an explicit not-completed state, not biological absence. HIGH, MODERATE, LOW and related-locus states are algorithmic candidate labels, not contig joins, compound identity, physical linkage or scientific acceptance.
+
+Use the owning command's `--help`, input/provenance/hash receipt and actual files together. Stored BLASTp layer reports may return 0 even when queries are unmapped or unmeasured; inspect NOT_IN_RESULTS/unmapped states rather than treating successful writing as completed searches. The detailed field descriptions below remain implementation guidance within this scope. External searches, model/database builds and biological acceptance are separate governed actions; output existence does not establish their execution or acceptance.
+
+## Retained field guide — unchanged below
+
 # Reading rggmci output
 
 ## The input it needs

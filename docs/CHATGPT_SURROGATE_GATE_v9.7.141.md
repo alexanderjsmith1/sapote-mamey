@@ -1,5 +1,26 @@
 # ChatGPT surrogate gate — v9.7.141
 
+## Actual coverage, exit and write limits
+
+The command exists, but inspect its current declared steps and saved per-step results rather than assuming
+this v9.7.141 subset list describes every current check. `tools/run_chatgpt_surrogate_gate.py:104,:150`
+filters nonexistent declared paths; `:127–137` labels missing-module failures ENV-SKIP. Overall status
+(`:165`) rejects FAIL/TIMEOUT but permits ENV-SKIP-only or PASS+ENV-SKIP summaries to be PASS. Such a summary
+is partial/unverified coverage, not proof every proposed step survived. Doctor can be skipped by its flag.
+The old approximate timing ratio and historic partitioned-suite story are not current runtime measurements.
+
+Logs/summary/CSV/report use fixed destinations and replace prior files (`:98–101,:178–203`), and py_compile
+can create caches (`:146`). Within an authorized check, retain exact source/input/step scope, omitted/skipped
+files, actual return codes, logs and timestamps; select the one candidate output deliberately. This command
+executes its configured checks; bind their inputs, resource scope and outputs before running it.
+
+For actual release criteria, use [release records](RELEASE_RECORDS_GUIDE.md) and the source-bound cut owner;
+current full-suite flags/structured external receipt requirements are separate. An advisory surrogate,
+old test count, ENV-SKIP or historical PASS cannot waive those gates. No scientific result, real smoke run,
+rendered QA, owner acceptance or release approval follows from this guide or summary status.
+
+<!-- Historical source text follows. -->
+
 Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
 
 

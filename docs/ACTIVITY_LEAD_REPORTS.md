@@ -2,12 +2,11 @@
 
 ## Purpose
 
-`tools/render_activity_lead_reports.py` turns the existing, already-claim-safe
+`tools/render_activity_lead_reports.py` turns the existing, upstream-generated
 `mamey activity-leads` + `mamey activity-lead-genes` outputs into a single Day-5-shaped
 deliverable: an assembly-quality tier table, a cross-strain best-targets table, then one card
 per strain with a per-lead table carrying a Novelty figure, a Layperson headline, and a
-Next-experiment suggestion. It computes no new score and layers no new claim on top of either
-upstream module — it only re-shapes what they already emit into one document.
+Next-experiment suggestion. It computes no new score. Generated headlines and generic next-experiment text still require owner review; the renderer does not validate the upstream claims or approve experimental choices.
 
 This is an authoring/reporting tool, standalone from the CLI (`tools/`, not wired into
 `mamey/cli.py`). It is not a gate, and it never re-seals or edits a package.
@@ -16,7 +15,7 @@ This is an authoring/reporting tool, standalone from the CLI (`tools/`, not wire
 
 | Flag | What it is | Produced by |
 |---|---|---|
-| `--runs-dir` | Root of sealed packages (`*_4_triage_board.csv` + `manifest.json`) | a normal `mamey run` |
+| `--runs-dir` | Root containing package triage boards and manifests; sealing is an operator requirement, not verified here | a normal `mamey run` |
 | `--leads-dir` | Output dir of the activity-lead commands | `mamey activity-leads --out <dir>`, then optionally `mamey activity-lead-genes --out <dir>` |
 
 `--runs-dir` is read only for assembly-quality bookkeeping (genome size, contig count, N50, and
@@ -39,7 +38,7 @@ layout. `--format markdown` forces Markdown-only even when `reportlab` is availa
 `--format pdf` requires `reportlab` (raises if absent) instead of silently degrading.
 
 Deterministic: every list is sorted on an explicit key (strain name, axis, rank, locus tag)
-before being written. Two runs against the same inputs produce byte-identical Markdown.
+before being written. Output uses explicit sorting, but duplicate strain packages and duplicate summary keys can change which input is retained. Freeze the resolved input inventory and stamp before making a reproducibility claim.
 
 ## Field mapping (every "V2 contract" field is a pass-through, not a new value)
 
@@ -60,7 +59,7 @@ before being written. Two runs against the same inputs produce byte-identical Ma
 best-targets table → per-strain cards), the tier definitions and the corrected-BGC formula are
 byte-for-byte the same thresholds the engine already ships, every per-strain card carries a
 Novelty figure, a Layperson headline, and a Next-experiment line per lead exactly as asked, and
-every lead is bound to its exact locus with a printed gene-anchor breakdown (≤5 named genes) —
+anchored leads can carry a printed exact-locus heading and gene breakdown (≤5 named genes); unanchored leads do not reliably print that full identity —
 Day-5 did not have gene-level anchoring at all; this is new ground the current engine's
 `activity_lead_genes.py` makes possible that Day-5's May-2026 pipeline did not have.
 
@@ -88,6 +87,18 @@ compound identity, production, or expression. Missing evidence is a workflow gap
 biological absence. This tool computes no new score, applies no new gate, and does not seal or
 mutate any package. Judgment on every hypothesis is deferred to the Sapote (Tier 2/3) judgment
 layer.
+
+## Current admission and recovery limits
+
+The renderer does not validate package sealing, upstream receipt hashes or lead schemas. Assembly bookkeeping recursively discovers triage boards; manifest absence or parse failure falls back to empty metadata, and repeated strain identifiers overwrite earlier entries. Gene summary keys also keep the last duplicate. Resolve package/strain ambiguity before report generation; preserve a file inventory and exact source hashes. Missing or malformed numeric fields can become zero in display/ranking helpers, so zero is not evidence that the underlying quantity was measured.
+
+Cross-strain and per-lead tables print the BGC alias. Full `exact_locus` headings are printed only where gene anchors are present. This is a **full-identity hold** for unanchored or colliding leads. Until the renderer is revised, attach an exact-locus source index with strain / full node-or-contig / region / BGC alias and refuse alias-only adoption. The source field mapping above describes the intended identity, not universal printed coverage.
+
+Generated next-experiment lines come from a static class dictionary. Treat them as unapproved authoring placeholders, not assay results or authorized experimental plans. Neither an upstream claim-safe format nor a successful render establishes scientific acceptance. The Day-5 comparison is historical context, not a current audit of the external PDF.
+
+Markdown is written through a sibling temporary file and replacement; existing Markdown can be overwritten. PDF is attempted afterward and can fail after Markdown is published. Outputs are not a pair transaction, and the tool emits no source/output hash receipt. Use an unused output stem, inspect the returned `pdf_path`/`pdf_skipped_reason`, and inventory/hash the actual outputs separately. The low-level PDF call is not the Mode B profile verifier. A present PDF does not imply visual QA or current-profile approval.
+
+Source: `tools/render_activity_lead_reports.py:149–245,288–289,366–429,455–505`.
 
 ## Example
 

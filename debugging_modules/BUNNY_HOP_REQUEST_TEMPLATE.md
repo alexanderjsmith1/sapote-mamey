@@ -1,3 +1,11 @@
+# Historical Bunny Hop request — v9.7.108
+
+This is a retained June 2026 session example. The version/build, line counts, “unaudited” roster, panel quotas, scientific thresholds and standing exclusions below are historical declarations, not the current bundle's backlog or adopted policy. Do not infer that a file has never been reviewed from this list. The three-argument quota is superseded by the current protocol's supported findings, including zero.
+
+Use the [current request template](CURRENT_AUDIT_REQUEST.md), [current game](BUNNY_HOP_AUDIT_GAME.md) and exact selected source/profile. Requesting another session does not itself authorize sending messages or creating agents. The original body is retained verbatim for evidence.
+
+---
+
 # Bunny Hop Audit Request — Sapote–Mamey v9.7.108
 
 **Bundle:** `Sapote_Mamey_v9_7_108.zip` (upload this alongside this document)

@@ -34,7 +34,15 @@ The filesystem contract, not the chat transcript, is the cross-agent source of t
 
 ## Required run layout
 
-Each companion workspace has one lightweight current pointer and immutable run directories:
+This is the desired handoff layout, not a promise that every shipped command creates it.
+`plan_gtotree_iqtree.py plan` creates this planner layout, with initial state
+`PLANNED_AWAITING_APPROVAL` or a typed HOLD. `phylo-run` / `run_planned_tree.py` uses an
+explicit workdir and `run_status.json`; `phylo_autopilot.py` and `phylo_place.py` produce
+workflow-specific files and `_provenance.json`. Preserve those native receipts and record
+their locations in the handoff. Do not fabricate missing files or translate an exit code
+into `COMPLETE` before checking the requested outputs.
+
+A governed workspace can use one lightweight current pointer and immutable run directories:
 
 ```text
 <tool-workspace>/
@@ -74,14 +82,35 @@ Before an external-tool run, report:
 
 **GToTree execution requires approval bound to this preflight.** Reference downloads,
 large database downloads, and direct ingest into canonical Mamey outputs require authorization
-covering those actions. Reuse an existing matching approval as described above. A dry-run inventory, hashing, version probe, or inspection is read-only and may proceed.
+covering those actions. Reuse an existing matching approval as described above. Read-only inventory and hashing can proceed within the user's permitted scope. A
+command named `plan` or `--dry-run` can still write staging files, probe executables or
+perform local searches: `phylo_autopilot.py run-16s --dry-run` runs BLAST and prepares
+FASTAs; `plan_gtotree_iqtree.py plan` probes the toolchain and writes an immutable run
+directory. Verify the selected handler before assigning a mutation or compute scope.
 
 If no machine-specific timing exists, run a 3–5-genome assessment or give a bounded planning range
 and say it is uncalibrated. Never present a guessed runtime as measured.
 
+## Check companion instruction consistency
+
+Request the **LLM companion instruction gate** to check the configured companion-document phrases and routing markers:
+
+```bash
+python tools/audit_llm_companion_instructions.py --bundle-root '<extracted-bundle>' --out '<fresh-review-directory>/instruction-check.json'
+```
+
+The default policy is `mamey/data/llm_companion_instruction_policy.json`. The checker compares case-sensitive literal strings in configured active, routing and historical documents, plus forbidden fragments on selected pages. It does not parse Markdown roles, validate commands or links, check every document, or confirm software availability/execution. A token in a comment or historical example can satisfy a required phrase. Read the policy, result rows and checked scope together; a policy with empty maps can return PASS with zero checks. Policy metadata such as schema version and authority is not independently validated.
+
+Use a new report destination outside the bundle, policy and supplied evidence. `--out` creates its parent and directly replaces an existing file; input/output aliases are not refused. `--policy` selects an alternate policy, whose paths are joined to the bundle root without containment enforcement. Admit its exact paths and intended scope before using it. Missing configured files become failed rows; malformed policy structures or unreadable files can raise instead of producing a completed report. Preserve the previous report separately and retain the actual failure. Exit 0 is this configured string check's PASS, not a semantic, scientific or release certification.
+
 ## Resource policy
 
-- One GToTree alignment/tree job uses one core: `-j 1 -n 1 -M 1`.
+- The default budget is one core per tree. For GToTree 1.8, make `-j 1 -n 1 -M 1`
+  explicit. The v2 runner uses `-j 1 -M 1` without `-n`; reconcile version-specific help.
+  For `phylo-run`, specify `--threads 1 --parallel 1 --iqtree-threads 1`: its source
+  defaults (four threads, two parallel jobs) do not implement this default budget.
+  The planner also supports `--threads-per-tree` 1–4 within its recorded total ceiling;
+  a larger per-tree budget must match the existing user authorization.
 - IQ-TREE uses one thread per tree (`-T 1` or the locally verified equivalent).
 - At most four one-core tree jobs may run concurrently. Never assume unused logical CPUs are free.
 - BiG-SCAPE defaults to one core for interactive work; two is the balanced option; four is the
@@ -114,6 +143,14 @@ A run is `COMPLETE` only after all of the following are recorded:
 6. portable exports exist and have checksums;
 7. the handoff names the exact files a second agent should read;
 8. all warnings remain visible.
+
+Zero exit is necessary, not sufficient for a requested figure: `phylo_place.py report`
+can return zero while holding a figure, skipping a caption or omitting an unavailable
+advisory sign-off helper. Check actual artifacts and warning text. The generated planner
+`COMMAND.sh` contains an approval comment but no executable check of `RUN_STATE.json`;
+approval remains an operator responsibility. The separate runner's `--approved` flag
+records an affirmation, rather than authenticating or importing the planner approval.
+See [companion run contracts](COMPANION_RUN_CONTRACTS.md) for source-backed boundaries.
 
 A failed historical run row may remain in a database. Do not delete it merely to make the history
 look clean; exclude it by explicit completed run ID.

@@ -1,5 +1,9 @@
 # Optional DIAMOND backend for `compare`
 
+Before any `doctor` example below, read the [write-probe boundary](../docs/INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
+untouched. The current diagnostic can overwrite or remove its probe file.
+
 DIAMOND is an optional acceleration backend. It is not required for the `compare` command when an executable pyswrd installation or Biopython is available, and it is not installed by `bundle_support/install_sapote_addons.sh`.
 
 ## What the command detects
@@ -44,8 +48,16 @@ The per-row backend identifies the aligner that produced that hit. If the summar
 
 ## Failure and interpretation boundaries
 
+DIAMOND selection is a discovery result, not execution validation. The CLI probe checks only whether `diamond` is on PATH; the binding probe checks import. `doctor` or `diamond version` does not certify the selected alignment completed on the intended input. Source: `mamey/diamond_align.py:53–79`, `mamey/compare.py:70–108`.
+
 The absence of DIAMOND alone is not an error. The command should continue with an executable fallback and will warn when pyswrd is unavailable or unusable.
 
 A zero-hit result needs evidence review. In the current implementation, a selected DIAMOND path that returns no hit records is reported through the same downstream zero-hit route as a successful alignment with no matches; the DIAMOND failure reason is not preserved in the normal summary. Confirm input translations, terminal warnings, and backend execution before treating zero hits as a comparison result.
 
 DIAMOND output remains sequence-similarity evidence. Percent identity and coverage do not establish compound identity, biosynthetic production, gene function, or biological absence. No historical single-dataset agreement should be treated as general validation of the current platform, binary, inputs, or result.
+
+## Receipts and recovery
+
+`compare` creates its output directory before input/backend refusal and replaces CSV then summary individually. It does not invalidate prior results or attach input hashes, executable version or detailed DIAMOND failure reason to the normal summary. Preserve the terminal diagnostics and reviewed input/backend identity, and check the two files belong to the latest invocation before reuse. An ANI omission and a DIAMOND zero-hit route can coexist with exit 0. See [offline comparison](README_OFFLINE_ANALYSIS.md) for output/recovery and identity limits (`mamey/compare.py:407–525`).
+
+The current JSON `diamond_status` string is static descriptive text, even when the selected `backend` is DIAMOND (`mamey/compare.py:504–516`). Use the backend fields and diagnostics rather than treating that string's historical “proven” wording as a current platform/input validation receipt. Backend execution, installation and dataset agreement need their own current run records.

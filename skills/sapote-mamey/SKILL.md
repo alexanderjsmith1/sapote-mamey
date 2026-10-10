@@ -9,13 +9,17 @@ description: >-
   pipeline's own code and docs — including phrases like "run this strain",
   "author a Mode B card", "triage the BGCs", "reconcile the numbering",
   "audit the pipeline / bunny hop", "cut the tiers", "verify these citations",
-  "process the cohort", "make a deliverable for AS-###/SID####", or any mention
-  of Sapote, Mamey, antiSMASH, actinomycete/BGC analysis, or the strain banks.
+  "process the cohort", or "make a deliverable for a bound strain/locus".
+  Select this skill for an actual relevant task, not a project-name keyword alone.
   Use the parts relevant to the requested operation. A mention of the project or an
   uploaded bundle is not authorization to install dependencies, run analysis, or expand scope.
 ---
 
 # Sapote–Mamey
+
+Before any `doctor` example below, read the [write-probe boundary](../../docs/INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
+untouched. The current diagnostic can overwrite or remove its probe file.
 
 Read `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md`. Run the local startup command only
 for an authorized execution task; inspection and audit can remain entirely static.
@@ -24,10 +28,10 @@ This bundled skill supplies detailed claim-safety, authoring, and audit discipli
 installed copy may be older or customized: compare it with the bound bundle instead of assuming
 its model-specific workflow takes precedence. The user's current task and permissions govern scope.
 
-You are operating the Sapote–Mamey pipeline for actinomycete natural-product discovery. Two layers, and the boundary between them is sacred:
+Sapote–Mamey supports source-bound analysis and interpretation. Keep extraction and routing distinct from accepted scientific interpretation:
 
-- **Mamey** — the deterministic Python engine. It produces *facts*: BGC inventory, boundary tiers, KCB triage, BLASTp evidence, figures. `records.json` carries facts and **no scores**.
-- **Sapote** — the LLM judgment layer (you). It produces *interpretation*: Mode B cards, ecological synthesis, prioritization. `verdicts.json` carries judgment, with every similarity number routed through `mamey.precision` so no bare over-precise figure escapes.
+- **Mamey** — deterministic extraction and routing. `mamey/serialize.py` writes strain-prefixed records and verdicts payloads; its records payload omits triage scores, while its verdicts payload serializes deterministic triage/routing priors. Neither file establishes an independently authored scientific judgment.
+- **Sapote** — source-bound interpretation under the selected task. Authored cards and review receipts remain distinct from the engine’s verdicts filename. Precision helpers apply to selected display fields, such as the serializer’s KCB similarity band; they do not replace exact source metrics or automatically process every authored number.
 
 Your identity shifts with the task: Mode B author, code auditor, release engineer, citation verifier, ecological synthesizer. What never shifts is the discipline below. When in doubt, **the engine computes; you interpret** — never hand-compute a fact the engine already produces, and never let judgment leak into the records layer.
 
@@ -41,17 +45,17 @@ This is the non-negotiable that everything else defers to. Before writing a sing
 - **Display every individual BGC as strain / full node-or-contig / region / BGC alias**, copied from one bound source record. Missing or conflicting components require an identity hold; do not guess or shorten them.
 - **Tag provenance** on every claim: store-backed / reconstructed / corpus.
 - **Reconcile BGC numbering across sources before authoring**, and flag any ID collision. Numbering drifts between antiSMASH, the store, and the corpus — reconcile first.
-- **No fabricated per-gene observations. Ever.** Every §4 BLASTp row must trace to a real result (the phantom-locus incident templated fake observations into 74+ cards — do not repeat it). If a value isn't in a real result, it doesn't go in the card.
+- **No fabricated per-gene observations. Ever.** Every selected-profile per-gene BLASTp row (default §4; current50 v2 §50) must trace to a real result (the phantom-locus incident templated fake observations into 74+ cards — do not repeat it). If a value isn't in a real result, it doesn't go in the card.
 - **Retractions stated plainly.** If new evidence overturns a claim, retract it cleanly and move on — no hedging.
 
-The `claim_safety_linter` is wired into the seal path (`tools/claim_safety_linter.py`, `mamey/claim_safety_gate.py`). **Run it — don't rely on memory that a card is safe.** See `references/claim-safety.md`.
+The authored-card CLI uses tools/claim_safety_linter.py; package validation/sealing uses the separate mamey/claim_safety_gate.py. Their heuristic scopes differ. Run the selected check within the actual task, retain findings/exit mode and perform source/content review; a remembered or clean pattern result is not acceptance. See references/claim-safety.md.
 
 ## The workflow
 
 ```
 1. Session start   → read AGENTS.md; bind inputs and scope; start only for authorized execution
 2. Find the spec   → locate the ACTUAL contract + the REAL tool before building anything
-3. Compute in Mamey → deterministic facts from the engine; judgment only in the Sapote layer
+3. Use Mamey       → source extraction and routing; bind interpretation to admitted evidence
 4. Verify for real  → read the actual output file; report receipts, not adjectives
 5. Disclose tiers   → state per-tier patch/verification status; flag if a fix landed in only some
 6. Save the handoff → record outputs, evidence, unresolved holds, and the next bounded action
@@ -61,33 +65,52 @@ The `claim_safety_linter` is wired into the seal path (`tools/claim_safety_linte
 
 **Step 2 is not optional either.** Find the actual spec and the real tool. Don't infer a format from one example; don't hand-roll what an existing command already does. If you haven't found the instructions, say so and go look — don't fill the gap with plausible-sounding inference.
 
-## Next paths at every substantive handoff
+## Handoff scope
 
-Report completed work, evidence, unresolved holds, and the next bounded action. Then give exactly
-eight numbered paths, 1 through 8. The paths must be genuinely different and grounded in the current
-strain, complete BGC identity, package state, validation result, or file. Cover these downstream
-goals when applicable: (1) continue the next batch, (2) deepen a named BGC, (3) compare or merge
-across strains, (4) make a figure or visual deliverable, (5) pursue wet-lab, metabolomics, or
-literature evidence, (6) package a checksum-bound handoff, (7) patch, debug, or improve validation,
-and (8) produce documentation, release material, or another public-facing artifact. Do not pad the
-list with wording variants. Save and verify the current task state before the handoff and include the
-required SAVE STATE confirmation under the shared `AGENTS.md` contract.
+Report completed work, supporting evidence, unresolved holds and the next bounded action when useful.
+Use eight concrete numbered next paths only for a major final delivery or explicit planning request
+when eight distinct useful options exist. Routine statuses and small fixes stay concise with at most
+one useful next action. Do not create extra work to fill a menu. The current user’s defaults govern;
+a historical handoff checker cannot force eight paths into every response. Save actual state/receipts
+within the owned task without inventing an automatic SAVE STATE confirmation or copying whole sources.
 
 ## Modes — switch deliberately
 
-**Mode B authoring** → choose the named profile from the current machine-readable contract and emitted template. Profiles include `MODEB_CANDIDATE_30` and `FINISHED_FULL48_CURRENT_EVIDENCE`; their names do not replace their current definitions. Preserve exact titles, required evidence fields, channel-separated named matches, and typed stream dispositions. No compact/minimal entries. **Read the relevant exemplar and evidence before authoring; run the gates after writing the actual card.** Missing evidence must have a typed disposition, not invented filler:
+**Mode B authoring** → select the actual profile and emitted template from docs/MODEB_PROFILE_MATRIX.md.
+Default full48 and opt-in current50 v2 are separate contracts; current50 uses --contract current50_v2
+on emit and verify, with its evidence table in §50. Historical first20/30 titles and class exemplars
+are calibration, not universal current profile definitions. Keep the complete four-part locus identity
+and source/profile/sequence/roster/channel bindings. Use the exemplar’s actual slot status and never
+copy its science into another card.
 
-1. **Read the matching class exemplar first.** `docs/reference/modeb_exemplars/<class>_exemplar.md` is the gold-standard depth/format target for the BGC's class (`nrps`, `nrps_pks_hybrid`, `t1pks`, `t2pks`, `terpene`, `siderophore`, `ripp` — slot status in `modeb_exemplars/README.md`, policy in `docs/modules/MODE_B_DEPTH_POLICY.md`). **Use its evidence grid together with the selected current profile**, preserving protein lengths, core markers, named references, and a prose walkthrough. Keep nr, ClusteredNR, and local Swiss-Prot evidence separate; an older exemplar does not reduce the current profile requirements. Do NOT infer the bar from an old card.
-2. **Author §4 from the current dated BLASTp snapshot — additive, never a card-wide blocker (v9.7.372, Patch 7).** The §4 table rests on REAL per-gene BLASTp where it exists (region-GBK aa_seq → BLASTp; NCBI, or EBI `mamey/blastp_ebi.py` when NCBI throttles; or DB aa_seq **with** the region→gold tag reconciliation). Missing cells are EXPLICIT typed states — `NO_BOUND_HIT`, `NOT_RUN`, `RUNNING_NOT_YET_INGESTED`, `INGEST_GAP`, `PROVENANCE_HOLD` — never blanks, never zeros, never biological absence. Do not delay a card merely because another BLASTp or BiG-SCAPE run is in progress: later results are admitted as a versioned additive update with a changed-row receipt. Never paper a missing BLASTp over with Pfam prose. Escalation triggers: `docs/MODEB_EVIDENCE_ESCALATION_WORKFLOW_v97143a.md`.
-3. **Run all THREE gates and report their receipts:** `mamey verify-modeb` (structure + depth) · `mamey claim-safety` (claim rules) · `mamey.mode_b_quality_gate.evaluate_card` → tier **FULL** (depth outputs are FULL/SHALLOW/STUB; HIGH/MID/LOW are priority labels). A FULL depth result does not verify the truth or completeness of source evidence. Report source binding and scientific-review holds separately.
+A gap-aware draft may record typed missing/active/unbound evidence and receive additive source updates.
+Finished promotion stays held while required evidence is available but uningested, active, attainable
+but unobtained or freshness-unverified. Reasoned terminal limitations require the ratified evidence
+state, complete selected-profile matrix/roster and independent content review. An EBI/UniProt result
+is not nr; keep transport/database/query/job provenance and channels separate. See docs/MODE_B_AUTHORING_PREFLIGHT.md
+and docs/MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md.
 
-Contract: `docs/FULL_MODEB_30_SECTION_CONTRACT_v97150.md` + machine form `mamey/data/mode_b/modeb_full30_corrective_contract.json`; titles in `docs/MODE_B_30_SECTION_CANONICAL_TITLES.md`; claim-safety audit in `docs/MODE_B_CARD_CLAIM_SAFETY_AUDIT.md`; **one-page preflight checklist in `docs/MODE_B_AUTHORING_PREFLIGHT.md`**. Filenames must encode the complete **strain / full node-or-contig / region / BGC alias** identity in filesystem-safe form.
+Run the selected mechanical gates on saved bytes: bundle-local verify-modeb with the same contract,
+claim-safety with actual finding counts/exit mode, and the additive evaluate_card API when applicable.
+Its FULL/SHALLOW/STUB depth tier is separate from HIGH/MID/LOW priority and is not finished scientific
+acceptance. Ordinary structure lint can permit optional/conditional extension omissions. No three-check
+recipe replaces the selected source-bound review path. Preserve actual reports; warn mode can exit zero
+with findings and optional --report/--report-json outputs require explicit owned destinations.
 
 **Code / pipeline audit** → choose a method appropriate to the requested scope. Use the Bunny Hop game only when requested. Verify findings against concrete requirements and implementation; design intent is counterevidence, not immunity. Report zero findings when warranted, or any evidence-supported number. Do not invent criticisms to fill a quota. Output actionable findings with evidence, impact, counterarguments, and a bounded repair. Test conflicting rule sources where useful.
 
-**Release / cut** → `CUT_PROTOCOL.md` + `tools/make_public_tier.sh`. Select tiers from the current cut protocol and release manifest, then verify each actual payload. Run every gate: version-sync, leak audit, tier-derivation parity (`public == redact(private)`), checksums. **Never mislabel a tier** — a MERGED/SID zip must actually carry its content, or say plainly that it's an empty scaffold. Bump the version SSOT (`pyproject.toml`) and propagate with `tools/sync_version.py` before cutting; add a CHANGELOG entry with **bold-bullet headlines** (`- **X**: …`) or the patch-line parser fails.
+**Release / cut** → read CUT_PROTOCOL.md, docs/RELEASE_RECORDS_GUIDE.md and the actual release owners.
+Current default cuts are CODE only; non-code tiers are disabled unless the explicit override is selected
+within an authorized release task. tools/release_cut.sh mutates [tool.sapote].bundle_version in pyproject.toml,
+BUILD_STAMP/generated sources and runs its own source/test/receipt gates. A full suite, leak scan, parity
+or checksum label has its own scope; do not execute a cut because this skill lists it. Review actual
+payloads, test receipts and owner decisions. Do not overwrite sources or copy packages to make audit evidence.
 
-**Citation verification** → Bert/Eden mode (`docs/BERT_MODE_PROTOCOL.md`): two modes over one verified set — Mode A itemized-in-chat, Mode B the Eden Summary Table Excel (Verified Bibliography / Zotero Cleanup / Summary Stats). Verify metadata (authors, DOI, PMID, PMCID), fetch PMC full text for hard stats, tier every entry Verified / Partial / Policy / GenBank, flag Zotero cleanup, PNAS-style citations.
+**Citation verification** → use docs/BERT_MODE_PROTOCOL.md and docs/LITERATURE_REVIEW_MODES.md within the
+actual retrieval/local-source scope. Metadata identity, inspected primary passage, full-text availability,
+review depth and unresolved fields are separate. No model name or resolver PASS label proves a paper was
+retrieved/read. Prepare the requested format, with source/passage receipts; choose any workbook/summary
+export explicitly. Citation work orders do not authorize messaging or online submissions.
 
 ## Non-negotiable craft rules
 
@@ -102,43 +125,40 @@ Contract: `docs/FULL_MODEB_30_SECTION_CONTRACT_v97150.md` + machine form `mamey/
 ## Technical scaffolding
 
 - **Health check:** `python mamey_run.py doctor` from the bundle root. Read its capability diagnostics; an environment check does not establish analysis success. Authoritative commands + deps in `docs/PREREQUISITES.md`.
-- **Gates that must pass before a deliverable ships:** for a Mode B card, all THREE of `verify-modeb` (structure+depth), `claim-safety` (claim rules), and `mode_b_quality_gate` (tier FULL); plus the completeness audit (prevents silently dropping BGCs — the AS-XXX incident dropped 13/61), version-sync, leak audit, tier parity, checksums. The full test suite is the release gate; run it out-of-band.
-- **Authoritative constants** (do not re-derive from memory — they've changed): assembly tiers GOOD ≥70% / MODERATE ≥45% / POOR ≥20% / VERY_POOR <20% interior; corrected BGC count = Interior×1 + Edge×½ + Full-contig×¼; enediyne emits a neutral `[E-signal]` (BSL-2 flagging retired); NAPAA is excluded from comparative/ecological claims.
+- **Gates that must pass before a deliverable ships:** select its profile’s actual mechanical/source/content review requirements and artifact scope. Release version/tier/full-suite gates apply when shipping a release, not automatically to every static documentation fix or draft. Do not infer acceptance from FULL, exit zero or historical cohort incident counts.
+- **Authoritative constants** (do not re-derive from memory — they've changed): assembly tiers GOOD ≥70% / MODERATE ≥45% / POOR ≥20% / VERY_POOR <20% interior; corrected BGC count = Interior×1 + Edge×½ + Full-contig×¼; enediyne emits a neutral `[E-signal]` (BSL-2 flagging retired); NAPAA is neutral/action none in mamey/data/rules_registry.json; the blanket comparative/ecological exclusion is retired. Interior-weighted count/tier values are diagnostic heuristics, not assembly completion or product truth; missing interior percentage yields UNKNOWN.
 
 ## Verification — before you claim "done"
 
 1. Read the actual output file — don't infer from the code that wrote it.
-2. For a Mode B card: confirm you read the class exemplar and mirrored its §4 grid; confirm §4 rests on real per-gene BLASTp (or the card plainly requests the data); then run all three Mode B gates (`verify-modeb`, `claim-safety`, `mode_b_quality_gate` → FULL). Run the claim-safety linter on any Mode B / interpretive text.
+2. For a Mode B card: verify the selected profile/exemplar scope and §4 or §50 evidence bindings, actual matrix/roster and gate findings. Record draft versus finished state and unresolved scientific review. Do not reduce the selected profile to an older exemplar grid or three-check recipe.
 3. Run the completeness audit so no BGC was silently dropped.
 4. For a cut: run the full suite out-of-band, then the leak audit on every public tier (0 private/unpublished IDs), then parity.
 5. Report the numbers you got, not an adjective.
 
 ## Boundaries
 
-- **Leak safety is the hard line.** Private/unpublished strain IDs must **never** enter a public tier. Per PI decision (2026-07-06) the **AS-series cohort is public**, so the AS scrub is deactivated by default and tier parity holds as identity — but a future private cohort re-arms it (`AS_SCRUB=1`). SID is public (Chevrette 2019). When unsure whether an identifier is publishable, treat it as private and keep it out of public tiers.
+- **Privacy and owner authority remain in force.** Follow the selected current tier and source-release guidance in docs/CUSTOM_PRIVACY_TIERS.md. A release tag or historical public identifier claim does not authorize disclosure of candidate findings. AS_SCRUB is a retained leak-audit control, not a switch that restores the retired flag-controlled rewrite. Current non-merged tier generation has a separate unconditional content-redaction pass, so do not infer identity parity or privacy from AS_SCRUB=0. Unknown publication scope remains held; tier overrides do not grant owner approval.
 - **No fabricated observations, in any section, ever.** If it isn't in a real result, it isn't in the card — even in the course of filling a template.
 - **Attribution over reproduction.** Cite sources (DOI/PMID/accession); don't reproduce copyrighted text.
 
-## Post-seal deliverables
+## Optional deliverables and helper commands
 
-After a sealed package exists, twelve sign-off-gated subcommands emit extra deliverables **without
-re-running the engine, moving a score, or touching a published tier** (non-scoring unless noted;
-capacity-level, judgment deferred): `cohort-leads` and `cohort-assemble` (cross-strain ledgers),
-`comparator-coverage` (two-denominator MIBiG false-positive layer), `af-dossier` (AF leads × optional
-measured Candida activity), `good-guesses` (claim-safe interpretive priors, md/csv/docx/pdf, tagged
-solid/rare/remarkable/notable/interesting with a resolving experiment), `modeb-export` (Mode-B card →
-.docx + .pdf), `figures kcb-locusmap` (offline KCB locus map), and the advisory helpers
-`domain-reference`, `realistic-count`, `novelty-shortlist`, `signoff` (the "would a master's student
-sign off?" tree QC), and `verify-modeb --interp` (WARN-only Mode-B judgment-substance layer). Exact
-invocations: `docs/GUIDE/02_Quick_Guide.md` §10 · `docs/GUIDE/01_User_Manual.md` §4.3a ·
-`docs/user_guides/tools_reference.md` §20.
+Use the current capability catalog, selected CLI parser and docs/user_guides/tools_reference.md for
+helper availability, required inputs and output/write behavior. The historical twelve-item menu is
+not a closed command inventory or proof that every helper is sign-off gated, requires a fully sealed
+package, is read-only or leaves every score/file unchanged. Some helpers write fixed outputs/receipts
+into a selected package or directory; some are advisory. Template emission, artifact validation,
+independent scientific review, visual QA and release permission remain different lifecycle steps.
+Reference existing source bytes in place; create only the requested owned output, never a new full
+package/database copy merely to inspect a command.
 
 ## Quick reference index
 
 | I need to… | Read |
 |---|---|
 | Start a session correctly (the front page) | `docs/BUNDLE_CAPABILITIES.md`, `AGENTS.md` |
-| Author a Mode B card | `docs/FULL_MODEB_30_SECTION_CONTRACT_v97150.md`, `docs/MODE_B_DOCUMENT_INDEX.md`, `mamey/data/mode_b/modeb_full30_corrective_contract.json` |
+| Author a Mode B card | `docs/MODEB_PROFILE_MATRIX.md`, `docs/MODE_B_AUTHORING_PREFLIGHT.md`, `docs/MODE_B_DOCUMENT_INDEX.md` |
 | Get the claim-language rules right | `references/claim-safety.md`, `docs/MODE_B_CARD_CLAIM_SAFETY_AUDIT.md`, `tools/claim_safety_linter.py` |
 | Write human-facing prose that doesn't read like an LLM | `references/prose-style.md` (audit pass; claim-safety hedges are exempt) |
 | Compile a deliverable | `docs/DELIVERABLE_CONTRACT.md` |
@@ -148,7 +168,9 @@ invocations: `docs/GUIDE/02_Quick_Guide.md` §10 · `docs/GUIDE/01_User_Manual.m
 | Verify literature citations | `docs/BERT_MODE_PROTOCOL.md` |
 | Run/resume BiG-SCAPE safely | `docs/LLM_COMPANION_TOOL_PROTOCOL.md`, `docs/BIGSCAPE_GCF_WORKFLOW.md`, `docs/SOPs/SOP-17_CrossStrain_GCF_Cohort.md` |
 | Plan/run GToTree + IQ-TREE | `docs/LLM_COMPANION_TOOL_PROTOCOL.md`, `docs/phylogenomics.md` (user-approved preflight; one core/tree; ≤4 total) |
-| Validate the required eight-path handoff | `tools/check_chatgpt_next_paths.py` and the current shared handoff contract in `AGENTS.md` |
+| Prepare a scoped handoff | Current user defaults, actual task state and `AGENTS.md`; use the historical eight-path checker only when that format is selected |
 | Set up / run the engine | `docs/INSTALL.md`, `docs/PREREQUISITES.md`, `python mamey_run.py doctor` |
 
 *The shared assistant entry point is `AGENTS.md`. Unless shown under `references/`, paths in this skill refer to the bundle root. Compare this companion discipline with the current contracts and update it when they diverge.*
+
+The full48 contract names `FINISHED_FULL48_CURRENT_EVIDENCE` as its strict profile. Select and verify the requested profile explicitly; this name does not certify current50_v2 output, scientific acceptance or release readiness.

@@ -1,15 +1,29 @@
-# Prevalence workflow — where it sits
+# Prevalence over saved cohort annotations
 
-Post-seal, cohort-wide, read-only. It consumes the frozen tool databases (`antismash_gene_census`,
-`antismash_gbk_domains`, optional `blastp_*` and `mamey_*_keywords`) and produces review surfaces, never
-altering a sealed package. Run order in a cohort analysis chain:
+`tools/domain_prevalence.py` reads census/domain SQLite inputs and optional saved NR/ClusteredNR/Swiss-Prot states. `tools/scan_prevalence.py` reads one keyword-scan SQLite dataset. Both are downstream, read-only input consumers; they do not rebuild evidence, verify package sealing, or prove source cohort completeness. A rarity rank is a review queue, not chemical novelty, functional absence or host specificity.
 
-1. seal the engine cut (owner) → 2. build/refresh the tool databases (source-verified, hash-bound) →
-3. `tools/domain_prevalence.py` (+ `--widget`) → 4. `tools/scan_prevalence.py` per keyword dataset →
-5. review the widgets; a rare + evidenced + host-specific family is a review candidate, not a result.
+## Inputs, joins and denominator
 
-Wiring notes for the composer: these are new `tools/` scripts + one `tests/` file; re-run
-`tools/gen_tools_inventory.py` after they land so the tool inventory covers them. No `mamey run` change —
-they are downstream analysis, not part of the deterministic extraction pipeline, so cross-strain
-comparability is unaffected. The host TSV and per-strain owner rulings (`--exclude`, `--host-override`)
-are arguments, never hardcoded, so the cohort scope is auditable.
+Domain prevalence uses `attempt.strain` rows from the census, minus `--exclude`, as its denominator; scan prevalence uses `source.strain` rows from that scan database. These lists are **not SQL DISTINCT** and do not check success/completeness states. Numerators deduplicate strains, genes and loci. Freeze the exact successful/failed source inventory and reject duplicate strain rows before cross-dataset comparisons; different scan databases can have different denominators even with the same requested cohort.
+
+Domain rows are keyed by `(source_tool, feature_type, domain_label)`. Only `SOURCE_SEQUENCE_AND_GEOMETRY_BOUND` features contribute; other binding states go to the held list. Genes come from explicit tag JSON, not protein length. Malformed tag JSON silently becomes an empty list, so a feature can be counted while contributing no gene/locus/strain. Missing protein hashes omit a gene from sequence-hash counts. Preserve these distinct denominator layers (`tools/domain_prevalence.py:37–95`). Full locus display uses census `exact_identity` or falls back to `locus_key`; validate and retain strain / full node-or-contig / region / BGC alias before any individual-locus adoption.
+
+Keyword scan rows use `groups_json` lists or dictionary keys. Empty/malformed JSON is skipped without a held-feature record. Scan “feature occurrences” means distinct tagged genes per group, not domain-feature occurrences; it is not the same measure as the domain consumer (`tools/scan_prevalence.py:23–74`). Source namespace and feature type must travel with each comparison. SQLite domain host/evidence tables omit `feature_type` from their row keys, although ranking JSON retains it; use the JSON's full key to avoid collisions.
+
+Optional evidence maps join by `(locus_key,locus_tag)` after reading saved bindings; current protein hashes are not rechecked against those bindings. An omitted or empty evidence map reports all-zero counters, including zero missing, rather than one missing per gene. All-zero NR/SP/CNR columns therefore do not establish complete searches or verified no-hits. Scan prevalence uses zero placeholders for these channels. Keep channel availability and exact upstream receipt state separately.
+
+## Host metadata and filtering
+
+Host classes can be heuristically inferred from source text or supplied via a host TSV/override. Substring classification is not host-taxonomy validation. Conflicting repeated host TSV rows keep the last recognized value. The domain tool defaults to `--host-source-col source`; selecting an explicit class column requires clearing the source-column choice so the class branch is used. Host class values are not controlled by an enum.
+
+A current domain-tool bug inserts an unknown/excluded `--host-override` key into `hostmap` with a null value, even though the denominator strain list excludes it. Features from such a strain can re-enter scope, alter counts, or fail index lookup. **Only override IDs already in the admitted, nonexcluded denominator.** Scan prevalence ignores unknown override keys. Review exclusions and the final host map rather than assuming the two consumers are identical (`domain_prevalence.py:46–63`; `scan_prevalence.py:30–40`). These are engineering holds; no host enrichment is inferred here.
+
+## Output and recovery boundary
+
+Domain output is `domain_prevalence__v0.1.0.sqlite`, `domain_prevalence_ranking.json`, and `AUDIT_RECEIPT.json`; `--widget` adds HTML and top-20 SVGs. Scan output is only the shared ranking JSON plus optional widget/SVGs: it emits no SQLite prevalence database or audit receipt. Each keyword dataset needs its own unused external output directory to avoid replacing another dataset's identically named JSON.
+
+Domain source metadata hashes census and domain DB main files; scan JSON hashes the main scan DB file. Neither consumer rejects SQLite WAL state or holds a shared frozen snapshot with pre/post hash checks. Main-file hashes may omit WAL-resident bytes. Optional evidence DBs, host TSV/overrides, code and output bytes are not fully bound by the generated receipts; domain `AUDIT_RECEIPT.json` itself contains counts/channel names, not a complete provenance manifest. Use frozen upstream databases with confirmed journal state and a separately governed source/parameter/output inventory; do not copy databases merely to repair documentation.
+
+Writers reuse output directories and directly overwrite JSON/SVGs; domain output explicitly removes an existing prevalence SQLite file before rebuilding it. Use new outputs; preserve partial failures. Widget failures warn but both CLIs still return zero (`domain_prevalence.py:98–146`; `scan_prevalence.py:76–87`). Inspect actual output inventory and warnings before adopting a widget. Small/empty scope is not a completed cohort analysis.
+
+The widget's single-strain selection filters for presence but bars still show **cohort strain counts**; host views change the bar denominator while evidence and rare-locus lists remain cohort-wide. It compacts some evidence columns and does not independently verify producer hashes. Its static note that Swiss-Prot is “complete” is not established by an arbitrary input dataset (`tools/domain_prevalence_widget.py:23–28,67,74–92`). Exported SVG is a display snapshot, not a new scientific result or hash-bound receipt. Inspect the generated widget and preserve its actual browser/render status.

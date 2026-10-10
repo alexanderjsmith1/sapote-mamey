@@ -1,5 +1,7 @@
 # Layperson Guide — Citation Compact
 
+The example row uses the first triage row; its value phrase is a fixed generic substitution. Confirm each statement against supplied evidence before sharing it. Preserve strain, full node/contig, region and BGC alias wherever an individual locus is discussed.
+
 ## What this genome suggests
 
 Explain the strongest leads in plain language. Use one sentence per lead, then state the experiment that would prove or disprove it.

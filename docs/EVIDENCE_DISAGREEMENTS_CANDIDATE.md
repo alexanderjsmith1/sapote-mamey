@@ -31,3 +31,11 @@ lowest retained rank is only a review representative. The view does not adjudica
 all hit pairs or emit an admitted evidence index. Current50 requirement mapping
 does not imply section completeness. This is a candidate, not integrated software
 or scientific/release acceptance.
+
+## Service, audit and portable-output limits
+
+`mamey/evidence_disagreements.html` is an API client served by this tool, not a standalone data export. Browser search and retained-hit/reference pagination use25-row pages. The surface has no download exporter, correction writer or evidence-index acceptance route. Missing/binding-hold and recorded-no-hit cues remain distinct; a filter yielding no rows is not biological absence. See [HTML evidence views](HTML_EVIDENCE_VIEWS.md).
+
+The audit selects up to five distinct available records using source-state predicates; it does not refuse when fewer are available. Its `five_records` key is a historical name, not proof that all five source-state cases were audited. `SOURCE_BOUND_ENGINEERING_REVIEW_ONLY` is a bounded mechanical snapshot, not complete-population review, cross-channel adjudication or section acceptance. Source stability hashes are rechecked before writing the audit (`mamey/evidence_disagreements.py:206–218`).
+
+The output existence precheck is followed by direct `write_text`, not exclusive/atomic creation; no parent directory is created and a failure can leave partial bytes. The saved audit includes source/session receipts and selected records, but does not bind the selection-file hash, builder/template hashes or its own output hash. Record these in an external receipt and use a fresh candidate path. A successful startup, API response or zero exit from audit mode does not prove scientific acceptance. Serving checks source stamps on requests, while full digest checking is explicit at audit completion; frozen inputs and trusted local source dependencies remain prerequisites (`57–92,206–245`).

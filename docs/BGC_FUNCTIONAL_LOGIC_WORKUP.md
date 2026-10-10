@@ -1,3 +1,18 @@
+# Functional logic workup — operational boundaries for v9.7.447
+
+Read the guide below with these source-backed limits:
+
+- Inputs require a `manifest.json` plus exactly one each of `*_cds_table.csv`, `*_3_mibig_per_gene.csv` and `*_2_inventory.csv` per package. The manifest is required and hashed; this tool does not verify its contents or revalidate a package seal. Package-list relative paths resolve against the process working directory; only lines starting directly with `#` are comments.
+- Rank lookup uses `complete_identity`; duplicate rank identities collapse to the last row in a dictionary. BGC grouping is by `bgc_id` within a package and takes the first gene row's contig/region identity. Independently check identity uniqueness and mixed-locus rows before running. The final count equality is not proof that those source identities or annotations are correct.
+- Alias CSV columns are `source_strain,display_strain`; duplicate source aliases use the last value. Duplicate source strains across packages fail, but distinct source strains mapping to one display name are not separately rejected. Sanitized per-strain folder names can collide. Keep aliases unique and verify every output identity and per-strain folder.
+- Dominant MIBiG accession versions are stripped for matching. Role calls are annotation-pattern classification; an admitted table hit is not newly computed alignment evidence. A regulator, transporter or resistance annotation is not measured regulation, transport or self-resistance.
+- `--out` is created early and existing named TSV/JSON outputs are overwritten sequentially. There is no transactional rollback or empty-directory refusal; a later error can leave partial output or stale prior files. Use a new output directory and keep failed runs separate.
+- `SOURCE_HASHES.tsv` hashes the four package input files, not the definitive-rank or alias table. `RECEIPT.json` records counts and relation labels; it does not itself bind every output hash or scientific inference. Record the rank/alias paths and SHA-256 alongside the run and verify output completeness independently. Retain the original research-result hashes and bind any new calculation separately.
+
+`COMPLETE` is a tool completion status. Preserve all claim ceilings in the guide below; scientific acceptance stays with the user.
+
+---
+
 # BGC functional logic workup
 
 `tools/bgc_functional_logic_workup.py` explains the definitive ranking at gene resolution. It preserves direct MIBiG and ClusterBlast evidence while adding a separate architecture-first channel for genes that do not align to the selected reference.

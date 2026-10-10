@@ -1,3 +1,9 @@
+## Current reader scope — historical .154 remediation record
+
+The APPLIED status, footer-choice fork, old literal patterns and round-trip checks below refer to .154. They do not request a present footer/token change or prove .447 metadata integrity. For a new versioned cut, inspect current `tools/sync_version.py`, `tools/gen_release_manifest.py`, canonical version/build inputs and the generated manifest through their owners. Do not hand-edit a generated surface from this historical recipe. Current [metadata-reader guidance](../BUNDLE_METADATA_READERS.md) explains verification boundaries; the [cut protocol](../../CUT_PROTOCOL.md) remains a separate release procedure. No generated manifest, tool or version anchor is changed here.
+
+---
+
 # RELEASE_MANIFEST.md remediation — APPLIED in v9.7.154
 
 Responds to `RELEASE_MANIFEST_remediation_v9.7.154_spec.md`. Unlike the spec (which deliberately

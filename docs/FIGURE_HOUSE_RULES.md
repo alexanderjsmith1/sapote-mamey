@@ -1,7 +1,7 @@
 # Figure house rules
 
-Every figure made from this bundle meets the rules on this page. Each rule says why it exists and
-what checks it. Where nothing checks it yet, check it by hand before a figure leaves your folder.
+Every figure delivered for review must be checked against the rules on this page. Each rule says
+why it exists and what checks it. Renderer coverage differs; check remaining requirements by hand before delivery.
 
 Figure routes, renderers and recipes are in [FIGURES_START_HERE.md](FIGURES_START_HERE.md). This
 page is the short list of what every one of them must produce.
@@ -11,7 +11,7 @@ page is the short list of what every one of them must produce.
 | # | Rule | Why | Checked by |
 |---|---|---|---|
 | 1 | Save as vector SVG or PDF. If you need a raster, save lossless PNG at 300 DPI or more. Never save JPEG. | JPEG blurs tip labels, support values and thin branches until they cannot be read. | By hand. |
-| 2 | The caption and methods travel with the figure. Each figure gets its own folder holding the image with a caption band under a crop line, a `_plot_only` image without the band, and a `_CAPTION.md` with the same text. | A figure that leaves its folder must still say what it shows and how it was made. | `tools/caption_band.py` writes the band and the sidecar. |
+| 2 | The caption and methods travel with the figure. Each figure gets its own folder holding the image with a caption band under a crop line, a `_plot_only` image without the band, and a `_CAPTION.md` containing the authored caption and methods. | A figure that leaves its folder must still say what it shows and how it was made. | `tools/caption_band.py` writes the banded PNG, raster PDF and verbatim Markdown sidecar; its visible band simplifies Markdown. It does not create the `_plot_only` source image or validate methods completeness. |
 | 3 | No claim-safety wording on the page. That covers titles, legends, footers and any notes band. The claim ceiling is recorded in the render receipt instead. | The figures go into papers and talks, where that wording reads as noise. The receipt keeps the ceiling on record. | `mamey.figure_policy.FIGURE_BANNED_TEXT`, applied by `mamey/figure_save.py`, but only to figures saved through it. Most renderers call `savefig` directly and are not checked there. `tests/test_figure_draw_text_sites_v97442.py` lists the draw calls that still put this wording on a figure; the list may only shrink. That list reads the source, so it misses text built at run time. `tests/figure_page_text_ratchet.py` (wired in `tests/conftest.py`) reads the text on every matplotlib figure a test renders, and `tests/fixtures/figure_page_text_known_sites.txt` lists the renderer sites it still finds wording on; that list may only shrink too. Neither covers hand-written SVG, R renderers, or tests skipped in a run. Run `tools/figure_render_qc.py` on an output folder to check what was drawn. |
 | 4 | A bioassay figure names its material: crude extracts, fractions, or both. Put it in the title and in the file name. Never pool crude and fraction results into one value. | A figure that hides its material cannot be compared with another, and pooling mixes two different experiments. | By hand. |
 | 5 | A figure can be traced to its data. The folder holds the data table, the script, the image and the caption. A publication export carries a manifest giving each figure's source folder and the SHA-256 of the file it was made from. | A figure found months later, or pasted into slides, must lead back to exactly what drew it. | By hand. |
@@ -46,3 +46,15 @@ figure folder.
 
 Fix the figure. If the rule is wrong, change this page in the same patch and say why. Changing a
 figure to get around a rule, without changing the rule, is how the two drift apart.
+
+## Enforcement and study-profile scope
+
+These are review requirements, not blanket runtime guarantees. The shared save/text gates apply where a renderer calls them; direct matplotlib saves and R templates need separate checks. The R save helper writes SVG/PNG without a no-overwrite guard or receipt validation. A caption band, `_plot_only` file, folder name, or PNG's existence does not establish provenance or visual acceptance. Retain bound data/config/source/output hashes and inspect the actual artifact. See [R figure workflows](R_FIGURE_WORKFLOWS.md) and [locus-map contract](LOCUS_MAP_REVIEW_CONTRACT.md).
+
+The bee/wasp ordering and host-group rules above are a study-specific owner profile. Apply them only to the matching study roster and evidence. They do not authorize dropping an owner query, inferring host geography, or redefining a different cohort's denominator. A conflicting required identity/evidence note or admission rule remains a named review hold.
+
+Before renaming a known-defective receipt-bound artifact, preserve its original bytes and manifest binding and record the quarantine/rename mapping in a new review record. A rename alone invalidates relative-locator bindings.
+
+Source examples: `tools/sapote_figure_theme.R:143–150`; `mamey/locus_map_v8.py:174–281`; `mamey/figure_review_queue.py:98–112`.
+
+The current v8 PNG producer requests 180 dpi (with a size-dependent safe-DPI helper), so the house-rule 300-dpi target is not established by its existence. Use the vector artifact and an independently checked delivery export where appropriate; record the presentation hold until the intended raster/export requirement is verified. Source: `mamey/locus_map_v8.py:747`.

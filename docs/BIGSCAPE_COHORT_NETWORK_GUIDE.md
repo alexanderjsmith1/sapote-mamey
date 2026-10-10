@@ -10,6 +10,21 @@ python tools/bigscape_cohort_report.py \
   --out cohort_report
 ```
 
+Use the chosen bundle Python environment. The explicit run ID scopes the family
+query, but the .447 reporter does not independently validate that the run exists or
+is complete before export. An absent run/cutoff can produce an empty report and a
+`PASS` receipt. Verify the completed run record, cutoff, admitted input counts and
+expected cohort membership before interpreting empty tables. Do not call an empty
+export a no-family biological result.
+
+The reporter opens the database read-only and checks SQLite integrity, but requires
+stable database bytes for reproducible receipt hashes. Use a closed, checkpointed
+snapshot; its receipt hashes the main database file without binding a live WAL.
+`--out` creates/reuses its directory and overwrites fixed report filenames; a fresh
+output directory preserves earlier evidence. The strict alias check runs before
+those report files are written, but other partial failures are not a crash-atomic
+multi-file transaction. Inspect actual files and the current receipt after interruption.
+
 An optional exact-identity recovery overlay can be supplied with
 `--alias-overlay ALIAS_RECOVERY_CROSSWALK.tsv`. It is keyed by
 `strain`, `full_node_or_contig`, and `region`. Only rows whose status is
@@ -45,6 +60,12 @@ python deliverable_tools/bigscape_network_widget.py \
   --direct-edges cohort_report/BIGSCAPE_DIRECT_EDGES.tsv \
   --out cohort_widgets --require-complete-alias
 ```
+
+Standalone widget output also reuses `--out` and writes same-name HTML files.
+Use a fresh destination and retain the source tables and their current report receipt.
+Report integration writes an additive `--report-out` copy; select a distinct output
+path and inspect the resulting files, rather than assuming a zero exit validates
+all source/run provenance. A complete alias is a required join, not scientific approval.
 
 ## Adaptive labels
 
@@ -130,7 +151,9 @@ Pass that table with `--comparator-component-context`. The renderer verifies the
 
 ## Batch enrichment without changing source reports
 
-`batch_mibig_comparator_context.py` recursively finds `REPORT.html` files, validates every report before writing anything, and creates an additive copy tree. The output must be outside the source tree.
+`batch_mibig_comparator_context.py` recursively finds exact `REPORT.html` names and prepares every enhanced report in memory before publishing any report. The enhancer requires one compatible MIBiG summary block/table; an already enriched or malformed report can refuse the entire preparation phase. This is a report transformation, not package/roster validation or browser review.
+
+Use a new output tree outside every source/evidence directory. The output-root check rejects equality with or descent from the report root, but permits reusing an existing external tree; older off-roster reports can remain. Inputs are selected by recursive filename discovery, without an expected-report manifest or exact package/strain crosswalk admission. Compare the discovered reports against the intended roster and preserve each report's full locus bindings.
 
 ```bash
 python deliverable_tools/batch_mibig_comparator_context.py \
@@ -142,7 +165,11 @@ python deliverable_tools/batch_mibig_comparator_context.py \
   --receipt-out enriched_report_copies/BATCH_RECEIPT.json
 ```
 
-The receipt records portable relative locators and before/after hashes. It never needs an absolute user directory. Re-hash the source `REPORT.html` files after the run and compare them with `source_sha256` to prove that the authoritative inputs did not change.
+Select `--receipt-out` inside the fresh output tree, using a name distinct from every copied report and input. That separate path is not covered by the output-root source-containment check: it can otherwise overwrite a source `REPORT.html`, a context/evidence input or an output report. Inspect resolved paths and reject aliases/symlink collisions before running. The receipt's `authoritative_inputs_mutated: false` is assigned metadata, not an independent source-preservation check.
+
+Reports are written sequentially and can overwrite matching existing destinations; the receipt is written last and can also overwrite an existing path. Preparation failure writes no reports, but a later report/hash/receipt error can leave a partial copy tree without a current completion receipt. Preserve partial outputs and retry corrected inputs in a fresh tree. Success prints `status`/`report_count` JSON and exits zero; ValueError refusals or uncaught I/O failures can terminate without that result. Read the receipt's exact records instead of inferring completion from files remaining in the directory.
+
+The batch receipt records relative report locators, hashes and selected row counts. Its source hashes are taken after each output write rather than from a frozen consumed-source snapshot, and it omits the enhancer's full MIBiG/curated/component source receipts, code/configuration hashes and its own hash. Record independent pre-run source/context/evidence hashes, keep inputs unchanged during preparation/publication and compare sources afterward against that original inventory. Retain output and receipt hashes separately. `PASS` establishes this selected transformation path, not biological activity, product identity, complete source provenance or rendered usability.
 
 ## Static gene-order and GCF figure
 

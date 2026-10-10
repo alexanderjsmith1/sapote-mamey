@@ -1,5 +1,13 @@
 # Companion provisioning and retrieval controls in the unsealed .447 candidate
 
+## Completion is scoped to the operation
+
+A lane `run` exit 0 means its bounded loop ended normally, not that every query completed. Its final log may include failures and saved in-flight RIDs (`tools/blastp_crawl/nr_rid_runner.py:840–850`). Read ledger states and admission/generation receipts. `query_unbound`, `retrieval_unverified`, `unsure` and `submit_failed_parked` remain holds, not completed no-hit observations. Do not edit a hold merely to obtain a green count.
+
+Rebuild processes only `fetched` rows and requires their admission binding before publishing (`:860–882`). It can return 0 with zero groups when none are fetched; success does not clear held or unsubmitted work. Admission checks database, raw/query hashes, exact header roster, result-file roster and generation hashes (`:536–559`). Run reclassifies unbound fetched rows as `query_unbound` (`:602–628`). The `fetched` label alone is insufficient.
+
+Current local ingestion routes have distinct writes. `blastp-followup` writes review side artifacts. `ingest-blastp` requires `--master`, `--strain`, `--hit-table`, accepts optional `--xml` and `--package`, and can write workbook/package evidence. Its source defaults to NCBI web-BLASTp; EBI input needs explicit `--source` (`mamey/cli.py:6911–6929`). See [the follow-up reader guide](BLASTP_FOLLOWUP_v9.7.142.md) and [the current protocol](ONLINE_BLASTP_PROTOCOL.md).
+
 This page documents proposed engineering controls. It supplies no biological or activity interpretation.
 
 ## Companion installation
@@ -20,7 +28,17 @@ An operator with HMMER (`hmmfetch`, `hmmpress`) and a local Pfam source can prov
 python tools/build_scanner_hmm.py --source /path/to/Pfam-A.hmm --preset 148 --out /path/to/scanner_pfam_150.hmm
 ```
 
-Use `--preset 35` for the smaller selector list, or `--accessions /path/to/selectors.txt` for an explicit list. Selectors must match exactly, including versions. A source missing the pinned versions is refused. The builder requires fresh output/index/receipt paths, preserves each fetched model unchanged, verifies all four pressed indices, and records source, selector and output hashes. Set `SM_HMM_DB` to the output after reviewing the build receipt. This builds a source-bound artifact; it does not reconstruct or certify historical HMM bytes.
+Use `--preset 35` for the smaller selector list, or `--accessions /path/to/selectors.txt` for an explicit list; those switches are mutually exclusive. Selector files may have blank/comment lines, but the effective selectors must be nonempty, unique `PF` accessions. The syntax accepts an optional version; admission then requires each `hmmfetch` response to contain exactly one matching ACC string and one model terminator. Use the intended exact versioned selectors: a versionless request that returns a versioned ACC is refused rather than silently substituted.
+
+Presets select the current bundled text file. The builder hashes the file it consumes but does not consult `scanner_accession_source_pins.json`, compare its hash/count to the historical preset pin or enforce that a modified preset still has 35/148 models. Check the selected list/hash/count against the intended source pin independently; the output filename `scanner_pfam_150.hmm` is a naming convention, not a validated 150-model census.
+
+The builder requires fresh HMM, four index and receipt paths and copies fetched stdout unchanged into the subset. A zero-return `hmmpress` call plus existence of all four index files is its index admission check; it does not independently test nonempty/valid indices or run a scanner. The build receipt records source/list hashes, exact selectors and output HMM/index hashes. Set `SM_HMM_DB` only after reviewing the actual roster/receipt and separately required scanner compatibility. This builds a source-bound artifact, not historical HMM reconstruction, a completed scan or scientific acceptance.
+
+### Scanner build publication and recovery
+
+Use a fresh output basename outside source evidence and the code bundle. The builder creates its parent, stages in a temporary sibling directory, and publishes the HMM, four indices and `<out>.build_receipt.json` through separate no-replace hard links. An existing target, including a dangling symlink, is refused; a concurrent target claimant also makes that link fail. Ordinary caught publication failures unlink this invocation's already-published paths, but the set is not crash-atomic. A process interruption or cleanup failure can leave a partial target set or stage, which a retry refuses. Preserve the partial attempt/diagnostics and use a fresh basename after resolving the cause; do not delete source models or claim completion from a lone HMM/index file.
+
+The CLI emits no success JSON on stdout; read the saved receipt and verify the full six-file roster. Receipt hashes cover the five HMM/index artifacts, not the receipt itself; it also lacks builder/binary hashes, HMMER versions and saved native logs. Capture the invocation/exit status and retain those additional bindings separately. Native commands have no timeout. Their failure output is captured internally but not saved in a diagnostic receipt/log; the CLI can show only the called-process summary after the temporary stage is removed. An error is a provisioning hold, not absent Pfam capacity. `COMPLETE_NEW_SOURCE_BUILD` records this build operation alone.
 
 ## Protein input admission
 

@@ -1,10 +1,6 @@
 # Literature Search Protocol — Sapote-Mamey Bundle
 
-Every strain analysis produces a §8 literature section covering five topic
-buckets (top antibacterial lead, co-lead, top antifungal lead, ecological
-framing, and siderophore/mechanistic support). This document tells you exactly
-what to search for each BGC class so the references can be verified and the
-§8 deferral closed.
+This historical five-bucket search map supports a selected literature task. Its §8 numbering belongs to the older Layer B report, not every current Mode B profile. Use the selected profile’s actual literature/evidence slots; no parser automatically executes this search map or closes its deferrals.
 
 ---
 
@@ -16,8 +12,7 @@ using PubMed/DOI.org as applicable. Record an unassigned or unavailable PMID or 
 never invent one or reject a supported source solely because it has no PMID or DOI. Rather than fabricate unverifiable
 references, §8 is logged as `DEFERRED` with a completion path.
 
-**Your job:** run the searches below and send the PMIDs to Claude. That starts verification; it does not
-guarantee closure in one pass, because each claim still needs its supporting passage.
+For an authorized literature task, record actual queries, searched sources, date, source/passage locators and results. Preparing a source-backed handoff is distinct from browsing, sending it or rewriting a package. Each summarized claim still needs its supporting passage; identifiers alone do not close a deferral.
 
 ---
 
@@ -81,10 +76,9 @@ inference (which needs its own evidence).
 
 ---
 
-## Verified reference bank (carry across all strains)
+## Historical reference bank (rebind for each current use)
 
-These were verified against DOI.org (metadata) for AS-XXX. Reuse them under the rule above: the identifier is
-checked, but each new claim still needs its supporting passage. A missing identifier is a metadata gap to record,
+These entries retain the original document’s historical metadata-verification claim for AS-XXX. This table does not carry its dated review receipts or passages, and does not independently verify the papers. Reuse requires the actual retained receipt or a separately authorized review; each new claim needs its supporting passage. A missing identifier is a metadata gap to record,
 never one to fill in:
 
 | Key | Citation | PMID | DOI |
@@ -106,19 +100,16 @@ never one to fill in:
 
 ## How to close a §8 deferral
 
-1. Run the searches above for the specific BGC classes flagged in your Layer B §8.
-2. Collect PMIDs (1–2 per topic bucket; reviews preferred).
-3. Verify each DOI resolves at https://doi.org/[DOI].
-4. Send PMIDs to Claude with the strain ID. Claude writes §8, updates the
-   workbook Literature_Index, and regenerates the package.
+1. Bind the selected task, exact locus identity and current profile’s literature slot.
+2. Within authorized retrieval scope, record the actual search and primary bibliographic identity; record unavailable identifiers rather than requiring every paper to have them.
+3. Check the passage/table supporting each claim, with units/conditions, scope and reviewed date. DOI resolution alone is metadata verification.
+4. Prepare a bounded handoff or author the selected section under the actual user scope. Do not infer sending, workbook merging or package-regeneration permission from this list; preserve original receipts and report unresolved evidence.
 
 ---
 
-## What Claude cannot do
+## Access and completion boundaries
 
-Claude cannot resolve DOIs or PMIDs without network access. This is why §8 is
-always deferred by default and why verification is a human step. Do not ask
-Claude to generate citations from memory — they will not be verified.
+Access depends on the actual environment and admitted local sources, not a model name. An assistant can check supplied primary text without networking, but must identify which fields/passages it inspected. Missing access is an explicit partial/deferred state. Memory-generated citations, query strings, a work-order file or a labelled bank row are not verified sources.
 
 ---
 

@@ -28,8 +28,9 @@ Start from `examples/phylo_panel_candidates.template.tsv`. Required columns are
 `candidate_id`, `role`, and `source_path`. Roles are `QUERY`, `REFERENCE`, or
 `OUTGROUP`.
 
-- AS and SID query IDs are supported; no query is silently dropped to meet the
-  panel size. If queries plus one outgroup exceed the target, the tool stops.
+- Query IDs are explicit candidate IDs rather than inferred from a fixed prefix.
+  Distinct-content QUERY records are retained before references; no unique query
+  is dropped merely to meet the panel size. If queries plus one outgroup exceed the target, the tool stops.
 - Each `REFERENCE` must carry a curator-supplied `selection_basis` and explicit
   `related_query_ids`. The tool never infers or invents “nearest,” “type,” or
   reference status.
@@ -70,6 +71,19 @@ headers and contig order. Exact nucleotide-content duplicates are represented
 once. Every excluded duplicate points to the retained candidate. This guard does
 not collapse merely high-ANI genomes; similarity/ANI adjudication remains a
 separate analysis and provenance decision.
+
+The selector applies this deduplication to QUERY records too: equal-content
+queries become one retained record plus `EXCLUDED_DUPLICATE` candidates. Role
+priority is QUERY, OUTGROUP, REFERENCE, then anchor/priority/ID tie-breaking.
+An outgroup duplicating a query can therefore disappear before outgroup validation.
+Inspect `panel_candidates.tsv` before accepting the panel; do not equate retained
+unique assemblies with independent isolates.
+
+This differs from direct planner ingress, which uses `HOLD_DUPLICATE_QUERY_REVIEW`.
+Prepared-panel ingress reads selected rows, so upstream duplicate-query exclusions
+are not independently restored by that planner hold. Keep this as an explicit
+identity/admission review: preserve every original query alias and obtain the
+source-level reconciliation before computing a panel that collapsed owner queries.
 
 ## Receipts before computation
 

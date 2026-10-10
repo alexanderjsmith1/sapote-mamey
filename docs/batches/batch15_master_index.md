@@ -3,6 +3,37 @@
 
 **v9.7.149a** | Last updated: 2026-06-29
 
+
+## Current entry points and actual retained files
+
+This page preserves the v9.7.149a index below as historical evidence. Its numbering offset, missing filenames and old “current” version labels do not define today's navigation. Use [the current docs index](../../CURRENT_DOCS_INDEX.md), [the product map](../PRODUCT_MAP.md), and [the assistant guide](../ASSISTANT_USER_GUIDE.md) for current tasks.
+
+The exact 18 Markdown filenames present in `docs/batches/` in the bound baseline are:
+
+- [batch06_doc_navigation_guide.md](batch06_doc_navigation_guide.md)
+- [batch11_common_failure_recovery_matrix.md](batch11_common_failure_recovery_matrix.md)
+- [batch12_figure_system_one_pager.md](batch12_figure_system_one_pager.md)
+- [batch14_structural_factual_report.md](batch14_structural_factual_report.md)
+- [batch15_master_index.md](batch15_master_index.md)
+- [batch16_modeb_interpretive_floor.md](batch16_modeb_interpretive_floor.md)
+- [batch17_dapr_scoring_explainer.md](batch17_dapr_scoring_explainer.md)
+- [batch18_rggmci_split_cluster_guide.md](batch18_rggmci_split_cluster_guide.md)
+- [batch19_literature_protocol.md](batch19_literature_protocol.md)
+- [batch20_claim_safety_field_manual.md](batch20_claim_safety_field_manual.md)
+- [batch21_bgc_class_reference.md](batch21_bgc_class_reference.md)
+- [batch22_multi_strain_comparative_claims.md](batch22_multi_strain_comparative_claims.md)
+- [batch23_common_mistakes_extended.md](batch23_common_mistakes_extended.md)
+- [batch24_deliverable_contract_plain_english.md](batch24_deliverable_contract_plain_english.md)
+- [batch25_claude_chatgpt_handoff_protocol.md](batch25_claude_chatgpt_handoff_protocol.md)
+- [batch26_onboarding_packet.md](batch26_onboarding_packet.md)
+- [batch27_session_handoff_protocol.md](batch27_session_handoff_protocol.md)
+- [batch28_engine_lineage_and_compatibility.md](batch28_engine_lineage_and_compatibility.md)
+
+These are retained historical/derived notes, not an independent executable contract. Missing batch01–05, batch07–10 and batch13 have no delivered counterpart here; do not construct a filename by adding one to a batch number. The current canonical guide and actual Python parser own command and status semantics. The eight current navigation/recovery overlays in this checkpoint do not certify the scientific or executable content of every other retained batch note.
+
+## Historical v9.7.149a record — preserved below
+
+
 > ⚠️ **Bundle integration status note (added v9.7.151b, 2026-06-30).** This index was authored
 > assuming a complete 28-document set (batch01–batch28). As of this bundle, **18 of 28 exist**:
 > batch06, 11, 12, 14 (from the first set) and batch15–28 (the full second set). **Missing:**

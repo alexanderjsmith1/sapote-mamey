@@ -1,98 +1,71 @@
-> **Scope and precedence:** Apply this workflow only to the user's selected operation and named
-> profile. `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md` govern permissions, task scope,
-> inspection-only work and conversational output. Package presence is not execution authority.
-> Historical section counts, role assignments and examples below cannot replace a current profile.
-> When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
+# Sapote workflow ledger — implemented checks and remaining holds
 
-# Sapote Workflow Contract — the mandatory set format
+The workflow driver is `mamey/sapote_workflow.py`; `tools/sapote_workflow.py` is a thin shim,
+and `python -m mamey workflow` calls the same implementation. It inspects selected artifacts and
+runs a small number of subprocess gates. It does not author reports, transmit handoffs or grant
+scientific acceptance. Apply it only within the selected authorized workflow.
 
-**Version:** v9.7.319
-**Executable form:** `tools/sapote_workflow.py` (the driver/gate)
-**Analogue:** this is to Sapote what `mamey run` (fixed phase order) + `mamey validate`
-(hard seal gate) are to Mamey. Mamey enforces its set format in engine code; Sapote's set
-format was, until now, prose spread across `FULL_RUN_PROFILE.md` §A, the execution slice,
-and the deliverable contract, with a fleet of individually-callable gates and **no single
-ordered driver**. This contract names the canonical ordered steps; the driver enforces them.
+## Actual step checks
 
----
+| Step | Implemented evidence | Limit |
+|---|---|---|
+| W0 | Manifest file, recorded PASS-family/boolean gate verdict and checksum-list presence | Does not rerun validation or verify current checksum values; use the actual validator separately |
+| W1 | Triage-board file and row count; notes scan-state presence | PASS does not require scans to exist or be complete |
+| W2 | AB and AF lead-board file presence | No biological or complete row-content validation |
+| W3 | At least one `mode_b_templates/*BGC*.md` file | Does not inspect template profile, coverage or content; the ledger’s §1–§48 wording is not a profile receipt |
+| W4 | COMPLETE register entries or discovered authored disk cards; `--strict` verifies discovered cards via default `verify-modeb` | Authored heuristic ≥3 recognized sections and ≥200 non-whitespace characters; does not enforce every expected BGC is covered or propagate current50 selection |
+| W5 | Matching `*_Guide.md` files, no residual LAY slots | Conditional N/A when none exists; no invocation of `verify-guide` |
+| W6 | Matching layperson/ecology/fermentation filenames | Content and source binding are not verified |
+| W7 | Selected internal or integrity-bound external compiled report, no counted placeholders | Does not run `compile-report --strict`; placeholder scan is not scientific or publication clearance |
+| W8 | Finds a Markdown DELIVERABLE_MANIFEST, then launches suite checker | Source bug: passes package `manifest.json`, not the discovered Markdown suite manifest |
+| W9 | Package manifest lacks literal JUDGMENT_PENDING; reports optional receipt filename | Does not require a receipt or validate it; an unreadable manifest becomes an empty object |
+| W10 | Always N/A: session close is behavioral | Source bug: W10 is marked mandatory, so it is always in mandatory_incomplete |
 
-## Why a contract, not just a checklist
+These are implemented software checks, not the complete desired deliverable contract. A filename
+match or recorded status is weaker than current artifact verification. Obtain current Mode B
+profile details from [the profile matrix](MODEB_PROFILE_MATRIX.md) and
+[the user walkthrough](MODE_B_USER_WALKTHROUGH.md); bind the exact profile and complete locus
+identity when invoking its verifier separately.
 
-Sapote already ships every *gate* it needs (`mamey validate`, `verify-modeb`,
-`verify-guide`, `compile-report --strict`, `check_deliverable_suite.py`,
-`sapote_judgment_receipt.py`, `session_checklist.py`). What was missing is the property
-Mamey gets for free from being code: **order enforcement** — a downstream step must not be
-reported done while a mandatory upstream step is incomplete. The driver supplies exactly
-that: it reads the *real* package artifacts, marks each step PASS / PENDING / BLOCKED / N/A
-with a receipt, blocks any step whose mandatory predecessor is not PASS, writes a ledger,
-and (`--strict`) exits non-zero if any mandatory step is incomplete.
+## Current source holds
 
-The step list below is derived from `FULL_RUN_PROFILE.md` Section A (the 13-item delivery
-order) collapsed onto the artifacts and gates that actually exist in a sealed package.
+`--strict` currently cannot produce an all-mandatory-PASS result: W10 returns N/A while the
+incomplete calculation requires every mandatory step to be PASS. Do not interpret this terminal
+failure alone as a scientific defect, and do not bypass it or declare release readiness. Preserve
+the ledger’s actual step evidence and report the implementation hold for owner review.
 
----
+W8’s invoked `tools/check_deliverable_suite.py` reads numbered Markdown contract rows and gold
+Section H text. The driver locates that document but supplies the JSON package manifest instead.
+Run the suite checker separately on the actually filled suite manifest when that check is within
+the authorized task; retain its own receipt. A discovered Markdown filename is not evidence that
+its content was checked by W8.
 
-## The set format (canonical step order)
+W4 under strict mode verifies disk candidates it discovers, not the complete expected locus roster.
+Register COMPLETE and a verifier exit zero have different scopes. Missing expected loci and a
+nondefault profile remain explicit holds until independently bound and checked.
 
-| Step | Stage | Req | Verified by | Real artifact / gate |
-|---|---|:--:|---|---|
-| **W0** | Sealed Mamey package | M | `mamey validate <pkg>` | `manifest.json` + `gate_validation.json` (`MAMEY_COMPLETE`) + `checksums_sha256.txt` |
-| **W1** | First-pass scans + triage board | M | file present | `<ID>_4_triage_board.csv` (+ `source_scans` in manifest / `tools/build_first_pass_scans.py`) |
-| **W2** | Lead boards / DAPR (AB + AF) | M | files present | `<ID>_4c_AB_lead_board.csv`, `<ID>_4c_AF_lead_board.csv` (`tools/lead_board.py`, `apply_dapr_boards.py`) |
-| **W3** | Selected-profile Mode B templates emitted (default full48; opt-in current50 v2) | M | dir populated | `mode_b_templates/*BGC*.md` via `mamey emit-modeb-template --batch`; add `--contract current50_v2` for v2 and carry it into W4 verification |
-| **W4** | Mode B cards authored **and** verified | M | register + gate | `<ID>_judgment_register.json` COMPLETE entries; each card passes `mamey verify-modeb`; persisted by `ingest-receipts` |
-| **W5** | BGC Guide(s) authored + verified | cond | `verify-guide` | `<BGC>_Guide.md` with no residual `<!-- LAY: -->` slots (`mamey guide` → `verify-guide`) |
-| **W6** | Narrative set (lay guide / ecology / ferm) | M | files present | Layperson Guide + Ecological Synthesis + Fermentation Card (`DELIVERABLE_CONTRACT` A2) |
-| **W7** | Compiled report (readiness gate) | M | strict compile | `<ID>_compiled_report.md`, zero open slots (`mamey compile-report --strict`) |
-| **W8** | 13-item deliverable suite contract | M | suite gate | filled `DELIVERABLE_MANIFEST_<ID>.md` → `tools/check_deliverable_suite.py` rc=0 |
-| **W9** | Judgment receipt | M | receipt gate | manifest no longer carries `JUDGMENT_PENDING` (`tools/sapote_judgment_receipt.py`) |
-| **W10** | Session close and scoped handoff | M | behavioral | `tools/session_checklist.py`; completed work, evidence, holds and next bounded action; no option-count requirement |
-
-**Req:** M = mandatory (blocks downstream and fails `--strict`); cond = conditional
-(fires when the predicate holds — e.g. W5 only when a Guide is requested — and never blocks).
-
-### Conditional-section note (inside W4)
-W4's per-card structure historically followed the conditional **§1–§30 Mode B contract**; the current finished profile is §1–§48 (`docs/MODEB_PROFILE_MATRIX.md`). The historical rule was
-(`modeb_corrective_full30_v1`): §1–§20 + §28 + §30 always required; §21–§27/§29 fire on
-predicate (RiPP, MATURATION_GAP, novel/no-MIBiG, isolation-worthy, fermentation-selected,
-antimicrobial-candidate, >3 HIGH-tier BGCs). The driver does not re-adjudicate section
-predicates — `verify-modeb` owns that. W4 PASS means the register shows COMPLETE cards; the
-depth/structure of each card is confirmed by `verify-modeb`, which W4's receipt points to.
-
----
-
-## Order-enforcement semantics
-
-- A **mandatory** step is `BLOCKED` when its declared predecessor is not `PASS`.
-- A **conditional** step that is not applicable is `N/A` and does **not** block its successors.
-- `--strict` exits `1` if any mandatory step is not `PASS`; the ledger's "next mandatory
-  step" line names the single next action and the exact command to run.
-- The driver never *runs* authoring for you and never invents artifacts — it only reads what
-  is on disk and shells out to the real gates. Fail-closed: a missing artifact is PENDING,
-  never silently PASS.
-
----
-
-## How to run
+## Commands and side effects
 
 ```bash
-# status ledger (writes <ID>_SAPOTE_WORKFLOW_LEDGER.md into the package)
-python tools/sapote_workflow.py --package runs_<date>/<ID>/package
+# A status inspection writes a ledger; keep the ledger outside an immutable package.
+python tools/sapote_workflow.py --package path/to/package \
+  --ledger-out path/to/review/workflow_ledger.md
 
-# with a separate deliverables dir, JSON, and hard gate for CI / release:
-python tools/sapote_workflow.py --package <pkg> --deliverables <dir> --strict --json
+# JSON is printed to stdout; a Markdown ledger is still written.
+python tools/sapote_workflow.py --package path/to/package \
+  --deliverables path/to/deliverables --ledger-out path/to/review/workflow_ledger.md --json
+
+# Separate suite check on its actual Markdown input.
+python tools/check_deliverable_suite.py --manifest path/to/DELIVERABLE_MANIFEST.md --mode gold
 ```
 
-The ledger is the Sapote-tier analogue of the Mamey seal: a per-strain, receipt-backed
-record of exactly where the judgment layer stands and what the next mandatory action is.
+Without `--ledger-out`, the driver writes `<strain>_SAPOTE_WORKFLOW_LEDGER.md` inside the package.
+It does not emit a separate JSON ledger file automatically. Subprocess checks can add their own
+receipts; consult their owners and preserve a working copy when input bytes must remain fixed.
+Ledger write errors are reported but do not independently make a non-strict process fail. Non-strict
+exit zero reports driver completion, not every step PASS. No command here is authority to author,
+seal, release, publish or send messages.
 
----
-
-## Relationship to existing docs (nothing is superseded)
-
-- `FULL_RUN_PROFILE.md` §A — the prose source of the delivery order. This contract is its
-  enforced form; the profile still governs per-BGC Mode B card structure and batching.
-- `docs/CHATGPT_EXECUTION_SLICE_v97147.md` — a historical execution slice. `AGENTS.md` and
-  `docs/ASSISTANT_GOVERNANCE.md` govern on any conflict. The driver implements; it does not override.
-- `docs/DELIVERABLE_CONTRACT.md` — Part A/B item definitions that W6/W8 check against.
-- `tools/session_checklist.py` — W10's close artifact (data-loss advisory + menu).
+Report the selected operation, exact paths/hashes, implemented checks, unresolved holds and one
+useful bounded next action. Historical exactly-eight-path hints in the driver do not override the
+user’s conversational preferences or authorization.

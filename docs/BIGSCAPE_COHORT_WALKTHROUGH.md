@@ -9,6 +9,22 @@ What you get at the end: one SQLite database of gene-cluster families at three c
 beside gene-arrow tracks, labelled `strain / contig / region / BGC alias`. All of it is similarity grouping. None of it
 is compound identity, activity or novelty; those calls are deferred.
 
+## Bind the run before interpreting results
+
+Run examples from the selected bundle directory in its compatible Python environment.
+Keep the installed BiG-SCAPE executable, Pfam/MIBiG source versions and hashes,
+exact input manifest, resource budget and selected completed database run together.
+Family IDs belong to that database/run/cutoff; they are not global locus identifiers.
+
+The older verdict/figure/clinker helpers below do not expose `--run-id`; for example,
+`bigscape_family_verdicts.py` queries families by cutoff across the database. Use
+those helpers only after verifying that their scope contains the intended single
+completed run. An explicit multi-run cohort export uses
+[the cohort report route](BIGSCAPE_COHORT_NETWORK_GUIDE.md) with `--run-id`; it does
+not replace all legacy gene-track figure products. Do not resolve ambiguity by
+silently taking the newest run or editing the source database. See
+[BiG-SCAPE troubleshooting](troubleshooting/BIGSCAPE_TROUBLESHOOTING.md) for recovery.
+
 ## 0. What you need on disk
 
 | item | how to check |
@@ -50,8 +66,9 @@ denominator for everything after.
 ## 2. Run
 
 ```bash
+set -o pipefail
 nice -n 15 bash tools/bigscape_launch.sh <stage>/gbk_input <stage>/out \
-    --label <run label> --cores 4 --mibig-dir <mibig folder> --mibig-name local2088 2>&1 | tee <stage>/launch.log
+    --label <run label> --cores 1 --mibig-dir <mibig folder> --mibig-name local2088 2>&1 | tee <stage>/launch.log
 ```
 
 The launcher puts the env on PATH, verifies Pfam and `fasttree`, links the MIBiG folder into BiG-SCAPE's `-m` slot
@@ -62,7 +79,19 @@ Check, in `launch.log` at the end: `BIGSCAPE_EXIT=0`, `Loading <N> query GBKs` e
 `Loading <M> mibig GBKs` is about 2,000 when you asked for MIBiG. A `0` there means the reference set was not loaded
 and the run must be repeated; do not interpret a MIBiG-free run as "no MIBiG match".
 
-The database is `<stage>/out/<label>.db`. Copy or hard-link it into the folder where results live; never merge two
+The launcher writes `run.log` in its selected output and accepts existing output
+directories; choose a new run/output directory to preserve earlier logs and state.
+With `--mibig-dir`, it creates or replaces a symlink inside the installed
+`big_scape/MIBiG/` package directory (`ln -sfn`), so that operation also mutates the
+selected companion installation. Its current guard requires at least 2,000 GBKs;
+a deliberately smaller reference panel is refused by this launcher even if it is
+scientifically appropriate. Neither that count nor a symlink proves source release
+or type/reference quality. These mutations and the actual compute budget must
+match the user's selected operation. Four-core historical timings below are not
+measurements for the one-core example. `pipefail` preserves launcher failure through
+`tee`; still inspect the explicit BIGSCAPE_EXIT and logs.
+
+The database is `<stage>/out/<label>.db`. Retain a closed, checkpointed database and any necessary source-state receipts in the selected results layout; never merge two
 databases by family id (ids are local to a run).
 
 ## 3. Verdicts and denominators
@@ -104,7 +133,7 @@ figures/strain_focus/<strain>/BGC_TO_FAMILY_FIGURE.tsv      one row per region: 
 figures/strain_focus/<strain>/FAMILY_FIGURES_INDEX.tsv
 ```
 
-Each figure is the sealed family figure: BiG-SCAPE's own tree for the family on the left, one gene-arrow track per
+Each figure is a derived family view; engineering completion does not seal or scientifically accept it: BiG-SCAPE's own tree for the family on the left, one gene-arrow track per
 member on the right, rows labelled `strain / contig / region / BGC alias` from the package inventory (an identity hold
 where no alias is bound), reference rows labelled by layer, organism and accession, dotted homology links between
 neighbouring rows. Families above `--max-tips` are drawn as a pruned view anchored on the focal strain; the title

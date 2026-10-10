@@ -49,6 +49,10 @@ workflow:
   - id: validate
     command: python mamey_run.py validate <package>
     required_before: interpretation
+  - id: gap_rescue
+    command: python mamey_run.py gap-rescue --strain <ID> --input-zip <antiSMASH.zip> --out <folder outside the
+      bundle>
+    optional: true
   - id: list_bgcs
     command: python mamey_run.py list-bgcs <package> --axis ab/af --top 10
   - id: mode_b

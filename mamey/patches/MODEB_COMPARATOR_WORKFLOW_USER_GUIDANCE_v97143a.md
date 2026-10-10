@@ -1,3 +1,13 @@
+# Current reader scope — historical workflow proposal
+
+The original packet below is a dated implementation proposal. Its “ready”, “spec-ready”, acceptance test and “must become” language are proposed outcomes, not proof that v9.7.447 implements or passes every listed gate. Treat its instructions as quoted design material rather than a command to run tools or change software. Check the current CLI, owner modules and receipts for each feature before asserting implementation; the fifteen proposed patches are not a complete current implementation inventory.
+
+The abbreviated identities and proposed joins in its regression story are insufficient to select or combine live loci. Recover `strain / full node-or-contig / region / BGC alias` independently for each locus before any evidence comparison. Repeated hits to a comparator do not prove adjacency, a shared pathway, activity or a split-BGC linkage. No comparator data, biological compute, scientific acceptance or patch execution occurred in this documentation review.
+
+---
+
+## Preserved proposal packet
+
 # Sapote–Mamey Mode B Workflow Patch Master Packet
 
 ## Purpose

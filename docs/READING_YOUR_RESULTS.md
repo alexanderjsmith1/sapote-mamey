@@ -1,6 +1,6 @@
 # Read your Sapote–Mamey results
 
-Start with the **Complete_Package.zip** the run produced. Extract a copy and keep the extracted
+Start with the **`*Complete_Package.zip`** the run produced (the actual filename includes strain, bundle, engine and antiSMASH detection profile). Extract a copy and keep the extracted
 folder together. Open `OPEN_ME_FIRST.html` in your browser, or open the per-strain workbook in
 Excel. You can read these files without Python. You only need the environment to re-run or
 validate the software.
@@ -16,11 +16,13 @@ below as the evidence.
 |---|---|---|
 | `OPEN_ME_FIRST.html` | Entry page and links | Correct strain and run; read the status details, not just the badge colour |
 | `issue_log.md` | Recorded concerns | Which issues affect your question; a warning is not automatically a failed run |
-| `gate_validation.json` | Validation and evidence receipt | `status`, `gold_completeness`, and `json_evidence_visibility` |
+| `gate_validation.json` | Saved run/seal validation receipt | `status`, `gold_completeness`, and `json_evidence_visibility`; this is not automatically replaced by a later validate command |
+| `package_status.json` | Mutable package-status receipt | Current stored status and provenance; validation can refresh this file |
 | `[strain]_5_workbook.xlsx` | Browse the analysis tables | Inventory and lead rows; source identities and missing values |
 | `[strain]_2_inventory.csv` | One row per detected region | Boundary, coordinates, product annotations and evidence states |
 | `[strain]_4_triage_board.csv` | Choose regions for closer review | Rankings, architecture, exclusions, evidence and fragmentation |
 | `manifest.json` | Run identity and detailed provenance | Input hash, engine, settings, assembly fields and terminal issues |
+| `manifest_short.json` | Compact triage summary | Boundary tier and counts; open the full issue log and source receipts for coverage warnings |
 
 `[strain]` is your actual local label, not literal brackets. CSV is a plain-text table Excel can
 open. JSON is a structured record; an assistant can explain selected fields without changing it.
@@ -30,7 +32,7 @@ sealed evidence.
 ## Four different questions about completion
 
 1. **Did the command finish?** The exit code and execution log answer this.
-2. **Did the package pass its checks?** The validator's result answers this.
+2. **Did the package pass its checks?** A current captured validator result answers this. The saved seal receipt describes its earlier validation time.
 3. **Which evidence actually ran?** Check evidence visibility and the channel-specific receipts.
 4. **Was interpretation authored and reviewed?** A table, template or depth assignment does not mean yes.
 
@@ -152,3 +154,37 @@ scientific sections with invented detail to satisfy a template.
 
 For damaged or confusing results, see [Troubleshooting](COMMON_MISTAKES.md). To keep and
 transfer the evidence, see [Files, storage and handoff](FILES_STORAGE_AND_HANDOFF.md).
+
+## Saved summaries and current validation
+
+`explain` summarizes `manifest_short.json` with fields from `manifest.json`; it does not rerun validation or synchronize saved summary status with a new result. Its top-lead lines can omit components of the required full locus display. Resolve the complete `strain / full node-or-contig / region / BGC alias` from the same bound inventory before citing one of those lines.
+
+`manifest_short.json` does not carry the full issue list, assembly-sanity result, record-cap observations or metric input-record universe. `explain` reads warnings separately from `issue_log.md` and displays only the first five, truncating each to 100 characters, with a notice when more exist. Read the full log before interpreting a quiet summary as complete coverage. A missing log leaves that display without warnings; it does not establish that the probes passed.
+
+The generated brief displays assembly metrics, contiguity and BGC-boundary labels, plus selected boundary/contiguity warnings. It points readers to the issue log but does not reproduce the full manifest issue list. A record-limit warning or failed probe can therefore be absent from the brief while present in the saved issues. Keep `ASSEMBLY_SANITY_PROBE_FAILED`, `RECORD_LIMIT_PROBE_FAILED` and `RECORD_LIMIT_TRUNCATION` attached to any downstream count or caption; retain the actual FASTA, whole-record or region-only input scope. Neither a readable brief nor a complete badge establishes whole-genome analysis.
+
+Sources: `mamey/cli.py:2667–2696,3905–3921`, `mamey/package_inspector.py:276–301` and `mamey/render_brief.py:399–415`.
+
+For a current mechanical check, validate a review copy and capture printed findings, workbook-content diagnostics and exit status. The workbook-content check is advisory unless `--workbook-strict` is supplied; a zero exit with a workbook warning does not mean every requested sheet is populated. See [storage and handoff](FILES_STORAGE_AND_HANDOFF.md) for exact writes and fingerprint limits.
+
+For byte-preservation requirements, note that the normal validator refreshes the mutable package-status receipt. Keep the original source/hash record and capture validation output externally; [validation write scope](POSTSEAL_READERS.md#validation-can-update-a-mutable-status-receipt) explains the distinction. Checklist COMPLETE cells and archive existence do not replace this validation or prove authored interpretation.
+
+## Analysis-forward completion hints
+
+`ANALYSIS_FORWARD` is a generated review/worklist snapshot. Its current COMPLETE/PENDING hint tests two manifest fields for nonempty values; it does not verify current-profile cards, the authored register or the expected region roster. Its JSON sidecar still records `mode_b_complete=0`. Preserve both observed values and resolve them against actual card/register/gate evidence. Empty manifest judgment fields do not prove later authored work is absent.
+
+The terse board and `mode=full` legacy eight-section scaffold do not implement a finished current Full Mode B card. Generated trigger phrases express possible requests; follow the actual user's authorized scope before acting. See [analysis-forward and entry-page contracts](reference/06_CURRENT_SOURCE_SCOPE.md#plumbing-part-6-analysis-forward-and-package-entry-snapshots).
+
+## Quick-list selection and full inventory
+
+`list-bgcs` reads the package's single native triage board. By default it excludes rows with a nonempty `Primary_metab_flag` or `Standing_rule`; its displayed count is a selected view, not a raw-region census. To include those rows, use:
+
+```bash
+python mamey_run.py list-bgcs "$PACKAGE" --json --include-dropped
+```
+
+Keep the full admitted board and manifest count alongside any shortlist. The reader validates all input row identities before applying selection, so a hidden invalid row can still block the command. Selected rows retain `strain / full node-or-contig / region / BGC alias`; the JSON is a projection of that board, not an independent evidence review or checksum validation.
+
+Current `--axis` choices are `rank`, `ab` and `af`. `rank` keeps board order; `ab`/`af` sort their numeric score fields before `--top`. Use a positive integer for `--top N`, or omit it for no top limit. The current helper treats zero as no limit and negative values as Python tail-excluding slices rather than refusing them. It also treats any nonempty flag text as true, so a hand-edited `NO`/`False` flag can remove a row. Preserve the native board and reconcile malformed flags rather than silently recoding source evidence. Routing scores and selected order do not establish measured activity or product identity.
+
+Sources: `mamey/package_inspector.py:344–348,388–438,441–477`, `mamey/cli.py:7136–7147`.

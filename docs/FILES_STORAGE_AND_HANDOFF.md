@@ -8,13 +8,13 @@ original input beside it, and write down where both are.
 | File or folder | What it is | Keep it? |
 |---|---|---|
 | The code ZIP or git revision you ran | Identifies the program version | Yes. Note the version and hash. |
-| The original antiSMASH result ZIP | The upstream evidence. Every later step reads from it. | Yes, unchanged. Record its SHA-256. |
+| The original antiSMASH result ZIP | The upstream evidence. Some later workflows need it; a sealed package alone supports many reader operations. | Yes, unchanged. Record its SHA-256. |
 | Genome FASTA and other reference inputs | Needed for companion workflows (BLAST, trees, ANI) | Yes, if you used them. The package does not contain them. |
 | `runs/<ID>/package/` | The delivered evidence, expanded | Yes, as one unit. Do not pick files out of it. |
-| `Complete_Package.zip` | The same package, zipped by the run | Yes. It is made at seal time, so anything authored later is not inside it. |
+| `*Complete_Package.zip` | Snapshot archived by the run, with strain/bundle/engine/antiSMASH-profile in its actual filename | Yes. It is made at seal time, so anything authored later is not inside it. |
 | `manifest.json` | Index of the package: versions, counts, status | Yes, inside the package. |
 | CSV tables and the workbook | The evidence tables you review | Yes. Annotate a copy, not the original. |
-| PDFs, PNGs and figure sidecars | Renderings of selected evidence | Regenerable from the package with the same renderer version. Keep them anyway; re-rendering is slow. |
+| PDFs, PNGs and figure sidecars | Renderings of selected evidence | Keep them with their renderer/input receipts. Regeneration may also need separately supplied archives, configs, databases or figure dependencies. |
 | Logs and phase or validation receipts | What ran, what failed, how long it took | Yes, including failed attempts. |
 | Authored cards, notes, transcripts | Your interpretation | Yes. These usually live outside the package. |
 | The Python environment and caches | Machine-specific | No. Recreate from the dependency record. |
@@ -29,8 +29,11 @@ workflow that wrote it before deleting anything.
    Then read `manifest.json`, the issue log, the workbook and the triage table. See
    [Reading your results](READING_YOUR_RESULTS.md).
 3. Note the program version and the input hash from the manifest.
-4. Run `validate` and `explain` with the same program version. Both may add receipt files to the
-   package. Keep those receipts.
+4. Use a review copy with the source-compatible program version. `validate` normally rewrites
+   `package_status.json` in that copy and prints its current findings; capture stdout/stderr and
+   exit status beside the package. It does not automatically replace the earlier
+   `gate_validation.json`. `explain` reads saved manifests and prints a summary without adding
+   receipts or rerunning validation. Keep old and current records with their dates.
 5. Anything authored after the ZIP was sealed is not in it. Look for it separately and confirm
    by opening the file, not by trusting a filename.
 
@@ -89,8 +92,10 @@ runtime. The capped flag overrides that choice (`AGENTS.md`).
 4. Only then decide, separately, whether to delete the local original.
 
 External disks get unplugged and cloud files may be placeholders until downloaded. Check that the
-files are actually present before starting an analysis that depends on them. Nothing in this
-program archives or deletes anything on its own.
+files are actually present before starting an analysis that depends on them. External archiving is a separate transfer task. Record and verify the new location
+before deciding whether to remove an original. Program workflows can create ZIPs,
+replace output files and clean up their temporary files; check the selected command’s
+write targets before running it.
 
 ## What a checkpoint records
 
@@ -98,3 +103,25 @@ Objective; input and code hashes and versions; exact output paths; which stages 
 which failed; the settings used; unresolved evidence; the next action; and, if an assistant
 kept a transcript, which turns it covers. A transcript is not a summary; keep both. See
 [the shared save-state policy](ASSISTANT_USER_GUIDE.md#next-paths-automatic-save-state-and-transcripts).
+
+## Use the portable handoff builder deliberately
+
+Request **Sapote-Mamey portable handoff**, implemented by `mamey/handoff.py` and exposed as `handoff`. It archives the supplied package under `package/`, selected raw region GenBanks under `region_gbks/`, and `HANDOFF_README.txt`. It does not include arbitrary external authored files or a full software environment.
+
+```bash
+python mamey_run.py handoff --package /absolute/review/package \
+  --input-zip /absolute/inputs/strain_antismash.zip \
+  --out /absolute/handoffs/new_handoff.zip
+```
+
+Create the output parent first and choose a new filename. The builder replaces an existing destination after writing a fixed sibling `<output>.tmp`; avoid concurrent writers or a destination containing your only prior handoff. It checks package containment but does not run the full package validator or compare the supplied input ZIP hash to the manifest. Verify those bindings on your review copy before packaging. A wrong archive can otherwise supply the wrong region files.
+
+Without `--input-zip`, or when its path does not exist, the command can return success with a package-only archive and an explanatory note. An existing archive with no matching region GenBanks can also produce zero region files. Inspect the reported count and archive contents against your requested downstream task. Zero files are not proof that per-CDS sequence evidence is unnecessary or unavailable elsewhere.
+
+Optional `--top-n N` selects ranked rows and resolves region filenames through the package crosswalk. Use a positive integer. The implementation falls back to all region files when no selected mapping exists; it can also omit partially unmapped selected rows. It falls back from blank Corrected_rank to raw Rank, so the selection is not a guarantee that excluded loci have been removed. Review selected full identities and included filenames rather than treating the limit as an admission gate. Region filenames are flattened to basenames, requiring a collision check for archives that reuse names.
+
+This is packaging, not permission for live BLASTp submission. Sequence staging and any external-contact decision remain separate.
+
+## Fingerprints have a narrower scope than archive integrity
+
+`python mamey_run.py fingerprint /absolute/review/package --json` prints a fingerprint over eight whitelisted table/state suffixes. It normalizes CRLF to LF, hashes only the first sorted match per suffix and records absent components as `MISSING`. Matching fingerprints do not prove every package byte matches, that required files exist, or that scientific conclusions agree. Use whole-package checksums and a current validation result for package integrity, and compare archive SHA-256 separately for transfer integrity.

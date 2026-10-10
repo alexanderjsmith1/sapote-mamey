@@ -59,3 +59,15 @@ red node is a MIBiG cluster. This module is the single source of truth: type/ref
 ## Not changed
 - No data/clustering/anchoring change — the report reformats derived tables; the labels module governs
   display categories only. Report is markdown; render to docx/pdf downstream for a formal copy.
+
+## Current legacy-consumer limits
+
+This is a formatting consumer of pre-admitted portable TSVs. It has no run/cutoff selection option, no input/output hash receipt, and no full four-part locus validation. `--genus` and `--habitat` are caller-provided labels. Reconcile all input tables against one independently bound run, cutoff, cohort/reference roster and exact-locus crosswalk before building; do not combine exports by matching a bare family number or node.region string.
+
+The implementation treats every selected per-BGC row whose status is not exactly `KNOWN` as part of its displayed `NOVEL` count. Blank, held, unassigned, or unknown statuses therefore inflate that complement. Quarantine those rows or use a corrected status-aware export before interpreting the printed split. The generated phrase “have no analog” means only the computed complement in the loaded TSV; it is not supported evidence of no homolog, chemical novelty, or missing references. The generated MIBiG 4.0 subtitle is a literal label, not archive/version validation. Bind and correct the display to the actual reference version.
+
+Optional input paths that do not exist are silently skipped, just as omitted inputs are. An absent section is not a biological negative. Missing output-parent directories are not created, and an existing output Markdown is overwritten. Use a fresh path with an existing parent, retain a source/output hash record, and check the section census against requested inputs.
+
+The “very likely” / “likely” assembly-line labels are heuristic annotation labels based on domain words and boundaries, not functional proof. Preserve annotations as capacity evidence and remove unsupported biological-function wording from a reviewed copy while keeping the original provenance. Historical validation anecdotes above do not certify the current inputs or their scientific acceptance.
+
+Source owner: `tools/strain_bigscape_report.py:68–104,117–122,148–198,218–254,282–285`.

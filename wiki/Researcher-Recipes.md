@@ -1,6 +1,6 @@
 # Researcher Recipes
 
-*Current to bundle v9.7.448 · engine Mamey 1.9.173. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
+*Current to bundle v9.7.449 · engine Mamey 1.9.174. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
 
 
 Run commands from the extracted bundle root. Paths below are generic examples. Replace them with governed local paths; do not copy development-workspace paths into a project or public document.
@@ -257,47 +257,46 @@ Availability `PASS`, an eligible promotion gate, native coverage, or a generated
 
 ### Inputs
 
-- A metrics TSV under a configured external data root.
-- Required columns: `identity`, `channel`, `metric`, `numerator`, `denominator`, and `denominator_key`.
-- Exactly one `aggregate_metrics` input with a relative logical locator and exact SHA-256.
-- An explicit exclusion policy that matches at least one input row, plus a nonblank exclusion reason state.
-- The optional figures dependencies, including Matplotlib.
+- A current `sapote.figure-factory-next.v2` JSON configuration. The aggregate renderer refuses v1.
+- Exactly one `aggregate_metrics` TSV and one `cohort_manifest` TSV, each with a relative locator
+  beneath `external_data_root` and its exact lowercase SHA-256.
+- Metrics columns: `identity`, `channel`, `metric`, `numerator`, `denominator`, `denominator_key`.
+- Cohort columns: `identity`, `role`, `include_by_default`, `genus`, `cohort`, `assembly_state`,
+  `assembly_reason`. Use the current [aggregate guide](../docs/FIGURE_FACTORY_NEXT.md) for policy values.
+- A nonempty `comparison.default_genera`, reviewed role/assembly policy and any explicitly selected
+  optional identities or genera. External benchmarks and outgroups are default-off.
+- Optional plotting dependencies and a new output directory: an existing output directory is refused.
 
 ### Command
 
 ```bash
 python mamey_run.py doctor
-python tools/figure_factory_next.py --help
-python tools/figure_factory_next.py \
-  --config project/figure_factory_next.json
+python tools/figure_factory_next.py --config project/figure_factory_next.json
 ```
 
-Preflight the data before the final command: verify the recorded SHA-256, relative locator containment, required headers, unique identity/channel/metric/denominator-key rows, integer values, `0 <= numerator <= denominator`, `denominator > 0`, exclusion matches, and at least one eligible row after exclusion.
+Check hashes, locator containment, metric schema, duplicate rows, finite integer counts and valid
+denominators before rendering. Keep missing measurements distinct from observed zero. An empty
+eligible set is refused; an all-zero numerator set is not universally refused. The old requirement
+to name an excluded identity that matches an input row is not the current v2 cohort-policy contract.
 
 ### Outputs
 
-- `figure_factory_next.png`
-- `figure_factory_next.svg`
-- `figure_factory_next_data.tsv`
-- `figure_factory_next_exclusions.tsv`
-- `figure_factory_next_receipt.json`
+The receipt lists the actual graphics for both publication profiles. Retain the matching
+`figure_factory_next_data.tsv` and `.csv`, exclusions TSV, caption/methods JSON and Markdown,
+owner-notes JSON, and `figure_factory_next_receipt.json` together. The current success status is
+`PASS_PORTABLE_POLICY_RENDERER_CANDIDATE`; authority remains
+`ENGINEERING_CANDIDATE_ONLY_NOT_ACCEPTED_NOT_INTEGRATED_NOT_RELEASED`.
 
-### Expected typed states
+### Recovery and interpretation
 
-- Success receipt: `PASS_PORTABLE_PROTOTYPE`.
-- Authority state: `PROPOSAL_ONLY_NOT_ACCEPTED_NOT_INTEGRATED_NOT_RELEASED`.
-- Excluded rows: `AUDIT_ONLY_EXCLUDED_FROM_RENDER_AND_DENOMINATOR` in the audit-only table.
-- Refusal in v9.7.395: nonzero exit with a specific exception reason. The tool does not currently emit a typed `OUTPUT_REFUSED` receipt.
+A refused configuration exits nonzero. Read the exception, correct the bound schema/input/policy,
+and select a fresh output path before retrying. Do not assume a typed aggregate refusal receipt
+exists. The same tool routes supported `figure_kind` values to a separate phylogeny renderer;
+that path has different inputs and catches `PhylogenyFigureHold` with exit 2.
 
-Refusal reasons include schema mismatch, missing external root or input, absolute or escaping locator, missing or mismatched SHA-256, malformed or duplicate metric rows, invalid denominators, absent or drifting exclusion policy, no eligible rows, missing figure dependency, and an excluded-identity render leak.
-
-### Common failure
-
-Leaving a placeholder SHA-256 or naming an excluded identity that no longer appears in the input causes a fail-closed refusal. Update the content receipt or policy only after reviewing the new bytes and identity set; do not weaken the check.
-
-### What this result does not establish
-
-The figure and receipt establish bounded rendering provenance and evidence-coverage arithmetic. They do not establish scientific correctness, biological absence, similarity identity, production, activity, owner acceptance, integration, release, or publication readiness.
+Successful standalone rendering does not establish downstream PDF embedding QA, scientific
+correctness, biological absence, compound identity, production, activity, acceptance or release.
+Inspect the actual artwork and its intended document placement before claiming visual clearance.
 
 ## Recipe 7 — missing optional evidence or tools
 

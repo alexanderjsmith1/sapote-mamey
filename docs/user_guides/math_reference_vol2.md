@@ -1,3 +1,7 @@
+> **Historical mathematical reference with scoped corrections.** Current source and recorded
+> execution/configuration govern actual numerical behavior. Verify detector rosters, JSON limits,
+> worked cases and biological interpretations against their named current owners and evidence.
+
 # Sapote–Mamey: Mathematical Reference — Volume II
 ## Engine Subsystems: Triggers, Architecture, KCB/RiQ, Compound Class, Rescue, Enrichment
 **Source document:** `docs/reference/02_Math_Reference_VolII.md` (re-grounded to Mamey engine v1.9.164 · bundle v9.7.429; originally compiled v1.9.110 / v9.7.319, 2026-06-23)
@@ -455,25 +459,29 @@ arch, concordance, assignment = architecture_first_assessment(
 
 ### C.1 Streaming architecture
 
+The illustrative auto-stream threshold is **20 MiB** (20 × 1,024² bytes), distinct from the
+decimal JSON-mode byte ceilings below. Parser availability and selected evidence mode still govern
+which path runs; this threshold alone does not guarantee complete evidence or bound peak memory.
+
 ```python
-_STREAM_JSON_MIN_BYTES = 20 * 1024 * 1024   # 20 MB threshold
+_STREAM_JSON_MIN_BYTES = 20 * 1024 * 1024   # 20 MiB threshold
 
 def _should_stream(zf, name):
     if not _HAVE_IJSON: return False
-    # auto mode: stream >= 20 MB; full-load < 20 MB
+    # auto mode: stream >= 20 MiB; full-load < 20 MiB
     return zf.getinfo(name).file_size >= _STREAM_JSON_MIN_BYTES
 ```
 
-The 20 MB threshold separates real genome JSONs (55–130 MB → stream) from test fixtures (KB–low MB → full-load). `use_float=True` required for byte-identical output with `json.loads` (ijson defaults to `Decimal`).
+The threshold chooses a streaming path based on uncompressed member bytes; a file size does not identify a real genome versus a synthetic fixture. The illustration omits the `MAMEY_STREAM_JSON` override and exception fallback; consult `_should_stream` for those branches. `use_float=True` keeps record-parser numeric values compatible with `json.loads`; it does not guarantee byte-identical packages.
 
 ### C.2 JSON evidence modes and capacity constants
 
 | Constant | Value | Context |
 |---|---|---|
-| `BOUNDED_MAX_RECORDS` | 5,000 | Bounded, no streaming |
-| `BOUNDED_MAX_RECORDS_STREAMING` | 200,000 | Bounded, streaming |
-| `BOUNDED_MAX_JSON_BYTES` | 25 MB | Bounded, no streaming |
-| `BOUNDED_MAX_JSON_BYTES_STREAMING` | 250 MB | Bounded, streaming |
+| `BOUNDED_MAX_RECORDS` | 5,000 | Legacy/non-streaming selected-string-leaf budget; not a count of strains or antiSMASH regions |
+| `BOUNDED_MAX_RECORDS_STREAMING` | 200,000 | Streaming selected-string-leaf budget; selected keys and budget/truncation still limit completeness |
+| `BOUNDED_MAX_JSON_BYTES` | 25,000,000 bytes | Non-streaming member-byte ceiling |
+| `BOUNDED_MAX_JSON_BYTES_STREAMING` | 250,000,000 bytes | Streaming member-byte ceiling; not a RAM budget |
 | `FULL_MAX_JSON_BYTES` | 80 MB (80,000,000 bytes) | Full mode hard refusal on uncompressed JSON bytes; not a RAM limit |
 
 ### C.3 KCB extraction from TXT

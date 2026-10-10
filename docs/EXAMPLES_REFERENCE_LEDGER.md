@@ -1,5 +1,7 @@
 # Examples reference ledger — CLOSED
 
+> Current scope: the zero-baseline guard checks selected `examples/` target paths for existence; it does not validate exemplar science, data content, renders, all Markdown links or every historical document. Its scanner excludes tests and designated historical/forward-looking documents and warns on unreadable files (`tools/check_dangling_refs.py:24–28,90–105,123–139`; `tests/test_no_dangling_examples_refs_v9795.py:24–43`). “Permanently” below describes the guard's intended invariant, not proof that every future cut passed. The eight restored targets exist in this baseline; no test was run here. All subsequent restore-vs-rewrite instructions are the retained closed historical record, not a current worklist.
+
 > **Status: resolved at v9.7.97.** All 8 `examples/` targets listed below were restored from the
 > v9.7.72 CODE tier, and `tests/test_no_dangling_examples_refs_v9795.py` now enforces
 > `DANGLING_BASELINE = frozenset()` — zero dangling references, permanently.
@@ -58,4 +60,4 @@ can't open a missing path, leaving them dangling silently lowers deliverable qua
 3. As each target is fixed, remove it from `DANGLING_BASELINE` in `tests/test_no_dangling_examples_refs_v9795.py`.
 4. When the baseline is empty, tighten the guard to "zero dangling `examples/` refs allowed."
 
-*Detector:* `python3 tools/check_dangling_refs.py` lists every dangling `examples/` reference on demand.
+*Detector:* `python3 tools/check_dangling_refs.py` checks selected examples/ patterns in its included/readable scope. Use `--scope all --strict-paths` to add qualified tool/module references; inspect warnings and the actual root. A zero exit is not a complete link/content check. The intended ledger exclusion currently has a basename-versus-relative-path mismatch; keep that implementation hold rather than claiming this ledger is automatically excluded.

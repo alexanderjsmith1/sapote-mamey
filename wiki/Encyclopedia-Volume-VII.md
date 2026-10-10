@@ -8,6 +8,20 @@ and tailored. Grounded in the running engine of this edition.*
 
 ------------------------------------------------------------------------
 
+## Current .447 release-tag correction
+
+The historical release-derivation tables in §§VII.1–VII.2 below describe an older rule. In the
+bound .447 source, `mamey/dedup_and_guard.py::derive_release` applies the recorded AS-series PUBLIC
+default, with AJS/PENDING/private-registry protections and optional published-registry narrowing.
+`resolve_release` always honors PRIVATE and separately handles refused PUBLIC overrides. A selected
+privacy profile uses its own exact assignments/default and public-export policy; do not mix those
+rules with legacy prefix derivation.
+
+These are local package/export classifications, **not** a decision to disclose this user's sources
+or distribute the bundle. Bind the current privacy policy, release manifest, archive/tier state and
+owner decision independently. This scoped correction does not revalidate the historical cut script,
+case-study counts, old “running engine” claims or other release recipes retained in this volume.
+
 ## §VII.1 · Release classes and the leak guard
 
 Every strain resolves to one of two release classes, and the boundary is a **hard guard** enforced in code

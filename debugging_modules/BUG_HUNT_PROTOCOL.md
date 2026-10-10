@@ -12,7 +12,7 @@ Unlike the Bunny Hop (which audits files one at a time through Inspector/Defende
 dialogue), Bug Hunt works across the whole tree using grep sweeps, diff analysis,
 dead-code detection, and targeted reads of high-risk functions.
 
-**The output is a prioritized patch card with verified fixes.**
+**The output is a prioritized patch card with supported findings, proposed fixes and explicitly scoped verification.** A finding is not a verified fix until the candidate and relevant checks exist.
 
 | | Bunny Hop | Bug Hunt |
 |---|---|---|
@@ -27,12 +27,12 @@ dead-code detection, and targeted reads of high-risk functions.
 
 ### Setup
 
-1. Upload the bundle zip + offline dependency wheels (pytest, biopython, ijson, pluggy, iniconfig)
-2. Extract the CODE tier
-3. Install dependencies and run `pytest` — the suite must be green before you start
-4. Record the baseline: test count, pass/skip/fail/xfail
+1. Record exact baseline tree/tier, bundle and engine versions, selected scope, source file hashes and current user authorization. Reuse source evidence in place; isolate only files being modified. Read generated-file owners and the selected privacy profile.
+2. Inspect dependencies and [test guidance](../tests/README.md). Installing wheels or running network/heavy jobs is a separate action, not a prerequisite for reading code.
+3. Where a test baseline is needed and authorized, record the exact command, environment, selected test paths/markers and results. Existing failures do not prevent read-only auditing: identify them and distinguish pre-existing from candidate regressions.
+4. Default pytest skips explicitly marked slow/network tests. `--run-slow --run-network` includes those partitions but is not by itself permission to use network or run costly jobs. `pyproject.toml` collects `tests`, `tools` and `deliverable_tools`; a narrower command proves a narrower scope. `tests/conftest.py` overrides `MAMEY_OFFICIAL_DATA` and `MAMEY_DATA_ROOT` with fixtures, so a test pass is not validation of the operator's real registry. External-reference absence may cause skips.
 
-### Phase 1 — Automated Sweeps (~15 min)
+### Phase 1 — Automated Sweeps (bounded by the session scope)
 
 Run every grep pattern in the **Pattern Library** below. For each hit, classify as:
 
@@ -43,20 +43,16 @@ Run every grep pattern in the **Pattern Library** below. For each hit, classify 
 
 Record hit counts per pattern. Don't fix anything yet — just inventory.
 
-### Phase 2 — Targeted Reads (~30 min)
+### Phase 2 — Targeted Reads (bounded by the session scope)
 
 1. **Largest functions** — any function >200 lines
 2. **New/changed files** — diff against the previous version
 3. **Wiring check** — verify every new module is actually imported and called
 4. **Operator precedence** — any `if A and B if C else D` pattern
 
-### Phase 3 — Fix and Verify (~30 min)
+### Phase 3 — Propose, fix and verify
 
-For each BUG and high-priority LEAK:
-1. Read the exact lines
-2. Implement the fix
-3. Run `pytest` after each fix — must stay green
-4. **Never batch fixes without testing between them**
+For each supported high-priority finding, read the reachable caller and consumer, describe a concrete trigger and impact, and prepare a minimal candidate correction if authorized. Preserve the original source. Run meaningful checks for the changed behavior and required repository gates; coherent fixes may be checked together when the result remains attributable. Record unrun checks and failures. Do not invent findings to fill a panel, run a whole suite after every prose edit, or claim a regression-free release from a narrow test count.
 
 ### Phase 4 — Report
 
@@ -65,6 +61,10 @@ Write the Bug Hunt report using the output format below.
 ---
 
 ## Pattern Library
+
+These historical grep recipes are triage aids. Prefer `rg` for current searches; record the actual query, paths and exclusions. They can miss multiline forms, aliases, dynamic imports, methods and nested definitions, and can match comments or harmless uses. S4 only searches `mamey`; D1 inspects three named modules; D2 only matches column-zero `def` lines. None is an exhaustive AST/call-graph analysis. Follow each hit to source and consumer before classifying it. A missing match is not proof of absence.
+
+The privacy query below locates candidate identifiers only. A strain prefix and the historical numeric exclusions do not establish public/private status; assess the current user-selected profile and source metadata. The sweep does not prove public-tier contents.
 
 ### Data Safety
 
@@ -137,10 +137,10 @@ for py in sorted(Path('mamey').rglob('*.py')):
 "
 ```
 
-### AS-ID Leak Check
+### Historical identifier search — disclosure triage
 
 ```bash
-# LP1: Real AS- strain IDs in non-test code
+# LP1: Candidate AS identifiers; classify under the selected privacy profile
 grep -rn "AS-[0-9]\{3\}" mamey/ tools/ --include="*.py" | grep -v __pycache__ | \
   grep -v "test_\|fixture\|example\|AS-9[0-1][0-9]\|AS-XXX"
 ```
@@ -164,8 +164,11 @@ grep -rn "AS-[0-9]\{3\}" mamey/ tools/ --include="*.py" | grep -v __pycache__ | 
 # Bug Hunt Report — Sapote–Mamey v9.7.NNN
 
 **Session date:** YYYY-MM-DD
-**Baseline:** NNNN passed, NN skipped, N xfailed
-**Post-fix:** NNNN passed, NN skipped, N xfailed
+**Source:** exact path/tier, versions and file SHA-256 values
+**Scope:** reviewed paths, exclusions, selected privacy profile
+**Baseline:** exact command/environment; pass/fail/skip/xfail; absent dependencies
+**Candidate:** current indexed patch path and hash
+**Post-fix:** exact commands and results; unrun gates and remaining holds
 
 ## Sweep Results
 
@@ -180,7 +183,7 @@ grep -rn "AS-[0-9]\{3\}" mamey/ tools/ --include="*.py" | grep -v __pycache__ | 
 **File:** path:line
 **Impact:** what happens
 **Fix:** what was changed
-**Verified:** pytest count after fix
+**Verified:** relevant check command and outcome, evidence path/hash, limits; or NOT RUN
 
 ## Patch Card
 
@@ -196,19 +199,8 @@ grep -rn "AS-[0-9]\{3\}" mamey/ tools/ --include="*.py" | grep -v __pycache__ | 
 
 ---
 
-## Quick-Start Checklist
+## Completion record
 
-```
-[ ] Upload bundle + deps
-[ ] Extract CODE tier
-[ ] Install deps, run pytest, record baseline
-[ ] Phase 1: Run all Pattern Library sweeps
-[ ] Phase 2: Read largest functions + new/changed files + wiring check
-[ ] Phase 3: Fix P0/P1 bugs, pytest after each
-[ ] Phase 4: Write report + patch card
-```
+Report reviewed versus unreviewed scope, supported findings and solutions, exact candidate files, meaningful checks, unresolved holds and the next bounded action. A sweep result is not release approval, scientific acceptance or permission to send the report to another chat.
 
----
-
-*Bug Hunt Protocol v1.0 — Sapote–Mamey*
-**
+*Bug Hunt Protocol — current operational boundaries reconciled against the v9.7.447 source.*

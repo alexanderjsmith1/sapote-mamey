@@ -1,5 +1,31 @@
 # v9.7.142 Next Cut Plan — SOP-Driven Bug Hunt Route
 
+## Archived cut plan — source and coverage boundary
+
+This plan’s active-base/sign-off claims and apply order concern historical v9.7.142 planning. Preserve
+them as history; they do not select the current base or authorize a release. Use [current release-record
+owners](../RELEASE_RECORDS_GUIDE.md) and [CUT_PROTOCOL.md](../../CUT_PROTOCOL.md) for current governed
+source/test/tier requirements. tools/release_cut.sh mutates release identity/generated sources and runs
+its own source-integrity/full-suite/receipt gates; it does not execute this archived apply-order list.
+Nothing in this plan authorizes running that script or bypassing the actual owner approval.
+
+The current surrogate owner is tools/run_chatgpt_surrogate_gate.py. It runs a selected subset of existing
+tests, optional doctor and syntax checks, not the complete suite. Missing individual declared test files
+are filtered out; missing-module failures can become ENV-SKIP, and overall PASS can coexist with skipped
+verification. TIMEOUT/FAIL block its summary, but ENV-SKIP does not. Inspect exact discovered file list,
+step return codes, skipped/unverified checks and logs; do not use overall PASS as full-suite coverage.
+Its output root is created and fixed logs/summary files can be overwritten. py_compile can also create
+local cache files. --skip-doctor removes a step; it is not proof doctor passed. Preserve actual receipts
+in the single owned candidate and choose destinations explicitly.
+
+The current release_cut full-suite route includes --run-slow and --run-network; its --skip-tests route
+requires an exact-source structured external-validation receipt and pinned receipt hash. A surrogate
+PASS or explained CHECK is not that receipt. No suite, doctor, build, cut, package copy or source mutation
+is requested by opening this document. See [the scoped historical entry](START_HERE_FOR_OTHER_CHATS.md)
+for current SOP links and original planning context.
+
+## Retained cut plan
+
 ## Status
 
 Do not cut yet. v9.7.141e remains the signed active base.

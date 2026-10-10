@@ -1,3 +1,9 @@
+## Current reader scope — historical reporting record
+
+The June .121 behavior patch and strain correction examples below are preserved as history. Their ACTIVE/immediate-application language is content, not an instruction to start a strain workflow, rewrite evidence or adopt historical score/chemistry interpretations. Follow current user scope and [assistant governance](../ASSISTANT_GOVERNANCE.md), and report exact completed work, evidence, holds and the next useful bounded action. Status labels must match verified evidence; a produced file is distinct from a verified deliverable. Use the actual selected work order's denominator and [Mode B profile](../MODEB_PROFILE_MATRIX.md), not the old fixed checklist or §1–§8 depth. Historical examples omit full locus identity and have not been rebound or scientifically revalidated for .447.
+
+---
+
 # PATCH — Progress Reporting Behavior
 **Patch ID:** PROGRESS_REPORTING_20260624  
 **Applies to:** Sapote (Claude / LLM judgment tier)  

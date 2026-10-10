@@ -30,8 +30,10 @@ environment does not.
    multiple BGCs. ClusterBlast recurrence is a candidate-selection heuristic, not organism identity.
 3. Use at most three related reference genomes per focal AS/SID genome. De-replicate identical or
    near-identical assemblies before tree building.
-4. Build the broad screen with the six-locus MLSA target set (16S, `atpD`, `gyrB`, `recA`, `rpoB`,
-   `trpB`) using the separate MLSA extractor/alignment workflow. GToTree searches predicted proteins,
+4. The project's six-locus target includes 16S, `atpD`, `gyrB`, `recA`, `rpoB` and
+   `trpB`; the shipped `build_mlsa.py` screen extracts **five protein-coding loci only**
+   (`atpD`, `gyrB`, `recA`, `rpoB`, `trpB`). A separate 16S record and a documented
+   alignment/partition procedure are required before calling a result six-locus MLSA. GToTree searches predicted proteins,
    so 16S must not be disguised as a GToTree protein HMM. Build a smaller selected 138-SCG
    Actinobacteria GToTree analysis as the high-information overlay.
 5. Start around 40 total genomes when the biological panel supports it. Surface 60 as the default
@@ -75,8 +77,9 @@ raw antiSMASH ClusterBlast channel
   -> tree x BGC overlay figure (annotation track only; see TREE_BGC_OVERLAY.md)
 ```
 
-The optional MLSA screen is a **cheap** front-end, not a competing planner: **MLSA trees are not
-compute-heavy — build as many as useful, un-gated.** `prune_neighbors_from_tree.py` emits its result
+The optional MLSA screen is a **cheap** front-end, not a competing planner: **The shipped MLSA builder has no `--approved` tree gate, but it still runs local
+BLAST, gene prediction, alignment and IQ-TREE, writes outputs and uses the specified
+threads. Run it only within the user-authorized analysis and resource budget.** `prune_neighbors_from_tree.py` emits its result
 in the exact `build_phylo_panel.py` manifest columns (`candidate_id, role, source_path,
 selection_basis, related_query_ids`; references carry `selection_basis=nearest_neighbour_patristic_MLSA`),
 so the screen still flows through the bounded-panel builder and the compute-approval preflight. The
@@ -161,6 +164,11 @@ GToTree \
   -N -k \
   -o <run>/gtotree_alignment
 ```
+
+The command above is the GToTree 1.8 interface. The admitted v2 family has different
+flags; the .447 planner still requires/emits `-n`, while `run_planned_tree.py` omits it
+for v2. Treat v2 planner compatibility as an interface-review hold, not a verified
+execution route. See [companion run contracts](COMPANION_RUN_CONTRACTS.md).
 
 Use `-B` only after documenting the multicopy-marker tradeoff. It selects a best hit when multiple
 hits exist; it is not universally mandatory and can mask contamination/paralogy. Report results

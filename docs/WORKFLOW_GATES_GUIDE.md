@@ -12,6 +12,10 @@ Read `run_status.json` before using any generated files. Only `COMPLETE` identif
 
 `loci_report.tsv` adds a `status` column. `HIT` records an accepted BLAST subject with a matching CDS. `NO_HIT` means BLAST successfully returned no hit for that search; it does not establish biological absence. If all searches have no usable hits, the build exits nonzero with `NO_USABLE_DATA`. Tool failures carry `TOOL_FAILURE` in the status and log instead of creating biological absence rows. A failed later stage may leave a loci report; the run-level status still controls its usability.
 
+## Preflight roster, probes and receipt scope
+
+Preflight runs local environment/version probes and reads/hashes selected files before expensive analysis. It selects only top-level lowercase `.fna`/`.fasta` files and can exit0 with warnings or omitted conditional checks. Multiple filename-matched outgroups skip O2/O3; a JSON check list is not a source/tool hash manifest. Use a fresh JSON receipt outside evidence with an existing parent, retain source paths/hashes and inspect each check. See [the selected preflight source contract](reference/06_CURRENT_SOURCE_SCOPE.md#phylogeny-preflight-local-probes-and-conditional-checks) for exact environment names, input/map/schema limits, conditional checks and recovery.
+
 ## Exact accession evidence for R1
 
 Run `python tools/phylo_preflight.py GENOMES --r1-registry registry.tsv --r1-evidence evidence.json --json preflight.json`. All existing preflight checks still run. The environment check, including E2, is preserved.
@@ -33,6 +37,10 @@ Each bound record has this schema. The example accession and organism are illust
 Supply records through a governed acquisition process and retain their source provenance. Hash checking verifies byte identity; it does not independently authenticate the biological contents of an operator-supplied record. R1 compares exact accessions and complete binomials only. Culture collection identifiers, strain equivalence, synonyms and biological outgroup suitability remain unverified.
 
 Every registry row receives a result. Exact evidence and binomial agreement produce `VERIFIED_BINOMIAL`. Conflicting records or a binomial disagreement cause an R1 `FAIL`. Missing evidence, invalid accessions, incomplete labels, unreadable files, hash drift and empty registries remain `UNVERIFIED` and produce a warning. Warnings preserve the existing preflight exit convention and do not grant verified status. No cache, inventory or registry is written, and R1 performs no network calls.
+
+## Finished-tree postflight scope
+
+`phylo_postflight.py` uses lexical tip/support/root-depth checks, substring outgroup matching and conditional count/taxonomy checks. Placement P3 PASS is an exemption without measured placement confidence; P6 can PASS on an empty matching `.fna` roster and compares counts rather than exact identities. Warning-only results can exit0, and weak-support PASS details require the JSON rather than stdout. See [the current postflight source contract](reference/06_CURRENT_SOURCE_SCOPE.md#phylogeny-postflight-lexical-checks-and-unmeasured-evidence) for input/mode/receipt limits and recovery. Require separate exact-tip, support/rooting and rendered-page evidence before acceptance.
 
 ## Descriptive density ladder
 
@@ -63,3 +71,11 @@ The audit reports `MECHANICAL_PASS`, `UNVERIFIED` or `FAIL`. The overall CLI ret
 ## Placement proposal boundary
 
 Minority reference genera are not independent evidence of an outgroup. The proposed broad exemption for every non-modal genus is not included. The existing placement implementation is preserved in this patch, including its legacy single-genus heuristic. That heuristic and its root fallback remain a separate authority hold; preserving it does not validate the inferred root. A future repair needs explicit outgroup tip evidence and a supported topology contract before broadening exemptions.
+
+## Receipt, resource and refusal details
+
+MLSA's `run_status.json` contains status, detail and mechanical scope, not a source/seed/tool/output hash manifest. Pin every genome, seed, executable/version and produced file separately. The standalone builder defaults `--threads` to4, unlike single-core companion recipes; the thread token is parsed directly rather than validated as a positive integer. Document a reviewed explicit resource setting before any authorized run; status COMPLETE is not evidence of a measured CPU/memory cap. Missing dependencies/seeds return3, fresh-directory/no-genome refusals return4, and caught pipeline failures return6. Early refusals can precede any status file (`tools/build_mlsa.py:202–276`). Retain a partial run rather than using an older status as current evidence.
+
+R1 UNVERIFIED warnings can accompany preflight exit0, because only FAIL rows cause exit1. Read per-row verification state, not just exit status (`tools/phylo_preflight.py:607–664,843–846`). The density ladder writes its JSON to stdout rather than a named receipt and does not include tree-source hashes; preserve the exact rung paths/hashes and captured output if using it as evidence (`tools/ladder_test.py:100–119`).
+
+The tree artifact audit executes the configured Python gate with the tree path only. Declared outgroup tips in the artifact manifest are checked separately and are not forwarded as `--outgroup` to that script. Do not infer an outgroup-aware gate from manifest membership. The audit hashes the gate/tree/metadata/render/receipt but does not authenticate biological claims or source acquisition. It creates output exclusively, with no parent-directory creation or atomic temp-file commit; a serialization/write failure can leave a partial output that must be preserved and reviewed before retry (`tools/tree_trust_audit.py:101–140,144–170`). Record the executed gate command and result separately from the manifest checks.

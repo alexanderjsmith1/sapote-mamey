@@ -1,6 +1,9 @@
 # User guides and reference reading
 
-*Included with bundle v9.7.448 / engine Mamey 1.9.173. Packaging version; content scope is described below.*
+*Included with bundle v9.7.449 / engine Mamey 1.9.174. Packaging version; content scope is described below.*
+
+Start with the [task router](../USER_TASK_ROUTER.md) for the question, required inputs and completion limit.
+Its [JSON companion](../USER_TASK_ROUTER.json) presents the same routes for assistants.
 
 For a first analysis, read [Your first analysis](../MASTER_WALKTHROUGH.md).
 For an overview of the program's parts and optional workflows, read
@@ -23,3 +26,5 @@ records the reviewed portions of the separate wiki volumes.
 [run-observations template](05_RunObservations_TEMPLATE.md) records what actually occurred in a run.
 
 The [glossary pointer](04_Glossary.md) exists for older links and redirects to the canonical glossary.
+
+For numeric methods, inspect the bound Python implementation and recorded configuration. A mathematical companion or historical grounding stamp does not establish that the current engine executed every depicted branch.

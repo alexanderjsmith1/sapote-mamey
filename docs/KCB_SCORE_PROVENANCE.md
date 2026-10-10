@@ -1,9 +1,21 @@
-# What `KCB_score` actually is — the exact antiSMASH source field
+# KCB score provenance and current aggregation limits
 
 **Binding established v9.7.404**, by reading the current engine (1.9.145) end to end. Every line
 reference below was verified in the sealed `v9.7.403` tree. This document exists because a figure
 review asked a question the codebase could not previously answer from any single place: *does
 antiSMASH calculate this, what does it mean, and how were the displayed bands produced?*
+
+## Current v9.7.447 reading boundary
+
+The line numbers and historical defect examples below describe the earlier .403–.405 investigation. They are retained as history, not current executable offsets or a verified individual-locus record. `AS-XXX BGC058` is a redacted example; it is not sufficient identity for adoption. Use strain / full node-or-contig / region / BGC alias in an actual locus record.
+
+Current source parses the **first score-bearing detail block**, strips commas and converts its numeric token to a float (`mamey/antismash_evidence.py:895–930,958–966`). A preceding block without a parsed score is skipped. No rescaling is introduced, but “verbatim” does not mean byte-preserving text and does not independently verify antiSMASH's statistical definition.
+
+KnownClusterBlast records take precedence when present (`:1380–1388`). Within surviving records, cumulative score and protein-hit count are each separately maximized (`:1400–1418`), while the displayed MIBiG reference is the first available reference (`:1391–1398,1425–1444`). With multiple records, those maxima and the displayed reference can come from different records. Preserve the per-file evidence and source accession/rank; do not infer an exact score-to-displayed-product binding from the aggregate fields alone. Candidate product-level similarity additionally has coverage/class and fragment ceilings (`:1445–1467`); none grants product identity or activity.
+
+CSV/workbook emitters use `bgc.kcb_cumulative or ""` (`mamey/cli.py:3330,3715`), so a stored numeric zero exports as blank. G03's cutoff collection excludes only a short token list and uses `_num`; its bin assignment also requires `KCB_top` (`mamey/cohort_figures.py:1730–1760`). A score with a missing top can affect cut points but be placed in the “no KCB hit” bin. Missing source, parser failure or blank export can share that label. Inspect `KCB_evidence_state`, source records and parse holds before calling any row a verified no-hit. Malformed/nonfinite fields require correction rather than biological interpretation.
+
+The current local bindings are `models.py:92`, `b1_normalizer.py:20`, and the CLI offsets above. The historical tertile interpretation remains valid as a description of **this computation**, with ties not guaranteeing equal-sized thirds. Cohort-relative bands are not calibrated probabilities, universal similarity cutoffs or evidence that a named product is made. The source definition and named historical comparator assertions below were not externally re-verified in this software audit.
 
 ## The chain, in full
 
@@ -38,8 +50,7 @@ v9.7.404 to stop calling it a "bitscore".
 rank-46 hit (tetrafibricin, 61753.0) numerically **outscored** rank 1 (aculeximycin, 37992.0),
 and the previous `max(block_records, key=score)` silently reported tetrafibricin as the top KCB
 hit. antiSMASH's "Significant hits" list is ordered by BLAST **significance**, not by raw
-cumulative score. Taking `block_records[0]` keeps `KCB_top` and `KCB_score` describing **the same
-hit** — the file's own rank 1. This is exactly the failure mode the whole question was about: a
+cumulative score. Taking `block_records[0]` keeps the parsed score and protein count on the first score-bearing detail block within one file. Current aggregation can take a maximum score across records while selecting a reference from the first record, so it does not universally guarantee that the final displayed product and score describe the same hit. This is exactly the failure mode the whole question was about: a
 bigger number that means less.
 
 **4. The `max()` at step 4 is narrower than it looks, because step 3.5 has already filtered.**
@@ -78,7 +89,7 @@ the code's own safety.)*
 ## The displayed bands (figure G03) are cohort tertiles
 
 `mamey/cohort_figures.py` computes `np.percentile(scores, [33, 66])` over **this cohort's own
-available scores** and bins each BGC below/between/above those cut points. They are therefore:
+available-looking score fields** and bins each BGC below/between/above those cut points. They are therefore:
 
 - **cohort-relative** — re-run on a different cohort and the same BGC can change band with no
   change whatsoever to its evidence;
@@ -94,4 +105,4 @@ number will otherwise read it as a threshold.
 KCB is **similarity, not identity**. A KCB hit to a named reference cluster is a **class-level
 hypothesis** about biosynthetic capacity — never a structural, compound-identity, or bioactivity
 claim. A high cumulative score does not establish that the strain makes the reference compound;
-absence of a hit is novelty-*leaning*, not proof of novelty. Judgment deferred.
+missing or unavailable evidence is not a verified no-hit or novelty result. Even a verified no-hit is scoped to its source/reference search, not proof of novelty. Judgment deferred.

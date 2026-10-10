@@ -16,7 +16,7 @@ drop"). They are not equivalent.
 | | unified diff | file drop |
 |---|---|---|
 | States which lines change | yes | no |
-| Detects that the base moved | **yes** — `--fuzz=0` refuses | **no** — it overwrites |
+| Binds the complete base identity | no; requires an independently checked file hash | no; requires an independently checked file hash |
 | Composer can review intent | yes | only by diffing it themselves |
 
 A file drop is written against the tree the author had. If the bundle gained content in a cut the
@@ -35,8 +35,21 @@ Then prove it applies to the sealed tree you are targeting:
 patch -p1 -V none --fuzz=0 --batch --dry-run < 001_your_change.patch
 ```
 
-`--fuzz=0` is the point. It refuses rather than guessing when the surrounding lines have moved —
-which is exactly the signal a file drop cannot give you.
+`--fuzz=0` requires exact hunk context; it does **not** prove that the complete base file is
+unchanged. A hunk can apply with a line offset, and edits outside its context can remain undetected.
+Check the declared baseline hash before replay and compare the complete resulting file to the
+reviewed candidate hash afterward. Capture offsets, warnings, exit code and resulting bytes.
+
+Use the forward-only dry-run form to avoid silently accepting a reverse/already-applied state:
+
+```bash
+patch -p1 -V none --fuzz=0 --batch --forward --dry-run < 001_your_change.patch
+```
+
+The example `diff` paths must produce headers that become bundle-relative after `-p1`.
+`diff` exit 1 normally means differences were found; exit 2 means an error. The shipped
+`tools/patch_queue_composition_audit.py` compares patch and Git apply compatibility, but its
+success is a bounded replay result, not full source binding or release authority.
 
 ### `diffbuild/` is fine, and is not a payload
 
@@ -120,9 +133,8 @@ python tools/repo_health.py --strict
 ## Before you hand off — the short checklist
 
 1. `patch -p1 --fuzz=0 --dry-run` against the **sealed** base: clean.
-2. Reverse dry-run: clean (your patch is undoable).
-3. Your tests pass on the patched tree, **and fail on the unpatched one** — a test that passes both
-   ways is not testing your fix.
+2. Apply in an isolated copy, verify candidate hashes, then reverse dry-run against that patched copy; a reverse check against pristine input is not the same test.
+3. Run verification appropriate to the change. A regression test intended to reproduce a defect should fail before/pass after; existing invariants can correctly pass on both trees. Markdown-only fixes can use source/command/link checks rather than inventing executable tests.
 4. No `.pyc` / `__pycache__` / `.DS_Store` in the folder.
 5. `repo_health.py --strict` — note any ratchet you moved.
 6. `PATCH_CARD.md` present, naming base, defect, fix, verification, claim ceiling.

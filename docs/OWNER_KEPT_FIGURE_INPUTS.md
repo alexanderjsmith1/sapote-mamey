@@ -61,3 +61,12 @@ novelty, or causal ecological adaptation. Corrected BGCs per Mbp are an assembly
 projection, not a rate of metabolite production. Caption construction and scientific comparison
 remain separate downstream steps.
 
+## Readiness, additional projections, and changed selections
+
+The CLI exits 0 when the projection is written, including `PASS_WITH_HOLDS`. Read each row of `FIGURE_REBUILD_READINESS.tsv`: `REBUILD_READY` means its listed input requirements passed, not complete strain-level coverage or scientific acceptance. The current checks use overall row presence for domain/class/cassette/resistance inputs and study genus/density presence. They do not prove every study strain has every expected category or that an absent row is zero. Reconcile per-strain coverage and typed missingness before aggregation.
+
+The producer additionally emits `a8_boundary_inventory.csv`, `a8_architecture_features.csv`, `a8_manifest_scan_counts.csv`, `a8_resistance_routing.csv`, `a9_kcb_scores.csv` and `A8_PROVISIONAL_READINESS.tsv`. A8 rows remain `PROVISIONAL_BINDING`; Q017_SCI01A always has `SCOPE_1_VS_RENDER_CONTRADICTION`. The overall receipt's status is computed from the nine legacy readiness rows, so `PASS` can coexist with an A8 hold. Inspect that register separately. Preserve each individual locus's complete identity; aggregate category files are not exact-locus records.
+
+`genus_selection.tsv` is a downstream review surface, not an executable selector in this builder. Editing it changes a receipt-hashed output; record that as a new review artifact with its own hash and an explicit plotting consumer, instead of claiming the original input receipt covers the edit. Rebuild in a fresh directory when source inputs or benchmark selection change.
+
+Source owners: `mamey/interactive_figures/owner_kept_inputs.py:164–218,221–279,288–310`; `tools/build_owner_kept_figure_inputs.py:28–39`.

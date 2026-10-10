@@ -19,14 +19,18 @@ against `docs/DELIVERABLE_CONTRACT.md`, `docs/WORKBOOK_SCHEMA.md`, and the monol
 | `SAPOTE_TOP50_HALOGENATION_REUSE_PROMPT.md` | Halogenation enumeration | Top-50 halogenation deliverable |
 | `SAPOTE_TOP_NUCLEOSIDE_REUSE_PROMPT.md` | Nucleoside enumeration (TIGRFAM-affected — fallback required) | Strict + adjacent nucleoside sections |
 
-## Critical interaction: the TIGRFAM-extraction defect (G4)
-The package extractor is Pfam-centric and drops ~99% of TIGRFAM diagnostic hits
-(`DEFECT_TIGRFAM_EXTRACTION_GAP_2026-06-10.md`). Class-enumeration prompts targeting
-**nucleoside, enediyne, ansamycin, TOMM/thiopeptide** can produce confidently-labeled FALSE NEGATIVES
-from the package alone. Until the Mamey-side extractor fix lands, those prompts MUST apply the G4
-fallback (read raw genomic `antismash.detection.tigrfam`) and mark strict counts provisional. The
-halogenation and standard-polyketide paths are lower-risk (Pfam/label-diagnosed) but apply G4 on any
-TIGRFAM co-call.
+## TIGRFAM availability is package-specific
+
+The June 2026 extraction-gap report is historical. Current source includes TIGRFAM JSON
+extraction and a merge into the per-locus domain channel (`mamey/antismash_evidence.py`,
+`extract_tigrfam_hits`, `merge_tigrfam_into_pfam_hits`). The old blanket assertion that the
+current extractor drops about 99% of diagnostics must not be copied into a new review.
+
+Read the current [shared G4 guard](_SHARED_GUARD_BLOCK.md#g4--tigrfam-evidence-availability).
+Bind the engine, evidence mode, recorded extraction state and actual locus hit list; code presence
+alone does not prove a channel ran or was complete. Keep missing evidence unknown and retain a
+source-bound recovery receipt when raw evidence is inspected. No prompt authorizes a silent
+sealed-package rewrite or a biological negative from a missing diagnostic.
 
 ## Provenance note (header correction)
 Earlier copies carried a header saying they "live OUTSIDE the bundle / not under checksums." That is

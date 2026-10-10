@@ -1464,7 +1464,7 @@ def region_slide(prs, D, bgc, n_order, assets, genome_box):
         from PIL import Image
         iw, ih = Image.open(mp).size
         natural_w = min(7.9, iw / ih * 3.55)  # the map's width when its height fills the box
-        rs = region_structure(D, assets, bgc, inv["Contig"])
+        rs = region_structure(D, assets, bgc, inv["Contig"], gr.get("reference", ""))
         if rs:  # the region's reference structure sits right of the map; a wide map gives up width to make room
             map_w = min(natural_w, 7.9 - STRUCT_MIN_W - 0.1)
             sw = min(STRUCT_MAX_W, 7.9 - map_w - 0.1)
@@ -1727,10 +1727,28 @@ def structure_assets(D, assets):
     return D["_structures"]
 
 
-def region_structure(D, assets, bgc, contig):
-    """(entry, binding, png) for the drawn reference bound to exactly this BGC and contig: the best-ranked KCB
-    reference, then the larger share of matched query proteins. None when no drawn reference is bound."""
+def region_structure(D, assets, bgc, contig, map_reference=""):
+    """(entry, binding, png) for the reference structure drawn beside this BGC's locus map. The structure must be the
+    compound of the MIBiG cluster the map is drawn against (map_reference, e.g. BGC0001875): a map of one cluster beside
+    the structure of another misleads (one region showed a nargenicin A1 map with gargantulide B, the region's top
+    KnownClusterBlast hit). The entry bound to this BGC and contig wins, else the same accession bound to another BGC of
+    the strain (the drawing is reference chemistry, the same for every binding; its KCB numbers are then left off). None when the map's reference has no
+    drawing. Without a map reference, the earlier rule: the best-ranked KCB reference bound to this BGC and contig, then
+    the larger share of matched query proteins."""
     base, entries = structure_assets(D, assets)
+    want = re.sub(r"\.\d+$", "", (map_reference or "").strip())
+    if want:
+        hit = None
+        for e in entries:
+            png = base / e["representative_png"] if e.get("drawing_available") and e.get("representative_png") else None
+            if not (png and png.exists()) or re.sub(r"\.\d+$", "", e.get("mibig_accession") or "") != want:
+                continue
+            bs = e.get("locus_bindings") or []
+            own = [b for b in bs if b.get("bgc_alias") == bgc and b.get("full_contig") == contig]
+            b = own[0] if own else {}   # another BGC's KCB numbers must not print under this BGC's structure
+            if hit is None or (own and not hit[0]):
+                hit = (bool(own), e, b, png)
+        return hit[1:] if hit else None
     best = None
     for e in entries:
         png = base / e["representative_png"] if e.get("drawing_available") and e.get("representative_png") else None

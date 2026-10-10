@@ -1,3 +1,11 @@
+## Current registry implementation and historical proposal
+
+This is a migration proposal, not current setup or permission to run detection/acceptance jobs. Its “current state” predates shipped registry-backed regex/motif loading: `mamey/source_scans.py:435–458` builds patterns at import unless disabled and records degradation on fallback. `mamey/registry_detector.py:52` retains regex/motif activation for that pattern loader. The separate optional run-path HMM adapter is called by `mamey/cli.py:1545–1552`; it is not proof this proposal's multi-backend migration or scientific acceptance was completed.
+
+The original marker counts, validated corpus statements and acceptance claims are historical/proposed claims requiring their original evidence before reuse. The parity test has registry/fixture admission conditions; skips do not prove migration parity. Read [current catalog guidance](CATALOG_MAINTENANCE.md) and [registry parity note](REGISTRY_JSON_CSV_PARITY_NOTE_v9.7.141.md) before using inventory tables. Preserve full strain, node/contig, region and alias for any individual-locus claim. The original proposal follows unchanged.
+
+---
+
 # B2 — Registry-Backed Detector Wiring Spec
 **Goal:** make source_scans.py CONSUME the 179-marker / 98-cassette registry so markers actually drive detection, replacing the current state where the registry is catalog-only and regex _PATTERNS do the scanning. Real backend migration — implement in ChatGPT runtime with regression tests; Claude verifies.
 

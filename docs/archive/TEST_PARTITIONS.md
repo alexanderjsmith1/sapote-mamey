@@ -1,3 +1,13 @@
+# Current test-scope boundary for this archived partition list
+
+The original v9.7.144b commands below are historical slice definitions. The 32 named test paths are a historical selection; use the selected interpreter and current collection/run receipts to confirm the selection. Their names and prior timeout record do not establish current duration, current results or safe execution of every test in an assistant session.
+
+Current configured test roots are `tests`, `tools` and `deliverable_tools` (`pyproject.toml:70–82`), so the historical `pytest tests/` “full release” slice does not cover the configured whole suite. Default test collection skips marked slow/network work unless enabled, and external data/optional dependency fixtures can skip independently (`tests/conftest.py:93–155`). A green selected slice or skipped full run is not release certification. Keep exact invocation, collection scope, executed/skipped counts, environment, fixtures and failure/timeout receipts together.
+
+Use [the current tests guide](../../tests/README.md) and [fixture scope](../CI_REFERENCE_FIXTURES_GUIDE.md) to select a bounded authorized check. Live network/scientific jobs require their own scope; no test execution is authorized merely by this archived command block. Preserve historical timeout/results as a dated record, not a current waiver.
+
+## Retained historical partition guide — unchanged below
+
 # TEST_PARTITIONS — ChatGPT-safe pytest slices
 
 Use these named slices when a full `pytest tests/` run is too large for a capped chat session. Run from the bundle root with `PYTHONPATH=.`. These commands are kept to files present in this v9.7.144b quality-recheck candidate.

@@ -20,7 +20,14 @@ Identity rules:
 Output (--out, which must be new or empty): index.html plus data/*.js files the page loads with script tags, so it opens
 from disk and from a static host. Also bgc_membership.tsv (every cohort point and its BGC), outliers.tsv (every cohort point
 with its outlier call: identity to the closest reference/MIBiG protein and isolation in the plot; see score_outliers) and,
-with --resistance-prefix, resistance_genes_in_bgcs.tsv.
+with --resistance-prefix, resistance_genes_in_bgcs.tsv. With --strain-metadata, GENUS_DISAGREEMENTS.tsv lists every cohort strain
+whose kit genus differs from the metadata genus (the metadata genus is the one shown).
+
+The page draws PC1 against PC2 (or any pair) and, on request, a rotatable view of PC1, PC2 and PC3 projected in the page
+script (orthographic; no library, so it still opens from disk). Every point carries a label: MIBiG points their accession,
+compound and producer (from --mibig-names), SID points the deposited organism (from --sid-metadata, else the kit genus) and
+contig, reference points the genome and gene. Only cohort points have an identity value; every other point, and a cohort point
+with no NEAREST row, is drawn with its own "no identity value" symbol, never the filled/open identity code.
 
 Claim safety: positions and hits are sequence similarity. A close reference or MIBiG protein is not the same product.
 """
@@ -80,6 +87,63 @@ def set_titles(names_tsv: Path | None, captions_md: Path | None) -> dict[str, st
         text = captions_md.read_text()
         for m in re.finditer(r"^## PCOA_(\S+?)_[A-Za-z]+\s*\n+\*\*Principal coordinates analysis of (.+?) from ", text, re.M):
             out.setdefault(m.group(1), m.group(2))
+    return out
+
+
+def strain_genus(path: Path | None) -> dict[str, str]:
+    """strain -> genus from a strain-metadata TSV (strain column `strain` or `tip_label`; genus column `genus`)."""
+    if not path:
+        return {}
+    out = {}
+    for r in read_tsv(path):
+        k = (r.get("strain") or r.get("tip_label") or "").strip()
+        g = (r.get("genus") or "").strip()
+        if k and g:
+            out[k] = g
+    if not out:
+        raise ExplorerRefusal(f"{path}: no rows with a strain (or tip_label) and a genus")
+    return out
+
+
+def sid_organisms(paths: list[Path] | None) -> tuple[dict[str, str], list[list[str]]]:
+    """SID id -> organism as deposited, from one or more CSVs with columns id and organism (extra columns are ignored).
+    The first file that names an id wins; a later file naming it with another organism is returned as a disagreement
+    [id, kept organism, first file, other organism, other file]."""
+    out: dict[str, str] = {}
+    first: dict[str, str] = {}
+    clash: list[list[str]] = []
+    for path in paths or []:
+        with open(path, newline="") as fh:
+            rows = list(csv.DictReader(fh))
+        if rows and not {"id", "organism"} <= set(rows[0]):
+            raise ExplorerRefusal(f"{path}: needs columns id and organism")
+        for r in rows:
+            k, org = (r.get("id") or "").strip(), (r.get("organism") or "").strip()
+            if not k or not org:
+                continue
+            if k not in out:
+                out[k], first[k] = org, path.name
+            elif out[k] != org:
+                clash.append([k, out[k], first[k], org, path.name])
+    return out, clash
+
+
+def sid_lookup(sid_org: dict[str, str], name: str) -> str | None:
+    """The deposited organism of an SID point: by its strain field, else by the SID token inside it (a kit may carry a display
+    name such as 'Genus sp. SID123' where the metadata carries the id)."""
+    if name in sid_org:
+        return sid_org[name]
+    m = re.search(r"\bSID\d+\b", name)
+    return sid_org.get(m.group(0)) if m else None
+
+
+def mibig_point_labels(names_json: Path | None) -> dict[str, list]:
+    """MIBiG accession -> [compounds, producer] from the MIBiG index JSON (entries[].accession, compounds, taxonomy.name)."""
+    if not names_json:
+        return {}
+    out = {}
+    for e in json.load(open(names_json)).get("entries", []):
+        out[e["accession"]] = [", ".join((e.get("compounds") or [])[:2]), ((e.get("taxonomy") or {}).get("name") or "")]
     return out
 
 
@@ -287,6 +351,12 @@ def build(a) -> dict:
     drop = {l.strip() for l in open(a.drop_origins)} if a.drop_origins else set()
     drop.discard("")
     groups = dict(g.split("=", 1) for g in (a.group or []))
+    meta_genus = strain_genus(Path(a.strain_metadata) if a.strain_metadata else None)
+    sid_org, sid_clash = sid_organisms([Path(p) for p in (a.sid_metadata or [])])
+    mibig_lab = mibig_point_labels(Path(a.mibig_names) if a.mibig_names else None)
+    subgroups = dict(g.split("=", 1) for g in (a.subgroup or []))
+    disagree = collections.defaultdict(set)          # (strain, kit genus, metadata genus) -> sets
+    sid_seen, sid_named = set(), set()
     regions = region_index(Path(a.regions))
     (out / "data/sets").mkdir(parents=True); (out / "data/regions").mkdir(parents=True)
 
@@ -302,6 +372,7 @@ def build(a) -> dict:
                 for r in read_tsv(lf):
                     labels[(r.get("region_file"), r.get("locus_tag"), r.get("PC1"))] = r.get("label_text", "")
         strings, sidx, pts, dropped = [], {}, [], 0
+        set_mibig, set_sid = {}, {}
 
         def S(x):
             if x not in sidx:
@@ -311,9 +382,25 @@ def build(a) -> dict:
             if r.get("origin") in drop:
                 dropped += 1; continue
             src = SOURCE_CODE.get(r["source"], "s" if r["source"].startswith("SID") else "r")
+            genus = r.get("genus", "")
+            if src == "i" and meta_genus.get(r.get("strain", "")):
+                mg = meta_genus[r["strain"]]
+                if mg != genus:
+                    disagree[(r["strain"], genus, mg)].add(s)
+                genus = mg
             p = [round(float(r["PC1"]), 4), round(float(r["PC2"]), 4), round(float(r.get("PC3") or 0), 4), src,
-                 S(r.get("genus", "")), S(r.get("strain", "")), int(r.get("n_represented") or 1), S(r.get("subtype", "")),
+                 S(genus), S(r.get("strain", "")), int(r.get("n_represented") or 1), S(r.get("subtype", "")),
                  S(r.get("region_product", ""))]
+            if src != "i":
+                # label fields of a non-cohort point: gene (locus tag) and contig/region file
+                p += [S(r.get("locus_tag", "")), S(r.get("origin", ""))]
+                if src == "m" and r.get("strain") in mibig_lab:
+                    set_mibig[r["strain"]] = mibig_lab[r["strain"]]
+                if src == "s":
+                    sid_seen.add(r.get("strain", ""))
+                    org = sid_lookup(sid_org, r.get("strain", ""))
+                    if org:
+                        set_sid[r["strain"]] = org; sid_named.add(r["strain"])
             if src == "i":
                 strain = r["strain"]
                 cohort = "excluded" if strain in excluded else cohorts.get(strain, r.get("group", "")) or "cohort"
@@ -339,7 +426,7 @@ def build(a) -> dict:
                                  origin=q[10], length=q[11], nearest_pident=q[13], nearest_strain=q[15], isolation=ratio,
                                  tier=tier))
         meta = dict(set=s, title=title, pct=run.get("pct_axes"), approx_id=run.get("approx_id"), strings=strings, pts=pts,
-                    dropped=dropped, isolation={str(i): c[0] for i, c in calls.items()})
+                    dropped=dropped, isolation={str(i): c[0] for i, c in calls.items()}, mibig=set_mibig, sid_org=set_sid)
         _write_js(out / "data/sets" / f"{s}.js", f"sets/{s}", meta)
         index.append(dict(set=s, title=title, group=group, points=len(pts),
                           isolates=sum(1 for q in pts if q[3] == "i"),
@@ -405,6 +492,8 @@ def build(a) -> dict:
         title=a.title, sets=index, strains=strains, files={s: _safe(s) for s in strains},
         cohorts=cohort_names, show=a.show_cohort or [c for c in cohort_names if c != "excluded"][:1],
         cohort_of={s: cohorts.get(s, "") for s in strains}, excluded=sorted(excluded),
+        subgroup_of={s: subgroups[s] for s in sorted({m["strain"] for m in membership}) if s in subgroups},
+        genus_source="strain metadata" if meta_genus else "PCoA kit",
         notes=a.note or [],
         outliers=[[r["set"], r["point"], r["strain"], r["cohort_id"], r["tier"], r["nearest_pident"], r["isolation"],
                    r["identity"], r["group"], r["title"], r["locus_tag"], r["contig_flag"]] for r in ranked if r["tier"]][:a.outlier_list]))
@@ -436,13 +525,27 @@ def build(a) -> dict:
                             reg["alias_hold"] or "", m["cohort_id"], reg["product"], reg["edge"], m["locus_tag"],
                             c[8] if c else "", m["nearest_pident"], m["nearest_strain"],
                             f"{best[3]}% {best[2]} ({best[0]} {best[1]})" if best else ""])
+    if sid_clash:
+        with open(out / "SID_METADATA_DISAGREEMENTS.tsv", "w", newline="") as fh:
+            w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
+            w.writerow(["id", "organism_kept", "kept_from", "organism_other", "other_file"])
+            w.writerows(sid_clash)
+    if meta_genus:
+        with open(out / "GENUS_DISAGREEMENTS.tsv", "w", newline="") as fh:
+            w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
+            w.writerow(["strain", "kit_genus", "metadata_genus", "sets"])
+            for (st_, kg, mg), sets_ in sorted(disagree.items()):
+                w.writerow([st_, kg, mg, ",".join(sorted(sets_))])
     summary = dict(sets=len(index), regions=sum(len(v) for v in by_strain.values()), strains=len(by_strain),
                    aliases_bound=sum(1 for v in by_strain.values() for r in v.values() if r["alias"]),
                    aliases_on_hold=sum(1 for v in by_strain.values() for r in v.values() if not r["alias"]),
                    genes=len(genes), genes_with_mibig_hit=sum(1 for v in by_strain.values() for r in v.values()
                                                               for c in r["cds"] if c[10]),
                    genes_with_blastp=sum(1 for k in genes if bh.get(k)), blastp_rows=bstats,
-                   points_outside_region_files=sum(1 for m in membership if not m["in_region_file"]))
+                   points_outside_region_files=sum(1 for m in membership if not m["in_region_file"]),
+                   genus_disagreements=len(disagree), sid_strains=len(sid_seen), sid_strains_with_organism=len(sid_named),
+                   sid_metadata_disagreements=len(sid_clash),
+                   mibig_points_labelled=bool(mibig_lab))
     (out / "build_receipt.json").write_text(json.dumps(dict(summary=summary, args=vars(a)), indent=1, default=str))
     return summary
 
@@ -546,7 +649,15 @@ def main(argv=None) -> int:
     ap.add_argument("--labels-dir", help="folder with LABELS_<SET>_*.tsv label tables")
     ap.add_argument("--set-names", help="TSV with set and title (or amr_gene_family) columns")
     ap.add_argument("--captions", help="caption markdown with '## PCOA_<SET>_<panel>' headings")
-    ap.add_argument("--cohort-table", help="TSV with strain and cohort (or cohort_id) columns")
+    ap.add_argument("--cohort-table", help="TSV with strain and cohort (or cohort_id) columns; each cohort gets its own colour")
+    ap.add_argument("--strain-metadata", help="TSV with strain (or tip_label) and genus: the cohort genus shown; "
+                                              "disagreements with the kit go to GENUS_DISAGREEMENTS.tsv")
+    ap.add_argument("--sid-metadata", action="append", help="CSV with id and organism (as deposited) for SID-type "
+                                                           "collection points (repeatable; the first file naming an id wins, "
+                                                           "and a different organism in a later file is listed in "
+                                                           "SID_METADATA_DISAGREEMENTS.tsv)")
+    ap.add_argument("--subgroup", action="append", help="STRAIN=LABEL: a subgroup within a cohort, drawn apart on request "
+                                                       "(repeatable)")
     ap.add_argument("--show-cohort", action="append", help="cohort shown when the page opens (repeatable)")
     ap.add_argument("--exclude-strain", action="append", help="strain kept out of the default view (repeatable)")
     ap.add_argument("--drop-origins", help="file listing region files whose points are dropped entirely")
@@ -560,7 +671,8 @@ def main(argv=None) -> int:
     ap.add_argument("--mibig-dmnd", help="MIBiG protein DIAMOND database to search every gene against")
     ap.add_argument("--mibig-gbk-dir", help="MIBiG GenBank files, for gene names of subject ids BGCnnnnnnn|i")
     ap.add_argument("--mibig-faa", help="the FASTA the MIBiG database was built from, to check the gene numbering")
-    ap.add_argument("--mibig-names", help="MIBiG index JSON with entries[].accession and compounds")
+    ap.add_argument("--mibig-names", help="MIBiG index JSON with entries[].accession, compounds and taxonomy.name; also "
+                                          "labels the MIBiG points")
     ap.add_argument("--blastp-snapshot", help="a COPY of a BLASTp store (sqlite3 .backup); opened read only")
     ap.add_argument("--title", default="BGC Protein Explorer")
     ap.add_argument("--note", action="append", help="sentence shown in the page footer (repeatable)")

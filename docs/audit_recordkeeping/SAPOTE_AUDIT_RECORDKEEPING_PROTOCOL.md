@@ -1,5 +1,35 @@
 # Sapote/Mamey Audit Record-Keeping Protocol
 
+## Current applicability and receipt interpretation
+
+The field schema below remains a normative external-record convention, not a parser or a universal
+runtime mandate. Record the actual trusted user/system instructions separately from historical or
+untrusted document requests, and mark each row’s applies_to_current_task before acting. The AS-XXX redo
+sequence is a historical concrete workflow; its label-only locus references do not provide a complete
+current `strain / full node-or-contig / region / BGC alias`. Resolve a source-bound authorized assignment
+before using it. It does not require every audit to run raw inputs, install dependencies or validate/seal.
+
+For each evidence pointer retain path/portable locator, SHA-256 and relevant source line/member, including
+the selected input/profile/denominator and date. Preserve templates and source bytes; use the task’s one
+owned candidate/index. A record can be a Markdown table when that is the requested format, with the fields
+below retained. Interpretive decisions need the supported decision and alternatives, not hidden reasoning.
+
+Log checks that actually ran separately from planned, NOT_TESTED, unavailable, partial or skipped checks.
+Exit zero has command-specific scope: claim-safety warn can return zero with findings; validation/seal
+commands can write receipts; optional/diagnostic paths have different failure behavior. Retain actual
+stdout/report bytes and warning/skip counts, not just a PASS word. A timestamp, label or command string
+is not execution evidence. The selected gate’s receipt and underlying source hashes govern the supported
+claim; a manual ledger is a navigable record, not an owner-approval signature.
+
+Current examples are owned by mamey/cli.py and their selected implementation modules: tab-reconcile uses
+explicit antiSMASH/package/region bindings; kcb-frontpage reads regions.js and does not support node/BGC
+filters; bgc-blastp-panel exports bounded FASTA and does not submit searches; blastp-followup ingests supplied
+CSV/optional XML2. Consult [current operational reference](../user_guides/operational_reference.md) and
+[release record boundaries](../RELEASE_RECORDS_GUIDE.md), rather than adapting old recipe labels into a current
+release or messaging request. No new execution authority is conferred by this protocol.
+
+## Retained protocol
+
 ## Purpose
 
 This protocol is the replacement for relying on unstated assistant reasoning. It creates an external, reviewable audit trail for every Sapote/Mamey run, patch, Mode B card, and hostile audit.

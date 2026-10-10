@@ -1,10 +1,13 @@
-# Sapote-Mamey Master Workbook Schema v1.0 (v1.2 additions, 2026-06-11)
+# Master workbook schema — design reference and deployed validation
+
+Read [the current validation guide](WORKBOOK_VALIDATION.md) before using this retained design reference. .447 derives required headers/sheets from the builder; historical column lists and audit receipts below do not prove current implementation or PASS. The frozen requirements remain a separate retained contract.
+
 
 ## Current versions at a glance (read this first)
 
 | Artifact | Schema | Owner (builder / checker) | Checked by default | Opt-in |
 |---|---|---|---|---|
-| Master strain workbook | **v1.1, frozen** (`MASTER_SCHEMA_FROZEN_v1_1.md`) | `master_workbook.py` (stamps H3 = v1.1) / `mamey/workbook_schema_check.py` (`SCHEMA_VERSION = "v1.1"`) | sheets, headers, row counts, strain coverage; per-row value checks below 26 strains | `--v12` for the v1.2 additions (D5 Fragment_Rescue_Tiers, Activity_Ref); `--full` forces per-row checks at 26 or more strains |
+| Master strain workbook | **v1.1, frozen** (`MASTER_SCHEMA_FROZEN_v1_1.md`) | `master_workbook.py` (stamps H3 = v1.1) / `mamey/workbook_schema_check.py` (`SCHEMA_VERSION = "v1.1"`) | derived sheets/headers, nonempty row counts; A2/B1 strain-set comparison below 26 nonblank A2 rows (duplicates count); general values/provenance are not checked | `--v12` for the v1.2 additions (D5 Fragment_Rescue_Tiers, Activity_Ref); `--full` forces the orphan check; v1.2 row checks require `--v12` too |
 | Sapote judgment sheets | Sapote Excel schema v1.1 (monolith §57) | a separate namespace | — | — |
 
 Required headers come from the builder, not from the column lists on this page, which are a design reference.
@@ -17,7 +20,7 @@ The dated audit results near the end of this page are a historical receipt, not 
 
 ## Purpose
 
-This document defines the canonical sheet structure, column names, and validation rules for the project master workbook. Any platform (ChatGPT, Claude, user) that reads or writes the workbook MUST check this schema on receipt and before handoff.
+This document retains the master-workbook design, dated additions and historical receipts. For deployed acceptance, use the current builder/checker and the validation guide above, with workbook/source hashes, roster and explicit flags. Checking before handoff is a reader obligation; the document does not prove automatic enforcement.
 
 ## Related documents
 
@@ -30,7 +33,7 @@ This document defines the canonical sheet structure, column names, and validatio
 
 1. **Sheet codes are stable identifiers.** Every sheet has a code (A1, B2, etc.) that never changes. Platforms reference sheets by code, not by name.
 2. **Columns are named exactly.** No synonyms. `Products` is always `Products`, never `Products/classes`.
-3. **Empty cells mean "not yet computed."** Never fill with 0 or NULL unless the value is genuinely zero/null.
+3. **Preserve typed missingness.** A blank may mean unavailable, not supplied, held or uncomputed depending on its source field; do not universally interpret it as pending computation. Do not impute zero or inactivity.
 4. **Handoff validation is mandatory.** On receipt, the receiving platform checks: (a) all expected sheets exist, (b) column headers match, (c) row counts are consistent across sheets.
 
 ---
@@ -110,7 +113,7 @@ This document defines the canonical sheet structure, column names, and validatio
 
 ## Column specifications for core sheets
 
-> **Enforced spec:** the columns actually validated are defined in `mamey/workbook_schema_check.py` `REQUIRED_SHEETS` (reconciled to the deployed build, v1.2). The lists below are the original design reference; where they differ, the validator wins.
+> **Deployed structural spec:** `mamey/workbook_schema_check.py` derives `REQUIRED_SHEETS` from the v1.1 builder. Optional v1.2 checks require `--v12`. The lists below are historical design references; differences are reconciliation holds, and checker PASS does not satisfy unimplemented frozen requirements.
 
 ### A2_Strain_Registry
 

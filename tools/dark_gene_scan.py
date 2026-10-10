@@ -150,8 +150,9 @@ def _extract_all_proteins(zip_path: str) -> dict:
         if _gbk_shim is None:
             return {}
         _gbk_records = _gbk_shim(raw)
+    from mamey.parsers import _record_contig_id   # rec.id drops a 0 after the point of a SPAdes coverage
     for rec in _gbk_records:
-        ctg = rec.id
+        ctg = _record_contig_id(rec)
         for feat in rec.features:
             if feat.type != 'CDS':
                 continue

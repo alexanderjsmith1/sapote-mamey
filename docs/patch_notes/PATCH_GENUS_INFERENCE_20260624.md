@@ -1,3 +1,9 @@
+## Current reader scope — historical genus-inference proposal
+
+The frequency thresholds and worked example below are a June reporting heuristic, not a validated taxonomic classifier or a current command to relabel records. A GBK ORGANISM value is supplied metadata; its presence does not independently make the genus “DEFINITIVE.” Reference-genus hit frequency and chemistry-reference agreement do not establish taxonomy or authorize ecological comparison. Retain the provenance and uncertainty of any user-supplied taxonomy. In .447, `tools/intake_harness.py` accepts a validated taxonomy-map override, otherwise reads the first selected region GBK and supports explicit `not verified` uncertainty; it does not implement this ClusterBlast-frequency procedure. Use the [16S data contract](../PHYLO_16S_DATA_CONTRACT.md) and independently authorized evidence for taxonomic interpretation. No taxonomy or scientific record is changed here.
+
+---
+
 # PATCH — Genus Inference from antiSMASH Output
 **Patch ID:** GENUS_INFERENCE_20260624
 **Applies to:** Sapote (Claude / LLM judgment tier) — intake and session-start procedure

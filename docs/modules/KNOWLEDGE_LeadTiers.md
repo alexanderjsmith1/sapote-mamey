@@ -1,3 +1,8 @@
+> **Historical cohort case with current/proposed views:** Examples use scrubbed aliases and
+> incomplete locators; do not use them as operational identity. A live locus requires strain,
+> full contig/node, region and alias. Current and proposed tiers are separate outputs of the recall
+> writer; neither a historical count nor a proposed tier establishes activity or adoption.
+
 # KNOWLEDGE — Lead tiers: what Class-A means (and what it does not)
 
 ## 0. Header block
@@ -63,7 +68,7 @@ SID-XXX (antifungal)**, SID-XXX/BGC077 (anti-MRSA), SID-XXX/BGC034, SID-XXX/BGC0
 SARP. The enediynes correctly do **not** promote (no source-derived resistance) and stay flagged by bioactivity.
 Code change is one function (`confidence_class`) plus folding `resistance_tier` onto the board the way
 `SARP_support` is folded — additive, low-risk. **Proposal, not yet executed in `build_priority_leads.py`.** The
-canonical Class-A count stays **12** (CONFIRM ∩ SARP, per Evidence_Axes) until/unless this change is adopted;
+historical bound-cohort Class-A count was **12** (CONFIRM ∩ SARP, per Evidence_Axes); a new input cohort must recompute its own denominator and membership, and
 `build_lead_tiers.py` emits the proposed re-rank as a *recall* view beside the canonical set, not as a new count.
 
 ## 6. Strictness caveat (azoxy headline — cross-reference)

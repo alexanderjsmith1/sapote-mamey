@@ -48,7 +48,7 @@ to author a *rival* structure doc rather than extend the one that already exists
 
 ## What prevents it
 
-The convention in `docs/PATCH_WORKSPACE_LAYOUT.md`, enforced by `tools/check_patch_lane.py`:
+The convention in `docs/PATCH_WORKSPACE_LAYOUT.md`, partially checked by `tools/check_patch_lane.py` when explicitly invoked:
 
 - **Disposition legible from location** — `for-cut/`, `reports/`, `archive/v9.7.N/`, `scratch/`; a
   thing is exactly one.
@@ -56,6 +56,14 @@ The convention in `docs/PATCH_WORKSPACE_LAYOUT.md`, enforced by `tools/check_pat
 - **Full `v9.7.N` version markers** — a bare number is a flagged error.
 - **A first-three-lines stamp on every report** — `Base` / `Audited` / `Disposition`.
 - **One `README.md`** as the single entry point.
+
+**Actual checker boundary:** `--lane`, `--stream` and `--reports` are separate selected checks.
+The naming regex flags bare 400–419 markers, not every current/future cut number. Report stamping
+requires `Base` and `Disposition` text in the first three lines plus a full version (or explicit
+unstated marker); it does not validate the Audited date. Lane checks find patches/cards/tests
+recursively, check escaping diff header paths and look for tests carried in the diff. They do not
+apply the patch, execute tests, validate hashes or enforce exactly one patch/one issue. A passing
+layout check is structural evidence, not candidate acceptance or permission to move/delete files.
 
 Enforcement is the load-bearing word. Documentation that is not checked rots into another unread
 convention; a workspace with no gate grows back into the pile above. The check must be able to catch

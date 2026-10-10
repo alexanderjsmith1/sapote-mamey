@@ -1,3 +1,22 @@
+# Cohort BLASTp handoff: current software boundary
+
+The July 2026 instructions below are a dated planning record. Their 21-strain/819-region count, extrapolated protein totals, timings, worked examples and external receipts are not a new census or verified completion. The per-region mean was sampled; extending it across the cohort is an estimate. This document does not authorize sending sequences, ingesting new evidence or changing a sealed package/master workbook.
+
+Use [ONLINE_BLASTP_PROTOCOL](ONLINE_BLASTP_PROTOCOL.md) for the current workflow and [panel contracts](BGC_BLASTP_PANEL_v9.7.142.md) for local preparation. Identify each locus as `strain / full node-or-contig / region / BGC alias`; a BGC alias or rounded contig locator cannot bind a cohort result by itself.
+
+## Planning, outputs and receipt limits
+
+Current `blastp-online` defaults to local planning: it scopes translated CDS, prints endpoint/database, selected counts and an ordered sequence SHA-256, then exits 0 without submitting (`mamey/blastp_online.py:1119–1201`). A missing scope or translation is refused earlier. Actual outbound submission requires both explicit submission intent and a separate public-sequence acknowledgement; lacking the second acknowledgement exits 1. The historical NCBI command lacks those flags and now produces a plan, not a completed panel. Do not silently add submission flags to repair an old recipe. Live output is refused inside the bundle before submission (`1203–1210`). Check the exact current CLI and disclose only under separate authorization; service limits and elapsed-time estimates below were not checked against a live provider.
+
+An online plan hash binds the ordered selected names/sequences, not a complete cohort's provenance, protein roster or final alignment output. The local panel manifest carries locus locators but no per-protein/source-file hash fields (`mamey/bgc_blastp_panel.py:522–567`). Preserve the source input/crosswalk hashes and exported FASTA hash alongside the complete locus and protein identity. For imported results, retain provider, database/version or retrieval date, query mapping, hit-table/XML sources and hashes, rejected rows and binding guard state. Missing hits, failed retrieval and unsubmitted queries are different states; high or low similarity alone does not establish product novelty or activity.
+
+## Mutation and recovery
+
+`ingest-blastp` appends workbook rows, saves the master, then writes a package overlay (`mamey/blastp_ingest.py:2026–2072`). Those writes are not a transaction across workbook and overlay; an overlay failure can follow a successful workbook mutation. The manual binding guard cross-checks current context and quarantines defective rows, but legacy packages without sealed context remain admitted with `binding_validated=False` (`1919–1927,2039–2046`). Overlay presence is therefore not universal identity/hash certification. Record the before/after artifact hashes and guard result for any separately authorized ingestion; reconcile partial writes before retrying to avoid duplicate workbook rows. Never alter a source package merely to silence a novelty guard. This Markdown patch neither ingests results nor adopts the old examples as scientific conclusions.
+
+<details>
+<summary>Preserved dated record — historical reference, not an execution request</summary>
+
 # INSTRUCTIONS — cohort-wide BLASTp for the AS Hymenoptera cohort
 
 **For:** the multi-strain cohort chat · **From:** patch chat · **Bundle:** v9.7.319 / engine 1.9.111
@@ -180,3 +199,6 @@ per panel gene, `pct_identity` + `query_coverage` populated, and the database is
    card that was making an unsupported claim against ClusterBlast data.
 4. **Two named leads on the private lead board are waiting on exactly this.** Do them first.
 5. Only then consider Tier 2. Skip Tier 3 unless something specific demands it.
+
+
+</details>

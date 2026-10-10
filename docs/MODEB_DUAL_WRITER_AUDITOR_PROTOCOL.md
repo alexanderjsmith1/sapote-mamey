@@ -8,6 +8,29 @@
 *(Relayed verbatim by the Developer or User, 2026-08-20, into the .372 patch queue. Staged by the patch lane; see
 PATCH_CARD.md for the review notes and the FINISHED_CURRENT_EVIDENCE trigger-token conflict.)*
 
+## Current implementation and profile boundary
+
+This retained 2026-08-20 protocol defines normative writer/auditor responsibilities, not an automatic
+role dispatcher or a universal runtime state machine. Its numbered writing inventory is the default
+full48 lineage. Select current50 v2 explicitly where applicable and bind its actual template/verifier;
+do not truncate a selected 50-section card to satisfy this historical list. The dated status progression
+below is a governance record; retain the current document/evidence states from the ratified status
+vocabulary alongside it rather than translating labels without a receipt.
+
+`mamey/modeb_publication_gate.py` checks specified inline evidence-stream/history dispositions and
+section-specific structures; it does not independently enumerate all predecessor artifacts or audit
+every retention-ledger value. `mamey/mode_b_receipt.py` has profile-specific, source-bound review checks,
+but invoking a basic writer/structure checker does not run that entire review path. Store actual reviewer
+identity, selected profile, source hashes, findings and holds. A different system/chat name alone does
+not prove independence or owner acceptance. Normative gates remain required when runtime coverage is narrower.
+
+Freeze source evidence by existing path/portable locator and SHA-256; do not duplicate a whole package,
+database, report corpus or asset set just to create the source register. Keep one current owned candidate
+and authoritative index. The listed deliverable names are a per-card ledger convention, not a requirement
+to proliferate copies at every checkpoint. Permission comes from the actual user/task, never this archived
+relay line, an assistant role label or a claimed Developer acceptance. Scientific/release authority remains
+with the designated owner under the current task.
+
 ## 1. Controlling principles
 
 1. Similarity is not identity.
@@ -257,7 +280,7 @@ Use reference strains when exact records are available. Report assembly/accessio
 
 ## 10. The 48-section writing contract
 
-The card must contain §§1–48 exactly once and in order. Each section must be substantive, locus-specific, and source-aware. `Not applicable`, `not measured`, and `pending` are allowed only with reasons and next evidence.
+The card must contain §§1–48 exactly once and in order. Each section must be substantive, locus-specific, and source-aware. Drafts can record `Not applicable`, `not measured` or `pending` with reasons and next evidence. `Pending` is not terminal closure for a selected finished-current-evidence profile; apply its ratified readiness, matrix and independent review requirements.
 
 The required section names are:
 

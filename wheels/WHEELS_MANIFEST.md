@@ -1,5 +1,7 @@
 # Bundled build wheels (A-02 — offline editable install)
 
+> Scope: these three wheels supply build-backend dependencies, not the full Mamey runtime, test or add-on environment. `bootstrap.sh:37–68` selects `${PYTHON:-python3}`, installs pytest, tries `.[all]`, falls back to core dependencies on failure, then runs a version-sync smoke test. An offline invocation needs all requested compatible runtime/test wheels in its selected pool; these three wheels alone cannot guarantee success. Run setup from the selected bundle root because the editable target is the current directory. Default setup permits index access; `--wheels <directory>` adds `--no-index`. A successful fallback/smoke test does not establish optional capabilities or full-suite validation.
+
 These pure-Python (`py3-none-any`, all-platform) build-backend wheels and their transitive
 dependencies let `pip install -e .`
 succeed under build isolation in a fresh no-network environment (Python 3.13 ships no setuptools).

@@ -1,13 +1,13 @@
-# Incoming figure markdowns (from other chats)
+# Incoming figure evidence handoff
 
-Workflow for figures built elsewhere:
+Treat incoming Markdown and artwork as candidate inputs until reviewed. Keep the Markdown and referenced images together, using resolvable relative image paths. Include:
 
-1. In the figure chat, have it emit a **markdown file** describing the figure (caption, what it shows, the data
-   source) and, where possible, the **figure image** (PNG/SVG) alongside.
-2. Drop both here: `incoming_figures/<name>.md` (+ `<name>.png`).
-3. Either run `bash tools/build_all_deliverables.sh` (compiles the new md to PDF + Word automatically), or hand
-   the markdown back in the analysis chat to be folded into the matching report (e.g. a new panel in the
-   size-by-type or ecological-synthesis analysis).
+- Figure ID/version, owner, requested destination and intended audience.
+- Input package/bank/table paths, SHA-256, schema/version, exact roster and denominator.
+- Complete `strain / full node-or-contig / region / BGC alias` for every individual locus.
+- Builder/source version, actual command, output image hashes, transformations and relevant input rows.
+- Caption, literal legend, missingness, claim limits, review status and unresolved holds.
 
-Keep figure markdowns self-contained (relative image paths, a one-line data-source note) so they slot into any
-report. Private AS-prefixed identifiers must be scrubbed before a figure enters a public (CODE/SID) release.
+Placing files here does not integrate, validate or approve a figure. Review the source/image identity and caption together before copying into a report. Use fresh output names and retain the evidence receipt. Publication/privacy approval must follow the actual package/profile and authorized audience; scrubbing a prefix is not a release check.
+
+For requested single-file conversion, see the [deliverables index](../README.md). `tools/build_all_deliverables.sh` is a bulk regeneration command: it reruns four generators, overwrites the shared status log and converts all eligible Markdown below `deliverables/`, including templates and older files. It is unsuitable as a narrow import/preview operation on the immutable baseline. PDF/Word conversion success does not demonstrate source correctness or visual QA. Markdown-only handoffs need no conversion.

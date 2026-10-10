@@ -1,3 +1,14 @@
+# DAPR scoring decision memo: historical decision context
+
+The June 20 memo below is preserved as an unadopted decision record. Its options are not a current request to alter scoring, identify cohort chemistry or optimize biological work. No scores, scientific datasets or configuration changed in this documentation audit.
+
+Current `mamey/scoring.py:72–104` still defines 18 AB keyword entries, 17 AF entries and 11 novelty entries. Those dictionary sizes are a narrow source observation: absence of a named token does **not** prove zero overall score or absence of an annotation/diagnostic/other scoring path. Current scoring starts from baseline values and product-keyword terms (`475–487`) and then applies additional evidence/guards. A scored chemical-family annotation path also exists; the explicit ionophore consequence is already implemented (`mamey/compound_class.py:64–90`). This source inspection does not validate the scientific interpretation or calibration claims embedded in that source, nor exhaustively establish the memo's claimed absence of paths for five other classes.
+
+Treat framework vocabulary and computed scoring separately; see [current DAPR class framework](../DAPR_CLASS_FRAMEWORK.md). Current installed engine/bundle stamps are `1.9.172`/`9.7.447` (`mamey/__init__.py:1–2`). Any separately authorized scoring change needs a documented input/reference/configuration/version boundary, complete gene/locus denominators and actual guard-interaction validation before cross-strain comparisons. A version match alone does not bind all inputs. [Cohort rescoring provenance](../COHORT_RESCORING_PLAN.md) explains the current version gate and missing-provenance limitations. The cohort prevalence, activity, cytotoxicity and sensitivity assertions below were not adopted or re-evaluated here.
+
+<details>
+<summary>Preserved dated record — historical reference, not an execution request</summary>
+
 # DECISION MEMO — DAPR documented-but-unscored classes
 
 **From:** Patch Chat · **Date:** 2026-06-20 · **For:** the Developer or User (scoring decision)
@@ -39,3 +50,6 @@ Adding tokens to `AB_KEYWORDS`/`AF_KEYWORDS` **changes scores** on any cohort BG
 4. **Investigate first:** I trace each class through the guard stack and `compound_class.py` and report exactly what *would* change (which cohort BGCs, which scores move, which guards fire) — a dry-run impact report — before you decide. No code change.
 
 My honest read: **4 then 1-or-2.** The dry run tells you whether the missing classes actually touch your cohort before you pay a boundary; if they barely appear, relabeling (1) is the right answer and you avoid a re-score. If aminocoumarins/orthosomycins show up in real strains, (2) is worth the boundary.
+
+
+</details>

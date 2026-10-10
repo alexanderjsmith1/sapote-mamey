@@ -1,5 +1,9 @@
 # SOP-02 — ChatGPT-Safe Capped-Session Run
 
+Before any `doctor` example below, read the [write-probe boundary](../INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
+untouched. The current diagnostic can overwrite or remove its probe file.
+
 Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
 
 
@@ -37,13 +41,13 @@ python mamey_run.py validate <package_dir> --workbook-strict
 
 `--capped-session` reduces risk from:
 
-- long-running BGC judgment,
+- automatic figure/brief generation, while authored BGC judgment remains a later task,
 - excessive JSON evidence,
 - oversized output,
 - ChatGPT/Claude tool timeout,
 - too many regions or BGCs,
 - missing optional deliverables (suppressed on purpose, not silently dropped — re-populate with
-  `python mamey_run.py render-all-figures --package <pkg> --all --workbook <wb.xlsx>` post-seal).
+  the workflows in [figure start here](../FIGURES_START_HERE.md) post-seal). Rendering can refresh package integrity or populate package data; use an authorized working copy when preserving sealed bytes.
 
 ## Required outputs
 
@@ -52,7 +56,7 @@ A capped-session run should produce:
 - package directory,
 - manifest,
 - checksums,
-- workbook when expected,
+- workbook (required by the capped-session run settings),
 - package status,
 - validation result,
 - issue list if present.

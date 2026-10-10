@@ -8,12 +8,20 @@ Each update stages complete before/after images in `.ingest_transactions/<id>/`.
 
 Bundled bank reader CLIs take a cooperating read lock before loading data and hold it through their multi-file operation. They refuse a pending journal or a committed hash mismatch. Embeddings that call multiple functions should use `with mamey.bank_transaction.reader(bank): ...`; Main-function reader scopes release their locks on return or exception. The historical top-level `build_master.py` retains its lock through process exit; explicit embedding holds can be released with `release_reader_locks()`. The comparative bank loader checks transactional state before its legacy empty-shell fallback. Package readers without a bank transaction marker preserve their read-only behavior.
 
-An interrupted bank is deliberately unavailable to readers until the owner selects one bounded recovery action:
+An interrupted bank is deliberately unavailable to readers until the authorized maintainer selects one bounded recovery action:
 
 - `python tools/ingest_package.py --banked-dir <bank> --recover rollback` restores every original store, original missing-file state and prior commit receipt from the validated before image.
 - `python tools/ingest_package.py --banked-dir <bank> --recover finish` republishes every validated after-image store and commits its receipt.
 
-Recovery validates all paths and image hashes before restoring any store. A recovery interrupted midway leaves the pending marker; the same explicit action can be retried. Never remove the marker manually or copy individual `.bak` files into a bank and call it complete. Historical recovery folders are retained; cleanup requires a separate owner decision.
+Recovery validates all paths and image hashes before restoring any store. A bank with no pending journal refuses recovery (`BANK_NO_PENDING_RECOVERY`); `finish` is not a general validation or resealing command. A recovery interrupted midway leaves the pending marker; the same explicit action can be retried. Never remove the marker manually or copy individual `.bak` files into a bank and call it complete. Historical recovery folders are retained; cleanup requires a separate owner decision.
+
+## Reader and diagnostic limits
+
+A cooperating reader can create the `.ingest.lock` file in an existing legacy bank when no lock exists. This is lock metadata, not a protected-store update, but it is a filesystem write. A legacy bank without `.ingest_state.json` returns `LEGACY_UNRECEIPTED`; reading it does not establish committed hash coherence. Preserve immutable originals and bind the actual bank state before using a result.
+
+`tools/ingest_package.py --validate <strain> --package <package> --banked-dir <bank>` prints ingest-versus-bank comparisons. It can print DIFF and still return normally; read every comparison instead of treating exit zero as a matching bank. Direct Python embeddings of this diagnostic hold a reader lock; release it through the existing owner when finished.
+
+Building an entry without `--merge` does not publish canonical stores, but `--out` writes an entry file when selected. Even a transaction rejected before pending publication can leave private staging images or compatibility `.bak` files. A failed attempt therefore does not imply that no files were written; preserve diagnostics and inspect pending/commit state.
 
 `build_deep_data.py`, `build_finer_from_gbk.py` and intake's empty initialization also use the journaled writer boundary. Intake releases read locks before launching a child banker. Other derived reader outputs remain separate from protected core stores.
 

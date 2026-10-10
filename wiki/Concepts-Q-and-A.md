@@ -3,7 +3,7 @@
 
 *A running concepts companion to the GUIDE, written as questions and answers. The answers are direct and say what is observed and what is inferred. This is the conversational "why does it work this way" layer. Short definitions live in the canonical [`GLOSSARY.md`](Glossary.md) (see its **Core concepts** section for the load-bearing terms), and the deep internals live in the Encyclopedia (`03_Technical_Manual_Encyclopedia.html`).*
 
-*Current to bundle v9.7.448 / engine Mamey 1.9.173.*
+*Current to bundle v9.7.449 / engine Mamey 1.9.174.*
 
 > **On the numbering.** Two series run here. **Q1–Q10** are the original conversational thread (workflow and first-encounter jargon). **Bank N** entries are numbered by position in the 100-question bank (`Sapote-Mamey_QandA_QuestionBank_100.md`) so each maps straight back to its source question — which is why the Bank numbers are not contiguous (gaps are questions not yet written up, not missing content). Cross-references of the form "(Bank N)" point within this document.
 
@@ -33,41 +33,23 @@ Bank 66 HMMER vs BLAST · Bank 67 profile HMM / marker · Bank 68 Pfam/TIGRFAM/d
 
 ---
 
-## Q1 · What is a wedged pytest?
+## Q1 · What should I do when pytest or its environment becomes unresponsive?
 
-A wedged pytest is what happens when a heavy pytest run is killed mid-flight in a sandboxed environment: the environment then goes unresponsive for about three minutes.
+An unresponsive test run can reflect resource pressure, blocked I/O, a child process or a process-management failure. A delay after interruption does not identify its cause. Earlier sandbox observations described a delay of roughly three minutes; the proposed orphaned-child explanation was a hypothesis, not a verified mechanism or a recovery guarantee.
 
-The shape of it. The full suite collects about 11,500 tests and runs ~200–290 seconds. A tier cut runs that same suite as its in-tier gate. That is a long time to stare at a terminal, so the temptation is to background it, to Ctrl-C it when you change your mind, or to fire off three strain runs at once and let the slow one be killed by a timeout. **Don't.** That is the move that wedges the box.
+Use the current suite size, logs, process state and tool-session limits when planning a run. Run heavy jobs sequentially when resources are constrained, retain the session/process identifier and monitor through the supported execution tool. Do not start duplicate jobs merely because output is quiet. If a run must stop, use the environment's supported cancellation procedure and preserve its exit, partial outputs and diagnostics before retrying.
 
-What is going on (this part is *inferred*; the sandbox's process supervisor is not visible, only its behavior): pytest doesn't run alone. It spawns children — subprocess calls inside the tests themselves (`sync_version --check` shells out, the render-timeout tests spawn subprocesses, matplotlib fires up its Agg backend, any sharding spins up workers). When the *parent* is killed, the children don't reliably die with it. They are orphaned, still holding CPU and file handles and the working directory, and in a containerized process namespace they don't get reaped instantly. The result is a dead zone: new commands hang, the filesystem feels sticky, and nothing you do speeds it up. It clears itself in ~3 minutes when the orphans finally time out and the namespace cleans up. (The *observed* fact is the 3-minute dead zone. The orphaned-children story is the best explanation for it, not something watched happen line by line.)
-
-The cruel irony: the instinct when something is stuck is to kill *more* things. That makes it strictly worse; each kill orphans more children into the same wedge.
-
-So the operating rules, which are really just "stop fighting the box":
-
-1. **Run heavy things in the foreground, one at a time.** No backgrounding a pytest run and poking at it. No three-strain runs crammed into one call; the *Gemmata massiliana* 56-BGC run already proved that one (timed out, wedged, lesson learned).
-2. **Poll, don't kill.** If you need to know whether it is done, wait and check; don't interrupt.
-3. **If it does wedge, the fix is patience, not violence.** Walk away for three minutes. The box heals itself. Anything typed into a wedged environment is at best wasted and at worst a fresh orphan.
-
-One practical tell: if the container goes unresponsive *right after* a test run, that is the wedge, not a new bug, and the only correct response is to do nothing for three minutes. The reflex to "check if it's still alive" by firing another command is exactly what extends it.
+After interruption, check whether the original process or children remain active and whether outputs are complete. Escalate an unresolved resource or process failure to the environment maintainer. There is no universal three-minute recovery time and no guarantee that waiting alone repairs the problem.
 
 ---
 
-## Q2 · Is the wedge caused by the stop button, or by an internal timeout?
+## Q2 · Are timeouts, explicit process termination and an assistant's stop button equivalent?
 
-They are genuinely different events, so here they are split, because one of the three cannot be confirmed from inside the sandbox.
+No. A harness timeout, an explicit process signal and an interface stop action can have different effects on tool calls and child processes. Those effects depend on the execution environment; do not infer them from a stopped assistant turn. Check the actual process/session state and terminal result.
 
-1. **Internal / harness timeout.** *This is the one that has been watched wedging the box.* A bash command that runs past its limit is killed by the harness, not by anyone's hand. The three-strain *Gemmata massiliana* run is the documented case: it ran long, hit the timeout, was killed mid-flight, and the environment went sticky. This is the canonical trigger, and it is *observed*.
+Prefer a bounded test selection and an appropriate tool timeout. Pytest's `-x` or `--maxfail` stops after failures; it does not impose a wall-clock limit. A `--timeout` option requires an installed/configured timeout plugin and its own documented termination behavior. Neither approach guarantees that unrelated subprocesses or external tools unwind cleanly. See the [pytest failure controls](https://www.pytest.org/en/latest/how-to/failures.html) and [pytest-timeout documentation](https://pypi.org/project/pytest-timeout/) for their specific behavior.
 
-2. **An explicit kill issued from inside the environment** — `pkill pytest`, `kill %1`, dropping a backgrounded run on a change of mind. The standing rule ("killing background pytest processes wedges the environment ~3 min") is literally about this case. Also real, also *observed*.
-
-3. **The user pressing the stop button in an assistant interface.** What that does to an in-flight bash subprocess is **not known from inside the sandbox.** The stop button halts the assistant's turn. Whether that signal travels down and kills a command that is already executing as a tool call cannot be confirmed from the sandbox side. *If* it does, expect the same wedge (same orphaned-children mechanism), but that is inference on top of inference. The user is better positioned to tell: watch whether the next command after pressing stop hangs for a few minutes.
-
-"Kill a heavy run mid-flight" in Q1 meant #1 and #2 — a process getting a hard kill while it is still holding children. #3 was lumped in by association, and this question is right to pull it back out.
-
-The useful part: the *upshot* doesn't change across the three. A long pytest run that dies by any hard kill — timeout, an explicit kill, or possibly the stop button — risks the wedge. Which is why the real defense lives upstream of all of them: foreground, sequential, one heavy thing at a time, poll instead of interrupt. If a run is short enough that nobody ever *wants* to stop it, none of the three ever fires. The button question becomes moot when nothing is tempting anyone to reach for it.
-
-The actionable version for this workflow: if you genuinely need to bound a heavy run, bound it *inside* pytest (its own `--timeout`, `-x`/`--maxfail`) rather than killing from outside. An internal stop unwinds cleanly; an external hard kill is what orphans the children.
+When cancellation is necessary, preserve the run identity and evidence, use the supported cancellation method, and verify cleanup before a retry. Interruption is a workflow state, not a test pass or evidence that a fixed recovery interval will follow.
 
 ---
 
@@ -250,13 +232,19 @@ The key design decision behind this behaviour: the pipeline was built to be used
 
 
 ## Bank 1 · Why split the pipeline into Mamey (deterministic) and Sapote (judgment), and what does each layer guarantee?
-This is the keystone the whole project balances on. **Mamey** is deterministic Python: it reads antiSMASH JSON/GBK, extracts BGCs, computes the corrected counts, runs the ten scans, and emits structured manifests — and it does no judgment, no prose, no claims. Same input, same output, byte-for-byte. **Sapote** is the LLM judgment layer: it reads Mamey's structured output and does the interpretation — which lead matters, the ecological synthesis, the claim-safe Mode B prose, the watchlist read.
+This is the keystone the whole project balances on. **Mamey** is deterministic Python: it reads antiSMASH JSON/GBK, extracts BGCs, computes the corrected counts, runs the ten scans, and emits structured manifests — and defers biological judgment. It does generate reports, summaries and receipt text; those
+are not finished Sapote interpretation. Analytical reproducibility is checked within the encoded
+fingerprint/data scope, not by assuming every package byte is identical: dates, timings, runtime
+receipts, rendered metadata and environment-dependent output can differ. **Sapote** is the LLM judgment layer: it reads Mamey's structured output and does the interpretation — which lead matters, the ecological synthesis, the claim-safe Mode B prose, the watchlist read.
 
 The reason to split them is that the two halves have opposite failure modes and must not contaminate each other. The numbers have to be *reproducible* — a methods paper lives or dies on someone re-running the extraction and getting the same manifest — and an LLM cannot guarantee that. The prose has to be *judged* — and deterministic code can't weigh evidence. So you keep the reproducible core away from the part that can hallucinate, and you check the second against the first.
 
-What each guarantees is therefore different in kind. **Mamey guarantees determinism and traceability**: every value points back to a named field or a stated rule, nothing is generated, so there's nothing to hallucinate. **Sapote guarantees nothing automatically** — it's fallible judgment — so its guarantee is *procedural*: it operates under the standing claim-safety rules, its outputs are tagged inferred/assumed (Bank 7), and the hallucination traps (Bank 10) check it against Mamey's ground truth. The observed/computed/inferred/assumed vocabulary is just this split drawn in tags: observed + computed is Mamey, inferred + assumed is Sapote. The whole design is the answer to "how do you put an LLM in a reproducible scientific pipeline without it poisoning the science?" — don't let it near the numbers; let it judge, downstream, under rules, and checked.
+What each guarantees is therefore different in kind. **Mamey aims for deterministic, traceable extraction** within its defined inputs and configuration.
+Code can still contain parser, join, scoring or presentation defects; source pointers and engineering
+gates make those inspectable, not impossible. Inspect the actual admitted evidence, scoped checks
+and unresolved issues rather than treating a deterministic implementation as automatic truth. **Sapote guarantees nothing automatically** — it's fallible judgment — so its guarantee is *procedural*: it operates under the standing claim-safety rules, its outputs are tagged inferred/assumed (Bank 7), and the hallucination traps (Bank 10) check it against Mamey's ground truth. The observed/computed/inferred/assumed vocabulary is just this split drawn in tags: observed + computed is Mamey, inferred + assumed is Sapote. The whole design is the answer to "how do you put an LLM in a reproducible scientific pipeline without it poisoning the science?" — don't let it near the numbers; let it judge, downstream, under rules, and checked.
 
-In practice the split can also run *across assistants*: one drives Mamey's deterministic extraction while another authors Sapote's judgment. That is itself a check — two independent systems, one doing the reproducible mechanics and one doing the judgment, and neither grading its own work.
+In practice the split can also run *across assistants*: one drives Mamey's deterministic extraction while another authors Sapote's judgment. Separate roles can support review, but two assistants are not independent scientific validation merely by being different systems. Bind their artifacts and checks, and delegate only within the authorized scope.
 
 ## Bank 6 · What is Mode B, and what are its named profiles?
 Mode B is the deepest single-BGC deliverable the pipeline produces — a structured card that walks one cluster from *what it is* to *what you're allowed to say about it*. It starts with identity and node/region, moves through the gene-by-gene and core biosynthetic evidence, the KCB anchor and what it does and doesn't license, the alternative hypotheses, the ecological context, and closes with the claim-safe verdict, the provenance ledger, and the experimental decision tree. Every line wears its observed/computed/inferred tag. The point of the fixed section list is uniformity: a flagship lead and a throwaway cluster get judged by the same rules, so nothing gets a pass for being exciting.
@@ -553,4 +541,4 @@ The limit to keep honest: not every producer co-localizes its resistance, and no
 
 ---
 
-*Sapote–Mamey Concepts Q&A · current to bundle v9.7.448 / engine Mamey 1.9.173 A running document — concepts are version-stable; inline version references (e.g. "shipped in v9.7.91", "v9.7.97 CODE tier") are historical record, not a currency claim. Companion to `../GLOSSARY.md` (definitions) and `03_Technical_Manual_Encyclopedia.html` (deep internals); Q&A is the conversational "why does it work this way" layer.*
+*Sapote–Mamey Concepts Q&A · current to bundle v9.7.449 / engine Mamey 1.9.174 A running document — concepts are version-stable; inline version references (e.g. "shipped in v9.7.91", "v9.7.97 CODE tier") are historical record, not a currency claim. Companion to `../GLOSSARY.md` (definitions) and `03_Technical_Manual_Encyclopedia.html` (deep internals); Q&A is the conversational "why does it work this way" layer.*

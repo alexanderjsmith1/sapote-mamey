@@ -35,14 +35,14 @@ The required inventory is a header-keyed CSV or TSV with `strain`, `bgc`, `full_
 
 Evidence may enter through either or both interfaces:
 
-- `--source-root LABEL=PATH` recursively discovers files under user-configured roots. Personal paths are runtime configuration and never enter the package.
+- `--source-root LABEL=PATH` recursively discovers files under user-configured roots. Roots are runtime configuration. The output observations retain resolved absolute source paths, inventory folder_path is propagated, and the manifest retains absolute output paths. Treat these as local provenance artifacts; the scanner does not sanitize them for distribution.
 - `--evidence-index PATH` reads a normalized TSV containing `channel`, `source_path`, identity fields, optional `freshness_state`, and notes.
 
-Tabular discovery is header-aware. When a CSV/TSV contains identity columns, rows are grouped by those values; the filename alone is not used as the join.
+Tabular discovery is header-aware when enabled, within --table-max-bytes (default 20,000,000 bytes) and the 250,000-row inspection cap. Missing row identity fields may be filled from the path. Oversized/disabled tables, empty groups or caught CSV/read errors fall back to a filename/path discovery candidate. Directory listing errors fail closed, but successful discovery does not establish complete table ingestion; use a curated index and separate source review when completeness matters.
 
 ## 4. Outputs
 
-The command writes only under `--out`:
+The command writes fixed filenames under `--out`. Existing destinations are accepted and each file is replaced separately; there is no whole-set rollback or destination ownership check. Manifest PASS and exit zero mean the inventory outputs were written, even when individual writing/promotion gates are HOLD. Source files are read in place:
 
 - `modeb_evidence_observations.tsv` — one typed observation per artifact or tabular identity group.
 - `modeb_bgc_availability.tsv` — one row per canonical BGC locus, with per-stream state and record counts.
@@ -55,10 +55,12 @@ The command writes only under `--out`:
 
 `PASS_FOR_GAP_AWARE_AUTHORING` requires:
 
-- an exact canonical locus in the inventory; and
+- an inventory row with normalized node and region fields; and
 - a gene-level source (`gene_inventory` or `antismash_region`) bound at exact-locus or alias level.
 
-This pass means only that the evidence can be assembled into a card with explicit gaps. It does not mean the biological interpretation is correct or complete.
+The draft-eligibility check applies to the supplied inventory. It does not independently compare assembly/sequence hashes, verify source-manifest authority or establish biological correctness/completeness. Those source bindings remain separate required checks.
+
+The normative promotion requirements below exceed the scanner’s implemented indicator. Its promotion_gate checks only blastp_per_gene binding at alias-or-better and an aggregate CURRENT flag. The aggregate selects the strongest binding but treats any observation marked CURRENT as current, even a weaker/unbound row; record counts sum all observations, not only admitted rows. It does not establish every admitted record’s freshness, sequence equality, all-channel readiness, complete roster or finished-profile acceptance. Apply the independent selected-profile checks before promotion.
 
 Promotion remains held while required evidence is `AVAILABLE_UNINGESTED`, `NEAR_READY_ACTIVE_RUN`, `PRACTICALLY_ATTAINABLE`, stale, or freshness-unverified. An absent or `OBSERVED_UNBOUND` row may remain as a reasoned terminal limitation only after readiness is adjudicated as `STRUCTURALLY_UNAVAILABLE` or `NOT_APPLICABLE`, the selected profile's matrix and roster checks pass, and independent content review accepts the claim ceiling. Such a row supplies no bound protein/function evidence. This preserves the ratified separation between document state and evidence state; it does not waive evidence requirements. A filename or modification time does not establish freshness; admitted search evidence must explicitly state `CURRENT` in a normalized evidence index after provenance review.
 
@@ -100,7 +102,7 @@ Strain phenotype, ecology, thesis, or literature context may support context sec
 
 ## 6. Section routing
 
-The shipped JSON contract maps each evidence stream to the Mode B sections it may support. A section is emitted in one of three planning states:
+The shipped evidence-stream JSON maps support to the planner’s fixed §1–§30 output. This is legacy planning numbering, not a full48/current50 table of contents or selected-profile verifier. Rebind support to the selected emitted template before writing. A section is emitted in one of three planning states:
 
 - `EVIDENCE_AVAILABLE_REQUIRES_INTERPRETATION`
 - `CONTEXT_ONLY_DO_NOT_LOCALIZE`

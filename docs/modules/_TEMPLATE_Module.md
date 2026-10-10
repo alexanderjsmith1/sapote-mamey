@@ -14,7 +14,7 @@ correctly with no other context. Two locks make that possible — **reference, d
 > **Filing.** `<path within docs/>`.
 > **Extends / references:** `<DELIVERABLE_CONTRACT.md / FIGURE_STYLE.md / DAPR_CLASS_FRAMEWORK.md / …>` — name
 > the docs whose rules this module inherits, and **do not restate those rules**, only point to them.
-> **Precedence.** `DELIVERABLE_CONTRACT.md` wins over a module; the active parent monolith wins over everything.
+> **Precedence.** `DELIVERABLE_CONTRACT.md` wins over a module; the current user request and authorization govern actions; inherited documents define the selected workflow, and actual source governs implementation.
 > **Status:** `<CODE_BACKED | PROMPT_BACKED | SCHEMA_BACKED>` (which layer produces the artifact).
 > **One-line purpose.** `<what a user gets, in one sentence>`.
 
@@ -58,7 +58,7 @@ state that registration — not hand-editing — is the single source of truth.>
 - [ ] Public/private boundary respected if any unpublished (AS) data could be involved — with an explicit leak
       audit for any public artifact.
 - [ ] Canonical numbers match the knowledge modules; no retired figures.
-- [ ] Contig-ID locator on every BGC reference (§4 Contig-ID Mandate).
+- [ ] Complete locus identity on each operational BGC reference: strain, full contig/node, region and alias.
 - [ ] No retired internal/personal codenames; affiliation = .
 - [ ] Final response reports the requested result, evidence and unresolved holds without a fixed option-count requirement.
 
@@ -70,7 +70,7 @@ state that registration — not hand-editing — is the single source of truth.>
 ---
 
 ## 7. Next-paths closer
-`<A worked example of the exactly-8-path closer for this deliverable, so even a first-time runner ends correctly.>`
+`<At most one useful next action by default. Use eight distinct paths only for a major final delivery or explicit planning request when useful; never pad a menu.>`
 
 ---
 

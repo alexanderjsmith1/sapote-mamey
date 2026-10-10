@@ -1,10 +1,8 @@
 # Figures pipeline — diagnostic findings (v9.7.150)
 
-> **SUPERSEDED (v9.7.409) — `--mode smoke` no longer runs.** `smoke` was removed at v9.7.161;
-> `mamey run` now accepts only `{standard,gold}` and rejects `smoke` with an argparse
-> `invalid choice` error. Gold is the only analysis mode. Current first-run one-liner:
-> `python -m mamey run --mode gold --capped-session --json-evidence off`. The figure-count
-> observations below describe the historical default-run behavior and are kept for provenance.
+ > **Historical diagnostic, superseded for current operations.** Smoke is not a `run` analysis mode. The old offsets, default figure counts and proposed wiring fixes below describe earlier cuts and are not current implementation instructions. Use actual render receipts for current output counts. Follow [current figure contracts](FIGURE_CATALOG.md), [optional-tool status/recovery](OPTIONAL_FIGURE_FACTORY_TOOLS.md) and [overview scanner limits](DISCOVER_DESIGN_AND_FIGURES.md).
+
+Current `render-all-figures` has independent per-set statuses and `PASS_WITH_SKIPS`; successful render execution does not imply every panel exists or that any figure is publication-approved (`mamey/render_all_figures.py:113–230,630–739`). It can write into package directories. Preserve sealed sources and use an authorized candidate/output route. The obsolete first-run one-liner omitted required inputs and should not be copied as a complete invocation. Current50 card approval is separate from figure generation.
 
 **Authored:** 2026-06-30 (Opus audit chat)
 **Trigger:** "the figures are basically nonexistent"

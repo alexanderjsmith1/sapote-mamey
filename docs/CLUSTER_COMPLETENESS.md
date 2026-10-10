@@ -1,42 +1,29 @@
-# cluster_completeness — assembly truncation vs biological absence
+# Cluster completeness: reference-dependent homology coverage
 
-For a BGC on a short or edge contig, the question behind every downstream claim is: are the
-genes it lacks missing because the assembly ran off the contig (artifact) or because the strain
-genuinely lacks them (biology)? This assesses a query cluster against one or more complete
-references and answers that — and unlike a raw ortholog matrix it is **truncation-aware**.
+`tools/cluster_completeness.py` compares translated CDS inventories with a selected reference panel. It reports a computational coverage score and a positional heuristic. It cannot determine whether an unmatched gene is biologically absent or lost through assembly, nor establish orthology, physical linkage, compound identity or activity.
 
-## What it does
+## Inputs and denominator
 
-1. **Consensus cluster genes.** A gene counts as a cluster gene only if it recurs in a strict
-   majority of the references (both, when there are two), so flanking / genome-context singletons
-   present in just one reference don't inflate the picture.
-2. **Completeness.** = cluster genes with a query ortholog / cluster genes (global-identity,
-   clinker-consistent). Reported with a tier (near-complete / substantial / partial / fragment).
-3. **Truncation-awareness by contiguity.** The cluster genes are ordered in the frame of the
-   reference that contains the most of them; if the query's present genes form a contiguous block
-   and the missing genes fall OUTSIDE that block (at the ends), that reads as truncation. Missing
-   genes BETWEEN present genes can't be explained by truncation and read as real loss / divergence.
+The CLI requires `--query LABEL:path.gbk` and one or more repeated `--reference LABEL:path.gbk`; `--outdir`, `--query-boundary` and `--min-id` configure reporting. The default identity threshold is 30%. This computation needs Biopython's Bio.Align/BLOSUM62 APIs even when a bundled shim can parse a GenBank input. It performs local global protein alignments, not an inert inventory read or an external BLAST job; bind the permitted input size/resources before execution. Only CDS features carrying a translation enter the inventories; empty or unsupported translated strings are not independently admitted as valid proteins.
 
-## Usage
+Use a finite threshold in [0,100] and record it. The parser accepts a float but the implementation does not enforce this range or finiteness; NaN, infinity or a negative threshold can yield misleading empty/universal coverage rather than a typed invalid-argument refusal. Zero also admits zero-similarity/zero-initialized match values, so it cannot support a homology-based presence claim. Require a meaningful reviewed positive threshold for interpretation. Preserve strain, full contig/node, antiSMASH region and BGC alias in the accompanying identity record; a short CLI label is not an identity validator. Bind every input path to its SHA-256 and selected reference version and scope.
 
-    python tools/cluster_completeness.py \
-        --query "AS-XXX_BGC008:query.gbk" --query-boundary full-contig \
-        --reference "x-80:x80.gbk" --reference "NPDC08785:npdc.gbk" \
-        --outdir OUT
+Reference homology groups use thresholded global protein alignments and single-linkage connections across references, with a strict-majority recurrence rule (both references when there are two; all genes are eligible with one). This is not one-to-one ortholog assignment: related copies can merge through a chain, and one query protein can satisfy multiple reference groups. The representative protein is the first group member, so reference ordering is material provenance. Repeated `--reference` entries are counted as separate reference indices even when their labels, file paths or bytes repeat; no duplicate/independence check protects the majority denominator. Curate and bind a unique intended panel, retain its order, and keep repeated transport copies or correlated references separate from independent recurrence claims. Query presence uses the rounded best identity; the per-fragment presence list uses unrounded identities, and near-threshold results can differ.
 
-`--query-boundary` takes the triage value (interior | edge | full-contig). Outputs
-`<query>_completeness.json` (score, tier, present/missing genes, interior-vs-end counts,
-interpretation) and `<query>_missing_genes.csv`.
+Completeness is present groups / eligible reference groups, with near-complete ≥85%, substantial ≥60%, partial ≥35%, and fragment below 35%. These are software tiers, not a biological completeness certificate. Zero eligible reference groups produces 0%, rather than an explicit unmeasured state; hold that result as an invalid denominator, not measured absence. Empty translations or an inappropriate panel likewise require review.
 
-## Fits the pipeline
+## Positional interpretation holds
 
-    scope_cluster -> (extract_cluster / fetch_reference_cluster) -> cluster_gene_compare
-                                                                 -> cluster_completeness
+The program orders groups in the reference containing most groups. Missing groups outside the span of matches contribute to an end-missing heuristic; missing groups inside contribute to an interior-missing heuristic. Not every group necessarily occurs in that frame. If no query match exists, positional counts remain zero while `missing_end_loaded` can still be true. Do not accept emitted prose about “all missing genes at the ends” or “genuine biological difference” without checking the actual matched span and denominator. `--query-boundary` is free text, not a validated assembly receipt; blank values follow the non-edge interpretation branch.
 
-## Validated
+Read any truncation or loss text as a review hypothesis. Reference divergence, translation omissions, threshold effects and assembly gaps remain possible explanations. For multi-record queries, the program reports combined coverage, fragment coverage and partner-supported groups; neither multi-record inclusion nor a discovered RG-GMCI members table proves physical linkage or owner acceptance.
 
-A cohort BGC (12 genes, full-contig) vs its complete public reference cluster: 75% complete (9/12 cluster
-genes); missing carbamoyltransferase + O-methyltransferase + one unannotated gene, ALL at the
-cluster ends -> read as truncation (assembly artifact), with the complete cluster carrying
-carbamoyl + methyl decoration capacity the truncated contig can't show. Capacity-level: homology,
-not product identity.
+## Outputs, status and recovery
+
+Outputs are `LABEL_completeness.json` and `LABEL_missing_genes.csv`. Despite its name, the CSV includes both present and missing groups. Multi-record translated inventories also produce `LABEL_genes_by_fragment.csv`; records without translated CDS do not reliably receive a fragment column. Outputs contain reference labels and query label, not input hashes or a validated full-locus identity binding. The reader automatically loads a same-stem `.members.tsv` beside the supplied GBK. When the report has more than one inferred fragment, any nonempty parsed member list sets the RG-GMCI flag, and its row order supplies displayed fragment labels. This path does not validate member schema, record count/order, complete identity, source hashes or accepted group linkage. Inspect and separately bind that optional table to the exact GenBank record roster; a stale or unrelated sibling can change the report's labels without changing any sequence comparison. If the membership binding is unresolved, hold those labels/group attribution for owner reconciliation rather than deleting the original evidence.
+
+Fragment count is inferred through the highest record index carrying translated CDS. At a positive threshold, empty records before that index appear as zero-covered fragments, while trailing records with no translated CDS are omitted. An empty translated-CDS query still defaults to one inferred fragment. Compare the full source record roster with reported fragments/columns; neither zero-covered nor omitted records establish measured biological absence.
+
+The tool creates/reuses the output directory, writes named outputs directly and returns zero after report creation. There is no fresh-output guard or transaction across files. Use a reviewed, contained label and a fresh candidate destination; this tool does not provide the containment guard used by `scope_cluster`. On failure or interruption, inspect every file rather than retrying over prior evidence. Preserve the original evidence in place and record output hashes separately. Zero exit is report production, not scientific acceptance.
+
+Source owners: `tools/cluster_completeness.py:64–175,183–218,256–301`. Older case-specific 9/12 examples are historical reports; no matching input/hash/acceptance receipt is established by this guide.

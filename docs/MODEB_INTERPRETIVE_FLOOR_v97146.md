@@ -1,4 +1,28 @@
 # Mode B Interpretive Floor — v9.7.146
+
+## Current entry and implementation scope
+
+Select the actual task profile in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md),
+then use [MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md](MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md)
+for the owner/legacy boundaries. Preserve every individual locus as strain / full node-or-contig /
+region / BGC alias from a bound source. A section count, phrase, typed label or zero-finding pattern
+check is not scientific adjudication, independent source verification, owner acceptance or publication approval.
+Existing evidence remains in place with path/SHA-256 bindings; use the selected candidate and retained
+receipts rather than copying a package or inventing completed work.
+
+This v9.7.146 rubric is historical interpretive guidance, not a current contract selector or automatically
+enforced scientific floor. Its original body and examples are retained as evidence of that rubric.
+Do not satisfy it by adding unsupported chemistry, ecology, causality, novelty or an invented contrary
+observation. A predicted architecture does not demonstrate molecular production; counts of broad enzyme
+families do not establish particular modifications or novelty. Unsupported host/function transfers remain
+conditional or held, and absent discriminating evidence may leave rival models unresolved.
+
+Current checks use selected profile structure, lexical/content heuristics and declared optional semantic
+schemas. They cannot determine that each mechanistic statement is true. Preserve exact source architecture,
+missingness, contradictory observations and claim ceilings; expand only where admitted evidence supports it.
+Verify the original example citation and supporting passage before reusing its claim.
+
+<!-- Historical source text follows. -->
 *Minimum interpretive requirements per section. These are floors, not ceilings.*  
 *Before drafting §19, verify each floor is met. Expand thin sections first.*
 

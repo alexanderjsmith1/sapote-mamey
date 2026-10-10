@@ -1,16 +1,16 @@
-> **Historical compatibility profile — not a default.** Read this only when explicitly comparing
-
-> **Reference status:** CURRENT_DOCS_INDEX.md does not explicitly mark this prompt current. Its original vetting/profile labels are historical context, not verification against the installed bundle. Select the current named contract and admitted evidence before reuse; follow AGENTS.md and docs/ASSISTANT_GOVERNANCE.md. The scoped corrections below do not certify every historical threshold or output requirement in this reference.
-
-> or reproducing the legacy workflow. Its former scope/format rules do not govern current work.
-> Use `AGENTS.md`, `docs/ASSISTANT_GOVERNANCE.md`, and the selected current machine profile.
-
-> **DEPRECATED DEFAULT ENTRYPOINT (v9.7.147):** Retain for backwards compatibility, but new ChatGPT/Sapote sessions load `docs/CHATGPT_EXECUTION_SLICE_v97147.md`. That execution slice absorbs this profile's useful full-run rules without the slim-kernel override pattern.
+> **Historical compatibility profile — not current execution guidance.** Retained for comparing
+> or reproducing an explicitly selected legacy work order. The old RESTORED/default/operative claims
+> in this record do not override current user scope, `AGENTS.md` or
+> [assistant governance](../docs/ASSISTANT_GOVERNANCE.md). The old execution slice is itself a dated
+> v9.7.147 reference, not the recommended entry point for a new session.
 >
-> **RESTORED v9.4 (2026-06-09):** This profile was marked legacy in v9.2 but contains the authoritative Mode B card template, §57 sub-grade reference, batch-size rules, and full-delivery trigger. Restored as active. See CHANGELOG for rationale. Sections A–H remain operative; the monolith §-1.2/§-1.4 governs run modes, this profile governs per-BGC Mode B card structure and full-delivery batching.
+> For current human/assistant work, begin with the [task router](../docs/USER_TASK_ROUTER.md).
+> Mode B authors use the [current walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md), selected
+> machine profile, emitted titles and authored-file verifier. This legacy body's thresholds,
+> section layout and output requirements have not been fully revalidated against .447.
 
 # Sapote Full-Run Profile — v1.9.7
-**Prepend to any Sapote-slim judgment session to activate full project-wide delivery.**  
+**Historical use:** formerly prepended to Sapote-slim sessions; current sessions must select their own authorized work order.  
 **Compatible with:** Mamey v1.9.3+ `manifest.json`  
 **Designed for:** New users and any session where complete per-strain delivery is expected without scope negotiation.
 
@@ -18,7 +18,7 @@
 
 ## HOW TO USE THIS DOCUMENT
 
-For new ChatGPT/Sapote sessions, load `docs/CHATGPT_EXECUTION_SLICE_v97147.md`. This file is retained for legacy sessions only. If this profile is loaded with the slim kernel, the execution slice still wins wherever rules conflict.
+Use this file only for explicit legacy comparison. New sessions start from AGENTS.md and the current task router; the v9.7.147 execution slice is a historical record.
 
 **Full run trigger:**
 ```
@@ -442,7 +442,9 @@ Before delivering any report, verify all items below. Failure to pass any gate =
 
 **Full-Run Profile v1.9.7** — extends Sapote-Slim Judgment Kernel v1.0 (Mamey v1.9.3+).  
 **Lab:** 
-**Analyst:** 
+For a new run, use the user-confirmed analyst and affiliation in deliverable metadata.
+
+**Analyst:** [user-confirmed analyst]
 **Affiliation for all deliverables:** 
 
 Sections added by this profile (not in slim kernel): Modules 17 (DAPR), 18 (Fermentation Plan), 19 (Layperson Guide), 20 (Bench Guide). Section B overrides Slim Module 13. Section D overrides Slim Module 14. Section H extends Slim Module 16.

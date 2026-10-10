@@ -1,5 +1,5 @@
 # Sapote–Mamey: The Kernel and Evidence Gates
-**Sapote–Mamey v9.7.448 · Engine 1.9.173 · build 20261005v97448b**
+**Sapote–Mamey v9.7.449 · Engine 1.9.174 · build 20261009v97449a**
 
 ## Extraction and interpretation
 
@@ -15,7 +15,10 @@ Start with [the Master Walkthrough](../MASTER_WALKTHROUGH.md). The [current docu
 - Card verification checks the selected authoring profile and its required content.
 - Figure and document checks assess generated deliverables and their supporting data.
 
-A pass at one level does not imply a pass at the next. Read the reported scope and unresolved findings. Do not substitute the existence of an output file for validation of its contents.
+A pass at one level does not imply a pass at the next. CLI exit zero also does not establish a
+requested optional output or a completed advisory review. Package validation normally writes a
+mutable status receipt; authoring commands can refresh post-seal checksums even when an output
+is external. Use a working package copy when original bytes must remain fixed. Read the reported scope and unresolved findings. Do not substitute the existence of an output file for validation of its contents.
 
 ## Work from a complete identity
 
@@ -29,4 +32,4 @@ Follow [Mode B authoring](../MODEB_GATE_CLEAN_AUTHORING.md) and the active packa
 
 If package validation fails, retain the package and inspect the named failure before proceeding. If result import binds no queries, check query identifiers and provenance instead of treating an empty overlay as a negative result. If an export fails, retain the authored source and inspect renderer diagnostics. Re-running a command or editing a receipt is not proof that its original failure is resolved.
 
-For figures and exports, use [Figure Factory](../figure_factory/README.md) and [the deliverable menu](../DELIVERABLE_MENU.md). For dated fixes and comparisons, use [the changelog](../../CHANGELOG.md); internal version-by-version narratives are not installation instructions.
+For figures and exports, begin at [Figures Start Here](../FIGURES_START_HERE.md) and [the deliverable menu](../DELIVERABLE_MENU.md). [Figure Factory development records](../figure_factory/README.md) describe specialized proposals and implementations. For dated fixes and comparisons, use [the changelog](../../CHANGELOG.md); internal version-by-version narratives are not installation instructions.

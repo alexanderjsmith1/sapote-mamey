@@ -1,8 +1,10 @@
 **[Sapote–Mamey](Home.md)**
 
-*bundle v9.7.448 · engine 1.9.173*
+*bundle v9.7.449 · engine 1.9.174*
 
 **Start here**
+- [Task router](../docs/USER_TASK_ROUTER.md)
+- [Strain slides builder](../docs/STRAIN_SLIDES.md)
 - [Audience Start Paths](Audience-Start-Paths.md)
 - [Quick Guide](Quick-Guide.md)
 - [Researcher Recipes](Researcher-Recipes.md)

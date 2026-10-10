@@ -1,5 +1,23 @@
 # MODE_B_FULL20_CONTRACT_RECONCILIATION.md
 
+## Current entry and implementation scope
+
+Select the actual task profile in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md),
+then use [MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md](MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md)
+for the owner/legacy boundaries. Preserve every individual locus as strain / full node-or-contig /
+region / BGC alias from a bound source. A section count, phrase, typed label or zero-finding pattern
+check is not scientific adjudication, independent source verification, owner acceptance or publication approval.
+Existing evidence remains in place with path/SHA-256 bindings; use the selected candidate and retained
+receipts rather than copying a package or inventing completed work.
+
+The historical decision and required wording below remain preserved; their “current” and “must produce
+sections 1–20” language applies to that retired decision, not to a new request. The old standalone live
+JSON path no longer selects the runtime contract. `mamey/validators/modeb_full20.py` derives a first-twenty
+compatibility view; `mamey/authored_verify.py` selects full48 or current50-v2 verification. Resolve a present
+“full Mode B” request against the actual selected profile and task scope, not this archived wording.
+
+<!-- Historical source text follows. -->
+
 > **Historical (superseded).** This document describes the retired §1–§20 count. It is not a current completion definition or acceptance specification. For the current profiles see `MODEB_PROFILE_MATRIX.md`.
 
 ## Purpose

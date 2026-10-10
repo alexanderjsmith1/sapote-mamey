@@ -1,7 +1,14 @@
 # BLASTp → BGC-novelty workflow (four unmixed channels)
 
-*Post-seal analysis doctrine. Non-scoring, advisory: nothing here changes the Tier-1 engine, a package,
-or a gate decision. It formalizes how the four BLASTp channels are run, kept separate, and combined into a
+## Scope and grading contract
+
+This page proposes an advisory interpretation rubric. Reading it changes no files; actual ingestion can write a workbook and package overlays. See [ONLINE_BLASTP_PROTOCOL.md](ONLINE_BLASTP_PROTOCOL.md). Suggested classifications below are not guaranteed output files from one command.
+
+The proposed family-anchor thresholds below are not the parser's tier contract. `mamey/kcb_frontpage.py:31–47` labels `STRONG` at similarity ≥40 and matching genes ≥8, `MODERATE` at ≥25/≥5, with separate WEAK/COINCIDENTAL/LARGE_GENERIC/LOW states. Carry the grading source, channel, reference identity and denominator with every label. Ordinary ClusterBlast is a general cluster-similarity channel; it does not certify a characterized reference. Reviewed SwissProt and unreviewed UniProt records likewise need distinct provenance.
+
+Low nr identity is a divergence observation within the searched database and query/result scope. It cannot establish taxonomic or chemical novelty. Remote concurrency numbers below are historical project guidance, not a current service guarantee or a globally enforced RID cap. The per-service rolling daily-submit ledger (`mamey/blast_ledger.py`) is a separate control. Remote runs require the current project authorization.
+
+*Post-seal analysis doctrine. Non-scoring interpretation doctrine; ingestion writes are governed by the selected command. It formalizes how the four BLASTp channels are run, kept separate, and combined into a
 **novelty prior** that feeds the phylogeny overlay (`PHYLOGENETICS_WORKFLOW.md`) and Mode B evidence
 (`MODEB_EVIDENCE_ESCALATION_WORKFLOW.md`).*
 
@@ -14,6 +21,31 @@ Everything below produces **class-level capacity hypotheses**, never product/str
   products; closeness in nr means a close *sequence* exists, not that the product is known.
 - **nr distance = a novelty prior, not activity** — divergence flags "worth looking at," nothing more.
 - Judgment is deferred to the Sapote tiers. This layer ranks where to look; it does not conclude.
+
+## Report-wrapper completion boundary
+
+`tools/mamey_pipeline.py` collects package hashes, validation output, explanation
+output and optional figure-stage text into a report. Its current exit 0 means
+that the wrapper reached report creation. It can still record validation or
+explanation failures, and it does not use the figure stage's exit code to decide
+its own exit. Inspect each stage's diagnostic output and required artifacts;
+report existence and wrapper exit alone do not establish package admission or
+completed downstream work. Comparator and BLASTp steps in the diagram require
+separate authorized commands and their own receipts.
+
+The package manifest records files found before validation and explanation. The
+wrapper does not check that package bytes remain unchanged through those stages,
+or bind engine files and figure inputs in that manifest. Keep the selected source
+snapshot and producer identity separate from the current run; verify stability
+and retain the stage receipts and output hashes before admitting its results.
+
+Choose a fresh report destination. Report, manifest and diagnostic filenames are
+replaced directly on rerun. When `--figures` is supplied, the wrapper invokes
+`tools/lab_office_render.py` without its `--out` option: render outputs go to
+`<figure-directory>/_rendered`, independently of the wrapper's report directory.
+Select an authorized writable figure directory outside immutable evidence and
+verify the actual renderer outputs and failures. A previous figure file left by
+a failed attempt is not evidence of current completion.
 
 ## Where this sits in the program
 ```
@@ -32,8 +64,8 @@ Every channel keeps its **own store, own output folder, own `subject_db` tag**, 
 
 | Channel | DB / locus | Runs | The question it answers |
 |---|---|---|---|
-| **nr** | NCBI `nr` (remote) | paced RID crawl | **Taxonomic novelty prior** — how far is each gene from the nearest sequence *deposited anywhere*? Low %id to distant/uncultured taxa = novel. |
-| **MIBiG / ClusterBlast** | antiSMASH KnownClusterBlast (local, in the package) | at parse time | **Anchor capacity** — does the locus resemble a *characterized reference FAMILY* by real multi-gene support? Graded, not binary. |
+| **nr** | NCBI `nr` (remote) | paced RID crawl | **Taxonomic novelty prior** — how far is each gene from the nearest sequence *deposited anywhere*? Low identity suggests divergence within the observed search scope. |
+| **MIBiG / KnownClusterBlast** | antiSMASH KnownClusterBlast (local, in the package) | at parse time | **Anchor capacity** — does the locus resemble a *characterized reference FAMILY* by real multi-gene support? Graded, not binary. |
 | **SwissProt / UniProt** | local curated BLAST DB | local, no rate limit | **Curated per-gene sanity / function hypothesis** — a reviewed, named homolog per gene. Sparse for actinomycete BGC genes; a corroborating channel, not a primary one. |
 | **ClusteredNR** | NCBI `nr_cluster_seq` (remote) | paced RID crawl (own ledger) | **Deep representative channel** — clustered nr surfaces a representative per cluster; complements nr where nr is saturated or a gene is promiscuous. |
 

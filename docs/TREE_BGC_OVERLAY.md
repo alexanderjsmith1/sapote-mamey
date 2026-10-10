@@ -35,10 +35,55 @@ SHA-256. Crosswalk labels and strains are each one-to-one; duplicates refuse. Cr
 the complete final roster, while tree tips must equal the `INCLUDED` roster exactly. There is no
 prefix inference and no silent tip dropping. `OMITTED` rows travel in a typed omission receipt.
 
-The annotation adapter may provide only strain-aggregate channels: `ANI`, `BGC`, `DOMAIN`, `MODE_B`,
-and `ASSEMBLY`. It owns all domain semantics and exact-locus validation; the renderer does not
+The accepted strain-aggregate annotation channels are `ANI`, `BGC`, `DOMAIN`, `MODE_B`,
+`ASSEMBLY` and `BIOASSAY`. For assay values, use the
+[admitted Figure Factory selection](BIOASSAY_FIGURE_FACTORY.md#tree-and-mode-b-boundary),
+retain target/material/time/dose/aggregation receipts, and supply an exact tree-tip
+crosswalk. Drawing the supplied BIOASSAY value does not admit raw assay data, pool
+experiments or attribute activity to a locus. It owns all domain semantics and exact-locus validation; the renderer does not
 reconstruct inventories or judgments. A locus-specific future adapter must carry the complete
 `strain / full node-or-contig / region / BGC alias` identity and fail if any part is unavailable.
+
+## Build the explicit configuration
+
+Invoke the renderer from the selected bundle environment after the input tree and
+annotations are prepared:
+
+```bash
+python tools/tree_bgc_overlay.py --config /path/to/tree_figure.json
+```
+
+The JSON uses `schema_version`, not `schema`. Required top-level fields are:
+
+| Field | Required value or shape |
+|---|---|
+| `schema_version` | `sapote.tree-figure-factory.v1` |
+| `tree_channel` | One of the three exact channel names above; retain the shipped `GTOTTREE` spelling |
+| `annotation_scope` | `STRAIN_AGGREGATE_ONLY` |
+| `external_data_root` | Explicit existing data root for all bound input locators |
+| `output_dir` | New output directory; relative paths resolve from the config file, not the input root |
+| `inputs` | Nine objects, exactly one for each role above; each contains `role`, `logical_locator`, `sha256` |
+| `methods` | Nonempty `tool`, `model`, `seed`, `outgroup`, `support`, `source_release`, `software_versions` |
+
+Each `logical_locator` is a relative file path contained in `external_data_root`.
+Each `sha256` binds actual bytes, not an example digest. The workflow/model/seed
+receipts must agree with the corresponding `methods` values. The renderer checks
+those supplied fields; it does not reconstruct or independently verify the inference.
+
+Crosswalk roles are exactly `STUDY`, `REFERENCE`, `OUTGROUP` or `EXTERNAL_BENCHMARK`.
+This differs from the lowercase `query/reference/outgroup` roles used by other
+tree consumers; perform an explicit schema adaptation instead of copying a table
+unchanged. A crosswalk row needs all five columns and a distinct strain value.
+
+Annotation keys are unique `(strain, channel, feature)` tuples. `OBSERVED` requires
+a finite numeric value. `MISSING`, `NOT_MEASURED` and `NOT_APPLICABLE` require a blank
+value. An annotation strain outside the included tree roster refuses. These rules
+check transport and typed missingness; the upstream adapter owns biological semantics.
+
+The figures extra is needed for matplotlib rendering. A fresh output is required;
+existing output directories are refused. Keep the configuration, source receipts
+and emitted `tree_bgc_overlay_receipt.json` with the artwork, then inspect the actual
+figure at its intended reading width before claiming visual review.
 
 ## Output contract
 

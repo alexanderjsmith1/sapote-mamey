@@ -1,5 +1,5 @@
 <!-- Mirror of docs/PREREQUISITES.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
-# PREREQUISITES — Sapote–Mamey v9.7.448
+# PREREQUISITES — Sapote–Mamey v9.7.449
 
 Start with [INSTALL](../docs/INSTALL.md) or the [complete walkthrough](../docs/MASTER_WALKTHROUGH.md). The package metadata in [pyproject.toml](../pyproject.toml) defines the supported Python version, core requirements and extras. Use the [README tool table](../README.md#tool-downloads-and-licenses) for upstream downloads and licenses.
 
@@ -15,9 +15,11 @@ Core installation is `python -m pip install -e .`. It declares openpyxl, ijson, 
 |---|---|
 | `figures` | Matplotlib, NumPy, pandas, NetworkX and SciPy for plotting and network/cluster views |
 | `documents` | Word/PDF and image-processing support used by document workflows |
+| `slides` | python-pptx, Matplotlib, NumPy and Pillow for the [Strain slides builder](../docs/STRAIN_SLIDES.md) and protein PCoA panels; PDF conversion remains a separate step |
 | `bio` | Biopython-backed parsing and workflows that require Bio APIs |
 | `render` | CairoSVG support for conversion; a compatible native Cairo library is also needed |
-| `all` | The combined convenience extra; external binaries and datasets remain separate |
+| `addons` | Optional comparative/scanner Python bindings, including pyswrd, pyfastani, pyskani, pyhmmer and pyrodigal. These are distinct from external BLAST+, HMMER, Prodigal or DIAMOND executables and do not provision databases; follow the consuming workflow. |
+| `all` | Convenience figure/document/slide/bio/render stack. It does not include the separate `addons` stack, RDKit, external binaries or datasets. |
 
 For example: `python -m pip install -e '.[figures,documents,bio]'`. Some parsing paths have a built-in GBK shim, but this does not imply every biological workflow works without Biopython.
 
@@ -46,8 +48,18 @@ whether `Rscript` is found; a missing package surfaces as an R error at render t
 
 Prepare a complete compatible wheelhouse for the target operating system, CPU architecture and Python ABI, including build requirements and chosen extras. Then use `python -m pip install --no-index --find-links /path/to/wheels -e .` from the bundle root. Inspect any supplied wheel inventory rather than assuming it matches this machine. Do not rename compatibility tags, override system-Python protections, or copy a virtual environment between architectures.
 
+For the governed six-package document profile, see the [documents wheelhouse preflight](../docs/INSTALL.md#optional-documents-wheelhouse-preflight). Its separate per-requirement pip dry runs and optional mapped import checks are narrower than a complete fresh-environment installation. Keep build/extras/native-renderer requirements and actual selected workflow output checks separate; a receipt `PASS` is not a complete compatible-wheel inventory, an executed install or a rendered deliverable.
+
 ## Verify the capabilities you will use
 
 Run `python -m pip check`, `python mamey_run.py start`, and `python mamey_run.py doctor`. Record missing optional items and check the chosen external tools with their own version and diagnostic commands. Verify an actual small output for the selected workflow before scaling it up.
 
+`doctor --companions` covers the named companion registry, not every tool in the README. Barrnap, SeqKit, ITSx, BUSCO, compleasm and RDKit are not entries in that registry; check the selected owning guide and actual installation separately. RDKit is not declared by `.[all]` or another bundle extra; [NP Atlas provisioning](../docs/NPATLAS_PROVISIONING.md) separates its optional structure-rendering requirement from dataset provisioning.
+
 Maintainers install pytest separately and use the complete configured test profile: `python -m pytest -q -p no:cacheprovider --run-slow --run-network`. See [the cut protocol](../CUT_PROTOCOL.md). Test counts change with the bundle, so use its validation receipt rather than a count copied into this guide. Skips and interrupted runs are not passes.
+
+## Optional Barrnap
+
+[Barrnap](../docs/BARRNAP.md) is an external rRNA annotation option in the marker/fungal guidance, not a core Mamey dependency or a universal phylogeny requirement. Check the installed version, dependencies and database/model before using a historical command. The marker planner prints a recipe; it does not run Barrnap.
+
+Before `doctor`, review its [write-probe scope](../docs/INSTALL.md#doctor-scope-and-write-probe). Keep `runs/_doctor_probe` absent in the chosen editable installation; an existing probe file can be overwritten and removed. Its bundle-local write check does not validate every future output destination.

@@ -3,15 +3,27 @@
 `tools/strain_slides.py` builds a slide deck for one strain from its sealed Mamey package and whatever other evidence you
 hold for it. Every antiSMASH region retains an inventory row, and a second file lists every gene of every region. Dedicated region slides apply the documented omission rule below.
 
+## Request this builder by name
+
+Ask for the **Sapote-Mamey Strain slides builder** (`tools/strain_slides.py`):
+
+> Use the Strain slides builder for [strain]. Use the validated package at [path] and the sources JSON at [path]. Write the main strain deck, complete region-gene-table companion, assets and build receipt under [output folder] with a fresh tag. Report missing channels, omitted region slides and the limits of fit checks. Preserve full locus identities.
+
+The gene-table companion is a separate PowerPoint produced by the same build, not a second builder. The tag is a filename label: `--tag v2n` alone does not enable new code or assets.
+
+### Version boundary: .447 and the v2n example
+
+This guide describes the shipped .447 tool. The October 4 v2n example used .447 plus candidate .448 changes for a MIBiG reference-structure gallery and a caption explaining the yellow reference-match band. Those changes are not in the .447 baseline. To reproduce that style, bind the reviewed patched builder and compatible reference-structure assets explicitly. Request the gallery as reference chemistry; it does not establish production by the strain. The .448 patch card is an implementation/review record, not release approval.
+
 ## Quick start
 ```bash
 python tools/strain_slides.py template > XS-001_sources.json     # fill in the paths you have
 python tools/strain_slides.py build --sources XS-001_sources.json --out decks/ --tag v1
 ```
-Install the extra first if python-pptx is missing: `pip install 'sapote-mamey[slides]'`.
+From this selected bundle root, in the compatible activated environment, install the optional dependencies with `python -m pip install '.[slides]'`. Run the tool by its bundle path; no `strain-slides` console command is registered. See [installation](INSTALL.md) for core setup. These are source-checked examples, not a claim that your input was built or reviewed.
 
 ## The sources file
-The tool never searches for files: the sources file names every input. Relative paths are read from the sources file's folder.
+The sources file names the input channels. Supply absolute paths, including paths inside nested figure/tree entries and BLASTp glob patterns. The .447 resolver handles existing top-level string paths relative to the sources file's folder; it does not recursively resolve nested lists/dictionaries. BLASTp patterns expand through the supplied glob list. Do not depend on the shell's working directory for nested paths.
 
 | Key | What it is | Needed |
 |---|---|---|
@@ -28,7 +40,13 @@ The tool never searches for files: the sources file names every input. Relative 
 | `metadata`, `nearest`, `trees` | isolation as recorded, nearest public genomes, approved tree panels | no |
 | `family_figures`, `extra_figures`, `pointers` | figures for one region, figures for the strain, and where other files live | no |
 
-A missing channel is said so on the slide; it is never filled in.
+The package folder must contain `<strain>_2_inventory.csv` and `<strain>_gene_by_gene_all_bgcs.csv`; the tool reads them directly. Confirm that `strain` matches those filenames and source identities. Package validation is a prerequisite to your workflow: this builder does not itself run the package validator.
+
+Keep absent channels explicit. Blank gene-table cells mean no record in that source, not a tested negative. A missing or malformed required file is an input failure, not biological absence.
+
+Reconcile the inventory with the source gene roster before claiming complete coverage. Duplicate inventory `BGC_ID` rows collapse to the last row. The companion iterates inventory IDs only: an inventory region with no matching gene rows produces no gene-table page, while gene rows whose `bgc_id` is absent from the inventory are not rendered. “Complete” therefore means the admitted inventory and matching supplied gene rows were independently reconciled; the builder does not perform that completeness check. Keep full `strain / full node-or-contig / region / BGC alias` and per-region expected/observed gene counts in that reconciliation.
+
+Some optional omissions do not fail the build. Missing tree/family/extra image files are skipped, unmatched BLASTp globs yield no hits, and unreadable stored BLASTp CSVs can be skipped. The stored-hit merge keeps the first rank-1 row for a gene in supplied-glob order and reverse filename order, except that a later organism-bearing row can replace one without an organism; it does not compare percent identities or establish the latest search. Supply a reviewed nonoverlapping result roster and compare requested versus included channels rather than interpreting blanks as absence.
 
 ## What the deck shows
 1. **Overview, trees, landscape.** Only the tree panels listed are shown; the tool never builds a tree.
@@ -70,15 +88,52 @@ A missing channel is said so on the slide; it is never filled in.
      tag and filled by identity to their best reference/MIBiG match; the strain's other proteins are pale red.
    - **The evidence lines** name each channel separately. The gap-rescue partners are drawn on the map. An RG-GMCI link is not drawn; its line gives the two-proof verdict and how many references complement each other. A HIGH link that the two-proof check rates WEAK is called "two similar loci, not one split cluster", and it does not raise the region's rank.
 4. **GECCO-only candidates.** These are GECCO clusters that overlap no antiSMASH region, matched on `NODE_n_length_L` because GECCO rewrites contig names. A gene with a core enzyme domain is red.
-5. **Gene tables** (a separate file). Every gene of every region, with its role, Pfam/TIGRFAM/rule domains, smCOG, GECCO probability, MIBiG gene match and stored BLASTp hit.
+5. **Region-gene tables** (a separate file). Every supplied gene row for each inventory region, in pages of up to 20 genes. Columns include amino-acid length, inferred role, domains, description/smCOG, GECCO probability, gap-rescue MIBiG match and stored BLASTp best hit. The .447 display keeps at most three unique domain names, ordered from the supplied domain table by E-value, and truncates some descriptions. It is a reading companion, not a lossless export of all annotations. GECCO-only clusters outside the antiSMASH inventory do not gain rows in this companion; keep their underlying GECCO tables separately.
 
 Until a rescue verdict table is given, every region slide says "review draft: links not yet adjudicated" above its text. With a table, a region slide says "review draft: n of m links not settled" while any shown split partner lacks a HOLDS, TWO_SIMILAR_LOCI or REJECT ruling. Settled rulings are listed first. An UNRESOLVED ruling's rule is shown as the next check.
 
 **Text fit.** A region slide's text is measured in Calibri widths (Carlito, its metric twin) and set at 9 pt, shrinking
 to 7.5 pt; what still does not fit moves to a "continued" slide right after it. Slide numbers in the region table are
 counted after the build, so they include these slides. To check a built deck:
-`python tools/strain_slides.py audit-fit <deck.pptx> ...` reports any text past its box, past the slide, or into another
-box, and exits 1 when it finds one.
+```bash
+python tools/strain_slides.py audit-fit \
+  "/absolute/decks/XS-001_strain_slides_v1_<date>.pptx" \
+  "/absolute/decks/XS-001_gene_tables_v1_<date>.pptx"
+```
+
+Replace `<date>` and both paths with the actual files. The command accepts one or more deck paths; a literal `...` is treated as another filename, not omitted arguments. It reports estimated text-box overflow/overlap and exits 1 if any examined deck has such problems. It only examines shapes with nonempty text frames; table-cell text is not included, so a zero-problem result does not establish gene-table readability.
+
+## Supplied locus-comparison panels: verify input coverage separately
+
+A separately supplied locus-comparison panel can render correctly while omitting genes or saved similarities. A graphics receipt verifies the admitted manifest, not its completeness against antiSMASH or another source. The .448 locus renderer is a separate integration candidate; it is not part of the shipped .447 builder described above.
+
+Before accepting a comparison panel, reconcile:
+
+- The full selected region/contig gene roster against the adapter manifest and actual drawn arrows. Record every crop and omitted gene with its reason.
+- Saved matched query-gene IDs against admitted ribbon endpoints. Partner classification such as `SUPPORTED` is distinct from similarity-display coverage; a classification filter can hide real recorded matches.
+- The exact comparison stream and reference record/version. KnownClusterBlast and gap-rescue DIAMOND identities or subject mappings are separate results; do not merge or relabel them silently.
+- Source-observed assembly markers against the adapter fields. The renderer can show contig ends and missing-stop asterisks only when `sequence_length` and `missing_stop_codon` are supplied; lack of a marker is not a completeness observation.
+
+Keep expected, selected and drawn counts and identities in the external build record. Compare matched genes, not only total ribbon counts. A correctly drawn cropped/filtered panel needs an explicit scope label; neither more similarities nor successful rendering promotes a product or physical-linkage claim. Cropping around admitted hits must not silently exclude a long CDS that crosses the crop boundary.
+
+## Outputs and completion checks
+
+For `strain=XS-001`, tag `v1`, and the build's local date, expect:
+
+- `XS-001_strain_slides_v1_<date>.pptx`: main deck.
+- `XS-001_gene_tables_v1_<date>.pptx`: region-gene companion.
+- `XS-001_strain_slides_v1_<date>_RECEIPT.json`: top-level string source values, deck/region counts, region order and dedicated-slide omission reasons. It does not include the sources JSON hash, nested metadata/figure lists, BLASTp glob lists, input/output hashes or a full missing-channel roster.
+- `XS-001_v1_assets/`: supporting maps and rendered assets.
+
+The builder does not export PDFs. PDF conversion is a separate step. A receipt records the build; it is not scientific or visual acceptance. Inspect both decks as rendered pages before claiming visual QA. `audit-fit` estimates text-box fit and does not establish table-cell readability, complete source evidence or rendered-page quality.
+
+The .447 overwrite check protects the main deck filename. Use a new output folder and tag when either companion or receipt already exists; do not assume every output has an independent overwrite guard.
+
+If a build fails, preserve its log and partial outputs. The main deck is saved before the gene companion and receipt, so a main PPTX alone does not establish completion. Multiple files supplied to one `--sources` call build sequentially; a later failure leaves earlier builds in place and prevents remaining builds. Reconcile each requested strain with its own two PPTX files, assets and receipt.
+
+Check required package tables, source paths and optional dependencies, then retry with a fresh tag/output folder. Existing map PNG plus `map_layout.json` in the assets tree are reused without checking the current source hashes; changing source files while reusing assets can retain a stale map. Missing map inputs, a map source mismatch or caught redraw errors can leave a successful deck with no map; retain stderr and report the missing panel. For wrong strain/contig joins, hold the affected attribution and correct the source binding before rebuilding.
+
+Keep an external hash-bound build record containing the sources JSON, all selected nested/glob inputs, package validation receipt, builder identity and every output. The receipt's `adjudicated` Boolean only tests whether the sources field is nonempty; a nonexistent verdict path can still set it true. Reconcile the loaded ruling roster and the actual shown link dispositions before treating a deck as adjudicated.
 
 ## Protein PCoA panels
 `tools/strain_slides_pcoa.py --kit <kit> --strain <ID> --out <folder> --groups "a:label A,b:label B"` draws two six-panel
@@ -90,5 +145,5 @@ figures from a kit made by `tools/protein_pcoa_ordinate.py`.
 
 ## Rules
 - Each region is shown as `strain / full contig / region / BGC alias`, copied from the package inventory.
-- A deck that exists is never overwritten. A new `--tag` writes new files.
+- The existing main-deck filename is refused. The companion deck, receipt and assets do not each have an independent overwrite guard; use a fresh output directory and tag, including after a failed build.
 - Similarity is not identity, capacity is not production, and a family is shared architecture, not a compound.

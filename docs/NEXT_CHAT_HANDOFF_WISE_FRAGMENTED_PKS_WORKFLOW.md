@@ -1,5 +1,28 @@
 # Patch Chat Handoff — Wise Fragmented PKS Workflow
 
+## Current entry: patch history versus actual queue behavior
+
+This body records a historical patch request and example batch counts. It is not a present user instruction,
+external submission authorization or proof of current execution. Current queue route is
+`python mamey_run.py wise-fragmented-pks --input-fasta <existing-ranked-fasta> --outdir <candidate-queue>`;
+`mamey/cli.py:8055–8064` supplies target 85000, hard cap 100000 and two active files by default.
+These are shipped software defaults; check current service limits separately before an authorized submission.
+The command consumes an already ranked FASTA; it does not itself discover/rank all proteins or run BLASTP.
+Use `--target-residues 50000` for the conservative target, not an invented CLI `--extra-safe` flag.
+
+Actual `mamey/wise_fragmented_pks.py:83–109` sorts ranks and packs by residue target, but retains a single
+oversized sequence with a warning. The writer (`:136–150`) can emit that active batch as ready_to_run while
+under_100k is false. Consequently the historical universal “no file exceeds 100000” criterion is not
+implemented for these singleton exceptions. Inspect residue_count, under_100k and per-record warnings;
+ready_to_run alone is not safe-submission proof. An oversized single sequence remains an explicit hold
+requiring a separately chosen authorized route and its own execution receipt.
+
+Queue files, ledgers, summary and README use deterministic destinations and can replace earlier outputs.
+Use one bound candidate and source path/SHA-256 receipts; do not copy the package/evidence corpus.
+Pending/deferred queue states do not prove submission, completion or admitted biological evidence.
+
+<!-- Historical source text follows. -->
+
 ## The issue
 
 The workflow should not act untrained. It should understand the practical shape of the user's discovery process.

@@ -6,7 +6,7 @@ authority.
 
 **Status (v9.7.444): an optional add-on.** Lab Quest is not part of the analysis methods, so it moved out of the
 core `mamey` package into `sapote_addons/lab_quest/`: the package `sapote_addons/lab_quest/sapote_lab_quest/`
-holds the library, the workflow registry and the Streamlit app. Its behaviour is unchanged. Install it from the bundle root with
+holds the library, the workflow registry and the Streamlit app. Install it from the bundle root with
 `pip install ./sapote_addons/lab_quest` (needs streamlit), or offline with
 `SAPOTE_INSTALL_LAB_QUEST=1 bash bundle_support/install_sapote_addons.sh` when a streamlit wheel is in the add-on pool.
 The core CLI registers `python mamey_run.py lab-quest ...` only when the add-on is installed; otherwise the command is
@@ -20,25 +20,32 @@ Install the optional interface dependencies from the extracted bundle, then bind
 tier and expected versions deliberately:
 
 ```bash
-python -m pip install streamlit   # Lab Quest's only extra dependency; run inside the bundle's venv
+python -m pip install ./sapote_addons/lab_quest   # install the add-on in the engine venv
 python mamey_run.py lab-quest \
   --project-root /path/to/project \
   --code-tier /path/to/extracted/sapote-mamey \
-  --expect-bundle-version <this bundle's BUNDLE_VERSION> \
-  --expect-engine-version <this bundle's mamey.__version__> \
+  --expect-bundle-version "<expected bundle version>" \
+  --expect-engine-version "<expected engine version>" \
   --headless
 ```
 
 The launcher refuses to start unless both `--project-root` and `--code-tier` are explicitly
 supplied. It then requires the configured code tier to contain `mamey_run.py`, `pyproject.toml`,
-and `mamey/__init__.py`, with bundle and engine versions that agree with each other and with the
+and `mamey/__init__.py`, with bundle and engine versions that each agree with their corresponding metadata and the
 expected values. Neither the command-line launcher nor the app accepts an unset project-root
 binding or falls back to the launch directory. The launcher uses no glob, "newest version," or
 personal-workspace search. The local server binds to `127.0.0.1` and disables Streamlit telemetry.
 
-Use `--verify-only` with the same required bindings to validate the portable source and write an
-engine-binding receipt without installing Streamlit or launching the interface. This is a local
+Use `--verify-only` with the same required bindings after making the add-on importable to validate the portable source and write an
+engine-binding receipt without launching the interface. The verification branch does not import Streamlit, but normal pip installation of the add-on declares `streamlit>=1.30` and may install it. This is a local
 provenance check only, not a package, scientific, owner-review, release, or publication approval.
+
+Both verification and launch can create the configured project directory and overwrite
+`<project-root>/lab_quest_outputs/engine_binding.json`. The receipt is written before the launcher
+checks Streamlit availability, so a failed UI launch can still leave a binding receipt. Preserve an
+existing receipt or use a new project root when its earlier provenance must remain unchanged.
+The binding hash covers `mamey/__init__.py`, `mamey_run.py` and `pyproject.toml`; it is not a hash
+of all engine modules, installed dependencies or governed datasets.
 
 ## Six receipt-backed stations
 
@@ -70,8 +77,8 @@ Every individual locus is displayed in this required order:
 `strain / full node-or-contig / region / BGC alias`
 
 Missing or shortened identity fails closed (`mamey.exact_identity.ExactLocusIdentityError`).
-`mamey/strain_modeb.py`'s S3/S4/S7 surfaces use this same helper, so a strain-level Mode B card and
-the Lab Quest interface never disagree about how one BGC is identified. The interface makes no
+`mamey/strain_modeb.py` and the Lab Quest interface use the shared identity helpers.
+These provide a common display format; compare the bound run and source inputs as well. The interface makes no
 compound identity, metabolite-production, activity, causal-linkage, biological-absence,
 owner-acceptance, integration, release, or publication claim.
 
@@ -106,13 +113,15 @@ portfolio along automatically when one is present (`lab_quest_outputs/portfolio_
 verified hash-for-hash on both ends. Operator front doors: `tools/validate_portfolio_config.py`
 and `tools/project_catalog.py`.
 
-This layer deliberately does **not** reimplement privacy from scratch: it consumes
-`mamey/project_registry.py` as the single producer of a package's `privacy_tier` /
-`privacy_assignment_state` fields (see `mamey/models.py`), rather than adding a second or third
-privacy mechanism. `sapote_addons/lab_quest/sapote_lab_quest/lab_quest.py`'s `PackageSnapshot` and `sapote_addons/lab_quest/sapote_lab_quest/lab_quest_app.py`'s package
-station display and register a catalog entry for every validated package.
+The portfolio configuration consumes `mamey/project_registry.py` for declared project privacy, genome and assay metadata. This is distinct from the engine's extraction privacy assignment: in this .447 source, `--privacy-profile` drives binary package release and BGC `privacy_tier`/`privacy_assignment_state`; `--project-registry` records project fields and assay context but does not drive those release fields. Supplying both flags in one extraction is refused with `PRIVACY_AUTHORITY_CONFLICT`. Do not treat a recorded project tier as an enforced export classification.
 
-**Still out of this candidate's grant:** the profile-backed extraction-admission layer
-(`PortfolioPrivacyContext` and friends, from the CODEX_391_PROFILE_BACKED_EXTRACTION_ADMISSION
-lineage) — that lineage's own decision record lists every other CODEX_391 Lab Quest candidate as a
-prerequisite and defers to a separate owner decision; it is not part of this pass.
+Historical rebase comments saying `privacy_profile.py`/`evidence_registry.py` never landed are stale for this source, where those modules and intake flags exist. Use the actual CLI derivation and selected registry schema rather than that historical comment as authority. The interface's package snapshot and catalog read recorded package privacy fields; they do not reconcile these separate authorities.
+
+For standalone catalog commands, exact writes, manifest-hash scope and private archive recovery, use the [project catalog guide](PROJECT_CATALOG.md).
+
+**Historical integration prerequisite:** the earlier profile-backed extraction-admission
+decision for `PortfolioPrivacyContext` listed companion components as prerequisites
+and required separate review. That record does not establish that those dependencies
+are integrated in the selected bundle. Confirm the actual code and versioned
+prerequisite receipts before using that workflow. This interface guide does not
+resolve the recorded integration hold.

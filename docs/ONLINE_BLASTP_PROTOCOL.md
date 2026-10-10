@@ -28,11 +28,14 @@ python mamey_run.py blastp-round --help
 
 ## Ingesting existing results: choose the destination
 
+The package-overlay and workbook import commands write evidence. `tools/ingest_blastp_rollups.py` opens the selected existing reservoir read-only by default; `--execute` enables insertion. Before a package overlay or workbook update, preserve the original sealed package and master and select working copies explicitly. In .447 the CLI can refresh package integrity records after ingest, even when no new source was discovered. The `NO_SOURCES_DISCOVERED` guarantee below concerns ingest artifacts, not the enclosing CLI refresh wrapper. See [post-seal boundaries](POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447).
+
+
 | Command | Accepted input | Destination |
 |---|---|---|
 | `tools/ingest_blastp_rollups.py` | Dated per-strain rollup CSVs and supported single-protein ClusteredNR top-10 CSVs | An existing BLASTp SQLite evidence reservoir |
 | `mamey_run.py ingest-blastp-trove` | Per-BGC directories containing the channel's supported per-gene CSV filenames | One selected package's channel-tagged BLASTp overlay |
-| `mamey_run.py ingest-blastp` | NCBI HitTable CSV, with optional alignment XML | Master-workbook `B5_BLASTp_Hits` sheet |
+| `mamey_run.py ingest-blastp` | NCBI HitTable CSV, with optional alignment XML | Supplied master-workbook `B5_BLASTp_Hits` sheet; with `--package`, also a package overlay and binding records |
 
 For completed crawl rollups, inspect a dry run against explicit source and database paths:
 
@@ -51,6 +54,12 @@ does not create a missing database. Use completed, stable CSVs. Later completed 
 another dry run; do not assume that a file still being written is a complete evidence source.
 Reservoir insertion alone does not establish exact-sequence or complete-locus admission for a claim.
 
+Discovery is limited to `strain_data/*/blastp_nr_*/*_nr_top10_*.csv`, `strain_data/*/blastp_clustered_nr_*/*_clustered_nr_top10_*.csv`, and `Blastp RESULTS/_STRAINGAP_SINGLE_CLNR_*/results/**/*_blastp_top10_clustered.csv` below `--root`. Other saved result layouts require their own supported importer. `SAPOTE_EXCLUDE_STRAINS`, when set, removes exact matching strain labels from consideration. The logical root does not validate that symlinked files remain inside it; confirm resolved inputs and retain their original hashes. Filename conventions determine allowed channels, and the single-protein ClusteredNR suffix supplies a channel/database default; these defaults do not authenticate the producer or query.
+
+CSV read errors can be logged and skipped, and rows with blank strain or gene can be skipped. Header-only files, no discovered files, excluded rows and duplicate keys can all produce zero new rows with a zero exit. Preserve the console diagnostics and reconcile an independent intended-file/row inventory; zero new rows is neither complete-source admission nor a verified no-hit result. The importer does not issue a complete input/output hash receipt.
+
+Numeric conversion is permissive: invalid text becomes null, while non-finite and out-of-range floating values are not rejected here. The exact store schema and atomic insert protect the destination structure/transaction, not row semantics. Validate present numeric fields and distinguish producer blanks from invalid values before authorizing `--execute`. The duplicate key omits BGC alias, query sequence hash, source workspace/file and numerical measurements; reimporting a changed row with the same key does not correct the stored row. Use a separately reviewed correction/rebinding route and preserve both source versions. Bind each interpreted hit to `strain / full node-or-contig / region / BGC alias` and its query evidence outside this reservoir import. Nothing in the import resolves those missing identity components automatically.
+
 The package-overlay command accepts `<trove>/<STRAIN>/<BGC...>/` or a single-strain root with
 `BGC...` directories. `--rekey-by-locus` resolves row aliases through the selected package's CDS
 table; it does not make arbitrary gap-panel directory names discoverable. If no supported source
@@ -60,11 +69,29 @@ quarantine, or receipt for that empty discovery. Correct the layout or command a
 deleting immutable receipts. A discovered source with zero admitted rows still retains its normal
 receipt and quarantine evidence. No discovered source is not a verified no-hit result.
 
-`ingest-blastp` accepts existing hit-table evidence; consult its help for the package and optional
-alignment XML arguments. `blastp-round` supports phased planning; submission requires both `--run`
+`ingest-blastp` accepts existing hit-table evidence. Use the selected working master, and the matching working package when exact binding and the package overlay are requested:
+
+```bash
+python mamey_run.py ingest-blastp --master '/path/to/working-master.xlsx' \
+  --strain '<strain>' --hit-table '/path/to/saved-hit-table.csv' \
+  --package '/path/to/working-package' --xml '/path/to/saved-alignment.xml'
+```
+
+XML is optional; omit its flag when unavailable and retain that evidence gap. `--source` defaults to `NCBI web-BLASTp`; set transport-accurate provenance for other channels. Without a supplied package, sealed-context binding is not validated and no package overlay is written. Inspect admitted/quarantined and bound/unbound query counts, rather than only appended rows. Duplicate rows may be skipped; a zero-row append is not a verified no-hit result. An empty-BGC warning can accompany a zero exit after a workbook update, so inspect the prior/current workbook and receipt before retrying. This command has no dry-run flag.
+
+For a preorganized channel-specific trove:
+
+```bash
+python mamey_run.py ingest-blastp-trove --trove '/path/to/saved-trove' \
+  --package '/path/to/working-package' --channel nr --rekey-by-locus
+```
+
+Choose the actual channel explicitly; do not label ClusteredNR or Swiss-Prot results as nr. This command also has no dry-run flag. Use its discovery/admission status and source receipts to assess what was written. `blastp-round` supports phased planning; submission requires both `--run`
 and `--confirm-public-sequence-upload` after reviewing the disclosed sequence count and digest.
-The following live command contacts NCBI when executed, so use it only within the user's authorized
-external-search scope:
+The following command prints the selected-protein disclosure plan without submitting sequences.
+Review the resolved locus and query digest. Live submission requires both `--submit` (or `--run`)
+and `--confirm-public-sequence-upload`, within the user-authorized external-search scope:
+
 
 ```bash
 python mamey_run.py blastp-online   --package inputs/query.region001.gbk   --database nr --batch-size 10 --outdir analysis/blastp
@@ -155,3 +182,11 @@ An existing per-strain database may be inspected without rebuilding. To rebind i
 
 Historical raw examples remain in their original release snapshot. Their absence from this operating
 guide does not change the runtime scoring, inference thresholds or result vocabulary.
+
+## RID-runner completion and stored-result admission
+
+For the separate stored RID workflow, use [companion retrieval controls](447_COMPANION_RETRIEVAL_CONTROLS.md). The runner's `run` operation returns zero even when it ends with failures, expired requests or saved in-flight RIDs. Its `rebuild` operation consumes only admitted fetched ledger rows and can return zero after rebuilding zero result groups. Capture the actual operation counts and ledger state; neither exit code proves the requested channel is complete.
+
+A fetched label alone is insufficient admission. The source checks query-file/raw-result/database hashes, exact query roster and result-generation bindings before treating stored retrieval as admitted. Preserve held, unsubmitted, in-flight and fetched-but-unverified states separately. A rebuilt empty table and a query-bound no-significant-hit result are different evidence states; do not infer the latter from a missing artifact.
+
+`blastp-followup` summaries cover query IDs observed in the input hit rows. Query IDs absent from that input are not automatically emitted as tested no-hit rows. Reconcile summaries against the original submitted query roster and its receipts before reporting query completeness. See [result parsing and reprioritization](SOPs/SOP-05_BLASTP_Result_Upload_Parse_Reprioritize.md). This is a stored-evidence accounting rule, not authorization to submit new searches.

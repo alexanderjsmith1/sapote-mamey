@@ -1,3 +1,26 @@
+# v9.7.449 — unsealed cut candidate · build 20261009v97449a
+
+Build 20261009v97449a; engine 1.9.174.
+
+- **Partner headings preserve contig placement.** partner headings never move contigs.
+- **Structures follow the map reference.** region structure follows map reference.
+- **Optional post-run gap-rescue command.** gap rescue post run step.
+- **Reference-centred pair maps.** rggmci pair map uses locus comparison.
+- **Gene tables paired with maps.** gap rescue gene table with map.
+- **Isolate labels clear ribbons.** gap rescue isolate label off ribbons.
+- **Bounded distant-match display.** gap rescue map far match reach.
+- **Split-piece labels.** gap rescue split piece labels.
+- **Reconciled map and table captions.** gap rescue map redraw fixes.
+- **PCoA collection denominators and provenance.** protein pcoa collection compare.
+- **Offline PCoA three-axis view.** pcoa explorer 3d view.
+- **Shared runner pacing.** blastp runner fleet pacing.
+- **Full contig identifiers.** contig names lose coverage zeros.
+- **Opt-in partner context.** gap rescue partner contig context.
+- **Locus reading pages.** locus reading pages.
+- **User documentation.** Rebased user guidance, current human entry guides, command routes and generator-owned inventories.
+
+- **Visible logger messages.** Three added tools use the existing logger for seven progress, warning and refusal messages; the terminal-output ceiling is unchanged.
+
 # v9.7.448 (2026-10-05), build 20261005v97448b — unsealed cut candidate
 
 - **The sealed-tree notebook guard test runs on Linux (build b).** On GitHub CI, build a reported one failure: the test resolved its path under pytest's temporary folder, which is `/tmp/…` on Linux, where the guard deliberately allows working copies. The test now resolves against the filesystem root; the guard is unchanged. Build b changes only that test file; the engine (1.9.173), tools, outputs and scientific rules are the same as build a.

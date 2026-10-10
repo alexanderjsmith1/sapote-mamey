@@ -17,7 +17,7 @@ Build a Top 50 halogenation-containing BGC deliverable from the cumulative datas
    fields; `halogenated`/`halogenase`/`polyhalogenated`/`chloro`/`bromo`/`iodo` in product/KCB text;
    candidate flavoprotein/halogenase terms (label as screening targets).
 2. Rank by Sapote review priority. If <50 defensible candidates, report all and say so.
-3. Per row: rank · strain · `BGC_ID (contig · regionXXX)` · products · halogenation lane/register ·
+3. Per row: rank · strain · `strain / full node-or-contig / region / BGC alias` · products · halogenation lane/register ·
    halogenation evidence tier · exact evidence terms · boundary · architecture · assembly tier · genus ·
    host · AB/AF/novelty · Sapote priority score · KCB score + top hit · closest candidate KCB product ·
    MIBiG accession · similar-gene count + denominator (state which) · MIBiG URL · PubMed lookup URL ·

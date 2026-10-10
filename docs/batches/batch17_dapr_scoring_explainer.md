@@ -1,3 +1,22 @@
+# DAPR batch17: current reader boundary
+
+The .149a explainer dated 2026-06-29 below is historical. Use [the current DAPR framework](../DAPR_CLASS_FRAMEWORK.md) for the separation between owner-authored judgment boards and extraction-side AB/AF routing priors. No assay target or extract activity is supplied by default: optional typed strain context must carry actual evidence and missingness. Neither MRSA nor Candida identity, strain, dose or activity may be filled by omission. Gene location/resistance annotations do not establish production or active self-resistance.
+
+## Actual current consumers
+
+`mamey/scoring.py:53–74` defines AB/AF keyword routing priors and explicitly distinguishes them from final WL/DAPR scores. The historical claim that all DAPR weights live in `resources/bioactivity_axes.json` is incorrect: that file is a keyword-to-axis lookup used by `tools/build_lead_tiers.py:57–79`. It searches class/note/anchor strings in priority order, has a default axis, and falls back to a general antibacterial axis if table loading fails. No lookup establishes measured activity.
+
+A residual classification conflict needs review: the current axis JSON includes `arylpolyene` in the first antifungal entry, and substring matching can return that axis despite the historical document's routed-out rule. Treat this as a software/annotation hold, not a newly approved biological association. The documentation does not change the JSON or weights. Keep the exact inputs/table/code hashes and review the output route against owner policy before adoption.
+
+`apply_dapr_boards.py:20–36` restores CSV judgments into existing workbook sheets; missing input/sheet skips a board. `render_dapr_boards.py:93–108` emits **three PNGs**, not the Markdown/CSV summary claimed below. Board publication, exact reference/citation admission and visual QA remain separate. Avoid an authoritative workbook as a scratch target.
+
+Legacy §13 advice is not a complete current50 profile contract. Preserve strain / full node-or-contig / region / BGC alias and resolve the [current50 contract](../MODEB_CURRENT50_V2_CONTRACT.md) before card integration. Generic mechanisms and laboratory suggestions in the old text remain unverified historical authoring content, not current assay conclusions or approved experimental choices.
+
+## Preserved .149a record — superseded defaults and unverified claims
+
+The original narrative is retained for historical comparison. Its assay defaults, literature verification, self-resistance-to-production statements and automatic routing assertions must not be used as current facts. Check the source literature and current scoring/figure receipts before reusing those historical claims.
+
+````text
 # DAPR Scoring Explainer
 **Antibacterial / antifungal dual-axis scoring in plain English**
 
@@ -136,3 +155,5 @@ When writing §13 (Antibacterial/antifungal relevance) in full Mode B:
 - **CCTT trigger for polyene:** MMK-CCTT-016 in `bundle_support/registry_inventory_v1.9.4.json`
 - **DAPR tools:** `render_dapr_boards.py`, `apply_dapr_boards.py`, `build_dapr_rescue_sheets.py`
 - **Bioactivity axes map:** `resources/bioactivity_axes.json`
+
+````

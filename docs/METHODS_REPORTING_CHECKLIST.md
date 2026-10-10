@@ -29,6 +29,8 @@ Use this checklist only for modules actually used. Inclusion in the bundle does 
 ### CCTT and other source-derived scans
 
 - [ ] Report marker registry/pattern version, sequence/annotation availability, class/veto/context guards, count unit, and fallback or not-applicable state.
+- [ ] Reconcile each reported channel with its final bound output and phase receipts. `source_scans:END` precedes later RG-GMCI and per-gene/structured enrichment; it is not a completed-channel census. Retain each channel's explicit error, pending, unavailable or not-applicable state rather than relying on the parent phase label.
+- [ ] Check degradation receipt coverage: `degradation_events.n` is the collected event count, while `events` retains at most the first 50 details. Report that truncation when the count exceeds the displayed list. Missing warnings or receipts do not establish that no degradation occurred (`mamey/cli.py:1577–1588, 1797–1902, 1089–1098`; `mamey/degradation.py:18–38`).
 
 ### Triage scoring
 

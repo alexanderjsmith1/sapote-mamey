@@ -1,11 +1,11 @@
 # Cohort figure captions (Sapote-Mamey)
 
-Captions ride along with each figure. Every "domain" here is an HMM profile call: the **deterministic
-function is the HMM match** — a protein region scored above the model's gathering/cutoff threshold by
-antiSMASH (Pfam, antiSMASH-specific, or TIGRFAM profiles). A profile is a position-specific probability
-model, not a single consensus string; the **diagnostic catalytic signature** given below is the
-textbook active-site motif/residue the profile is built around, not a claim that a literal sequence was
-matched. Domain presence is a **capacity** signal, not evidence a product is made.
+Captions must describe the exact producer, source table, selected population and denominator.
+In the legacy extended cohort renderer, “domain” labels are semicolon-separated source
+`sec_met_domains` tokens; the plot does not inspect HMM models, gathering cutoffs, alignment
+scores or catalytic residues. A token is recorded annotation context, not a demonstrated
+catalytic function. The biological glossary below is retained as historical explanatory text;
+apply its individual motif/model claims to a locus only with separately admitted evidence.
 
 ---
 
@@ -104,9 +104,17 @@ both numerator and denominator. Interpret not-applicable separately.
 - **fig4 enriched_locus** — gene arrows coloured by function + per-gene domain track + gene-specific
   T2/T3-resistance (◇) and CCTT-trigger (★) badges; BGC-wide resistance/TTA summarised in the title.
 - **fig5 archetype** — BGC biosynthetic-class composition per strain (from Products).
-- **fig6 kcb_novelty** — BGCs by KCB tier (dark <1 = candidate-novel; similarity, not identity).
+- **fig6 kcb_novelty** — BGCs by KCB tier (legacy score bins; missing/malformed scores also become dark, so novelty interpretation is held).
 - **fig7 cctt_triggers** — CCTT cryptic-chemistry trigger family × strain (BGCs carrying each).
 - **fig8 boundary_profile** — interior / edge / full-contig BGCs per strain (the assembly-quality lens).
 
-*Read every count against fig8: fragmentation (edge/full-contig) inflates apparent BGC numbers relative
-to interior-confident clusters.*
+*Report fig8 boundary denominators alongside each count. Edge/full-contig status can affect
+called-region counts; this figure does not establish how much fragmentation inflated them.*
+
+## Current implementation and output scope
+
+This page describes `mamey/cohort_figures_extended.py`'s fig1–fig11 family, not every current cohort plot. In fig9, only BGC groups with at least one nonblank source domain token contribute, and the default display shows the 16 most frequent tokens. Input grouping is by the supplied per-strain BGC alias; it is not an independent full-locus identity/hash validator. Repeated tokens within a BGC are reduced to a set. The diagonal and co-occurrence counts describe this admitted table scope, not unique genes/domains, whole-genome prevalence, physical linkage or motif confirmation (`470–515`).
+
+Fig6 converts missing or malformed `KCB_score` to 0 before applying `<1`, `1–<40`, `≥40` bins. A dark bar therefore mixes measured low scores and unverified missing data; the chart's “candidate-novel” label must not be adopted as novelty evidence. Its percentages use that same supplied inventory denominator. Record missing/invalid score counts separately and hold biological interpretation (`360–389`).
+
+Legacy per-figure exception handling permits other files to be written after a plot failure; an output-directory scan can also encounter older PNGs. Use the exact current artifact roster and sidecar hashes, not file presence or count, to establish completion. These captions do not supply a run/source-hash receipt or visual clearance. Full strain/contig/region/alias bindings and current source-table hashes remain required for individual-locus figures. Retain separate render/review and scientific-adoption receipts.

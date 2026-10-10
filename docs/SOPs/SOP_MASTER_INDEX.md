@@ -2,7 +2,7 @@
 
 **Status:** SOP library index. SOP-03, 06, 08, 09, 11, 12 and 14 were never written; they now point to the
 documents that hold those procedures.  
-**Handshake:** The sky is not red, it is blue, just like the ocean.
+**Scope:** current procedure directory plus a historical v9.7.142 planning record below. No handshake or historical cut plan expands the current task. Start with [the current docs index](../../CURRENT_DOCS_INDEX.md), [the user task router](../USER_TASK_ROUTER.md) and [the shared assistant contract](../../AGENTS.md).
 
 ## Why this packet exists
 
@@ -23,7 +23,7 @@ If an SOP cannot be executed cleanly by the current code, that is a bug or missi
 |---|---|---|---|
 | SOP-00 | Start Here / Choosing the Right Path | draft included | Prevents wrong workflow selection |
 | SOP-01 | Intake: Raw antiSMASH ZIP vs Mamey Package vs Reference Accession | draft included | Catches upload-shape confusion |
-| SOP-02 | ChatGPT-Safe Smoke Run | draft included | Prevents timeout and overrun failures |
+| SOP-02 | Capped-session gold run (historical filename retained) | draft included | Prevents timeout and overrun failures |
 | SOP-03 | Full Mamey Run / Gold Run Gate | POINTER (never written) | Guards deterministic release claims |
 | SOP-04 | Iterative NCBI BLASTP Batching | draft included | Drives BGC BLASTP panel behavior |
 | SOP-05 | BLASTP Result Upload, Parse, and Reprioritization | draft included | Drives parser and follow-up outputs |
@@ -38,9 +38,11 @@ If an SOP cannot be executed cleanly by the current code, that is a bug or missi
 | SOP-14 | Figures and Publication-Quality Visuals | POINTER (never written) | Publication polish and QA |
 | SOP-15 | Cross-Chat Merge and Patch Handoff | draft included | Lets another chat join at any time |
 | SOP-16 | Random File Inspection | included | Hostile-auditor spot-check of random files: quality, functionality, wiring |
-| SOP-17 | Cross-Strain GCF Cohort (BiG-SCAPE → Mamey) | included | Cohort GCF layer: cluster BGCs across strains, KNOWN/NOVEL, ingest families into triage board / Mode B §8 |
+| SOP-17 | Cross-Strain GCF Cohort (BiG-SCAPE → Mamey) | included | Within-run family similarity, exact source/run joins and receipt-backed exports; no KNOWN/NOVEL labels in cohort-only mode |
 
-## Work rule for other chats
+## Historical coordination reading order (v9.7.142)
+
+The following reading order and patch streams are retained as planning history, not current startup requirements. Use current documentation first; release work requires the current owner cut process.
 
 Another chat can join by reading these files in order:
 
@@ -50,7 +52,7 @@ Another chat can join by reading these files in order:
 4. `../release_planning/V97142_NEXT_CUT_PLAN.md`
 5. then the SOP relevant to its task.
 
-## Current patch streams that must be reconciled before v9.7.142
+## Historical patch streams before v9.7.142
 
 | Stream | Status | Merge order |
 |---|---|---|
@@ -62,7 +64,7 @@ Another chat can join by reading these files in order:
 | SOP library | this workpack | documentation stream; can merge with v9.7.142 |
 | Targeted AS-XXX BGC005 phosphonopeptide workflow | science deep-dive; not core default yet | later or optional |
 
-## Candidate-readiness definition
+## Historical candidate-readiness definition
 
 v9.7.142 candidate is ready only when:
 
@@ -76,6 +78,6 @@ v9.7.142 candidate is ready only when:
 - public/private scan passes for public-facing artifacts,
 - final packet contains manifest and checksums.
 
-## Placeholder warning
+## Pointer and draft status
 
-Do not follow placeholder SOPs as completed operator instructions. Placeholder SOPs are coordination stubs only until their `STATUS: PLACEHOLDER` line is removed.
+The POINTER pages route to existing current procedures and are not separate incomplete execution recipes. The draft SOPs need their claims checked against the selected bundle and task. Removal of a placeholder marker does not establish implementation, test completion or release acceptance.

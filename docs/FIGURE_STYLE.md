@@ -70,8 +70,8 @@ the figure explaining its rows, columns, marks, colors, symbols, and summary val
 may display this prose directly below the clean SVG; the SVG remains reusable and free of policy
 footers.
 
-These fields travel with LLM-invented and other nonstandard figures until final manuscript
-construction. They are validated before the renderer creates an output directory. An external
+These fields must travel with LLM-invented and other nonstandard figures until final manuscript
+construction. Treat validation before output creation as an acceptance requirement; actual renderer enforcement must be checked. An external
 benchmark is not a study-cohort member: it must be explicitly typed, excluded from study n and
 percentages, and default to not displayed unless the owner selects that benchmark comparison.
 The renderer never infers benchmark status from an identifier. A selected benchmark may enter
@@ -153,3 +153,13 @@ declared-width vector/live-text, minimum 8 pt, and no-raster-embedding gates.
 
 ## Why
 A clean figure + a separate caption is reusable across every context (paper, slide, poster) and lets anyone re-label without touching the plot code. Baking callouts into the PNG couples the figure to one narrative and forces a rebuild for every rewording. When `tools/build_figures.py` is added, it must follow this rule — emit clean figures and a captions file, never overlaid callouts.
+
+## Policy requirement versus renderer coverage
+
+This is the intended figure acceptance policy, not certification that every current renderer calls every preflight or emits every caption/artifact field. The shared `save_figure` path checks containment/text policy and emits output-hashed `CANDIDATE_RENDERED` receipts; its provenance is caller-supplied text, not automatically verified input/source hashes or a complete scientific methods record. It creates output directories before saving. Other renderers write directly, may use smaller raster DPI or text, and may reuse outputs.
+
+Verify the specific producer's implementation and receipt rather than treating an SVG/PNG or absence of an exception as policy PASS. Missing capability is an explicit presentation/provenance hold. The [house rules](FIGURE_HOUSE_RULES.md), [locus-map review contract](LOCUS_MAP_REVIEW_CONTRACT.md) and [R workflow](R_FIGURE_WORKFLOWS.md) document route-specific gaps and any on-artwork note conflict. Preserve required interpretation limits in the caption/receipt and record unresolved presentation choices for owner review; a technical text gate alone is not scientific review.
+
+Arrows encoding strand, gene order or a defined graph relation are data geometry; they are distinct from interpretive callouts pointing at selected observations. Use a caption to define that visual grammar. The prohibitions above do not silently exclude lossless locus-map arrows.
+
+Source examples: `mamey/figure_save.py:63–142`; `mamey/bigscape_figures.py:205–247`; `tools/bgc_figures.py:43–58`; `tools/build_normalization_matrix.py:136–148`.

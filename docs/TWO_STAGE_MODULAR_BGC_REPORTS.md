@@ -90,3 +90,13 @@ The report builder ships inside the standalone Sapote-Mamey bundle. User data
 does not. External evidence is resolved through logical root configuration and
 a hash-bound source manifest. Reports contain logical evidence identifiers, not
 hard-coded personal workspace paths.
+
+## Builder, overlay, and current-card gates
+
+The L0 program is implemented by `mamey/bgc_l0_program.py`; the additive overlay is `mamey/stage2_overlay.py`. A successful program build has status `DRAFT_BUILT_NOT_ACCEPTED_NOT_INTEGRATED`. Read the module-state counts, exact-locus bridge states and individual ledgers, not just report count. The module status table records workflow/promotion states; source hashes are retained in the source/evidence/manifest records, rather than necessarily as a column in every module-status row. A `release=PUBLIC` selection governs a software/source-resolution route and is not owner approval.
+
+The overlay's status is `PASS_PROPOSAL_ONLY_NOT_ACCEPTED_NOT_INTEGRATED`. It hashes and rechecks snapshots and records proposed deltas, but does not run current Mode B validation or prove a reviewed paragraph's scientific correctness. Retain the immutable base with the overlay and its QA/artifact manifests; resolve holds in a separately authorized review, preserving prior states. Both builders refuse an already-existing final directory and publish from staging after their documented source checks. Use a new destination for changed inputs.
+
+For work orders requiring the current 50-section card, the explicit profile is `current50_v2`; `verify-modeb` defaults to `full48`. Declare the contract and exact consumed-evidence/package bindings rather than relying on the default or an old §1–§20 layout reference. `--require-expanded-locus` is current50-only; a `--rescue-tsv` existence admission does not grant BGC membership to a gene outside a region. Verification is a separate action with its own receipt and does not establish publication or scientific adoption.
+
+Source owners: `mamey/bgc_l0_program.py:809–837,1004–1068,1071–1118`; `mamey/stage2_overlay.py:337–351,589–613,641–692`; `mamey/cli.py:7241–7255`.

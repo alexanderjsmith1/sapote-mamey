@@ -1,5 +1,22 @@
 # RG-GMCI uses ClusterBlast, not just KnownClusterBlast — source-verified
 
+## Current owner and inference boundary
+
+The original v9.7.117 explanation and historical line pointers remain below. Current owning locations are
+`mamey/rggmci.py:748–760` for classification, `:811–829` for TXT selection, `:1036–1061` for subcluster
+exclusion and (db_kind,reference) pools, and `:1138–1142` for separate database counters. The current source
+still accepts both ClusterBlast and KnownClusterBlast while excluding SubClusterBlast from pairing.
+The classifier's fallback means unknown names passed to that helper return clusterblast; parser filename
+selection and validated records remain separate constraints, not proof any arbitrary file is genuine evidence.
+
+Cross-genome reference sharing/subject tiling supports a candidate fragmented-locus interpretation; it does
+not physically link contigs or establish one pathway or compound. Complete reference-genome assumptions,
+exact query/subject bindings and the final aggregation/gate receipt must be for the selected claim.
+Verify historical calibration, cryptic-cluster prevalence and complete-reference assumptions separately. Read [current source scope](06_CURRENT_SOURCE_SCOPE.md) and preserve every focal/
+partner strain / full node-or-contig / region / BGC alias. Bind actual pair results and source provenance before reuse.
+
+
+
 **Status:** Correctness clarification · verified against `mamey/rggmci.py` @ bundle v9.7.117 · 2026-06-23
 **Why this exists:** An overview write-up described RG-GMCI's evidence as *KnownClusterBlast* only. That is incomplete. RG-GMCI consumes the cross-genome **ClusterBlast** data as a first-class evidence source. This note pins the exact source lines so the distinction is unambiguous and does not get lost again.
 

@@ -3,6 +3,24 @@
 
 **v9.7.149a** | Source: `docs/ENGINE_LINEAGE.md`, `docs/COHORT_RESCORING_PLAN.md` | Last updated: 2026-06-29
 
+
+## Current lineage and executable gate scope
+
+The engine 1.9.100/current v9.7.149a table, supported-workbook matrix and test counts below are historical evidence. The bound baseline's BUILD_STAMP/TAG identifies bundle 9.7.447, engine 1.9.172, build 20261003v97447a; label agreement is not release certification or byte identity. Consult [engine lineage](../ENGINE_LINEAGE.md) and [cohort rescoring](../COHORT_RESCORING_PLAN.md), retain package/source/input hashes, options and database/reference scope, and review acceptance separately.
+
+The current gate accepts **`--workbooks-dir` and `--engine`**, not the historical `--banked-dir`/`--workbook` invocation. From the bundle root, this is a source-verified command template; substitute reviewed paths and selected target engine:
+
+```bash
+python3 tools/cohort_scoring_version_gate.py --workbooks-dir /ABSOLUTE/PATH/TO/per-strain-workbooks --engine TARGET_ENGINE
+```
+
+It reads nonrecursive `*.xlsx` and the first data row's `version` in A3_Run_Manifest (or Run_Manifest), uses the workbook stem as a key and parses a Mamey engine token (`tools/cohort_scoring_version_gate.py:42–45,82–104`). Empty cohorts, unstamped versions and versions differing from the requested target fail with 1; matched labels return 0 (`:48–78,105–111`). It does not verify every workbook row, input/source hashes, scientific comparability, currentness of judgment cards or complete cohort membership. Workbook read errors can propagate. Same engine is one gate, not sufficient comparability proof; rescoring and replacement remain governed work.
+
+Version sync checks for an engine-labelled heading in the lineage document if that file exists; a missing lineage file emits a warning (`tools/sync_version.py:628–642`). This is not an old-versus-new semantic diff, independent verification of every bump, or a guarantee all lineage details/test claims are correct. Use actual gate, version-sync, scoring and workbook records for those claims.
+
+## Historical v9.7.149a record — preserved below
+
+
 ---
 
 ## Why engine version matters

@@ -19,7 +19,7 @@ panels. Every BGC mention in the surrounding text must carry its `(contig · reg
 When compiling the deep-dive, **each BGC is one page-unit; its locus map and its §1–§48 Mode B analysis go on the same page** (Contract §A2.5). Do **not** emit one locus map per page with the analysis pushed overleaf — that wastes ~half of every page and was the prior failure mode. Per BGC, top → bottom:
 
 1. **Locus map** (top ~45% of the page) — gene-arrow panel for this BGC.
-2. **Predicted class line** (one line under the map): `BGC_ID (contig · regionXXX) · predicted class: <class> · boundary: <…> · KCB: <similarity>` — claim-safe.
+2. **Predicted class line** (one line under the map): `strain / full node-or-contig / region / BGC alias · predicted class: <class> · boundary: <…> · KCB: <similarity>` — claim-safe.
 3. **Mode B card** (~55%, below) — §1–§48 for this BGC.
 
 Spill to a second page only if a single BGC's Mode B card overflows (map + §1–§4 stay together; §5–§8 continues with a "cont." marker). Full spec + worked example: `docs/PER_BGC_PAGE_LAYOUT_SPEC.md`.

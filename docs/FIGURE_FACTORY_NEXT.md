@@ -92,3 +92,13 @@ figure.
 The same `figure-factory` command also accepts distinct phylogeny figure kinds;
 they have different inputs. The [Figure Factory index](figure_factory/README.md)
 links the other figure guides and review tools.
+
+## Completion, automatic replacement, and recovery
+
+The aggregate producer's receipt status is `PASS_PORTABLE_POLICY_RENDERER_CANDIDATE`, with authority `ENGINEERING_CANDIDATE_ONLY_NOT_ACCEPTED_NOT_INTEGRATED_NOT_RELEASED`. It hashes the two input tables and emitted artifacts; it does not hash the configuration or renderer source. Keep a separate run record with the exact config hash, bundle/source version, interpreter, and selected profiles. Inspect each artifact and the intended embedded layout before accepting presentation quality.
+
+Automatic discovery uses the first existing config in this order: `MAMEY_FIGURE_FACTORY_CONFIG`, the source directory, then the target directory. A missing environment-config path falls through to later candidates. The automatic hook deletes `<target>/figure_factory` **before** validating input hashes and rendering its replacement, then returns `SKIPPED_<exception-type>` if building fails. Preserve the previous figure folder and its receipt before a rerun; use the manual new-directory route for a reviewable replacement. `SKIPPED_NO_CONFIG` means the feature was not invoked. Neither a successful surrounding run nor a figure count proves this channel completed.
+
+For R restyling, use [R figure workflows](R_FIGURE_WORKFLOWS.md): R does not verify the factory receipt or issue replacement receipt bindings. An R output needs its own renderer/input/output record and visual review.
+
+Source owners: `mamey/figure_factory_next.py:455–472`; `mamey/cli.py:3017–3071`.

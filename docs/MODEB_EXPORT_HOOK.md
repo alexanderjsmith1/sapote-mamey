@@ -1,87 +1,31 @@
-# FA6 — Mode B card exporter (`modeb-export`)
+# Mode B card export: current command and verification boundary
 
-**Tag:** FEATURE (sign-off), prototype. **Non-scoring** — touches no scan, scorer, gate,
-manifest, or version string. Ships one new module (`mamey/modeb_export.py`) and one test
-(`tests/test_modeb_export.py`). **No `cli.py` edit** (this doc is the wiring hook).
+`modeb-export` is a shipped .447 command, not a future CLI-wiring prototype. It converts Markdown into DOCX/PDF with a selected report theme; it does not author the card or verify its complete selected Mode B profile.
 
-## What it does
-
-Turns an authored Mode B card (`§1–§30` markdown, or the `mode-b` top-lead card) into a
-Word `.docx` and a PDF for hand-off outside the terminal.
-
-- **Input:** a single Mode B card `.md` (e.g. `<pkg>/mode_b/<STRAIN>_Mode_B_Top_Leads.md`
-  or an authored `<BGC>_ModeB.md`), **or** a package `mode_b/` directory (batch — every
-  `*.md`, `PROVENANCE.md` excluded).
-- **Output (next to the source, or under `--outdir`):**
-  - `<card>.docx` — headings, the §-structure, bullets, blockquotes, and **every markdown
-    table (the §4 evidence grid included) as a real Word table**.
-  - `<card>.pdf` — reportlab, readable typography, a **page number on every page**, and the
-    claim-safety footer on every page.
-- **Claim-safety:** the card's own claim-safety language is preserved **verbatim** (it is
-  ordinary markdown, never rewritten). Every page additionally carries the footer:
-  `Class-level capacity hypothesis · judgment deferred · similarity not identity`.
-- **Deterministic; no network.** Never mutates the source markdown.
-
-## Renderer reuse (not a second reportlab renderer)
-
-The PDF path **reuses the sanctioned markdown→flowables renderer**
-`tools/render_deliverable_pdf.py` — its `parse()`, styles, cover, and `_footer_line()` —
-loaded by file path (`tools/` is not a package). `modeb_export.export_card_pdf` adds only
-the mandatory claim-safety footer + page-number `onPage` callback. No renderer is duplicated.
-
-## Run it now (standalone, no CLI edit needed)
-
-```bash
-cd <code_tier>
-# 1) produce a real card (or reuse an existing <pkg>/mode_b/*.md)
-../Tools/bin/python3 mamey_run.py mode-b --package <pkg>            # writes <pkg>/mode_b/
-# 2) export it
-../Tools/bin/python3 -m mamey.modeb_export <pkg>/mode_b/<STRAIN>_Mode_B_Top_Leads.md
-../Tools/bin/python3 -m mamey.modeb_export <pkg>/mode_b --outdir <pkg>/mode_b_export   # batch
+```text
+python mamey_run.py modeb-export <card.md> --outdir <new-export-folder> --format both --theme evidence_dossier
 ```
 
-`--format {docx,pdf,both}` (default `both`), `--outdir DIR`.
+Use the selected compatible interpreter from the bundle root. Input may also be a directory: batch discovery reads sorted top-level `*.md`, excluding only `PROVENANCE.md`. It does not distinguish a completed card from a template, routing document, or other Markdown by filename. Select the intended saved card explicitly or curate a bound input directory.
 
-## Optional CLI wiring (a future cut, when promoted from prototype)
+## Verification before export
 
-Add next to the `mode-b` parser in `mamey/cli.py::build_parser` (mirrors that block):
+Verify the exact saved Markdown under its work-order contract with its package-scoped alias and complete strain / full node-or-contig / region / BGC alias binding. `verify-modeb` defaults to `full48`; use `--contract current50_v2` where required. Inspect errors, warnings, roster/coverage flags and consumed-source bindings separately. Passing a formatting export cannot supply these checks or owner acceptance.
 
-```python
-    from .modeb_export import main as _modeb_export_main
-    mx = sub.add_parser("modeb-export",
-                        help="Export an authored Mode B card .md (or a mode_b/ dir) to .docx + .pdf")
-    mx.add_argument("input", help="A Mode B card .md OR a package mode_b/ directory (batch)")
-    mx.add_argument("--outdir", default=None)
-    mx.add_argument("--format", choices=["docx", "pdf", "both"], default="both")
-    mx.set_defaults(func=lambda a: _modeb_export_main(
-        [a.input] + (["--outdir", a.outdir] if a.outdir else []) + ["--format", a.format]))
-```
+The exporter calls `lint_card` and retains only `CLAIM_SAFETY` findings for its refusal gate. It does not call the full authored verifier, retain all other linter findings, validate current50 structure, or bind package context. `REFUSED_CLAIM_SAFETY` means no new requested exports are written through that orchestration call. Fix the source and review the actual evidence instead of treating the claim-safety footer as validation. Direct low-level DOCX/PDF render functions do not perform this orchestration gate.
 
-Post-seal, non-blocking style: it consumes an already-authored card and never fails a run.
+The standalone module exposes `--force` for an explicitly reviewed phrase; the bundle `mamey_run.py modeb-export` parser does not expose or forward that option. Such an override does not convert a finding into scientific acceptance.
 
-## Dependencies & offline status
+## Outputs, dependencies, and exit status
 
-| Dep | Needed for | In interpreter (`Tools/bin/python3`) | In `Tools/wheelhouse` |
-|-----|-----------|--------------------------------------|-----------------------|
-| reportlab | PDF | yes (4.x) | yes (`reportlab-4.*.whl`) |
-| pypdf | test page-count (optional) | yes | yes (`pypdf-*.whl`) |
-| python-docx (+ lxml) | DOCX | yes (docx 1.2.0) | **no** |
+Themes: `evidence_dossier` (default), `field_notebook`, `dark_lab`, `minimal_clinical`. DOCX uses python-docx; PDF uses reportlab through the packaged `mamey.markdown_pdf` renderer. It no longer imports `tools/render_deliverable_pdf.py`. Reportlab is a core declared dependency (`>=4.0,<5.0`); python-docx/lxml are in the `documents` extra. Package declarations do not prove the selected interpreter or offline wheelhouse contains those modules; inspect dependency status for that environment.
 
-> **reportlab version:** must satisfy the project pin `reportlab>=4.0,<5.0`
-> (`pyproject.toml`, `requirements.txt`). Vendor a 4.x wheel in the interpreter and
-> `Tools/wheelhouse` (`reportlab-4.*.whl`). An earlier cut of this table listed 5.0.0,
-> which the `<5.0` cap excludes — do not ship a 5.x wheel against these pins.
+Each requested format reports `WRITTEN`, a typed skip, or refusal. Default `--format both` requires **both** outputs written and returns 1 if either is skipped. PDF-only skipped returns 1. DOCX-only `SKIPPED_NO_DOCX` can return 0: always inspect the per-format status and file. Missing single input returns 2; an empty batch returns 1. Other read/render failures can propagate as exceptions and leave earlier batch outputs.
 
-**python-docx is installed in the interpreter but is NOT vendored in `Tools/wheelhouse`
-(neither `linux_cp312_x86_64` nor `macos_arm64_cp314`).** The DOCX path therefore **degrades
-gracefully**: if `docx` is unimportable, `export_card_docx` returns
-`{"status": "SKIPPED_NO_DOCX", ...}` with an install hint and the PDF path is unaffected; the
-test skips (never fails) the DOCX assertions. To enable offline DOCX export, add
-`python-docx` + `lxml` wheels to both wheelhouse platform dirs.
+Artifacts use the source stem. Existing export files are replaced via `.tmp` siblings; there is no no-clobber output guard or atomic DOCX+PDF pair transaction. Use a fresh export folder and preserve prior artifacts. A failure or refusal does not remove a preexisting export in a reused directory. The PDF prints the claim ceiling on each page; the explicit page-number callback skips the cover page.
 
-## Verification (this cut)
+## Binding and review
 
-- Real card: `mode-b --top-n 3` on `audit_runs/AS-XXX/package` →
-  `AS-XXX_Mode_B_Top_Leads.md` exported → **PDF 14 pages / ~36 KB** (footer + verbatim
-  claim-safety text present on the page), **DOCX ~45 KB / 9 real tables** (footer set).
-- `pytest tests/test_modeb_export.py -q` → **3 passed**.
+Export results provide path, bytes, theme and engine; no source/artifact hash receipt or saved verifier receipt is emitted. Retain the exact Markdown hash, package/source hashes, verifier invocation/receipt, theme, dependency versions and output hashes in a separate run record. Embedded assets are separate inputs and need their own binding. Inspect actual rendered pages at intended size before claiming visual QA. Use actual output and visual-review receipts for current page counts and layout.
+
+Source owners: `mamey/cli.py:7032–7042`; `mamey/modeb_export.py:245–263,338–368,371–443,449–545`; `mamey/authored_verify.py:68–109,591–680`; `pyproject.toml:13,33`.

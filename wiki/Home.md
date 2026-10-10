@@ -2,7 +2,7 @@
 
 **Claim-safe interpretive genome mining for actinomycete biosynthetic gene clusters (BGCs).**
 
-*Current to bundle v9.7.448 · engine Mamey 1.9.173*
+*Current to bundle v9.7.449 · engine Mamey 1.9.174*
 
 Sapote–Mamey turns antiSMASH output into auditable, claim-safe biosynthetic evidence packages and
 interpretations. It is built in two layers, and the boundary between them is deliberate:
@@ -18,6 +18,15 @@ interpretations. It is built in two layers, and the boundary between them is del
 **Engine motto: deterministic extraction, judgment deferred.**
 
 ---
+
+## Choose the task first
+
+Use the [human task router](../docs/USER_TASK_ROUTER.md) to select the workflow, inputs,
+outputs and completion limits. Its [JSON companion](../docs/USER_TASK_ROUTER.json) helps assistants
+route the same requests. For strain PowerPoint and gene-table companions, request the
+**Sapote-Mamey Strain slides builder** (`tools/strain_slides.py`) and read the
+[strain slides guide](../docs/STRAIN_SLIDES.md). A filename tag alone does not reproduce a
+version-specific build profile.
 
 ## Read in this order
 

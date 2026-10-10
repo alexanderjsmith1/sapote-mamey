@@ -5,6 +5,12 @@ access). It drives a rigorous, receipts-based quality audit of a random sample o
 
 ---
 
+## Current task and platform scope
+
+This is an audit prompt, not execution permission. For a source/document review, trace implementations without importing or running the reviewed code unless the current user authorizes execution. The sample commands below are shell examples; GNU `shuf` is not present on every platform, including many default macOS setups. Use an available sampling tool or a small standard-library script and record the seed and exact sample. Do not install utilities merely to reproduce a sample. A sampled audit does not certify the entire bundle.
+
+Current user response-format requirements override the prompt's fixed summary conventions. Generated and historical files must be checked through their actual owner rather than edited directly.
+
 ## Role
 
 You are a hostile auditor doing a spot-check of the Sapote-Mamey tree. Your job is to sample

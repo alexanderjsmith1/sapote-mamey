@@ -1,3 +1,11 @@
+## Historical proposal — current reader boundary
+
+This .9.4.1 Phase-2 plan is retained as an engineering record. It does not establish installed tools/databases, authorize downloads, expand a detector, or certify the old corpus and counts. In the supplied .447 tree `mamey/hmm_backend.py`, `tools/dump_scan_state.py` and the linked Phase-1 patch note are absent. Commands requiring those paths remain proposed; do not interpret this plan as a runnable setup guide.
+
+Current pattern loading and fallback are in `mamey/source_scans.py:435–458`; regex/motif activation is in `mamey/registry_detector.py:52`. A separate optional run-path HMM adapter exists at `registry_detector.run_hmm_scan` and `mamey/cli.py:1545–1552`, with named unavailable/unbound-source receipts. Its existence does not implement or accept every backend/context rule in this plan. Existing [catalog guidance](../CATALOG_MAINTENANCE.md) and [external-data guidance](../EXTERNAL_DATA.md) describe current reader/setup boundaries. Current backend execution and scientific conclusions require their own run evidence. The historical plan follows unchanged.
+
+---
+
 # B2 — Registry-Backed Detector Wiring Spec, PHASE 2 (HMM/DIAMOND/BLASTP expansion)
 **For execution in the ChatGPT/local runtime where HMMER + profile DBs exist.**
 **Author handoff:** Claude (Sapote layer) · **Date:** 2026-06-10 · **Bundle:** v9.4.1-RUNNABLE (post-B2-Phase-1)

@@ -17,13 +17,11 @@ To keep pipeline cuts lean, the heavy static wheels are split into a SEPARATE ad
    Python wheels (pyrodigal, pyfastani, pyswrd, pyhmmer, pyskani, pyfamsa, matplotlib, ijson,
    pytest, and the rest) + their MANIFESTs. Static; changes only when the wheels change.
 
-**Both must be attached.** To install the offline stack: extract the `sapote_addons` addon
+For an offline add-on task, supply compatible wheels for its required dependencies. The add-on archive is not required merely to read docs or use an already-installed core engine. To install the offline stack: extract the `sapote_addons` addon
 alongside this bundle, then run `bash bundle_support/install_sapote_addons.sh` (it auto-locates the wheels,
 or pass the path: `bash bundle_support/install_sapote_addons.sh /path/to/sapote_addons/wheels`).
 
-If the addon bundle is missing, the Gemini/analysis stack can't install offline — but that's
-a **missing attachment, not a missing feature**: tell the user to attach the `sapote_addons`
-zip. Do NOT report Gemini as unavailable.
+If compatible wheels are absent, offline installation of missing dependencies is blocked. Existing installed capabilities may still be available. Report the specific dependency and platform gap, and request only the assets needed for the user's task. An advertised capability is not proof that it is installed or validated.
 
 ## What travels ALONGSIDE (attached separately — ask if missing)
 
@@ -43,5 +41,12 @@ zip. Do NOT report Gemini as unavailable.
 2. Is it actually in the uploads, or am I assuming?
 3. If not present → name it and ask. Do not say "unsupported."
 
-The pipeline being in your hands means the *capability* is present. Missing data is a
-missing attachment, not a missing feature.
+Bundle source, installed dependencies, supplied biological inputs and validated workflow results are separate states. Report which state is established.
+
+## Installation and companion-tool boundaries
+
+The installer selects `${PYTHON:-python3}` and requires an activated virtual environment by default. Its normal path uses an offline wheel pool; `--online` explicitly permits missing-wheel fallback through pip. Wheel tags must match the interpreter, operating system and architecture; the historical cp312/manylinux description does not establish macOS compatibility. Core dependency installation is required, figure dependencies are best-effort, and the final import check does not validate biological workflows or external reference assets.
+
+The script searches several neighboring roots for wheels, including supplied uploads. An explicit wheel-directory argument adds a preferred search root; it does not restrict discovery to that directory. Inspect discovery scope when only a selected wheel set is authorized. `SAPOTE_INSTALL_LAB_QUEST=1` opts into the separate Lab Quest source installation and its Streamlit dependency.
+
+For reader-side cohort tools, start with the [Multi-Cohort Comparison Toolkit guide](../deliverable_tools/README.md). Its catalog launcher is lightweight; individual tools can depend on governed data or write existing rosters. Do not infer read-only behavior from the term companion.

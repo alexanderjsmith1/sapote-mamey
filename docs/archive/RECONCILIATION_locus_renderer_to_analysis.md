@@ -1,3 +1,11 @@
+## Historical renderer reconciliation — current reader boundary
+
+This record is explicitly about .116 paths and measurements. Current source still provides rich GBK/table/context entry points (`mamey/locus_map.py:89–167`, `mamey/cli.py:1641`, `mamey/chatgpt_commands.py:521`), but the old two-callsite census and grey percentages are not a current whole-renderer verification. An existing richer loader does not establish functional correctness for every package or source mapping. Preserve missing/unbound states and exact locus identity; colours describe rendering classification, not enzyme function or completeness.
+
+Use [current figure entry](../FIGURES_START_HERE.md) and [locus-map contract](../LOCUS_MAP_REVIEW_CONTRACT.md) for current inputs and acceptance. The ask-back below belongs to the historical exchange, not an instruction to message another chat. No real package, renderer, empirical count or scientific interpretation was rerun. Original body follows unchanged.
+
+---
+
 # PATCH CHAT → analysis chat — enriched-locus-renderer patch: the bug isn't in the current render paths
 
 **Re:** `PATCH_NOTE_enriched_locus_renderer.md` + `render_enriched.py`

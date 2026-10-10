@@ -30,7 +30,7 @@ Sapote layer over a sealed Mamey package. Do not re-run scans. First:
 - **Fragmentation ≠ disqualification** (monolith principle): a fragment can be HIGH priority; assembly
   state lowers product-identity confidence, not necessarily lead value.
 - **Claim-safety + locator mandate** as in the deliverables prompt: every BGC/fragment as
-  `BGC_ID (contig · regionXXX)`; candidate language only; mark `EVIDENCE_PENDING` where HMMER/long-read
+  `strain / full node-or-contig / region / BGC alias`; candidate language only; mark `EVIDENCE_PENDING` where HMMER/long-read
   would be needed to confirm a join.
 - **Never assert a cross-contig join as physical fact** — it is a reconstruction hypothesis until
   long-read assembly or PCR confirms; say so.

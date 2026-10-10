@@ -1,5 +1,11 @@
 # antiSMASH web submission: standard operating procedure
 
+> Project submission policy and historical operator observations. Service versions, API fields, feature defaults, capacity numbers and retention periods below describe historical service behavior, not current verified settings. Verify them against current service documentation during an authorized submission task. This page does not authorize a batch. Preserve exact input accession/version, requested and returned settings, job URL, retrieval time and archive hash in the job record. Error strings alone do not establish a cause; record `CAUSE_UNRESOLVED` when diagnostics do not support one.
+
+## Local intake limitations
+
+The local reader recovers strictness and identity evidence; it does not certify a live job's settings or all-region consistency. `mamey/antismash_input.py:21–33` documents its first-region GBK header read and rejects `ORGANISM .` as an organism. `mamey/strain_identity.py:174–227` supports supplied/archive identities and filename fallback with warnings. Review the resolved identity before filing: a filename-derived label is not verified organism provenance. See [input troubleshooting](troubleshooting/ANTISMASH_INPUT_WORKFLOW.md). A downloaded ZIP, a normal command exit and a sealed package are separate states.
+
 This page covers how reference genomes reach the public antiSMASH server (`https://antismash.secondarymetabolites.org`) for a Sapote-Mamey project. It is a procedure, not a tool. The bundle ships no code that submits to the public server, and every batch needs the project owner's named authorisation.
 
 The server is a shared public resource. The rules below keep this project's use light: it never adds to a queue other people are waiting in.
@@ -30,8 +36,8 @@ The server is a shared public resource. The rules below keep this project's use 
 | B. FASTA upload with Prodigal | the deposit has no CDS (`all records skipped`), or the genome is held only as FASTA | `seq=@<file>.fna`, `genefinder=prodigal`; needs its own authorisation |
 
 **Never use route A for these:**
-- RefSeq (`NZ_…`) or assembly (`GCF_`/`GCA_`) accessions; they fail with `Failed to download file from NCBI`. Use the INSD primary.
-- WGS masters with unannotated contigs; they fail with `all records skipped`.
+- RefSeq (`NZ_…`) or assembly (`GCF_`/`GCA_`) accessions; historically failed with `Failed to download file from NCBI` in this project workflow. Use the INSD primary.
+- WGS masters with unannotated contigs; can produce `all records skipped`; inspect diagnostics before assigning the cause.
 
 A route B job uses Prodigal's gene calls, not NCBI's; say so in the job record.
 
@@ -86,11 +92,11 @@ Once per batch, read `GET /api/v1.0/status/<job>` for one job and confirm `loose
 | `Failed to download file from NCBI` | a RefSeq or assembly accession was given | resubmit with the INSD primary, with authorisation |
 | `all records skipped`, the record is a WGS master stub | no sequence | no route; drop it |
 | `all records skipped`, the record has 0 CDS | an unannotated deposit | route B, with its own authorisation |
-| a Python traceback inside antiSMASH | a service-side bug on that record | record it; a retry fails the same way |
+| a Python traceback inside antiSMASH | a service-side bug on that record | record the traceback; recurrence is not established by the error alone |
 | own job `queued` 20–30 s, with `queue_length` 0 and `running` under 60 | a transient early-stage bottleneck | none; it starts by itself |
 | own job `queued` for more than 2 minutes | submissions too close together, or a real queue | wait; do not resubmit; check the stats and tell the owner |
 
-Record every failure with its set, accession, organism, job, cause (not just the message) and disposition. Two symptoms above give the same message from opposite causes.
+Record every failure with its set, accession, organism, job, supported cause or `CAUSE_UNRESOLVED` (not just the message) and disposition. Two symptoms above give the same message from opposite causes.
 
 ## 10. Never
 - Never submit without a batch authorised by name.

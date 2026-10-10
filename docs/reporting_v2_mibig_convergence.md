@@ -12,9 +12,7 @@ Multi-gene convergence is **direct sequence evidence for pathway-family relatedn
 physical linkage across contigs. The tiers below are **reporting strata, not Sapote judgments** —
 they stratify how much per-gene reference agreement a BGC shows, nothing more.
 
-**Structural guarantee (verified, not just asserted):** `mibig_per_gene.py` is imported only by
-`cli.py` (writing), `validate.py` (the gate), and `workbook.py` (sheets). **Nothing in
-`scoring.py` / `rules.py` / triage reads it.** There is no AB/AF bonus from convergence — the
+**Source-scoped reporting boundary:** the current extraction `scoring.py` and `rules.py` do not directly consume this module. Current downstream consumers also include comparator-coverage, gene-first exploration, roster, widget and other report paths, so the old “only three importers” statement is not a current consumer inventory. There is no AB/AF bonus from convergence — the
 "report-only" contract holds in the import graph. The modules carry it in code:
 `mibig_per_gene.REPORT_ONLY_CONTRACT = "REPORT_ONLY_NO_SCORING"`,
 `length_weighted.TRIAL_ONLY_NO_SCORING`, and a `CLAIM_SAFETY` denial string in `antismash_tables.py`.
@@ -53,9 +51,8 @@ substituted for recognizable-gene dominance.
 ## How to cite these (authoring guidance)
 
 - **Do** say: *"N proteins converge on the <family> comparator (median id X%, coverage Y%), tier
-  H2_STRONG_FAMILY — a related biosynthetic cassette."* Cite the BGC (node·region) and the tier.
-- **Do** carry the boundary status: an **edge/truncated** region means the observed gene set is a
-  **lower bound**; completeness/actionability are reduced even when sequence support is strong.
+  H2_STRONG_FAMILY — a related biosynthetic cassette."* Cite strain / full node-or-contig / region / BGC alias, source accession/version and the tier.
+- **Do** carry the boundary status: an **edge/truncated** region means the observed annotations are incomplete context; completeness/actionability require separate review even when sequence support is strong.
 - **Don't** read a tier as a product call, an activity claim, or novelty. `H2_STRONG_FAMILY` is not
   "this strain makes compound X." The named MIBiG metabolite is a **comparator, not an identified
   product**.
@@ -79,3 +76,15 @@ errors. That is a **self-reported trial**; the tier logic is otherwise exercised
 an evidence-free smoke ZIP (which yields 0 convergence rows by design). **A real KCB-bearing strain
 run is still owed before the convergence tiers are trusted on live output.** Until then, treat
 live-run tiers as provisional.
+
+## Current denominator, aggregation and missingness contracts
+
+`mamey/mibig_per_gene.py:101–178` maps knownclusterblast TXT files to contig+region, then stores rows under BGC alias. Duplicate context keys can overwrite; unmapped files are skipped. Versioned references are collapsed at the first dot for the query/reference key, and the highest BLAST-score subject row is retained for each query/reference pair. This is not reciprocal one-to-one gene matching. Keep source file, full reference version and full locus map separately. Per-file exceptions increment `parse_error_count`; overall status can still be `PASS` when other rows exist. `NULL_NO_MIBIG_GENE_HITS` conflates empty/unavailable/skipped/failed parsing unless source/error context is inspected. CLI catches module-level exceptions into `ERROR_<type>` with empty per-gene data (`mamey/cli.py:1831–1861`).
+
+The query denominator comes from the parsed query table **plus hit-derived fallback genes**, not a verified complete CDS roster. Trimmed/missing query tables can shrink the denominator and inflate fractions. In convergence, “recognizable” means hit-bearing query genes; in the BGC profile it applies the profile's minimum-identity rule. These two recognizable denominators are not interchangeable (`mibig_per_gene.py:126–140,181–244,267–303`). `KNOWN_ANCHORED` is an accession-pattern anchor plus profile fraction≥0.20, not compound identity or accepted reference biology. The dark-matter names are saved-annotation reporting labels, not novelty findings.
+
+Raw coverage and capped interpretive coverage remain separate. Missing/non-numeric coverage is flagged, but helpers are not comprehensive finite-number admission guards; independently reject invalid values before interpreting tiers. Tier code uses capped interpretive median; raw median is for provenance (`:24–46,292–313,438–458`). A class-discordant reference receives CAUTION, but dominant sorting places that reference after positive tiers from **other references**: mismatch precedence is per reference, not a universal BGC veto. Dominant status and runner-up margin must travel with the tier; tier-first ordering can make a lower-density positive reference dominant over a larger mismatch (`:350–399`).
+
+The reporting gate checks declared schema, files, row/header/count and workbook parity. It is not an exact source-byte/full-locus/biological validator. `LEGACY_NOT_APPLICABLE` applies to undeclared reporting schema, not a retroactive claim that legacy evidence is complete (`mamey/validate.py:83–118,737–750`). Package sealing/hash validation and current50 authoring verification are separate boundaries. Re-running an old package is a separately authorized new run, not an in-place upgrade or guarantee that all current extraction/scoring behavior equals .332.
+
+The old 38-ZIP/1,507-BGC/45,767-row trial remains a self-reported historical scope. No runtime trial, test suite, import-graph proof, scientific adoption or current live-output validation was performed here. Freeze exact source ZIP/package/sidecar/code hashes and parameters before citing a convergence result; report uncertainty and denominator completeness alongside reference agreement. See [current ranker admission](DEFINITIVE_BGC_RANKER.md) for the additional limits of consuming these per-gene tables.

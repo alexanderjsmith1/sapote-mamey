@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "baseline": {
+    "bundle": "9.7.447",
+    "engine": "1.9.172",
+    "build": "20261003v97447a"
+  },
+  "authority": "Navigation only. Current user scope and AGENTS.md govern actions. Owning code and named machine contracts govern syntax and profiles. Candidate extensions are not release authority.",
+  "routes": [
+    {
+      "id": "first_analysis",
+      "name": "First analysis",
+      "request": "Extract and validate one strain from this antiSMASH result ZIP.",
+      "inputs": [
+        "antiSMASH ZIP",
+        "strain metadata",
+        "permitted output root"
+      ],
+      "guide": "docs/MASTER_WALKTHROUGH.md",
+      "outputs": [
+        "region inventory",
+        "package",
+        "validation receipts"
+      ],
+      "completion_limit": "Validated extraction is not authored interpretation."
+    },
+    {
+      "id": "read_results",
+      "name": "Read your results",
+      "request": "Explain this existing package, its issue log and missing evidence.",
+      "inputs": [
+        "existing package",
+        "manifest and source bindings"
+      ],
+      "guide": "docs/READING_YOUR_RESULTS.md",
+      "outputs": [
+        "result explanation",
+        "evidence gaps"
+      ],
+      "completion_limit": "Read existing evidence before considering a rerun."
+    },
+    {
+      "id": "mode_b",
+      "name": "Mode B card",
+      "request": "Author and verify this source-bound locus using the explicitly selected profile.",
+      "inputs": [
+        "validated package",
+        "full locus identity",
+        "selected profile",
+        "admitted evidence"
+      ],
+      "guide": "docs/MODEB_PROFILE_MATRIX.md",
+      "outputs": [
+        "authored card",
+        "verification receipt",
+        "unresolved scientific holds"
+      ],
+      "completion_limit": "Carry the same contract through emission and verification; structural checks are not scientific acceptance."
+    },
+    {
+      "id": "strain_slides",
+      "name": "Strain slides builder",
+      "request": "Build the main strain deck and complete region-gene-table companion.",
+      "inputs": [
+        "validated package",
+        "strain ID",
+        "sources JSON",
+        "fresh output destination/tag"
+      ],
+      "guide": "docs/STRAIN_SLIDES.md",
+      "outputs": [
+        "main PPTX",
+        "gene-table PPTX",
+        "assets",
+        "build receipt"
+      ],
+      "completion_limit": "v2n is .447 plus candidate .448 gallery/caption changes; a tag does not enable features. Displayed annotations are bounded, not lossless."
+    },
+    {
+      "id": "figures",
+      "name": "Figure rendering",
+      "request": "Render the selected figure set from this package into an external folder.",
+      "inputs": [
+        "source-bound package",
+        "selected figure set",
+        "renderer inputs"
+      ],
+      "guide": "docs/FIGURES_START_HERE.md",
+      "outputs": [
+        "figures",
+        "renderer receipts",
+        "rendered-page review"
+      ],
+      "completion_limit": "Check actual source availability and rendered output. In .447 an external image destination can still refresh package integrity records; use a working package copy to preserve the sealed original."
+    },
+    {
+      "id": "companions",
+      "name": "Companion tools",
+      "request": "Plan the selected comparison using these bound inputs and existing results.",
+      "inputs": [
+        "selected inputs/references",
+        "resource scope",
+        "tool/version requirements"
+      ],
+      "guide": "docs/COMPANION_TOOL_GUIDE.md",
+      "outputs": [
+        "bounded work order",
+        "input/output contract",
+        "readiness gaps"
+      ],
+      "completion_limit": "Read the companion protocol and resource preflight before compute; external submissions need matching user scope."
+    },
+    {
+      "id": "stored_blastp",
+      "name": "Stored BLASTp evidence",
+      "request": "Inspect and reuse saved BLASTp evidence for the bound queries.",
+      "inputs": [
+        "raw stored results",
+        "query mapping",
+        "database/settings/date"
+      ],
+      "guide": "docs/ONLINE_BLASTP_PROTOCOL.md",
+      "outputs": [
+        "channel-specific evidence",
+        "provenance",
+        "missing/failed/no-hit distinctions"
+      ],
+      "completion_limit": "Do not turn stored evidence review into an unrequested live submission."
+    },
+    {
+      "id": "recovery",
+      "name": "Recover a failed step",
+      "request": "Diagnose the failed stage and give a bounded recovery for this exact run.",
+      "inputs": [
+        "run log",
+        "status/manifest",
+        "input hashes",
+        "prior settings"
+      ],
+      "guide": "docs/ASSISTANT_USER_GUIDE.md",
+      "outputs": [
+        "stage diagnosis",
+        "retained attempt",
+        "bounded next action"
+      ],
+      "completion_limit": "Do not overwrite failures or rerun unrelated stages; current handles determine whether work is running."
+    },
+    {
+      "id": "pairwise_compare",
+      "name": "Pairwise protein comparison",
+      "request": "Compare proteins retained in these two antiSMASH result ZIPs.",
+      "inputs": [
+        "query and reference antiSMASH ZIPs with translated CDS",
+        "alignment-backend readiness",
+        "fresh output directory; optional separately bound genome FASTAs"
+      ],
+      "guide": "sapote_addons/README_OFFLINE_ANALYSIS.md",
+      "outputs": [
+        "directional per-query CDS best-hit CSV",
+        "comparison summary and backend/ANI disposition"
+      ],
+      "completion_limit": "A package directory cannot replace either source ZIP. No-hit or missing ANI is not biological absence; success does not establish a complete proteome, function, compound or taxonomic acceptance."
+    },
+    {
+      "id": "reader_widgets",
+      "name": "Interactive reader widgets",
+      "request": "Build a portable interactive reader from this reviewed package.",
+      "inputs": [
+        "reviewed package/run directory or Complete_Package ZIP with manifest",
+        "source binding and recorded validation",
+        "fresh dedicated external output directory"
+      ],
+      "guide": "docs/WIDGET_DELIVERABLES.md",
+      "outputs": [
+        "OPEN_WIDGETS.html and seven reader pages",
+        "widget data and completion/source manifest",
+        "publication metadata and handoff templates"
+      ],
+      "completion_limit": "Widget PASS is render/source-stability status, not package or scientific acceptance. Missing channels can leave empty views; a failed refresh can leave partial pages. Inspect completion markers and browser behavior."
+    },
+    {
+      "id": "portable_handoff",
+      "name": "Portable handoff builder",
+      "request": "Package this reviewed result and selected source region files for another local session.",
+      "inputs": [
+        "reviewed package and retained validation/source hashes",
+        "optional original antiSMASH ZIP with independently verified binding",
+        "new output ZIP path with existing parent"
+      ],
+      "guide": "docs/FILES_STORAGE_AND_HANDOFF.md",
+      "outputs": [
+        "handoff ZIP with package and available selected region GBKs",
+        "HANDOFF_README.txt and reported region count"
+      ],
+      "completion_limit": "Missing/no region GBKs can still produce a package-only archive. Inspect actual contents and full identities; this is packaging, not live-search permission, software environment export or scientific acceptance."
+    },
+    {
+      "id": "project_catalog",
+      "name": "Project catalog",
+      "request": "Register or verify reviewed package locations in this explicit project root.",
+      "inputs": [
+        "explicit project root",
+        "reviewed package paths",
+        "existing catalog and manifest hashes when verifying"
+      ],
+      "guide": "docs/PROJECT_CATALOG.md",
+      "outputs": [
+        "project catalog",
+        "manifest-location verification report"
+      ],
+      "completion_limit": "Register updates catalog bindings; verify can create a missing root or empty catalog. Manifest checks do not verify every package file or inventory unregistered runs."
+    },
+    {
+      "id": "private_project_handoff",
+      "name": "Private project handoff",
+      "request": "Prepare or inspect a private multi-package handoff for this reviewed project.",
+      "inputs": [
+        "explicit project root and catalog",
+        "stable reviewed package/config/registry bytes",
+        "fresh external archive path or source archive with independently confirmed SHA-256",
+        "fresh empty authorized import root when importing"
+      ],
+      "guide": "docs/PROJECT_CATALOG.md",
+      "outputs": [
+        "private handoff ZIP or extracted review root",
+        "catalog and selected portfolio provenance"
+      ],
+      "completion_limit": "The archive can include unlisted package files and omits referenced external evidence. Export can replace a destination; import can leave a partial root. It is not public disclosure approval or a complete project backup."
+    },
+    {
+      "id": "project_portfolio_binding",
+      "name": "Project portfolio binding",
+      "request": "Validate this pointer configuration and its declared project registry without running an analysis.",
+      "inputs": [
+        "existing explicit project root",
+        "sapote_project_portfolio_v1 config",
+        "contained sapote_project_registry_v1 JSON",
+        "stable source bytes",
+        "separately authorized receipt destination if write-binding is requested"
+      ],
+      "guide": "docs/PROJECT_CATALOG.md",
+      "outputs": [
+        "binding JSON on stdout",
+        "optional portfolio_binding.json",
+        "declared availability and policy states"
+      ],
+      "completion_limit": "Default validation writes no binding. Optional fixed-path write can replace a receipt and follows output-directory symlinks. Availability counts declared records, including NOT_TESTED; input hashes and scientific evidence need independent review."
+    },
+    {
+      "id": "privacy_evidence_validation",
+      "name": "Privacy and evidence metadata validation",
+      "request": "Check this extraction privacy profile and material/assay evidence TSV as metadata.",
+      "inputs": [
+        "sapote_privacy_profile_v1 JSON",
+        "strain evidence registry TSV",
+        "independent source/lineage verification context"
+      ],
+      "guide": "docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md",
+      "outputs": [
+        "validation status and availability summary",
+        "unresolved source/lineage limitations"
+      ],
+      "completion_limit": "This pair is distinct from the project-registry schema. PASS does not detect every parent-cycle/cross-strain lineage problem or verify each evidence source; it does not establish activity, identity or release approval."
+    }
+  ]
+}

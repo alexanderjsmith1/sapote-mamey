@@ -1,6 +1,6 @@
 # Sapote-Mamey release tiers
 
-**Bundle v9.7.448 · build 20261005v97448b · engine Mamey 1.9.173**
+**Bundle v9.7.449 · build 20261009v97449a · engine Mamey 1.9.174**
 
 > **HISTORICAL SNAPSHOT — measured 2026-07-12 for v9.7.319; reviewed 2026-09-03.**
 > The five-cut layout, 1,353-file count, sizes, and checksums below describe that historical cut.
@@ -8,7 +8,9 @@
 > (`CUT_PROTOCOL.md`); `docs/TIER_DIFFERENCES.md` is also historical. For disclosure, use
 > `docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md`.
 
-Every release cut produces the same bundle in five labelled tiers. This note explains what each tier is *designed* to be, and — importantly for this release — what the five tiers actually contain right now.
+This retained v9.7.319 record describes a five-tier framework and its historical measurements.
+It does not describe the default .447 cut. For current behavior use
+[CUT_PROTOCOL](../CUT_PROTOCOL.md) and the [privacy/tier guide](CUSTOM_PRIVACY_TIERS.md).
 
 ## The short version
 
@@ -40,7 +42,11 @@ When private content *is* present in the source tree, the cut removes different 
 - **cohort**: removes `private/`, `merged_cohort/`, and `docs/legacy/`, but keeps the `cohort/` banks — that is the whole point of this tier, to ship the public cohort data alongside the tool.
 - **merged**: strips nothing. Full scaffold.
 
-A separate step can scrub embedded strain IDs (`AS-`/`AJS-`/`PENDING-`) from every tier except merged. That scrub is **deactivated** in this release (`AS_SCRUB=0`) per the 2026-07-06 PI decision that the AS-series cohort is public — so real strain IDs are retained everywhere and no redaction runs.
+The historical cut used an AS_SCRUB setting and its recorded cohort disclosure decision. In the
+current builder the automatic identifier-rewriting pass was removed; AS_SCRUB controls retained
+identifier audit checks and cannot be treated as a universal redaction toggle. Other documentation
+redaction, policy and leak-audit gates have separate scopes. See the current privacy guide and actual
+cut logs rather than transferring this old “no redaction runs” assertion to a new candidate.
 
 ## Why all five are identical in v9.7.319
 
@@ -63,7 +69,7 @@ TIER_MANIFEST.txt -> # TIER_MANIFEST tier=<name> version=9.7.319 stamp=20260712v
 
 That one-word difference is why the five zip sizes differ by a handful of bytes (6,345,805 to 6,345,823) while the file lists are identical. The cut's fail-closed derivation gate (`verify_tier_derivation.py`) confirms `public == redact(private source)` for every shared file and allows only these two label files to vary per tier.
 
-## Which tier to hand out
+## Historical distribution intentions
 
 - **Sharing the tool with a collaborator who should not see worked analyses** → clean.
 - **Sharing the tool and being able to re-run the pipeline** → code.
@@ -71,7 +77,10 @@ That one-word difference is why the five zip sizes differ by a handful of bytes 
 - **The public GitHub release** → public.
 - **Your own full working copy / archival** → merged.
 
-In this release any of them gives the same files; pick by the label that matches the audience, and the recipient's bundle will self-identify correctly.
+Those intentions do not authorize current distribution or retired-tier re-enablement. Current
+release_cut defaults to CODE; all non-code tier branches and the old multi-tier driver are disabled
+unless the named override is separately selected. A label is not proof that the archive has no private
+content or that the owner has granted disclosure.
 
 ## Integrity
 

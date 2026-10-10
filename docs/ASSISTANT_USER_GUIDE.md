@@ -9,6 +9,8 @@ This guide helps you choose the work, prepare the inputs and assess what comes b
 covers environments and dependencies. The [assistant governance guide](ASSISTANT_GOVERNANCE.md)
 states task and permission boundaries.
 
+For named capabilities, required inputs and completion evidence, use [Choose a task](USER_TASK_ROUTER.md). An assistant can read the companion [task-routing JSON](USER_TASK_ROUTER.json), then the linked owning guide; the routing file does not grant execution permission.
+
 ## Start with the result you need
 
 You can ask for a small result. Supplying a large package does not commit you to a full analysis.
@@ -20,7 +22,9 @@ You can ask for a small result. Supplying a large package does not commit you to
 | Which leads deserve a closer look? | Validated package and relevant assay context | Evidence-backed triage with uncertainty and next experiments clearly separated |
 | What supports this one cluster's interpretation? | Package and full locus identity | A selected Mode B profile/card, with channel-specific evidence and open questions |
 | How do these strains compare? | Selected packages and authoritative strain/master records | A defined comparison with cohort membership, denominators and exclusions |
+| Can you make a strain deck and gene tables? | Validated package, strain ID, sources JSON and selected optional evidence | Strain slides builder; main deck, region-gene companion, assets and receipt |
 | Can you improve this code or guide? | The exact source revision | Candidate patches, reviewable diff, tests and explicit validation limits |
+| How should I read external activity predictions? | Existing prediction document and exact model/input provenance | [Optional activity-channel guide](AB_AF_EXTERNAL_ACTIVITY_CHANNEL.md); admission checks and source-binding gaps, kept separate from measured assay results and Mamey scores |
 
 An example request:
 
@@ -78,7 +82,7 @@ a value, preserve an explicit unknown value supported by the command's schema or
 | Doctor diagnostics | What the selected environment can find | Whether the chosen analysis ran |
 | Validated extraction package | Encoded checks on the extracted artifacts | Actual evidence channels, warnings and source binding |
 | Inventory/triage board | Detected records and the pipeline's ranking/context | Why a lead is ranked; assembly and missing-data caveats |
-| `PASS_STRUCTURE` | Structural checks passed | Literature and scientific validity |
+| `PASS_STRUCTURE` | The producing check’s documented structural rules passed | Its exact scope, literature support and scientific validity |
 | `FULL` depth grade | The particular depth heuristics were satisfied | Truth, completeness and quality of the biological reasoning |
 | Rendered PDF or figure | An export exists | Labels, clipping, source data, uncertainty and actual user requirements |
 | Public reference accession | A source identifier to trace | Exact assembly/version and what biological claim it supports |
@@ -107,8 +111,8 @@ The alias selects a record within a particular package; it is not a universal id
 strains or reruns. Missing or conflicting components should hold that attribution while independent
 work continues.
 
-For a Mode B card, select a current named profile and emit its template. Preserve the profile's
-titles, author from the actual evidence, and verify the authored file. A top-leads table or skeleton
+For a Mode B card, select a current named profile and emit its template. Keep the profile’s
+section titles, write the interpretation from actual evidence, and verify the authored file. A top-leads table or skeleton
 is not a finished card. Keep existing nr, ClusteredNR, Swiss-Prot and antiSMASH comparison evidence
 separate. A missing channel should remain a typed gap, not be filled with plausible prose.
 
@@ -151,23 +155,23 @@ permission to execute it. A structured summary is useful, but is not a verbatim 
 A real public-strain walkthrough should identify the actual accession/input hash, software revision,
 environment, commands and results. It should disclose failed/deferred outputs and measured duration.
 One successful input demonstrates that path in that environment, not support for every assembly,
-scientific class or optional tool. Candidate documentation should distinguish tested commands from
-source-inspected examples. A walkthrough receipt records which commands were actually run.
+scientific class or optional tool. Check whether an example includes an execution receipt or
+only illustrates command syntax. A walkthrough receipt records which commands were actually run.
 
 ## Next paths, automatic SAVE STATE, and transcripts
 
-At a substantive work handoff, present a minimum of 3 and up to 8 numbered next paths,
-including the final SAVE STATE confirmation. Choose useful, distinct paths grounded in the
-current work; do not pad to the maximum. This shared policy supersedes older model-specific
-path counts. A user's explicit response-format instruction takes precedence.
+Keep routine handoffs concise: report the result, supporting evidence, unresolved holds and
+at most one useful next action. For a major delivery or an explicit planning request, provide
+numbered options only when distinct choices help the user; do not add options to meet a quota.
+Follow the user's requested response format. Report the save-state result separately.
 
 SAVE STATE is automatic: before the handoff, update the existing session checkpoint in the
 agreed project output folder and verify that the write succeeded. Record the objective,
 authoritative inputs and revisions, decisions, completed work, tests and failures, pending
-work, exact artifact paths, transcript coverage, and the next action. The final numbered path
+work, exact artifact paths, transcript coverage, and the next action. The save-state confirmation
 must say **SAVE STATE — saved**, link the actual checkpoint, and say where transcripts and the
 file inventory are stored. It confirms completed work; it is not an option asking the user to
-request a save. If saving fails, the final item must say **SAVE STATE — FAILED**, with the reason;
+request a save. If saving fails, report **SAVE STATE — FAILED**, with the reason;
 never claim success. Save at meaningful milestones too, not just when a session is about to end.
 
 Preserve accessible user/assistant messages and execution receipts for a transparent record.
@@ -183,7 +187,7 @@ paths and sizes in a file inventory, including generated logs and temporary arti
 unrequested source copies, duplicate ZIPs and parallel “final” versions. Preserve the agreed
 top-level organization. An old output path in a receipt does not authorize new writes there.
 
-Keep transcripts in the shared workspace for now. If storage becomes burdensome, report their
-size and propose archival to the user's chosen iCloud or external-disc destination. Verify the
+Keep transcripts in the authorized project workspace. If storage becomes burdensome, report their
+size and propose archival to the user's chosen storage destination. Verify the
 copy and update the index before any separately authorized source removal. Do not silently
 upload, relocate, or delete records. Transcript saving and archival do not authorize publishing.

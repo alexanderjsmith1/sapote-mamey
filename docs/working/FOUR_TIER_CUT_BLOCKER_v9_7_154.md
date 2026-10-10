@@ -1,3 +1,9 @@
+## Current reader scope — historical .154 cut blocker
+
+The old uploaded .153 artifact, missing directories, dependency availability and reported counts below are June environment observations, not .447 checks. Its four-tier sequence and expectation of zero failures must not be reused as the current release procedure. The .447 `tools/make_public_tier.sh` defaults to CODE-only release cuts; other branches are disabled unless separately enabled, and `sid` is a deprecated alias for `cohort`. That does not authorize enabling them. Use the current [cut protocol](../../CUT_PROTOCOL.md) and independently prepared source candidate reviewed by the release maintainer. This documentation audit delivers local patches only; it does not cut, publish, install dependencies or certify any release.
+
+---
+
 # Four-tier cut — why it can't run from this CODE artifact (read before cutting v9.7.154)
 
 **Short version:** the v9.7.154 changes are ready as a **patch**, but the four-tier cut

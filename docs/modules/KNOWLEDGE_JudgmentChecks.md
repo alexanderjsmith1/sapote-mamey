@@ -1,3 +1,7 @@
+> **Implementation scope:** This is a mixed checklist of implemented lookup rules, prompt review
+> and historical proposed guards. “Lives in” a narrative audit is not proof of a Python gate.
+> Deterministic tags are review signals, not measured activity. See [module dispositions](README.md).
+
 # KNOWLEDGE — Judgment Checks: the Sapote judgments converted to deterministic rules
 
 ## 0. Header block
@@ -28,7 +32,7 @@ is portable; a judgment is not.** When a new miss appears, add the rule, don't r
 | 8 | "KCB is similarity, leads are class-level, bioactivity is extract-level" | claim-safety language locks baked into every caption | claim-safety audit |
 | 9 | "a high KCB score on ≤4 proteins is a fragment trap" | flag KCB hits with protein_hits ≤ 4 as fragment-trap; no complete-pathway claim | Mode B trap card |
 | 10 | "a low score shouldn't make an antifungal/antibacterial lead disappear; nucleosides are rare and worth always screening" | **never-drop**: chemistry-relevant axes are partitioned into Primary / Low-priority-adjacent, never truncated; **nucleoside priority floor** = HIGH regardless of AF_auto | `priority_policy` in `bioactivity_axes.json`; `build_lead_tiers.py` |
-| 11 | "Mamey already proved this is antifungal (NikJ/T43-NUC) — the scorer just never read it" | **marker-aware scoring + TIER_1 floor**: `scoring.triage_bgcs` reads per-BGC CCTT/cassette diagnostics; an antifungal trigger adds an AF bonus, and any TIER_1 diagnostic floors the tier to ≥ Medium so KCB-dark gene-only leads aren't buried by text-only scoring | `mamey/scoring.py` (the root-cause fix for BGC008) |
+| 11 | "Diagnostic-bearing capacity evidence should remain visible to scoring" | **marker-aware scoring + TIER_1 floor**: `scoring.triage_bgcs` reads per-BGC CCTT/cassette diagnostics; an antifungal trigger adds an AF bonus, and eligible corroborated class diagnostics can floor the tier to Medium (tailoring-only/cargo exclusions and later standing-rule/RiPP downgrades still apply) so KCB-dark gene-only leads aren't buried by text-only scoring | `mamey/scoring.py` (the root-cause fix for BGC008) |
 
 ## 3. The meta-lesson (learned the hard way on AS-XXX)
 **Audit every keyword against the strings antiSMASH/KCB actually emit, not the textbook chemistry name.** Rules 1–2

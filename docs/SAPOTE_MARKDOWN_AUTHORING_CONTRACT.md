@@ -2,7 +2,7 @@
 
 This prototype uses one constrained Markdown dialect for user guides, scientific
 analysis reports, and Mode B cards. The same parsed document model drives DOCX
-and PDF output. The renderer changes presentation, never scientific meaning.
+and PDF output. Both formats consume the same parsed model; presentation still needs actual rendered-page review, and parser acceptance does not establish scientific meaning or visual correctness.
 
 ## Required front matter
 
@@ -32,7 +32,7 @@ exact_locus:
 
 The H1 must contain the complete identity in this order:
 `strain / full node-or-contig / region / BGC alias`. A Mode B card must contain
-exactly one ordered `## §1` through `## §48` sequence.
+exactly one ordered `## §1` through `## §48` sequence in this renderer’s fixed-48 prototype. This is not a universal Mode B profile validator: current50 cards require their selected profile’s own verification and are not admitted as mode_b_card by this fixed-48 structural rule. Do not delete required sections to force renderer acceptance.
 
 ## Stable Markdown subset
 
@@ -63,7 +63,7 @@ Every table has a stable ID and declared layout:
 
 Tables wider than six columns must use `layout=landscape` or
 `layout=companion`. Widths are relative weights, one per column. Both DOCX and
-PDF repeat the header row across pages.
+PDF repeat the header row across pages when `repeat_header=true`. `layout=companion` is an accepted layout label; this renderer does not automatically export a separate companion table/data file.
 
 ### Figures, trees, and captions
 
@@ -91,8 +91,7 @@ wide tables.
 
 ## Claim and content boundaries
 
-- The parser validates structure and binding; it does not validate a biological
-  conclusion.
+- The parser validates declared identity/header agreement, structural fields and portable figure assets. `source_manifest` is retained metadata; its manifest bytes and locus membership are not independently verified. It does not validate a biological conclusion.
 - Mode B is a governed post-extraction judgment workflow, not part of Mamey's
   deterministic fact-generation layer.
 - Missing or unbound evidence remains a typed workflow gap, not biological
@@ -108,6 +107,8 @@ python -m mamey.document_export document.md --format both --outdir rendered
 ```
 
 `--format both` checks all dependencies first, renders to temporary files, and
-publishes neither final artifact unless both DOCX and PDF were written. Use
+attempts final publication only after both temporary files exist. Publication then replaces final paths sequentially: existing same-stem files/receipt can be overwritten, and a later replacement or receipt failure can leave a partial final set. This is not crash-atomic two-format publication or an ownership collision guard. Use
 `--format docx` or `--format pdf` when a single output is intended.
 
+
+The default output directory is beside the input Markdown. Choose an owned output directory and preserve prior evidence by path/hash; the receipt binds input/model/output bytes, not external source truth, full profile acceptance or rendered-page visual QA.

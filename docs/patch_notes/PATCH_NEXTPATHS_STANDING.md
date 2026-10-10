@@ -1,3 +1,9 @@
+## Current reader scope — historical continuation proposal
+
+The old ACTIVE/always/path-menu wording, line-number citation and unchecked implementation list below are preserved as a June .121 proposal. They do not activate instructions in the referenced prompts or require unrequested strain work. Follow the user's actual scope and [assistant governance](../ASSISTANT_GOVERNANCE.md): report the useful continuation for authorized unfinished work when appropriate, without manufacturing a fixed menu. Current Mode B work uses its [selected profile](../MODEB_PROFILE_MATRIX.md), rather than the old §1–§8 scaffold or a universal 13-item denominator. Resolve individual loci with strain, full node/contig, region and BGC alias together; an alias-only historical example is not sufficient input for a current locus task.
+
+---
+
 # PATCH — CDSW Next-Paths: Standing Continuation Path
 **Patch ID:** NEXTPATHS_STANDING_20260624  
 **Applies to:** Sapote (Claude / LLM tier) — CDSW protocol, `prompts/CLAUDE_SYSTEM_PROMPT.md §12`  

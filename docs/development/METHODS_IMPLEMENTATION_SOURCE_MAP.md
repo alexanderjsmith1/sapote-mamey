@@ -1,11 +1,11 @@
 # Methods implementation source map
 
-**Version of record:** Mamey engine v1.9.173 · bundle v9.7.448  
+**Version of record:** Mamey engine v1.9.174 · bundle v9.7.449  
 **Gate:** `tests/test_methods_documentation_contract.py` verifies every semicolon-separated path and representative test below. Symbols after `::` are documentation locators; the path before `::` must exist. Test filenames are resolved under `tests/`.
 
 | # | Methods component | Implementation source(s) | Representative tests | Boundary |
 |---:|---|---|---|---|
-| 1 | Input admission and exact identity | `mamey/antismash_input.py; mamey/parsers.py; mamey/ziputil.py; mamey/crosswalk.py; mamey/exact_identity.py; mamey/cli.py` | `test_antismash_input_recognition.py; test_antismash_coordinate_observability.py; test_inspector_exact_identity.py; test_strain_modeb_exact_identity_v97390.py` | Deterministic extraction and fail-closed validation |
+| 1 | Input admission and exact identity | `mamey/antismash_input.py; mamey/parsers.py; mamey/ziputil.py; mamey/crosswalk.py; mamey/exact_identity.py; mamey/cli.py` | `test_antismash_input_recognition.py; test_antismash_coordinate_observability.py; test_inspector_exact_identity.py; test_strain_modeb_exact_identity_v97390.py` | Deterministic extraction with admission warnings, refusals, and degraded states |
 | 2 | Inventory, edges, assembly, and count | `mamey/parsers.py::_edge_status; mamey/assembly.py; mamey/scoring.py::bgc_count_summary` | `test_circular_edge_p0a_v9787.py; test_edge_bgc_equality_v97147.py; test_assembly_sanity_pca2.py; test_scoring_coverage_and_merge_policy.py` | Measurement plus explicitly heuristic correction |
 | 3 | KnownClusterBlast and MIBiG | `mamey/antismash_evidence.py; mamey/kcb_frontpage.py; mamey/mibig_per_gene.py; mamey/mibig_comparator_coverage.py; docs/KCB_SCORE_PROVENANCE.md` | `test_kcb_rank1_and_source_precedence_v97405.py; test_kcb_anchor_selection.py; test_kcb_top_mibig_surfacing.py; test_mibig_comparator_coverage.py` | Deterministic parsing and provenance normalization |
 | 4 | RG-GMCI, FLBR, and EFLS | `mamey/rggmci.py; mamey/source_scans.py::scan_flbr; mamey/efls.py; mamey/clusterblast_genes.py; mamey/rescue_two_proof.py` | `test_rggmci_subject_tiling.py; test_rggmci_terminus_truncation.py; test_rggmci_terminus_complexity_v97406.py; test_rggmci_v9742_degree_guard.py; test_flbr_rescue_readiness.py` | Deterministic candidate inference; no LLM in scoring |
@@ -22,3 +22,9 @@
 
 When a listed owner moves, update this map and its test in the same patch. Historical documentation is not authority over current code, schemas, contracts, and regression tests.
 
+
+## How to use this map
+
+Start with the component relevant to your task, inspect the named source in the installed release, then use its representative tests to understand the specific conditions covered. The methods documentation gate checks 14 table rows, source-path existence, and representative test-file existence. It does **not** resolve the symbols after `::`, execute those representative tests, check parameter values, or certify every production branch. Its portability and prospective-template checks are text checks. A passing gate therefore keeps the navigation map usable; it is not a whole-workflow or scientific validation receipt.
+
+Input admission is not one universal refusal rule: `antismash_input.antismash_schema_warning` warns for an unsupported/unreadable major version and may continue emitting results. Preserve schema warnings and degraded states when reporting admission. For limits and units, use the [technical appendix](../reference/METHODS_TECHNICAL_APPENDIX.md). For a study-specific narrative, use the [prospective template](../templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md) and report the modules actually run.

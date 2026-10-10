@@ -7,12 +7,18 @@ The maintained first-run instructions are in [MASTER_WALKTHROUGH](MASTER_WALKTHR
 | Prepare | Code and compatible Python environment | Loaded version and required capabilities are known | Inspect one input |
 | Inspect | Original antiSMASH result ZIP | Input contents and metadata source are recorded | Explicit extraction settings |
 | Extract | Identified input and output destination | Process exits and output/issue receipts are retained | Validate and explain |
-| Review package | Complete package, not just manifest | Structure, evidence gaps and selected loci are reviewed | A scoped interpretation question |
+| Review package | Complete package, not just manifest | Package/WORKBOOK_CONTENT results, provenance gaps and selected loci are reviewed | A scoped interpretation question |
 | Interpret | Source-bound evidence for the selected question | Authored claims, alternatives, uncertainty and references are reviewable | Owner review and specific follow-up |
 | Extend | Defined missing evidence and permitted tools | Results and their provenance are saved and bound to the correct input | Reassess the original question |
 | Handoff | Complete saved artifacts | Recipient can locate files and verify transferred bytes | Resume from the checkpoint |
 
 You can perform extraction and review entirely offline with available local inputs. A chat assistant can operate a runtime only if its current environment has the necessary file access and tools. A local command still has memory, time and disk limits. Neither a model name nor a fixed number of strains establishes capacity.
+
+## Validation and recovery scope
+
+`validate` can return a structurally complete package while gold interpretation remains `JUDGMENT_PENDING`; workbook content is warning-first unless `--workbook-strict` is used. It also rewrites a mutable package-status receipt. Preserve original package bytes through an authorized working copy when needed. Read [the recovery states](COMMON_MISTAKES.md#a-validation-or-seal-command-returns-zero) before treating a zero exit as complete evidence.
+
+The intake harness's `--resume` checks an exact prior completion and tree binding. It is not general mid-phase extraction resumption. A verified skip is reuse of prior evidence, not another completed measurement. Keep failed/partial outputs and diagnose before replacing them in a new destination.
 
 ## Stop points that are useful results
 

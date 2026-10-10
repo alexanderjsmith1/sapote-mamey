@@ -6,6 +6,9 @@ used by programs. Downloading a tool from a website does not make its analysis a
 service. You do not need all of them for a first antiSMASH extraction.
 
 The integration descriptions are grounded in this bundle's code and its referenced protocols.
+For command-specific input, mutation, resource and completion boundaries, read
+[companion run contracts](COMPANION_RUN_CONTRACTS.md). The general tool descriptions below
+do not establish that a particular local command provisioned assets or completed analysis.
 
 Use the [README download table](../README.md#tool-downloads-and-licenses) for upstream project
 links. External sites, versions, service limits and licenses change without notice. Record the

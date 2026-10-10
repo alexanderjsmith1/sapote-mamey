@@ -1,3 +1,15 @@
+# Reader scope — v9.7.447 documentation audit
+
+This preserved legacy class-calibration sketch is not a current50_v2 finished-card exemplar. New current50_v2 cards require the explicit 50-section contract: literature in §48–§49 with relevance, data evidence table last in §50, and the complete identity `strain / full node-or-contig / region / BGC alias`. Historical pass/FULL labels below have not been rerun or scientifically certified here.
+
+Reuse structure and bounded register only. Do not transfer these genes, homology results, comparators, numerical scores, inferred mechanisms, activity language or proposed experiments into another locus. Provenance statements in §28 are assertions to trace to the original source files and receipts; verify the underlying search outputs and biological interpretation independently before reuse. Similarity and boundary labels alone do not establish product identity, pathway completeness, production, activity, novelty or physical linkage. Report missing independent evidence as a typed, reasoned limitation rather than filling it with teaching text.
+
+[Collection reader guide](README.md) describes the profile and historical-status boundaries.
+
+---
+
+## Preserved exemplar body
+
 # Mode B — BGC004 (BA000030.4 · region004) — *Streptomyces avermitilis* MA-4680
 
 **Class exemplar: t1pks (modular type I PKS).** Public type strain (GCA_000009765.2). Claim-safe throughout: biosynthetic *capacity* only; KCB/BLASTp are *similarity, not identity*; cited as BGC004 · BA000030.4 · region004. **This region is OVER-MERGED — antiSMASH resolved ≥2 protoclusters (chemical_hybrid). It is analysed per protocluster below; no single region-level product claim is made.**

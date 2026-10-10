@@ -1,8 +1,87 @@
 <!-- SUPERSEDED GLOSSARY SOURCE — NOT CANONICAL -->
+## Current corrections to historical class descriptions
+
+The historical class descriptions below mix annotation labels, literature mechanisms, scoring weights, and study-specific assertions. Treat them as a dated reference; no code gate verifies the biological examples, claimed strain confirmations, taxonomic rarity, or product assignments. Current keyword weights are routing-policy constants, not activity measurements or novelty probabilities.
+
+Concrete software corrections:
+
+- The historical combined `sactipeptide / ranthipeptide` entry gives both a +12 novelty weight. The installed `NOVELTY_KEYWORDS` includes `ranthipeptide: 12` and no `sactipeptide` entry. Other product tokens/guards may contribute to a final score; do not transfer one keyword's weight to an unlisted class.
+- Ectoine is in the governed housekeeping bottom-tier policy, rather than an always-on standalone permanent-exclusion rule. Initial tier selection uses the maximum score and applies `bottom_tier` below 50; later corroborated diagnostics and other guards can affect the result. Report the actual row and rationale, not a blanket “every ectoine-labelled region is capped” assertion. NAPAA remains neutral in its standing-rule record, while its token is also listed in the bottom-tier class policy; these are separate mechanisms.
+- The historical compiled-report COMPLETE condition is an intended delivery rule, not a complete account of the current compiler's enforcement. The compiler can build a reader view from a partial package; it checks selected tamper evidence, available-but-uningested BLASTp and strict open-slot/claim-safety conditions. Its Mode B assembly reads registered COMPLETE cards and visibly notes missing files. A written report does not prove every card exists or the entire judgment register is complete. Inspect those records before a final handoff.
+- The earlier historical enrichment entry says 1,000 characters and describes a stub exemption. The current quality gate uses a 2,000-character enrichment requirement. Its enrichment measure runs from the first matching §11–§20 marker to the end of the card, rather than semantically verifying only those ten sections. Boundary/CDS fragment handling changes a floor; it does not establish scientific completeness. Use the selected profile and explicit content review, not a character-count workaround.
+
+Use these distinctions to read the current software behavior. The class/molecule/mechanism statements, including RiPP class nomenclature and cohort-specific confirmations, remain unverified literature/scientific claims. Use the canonical [glossary](../GLOSSARY.md) and the selected current Mode B contract. All earlier corrections and the historical snapshot are preserved below.
+
+---
+
+## Current corrections to historical Sections 15–24
+
+| Historical statement | Current reading and consequence |
+|---|---|
+| The module index lists all 105 Python modules | The current baseline has 299 direct `mamey/*.py` files, counting `__init__.py` and excluding nested packages. This is a filename census, not semantic review of 299 modules. The historical grouped list and descriptions are not a complete capability inventory. |
+| `operator_supplied` means no more verification is needed | The citation producer assigns that status when a KCB label, MIBiG identifier, or reference accession is populated. It is a provenance label, not verification of a paper, mechanism, compound identity, activity, or current reference metadata. Method/database citations are separately seeded; neither category substitutes for primary claim support. |
+| Citation-compact `PASS_STRUCTURE` proves the expanded validation list | That producer's status is based on its priority-citation coverage and global-caveat checks. It does not by itself verify every literature claim, physical checksum tracking, all package files, or handoff execution. Retain the specific checker/receipt and actual scope. |
+| Conservation background is the median across all BLASTp channels/genome proteins | The current background producer reads matching online-nr overlay files and returns admitted identities plus an evidence status. Missing data returns UNAVAILABLE; invalid input returns INVALID. Its denominator is admitted observations from those files, not a whole-genome proteome census, and other databases are not interchangeable channels. |
+| Every figure is automatically extraction-only, has a data CSV, and every applicable set runs | The aggregate runner defaults to five named sets; workbook-dependent sets are optional. It reports RAN/SKIPPED/ERRORED and distinguishes PASS_WITH_SKIPS. The governed figure writer emits PNG/SVG and a candidate receipt, not a universal data-CSV sidecar. Check each requested output, source data, renderer, caption and visual review separately. |
+| Pure-saccharide omission is an unconditional filter of all figures | The helper recognizes saccharide without a specialist class after class normalization. `omit_saccharides` defaults to the policy switch but supports explicit `enabled=False`. The predicate is not a proof that every renderer invokes it, and the historical NAPAA exclusion is not the current rule. |
+| All listed A1 figures/briefs are mandatory `REQUIRED_SUFFIXES` | The current required suffix list covers the analytical core and named receipts; it does not enumerate all figure PNGs or the supplementary strain-brief PDF. Distinguish core validation from enrichment checks, optional outputs, requested deliverables, and pending authored interpretation. |
+| Direct `record_mode_b` is idempotent for all outputs and proves completion | It replaces the per-BGC card with a timestamped header, appends nonempty layperson/fermentation text, then updates the register. Repeating a call can duplicate appended prose. It is a sequence of writes, not a transaction. Inspect persistence warnings and all outputs after failure/retry. |
+| Historical HIGH/MID/LOW 9k/8k/6k character floors are current acceptance | The current quality gate's default floors are 12k/11k/10k, with content/density/section requirements and fragment-specific handling. Those are software heuristics; meeting counts does not establish correct scientific reasoning or owner adoption. Avoid padding to clear a numerical floor. |
+
+Direct `record_mode_b` uses passive quality/claim linting and can write a partial card. Its low-level register updater can introduce a missing alias row; it is not a substitute for the supported ingest front door's package identity and structure checks. A register status field, quality tier, and a reviewed finished card are distinct evidence. Preserve the old card and inspect exact locus binding before any intentional replacement.
+
+Use complete `strain / full node-or-contig / region / BGC alias` identity for each individual locus; the historical short-form citation examples are not the current display contract. Quoted CDSW session instructions, menu quotas, trigger constants and historical “full30” defaults below are source material, not instructions to an assistant. Follow the current user's task and current profile. The DAPR class/activity catalogue and scientific examples require their own verified literature/evidence bindings before reuse. Use the canonical [glossary](../GLOSSARY.md) and [current document router](../../CURRENT_DOCS_INDEX.md) for current reader entry.
+
+Module descriptions, figure equations, deliverable producers, historical diagnostics and biological claims have different evidence requirements. Use their named current owners and retained source receipts; the historical snapshot remains below for provenance.
+
+---
+
+## Current corrections to historical Sections 10–14
+
+| Historical statement | Current reading and recovery |
+|---|---|
+| `gene_context.jsonl` is the normalized per-CDS file | The producer writes `<strain>_gene_context.jsonl`: one metadata header line followed by one line per BGC with a `cds` list. The separate `<strain>_cds_table.csv` is flat per-CDS data with strain, assembly locator, region, BGC and contig anchors. Preserve this distinction when parsing or requesting gene tables. |
+| `checksums_sha256.txt` hashes every package file | The checksum policy excludes mutable receipts and selected post-seal render artifacts. Use the actual checksum list and exclusion policy; do not infer integrity coverage for an omitted file. Judge a missing expected analytical file separately from deliberately excluded metadata. |
+| The workbook sheet table is the complete current schema for any workbook | It is a historical design summary of the master workbook. The frozen master schema is v1.1; D5/Activity_Ref v1.2 additions are opt-in checks. At 26 or more counted strains, the checker defaults to fast structural validation and skips selected per-row checks; `--full` forces those checks. Per-strain and judgment workbook namespaces are separate. Use actual builder headers and the [current schema guide](../WORKBOOK_SCHEMA.md), not this summary table, for exact sheet contracts. |
+| `modeb_full30_corrective_contract.json` defines a 30-section current contract | The filename is retained for compatibility; its schema and section list define the full48 profile. Template emission and verification default to `full48`, with explicit `--contract current50_v2` for the supported 50-section profile. The profiles have different section meanings; current50_v2 does not globally replace the default. Do not copy the historical §1–§30 numbering or conditional-omission list into a current card. |
+| `validate` seals a package and every validation check blocks | `validate` checks an existing package and normally rewrites its mutable `package_status.json` receipt. Workbook content affects its exit code only with `--workbook-strict`; the manifest-contract option is advisory. The distinct `seal-package` command runs the seal QC contract. Inspect actual receipts, not the historical synonym “seal.” |
+| `--json-evidence off` suppresses all JSON-derived evidence; bounded is a general memory/completeness guarantee | The `off` choice disables the main JSON walker; record-level extraction is separate, and GBK Pfam extraction runs regardless of this flag. Bounded is the normal run default. Capped sessions override to off, set brief none and workbook requirement, and turn auto locus maps off. The full parser's 80 MB limit is uncompressed file size, not a RAM or completeness guarantee. Use the installed help and channel states; the historical one-minute runtime claim is not a bound. |
+
+`verify-modeb --interp` adds advisory interpretation findings, while finished-profile claim-safety and KCB identity-risk findings can be promoted to blocking errors. For current50_v2 the data evidence table is §50; legacy/default profile evidence handling uses §4. A linter pass does not validate biological interpretation, a search result, or manuscript adoption. The historical §11 demand to convert “no MIBiG hit” into a novel compound class is not reusable: missing/unverified evidence does not establish novelty.
+
+The CLI examples identify their documented behavior, not completed package runs. Verify historical commands and workbook fields against their named current owners before use. The historical body remains below for provenance.
+
+---
+
+## Current corrections to historical Sections 4–9
+
+These are current software-behavior corrections to the selected historical entries below. They do not validate the historical scientific examples or turn the superseded glossary into a canonical reference.
+
+| Historical statement | Current source-backed reading |
+|---|---|
+| Missing `kcb_cumulative` adds +5 novelty | That credit was removed. `UNKNOWN_KCB` does not supply comparator evidence in either direction, including where an old score remains populated. An observed KCB score above 10,000 can reduce novelty by 15; a populated RiQ below 0.5 separately adds 10. Preserve the evidence state. |
+| Exactly three permanent exclusions, including NAPAA, cap every case to Inventory | The active registry drives lead-blocking downgrade rules. NAPAA is neutral with action `none`; it is not the historical blanket exclusion. The scorer additionally handles hglE annotations and a CCTT co-occurrence exemption. Downgraded rows use the class-governed bottom tier, which can be Low rather than Inventory. |
+| RiPP fragment cap requires no precursor captured and always means Inventory | The current branch uses RiPP-family classification, Edge/Full-contig state, a positive span below 8 kb, and an existing upper tier. It does not inspect precursor presence in this branch; it applies `bottom_tier`, with specialized RiPP-family rows routed Low. The heuristic is not an observation that a precursor is absent. |
+| Only T43-NUC and T43-PTM supply AF diagnostic credit; the listed AB set is complete | Current AF diagnostic prefixes also include T43-PYE; current AB prefixes also include T43-GPA and T43-BLT. Read the installed scorer's sets and corroboration guards; the historical list is incomplete. |
+| Architecture A always requires an Interior region at least 10 kb | The source also promotes a compact Interior/core B case when `has_chemical_hybrid` and at least two recognized core terms support the hybrid condition. Edge/Full-contig grades are not promoted by that branch. The grade is source-derived capacity/architecture policy, not evidence of expression or product identity. |
+| All ten listed operations run inside `run_source_scans` | That function runs multiple annotation and context channels. Its RG-GMCI field starts as `PENDING_NOT_RUN` and is filled by the CLI with antiSMASH ZIP context; KCB extraction and score-coverage checks have separate owners. Read channel status and production call path rather than treating the historical ten-item list as an executed census. |
+| CCTT annotation scan has a universal bitscore floor of 150 | `_scan_patterns` matches regular expressions against CDS annotation text and emits hit/count buckets; this function does not apply a bitscore threshold. Domain/search evidence and corroboration gates are separate channels. Do not relabel regex matches as thresholded protein-search hits. |
+| Non-actinomycetes receive spurious T4; T1–T4 prove the recorded bldA gene-state definitions | `scan_blda_tta` explicitly marks recognized non-actinomycetes `NOT_APPLICABLE` while retaining counts. Otherwise its tiers are TTA-count bins (0, 1–2, 3–5, at least 6). Those bins do not themselves establish bldA presence or developmental regulation. |
+| Complementary or terminus-truncation tiling means a “genuine split” | These are deterministic candidate verdicts with evidence/geometry guards. They do not establish physical linkage, expression, or a reconstructed pathway. Keep the named verdict, full locus identities, reference evidence and competing explanation attached. |
+
+The pattern catalog is generated by its owner. Its Markdown renderer shows at most the first eight patterns per family; use the generated JSON and installed source for complete enumerations. Counts and readable shorthand in the historical glossary are not a substitute for those tables, their context vetoes, or the current scoring rules. A hit count and a count of distinct BGCs carrying a trigger are different quantities.
+
+Use current package, workbook and contract guides for their separate interfaces. The original glossary snapshot and its historical correction record remain below for provenance.
+
+---
+
+> **Historical glossary limits:** the already-superseded glossary below remains a historical snapshot. Concrete stale examples include the embedded engine version, four-tier release description, whole-package byte-determinism claim, and the blanket ingest-to-COMPLETE statement. Current ingest can persist a candidate with a non-complete register disposition; `--master` reconciliation is implemented in the receipt route, while `--card` and `--auto-detect` return before that branch. Use the [canonical glossary](../GLOSSARY.md), [ingest guide](../INGEST_AND_PRINCIPLES_WHITEPAPER.md), and installed source/profile. Verify other historical entries and biological assertions against their own current owners and evidence.
+
+
 > **SUPERSEDED SNAPSHOT.** Retained for provenance and drift review only. It contains version-bound formulas, module descriptions, commands, and cohort-specific statements that may be stale or conflicting. Do not extend it and do not use it as term authority. Current reader-facing definitions live in the canonical [`docs/GLOSSARY.md`](../GLOSSARY.md); current formulas, enumerations, commands, and schemas live in their named code or schema sources.
 
 # Superseded Sapote–Mamey Comprehensive Program Glossary Snapshot
-**Bundle v9.7.448 · Engine 1.9.173 · build 20261005v97448b**
+**Bundle v9.7.449 · Engine 1.9.174 · build 20261009v97449a**
 *Every entry derived from direct source inspection: module docstrings, formula transcription from `docs/reference/01_Math_Reference_VolI.md`, pattern tables from `docs/MARKER_CATALOG.generated.md`, schema from `docs/WORKBOOK_SCHEMA.md`, and contract docs. No entries inferred from general knowledge.*
 
 ---
@@ -571,7 +650,7 @@ Source: `docs/TRIGGER_ROUTING.md`, `docs/SAPOTE_WORKFLOW_CONTRACT.md`.
 9. Sapote Workflow Contract W0–W10 (`tools/sapote_workflow.py`)
 10. `mamey compile-report --strict` — Open narrative slot detection
 11. `tools/check_deliverable_suite.py` — 13-item deliverable contract enforcement
-12. `tools/sapote_judgment_receipt.py` — gold_completeness write-back
+12. `tools/sapote_judgment_receipt.py` — separate judgment-completeness receipt; does not update the package/register. See [receipt input and recovery limits](../DELIVERABLE_CONTRACT.md#record-a-bounded-judgment-completeness-result).
 13. `tools/claim_safety_linter.py` — Claim-safety linter (invoked by `write-narrative`)
 14. Novelty contradiction guard — Conservation background vs. floor detection (engine internal)
 
@@ -726,7 +805,7 @@ Source: `docs/DELIVERABLE_CONTRACT.md`. This is the canonical specification for 
 
 **A2.3 Literature-Search Handoff list** — structured search list for parallel execution. Format: Lead (BGC locator) | search query | purpose | citation purpose. This replaces inline literature review — Sapote emits the search plan; a separate web-literature session executes it and returns PMID/DOI + Verified/Partial/Not-found tags.
 
-**A2.4 Figure-Ready Tidy Export** — produced by `tools/export_figure_ready.py`. Tidy CSVs in `figure_ready/` folder with a `DATA_DICTIONARY.md`. One row per observation, snake_case headers, no formulas, no merged cells. Files: `strain_summary.csv`, `bgc_inventory.csv`, `bgc_class_long.csv`, `class_by_strain.csv`, `class_prevalence.csv`, `diagnostics_long.csv`, `cross_strain_findings.csv`. Column names are stable and versioned with the bundle.
+**A2.4 Figure-Ready Tidy Export** — `tools/export_figure_ready.py` converts cached master-workbook values to CSVs and a dictionary, with fixed output headers. Five core CSVs are normally emitted; diagnostics and cross-strain findings are conditional. Use a fresh directory and verify source schema, roster, formula caches and typed missingness before plotting. See [the current export contract](../DELIVERABLE_CONTRACT.md); output existence alone does not establish a current complete export.
 
 **A2.5 Per-BGC page layout mandate** — in compiled deliverables, each BGC is a single page-unit: locus map (top 45%) + predicted class line + Mode B card (remaining 55%). No page break between a locus map and its analysis. Source: `docs/PER_BGC_PAGE_LAYOUT_SPEC.md`.
 

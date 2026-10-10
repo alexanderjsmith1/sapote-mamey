@@ -30,8 +30,7 @@ to the output contract it reads.
   `modeb_verdicts.csv` (Mode-B), `bgc_blastp_panel/` (BLASTp ingested),
   `*_5b_manual_blastp_worklist.csv` (BLASTp pending → ⧗), `*_compiled_report.md` (report).
 
-Because those names are the package contract, the "what's next" logic stays correct as the
-contract changes — the same rationale that keeps `explain` in-tree.
+The scanner keys on specific filenames. Contract changes require corresponding source updates; discovery does not automatically track new filenames or verify their contents.
 
 ### Output modes
 - default: a human table + workspace context + ranked next-actions.
@@ -61,7 +60,7 @@ the right verb. This is the catalogue so the process is legible in-code.
 | `render-all-figures` | one package | the full per-strain set incl. extended panels |
 | `cohort-figures` | many packages | cross-strain cohort panels (class heatmap, landscape, DAPR) |
 | `cohort` | many packages | the cohort deliverable (figures + synthesis) |
-| `figures` | package/cohort | **publication** figures: `diagram \| atlas \| ani \| gcf-network \| clinker` |
+| `figures` | package/cohort | candidate figures: `diagram \| atlas \| ani \| gcf-network \| clinker` |
 
 ### Per-strain pack (emitted at gold seal → `gold_figures/`, mirrored as `_8a…_8n`)
 `8a` landscape · `8b` composition · `8c` DAPR scatter · `8d` AB-ranked · `8e` AF-ranked ·
@@ -86,12 +85,12 @@ reproducible from data, never hand-drawn).
 | `figures_smoke.py` | smoke-mode minimal figures |
 
 ### The process (how a figure is made, for contributors)
-1. A scan/scoring step writes a **data table** (`*_data.csv`) — the figure's ground truth.
+1. A scan/scoring step writes a **data table** (`*_data.csv`) — the figure's saved display inputs; source admission is separate.
 2. A renderer in the module map reads that table and draws with **matplotlib**, applying
    `figure_policy` for style + claim-safe labels (AF/AB shown as *routing priors*, KCB as
    *similarity*, never as activity/identity).
 3. The figure + its `_data.csv` are written to `gold_figures/` (per-strain) or the cohort output
-   dir. Nothing is drawn from memory; re-running reproduces byte-comparable data.
+   dir. Nothing is drawn from memory; reproducibility requires the exact input/code/config/runtime bindings; this catalog does not verify them.
 4. `discover` reports the figure as present (✓) once `gold_figures/`/`*_8a_fig_landscape.png`
    exists, and routes to `cohort-figures` when ≥2 packages lack a cohort deck.
 
@@ -99,3 +98,15 @@ reproducible from data, never hand-drawn).
 table first), wire it into `render_all_figures.py` (per-strain) or `cohort_figures*` (cohort),
 route its appearance through `figure_policy`, and — if it becomes a required output — add its
 suffix to the package contract so `discover`/`validate` can see it.
+
+## Current implementation and reader limits
+
+`mamey/discover.py:32–110` identifies a package by either manifest filename, stops descending into that folder, and swallows JSON read/parse errors into an empty object. It chooses the first existing short/full manifest, not the first valid one: a malformed short manifest prevents fallback to a valid full manifest. Metadata and gate states are read rather than freshly validated. No package/source hash, sealing, exact locus or current50 verifier is run.
+
+Capabilities are top-level filename/directory-presence flags. An empty `gold_figures` directory or `bgc_blastp_panel` name can mark a layer present. Figure counts inspect only a subset of PNG locations; Mode B counts physical verdict-file lines minus one, not verified cards or CSV records; BLASTp counts directory entries, not admitted queries. Existing SVGs, different figure directories or a full finished card can be invisible to these proxies. They are navigation hints, not evidence of completion, freshness, coverage, visual QA or scientific acceptance. Preserve strain / full node-or-contig / region / BGC alias in actual locus reports.
+
+Version drift compares parsed package engine versions to `--current` or the newest discovered value; a stale flag is not authorization to rerun or mutate a sealed source. Suggestions are strings, not executed commands or complete invocations. `--emit-md` directly replaces the named file and needs its parent to exist; the ordinary discovery report lacks a source/hash receipt (`:177–211,255–280`). The optional source catalog separately requires an explicit registry hash and source-root ID; catalog inclusion still does not grant evidence authority.
+
+The figure module map is a navigation list, not proof that every renderer imports one policy or uses the same palette/output format. Not all figures emit raw CSVs, and generated source tables can be aggregates or derived metrics. There is no universal automatic figure count or guarantee that every numbered panel exists after a run. Consult [the current catalog](FIGURE_CATALOG.md), [reproducibility limits](FIGURE_REPRODUCIBILITY.md), and [optional figure tool contracts](OPTIONAL_FIGURE_FACTORY_TOOLS.md).
+
+`render-all-figures` validates a readable manifest and reports per-set `RAN`, `SKIPPED`, `ERRORED`, `UNKNOWN_SET` or `DRY_RUN`. Skipped sets can yield `PASS_WITH_SKIPS` and exit0; requesting no sets can yield PASS without rendering. Render execution, publication approval, biological validation and release approval are separate statuses. Gathering copies PNG/SVG files and labels current versus stale/untracked entries; its manifest hashes copies, not all original data/configs or source admission (`mamey/render_all_figures.py:113–230,536–623,630–739`). The command writes package subdirectories and a summary, so a “post-seal” name does not imply immutable read-only behavior. Use a separately authorized candidate or external route before any rendering. Record the actual requested/rendered/skipped set roster and partial outputs.

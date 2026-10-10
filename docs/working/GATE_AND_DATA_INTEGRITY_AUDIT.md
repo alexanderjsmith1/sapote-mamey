@@ -1,3 +1,9 @@
+## Current reader scope — historical .96 integrity audit
+
+The FIXED/verified/counts/reference-restoration claims and source-tree observations below are the June audit record. They are not .447 gate results, current reference-data truth or authorization to restore/redact data, delete tools or run a cut. Recheck a specifically proposed change against its current owner and supplied evidence. Current [tier guidance](../TIER_DIFFERENCES.md) distinguishes what parity/derivation checks actually cover; a historical PASS is not release or scientific certification. Keep baseline reference data in place and preserve unresolved identity/provenance holds rather than guessing lost labels. This patch preserves the original audit body.
+
+---
+
 # GATE & REFERENCE-DATA INTEGRITY AUDIT — v9.7.96
 
 **From:** Patch Chat (audit thread) · **Date:** 2026-06-20 · **Against:** sapote-mamey v9.7.96 / engine 1.9.96

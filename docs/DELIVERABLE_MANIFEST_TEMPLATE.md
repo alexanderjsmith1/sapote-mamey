@@ -1,5 +1,5 @@
 # Sapote Full-Run Deliverable Manifest — [STRAIN_ID]
-<!-- The LLM MUST fill this out and emit it as the LAST artifact of a full run. -->
+<!-- Fill this template only for the user-selected full-run authoring suite; its presence does not authorize extra work. -->
 <!-- It turns FULL_RUN_PROFILE Section A (the 13-item contract) + Section H gate from trusted prose -->
 <!-- into a checkable artifact. tools/check_deliverable_suite.py validates it. -->
 <!-- Status vocabulary (one per item): COMPLETE | SKIPPED | N/A  -->
@@ -7,8 +7,10 @@
 <!--   SKIPPED   → must give a one-line reason (e.g. "deferred to Batch 3 per user"). -->
 <!--   N/A       → must give a one-line reason (e.g. "no AF leads in collection"). -->
 
-**Strain:** [STRAIN_ID] · **Run mode:** [smoke|standard|gold] · **Bundle:** sapote-mamey-vX.Y.Z · **Date:** YYYY-MM-DD
+**Strain:** [STRAIN_ID] · **Extraction mode:** [gold] · **Suite-check mode:** [gold|standard|smoke] · **Bundle:** sapote-mamey-vX.Y.Z · **Date:** YYYY-MM-DD
 **BGC count:** [raw] raw / [corr] corrected · **Batches:** [n] (this manifest is cumulative across batches)
+
+This template records the selected full-run authoring suite, not extraction success alone. A current gold extraction can legitimately report JUDGMENT_PENDING. The legacy suite checker's `--mode` is its own check profile; accepting smoke/standard there does not mean those are supported current engine run modes. Preserve the selected Mode B contract and source identities.
 
 ## Deliverable suite (FULL_RUN_PROFILE §A — 13 items, ordered)
 | # | Deliverable | Status | Artifact (path) or Reason |
@@ -55,3 +57,11 @@
 - BSL-2 / enediyne flags surfaced: [list BGCs or NONE]
 - NAPAA exclusions applied: [list BGCs or NONE]
 - Standing-constraint check (claim-safety, typed bioactivity state with no named default, affiliation): [PASS|FAIL]
+
+## What the suite checker proves
+
+Run `python tools/check_deliverable_suite.py --manifest PATH --mode gold --json` when checking this selected full-run suite. It parses numbered rows 1–13, checks filled status/reason text and selected self-reported Section H fields. It does not open artifact paths, hash output bytes, verify scientific prose or validate the unnumbered packaging table. A nonempty fabricated filename can satisfy its textual path requirement.
+
+The gold check rejects JUDGMENT_PENDING text but does not require the value to equal literal COMPLETE; standing-constraint absence is also not independently rejected. Confirm those fields and all requested artifacts yourself rather than treating checker PASS as complete admission. Preserve failed, held, skipped and unknown states instead of declaring scientific completion to satisfy the text gate.
+
+For each COMPLETE entry, additionally record an existing artifact, current hash, owning source/version, evidence scope and applicable gate receipt. For an individual locus, use `strain / full node-or-contig / region / BGC alias`. Treat authoring, structural validation, evidence review, owner acceptance and release authority as separate decisions.

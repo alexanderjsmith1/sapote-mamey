@@ -17,23 +17,20 @@ def test_readme_has_browser_assistant_entrypoint():
         assert phrase in text
 
 
-def test_skill_uses_plain_workflow_heading_and_eight_distinct_paths():
+def test_skill_uses_plain_workflow_heading_and_contextual_handoff_scope():
     text = (ROOT / "skills" / "sapote-mamey" / "SKILL.md").read_text(encoding="utf-8")
     assert "## The workflow — CDSW" not in text
     assert "## The workflow" in text
-    assert "## Next paths at every substantive handoff" in text
-    assert "exactly\neight numbered paths, 1 through 8" in text
-    for item in (
-        "continue the next batch",
-        "deepen a named BGC",
-        "compare or merge",
-        "figure or visual",
-        "wet-lab, metabolomics, or",
-        "checksum-bound handoff",
-        "patch, debug, or improve validation",
-        "documentation, release material",
+    assert "## Handoff scope" in text
+    flat = " ".join(text.split())
+    for phrase in (
+        "eight concrete numbered next paths only for a major final delivery or explicit planning request",
+        "when eight distinct useful options exist",
+        "Routine statuses and small fixes stay concise with at most one useful next action",
+        "Do not create extra work to fill a menu",
     ):
-        assert item in text
+        assert phrase in flat
+    assert "## Next paths at every substantive handoff" not in text
 
 
 def test_skill_current_navigation_does_not_brand_features_as_v97338():

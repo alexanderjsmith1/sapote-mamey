@@ -1,3 +1,27 @@
+# Current optional scanner data provisioning
+
+This CODE bundle retains selector/provenance records rather than a bundled scanner HMM. Exact reconstruction of the historical 35-model artifact remains held for missing unambiguous source-release/archive hash evidence. The current source-bound builder can produce a separately receipted new-source artifact; it does not prove the old model bytes or scanner results were recovered. Read [the scanner manifest boundary](reference/SCANNER_PFAM_MANIFEST.md) and [external asset guide](EXTERNAL_ASSETS_GUIDE.md) first.
+
+The original download/grep recipe below is retained as historical evidence, **not the current provisioning recipe**. It fetches a mutable current_release source, indexes it, derives selectors from Markdown prose and directly overwrites an output beneath the bundle. Use the dedicated reviewed selector file/preset and fresh external output paths instead. Do not automatically download/index/press data or create Wheelhouse directories while reading a guide.
+
+## Current producer and prerequisites
+
+For an authorized new-source build, bind the operator-provided Pfam-A HMM path/hash and release receipt, the exact 35/148 selector list path/hash, separately provisioned HMMER `hmmfetch`/`hmmpress` identity, and a reviewed new destination outside accepted source evidence. From the bundle root, use this optional command template only within the selected build scope:
+
+```bash
+python3 tools/build_scanner_hmm.py --source /ABSOLUTE/PATH/TO/Pfam-A.hmm --preset 35 --out /ABSOLUTE/PATH/TO/new-scanner.hmm
+```
+
+Preset 148 is a different selector set. The builder refuses existing model/index/receipt targets, validates one exact fetched versioned accession per selector, requires all four press indices, checks unchanged source/list hashes and emits `COMPLETE_NEW_SOURCE_BUILD` plus output hashes. It reads operator source and selector files, not the historical source_pins JSON. Nonreplacing hardlinks publish outputs sequentially with rollback of its own published paths on caught publication error; interrupted publication still needs inspection. Source: `tools/build_scanner_hmm.py:31–92`. Do not loosen selector versions or substitute a current-release model merely to make a fetch succeed; incompatible source/selector combinations remain held until a reviewed new binding is defined.
+
+## Distinct evidence channels
+
+antiSMASH fullhmmer annotations and a separately generated scanner/domtblout result have different source/model/query/coordinate/threshold provenance. They are not automatically equivalent to the historical 35-model subset, and cannot silently fill pending HMMER workbook cells. The main extraction CLI has no general domtblout import; `mamey/cell_provenance.py:117–147` emits NEEDS_HMMER_DOMTBLOUT placeholders. Use [HMMER integration limits](troubleshooting/HMMER_DATA_WORKFLOW.md) and the owning consumer's exact contract, keeping unrun/missing/unbound states explicit.
+
+Model-data license terms, HMMER software license, selector-file provenance and any service access conditions are separate records. An old data-license label or large-file omission is not proof of current acquisition/redistribution permission. Keep exact upstream release/license and applicable source receipt with the supplied model; no legal or biological acceptance is implied by builder completion. No data download, HMM indexing/build/search, install or fixture run was performed here.
+
+## Historical provenance and old recipe — preserved below
+
 # Public-release data — provenance and optional HMM rebuild
 
 The public release does **not** bundle the Pfam HMM (`Wheelhouse/hmm/scanner_pfam.hmm`); acquire it per `docs/EXTERNAL_ASSETS_GUIDE.md`. Pfam is

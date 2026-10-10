@@ -3,6 +3,22 @@
 
 **v9.7.149a** | Source: `docs/BUNDLE_CAPABILITIES.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md` | Last updated: 2026-06-29
 
+
+## Current session and persistence route
+
+The commands and guarantees below are a retained v9.7.149a protocol. They are historical examples, not a blanket instruction to execute a run, ingest a draft, write inside a sealed package or generate every figure. Use [the assistant guide](../ASSISTANT_USER_GUIDE.md), [Common mistakes](../COMMON_MISTAKES.md), [deliverable contract](../DELIVERABLE_CONTRACT.md) and [the selected Mode B profile](../MODEB_PROFILE_MATRIX.md).
+
+At session start, bind actual source paths/hashes, authorized scope, prior accepted outputs and unresolved holds. Conversation history is context rather than proof of filesystem or acceptance state. Preserve operational state in the approved workspace; writing a session log into a package can change integrity evidence. At close, record produced files and receipts, remaining/skipped/failed states and one next bounded action. User format and next-step preferences govern the response; an old automatic next-path policy does not override them.
+
+`ingest-receipts` is a package authoring operation with exactly one of `--receipt`, `--card` or `--auto-detect` (`mamey/cli.py:7391–7417`). A persisted draft/register COMPLETE state is not scientific acceptance. In the command dispatcher, only the JSON receipt branch passes `--master` for E1 reconciliation; card and auto-detect branches return before it (`mamey/mode_b_receipt.py:2495–2598`). Do not infer workbook update from accepting the flag.
+
+Inspect per-card outcomes and register persistence. Single-card outcomes return 0 recorded, 3 rejected structure, 4 recorded with override, or 1 other non-recorded states (`:2523–2535`). Auto-detect can return 0 with already-complete or unknown cards skipped; JSON receipt can return 0 with unknown/empty cards skipped or a coverage-only receipt recording no cards (`:2537–2641`). JSON identity mismatches return 5 and structure rejection 3. “Idempotent” is not a universal no-write guarantee; repeated invocation can update package/register/workbook state, and accepted prior evidence must be preserved. Do not use `--force-structure` as an automatic recovery step.
+
+Brief/figures/locus maps may be selected out or fail independently; the universal handback block below is historical. Present actual outputs and explicit missing-state receipts instead of asserting every file exists. No ingestion, history search, workbook reconciliation, builder or validation ran for this overlay.
+
+## Historical v9.7.149a record — preserved below
+
+
 ---
 
 ## Why this matters

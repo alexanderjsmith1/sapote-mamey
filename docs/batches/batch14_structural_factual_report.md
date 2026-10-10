@@ -1,3 +1,14 @@
+# Historical .149a structural inventory: version boundary
+
+The generated2026-06-29 record below describes .149a and must not be used as the current .447 file, dependency, schema, module, test or coverage census. Its internally different root/module/docs totals and illustrative filename lists are retained as history; they are not newly verified counts or evidence that a named entry point exists now.
+
+No current runtime/tests/install/build/ZIP validation was performed for this document. A historical filesystem count is not a contract, test-pass denominator, release certification, feature availability, documentation readiness or scientific acceptance. Resolve current source owners and declared artifacts rather than executing commands selected from this inventory. Publication/source-tier labels and licenses require the applicable current records.
+
+Current figure behavior is documented in [the catalog](../FIGURE_CATALOG.md) and [producer/status guide](../OPTIONAL_FIGURE_FACTORY_TOOLS.md); [discover](../DISCOVER_DESIGN_AND_FIGURES.md) reports presence proxies, not validated completeness. Use [current50](../MODEB_CURRENT50_V2_CONTRACT.md) for card contracts. Preserve strain / full node-or-contig / region / BGC alias wherever an individual locus is referenced. The baseline historical record remains immutable and this Markdown candidate labels its scope explicitly.
+
+## Preserved historical record — not current instructions or acceptance
+
+````text
 # Sapote–Mamey Structural Factual Report
 **Bundle inventory, dependencies, schema versions, coverage metrics**
 
@@ -520,3 +531,5 @@ Registry:          200 KB (bundle_support/registry_inventory_v1.9.4.json, 156 en
 - **Release process:** `batch13_release_verification_checklist.md`
 - **Tier architecture:** `docs/TIER_DIFFERENCES.md`
 
+
+````

@@ -1,4 +1,4 @@
-# How to Use Sapote-Mamey v9.7.448
+# How to Use Sapote-Mamey v9.7.449
 
 The [README](../README.md) is the human landing page. Run `python mamey_run.py start` from
 the extracted bundle root for the current command sequence. The [Quick Guide](GUIDE/02_Quick_Guide.md)
@@ -9,14 +9,15 @@ figures, and Mode B. This page keeps the core operating contract in one short pl
 
 Follow [the Master Walkthrough](MASTER_WALKTHROUGH.md) for one maintained command sequence, including explicit evidence and rendering settings. For an existing package, start with [Reading your results](READING_YOUR_RESULTS.md). Keep the original input and transfer the complete package as explained in [Files, storage and handoff](FILES_STORAGE_AND_HANDOFF.md).
 
+A validator exit of zero can coexist with interpretation pending or workbook warnings. See [recovery and status checks](COMMON_MISTAKES.md#a-validation-or-seal-command-returns-zero); `validate` normally updates its mutable package-status receipt.
+
 ## After validation
 
-Use `discover` to inventory sealed packages and suggested next actions. Use `bgc-blastp-panel`,
-`blastp-online`, or `blastp-round` to prepare protein searches, and `ingest-blastp` for retained
-results. Use `bigscape` for a separately installed BiG-SCAPE workflow. Use `phylo-autopilot` for
-16S routing and EPA-ng placement or `phylo-run` for an approved GToTree/IQ-TREE genome workflow.
-Use `render-all-figures` as the normal figure entry point. Use `mode-b` to prepare a scaffold and
-`verify-modeb` to check a finished authored card.
+Use `discover` to inventory package candidates and suggested next actions; inspect its actual validation state before calling a candidate sealed. Use `bgc-blastp-panel` for local query preparation. `blastp-online` and `blastp-round` can perform remote searches; read [the BLASTP protocol](ONLINE_BLASTP_PROTOCOL.md) and bind disclosure/compute scope before choosing them. `ingest-blastp` writes retained results to a master workbook and can update package overlays. Review saved results separately with `blastp-followup` when that is the requested task.
+
+Use `bigscape` for a separately installed workflow with explicit preflight. `phylo-autopilot` can route 16S input and EPA-ng placement, while `phylo-run` is a separately approved genome workflow; use [the companion protocol](LLM_COMPANION_TOOL_PROTOCOL.md) to select their scope. `render-all-figures` is a figure entry point, but some handlers populate package data and refresh integrity. Use an authorized working copy when preserving originals.
+
+`mode-b` emits the top-leads evidence table; it is not a finished card. Emit the selected current template with `emit-modeb-template`, author source-backed sections, then run `verify-modeb` on the actual authored file under the same contract. Read [the Mode B walkthrough](MODE_B_USER_WALKTHROUGH.md).
 
 The [generated command catalog](COMMAND_CATALOG.generated.md) lists specialist and compatibility
 commands. The [deliverable menu](DELIVERABLE_MENU.md) starts from the result a user wants rather

@@ -1,3 +1,9 @@
+## Current reader scope — dated .155 policy fork
+
+This is the original June finding and its unadopted choices, not a current authorization to relax a guard, modify tests or disclose identifiers. Redacted `AS-XXX` tokens cannot recover the real identifiers or substantiate the original file counts. The current allowlist/source and owner-selected privacy profile must be checked for the actual proposed cut; this note does not establish their present state or whether any strain is public. See [custom privacy guidance](../CUSTOM_PRIVACY_TIERS.md) and [tier differences](../TIER_DIFFERENCES.md). No allowlist, tests, privacy decision or release machinery is changed here.
+
+---
+
 # Finding J — synthetic-ID allowlist contains real cohort strains (FORK — needs your call)
 
 **Found:** Speed-Round 3 (hostile audit), 2026-06-30. **Status:** surfaced, NOT auto-fixed.

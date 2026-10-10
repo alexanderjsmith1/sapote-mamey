@@ -1,3 +1,13 @@
+# Worked-example provenance boundary
+
+The four pairs and 40-genome census below are retained historical scientific examples. Check the original run, assembly and database records before reusing their names, locators, scores, counts or interpretations. These historical examples do not establish current scientific acceptance. Reading-order BGC aliases are not stable join keys. Use exact strain / full node-or-contig / region / BGC alias with input and result hashes before comparing an example to a current run.
+
+These examples are not the generated repository's small engine-parity fixture. `make_repo_candidate.py` generates that fixture's expected JSON by running the selected Sapote-Mamey engine and writes `tests/test_example_matches_engine.py` (`:104–130`). That test compares records and result for one fixture and requires at least one ranked pair (`:50–58`); it does not validate these four pairs or the 40-genome census, prove independent scientific correctness, or certify all package/platform modes. The plain package builder does not create that repository-only test.
+
+The standalone source tree receives this guide under `docs/`; the wheel does not declare docs as package data. Use [output scope and recovery](OUTPUT_GUIDE.md) and [the template source index](../README.md) for installed/source/provenance boundaries. Do not run the repository-candidate builder to read an example: it executes the engine probe and can replace a target checkout's files.
+
+## Retained worked examples — unchanged below
+
 # Worked examples on public reference genomes
 
 Four pairs from public antiSMASH results (NCBI WGS assemblies, antiSMASH relaxed strictness), one for each common

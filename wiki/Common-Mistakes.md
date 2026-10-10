@@ -1,6 +1,10 @@
 <!-- Mirror of docs/COMMON_MISTAKES.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
 # Troubleshooting a Sapote–Mamey run
 
+Before any `doctor` example below, read the [write-probe boundary](../docs/INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
+untouched. The current diagnostic can overwrite or remove its probe file.
+
 Start with the symptom below. Keep the failed attempt, exact command and error message. Change one thing at a time and use a new output folder for a replacement run. An error is useful evidence; repeatedly rerunning over the same folder makes it harder to diagnose.
 
 ## Collect a useful problem report
@@ -41,15 +45,37 @@ If `ijson` is missing, install compatible dependencies in the selected project e
 
 Check `python mamey_run.py COMMAND --help`, replacing COMMAND with the actual command. Historical docs may show flags from another version. Keep the exact error and compare the loaded source version. A path containing spaces must be quoted. Do not replace working settings with a speculative command from an old release note.
 
+## Reusing a run destination
+
+The direct run path creates/reuses `<outdir>/<strain>/package` and writes outputs there; its active-package lock prevents simultaneous writers but is not a blanket protection against overwriting a prior run. A stale file can remain beside newly written outputs. Do not use the same destination as a general retry/resume mechanism. Some input refusals occur after the directory and early receipts have been created, so an error saying no package was written does not prove no filesystem changes occurred.
+
+**Recovery:** preserve prior bytes, logs and the source/input/settings binding, then use a new output root for the replacement. Check actual destination contents and process state before retrying. Never delete a lock merely to make a second writer proceed.
+
 ## Run appears stalled or was interrupted
 
 The terminal can be quiet during expensive stages. Check the process and the latest phase receipt before starting another copy. Runtime depends on evidence size, rendering settings, storage and the computer. A run time from another machine is not a deadline.
 
 **Recovery:** if a process is still running, inspect it before taking action. If it has stopped, retain its logs and partial directory. Start a new attempt in a distinct output location after diagnosing the cause; do not assume general extraction resumes automatically from every interrupted phase. A lock is not proof a process is dead. Do not delete locks or kill processes solely because progress is quiet.
 
+## A validation or seal command returns zero
+
+`validate` checks package contents and integrity, then reports workbook-content status separately. That workbook result is warning-first unless `--workbook-strict` is selected. Read both the package result and `WORKBOOK_CONTENT`; a zero exit does not mean every expected sheet has meaningful rows. Manifest-contract checking is advisory in this build, even when requested. `NOT_EVALUABLE` provenance gates mean the required evidence was absent, not that authenticity was established.
+
+`validate` normally rewrites the mutable `package_status.json` receipt. It is not an entirely read-only inspection command. A receipt-write failure is reported in `package_status_receipt_write` and does not by itself flip the computed validator result to failure. If preserving every original byte matters, validate an authorized working copy and retain the terminal JSON receipt separately.
+
+`seal-package` writes QC receipts to the package by default; use an explicit external `--out` for a review handoff. With `--advisory`, blocking failures can deliberately return zero unless strict enforcement is selected. Read overall, each gate status and its blocking flag. A seal/QC pass is not release or scientific acceptance.
+
+## Batch resume refuses an existing package
+
+The intake harness `--resume` skips only a completion receipt whose exact run binding and package-tree binding still match. It does not resume extraction from an arbitrary partial phase or merely accept a folder with output files. A changed/unbound package or success row yields `RESUME_BINDING_HOLD`.
+
+The harness tree binding includes mutable receipts, so a later validation or permitted enrichment can change the tree and make an earlier completion receipt no longer match. That is a changed-output hold, not proof the original computation failed. Preserve both receipts and explain the intervening operation.
+
+**Recovery:** preserve the existing package, registry and receipt, diagnose the mismatch, and use a fresh reviewed output/registry for a replacement. A failed attempt with no package can retry, but do not erase a package to bypass the guard. Verified SKIP rows are not new execution measurements or fresh validation receipts.
+
 ## Validation passes but interpretation is unfinished
 
-Execution, package structure, evidence coverage and authored interpretation answer different questions. Read [Reading your results](../docs/READING_YOUR_RESULTS.md). `MAMEY_COMPLETE_WITH_ISSUES` deserves issue review; `PASS_STRUCTURE` does not verify literature or product identity. A Mode B scaffold is not a finished interpretation.
+Execution, package structure, evidence coverage and authored interpretation answer different questions. Read [Reading your results](../docs/READING_YOUR_RESULTS.md). `MAMEY_COMPLETE_WITH_ISSUES` deserves issue review; `PASS_STRUCTURE` does not verify literature or product identity. A Mode B scaffold is not a finished interpretation. A score-output fingerprint compares only its selected deterministic component files; missing components can still receive a fingerprint. It is not a whole-package checksum or scientific verification.
 
 **Recovery:** identify the exact missing evidence or interpretation task, its required files and scope. Ask for a review of a selected locus using its full identity. An upload of `manifest.json` alone does not transmit all the files it names. Do not trigger unrestricted online work simply to remove a pending status.
 

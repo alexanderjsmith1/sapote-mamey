@@ -1,3 +1,11 @@
+## Historical reconciliation — current reader boundary
+
+This punch card records the extracted .254 tree and its then-pending patches/tests. Do not apply its old fixes or use its blocker decisions for the .447/.448 cut without checking current owners. The current structure gate already contains LOCUS_BGC_MISMATCH and PANEL_ABSENT_CLAIM checks (`mamey/modeb_structure_gate.py:2207–2356`), so the old assertion that neither exists is historical, not a current defect diagnosis. Their presence alone does not prove complete locus/evidence admission.
+
+The reported regression counts, patch applications and strain anecdotes below are retained as historical evidence and not recertified. Current work is local documentation patches for maintainers to review and integrate; see [metadata readers](BUNDLE_METADATA_READERS.md), [profile matrix](MODEB_PROFILE_MATRIX.md) and [debugging audit request](../debugging_modules/CURRENT_AUDIT_REQUEST.md). No release-manifest regeneration, remediation or cut was executed. Original body follows unchanged.
+
+---
+
 # CONSOLIDATED PATCH PUNCH CARD — v9.7.254
 
 **Card ID:** PUNCHCARD_CONSOLIDATED_20260710_v97254

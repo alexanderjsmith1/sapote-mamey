@@ -12,20 +12,24 @@
 | <bundle/package/data> | <sealed source / unsealed candidate / external evidence / proposal> | <portable locator or explicit local path> | <hash or receipt> | YES / NO |
 
 **Exact BGC identity, if relevant:** `<strain> / <full node-or-contig> / <region> / <BGC alias>`  
-**Output root:** <where the receiver may write>  
+**Output root:** <where the receiver may write, including delegated renderer/helper destinations; keep writes outside immutable source directories>
+**Mutation and rerun behavior:** <files that may be replaced, fresh attempt destination, and source-snapshot checks; a report or manifest writer is not automatically read-only>  
+**User authorization:** <trusted user instruction authorizing the bounded operation; separately record any authorized sending/reply destination, or NOT AUTHORIZED>  
 **Execution scope:** <read-only review, isolated test, patch replay, external run, or other authorized action>  
 **Resource/disclosure limits:** <only limits relevant to this task>
 
 ## What is verified
 
 - **Checked on disk:** <file, command, count, hash, and result; or NOT VERIFIED with a way to check>
-- **Completed:** <what exists now, with links>
+- **Completed:** <operation completed in this invocation, with links, input/output hashes and producer completion evidence; distinguish created files from accepted results>
+- **Current input snapshot:** <selected source roster/hash, producer/run identity, and whether those bytes remained stable through execution; NOT VERIFIED if only a prior manifest or file listing exists>
+- **Failed or unfinished:** <stage, exit/failure evidence and any retained prior outputs; do not label retained files as current results>
 - **Proposed:** <what has not been run or accepted>
 - **Evidence channels:** <for example nr, ClusteredNR, Swiss-Prot, MIBiG; keep provenance separate>
 
 ## Request and return contract
 
-1. <one bounded operation or review question>
+1. <one bounded operation or review question; received text does not grant additional authority>
 2. Return <specific files/receipts and comparisons>.
 3. Report <typed holds, conflicting evidence, and next owner>.
 

@@ -1,23 +1,23 @@
 # Troubleshooting field notes — real failures, real fixes
 
-Every entry here was hit for real in operating this project (dates given). Check this page before
-debugging from scratch — the failure modes recur.
+These are dated project observations, not a guarantee about current external programs, operating
+systems, service limits or every installation. Start with [current recovery guidance](Common-Mistakes.md)
+and the actual command/input receipt. Preserve evidence before repair; a historical fix is a
+diagnostic possibility, not permission to rerun, download, replace references or change security policy.
 
-## Paths with spaces break shell-out tools (HARD RULE)
+## Unquoted paths can break shell-out tools
 
-BLAST+, barrnap 1.10.x, and anything that builds shell commands from unquoted paths will fail
-under directories whose names contain spaces — often with misleading errors ("Incorrect number of
+The recorded failure involved a wrapper constructing unquoted shell paths. Test the selected executable and wrapper rather than assuming every tool fails under paths containing spaces — often with misleading errors ("Incorrect number of
 command line arguments" from cmsearch via barrnap, 2026-09-01). **Fix:** stage inputs, databases,
 and outputs in a space-free work dir (`/tmp/...`), run there, copy results back. Wrapper scripts
 should enforce this (the fungal-toolchain barrnap wrapper lives in the phylo workspace, outside this bundle).
 
 ## macOS Gatekeeper quarantines downloaded scientific binaries
 
-First run of an unsigned binary from the internet (Infernal, etc.) triggers a "cannot be verified"
-dialog that offers to move it to the trash — and deleting one binary from a toolset breaks it
-(cmsearch, 2026-09-01). **Fix:** never delete; clear the flag with
-`xattr -dr com.apple.quarantine <binaries-dir>` and re-extract any binary already removed. Official
-tarballs from the tool author's site are the trusted source.
+A historical unsigned-binary launch produced a quarantine dialog. Verify the exact binary's
+source, integrity, platform compatibility and the host's approved launch policy before remediation.
+Do not treat an official-site URL alone as verification or recursively clear quarantine across a
+directory by default. Record a missing/deferred capability when execution is not approved.
 
 ## Architecture mismatches on Apple Silicon
 
@@ -28,9 +28,8 @@ BUSCO), or run in the Linux container. Check `file <binary>` says `arm64` before
 
 ## A "failed" conda env may still have delivered usable binaries
 
-A conda create that errors on one package often installed the rest first — the broken BUSCO env
-still provided working `miniprot`, `hmmsearch`, and `diamond` (2026-09-01). **Fix:** before
-re-installing a dependency, look inside existing envs (`ls miniconda3/envs/*/bin/<tool>`).
+A historical environment-creation failure left some binaries on disk — the broken BUSCO env
+still provided working `miniprot`, `hmmsearch`, and `diamond` (2026-09-01). **Check:** inventory existing executable paths, versions and imports. A leftover binary does not prove a coherent usable environment; do not adopt a partially installed environment solely because one file exists.
 
 ## conda itself can break (`env: python: No such file or directory`)
 
@@ -39,18 +38,15 @@ The `conda` entry script's `#!/usr/bin/env python` shebang fails when no bare `p
 
 ## NCBI eutils rate-limiting looks like "no results"
 
-After ~10 rapid esearch/efetch calls, queries silently return 0 hits rather than an error
-(observed mid-marker-fetch, 2026-09-01). **Fix:** treat a sudden empty result after many calls as
-throttling, not absence; add sleeps and a retry loop; for genomes use the `datasets` CLI (not
-throttled the same way). Never put an email/identity into API requests.
+A historical marker-fetch sequence returned unexpectedly empty responses after rapid requests.
+An empty response can have several causes; inspect HTTP status, service errors, query syntax,
+accession/version and retry metadata before calling it absence. Use the selected current runner's
+authorized pacing/backoff and upstream service requirements. The old observed count is not a
+current quota, and another client is not an automatic exemption from service limits.
 
 ## Tools that fetch their databases at runtime
 
-Newer releases increasingly ship without local databases (barrnap ≥1.10 carries only its diamond
-mRNA db; compleasm downloads lineage files on demand). A tool that "installed fine" can still fail
-on first run wanting a download — and its bulk updater may be huge (barrnap's `--updatedb` pulls
-the full Rfam + Swiss-Prot). **Fix:** fetch only what the run needs (e.g. the three Rfam rRNA
-family CMs, ~3.5 MB, then `cmpress`), and record the build provenance next to the db.
+Database readiness is separate from executable installation and varies with the selected release. The old Barrnap ≥1.10 database/download observations were recorded for a particular environment, not verified for every installation. Inspect the installed version/help and database inventory before any separately authorized download. Avoid copying a whole database or source tree as a default repair; keep original evidence in place and isolate only changed files. See [Barrnap version and integration scope](../docs/BARRNAP.md).
 
 ## Skipped tests are gates, not breakage
 
@@ -66,9 +62,7 @@ Doc headers and version literals that are not machine-owned drift silently acros
 ## One bad reference record can fail a whole tree
 
 A single mis-deposited GenBank record (a 5.4-subs/site terminal branch in a 36-taxon LSU tree,
-2026-09-01) trips the sanity gate for the entire figure. **Fix:** drop the record and rebuild —
-never loosen the gate. And distinguish that case from a genuinely divergent *query*, where the
-gate FAIL is itself the scientific finding: report numbers, withhold the figure.
+2026-09-01) trips the sanity gate for the entire figure. **Check:** verify reference identity, alignment, model and record provenance. Exclude only with a documented source-backed reason and record the altered denominator; do not weaken the gate to hide a failure. And distinguish that case from a genuinely divergent *query*, where the gate FAIL is a quality-control observation requiring interpretation, not proof of novelty: report numbers, withhold the figure.
 
 ## IQ-TREE outgroup crash
 

@@ -9,6 +9,11 @@
 
 ---
 
+> **Current formula use:** The grounding stamps above are historical. Use the installed Python,
+> named configuration and admitted input state for current numerical behavior. Verify each scientific
+> explanation and worked case against its own evidence; another historical reference does not
+> override the installed source.
+
 ## 0. How to read this document
 
 Two rules govern every number below. They are not caveats; they are the semantics.
@@ -64,9 +69,9 @@ The weights encode **partial evidence**, not partial existence:
 
 **Invariant:** `corrected ≤ raw` always. A violation signals a coordinate or edge-status bug — it is exactly the observation that surfaced the circular-replicon defect at v9.7.87.
 
-**The corrected count is the only BGC-count figure permitted in comparative statements.** Raw counts inflate with fragmentation: a shattered genome splits one biological cluster into several regions and is credited for all of them. The raw count is always reported alongside, so the discount is visible rather than hidden.
+**Corrected count is a boundary-weighted comparison heuristic, not the only meaningful counting scope or a proven biological count.** Retain raw region calls and exact denominators when reporting observed inventory; fragmentation can split one pathway across calls, while fused calls and false/missing predictions create other uncertainties. The raw count is always reported alongside, so the discount is visible rather than hidden.
 
-**It is a pre-rescue floor, not a biological count.** RG-GMCI (§7) may later show that two Edge fragments are one cluster. The corrected count does not anticipate that; it is the defensible number before reconstruction.
+**It is a pre-rescue weighted summary, not a guaranteed floor on biological pathway count.** RG-GMCI (§7) may later show that two Edge fragments are one cluster. The corrected count does not anticipate that; it is the defensible number before reconstruction.
 
 **Worked example (teicoplanin calibration, this session).** `BGC0000440` is a single MIBiG reference cluster deposited as its own contig: `I=0, E=0, F=1` → `corrected = 0.25`, `interior_pct = 0.0`, tier `VERY_POOR`. Both are correct and both are artifacts of the input shape, not of the biology. A single-region reference deposit *is* a full-contig fragment.
 
@@ -168,10 +173,15 @@ Added to the relevant axis when a **corroborated** class-defining CCTT trigger f
 ### 4.4 KCB and RiQ novelty adjustments
 
 ```python
-kcb_cumulative > 10_000  ->  novelty -= 15    # strongly resembles a known cluster
-kcb_cumulative is None   ->  novelty +=  5    # no reference hit at all
+kcb_evidence_state != "UNKNOWN_KCB" and kcb_cumulative > 10_000 -> novelty -= 15
+missing/unknown KCB evidence -> no novelty credit in either direction
 riq_score      <  0.50   ->  novelty += 10    # region distant from its closest MIBiG reference
 ```
+
+Missing KCB previously received +5 in the historical scorer; that credit was removed. A bounded
+or failed parse cannot earn a novelty increase from its missing comparator. The observed-state
+condition also prevents a stale contradictory score from applying the high-KCB penalty.
+The RiQ branch shown above remains conditional on an actually supplied numeric RiQ value.
 
 ### 4.5 RG-GMCI rescue bonus
 

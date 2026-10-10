@@ -5,6 +5,12 @@ Streptomyces. Inputs were supplied as public-genome antiSMASH ZIPs. Their suppli
 bound to archived records; no independent online taxonomic verification or BLASTp search was done.
 Input hashes and the exact archived header evidence are retained in the run receipts.
 
+## How to read this record
+
+This is a recorded candidate panel, not a command recipe or current acceptance gate. Numeric results and individual-locus claims below are retained historical evidence; this documentation review did not rerun the inputs or independently read every original panel receipt. Reproduction requires the separately retained input ZIP hashes, exact candidate code and settings, run receipts and output inventories. The software bundle alone does not include all of those biological output packages.
+
+Use [the current task router](USER_TASK_ROUTER.md) for a new analysis and [the recovery guide](COMMON_MISTAKES.md) for interruption/validation questions. Current validation may rewrite a mutable package-status receipt; an exit of zero does not verify visual layout, authored interpretation or every advisory gate. Preserve original recorded outputs when testing reproduction.
+
 ## What ran
 
 Each input followed inspect → gold extraction → validate → explain → list-bgcs. Extraction used

@@ -1,6 +1,8 @@
 # Extended Citation Library — Format Exemplar (Path A)
 
-**Sapote-Mamey Bundle v9.7.96 | Bert Mode literature deliverable**
+**Historical v9.7.96 format example; current task and evidence admission rules apply.**
+
+The example's VERIFIED labels are illustrative, not a current verification receipt. Before reuse, confirm each cited statement against its actual source. Replace every historical strain/alias shorthand with `strain / full node-or-contig / region / BGC alias` copied from a bound record. If the node/region binding is unavailable, retain an identity hold rather than reconstructing it.
 **[EXAMPLE: entries below are illustrative of the FORMAT. Every real entry must be Bert-Mode verified against PubMed/DOI this session — see `docs/BERT_MODE_PROTOCOL.md`.]**
 Source reference: Extended BGC Guide Path A, Actinomycetes Project, May 2026.
 

@@ -1,5 +1,24 @@
 # ACCEPTANCE_TESTS_MODE_B_FULL20_CONTRACT.md
 
+## Current entry and implementation scope
+
+Select the actual task profile in [MODEB_PROFILE_MATRIX.md](MODEB_PROFILE_MATRIX.md),
+then use [MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md](MODEB_CONTRACT_HISTORY_AND_GATE_SCOPE.md)
+for the owner/legacy boundaries. Preserve every individual locus as strain / full node-or-contig /
+region / BGC alias from a bound source. A section count, phrase, typed label or zero-finding pattern
+check is not scientific adjudication, independent source verification, owner acceptance or publication approval.
+Existing evidence remains in place with path/SHA-256 bindings; use the selected candidate and retained
+receipts rather than copying a package or inventing completed work.
+
+These are historical test requirements and expected outcomes, not proof that tests were added, executed,
+or passed on this bundle. Their twenty titles remain preserved as a compatibility reference. The actual
+first-twenty facade derives titles and performs limited heading/artifact diagnostics; it does not provide
+whole-profile scientific acceptance. Evaluate present tests against the selected current contract, exact
+source bytes and actual retained results. A heading-only PASS expectation below does not certify substantive
+interpretation, verified data, profile completeness or owner acceptance.
+
+<!-- Historical source text follows. -->
+
 > **Historical (superseded).** This document describes the retired §1–§20 count. It is not a current completion definition or acceptance specification. For the current profiles see `MODEB_PROFILE_MATRIX.md`.
 
 ## Contract tests to add or maintain

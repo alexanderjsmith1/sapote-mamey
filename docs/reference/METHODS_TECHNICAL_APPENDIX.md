@@ -1,19 +1,19 @@
 # Methods technical appendix
 
-**Version of record:** Mamey engine v1.9.173 · bundle v9.7.448  
+**Version of record:** Mamey engine v1.9.174 · bundle v9.7.449  
 **Scope:** implementation-oriented reporting reference. This appendix documents software behavior and claim ceilings; it is not evidence that a study used every module.
 
 ## Release-sensitive parameter register
 
 | Component | Parameter or governed resource | Documented value/state | Reporting requirement |
 |---|---|---|---|
-| antiSMASH admission | tested major versions | 5-8 | Record version, strictness, schema status, and any override. |
-| ZIP safety | GenBank member size / compression ratio | 100,000,000 bytes / 200-fold | Report environment overrides and rejected members. |
+| antiSMASH admission | default tested major versions | 5-8 | Record version, strictness, schema status, and any override. Out-of-range/unreadable versions trigger a warning; this check alone does not refuse an otherwise recognized input. |
+| GenBank read safety | uncompressed member size / compression ratio | 100,000,000 bytes / 200-fold | `MAMEY_GBK_MAX_BYTES` and `MAMEY_GBK_MAX_RATIO` are read at call time. These are member guards, not total archive or process-RAM limits. Report overrides and rejected members. |
 | JSON evidence | default policy | bounded, wall-clock-capped parsing with visible fallback | Do not translate a timeout or fallback into zero evidence. |
 | RG-GMCI routing | HIGH / MODERATE score floors | 14 / 9 | Preserve score, component evidence, demotions, and deterministic state. |
 | RG-GMCI geometry | overlap / locus gap / subject span | 0.20 / 30 / 400 | Report release and any changed constants. |
 | RG-GMCI guards | hub degree / terminus margin / small partner | 4 / 500 bp / 25 kb | Report hub and terminus-complexity outcomes. |
-| RG-GMCI bounds | reference / pair / evidence-row caps | 40 / 5,000 / 1,000 | A capped scan is incomplete, not negative. |
+| RG-GMCI export budgets | references per BGC / evidence rows / ranked pairs | 40 / 5,000 / 1,000 | References are limited during collection; exported HIGH evidence rows and HIGH ranked pairs are retained beyond the display budgets. Report total, exported, and omitted counts. |
 | source-derived scans | UMED coupling / TFBS upstream window | 5 kb / 300 bp | Record registry/pattern version and sequence availability. |
 | triage routing | tier cutoffs | 85 / 70 / 50 | Scores are routing priors, not biological probabilities. |
 | scoring | diagnostic / RG-GMCI HIGH / MODERATE bonuses | 25 / 8 / 4 | Preserve standing rules, guards, and raw scores. |
@@ -60,3 +60,9 @@ Use explicit states such as `NOT_RUN`, `NOT_APPLICABLE`, `UNAVAILABLE`, `QUERY_U
 
 Freeze the bundle, engine, build or commit; input and reference hashes; antiSMASH version/strictness; registry and database versions; non-default limits; scoring policy; Mode B profile; model/prompt/controller for authored output; cohort roster and exclusions; external tool builds; seeds/threads; figure profile; privacy tier; commands; receipts; and reviewer dispositions.
 
+
+## Reading export limits and reproducibility correctly
+
+`rggmci.py` caps references per BGC at 40. Its evidence export keeps every row associated with a HIGH pair before applying the 5,000-row budget; the resulting export can exceed 5,000 rows. Its ranked-pair export keeps the first 1,000 ranked pairs plus HIGH pairs beyond that point. The separate `split_candidates` list is sliced to 1,000. A displayed/exported list is therefore not interchangeable with the full pair census. Preserve `pairs_total`, evidence-row totals, omitted-row counts, and the summary's export message. A reported candidate remains a hypothesis, including a HIGH candidate.
+
+Analytical determinism is scoped to the named fields/artifacts and fixed inputs, policy, versions, and environment. It is not a guarantee that every package byte is invariant across invocations: `packaging.py` explicitly treats timing receipts as mutable, excludes selected post-seal images/PDFs from checksums, and notes PDF build timestamps. Record the checksum exclusions and the actual deterministic comparison scope. Refer to the [source map](../development/METHODS_IMPLEMENTATION_SOURCE_MAP.md) to locate owners; its existence gate does not validate these parameter values.

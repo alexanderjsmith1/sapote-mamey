@@ -6,7 +6,7 @@
 
 # Sapote–Mamey Trigger Routing Table
 **Version:** v9.7.319  **Engine:** Mamey 1.9.111  
-*Single authoritative routing table. Edit here; other docs must not define conflicting trigger behaviour.*
+*Advisory assistant routing table with historical trigger vocabulary. The Python CLI parses its declared command/flags; these phrases are not a universal executable dispatcher. Current user instructions and the selected profile govern scope.*
 
 ---
 
@@ -14,15 +14,15 @@
 
 | Trigger phrase / condition | Route | Module / output |
 |---|---|---|
-| `CHATGPT_EXECUTION_SLICE_LOADED` or new ChatGPT/Sapote session | Load `docs/CHATGPT_EXECUTION_SLICE_v97147.md`; do not use the slim kernel as the active controller | Full-depth execution slice |
+| `CHATGPT_EXECUTION_SLICE_LOADED` or new assistant session | Start at `AGENTS.md` and `docs/USER_TASK_ROUTER.md`; use dated execution slices only within their stated historical scope | Selected task and evidence route |
 | `MAMEY_COMPLETE` or `MAMEY_COMPLETE_WITH_ISSUES` detected | `MAMEY_COMPLETE_HANDOFF_REQUIRED`: present code-backed outputs, then offer/produce prompt-backed set | Post-complete handback block |
 | `ANALYSIS_COMPLETE` after Sapote judgment | `ANALYSIS_COMPLETE_DELIVERABLE_OFFER`: auto-produce or explicitly offer the full prompt-backed set | Deliverable offer/production |
 | `locus_maps/` present or `LOCUS_MAP_PRESENTATION_REQUIRED` | List and present every locus-map SVG/PNG; do not bury maps in the package | Locus-map handback |
-| "full Mode B", "Full Mode B §1–§30" (also legacy "§1–§20"), "FULL ANALYSIS MODE" | `FULL_MODEB_REQUEST_DETECTED`: §1–§30 contract (`modeb_corrective_full30_v1`) — §1–§20 mandatory in order + §28, §30 mandatory + §21–§27, §29 conditional | Mode B card |
-| "offline Mode B", `OFFLINE_EVIDENCE_ALLOWED` | Full Mode B permitted without BLASTP; §16 documents evidence gap | Mode B card |
+| "full Mode B", legacy section-count phrases, "FULL ANALYSIS MODE" | `FULL_MODEB_REQUEST_DETECTED`: bind the selected current profile in `MODEB_PROFILE_MATRIX.md` and `MODE_B_USER_WALKTHROUGH.md`; a legacy phrase does not select the old contract automatically | Named-profile Mode B card |
+| "offline Mode B", `OFFLINE_EVIDENCE_ALLOWED` | Author only within the selected profile’s evidence/availability rules; record absent channels in that profile’s designated slots | Scoped card or evidence hold |
 | "fragmented PKS", "RG-GMCI", "wise PKS" | `WISE_PKS_QUEUE_DETECTED`: `wise_fragmented_pks.py` + `blastp_batch_emitter.py` | FASTA batches + ledger |
 | "cross-strain GCF", "cohort GCF", "BiG-SCAPE", "gene cluster families" | `COHORT_GCF_DETECTED`: read `LLM_COMPANION_TOOL_PROTOCOL.md`, resume/current-run check → manifest → preflight → cluster → exact-run QA → portable export. Cohort-only runs cannot emit KNOWN/NOVEL; ingest is separately authorized. | Additive GCF atlas (SOP-17) |
-| "GToTree", "phylogenomics", "IQ-TREE", "MLSA" | `PHYLOGENOMICS_DETECTED`: read `LLM_COMPANION_TOOL_PROTOCOL.md` + `phylogenomics.md`; recover whole assemblies, cap references, de-replicate, show size/usage, obtain user approval, then run one core per tree (≤4 total). | Alignment/tree/ANI companion package |
+| "GToTree", "phylogenomics", "IQ-TREE", "MLSA" | `PHYLOGENOMICS_DETECTED`: read `LLM_COMPANION_TOOL_PROTOCOL.md` + `phylogenomics.md`; recover whole assemblies, cap references, de-replicate, show size/usage, obtain user approval, then use the actual reviewed resource budget. Historical one-core/≤4 advice is not an automatic hardware limit or a new approval request when the operation is already authorized. | Alignment/tree/ANI companion package |
 | "make a PDF", `PDF_DELIVERABLE_REQUESTED` | narrative PDF + source MD + evidence CSV + manifest | PDF deliverable |
 | "locus map", `--locus-map` flag | `mamey/figures/locus_map.py` | SVG file |
 | "cross-strain comparison", `CROSS_STRAIN_COMPARISON_REQUESTED` | Separate comparative report; never replaces Mode B card | Comparison report |
@@ -33,9 +33,14 @@
 
 ## 2. Quality-gate triggers
 
+“Required behaviour” below is normative workflow advice. A ✅ beside a static document test or
+contract does not establish a production runtime call. `tests/test_trigger_routing_handback_v97147.py`
+checks text/token presence, not whether the assistant presents files or launches a workflow.
+Keep the actual verifier exit/receipt and named profile separate from those historical checks.
+
 | Condition | Required behaviour | Status |
 |---|---|---|
-| Output claims Full Mode B but lacks a mandatory §1–§30 section (§1–§20, §28, §30) | Fail closed; mark NOT_FULL_MODEB | ✅ `mamey/modeb_structure_gate.py` (validates against `modeb_full30_corrective_contract.json`) |
+| Output claims a selected finished profile but lacks one of that profile’s required sections | Fail closed; mark NOT_FULL_MODEB | Profile-specific structure verifier; the legacy full30 contract is not the current default |
 | Gene table lacks strand column | Fail; require +/- or UNKNOWN_EXPLICIT | ✅ per contract doc |
 | Strand uses only arrows | Fail table validation | ✅ per contract doc |
 | BGC class/product missing | Fail unless marked evidence unavailable + next action | ⚠ test needed |
@@ -72,7 +77,7 @@
 
 ---
 
-## 4. Named trigger constants
+## 4. Named trigger vocabulary (historical section identifiers)
 
 | Constant | Meaning | Guard |
 |---|---|---|
@@ -81,7 +86,7 @@
 | `ANALYSIS_COMPLETE_DELIVERABLE_OFFER` | Sapote must not end after analysis without offer/auto-production | deliverable contract |
 | `LOCUS_MAP_PRESENTATION_REQUIRED` | Locus maps present in package must be surfaced to user | handback gate |
 | `POOR_TIER_EDGE_EQUALITY` | POOR/VERY_POOR assemblies rank by score, not boundary status; all BGCs visible | edge-equality gate |
-| `FULL_MODEB_REQUEST_DETECTED` | §1–§30 contract: `modeb_structure_gate.py` enforces §1–§30 (§1–§20 mandatory + §28, §30 + conditionals); `modeb_full20.py` is the §1–§20 facade (artifact-drift / table-substitution checks) | `modeb_structure_gate.py` + `modeb_full20.py` |
+| `FULL_MODEB_REQUEST_DETECTED` | Bind the selected current profile and its own titles/required sections; full30/full20 facades remain historical contracts | Current profile-specific verifier; keep legacy checks separately scoped |
 | `INTEGRATED_TABLE_AS_COMPANION` | Emit table; never substitute for card | `modeb_full20.py` test 3 |
 | `CLAIM_CEILING_REQUIRED` | §19 + §20 receipts; suppress per-gene claim repetition | style gate |
 | `OFFLINE_EVIDENCE_ALLOWED` | BLASTP absence does not block Mode B | §16 gap note |
@@ -92,7 +97,7 @@
 
 ---
 
-## 5. Routing conflict guards
+## 5. Advisory routing conflict guards (historical §16 wording)
 
 ### OFFLINE_EVIDENCE_ALLOWED vs WISE_PKS_QUEUE_DETECTED (PATCH-CF-006)
 These two triggers must not cross-fire:
@@ -103,7 +108,7 @@ These two triggers must not cross-fire:
 If both could fire, default to `OFFLINE_EVIDENCE_ALLOWED` and note the queue status in §16.
 
 ### Slim-kernel legacy conflict
-If `docs/SAPOTE_SLIM_JUDGMENT_KERNEL.md` and `docs/CHATGPT_EXECUTION_SLICE_v97147.md` are both present, the execution slice controls default behavior. Abbreviated treatment, Interior-first sorting, or POOR-tier edge suppression from legacy docs is overridden.
+File presence does not select a controller. Read the current user request, `AGENTS.md` and the task router; the slim kernel and dated execution slice are historical/reference inputs. Abbreviated treatment, Interior-first sorting, or POOR-tier edge suppression from legacy docs is overridden.
 
 ---
 
@@ -120,8 +125,8 @@ The handback block must check and surface, by path/link when available:
 7. `checksums_sha256.txt`
 8. `issue_log.md`
 
-Then it must offer or auto-produce the prompt-backed set: Layperson Guide, Technical Full-Analysis Report, Bench Guide, Fermentation Card, Wet-Lab Matrix, Metabolomics Readiness, Ecological Synthesis, Reviewer Attack Simulation, and triggered rescue/QC deliverables.
+Inspect which outputs were requested and actually produced; link existing outputs with typed omissions. The following is an advisory offer menu, not authority to produce every artifact or to start experimental work: Layperson Guide, Technical Full-Analysis Report, Bench Guide, Fermentation Card, Wet-Lab Matrix, Metabolomics Readiness, Ecological Synthesis, Reviewer Attack Simulation, and triggered rescue/QC deliverables.
 
 ---
 
-*Authoritative source for all trigger routing decisions. Last updated: v9.7.319 · 2026-06-29*
+*Historical trigger vocabulary; actual source and current scope govern executable behavior. Last historical update: v9.7.319 · 2026-06-29*

@@ -1,6 +1,6 @@
 # Make and review Mamey figures
 
-Sapote–Mamey v9.7.448 · Mamey engine 1.9.173
+Sapote–Mamey v9.7.449 · Mamey engine 1.9.174
 
 Whatever route you take, the figure must meet the [figure house rules](FIGURE_HOUSE_RULES.md).
 
@@ -8,6 +8,10 @@ Sapote-Mamey has several figure routes with **different input contracts**. Start
 the question you want to show, then choose a route below. A finished image is
 not a validated biological interpretation: keep the plotted values, source
 identity, denominator, methods, and any missingness or assembly warning with it.
+
+## Aggregate rendering and recovery
+
+Use `python3 mamey_run.py render-all-figures --package <working-package-copy>` for selected post-run sets. Default output is inside that working package; the current aggregate has no external-output flag. Read [aggregate source contract](reference/06_CURRENT_SOURCE_SCOPE.md#aggregate-figure-rendering-selection-writes-and-completion) for defaults/optional sets, dry-run integrity writes, skips, child failures, gathered old files and completion limits. A zero exit or CURRENT_GATHER row does not establish newly rendered or visually reviewed outputs.
 
 ## Choose the route
 
@@ -21,7 +25,7 @@ identity, denominator, methods, and any missingness or assembly warning with it.
 
 Use the bundle's `mamey_run.py` entry point from the extracted code root so the
 local bundled engine is selected. Commands below are templates: replace each
-path with your real input and choose a **new output directory** for review.
+path with your real input and choose a **new output directory** for review. For .447 figure commands, supply a separately identified working package copy if the original sealed package must remain unchanged; [post-seal write boundaries](POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447) explain the integrity-refresh wrapper and package-native sets.
 
 ## A single Mamey package
 
@@ -38,8 +42,10 @@ python mamey_run.py render-figures --package /path/to/strain/package \
   --outdir /path/to/new_review/standard --figure-set standard
 ```
 
+The standard image destination can be external, but the .447 CLI still refreshes integrity records in the supplied package. Keep that package as a working copy.
+
 Other supported sets include `domain-level`, `locus-maps`, `cohort-class`,
-and `mamey-native`. The last two require `--workbook`; check
+and `mamey-native`. `locus-maps` requires an output inside the supplied working package; `domain-level` can create package data even with external image output. The last two require `--workbook`; check
 `python mamey_run.py render-figures --help` and the workbook's actual
 sheets before using them. An empty Sapote judgment sheet is not an observed
 negative finding.
@@ -136,26 +142,38 @@ material was tested (crude extracts, fractions, or pooled). State limits as
 what was measured. Do not print governance wording ("judgment deferred",
 "not identity", "not production", "query strain", "class-level only") on the
 figure, its footer, its key or its notes band; that belongs in the analysis
-record. `tools/caption_guard.py` holds the phrase list.
+record. `mamey/figure_policy.py` owns the shared phrase list and the context rule for “class-level”; `tools/caption_guard.py` imports them.
 
 Run the render check on every folder of finished figures before anyone uses
 them:
 
 ```bash
-python tools/figure_render_qc.py /path/to/figures --out /path/to/figures [--bioassay]
+python tools/figure_render_qc.py /path/to/figures --out /path/to/new_qa_directory --ocr require [--bioassay]
 ```
 
-It reads the text drawn in each figure (from its SVG, or by macOS OCR of the
-PNG) and flags governance wording, raw markup, literal `\n`, NA labels,
-near-blank images, and missing `_plot_only.png`, PDF or caption files.
-Wording drawn on the figure is an error. The same wording in a caption file
-is a warning: the file is not the page, but its caption gets pasted into
-manuscripts. `--bioassay` also requires crude, fraction or pooled in the file
-name. For a review folder of numbered copies, pass `--manifest MANIFEST.tsv`
-so companion files are checked beside each source figure; a manifest note
-containing "DO NOT USE" is reported as an error. A figure whose text could
-not be read is listed as not checked, never as clean. Exit 2 means at least
-one figure must not be used yet.
+The checker uses neighboring SVG text first and falls back to macOS OCR of the PNG. It flags matched wording, markup, literal `\n`, NA labels and near-blank images; it does not judge overlaps, clipping, layout or scientific accuracy. `--ocr require` makes any `not_checked` text state exit 2, even when no ordinary error was found; readable SVG text satisfies this check without requiring OCR. In default `auto` mode, unchecked text can coexist with exit 0. `--warn-only` also permits exit 0 despite error findings, although `--ocr require` still refuses unchecked text. Inspect the report levels and keep unresolved text or artifact requirements held; exit 0 is not figure acceptance.
+
+Wording on the figure is an error; matched wording in a readable caption is a warning. Missing `_plot_only.png`/PDF companions are **info**, and a missing caption is **warn**, so these omissions do not by themselves produce exit 2. An unreadable selected caption is an error. Caption selection tries several names, including generic `CAPTION.md`/`CAPTIONS.md`, and accepts the first existing file; it does not verify caption-to-figure identity or require nonempty caption text. DPI is warned only when metadata exists and differs from the requested value by more than five; missing DPI is not a refused state. Resolve required companions and caption/provenance bindings independently (`tools/figure_render_qc.py:206–211, 239–287`).
+
+Folder discovery selects lowercase `*.png` and excludes `_plot_only` images, AppleDouble names, designated old/cache directories and `_withdrawn*` paths; it is not every image in the folder. An explicitly supplied `.PNG` file is accepted, and overlapping input paths can repeat figures. No discovered figures exits 1. For review copies, `--manifest MANIFEST.tsv` checks PNG review/source equality and any supplied `sha256`; companion files are sought beside the source. Its case-sensitive `DO NOT USE` note is an error. A neighboring SVG is not separately hash-bound to that PNG by this check. Keep the intended figure roster and verify the selected text source belongs to the same figure (`tools/figure_render_qc.py:81–109, 290–342`). `--bioassay` checks crude/fraction/pooled in the filename and warns when readable figure text lacks such a term; it does not establish what material was tested.
+
+`RENDER_QC.tsv` contains finding rows, so a figure with no findings has no row; summary error/warning counts count findings rather than distinct figures. Preserve the intended input roster with both reports. The command writes fixed report names in `--out`, replacing existing reports, and may create an OCR cache there. Use a fresh QA directory for each retained review and archive the command, source/configuration and input hashes. Unexpected file/parser/image failures are not all converted into structured report findings; if the command fails, keep that review incomplete (`tools/figure_render_qc.py:345–405`).
+
+### Methods-caption helpers: drafts and checks
+
+`tools/figure_methods.py` provides Python `blurb(workflow)` and `caption(workflow, versions=..., params=..., result=..., extra=...)` helpers. The workflow key must exist in `WORKFLOWS`; an unknown key raises `KeyError`. Treat the resulting prose as a draft: the helper inserts fixed method descriptions and citations, formats caller-supplied metadata, and does not verify that the stated methods, parameters or results describe the selected figure. Match each statement to its actual source and execution receipts. Version discovery is a separate best-effort probe, not an automatic part of `caption()` or proof of the software used for an earlier result. See [external-tool provenance](EXTERNAL_TOOL_INVENTORY.md).
+
+The current `caption()` always appends a claim-safety paragraph containing wording refused by the shared caption guard. Rewrite that operator-facing paragraph into appropriate analysis notes and retain the scientific limits as concrete statements of what was measured. Check the finished reader caption before use; do not assume the helper's draft already passes publication wording checks (`tools/figure_methods.py:131–165`; `tools/caption_guard.py:53–64`).
+
+For Python callers, `check_caption(text)` raises `CaptionGovernanceError` on matched wording; `raises=False` returns `(phrase, reason)` findings. It collapses whitespace, ignores letter case and keeps only the longest overlapping phrase match. It does not validate methods, references, units, denominators, provenance or accuracy, and an empty string returns no findings. `scan_paths(paths)` reads UTF-8 files and returns only paths with findings. By default an unreadable input raises `CaptionUnreadableError`; with `strict=False`, such inputs are reported under `__unreadable__`. An empty path list or readable empty file also returns `{}`. Retain the intended input roster and confirm every file was readable and substantive before interpreting an empty report; it is not a checked-file inventory or scientific approval (`tools/caption_guard.py:49–91`). These helpers inspect text, not the rendered page.
+
+### ANI/AAI label and displayed-value check
+
+`python tools/ani_caption_check.py --input /path/to/caption.md --receipt /path/to/metric_receipt.json` checks already-computed caption/table text; it runs no ANI/AAI calculation. The receipt must be a JSON object declaring exactly `metric: "nucleotide_ANI"` or `metric: "core_SCG_AAI"` and `input_sha256` for the input bytes. For CSV/TSV, supply `value_column` or use a header named `value`, `percent` or `identity_pct`. Both files must be readable UTF-8. Keep the input, receipt and output together; the declared metric and matching hash bind text, not the underlying analytical run.
+
+Use a metric-specific input. The checker requires the corresponding standalone `ANI` or `AAI` label and refuses the other label anywhere in the text, even in an explanatory comparison. Underscores/hyphens are treated as spaces for that label check. In ordinary text it extracts every matched number followed by `%`, without identifying which sentence or quantity it describes; an unrelated percentage can affect the result, and a minus sign is not retained by that extractor. In tables it reads only the chosen numeric column and skips blank cells. An empty/header-only input or no extracted value is refused, but a partly blank table can return a status without reporting skipped rows. Resolve units and missing cells independently; a fraction such as `0.95` is not converted to a percentage (`tools/ani_caption_check.py:19–22, 35–100`).
+
+Exit 0 writes JSON `BOUNDARY` when any extracted value falls in the helper's fixed inclusive 94–96 range; otherwise it writes `NON_BOUNDARY`. That same software interval is applied to either declared metric. These labels do not establish taxonomy, analytical completeness or scientific acceptance, and `BOUNDARY` is not a failing exit status. Handled input/receipt/label/value errors exit 2. Preserve the displayed `values_pct`, `boundary_values_pct` and input hash, check the intended row/value roster, and report the actual analytical method and source receipts separately (`tools/ani_caption_check.py:75–126`). This checker does not require a particular boundary-warning sentence in the caption and does not inspect a rendered figure.
 
 Inspect small text and legends for overlap. Use [Figure style](FIGURE_STYLE.md)
 and [preflight and methods](../wiki/Figure-Factory-Preflight-and-Methods-Manual.md)

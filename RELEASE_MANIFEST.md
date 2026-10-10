@@ -1,11 +1,11 @@
-# Sapote-Mamey Bundle Release Manifest — v9.7.448 CODE archive
+# Sapote-Mamey Bundle Release Manifest — v9.7.449 CODE archive
 
-**Cut/build date:** 2026-10-05
+**Cut/build date:** 2026-10-09
 **Artifact status:** validated CODE archive  
-**Bundle version:** `sapote-mamey-v9.7.448`  
-**Authoritative bundle version:** `9.7.448`  
-**Engine:** Mamey v1.9.173  
-**Build stamp:** 20261005v97448b  
+**Bundle version:** `sapote-mamey-v9.7.449`  
+**Authoritative bundle version:** `9.7.449`  
+**Engine:** Mamey v1.9.174  
+**Build stamp:** 20261009v97449a  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
@@ -21,9 +21,9 @@ No additional release tiers are included in this CODE archive.
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (14925 passed, 238 skipped; receipt-bound log) |
+| Full pytest suite | PASS (15086 passed, 239 skipped; receipt-bound log) |
 | Focused verification | New portable adapter, identity, containment and clinker regressions pass; exact counts recorded in external candidate receipts |
-| Strict repository health | PASS (1255 observed direct print calls; enforced ceiling 1280 under the recorded narrowing owner waiver) |
+| Strict repository health | PASS (1255 observed direct print calls; enforced ceiling 1255; no ceiling increase for this cut) |
 | Version synchronization | PASS |
 | Generated module, tool, command, and deliverable inventories | PASS |
 | R source parsing | PASS (all bundled R sources parsed); synthetic single/grouped tree-track PDF pages inspected; live experimental integration remains separate |
@@ -48,11 +48,11 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20261005v97448b`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20261009v97449a`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
-| `sync_version --check` | PASS (engine 1.9.173, bundle 9.7.448) |
+| `sync_version --check` | PASS (engine 1.9.174, bundle 9.7.449) |
 
-All tracked version anchors at v9.7.448 / Mamey 1.9.173.
-`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.448.
+All tracked version anchors at v9.7.449 / Mamey 1.9.174.
+`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.449.

@@ -1,3 +1,5 @@
+> **Historical development record.** The original body below is preserved with its recorded versions, examples, classifications and prevention rules. Its claimed fixes, scan authority, report section/page counts and rendering behavior are historical statements, not verification against this current bundle. Consult [current result guidance](../READING_YOUR_RESULTS.md), [deliverable contract](../DELIVERABLE_CONTRACT.md) and [source development log](../ISSUES_EXPERIENCED_DURING_DEVELOPMENT.md). Current rendered-page and source evidence are needed to establish a fix; annotation/class predictions do not establish production or activity. Preserve complete locus identity for current claims. The current PDF helper tries ReportLab first and pandoc/xelatex second (`tools/md_to_pdf.sh:1–49`); old examples of a single mandatory renderer are not the current dispatch contract. No historical scientific interpretation or reported test result was revalidated here.
+
 # Sapote–Mamey Development Issues Compendium
 ## Documented Bugs, Misidentifications, and Design Failures
 **Bundle v9.7.241 · Engine 1.9.111**

@@ -10,6 +10,12 @@ Rscript tools/render_screening_exploration.R path/to/admitted_tables path/to/new
 
 Existing figure names are refused unless `--overwrite` is supplied explicitly. Each available supported table triggers its figure. A concentration table can contain multiple source-labelled populations; each receives separate full-range and zoomed PNG/PDF pairs. No supported tables is an error.
 
+## Output and validation limits
+
+The renderer writes each caption, PNG and PDF sequentially. A later table validation, device error or existing-file refusal can leave earlier outputs behind; the directory is not an atomic figure set. `R_SESSION.txt` is written at the end and may be absent after failure. Use a fresh output directory, retain the error and mark partial outputs incomplete. Review the actual companion files rather than using the printed “figure pairs” count, which currently includes caption paths in its calculation. `--overwrite` permits replacement and is not a recovery verifier.
+
+Its arithmetic checks do not validate upstream source admission. Counts are checked as finite/nonnegative numbers rather than necessarily integer counts. Overlap checks do not reject a shared total of zero; ensure a positive denominator yourself. The code checks unique strain/family or strain/class cells but does not enforce one shared per-strain denominator or consistent Candida/MRSA calls across that strain's class rows. Retain exact-row provenance and resolve conflicting denominators/calls before rendering. No printed title is evidence of a biological conclusion: some titles/captions contain fixed source-context claims, such as more than two targets or combined host sublabels, that must match the actual supplied data before delivery.
+
 ## Input tables
 
 All inputs are ordinary UTF-8 CSV files with headers. Counts must be nonnegative. Denominators must match the displayed fractions. Missing values must be resolved or excluded with a separate admission receipt before rendering. An omitted input table means that figure is not requested, not that its biology is absent.
@@ -43,6 +49,10 @@ A preview is not a complete figure delivery. Every delivered figure must have it
 ```sh
 python tools/package_screening_figure.py --figure-dir figures --figure-stem 01_screening_overlap --data-dir overlap_inputs --caption caption.txt --receipt receipt.json --renderer tools/render_screening_exploration.R --session-info figures/R_SESSION.txt --out standalone/overlap
 ```
+
+The packager requires nonempty named files, at least one top-level CSV and a receipt that parses as JSON. It does not validate receipt schema, source identities/hashes, caption methods, PNG/PDF validity or a successful reproduction. A syntactically valid empty receipt object is not source admission. It copies every top-level CSV from `--data-dir`; use a minimal, dedicated directory with only this figure's required tables, including context when used. It also copies the renderer's adjacent `sapote_figure_theme.R`. Existing packet/ZIP destinations are refused, but writes after directory creation are sequential and can leave a partial packet.
+
+The manifest hashes copied packet files; it does not automatically reopen their source locators or verify the manifest itself against a trusted external pin. Preserve upstream admission evidence in place, inspect the generated packet/manifest and run an authorized reproduction in a fresh destination before calling it portable in the selected environment. Reproduction creates its own outputs; it is not performed by packaging. Extra input tables can regenerate additional figures, so supplying only the intended input set matters.
 
 For scored concentration figures, also supply `--score-0-100` to the packager. The output folder and ZIP contain the figure, data, caption, receipt, `render.R`, `reproduce.R`, instructions, session record and checksums. Extract the ZIP and run `Rscript reproduce.R` from any working directory. No original source path is required at runtime.
 

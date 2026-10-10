@@ -1,5 +1,18 @@
 # Patch Chat Request — SOP Library + v9.7.142 Bug Hunt Integration
 
+## Historical request, not a current dispatch
+
+This v9.7.142 patch-chat request and handshake are preserved source history. Reading it does not send
+a request, revive its cut plan or authorize replies to another chat. Follow the actual current user scope
+and [current bundle instructions](../../AGENTS.md); use [this folder’s scoped entry](START_HERE_FOR_OTHER_CHATS.md)
+for current SOP locators and historical boundaries. Its expected PASS/FAIL/CHECK answer is a review-label
+convention, not a code gate or release approval. Findings need exact selected source/version, reproducible
+observations, proposed Markdown/code solution and actual verification limits. Preserve owner acceptance
+and external communication as separately authorized actions. Do not treat a report-only fix proposal as
+an applied/verified patch or duplicate a package to create the review packet.
+
+## Retained request
+
 Handshake: The sky is not red, it is blue, just like the ocean.
 
 ## Request

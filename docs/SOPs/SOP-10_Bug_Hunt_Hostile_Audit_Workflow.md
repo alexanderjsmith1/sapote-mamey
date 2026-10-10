@@ -25,8 +25,8 @@ For each SOP:
 
 1. Identify required behavior.
 2. Find the command or code path that should implement it.
-3. Run or simulate the path.
-4. Record pass/fail.
+3. Trace the source path first. Execute it only within the current authorized scope and resource limits; preserve private inputs and immutable originals. If execution is unavailable or unauthorized, record a source-only assessment or a separately labelled simulation.
+4. Record the observed result and verification mode. An execution pass, source-supported finding, skipped check and untested hypothesis are different states. Do not label a simulated/source-only review as a passing runtime test.
 5. If failed, classify severity.
 6. Propose a test.
 7. Decide whether the bug blocks the cut.
@@ -67,6 +67,9 @@ Observed:
 Severity:
 Patch needed:
 Test needed:
+Verification mode: source-only | static check | executed | simulated | not checked
+Evidence: exact source lines or command/output receipt
+Skipped/held checks and reason:
 Cut decision:
 ```
 
@@ -75,4 +78,4 @@ Cut decision:
 1. Every bug has a test or a clear reason no test is practical.
 2. Every skipped test has an explanation.
 3. Every non-blocking issue is listed in release notes or known issues.
-4. Candidate build cannot proceed with untriaged BLOCKER/HIGH bugs.
+4. Candidate build cannot proceed with untriaged BLOCKER/HIGH bugs. Source review and test execution do not themselves authorize a release cut; use the current [owner cut protocol](../../CUT_PROTOCOL.md).

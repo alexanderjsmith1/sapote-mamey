@@ -123,3 +123,13 @@ genomes” until independent genome-wide evidence supports that wording.
 Claim ceiling: ClusterBlast similarity can prioritize comparator candidates but
 does not prove organism relatedness, species identity, strain independence,
 product identity, biosynthetic production, or biological activity.
+
+## Implemented join, hash and status limits
+
+The inventory reader expects BGC ID, contig and a numerically parseable `Region`/`region_number`. Rows lacking those fields or a parseable region are silently skipped. It maps contig+region to alias and refuses conflicting aliases for the same region key, but does not validate unique alias-to-full-locus mapping or the manifest strain against a sealed package. Child support groups by strain+BGC alias+candidate assembly; if an alias spans different contigs/regions, support can collapse. Preserve the complete strain/full contig/region/alias roster and hold ambiguous alias mappings before interpreting “exact” support units (`tools/rank_clusterblast_phylo_candidates.py:259–279,371–400,421–445`).
+
+Assembly provenance hashes the ZIP, selected assembly member and sorted uppercase nucleotide sequences. The content hash is header/order-independent, not reverse-complement-normalized or proof of whole-assembly completeness. The code accepts a parsed GenBank member without independently proving that it is whole-genome rather than a region; the whole-assembly input rule is operator admission, not an enforced distinction (`157–193`).
+
+The receipt hashes manifest and resolver, plus ZIP/assembly provenance elsewhere; it does not hash the consumed BGC inventory, individual raw ClusterBlast members, source code or output TSVs. Pin those in a separate receipt. Resolver accession/evidence schema validation does not authenticate reference claims; repeated mapping to the same assembly can replace organism/evidence text. Empty gene-hit blocks do not become child support because aggregation starts from parsed gene rows (`229–249,421–445,524–576`).
+
+The output directory must be new. Writes are sequential, with no complete-set rollback; a failure can leave a partial directory that refuses reuse. Zero exit can contain unresolved-accession and unmapped-region holds, or no candidate rows. `CANDIDATE_LEDGER_ONLY_NOT_DOWNLOADED_NOT_RUN` describes successful ledger production, not a hold-free accepted reference pool. Inspect counts, all hold tables and the actual artifact roster before panel curation. Preserve partial evidence in place and choose a separately reviewed recovery candidate; do not delete source assets to retry (`515–601`).

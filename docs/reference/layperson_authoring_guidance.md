@@ -1,3 +1,15 @@
+# Current reader entry for the historical plain-English authoring notes
+
+The dated May-27 notes below are a style source, not an evidence source or a current command/prompt contract. Reuse the clear story arc and place caveats beside each claim. Obtain counts, comparator names, similarity fields, taxonomy, isolation context, and activity from the current bound package and approved records; no mandatory “one comparator plus one number” quota justifies inventing or transferring evidence.
+
+Before using an analogy or mechanism, check that it fits the actual evidence. A finished assembly does not establish pathway expression, the finished compound, or an assay phenotype; “complete recipes” and claims of unusually rich inventory need their own scope and denominator. A linter passing production-verb checks does not verify scientific correctness, mechanisms, comparative rarity, or experimental linkage. For every individual locus use `strain / full node-or-contig / region / BGC alias`; the abbreviated historical examples below are not reusable locus identities.
+
+Use the installed bundle's [current authoring contract](../MODEB_FULL50_CONTRACT_USAGE.md) and [reading guide](../READING_YOUR_RESULTS.md). Treat the proposed prompt expansion at the end as a proposal: this note does not modify `guide` or `compile-report` code.
+
+---
+
+## Historical May-27 style notes (verbatim)
+
 # Plain-English authoring guidance — distilled from the May-27 layperson prose
 
 *Source: AS-XXX Laypersons Guide + AS-XXX layperson section (2026-05-26/27). These read well; the goal is to

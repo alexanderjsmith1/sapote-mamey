@@ -23,7 +23,7 @@ hand-reconstructing a GBK. This exposes that as a reusable step and improves on 
         --outdir refs/
 
 Writes `refs/<label>.gbk` per reference. Each `--acc` text must select **exactly one** record in the
-DB's `gbk.path`. It is matched as plain text (SQL wildcards are escaped). No match stops with "not
+DB's `gbk.path`. MIBiG selectors require all seven digits; NCBI-shaped selectors require an explicit version and exact accession-token boundaries. A bare package BGC alias is not a reference accession. Other selectors use literal path-substring matching (SQL wildcards are escaped), which binds the chosen source path but does not independently establish accession or complete locus identity. No match stops with "not
 found". More than one match stops with the list of matching paths: give a longer substring, such as the
 full region file name. The selected path is printed on stderr and preserved in
 `refs/<label>.reference_selection.json`. Each receipt contains the requested selector, resolved DB
@@ -54,6 +54,28 @@ figure or CSV is written. A successful comparison also writes
 which binds the query GBK, each source selection, the global-identity threshold, and both output
 files to their SHA256 values. Local GBK references are bound to their resolved paths and bytes.
 Use a stable source DB during the run and retain any WAL with the DB when reproducing its state.
+
+## Reconstruction and network boundaries
+
+The exported GBK is a derived protein/feature comparison transport: its nucleotide
+sequence is synthetic `N` characters, and its locus tags are rebuilt labels. Even
+an NCBI selection is reduced to translated CDS features before reconstruction.
+Do not use this derived GBK as a deposited nucleotide sequence, genuine CDS-DNA
+export, assembly or nucleotide alignment input. Preserve the original reference
+record/source separately when those bytes are needed. Pfam-derived gene labels
+are display annotations, not validated gene function.
+
+`--ncbi` performs live remote retrieval immediately; it is not a planning flag or
+cache-only path. It requires a complete versioned nucleotide accession, exactly
+one returned record with matching ID and translated CDS. Use only when the user's
+selected task already authorizes that retrieval. Local DB selection needs no
+network. Both output reconstruction paths require Biopython for feature/record
+creation; the read shim alone cannot supply this writer.
+
+The demonstrated source-path substring and friendly output label are lookup/display
+values. For any project BGC used in interpretation, separately bind
+`strain / full node-or-contig / region / BGC alias` from its authoritative package;
+do not promote a nickname into a full locus identity.
 
 ## Why this closes a loop
 

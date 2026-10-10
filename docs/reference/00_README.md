@@ -1,5 +1,21 @@
 # Engine Reference Documentation
 
+## Current reference entry and scope
+
+Read [current source scope and known limits](06_CURRENT_SOURCE_SCOPE.md) before applying these methods
+references. The original dated track description remains below as history. The technical VolI/VolII/plumbing
+version-of-record lines are synchronized by `tools/sync_version.py:376–386`; a current version stamp is
+not a full source/mathematical/scientific review, and the dated index/general-audience dates do not auto-update.
+Source citations name implementation owners, not proof every formula or consumer was re-verified this session.
+
+Use the [current human guide](../GUIDE/00_README.md), [profile matrix](../MODEB_PROFILE_MATRIX.md),
+[tools reference](../user_guides/tools_reference.md) and [metadata reader guide](../BUNDLE_METADATA_READERS.md)
+for present operations and exact-source contracts. Existing large references stay in place with path/SHA-256;
+do not duplicate packages, datasets, assets or large source volumes merely to read these references.
+Archived public-release instructions below remain reference; select the current authorized workflow and source-compatible cut protocol before acting.
+
+
+
 Two tracks, re-grounded to bundle v9.7.429 / engine Mamey 1.9.164 (originally compiled at v9.7.319 / 1.9.110):
 
 ## Technical track (source-cited — every formula → `module.py:symbol`)

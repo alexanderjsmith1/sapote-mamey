@@ -1,3 +1,36 @@
+# Release-tier history and current verification limits
+
+Current release work cuts CODE only under [CUT_PROTOCOL](../CUT_PROTOCOL.md). `tools/make_public_tier.sh` refuses the other retained tier branches unless the explicit disabled-tier override is set. Their presence in source does not authorize rebuilding or publishing them. Read the exact selected privacy assignment in [portable privacy/evidence guidance](PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md); a tier label, identifier prefix or historical public-availability statement does not settle disclosure of new genome findings.
+
+The original tier note below is retained as history. Its blanket “byte-identical” and “safe for external sharing” statements are not current validation results. The builder still unconditionally invokes the maintained documentation/configuration redactor for non-merged tiers. Retiring the old AS_SCRUB switch and SID rewrite did not remove that later transform. Do not re-arm disabled branches or bypass current release gates merely to satisfy an old four-tier description.
+
+## What the checkers establish
+
+| Owner | Checked scope | Limit |
+|---|---|---|
+| `tools/check_tier_parity.py` | Archive labels/set completeness, version, selected cassette/marker counts, registry and four manifest-file presence checks | Requires the historical ordinary four-tier set; does not compare every payload byte, all scientific data or current CODE-only release completeness |
+| `tools/verify_tier_derivation.py` | Expected text transforms for selected extensions on files walked from the supplied private source, with stated metadata/strip exclusions | Reads text with decoding errors ignored; does not hash all binaries or detect arbitrary extra destination files; not a complete archive checksum or disclosure audit |
+| `tools/make_public_tier.sh` | Staging, profile/content transforms, metadata and checksum regeneration under the selected cut route | Mutates a candidate tree and can run gates; this guide authorizes no cut or release |
+| `tools/sync_version.py` | Regenerates version/build restatements, including `TIER_NOTE_CODE.md` | Restated versions identify metadata; they do not certify execution or source correctness |
+
+The derivation checker treats test/synthetic-allowlist text as identity comparisons and skips a larger explicit metadata set than the old “three differentials” summary. A PASS applies only to the provided inputs, options and checker scope. Compare final source/archive checksums and required cut receipts separately; record the actual command and source hash. Keep the tier-builder and release-checker execution receipts separately.
+
+## Tier-parity selection, writes and evidence
+
+`tools/check_tier_parity.py --zips <archive> ...` selects an explicit archive roster. `--tiers-dir <directory>` selects every top-level lowercase `*.zip` match there; a nonempty `--zips` list takes precedence. The owner requires exactly one each of the historical `merged`, `cohort`, `code` and `clean` tiers. A present public promotion is inspected, and `--with-public` makes it required. Do not create disabled tiers just to obtain this check's PASS, or substitute it for the current CODE-only cut gates.
+
+Tier identity comes from the full governed archive filename. Inspection selects the first extracted directory with a `mamey` subdirectory, falling back to the extraction root; it does not refuse multiple candidate roots. Version comparison reads a numeric prefix from `CITATION.cff`, rather than binding every archive-name version/stamp or build identity. Cassette and marker comparisons use counts of regex matches from four source files, not equality of the matched ID sets or registry content. Different IDs can therefore have equal counts. Missing citation/cassette/marker files become `?` or zero; if every tier has the same missing values, those parity comparisons alone do not fail. Registry and manifest checks test path existence, not that each path is a readable regular file with valid content. Use separate source-presence, exact identity/content and archive-integrity checks before treating selected-count parity as validation.
+
+The helper writes a complete temporary extraction for each selected archive, sequentially, then attempts cleanup in `finally` with removal errors ignored. It is not a write-free archive-list inspection; reserve temporary space for an extracted tier and verify cleanup after interruption. It uses the maintained safe-extraction preflight, whose member/path checks are separate from tier-content validation. No selected archive is rewritten by inspection. Exit zero reports no collected parity findings; one reports findings; two is explicitly used for no selected archives. Archive/read/extraction failures can raise exceptions before the report is produced, so absence of a receipt is not PASS.
+
+`--json` prints the receipt. `--receipt-out <path>` creates parent directories and directly opens that destination for writing, including when parity fails; it has no fresh-destination or alias refusal and no atomic publication. Use a separate fresh receipt path outside source/archive evidence and retain stderr plus the actual return code. The receipt records archive basenames and selected observations, not archive paths/hashes, complete ID sets or a current-run source binding. Record those separately. `tools/release.sh` invokes this retained checker without `--receipt-out`; a successful console gate does not itself leave this JSON receipt. Sources: `tools/check_tier_parity.py:82–202`, `tools/tier_vocabulary.py:61–107`, `mamey/ziputil.py:114–189` and `tools/release.sh:80–84`.
+
+## Historical note — preserved original body
+
+The following wording records prior policy and tools descriptions. It does not override current user instructions, privacy profiles, CODE-only cut governance or the implementation limits above.
+
+---
+
 # Tier Differences — Sapote–Mamey Release Bundles
 
 > **Historical (retired tiers).** Releases now cut the CODE tier only (`CUT_PROTOCOL.md`, since v9.7.444); the

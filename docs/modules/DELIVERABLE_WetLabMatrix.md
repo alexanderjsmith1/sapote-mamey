@@ -12,7 +12,7 @@
 
 Per `DELIVERABLE_CONTRACT.md`, the user must never need to know this exists to receive it.
 
-- **Auto-build** whenever a Mode B run (Full-Run Profile) or a Deep Dive Synopsis is produced: the top-10 wet-lab target table is part of the synopsis, and the `WetLab_Decision_Matrix` workbook sheet is part of the Excel deliverable.
+- **Assistant workflow recommendation**, not an automatic engine call: build when authorized and selected whenever a Mode B run (Full-Run Profile) or a Deep Dive Synopsis is produced: the top-10 wet-lab target table is part of the synopsis, and the `WetLab_Decision_Matrix` workbook sheet is part of the Excel deliverable.
 - **Offer as first next-path** when a sealed `MAMEY_COMPLETE` package exists but only a triage board has been produced (no wet-lab routing yet).
 - **Incomplete delivery** = producing a WL *score* (kernel M4) without the four action scores (§33.5), the decision-category mapping (§33.4), and the top-10 target table. A lone score is not this deliverable.
 
@@ -37,7 +37,7 @@ Per `DELIVERABLE_CONTRACT.md`, the user must never need to know this exists to r
 
 Currently `PROMPT_BACKED`: Sapote computes the score per BGC from the §33.3 portable table (below), citing the Mamey field behind each term (Contig-ID Mandate applies — every BGC carries `BGC_ID (contig · regionXXX)`).
 
-To promote to `SCHEMA_BACKED`, add the deterministic writer (keeps the score out of prose):
+The deterministic writer already exists. It emits a CSV and a separate XLSX, not a sheet added to the package/master workbook:
 ```bash
 python tools/build_wetlab_matrix.py --package-dir <pkg> --out-dir <dir>
 # emits: <strain>_WetLab_Decision_Matrix.csv  +  workbook sheet WetLab_Decision_Matrix
@@ -119,7 +119,7 @@ A BGC can be (e.g.) sequencing-HIGH + isolation-LOW simultaneously — that is t
 | Top 3–5 action targets | `WLDM_fermcard` | Fermentation Card A5 |
 | Memory line (top targets + categories) | `WLDM_memory` | Project Memory Snapshot |
 
-Registration into the workbook schema (not hand-editing) is the single source of truth once the §3 tool exists.
+Registration into the workbook schema (not hand-editing) is the single source of truth when the requested workbook integration is actually implemented and checked.
 
 ---
 
@@ -141,7 +141,7 @@ Registration into the workbook schema (not hand-editing) is the single source of
 
 | Piece | Owner (source of truth) |
 |---|---|
-| Score criteria & categories | monolith §33 / `tools/build_wetlab_matrix.py` (when built); this doc = portable copy |
+| Score criteria & categories | monolith §33 / `tools/build_wetlab_matrix.py` (existing writer); this doc = portable copy |
 | Architecture grades (A–E) | kernel MODULE 3 (§31) |
 | AB/AF routing context | `DAPR_CLASS_FRAMEWORK.md` / kernel MODULE 17 |
 | LMPKS grades | `prompts/reuse/SAPOTE_FRAGMENT_RESCUE_REUSE_PROMPT.md` |
@@ -154,6 +154,6 @@ Registration into the workbook schema (not hand-editing) is the single source of
 > Wet-Lab Decision Matrix complete: 12 BGCs scored, 2 in **Immediate**, 3 in **Strong**. Top sequencing target: the 017/035/072 NRPS megaset (all sequencing-HIGH). Next paths:
 > 1. Build the Fermentation Card A5 for the two Immediate targets (BGC047 enediyne, BGC063 phosphonate).
 > 2. Run the LMPKS rescue on the 017/035/072 set to resolve their +1/+2 adjustment.
-> 3. Promote this module to `SCHEMA_BACKED` by writing `tools/build_wetlab_matrix.py`.
+> 3. Inspect the existing writer’s output schema and requested workbook integration.
 > 4. Generate the Metabolomics Readiness deliverable for the dereplication-HIGH BGCs.
 > 5. Bank a second *Amycolatopsis* strain to test whether the phosphonate/enediyne pairing recurs.

@@ -1,5 +1,31 @@
 # The Mathematics of Sapote–Mamey, Volume II
 
+## Current figure owner and verification scope
+
+This dated overview records design disciplines; its universal “every figure” guarantees are not validated
+for all current emitters. See [current source scope](06_CURRENT_SOURCE_SCOPE.md),
+[reading results](../READING_YOUR_RESULTS.md) and the [tools reference](../user_guides/tools_reference.md).
+Actual locus-map re-render supports SVG or PNG (`mamey/locus_map.py:487–491`) and writes its source-data CSV
+on that route (`:541–550`), so “every figure is PNG” is too broad. Figure print-manifest code explicitly
+records whether a sidecar exists (`mamey/figures_sapote.py:391–425`); a figure existing or a footer/CSV being
+present is not proof of lossless source coverage, reproducibility, scientific acceptance or visual QA.
+
+The current cohort soft_divider is a no-op (`mamey/cohort_figures.py:741–745`); old public/private divider
+language below is historical. Identifier-based private markers (AJS/PENDING) and release tags are software
+routing/display metadata, not permission to disclose source evidence. Actual audience/task authority governs
+sharing. Source counts/class labels and raw reference similarities do not prove capacity, novelty or product.
+
+Best-effort rendering is command/stage-specific, not an unconditional promise that any failure can never
+block a requested deliverable or that scientific sealing always succeeds. A missing required figure remains
+a deliverable hold; distinguish skipped/no-data/failed artifacts from measured-negative data. Exact figure
+limits, dependencies, matching source/sidecar data, identifiers, palettes and acceptance require the actual
+owner and saved result. Every individual locus carries complete four-part identity; no alias-only promotion.
+
+Check the actual rendered pages, source-data bindings and intended audience before calling a figure
+publication-ready. Reference existing assets by path and SHA-256; preserve their source evidence.
+
+
+
 ## Cluster G: The Figure System
 
 **Mamey engine v1.9.110 · bundle v9.7.319**  

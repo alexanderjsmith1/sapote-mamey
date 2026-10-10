@@ -1,3 +1,15 @@
+# Mode B exemplar reader guide — v9.7.447 source check
+
+The reference collection below is historical calibration. For new current50_v2 authoring, use the explicit `current50_v2` contract and `FINISHED_FULL50_CURRENT50_V2` profile: §1–§50 exactly once in order, literature with relevance in §48–§49, and the data evidence table last in §50. A current50_v2 structural pass does not invoke all full48 finished-profile publication gates; it does not establish product, activity, linkage, scientific acceptance or release.
+
+`phosphonate_reference_full48_no_blastp_exemplar.md` remains a **full48 format reference**, not a current50_v2 finished card. The seven other supplied class cards are legacy sketches. Historical “verify-modeb OK”, “FULL” and “zero findings” statements below describe their old scope and are not fresh validation. A lexical heading census finds gaps in their §1–§30 coverage; do not copy their omission pattern or import their locus-specific conclusions. The README's old “no live BLASTp run” statements for RiPP and siderophore also conflict with the supplied cards' §4/§28 claims of operator-supplied offline-ingested BLASTp. Resolve original evidence and provenance before using either channel as calibration.
+
+Keep `strain / full node-or-contig / region / BGC alias` on each new card. Source identity, complete per-gene denominators, citation substance, cross-stream disposition and interpretation require their own review. Similarity does not establish identity; an Interior boundary label does not prove every pathway component is present or active. These files have not been scientifically re-certified by this documentation audit.
+
+---
+
+## Preserved historical collection README
+
 # Mode B exemplars — current full48 reference plus legacy class calibration
 
 The current typed-terminal format exemplar is `phosphonate_reference_full48_no_blastp_exemplar.md`: a

@@ -34,7 +34,8 @@ what EPA-ng and related placement methods were built for, and it is exactly the 
    names, and use NCBI Assembly `from_type` evidence for `[Type]` labels. Preserve each tip's full
    name/designation and accession in the metadata and display according to the figure house rules.
 2. **`build-ref`** — `mafft` align → `raxml-ng` (or `iqtree`) ML tree + model → frozen `refpkg/`. CPU-heavy →
-   **requires `--approved-by`** (tree-approval gate). Bootstraps for the backbone only; the queries never enter
+   **requires `--approved-by`** (tree-approval gate). Select an explicit output location
+   outside the sealed code bundle; .447 refuses a reference package inside that bundle. Bootstraps for the backbone only; the queries never enter
    this inference. Without `--refpkg`, the package goes beside the placements (`<outdir>/refpkg`) when the
    command has an `--outdir` (the `all` command), and otherwise to `_PLACEMENT/<group>/refpkg` in the
    generic `trees/` home. Set `SAPOTE_TREE_HOME` to an absolute path or a workspace-relative path to override it. No top-level `strain_data/` folder is made, and
@@ -44,8 +45,10 @@ what EPA-ng and related placement methods were built for, and it is exactly the 
    `epa_result.jplace`. The autopilot writes `query_qc.tsv` and selects fragment mode when any
    routed query is shorter than 1,200 bp; unsupported symbols and reads shorter than 200 bp are held.
 4. **`report`** — `gappa examine graft` (a tree with the queries attached = the figure) + a
-   `<group>_placements.tsv` (per query: best edge, LWR, pendant length) + a claim-safe README; the advisory
-   sign-off gate runs automatically.
+   `<group>_placements.tsv` (per query: best edge, LWR, pendant length) + a claim-safe README; the optional advisory
+   sign-off helper runs only if found at the resolved workspace's `Tools/signoff_check.py`.
+   Its status is not a hard completion gate. Reporting can return zero while a figure
+   or caption is held; inspect the actual output roster and diagnostics.
 
 ## Example (after install; approval recorded)
 ```bash
@@ -74,6 +77,8 @@ as the other or claim that this workflow's example text verifies type status.
 > the genome/ANI track."
 
 ## Relationship to the genome track (when genomes exist)
-For strains **with genomes**, prefer the GToTree core-genome backbone + ANI-to-nearest-type — higher resolution
-and the honest species-level tool. Use 16S placement for the strains that only have Sanger 16S, and as a fast,
+For strains **with genomes**, use a GToTree core-genome backbone and ANI/aligned fraction to selected,
+source-verified reference assemblies for higher-resolution comparison. These measurements
+support taxonomic investigation; neither a tree nor an ANI threshold automatically
+establishes a species name, formal taxonomy or strain identity. Use 16S placement for the strains that only have Sanger 16S, and as a fast,
 cohort-wide first pass. The two are complementary; do not graft a 16S query onto a genome tree.

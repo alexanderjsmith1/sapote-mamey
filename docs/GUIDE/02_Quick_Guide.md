@@ -1,6 +1,6 @@
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.448 / engine Mamey 1.9.173
+**Version:** v9.7.449 / engine Mamey 1.9.174
 
 Mamey extracts deterministic evidence from antiSMASH output. Sapote turns a validated evidence
 package into governed interpretation. Start at the [README](../../README.md). If you work through a
@@ -10,7 +10,7 @@ bundle you have.
 
 This page is the compact reference. For a first-time walkthrough with plain-language setup and
 recovery steps, use [Your first analysis](../MASTER_WALKTHROUGH.md). If you already have a
-package, use [Read your results](../READING_YOUR_RESULTS.md).
+package, use [Read your results](../READING_YOUR_RESULTS.md). Use [Choose a task](../USER_TASK_ROUTER.md) for named builders, required inputs and output/completion boundaries.
 
 ## Start with the question you need answered
 
@@ -36,6 +36,9 @@ Three things to know before you run anything:
 - Run the commands below yourself, in the foreground, one at a time.
 
 ## 0. Install
+
+Before the setup block, read the [doctor write-probe boundary](../INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation and leave an occupied `runs/_doctor_probe` path untouched.
 
 Use Python 3.12 or newer in an isolated environment. The archive name below matches the current
 release manifest; if your download or unsealed candidate has a different name, substitute the real
@@ -191,17 +194,19 @@ chosen. Keep the query headers and batch manifest. Save the hit-table CSV and al
 with the search database, date and settings. A representative panel samples the regions; it is not
 a full per-gene examination of every region.
 
-To submit every extracted protein from one selected region through the NCBI runner:
+To plan the protein search from one selected region through the NCBI runner:
 
 ```bash
 python mamey_run.py blastp-online --package path/to/selected_region.gbk \
   --database nr --outdir analysis/region_protein_search
 ```
 
-This command makes network submissions. Here `--package` means the protein-bearing region GBK or
-antiSMASH ZIP, not simply the sealed Mamey output directory. For a multi-region ZIP, bind the full
-locus identity first and use the documented region/crosswalk selectors; do not submit an unscoped
-whole-genome ZIP as if it were one region. The default batch size is 10 proteins.
+The shown command is plan-only: it prints the disclosure plan and sends nothing. Only after reviewing
+the selected queries and recording authority to disclose them, add `--submit --confirm-public-sequence-upload`
+for a live NCBI submission. Here `--package` means the protein-bearing region GBK or antiSMASH ZIP,
+not simply the sealed Mamey output directory. For a multi-region ZIP, bind the full locus identity
+first and use the documented region/crosswalk selectors; do not treat an unscoped whole-genome ZIP
+as one region. The default batch size is 10 proteins.
 
 For a strain-wide plan, `blastp-round` defaults to full coverage of the top three ranked regions
 plus one representative protein from each remaining region. Planning does not submit searches:
@@ -400,12 +405,13 @@ input identity, diagnostics and resulting files. For the example package above:
 
 ```bash
 python mamey_run.py list-bgcs analysis/runs/EXAMPLE/package
-python mamey_run.py render-all-figures --package analysis/runs/EXAMPLE/package
+python mamey_run.py render-figures --package analysis/working_copies/EXAMPLE/package \
+  --figure-set standard --outdir analysis/review/EXAMPLE/standard_figures
 python mamey_run.py emit-modeb-template --help
 python mamey_run.py verify-modeb --help
 ```
 
-`verify-modeb` takes the authored Markdown file as a positional argument. For a package-bound review,
+`verify-modeb` takes the authored Markdown file as a positional argument. Select `--contract full48` or `--contract current50_v2` explicitly and carry the same contract through emission and verification; use [the authoring walkthrough](../MODE_B_USER_WALKTHROUGH.md) for a complete example. For a package-bound review,
 also supply `--package` and the reconciled `--bgc` selector; `--interp` adds the interpretation check
 and does not replace structural, claim-safety or quality review. A package path alone does not
 identify an authored card.
@@ -416,3 +422,5 @@ AF dossiers, Good Guesses, document export, locus maps and advisory helpers; che
 dependency, output and sign-off requirements. For release work, use the
 [cut protocol](../../CUT_PROTOCOL.md); historical notes in the [changelog](../../CHANGELOG.md)
 do not replace current operating instructions.
+
+For the figure example, first create and identify the working package copy at the shown path. An external figure destination does not prevent .447 package-integrity refresh. Follow [post-seal boundaries](../POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447); preserve the original package and master before native authoring or evidence ingest.

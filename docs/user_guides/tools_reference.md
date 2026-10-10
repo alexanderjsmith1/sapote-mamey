@@ -1,33 +1,31 @@
 # Sapote–Mamey Tools Directory Reference
 
+Before any `doctor` example below, read the [write-probe boundary](../INSTALL.md#doctor-scope-and-write-probe).
+Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
+untouched. The current diagnostic can overwrite or remove its probe file.
+
 Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
 
 
-**Bundle v9.7.430 · Engine 1.9.164** — re-grounded 2026-09-14 (phylogeny-lane).
+**Current navigation baseline: bundle v9.7.447 · engine 1.9.172 · build 20261003v97447a.** Execution receipts below retain their original versions; source inspection does not renew them.
 
 > **The per-script inventory that used to live here has been retired, not lost.**
 > It is now generated, not hand-maintained:
 >
 > | What you want | Where it lives now | How it stays current |
 > |---|---|---|
-> | Every script in `tools/` + its docstring | [`docs/TOOLS_INVENTORY.generated.md`](../TOOLS_INVENTORY.generated.md) — **364 tools** | `tools/gen_tools_inventory.py`; `--check` verifies sync |
-> | Every `mamey_run.py` subcommand | [`docs/COMMAND_CATALOG.generated.md`](../COMMAND_CATALOG.generated.md) — **113 canonical commands** (2 aliases folded in) | `tools/gen_command_catalog.py`; `--check` fails the build when stale |
+> | Every script in `tools/` + its docstring | [`docs/TOOLS_INVENTORY.generated.md`](../TOOLS_INVENTORY.generated.md) | `tools/gen_tools_inventory.py`; `--check` verifies sync |
+> | Every `mamey_run.py` subcommand | [`docs/COMMAND_CATALOG.generated.md`](../COMMAND_CATALOG.generated.md) | `tools/gen_command_catalog.py`; `--check` fails the build when stale |
 > | External tools (antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes) | [`docs/EXTERNAL_TOOL_INVENTORY.md`](../EXTERNAL_TOOL_INVENTORY.md) | manual, versions + citations |
 >
-> **Why the change.** The inventory formerly in this file was compiled by hand on 2026-07-09 at
-> bundle v9.7.241 and listed **107 scripts**. The generated inventory now lists **364**. A hand-maintained
-> copy of a machine-derivable list drifts silently and was already covering under a third of the
-> directory; the generated surfaces are gated by their own `--check` and cannot drift unnoticed.
-> The counts above are copied from the generated files; run each generator's `--check` before citing them.
+> The inventories are generated from their owning sources. Read their current headers instead of copying counts into this page. A successful generator check establishes synchronization, not runtime correctness or scientific validity.
 >
 > **Do not re-add a manual script list here.** Check the generated inventory *before* writing a
 > new tool, as its own header instructs.
 
 ## What remains in this file
 
-Sections 14 onward: material a docstring generator cannot produce — real execution receipts,
-gate semantics, the card readiness state machine, and the toolchain notes. These are human
-observations about *behaviour*, not descriptions of *existence*.
+Section 15 is the maintained request/command route. Section 14 and Sections 16 onward are historical execution/development records: their versioned incidents, fixes and card counts are not current work orders or permission to change biological reports. Read the owning current code/profile before reusing any older command or applying an incident-specific repair. These records document observed behavior at their stated versions, not current runtime guarantees.
 
 ---
 
@@ -35,7 +33,7 @@ observations about *behaviour*, not descriptions of *existence*.
 
 > **Currency note (added 2026-09-14):** the verification receipts in this section were recorded
 > against **bundle v9.7.241 on 2026-07-09** and have **not** been re-executed since. They are
-> retained as a historical receipt of what ran at that version, not as a claim about v9.7.430.
+> retained as a historical receipt of what ran at that version, not as a claim about the current baseline.
 > Re-running this matrix is tracked as an open item; until then, treat the "Confirmed" column as
 > "confirmed at v9.7.241".
 
@@ -79,71 +77,231 @@ observations about *behaviour*, not descriptions of *existence*.
 
 **`python mamey_run.py render-all-figures`** — non-blocking per module. If one module fails (e.g. domain-level fails because deep_data.json is empty), the others continue. The summary at the end reports per-module results.
 
-**`tools/gen_tools_inventory.py`** — writes the full tools inventory to `docs/TOOLS_INVENTORY.generated.md`, injects a compact `name — summary` list into the generated block of `docs/BUNDLE_CAPABILITIES.md`, and also outputs "wrote inventory: N tools" to stdout. The inventory is a structured markdown table of all tools/scripts with docstrings extracted. For a connection-aware review, run `python tools/gen_tools_inventory.py --connections --format tsv --output tool_connections.tsv`. That audit reports exact source hashes, executable interface, source/CLI consumers, tests, path-filtered non-historical documentation references, manifest membership, declared lifecycle, personal-path literals, external-contact markers, and two transparent evidence scores. The scores measure wiring and operational support only; they do not measure scientific value, correctness, acceptance, or release readiness. The marker columns are review cues, not proof that a default is unsafe or that external contact occurs.
+**`tools/gen_tools_inventory.py`** — writes the full tools inventory to `docs/TOOLS_INVENTORY.generated.md`, injects a compact `name — summary` list into the generated block of `docs/BUNDLE_CAPABILITIES.md`, and also outputs "wrote inventory: N tools" to stdout. The inventory is a structured markdown table of all tools/scripts with docstrings extracted. For a connection-aware review, run `python tools/gen_tools_inventory.py --connections --format tsv --output tool_connections.tsv`. That audit reports current tool-file hashes, heuristically detected interface, lexical source/CLI/test/doc/manifest reference files, inferred lifecycle, personal-path/external-contact markers and two wiring scores. It covers only direct tools files; selected historical-directory filtering is incomplete, and no dependency, call or test is executed. See [catalog maintenance](../CATALOG_MAINTENANCE.md) for mode, mutation and snapshot limits. The scores measure wiring and operational support only; they do not measure scientific value, correctness, acceptance, or release readiness. The marker columns are review cues, not proof that a default is unsafe or that external contact occurs.
 
 ---
 
-## Section 15: Tools Quick Reference Card
+## Section 15: Current task routes and bounded examples
 
-For field use — the most common tools and their essential flags.
+For `list-bgcs`, use [quick-list selection and full inventory](../READING_YOUR_RESULTS.md#quick-list-selection-and-full-inventory): current axes are `rank`, `ab` and `af`; default exclusions and `--top` make a selected view. Use `--include-dropped` when the task requires all admitted board rows. Historical option/output descriptions below or above retain their original receipt scope.
+
+Use [Choose a task](../USER_TASK_ROUTER.md) for inputs, outputs and completion limits, and the generated command catalog for command names, aliases and summary help. Use the owning command’s current `--help` for flags. Historical commands in Section 14 are receipts, not current copy/paste instructions.
+
+For source-ZIP comparison use [offline pairwise comparison](../../sapote_addons/README_OFFLINE_ANALYSIS.md); a sealed package directory is not its protein input. For a browser reader use [interactive widgets](../WIDGET_DELIVERABLES.md), whose render status does not validate the package. To transfer reviewed evidence use [portable handoff](../FILES_STORAGE_AND_HANDOFF.md#use-the-portable-handoff-builder-deliberately), checking actual region-file counts. Each route has a separate output and recovery contract.
+
+### Strain slides builder
+
+Request the **Sapote-Mamey Strain slides builder**. It creates the main strain deck and a separate region-gene-table PowerPoint. Follow [Strain slides](../STRAIN_SLIDES.md) for the sources JSON, optional channels, output files and .447 versus v2n/.448 boundary.
 
 ```bash
-# --- BEFORE A RUN ---
-python mamey_run.py doctor                               # pre-flight: Python, deps, permissions
-preflight_zip_hygiene.py <zip>             # check for macOS artifacts, oversized files
-python mamey_run.py inspect <zip>                        # preview: region count, organism, GBK structure
-
-# --- RUN ---
-python mamey_run.py run \
-  --input-zip <zip> --strain <ID> \
-  --taxonomy "Genus sp." --source "host, location" \
-  --release PUBLIC|PRIVATE \
-  --mode gold --json-evidence bounded \
-  --outdir runs/
-
-# --- VALIDATE ---
-python mamey_run.py validate runs/<ID>/package           # → MAMEY_COMPLETE or MAMEY_COMPLETE_WITH_ISSUES
-
-# --- FIGURES ---
-python mamey_run.py render-all-figures --package <pkg>   # run if --capped-session suppressed figures
-
-# --- EXPLORE OUTPUTS ---
-python mamey_run.py list-bgcs <pkg> --json              # BGC inventory with all scores
-python mamey_run.py list-bgcs <pkg> --axis af --top 5  # top 5 by antifungal score
-python mamey_run.py explain <pkg>                        # narrative walkthrough
-
-# --- MODE B ---
-python mamey_run.py emit-modeb-template \
-  --package <pkg> --bgc BGC001 > BGC001_card.md    # emit §1–§30 skeleton
-python mamey_run.py verify-modeb --package <pkg> --bgc BGC001    # validate authored card
-
-# --- WORKFLOW GATE ---
-python mamey_run.py workflow --package <pkg>             # W0–W10 markdown ledger
-python mamey_run.py workflow --package <pkg> --json     # W0–W10 machine-readable
-python mamey_run.py workflow --package <pkg> --strict   # exit non-zero if any mandatory step incomplete
-
-# --- COMPILE ---
-python mamey_run.py compile-report --package <pkg>       # auto-compile report
-python mamey_run.py compile-report --package <pkg> --strict  # exit non-zero if SAPOTE slots open
-python mamey_run.py compile-report --package <pkg> --pdf  # also render Boss-Ready PDF via tools/md_to_pdf.sh (refuses on unfilled slots)
-python mamey_run.py compile-report --package <pkg> --pdf --allow-unfilled-pdf  # render the PDF even with unfilled slots (skeleton)
-
-# --- BANK AND BUILD ---
-tools/ingest_package.py \
-  --package <pkg> --ww WWGP0000000 \
-  --merge --banked-dir cohort/
-
-tools/build_workbook.py \
-  --workbook project_master.xlsx \
-  --banked-dir cohort/ --full
-
-# --- RELEASE ---
-tools/gen_marker_catalog.py --check       # verify catalog matches source
-tools/sync_version.py --check             # verify version strings consistent
-tools/preflight_zip_hygiene.py <zip>      # clean release check
-tools/check_tier_parity.py --tiers-dir . # all-tier parity gate
-tools/claim_safety_linter.py <md>        # check claim safety in narrative text
+python tools/strain_slides.py template > XS-001_sources.json
+# Fill the sources file with real strain/package bindings and absolute optional paths.
+python tools/strain_slides.py build --sources XS-001_sources.json --out decks/new_build --tag review1
 ```
+
+### Combined V7 + Mode B report builder
+
+Request the **Sapote-Mamey combined V7 + Mode B report builder** for composing an existing exact-current predecessor packet with retained scientific text and structured overlays. Read [its complete selected input/output contract](../reference/06_CURRENT_SOURCE_SCOPE.md#combined-v7-and-mode-b-report-builder) before preparing the job JSON. It requires ten source roles, explicit identity/hash bindings and a fresh destination; it does not create missing evidence or render Word/PDF. Exclusion can return exit0 with no output, and a built draft can retain scientific holds.
+
+### Mode B authoring
+
+Replace all placeholders. The BGC alias is a local selector within a source-bound package; the authored file must preserve `strain / full node-or-contig / region / BGC alias`.
+
+```bash
+python mamey_run.py emit-modeb-template --package '<package>' --bgc '<alias>' --contract current50_v2 --out '<new-template.md>'
+# Author the emitted template from admitted evidence before verification.
+python mamey_run.py verify-modeb '<authored-card.md>' --package '<package>' --bgc '<alias>' --contract current50_v2
+```
+
+Choose the profile explicitly: .447 accepts `full48` (default) or `current50_v2` for these commands. Carry the same contract through emission and verification. The verifier requires the authored file as a positional argument. See [profile matrix](../MODEB_PROFILE_MATRIX.md) and [expanded locus](../MODEB_EXPANDED_LOCUS.md) for work-order-specific requirements. A template or structure pass is not a finished scientific interpretation.
+
+### Selected package figures
+
+```bash
+python mamey_run.py render-figures --package '<working-package-copy>' --figure-set standard --outdir '<external-output-folder>'
+```
+
+This selects one figure set and supplies an external image destination. The .447 CLI can still refresh integrity files in the supplied package; use a working copy and retain the original. See [post-seal boundaries](../POSTSEAL_READERS.md#commands-that-still-author-package-data-in-447). Read [Figure rendering](../FIGURES_START_HERE.md) for prerequisite evidence and renderer limits. Capped extraction can defer figures; a renderer success does not prove every desired figure was available or visually reviewed.
+
+### Registry-ID duplicate screen
+
+Request `tools/check_registry_ids_unique.py` for exact extracted duplicates within selected JSON/CSV files. Read [input admission, per-file scope and recovery](../REGISTRY_JSON_CSV_PARITY_NOTE_v9.7.141.md#registry-id-checker-scope): “unique (0 IDs)” can omit invalid/missing entries, and separately clean files do not prove population or field parity. Keep original registry evidence and bind the actual inputs/result before using the count.
+
+### Input manifest and release ZIP preflight
+
+Use the **input manifest and coverage builder** for selected file hashes and a separately reviewed key denominator. Use ZIP hygiene for software-release packaging names/sizes. Read [their exact scope and recovery](../reference/06_CURRENT_SOURCE_SCOPE.md#input-manifests-and-zip-preflight-scopes): neither check proves analysis consumption, full cohort identity, payload validity or release acceptance. Historical antiSMASH ZIP examples above do not turn release hygiene into intake validation.
+
+### 16S store defect validator and merge screen
+
+Request these by their separate names when auditing a closed 16S store. The validator reports selected metadata/genus defects; the merge screen produces an additive alignment screen with merge acceptance held. Read [inputs, outputs and recovery](../reference/06_CURRENT_SOURCE_SCOPE.md#16s-store-defect-validation-and-additive-merge-screening) before interpreting exit0 or publishing reports.
+
+### Denominator and evidence-conservation audits
+
+Request these checks for cached workbook ratio tokens or two selected JSON evidence files respectively. Their PASS states have different units and explicit unexercised coverage. See [their commands, receipts and recovery](../reference/06_CURRENT_SOURCE_SCOPE.md#cross-strain-denominator-and-conservation-audit-coverage); neither saves a full provenance receipt or validates every claim/locus.
+
+### Finished-text citations and source disclosure
+
+Request the **finished-text citation hygiene audit** for selected Markdown/text, and the **strict source-disclosure compatibility check** for Python/test disclosure scope. They have different input and completion contracts. Read [selection, status, output and recovery](../reference/06_CURRENT_SOURCE_SCOPE.md#finished-text-citation-hygiene-and-strict-source-disclosure): neither proves factual source support, exact full-locus binding, rendered-page QA or release acceptance.
+
+### Public-workbook disclosure audit
+
+Request `tools/audit_public_cut.py` for a selected merged-master Excel candidate, with its preserved private source and allowed/held roster when available. This is a cached-cell/schema-name pattern guard, not the code-tree release auditor or a bundle-version validator. Read [public-workbook scope and recovery](../CUSTOM_PRIVACY_TIERS.md#public-workbook-audit-limits) before interpreting `CLEAN`, selecting report/scrub destinations or sharing the diagnostic report. No default `CLEAN` result proves full roster admission, formula/object disclosure review or release permission.
+
+### Local Markdown target check
+
+Request `tools/check_md_links.py` for simple local links in explicitly selected Markdown files. Read [input discovery, link syntax and hook limits](../CATALOG_MAINTENANCE.md#markdown-link-checks-and-hook-scope): zero problems does not validate missing requested inputs, heading fragments, reference-style links, relocation, figure coverage or rendered navigation. Keep source Markdown intact and retain the actual checked-file list and result; a quiet optional hook is not execution evidence.
+
+### Markdown preflight and advisory text lint
+
+Request the **Markdown render preflight** by name for table-routing and selected
+raw-value checks. Use separate input/output paths; choose fresh output,
+appendix and QA destinations outside the source evidence:
+
+```bash
+python tools/sapote_md_preflight.py '<input.md>' '<processed.md>' --profile boss --appendix-md '<wide-tables.md>' --qa-json '<preflight.json>'
+```
+
+The `boss` profile routes detected pipe-table blocks exceeding six columns or
+118 characters per line by default. `technical` retains those tables. Detection
+is a line heuristic, without Markdown fence or escaped-pipe parsing. The helper
+does not render or inspect a PDF, prove page fit, check full document structure,
+or validate scientific content. Its body output is written even when it returns
+1 for selected forbidden raw-value strings. Exit 0/QA PASS means no such string
+was found in the processed body; routed tables can still contain them. Review
+and retain the appendix separately. If `--appendix-md` is omitted, routed table
+content is not saved by the CLI. QA JSON is also optional. Output, appendix and
+QA writes are separate publications, so a failure can leave a mixed set. Verify
+all requested outputs and their hashes after a retry or interruption.
+
+Request the **advisory professionalism linter** for selected interpretive text:
+
+```bash
+python tools/professionalism_linter.py '<text.md>' --json
+```
+
+This reads text and emits warnings; it does not edit the input or certify its
+claims. Exit 1 means findings, and exit 0 means no findings among the files it
+successfully read. Unreadable files are currently reported to stderr and skipped;
+an entirely unreadable request can return 0 with `{}`. Confirm every requested
+file was read and retain stderr before calling the check clean. Blank lines,
+headings and blockquotes are skipped; table rows skip the denominator rule.
+Code fences are not parsed. Same-line evidence words or backticks can suppress
+warnings without establishing factual support. Independently verify citations,
+full locus identity, denominators and producer completion evidence.
+
+### Silent-success exit inventory
+
+Request the **silent-success exit inventory** when reviewing selected Python
+guard paths. It reads source text and emits a classified console report; it does
+not run the reviewed code or repair files. Select the source root and scope:
+
+```bash
+python tools/silent_exit_audit.py --root '<source-root>' --scope hooks tools
+```
+
+Default scope is `hooks` under the current directory. Only `.py` files under the
+selected scopes are considered; `__pycache__` directories are skipped. Confirm
+the requested directories exist and retain the exact source roster/hashes with
+the console report. Missing directories or an empty scope can produce zero files
+and exit 0. A Python syntax error is silently omitted, while that filename still
+contributes to the reported file count; an unreadable file can raise an error.
+The reported denominator is files encountered, not verified parse coverage.
+
+Exit 0 is the default even when REVIEW rows exist. `--ceiling N` returns 1 only
+when the total REVIEW count exceeds N. `--class REVIEW` filters displayed rows;
+it does not redefine that count. No JSON or saved-receipt option is provided.
+Capture the console output and command exit separately in a fresh receipt.
+
+Classes are lexical review suggestions, not verified path contracts. In
+particular, FAIL_OPEN does not establish that a guard's actual fail-open behavior
+is appropriate. The scanner recognizes selected constant success exits under
+`if`/`except` blocks; it does not prove all execution paths or computed returns.
+Emitter recognition is name-based and treats calls named `write` as visible
+output, even if they only write a file. A later or conditional emitter anywhere
+in an enclosing branch can also suppress a genuinely silent exit. Inspect the
+actual branch and helper behavior before accepting either a finding or an empty
+report. A low count or ratchet pass does not establish complete recovery,
+operator-visible diagnostics or runtime correctness.
+
+### Caption-band helper
+
+Request the **caption-band helper** for an existing raster plot and an authored
+Markdown caption. Use a fresh writable figure destination outside source evidence:
+
+```bash
+python tools/caption_band.py '<plot.png>' '<caption.md>' --outdir '<new-figure-directory>'
+```
+
+This creates `<stem>_with_caption.png`, `<stem>_with_caption.pdf` and
+`<stem>_CAPTION.md`; `_plot_only` is removed from the input stem. Different input
+names can therefore map to the same outputs. Without `--outdir`, outputs go beside
+the source plot. Existing names can be replaced, and the three writes are not one
+transaction. After a failure or retry, verify every requested output and its hash;
+a retained earlier image or sidecar is not proof of current completion.
+
+The sidecar is copied verbatim unless it already occupies the selected sidecar
+path. The band strips selected Markdown marks and link targets and removes blank
+lines; it is not a verbatim Markdown rendering. Empty caption text becomes the
+placeholder `(caption)`. The helper checks selected prohibited wording in those
+flattened lines, not the original plot text, methods schema, source-data bindings,
+scientific accuracy or caption completeness. Retain those checks and provenance
+in separate receipts. It does not create a `_plot_only` source image.
+
+The PDF wraps the raster canvas; it is not a vector export. Saving 300-DPI
+metadata does not establish adequate resolution at the intended publication
+size. Inspect the actual image/PDF for legibility and clipping before delivery.
+Banned caption wording returns exit 2. Other input, dependency or save failures
+can raise exceptions; missing Pillow currently exits through a string
+`SystemExit`, rather than the documented exit 2. Preserve diagnostics and the
+actual exit code instead of assuming every refusal shares one status.
+
+### Patch-queue composition screen
+
+Request `tools/patch_queue_composition_audit.py` for advisory screening of file drops and diff compatibility against a selected base. Read [composition-screen scope](../PATCH_WORKSPACE_LAYOUT.md#optional-composition-screen-scope) before interpreting counts, skipped checks or a zero exit. It does not validate an ordered composed candidate or authorize applying a queue.
+
+### Patch-pool card inventory (`parked_card_audit.py`)
+
+```bash
+python tools/parked_card_audit.py '<versioned-patch-pool>' --sealed-tree '<reviewed-bundle-tree>' --current-version 447 --ttl 2 --all
+```
+
+Use the actual reviewed cut number. This inventories immediate card directories and top-level `.patch`/`.diff` files in pools whose directory names contain `9.7.N`. Nested patch copies are excluded. Nonexistent pool selections and unversioned pools can contribute no rows without failing; record the selected pool/card roster independently. `--all` expands printed rows, not validation scope.
+
+Statuses are screening heuristics. `FOLDED` means at least 60% of distinctive added lines occur as substrings in every existing in-scope target, or a new-file target merely exists. It does not compare complete patch content or context. Deletion-only changes and additions shorter than six stripped characters can be `FOLDED` without checking their intended effect. An unrelated existing new file or matching text in a comment can also satisfy the heuristic. Missing modify targets are skipped; a card with no admitted targets is `OUT_OF_SCOPE`. Confirm intended additions, deletions, exact paths and provenance separately before treating a card as integrated (`tools/parked_card_audit.py:76–162`).
+
+When presence is insufficient, the helper runs native `patch -p1 --dry-run --fuzz=0` with a 60-second timeout to distinguish `PARKED` from `DRIFTED`; it does not apply the patch. Only review trusted patches: target paths are joined to the tree without containment admission, so absolute/traversal targets are not safely restricted to that tree. `DRIFTED` is always flagged; `PARKED` is flagged at the selected TTL or for a contradicting FOLDED marker. `EMPTY`, `FOLDED` and `OUT_OF_SCOPE` alone are unflagged. These states require their own review rather than relying on the final clean message.
+
+The test guard checks filename/target presence for `PARKED`/`DRIFTED` engine-code cards, not test execution, coverage or results. `--no-require-tests` disables that presence guard. Exit 2 means flagged cards or an undetermined current version; exit 0 means no flags in the admitted inventory. Neither proves complete integration. Capture the command, exact inputs/hashes, complete printed roster and independent resolution records; the helper does not save a structured hash-bound receipt (`tools/parked_card_audit.py:202–313`).
+
+### Onboarding entry-point check
+
+Request `tools/check_onboarding_funnel.py` for the selected bundle's static root-door/twin check. Read [literal admission and optional runtime scope](../DOCUMENTATION_MAP.md#onboarding-funnel-maintenance-check) before treating PASS as a usable route or selecting `--run-start`. Preserve the intended entry-point roster and actual results.
+
+### Module-inventory gate
+
+Request `tools/check_module_accretion.py` for module membership and changelog-justification screening. Read [baseline ownership and write limits](../RELEASE_CHECKLIST_v9.md#module-inventory-gate-and-manifest-ownership) before interpreting zero additions or selecting `--write`. Keep full module identities, expected inventory and source/hash validation separate.
+
+### Manifest/schema-drift screen
+
+Request `tools/check_schema_drift.py` for its selected recorded-version/key-set/companion checks before a separately authorized merge. Read [schema and skipped-comparison limits](../batches/batch22_multi_strain_comparative_claims.md#separate-manifestschema-drift-screen) and supply an independently required workflow version. “No drift” does not prove complete schema, source provenance or merge acceptance.
+
+### Handback-format and instruction-drift screens
+
+Request `tools/check_chatgpt_next_paths.py HANDOFF.md` only when the selected handoff deliberately uses its legacy format. It requires 3–8 consecutive numbered items, with a final SAVE STATE saved/link-shaped confirmation or FAILED statement. Current user/task instructions govern whether next actions are useful; do not pad a routine answer to satisfy this formatter. It checks the last numbered-list-looking block, including lines in code fences. Blank lines preserve a block, while wrapped nonblank continuation lines split it; a later numbered bibliography can become the selected block (`tools/check_chatgpt_next_paths.py:24–35,45–72`).
+
+A PASS is lexical. A missing link target, a SAVE STATE FAILED statement or even “SAVE STATE not saved” plus a link-shaped string can pass. The helper neither resolves the checkpoint nor verifies any write. Confirm actual saved/failed state, output path and hash independently. Duplicate detection compares six leading normalized tokens; it is not a review of feasibility or distinct outcomes. Exit 0 means this format passed, 1 means format errors, and 2 means the selected input is not a regular file. No receipt is persisted by the checker.
+
+Request `tools/audit_chatgpt_nextpaths_drift.py ROOT --json` for the separate selected-surface lexical regression check. It reads only explicitly named paths and the `prompts/reuse/` and `docs/modules/` prefixes, restricted to `.md`, `.txt` and `.json`. Relative path selection is case-sensitive. Symlinked entries and `.git` directories are skipped. Review the reported considered/selected counts against your intended current surface roster: these counts do not prove every required document exists. Zero selected files is REFUSED (exit 2), matched rules FAIL (1), and selected files without matches PASS (0) (`tools/audit_chatgpt_nextpaths_drift.py:20–82,85–115`).
+
+Rules operate per line. A quoted or negated forbidden phrase can trigger FAIL, while synonyms or a phrase split across lines can evade detection. Python-emitted wording and historical surfaces are outside this selection. Missing roots or unreadable/invalid-UTF-8 selected files raise exceptions rather than producing a complete typed audit receipt. `--json` prints a report to stdout; preserve it externally with the command, selected roster and input hashes. Treat PASS as evidence for these exact lexical rules, then review actual instruction consistency and generated owners separately.
+
+### Workflow status
+
+```bash
+python mamey_run.py workflow --package '<package>' --json --ledger-out '<external-ledger.md>'
+```
+
+The explicit ledger destination preserves the source package. `--strict` applies the workflow's mandatory-step gate; it does not certify scientific validity. Review per-step receipts and holds. For first extraction follow [Your first analysis](../MASTER_WALKTHROUGH.md); for existing packages follow [Read your results](../READING_YOUR_RESULTS.md).
 
 **compile-report `--pdf` publication artwork.** The PDF path validates every figure at the declared
 7.2-inch double-column width before writing render Markdown. Live-text SVG is preserved through vector
@@ -165,9 +323,22 @@ pip install '.[render]'   # cairosvg — also folded into '.[all]'
 
 ---
 
+## Historical development records
+
+The following sections retain their original version scopes. For current tasks use Section 15 and the linked owning guides; historical remediation text applies only to its original incident and sources.
+
 ## Section 16: New Tools (v9.7.243–246)
 
 ### `tools/file_atlas.py` — describe every Python file from the source
+
+**Current use:** the description and v9.7.246 counts below are historical. Use the [current atlas scope](../ARTIFACT_MAP_LIMITS.md#generated-file-atlas): the scan covers selected Python paths, and import/CLI/test associations are heuristics. The tool scans the extracted bundle containing its own script, rather than a source root selected by the working directory; it has no `--root` flag. Output destinations are ordinary supplied paths. To preserve bundled/generated evidence, create a separate output directory beforehand and select distinct, new files:
+
+```bash
+python tools/file_atlas.py --out ../review_output/atlas_new.csv \
+  --md ../review_output/atlas_new.md
+```
+
+Do not point either output at source code, historical evidence or the other output. Equal or aliased `--out`/`--md` paths are not refused: Markdown can replace the CSV while the command exits zero. Publication is sequential and directly replacing, with no group rollback or input/output hash receipt. Retain a partial result after a later failure; rerun into new paths and inspect both current files. `--orphans` takes precedence over both output flags and prints candidates without writing either file. Invoke the reporting and file-writing forms separately when both are needed.
 
 **Added:** v9.7.243. Built for the Bunny Hop Audit Game (`debugging_modules/BUNNY_HOP_AUDIT_GAME.md`): "you cannot audit what you cannot see."
 
@@ -268,7 +439,7 @@ Not a standalone tool: a lint inside `mamey/modeb_structure_gate.py`, reachable 
 **How to invoke:**
 
 ```bash
-python mamey_run.py verify-modeb --package <sealed_pkg> --bgc BGC001    # loads known_loci automatically
+python mamey_run.py verify-modeb '<authored-card.md>' --package '<sealed_pkg>' --bgc '<alias>' --contract full48    # loads known_loci automatically
 ```
 
 `authored_verify` globs `<pkg>/*_cds_table.csv` and `<pkg>/cds_table.csv` to build `bgc_context["known_loci"]`. Without a sealed package there is no CDS table, and **the lint is silent** — it cannot judge what it cannot see, and a false accusation of fabrication is worse than none.
@@ -414,7 +585,7 @@ python mamey_run.py novelty-shortlist --package <pkg> [--top 30] [--out DIR]  # 
 
 # --- ANALYSIS QC + MODE-B INTERPRETATION GATES ---
 python mamey_run.py signoff [tree.treefile ...] [--minutes N]                          # "would a master's student sign off?" tree QC (advisory, exit 0)
-python mamey_run.py verify-modeb --package <pkg> --bgc BGC### --interp [--interp-strict]  # add WARN-only INTERP_* judgment checks to verify-modeb
+python mamey_run.py verify-modeb '<authored-card.md>' --package '<pkg>' --bgc '<alias>' --contract full48 --interp  # add WARN-only INTERP_* judgment checks to verify-modeb
                                                                            # strict authoring gate: python -m mamey.modeb_interp_gate <card.md> [--strict]
 ```
 
@@ -445,3 +616,7 @@ and the redaction wording is corrected (E2E-03): AS-series strains are PUBLIC by
 *v3 additions: Sections 16–18 (file_atlas, check_monolith_freshness, PHANTOM_LOCUS gate, readiness state machine) · Bundle v9.7.246 · 2026-07-09*
 *v4 additions: Section 17 extended with `LOCUS_BGC_MISMATCH` + `PANEL_ABSENT_CLAIM` (v9.7.256); Section 19 (BLASTp toolchain + release-qa, offline-preferred §4); header CLI-synced · Bundle v9.7.260 · 2026-07-11*
 *v5 additions: Section 20 (twelve new post-seal subcommands & deliverables) · v9.7.338*
+
+## Suite-receipt verification and recovery
+
+External receipt verification and candidate-local suite recording use distinct schemas, digests and completion contracts. Read [current receipt scope](../reference/06_CURRENT_SOURCE_SCOPE.md#configured-suite-receipts-two-owners-and-different-contracts) before reusing a receipt or rerunning its producer. Receipt acceptance binds selected supplied evidence; it does not independently certify the full collected test roster or final archive. The recorder’s `run` action executes the slow/network suite and replaces local approval/log state.

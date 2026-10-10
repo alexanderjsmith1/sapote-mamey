@@ -149,7 +149,8 @@ def validated_region(raw, strain, bgc, member):
             seen.add(tags[0])
             if not all(0 <= int(part.start) < int(part.end) <= len(record) for part in feature.location.parts):
                 raise ValueError('CDS coordinates outside region')
-        return dict(identity=identity_text(strain, bgc), contig=record.id,
+        from .parsers import _record_contig_id   # rec.id drops a 0 after the point of a SPAdes coverage
+        return dict(identity=identity_text(strain, bgc), contig=_record_contig_id(record),
                     start_0based=bgc['start'], end_exclusive=bgc['end'], region_number=bgc['region_number'],
                     cds_locus_tags=sorted(seen), state='REGION_DECLARATION_BOUND')
     except (KeyError, TypeError, AttributeError, ValueError, UnicodeError) as exc:

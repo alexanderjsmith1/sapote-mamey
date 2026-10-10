@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**435 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**438 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -238,6 +238,7 @@
 | `full_suite_receipt.py` | Run the canonical complete pytest profile and bind its receipt to candidate bytes. |
 | `gap_directed_rescue.py` | what a core region's reference cluster has and the core lacks, looked for across the genome. |
 | `gap_rescue_all_regions.py` | run tools/gap_directed_rescue.py on every antiSMASH region of one genome. |
+| `gap_rescue_gene_table.py` | the per-gene table of a gap-rescue run, paired with its locus map. |
 | `gap_rescue_locus_map.py` | the clinker-style figure for tools/gap_directed_rescue.py. |
 | `gate_mutation_probe.py` | Reproducibly answer whether a named test detects a minimal protection mutation. |
 | `gate_stem_aware.py` | Run the sibling tree gate, optionally on a verified display's analysis parent. |
@@ -278,6 +279,7 @@
 | `lead_propagation_gate.py` | does every triage-board lead reach every lead-listing surface? |
 | `llm_trustworthiness.py` | "Is the LLM being trustworthy right now?"  (candidate module, v1 — F02 rework) |
 | `locator_reconciliation.py` | verify a Mode B card's header fields match the canonical |
+| `locus_reading_pages.py` | locus_reading_pages.py: one locus-reading page per antiSMASH region, every gene with every evidence layer. |
 | `log_release.py` | append one row to RELEASES_LOG.md for the current build (idempotent). |
 | `make_public_tier.sh` | cut a clean release tier from the working tree, deterministically. |
 | `make_release_tarball.sh` | cut-time packaging artifact (v9.7.400, BC/the phylogeny lane-fork proposal). |
@@ -342,6 +344,7 @@
 | `preview_figure_themes.py` | CLI wrapper for the portable Sapote-Mamey figure-theme gallery prototype. |
 | `professionalism_linter.py` | post-hoc "professionalism" check for Sapote interpretive text |
 | `project_catalog.py` | Operate the portable, hash-bound project catalog without the UI. |
+| `protein_pcoa_compare.py` | Compare cohort collections on a protein PCoA kit, with statistics, dot plots and resistance-family carriage. |
 | `protein_pcoa_ordinate.py` | Build a protein-class PCoA kit from antiSMASH region files: cohort proteins among reference and MIBiG protein… |
 | `protein_pcoa_render.py` | Draw protein-class PCoA figures from an ordination kit: cohort proteins among reference and MIBiG proteins. |
 | `prune_neighbors_from_tree.py` | pick each query strain's nearest reference |

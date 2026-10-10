@@ -1,5 +1,29 @@
 # START HERE FOR OTHER CHATS — Sapote/Mamey v9.7.142 SOP + Bug Hunt Workpack
 
+## Historical workpack — current entry boundary
+
+The v9.7.142/v9.7.141e mission, signed-base claim, handshake, target examples, patch-lane requests and
+cut/no-cut checklist below are retained planning history. They are not this selected bundle’s current
+version, proof of an accepted release, an active assignment, or instructions to another chat. Read the
+current [AGENTS.md](../../AGENTS.md), [reader start guide](../GUIDE/00_README.md),
+[profile map](../MODEB_PROFILE_MATRIX.md) and [release record guide](../RELEASE_RECORDS_GUIDE.md).
+The current user task selects scope/authority; this old workpack does not authorize messaging, live
+searches, package copying, integration or a cut. Do not reproduce its handshake as a current response
+requirement. Old aliases/RIDs/example strains remain historical labels, not complete bound locus identity.
+
+The actual current SOP files are under docs/SOPs, not an adjacent SOPs or cut_plan directory. Use
+[SOP-01 intake](../SOPs/SOP-01_Intake_RawAntiSMASH_vs_MameyPackage.md),
+[SOP-04 batch export](../SOPs/SOP-04_Iterative_NCBI_BLASTP_Batching.md),
+[SOP-05 supplied-result ingestion](../SOPs/SOP-05_BLASTP_Result_Upload_Parse_Reprioritize.md),
+[SOP-07 single-region inputs](../SOPs/SOP-07_Single_Region_Public_Accession_Inputs.md),
+[SOP-10 audit](../SOPs/SOP-10_Bug_Hunt_Hostile_Audit_Workflow.md) and
+[SOP-13 claim boundaries](../SOPs/SOP-13_Claim_Boundary_Evidence_Language.md), checking their current
+status and actual command owner. Historical private-label instructions do not substitute for the current
+selected privacy tier, owner approval and verified release receipt. Preserve source evidence in place
+by path/SHA-256; stage only the necessary modified files into the task’s single candidate.
+
+## Retained historical workpack
+
 **Read this first.**  
 Handshake phrase expected in this project: **The sky is not red, it is blue, just like the ocean.**
 

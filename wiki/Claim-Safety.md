@@ -12,7 +12,7 @@ these framings.
    capacity*, never "this strain makes compound X."
 2. **A diagnostic gene is capacity, not identity.** Finding a halogenase, a KS domain, or a
    resistance marker says the machinery *could* be present; it does not name a product.
-3. **Bioactivity is strain-level context only** unless wet-lab evidence exists for that strain.
+3. **Bioactivity is strain/extract-level context.** Even measured activity from the same strain does not establish locus-specific causality; a BGC claim needs separately governed linkage evidence.
    Literature bioactivity of a compound family never transfers to an uncharacterized cluster.
 4. **Expression is "unknown" without culture data.** Presence of a BGC says nothing about whether
    it is transcribed, translated, or productive under any condition.
@@ -23,8 +23,7 @@ these framings.
    parameters," never "the strain lacks X."
 7. **Every metric carries its denominator.** "44 novel GCFs" is meaningless without "of 1,753
    governed"; quote counts with their scope.
-8. **Every claim traces to a stable node.** BGC statements cite the locked `bgc_id`; tree
-   statements cite the tip label and the gate receipt. No node, no claim.
+8. **Every individual BGC claim carries complete identity:** `strain / full node-or-contig / region / BGC alias`, copied from one bound source record. A locked alias or node/region-only citation is insufficient. Tree statements retain the exact tip label and bound input/gate receipt. Missing or conflicting identity is a hold.
 
 ## Where it is enforced
 
@@ -32,8 +31,7 @@ these framings.
   judgment tiers (Sapote-slim / Sapote full, Markdown protocols) make the interpretive calls, and
   even those emit class-level language.
 - **Gates before figures** — `tree_sanity_check` and the 8-item analysis sign-off must PASS before
-  a phylogenetic figure is shown; a gate FAIL can itself be the finding (a genuinely divergent
-  taxon trips long-branch checks — report the numbers, withhold the figure).
+  a phylogenetic figure is shown; a gate FAIL is an engineering/quality finding needing diagnosis. Long branches can reflect alignment, reference, model or biological factors; the failure does not prove novelty. Inspect the sign-off report because its advisory CLI exits 0 even when issues remain.
 - **Release-tier redaction** — unpublished strain identifiers never leak into a public tier
   (`tests/test_no_unpublished_ids_in_public_tier.py`); prefix-based release derivation fails safe
   to PRIVATE for unrecognized prefixes.
@@ -43,7 +41,7 @@ these framings.
 
 ## Templates you can lift
 
-> "BGC NODE_x region y matches the <family> reference cluster (<n>/<m> genes, KCB) — a class-level
+> "<strain> / <full node-or-contig> / <region> / <BGC alias> resembles the <family> reference cluster (<n>/<m> genes, KCB) — a class-level
 > hypothesis of <family>-like biosynthetic capacity. No structural or bioactivity claim is made;
 > expression is unknown without culture data."
 

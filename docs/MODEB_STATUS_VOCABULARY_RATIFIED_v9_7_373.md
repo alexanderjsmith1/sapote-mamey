@@ -49,3 +49,25 @@ them on the evidence axis, so they never collide with the document ladder.
 
 *Claim-safety: authoring-status vocabulary only; no science claims; judgment deferred. the Developer or User ratified;
 the patch lane records.*
+
+## Current implementation boundary (mapping retained)
+
+The ratified mapping above is preserved as the dated governance record; this note does not change
+its canonical terms or grant a new approval. Its .373/.374 implementation/deferment bullets describe
+that historical rollout, not an exhaustive statement about the current bundle. Select the current
+named profile and its actual producer/verifier; current50 v2 has its own FINISHED_FULL50_CURRENT50_V2
+profile token and relocated evidence section.
+
+The current full48 authored verifier tests the legacy/canonical finished tokens in active Markdown to
+select stronger checks. It is a routing signal, not a parser that independently proves exactly one
+first-class document_state, validates every evidence_state list, reconstructs the eight-state history
+or verifies an owner’s approval. A saved label, alias-trigger or mechanical PASS cannot establish
+MAINTAINER_ACCEPTED, INTEGRATION_APPROVED, RELEASE_APPROVED or PUBLICATION_APPROVED. Those require
+the actual authorized owner record and bound reviewed bytes.
+
+OBSERVED_UNBOUND/QUARANTINED rows can remain visible under the ratified two-axis policy, but supply no
+admitted exact-gene/function evidence. They do not waive selected-profile readiness, complete matrix,
+source/job binding, freshness or independent review requirements. Required evidence that is active,
+attainable but unobtained or available but uningested remains a promotion hold; terminal limitations
+need their typed reason and claim ceiling. Preserve the actual document state, evidence rows, selected
+profile, gate findings and approval/hold receipts together rather than inferring them from filenames.
