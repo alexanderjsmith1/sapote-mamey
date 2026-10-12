@@ -12,6 +12,8 @@ here.
 """
 from __future__ import annotations
 
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+
 import importlib.util
 import subprocess
 import sys
@@ -52,10 +54,10 @@ def test_real_id_in_tests_fixture_is_a_strict_finding(tmp_path):
     root = _root(tmp_path)
     fx = root / "tests" / "fixtures"
     fx.mkdir()
-    (fx / "exclusions.json").write_text('{"hard_excluded": ["AS-260", "AS-216"]}\n')
+    (fx / "exclusions.json").write_text(('{"hard_excluded": ["' + synthetic_namespace_id('AS', width=3, case_index=917, separator=True) + '", "' + synthetic_namespace_id('AS', width=3, case_index=918, separator=True) + '"]}\n'))
     hits = m.strict_findings(root, show_identifiers=True)
-    assert any("tests/fixtures/exclusions.json" in h and "AS-216" in h and "AS-260" in h
-               for h in hits), hits
+    assert any("tests/fixtures/exclusions.json" in h and (synthetic_namespace_id('AS', width=3, case_index=918, separator=True)) in h and (synthetic_namespace_id('AS', width=3, case_index=917, separator=True)) in h
+               for h in hits), 'synthetic strict-audit control did not produce the required finding'
 
 
 def test_cohort_id_in_python_source_is_a_strict_finding(tmp_path):
@@ -93,8 +95,9 @@ def test_dashless_id_normalises_to_the_allowlist(tmp_path):
 
 def test_redacted_placeholder_is_clean(tmp_path):
     m = _load()
+    from tools.redact_public_tier import redact_text
     root = _root(tmp_path, synthetic="")
-    (root / "tests" / "test_fixture.py").write_text('S = "AS-XXX"; T = "PENDING-XXX"\n')
+    (root / "tests" / "test_fixture.py").write_text((redact_text('S = "AS-XXX"; T = "' + synthetic_namespace_id('PENDING', width=None, case_index=917, separator=True) + '"\n')))
     assert m.strict_findings(root) == []
 
 

@@ -21,7 +21,9 @@ from __future__ import annotations
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
+from contextlib import ExitStack
 import argparse
+import os
 import hashlib
 import json
 import re
@@ -38,7 +40,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from redact_public_tier import audit_paths, private_id_matches
 from archive_leak_scan import DEFAULT_ARCHIVE_EXT, scan_archive
 from _safe_walk import safe_walk_files  # v9.7.400: shared unreadable-dir-aware walk
-from mamey.privacy_profile import PrivacyProfileError, PublicExportPolicy, load_public_export_policy
+from mamey.privacy_profile import (
+    PrivacyProfileError, PublicExportPolicy, load_public_export_policy,
+    PUBLIC_FILE_HOLD_RECEIPT, _file_hold_root, _file_hold_identity,
+    hash_public_file_hold, resolve_public_file_holds, public_file_hold_receipt,
+    public_file_hold_directory, verify_public_file_hold_directory, public_file_hold_entry_identity,
+    public_file_hold_findings, verify_public_file_hold_omissions,
+)
 
 PERSONAL = re.compile(r"/Users/[^/]+/|/home/[^/]+/|Claude_Alex_\d+|Codex Alex \d+")
 AS_ID = re.compile(r"\bAS-\d{2,4}\b")
@@ -232,6 +240,95 @@ def apply_public_export_exclusions(root: Path, policy: PublicExportPolicy) -> tu
         shutil.rmtree(checked)
         removed.append(rel)
     return removed, []
+
+
+def apply_public_export_file_holds(source: Path, stage: Path, policy: PublicExportPolicy) -> tuple[list[str], list[str]]:
+    """Source-bound regular-file holds, separate from the directory-only exclusion API.
+
+    Every source/stage identity, selector and receipt destination is checked before
+    the first unlink. Retained directory descriptors bind actual mutation targets.
+    Unexpected late I/O/concurrent mutation refuses the disposable stage; this is
+    not an all-filesystem transaction.
+    """
+    mutated = False
+    try:
+        source, stage = _file_hold_root(source), _file_hold_root(stage)
+        if (source == stage or source.is_relative_to(stage) or stage.is_relative_to(source)
+                or _file_hold_identity(source.stat())[:2] == _file_hold_identity(stage.stat())[:2]):
+            raise PrivacyProfileError("FILE_HOLD_ROOTS_OVERLAP")
+        with ExitStack() as descriptors:
+            source_anchor = descriptors.enter_context(public_file_hold_directory(source))
+            stage_anchor = descriptors.enter_context(public_file_hold_directory(stage))
+            source_bindings = resolve_public_file_holds(source, policy)
+            stage_bindings = resolve_public_file_holds(stage, policy)
+            source_roster = [(x.hold_id, x.relative_path, x.sha256) for x in source_bindings]
+            stage_roster = [(x.hold_id, x.relative_path, x.sha256) for x in stage_bindings]
+            if source_roster != stage_roster:
+                raise PrivacyProfileError("FILE_HOLD_SOURCE_STAGE_MISMATCH")
+            if {item.identity[:2] for item in source_bindings} & {item.identity[:2] for item in stage_bindings}:
+                raise PrivacyProfileError("FILE_HOLD_SOURCE_STAGE_ALIAS")
+            try:
+                os.stat(PUBLIC_FILE_HOLD_RECEIPT, dir_fd=stage_anchor.fd, follow_symlinks=False)
+                receipt_occupied = True
+            except FileNotFoundError:
+                receipt_occupied = False
+            if receipt_occupied:
+                raise PrivacyProfileError("FILE_HOLD_RECEIPT_OCCUPIED")
+            if not source_bindings:
+                return [], []
+            # Revalidate the COMPLETE roster, including later selections, before removal.
+            if resolve_public_file_holds(source, policy) != source_bindings:
+                raise PrivacyProfileError("FILE_HOLD_SOURCE_IDENTITY_DRIFT")
+            if resolve_public_file_holds(stage, policy) != stage_bindings:
+                raise PrivacyProfileError("FILE_HOLD_STAGE_IDENTITY_DRIFT")
+            entries = []
+            for item in stage_bindings:
+                digest, identity = hash_public_file_hold(stage, item.relative_path)
+                if identity != item.identity or digest != item.sha256:
+                    raise PrivacyProfileError("FILE_HOLD_STAGE_IDENTITY_DRIFT")
+                parent = Path(item.relative_path).parent.as_posix()
+                anchor = descriptors.enter_context(public_file_hold_directory(
+                    stage, "" if parent == "." else parent, root_fd=stage_anchor.fd))
+                name = Path(item.relative_path).name
+                if public_file_hold_entry_identity(anchor.fd, name) != item.identity:
+                    raise PrivacyProfileError("FILE_HOLD_STAGE_IDENTITY_DRIFT")
+                entries.append((item, anchor, name))
+            for item in source_bindings:
+                digest, identity = hash_public_file_hold(source, item.relative_path)
+                if identity != item.identity or digest != item.sha256:
+                    raise PrivacyProfileError("FILE_HOLD_SOURCE_IDENTITY_DRIFT")
+            document = public_file_hold_receipt(source_bindings)
+            verify_public_file_hold_directory(source_anchor)
+            verify_public_file_hold_directory(stage_anchor)
+            for item, anchor, name in entries:
+                verify_public_file_hold_directory(anchor)
+                if public_file_hold_entry_identity(anchor.fd, name) != item.identity:
+                    raise PrivacyProfileError("FILE_HOLD_STAGE_IDENTITY_DRIFT")
+            # No source mutation or pathname-following unlink/receipt creation.
+            for item, anchor, name in entries:
+                verify_public_file_hold_directory(source_anchor)
+                verify_public_file_hold_directory(stage_anchor)
+                verify_public_file_hold_directory(anchor)
+                if public_file_hold_entry_identity(anchor.fd, name) != item.identity:
+                    raise PrivacyProfileError("FILE_HOLD_STAGE_IDENTITY_DRIFT")
+                os.unlink(name, dir_fd=anchor.fd)
+                mutated = True
+            verify_public_file_hold_directory(stage_anchor)
+            descriptor = os.open(PUBLIC_FILE_HOLD_RECEIPT,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=stage_anchor.fd)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                json.dump(document, stream, sort_keys=True, indent=2)
+                stream.write("\n")
+            verify_public_file_hold_directory(stage_anchor)
+            omitted, problems = verify_public_file_hold_omissions(source, stage, policy)
+            if problems:
+                return [], problems + ["FILE_HOLD_DISCARD_STAGE_REQUIRED"]
+            return sorted(hashlib.sha256(x.encode("utf-8")).hexdigest() for x in omitted), []
+    except (OSError, RuntimeError, PrivacyProfileError) as exc:
+        problems = [str(exc) if isinstance(exc, PrivacyProfileError) else "FILE_HOLD_APPLY_FAILED"]
+        if mutated:
+            problems.append("FILE_HOLD_DISCARD_STAGE_REQUIRED")
+        return [], problems
 
 
 def _allowance_target_problems(root: Path, policy: PublicExportPolicy) -> list[str]:
@@ -570,6 +667,7 @@ def audit(root: Path, policy: PublicExportPolicy | None = None, *,
     # CODEX_392 rebase: the declared-policy pass runs FIRST, before the structural scan, so a
     # tree that a policy already forbids is refused without reporting on its contents at all.
     hits.extend(_policy_hits(root, policy))
+    hits.extend(public_file_hold_findings(root, policy))
 
     if (mamey / "data" / "strain_genus.csv").exists():
         hits.append("cohort roster ships: mamey/data/strain_genus.csv")
@@ -664,11 +762,20 @@ def main(argv=None) -> int:
                     help="optional sapote_privacy_profile_v1 with public_export_policy controls")
     ap.add_argument("--apply-public-export-exclusions", action="store_true",
                     help="remove only policy-selected directories from a disposable stage before audit")
+    ap.add_argument("--check-public-export-file-holds", action="store_true",
+                    help="source-only file-hold preflight; does not run or clear the whole-tree audit")
+    ap.add_argument("--apply-public-export-file-holds", action="store_true",
+                    help="only apply source-bound regular-file holds to a fresh disposable stage")
+    ap.add_argument("--file-hold-source", type=Path, default=None,
+                    help="immutable source for file-hold apply or independent staged omission proof")
     ap.add_argument("--report-json", action="store_true",
                     help="emit typed text/binary/vendor/cache surface counts after the audit result")
     args = ap.parse_args(argv)
     if args.governance_only and not args.require_active_decision:
         ap.error("--governance-only requires at least one --require-active-decision ID")
+    if (args.check_public_export_file_holds or args.apply_public_export_file_holds
+            or args.file_hold_source is not None) and Path(args.root).is_symlink():
+        ap.error("file-hold actions refuse a symlink root")
     root = Path(args.root).resolve()
     try:
         policy = load_public_export_policy(args.privacy_profile)
@@ -681,6 +788,34 @@ def main(argv=None) -> int:
         # pre-existing receipt lines from the count as collateral).
         sys.stdout.write(f"PUBLIC RELEASE AUDIT: FAIL (invalid privacy profile: {exc})\n")
         return 2
+    if args.check_public_export_file_holds or args.apply_public_export_file_holds:
+        if (args.check_public_export_file_holds and args.apply_public_export_file_holds
+                or args.governance_only or args.require_active_decision
+                or args.strict_source_disclosure or args.show_identifiers
+                or args.apply_public_export_exclusions or args.report_json):
+            ap.error("file-hold-only actions cannot be combined with other audit actions")
+        if args.check_public_export_file_holds:
+            if args.file_hold_source is not None:
+                ap.error("--file-hold-source is not used by source-only preflight")
+            try:
+                selected = resolve_public_file_holds(root, policy)
+            except (OSError, RuntimeError, PrivacyProfileError):
+                sys.stdout.write("PUBLIC FILE HOLD PREFLIGHT: REFUSED\n")
+                return 1
+            sys.stdout.write("PUBLIC FILE HOLD PREFLIGHT: PASS (%d selected; not whole-tree clearance)\n" % len(selected))
+            return 0
+        if args.file_hold_source is None:
+            ap.error("--apply-public-export-file-holds requires --file-hold-source")
+        removed, problems = apply_public_export_file_holds(args.file_hold_source, root, policy)
+        if problems:
+            sys.stdout.write("PUBLIC FILE HOLD APPLY: REFUSED\n")
+            for problem in problems:
+                sys.stdout.write("  " + problem + "\n")
+            return 1
+        sys.stdout.write("PUBLIC FILE HOLD APPLY: PASS (%d source-bound staged omissions; not whole-tree clearance)\n" % len(removed))
+        return 0
+    if args.file_hold_source is not None and args.governance_only:
+        ap.error("--file-hold-source cannot be combined with --governance-only")
     if args.apply_public_export_exclusions:
         if args.governance_only:
             ap.error("--apply-public-export-exclusions cannot be combined with --governance-only")
@@ -696,6 +831,9 @@ def main(argv=None) -> int:
     hits = [] if args.governance_only else audit(
         root, policy, strict_source_disclosure=args.strict_source_disclosure,
         show_identifiers=args.show_identifiers)
+    if args.file_hold_source is not None:
+        _, omission_problems = verify_public_file_hold_omissions(args.file_hold_source, root, policy)
+        hits.extend(omission_problems)
     for decision_id in args.require_active_decision:
         hits.extend(audit_governance(root, decision_id))
     if hits:

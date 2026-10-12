@@ -1,12 +1,12 @@
-"""TREES_432 — the colour-strip placement figure is the required deliverable of `phylo_place.py report`.
+"""TREES_432 — requested metadata strips have explicit current-attempt outcomes.
 
 build_placement_panel_inputs: a deposited value in a named bin wins; a reviewed collection value
 fills a deposited gap; a documented deposited source outside every bin shows as "Other documented";
 a tip with no geography from any admitted state is omitted and listed with its title; the registry
 outgroup roots the tree and is dropped when it lacks a category; an owner ruling override beats the
 owner table; a query with no owner row is omitted, never coloured by guess; the provenance table
-names the state of every cell. phylo_place.report writes COLOR_STRIPS_NOT_RENDERED.txt with the
-exact reason when the owner table or Rscript is missing, and never raises.
+names the state of every cell. Missing optional metadata is NOT_REQUESTED; requested strip failure
+has a durable typed HOLD outcome and is never presented as a successfully rendered figure.
 """
 import importlib.util
 import sys
@@ -91,7 +91,8 @@ def test_precedence_omission_outgroup_and_provenance(tmp_path):
     a1 = next(k for k in md if k.startswith("NR_000001")); assert md[a1]["source_category"] == "Marine-associated" and md[a1]["geography_category"] == "South America"
     b2 = next(k for k in md if k.startswith("NR_000002")); assert md[b2]["source_category"] == "Soil" and md[b2]["geography_category"] == "Asia"
     c3 = next(k for k in md if k.startswith("NR_000003")); assert md[c3]["source_category"] == "Other documented" and md[c3]["geography_category"] == "Europe"
-    assert md[a1]["label"] == "Genus alpha A1 [Type; Marine-associated; South America] (NR_000001.1)" and md[a1]["type_display"] == "Type"
+    assert md[a1]["label"] == "Genus alpha A1 [Marine-associated; South America] (NR_000001.1)" and md[a1]["type_display"] == ""
+    assert prov_type_unknown(out, a1) == "NOT_RECORDED"
     assert md["ZZ_101"]["role"] == "query" and md["ZZ_101"]["MRSA"] == "+" and md["ZZ_101"]["source_category"] == "Bumblebee"
     om = {r["tip"]: r for r in _tsv(out / "OMITTED_TIPS.tsv")}
     assert any(k.startswith("NR_000004") for k in om) and "no deposited or reviewed geography" in next(v for k, v in om.items() if k.startswith("NR_000004"))["reason"]
@@ -119,23 +120,31 @@ def _pp():
     m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m
 
 
-def test_report_hook_writes_reason_without_owner_table(tmp_path):
+def prov_type_unknown(out, tip):
+    return next(row["provenance"] for row in _tsv(out / "METADATA_PROVENANCE.tsv") if row["tip"] == tip and row["field"] == "type_material")
+
+
+def test_report_hook_without_metadata_is_not_requested_and_creates_nothing(tmp_path):
     pp = _pp(); _fixture(tmp_path)
     a = SimpleNamespace(owner_table=[], owner_table_original=[], reference_metadata=[], reviewed=[], query_override=[], query_prefix="ZZ", rscript="Rscript")
-    assert pp._color_strips_deliverable(a, str(tmp_path), "Genus", str(tmp_path / "tree.newick"), str(tmp_path / "labelmap.tsv")) is None
-    note = (tmp_path / "color_strips" / "COLOR_STRIPS_NOT_RENDERED.txt").read_text()
-    assert "no --owner-table" in note
+    result = pp._color_strips_deliverable(a, str(tmp_path), "Genus", str(tmp_path / "tree.newick"), str(tmp_path / "labelmap.tsv"))
+    assert result["state"] == "NOT_REQUESTED" and not result["requested"]
+    assert not (tmp_path / "color_strips").exists()
 
 
 def test_report_hook_builds_inputs_and_names_missing_rscript(tmp_path, monkeypatch):
     pp = _pp(); _fixture(tmp_path)
-    monkeypatch.setattr(pp, "_which", lambda *args, **kw: None)
     import shutil
+    from tools._placement_report_metadata import reviewed_type_map
     monkeypatch.setattr(shutil, "which", lambda *args, **kw: None)
     a = SimpleNamespace(owner_table=[str(tmp_path / "owner.tsv")], owner_table_original=[], reference_metadata=[str(tmp_path / "resolved.tsv")],
-                        reviewed=[str(tmp_path / "reviewed.tsv")], query_override=[], query_prefix="ZZ", rscript="Rscript-not-here")
-    built = pp._color_strips_deliverable(a, str(tmp_path), "Genus", str(tmp_path / "tree.newick"), str(tmp_path / "labelmap.tsv"))
-    assert built and built["kept"] == 4
+                        reviewed=[str(tmp_path / "reviewed.tsv")], query_override=[], query_prefix="ZZ", rscript="Rscript-not-here",
+                        _report_query_names=["ZZ_101", "ZZ_102"],
+                        _report_type_evidence=reviewed_type_map([str(tmp_path / "reviewed.tsv")], TIPS, query_tips=["ZZ_101", "ZZ_102"]))
+    result = pp._color_strips_deliverable(a, str(tmp_path), "Genus", str(tmp_path / "tree.newick"), str(tmp_path / "labelmap.tsv"))
+    assert result["state"] == "HOLD_REQUESTED_STRIPS" and result["requested"]
+    assert result["kept"] == 4 and result["omitted"] == 4
+    assert "STRIP_RSCRIPT_UNAVAILABLE" in result["reason"]
     panel = tmp_path / "color_strips" / "Genus"
-    assert (panel / "metadata.tsv").is_file() and (panel / "render_placement_COLOR_STRIPS.R").is_file()
-    assert "Rscript not found" in (tmp_path / "color_strips" / "COLOR_STRIPS_NOT_RENDERED.txt").read_text()
+    assert (panel / "metadata.tsv").is_file() and (panel / "STRIP_ATTEMPT.json").is_file()
+    assert result["artifacts"] == []

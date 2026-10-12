@@ -206,7 +206,8 @@ def _verdict(classes: list[str]) -> str:
 
 def add_residue_tiling(result: dict[str, Any], zip_path: str | Path, bgcs: list[Any], reference_map: dict[str, Any],
                        diamond_db: str | os.PathLike, *, diamond: str | os.PathLike | None = None,
-                       scope: str = "st_paralog", threads: int = 4, work_dir: str | os.PathLike | None = None) -> None:
+                       scope: str = "st_paralog", threads: int = 4, work_dir: str | os.PathLike | None = None,
+                       resource_receipt: dict | None = None) -> None:
     """Add residue-tiling fields to the pairs in `result["ranked_pairs"]` (in place). Never changes confidence.
 
     scope "st_paralog" tests the pairs the whole-gene paralog gate demoted; "all" tests every ranked pair.
@@ -229,6 +230,10 @@ def add_residue_tiling(result: dict[str, Any], zip_path: str | Path, bgcs: list[
                                       "contigs or names a product."}
     result["residue_tiling_status"] = status
     binary = find_diamond(diamond)
+    if resource_receipt is not None:
+        from .ref_completion import resource_descriptor
+        resource_receipt["residue_aligner"] = resource_descriptor(binary, found_by="diamond" if binary else "not_found")
+        resource_receipt["residue_database"] = resource_descriptor(diamond_db, found_by="selected")
     if not binary:
         status["state"] = "DIAMOND_NOT_FOUND"
         return

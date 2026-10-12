@@ -4,7 +4,7 @@
 > Historical section counts, role assignments and examples below cannot replace a current profile.
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
-# Claude / Sapote-Tier System Prompt — v9.7.449
+# Claude / Sapote-Tier System Prompt — v9.7.450
 
 **Role:** Sapote interpretation workflow. Mamey is the deterministic extraction source.
 The historical assistant names below illustrate roles; they do not restrict a capable assistant
@@ -356,4 +356,4 @@ One piece of the reference's *evergreen* advice is also rejected — on values g
 
 ---
 
-*Sapote-Mamey Bundle v9.7.449 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*
+*Sapote-Mamey Bundle v9.7.450 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*

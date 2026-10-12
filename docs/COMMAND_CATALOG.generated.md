@@ -1,6 +1,6 @@
 # Command catalog (generated)
 
-*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.449 · engine 1.9.174. Do not edit by hand; `--check` fails the build when stale.*
+*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.450 · engine 1.9.175. Do not edit by hand; `--check` fails the build when stale.*
 
 Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root (the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take `--package <sealed package dir>`; `run` is the only command that creates a package. Claim-safety: every output is a class-level hypothesis with judgment deferred.
 
@@ -154,7 +154,7 @@ _Use `phylo-autopilot` for 16S routing and EPA-ng placement, optional `phylo-mls
 
 ## Workflow, receipts, catalogs
 
-_Non-destructive status and lookups._
+_Status, lookups and explicit maintenance actions. Check each command's write boundary before invoking it._
 
 | command | what it does |
 |---|---|
@@ -165,7 +165,6 @@ _Non-destructive status and lookups._
 | `validate-finished-review-request` | Validate a hash-bound Mode B finished-review request without promotion |
 | `list-bgcs` | Quick BGC inventory from a sealed package (table or JSON) |
 | `literature` | Full-abstract lookup / search over the in-bundle PubMed corpus |
-| `lab-quest` | Optional add-on, not installed by default: a local review UI over a sealed package. Install with `pip install ./sapote_addons/lab_quest`; see docs/LAB_QUEST.md. |
 | `triage-raw` | Guided PRE-EXTRACTION genome triage: KCB front page + scanner evidence + rare-motif scan + split-detector + bgc_walk on the priority regions, in one pass, directly on a raw antiSMASH ZIP/dir (see docs/Sapote_Mamey_ROADMAP.md). For sealed-package novelty/divergence correctness checks after extraction, see `mamey explore`. |
 | `wheelhouse` | Manage the Wheelhouse lab-data store (strains, scanners, validations) |
 

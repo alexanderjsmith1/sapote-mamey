@@ -14,7 +14,7 @@ mlsa = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mlsa)
 
 STUB = r"""
-import json, os, pathlib, shutil, sys
+import json, os, pathlib, re, shutil, sys
 name = pathlib.Path(sys.argv[0]).name
 args = sys.argv[1:]
 def value(flag): return args[args.index(flag)+1]
@@ -26,11 +26,13 @@ if name == 'prodigal':
     pathlib.Path(value('-a')).write_text('' if empty else '>gene\nMPEP\n')
     pathlib.Path(value('-d')).write_text('' if empty else '>gene\nATGCCCGAACCC\n')
 elif name == 'makeblastdb':
+    assert re.fullmatch(r'[A-Za-z0-9_./-]+', os.getcwd())
     assert not any(c.isspace() for c in value('-out'))
     assert not any(c.isspace() for c in value('-in'))
     assert pathlib.Path(value('-in')).is_file()
     pathlib.Path(value('-out')+'.pin').write_text('db')
 elif name == 'blastp':
+    assert re.fullmatch(r'[A-Za-z0-9_./-]+', os.getcwd())
     assert not any(c.isspace() for c in value('-db'))
     assert pathlib.Path(value('-db')+'.pin').is_file()
     assert pathlib.Path(value('-query')).is_file()
@@ -109,7 +111,36 @@ def test_success_uses_space_safe_relative_blast_inputs(run):
     assert invoke() == 0
     assert json.loads((out/'run_status.json').read_text())['status'] == 'COMPLETE'
     blast = [json.loads(line) for line in calls.read_text().splitlines() if 'blast' in json.loads(line)['tool']]
-    assert blast and all(Path(call['cwd']) == out/'blastdb' for call in blast)
+    # Relative arguments alone do not protect BLAST's internal cwd expansion.
+    # Synthetic real subprocesses must observe a genuinely safe temporary cwd.
+    import re
+    assert blast and len({call['cwd'] for call in blast}) == 1
+    scratch = Path(blast[0]['cwd'])
+    assert re.fullmatch(r'[A-Za-z0-9_./-]+', str(scratch)) and scratch != out/'blastdb'
+    assert not scratch.exists()  # coordinator cleans only its owned scratch
+    assert all(call['args'] == ['-in', f'input{i:06d}.faa', '-dbtype', 'prot', '-out', f'db{i:06d}']
+               for i, call in enumerate((c for c in blast if c['tool'] == 'makeblastdb'), 1))
+    blastp = [c for c in blast if c['tool'] == 'blastp']
+    assert len(blastp) == 4 * len(mlsa.LOCI)
+    for i, call in enumerate(blastp):
+        assert call['args'] == ['-query', 'seed_' + mlsa.LOCI[i % 5] + '.faa',
+            '-db', f'db{i // 5 + 1:06d}', '-outfmt', '6 sseqid pident length evalue bitscore',
+            '-max_target_seqs', '1', '-num_threads', '4']
+    identity = json.loads((out/'native_blast_identity.json').read_text())
+    assert identity['state'] == 'SUCCEEDED' and len(identity['source_copies']) == 4
+    assert len(identity['seed_copies']) == 5
+    import hashlib
+    attempt = next((out/'RESOURCE_ATTEMPT').iterdir())
+    worker_output = attempt/'worker_output'
+    for binding in identity['source_copies'] + identity['seed_copies']:
+        source = Path(binding['source']['path'])
+        if source.is_relative_to(worker_output):
+            source = out/source.relative_to(worker_output)
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == binding['source']['sha256']
+        assert binding['source']['sha256'] == binding['copy']['sha256']
+    assert len(list((out/'blastdb').glob('db*.pin'))) == 4
+    attempt = next((out/'RESOURCE_ATTEMPT').iterdir())
+    assert json.loads((attempt/'SUCCEEDED.json').read_text())['scratch_cleanup'] == 'OWNED_TEMP_REMOVED' 
     assert 'HIT' in (out/'loci_report.tsv').read_text()
     assert 'genome%200\tgenome 0.fna' in (out/'taxon_map.tsv').read_text()
     assert '>genome%200' in (out/'aln/supermatrix.fasta').read_text()

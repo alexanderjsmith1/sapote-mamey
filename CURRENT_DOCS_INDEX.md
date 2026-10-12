@@ -1,7 +1,9 @@
-# Current Docs Index — v9.7.449 · engine 1.9.174 · build 20261009v97449a
+# Current Docs Index — v9.7.450 · engine 1.9.175 · build 20261011v97450a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
+For figures and concise evidence-backed writing, use [Evidence to report](docs/EVIDENCE_TO_REPORT.md).
+For the primary figure deliverable workflow, use [Make and review figures](docs/FIGURES_START_HERE.md): choose the figure roster, retain plotted data and captions, and review the actual outputs.
 The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) is the compact and advanced command reference. [AGENTS](AGENTS.md) is the canonical portable coding-assistant contract. Its
 generated `CLAUDE.md` copy supports Claude discovery; other assistants must be directed to AGENTS
 or receive it through their supported instruction mechanism.
@@ -24,6 +26,7 @@ or receive it through their supported instruction mechanism.
 - [Cohort bank transactions](docs/COHORT_BANK_TRANSACTIONS.md): schema admission, coherent readers and explicit interrupted-write recovery.
 
 - [Companion Tool Guide](docs/COMPANION_TOOL_GUIDE.md): standalone use, inputs/outputs and integration roles.
+- [JGI public reference context](docs/SMC_PUBLIC_REFERENCE_CONTEXT.md): historical IMG-ABC provenance and optional manual SMC references; automated retrieval is not implemented.
 - [Companion run contracts](docs/COMPANION_RUN_CONTRACTS.md): planner, runner and placement receipts and writes.
 - [Multi-Cohort Comparison Toolkit](deliverable_tools/README.md): named roster/dossier/cohort tools, per-tool dependencies and writes.
 - [Examples index](examples/README.md): fixtures and illustrative or historical evidence, with current source contracts.
@@ -31,6 +34,7 @@ or receive it through their supported instruction mechanism.
 - [Deliverable queue](docs/DELIVERABLE_QUEUE.md): discovery states, package mutations, resume binding and per-strain recovery.
 - [Deliverable request templates](deliverables/README.md): supplied inputs, complete identity, bounded authoring and conversion contracts.
 - [Catalog reading and maintenance](docs/CATALOG_MAINTENANCE.md): generated owners, check scope and source-help limitations.
+- [Maintenance inventory](docs/MAINTENANCE_INVENTORY.generated.md): scoped command, optional-tool, generated-surface and document owners; explicit review holds and rebuild rules. [Machine records](docs/MAINTENANCE_INVENTORY.generated.json) use the same source declarations.
 - [Master workbook validation](docs/WORKBOOK_VALIDATION.md): deployed schema, fast/full scope, roster/hash checks and retained freeze discrepancies.
 
 - [Optional Barrnap](docs/BARRNAP.md): rRNA recipe versus execution, version/model checks and external setup.
@@ -106,7 +110,6 @@ Use these guides for specialized tools, commands and input/output contracts.
 - [Figure owner-review workflow](docs/FIGURE_OWNER_REVIEW_WORKFLOW.md)
 - [Figure Factory owner-review queue](docs/FIGURE_REVIEW_WORKFLOW.md)
 - [Bounded GToTree panel selection](docs/GTOTREE_PANEL_SELECTION.md)
-- [Lab Quest: governed optional local interface](docs/LAB_QUEST.md)
 - [Literature atlas current-evidence refresh](docs/LITERATURE_ATLAS_CURRENT_EVIDENCE_REFRESH.md)
 - [Locus-map review contract](docs/LOCUS_MAP_REVIEW_CONTRACT.md)
 - [Locus map v8](docs/LOCUS_MAP_V8.md)

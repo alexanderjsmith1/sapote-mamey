@@ -183,10 +183,7 @@ families are the ground truth** (monolith §-validation summary, line ~5523):
 | **Tetrachlorizine** | (ClusterBlast literature control) | KCB/ClusterBlast | UNCHANGED |
 | **Marinolide** | (bundled example) | — | UNCHANGED |
 
-Plus the runner-level fact from memory: AJS-XXX/AJS-XXX-equivalent run = **43 BGCs confirmed genuine**,
-**BGC001 → DKP-A**. (Note: bundle memory also references AJS-XXX as the validated DKP-A strain; if
-your local copy uses the AJS327 genomic extraction run with 43 BGCs, that exact count is the
-top-line regression number — it must not change under a precision upgrade.)
+Regression baselines must bind independently admitted input bytes, exact software version, options and measured outputs. This historical document does not provide an admitted biological baseline. Use a synthetic fixture or a separately sourced public example.
 
 **Procedure:**
 ```bash

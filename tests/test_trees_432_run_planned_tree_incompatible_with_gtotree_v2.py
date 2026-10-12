@@ -6,15 +6,16 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _trees_432_fakes as F  # noqa: E402
+from _trees_432_fakes import native_tree_tmp_path  # noqa: E402,F401 - module-local tmp_path fixture
 
 
 def test_v2_command_has_no_n_flag_and_v1_keeps_it():
     mod = F.load_runner()
-    v2 = mod.gtotree_command("/x/gtotree", 2, "list.txt", "/h/Actinobacteria.hmm", 4, 2, "out")
+    v2 = mod.gtotree_command("/x/gtotree", "2.0.0", "list.txt", "/h/Actinobacteria.hmm", 4, 2, "out")
     assert "-n" not in v2
     assert v2[v2.index("-H") + 1] == "/h/Actinobacteria.hmm"
     assert v2[v2.index("-j") + 1] == "2" and v2[v2.index("-M") + 1] == "4" and "-N" in v2
-    v1 = mod.gtotree_command("/x/GToTree", 1, "list.txt", "Actinobacteria", 4, 2, "out")
+    v1 = mod.gtotree_command("/x/GToTree", "1.8.19", "list.txt", "Actinobacteria", 4, 2, "out")
     assert v1[v1.index("-n") + 1] == "4" and v1[v1.index("-j") + 1] == "2"
 
 
@@ -34,9 +35,11 @@ def test_v2_end_to_end_on_fakes(tmp_path, monkeypatch):
     fake = F.install_fake_bins(tmp_path, monkeypatch)
     gl = F.stage_genomes(tmp_path)
     wd = tmp_path / "wd"
+    assert " " not in str(wd.resolve())
     rc = mod.main(F.base_args(gl, wd))
     assert rc == 0, open(wd / "run_planned_tree.log").read()
     recs = F.records(fake["record"])
+    assert all(r["python"] == sys.executable and r["prefix"] == sys.prefix for r in recs)
     gt = [r for r in recs if r["tool"] == "gtotree"][0]
     assert "-n" not in gt["argv"]
     assert gt["argv"][gt["argv"].index("-H") + 1] == fake["hmm"]
@@ -71,6 +74,17 @@ def test_spaced_genome_entry_refused_before_launch(tmp_path, monkeypatch):
     rc = mod.main(F.base_args(str(gl), tmp_path / "wd"))
     assert rc == 2
     assert F.records(fake["record"]) == [], "gtotree must not have been launched"
+
+
+def test_explicit_spaced_workdir_is_still_refused_before_fake_launch(tmp_path, monkeypatch, capsys):
+    mod = F.load_runner()
+    fake = F.install_fake_bins(tmp_path, monkeypatch)
+    genome_list = F.stage_genomes(tmp_path)
+    workdir = tmp_path / "work directory with spaces"
+    assert mod.main(F.base_args(genome_list, workdir)) == 2
+    assert "REFUSED: workdir path contains a space" in capsys.readouterr().err
+    assert F.records(fake["record"]) == []
+    assert not workdir.exists()
 
 
 def test_missing_genome_file_refused_before_launch(tmp_path, monkeypatch):

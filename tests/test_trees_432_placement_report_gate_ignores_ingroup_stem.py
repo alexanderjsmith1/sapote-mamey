@@ -3,7 +3,7 @@ panel with a distant outgroup could never get a figure.
 
 build-ref roots the backbone with Biopython's root_with_outgroup, which leaves the outgroup pendant
 at 0.0 and puts the whole outgroup separation on the root-to-ingroup branch. That branch's leaves
-are all ingroup, so the outgroup exemption does not apply and DOMINATING_BRANCH fires (AS-150
+are all ingroup, so the outgroup exemption does not apply and DOMINATING_BRANCH fires (AS-972
 panel: ingroup stem 0.5053 = 60 % of depth, "figure skipped"). The display convention now applied
 before gating: split the outgroup separation evenly across the two root children — same topology,
 same total length — and gate that tree, written beside the figure as `*.rooted_split.newick`.

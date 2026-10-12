@@ -12,6 +12,8 @@ Fixtures use AS-XXX only.
 from __future__ import annotations
 
 import pathlib
+import csv
+import json
 import sys
 
 import pytest
@@ -33,6 +35,7 @@ def _make_pkg(tmp_path: pathlib.Path,
     """Build a minimal synthetic Mamey package with triage + inventory CSVs."""
     pkg = tmp_path / strain_id / "package"
     pkg.mkdir(parents=True)
+    (pkg / "manifest.json").write_text(json.dumps({"strain_id": strain_id}))
 
     if with_triage:
         if corrupt_triage:
@@ -64,6 +67,20 @@ def _make_pkg(tmp_path: pathlib.Path,
         (pkg / f"{strain_id}_2_inventory.csv").write_text(
             "\n".join(rows) + "\n")
 
+    for path in pkg.glob("*.csv"):
+        if corrupt_triage and "_4_triage_board" in path.name:
+            continue
+        with path.open() as handle:
+            reader = csv.DictReader(handle)
+            fields, data = list(reader.fieldnames), list(reader)
+        fields += ["Contig", "Node_ID", "antiSMASH_Region"]
+        with path.open("w", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fields)
+            writer.writeheader()
+            for row in data:
+                row.update(Contig="SYNTHETIC.1", Node_ID="SYNTHETIC.1",
+                           antiSMASH_Region="region" + row["BGC_ID"][3:])
+                writer.writerow(row)
     return pkg
 
 

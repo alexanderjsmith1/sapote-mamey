@@ -1,7 +1,9 @@
 """A CODE tarball route must verify against a selected seal receipt before delivery."""
 import hashlib
 import json
+import os
 import subprocess
+import sys
 import tarfile
 import zipfile
 from pathlib import Path
@@ -34,8 +36,9 @@ def _inputs(tmp_path, extra=False, bad_receipt=False):
     return source, sealed_zip, receipt, tmp_path / "dist"
 
 
-def _route(source, sealed_zip, receipt, out):
+def _route(source, sealed_zip, receipt, out, *, env=None):
     return subprocess.run(["bash", str(ROUTE), str(source), str(out), str(sealed_zip), str(receipt)],
+                          env=dict(os.environ, PYTHON=sys.executable) if env is None else env,
                           capture_output=True, text=True, timeout=30)
 
 
@@ -55,6 +58,7 @@ def test_verified_code_route_withholds_extra_source_file(tmp_path):
     source, sealed_zip, receipt, out = _inputs(tmp_path, extra=True)
     # The current generic producer can create a tarball and sidecar from this tree.
     direct = subprocess.run(["bash", str(PRODUCER), str(source), str(tmp_path / "direct")],
+                            env=dict(os.environ, PYTHON=sys.executable),
                             capture_output=True, text=True, timeout=30)
     assert direct.returncode == 0, direct.stdout + direct.stderr
     result = _route(source, sealed_zip, receipt, out)

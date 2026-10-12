@@ -89,7 +89,7 @@ def test_private_handoff_travels_with_a_bound_portfolio_and_verifies_on_import(t
     target = tmp_path / "target"
     report = import_private_project_handoff(archive, target)
     assert report["entry_count"] == 1
-    assert (target / "lab_quest_outputs" / "portfolio_binding.json").is_file()
+    assert (target / "project_outputs" / "portfolio_binding.json").is_file()
     assert (target / "portfolio.json").is_file()
     assert (target / "project_registry.json").is_file()
 
@@ -98,7 +98,7 @@ def test_private_handoff_refuses_a_stale_portfolio_binding(tmp_path: Path) -> No
     source = tmp_path / "source"
     ProjectCatalog(source).register_package(_package(source, "runs/demo/package"))
     _bind_portfolio(source)
-    binding_path = source / "lab_quest_outputs" / "portfolio_binding.json"
+    binding_path = source / "project_outputs" / "portfolio_binding.json"
     payload = json.loads(binding_path.read_text(encoding="utf-8"))
     payload["registry_sha256"] = "0" * 64
     binding_path.write_text(json.dumps(payload), encoding="utf-8")

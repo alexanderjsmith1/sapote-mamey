@@ -3,6 +3,8 @@
 Four assay states (+, -, n.t., blank). Blank stays blank; n.t. stays n.t.; a reference row is
 never touched; a strain absent from the table is reported, not guessed; an unknown state fails.
 """
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
 from pathlib import Path
 import subprocess
 import sys
@@ -50,7 +52,7 @@ def test_four_states_preserved_exactly(tmp_path):
 
 
 def test_strain_id_comes_from_tip_prefix_when_identifier_is_not_a_strain():
-    assert bpm.strain_id_from_row({"tip": "AS-425_cleaned_min1kb", "identifier": ""}) == "AS-425"
+    assert bpm.strain_id_from_row({"tip": (synthetic_namespace_id('AS', width=3, case_index=917, separator=True) + '_cleaned_min1kb'), "identifier": ""}) == (synthetic_namespace_id('AS', width=3, case_index=917, separator=True))
     assert bpm.strain_id_from_row({"tip": "AS-696", "identifier": "AS-696"}) == "AS-696"
 
 

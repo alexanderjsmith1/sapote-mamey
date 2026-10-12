@@ -153,9 +153,9 @@ def test_attine_host_group():
     # The attine cohort is governed data loaded from OFFICIAL_DATA and is empty in a
     # data-free code tier, so the test supplies the membership it asserts on.
     saved = wd.ATTINE_ANT_STRAINS
-    wd.ATTINE_ANT_STRAINS = {"AS-103"}
+    wd.ATTINE_ANT_STRAINS = {"SYNTHETIC_REFERENCE_01"}
     try:
-        hc = wd.host_context("AS-103", crosswalk={})
+        hc = wd.host_context("SYNTHETIC_REFERENCE_01", crosswalk={})
         assert hc["group"] == "ATTINE_ANT"
     finally:
         wd.ATTINE_ANT_STRAINS = saved

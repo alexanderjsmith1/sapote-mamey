@@ -172,7 +172,7 @@ def test_all_subcommands_registered_and_parse():
         "overmerge_widgets_command": [
             "overmerge-widgets", "--register", "/tmp/nope.tsv", "--out", "/tmp/o"],
         "rggmci_widget_command": [
-            "rggmci-widget", "--strain", "AS-320", "--out", "/tmp/o"],
+            "rggmci-widget", "--strain", "SYNTHETIC_REFERENCE_01", "--out", "/tmp/o"],
         "assembly_line_widget_command": [
             "assembly-line-widget", "--demo", "--out", "/tmp/o"],
         "af_leadboard_command": [

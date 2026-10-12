@@ -1,0 +1,11 @@
+{
+  "disposition": "PUBLIC_EXPORT_HOLD_UNRESOLVED_AUTHORITY",
+  "records": [
+    {
+      "hold_id": "WH-ANSWER-KEY-01",
+      "relative_path_sha256": "e87f2963c548b881adb9d52b6ed384563fc0305c7dab42562d77efdd468df726",
+      "source_sha256": "a8d4eb2ef9dedc2be8cbc2fc58fc2c4de8aa59f286421dafb7c8311595ac8bb4"
+    }
+  ],
+  "schema": "sapote.public_export_file_holds.v1"
+}

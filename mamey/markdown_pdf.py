@@ -241,7 +241,7 @@ def code_block(code_lines):
     return table
 
 
-def md_table(rows):
+def md_table(rows, *, identity_context=None):
     if not rows:
         return Spacer(1, 1)
     header, body = rows[0], rows[1:]
@@ -255,6 +255,13 @@ def md_table(rows):
         for record_index, row in enumerate(body or [[""] * n], 1):
             padded = row + [""] * (n - len(row))
             record = f"{record_index}: {padded[0]}" if body and len(padded[0]) <= 80 else (f"Record {record_index}" if body else "Header only")
+            if body and any(k in header for k in ("BGC_ID", "bgc_id", "bgc_alias", "Report_locus_identity")):
+                from .compile_report import _node_label, _report_identity_hold, _REPORT_IDENTITY_HEADERS
+                if any(header.count(k) > 1 for k in _REPORT_IDENTITY_HEADERS):
+                    label = _report_identity_hold("DUPLICATE_IDENTITY_HEADER")
+                else:
+                    label = _node_label(dict(zip(header, padded)), identity_context)
+                record = f"{record_index}: {label}"
             for name, value in zip(header, padded):
                 # Chunk exceptionally long cells into continued rows, preserving
                 # each character; a single cell cannot grow taller than a page.
@@ -307,7 +314,32 @@ def _image(path, alt, base_dir):
         raise ValueError(f"PDF_IMAGE_UNAVAILABLE: {source}: {exc}") from exc
 
 
-def parse(md, base_dir="."):
+def _table_cells(row):
+    """Split table delimiters and decode escaped pipes/backslashes in one pass."""
+    text = row.strip()
+    if text.startswith("|"):
+        text = text[1:]
+    if text.endswith("|") and (len(text[:-1]) - len(text[:-1].rstrip("\\"))) % 2 == 0:
+        text = text[:-1]
+    cells, cell, escaped = [], [], False
+    for char in text:
+        if escaped:
+            cell.extend([char] if char in "\\|" else ["\\", char])
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif char == "|":
+            cells.append("".join(cell).strip())
+            cell = []
+        else:
+            cell.append(char)
+    if escaped:
+        cell.append("\\")
+    cells.append("".join(cell).strip())
+    return cells
+
+
+def parse(md, base_dir=".", *, identity_context=None):
     """Parse the supported Markdown subset into ReportLab flowables."""
     lines = md.split("\n")
     flow = []
@@ -321,9 +353,9 @@ def parse(md, base_dir="."):
 
     def flush_table():
         if table:
-            rows = [[cell.strip().replace(r"\|", "|") for cell in re.split(r"(?<!\\)\|", row.strip().strip("|"))]
+            rows = [_table_cells(row)
                     for row in table if not re.match(r"^\s*\|?[\s:|-]+\|?\s*$", row)]
-            flow.extend([md_table(rows), Spacer(1, 8)])
+            flow.extend([md_table(rows, identity_context=identity_context), Spacer(1, 8)])
             table.clear()
 
     def flush_callouts():
@@ -424,7 +456,7 @@ def cover(canvas, title, subtitle):
     canvas.drawString(0.9 * inch, 0.7 * inch, _footer_line())
 
 
-def render(md_path, out_path, title=None, subtitle=""):
+def render(md_path, out_path, title=None, subtitle="", *, identity_package=None):
     """Render a Markdown file to a PDF; retained for the legacy CLI wrapper.
 
     Refuses (EmbeddedFontUnavailable) rather than write a PDF with unembedded base-14 fonts."""
@@ -435,7 +467,11 @@ def render(md_path, out_path, title=None, subtitle=""):
     if title is None:
         match = re.search(r"^#\s+(.+)$", md, re.M)
         title = match.group(1).strip() if match else markdown_path.stem
-    flow = [Spacer(1, 3.2 * inch)] + parse(md, str(markdown_path.resolve().parent))
+    identity_context = None
+    if identity_package is not None:
+        from .compile_report import _report_identity_context
+        identity_context = _report_identity_context(Path(identity_package).resolve())
+    flow = [Spacer(1, 3.2 * inch)] + parse(md, str(markdown_path.resolve().parent), identity_context=identity_context)
     doc = SimpleDocTemplate(str(out_path), pagesize=letter, topMargin=0.7 * inch, bottomMargin=0.7 * inch,
                             leftMargin=0.9 * inch, rightMargin=0.8 * inch, title=title,
                             initialFontName=SANS)  # else every page carries base-14 Helvetica
@@ -459,7 +495,8 @@ def main(argv=None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if len(args) < 2:
         raise SystemExit("usage: python -m mamey.markdown_pdf INPUT.md OUTPUT.pdf [title] [subtitle]")
-    render(args[0], args[1], args[2] if len(args) > 2 else None, args[3] if len(args) > 3 else "")
+    render(args[0], args[1], args[2] if len(args) > 2 else None, args[3] if len(args) > 3 else "",
+           identity_package=os.environ.get("MAMEY_REPORT_IDENTITY_PACKAGE"))
     emit(f"wrote {args[1]}")
     return 0
 

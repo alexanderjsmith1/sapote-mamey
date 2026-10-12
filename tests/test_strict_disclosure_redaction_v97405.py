@@ -3,6 +3,8 @@ by default. The gate exists to catch cohort identifiers leaking into a public tr
 output (a retained CI log) must not become the disclosure. `--show-identifiers` restores the verbose
 form for interactive triage. Detection itself is pinned by test_strict_source_disclosure_audit_v97395
 (which now asks for the verbose form explicitly)."""
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
 import re
 import subprocess
 import sys
@@ -28,12 +30,12 @@ def _root(tmp_path: Path) -> Path:
 
 def test_default_findings_are_typed_redacted_and_never_echo_identifier_or_path(tmp_path):
     root = _root(tmp_path)
-    (root / "mamey" / "legacy.py").write_text('"""Calibrated on AS-705 and AS-216."""\nX = 1\n')
-    (root / "tests" / "fixtures" / "exclusions.json").write_text('{"hard_excluded": ["AS-260"]}\n')
+    (root / "mamey" / "legacy.py").write_text(('"""Calibrated on AS-705 and ' + synthetic_namespace_id('AS', width=3, case_index=917, separator=True) + '."""\nX = 1\n'))
+    (root / "tests" / "fixtures" / "exclusions.json").write_text(('{"hard_excluded": ["' + synthetic_namespace_id('AS', width=3, case_index=918, separator=True) + '"]}\n'))
     hits = pra.strict_source_disclosure_findings(root)
     assert hits, "detection must still fire"
     joined = "\n".join(hits)
-    for leaked in ("AS-705", "AS-216", "AS-260", "legacy.py", "exclusions.json"):
+    for leaked in ("AS-705", (synthetic_namespace_id('AS', width=3, case_index=917, separator=True)), (synthetic_namespace_id('AS', width=3, case_index=918, separator=True)), "legacy.py", "exclusions.json"):
         assert leaked not in joined, (leaked, hits)
     assert all(LOCATOR.match(h) for h in hits), hits
     py = [h for h in hits if h.startswith("STRICT_SOURCE_IDENTIFIER: locator=python/")]

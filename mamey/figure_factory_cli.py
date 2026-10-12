@@ -1,0 +1,231 @@
+"""Compatibility CLI front doors for the optional Figure Factory family.
+
+Parser registration and delegation only; renderer imports stay inside their
+existing handlers. No command name, default, output or scientific rule changes.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import sys as _sys
+
+from .console import emit
+
+
+def _codex_heatmaps_command(args) -> int:
+    """Lazy wrapper for the optional Codex Figure Factory heatmap profile."""
+    from .interactive_figures.codex_heatmap_pack import build_codex_heatmap_pack
+    # v9.7.409 (AUDIT_cli_edgecases): existence guard + typed refusal. A nonexistent CSV used to
+    # crash with a raw FileNotFoundError, and an empty / column-less matrix CSV raised an uncaught
+    # ValueError to the terminal. Refuse cleanly (one-line ERROR, rc 1) instead of a traceback.
+    # --input is nargs="+", so validate every path in the list.
+    _inputs = args.input if isinstance(args.input, (list, tuple)) else [args.input]
+    _missing = [p for p in _inputs if not Path(p).is_file()]
+    if _missing:
+        emit(f"ERROR: codex-heatmaps input not found: {', '.join(str(p) for p in _missing)}",
+             file=_sys.stderr, flush=True)
+        return 1
+    try:
+        result = build_codex_heatmap_pack(
+            args.input,
+            args.outdir,
+            title=getattr(args, "title", None),
+            normalization=getattr(args, "normalization", "log1p"),
+            top_rows=getattr(args, "top_rows", 40),
+            rows_per_panel=getattr(args, "rows_per_panel", 30),
+            columns_per_panel=getattr(args, "columns_per_panel", 24),
+            annotate=getattr(args, "annotate", "auto"),
+            citations=getattr(args, "citation", ()),
+            claim_prefix=getattr(args, "claim_prefix", ""),
+        )
+    except ValueError as exc:
+        emit(f"ERROR: codex-heatmaps could not read matrix CSV: {exc}",
+             file=_sys.stderr, flush=True)
+        return 1
+    emit(json.dumps(result, indent=2))
+    return 0 if result.get("status") == "PASS" else 1
+
+
+def _codex_figure_catalog_command(args) -> int:
+    """Lazy wrapper for the optional governed 200-set figure catalog."""
+    from .interactive_figures.figure_set_registry import emit_registry
+    result = emit_registry(
+        args.outdir,
+        family=getattr(args, "family", None),
+        status=getattr(args, "status", None),
+    )
+    emit(json.dumps(result, indent=2))
+    return 0 if result.get("status") == "PASS" else 1
+
+
+def _codex_figure_sets_command(args) -> int:
+    """Lazy wrapper for implemented Codex Figure Factory registry tranches."""
+    from .interactive_figures.figure_set_renderer import render_tranche
+    tranche = getattr(args, "tranche", "1")
+    if tranche == "1":
+        result = render_tranche(args.widget_data, args.outdir)
+    else:
+        source_bundle = getattr(args, "source_bundle", None)
+        if not source_bundle:
+            raise ValueError("--source-bundle is required for --tranche 2-6 or all")
+        from .interactive_figures.figure_set_renderer_tranche2 import render_tranche_2
+        if tranche == "2":
+            result = render_tranche_2(args.widget_data, source_bundle, args.outdir)
+        elif tranche == "3":
+            from .interactive_figures.figure_set_renderer_tranche3 import render_tranche_3
+            result = render_tranche_3(args.widget_data, source_bundle, args.outdir)
+        elif tranche == "4":
+            from .interactive_figures.figure_set_renderer_tranche4 import render_tranche_4
+            result = render_tranche_4(args.widget_data, source_bundle, args.outdir)
+        elif tranche == "5":
+            from .interactive_figures.figure_set_renderer_tranche5 import render_tranche_5
+            result = render_tranche_5(args.widget_data, source_bundle, args.outdir)
+        elif tranche == "6":
+            lead_ledger = getattr(args, "lead_ledger", None)
+            if not lead_ledger:
+                raise ValueError("--lead-ledger is required for --tranche 6")
+            from .interactive_figures.figure_set_renderer_tranche6 import render_tranche_6
+            result = render_tranche_6(args.widget_data, source_bundle, lead_ledger, args.outdir)
+        else:
+            from .interactive_figures.figure_atlas import render_implemented_atlas
+            result = render_implemented_atlas(args.widget_data, source_bundle, args.outdir, lead_ledger=getattr(args, "lead_ledger", None))
+    emit(json.dumps({
+        "status": result.get("status"),
+        "implemented_count": result.get("implemented_count"),
+        "implemented_ids": result.get("implemented_ids"),
+        "outdir": args.outdir,
+    }, indent=2))
+    return 0 if result.get("status") == "PASS" else 1
+
+
+def _codex_bigscape_figure_sets_command(args) -> int:
+    """Lazy wrapper for the optional BiG-SCAPE Figure Factory extension."""
+    from .interactive_figures.bigscape_extension import render_bigscape_extension
+    result = render_bigscape_extension(
+        args.outdir,
+        bigscape_tsv=args.bigscape_tsv,
+        bigscape_db=args.bigscape_db,
+        bigscape_run=args.bigscape_run,
+        bigscape_cutoffs=args.bigscape_cutoffs,
+        run_manifest=args.run_manifest,
+        bgc_bridge=args.bgc_bridge,
+        lead_ledger=args.lead_ledger,
+    )
+    emit(json.dumps({
+        "status": result.get("status"),
+        "extension_ids": result.get("extension_ids"),
+        "run_id": result.get("run_id"),
+        "cutoffs": result.get("cutoffs"),
+        "outdir": args.outdir,
+    }, indent=2))
+    return 0 if result.get("status") == "PASS" else 1
+
+
+def _codex_figure_sources_command(args) -> int:
+    """Lazy wrapper for the sealed-package figure source bundler."""
+    from .interactive_figures.figure_source_bundle import build_source_bundle
+    result = build_source_bundle(args.widget_data, args.package_dir, args.outdir)
+    emit(json.dumps({
+        "status": result.get("status"),
+        "strain_count": result.get("strain_count"),
+        "present_package_count": result.get("present_package_count"),
+        "missing_member_count": result.get("missing_member_count"),
+        "outputs": result.get("outputs"),
+        "outdir": args.outdir,
+    }, indent=2))
+    return 0 if result.get("status") in {"PASS", "PASS_WITH_ISSUES"} else 1
+
+
+def register_commands(sub, handlers: dict) -> None:
+    """Register the family using the calling CLI's current handler bindings."""
+    # codex-heatmaps: optional post-seal presentation pack for Figure Factory
+    # matrix sidecars.  The explicit Codex name keeps this accessibility/widget
+    # profile separate from deterministic extraction and every release/science
+    # gate.  SVG/HTML generation is dependency-free and never edits a package.
+    chm = sub.add_parser(
+        "codex-heatmaps",
+        help="Legacy-named Figure Factory command: convert matrix CSVs into SVG/HTML figure packs",
+    )
+    chm.add_argument("--input", nargs="+", required=True,
+        help="One or more Figure Factory *_data.csv matrix sidecars")
+    chm.add_argument("--outdir", required=True,
+        help="Output directory (must remain outside sealed packages)")
+    chm.add_argument("--title", default=None,
+        help="Optional figure title override (best with one input)")
+    chm.add_argument("--normalization", choices=["raw", "log1p"], default="log1p",
+        help="Colour transform only; raw values remain in labels/tooltips (default: log1p)")
+    chm.add_argument("--top-rows", type=int, default=40,
+        help="Keep the highest raw-total rows; 0 keeps all (default: 40)")
+    chm.add_argument("--rows-per-panel", type=int, default=30)
+    chm.add_argument("--columns-per-panel", type=int, default=24)
+    chm.add_argument("--annotate", choices=["auto", "all", "none"], default="auto")
+    chm.add_argument("--citation", action="append", default=[],
+        help="Citation note for caption/methods text; repeatable")
+    chm.add_argument("--claim-prefix", default="",
+        help="Optional PUBLIC/PRIVATE/governance prefix for the caption")
+    chm.set_defaults(func=handlers['_codex_heatmaps_command'])
+
+    # codex-figure-catalog: registry-first expansion of Figure Factory. The
+    # command emits 200 governed specifications (25 scientific families × 8
+    # analytical lenses), explicitly including per-strain and cohort views.
+    # Specifications declare readiness and do not pretend gated inputs exist.
+    cfc = sub.add_parser(
+        "codex-figure-catalog",
+        help="Legacy-named Figure Factory command: emit the governed figure registry and caption/method catalog",
+    )
+    cfc.add_argument("--outdir", required=True,
+        help="Output directory for JSON/CSV/HTML/caption-methods/QA artifacts")
+    cfc.add_argument("--family", default=None,
+        help="Optional three-letter family ID filter, e.g. MPG, BND, CLS")
+    cfc.add_argument("--status", default=None,
+        help="Optional exact readiness-status filter")
+    cfc.set_defaults(func=handlers['_codex_figure_catalog_command'])
+
+    cfs = sub.add_parser(
+        "codex-figure-sets",
+        help="Legacy-named Figure Factory command: render implemented strain/cohort sets from the governed registry",
+    )
+    cfs.add_argument("--widget-data", required=True,
+        help="AS_All_Strains_Widget_Data.json emitted from sealed Mamey packages")
+    cfs.add_argument("--outdir", required=True,
+        help="Output directory outside sealed packages")
+    cfs.add_argument("--tranche", choices=("1", "2", "3", "4", "5", "6", "all"), default="1",
+        help="Implemented tranche to render (default: 1)")
+    cfs.add_argument("--source-bundle", default=None,
+        help="Required for tranches 2-6/all; output of codex-figure-sources")
+    cfs.add_argument("--lead-ledger", default=None,
+        help="Required for tranche 6; optional for all (enables the 200-set atlas)")
+    cfs.set_defaults(func=handlers['_codex_figure_sets_command'])
+
+    bgff = sub.add_parser(
+        "codex-bigscape-figure-sets",
+        help="Legacy-named Figure Factory command: render the optional BiG-SCAPE figure extension",
+    )
+    source = bgff.add_mutually_exclusive_group(required=True)
+    source.add_argument("--bigscape-tsv")
+    source.add_argument("--bigscape-db")
+    bgff.add_argument("--bigscape-run", required=True,
+        help="Exact run ID/label; never infer latest or largest")
+    bgff.add_argument("--bigscape-cutoffs", required=True,
+        help="Explicit comma-delimited cutoff list")
+    bgff.add_argument("--run-manifest",
+        help="Immutable run manifest; required for portable TSV input")
+    bgff.add_argument("--bgc-bridge",
+        help="Optional exact strain+bgc_id+locator bridge for boundary/host views")
+    bgff.add_argument("--lead-ledger",
+        help="Optional exact strain+bgc_id+locator declared-lead ledger")
+    bgff.add_argument("--outdir", required=True,
+        help="Per-job sibling output directory; sealed packages/databases are never mutated")
+    bgff.set_defaults(func=handlers['_codex_bigscape_figure_sets_command'])
+
+    csrc = sub.add_parser(
+        "codex-figure-sources",
+        help="Legacy-named Figure Factory command: build a provenance-rich source bundle from sealed package ZIPs",
+    )
+    csrc.add_argument("--widget-data", required=True,
+        help="Governed AS_All_Strains_Widget_Data.json")
+    csrc.add_argument("--package-dir", required=True,
+        help="Directory containing the sealed packages named by widget data")
+    csrc.add_argument("--outdir", required=True,
+        help="Output directory outside sealed packages")
+    csrc.set_defaults(func=handlers['_codex_figure_sources_command'])

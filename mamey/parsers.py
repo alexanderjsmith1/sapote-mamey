@@ -1,4 +1,8 @@
 from __future__ import annotations
+import copy
+import hashlib
+import weakref
+from dataclasses import dataclass
 import json, os, re, zipfile, io, warnings
 from pathlib import Path
 from .assembly import metrics_from_sequences
@@ -435,6 +439,66 @@ def read_genbank_records(zip_path: str | Path, region_only: bool = False,
             f"records in {zip_path}: " + "; ".join(detail),
             stacklevel=2,
         )
+    if exclude_regions and not region_only:
+        # antiSMASH ZIPs can retain input/<assembly>.gbk alongside their annotated
+        # output GBK. Select per physical contig, after parsing: input-only contigs
+        # and input fallback after a failed output parse must remain available.
+        def _archived_input(member):
+            return any(part.casefold() == "input" for part in Path(member).parts[:-1])
+
+        def _sequence_key(rec):
+            # Undefined Biopython sequence content must not authorize replacement.
+            # Normalize case/formatting only; never infer or print nucleotide content.
+            try:
+                sequence = "".join(str(rec.seq).split()).upper()
+                length = len(rec.seq)
+            except Exception:
+                return None
+            return (length, sequence) if length > 0 and len(sequence) == length else None
+
+        events = {}
+        def _event(kind, example):
+            count, examples = events.setdefault(kind, [0, []])
+            events[kind][0] = count + 1
+            if len(examples) < 3:
+                examples.append(example[:240])
+
+        authoritative = {}
+        for member, rec in records:
+            if _archived_input(member) or "region" in Path(member).name.lower():
+                continue
+            cid = _record_contig_id(rec)
+            if not cid or cid.casefold() in {"unknown", "<unknown>", "<unknown id>", "."} or not len(rec.seq):
+                _event("unusable output identity/length; no input supersession", member)
+                continue
+            authoritative.setdefault(cid, []).append((member, rec))
+        for cid, entries in authoritative.items():
+            if len(entries) > 1:
+                _event("conflicting output records retained without merging",
+                       f"{cid[:80]}: " + ", ".join(member[:70] for member, _ in entries[:2]))
+        selected = []
+        for member, rec in records:
+            cid = _record_contig_id(rec)
+            matches = authoritative.get(cid, []) if _archived_input(member) else []
+            if matches:
+                input_key = _sequence_key(rec)
+                # All matching output records must agree with input: an identical
+                # sibling cannot conceal a conflicting output annotation source.
+                equal = input_key is not None and all(
+                    _sequence_key(output_rec) == input_key for _, output_rec in matches)
+                example = (f"{cid[:80]}: {member[:70]} -> "
+                           + ", ".join(name[:70] for name, _ in matches[:2]))
+                if equal:
+                    _event("archived input records superseded; exact nucleotide equality; annotation versions not merged",
+                           example)
+                    continue
+                _event("unresolved sequence conflicts; input records retained", example)
+            selected.append((member, rec))
+        for kind, (count, examples) in events.items():
+            warnings.warn(
+                f"read_genbank_records: {count} {kind}; examples (max 3): "
+                + "; ".join(examples), stacklevel=2)
+        records = selected
     return records
 
 def assembly_metrics_from_zip(zip_path: str | Path) -> AssemblyMetrics:
@@ -732,34 +796,115 @@ def _zip_has_record_json(zip_path: str | Path) -> bool:
         return False
 
 
-def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
-                         evidence: dict | None = None) -> list[BGCRecord]:
-    # evidence: if a caller already parsed antiSMASH evidence (the run path parses it once for the
-    # status dict), pass it in to avoid a second full record parse. Standalone callers leave it None
-    # and the evidence is parsed here as before. Either way the result is identical: apply_evidence_to_bgcs
-    # reads only by_region, which does not depend on want_tigrfam.
-    bgcs = []
-    seen = set()
-    # PREFLIGHT: bounded/full ask for JSON evidence (KCB / RiQ / TIGRFAM), but a
-    # partial or web-exported ZIP of only region GBKs carries no record JSON —
-    # bounded then silently degrades to TXT-only KCB with NO TIGRFAM diagnostics.
-    # Warn loudly instead of degrading in silence. (off never opens JSON, so the
-    # absence is expected there and no warning fires.)
-    if json_mode in ("bounded", "full") and not _zip_has_record_json(zip_path):
-        warnings.warn(
-            f"no antiSMASH record JSON in {Path(zip_path).name}: KCB will come "
-            "from TXT clusterblast files (if present) and TIGRFAM diagnostics are "
-            "UNAVAILABLE. Provide the full antiSMASH output (not just region GBKs) "
-            "for complete evidence.",
-            stacklevel=2,
-        )
-    records = read_genbank_records(zip_path, region_only=True) or read_genbank_records(zip_path, region_only=False)
+def archive_sha256(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def validate_region_intake_resources(zip_path: str | Path) -> None:
+    """Refuse guarded relevant archive members before any common region admission.
+
+    General read_genbank_records skip/warning behavior is unchanged. The common
+    region program must not silently proceed with a resource-refused subset.
+    """
+    with zipfile.ZipFile(zip_path) as archive:
+        for name in regular_file_names(archive):
+            if is_macos_cruft(name) or not name.lower().endswith(GBK_EXTS + FASTA_EXTS):
+                continue
+            reason = _gbk_size_guard(archive.getinfo(name))
+            if reason:
+                raise GbkSizeGuardRefusal(name, reason)
+
+
+@dataclass(frozen=True, eq=False)
+class _RegionCoreSnapshot:
+    """Immutable, process-local intake capability; never a public JSON override.
+
+    Identity admission in the private registry means a caller-created/replaced
+    object is not a parsed snapshot, even with recomputed content hashes. This
+    is a Python API trust boundary, not a sandbox against reflective Python code.
+    """
+    input_sha256: str
+    records_payload: bytes
+    diagnostics_payload: bytes
+    records_sha256: str
+    diagnostics_sha256: str
+
+    def __deepcopy__(self, memo):
+        return self
+
+
+_REGION_CORE_SNAPSHOTS = weakref.WeakSet()
+
+
+def _seal_region_core_snapshot(input_sha256: str, records: list, diagnostics: list):
+    records_payload = json.dumps(records, sort_keys=True).encode()
+    diagnostics_payload = json.dumps(diagnostics, sort_keys=True).encode()
+    sealed = _RegionCoreSnapshot(input_sha256, records_payload, diagnostics_payload,
+                                 hashlib.sha256(records_payload).hexdigest(),
+                                 hashlib.sha256(diagnostics_payload).hexdigest())
+    _REGION_CORE_SNAPSHOTS.add(sealed)
+    return sealed
+
+
+def _open_region_core_snapshot(snapshot: dict, input_sha256: str) -> tuple[list, list]:
+    sealed = snapshot.get("_sealed_snapshot") if isinstance(snapshot, dict) else None
+    if not isinstance(sealed, _RegionCoreSnapshot) or sealed not in _REGION_CORE_SNAPSHOTS:
+        raise ValueError("RGGMCI_CORE_SNAPSHOT_NOT_PROCESS_BOUND")
+    if input_sha256 != sealed.input_sha256 or snapshot.get("input_sha256") != sealed.input_sha256:
+        raise ValueError("RGGMCI_CORE_SNAPSHOT_INPUT_MISMATCH")
+    if (hashlib.sha256(sealed.records_payload).hexdigest() != sealed.records_sha256 or
+            hashlib.sha256(sealed.diagnostics_payload).hexdigest() != sealed.diagnostics_sha256 or
+            snapshot.get("records_sha256") != sealed.records_sha256 or
+            json.dumps(snapshot.get("records"), sort_keys=True).encode() != sealed.records_payload or
+            json.dumps(snapshot.get("diagnostics"), sort_keys=True).encode() != sealed.diagnostics_payload):
+        raise ValueError("RGGMCI_CORE_SNAPSHOT_CONTENT_MISMATCH")
+    return json.loads(sealed.records_payload), json.loads(sealed.diagnostics_payload)
+
+
+RGGMCI_CORE_RECORD_FIELDS = (
+    "bgc_id", "contig", "region_number", "start", "end", "contig_length",
+    "products", "edge_status", "source_gbk", "subcluster_hits",
+)
+
+
+def project_rggmci_records(bgcs) -> list[dict]:
+    """Copy the ordered common record projection without sharing mutable evidence lists."""
+    return [{field: copy.deepcopy(getattr(bgc, field)) for field in RGGMCI_CORE_RECORD_FIELDS}
+            for bgc in bgcs]
+
+
+def iter_region_core_inputs(zip_path: str | Path, *, embedded_metadata=None,
+                            embedded_coordinate_diagnostic=None, intake_diagnostics=None):
+    """Yield the common region intake with one coordinate-error admission policy.
+
+    Expected structural conversion failures retain legacy partial bounds and a
+    common diagnostic. Unexpected exceptions and typed resource refusals propagate.
+    Embedded callbacks observe metadata/expected failures without changing admission.
+    """
+    validate_region_intake_resources(zip_path)
+    diagnostics = intake_diagnostics if intake_diagnostics is not None else []
+    with warnings.catch_warnings(record=True) as source_warnings:
+        warnings.simplefilter("always")
+        records = read_genbank_records(zip_path, region_only=True) or read_genbank_records(zip_path, region_only=False)
+        orig_bounds = _region_orig_bounds_from_zip(zip_path)
+        contig_lengths = _contig_length_map_from_zip(zip_path)
+    for warning in source_warnings:
+        message = str(warning.message).replace(str(zip_path), Path(zip_path).name)
+        # A ResourceWarning comes from garbage collection of some unrelated object that happened to run during the
+        # read. It says nothing about the source, so it is passed on but not recorded as an intake diagnostic.
+        if not issubclass(warning.category, ResourceWarning):
+            diagnostics.append(dict(code="SOURCE_INTAKE_WARNING", message=message))
+        warnings.warn(message, warning.category, stacklevel=2)
     # E3: the records are already in memory; order this one read before assigning
     # locked BGC aliases so an explicitly labelled chromosome precedes plasmids.
     # Unknown or contradictory replicons follow without being guessed.
     records.sort(key=_replicon_intake_key)
-    orig_bounds = _region_orig_bounds_from_zip(zip_path)
-    contig_lengths = _contig_length_map_from_zip(zip_path)
+    seen = set()
+    admitted = 0
     for name, rec in records:
         is_region_record = "region" in Path(name).name.lower()
         contig_id = _record_contig_id(rec)
@@ -781,32 +926,29 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
         if m:
             region_num = int(m.group(1))
         products, start, end = [], 1, contig_len
-        single_cc = count_single_cand_clusters(rec.features)
-        _cand_kinds = cand_cluster_kinds(rec.features)
-        _overmerge = overmerge_state(_cand_kinds)
-        # FA3 / R1: does antiSMASH mark a fused cross-class pathway here? (cand_cluster
-        # /kind="chemical_hybrid"). Capacity descriptor only; feeds the architecture grade note.
-        hybrid_cc = count_hybrid_cand_clusters(rec.features)
-        # v9.7.240 (P2): resolve the true protocluster list once; its length is the
-        # protocluster count. One extra pass over features, needed unconditionally so
-        # downstream gates never substitute single_cc for it.
-        _pcb = protocluster_breakdown(rec.features)
+        # Embedded-only metadata is evaluated at its legacy point, including before dedup.
+        embedded = embedded_metadata(rec) if embedded_metadata is not None else None
         # Use antiSMASH absolute source bounds when parsing clipped region GBKs.
         # The region/cand_cluster feature coordinates inside these files are local
         # to the clipped record and almost always start at 1.
         if is_region_record and name in orig_bounds:
             start, end = orig_bounds[name]
-        for f in rec.features:
+        for feature_index, f in enumerate(rec.features):
             if f.type in {"region", "protocluster", "cand_cluster"}:
                 products.extend(_feature_products(f))
                 if not (is_region_record and name in orig_bounds):
                     try:
                         start = int(f.location.start) + 1
                         end = int(f.location.end)
-                    except Exception as _deg_exc:
-                        from . import degradation as _degradation
-                        _degradation.record("parsers.parse_bgcs_from_zip.region_coords_fallback",
-                                            _deg_exc, record=str(name))
+                    except GbkSizeGuardRefusal:
+                        # A typed resource refusal is never a coordinate fallback.
+                        raise
+                    except (TypeError, ValueError, AttributeError) as exc:
+                        diagnostics.append(dict(code="REGION_COORDINATE_FALLBACK", member=name,
+                                                feature_index=feature_index, feature_type=f.type,
+                                                exception_type=type(exc).__name__, start=start, end=end))
+                        if embedded_coordinate_diagnostic is not None:
+                            embedded_coordinate_diagnostic(exc, name)
         products = sorted(set(products))
         if not products:
             for f in rec.features:
@@ -820,30 +962,76 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
             continue
         seen.add(key)
         edge = _edge_status(start, end, contig_len, is_circular=is_circular)
+        admitted += 1
+        fields = dict(
+            bgc_id=f"BGC{admitted:03d}", contig=contig_id,
+            region_number=region_num or admitted, start=start, end=end,
+            contig_length=contig_len, products=products, edge_status=edge,
+            source_gbk=name, subcluster_hits=[],
+        )
+        context = dict(is_region_record=is_region_record,
+                       has_original_bounds=(is_region_record and name in orig_bounds),
+                       embedded=embedded)
+        yield name, rec, fields, context
+
+
+def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
+                         evidence: dict | None = None, *,
+                         core_snapshot_out: dict | None = None) -> list[BGCRecord]:
+    # evidence: if a caller already parsed antiSMASH evidence (the run path parses it once for the
+    # status dict), pass it in to avoid a second full record parse. Standalone callers leave it None
+    # and the evidence is parsed here as before. Either way the result is identical: apply_evidence_to_bgcs
+    # reads only by_region, which does not depend on want_tigrfam.
+    bgcs = []
+    snapshot_sha = archive_sha256(zip_path) if core_snapshot_out is not None else None
+    snapshot_records, intake_diagnostics = [], []
+    # PREFLIGHT: bounded/full ask for JSON evidence (KCB / RiQ / TIGRFAM), but a
+    # partial or web-exported ZIP of only region GBKs carries no record JSON —
+    # bounded then silently degrades to TXT-only KCB with NO TIGRFAM diagnostics.
+    # Warn loudly instead of degrading in silence. (off never opens JSON, so the
+    # absence is expected there and no warning fires.)
+    if json_mode in ("bounded", "full") and not _zip_has_record_json(zip_path):
+        warnings.warn(
+            f"no antiSMASH record JSON in {Path(zip_path).name}: KCB will come "
+            "from TXT clusterblast files (if present) and TIGRFAM diagnostics are "
+            "UNAVAILABLE. Provide the full antiSMASH output (not just region GBKs) "
+            "for complete evidence.",
+            stacklevel=2,
+        )
+    def embedded_metadata(rec):
+        single_cc = count_single_cand_clusters(rec.features)
+        kinds = cand_cluster_kinds(rec.features)
+        return (single_cc, kinds, overmerge_state(kinds),
+                count_hybrid_cand_clusters(rec.features), protocluster_breakdown(rec.features))
+
+    def embedded_coordinate_diagnostic(exc, name):
+        from . import degradation
+        degradation.record("parsers.parse_bgcs_from_zip.region_coords_fallback", exc, record=str(name))
+
+    for name, rec, fields, context in iter_region_core_inputs(
+            zip_path, embedded_metadata=embedded_metadata,
+            embedded_coordinate_diagnostic=embedded_coordinate_diagnostic,
+            intake_diagnostics=intake_diagnostics):
+        snapshot_records.append(copy.deepcopy(fields))
+        single_cc, _cand_kinds, _overmerge, hybrid_cc, _pcb = context["embedded"]
+        products, start, end = fields["products"], fields["start"], fields["end"]
+        edge, region_num, contig_id = fields["edge_status"], fields["region_number"], fields["contig"]
         # Pre-evidence grade: provides initial values for BGCRecord construction.
         # Overwritten post-evidence (line ~392) once kcb_cumulative is available.
         grade, rationale = architecture_grade(edge, products, end - start + 1,
                                               has_chemical_hybrid=(hybrid_cc > 0))
         notes=[f"source_gbk={name}"]
-        if is_region_record and name in orig_bounds:
+        if context["has_original_bounds"]:
             notes.append("absolute_coordinates_from_antismash_orig_start_end")
-        elif is_region_record:
+        elif context["is_region_record"]:
             notes.append("WARNING_region_gbk_lacks_orig_bounds_boundary_may_be_local")
         if single_cc >= 3:
             notes.append(f"COMPOSITE_REGION_{single_cc}_single_protoclusters_merged_product_string_and_lead_score_inflated")
         bgc = BGCRecord(
-            bgc_id=f"BGC{len(bgcs)+1:03d}",
-            contig=contig_id,
-            region_number=region_num or (len(bgcs) + 1),
-            start=start,
-            end=end,
-            contig_length=contig_len,
-            antismash_region=region_label(region_num or (len(bgcs) + 1)),
-            source_gbk=name,
+            **fields,
+            antismash_region=region_label(region_num),
             node_id=infer_node_id(contig_id, name),
-            products=products,
             mibig_hits=[],
-            edge_status=edge,
             architecture_confidence=grade,
             architecture_rationale=rationale,
             composite_region=(single_cc >= 3),
@@ -859,6 +1047,15 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
         )
         enrich_bgc_crosswalk(bgc, name)
         bgcs.append(bgc)
+    if core_snapshot_out is not None:
+        if archive_sha256(zip_path) != snapshot_sha:
+            raise ValueError("RGGMCI_INPUT_CHANGED_DURING_INTAKE")
+        core_snapshot_out.clear()
+        core_snapshot_out.update(input_sha256=snapshot_sha,
+                                 records_sha256=hashlib.sha256(json.dumps(snapshot_records, sort_keys=True).encode()).hexdigest(),
+                                 records=snapshot_records,
+                                 diagnostics=copy.deepcopy(intake_diagnostics),
+                                 _sealed_snapshot=_seal_region_core_snapshot(snapshot_sha, snapshot_records, intake_diagnostics))
     if evidence is None:
         evidence = parse_antismash_evidence(zip_path, json_mode=json_mode)
     apply_evidence_to_bgcs(bgcs, evidence)

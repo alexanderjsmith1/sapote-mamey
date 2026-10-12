@@ -50,6 +50,9 @@ import shutil
 from datetime import date
 from pathlib import Path
 
+# Doctor diagnostics use this bundle root; tests can isolate it in a synthetic tree.
+BUNDLE_ROOT = Path(__file__).parent.parent
+
 from . import __version__, BUNDLE_VERSION
 from . import discover as _discover
 from . import genus_appendix as _genus_appendix
@@ -67,7 +70,7 @@ from .parsers import (
 )
 from .antismash_evidence import FULL_MAX_JSON_BYTES, parse_antismash_evidence, apply_evidence_to_bgcs, extract_gbk_pfam_hits, merge_tigrfam_into_pfam_hits
 from .source_scans import run_source_scans
-from .rggmci import run_rggmci
+from .rggmci import run_rggmci, run_archive, canonical_artifacts
 from .pks_ks_scan import run_pks_ks_scan, write_pks_ks_csv  # .359 (phylogenomics-lane P358): _4B intrinsic PKS-KS clade scan
 from .bgc_decomp import (
     TWO_MODEL_DECOMP_HEADERS,
@@ -560,6 +563,7 @@ def _write_batch_plan(package_dir, strain_id: str, mode: str, source: str,
                       issues: list[str] | None = None) -> bool:
     """audit P1: drop a ready-to-run projected next-batch plan so a single run always hands the
     operator a concrete continuation, per the intake-first/batch directive."""
+    import shlex
     txt = (
         f"# Projected batch plan — after {strain_id}\n\n"
         f"`{strain_id}` is complete (mode={mode}). To process the rest of the cohort as one managed,\n"
@@ -568,9 +572,11 @@ def _write_batch_plan(package_dir, strain_id: str, mode: str, source: str,
         f"```\n"
         f"python tools/intake_harness.py --inputs <dir-of-zips> --outdir runs --registry runs/intake_registry.csv \\\n"
         f"  --metrics runs/intake_metrics.csv --batch-report runs/batch_report.md --resume \\\n"
-        f"  --source \"{source}\" --release PUBLIC   # PRIVATE override always honored (e.g. AJS-/PENDING- strains)\n"
+        f"  --source {shlex.quote(str(source))} --release PRIVATE\n"
         f"```\n\n"
-        f"- `--resume` skips strains already in the registry, so a timeout is safe to re-run.\n"
+        f"- `--resume` skips only when package, input, current code, and options match their receipts.\n"
+        f"  Preserve existing packages on a mismatch; use a fresh reviewed output directory.\n"
+        f"- This suggested command uses PRIVATE. Use PUBLIC only for reviewed public inputs.\n"
         f"- Per-strain wall-time/RSS are captured; a strain exceeding budget is an input/parse issue —\n"
         f"  checkpoint and continue (do not loop one strain). See prompts/RUN_DIAGNOSIS_PROMPT.md.\n"
     )
@@ -596,9 +602,10 @@ def _write_start_here(package_dir, strain_id, mode, status, raw, interior, edge,
     _header = "## ✅ EXTRACTION COMPLETE  ·  ⏳ JUDGMENT PENDING"
     _lead = (
         f"This is a **Mamey deterministic-extraction** package (mode={mode}, validation={status}). It is the\n"
-        f"skeleton — inventory, scans, scores, evidence. The **interpretive deliverables** (BGC-by-BGC Mode B,\n"
-        f"DAPR, claim-safe ecology, bench/layperson guides, literature) are **NOT in this package**: they are\n"
-        f"the separate **Sapote judgment** step. A rich PASS package is not a finished analysis.\n\n"
+        f"source for inventory, scans, scores and evidence review. Extraction validation does not establish\n"
+        f"scientific conclusions or figure acceptance. The judgment banner tracks the authored-interpretation\n"
+        f"register separately from extraction and figure review. A selected figure handoff does not require\n"
+        f"a full Mode B card, DAPR, white paper or guide; those are optional authored formats.\n\n"
     )
     txt = (
         f"# START HERE — {strain_id}\n\n"
@@ -608,11 +615,21 @@ def _write_start_here(package_dir, strain_id, mode, status, raw, interior, edge,
         f"- **{raw} raw BGCs** — {interior} Interior / {edge} Edge / {fc} Full-contig · **corrected {corrected} (effective estimate; Interior + ½·Edge + ¼·Full-contig)**\n"
         f"- **Assembly tier: {tier}**\n\n"
         f"## Start here (in order)\n"
-        f"1. `{strain_id}_ANALYSIS_FORWARD.md` — the ranked leads to judge first.\n"
-        f"   - Antibacterial lead board: `{strain_id}_4c_AB_lead_board.csv` · Antifungal: `{strain_id}_4c_AF_lead_board.csv`\n"
-        f"     (pre-sorted; standing-rule-downgraded rows are marked in `Downgrade` and sink to the bottom).\n"
-        f"2. Trigger the judgment layer: **`Run full Sapote analysis on {strain_id}`**.\n"
-        f"3. To process the rest of the cohort: `{strain_id}_BATCH_PLAN.md` (one managed, timeout-safe batch).\n\n"
+        f"1. Read `manifest.json`, `issue_log.md`, the retained validation and `{strain_id}_2_inventory.csv`.\n"
+        f"   Select the question and figure roster; inspect existing `gold_figures/` and `locus_maps/` where present.\n"
+        f"   For a selected locus, retain strain / full node-or-contig / region / BGC alias from one source record.\n"
+        f"2. Choose an existing renderer using `docs/FIGURES_START_HERE.md` in the extracted code bundle.\n"
+        f"   For example, a selected standard set uses the bundle-local launcher from that code root:\n"
+        f"   `python mamey_run.py render-figures --package <working-package-copy> --outdir <fresh-review-directory> --figure-set standard`.\n"
+        f"   Keep the sealed original: this command can refresh integrity records in its supplied working package.\n"
+        f"3. Follow `docs/EVIDENCE_TO_REPORT.md` in the code bundle: retain plotted data/scripts, captions,\n"
+        f"   short findings and Methods facts, actual execution and visual-review evidence, and unresolved holds.\n"
+        f"   A rendered image alone does not establish a scientific conclusion.\n"
+        f"4. Optional authored format: **`Run full Sapote analysis on {strain_id}`** when full interpretation\n"
+        f"   is selected. Choose its named card/profile workflow; a table or template is not an authored card.\n"
+        f"   `{strain_id}_ANALYSIS_FORWARD.md` and the `{strain_id}_4c_AB_lead_board.csv` /\n"
+        f"   `{strain_id}_4c_AF_lead_board.csv` support selected evidence review, not required all-BGC authoring.\n"
+        f"5. To process the rest of a selected cohort: `{strain_id}_BATCH_PLAN.md` (one managed, timeout-safe batch).\n\n"
         f"## Optional: domain-level HMM scan (not run automatically)\n"
         f"The pyHMMER scanner registry is a separate pass, not part of `run`. For motif-level evidence\n"
         f"run **`python -m mamey hmm-adjudicate`** against this package once the science stack is\n"
@@ -788,7 +805,7 @@ class _LocusMapsSkipped(Exception):
     """P0 (v9.7.101): internal sentinel — locus-map render skipped by policy, not an error."""
 
 
-def _emit_gold_figures(package_dir: Path, strain_id: str, mode: str) -> None:
+def _emit_gold_figures(package_dir: Path, strain_id: str, mode: str, issues: list | None = None) -> None:
     """Auto-emit single-strain gold figures (v9.7.148 PATCH-AUTO-FIGURES).
 
     Extracted verbatim from run_one_strain (v9.7.155 cli decomposition) so the
@@ -810,32 +827,37 @@ def _emit_gold_figures(package_dir: Path, strain_id: str, mode: str) -> None:
             _inferred_runs = package_dir.parent.parent
             _direct_parent = package_dir.parent
             _standard_layout = (package_dir.name == "package" and _inferred_runs.is_dir())
+            _layout_note = None
             if _standard_layout:
                 _runs_dir = str(_inferred_runs)
             else:
                 # Non-standard layout (package_dir doesn't end in .../<strain>/package)
                 # — use immediate parent and emit a note so the gap is visible.
                 _runs_dir = str(_direct_parent)
-                try:
-                    _gold_fig_out.mkdir(parents=True, exist_ok=True)
-                    (_gold_fig_out / "RUNS_DIR_NOTE.md").write_text(
-                        f"# Non-standard package path\n\n"
-                        f"Expected layout: <runs_dir>/<strain_id>/package/ — "
-                        f"package_dir.name was {package_dir.name!r}, not 'package'.\n"
-                        f"Used the package directory's immediate parent as runs_dir; "
-                        f"figures may be incomplete or missing.\n",
-                        encoding="utf-8")
-                except Exception as _note_exc:
-                    _phase_receipt(
-                        package_dir, "gold_figures_layout_note", "ERROR",
-                        reason=f"{type(_note_exc).__name__}: {_note_exc}",
-                    )
+                _layout_note = (
+                    "# Non-standard package path\n\n"
+                    "Expected layout: <runs_dir>/<strain_id>/package/. "
+                    "Used the package directory's immediate parent as runs_dir; "
+                    "figures may be incomplete or missing.\n")
             _fig_res = _gen_single_figs(
                 runs_dir=_runs_dir,
                 out=str(_gold_fig_out),
                 strains=[strain_id],
                 series="all",   # v9.7.252 (P8): default was series="F" -> 2 panels, not 21
             )
+            if _layout_note is not None:
+                try:
+                    _gold_fig_out.mkdir(parents=True, exist_ok=True)
+                    (_gold_fig_out / "RUNS_DIR_NOTE.md").write_text(_layout_note, encoding="utf-8")
+                except Exception as _note_exc:
+                    _phase_receipt(package_dir, "gold_figures_layout_note", "ERROR",
+                                   reason=f"{type(_note_exc).__name__}: {_note_exc}")
+            for _hold in _fig_res.get("identity_holds", []):
+                _msg = f"[HOLD] gold figure {_hold['panel']}: {_hold['reason']}"
+                if issues is not None:
+                    issues.append(_msg)
+                with (package_dir / "issue_log.md").open("a", encoding="utf-8") as _ilf:
+                    _ilf.write(f"\n- {_msg}\n")
             _nfig = _fig_res.get("figures", 0)
             emit(f'  Gold figures: {_nfig} figure(s) + sidecar CSVs → {_gold_fig_out.name}/' if _nfig else f'  Gold figures: SKIPPED (no data available or matplotlib not installed)')
         except Exception as _fig_exc:
@@ -888,7 +910,14 @@ def _emit_deep_data(package_dir: Path, strain_id: str, mode: str, issues: list |
     if mode == "gold":
         try:
             from .deep_data import build_deep_data_files
-            build_deep_data_files(package_dir, strain_id)
+            _deep_result = build_deep_data_files(package_dir, strain_id)
+            _identity = _deep_result.get("identity", {})
+            if _identity.get("status") == "HOLD":
+                _msg = f"[HOLD] gold profile identity: {_identity.get('reason', 'GOLD_IDENTITY_CONTEXT_UNAVAILABLE')}"
+                if issues is not None:
+                    issues.append(_msg)
+                with (package_dir / "issue_log.md").open("a", encoding="utf-8") as _ilf:
+                    _ilf.write(f"\n- {_msg}\n")
         except Exception as _e:  # never fail the package over the enrichment layer
             _msg = f"[WARN] deep_data emit skipped: {_e}"
             with (package_dir / "issue_log.md").open("a", encoding="utf-8") as _ilf:
@@ -1260,7 +1289,7 @@ def run_one_strain(
     json_mode: str = "bounded",   # v9.3.2: bounded when ijson present; falls back gracefully to off
     antismash_profile: str = "auto",  # "auto" = read strictness from the ZIP; else supplied (comparability)
     brief: str = "standard",      # render deterministic strain brief: none|minimal|standard
-    release: str | None = None,   # operator release override (PUBLIC|PRIVATE); None = fail-safe derivation
+    release: str | None = None,   # operator release override (PUBLIC|PRIVATE); None = PRIVATE unless an exact public profile applies
     privacy_profile: str | None = None,  # optional exact-ID user-owned named-tier policy
     project_registry: str | None = None,  # explicit user-declared privacy/genome/assay registry
     metadata_csv: str | None = None,  # path to strain metadata CSV for collection figures
@@ -1273,6 +1302,15 @@ def run_one_strain(
     mibig_db: str | None = None,            # v9.7.445: MIBiG protein database folder (else env, else asset registry)
     completion_sensitivity: str = "sensitive",  # v9.7.445: DIAMOND mode for the completion search
     completion_pfam: str | None = None,     # v9.7.445: optional Pfam-A.hmm for the housekeeping-neighbour check
+
+    rggmci_registry_from: str | None = None,
+    rggmci_threads: int = 4,
+    rggmci_diamond: str | None = None,
+    rggmci_diamond_db: str | None = None,
+    rggmci_residue_scope: str = "st_paralog",
+    rggmci_residue_work_dir: str | None = None,
+    rggmci_completion_work_dir: str | None = None,
+    rggmci_label: str | None = None,
 ) -> dict:
     """Run Mamey extraction for one strain. Returns summary dict."""
 
@@ -1362,6 +1400,11 @@ def run_one_strain(
             }, indent=2),
         )
 
+    from .release_policy import resolve_run_release
+    context.release_decision = resolve_run_release(context.strain_id, release, privacy_profile)
+    if context.release_decision.refused:
+        emit("  [release] PUBLIC override refused by the supplied privacy authority; tagged PRIVATE.")
+
     # v9.7.374 (audit lane intake audit): identify_antismash_input() is a purpose-built,
     # never-raises recognizer ("Nothing raises on a bad archive... Callers decide policy" —
     # antismash_input.py) that already distinguishes a missing file / a corrupt ZIP / a valid
@@ -1436,7 +1479,30 @@ def run_one_strain(
     # identical to the prior two-parse path — one record parse per run instead of two).
     _phase_receipt(package_dir, "inventory", "START")
     _stage("parsing BGC regions")
-    bgcs              = parse_bgcs_from_zip(input_zip, json_mode=json_mode, evidence=antismash_evidence)
+    _rggmci_core_snapshot = {}
+    bgcs              = parse_bgcs_from_zip(input_zip, json_mode=json_mode, evidence=antismash_evidence,
+                                            core_snapshot_out=_rggmci_core_snapshot)
+    # Refuse an empty parse before feature extraction, source scans or RGGMCI.
+    # Archive recognition alone cannot prove that any region yielded a record.
+    _source_region_gbks = _count_antismash_region_gbks(input_zip)
+    if not bgcs:
+        _reason = (
+            f"NO_REGIONS_PARSED: {_source_region_gbks} antiSMASH region GBK(s) were present "
+            "but none yielded a BGC record; inspect parser diagnostics or re-export the results."
+            if _source_region_gbks else
+            "NO_REGIONS_PARSED: no antiSMASH BGC records were recovered from the input; "
+            "supply a region-bearing antiSMASH results archive."
+        )
+        _phase_receipt(package_dir, "inventory", "ERROR", raw_bgcs=0,
+                       source_region_gbks=_source_region_gbks, reason=_reason)
+        _stage(_reason)
+        emit(f"  [FAIL] {_reason}")
+        return {
+            "strain_id": strain_id, "status": "MAMEY_FAILED",
+            "raw_bgcs": 0, "corrected_bgcs": 0, "assembly_tier": "NONE",
+            "package_zip": None, "master_updated": False,
+            "issues": [_reason + " No package written."],
+        }
     # Apply the same evidence object that will be written to disk, so
     # AntiSMASH_Evidence_Parse.json contains the KCB assignment audit.
     apply_evidence_to_bgcs(bgcs, antismash_evidence)
@@ -1481,28 +1547,12 @@ def run_one_strain(
     except Exception as _e:
         _stage(f"compound-class annotation skipped: {_e}")
 
-    # R1: stamp each BGC with its release tag (AS -> PUBLIC per the v9.7.236 PI decision;
-    # AJS/PENDING/unknown shapes fail safe to PRIVATE), so the
-    # row-level release flag is present from extraction onward and a downstream merge/leak-audit can filter on it.
-    if privacy_profile:
-        from .privacy_profile import load_privacy_profile, resolve_profile_privacy
-        _privacy = resolve_profile_privacy(
-            strain_id, load_privacy_profile(privacy_profile), override=release,
-        )
-        _rel = _privacy.release
-        _refused = _privacy.reason == "public_override_refused_by_profile"
-        _privacy_tier, _privacy_state = _privacy.tier_id, _privacy.assignment_state
-    else:
-        from .dedup_and_guard import resolve_release as _resolve_release
-        _rel, _refused = _resolve_release(strain_id, release)
-        _privacy_tier, _privacy_state = "LEGACY_DERIVATION", "LEGACY_DERIVATION"
-    if _refused:
-        emit(f"  [release] --release PUBLIC REFUSED for '{strain_id}': trips the private-identifier guard "
-              f"(AJS/PENDING/private-registry) — tagged PRIVATE. The leak guard is not operator-overridable.")
+    # All package surfaces consume the same run-level decision, including zero BGCs.
+    _decision = context.release_decision
     for _b in bgcs:
-        _b.release = _rel
-        _b.privacy_tier = _privacy_tier
-        _b.privacy_assignment_state = _privacy_state
+        _b.release = _decision.release
+        _b.privacy_tier = _decision.privacy_tier
+        _b.privacy_assignment_state = _decision.assignment_state
 
     # Extract sec_met_domain Pfam hits from GBK region files.
     # antiSMASH runs HMMER internally; these are its pre-computed domain hits
@@ -1562,7 +1612,6 @@ def run_one_strain(
     # MAMEY_COMPLETE. Report the source count next to the parsed count, and say so loudly on a
     # shortfall. Strict inequality only: a legitimately higher BGC count (a region GBK carrying
     # more than one record) is not a defect, and 0 means "no region GBKs, nothing to check".
-    _source_region_gbks = _count_antismash_region_gbks(input_zip)
     if _source_region_gbks and len(bgcs) < _source_region_gbks:
         _missing = _source_region_gbks - len(bgcs)
         emit(f"  !! PARSE SHORTFALL: {_source_region_gbks} region GBK(s) in the ZIP but only "
@@ -1801,10 +1850,15 @@ def run_one_strain(
     _stage("running RG-GMCI (multi-contig reconstruction)")
     try:
         _rc_t0 = _time.time()
-        source_scans.rggmci = run_rggmci(
-            input_zip, bgcs, contigs=contigs, reference_completion=reference_completion, mibig_db=mibig_db,
-            mibig_db_registry_from=Path(__file__).resolve().parents[1], sensitivity=completion_sensitivity,
-            label=strain_id, pfam_hmm=completion_pfam)
+        source_scans.rggmci = run_archive(
+            input_zip, core_snapshot=_rggmci_core_snapshot, contigs=contigs,
+            reference_completion=reference_completion, mibig_db=mibig_db,
+            mibig_db_registry_from=rggmci_registry_from, sensitivity=completion_sensitivity,
+            label=rggmci_label if rggmci_label is not None else strain_id, pfam_hmm=completion_pfam,
+            threads=rggmci_threads, diamond=rggmci_diamond, diamond_db=rggmci_diamond_db,
+            residue_scope=rggmci_residue_scope, residue_work_dir=rggmci_residue_work_dir,
+            completion_work_dir=rggmci_completion_work_dir)
+        source_scans.rggmci.setdefault("wrapper_context", {}).update(distribution="mamey")
         _rc = source_scans.rggmci.get("reference_completion") or {}
         _stage(f"RG-GMCI reference-guided completion: {_rc.get('completion_tier')}"
                + (f" ({_rc.get('aligner')} --{_rc.get('sensitivity')}; {len(_rc.get('cores') or [])} edge regions "
@@ -1866,34 +1920,11 @@ def run_one_strain(
         _stage("structured antiSMASH module/RiPP/motif tables collected")
     except Exception as _ast_exc:  # pragma: no cover - defensive
         source_scans.antismash_structured = {"status": f"ERROR_{type(_ast_exc).__name__}"}
-    # P-CBDB v9.7.100: functional-complementarity for rescue. Profile each BGC's gene roles (core /
-    # tailoring / transport / regulatory) from the sealed gene context, then tag every RG-GMCI pair with a
-    # functional_rescue_class (COMPLEMENTARY / BOTH_CORE / ACCESSORY_ONLY). A homology rescue is only
-    # credible when the fragments are functionally complementary; BOTH_CORE corroborates a paralog verdict.
-    try:
-        from .clusterblast_genes import (functional_profile_from_gene_context, modular_continuation,
-                                          modular_profile_from_gene_context, rescue_functional_complementarity)
-        from .gene_context import load_gene_context as _load_gc
-        _gctx = _load_gc(package_dir, strain_id)
-        _fprof = functional_profile_from_gene_context(_gctx)
-        _mprof = modular_profile_from_gene_context(_gctx)
-        source_scans.functional_profiles = _fprof
-        _rk = source_scans.rggmci.get("ranked_pairs", []) if source_scans.rggmci else []
-        for _p in _rk:
-            _fc = rescue_functional_complementarity(_fprof.get(_p.get("bgc_a")), _fprof.get(_p.get("bgc_b")))
-            _p["functional_rescue_class"] = _fc.get("functional_rescue_class", "UNKNOWN_NO_PROFILE")
-            _p["a_core_fraction"] = _fc.get("a_core_fraction")
-            _p["b_core_fraction"] = _fc.get("b_core_fraction")
-            _p["a_functional_roles"] = "; ".join(_fc.get("a_roles", []))
-            _p["b_functional_roles"] = "; ".join(_fc.get("b_roles", []))
-            # v9.7.443: module-aware reading, beside the class above; never feeds the _4D verdict.
-            _mc = modular_continuation(_mprof.get(_p.get("bgc_a")), _mprof.get(_p.get("bgc_b")))
-            _p["modular_continuation"] = _mc.get("modular_continuation")
-            for _k in ("a_assembly_line_cds", "b_assembly_line_cds", "a_release_cds", "b_release_cds"):
-                _p[_k] = _mc.get(_k, "")
-        _stage(f"functional-complementarity annotated on {len(_rk)} RG-GMCI pairs")
-    except Exception as _fp_exc:  # pragma: no cover - defensive
-        source_scans.functional_profiles = {"status": f"ERROR_{type(_fp_exc).__name__}"}
+    # Shared RG-GMCI owns functional/modular annotations before canonical output.
+    # Keep downstream Mamey triage context without mutating the shared scientific result.
+    from copy import deepcopy as _copy_functional_profiles
+    source_scans.functional_profiles = _copy_functional_profiles(source_scans.rggmci["functional_profiles"])
+    _stage(f"functional-complementarity annotated on {len(source_scans.rggmci.get('ranked_pairs', []))} RG-GMCI pairs")
     _phase_receipt(package_dir, "rggmci", "END",
                    pairs_total=source_scans.rggmci.get("pairs_total") if source_scans.rggmci else None,
                    high_pairs=source_scans.rggmci.get("high_pairs") if source_scans.rggmci else None,
@@ -1951,22 +1982,6 @@ def run_one_strain(
             set_run_assembly_tier(assembly_tier(interior_pct))
         except Exception as exc:
             _sys.stderr.write(f"[cli] set_run_assembly_tier failed: {exc}\n")
-
-    # F1: a bare assembly (NO antiSMASH regions parsed) must NOT pass as a 0-BGC strain — that
-    # silently banks an empty strain. Fail closed and write no package.
-    # A missing antiSMASH VERSION string is NOT a bare assembly when regions were parsed (raw > 0):
-    # the parsed regions prove this is antiSMASH output; only the version probe failed (e.g. a
-    # GBK structured-comment variant). Discarding a real, region-bearing strain on a failed version
-    # probe is the F1 mis-fire — guard on region count alone, and record the missing version below.
-    if raw == 0:
-        emit(f"  [FAIL] No antiSMASH regions parsed (antiSMASH version: {antismash_ver or 'None'}).", '         This looks like a bare assembly. Run antiSMASH 8 on the genome first, then re-run mamey on the antiSMASH output ZIP — not the raw NCBI/.fna download.', sep="\n")
-        return {
-            "strain_id": strain_id, "status": "MAMEY_FAILED",
-            "raw_bgcs": 0, "corrected_bgcs": 0, "assembly_tier": "NONE",
-            "package_zip": None, "master_updated": False,
-            "issues": ["No antiSMASH regions found in input — bare assembly; no package written. "
-                       "Run antiSMASH 8 first."],
-        }
 
     # v9.7.374 fix: _profile_issue (PROFILE_MISMATCH / ANTISMASH_PROFILE_UNREADABLE, set ~475 lines
     # above) was computed and printed to the console but never persisted anywhere durable. A sealed
@@ -2433,7 +2448,7 @@ def run_one_strain(
     _emit_deep_data(package_dir, strain_id, mode, issues=issues)
 
     # Auto-emit single-strain gold figures (gold mode only; non-blocking).
-    _emit_gold_figures(package_dir, strain_id, mode)
+    _emit_gold_figures(package_dir, strain_id, mode, issues=issues)
 
     # A-05 (WAC/DSM audit): the --brief none step writes NO_FIGURES_RENDERED.md EARLY, before the
     # collection/gold figure paths run. Nothing cleared it, so a sealed package could carry the
@@ -2651,7 +2666,6 @@ def run_one_strain(
     # Read the already-written triage_board.csv instead — deterministic, no re-computation.
     try:
         import csv as _csv_ms
-        from .dedup_and_guard import resolve_release as _resolve_release_ms
         _triage_csv = package_dir / f"{strain_id}_4_triage_board.csv"
         _triage_rows = []
         if _triage_csv.exists():
@@ -2665,14 +2679,16 @@ def run_one_strain(
         _ms_ab = sorted(_eligible, key=lambda r: _fscore(r, "AB_auto"), reverse=True)[:3]
         _ms_af = sorted(_eligible, key=lambda r: _fscore(r, "AF_auto"), reverse=True)[:3]
         _ms = {
-            "strain_id": strain_id,
+            "strain_id": context.strain_id,
             "mamey_version": __version__,
             # v9.7.87 9.7.87-B: surface the release class on the compact dashboard. The full
             # manifest/bgc_data/intake all carry it, but manifest_short — the artifact whose
             # whole purpose is fast triage without loading the 5.7 MB manifest — was silent on
             # it. For a hard guard the compact surface must be the MOST explicit about release.
-            "release": (next((b.release for b in run.bgcs if getattr(b, "release", None)), None)
-                        or _resolve_release_ms(strain_id, release)[0]),
+            "release": context.release_decision.release,
+            "privacy_tier": context.release_decision.privacy_tier,
+            "privacy_assignment_state": context.release_decision.assignment_state,
+            "release_decision": context.release_decision.to_dict(),
             "status": validate_result.get("status"),
             "assembly_tier": assembly_tier(interior_pct),
             "raw_bgcs": raw,
@@ -3259,13 +3275,10 @@ def _write_package(run: MameyRun, package_dir: Path,
 
     _package_source_locator_evidence(run, package_dir)
 
-    # 1 — intake.json
-    # B-2: stamp the strain-level release into intake.json (it was present in manifest/snapshot/bgc_data but
-    # absent here, so a tool reading only intake could not tell PUBLIC from PRIVATE). All BGCs carry the same
-    # resolved tag; fall back to a fresh resolution if the inventory is empty.
-    from .dedup_and_guard import resolve_release as _resolve_release_intake
-    _strain_release = next((b.release for b in run.bgcs if getattr(b, "release", None)), None) \
-        or _resolve_release_intake(run.context.strain_id, None)[0]
+    # 1 — intake.json: never lose the decision when the inventory is empty.
+    _decision = run.context.release_decision
+    _strain_release = (_decision.release if _decision else
+                       next((b.release for b in run.bgcs if getattr(b, "release", None)), "PRIVATE"))
     intake = {
         "strain_id":       run.context.strain_id,
         "display_name":    run.context.display_name,
@@ -3275,6 +3288,9 @@ def _write_package(run: MameyRun, package_dir: Path,
         # strength must travel with the host, not be reconstructable only from the run command.
         "source_provenance": run.context.source_provenance,
         "release":         _strain_release,
+        "release_decision": _decision.to_dict() if _decision else None,
+        "privacy_tier": _decision.privacy_tier if _decision else "LEGACY_OR_NOT_RECORDED",
+        "privacy_assignment_state": _decision.assignment_state if _decision else "LEGACY_OR_NOT_RECORDED",
         "antismash_version": extract_antismash_version(run.context.input_zip),
         "antismash_profile": antismash_profile,
         "assembly":        {
@@ -3329,7 +3345,7 @@ def _write_package(run: MameyRun, package_dir: Path,
                 bgc.architecture_confidence, bgc.architecture_rationale,
                 bgc.kcb_top or "", bgc.kcb_cumulative or "",
                 getattr(bgc, "kcb_evidence_state", "UNKNOWN_KCB"),
-                bgc.kcb_protein_hits or "", bgc.riq_score or "", bgc.riq_label or "",
+                bgc.kcb_protein_hits or "", bgc.riq_score if bgc.riq_score is not None else "", bgc.riq_label or "",
                 tta.get("bldA_tier", ""),
                 ", ".join(cctt_coupling.get(bgc.bgc_id, [])),
                 rt.get("tier", ""),
@@ -3386,11 +3402,11 @@ def _write_package(run: MameyRun, package_dir: Path,
 
     # 4A — full RG-GMCI outputs (must exist before lead ranking)
     rggmci = ss.rggmci if ss else {}
-    # Candidate groups: HIGH cross-contig rescues that share a region, one analysis unit per group (same code as
-    # the standalone rggmci package).
-    from .rescue_groups import candidate_groups as _candidate_groups
-    if rggmci:
-        rggmci["candidate_groups"] = _candidate_groups(rggmci.get("ranked_pairs", []))
+    # Common canonical artifacts are created before package sealing; legacy views below remain.
+    if rggmci and rggmci.get("schema"):
+        for filename, payload in canonical_artifacts(rggmci, name=f"{strain}_4A_RGGMCI_canonical").items():
+            with _atomic_open_pkg(package_dir / filename, "wb", encoding=None) as handle:
+                handle.write(payload)
     _atomic_write_manifest_text(package_dir / f"{strain}_4A_RGGMCI_full.json",
         json.dumps(rggmci, indent=2))
     rg_headers = [
@@ -3827,6 +3843,9 @@ def _write_package(run: MameyRun, package_dir: Path,
             "schema_version": ast.get("schema_version", ""),
             "status": ast.get("status", ""),
             "counts": ast.get("counts", {}),
+            "rrefinder_status": ast.get("rrefinder_status", "UNKNOWN_COMPLETENESS"),
+            "rrefinder_evidence_state": ast.get("rrefinder_evidence_state", {}),
+            "json_evidence_state": ast.get("json_evidence_state", {}),
         },
         "p_lwc": _lwc_manifest_summary,
     }
@@ -3904,6 +3923,8 @@ def _write_package(run: MameyRun, package_dir: Path,
     # commit_receipt.json
     receipt = {
         "strain": strain, "mamey_version": __version__,
+        "release": _strain_release,
+        "release_decision": _decision.to_dict() if _decision else None,
         "mode": run.context.analysis_mode,
         "input_zip": Path(run.context.input_zip).name,
         "antismash_version": extract_antismash_version(run.context.input_zip),
@@ -4000,6 +4021,15 @@ def run_batch(
     mibig_db: str | None = None,
     completion_sensitivity: str = "sensitive",
     completion_pfam: str | None = None,
+
+    rggmci_registry_from: str | None = None,
+    rggmci_threads: int = 4,
+    rggmci_diamond: str | None = None,
+    rggmci_diamond_db: str | None = None,
+    rggmci_residue_scope: str = "st_paralog",
+    rggmci_residue_work_dir: str | None = None,
+    rggmci_completion_work_dir: str | None = None,
+    rggmci_label: str | None = None,
     allow_accession_strain_id: bool = False,  # v9.7.374 fix: was declared on the shared `run`
         # subparser (so it reads as available for --strains batches too) but never threaded into
         # run_batch() -- the batch resolve_strain_id("auto", ...) call always used the default
@@ -4008,6 +4038,8 @@ def run_batch(
 ) -> list[dict]:
     """Run up to N strains in sequence. Returns list of summary dicts."""
     results = []
+    if rggmci_label is not None and len(input_zips) != 1:
+        raise ValueError("RGGMCI label override requires exactly one input")
     # v9.7.372: two archives of the same organism resolve to the SAME id (e.g. two assemblies
     # of Actinophytocola sp. NPDC049390). Without uniquification the second run would write into the
     # first strain's package directory — silent overwrite. Track and suffix instead.
@@ -4064,6 +4096,14 @@ def run_batch(
             mibig_db=mibig_db,
             completion_sensitivity=completion_sensitivity,
             completion_pfam=completion_pfam,
+            rggmci_registry_from=rggmci_registry_from,
+            rggmci_threads=rggmci_threads,
+            rggmci_diamond=rggmci_diamond,
+            rggmci_diamond_db=rggmci_diamond_db,
+            rggmci_residue_scope=rggmci_residue_scope,
+            rggmci_residue_work_dir=rggmci_residue_work_dir,
+            rggmci_completion_work_dir=rggmci_completion_work_dir,
+            rggmci_label=rggmci_label,
         )
         results.append(result)
 
@@ -4310,6 +4350,14 @@ def run_command(args) -> int:
             mibig_db=getattr(args, "mibig_db", None),
             completion_sensitivity=getattr(args, "completion_sensitivity", "sensitive"),
             completion_pfam=getattr(args, "completion_pfam", None),
+            rggmci_registry_from=getattr(args, "rggmci_registry_from", None),
+            rggmci_threads=getattr(args, "rggmci_threads", 4),
+            rggmci_diamond=getattr(args, "rggmci_diamond", None),
+            rggmci_diamond_db=getattr(args, "rggmci_diamond_db", None),
+            rggmci_residue_scope=getattr(args, "rggmci_residue_scope", "st_paralog"),
+            rggmci_residue_work_dir=getattr(args, "rggmci_residue_work_dir", None),
+            rggmci_completion_work_dir=getattr(args, "rggmci_completion_work_dir", None),
+            rggmci_label=getattr(args, "rggmci_label", None),
             allow_accession_strain_id=getattr(args, "allow_accession_strain_id", False),
         )
     else:
@@ -4367,6 +4415,14 @@ def run_command(args) -> int:
             mibig_db=getattr(args, "mibig_db", None),
             completion_sensitivity=getattr(args, "completion_sensitivity", "sensitive"),
             completion_pfam=getattr(args, "completion_pfam", None),
+            rggmci_registry_from=getattr(args, "rggmci_registry_from", None),
+            rggmci_threads=getattr(args, "rggmci_threads", 4),
+            rggmci_diamond=getattr(args, "rggmci_diamond", None),
+            rggmci_diamond_db=getattr(args, "rggmci_diamond_db", None),
+            rggmci_residue_scope=getattr(args, "rggmci_residue_scope", "st_paralog"),
+            rggmci_residue_work_dir=getattr(args, "rggmci_residue_work_dir", None),
+            rggmci_completion_work_dir=getattr(args, "rggmci_completion_work_dir", None),
+            rggmci_label=getattr(args, "rggmci_label", None),
         )
         results = [result]
 
@@ -4702,7 +4758,7 @@ def chatgpt_init_command(args) -> int:
     def _mark(_rel):
         return "✓ present" if (root / _rel).exists() else "✗ absent in this bundle"
     report_lines.extend([f"   instruction file : AGENTS.md  {_mark('AGENTS.md')}  (root bootstrap: AGENTS.md)", f"   bootstrap contract: bootstrap_contract.yml  {_mark('bootstrap_contract.yml')}", f'   sha256           : {sha}', f'   bundle / engine  : {bundle_engine}', f'   known gotcha     : {gotcha_line}'])
-    report_lines.extend([f'   workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → mode-b → guide → render-figures → ingest-receipts', f'   instruction files present ({len(present)}/{len(candidates)}):'])
+    report_lines.extend([f'   workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → render-figures → review figures and evidence → captions/Methods facts; optional cards: mode-b → emit-modeb-template → author → verify-modeb → ingest-receipts; guide when requested', f'   instruction files present ({len(present)}/{len(candidates)}):'])
     for c in present:
         report_lines.extend([f'     ✓ {c}'])
     for c in [c for c in candidates if c not in present]:
@@ -4751,7 +4807,6 @@ def doctor_command(args) -> int:
     import importlib.util, sys, os, platform
     from pathlib import Path
 
-    BUNDLE_ROOT = Path(__file__).parent.parent
     ok, warn, fail = [], [], []
 
     def _have(mod):
@@ -4785,10 +4840,20 @@ def doctor_command(args) -> int:
     else:
         warn.append(f"{_rd['state']}: reportlab — {_rd['detail']}")
 
+    # Declared core dependency; keep the existing presence/warning severity.
+    # Discoverability alone does not verify the loaded origin or parser backend.
+    if _have("ijson"):
+        ok.append("ijson (declared core >=3.2.0,<4.0) ✓; import discoverable, origin/backend unverified")
+    else:
+        warn.append("ijson absent — declared core dependency >=3.2.0,<4.0 for bounded JSON streaming; "
+                    "vendored sources and notices are retained at mamey/_vendor/ijson, but fallback "
+                    "availability is not established by this check. Install the declared dependency "
+                    "and re-run `mamey doctor` (https://github.com/ICRAR/ijson; retained ijson notice: "
+                    "BSD-3-Clause, separate YAJL notice)")
+
     # Optional deps
     for mod, label, hint in [
         ("Bio", "biopython", "optional for core (GBK shim in use if absent) — but REQUIRED for `mamey triage-raw` AND `blastp-online` (parses NCBI BLAST XML). The bundled wheel is cp312/manylinux x86_64 only, so on macOS/arm64 or other Pythons it will NOT install offline — `pip install biopython` (needs network)"),
-        ("ijson", "ijson", "optional; bounded JSON streaming (pip install ijson; https://github.com/ICRAR/ijson, BSD; a pure-Python copy is vendored at mamey/_vendor/ijson so this is a speed-up)"),
         ("numpy", "numpy", "optional; required for figures (pip install numpy; https://numpy.org, BSD)"),
         ("matplotlib", "matplotlib", "optional; required for figures (pip install matplotlib; https://matplotlib.org, PSF-based licence)"),
         ("pytest", "pytest", "optional; required to run the test suite (pip install pytest; https://pytest.org, MIT)"),
@@ -4802,31 +4867,46 @@ def doctor_command(args) -> int:
         else:
             warn.append(f"{label} absent — {hint}; not shipped in the bundle — install it yourself and re-run `mamey doctor`")
 
-    # Write permissions
-    # 398: mkdir(parents=True) created BOTH runs/ and runs/_doctor_probe/, but only the
-    # leaf was ever rmdir()'d — every `mamey doctor` invocation left an empty runs/ directory
-    # behind permanently. That litter trips tools/public_release_audit.py's `runs*` glob check
-    # (PUBLIC RELEASE AUDIT: FAIL), which is a required, non-continue-on-error step in
-    # .github/workflows/ci.yml's release-gates job — reproduced live against the sealed .397
-    # candidate before this fix. Only remove runs/ here if the probe itself created it (never
-    # touch a pre-existing runs/ that may hold real `mamey run` output); rmdir() only succeeds
-    # on an empty directory regardless, as a second safety margin.
+    # Exclusive probe creation preserves occupied paths and pre-existing runs output.
     _runs_root = BUNDLE_ROOT / "runs"
-    _runs_preexisted = _runs_root.exists()
     test_dir = _runs_root / "_doctor_probe"
+    _probe_file = test_dir / "probe.txt"
+    _probe_owned = []
     try:
-        test_dir.mkdir(parents=True, exist_ok=True)
-        (test_dir / "probe.txt").write_text("ok", encoding="utf-8")
-        (test_dir / "probe.txt").unlink()
-        test_dir.rmdir()
-        if not _runs_preexisted:
-            try:
-                _runs_root.rmdir()
-            except OSError as _swallowed:
-                _LOGGER.debug("runs root not removed (not empty or already gone): %r", _swallowed)
+        if _runs_root.is_symlink():
+            raise FileExistsError("reserved runs path is a symlink; preserve it")
+        try:
+            _runs_root.mkdir(exist_ok=False)
+        except FileExistsError:
+            if _runs_root.is_symlink() or not _runs_root.is_dir():
+                raise FileExistsError("reserved runs path is not a directory; preserve it")
+        else:
+            _probe_owned.append((_runs_root, _runs_root.lstat()))
+        if os.path.lexists(test_dir):
+            raise FileExistsError("reserved runs/_doctor_probe is occupied; preserve it")
+        test_dir.mkdir(exist_ok=False)
+        _probe_owned.append((test_dir, test_dir.lstat()))
+        with _probe_file.open("x", encoding="utf-8") as _probe_stream:
+            _probe_owned.append((_probe_file, _probe_file.lstat()))
+            _probe_stream.write("ok")
         ok.append("write permissions ✓ (./runs/ writable)")
     except Exception as e:
         fail.append(f"write permissions FAIL — cannot write to ./runs/: {e}")
+    finally:
+        # Only remove paths created here, still bound to their recorded filesystem identity.
+        # rmdir preserves any foreign files that appeared in an owned directory.
+        for _owned_path, _owned_stat in reversed(_probe_owned):
+            try:
+                _current_stat = _owned_path.lstat()
+                if (_current_stat.st_dev, _current_stat.st_ino) != (_owned_stat.st_dev, _owned_stat.st_ino):
+                    raise OSError("probe cleanup ownership changed; preserve path")
+                if _owned_path == _probe_file:
+                    _owned_path.unlink()
+                else:
+                    _owned_path.rmdir()
+            except OSError as _cleanup_error:
+                _LOGGER.debug("doctor probe cleanup retained %s: %r", _owned_path, _cleanup_error)
+                fail.append(f"write probe cleanup incomplete — preserved {_owned_path}: {_cleanup_error}")
 
     # Bundle integrity: key files present
     for rel in ["mamey_run.py", "mamey/__init__.py", "mamey/cli.py",
@@ -5045,7 +5125,7 @@ def doctor_command(args) -> int:
     # offline. antiSMASH is the one REQUIRED-upstream input (it produces the run's input ZIP).
     if getattr(args, "companions", False):
         try:
-            from .companion_tools import probe_tools
+            from .companion_tools import probe_tools, probe_display_lines
             probes = probe_tools()
         except Exception as e:
             probes = None
@@ -5055,18 +5135,14 @@ def doctor_command(args) -> int:
             for pr in probes:
                 by_cat.setdefault(pr.tool.category, []).append(pr)
             n_present = sum(1 for pr in probes if pr.present)
-            emit(f'\nCompanion tools — DETECTED, not bundled (offline core unaffected): {n_present}/{len(probes)} present', '  These are OPTIONAL downstream analysis tools; missing ones do not affect the run.\n', sep="\n")
+            emit(f'\nCompanion tools — DETECTED, not bundled (offline core unaffected): {n_present}/{len(probes)} local probes detected; workflows NOT_ASSESSED', '  These are OPTIONAL downstream analysis tools; missing ones do not affect the run.\n', sep="\n")
             for cat in sorted(by_cat):
                 emit(f"  [{cat}]")
                 for pr in by_cat[cat]:
                     t = pr.tool
                     tag = {"REQUIRED-upstream": " (REQUIRED-upstream)",
                            "on-request": " (on request / heavy)"}.get(t.requirement, "")
-                    if pr.present:
-                        ver = pr.detected_version or "version unknown"
-                        emit(f"    ✅  {t.name}{tag}: {ver}")
-                    else:
-                        emit(f"    ⬚   {t.name}{tag}: not found — {t.detection_command}", f"         install: {pr.install_hint}", sep="\n")
+                    emit(*probe_display_lines(pr, tag), sep="\n")
                 emit()
             emit("  Full purpose + per-OS install + usage recipes: docs/companion_tools.md")
 
@@ -5103,6 +5179,8 @@ def cohort_command(args) -> int:
         with_figures=not getattr(args, "no_figures", False),
         figure_series=getattr(args, "series", "all"),
         public_only=getattr(args, "public_only", False),
+        privacy_profile=getattr(args, "privacy_profile", None),
+        class_view=getattr(args, "class_view", None),
     )
     report_lines = []
     for w in res.warnings:
@@ -5113,7 +5191,7 @@ def cohort_command(args) -> int:
         report_lines.extend([f'  cohort figures: {res.figure_count} -> {res.figures_dir}'])
     if not res.ok:
         # mandatory-deliverable gate failed: no human-readable deliverable produced
-        report_lines.extend(['  [FAIL] cohort mandatory-deliverable gate: no deliverable emitted. Most likely no verified cohort master workbook was found -- build the master first or pass --master-path.'])
+        report_lines.extend(['  [FAIL] cohort mandatory-deliverable gate: no valid synthesis emitted; resolve the reported scope/master/engine failure.'])
         report_status = 1
     else:
         report_lines.extend([f'cohort: deliverable bundle -> {res.out_dir} ({len(res.deliverables)} deliverable(s), {len(res.strains)} strain(s))'])
@@ -5281,55 +5359,64 @@ def gap_rescue_command(args) -> int:
         assert_output_outside_bundle(args.out, __file__, kind="gap-rescue output")
     except OutputInsideBundle as exc:
         raise SystemExit(f"GAP_RESCUE_REFUSED: {exc}") from None
-    if not Path(args.input_zip).is_file():
-        raise SystemExit(f"GAP_RESCUE_REFUSED: --input-zip not found: {args.input_zip}")
-    if shutil.which("diamond") is None:
-        raise SystemExit("GAP_RESCUE_REFUSED: no DIAMOND on PATH. Every region is searched with DIAMOND; without it the "
-                         "regions with no KnownClusterBlast hit would be listed, not run. Put diamond on PATH and rerun.")
-    inputs = _gap_rescue_inputs(args, Path.cwd())
-    gbk, dmnd = inputs["mibig_dir"], inputs["mibig_db"]
-    if not gbk["path"] or not Path(gbk["path"]).is_dir():
-        raise SystemExit(f"GAP_RESCUE_REFUSED: no MIBiG GenBank folder ({gbk['how']}: {gbk['path']}); pass --mibig-dir")
-    if not dmnd["path"]:
-        raise SystemExit(f"GAP_RESCUE_REFUSED: no MIBiG protein database found ({dmnd['how']}); pass --mibig-db")
-    if not Path(dmnd["path"]).is_file():
-        folder = Path(dmnd["path"]).parent
-        if (folder / "mibig_proteins.faa").is_file():   # the database folder resolved, but its DIAMOND file was never built
-            raise SystemExit(f"GAP_RESCUE_REFUSED: {folder} has no {Path(dmnd['path']).name}; build it with `diamond makedb "
-                             f"--in mibig_proteins.faa -d mibig_proteins` in that folder, or pass --mibig-db")
-        raise SystemExit(f"GAP_RESCUE_REFUSED: MIBiG DIAMOND file not found ({dmnd['how']}: {dmnd['path']}); pass --mibig-db")
-    names = inputs["mibig_names"]
-    if names["path"] and not Path(names["path"]).is_file():   # a wrong path would silently drop every compound name
-        raise SystemExit(f"GAP_RESCUE_REFUSED: MIBiG name index not found ({names['how']}: {names['path']}); "
-                         "pass --mibig-names")
-    if not args.no_pfam:
-        pf = inputs["pfam"]
-        if not pf["path"] or not Path(pf["path"]).is_file():   # a typo would fail only after minutes of DIAMOND
-            raise SystemExit(f"GAP_RESCUE_REFUSED: no Pfam-A.hmm found ({pf['how']}: {pf['path']}); pass --pfam, or "
-                             "--no-pfam to skip the housekeeping-neighbour check")
-        if importlib.util.find_spec("pyhmmer") is None:
-            raise SystemExit("GAP_RESCUE_REFUSED: the Pfam housekeeping check needs pyhmmer, which this Python lacks; "
-                             "install it, or pass --no-pfam to skip the check")
-    argv = ["--zip", str(args.input_zip), "--label", args.strain, "--out", str(args.out), "--threads", str(args.threads),
-            "--mibig-dir", inputs["mibig_dir"]["path"], "--mibig-db", inputs["mibig_db"]["path"]]
-    if inputs["mibig_names"]["path"]:
-        argv += ["--mibig-names", inputs["mibig_names"]["path"]]
-    if inputs["pfam"]["path"]:
-        argv += ["--pfam", inputs["pfam"]["path"]]
-    argv += [x for x, on in (("--edge-only", args.edge_only), ("--no-figure", args.no_figure)) if on]
     _sys.path.insert(0, str(tools))
     import gap_rescue_all_regions
     import gap_directed_rescue
-    rc_code = gap_rescue_all_regions.main(argv)
-    receipt = Path(args.out) / "run_receipt.json"
-    data = json.loads(receipt.read_text()) if receipt.is_file() else {}
-    data["command"] = {"command": "mamey_run.py gap-rescue", "strain": args.strain, "scope": GAP_RESCUE_SCOPE,
-                       "sensitivity": gap_directed_rescue.SENSITIVITY_DEFAULT, "inputs": inputs,
-                       "edge_only": bool(args.edge_only), "figures": not args.no_figure, "threads": args.threads}
-    receipt.write_text(json.dumps(data, indent=2) + "\n")
-    _logging.getLogger(__name__).info("gap-rescue %s: %s -> %s", args.strain, GAP_RESCUE_SCOPE,
-                                      Path(args.out) / "SUMMARY.tsv")
-    return rc_code
+    attempt = gap_rescue_all_regions.begin_attempt(args.out, args.strain, args.input_zip)
+    try:
+        if not Path(args.input_zip).is_file():
+            raise SystemExit(f"GAP_RESCUE_REFUSED: --input-zip not found: {args.input_zip}")
+        if shutil.which("diamond") is None:
+            raise SystemExit("GAP_RESCUE_REFUSED: no DIAMOND on PATH. Every region is searched with DIAMOND; without it the "
+                             "regions with no KnownClusterBlast hit would be listed, not run. Put diamond on PATH and rerun.")
+        inputs = _gap_rescue_inputs(args, Path.cwd())
+        gbk, dmnd = inputs["mibig_dir"], inputs["mibig_db"]
+        if not gbk["path"] or not Path(gbk["path"]).is_dir():
+            raise SystemExit(f"GAP_RESCUE_REFUSED: no MIBiG GenBank folder ({gbk['how']}: {gbk['path']}); pass --mibig-dir")
+        if not dmnd["path"]:
+            raise SystemExit(f"GAP_RESCUE_REFUSED: no MIBiG protein database found ({dmnd['how']}); pass --mibig-db")
+        if not Path(dmnd["path"]).is_file():
+            folder = Path(dmnd["path"]).parent
+            if (folder / "mibig_proteins.faa").is_file():   # the database folder resolved, but its DIAMOND file was never built
+                raise SystemExit(f"GAP_RESCUE_REFUSED: {folder} has no {Path(dmnd['path']).name}; build it with `diamond makedb "
+                                 f"--in mibig_proteins.faa -d mibig_proteins` in that folder, or pass --mibig-db")
+            raise SystemExit(f"GAP_RESCUE_REFUSED: MIBiG DIAMOND file not found ({dmnd['how']}: {dmnd['path']}); pass --mibig-db")
+        names = inputs["mibig_names"]
+        if names["path"] and not Path(names["path"]).is_file():   # a wrong path would silently drop every compound name
+            raise SystemExit(f"GAP_RESCUE_REFUSED: MIBiG name index not found ({names['how']}: {names['path']}); "
+                             "pass --mibig-names")
+        if not args.no_pfam:
+            pf = inputs["pfam"]
+            if not pf["path"] or not Path(pf["path"]).is_file():   # a typo would fail only after minutes of DIAMOND
+                raise SystemExit(f"GAP_RESCUE_REFUSED: no Pfam-A.hmm found ({pf['how']}: {pf['path']}); pass --pfam, or "
+                                 "--no-pfam to skip the housekeeping-neighbour check")
+            if importlib.util.find_spec("pyhmmer") is None:
+                raise SystemExit("GAP_RESCUE_REFUSED: the Pfam housekeeping check needs pyhmmer, which this Python lacks; "
+                                 "install it, or pass --no-pfam to skip the check")
+        argv = ["--zip", str(args.input_zip), "--label", args.strain, "--out", str(args.out), "--threads", str(args.threads),
+                "--mibig-dir", inputs["mibig_dir"]["path"], "--mibig-db", inputs["mibig_db"]["path"]]
+        if inputs["mibig_names"]["path"]:
+            argv += ["--mibig-names", inputs["mibig_names"]["path"]]
+        if inputs["pfam"]["path"]:
+            argv += ["--pfam", inputs["pfam"]["path"]]
+        argv += [x for x, on in (("--edge-only", args.edge_only), ("--no-figure", args.no_figure)) if on]
+        rc_code = gap_rescue_all_regions.main(argv, _attempt=attempt)
+        receipt = Path(args.out) / "run_receipt.json"
+        data = json.loads(receipt.read_text()) if receipt.is_file() else {}
+        if (type(rc_code) is not int or rc_code != 0 or data.get("status") != "SUCCEEDED"
+                or data.get("attempt_id") != attempt["attempt_id"]):
+            raise SystemExit("GAP_RESCUE_FAILED: no successful current batch receipt")
+        data["command"] = {"command": "mamey_run.py gap-rescue", "strain": args.strain, "scope": GAP_RESCUE_SCOPE,
+                           "sensitivity": gap_directed_rescue.SENSITIVITY_DEFAULT, "inputs": inputs,
+                           "edge_only": bool(args.edge_only), "figures": not args.no_figure, "threads": args.threads}
+        gap_rescue_all_regions._write_run_receipt(Path(args.out), data)
+        _logging.getLogger(__name__).info("gap-rescue %s: %s -> %s", args.strain, GAP_RESCUE_SCOPE,
+                                          Path(args.out) / "SUMMARY.tsv")
+        return rc_code
+    except BaseException as exc:
+        gap_rescue_all_regions.fail_attempt(args.out, attempt, exc)
+        raise
+
 
 
 def signoff_command(args) -> int:
@@ -5407,10 +5494,11 @@ def _d3_tool_command(args) -> int:
 def cohort_figures_command(args) -> int:
     """Emit the gold gene/domain figure suite (data-only PNG + sidecar CSV) for one
     or more gold packages. 1 strain -> single-strain panels; >1 -> cross-strain set.
-    PUBLIC (SID/WW) grouped first, PRIVATE (AJS-/PENDING-) last."""
+    Privacy comes from bound package decisions or an exact supplied profile."""
     from .cohort_figures import generate
     strains = args.strains.split(",") if getattr(args, "strains", None) else None
     res = generate(runs_dir=args.runs_dir, out=args.out, strains=strains,
+                   privacy_profile=getattr(args, "privacy_profile", None),
                    public_only=getattr(args, "public_only", False),
                    series=getattr(args, "series", "F"),
                    f13_cohort_manifest=getattr(args, "f13_cohort_manifest", None),
@@ -5429,7 +5517,7 @@ def cohort_figures_command(args) -> int:
     if getattr(args, "extended", True):
         try:
             from .cohort_figures_extended import generate_extended
-            ext = generate_extended(runs_dir=args.runs_dir, out=args.out, strains=strains)
+            ext = generate_extended(runs_dir=args.runs_dir, out=args.out, strains=res["strains"])
             emit(f"cohort-figures: +{ext['figures']} extended figures -> {args.out}")
             for _e in ext.get("errors", []):
                 emit(f"  [extended WARN] {_e}")
@@ -5902,12 +5990,20 @@ def _phylo_run_command(args) -> int:
     import importlib.util as _ilu
     import os as _os
     import sys as _sys
+    selection_error = None
+    for flag, attr in (("--gtotree-bin", "gtotree_bin"),
+                       ("--iqtree-bin", "iqtree_bin"),
+                       ("--mapping-file", "mapping_file")):
+        selected = getattr(args, attr, None)
+        if selected is not None and (not isinstance(selected, str) or not selected.strip()):
+            selection_error = f"phylo-run: REFUSED: {flag} requires a nonempty selected path"
+            break
     runner_path = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)),
                                 "tools", "run_planned_tree.py")
-    if not _os.path.exists(runner_path):
-        emit(f"phylo-run: runner not found ({runner_path}); needs the source tree "
-              f"(tools/run_planned_tree.py).", file=_sys.stderr)
-        return 1
+    if selection_error is not None or not _os.path.exists(runner_path):
+        emit(selection_error or (f"phylo-run: runner not found ({runner_path}); needs the source tree "
+                                 "(tools/run_planned_tree.py)."), file=_sys.stderr)
+        return 2 if selection_error is not None else 1
     spec = _ilu.spec_from_file_location("run_planned_tree", runner_path)
     mod = _ilu.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -5917,6 +6013,14 @@ def _phylo_run_command(args) -> int:
     if getattr(args, "ani_refs", None): argv += ["--ani-refs", args.ani_refs]
     if getattr(args, "ani_queries", None): argv += ["--ani-queries", args.ani_queries]
     if getattr(args, "signoff", None): argv += ["--signoff", args.signoff]
+    # Released v1 selectors only: the shared runner still owns all admission.
+    # Governed-v2 runtime/probe/plan controls remain outside this front door.
+    for flag, attr in (("--gtotree-bin", "gtotree_bin"),
+                       ("--iqtree-bin", "iqtree_bin"),
+                       ("--mapping-file", "mapping_file")):
+        value = getattr(args, attr, None)
+        if value is not None:
+            argv += [flag, value]
     # v9.7.444: forward the runner's remaining options. Unset ones are not passed, so the runner's own defaults
     # (IQ-TREE -T 1, seed 12345) still apply when the caller does not choose.
     if getattr(args, "iqtree_threads", None): argv += ["--iqtree-threads", str(args.iqtree_threads)]
@@ -6007,6 +6111,22 @@ def _refuse_outdir_inside_bundle(outdir) -> bool:
     return _refuse(refusal_reason) if refusal_reason else False
 
 
+class _PackageLock:
+    """Holds the open `.mamey.lock` handle for the run. When the run returns and the holder is collected, the handle
+    is closed here. A bare file handle collected unclosed raised a ResourceWarning at an arbitrary later point, and an
+    in-process caller that records warnings (RG-GMCI intake) logged it as a source diagnostic."""
+
+    def __init__(self, fh):
+        self.fh = fh
+
+    def close(self):
+        if not self.fh.closed:
+            self.fh.close()
+
+    def __del__(self):
+        self.close()
+
+
 def _acquire_package_lock(outdir, strain_id: str):
     """v9.7.409 (BC hostile audit H13): two `run` processes writing the same `<outdir>/<strain>/` raced on an
     atomic rename (`FileNotFoundError` in `os.replace`) and left one package built by two interleaved writers.
@@ -6020,7 +6140,7 @@ def _acquire_package_lock(outdir, strain_id: str):
     try:
         fh = open(run_dir / ".mamey.lock", "a+")
         _fcntl.flock(fh.fileno(), _fcntl.LOCK_EX | _fcntl.LOCK_NB)
-        return fh
+        return _PackageLock(fh)
     except BlockingIOError:
         _refuse(f"[lock] another mamey run is writing {run_dir} right now (advisory lock held); wait for it or use a different --outdir")
         return None
@@ -6030,8 +6150,10 @@ def _acquire_package_lock(outdir, strain_id: str):
 
 def _start_command(args) -> int:
     """The single front door for a new session or agent: prints the five-command happy path with this
-    bundle's real version, and runs `doctor` unless --no-doctor. Reads nothing from the user's project;
-    changes nothing. Added v9.7.408 after ten root orientation files proved to be nine too many."""
+    bundle's real version, and runs `doctor` unless --no-doctor. Doctor inspects the environment and
+    current directory and performs an exclusive temporary write probe beneath the bundle's runs/.
+    With --no-doctor, start only prints orientation. Added v9.7.408 after ten root orientation files
+    proved to be nine too many."""
     import os as _os
     import sys as _sys
     root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
@@ -6052,7 +6174,7 @@ def _start_command(args) -> int:
          "  python mamey_run.py validate runs/<ID>/package",
          "  python mamey_run.py explain  runs/<ID>/package",
          "",
-         "Then, on the sealed package: list-bgcs, mode-b, render-figures, ingest-receipts.",
+         "Then, on the validated package: list-bgcs → render-figures → review figures/data/captions/Methods; optional authored Mode B cards or guides with their verifiers, and receipt ingest when selected.",
          "Docs: CURRENT_DOCS_INDEX.md is the only authority on which documents are current.",
          "Agents: AGENTS.md is the shared contract; CLAUDE.md is its generated discovery alias.",
          "        Trees: docs/PHYLO_AUTOPILOT_WORKFLOW.md.",
@@ -6220,12 +6342,9 @@ def build_parser():
                         "label) | asserted (person-supplied, no on-disk trace; default). "
                         "Batch: pipe-separated. Descriptive only — never changes a score or gate.")
     r.add_argument("--release", default=None, choices=["PUBLIC", "PRIVATE"],
-                   help="Operator release tag override. Default: derivation from the strain ID "
-                        "(AS -> PUBLIC per the v9.7.236 PI decision; AJS/PENDING/unrecognized -> PRIVATE, "
-                        "fail-safe). Use --release PUBLIC for a named reference genome / accession whose shape "
-                        "the derivation does not recognize. A PUBLIC override is REFUSED on an AJS-/PENDING-/"
-                        "registry-private strain (never operator-bypassable); it is honored on AS and on "
-                        "unrecognized shapes.")
+                   help="Optional release override. Omitted: PRIVATE unless an exact public privacy-profile "
+                        "assignment is supplied. PRIVATE always wins. PUBLIC is explicit operator authority "
+                        "for reviewed public inputs; existing private guards and nonpublic profile tiers refuse it.")
     r.add_argument("--privacy-profile", default=None,
                    help="Optional JSON profile of exact strain-to-named-tier assignments. A public override "
                         "is refused unless the exact strain is assigned to a profile tier with public_export=true. "
@@ -6274,7 +6393,7 @@ def build_parser():
                    help="v9.7.445: RG-GMCI reference-guided completion (report-only). Each edge region's best "
                         "KnownClusterBlast MIBiG reference is searched across the whole genome for missing and split "
                         "genes and tested partner contigs (_4E_* tables). Runs when a MIBiG protein database "
-                        "(--mibig-db, $RGGMCI_MIBIG_DB, or the workspace asset registry) and DIAMOND or BLAST+ are "
+                        "(--mibig-db, $RGGMCI_MIBIG_DB, or an explicit --rggmci-registry-from anchor) and DIAMOND or BLAST+ are "
                         "found; otherwise the tier says what was missing. Runs under --capped-session too; off skips it.")
     r.add_argument("--mibig-db", dest="mibig_db", default=None,
                    help="v9.7.445: MIBiG protein database folder built by `rggmci build-mibig-db` (or "
@@ -6285,8 +6404,17 @@ def build_parser():
                         "fast default misses 25-40%% identity homologues).")
     r.add_argument("--completion-pfam", dest="completion_pfam", default=None,
                    help="v9.7.445: pressed Pfam-A.hmm for the housekeeping-neighbour check (default: $RGGMCI_PFAM_HMM, "
-                        "then the workspace asset registry). With pyhmmer installed, a lone partner find beside >= 2 "
+                        "then an explicit --rggmci-registry-from anchor). With pyhmmer installed, a lone partner find beside >= 2 "
                         "primary-metabolism genes is set aside as HOUSEKEEPING_CONTEXT.")
+    r.add_argument("--rggmci-registry-from", dest="rggmci_registry_from", default=None,
+                   help="Explicit common RGGMCI asset-registry anchor; no implicit install-tree search.")
+    r.add_argument("--rggmci-threads", type=int, default=4)
+    r.add_argument("--rggmci-diamond", default=None)
+    r.add_argument("--rggmci-diamond-db", default=None)
+    r.add_argument("--rggmci-residue-scope", choices=["st_paralog", "all"], default="st_paralog")
+    r.add_argument("--rggmci-residue-work-dir", default=None)
+    r.add_argument("--rggmci-completion-work-dir", default=None)
+    r.add_argument("--rggmci-label", default=None, help="Logical label override; single input only (default resolved strain).")
     r.add_argument("--locus-maps", dest="locus_maps", default="auto",
                    choices=["auto", "off", "on"],
                    help="P0 (v9.7.101): locus-map render policy. auto = render unless a capped run "
@@ -6405,97 +6533,14 @@ def build_parser():
              "without it, cohort figures refuse a mixed-strictness payload")
     ifg.set_defaults(func=_interactive_figures_command)
 
-    # codex-heatmaps: optional post-seal presentation pack for Figure Factory
-    # matrix sidecars.  The explicit Codex name keeps this accessibility/widget
-    # profile separate from deterministic extraction and every release/science
-    # gate.  SVG/HTML generation is dependency-free and never edits a package.
-    chm = sub.add_parser(
-        "codex-heatmaps",
-        help="Legacy-named Figure Factory command: convert matrix CSVs into SVG/HTML figure packs",
-    )
-    chm.add_argument("--input", nargs="+", required=True,
-        help="One or more Figure Factory *_data.csv matrix sidecars")
-    chm.add_argument("--outdir", required=True,
-        help="Output directory (must remain outside sealed packages)")
-    chm.add_argument("--title", default=None,
-        help="Optional figure title override (best with one input)")
-    chm.add_argument("--normalization", choices=["raw", "log1p"], default="log1p",
-        help="Colour transform only; raw values remain in labels/tooltips (default: log1p)")
-    chm.add_argument("--top-rows", type=int, default=40,
-        help="Keep the highest raw-total rows; 0 keeps all (default: 40)")
-    chm.add_argument("--rows-per-panel", type=int, default=30)
-    chm.add_argument("--columns-per-panel", type=int, default=24)
-    chm.add_argument("--annotate", choices=["auto", "all", "none"], default="auto")
-    chm.add_argument("--citation", action="append", default=[],
-        help="Citation note for caption/methods text; repeatable")
-    chm.add_argument("--claim-prefix", default="",
-        help="Optional PUBLIC/PRIVATE/governance prefix for the caption")
-    chm.set_defaults(func=_codex_heatmaps_command)
-
-    # codex-figure-catalog: registry-first expansion of Figure Factory. The
-    # command emits 200 governed specifications (25 scientific families × 8
-    # analytical lenses), explicitly including per-strain and cohort views.
-    # Specifications declare readiness and do not pretend gated inputs exist.
-    cfc = sub.add_parser(
-        "codex-figure-catalog",
-        help="Legacy-named Figure Factory command: emit the governed figure registry and caption/method catalog",
-    )
-    cfc.add_argument("--outdir", required=True,
-        help="Output directory for JSON/CSV/HTML/caption-methods/QA artifacts")
-    cfc.add_argument("--family", default=None,
-        help="Optional three-letter family ID filter, e.g. MPG, BND, CLS")
-    cfc.add_argument("--status", default=None,
-        help="Optional exact readiness-status filter")
-    cfc.set_defaults(func=_codex_figure_catalog_command)
-
-    cfs = sub.add_parser(
-        "codex-figure-sets",
-        help="Legacy-named Figure Factory command: render implemented strain/cohort sets from the governed registry",
-    )
-    cfs.add_argument("--widget-data", required=True,
-        help="AS_All_Strains_Widget_Data.json emitted from sealed Mamey packages")
-    cfs.add_argument("--outdir", required=True,
-        help="Output directory outside sealed packages")
-    cfs.add_argument("--tranche", choices=("1", "2", "3", "4", "5", "6", "all"), default="1",
-        help="Implemented tranche to render (default: 1)")
-    cfs.add_argument("--source-bundle", default=None,
-        help="Required for tranches 2-6/all; output of codex-figure-sources")
-    cfs.add_argument("--lead-ledger", default=None,
-        help="Required for tranche 6; optional for all (enables the 200-set atlas)")
-    cfs.set_defaults(func=_codex_figure_sets_command)
-
-    bgff = sub.add_parser(
-        "codex-bigscape-figure-sets",
-        help="Legacy-named Figure Factory command: render the optional BiG-SCAPE figure extension",
-    )
-    source = bgff.add_mutually_exclusive_group(required=True)
-    source.add_argument("--bigscape-tsv")
-    source.add_argument("--bigscape-db")
-    bgff.add_argument("--bigscape-run", required=True,
-        help="Exact run ID/label; never infer latest or largest")
-    bgff.add_argument("--bigscape-cutoffs", required=True,
-        help="Explicit comma-delimited cutoff list")
-    bgff.add_argument("--run-manifest",
-        help="Immutable run manifest; required for portable TSV input")
-    bgff.add_argument("--bgc-bridge",
-        help="Optional exact strain+bgc_id+locator bridge for boundary/host views")
-    bgff.add_argument("--lead-ledger",
-        help="Optional exact strain+bgc_id+locator declared-lead ledger")
-    bgff.add_argument("--outdir", required=True,
-        help="Per-job sibling output directory; sealed packages/databases are never mutated")
-    bgff.set_defaults(func=_codex_bigscape_figure_sets_command)
-
-    csrc = sub.add_parser(
-        "codex-figure-sources",
-        help="Legacy-named Figure Factory command: build a provenance-rich source bundle from sealed package ZIPs",
-    )
-    csrc.add_argument("--widget-data", required=True,
-        help="Governed AS_All_Strains_Widget_Data.json")
-    csrc.add_argument("--package-dir", required=True,
-        help="Directory containing the sealed packages named by widget data")
-    csrc.add_argument("--outdir", required=True,
-        help="Output directory outside sealed packages")
-    csrc.set_defaults(func=_codex_figure_sources_command)
+    from .figure_factory_cli import register_commands as _register_figure_factory_commands
+    _register_figure_factory_commands(sub, {
+        "_codex_heatmaps_command": _codex_heatmaps_command,
+        "_codex_figure_catalog_command": _codex_figure_catalog_command,
+        "_codex_figure_sets_command": _codex_figure_sets_command,
+        "_codex_bigscape_figure_sets_command": _codex_bigscape_figure_sets_command,
+        "_codex_figure_sources_command": _codex_figure_sources_command,
+    })
 
     # dualpass (roadmap #8)
     dpl = sub.add_parser("dualpass",
@@ -6571,7 +6616,9 @@ def build_parser():
     cf.add_argument("--strains", default=None,
                     help="Comma-separated explicit strain order/subset (default: all found)")
     cf.add_argument("--public-only", action="store_true", dest="public_only",
-                    help="Drop PRIVATE (AJS-/PENDING-) strains -> shareable PUBLIC cut")
+                    help="Include only packages with resolved explicit public authority; separate export audit still required")
+    cf.add_argument("--privacy-profile", default=None,
+                    help="Exact-ID public authority for legacy PUBLIC packages; stored PRIVATE stays private")
     cf.add_argument("--series", default="F", choices=["F", "G", "D", "all"],
                     help="Figure series: F=heatmaps (default), G=complementary, D=dot/bubble, all")
     cf.add_argument("--f13-cohort-manifest", default=None,
@@ -6680,6 +6727,12 @@ def build_parser():
     pr.add_argument("--ani-queries", dest="ani_queries", default=None,
                     help="Optional: query FASTA paths for fastANI (default: --genome-list)")
     pr.add_argument("--signoff", default=None, help="Optional: path to signoff_check.py")
+    pr.add_argument("--gtotree-bin", default=None,
+                    help="Explicit released GToTree 1.8.19 launcher; runner admission gates still apply")
+    pr.add_argument("--iqtree-bin", default=None,
+                    help="Explicit selected IQ-TREE executable; omitted preserves runner discovery")
+    pr.add_argument("--mapping-file", default=None,
+                    help="Headerless two-column TSV: genome FASTA basename to exact tip label (released v1 route)")
     pr.add_argument("--iqtree-threads", dest="iqtree_threads", default=None,
                     help="IQ-TREE -T value (runner default 1, for run-to-run determinism). Record the value used in Methods.")
     pr.add_argument("--iqtree-model", dest="iqtree_model", default=None,
@@ -6848,7 +6901,12 @@ def build_parser():
     co.add_argument("--series", default="all", choices=["F", "G", "D", "all"],
                     help="Cohort figure series (default: all).")
     co.add_argument("--public-only", action="store_true", dest="public_only",
-                    help="Restrict figures to public-safe strain labels.")
+                    help="Independently scope master rows to release-admitted public packages; "
+                         "requires --master-path and explicit --class-view.")
+    co.add_argument("--privacy-profile", default=None,
+                    help="Optional exact-ID authority profile; recorded PRIVATE stays private.")
+    co.add_argument("--class-view", choices=["RAW_ANTISMASH", "GENE_BACKED"], default=None,
+                    help="Required public synthesis class-label view; gene-backed evidence must be complete.")
     co.add_argument("--no-figures", action="store_true", dest="no_figures",
                     help="Emit the synthesis report only, skip the figure suite.")
     co.set_defaults(func=cohort_command)
@@ -7571,16 +7629,6 @@ def build_parser():
     # strain-structure gate (sibling of modeb_structure_gate). Sapote authors S4/S5/S8 on top.
     from . import strain_modeb as _strain_modeb
     _strain_modeb.register_subparser(sub)
-
-    # lab-quest (v9.7.390 candidate, B8/v9.7.405): optional local UI bound to this installed
-    # engine. The launcher accepts a user-selected project root; it never searches personal
-    # workspaces for an arbitrary Mamey source tree or treats interface progress as scientific
-    # evidence. See sapote_addons/lab_quest/ and docs/LAB_QUEST.md.
-    # v9.7.444: Lab Quest is an optional add-on (sapote_addons/lab_quest, package sapote_lab_quest).
-    # Registered only when installed; otherwise a hidden stub says how to install it.
-    if _lab_quest_available():
-        from sapote_lab_quest import lab_quest as _lab_quest
-        _lab_quest.register_subparser(sub)
 
     # emit-modeb-cards (v9.7.330, Blue): compact auto-filled per-BGC Mode-B DATA cards (composition,
     # RG-GMCI split-pathway banner, auto-priors, architecture domain-counts). Complementary to
@@ -8451,129 +8499,13 @@ def _interactive_figures_command(args) -> int:
     return interactive_figures_command(args)
 
 
-def _codex_heatmaps_command(args) -> int:
-    """Lazy wrapper for the optional Codex Figure Factory heatmap profile."""
-    from .interactive_figures.codex_heatmap_pack import build_codex_heatmap_pack
-    # v9.7.409 (AUDIT_cli_edgecases): existence guard + typed refusal. A nonexistent CSV used to
-    # crash with a raw FileNotFoundError, and an empty / column-less matrix CSV raised an uncaught
-    # ValueError to the terminal. Refuse cleanly (one-line ERROR, rc 1) instead of a traceback.
-    # --input is nargs="+", so validate every path in the list.
-    _inputs = args.input if isinstance(args.input, (list, tuple)) else [args.input]
-    _missing = [p for p in _inputs if not Path(p).is_file()]
-    if _missing:
-        emit(f"ERROR: codex-heatmaps input not found: {', '.join(str(p) for p in _missing)}",
-             file=_sys.stderr, flush=True)
-        return 1
-    try:
-        result = build_codex_heatmap_pack(
-            args.input,
-            args.outdir,
-            title=getattr(args, "title", None),
-            normalization=getattr(args, "normalization", "log1p"),
-            top_rows=getattr(args, "top_rows", 40),
-            rows_per_panel=getattr(args, "rows_per_panel", 30),
-            columns_per_panel=getattr(args, "columns_per_panel", 24),
-            annotate=getattr(args, "annotate", "auto"),
-            citations=getattr(args, "citation", ()),
-            claim_prefix=getattr(args, "claim_prefix", ""),
-        )
-    except ValueError as exc:
-        emit(f"ERROR: codex-heatmaps could not read matrix CSV: {exc}",
-             file=_sys.stderr, flush=True)
-        return 1
-    emit(json.dumps(result, indent=2))
-    return 0 if result.get("status") == "PASS" else 1
-
-
-def _codex_figure_catalog_command(args) -> int:
-    """Lazy wrapper for the optional governed 200-set figure catalog."""
-    from .interactive_figures.figure_set_registry import emit_registry
-    result = emit_registry(
-        args.outdir,
-        family=getattr(args, "family", None),
-        status=getattr(args, "status", None),
-    )
-    emit(json.dumps(result, indent=2))
-    return 0 if result.get("status") == "PASS" else 1
-
-
-def _codex_figure_sets_command(args) -> int:
-    """Lazy wrapper for implemented Codex Figure Factory registry tranches."""
-    from .interactive_figures.figure_set_renderer import render_tranche
-    tranche = getattr(args, "tranche", "1")
-    if tranche == "1":
-        result = render_tranche(args.widget_data, args.outdir)
-    else:
-        source_bundle = getattr(args, "source_bundle", None)
-        if not source_bundle:
-            raise ValueError("--source-bundle is required for --tranche 2-6 or all")
-        from .interactive_figures.figure_set_renderer_tranche2 import render_tranche_2
-        if tranche == "2":
-            result = render_tranche_2(args.widget_data, source_bundle, args.outdir)
-        elif tranche == "3":
-            from .interactive_figures.figure_set_renderer_tranche3 import render_tranche_3
-            result = render_tranche_3(args.widget_data, source_bundle, args.outdir)
-        elif tranche == "4":
-            from .interactive_figures.figure_set_renderer_tranche4 import render_tranche_4
-            result = render_tranche_4(args.widget_data, source_bundle, args.outdir)
-        elif tranche == "5":
-            from .interactive_figures.figure_set_renderer_tranche5 import render_tranche_5
-            result = render_tranche_5(args.widget_data, source_bundle, args.outdir)
-        elif tranche == "6":
-            lead_ledger = getattr(args, "lead_ledger", None)
-            if not lead_ledger:
-                raise ValueError("--lead-ledger is required for --tranche 6")
-            from .interactive_figures.figure_set_renderer_tranche6 import render_tranche_6
-            result = render_tranche_6(args.widget_data, source_bundle, lead_ledger, args.outdir)
-        else:
-            from .interactive_figures.figure_atlas import render_implemented_atlas
-            result = render_implemented_atlas(args.widget_data, source_bundle, args.outdir, lead_ledger=getattr(args, "lead_ledger", None))
-    emit(json.dumps({
-        "status": result.get("status"),
-        "implemented_count": result.get("implemented_count"),
-        "implemented_ids": result.get("implemented_ids"),
-        "outdir": args.outdir,
-    }, indent=2))
-    return 0 if result.get("status") == "PASS" else 1
-
-
-
-def _codex_bigscape_figure_sets_command(args) -> int:
-    """Lazy wrapper for the optional BiG-SCAPE Figure Factory extension."""
-    from .interactive_figures.bigscape_extension import render_bigscape_extension
-    result = render_bigscape_extension(
-        args.outdir,
-        bigscape_tsv=args.bigscape_tsv,
-        bigscape_db=args.bigscape_db,
-        bigscape_run=args.bigscape_run,
-        bigscape_cutoffs=args.bigscape_cutoffs,
-        run_manifest=args.run_manifest,
-        bgc_bridge=args.bgc_bridge,
-        lead_ledger=args.lead_ledger,
-    )
-    emit(json.dumps({
-        "status": result.get("status"),
-        "extension_ids": result.get("extension_ids"),
-        "run_id": result.get("run_id"),
-        "cutoffs": result.get("cutoffs"),
-        "outdir": args.outdir,
-    }, indent=2))
-    return 0 if result.get("status") == "PASS" else 1
-
-
-def _codex_figure_sources_command(args) -> int:
-    """Lazy wrapper for the sealed-package figure source bundler."""
-    from .interactive_figures.figure_source_bundle import build_source_bundle
-    result = build_source_bundle(args.widget_data, args.package_dir, args.outdir)
-    emit(json.dumps({
-        "status": result.get("status"),
-        "strain_count": result.get("strain_count"),
-        "present_package_count": result.get("present_package_count"),
-        "missing_member_count": result.get("missing_member_count"),
-        "outputs": result.get("outputs"),
-        "outdir": args.outdir,
-    }, indent=2))
-    return 0 if result.get("status") in {"PASS", "PASS_WITH_ISSUES"} else 1
+from .figure_factory_cli import (
+    _codex_heatmaps_command,
+    _codex_figure_catalog_command,
+    _codex_figure_sets_command,
+    _codex_bigscape_figure_sets_command,
+    _codex_figure_sources_command,
+)
 
 
 _PACKAGE_POSITIONAL = "package_positional"
@@ -8620,22 +8552,9 @@ def _install_package_positional_alias(parser) -> dict[str, bool]:
     return required
 
 
-LAB_QUEST_INSTALL_HINT = ("lab-quest is an optional add-on and is not installed. From the bundle root run: "
-                          "pip install ./sapote_addons/lab_quest (needs streamlit); see docs/LAB_QUEST.md.")
-
-
-def _lab_quest_available() -> bool:
-    """True when the optional Lab Quest add-on (package sapote_lab_quest) is importable."""
-    import importlib.util as _lq_util
-    return _lq_util.find_spec("sapote_lab_quest") is not None
-
-
 def main(argv=None) -> int:
     import sys
     _argv = list(sys.argv[1:] if argv is None else argv)
-    if _argv[:1] == ["lab-quest"] and not _lab_quest_available():
-        sys.stderr.write(LAB_QUEST_INSTALL_HINT + "\n")
-        return 2
     parser = build_parser()
     _pkg_required = _install_package_positional_alias(parser)
     args = parser.parse_args(argv)

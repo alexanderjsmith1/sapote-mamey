@@ -11,7 +11,7 @@ python tools/project_catalog.py register \
 python tools/project_catalog.py verify --project-root /absolute/project
 ```
 
-The package must be below the chosen root and contain a JSON-object `manifest.json` with a strain identifier. Register creates or updates `<project-root>/lab_quest_outputs/project_catalog.json`, rebinding a matching logical package path to its current manifest hash. Keep a prior catalog when its earlier binding is required.
+The package must be below the chosen root and contain a JSON-object `manifest.json` with a strain identifier. Register creates or updates `<project-root>/project_outputs/project_catalog.json` (projects made before v9.7.450 keep using an existing `lab_quest_outputs/`), rebinding a matching logical package path to its current manifest hash. Keep a prior catalog when its earlier binding is required.
 
 Even `verify` initializes the catalog: a nonexistent project root can be created, and a missing catalog becomes an empty one. A successful empty report means zero registered entries; it does not prove the workspace contains no packages or that every run was inventoried. Verify an explicitly known root/catalog and compare its entry count to the requested inventory.
 
@@ -45,9 +45,9 @@ Capture stdout, stderr and exit status. The standalone front door lets library e
 
 ## Portfolio bindings have a separate schema
 
-`tools/validate_portfolio_config.py --project-root ROOT --config RELATIVE_CONFIG` reads a `sapote_project_portfolio_v1` JSON file whose `project_registry` points to one contained registry. The default check does not write a binding. Adding `--write-binding` creates or replaces `lab_quest_outputs/portfolio_binding.json` with config/registry hashes and availability metadata; preserve an earlier receipt and avoid concurrent writers to that fixed path.
+`tools/validate_portfolio_config.py --project-root ROOT --config RELATIVE_CONFIG` reads a `sapote_project_portfolio_v1` JSON file whose `project_registry` points to one contained registry. The default check does not write a binding. Adding `--write-binding` creates or replaces `project_outputs/portfolio_binding.json` with config/registry hashes and availability metadata; preserve an earlier receipt and avoid concurrent writers to that fixed path.
 
-This project-registry portfolio is distinct from the extraction `sapote_privacy_profile_v1` policy and its separate evidence TSV. A valid portfolio does not override extraction release assignment. See [Lab Quest](LAB_QUEST.md) for the current authority boundary and [portable privacy and evidence](PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md) for that intake schema.
+This project-registry portfolio is distinct from the extraction `sapote_privacy_profile_v1` policy and its separate evidence TSV. A valid portfolio does not override extraction release assignment. See [portable privacy and evidence](PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md) for that intake schema.
 
 ## Binding inputs, writes and recovery
 
@@ -61,6 +61,6 @@ python tools/validate_portfolio_config.py \
 
 The existing config must declare `schema_version: sapote_project_portfolio_v1` and a `project_registry` relative logical path to an existing regular JSON file below that project root. Input containment is checked after resolving symlinks; outside-root targets and `..` registry paths are refused. Use a nonblank relative file path, not `.`. An absolute config path inside the root is accepted by this implementation, although its help advertises a root-relative path (`mamey/portfolio_config.py:47–68,120–149`). The default invocation produces stdout JSON without writing a receipt.
 
-Adding `--write-binding` writes the fixed `lab_quest_outputs/portfolio_binding.json`, replacing an existing receipt through a fixed `.tmp` sibling. Preserve prior receipts and avoid concurrent writers. The writer revalidates the root directory but does not check final output containment or sealed-package state: a symlinked `lab_quest_outputs` directory can redirect writes outside the selected root. Use an explicitly authorized unsealed project root with an ordinary output directory; do not assume the input-containment check protects output writes. On failure inspect both receipt and `.tmp` before retrying (`mamey/portfolio_config.py:152–160`).
+Adding `--write-binding` writes the fixed `project_outputs/portfolio_binding.json`, replacing an existing receipt through a fixed `.tmp` sibling. Preserve prior receipts and avoid concurrent writers. The writer revalidates the root directory but does not check final output containment or sealed-package state: a symlinked `project_outputs` directory can redirect writes outside the selected root. Use an explicitly authorized unsealed project root with an ordinary output directory; do not assume the input-containment check protects output writes. On failure inspect both receipt and `.tmp` before retrying (`mamey/portfolio_config.py:152–160`).
 
 Keep config and registry bytes unchanged throughout validation. The binding hashes are computed after separate parse/load reads; there is no immutable snapshot or final consistency check. A concurrent edit can pair earlier availability metadata with a later registry hash. Preserve the input bytes used for review, record their hashes, compare the receipt to those exact files and rerun against unchanged inputs if uncertain. A binding receipt reports declared inventory and workflow states; it does not verify every referenced evidence file or scientific claim. See [project-registry validation limits](PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md#project-registry-validation-and-receipt-limits).

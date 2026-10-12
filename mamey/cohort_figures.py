@@ -100,10 +100,11 @@ def _save_pair(fig, path, *, renderer="cohort_figures", provenance="normalized_c
         renderer=renderer, package_dir=target.parent, provenance=provenance,
     )
 
-# v9.7.229: AS- is PUBLIC as of the 2026 Hymenoptera paper (PI decision 2026-07-06, same basis as the
-# .219 AS_SCRUB retirement + .222 divider removal). So AS- no longer draws (PRIV)/diamond markers on the
-# PCA/tier scatters. Machinery retained for genuinely-unpublished series (AJS-/PENDING-).
-def is_private(sid): return sid.startswith(("AJS-","PENDING-"))
+def is_private(sid, records=None):
+    """Unknown identity is private; renderers use a loaded row's resolved policy."""
+    row = (records or {}).get(sid, {})
+    return row.get("privacy", {}).get("effective_release") != "PUBLIC"
+
 def genus(sid):
     g=(GENUS.get(sid) or "Unknown genus").split()
     return " ".join(g[:2]) if len(g)>=2 else GENUS.get(sid,"Unknown genus")
@@ -142,12 +143,15 @@ def _load_manifest_short(pkg, sid):
         # content must surface; it cannot become a scientifically meaningful zero/UNKNOWN row.
         man = _loadj(man_path)
         ms["taxonomy"] = man.get("taxonomy")
+        for field in ("strain_id", "release", "privacy_tier", "privacy_assignment_state", "release_decision"):
+            if field in man:
+                ms[field] = man[field]
         # v9.7.160 claimed assembly_tier lives in man["assembly"]["tier"], but the real
         # writer puts it under bgc_counts. The schema accessor owns that mapping.
         ms["assembly_tier"] = read_manifest_field("assembly_tier", manifest=man)
         # raw_bgcs: accessor checks bgc_counts["raw"]; keep the len(bgcs) fallback.
         ms["raw_bgcs"] = read_manifest_field("raw_bgcs", manifest=man)
-        if ms["raw_bgcs"] is None and isinstance(man.get("bgcs"), list):
+        if read_manifest_field("raw_bgcs", manifest_short=ms) is None and isinstance(man.get("bgcs"), list):
             ms["raw_bgcs"] = len(man["bgcs"])
         # corrected_bgcs is required because a zero fallback changes figure content.
         ms["corrected_bgcs"] = read_manifest_field("corrected_bgcs", manifest=man)
@@ -169,20 +173,121 @@ def _require_manifest_figure_fields(ms):
     return ms
 
 
-def load(runs_dir, only=None, public_only=False):
+def load(runs_dir, only=None, public_only=False, privacy_profile=None, privacy_audit=None, canonical_scope=None):
+    from .release_policy import load_bound_profile, package_release_policy
+    profile, digest = load_bound_profile(privacy_profile) if privacy_profile else (None, "")
+    audit = privacy_audit if privacy_audit is not None else {}
+    audit.update(policy_version="sapote_cohort_privacy_v1", profile_sha256=digest,
+                 public_only=bool(public_only), admitted=0, excluded=0, exclusion_reasons={})
+    if canonical_scope is not None:
+        if not public_only:
+            raise ValueError("PUBLIC_CANONICAL_SCOPE_REQUIRES_PUBLIC_MODE")
+        return _load_canonical_scope(runs_dir, canonical_scope, profile, digest, audit)
     S={}
     for dd in sorted(glob.glob(f"{runs_dir}/*/package/deep_data.json")):
         pkg=os.path.dirname(dd); sid=os.path.basename(os.path.dirname(pkg))
         if only and sid not in only: continue
-        if public_only and is_private(sid): continue
+        privacy = package_release_policy(pkg, sid, profile=profile, profile_sha256=digest)
+        if public_only and privacy["effective_release"] != "PUBLIC":
+            audit["excluded"] += 1
+            reason = privacy["privacy_reason"]
+            audit["exclusion_reasons"][reason] = audit["exclusion_reasons"].get(reason, 0) + 1
+            continue
+        # Private payloads are not opened for an excluded public-only row.
         ms=_load_manifest_short(pkg, sid)
-        # COHORT-FIG-P01: strain-prefixed package files use the --strain id, which is NOT always
-        # the deliverable folder name (sid) — e.g. Type-strain folders are display names with
-        # spaces. Glob for the actual intake file instead of building the path from sid.
         _intake = next(iter(sorted(glob.glob(f"{pkg}/*_1_intake.json"))), f"{pkg}/{sid}_1_intake.json")
         GENUS[sid]=ms.get("taxonomy") or _loadj(_intake).get("taxonomy","Unknown genus")
-        S[sid]={"deep":_loadj(dd),"gene":_loadj(f"{pkg}/gene_data.json"),"ms":ms,"pkg":pkg}
+        S[sid]={"deep":_loadj(dd),"gene":_loadj(f"{pkg}/gene_data.json"),"ms":ms,"pkg":pkg,
+                "privacy":privacy}
+        audit["admitted"] += 1
     return S
+
+
+def _load_canonical_scope(runs_dir, scope, profile, digest, audit):
+    """Independently re-admit exact IDs and bind figures to the master subset."""
+    from .release_policy import package_release_policy
+    from .cohort_synthesis import PublicCohortScopeError, check_public_scope_text, recheck_public_scope
+    fail = lambda code: (_ for _ in ()).throw(PublicCohortScopeError(code))
+    if digest != scope["receipt"]["profile_sha256"]:
+        fail("PUBLIC_FIGURE_AUTHORITY_CHANGED")
+    recheck_public_scope(scope)
+    root = Path(runs_dir).resolve(strict=True)
+    wanted = set(scope["strains"])
+    found = {}
+    for pkg in sorted(root.glob("*/package")):
+        privacy = package_release_policy(pkg, pkg.parent.name, profile=profile, profile_sha256=digest)
+        sid = privacy["strain_id"]
+        if privacy["effective_release"] != "PUBLIC" or sid not in wanted:
+            continue
+        if sid in found or pkg != scope["_packages"][sid]:
+            fail("PUBLIC_FIGURE_MEMBERSHIP_CONFLICT")
+        found[sid] = (pkg, privacy)
+    if set(found) != wanted:
+        fail("PUBLIC_FIGURE_MEMBERSHIP_CONFLICT")
+    selected = {}
+    for sid in scope["strains"]:
+        pkg, privacy = found[sid]
+        man = scope["_manifests"][sid]
+        try:
+            deep, gene = _loadj(pkg / "deep_data.json"), _loadj(pkg / "gene_data.json")
+            ms = _load_manifest_short(pkg, sid)
+            files = sorted(pkg.glob("*_2_inventory.csv"))
+            if len(files) != 1:
+                fail("PUBLIC_FIGURE_INVENTORY_INVALID")
+            with files[0].open(encoding="utf-8", newline="") as stream:
+                reader = csv.DictReader(stream)
+                required = ("BGC_ID", "Strain", "Contig", "Node_ID", "antiSMASH_Region", "Products", "KCB_top")
+                if any((reader.fieldnames or []).count(k) != 1 for k in required):
+                    fail("PUBLIC_FIGURE_INVENTORY_INVALID")
+                inventory = list(reader)
+            expected = {b["bgc_id"]: b for b in man["bgcs"]}
+            if len(inventory) != len(expected) or {r["BGC_ID"] for r in inventory} != set(expected):
+                fail("PUBLIC_FIGURE_INVENTORY_MEMBERSHIP_CONFLICT")
+            for row in inventory:
+                bgc = expected[row["BGC_ID"]]
+                if (row["Strain"] != sid or row["Contig"] != bgc["contig"]
+                        or row["Node_ID"] != (bgc.get("node_id") or "")
+                        or row["antiSMASH_Region"] != bgc["antismash_region"]
+                        or row["Products"] != "; ".join(bgc["products"])
+                        or row["KCB_top"] != (bgc.get("kcb_top") or "")):
+                    fail("PUBLIC_FIGURE_INVENTORY_VALUE_CONFLICT")
+            for records in (deep.get("bgc_profile"), gene.get("domain_arch")):
+                if (not isinstance(records, list) or len(records) != len(expected)
+                        or any(not isinstance(r, dict) or r.get("sid") != sid for r in records)
+                        or {r.get("bgc_id") for r in records} != set(expected)):
+                    fail("PUBLIC_FIGURE_PAYLOAD_MEMBERSHIP_CONFLICT")
+            # Check all text-bearing source inputs before rasterization; PNGs cannot be text-scanned later.
+            for payload in (deep, gene, ms, inventory):
+                check_public_scope_text(scope, json.dumps(payload, sort_keys=True))
+            if (ms.get("strain_id") != sid or read_manifest_field("raw_bgcs", manifest_short=ms) != len(expected)
+                    or read_manifest_field("corrected_bgcs", manifest_short=ms, default=object()) != man.get("bgc_counts", {}).get("corrected")
+                    or ms.get("taxonomy") != man.get("taxonomy")):
+                fail("PUBLIC_FIGURE_MANIFEST_CONFLICT")
+            by_id = {r["bgc_id"]: r["classes"] for r in scope["bgcs"] if r["strain"] == sid}
+            inventory = [{**r, "Products": "; ".join(by_id[r["BGC_ID"]])} for r in inventory]
+            selected[sid] = {"deep": deep, "gene": gene, "ms": ms, "pkg": str(pkg),
+                             "privacy": privacy, "inventory": inventory, "class_view": scope["class_view"]}
+            GENUS[sid] = man.get("taxonomy") or "Unknown genus"
+        except PublicCohortScopeError:
+            raise
+        except Exception:
+            fail("PUBLIC_FIGURE_PAYLOAD_UNAVAILABLE")
+    recheck_public_scope(scope)
+    audit.clear()
+    audit.update(policy_version="sapote_cohort_privacy_v1", public_only=True, profile_sha256=digest,
+                 admitted=len(selected), canonical_strains=scope["strains"], class_view=scope["class_view"])
+    return selected
+
+
+def _inventory_rows(source):
+    """Canonical public callers use a validated selected-view projection in memory."""
+    if "inventory" in source:
+        return source["inventory"]
+    paths = sorted(Path(source["pkg"]).glob("*_2_inventory.csv"))
+    if not paths:
+        return []
+    with paths[0].open(encoding="utf-8", newline="") as stream:
+        return list(csv.DictReader(stream))
 
 
 # F13 publication-source artwork contract.  This renderer does not make a
@@ -751,6 +856,18 @@ def domain_counts(S, order):
             if p: dc[p][s]+=1
     return dc
 
+def _heatmap_cell_text_colour(image, value):
+    """Choose black/white against the actual normalized, alpha-composited fill."""
+    rgba = image.cmap(image.norm(value))
+    background = image.axes.get_facecolor()
+    rgb = [rgba[i] * rgba[3] + background[i] * (1 - rgba[3]) for i in range(3)]
+    linear = [v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in rgb]
+    luminance = sum(w * v for w, v in zip((0.2126, 0.7152, 0.0722), linear))
+    black_contrast = (luminance + 0.05) / 0.05
+    white_contrast = 1.05 / (luminance + 0.05)
+    return "#000000" if black_contrast >= white_contrast else "#ffffff"
+
+
 def heatmap(mat, rowlabs, order, S, title, fid, OUT, cbar="count", lognorm=True,
             annot=True, cmap="magma_r", row_raw=None, divider=True):
     mat=np.array(mat,float)
@@ -769,7 +886,7 @@ def heatmap(mat, rowlabs, order, S, title, fid, OUT, cbar="count", lognorm=True,
         fname=stamp(fig,fid); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
         sidecar(f"{OUT}/{fname}_data.csv",["row"]+list(order),[])   # header only: the view has no rows (.447)
         return
-    npriv=sum(1 for s in order if is_private(s)); ndiv=len(order)-npriv
+    npriv=sum(1 for s in order if is_private(s, S)); ndiv=len(order)-npriv
     fig_w=max(8.0, 1.55*len(order)+3.4); fig_h=max(3.4, 0.36*len(rowlabs)+2.6)
     fig,ax=plt.subplots(figsize=(fig_w,fig_h),constrained_layout=True)
     if lognorm:
@@ -790,14 +907,13 @@ def heatmap(mat, rowlabs, order, S, title, fid, OUT, cbar="count", lognorm=True,
     )
     ax.set_yticks(range(len(rowlabs))); ax.set_yticklabels(rowlabs,fontsize=8.5); ax.tick_params(length=0)
     if annot:
-        mx=(np.nanmax(mat) if mat.size and not np.all(np.isnan(mat)) else 0) or 1   # empty/all-NaN-safe (audit follow-on)
         for i in range(mat.shape[0]):
             for j in range(mat.shape[1]):
                 v=mat[i,j]
-                if v==0: ax.text(j,i,"0",ha="center",va="center",fontsize=6.5,color="#ccc"); continue
+                if not np.isfinite(v):
+                    continue
                 txt=f"{v:.0f}" if abs(v-round(v))<1e-6 else f"{v:.1f}"
-                dark=(lognorm and v>mx*0.10) or (not lognorm and v>mx*0.55)
-                ax.text(j,i,txt,ha="center",va="center",fontsize=7,color="white" if dark else "#111")
+                ax.text(j,i,txt,ha="center",va="center",fontsize=7,color=_heatmap_cell_text_colour(im,v))
     if divider: soft_divider(ax,ndiv,npriv)
     ax.set_title(title,pad=24)
     cb=fig.colorbar(im,ax=ax,fraction=0.024,pad=0.012); cb.set_label(cbar,fontsize=9)
@@ -808,11 +924,12 @@ def heatmap(mat, rowlabs, order, S, title, fid, OUT, cbar="count", lognorm=True,
 def products_per_strain(S, order):
     pc=collections.defaultdict(lambda: collections.defaultdict(int))
     for s in order:
-        invf=glob.glob(f"{S[s]['pkg']}/*_2_inventory.csv")
-        if not invf: continue
-        for row in csv.DictReader(open(invf[0], encoding="utf-8")):
-            for t in with_family_labels(row.get("Products") or ""):
-                pc[t][s]+=1
+        for row in _inventory_rows(S[s]):
+            labels = ((row.get("Products") or "").split("; ") if "inventory" in S[s]
+                      else with_family_labels(row.get("Products") or ""))
+            for t in labels:
+                if t:
+                    pc[t][s]+=1
     return pc
 
 _RIPP_PRODUCT_RE = re.compile(r"ripp|lanthipeptide|lassopeptide|thiopeptide|\bLAP\b|sactipeptide|"
@@ -845,7 +962,7 @@ def figs_multi(S, order, OUT, *, f13_cohort_manifest=None,
                f13_cohort_manifest_sha256=None, f13_denominator_registry=None,
                f13_denominator_registry_sha256=None, f13_profile="SINGLE_COLUMN"):
     dc=domain_counts(S,order); tier={s:S[s]["ms"]["assembly_tier"] for s in order}
-    npriv=sum(1 for s in order if is_private(s)); ndiv=len(order)-npriv
+    npriv=sum(1 for s in order if is_private(s, S)); ndiv=len(order)-npriv
 
     # F01 census z-score (NO heavy black bar; soft divider only)
     metrics=[("total_domain_hits","domain hits"),("distinct_pfam","distinct Pfam"),
@@ -858,7 +975,8 @@ def figs_multi(S, order, OUT, *, f13_cohort_manifest=None,
         if key=="tier1_core_domains": return sum(1 for h in dh if h.get("tier1"))
         if key=="active_site_confirmations": return len(deep.get("active_sites",[]))
         if key=="ripp_calls":
-            return _ripp_product_count(S[s]["pkg"])   # RiPP-1: product classes, not gene.ripp
+            return (sum(bool(_RIPP_PRODUCT_RE.search(r.get("Products") or "")) for r in S[s]["inventory"])
+                    if "inventory" in S[s] else _ripp_product_count(S[s]["pkg"]))   # saved selected class view
         return 0
     raw=np.array([[float(census_val(s,m)) for s in order] for m,_ in metrics])
     # ActiveSite-1 / false-absence guard: drop any metric whose row is all-zero across every strain — a
@@ -1105,7 +1223,7 @@ def figs_multi(S, order, OUT, *, f13_cohort_manifest=None,
     SP=Pc@Vts[:2].T; _sss=np.sum(Ss**2); evs=(Ss**2)/_sss if _sss>0 else np.zeros_like(Ss)
     fig,ax=plt.subplots(figsize=(9.0,6.2))
     for i,s in enumerate(order):
-        priv=is_private(s)
+        priv=is_private(s, S)
         ax.scatter(SP[i,0],SP[i,1],s=330,marker="D" if priv else "o",color=TCOLOR.get(tier[s],"#999"),edgecolor="#111",linewidth=1.5 if priv else 0.8,zorder=3)
         ax.annotate(f"{s}"+("\n(PRIV)" if priv else ""),(SP[i,0],SP[i,1]),fontsize=8,fontweight="bold",xytext=(8,8),textcoords="offset points")
     ax.set_xlabel(f"PC1 ({evs[0]*100:.0f}% var)"); ax.set_ylabel(f"PC2 ({evs[1]*100:.0f}% var)")
@@ -1116,27 +1234,112 @@ def figs_multi(S, order, OUT, *, f13_cohort_manifest=None,
     fname=stamp(fig,"strain_ordination_2d"); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
     sidecar(f"{OUT}/{fname}_data.csv",["strain","tier","PC1","PC2"],[[order[i],tier[order[i]],round(SP[i,0],4),round(SP[i,1],4)] for i in range(len(order))])
 
+def _gold_display_label(profile):
+    identity = profile["bgc_identity"]
+    # Wrap between typed components; retain every physical identifier character.
+    import textwrap
+    contig = "\n".join(textwrap.wrap(identity["contig"], width=48,
+                                     break_long_words=True, break_on_hyphens=False))
+    return f'{identity["strain_id"]}\n{contig}\n{identity["antismash_region"]} / {identity["bgc_id"]}'
+
+
+def _gold_identity_sidecar(path, profiles):
+    fields = ["display_column", "strain", "full_contig", "antismash_region", "bgc_id",
+              "normalized_node_id", "exact_locus", "source_record_index", "measurement_sha256",
+              "tta_codons", "tta_cds", "resistance_tier", "umed_verdict", "cctt_triggers", "total_domains"]
+    rows = []
+    for index, profile in enumerate(profiles):
+        identity = profile["bgc_identity"]
+        rows.append([index, identity["strain_id"], identity["contig"], identity["antismash_region"],
+                     identity["bgc_id"], identity["node_id"], profile["exact_locus"],
+                     profile["source_record_index"], profile["measurement_sha256"],
+                     profile["tta_codons"], profile["tta_cds"], profile["resistance_tier"],
+                     profile["umed_verdict"], profile["cctt_triggers"], profile["total_domains"]])
+    sidecar(path, fields, rows)
+
+
 def figs_single(S, sid, OUT):
+    """Stage source-bound individual-locus panels; legacy input gets explicit holds."""
+    import tempfile
+    from .gold_bgc_identity import GoldBGCIdentityError, admit_gold_profiles, canonical_digest
+    target = Path(OUT)
+    target.mkdir(parents=True, exist_ok=True)
+    if any(p.name != "cohort_privacy_receipt.json" for p in target.iterdir()):
+        raise ValueError("GOLD_FIGURE_OUTPUT_NOT_EMPTY: use a fresh output directory")
+    entry = S[sid]
+    holds, binding = [], None
+    try:
+        if not entry.get("pkg"):
+            raise GoldBGCIdentityError("GOLD_IDENTITY_CONTEXT_UNAVAILABLE")
+        profiles, context = admit_gold_profiles(entry["pkg"], sid, entry["deep"], entry.get("gene", {}))
+        binding = context["receipt"]
+    except GoldBGCIdentityError as exc:
+        profiles = []
+        holds = [{"panel": panel, "reason": str(exc)} for panel in
+                 ("perBGC_domain_heatmap", "perBGC_cctt_resistance")]
+    scoped = dict(S)
+    scoped[sid] = {**entry, "deep": {**entry["deep"], "bgc_profile": profiles}}
+    files = []
+    with tempfile.TemporaryDirectory(prefix=".gold_stage_", dir=target) as staging:
+        _figs_single_panels(scoped, sid, staging)
+        if binding is not None:
+            try:
+                _, fresh_context = admit_gold_profiles(entry["pkg"], sid, entry["deep"], entry.get("gene", {}))
+                if fresh_context["receipt"] != binding:
+                    raise GoldBGCIdentityError("GOLD_IDENTITY_BINDING_CHANGED")
+            except GoldBGCIdentityError as exc:
+                holds = [{"panel": panel, "reason": str(exc)} for panel in
+                         ("perBGC_domain_heatmap", "perBGC_cctt_resistance")]
+                binding = None
+                # Source changed while staging: no artwork from the stale snapshot commits.
+                for child in Path(staging).iterdir():
+                    child.unlink()
+        # The ordinary figure ledger is append-only across F/G/D and later renders.
+        # Bind this stage's exact ledger bytes through a separate immutable snapshot;
+        # hashing the shared ledger here would become stale after generate(series="all").
+        stage_ledger = Path(staging) / "figure_receipts.jsonl"
+        if stage_ledger.is_file():
+            with (Path(staging) / "gold_single_stage_figure_receipts.jsonl").open("xb") as snapshot:
+                snapshot.write(stage_ledger.read_bytes())
+        for child in sorted(Path(staging).iterdir()):
+            destination = target / child.name
+            if destination.exists():
+                raise ValueError("GOLD_FIGURE_OUTPUT_NOT_EMPTY: staged output exists")
+            child.replace(destination)
+            files.append(destination.name)
+    receipt = {"schema_version": "gold_bgc_panel_receipt_v1",
+               "status": "HOLD" if holds else "BOUND_NATIVE_INVENTORY",
+               "binding": binding, "identity_holds": holds,
+               "files": [{"filename": name, "sha256": _f13_digest(target / name)}
+                         for name in files if name != "figure_receipts.jsonl"]}
+    (target / "gold_bgc_identity_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+    return {"files": files, "identity_holds": holds, "binding": binding,
+            "receipt_sha256": canonical_digest(receipt)}
+
+
+def _figs_single_panels(S, sid, OUT):
     deep=S[sid]["deep"]
     # v9.7.185 P12: this per-BGC heatmap is fed from aSDomain counts. Transporters/regulators/
     # oxidoreductases are separate genes (never aSDomains), so those rows were always zero — a false
     # "absent" signal. They live in the dedicated gene-level figures (transporter_family_heatmap,
     # bubble_regulators). Show only rows this data source can populate.
-    core=["PKS_KS","PKS_AT","PKS_KR","PKS_DH","NRPS_C","NRPS_A","NRPS_T_PCP","TE_release"]
-    bgcids=[]; rows=[]
-    for b in deep["bgc_profile"]:
-        bgcids.append(b["bgc_id"]); rows.append([b.get(k,0) or 0 for k in core])
-    M=np.array(rows,float).reshape(-1,len(core)); tot=M.sum(1) if M.size else np.zeros(0); keep=np.argsort(-tot)[:40]; M=M[keep]; bk=[bgcids[i] for i in keep]
-    fig,ax=plt.subplots(figsize=(max(9,0.22*len(bk)+4),5.5),constrained_layout=True)
-    disp=np.where(M.T<=0,np.nan,M.T)
-    _vmax=max(2,np.nanmax(disp)) if disp.size and not np.all(np.isnan(disp)) else 2   # empty/all-zero strain -> no crash (Nocardia patch B)
-    im=ax.imshow(disp,aspect="auto",cmap="magma_r",norm=LogNorm(vmin=1,vmax=_vmax))
-    ax.set_yticks(range(len(core))); ax.set_yticklabels(core,fontsize=8)
-    ax.set_xticks(range(len(bk))); ax.set_xticklabels(bk,rotation=90,fontsize=6); ax.tick_params(length=0)
-    ax.set_title(f"{genus(sid)} strain {sid} — per-BGC catalytic domain composition (top {len(bk)} BGCs)",pad=14)
-    cb=fig.colorbar(im,ax=ax,fraction=0.02,pad=0.01); cb.set_label("domain count",fontsize=8)
-    fname=stamp(fig,f"{sid}_perBGC_domain_heatmap"); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
-    sidecar(f"{OUT}/{fname}_data.csv",["bgc_id"]+core,[[bk[i]]+list(M[i]) for i in range(len(bk))])
+    if deep["bgc_profile"]:
+        core=["PKS_KS","PKS_AT","PKS_KR","PKS_DH","NRPS_C","NRPS_A","NRPS_T_PCP","TE_release"]
+        bgcids=[]; rows=[]
+        for b in deep["bgc_profile"]:
+            bgcids.append(b["exact_locus"]); rows.append([b.get(k,0) or 0 for k in core])
+        M=np.array(rows,float).reshape(-1,len(core)); tot=M.sum(1) if M.size else np.zeros(0); keep=np.argsort(-tot)[:40]; M=M[keep]; bk=[bgcids[i] for i in keep]
+        fig,ax=plt.subplots(figsize=(max(10,0.55*len(bk)+4),9.5),constrained_layout=True)
+        disp=np.where(M.T<=0,np.nan,M.T)
+        _vmax=max(2,np.nanmax(disp)) if disp.size and not np.all(np.isnan(disp)) else 2   # empty/all-zero strain -> no crash (Nocardia patch B)
+        im=ax.imshow(disp,aspect="auto",cmap="magma_r",norm=LogNorm(vmin=1,vmax=_vmax))
+        ax.set_yticks(range(len(core))); ax.set_yticklabels(core,fontsize=8)
+        ax.set_xticks(range(len(bk))); ax.set_xticklabels([_gold_display_label(deep["bgc_profile"][i]) for i in keep],rotation=90,fontsize=8); ax.tick_params(length=0)
+        ax.set_title(f"{genus(sid)} strain {sid} — per-BGC catalytic domain composition (top {len(bk)} BGCs)",pad=14)
+        cb=fig.colorbar(im,ax=ax,fraction=0.02,pad=0.01); cb.set_label("domain count",fontsize=8)
+        fname=stamp(fig,f"{sid}_perBGC_domain_heatmap"); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
+        sidecar(f"{OUT}/{fname}_data.csv",["exact_locus"]+core,[[bk[i]]+list(M[i]) for i in range(len(bk))])
+        _gold_identity_sidecar(f"{OUT}/{fname}_identity.csv", [deep["bgc_profile"][i] for i in keep])
 
     # S2 per-BGC active-site completeness (bars, ordered)
     bygene={}
@@ -1167,10 +1370,10 @@ def figs_single(S, sid, OUT):
         Mt=np.array([[1 if t in (b.get("cctt_triggers") or "") else 0 for b in bgcs] for t in trig],float)
         rtmap={"T1_DIAGNOSTIC_SELF_PROTECTION_SOURCE_DERIVED":"#b2182b","T2_RESISTANCE_LIKE_SOURCE_DERIVED":"#ef8a62",
                "T3_TRANSPORTER_ONLY_ROUTING":"#67a9cf","NULL_NO_SOURCE_DERIVED_RESISTANCE":"#f7f7f7"}
-        fig,ax=plt.subplots(figsize=(max(9,0.30*len(bgcs)+3),0.4*len(trig)+3),constrained_layout=True)
+        fig,ax=plt.subplots(figsize=(max(10,0.55*len(bgcs)+4),0.4*len(trig)+8),constrained_layout=True)
         ax.imshow(Mt,aspect="auto",cmap="Greens",vmin=0,vmax=1)
         ax.set_yticks(range(len(trig))); ax.set_yticklabels([t.replace("T43-","") for t in trig],fontsize=8)
-        ax.set_xticks(range(len(bgcs))); ax.set_xticklabels([b["bgc_id"] for b in bgcs],rotation=90,fontsize=6); ax.tick_params(length=0)
+        ax.set_xticks(range(len(bgcs))); ax.set_xticklabels([_gold_display_label(b) for b in bgcs],rotation=90,fontsize=8); ax.tick_params(length=0)
         for j,b in enumerate(bgcs):
             ax.add_patch(plt.Rectangle((j-0.5,-1.1),1,0.5,color=rtmap.get(b.get("resistance_tier"),"#ccc"),clip_on=False))
         ax.set_ylim(len(trig)-0.5,-1.25)
@@ -1189,14 +1392,15 @@ def figs_single(S, sid, OUT):
                   loc="upper left",bbox_to_anchor=(1.01,1.0),borderaxespad=0,frameon=False)
         ax.set_title(f"{genus(sid)} strain {sid} — per-BGC CCTT triggers (green) + resistance tier strip",pad=18)
         fname=stamp(fig,f"{sid}_perBGC_cctt_resistance"); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
-        sidecar(f"{OUT}/{fname}_data.csv",["cctt_trigger"]+[b["bgc_id"] for b in bgcs],
+        sidecar(f"{OUT}/{fname}_data.csv",["cctt_trigger"]+[b["exact_locus"] for b in bgcs],
                 [[trig[i]]+list(Mt[i]) for i in range(len(trig))])
+        _gold_identity_sidecar(f"{OUT}/{fname}_identity.csv", bgcs)
     emit(f"  single-strain figures for {sid} written")
 
 def generate(runs_dir="runs_gold", out="cohort_figures", strains=None, public_only=False, series="F",
              f13_cohort_manifest=None, f13_cohort_manifest_sha256=None,
              f13_denominator_registry=None, f13_denominator_registry_sha256=None,
-             f13_profile="SINGLE_COLUMN"):
+             f13_profile="SINGLE_COLUMN", privacy_profile=None, canonical_scope=None):
     """Emit the gold gene/domain figure suite. strains: optional explicit order/subset.
     series: F = cross-strain heatmaps (default) | G = complementary (rarity / novelty /
     architecture / similarity) | D = dot/bubble plots | all = F+G+D. A single strain with
@@ -1204,21 +1408,33 @@ def generate(runs_dir="runs_gold", out="cohort_figures", strains=None, public_on
     on every run. Returns dict with output dir, figure count, strain order, and series."""
     if not _HAVE_MPL:
         _require_mpl()
+    if os.path.isdir(out) and os.listdir(out):
+        code = "PUBLIC_FIGURE_OUTPUT_NOT_EMPTY" if public_only else "GOLD_FIGURE_OUTPUT_NOT_EMPTY"
+        raise ValueError(f"{code}: use a fresh output directory")
     os.makedirs(out, exist_ok=True); FIGNUM[0]=0
-    S=load(runs_dir, only=strains, public_only=public_only)
+    privacy_audit = {}
+    S=load(runs_dir, only=strains, public_only=public_only,
+           privacy_profile=privacy_profile, privacy_audit=privacy_audit, canonical_scope=canonical_scope)
+    with open(os.path.join(out, "cohort_privacy_receipt.json"), "w", encoding="utf-8") as stream:
+        json.dump(privacy_audit, stream, indent=2, sort_keys=True)
+        stream.write("\n")
     if not S:
-        return {"out": out, "figures": 0, "strains": [], "note": "no gold packages found"}
+        return {"out": out, "figures": 0, "strains": [], "note": "no eligible gold packages found", "privacy": privacy_audit}
     order=order_strains(S, explicit=strains)
     sel = "all" if str(series).lower() == "all" else str(series).upper()
     want = ["F", "G", "D"] if sel == "all" else [sel]
+    single_result = {}
     if "F" in want:
-        (figs_single(S, order[0], out) if len(order)==1 else figs_multi(
-            S, order, out, f13_cohort_manifest=f13_cohort_manifest,
-            f13_cohort_manifest_sha256=f13_cohort_manifest_sha256,
-            f13_denominator_registry=f13_denominator_registry,
-            f13_denominator_registry_sha256=f13_denominator_registry_sha256,
-            f13_profile=f13_profile,
-        ))
+        if len(order) == 1:
+            single_result = figs_single(S, order[0], out) or {}
+        else:
+            figs_multi(
+                S, order, out, f13_cohort_manifest=f13_cohort_manifest,
+                f13_cohort_manifest_sha256=f13_cohort_manifest_sha256,
+                f13_denominator_registry=f13_denominator_registry,
+                f13_denominator_registry_sha256=f13_denominator_registry_sha256,
+                f13_profile=f13_profile,
+            )
     if "G" in want:
         _run_all_g(S, order, out)
     if "D" in want:
@@ -1226,7 +1442,8 @@ def generate(runs_dir="runs_gold", out="cohort_figures", strains=None, public_on
     pngs=sorted(glob.glob(f"{out}/*.png"))
     # base captions + glossary, regenerated each run (claim-safe, author-refinable)
     try:
-        caption_path = write_captions(out, [os.path.basename(p) for p in pngs])  # defined below (merged from cohort_figure_captions)
+        caption_path = (write_captions(out, [os.path.basename(p) for p in pngs]) if canonical_scope is None
+                        else write_captions(out, [os.path.basename(p) for p in pngs], class_view=canonical_scope["class_view"]))  # defined below (merged from cohort_figure_captions)
         caption_status = "WRITTEN"
         caption_error = None
     except OSError as exc:
@@ -1236,12 +1453,15 @@ def generate(runs_dir="runs_gold", out="cohort_figures", strains=None, public_on
     return {"out": out, "figures": len(pngs), "strains": order,
             "files": [os.path.basename(p) for p in pngs], "series": sel,
             "caption_status": caption_status, "caption_path": caption_path,
-            "caption_error": caption_error}
+            "caption_error": caption_error, "privacy": privacy_audit,
+            "identity_holds": single_result.get("identity_holds", [])}
 
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument("--runs-dir",default="runs_gold"); ap.add_argument("--out",default="out/figures3")
     ap.add_argument("--strains",default=None); ap.add_argument("--public-only",action="store_true")
+    ap.add_argument("--privacy-profile", default=None,
+                    help="Exact-ID public authority for legacy PUBLIC packages; stored PRIVATE stays private")
     ap.add_argument("--f13-cohort-manifest", default=None,
                     help="Hash-bound F13 cohort-manifest JSON; omit to emit an F13 HOLD receipt")
     ap.add_argument("--f13-cohort-manifest-sha256", default=None,
@@ -1258,7 +1478,7 @@ def main():
                f13_cohort_manifest_sha256=a.f13_cohort_manifest_sha256,
                f13_denominator_registry=a.f13_denominator_registry,
                f13_denominator_registry_sha256=a.f13_denominator_registry_sha256,
-               f13_profile=a.f13_profile)
+               f13_profile=a.f13_profile, privacy_profile=a.privacy_profile)
     emit(f"strains ({len(r['strains'])}): {r['strains']}", f"{r['figures']} figures -> {r['out']}", sep="\n")
     for f in r.get("files",[]): emit("  ",f)
 
@@ -1301,14 +1521,10 @@ def place_labels(ax, pts):
                             ha="center",arrowprops=dict(arrowstyle="-",color="#999",lw=0.6))
 
 def soft_div_x(ax, order, y):
-    npriv=sum(1 for s in order if is_private(s)); ndiv=len(order)-npriv
-    # v9.7.222: PUBLIC/PRIVATE divider removed — AS cohort public at publication.
+    """Compatibility no-op: no implicit public/private ordering divider."""
 
 def _load_inv_d(S, order):
-    inv={}
-    for s in order:
-        f=glob.glob(f"{S[s]['pkg']}/*_2_inventory.csv"); inv[s]=list(csv.DictReader(open(f[0], encoding="utf-8"))) if f else []
-    return inv
+    return {s: _inventory_rows(S[s]) for s in order}
 
 def bubble_matrix(rows, order, count_fn, color_fn, title, fid, OUT, clab, slab, cmap="viridis", color_is_count=False):
     """rows: list of row keys; count_fn(row,s)->size count; color_fn(row,s)->color value or None."""
@@ -1405,7 +1621,7 @@ def build(S, order, OUT):
             if not b: continue
             xs.append(L[(s,bid)]); ys.append(int(b.get("total_domains") or 0))
             d03.append([s,bid,L[(s,bid)],ys[-1]])
-        priv=is_private(s)
+        priv=is_private(s, S)
         ax.scatter(xs,ys,s=70 if priv else 26,marker="D" if priv else "o",color=pal[gi],alpha=0.75,
                    edgecolor="#222",linewidth=0.8 if priv else 0.3,label=f"{genus(s).split()[0]} {s}"+(" (PRIV)" if priv else ""))
     ax.set_xlabel("BGC region length (kb)"); ax.set_ylabel("domains per BGC")
@@ -1449,7 +1665,7 @@ def build(S, order, OUT):
     pts=[]; d05=[]
     for s in order:
         ms=S[s]["ms"]; raw=int(read_manifest_field("raw_bgcs", manifest_short=ms, default=0)); cor=float(read_manifest_field("corrected_bgcs", manifest_short=ms, default=0)); dh=len(S[s]["deep"].get("domain_hits",[]))
-        priv=is_private(s); tier=read_manifest_field("assembly_tier", manifest_short=ms, default="UNKNOWN")
+        priv=is_private(s, S); tier=read_manifest_field("assembly_tier", manifest_short=ms, default="UNKNOWN")
         ax.scatter(raw,cor,s=60+dh/12,marker="D" if priv else "o",color=TCOLOR.get(tier,"#999"),
                    edgecolor="#111",linewidth=1.2 if priv else 0.7,zorder=3)
         pts.append((raw,cor,s)); d05.append([s,raw,cor,dh,tier,"PRIVATE" if priv else ""])
@@ -1475,7 +1691,7 @@ def build(S, order, OUT):
         if any(v>0 for v in ys): _pos_kcb=True
         nohit=sum(1 for r in inv[s] if not KCB.get((s,r.get("BGC_ID"))))
         xs=j+rng.uniform(-0.18,0.18,size=len(ys))
-        ax.scatter(xs,ys,s=20,marker="D" if is_private(s) else "o",
+        ax.scatter(xs,ys,s=20,marker="D" if is_private(s, S) else "o",
                    color=TCOLOR.get(S[s]["ms"]["assembly_tier"],"#999"),alpha=0.6,edgecolor="#222",linewidth=0.2)
         ax.text(j,1.5,f"{nohit} no-hit",ha="center",fontsize=6.5,color="#777",rotation=90)
     # no positive KCB score anywhere -> log scale would raise; stay linear and note it
@@ -1500,7 +1716,7 @@ def build(S, order, OUT):
             for t in (b.get("cctt_triggers") or "").split(","):
                 t=t.strip()
                 if t and t not in COMMON: rare_tr.add(t)
-        raw=int(S[s]["ms"]["raw_bgcs"]); priv=is_private(s)
+        raw=int(S[s]["ms"]["raw_bgcs"]); priv=is_private(s, S)
         ax.scatter(raw,len(rare_tr),s=90,marker="D" if priv else "o",color=TCOLOR.get(S[s]["ms"]["assembly_tier"],"#999"),
                    edgecolor="#111",linewidth=1.1 if priv else 0.7,zorder=3)
         pts.append((raw,len(rare_tr),s)); d07.append([s,raw,len(rare_tr),";".join(sorted(rare_tr))])
@@ -1563,7 +1779,7 @@ def build(S, order, OUT):
             mod=int(b.get("PKS_KS") or 0)+int(b.get("NRPS_C") or 0); tta=int(b.get("tta_codons") or 0)
             xs.append(mod+rng.uniform(-0.2,0.2)); ys.append(tta+rng.uniform(-0.2,0.2))
             d11.append([s,b.get("bgc_id"),mod,tta])   # the values before display jitter
-        priv=is_private(s)
+        priv=is_private(s, S)
         ax.scatter(xs,ys,s=55 if priv else 20,marker="D" if priv else "o",color=pal[gi],alpha=0.7,
                    edgecolor="#222",linewidth=0.6 if priv else 0.2,label=f"{s}"+(" (PRIV)" if priv else ""))
     ax.set_xlabel("megasynthase modules per BGC (PKS-KS + NRPS-C)"); ax.set_ylabel("TTA codons per BGC (bldA-dependency)")
@@ -1595,8 +1811,7 @@ def stamp_g(fig, fid):
     return f"G{GNUM[0]:02d}_{fid}"
 
 def soft_div(ax, order):
-    npriv=sum(1 for s in order if is_private(s)); ndiv=len(order)-npriv
-    # v9.7.222: PUBLIC/PRIVATE divider removed — AS cohort public at publication.
+    """Compatibility no-op: no implicit public/private ordering divider."""
 
 # --- v9.7.437 PATCH_07: cap matrix-panel geometry -------------------------------------------------
 # hmap() and bubble_matrix() sized a panel at a fixed number of inches per strain with no upper
@@ -1672,30 +1887,21 @@ def hmap(mat, rowlabs, order, title, fid, OUT, cbar="count", cmap="magma_r", log
     )
     ax.set_yticks(range(len(rowlabs))); ax.set_yticklabels(rowlabs,fontsize=8.5); ax.tick_params(length=0)
     if annot:
-        mx=(np.nanmax(mat) if mat.size and not np.all(np.isnan(mat)) else 0) or 1   # empty/all-NaN-safe (audit follow-on)
         for i in range(mat.shape[0]):
             for j in range(mat.shape[1]):
                 v=mat[i,j]
-                if v==0: ax.text(j,i,"0",ha="center",va="center",fontsize=6.5,color="#ccc"); continue
+                if not np.isfinite(v):
+                    continue
                 t=f"{v:.0f}" if abs(v-round(v))<1e-6 else f"{v:.1f}"
-                dark=(lognorm and v>mx*0.10) or (not lognorm and v>mx*0.55)
-                ax.text(j,i,t,ha="center",va="center",fontsize=7,color="white" if dark else "#111")
+                ax.text(j,i,t,ha="center",va="center",fontsize=7,color=_heatmap_cell_text_colour(im,v))
     soft_div(ax,order); ax.set_title(title,pad=24)
     cb=fig.colorbar(im,ax=ax,fraction=0.024,pad=0.012); cb.set_label(cbar,fontsize=9)
     fname=stamp_g(fig,fid); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
     sidecar(f"{OUT}/{fname}_data.csv",["row"]+list(order),[[(row_raw or rowlabs)[i]]+list(mat[i]) for i in range(len(rowlabs))])
 
 def _load_inv_g(S, order):
-    """per-strain list of inventory rows (Boundary, Length_kb, KCB_top, KCB_score, Products, Node_ID)."""
-    inv={}
-    for s in order:
-        f=glob.glob(f"{S[s]['pkg']}/*_2_inventory.csv")
-        if f:
-            with open(f[0], encoding='utf-8') as fh:
-                inv[s]=list(csv.DictReader(fh))
-        else:
-            inv[s]=[]
-    return inv
+    """Saved inventories, or the bound canonical public class-view projection."""
+    return {s: _inventory_rows(S[s]) for s in order}
 
 # ---------------- BATCH 1: rarity & novelty ----------------
 def batch1(S, order, OUT):
@@ -1838,7 +2044,7 @@ def batch3(S, order, OUT):
     with np.errstate(invalid="ignore", divide="ignore"):
         sim=np.corrcoef(Mc)                        # Pearson across strains -> discriminative
     sim=np.nan_to_num(sim, nan=0.0)               # zero-variance rows -> 0 correlation, not NaN
-    npriv=sum(1 for s in order if is_private(s)); ndiv=len(order)-npriv
+    npriv=sum(1 for s in order if is_private(s, S)); ndiv=len(order)-npriv
     fig,ax=plt.subplots(figsize=(max(8,1.0*len(order)+4),max(6,0.8*len(order)+3)),constrained_layout=True)
     off=sim[~np.eye(len(order),dtype=bool)]
     im=ax.imshow(sim,aspect="auto",cmap="YlGnBu",vmin=off.min(),vmax=1)
@@ -1981,7 +2187,7 @@ def batch4(S, order, OUT):
             if rare_tr:
                 rows.append([s, b["bgc_id"], node.get((s,b["bgc_id"]),"?"),
                              ", ".join(rare_tr)[:46], (prod.get((s,b["bgc_id"]),"") or "")[:34]])
-    rows.sort(key=lambda r:(is_private(r[0]), order.index(r[0]) if r[0] in order else 99, r[1]))
+    rows.sort(key=lambda r:(is_private(r[0], S), order.index(r[0]) if r[0] in order else 99, r[1]))
     n=len(rows); fig_h=max(4, 0.30*n+1.6)
     fig,ax=plt.subplots(figsize=(13,fig_h),constrained_layout=True); ax.axis("off")
     cols=["strain","BGC","node/contig","rare trigger(s)","product class"]
@@ -1993,7 +2199,7 @@ def batch4(S, order, OUT):
         if ri==0:
             cell.set_facecolor("#2a3d66")
             cell.set_text_props(color="white",fontweight="bold")
-        elif rows and ri-1<len(rows) and is_private(rows[ri-1][0]):
+        elif rows and ri-1<len(rows) and is_private(rows[ri-1][0], S):
             cell.set_facecolor("#fdeaea")
     ax.set_title(f"Rare-BGC roster — {n} BGCs carrying a rare diagnostic trigger (node/contig listed; "
                  f"PRIVATE rows shaded)",pad=12,fontsize=12,fontweight="bold")
@@ -2113,16 +2319,18 @@ GLOSSARY = {
         "TTA / bldA: TTA codons depend on the bldA tRNA; TTA-rich BGCs are candidate developmentally regulated clusters in actinomycetes.",
         "Boundary (Interior/Edge/Full-contig) and corrected count = Interior + 1/2*Edge + 1/4*Full-contig: discounts BGCs truncated by assembly fragmentation.",
         "Assembly tiers: GOOD >=70% / MODERATE >=45% / POOR >=20% / VERY_POOR <20% interior BGCs.",
-        "PUBLIC (SID/WW) vs PRIVATE (AJS-/PENDING-): release guard; any figure set containing a private strain is PRIVATE.",
+        "PUBLIC admission requires recorded release authority or an exact bound profile assignment; folder names and identifier prefixes are not authority.",
     ],
 }
 
 
-def write_captions(out, png_names):
+def write_captions(out, png_names, *, class_view=None):
     """Write figure_captions.md into <out>, covering the PNGs present (by stem lookup)."""
     lines = ["# Figure captions (base / regenerable)", "",
              "_Auto-generated base captions. Claim-safe: capacity & inferred predictions, not product identity. "
              "KCB = similarity, not identity. Refine for the manuscript as needed._", ""]
+    if class_view is not None:
+        lines += [f"Selected saved-evidence class view: `{class_view}`. Class panels count each BGC once per selected canonical class; all normalizations use only this admitted public subset.", ""]
     series = {"F": [], "G": [], "D": []}
     for n in sorted(png_names):
         m = re.match(r"([FGD])(\d+)_(.+)\.png$", n)

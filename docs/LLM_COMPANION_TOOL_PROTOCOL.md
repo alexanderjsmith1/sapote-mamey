@@ -105,14 +105,24 @@ Use a new report destination outside the bundle, policy and supplied evidence. `
 
 ## Resource policy
 
-- The default budget is one core per tree. For GToTree 1.8, make `-j 1 -n 1 -M 1`
-  explicit. The v2 runner uses `-j 1 -M 1` without `-n`; reconcile version-specific help.
-  For `phylo-run`, specify `--threads 1 --parallel 1 --iqtree-threads 1`: its source
-  defaults (four threads, two parallel jobs) do not implement this default budget.
-  The planner also supports `--threads-per-tree` 1–4 within its recorded total ceiling;
-  a larger per-tree budget must match the existing user authorization.
+- The legacy v1 default is one core per tree. For GToTree 1.8.19, make `-j 1 -n 1 -M 1`
+  explicit. Shared v2 planner/runner argv omits `-n` and checks detailed help with `-s`.
+  Native v2 separately requires an admitted source/runtime profile and fresh probe;
+  the reviewed HMM search requests two workers per genome job. Its requested phase
+  bound is `max(2 * jobs, jobs * muscle_threads)`, so even serial `-j 1 -M 1` needs
+  an explicit admitted CPU budget of at least two within observed capacity. This
+  requested-worker bound is not a total operating-system CPU/thread measurement.
+  For the legacy `phylo-run` wrapper, specify `--threads 1 --parallel 1 --iqtree-threads 1`.
+  It does not expose native v2 runtime/plan/CPU-budget options. Use the governed planner
+  recipe or `tools/run_planned_tree.py` with `--gtotree-cpu-budget <approved-budget>`
+  and the explicit runtime bindings for native v2. Serial MUSCLE/IQ-TREE controls do
+  not reduce its fixed HMM request to one. The planner supports
+  `--threads-per-tree` 1–4 within its recorded total ceiling; any larger budget
+  must match the existing user authorization.
 - IQ-TREE uses one thread per tree (`-T 1` or the locally verified equivalent).
-- At most four one-core tree jobs may run concurrently. Never assume unused logical CPUs are free.
+- At most four one-core tree jobs may run concurrently on the legacy v1 route. Governed v2
+  concurrency is derived from its admitted phase bound and recorded total budget, not four
+  nominal one-core jobs. Never assume unused logical CPUs are free.
 - BiG-SCAPE defaults to one core for interactive work; two is the balanced option; four is the
   surfaced ceiling. Record the actual setting.
 - Do not use detached `setsid`, `nohup`, background `&`, or an unattended parallel fan-out as the
@@ -146,10 +156,15 @@ A run is `COMPLETE` only after all of the following are recorded:
 
 Zero exit is necessary, not sufficient for a requested figure: `phylo_place.py report`
 can return zero while holding a figure, skipping a caption or omitting an unavailable
-advisory sign-off helper. Check actual artifacts and warning text. The generated planner
-`COMMAND.sh` contains an approval comment but no executable check of `RUN_STATE.json`;
-approval remains an operator responsibility. The separate runner's `--approved` flag
-records an affirmation, rather than authenticating or importing the planner approval.
+advisory sign-off helper. Check actual artifacts and warning text. The legacy v1 planner
+`COMMAND.sh` contains an approval comment but no executable `RUN_STATE.json` check;
+operator approval remains required on that route. The governed native v2 recipe invokes
+`run_planned_tree.py --plan-dir <run>`: before native execution it checks the bound
+`RUN_STATE.json` has `approved=true` and the matching run ID, requires the separate
+`--approved` affirmation, revalidates the plan/input/mapping roster and resource profile,
+and uses a fresh explicit software-probe directory. Standalone runner `--approved`
+without `--plan-dir` does not import planner approval. These records bind declared
+operator approval; they are not authentication of a human identity.
 See [companion run contracts](COMPANION_RUN_CONTRACTS.md) for source-backed boundaries.
 
 A failed historical run row may remain in a database. Do not delete it merely to make the history

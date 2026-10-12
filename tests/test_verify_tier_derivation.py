@@ -13,6 +13,8 @@ SID numbers (SID8370/8371/8375) in prose.
 """
 from __future__ import annotations
 
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+
 import sys
 import pathlib
 
@@ -80,7 +82,7 @@ def test_redact_py_leaves_sid_untouched():
 def test_path_level_derivation_keeps_python_byte_identical():
     from verify_tier_derivation import redact
 
-    text = 'HOST_GROUPS = {"AS-103": "ATTINE_ANT"}\n'
+    text = ('HOST_GROUPS = {"' + synthetic_namespace_id('AS', width=3, case_index=917, separator=True) + '": "ATTINE_ANT"}\n')
     assert redact("mamey/widget_data.py", text) == text
 
 

@@ -65,7 +65,7 @@ RESDIR = BASE / "results"
 LEDGER = BASE / "_ledger.csv"
 LOG = BASE / "_run.log"
 URL = "https://blast.ncbi.nlm.nih.gov/Blast.cgi"
-UA = "SapoteMamey-LabQuest-nr-runner/1.0 (polite serial cohort BLASTp)"
+UA = "SapoteMamey-nr-runner/1.0 (polite serial cohort BLASTp)"
 
 # ── crawl_manifest heartbeat (v9.7.428) ──────────────────────────────────
 # Derive the manifest lane name from RID_BASE (e.g. "_NR_CLNR_GAP_A" → "A").
@@ -327,8 +327,15 @@ def submit(fasta_text: str) -> tuple[str, int]:
 
 def status(rid: str) -> str:
     q = urllib.parse.urlencode({"CMD": "Get", "FORMAT_OBJECT": "SearchInfo", "RID": rid})
-    m = re.search(r"Status=(\w+)", _curl([f"{URL}?{q}"], 30))
-    return m.group(1) if m else "UNKNOWN"
+    out = _curl([f"{URL}?{q}"], 30)
+    m = re.search(r"Status=(\w+)", out)
+    if not m:
+        # A reply with no Status= line is not an answer about this RID. NCBI's outage page
+        # ("Temporarily unavailable", HTTP 200, 24 bytes) took 88 live searches to "expired" on
+        # 2026-10-09 when it was read as UNKNOWN. Raise instead, so the poll counts as an error,
+        # the RID stays in flight and the next check backs off.
+        raise TransportUnverified(f"no Status= in reply: {out.strip()[:60]!r}", out)
+    return m.group(1)
 
 def fetch_xml2(rid: str) -> str:
     q = urllib.parse.urlencode({"CMD": "Get", "RID": rid, "FORMAT_TYPE": "XML2_S"})

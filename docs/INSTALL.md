@@ -42,7 +42,12 @@ python -m pip install -e '.[figures,documents,bio]'
 ```
 
 The `figures`, `documents`, and `bio` extras can be installed one at a time; `.[all]` is the
-combined convenience extra. Some workflows also need system tools or reference datasets. Follow
+combined convenience extra. `figures` includes `dna-features-viewer` for gene-arrow
+diagrams, `pycirclize` for the native atlas route, and Biopython for those routes' GenBank
+parsing. The `bio` extra remains a compatible way to request Biopython without plotting.
+The two plotting libraries currently have no declared version interval; this is an optional
+dependency declaration, not a tested compatibility range or a record of versions used.
+Some workflows also need system tools or reference datasets. Follow
 [PREREQUISITES](PREREQUISITES.md) and the [external assets guide](EXTERNAL_ASSETS_GUIDE.md), then
 check the diagnostics of the command you want to use. If HMM evidence or another evidence
 channel is unavailable, it stays recorded as missing; a fallback does not count as that scan
@@ -65,7 +70,12 @@ python -m pip install --no-index --find-links /path/to/wheels -e .
 
 If you have the separate Sapote add-on archive, follow its inventory and platform requirements.
 Its optional installer is `bash bundle_support/install_sapote_addons.sh`; still check the core
-installation afterwards. A Linux x86_64 `cp312` wheel is not a macOS arm64 wheel, and a wheel for
+installation afterwards. That installer requests its figure/analysis group on a best-effort
+basis and reports optional imports separately; a successful core check does not prove that
+all figure libraries installed or a renderer ran. It uses an offline wheel pool by default;
+`--online` explicitly permits the documented missing-wheel fallback. For an offline extras
+install, select the desired extras in the command above, for example `-e '.[figures]'`,
+and supply the complete compatible wheel set including transitive dependencies. A Linux x86_64 `cp312` wheel is not a macOS arm64 wheel, and a wheel for
 one Python ABI does not work on another. Do not rename wheel tags to make them look compatible.
 
 ### Optional documents wheelhouse preflight
@@ -106,9 +116,9 @@ environment; it is not an analysis or a release approval.
 
 `doctor` reports selected dependency names, executable discovery, dataset status and bundle-file presence. Finding a module does not prove it imports or that its workflow produces valid output. Its Python diagnostic uses an older threshold than the current installation requirement; follow the selected bundle's declared Python minimum. Missing optional items and warnings remain relevant even when the command returns success. Verify the specific tool/data/renderer route you need rather than treating a “ready” line as end-to-end admission.
 
-This command performs a write test beneath the bundle directory, using `runs/_doctor_probe/probe.txt`. It is not a purely read-only environment check. Before running it, confirm that `runs/_doctor_probe` does not already exist. A pre-existing `probe.txt` can be overwritten and deleted, and an emptied probe directory can be removed. If that reserved path exists or the bundle is preserved evidence/read-only, keep it untouched and choose an authorized editable working installation for diagnostics. The test checks the bundle's `runs/` location, not an arbitrary destination supplied to a later workflow.
+This command performs a write test beneath the bundle directory, using `runs/_doctor_probe/probe.txt`; `start` also runs it unless `--no-doctor` is supplied. It is not a purely read-only environment check. An occupied or symlink probe path is refused without touching its contents; a symlink `runs/` is also refused. Probe directory and file creation are exclusive. Cleanup removes only paths created by that invocation whose filesystem identity still matches, including a newly created `runs/` only when empty. A pre-existing `runs/` is preserved. Use an authorized editable working installation rather than preserved code evidence. The test checks the bundle's `runs/` location, not an arbitrary destination supplied to a later workflow.
 
-Keep the original bundle and source evidence intact. After a failed write probe, preserve its diagnostic text and inspect any residual probe path before retrying; do not remove a pre-existing directory merely to make the check pass. The source-owner repair is a uniquely allocated temporary probe with cleanup limited to files created by that invocation.
+Keep the original bundle and source evidence intact. After a failed write probe, preserve its diagnostic text and inspect any residual probe path before retrying; do not remove a pre-existing directory merely to make the check pass. The reserved probe is created exclusively, with cleanup limited to paths created by that invocation; concurrent adversarial filesystem mutation is not a supported execution model.
 
 Sources: `mamey/cli.py:4744–4865`; the current installation/runtime requirement remains authoritative.
 

@@ -2,7 +2,7 @@
 
 Asserts the SHIPPED `tools/tree_sanity_check.py` (post-398) behaviour:
   A correct sister-genus outgroup (long branch to *_OUTGROUP, tight ingroup) -> PASS (was the false-FAIL bug)
-  B bad ingroup query (AS-150 dominates, non-outgroup)                        -> FAIL (true defect still caught)
+  B bad ingroup query (AS-972 dominates, non-outgroup)                        -> FAIL (true defect still caught)
   C no outgroup tag, real dominator                                          -> FAIL (backward compatible)
   D outgroup present AND a real ingroup dominator                            -> FAIL (exemption never masks it)
   E untagged outgroup exempted only via an explicit --outgroup token or identity
@@ -22,9 +22,9 @@ if str(_TOOLS) not in sys.path:
 import tree_sanity_check as tsc  # noqa: E402
 
 OUTGROUP_OK = "((A:0.01,B:0.01):0.01,(C:0.01,D:0.01):0.01,Rhodococcus_erythropolis_OUTGROUP:0.31);"
-BAD_QUERY = "((A:0.01,B:0.01):0.01,(C:0.01,AS-150:0.33):0.01,Ref_OUTGROUP:0.08);"
+BAD_QUERY = "((A:0.01,B:0.01):0.01,(C:0.01,AS-972:0.33):0.01,Ref_OUTGROUP:0.08);"
 NO_OUTGROUP_DOMINATOR = "((A:0.01,B:0.01):0.01,(C:0.01,D:0.01):0.01,E:0.40);"
-OUTGROUP_PLUS_QUERY = "((A:0.01,AS-150:0.35):0.01,(C:0.01,D:0.01):0.01,Ref_OUTGROUP:0.31);"
+OUTGROUP_PLUS_QUERY = "((A:0.01,AS-972:0.35):0.01,(C:0.01,D:0.01):0.01,Ref_OUTGROUP:0.31);"
 
 
 def _tree(tmp_path, newick, name):
@@ -42,7 +42,7 @@ def test_A_correct_outgroup_passes(tmp_path):
 def test_B_bad_query_fails(tmp_path):
     ok, msg = tsc.check(_tree(tmp_path, BAD_QUERY, "bad_query"))
     assert ok is False, f"bad ingroup query MUST FAIL:\n{msg}"
-    assert "AS-150" in msg
+    assert "AS-972" in msg
 
 
 def test_C_no_outgroup_dominator_fails(tmp_path):
@@ -53,7 +53,7 @@ def test_C_no_outgroup_dominator_fails(tmp_path):
 def test_D_exemption_never_masks_ingroup_dominator(tmp_path):
     ok, msg = tsc.check(_tree(tmp_path, OUTGROUP_PLUS_QUERY, "outgroup_plus_query"))
     assert ok is False, f"exemption must not hide a real ingroup dominator:\n{msg}"
-    assert "AS-150" in msg
+    assert "AS-972" in msg
     assert "outgroup-exempt" in msg
 
 

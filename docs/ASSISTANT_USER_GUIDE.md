@@ -19,6 +19,7 @@ You can ask for a small result. Supplying a large package does not commit you to
 |---|---|---|
 | What is in this software bundle? | Code ZIP or repository | Static inventory, capabilities, risks and setup requirements |
 | What clusters were detected in this strain? | Its antiSMASH result ZIP | Extraction, validation, inventory and missing-evidence summary |
+| Can you make figures from these results? | Validated packages or admitted companion outputs, the question and selected strains/loci | Selected figures, plotted data, captions/Methods facts, source receipts and visual review; [figure entry guide](FIGURES_START_HERE.md) |
 | Which leads deserve a closer look? | Validated package and relevant assay context | Evidence-backed triage with uncertainty and next experiments clearly separated |
 | What supports this one cluster's interpretation? | Package and full locus identity | A selected Mode B profile/card, with channel-specific evidence and open questions |
 | How do these strains compare? | Selected packages and authoritative strain/master records | A defined comparison with cohort membership, denominators and exclusions |
@@ -119,6 +120,47 @@ separate. A missing channel should remain a typed gap, not be filled with plausi
 Measured sequence identity is not compound identity. Domain evidence supports hypotheses about
 biochemistry; stronger claims need the corresponding experimental evidence. Report a failed search
 as failed, an unrun search as unrun, and a real no-hit result with the search conditions that define it.
+
+## Turn evidence into a report you can review
+
+Use the assistant to connect observations, explain disagreements and propose interpretations at the
+level the evidence supports. Begin with a short evidence brief for the question you actually need
+answered. A bounded brief can be useful before a complete Mode B card is ready; label its scope and
+open evidence channels explicitly. A selected finished card still follows its named profile and
+[emit–author–verify workflow](MODE_B_USER_WALKTHROUGH.md).
+
+Ask for three reviewable parts:
+
+1. **Evidence brief:** two to four sentences stating the main observations, their interpretation,
+   the strongest limitation and the question that remains. Preserve source numbers and channel names.
+2. **Claim-to-source table:** one row per substantive claim, with its complete locus identity,
+   exact file and row/record/section locator, source checksum, observation or inference, and
+   uncertainty. A file hash binds bytes; inspect the cited record to establish that it supports the
+   claim. Give independently supported competing explanations their own rows.
+3. **Review questions:** the missing evidence or conflicting result that would change the conclusion,
+   and the specific decision you need to make. Mark each proposed claim as awaiting review,
+   accepted, revised or withheld only according to the review actually performed.
+
+A reusable request:
+
+> Using the validated package at [path] and the admitted evidence at [paths], prepare a short
+> evidence brief for [question and complete locus identity]. Give me two to four factual sentences,
+> followed by a claim-to-source table and the unresolved questions. Separate observations from
+> interpretations and retain disagreement between evidence channels. Keep unsupported or unbound
+> claims explicit. Preserve the original evidence and save the brief in [review folder]. I will
+> review the wording and decide which claims to retain.
+
+This request uses existing package evidence and ordinary authoring files; it does not invoke an LLM
+service or submit data automatically. Record the actual model/version when available, prompt,
+accessed evidence and human edits if you use an LLM. Leave unavailable model details unresolved.
+For an updated source, compare hashes and the affected claim rows before reusing earlier prose;
+a previous accepted paragraph does not establish support from the new source.
+
+After authoring, retain the actual verification findings and the reviewed file separately from its
+template. Persist a selected card through the [receipt workflow](MODE_B_USER_WALKTHROUGH.md), then
+check the judgment register and any explicitly requested master-workbook update independently.
+Keep scientific review, card persistence and workbook reconciliation visible as separate outcomes.
+A saved card or a structural pass does not establish human scientific acceptance.
 
 ## Decide whether external work is worth doing
 

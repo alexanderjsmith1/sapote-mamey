@@ -77,6 +77,8 @@ def _make_gold_package(tmp_path: pathlib.Path,
         "taxonomy": "Streptomyces sp.",
     }))
 
+    from ._gold_identity_fixture import bind_synthetic_gold_package
+    bind_synthetic_gold_package(pkg, strain_id)
     return pkg
 
 

@@ -31,7 +31,8 @@ challenge_response:
 workflow:
   display_lines:
   - doctor → inspect → run(gold + --capped-session) → validate
-  - → list-bgcs → mode-b → render-figures → ingest-receipts
+  - → list-bgcs → render-figures → review figures and evidence → captions/Methods facts;
+  - 'optional cards: mode-b → emit-modeb-template → author → verify-modeb → ingest-receipts; guide when requested'
   first_run_default:
     command: python mamey_run.py run --mode gold --capped-session --json-evidence off ...
     rationale: Use capped-session defaults when session limits apply; inspect the input before running and
@@ -48,20 +49,22 @@ workflow:
     required_before: validate
   - id: validate
     command: python mamey_run.py validate <package>
-    required_before: interpretation
+    required_before: render_figures
   - id: gap_rescue
     command: python mamey_run.py gap-rescue --strain <ID> --input-zip <antiSMASH.zip> --out <folder outside the
       bundle>
     optional: true
   - id: list_bgcs
     command: python mamey_run.py list-bgcs <package> --axis ab/af --top 10
-  - id: mode_b
-    command: python mamey_run.py mode-b --package <package> --top-n <N> --outdir mode_b/
   - id: render_figures
     command: python mamey_run.py render-figures --package <package> --outdir figures/ --top-n 10
+  - id: mode_b
+    command: python mamey_run.py mode-b --package <package> --top-n <N> --outdir mode_b/
+    optional: true
   - id: ingest_receipts
     command: python mamey_run.py ingest-receipts --package <package> --receipt mode_b_receipt.json --master
       <master.xlsx>
+    optional: true
 bootstrap_surfaces:
 - path: AGENTS.md
   role: canonical_agent_contract

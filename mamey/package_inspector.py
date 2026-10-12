@@ -205,7 +205,9 @@ def inspect_command(args) -> int:
     # Derive a ChatGPT-safe suggested strain name from the ZIP filename.
     strain_guess = _inspect_strain_guess(zip_path)
 
-    report_lines.extend([f'\n  Capped-session run command (gold is the only analysis mode):', f'    python mamey_run.py run \\', f'        --strain {strain_guess} \\', f'        --input-zip {shlex.quote(str(zip_path))} \\', f'        --taxonomy "<Genus species>" \\', f'        --source "<isolation source>" \\', f'        --mode gold \\', f'        --release <PUBLIC|PRIVATE> \\', f'        --capped-session \\', f'        --json-evidence off \\', f'        --brief none', f'    Then validate: python mamey_run.py validate <outdir>/{strain_guess}/package'])
+    report_lines.extend([f'\n  Capped-session run command (gold is the only analysis mode):', f'    python mamey_run.py run \\', f'        --strain {strain_guess} \\', f'        --input-zip {shlex.quote(str(zip_path))} \\', f'        --taxonomy "<Genus species>" \\', f'        --source "<isolation source>" \\', f'        --mode gold \\', f'        --release PRIVATE \\', f'        --capped-session \\', f'        --json-evidence off \\', f'        --brief none', f'    Then validate: python mamey_run.py validate <outdir>/{strain_guess}/package'])
+
+    report_lines.extend(["    Release policy: this suggested command uses PRIVATE. For reviewed public inputs, replace with --release PUBLIC.", "    For an exact public privacy-profile assignment, omit --release and provide --privacy-profile <path>."])
 
     if not json_files:
         report_lines.extend([f'\n  ⚠  No JSON evidence found. The run command above already uses --json-evidence off.'])
@@ -221,6 +223,59 @@ def inspect_command(args) -> int:
 # ---------------------------------------------------------------------------
 # B6: explain — human-readable summary of an existing package
 # ---------------------------------------------------------------------------
+
+def _explain_board_for_leads(pkg, summary, manifest):
+    """Admit the same-package native board without deriving strain from a path.
+
+    A board-level ambiguity holds all lead labels. A lead-level conflict holds
+    only that lead; other admitted records remain available for explanation.
+    """
+    strains = [data.get("strain_id") for data in (summary, manifest)
+               if "strain_id" in data]
+    if (not strains or any(not isinstance(s, str) or not s.strip() for s in strains)
+            or len({s.strip() for s in strains}) != 1):
+        return None, {}, "package strain missing or conflicting"
+    strain = strains[0].strip()
+    boards = sorted(pkg.glob("*_4_triage_board.csv"))
+    if (len(boards) != 1 or boards[0].name != f"{strain}_4_triage_board.csv"
+            or boards[0].is_symlink() or boards[0].resolve().parent != pkg.resolve()):
+        return None, {}, "native board missing, ambiguous or unbound"
+    try:
+        board_strain, rows = _read_bgc_board(boards[0])
+    except (OSError, UnicodeError, csv.Error, ExactLocusIdentityError):
+        return None, {}, "native board identity not admitted"
+    if board_strain != strain:
+        return None, {}, "native board strain conflicts with package"
+    return strain, {row["BGC_ID"].strip(): row for row in rows}, None
+
+
+def _explain_lead_label(lead, strain, rows, board_hold):
+    """Bind a summary's alias AND full contig to one complete native source row."""
+    if board_hold:
+        return f"IDENTITY_HOLD ({board_hold})"
+    if not isinstance(lead, dict):
+        return "IDENTITY_HOLD (malformed lead)"
+    row = rows.get(str(lead.get("bgc_id", "")).strip())
+    if row is None or str(lead.get("contig", "")).strip() != row["Contig"].strip():
+        return "IDENTITY_HOLD (lead alias/full contig not bound to native board)"
+    identity_fields = {
+        "strain", "strain_id", "Strain", "Strain_ID", "BGC_ID", "bgc_id",
+        "bgc_alias", "BGC_alias", "Full_Node_ID", "full_node_or_contig",
+        "full_node", "Node_ID", "node_id", "node", "Contig", "contig",
+        "antiSMASH_Region", "antismash_region", "region", "Region",
+    }
+    merged = dict(row)
+    for key in identity_fields.intersection(lead):
+        value = "" if lead[key] is None else str(lead[key]).strip()
+        if (value.lower() in {"", "?", "-", "na", "n/a", "nan", "none", "null", "unknown"}
+                or (key in row and value != str(row[key]).strip())):
+            return "IDENTITY_HOLD (missing or conflicting lead identity component)"
+        merged[key] = value
+    try:
+        return exact_locus_from_native_inventory_row(strain, merged).exact_locus
+    except ExactLocusIdentityError:
+        return "IDENTITY_HOLD (lead identity conflicts with native board)"
+
 
 def explain_command(args) -> int:
     """Print a plain-language summary of an existing Mamey result package.
@@ -270,8 +325,12 @@ def explain_command(args) -> int:
                   or man.get("mode") or ms.get("mode")
                   or (man.get("run_context") or {}).get("mode") or "?")
 
+    from .report_release_policy import policy_for_package, describe_policy, guidance
+    policy = policy_for_package(pkg, strain_id)
+
     top_ab = ms.get("top_3_ab") or []
     top_af = ms.get("top_3_af") or []
+    lead_strain, lead_rows, lead_hold = _explain_board_for_leads(pkg, ms, man)
 
     # Read issues from issue_log.md
     issues = []
@@ -284,14 +343,25 @@ def explain_command(args) -> int:
     report_lines = []
     report_lines.extend([f'\nMamey explain — {strain_id}', f"{'─' * 55}", f'  Status        : {status}', f'  Taxonomy      : {tax}', f'  Source        : {source}', f'  Mode          : {mode}   Mamey v{mamey_ver}', f'  Assembly tier : {asm_tier}' + (f'  ({int_pct}% interior)' if int_pct is not None else ''), f'  Raw BGCs      : {raw_bgcs}', f'  Corrected BGCs: {corrected}'])
 
+    from .rrefinder_status import read_package_state, describe_state
+    report_lines.append("  " + describe_state(read_package_state(pkg, strain_id)))
+    from .json_evidence_state import read_package_state as read_json_state, describe as describe_json
+    report_lines.append("  " + describe_json(read_json_state(pkg, strain_id)))
+
+    report_lines.append("  " + describe_policy(policy))
+
     if top_ab:
         report_lines.extend([f'\n  Top antibacterial leads:'])
         for i, lead in enumerate(top_ab, 1):
-            report_lines.extend([f"    {i}. {lead.get('bgc_id', '?')} · {lead.get('contig', '?')}  AB={lead.get('ab_score', '?')}"])
+            label = _explain_lead_label(lead, lead_strain, lead_rows, lead_hold)
+            score = lead.get('ab_score', '?') if isinstance(lead, dict) else '?'
+            report_lines.append(f"    {i}. {label}  AB={score}")
     if top_af:
         report_lines.extend([f'\n  Top antifungal leads:'])
         for i, lead in enumerate(top_af, 1):
-            report_lines.extend([f"    {i}. {lead.get('bgc_id', '?')} · {lead.get('contig', '?')}  AF={lead.get('af_score', '?')}"])
+            label = _explain_lead_label(lead, lead_strain, lead_rows, lead_hold)
+            score = lead.get('af_score', '?') if isinstance(lead, dict) else '?'
+            report_lines.append(f"    {i}. {label}  AF={score}")
 
     if issues:
         report_lines.extend([f'\n  Issues ({len(issues)}):'])
@@ -313,7 +383,7 @@ def explain_command(args) -> int:
     if missing:
         report_lines.extend([f"  Missing  : {', '.join(missing)}"])
 
-    report_lines.extend([f'\n  To start judgment: upload manifest.json to Claude and type:', f'    "Run full Sapote analysis on {strain_id}"'])
+    report_lines.append("\n  " + guidance(policy, strain_id))
 
     emit(*report_lines, sep="\n")
     return 0

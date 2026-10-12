@@ -31,18 +31,18 @@ def database():
 def test_accession_and_designation_genus_rules_exclude_without_global_rename():
     con = database()
     rows = [
-        ("PX566631", "as_governed", "Pseudonocardia sp. strain AS-522", "ACGT", "AS-522", "Pseudonocardia"),
-        ("LOCAL_KRIB", "as_governed", "Kribbella sp. strain AS-522", "ACGT", "AS-522", "Kribbella"),
-        ("PX589567", "as_governed", "Pseudonocardia sp. strain AS-22", "ACGT", "AS-22", "Pseudonocardia"),
+        ("PX566631", "as_governed", "Pseudonocardia sp. strain AS-980", "ACGT", "AS-980", "Pseudonocardia"),
+        ("LOCAL_KRIB", "as_governed", "Kribbella sp. strain AS-980", "ACGT", "AS-980", "Kribbella"),
+        ("PX900066", "as_governed", "Pseudonocardia sp. strain AS-66", "ACGT", "AS-66", "Pseudonocardia"),
     ]
     con.executemany("INSERT INTO record VALUES (?,?,?,?,?,?)", rows)
     con.executemany("INSERT INTO query_identity_review VALUES (?,?,?,?,?,?)", [
         ("QIR-PX566631", "PX566631", None, None, "exclude_query", "MISLABELED_STRAIN_ID"),
-        ("QIR-AS522-PSEUDONOCARDIA", None, "AS-522", "Pseudonocardia", "exclude_query", "INVALID_GENUS_ASSOCIATION"),
+        ("QIR-AS980-PSEUDONOCARDIA", None, "AS-980", "Pseudonocardia", "exclude_query", "INVALID_GENUS_ASSOCIATION"),
     ])
     queries = [(r[0], r[2], r[3], r[4]) for r in rows]
     kept = MOD.apply_query_identity_review(con, queries)
-    assert [r[0] for r in kept] == ["LOCAL_KRIB", "PX589567"]
+    assert [r[0] for r in kept] == ["LOCAL_KRIB", "PX900066"]
 
 
 def test_absent_review_table_preserves_existing_database_behavior():

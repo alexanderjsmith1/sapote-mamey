@@ -139,6 +139,13 @@ BOUNDED_MAX_RECORDS = 5000
 # Flat-memory streaming (system/vendored ijson) can afford a far larger leaf budget; the old
 # 5000 cap was sized against the retired 25 MB byte cap and truncated RiQ on large genomes.
 BOUNDED_MAX_RECORDS_STREAMING = 200_000
+# Maximum retained RiQ record-occurrence/region groups per JSON member, including
+# unassigned groups. Auxiliary leaf storage has its own independent budget.
+BOUNDED_MAX_RIQ_GROUPS = 5000
+# Duplicate detection retains only keys on active RiQ authority/channel maps.
+# Exhaustion holds this member's RiQ instead of accepting unchecked keys.
+BOUNDED_MAX_RIQ_AUTHORITY_KEYS = 8192
+BOUNDED_MAX_RIQ_AUTHORITY_KEY_CHARS = 262_144
 BOUNDED_MAX_JSON_BYTES = 25_000_000
 # When a streaming parser (system or vendored ijson) is present, bounded mode reads at flat
 # memory, so a much larger file is safe. Real actinomycete antiSMASH JSONs run 55–90 MB.
@@ -623,6 +630,13 @@ def _ripp_from_rec(rec, name, out):
                 })
 
 
+def _rrefinder_record_conflict(rec, module):
+    """Two explicit source IDs must agree exactly; never infer an alias."""
+    containing = str(rec.get("id") or "")
+    declared = str(module.get("record_id") or "")
+    return bool(containing and declared and containing != declared)
+
+
 def _rrefinder_from_rec(rec, name, out):
     """Preserve one normalized source row per antiSMASH RRE-Finder hit.
 
@@ -632,13 +646,15 @@ def _rrefinder_from_rec(rec, name, out):
     remains the sole row source.
     """
     rec_id = rec.get("id") or ""
-    module = (rec.get("modules", {})
-                 .get("antismash.modules.rrefinder", {}))
-    if not isinstance(module, dict):
-        return
-    by_cds = module.get("hits_by_cds", {})
-    if not isinstance(by_cds, dict) or not by_cds:
-        return
+    modules = rec.get("modules", {})
+    if not isinstance(modules, dict):
+        raise ValueError("RREFINDER_MODULES_NOT_OBJECT")
+    if "antismash.modules.rrefinder" not in modules:
+        return  # unavailable module, never proof of a completed empty search
+    module = modules["antismash.modules.rrefinder"]
+    if not isinstance(module, dict) or not isinstance(module.get("hits_by_cds"), dict):
+        raise ValueError("RREFINDER_HITS_SCHEMA_INVALID")
+    by_cds = module["hits_by_cds"]
     protoclusters_by_locus: dict[str, list[str]] = {}
     for protocluster, loci in (module.get("hits_by_protocluster", {}) or {}).items():
         if not isinstance(loci, list):
@@ -651,7 +667,7 @@ def _rrefinder_from_rec(rec, name, out):
         items = hits if isinstance(hits, list) else [hits]
         for hit in items:
             if not isinstance(hit, dict):
-                continue
+                raise ValueError("RREFINDER_HIT_NOT_OBJECT")
             key = (
                 rec_id,
                 str(locus),
@@ -667,6 +683,8 @@ def _rrefinder_from_rec(rec, name, out):
             out.append({
                 "source": name,
                 "record_id": rec_id,
+                "module_record_id": str(module.get("record_id") or ""),
+                "identity_conflict": _rrefinder_record_conflict(rec, module),
                 "protoclusters": sorted(set(protoclusters_by_locus.get(str(locus), []))),
                 "locus_tag": str(hit.get("locus_tag") or hit.get("label") or locus),
                 "location": str(hit.get("location", "")),
@@ -684,37 +702,67 @@ def _rrefinder_from_rec(rec, name, out):
 
 
 def _run_record_extractors(zip_path, handlers):
-    """One pass over every JSON record, feeding each handler.
+    """One shared record pass with file and per-handler completion receipts.
 
-    handlers: iterable of (handler_fn, out_list). handler_fn(rec, name, out_list) appends its
-    evidence. Per-handler try/except isolates failures: a malformed record for one handler skips
-    only that record for that handler, never aborting the shared pass or the other handlers.
-    Streaming/full-load is decided once per file by _should_stream, so memory stays flat on large
-    genomes while every handler sees the same records in the same (name, record) order.
+    Partial rows are retained. Generator failures are recorded inside iteration;
+    a failure in a different handler does not invalidate the RREfinder channel.
     """
+    receipt = {"schema": "record_extraction_receipt_v1",
+               "handlers": [fn.__name__ for fn, _ in handlers],
+               "files": [], "archive_errors": []}
     try:
         with zipfile.ZipFile(zip_path) as zf:
-            from .parsers import is_macos_cruft  # PARSE-P08 (deferred import: parsers imports this module)
-            json_names = [n for n in regular_file_names(zf) if n.lower().endswith(".json") and not is_macos_cruft(n)]
-            for name in json_names:
+            from .parsers import is_macos_cruft
+            names = [n for n in regular_file_names(zf)
+                     if n.lower().endswith(".json") and not is_macos_cruft(n)]
+            for name in names:
+                item = {"source": name, "records_seen": 0,
+                        "rrefinder_modules": 0, "rrefinder_modules_read": 0,
+                        "rrefinder_identity_conflicts": 0,
+                        "errors": [], "error_counts": {}, "errors_omitted": 0,
+                        "status": "PENDING"}
+                receipt["files"].append(item)
                 try:
-                    _recs = _iter_records(zf, name)
-                    if not _should_stream(zf, name):
-                        # PARSE-05: the non-streaming branch json.loads-es the whole doc. Guard it
-                        # so an oversized JSON is skipped rather than full-loaded unbounded.
-                        if zf.getinfo(name).file_size > FULL_MAX_JSON_BYTES:
-                            continue
-                        _recs = list(_recs)   # non-stream: force parse now so a bad JSON file is skipped here
-                except Exception:
-                    continue
-                for rec in _recs:
-                    for fn, out in handlers:
-                        try:
-                            fn(rec, name, out)
-                        except Exception:
-                            continue
-    except Exception:
-        return
+                    item["bytes"] = zf.getinfo(name).file_size
+                    streaming = _should_stream(zf, name)
+                    item["mode"] = "STREAM" if streaming else "FULL_LOAD"
+                    if not streaming and item["bytes"] > FULL_MAX_JSON_BYTES:
+                        item["status"] = "HELD_SIZE_CAP"
+                        continue
+                    for rec in _iter_records(zf, name):
+                        item["records_seen"] += 1
+                        if isinstance(rec, dict):
+                            modules = rec.get("modules", {})
+                            if isinstance(modules, dict) and "antismash.modules.rrefinder" in modules:
+                                item["rrefinder_modules"] += 1
+                        for fn, out in handlers:
+                            try:
+                                if (fn.__name__ == "_rrefinder_from_rec" and isinstance(rec, dict)
+                                        and isinstance(rec.get("modules"), dict)):
+                                    module = rec["modules"].get("antismash.modules.rrefinder")
+                                    if isinstance(module, dict) and _rrefinder_record_conflict(rec, module):
+                                        item["rrefinder_identity_conflicts"] += 1
+                                fn(rec, name, out)
+                                if (fn.__name__ == "_rrefinder_from_rec" and isinstance(rec, dict)
+                                        and isinstance(rec.get("modules"), dict)
+                                        and "antismash.modules.rrefinder" in rec["modules"]):
+                                    item["rrefinder_modules_read"] += 1
+                            except Exception as exc:
+                                key = fn.__name__
+                                item["error_counts"][key] = item["error_counts"].get(key, 0) + 1
+                                if len(item["errors"]) < 100:
+                                    item["errors"].append({"handler": key,
+                                                           "record_index": item["records_seen"],
+                                                           "error": type(exc).__name__})
+                                else:
+                                    item["errors_omitted"] += 1
+                    item["status"] = "READ_COMPLETE"
+                except Exception as exc:
+                    item["status"] = "PARSE_FAILED"
+                    item["errors"].append({"handler": "FILE_READER", "error": type(exc).__name__})
+    except Exception as exc:
+        receipt["archive_errors"].append({"error": type(exc).__name__})
+    return receipt
 
 
 def extract_nrps_pks_consensus(zip_path: str | Path) -> list[dict[str, Any]]:
@@ -805,9 +853,13 @@ def _extract_record_evidence(zip_path: str | Path,
             (_ripp_from_rec, ripp),
             (_rrefinder_from_rec, rrefinder),
         ]
-    if handlers:
-        _run_record_extractors(zip_path, handlers)
+    receipt = (_run_record_extractors(zip_path, handlers) if handlers else
+               {"schema": "record_extraction_receipt_v1", "handlers": [],
+                "files": [], "archive_errors": []})
+    receipt["rrefinder_requested"] = bool(include_extras)
+    receipt["rrefinder_hit_count"] = len(rrefinder)
     return {
+        "record_extraction": receipt,
         "tigrfam_hits": tigrfam,
         "diagnostic_competitors": competitors,
         "nrps_pks_consensus": nrps,
@@ -983,7 +1035,71 @@ def _parse_txt_evidence(zf, names: list[str], evidence: dict) -> None:
             evidence["loose_hits"].append(rec)
 
 
-def _parse_json_bounded(zf, name: str, evidence: dict) -> None:
+def _reconcile_riq_members(evidence: dict) -> None:
+    """Reconcile member-level regional maxima; not full producer populations.
+
+    Equal repeated values retain all member provenance. Distinct maxima for an
+    exact record/region are held, never first/last/max selected across members.
+    Per-member walk counts continue to describe observations before this step.
+    """
+    observations = {}
+    by_region = evidence.get("by_region", {})
+    for key, rows in by_region.items():
+        for row in rows:
+            prior = row.get("riq_source_observations")
+            if prior is not None:
+                observations.setdefault(key, set()).update(
+                    (x["source"], x["riq_score"]) for x in prior)
+            elif row.get("riq_score") is not None:
+                observations.setdefault(key, set()).add((row["source"], row["riq_score"]))
+    unmapped = sum(w["riq_observations_unassigned"]
+                   for w in evidence.get("json_bounded_walks", []))
+    if not observations and not unmapped:
+        return
+    conflicts = []
+    admitted = []
+    repeated = 0
+    for key in sorted(observations):
+        items = sorted(observations[key])
+        sources = [{"source": source, "riq_score": score} for source, score in items]
+        values = {score for _, score in items}
+        # Keep TXT/KCB and other non-RiQ evidence untouched.
+        rows = [row for row in by_region[key]
+                if row.get("riq_score") is None and "riq_source_observations" not in row]
+        record = {"region_key": key, "riq_source_observations": sources}
+        if len(values) != 1:
+            record["riq_identity_status"] = "SOURCE_CONFLICT_HELD"
+            conflicts.append({"region_key": key, "observations": sources})
+        else:
+            score = items[0][1]
+            record.update(source=items[0][0], riq_score=score,
+                          riq_sources=[source for source, _ in items])
+            admitted.append(score)
+            repeated += len(items) - 1
+        by_region[key] = rows + [record]
+    evidence["riq_source_conflicts"] = conflicts
+    evidence["riq_member_reconciliation"] = {
+        "schema": "riq_member_reconciliation_v1",
+        "grouped_regions": len(observations), "mapped_regions": len(admitted),
+        "conflicting_regions": len(conflicts),
+        "member_observations": sum(len(x) for x in observations.values()),
+        "equal_repeat_observations": repeated,
+        "scope": "Exact member-level regional maxima only; equal maxima do not prove equal reference populations",
+    }
+    evidence["riq_mapped_count"] = len(admitted)
+    evidence["riq_unmapped_count"] = unmapped
+    evidence["riq_mapping_status"] = (
+        "SOURCE_CONFLICT_HELD" if conflicts else "MAPPED" if admitted
+        else "UNMAPPED_LOOSE_VALUES_NOT_ASSIGNED_TO_BGC")
+    # A subset statistic must not masquerade as the archive-wide genome summary.
+    evidence.pop("riq_genome_summary", None)
+    if admitted and not conflicts:
+        scores = sorted(admitted)
+        evidence["riq_genome_summary"] = {
+            "regions_with_riq": len(scores), "median": _riq_median(scores), "max": scores[-1]}
+
+
+def _parse_json_bounded(zf, name: str, evidence: dict, *, reconcile: bool = True) -> None:
     """Stream the JSON with ijson, extracting only KCB/RiQ-relevant leaves.
 
     Never materialises the whole document. Memory stays flat regardless of file size.
@@ -1003,17 +1119,68 @@ def _parse_json_bounded(zf, name: str, evidence: dict) -> None:
     current_rec_id = None
     record_open = False
     record_id_count = 0
+    module_identities: dict[str, tuple[int, str | None]] = {}
     containers: list[tuple[str, str]] = []
+    # Actual object-key roles supplement ijson prefixes, whose dots can also
+    # originate in literal keys. They must not manufacture a score channel.
+    container_keys: list[str | None] = []
+    map_keys: list[str | None] = []
+    authority_keys: list[set[str]] = []
+    authority_chars: list[int] = []
+    authority_keys_live = 0
+    authority_chars_live = 0
+    authority_keys_peak = 0
+    authority_chars_peak = 0
+    authority_duplicate_events = 0
+    authority_tracking_exhausted = False
+    authority_holds: set[str] = set()
     pending_riq: dict[int, tuple[float, str, int]] = {}
     riq_by_region: dict[str, float] = {}
     riq_unmapped = 0
+    groups_kept = 0
+    riq_seen = 0
+    riq_mapped_observations = 0
+    riq_held = 0
+    records_closed = 0
+    walk_complete = False
+    auxiliary_truncated = False
+
+    def is_authority_key(path, key):
+        # Inspect actual container-key roles, never dotted parser prefixes.
+        if not path:
+            return key in ("records", "version", "schema")
+        if path == ["records", None]:
+            return key in ("id", "modules")
+        if path == ["records", None, "modules"]:
+            return key in ("cluster_compare", "antismash.modules.cluster_compare")
+        if (len(path) < 4 or path[:3] != ["records", None, "modules"]
+                or path[3] not in ("cluster_compare", "antismash.modules.cluster_compare")):
+            return False
+        tail = path[4:]
+        if not tail:
+            return key in ("record_id", "db_results", "by_region")
+        if tail == ["db_results"]:
+            return True  # Database names are literal keys, including dots.
+        if len(tail) >= 2 and tail[0] == "db_results":
+            tail = tail[2:]
+            if not tail:
+                return key == "by_region"
+        if tail == ["by_region"]:
+            return True
+        if len(tail) == 2 and tail[0] == "by_region":
+            return key == "RegionToRegion_RiQ"
+        if len(tail) == 3 and tail[0] == "by_region" and tail[2] == "RegionToRegion_RiQ":
+            return key == "scores_by_region"
+        return (len(tail) == 4 and tail[0] == "by_region"
+                and tail[2:] == ["RegionToRegion_RiQ", "scores_by_region"])
 
     def flush_record(record_id, reason):
-        nonlocal riq_unmapped
+        nonlocal riq_unmapped, riq_mapped_observations
         for region, (score, prefix, count) in pending_riq.items():
             if record_id:
                 rk = f"{record_id}_c{region}"
                 riq_by_region[rk] = max(riq_by_region.get(rk, score), score)
+                riq_mapped_observations += count
             else:
                 riq_unmapped += count
                 evidence["loose_hits"].append({
@@ -1034,18 +1201,69 @@ def _parse_json_bounded(zf, name: str, evidence: dict) -> None:
                             and containers == [("", "start_map"), ("records", "start_array")]):
                         current_rec_id = None
                         record_id_count = 0
+                        module_identities.clear()
                         record_open = True
+                    parent_key = (map_keys[-1] if containers and
+                                  containers[-1][1] == "start_map" else None)
                     containers.append((prefix, event))
+                    container_keys.append(parent_key)
+                    map_keys.append(None)
+                    authority_keys.append(set())
+                    authority_chars.append(0)
                     continue
                 if event in ("end_map", "end_array"):
                     if record_open and len(containers) == 3 and prefix == "records.item":
-                        flush_record(current_rec_id if record_id_count == 1 else None,
+                        module_conflict = any(count != 1 or identity != current_rec_id
+                                              for count, identity in module_identities.values())
+                        flush_record(current_rec_id if record_id_count == 1 and not module_conflict else None,
                                      "UNMAPPED_DUPLICATE_RECORD_ID" if record_id_count > 1
+                                     else "UNMAPPED_MODULE_RECORD_ID_CONFLICT" if module_conflict
                                      else "UNMAPPED_MISSING_RECORD_ID")
                         current_rec_id = None
                         record_open = False
+                        records_closed += 1
+                    authority_keys_live -= len(authority_keys.pop())
+                    authority_chars_live -= authority_chars.pop()
                     containers.pop()
+                    container_keys.pop()
+                    map_keys.pop()
                     continue
+                if event == "map_key" and map_keys:
+                    map_keys[-1] = value
+                    if (not authority_tracking_exhausted
+                            and is_authority_key(container_keys[1:], value)):
+                        seen = authority_keys[-1]
+                        if value in seen:
+                            authority_duplicate_events += 1
+                            authority_holds.add("DUPLICATE_AUTHORITY_OR_CHANNEL_KEY")
+                        elif (authority_keys_live >= BOUNDED_MAX_RIQ_AUTHORITY_KEYS
+                              or authority_chars_live + len(value) > BOUNDED_MAX_RIQ_AUTHORITY_KEY_CHARS):
+                            authority_tracking_exhausted = True
+                            authority_holds.add("AUTHORITY_KEY_TRACKING_CAP_EXCEEDED")
+                            # Never retain an unbounded reference-key set. Once
+                            # exhausted, no RiQ from this member can be admitted.
+                            for keys in authority_keys:
+                                keys.clear()
+                            authority_chars[:] = [0] * len(authority_chars)
+                            authority_keys_live = authority_chars_live = 0
+                        else:
+                            seen.add(value)
+                            authority_keys_live += 1
+                            authority_chars_live += len(value)
+                            authority_chars[-1] += len(value)
+                            authority_keys_peak = max(authority_keys_peak, authority_keys_live)
+                            authority_chars_peak = max(authority_chars_peak, authority_chars_live)
+                module_path = container_keys[1:]
+                if (record_open and len(module_path) == 4
+                        and module_path[:3] == ["records", None, "modules"]
+                        and module_path[3] in ("cluster_compare", "antismash.modules.cluster_compare")):
+                    module = module_path[3]
+                    if event == "map_key" and value == "record_id":
+                        count, _ = module_identities.get(module, (0, None))
+                        module_identities[module] = (count + 1, None)
+                    elif map_keys[-1] == "record_id" and event in ("string", "number", "boolean", "null"):
+                        count, _ = module_identities.get(module, (0, None))
+                        module_identities[module] = (count, value if event == "string" and value.strip() else None)
                 if record_open and len(containers) == 3:
                     if event == "map_key" and value == "id":
                         record_id_count += 1
@@ -1059,33 +1277,72 @@ def _parse_json_bounded(zf, name: str, evidence: dict) -> None:
                 low = prefix.lower()
                 # RiQ scores are the primary value of the JSON pass, cheap (a handful per region),
                 # and may sit behind earlier records' bulky clusterblast leaves. Capture observed
-                # scores before the leaf-cap check; later unobserved scores can still be truncated.
+                # scores independently of auxiliary storage. Continue scanning after
+                # that store fills so late IDs and later records can close safely.
                 # Genuine score = 0–1 ratio
                 # under ...RegionToRegion_RiQ.scores_by_region.<ref>; the surrounding subtree also holds
                 # coordinate/bitscore integers, so require scores_by_region + the [0,1] range.
-                if ("scores_by_region" in low and isinstance(value, (int, float, Decimal))
+                # Admit only the declared cluster_compare / RegionToRegion_RiQ
+                # channel by actual JSON key roles. Admit the qualified and
+                # legacy unqualified module names, with current db_results or
+                # the legacy direct by_region form. Dots inside a database or
+                # reference identifier remain ordinary key content.
+                # A matching channel outside records[] remains unassigned.
+                score_keys = container_keys[1:] + [map_keys[-1] if map_keys else None]
+                channel_root = score_keys[:-5]
+                legacy_module = (bool(channel_root) and channel_root[-1] in
+                                 ("cluster_compare", "antismash.modules.cluster_compare"))
+                database_module = (len(channel_root) >= 3 and channel_root[-3] in
+                                   ("cluster_compare", "antismash.modules.cluster_compare")
+                                   and channel_root[-2] == "db_results"
+                                   and isinstance(channel_root[-1], str) and bool(channel_root[-1]))
+                supported_channel = (
+                    len(score_keys) >= 6 and (legacy_module or database_module)
+                    and score_keys[-5] == "by_region"
+                    and isinstance(score_keys[-4], str)
+                    and re.fullmatch(r"[0-9]+", score_keys[-4]) is not None
+                    and int(score_keys[-4]) > 0
+                    and score_keys[-3:-1] == ["RegionToRegion_RiQ", "scores_by_region"]
+                    and isinstance(score_keys[-1], str)
+                )
+                if (supported_channel and isinstance(value, (int, float, Decimal))
                         and 0.0 <= float(value) <= 1.0):
-                    m = re.search(r"by_region\.(\d+)\.", prefix)
-                    if m and record_open and prefix.startswith("records.item."):
-                        region = int(m.group(1))
+                    riq_seen += 1
+                    if (record_open and ((legacy_module and len(score_keys) == 9)
+                                         or (database_module and len(score_keys) == 11))
+                            and score_keys[:3] == ["records", None, "modules"]):
+                        region = int(score_keys[-4])
                         score = float(value)
                         prev = pending_riq.get(region)
+                        if prev is None:
+                            if groups_kept >= BOUNDED_MAX_RIQ_GROUPS:
+                                riq_held += 1
+                                continue
+                            groups_kept += 1
                         pending_riq[region] = (
                             max(prev[0], score) if prev else score,
                             prefix if prev is None or score > prev[0] else prev[1],
                             prev[2] + 1 if prev else 1,
                         )
                     else:
+                        if groups_kept >= BOUNDED_MAX_RIQ_GROUPS:
+                            riq_held += 1
+                            continue
+                        groups_kept += 1
                         riq_unmapped += 1
                         evidence["loose_hits"].append({
                             "source": name, "path": prefix, "riq_score": float(value),
                             "riq_identity_status": "UNMAPPED_RECORD_OR_REGION"})
                     continue
-                if matched >= cap:
-                    evidence["json_bounded_truncated"] = True
-                    break
                 if any(k in low for k in
                        ["knownclusterblast", "clusterblast", "region_to_region", "riq", "mibig"]):
+                    eligible = (isinstance(value, str) and
+                                (re.search(r"BGC\d{7}", value) or
+                                 (len(value) < 500 and "_riq" not in low)))
+                    if eligible and matched >= cap:
+                        evidence["json_bounded_truncated"] = True
+                        auxiliary_truncated = True
+                        continue
                     if isinstance(value, str) and re.search(r"BGC\d{7}", value):
                         evidence["loose_hits"].append({
                             "source": name, "path": prefix,
@@ -1098,28 +1355,62 @@ def _parse_json_bounded(zf, name: str, evidence: dict) -> None:
                         evidence["loose_hits"].append({
                             "source": name, "path": prefix, "value": value})
                         matched += 1
+            walk_complete = True
     except Exception as exc:
         evidence.setdefault("json_errors", []).append(
             f"{name}: {type(exc).__name__}: {exc}")
     finally:
-        # A cap or parse error can stop before end_map. Preserve observed values
+        # A parse error can stop before end_map. Preserve observed values
         # without assigning them from a partial record's potentially unfinished id.
         flush_record(None, "UNMAPPED_INCOMPLETE_RECORD")
+
+    if authority_holds:
+        # An ancestor may repeat after earlier records close. Defer publication
+        # until EOF and invalidate all RiQ from this member on any ambiguity.
+        riq_unmapped += riq_mapped_observations
+        if riq_mapped_observations:
+            evidence["loose_hits"].append({
+                "source": name, "riq_identity_status": "UNMAPPED_SOURCE_AUTHORITY_HOLD",
+                "riq_observation_count": riq_mapped_observations,
+                "riq_authority_holds": sorted(authority_holds),
+            })
+        riq_mapped_observations = 0
+        riq_by_region.clear()
+    if authority_tracking_exhausted:
+        evidence["json_bounded_truncated"] = True
+    if riq_held:
+        evidence["json_bounded_truncated"] = True
+    evidence.setdefault("json_bounded_walks", []).append({
+        "schema": "bounded_json_walk_receipt_v1", "source": name,
+        "walk_complete": walk_complete, "records_closed": records_closed,
+        "auxiliary_leaf_cap": cap, "auxiliary_leaves_kept": matched,
+        "auxiliary_truncated": auxiliary_truncated,
+        "riq_group_cap": BOUNDED_MAX_RIQ_GROUPS, "riq_groups_kept": groups_kept,
+        "riq_observations_seen": riq_seen,
+        "riq_observations_mapped": riq_mapped_observations,
+        "riq_observations_unassigned": riq_unmapped,
+        "riq_observations_held": riq_held,
+        "riq_mapped_maxima": len(riq_by_region),
+        "riq_authority_status": "HOLD" if authority_holds else "CHECKED_WITHIN_CAP",
+        "riq_authority_holds": sorted(authority_holds),
+        "riq_authority_duplicate_events": authority_duplicate_events,
+        "riq_authority_key_cap": BOUNDED_MAX_RIQ_AUTHORITY_KEYS,
+        "riq_authority_key_char_cap": BOUNDED_MAX_RIQ_AUTHORITY_KEY_CHARS,
+        "riq_authority_keys_peak": authority_keys_peak,
+        "riq_authority_key_chars_peak": authority_chars_peak,
+        "riq_authority_tracking_exhausted": authority_tracking_exhausted,
+        "scope": "Selected score leaves and bounded auxiliary store; not whole-schema or upstream search completeness",
+    })
 
     # Fold mapped RiQ into by_region so the per-BGC assignment loop sees it.
     for rk, score in riq_by_region.items():
         evidence["by_region"].setdefault(rk, []).append(
             {"source": name, "region_key": rk, "riq_score": score})
-    if riq_by_region or riq_unmapped:
-        scores = sorted(riq_by_region.values())
-        evidence["riq_mapped_count"] = len(riq_by_region)
-        evidence["riq_unmapped_count"] = riq_unmapped
-        evidence["riq_mapping_status"] = "MAPPED" if riq_by_region else "UNMAPPED_LOOSE_VALUES_NOT_ASSIGNED_TO_BGC"
-        if scores:
-            evidence["riq_genome_summary"] = {
-                "regions_with_riq": len(scores),
-                "median": _riq_median(scores),
-                "max": scores[-1]}
+    if reconcile:
+        _reconcile_riq_members(evidence)
+
+    if authority_holds:
+        evidence["riq_mapping_status"] = "UNMAPPED_SOURCE_AUTHORITY_HOLD"
 
 
 def _parse_json_full(zf, name: str, evidence: dict) -> None:
@@ -1219,9 +1510,12 @@ def parse_antismash_evidence(zip_path: str | Path,
                             f"{name}: {size:,} bytes exceeds bounded cap "
                             f"({_cap:,})")
                         continue
-                    _parse_json_bounded(zf, name, evidence)
+                    _parse_json_bounded(zf, name, evidence, reconcile=False)
                 elif json_mode == "full":
                     _parse_json_full(zf, name, evidence)
+
+    if json_mode == "bounded":
+        _reconcile_riq_members(evidence)
 
     # Single pass over the JSON records. tigrfam diagnostics are extracted only when this caller
     # consumes them (want_tigrfam — the cli status path that feeds the gbk/Pfam merge); the five
@@ -1231,6 +1525,7 @@ def parse_antismash_evidence(zip_path: str | Path,
     _rec_ev = _extract_record_evidence(zip_path,
                                        include_extras=(requested_mode != "off" or include_structured),
                                        want_tigrfam=want_tigrfam)
+    evidence["record_extraction"] = _rec_ev["record_extraction"]
     if want_tigrfam:
         evidence["tigrfam_hits"] = _rec_ev["tigrfam_hits"]
         # A separate report channel. Never insert non-diagnostic rivals into the scored Pfam/TIGRFAM channel.
@@ -1248,8 +1543,8 @@ def parse_antismash_evidence(zip_path: str | Path,
             evidence["product_class_predictions"] = _rec_ev["product_class_predictions"]
         if _rec_ev["ripp_cores"]:
             evidence["ripp_cores"] = _rec_ev["ripp_cores"]
-        # Preserve a valid empty list when RRE-Finder ran but found no hits.
-        # This keeps "not detected" distinct from a parser omission.
+        # Empty rows alone do not prove a completed upstream search.
+        # The record_extraction receipt carries availability and parse completion.
         evidence["rrefinder_hits"] = _rec_ev["rrefinder_hits"]
 
     if evidence["by_region"] or evidence["loose_hits"]:
@@ -1401,13 +1696,15 @@ def apply_evidence_to_bgcs(bgcs, evidence: dict[str, Any]) -> None:
                     score_vals.append(r["cumulative_score"])
                 if r.get("protein_hits") is not None:
                     prot_hits.append(r["protein_hits"])
-                if r.get("riq_score") is not None:
-                    riq_vals.append(r["riq_score"])
                 candidate_lines.extend(r.get("candidate_lines") or [])
             # v9.7.166: clusterblast_ranked (organism hits) lives in the PLAIN clusterblast recs,
             # which are excluded from source_recs when knownclusterblast (MIBiG) recs exist. Scan
             # ALL recs for the organism ranking, independent of the MIBiG-vs-clusterblast split.
             for r in recs:
+                # RiQ is a separately keyed JSON evidence channel. KCB precedence
+                # must not discard it when knownclusterblast records are present.
+                if r.get("riq_score") is not None:
+                    riq_vals.append(r["riq_score"])
                 if r.get("clusterblast_ranked") and not bgc.clusterblast_ranked:
                     bgc.clusterblast_ranked = r["clusterblast_ranked"]
             if mibigs:
@@ -1465,7 +1762,10 @@ def apply_evidence_to_bgcs(bgcs, evidence: dict[str, Any]) -> None:
                 bgc.needs_manual_kcb_check = "yes"
                 bgc.product_claim_ceiling = "source-derived similarity anchor only"
                 _apply_fragment_ceiling(bgc)  # P4: also fires on source-derived named products
-            if riq_vals:
+            if any(r.get("riq_identity_status") == "SOURCE_CONFLICT_HELD" for r in recs):
+                bgc.riq_score = None
+                bgc.riq_label = "SOURCE_CONFLICT_HELD"
+            elif riq_vals:
                 bgc.riq_score = float(riq_vals[0])
                 bgc.riq_label = riq_label(float(riq_vals[0]))
 
@@ -1473,7 +1773,7 @@ def apply_evidence_to_bgcs(bgcs, evidence: dict[str, Any]) -> None:
 
     loose_riq = [h.get("riq_score") for h in evidence.get("loose_hits", [])
                  if isinstance(h, dict) and h.get("riq_score") is not None]
-    if loose_riq and evidence.get("riq_mapping_status") != "MAPPED":
+    if loose_riq and evidence.get("riq_mapping_status") not in ("MAPPED", "SOURCE_CONFLICT_HELD"):
         evidence["riq_unmapped_count"] = sum(
             h.get("riq_observation_count", 1) for h in evidence.get("loose_hits", [])
             if isinstance(h, dict) and h.get("riq_score") is not None)

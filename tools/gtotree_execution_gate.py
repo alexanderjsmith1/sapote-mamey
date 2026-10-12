@@ -30,7 +30,7 @@ except ImportError:  # bare-script run: bundle root is one level up
 from pathlib import Path
 
 # GToTree output spellings: v1.8 writes Aligned_SCGs.faa, v2.0 writes aligned-SCGs.faa.
-ALIGNMENT_NAMES = ("aligned-SCGs.faa", "Aligned_SCGs.faa", "Aligned_SCGs_mod_names.faa")
+
 V2_IQTREE_SUBDIR = os.path.join("run-files", "iqtree-out")
 V2_REMOVED_GENOMES = os.path.join("run-files", "removed-genomes.tsv")
 V2_GENOME_SUMMARY = "genomes-summary-info.tsv"
@@ -41,7 +41,10 @@ WALL_CLOCK_MARKER = "Total wall-clock time"
 _SUPPORT_RE = re.compile(r"\)\s*[0-9]+(?:\.[0-9]+)?(?:/[0-9]+(?:\.[0-9]+)?)?\s*:")
 # One shared list with the planner and the workflow doc (tools/_gtotree_versions.py).
 _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _gtotree_versions import ACCEPTED_GTOTREE_VERSIONS as _ACCEPTED_GTOTREE_VERSIONS  # noqa: E402
+from _gtotree_versions import (  # noqa: E402
+    ACCEPTED_GTOTREE_VERSIONS as _ACCEPTED_GTOTREE_VERSIONS,
+    accepted as _gtotree_accepted, ALIGNMENT_NAMES,
+)
 
 
 def digest(path):
@@ -50,15 +53,25 @@ def digest(path):
         for b in iter(lambda:f.read(1024*1024), b""): h.update(b)
     return h.hexdigest()
 
-def validate(packet, root, postflight=False):
+def validate(packet, root, postflight=False, *, verified_runtime=None):
     root=Path(root).resolve()
     for key in ("run_id","gtotree","hmm","panel","working_directory","output_directory","max_concurrent_jobs"):
         if key not in packet: raise ValueError("PACKET_FIELD_MISSING: "+key)
     gt=packet["gtotree"]; hmm=packet["hmm"]
     # Accepted versions come from tools/_gtotree_versions.py (1.8.19 production, 2.0.x admitted);
     # anything else (e.g. the conda env's 1.8.16) is refused.
-    if not _ACCEPTED_GTOTREE_VERSIONS.search(str(gt.get("version",""))):
+    if not _gtotree_accepted(gt.get("version", "")):
         raise ValueError("GTOTREE_VERSION: production packet requires 1.8.19 or 2.0.x")
+    from _gtotree_versions import parse_version, resource_contract
+    resource = None
+    if parse_version(gt["version"]).startswith("2."):
+        from _gtotree_runtime import require_verified, resource_pass
+        require_verified(verified_runtime, gt.get("path", ""))
+        resource = resource_contract(gt["version"], packet.get("muscle_threads", 1),
+            packet["max_concurrent_jobs"], verified_runtime=verified_runtime,
+            cpu_budget=packet.get("cpu_budget", 4))
+        if not resource_pass(resource):
+            raise ValueError("GTOTREE_RESOURCE_PROFILE")
     for label,item in (("GTOTREE",gt),("HMM",hmm)):
         path=Path(item.get("path","")).resolve()
         if not path.is_file() or digest(path)!=item.get("sha256"):
@@ -82,8 +95,11 @@ def validate(packet, root, postflight=False):
         if retained != expected: raise ValueError("SILENT_TIP_LOSS")
         if not receipt.get("alignment_path") or not Path(receipt["alignment_path"]).is_file():
             raise ValueError("ALIGNMENT_MISSING")
-    return {"status":"GTOTREE_EXECUTION_GATE_PASS", "panel_size":len(panel),
-            "postflight":bool(postflight), "ceiling":"Execution identity/QC only; no biological conclusion."}
+    answer = {"status":"GTOTREE_EXECUTION_GATE_PASS", "panel_size":len(panel),
+              "postflight":bool(postflight), "ceiling":"Execution identity/QC only; no biological conclusion."}
+    if resource is not None:
+        answer["resource_contract"] = resource
+    return answer
 
 
 # ----------------------------------------------------------------------------------------------
@@ -343,6 +359,8 @@ def main(argv=None):
     p.add_argument("--query-tips", help="comma-separated query tip labels (overrides TREE_SPEC)")
     p.add_argument("--allow-reference-drop", action="store_true")
     p.add_argument("--dropped-tsv", help="write DROPPED_BY_QC.tsv here when tips were dropped")
+    from _gtotree_runtime import add_runtime_arguments, runtime_from_arguments
+    add_runtime_arguments(p)
     a=p.parse_args(argv)
     rc = 0
     if a.check_completion:
@@ -363,7 +381,9 @@ def main(argv=None):
     if a.packet:
         if not a.root:
             p.error("packet mode requires --root")
-        _LOG.info(json.dumps(validate(json.loads(Path(a.packet).read_text()),a.root,a.postflight),indent=2))
+        packet = json.loads(Path(a.packet).read_text())
+        runtime = runtime_from_arguments(a, packet["gtotree"]["path"])
+        _LOG.info(json.dumps(validate(packet, a.root, a.postflight, verified_runtime=runtime),indent=2))
     elif not (a.check_completion or a.check_tips):
         p.error("give a packet (with --root), --check-completion, or --check-tips")
     return rc

@@ -27,6 +27,12 @@ for req in BUILD_STAMP.txt SOURCE_CHECKSUMS_SHA256.txt; do
   fi
 done
 
+# Honor the caller's one executable locator before creating an archive or sidecar.
+export PYTHON="${PYTHON:-python3}"
+if ! "$PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)' >/dev/null 2>&1; then
+  echo "REFUSED: Python 3.12 or newer required; PYTHON executable unavailable or incompatible: $PYTHON" >&2
+  exit 2
+fi
 mkdir -p "$outdir"
 tarball="$outdir/$name.tar.gz"
 # COPYFILE_DISABLE stops tar from GENERATING AppleDouble (._*) entries. It does not stop tar from
@@ -35,7 +41,7 @@ tarball="$outdir/$name.tar.gz"
 COPYFILE_DISABLE=1 tar -czf "$tarball" -C "$(dirname "$src")" \
   --exclude '.DS_Store' --exclude '__pycache__' --exclude '.pytest_cache' --exclude '._*' \
   -- "$name"
-if ! python3 - "$tarball" <<'PY'
+if ! "$PYTHON" - "$tarball" <<'PY'
 import sys
 import tarfile
 

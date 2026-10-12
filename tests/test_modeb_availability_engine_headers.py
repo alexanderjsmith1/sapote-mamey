@@ -2,7 +2,7 @@ import csv
 import pytest
 from mamey.mode_b.availability import load_inventory
 
-@pytest.mark.parametrize('node_key,region_key',[('Contig','Region'),('Contig','antiSMASH_Region'),('contig','region'),('full_node','region_id')])
+@pytest.mark.parametrize('node_key,region_key',[('Contig','Region'),('Contig','antiSMASH_Region'),('contig','region'),('full_node','region_id'),('Node_ID','Region'),('node_id','region_number')])
 def test_engine_and_normalized_identity_headers(tmp_path,node_key,region_key):
     path=tmp_path/'inventory.csv'
     row={'Strain':'TEST','BGC_ID':'BGC001',node_key:'NODE_1_length_5000_cov_20.5',region_key:'region001'}

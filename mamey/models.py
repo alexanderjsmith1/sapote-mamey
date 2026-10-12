@@ -8,6 +8,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Any
 
 from .bioactivity_metadata import normalize_bioactivity, not_supplied
+from .release_policy import ReleaseDecision
 
 
 # ---------------------------------------------------------------------------
@@ -129,9 +130,9 @@ class BGCRecord:
     parse_confidence: str = "LOW"
     needs_manual_kcb_check: str = "yes"
     product_claim_ceiling: str = "unresolved; do not use product name"
-    release: str = ""                   # R1: PUBLIC/PRIVATE, set at run time from derive_release(strain_id)
+    release: str = ""                   # R1: PUBLIC/PRIVATE, set from the resolved run-level release decision
     privacy_tier: str = "UNASSIGNED"    # named operator access tier; never biological evidence
-    privacy_assignment_state: str = "UNASSIGNED"  # EXACT|DEFAULT|LEGACY_DERIVATION
+    privacy_assignment_state: str = "UNASSIGNED"  # EXACT|DEFAULT|EXPLICIT|UNASSIGNED
     cctt_triggers: str = ""             # R-A: per-BGC CCTT T43 triggers, written back from source_scans
     cctt_uncorroborated: str = ""        # N-05: class-defining triggers that fired without corroborating product class
 
@@ -312,6 +313,8 @@ class RunContext:
     genome_state: str = "NOT_PROVIDED"
     project_registry_sha256: str = ""
     assay_summary: dict[str, Any] = field(default_factory=dict)
+    # A run-level decision survives an empty inventory. None identifies older/direct callers.
+    release_decision: ReleaseDecision | None = None
 
     def __post_init__(self) -> None:
         self.bioactivity = normalize_bioactivity(self.bioactivity)
@@ -373,6 +376,16 @@ class MameyRun:
             if len(values) == 1:
                 return values[0]
             return "UNRESOLVED_MISSING" if not values else "UNRESOLVED_MIXED"
+
+        decision = self.context.release_decision
+        if decision is not None:
+            if decision.strain_id != self.context.strain_id:
+                raise ValueError("RELEASE_DECISION_IDENTITY_CONFLICT")
+            for name, expected in (("release", decision.release),
+                                   ("privacy_tier", decision.privacy_tier),
+                                   ("privacy_assignment_state", decision.assignment_state)):
+                if any(getattr(bgc, name, None) != expected for bgc in self.bgcs):
+                    raise ValueError("RELEASE_DECISION_ROW_CONFLICT: " + name)
 
         # v9.7.86 A1: carry triage scores onto each bgcs[] record so the manifest is a
         # self-sufficient handoff to the figure/consumer layer (previously these lived only
@@ -436,12 +449,12 @@ class MameyRun:
             "display_name": self.context.display_name,
             "workflow_version": f"Mamey v{self.context.version}",
             "bundle_version": BUNDLE_VERSION,
-            # These package-level values are projections of the already-governed
-            # per-BGC fields. Mixed/missing inputs remain explicit; the manifest
-            # never guesses a public or private state.
-            "release": _uniform_bgc_field("release"),
-            "privacy_tier": _uniform_bgc_field("privacy_tier"),
-            "privacy_assignment_state": _uniform_bgc_field("privacy_assignment_state"),
+            # Current runs carry one decision even when there are no BGC rows.
+            # Direct/legacy callers retain explicit mixed/missing field states.
+            "release": decision.release if decision else _uniform_bgc_field("release"),
+            "privacy_tier": decision.privacy_tier if decision else _uniform_bgc_field("privacy_tier"),
+            "privacy_assignment_state": decision.assignment_state if decision else _uniform_bgc_field("privacy_assignment_state"),
+            "release_decision": decision.to_dict() if decision else None,
             "analysis_date": __import__("datetime").date.today().isoformat(),
             "mode": self.context.analysis_mode,
             "taxonomy": self.context.taxonomy,

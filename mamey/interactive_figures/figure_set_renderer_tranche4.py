@@ -19,11 +19,14 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Sequence
 
+from .figure_source_bundle import read_verified_source_tables, verify_source_bundle
 from .figure_set_registry import GLOBAL_CLAIM_CEILING, PROFILE, build_registry
-from .figure_set_renderer import Chart, HOST_ORDER, _host, _load, _pct, _sha256, _validate_outputs, _write_rows, render_svg
+from .figure_set_renderer import _fresh_output_path, Chart, HOST_ORDER, _host, _load, _pct, _sha256, _validate_outputs, _write_rows, render_svg
 
 
 SCHEMA_VERSION = "sapote-mamey.codex-figure-set-render.tranche4.v1"
+SOURCE_TABLES_4 = ('BGC_GENE_FEATURE_TOKENS.csv', 'BGC_RECORDS.csv', 'BGC_CLASS_MEMBERSHIPS.csv')
+
 IMPLEMENTED_IDS_4 = (
     "FS057", "FS058", "FS059", "FS060", "FS061", "FS062", "FS063",
     "FS065", "FS066", "FS067", "FS068", "FS069", "FS070", "FS071",
@@ -112,11 +115,11 @@ def _family_charts(
     return charts
 
 
-def build_charts_4(payload: dict[str, Any], all_ids: Sequence[str], governed: Sequence[str], bundle: Path) -> list[Chart]:
+def build_charts_4(payload: dict[str, Any], all_ids: Sequence[str], governed: Sequence[str], bundle: Path, *, parsed_tables: dict[str, list[dict[str, str]]] | None = None) -> list[Chart]:
     strains = payload["strains"]; governed_set, all_set = set(governed), set(all_ids)
-    features = _read(bundle / "BGC_GENE_FEATURE_TOKENS.csv")
-    bgcs_all = _read(bundle / "BGC_RECORDS.csv")
-    memberships_all = _read(bundle / "BGC_CLASS_MEMBERSHIPS.csv")
+    features = (parsed_tables["BGC_GENE_FEATURE_TOKENS.csv"] if parsed_tables is not None else _read(bundle / "BGC_GENE_FEATURE_TOKENS.csv"))
+    bgcs_all = (parsed_tables["BGC_RECORDS.csv"] if parsed_tables is not None else _read(bundle / "BGC_RECORDS.csv"))
+    memberships_all = (parsed_tables["BGC_CLASS_MEMBERSHIPS.csv"] if parsed_tables is not None else _read(bundle / "BGC_CLASS_MEMBERSHIPS.csv"))
     bgcs = [row for row in bgcs_all if row["strain"] in governed_set]
     memberships = [row for row in memberships_all if row["strain"] in governed_set]
     tailoring_all = [row for row in features if row["strain"] in all_set and row["feature_group"] == "TAILORING_LIKE"]
@@ -127,15 +130,23 @@ def build_charts_4(payload: dict[str, Any], all_ids: Sequence[str], governed: Se
     return charts
 
 
-def render_tranche_4(widget_data: str | Path, source_bundle: str | Path, outdir: str | Path) -> dict[str, Any]:
-    widget_path, payload, all_ids, governed = _load(widget_data)
+def render_tranche_4(
+    widget_data: str | Path, source_bundle: str | Path, outdir: str | Path,
+    *, expected_receipt_sha256: str | None = None,
+) -> dict[str, Any]:
+    widget_path = Path(widget_data).resolve()
     bundle = Path(source_bundle).resolve(); source_receipt = bundle / "SOURCE_BUNDLE_RECEIPT.json"
     if not source_receipt.is_file(): raise ValueError("source bundle has no SOURCE_BUNDLE_RECEIPT.json")
-    destination = Path(outdir).resolve(); destination.mkdir(parents=True, exist_ok=True)
+    source_binding = verify_source_bundle(widget_path, bundle, required_tables=SOURCE_TABLES_4, expected_receipt_sha256=expected_receipt_sha256)
+    destination = _fresh_output_path(outdir)
+    widget_snapshot_sha256 = source_binding["receipt"]["source"]["widget_sha256"]
+    widget_path, payload, all_ids, governed = _load(widget_path, expected_widget_sha256=widget_snapshot_sha256)
+    parsed_tables = read_verified_source_tables(bundle, source_binding, tables=SOURCE_TABLES_4)
+    destination.mkdir(parents=True)
     figures_dir, data_dir, text_dir = destination / "figures", destination / "data", destination / "text"
     for directory in (figures_dir, data_dir, text_dir): directory.mkdir(parents=True, exist_ok=True)
     registry = {record["figure_set_id"]: record for record in build_registry()}
-    charts = build_charts_4(payload, all_ids, governed, bundle); manifest = []
+    charts = build_charts_4(payload, all_ids, governed, bundle, parsed_tables=parsed_tables); manifest = []
     for chart in charts:
         svg_path, csv_path, text_path = figures_dir / f"{chart.figure_id}.svg", data_dir / f"{chart.figure_id}_data.csv", text_dir / f"{chart.figure_id}_CAPTION_METHODS.md"
         svg_path.write_text(render_svg(chart), encoding="utf-8"); _write_rows(csv_path, chart.rows); spec = registry[chart.figure_id]
@@ -145,7 +156,8 @@ def render_tranche_4(widget_data: str | Path, source_bundle: str | Path, outdir:
     index = destination / "OPEN_FIGURE_SET_TRANCHE_4.html"
     index.write_text('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Codex Figure Factory tranche 4</title><style>body{font:15px/1.45 system-ui;margin:0;background:#f4f6f8;color:#17212b}header,main{max-width:1500px;margin:auto;padding:22px}article{background:white;border:1px solid #d8dee5;border-radius:8px;padding:14px;margin:0 0 20px}img{max-width:100%;height:auto}h1{margin-bottom:4px}h2{font-size:18px}a{color:#31688e}</style></head><body><header>' + f'<h1>Codex Figure Factory tranche 4</h1><p>14 tailoring-like and regulator-like annotation-burden sets. {html.escape(GLOBAL_CLAIM_CEILING)}</p></header><main>{cards}</main></body></html>', encoding="utf-8")
     checks = _validate_outputs(destination, manifest, governed, IMPLEMENTED_IDS_4, ("FS058", "FS066"))
-    receipt = {"schema_version": SCHEMA_VERSION, "status": "PASS" if all(check["status"] == "PASS" for check in checks) else "FAIL", "profile": PROFILE, "source": {"widget_data": str(widget_path), "widget_sha256": _sha256(widget_path), "source_bundle": str(bundle), "source_bundle_receipt_sha256": _sha256(source_receipt)}, "governed_strains": len(governed), "all_packaged_strains": len(all_ids), "implemented_count": len(manifest), "implemented_ids": list(IMPLEMENTED_IDS_4), "claim_ceiling": GLOBAL_CLAIM_CEILING, "machine_checks": checks, "figures": manifest, "index": {"path": index.name, "sha256": _sha256(index)}}
+    verify_source_bundle(widget_path, bundle, required_tables=SOURCE_TABLES_4, expected_receipt_sha256=source_binding["receipt_sha256"])
+    receipt = {"schema_version": SCHEMA_VERSION, "status": "PASS" if all(check["status"] == "PASS" for check in checks) else "FAIL", "profile": PROFILE, "source": {"widget_data": str(widget_path), "widget_sha256": widget_snapshot_sha256, "source_bundle": str(bundle), "source_bundle_receipt_sha256": source_binding["receipt_sha256"]}, "governed_strains": len(governed), "all_packaged_strains": len(all_ids), "implemented_count": len(manifest), "implemented_ids": list(IMPLEMENTED_IDS_4), "claim_ceiling": GLOBAL_CLAIM_CEILING, "machine_checks": checks, "figures": manifest, "index": {"path": index.name, "sha256": _sha256(index)}}
     (destination / "TRANCHE_4_QA_RECEIPT.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (destination / "FIGURE_MANIFEST.json").write_text(json.dumps({"schema_version": SCHEMA_VERSION, "figures": manifest}, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return receipt

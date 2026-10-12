@@ -12,16 +12,22 @@ IN="$1"
 OUT="${2:-${IN%.md}.pdf}"
 PROFILE="${3:-boss}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
+# PYTHON is one executable locator, including paths with spaces; never shell arguments.
+export PYTHON="${PYTHON:-python3}"
+if ! "$PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)' >/dev/null 2>&1; then
+  echo "REFUSED: Python 3.12 or newer required; PYTHON executable unavailable or incompatible: $PYTHON" >&2
+  exit 2
+fi
 # Resolve the caller's input/output before changing directories or preflighting.
-IN=$(python3 -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$IN")
-OUT=$(python3 -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$OUT")
+IN=$("$PYTHON" -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$IN")
+OUT=$("$PYTHON" -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$OUT")
 RESOURCE_DIR=$(dirname "$IN")
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$(dirname "$OUT")"
 
 # ---- primary: colorful reportlab renderer; atomic publication ----
-if python3 "$DIR/render_deliverable_pdf.py" "$IN" "$TMP/primary.pdf" >"$TMP/colorpdf.log" 2>&1; then
+if "$PYTHON" "$DIR/render_deliverable_pdf.py" "$IN" "$TMP/primary.pdf" >"$TMP/colorpdf.log" 2>&1; then
   cp "$TMP/primary.pdf" "$OUT"
   echo "wrote $OUT (colorful reportlab)"
   exit 0
@@ -36,14 +42,14 @@ for TOOL in pandoc xelatex; do
 done
 # Resolve local images against the original Markdown directory BEFORE preflight
 # moves the document into a temp directory. Refuse missing artwork, not omit it.
-python3 "$DIR/prepare_pdf_resources.py" "$IN" "$TMP/resources.md"
+"$PYTHON" "$DIR/prepare_pdf_resources.py" "$IN" "$TMP/resources.md"
 IN="$TMP/resources.md"
 
 SAFE_MD="$TMP/safe.md"
 APP_MD="${OUT%.pdf}.wide_tables_appendix.md"
 QA_JSON="${OUT%.pdf}.render_preflight.json"
 
-python3 "$DIR/sapote_md_preflight.py" "$IN" "$SAFE_MD" \
+"$PYTHON" "$DIR/sapote_md_preflight.py" "$IN" "$SAFE_MD" \
   --profile "$PROFILE" \
   --appendix-md "$APP_MD" \
   --qa-json "$QA_JSON"
@@ -53,7 +59,7 @@ pandoc "$SAFE_MD" --resource-path="$RESOURCE_DIR" -t latex -s -o "$TMP/d.tex"
 # next token as the suffix and mangles the edit. Use perl -i (no backup), the form already
 # blessed in make_public_tier.sh:494.
 perl -i -ne 'print unless /usepackage\{(lmodern|textcomp)\}/' "$TMP/d.tex"
-python3 - "$TMP/d.tex" <<'PY'
+"$PYTHON" - "$TMP/d.tex" <<'PY'
 import sys
 p=sys.argv[1]
 s=open(p, encoding='utf-8').read()

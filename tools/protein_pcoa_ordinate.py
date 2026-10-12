@@ -24,6 +24,9 @@ Subcommands (run in order; each refuses to overwrite its own outputs):
            % = eigenvalue / trace of the centred matrix.
   nearest  --set S   each cohort protein's best hit among ALL reference and MIBiG sequences of the set (not only centroids).
 
+Ordinate uses fresh attempts and a watched Python worker; --preflight requires an explicit receipt directory.
+Resource defaults are configurable engineering limits, not scientific thresholds.
+
 DIAMOND and pyhmmer are companion tools: missing ones are refused by name, never replaced. Heavy steps run under nice with
 --threads (default 4). Positions are sequence similarity only; they say nothing about function or product.
 """
@@ -54,6 +57,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 from mamey._gbk_shim import parse_genbank_text  # noqa: E402
+from tools import _protein_pcoa_resources as _resources  # noqa: E402
 
 _LOG = logging.getLogger("protein_pcoa_ordinate")
 SOURCES = {"isolate": "isolate", "reference": "reference_held", "SID": "SID_held", "MIBiG": "MIBiG"}
@@ -408,27 +412,36 @@ def classical_pcoa(D, k=3):
     return X, [100 * v / tr if tr else 0.0 for v in vals]
 
 
-def cmd_ordinate(a):
+def _ordinate_compute(a, request):
     import numpy as np
-    kit = Path(a.kit); T = a.set; out = kit / f"out_{T}"
-    refuse_existing(out / f"PCOA_{T}.tsv")
-    out.mkdir(parents=True, exist_ok=True)
+    kit = Path(a.kit); T = a.set; out = Path(request["scratch"])
     dmd = diamond_exe(a.diamond); approx = a.approx_id or APPROX_ID.get(T, 90); t0 = time.time()
-    meta = {r["id"]: r for r in read_tsv(kit / f"{T}_META.tsv")}
-    seqs = read_fasta(kit / f"{T}.faa")
+    info, inputs, meta, seqs = _resources.read_inputs(kit, T, request["limits"],
+                                                     materialize=True, expected=request["inputs"])
     cohort = [i for i, r in meta.items() if r["source"] == "isolate"]
     refs = [i for i, r in meta.items() if r["source"] not in ("isolate", "MIBiG")]
     mibig = [i for i, r in meta.items() if r["source"] == "MIBiG"]
     members = {}
+    cluster_attempts = []
     for name, group in (("refs", refs), ("mibig", mibig)):
         if not group:
             continue
         write_fasta(out / f"{name}.faa", [(i, seqs[i]) for i in group])
-        run([dmd, "cluster", "-d", out / f"{name}.faa", "-o", out / f"{name}_clusters.tsv", "--approx-id", approx,
-             "--member-cover", "80", "--threads", a.threads, "--tmpdir", out, "--quiet"])
+        cluster_attempts.append(_resources.run_cluster_workspace(
+            dmd, out / f"{name}.faa", out / f"{name}_clusters.tsv", name=name,
+            approx_id=approx, threads=a.threads, member_count=len(group),
+            maximum_id_bytes=info["maximum_id_bytes"], policy=request.get("cluster_workspace"),
+            limits=request["limits"]))
+        observed_members = set()
+        expected_members = set(group)
         for line in open(out / f"{name}_clusters.tsv"):
             c, m = line.split()
+            if c not in expected_members or m not in expected_members or m in observed_members:
+                raise OrdinateRefusal("cluster membership is duplicated or outside its input group")
+            observed_members.add(m)
             members.setdefault(c, []).append(m)
+        if observed_members != expected_members:
+            raise OrdinateRefusal("cluster membership does not cover its admitted input group")
     with open(out / f"REFERENCE_CLUSTERS_{T}.tsv", "w") as fh:
         fh.write("centroid\tn_members\tmembers\n")
         for c, ms in members.items():
@@ -436,6 +449,9 @@ def cmd_ordinate(a):
     ids = cohort + list(members); idx = {i: k for k, i in enumerate(ids)}; n = len(ids)
     if n < 4:
         raise OrdinateRefusal(f"{T}: only {n} points to ordinate")
+    _resources.admit(info, request["limits"], n=n)
+    if len(set(ids)) != n or any(i not in meta for i in ids):
+        raise OrdinateRefusal("cluster centroids do not match admitted input membership")
     write_fasta(out / "kept.faa", [(i, seqs[i]) for i in ids])
     run([dmd, "makedb", "--in", out / "kept.faa", "-d", out / "kept", "--threads", a.threads, "--quiet"])
     run([dmd, "blastp", "-q", out / "kept.faa", "-d", out / "kept", "-o", out / "allvsall.tsv", "--more-sensitive", "-k", n,
@@ -460,9 +476,56 @@ def cmd_ordinate(a):
                             PC3=f"{X[k, 2]:.5f}" if X.shape[1] > 2 else "0", n_represented=cnt.get(i, 1)))
     run_rec = dict(set=T, points=n, isolate_sequences=len(cohort), reference_sequences=len(refs), mibig_sequences=len(mibig),
                    centroids=len(members), approx_id=approx, pct_axes=[round(float(p), 2) for p in pct],
-                   seconds=round(time.time() - t0))
-    (out / f"RUN_{T}.json").write_text(json.dumps(run_rec, indent=1))
+                   seconds=round(time.time() - t0), cluster_attempts=cluster_attempts)
     return run_rec
+
+
+def cmd_ordinate(a):
+    """Coordinate resource admission; all heavy Python and child work is watched."""
+    try:
+        return _resources.coordinate(a, Path(__file__).absolute())
+    except _resources.ResourceRefusal as exc:
+        raise OrdinateRefusal(str(exc)) from exc
+
+
+def _ordinate_worker(request_path, expected_hash):
+    """Private worker route. The request digest binds one coordinator attempt."""
+    from types import SimpleNamespace
+    request_path = _resources.clean_path(request_path)
+    if os.environ.get("MAMEY_PCOA_REQUEST") != expected_hash or _resources.digest(request_path)["sha256"] != expected_hash:
+        raise OrdinateRefusal("worker request channel/digest mismatch")
+    request = _resources.read_request_json(request_path)
+    if request["schema"] != _resources.SCHEMA or request["sources"] != _resources.source_bindings(Path(__file__).absolute()):
+        raise OrdinateRefusal("worker source/schema binding mismatch")
+    expected_threads = {key: "1" for key in _resources.THREAD_ENVIRONMENT_KEYS}
+    if (request.get("thread_environment") != expected_threads
+            or {key: os.environ.get(key) for key in _resources.THREAD_ENVIRONMENT_KEYS} != expected_threads):
+        raise OrdinateRefusal("worker thread context does not match the bound request")
+    scratch = _resources.clean_path(request["scratch"])
+    if scratch.parent != request_path.parent or scratch.name != "scratch" or any(scratch.iterdir()):
+        raise OrdinateRefusal("worker scratch must be the fresh owned request child")
+    a = SimpleNamespace(kit=request["source_kit"], set=request["set"], diamond=request["diamond"],
+                        approx_id=request["approx_id"], threads=request["limits"]["threads"])
+    binary = Path(diamond_exe(a.diamond)).resolve(strict=True)
+    diamond_before = _resources.digest(binary)
+    # The probe and numerical imports execute inside the watched process tree.
+    probe = subprocess.run([str(binary), "version"], check=True, capture_output=True, text=True)
+    a.diamond = str(binary)
+    run_rec = _ordinate_compute(a, request)
+    if request["sources"] != _resources.source_bindings(Path(__file__).absolute()):
+        raise OrdinateRefusal("worker source drift")
+    if request["inputs"] != [_resources.digest(x["path"]) for x in request["inputs"]]:
+        raise OrdinateRefusal("worker input drift")
+    if diamond_before != _resources.digest(binary):
+        raise OrdinateRefusal("DIAMOND executable drift")
+    outputs = {name: _resources.digest(scratch / name) for name in
+               (f"PCOA_{a.set}.tsv", f"REFERENCE_CLUSTERS_{a.set}.tsv")}
+    _resources.write_json(scratch / "completion.json", dict(attempt_id=request["attempt_id"],
+        request_sha256=expected_hash, run=run_rec, outputs=outputs, runtime=_resources.runtime(),
+        diamond=dict(binding=diamond_before, version=probe.stdout.strip(),
+                     threads=a.threads, thread_environment={k: os.environ.get(k) for k in
+                     _resources.THREAD_ENVIRONMENT_KEYS})))
+    return 0
 
 
 # ---------------------------------------------------------------- nearest
@@ -498,6 +561,15 @@ def cmd_nearest(a):
 
 
 def main(argv=None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if args[:1] == ["--_ordinate-worker"]:
+        try:
+            if len(args) != 3:
+                raise OrdinateRefusal("invalid private worker invocation")
+            return _ordinate_worker(args[1], args[2])
+        except (OrdinateRefusal, _resources.ResourceRefusal, OSError, ValueError, KeyError, subprocess.SubprocessError) as exc:
+            _LOG.error("REFUSED: %s", exc)
+            return 2
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     common = argparse.ArgumentParser(add_help=False)
@@ -511,6 +583,13 @@ def main(argv=None) -> int:
     c = sub.add_parser("card", parents=[common]); c.add_argument("--card-fasta", required=True); c.add_argument("--aro-index", required=True)
     c.add_argument("--min-cohort", type=int, default=5)
     o = sub.add_parser("ordinate", parents=[common]); o.add_argument("--set", required=True); o.add_argument("--approx-id", type=float)
+    o.add_argument("--preflight", action="store_true", help="stream metadata/counts only; requires an explicit fresh receipt destination")
+    o.add_argument("--resource-receipt-dir", help="fresh explicit diagnostic directory for --preflight only")
+    o.add_argument("--attempt-root", help="output kit root; out_<SET> must not exist (source kit is read-only)")
+    o.add_argument("--cluster-work-root", help="existing shell-safe directory for fresh cluster-only scratch; default resolved system temp root")
+    o.add_argument("--rss-limit-bytes", type=int, default=_resources.DEFAULT_RSS)
+    o.add_argument("--min-free-disk-bytes", type=int, default=_resources.DEFAULT_DISK)
+    o.add_argument("--timeout-seconds", type=float, default=_resources.DEFAULT_TIMEOUT)
     n = sub.add_parser("nearest", parents=[common]); n.add_argument("--set", required=True)
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")

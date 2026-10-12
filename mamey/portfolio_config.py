@@ -1,21 +1,19 @@
 """Bind a portable multi-strain project registry to one explicit project root.
 
 This module turns the operator-declared project privacy/evidence registry (see
-`mamey/project_registry.py`) into an explicit, hash-bound project configuration for the optional
-Lab Quest interface. It reports only typed availability, privacy-tier, and workflow-state
+`mamey/project_registry.py`) into an explicit, hash-bound project configuration. It reports only typed availability, privacy-tier, and workflow-state
 metadata. It never derives activity, potency, ecological association, product identity, or a
 genome-to-assay causal link.
 
-Rebase note (B8/v9.7.405): the original Codex candidate for this module
-(CODEX_391_PORTABLE_PORTFOLIO_CONFIGURATION_2026-08-29) bound to a separate
-`mamey/privacy_profile.py` + `mamey/evidence_registry.py` pair. That pair was never landed in this
-bundle; `mamey/project_registry.py` (BC-4, landed) is the actual producer of the sealed package's
-`privacy_tier`/`privacy_assignment_state` fields (see `mamey/models.py`) and is the single source
-of truth for privacy tiers and heterogeneous strain/assay evidence in this cut. This module
-consumes `project_registry.py`'s `ProjectRegistry` directly rather than adding a third/fourth
-privacy mechanism -- the portable-project-configuration *shape* (a small pointer config file naming
-one registry file, both hash-bound and contained below the project root) is carried over from the
-Codex candidate; the registry format underneath it is not.
+This module consumes `project_registry.py`'s `ProjectRegistry` for declared project privacy,
+genome and assay metadata. The extraction privacy profile (`mamey/privacy_profile.py`) and
+evidence registry (`mamey/evidence_registry.py`) also exist in this bundle, but use separate
+schemas. In `cli.run_one_strain`, `--privacy-profile` drives release and BGC
+`privacy_tier`/`privacy_assignment_state`; `--project-registry` records project fields and assay
+context without driving those release fields. Supplying both is refused with
+`PRIVACY_AUTHORITY_CONFLICT`. A portfolio binding does not reconcile those authorities or grant
+public-export approval. Its pointer configuration names one registry file; both files are
+hash-bound and contained below the selected project root.
 """
 from __future__ import annotations
 
@@ -35,6 +33,19 @@ PORTFOLIO_BINDING_SCHEMA = "mamey_portfolio_binding_v1"
 class PortfolioConfigError(ValueError):
     """Raised when a portable portfolio configuration is absent, stale, or invalid."""
 
+
+
+PROJECT_OUTPUT_DIR = "project_outputs"
+# Projects written before v9.7.450 keep their receipts in lab_quest_outputs/ (the removed Lab Quest
+# interface's name). They are still read; new projects write project_outputs/.
+LEGACY_PROJECT_OUTPUT_DIR = "lab_quest_outputs"
+
+
+def project_output_dir(root: str | Path) -> Path:
+    """The project-root folder for catalog and binding receipts (legacy folder kept when it is the only one)."""
+    root = Path(root)
+    new, legacy = root / PROJECT_OUTPUT_DIR, root / LEGACY_PROJECT_OUTPUT_DIR
+    return legacy if legacy.is_dir() and not new.exists() else new
 
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -152,7 +163,7 @@ def load_portfolio_binding(project_root: str | Path, config_path: str | Path) ->
 def write_portfolio_binding(project_root: str | Path, binding: PortfolioBinding) -> Path:
     """Write additive project-root provenance, never inside a sealed package."""
     root = _root(project_root)
-    path = root / "lab_quest_outputs" / "portfolio_binding.json"
+    path = project_output_dir(root) / "portfolio_binding.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(binding.as_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8")

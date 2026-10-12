@@ -45,7 +45,7 @@ The installer defaults to offline resolution with `--no-index`. It pools wheels 
 
 Core packages are required; figure packages are a separate best-effort group. Explicit `--online` permits a pip-index fallback only when wheels are absent or resolution reports a missing matching distribution. It changes the network/write scope and is not an automatic repair for any install failure. Partial prior package changes are not rolled back. The script's six required import checks and optional figure checks establish importability only, not complete backend execution, model/database availability or scientific validation. Temporary pooled wheels and error logs are removed when it exits; retain terminal diagnostics in the approved workspace if recovery needs them.
 
-DIAMOND and external data/binaries are not provisioned by this script. Optional Lab Quest source installation requires `SAPOTE_INSTALL_LAB_QUEST=1`; failure there can leave the core install successful. See [DIAMOND status](DIAMOND_STATUS.md), [installation](../docs/INSTALL.md) and [bundle-support roles](../bundle_support/README.md). Source: `bundle_support/install_sapote_addons.sh:32–69,76–122,126–175`.
+DIAMOND and external data/binaries are not provisioned by this script. See [DIAMOND status](DIAMOND_STATUS.md), [installation](../docs/INSTALL.md) and [bundle-support roles](../bundle_support/README.md). Source: `bundle_support/install_sapote_addons.sh:32–69,76–122,126–175`.
 
 ## Run a comparison
 

@@ -8,6 +8,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _trees_432_fakes as F  # noqa: E402
+from _trees_432_fakes import native_tree_tmp_path  # noqa: E402,F401 - module-local tmp_path fixture
 
 
 def test_resolve_hmm_name_and_path(tmp_path, monkeypatch):

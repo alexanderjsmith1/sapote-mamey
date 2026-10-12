@@ -37,11 +37,21 @@ def test_blastp_summary_csv_table_keeps_column_alignment_with_piped_titles(tmp_p
     found = cr._find_blastp_summary(pkg)
     assert found is not None, "fixture name did not match _find_blastp_summary — adjust the fixture"
     md = cr._blastp_summary(pkg)
-    row = [ln for ln in md.splitlines() if ln.startswith("| BGC001")][0]
-    cells = _cells(row)
-    assert len(cells) == 6, row
-    assert cells[2].strip() == "66.1" and cells[4].strip() == "similarity"
-    assert "\\|" in cells[1]
+    header = next(ln for ln in md.splitlines() if ln.startswith("| Locus identity status"))
+    assert [cell.strip() for cell in _cells(header)] == [
+        "Locus identity status", "Supplied alias", "Top titles", "Best %ID",
+        "Coverage", "Claim level", "Next action",
+    ]
+    # A CSV alias/title alone cannot establish same-package locus attribution.
+    rows = [ln for ln in md.splitlines()
+            if ln.startswith("| REPORT_IDENTITY_HOLD[BLAST_SOURCE_LINK_UNBOUND] | BGC001 |")]
+    assert len(rows) == 1
+    cells = [cell.strip() for cell in _cells(rows[0])]
+    assert len(cells) == 7, rows[0]
+    assert cells == ["REPORT_IDENTITY_HOLD[BLAST_SOURCE_LINK_UNBOUND]", "BGC001",
+                     PIPED[:60].replace("|", "\\|"), "66.1", "98", "similarity",
+                     "re-run \\| with coverage"]
+    assert "\\|" in cells[2] and "\\|" in cells[6]
 
 
 def test_md_cell_escapes_pipes_and_newlines():

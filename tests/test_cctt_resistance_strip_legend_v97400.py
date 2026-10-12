@@ -40,9 +40,12 @@ def test_resistance_strip_figure_carries_tier_legend(tmp_path, monkeypatch):
             real_close(fig) if fig is not None else real_close()
 
     monkeypatch.setattr(cf.plt, "close", _capture)
-    cf.figs_single({"ST-500": {"deep": DEEP}}, "ST-500", str(tmp_path))
+    from ._gold_identity_fixture import bind_synthetic_gold_package
+    entry = bind_synthetic_gold_package(tmp_path / "package", "ST-500", deep=DEEP)
+    output = tmp_path / "figures"
+    cf.figs_single({"ST-500": entry}, "ST-500", str(output))
 
-    pngs = [p.name for p in tmp_path.iterdir() if "perBGC_cctt_resistance" in p.name and p.suffix == ".png"]
+    pngs = [p.name for p in output.iterdir() if "perBGC_cctt_resistance" in p.name and p.suffix == ".png"]
     assert pngs, "the S3 cctt+resistance figure was not rendered"
     labels = [l for leg in captured for l in leg]
     assert any("T1" in l and "self-protection" in l for l in labels), \

@@ -66,7 +66,7 @@ def test_the_default_anchor_is_the_longest_matched_core_enzyme_on_the_core_conti
 
 
 def test_a_core_enzyme_on_a_partner_contig_beats_a_transporter_on_the_core_contig():
-    """AS-609 BGC010 against SF2768: the NRPS match sits on NODE_243, and the map had centred on an MFS transporter."""
+    """AS-983 BGC010 against SF2768: the NRPS match sits on NODE_243, and the map had centred on an MFS transporter."""
     prots, _, _ = _genome()
     prots = dict(prots, p20=dict(prots[f"p{N}"], contig="partner"))
     drawn = [(3, "p3", 70.0), (N, "p20", 72.0)]
@@ -105,7 +105,7 @@ def test_reference_labels_never_overlap_however_many_neighbours(monkeypatch, tmp
 
 
 def test_a_pair_map_skips_a_split_piece_contig_left_with_nothing_to_draw(monkeypatch, tmp_path):
-    """AS-956, 2 Oct: a CLEAR split gene's second piece sat on a third contig. A pair map keeps only the two fragments'
+    """AS-988, 2 Oct: a CLEAR split gene's second piece sat on a third contig. A pair map keeps only the two fragments'
     windows, so that contig had no match left and the old renderer stopped with "min() iterable argument is empty"."""
     if "partner" not in glm.draw_locus_map.__code__.co_varnames:
         pytest.skip("pair mode comes with the RG-GMCI pair-map card")

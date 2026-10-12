@@ -6,6 +6,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _trees_432_fakes as F  # noqa: E402
+from _trees_432_fakes import native_tree_tmp_path  # noqa: E402,F401 - module-local tmp_path fixture
 
 COMPLETE_LOG = "IQ-TREE 3.0.1\nGenerating 1000 samples for ultrafast bootstrap...\nTotal wall-clock time used: 1332.0 sec\nDate: x\n"
 KILLED_LOG = "IQ-TREE 3.0.1\nGenerating 1000 samples for ultrafast bootstrap (v3)...\n"

@@ -24,13 +24,13 @@ def kit(tmp_path):
     for n, (x, y) in enumerate(BG):
         rows.append([f"r{n}", x, y, 0, 2, "reference_held" if n % 4 else "MIBiG", "", "G", f"Ref_{n}", "", "", "", "", 300])
     for k, (x, y) in enumerate([(2.0, 2.0), (0.2, 0.2), (1.5, 0.1)]):
-        rows.append([f"i{k}", x, y, 0, 1, "isolate", "", "G", f"AS-90{k}", "", "", f"c{k}_1", f"AS-90{k}__N{k}.region001.gbk", 300])
+        rows.append([f"i{k}", x, y, 0, 1, "isolate", "", "G", f"SYNTHETIC_REFERENCE_01{k}", "", "", f"c{k}_1", f"SYNTHETIC_REFERENCE_01{k}__N{k}.region001.gbk", 300])
     with open(out / "PCOA_KS.tsv", "w", newline="") as fh:
         csv.writer(fh, delimiter="\t").writerows(rows)
     with open(out / "NEAREST_KS.tsv", "w", newline="") as fh:
-        csv.writer(fh, delimiter="\t").writerows([["id", "nearest_pident"], ["i0", "50"], ["i1", "78"], ["i2", "92"]])
+        csv.writer(fh, delimiter="\t").writerows([["id", "nearest_pident"], ['i0', "50"], ['i1', "78"], ['i2', "92"]])
     (out / "RUN_KS.json").write_text(json.dumps({"pct_axes": [30.0, 20.0, 10.0]}))
-    (tmp_path / "cohorts.tsv").write_text("strain\tcohort\nAS-900\tg\nAS-901\tg\nAS-902\tg\n")
+    (tmp_path / "cohorts.tsv").write_text('strain\tcohort\nSYNTHETIC_REFERENCE_010\tg\nSYNTHETIC_REFERENCE_011\tg\nSYNTHETIC_REFERENCE_012\tg\n')
     return tmp_path
 
 
@@ -44,7 +44,7 @@ def test_three_tiers_split_the_open_points(kit):
     receipt = json.loads((kit / "out/panel_KS_g.json").read_text())
     assert (receipt["n_low"], receipt["n_mid"], receipt["n_cohort_points"]) == (1, 1, 3) and receipt["mid_below"] == 85
     fills = {r["strain"]: r["fill"] for r in csv.DictReader(open(kit / "out/LABELS_KS_g.tsv"), delimiter="\t")}
-    assert fills == {"AS-900": "solid", "AS-901": "light", "AS-902": "open"}
+    assert fills == {'SYNTHETIC_REFERENCE_010': "solid", 'SYNTHETIC_REFERENCE_011': "light", 'SYNTHETIC_REFERENCE_012': "open"}
     svg = (kit / "out/PCOA_KS_g.svg").read_text()
     assert "70–85% identity" in svg and "&gt;= 85% identity" in svg
 

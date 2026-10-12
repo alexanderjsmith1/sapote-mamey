@@ -18,6 +18,7 @@ Wishlist W2 Part B (v9.7.149b → next).
 from __future__ import annotations
 
 import csv
+import json
 try:
     from .csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter  # v9.7.410 CSV formula-cell guard (CLAUDE_410_csv_writer_coverage)
 except ImportError:
@@ -33,6 +34,10 @@ from .boundary_palette import BLUE_GRADIENT as _BOUNDARY_COLOURS
 # v9.7.410 (CLAUDE_410 savefig OOM sweep): clamp publication DPI under the Agg pixel
 # ceiling before every raster write. See mamey/render_safe.py::safe_savefig_dpi.
 from .render_safe import safe_savefig_dpi as _safe_dpi
+from .exact_identity import (
+    ExactLocusIdentityError, exact_locus_from_mapping,
+    exact_locus_from_native_inventory_row,
+)
 _DEFAULT_COLOUR = "#9aa5b1"  # neutral grey for unknown boundary
 
 # Column-name candidates per logical field (mirrors session_resume robustness)
@@ -127,18 +132,35 @@ def generate(package_dir, out_subdir: str = "smoke_figures") -> dict:
                 "skipped_reason": "no triage or inventory CSV found"}
 
     made: list[str] = []
+    identity_holds: list[str] = []
     for fn in (_fig_bgc_ranking, _fig_class_composition, _fig_assembly_tier):
         try:
-            path = fn(plt, triage, inventory, out)
+            if fn is _fig_bgc_ranking:
+                try:
+                    manifest = json.loads((pkg / "manifest.json").read_text(encoding="utf-8"))
+                    strain = manifest.get("strain_id")
+                except (OSError, ValueError, AttributeError):
+                    strain = None
+                path = fn(plt, triage, inventory, out, strain=strain)
+            else:
+                path = fn(plt, triage, inventory, out)
             if path:
                 made.append(path.name)
+        except ExactLocusIdentityError:
+            identity_holds.append("fig_bgc_ranking: HOLD_IDENTITY_UNRESOLVED")
+            try:
+                with (pkg / "issue_log.md").open("a", encoding="utf-8") as handle:
+                    handle.write("\n- [HOLD] fig_bgc_ranking: complete locus identity "
+                                 "is missing, duplicated or conflicting; ranking not refreshed.\n")
+            except OSError:
+                identity_holds.append("issue_log: HOLD_DIAGNOSTIC_WRITE_FAILED")
         except Exception:
             # Non-blocking per the wishlist: a single bad figure must not
             # block the others or the run.
             continue
 
     return {"out": str(out), "figures": len(made), "files": made,
-            "skipped_reason": None}
+            "skipped_reason": None, "identity_holds": identity_holds}
 
 
 # ---------------------------------------------------------------------------
@@ -160,30 +182,56 @@ def _pick_source(triage: list[dict], inventory: list[dict]) -> list[dict]:
     return inventory
 
 
+def _ranking_rows(triage: list[dict], inventory: list[dict], strain: object) -> list[dict]:
+    """Join complete source identities, never an alias-only dictionary.
+
+    Any incomplete, conflicting or duplicate physical identity holds the whole
+    ranking. Aggregate figures remain independently available.
+    """
+    def identity(row):
+        if all(key in row for key in ("Contig", "Node_ID", "antiSMASH_Region", "BGC_ID")):
+            return exact_locus_from_native_inventory_row(strain, row).exact_locus
+        return exact_locus_from_mapping(strain, row)
+
+    inventory_by_locus = {}
+    for row in inventory:
+        locus = identity(row)
+        if locus in inventory_by_locus:
+            raise ExactLocusIdentityError("duplicate inventory locus")
+        inventory_by_locus[locus] = row
+    rows, seen = [], set()
+    for row in _pick_source(triage, inventory):
+        locus = identity(row)
+        if locus in seen:
+            raise ExactLocusIdentityError("duplicate ranking locus")
+        seen.add(locus)
+        paired = inventory_by_locus.get(locus, {})
+        length = _safe_float(_first(row, _LEN_COLS))
+        paired_length = _safe_float(_first(paired, _LEN_COLS))
+        boundary, paired_boundary = _resolve_boundary(row), _resolve_boundary(paired)
+        if (length is not None and paired_length is not None and length != paired_length
+                or boundary and paired_boundary and boundary != paired_boundary):
+            raise ExactLocusIdentityError("conflicting ranking evidence for exact locus")
+        # An alias present in both tables at different loci is not a valid
+        # fallback binding, even when it could supply a convenient length.
+        if not paired and any(_first(r, _BGCID_COLS) == _first(row, _BGCID_COLS)
+                              for r in inventory):
+            raise ExactLocusIdentityError("conflicting locus across ranking sources")
+        rows.append({"bgc_id": _first(row, _BGCID_COLS), "exact_locus": locus,
+                     "length": length if length is not None else paired_length,
+                     "boundary": boundary or paired_boundary or "Unknown"})
+    return rows
+
+
 def _fig_bgc_ranking(plt, triage: list[dict], inventory: list[dict],
-                     out_dir: pathlib.Path) -> Optional[pathlib.Path]:
+                     out_dir: pathlib.Path, *, strain=None) -> Optional[pathlib.Path]:
     """Horizontal bar of top-15 BGCs by region length, coloured by boundary.
 
     Length comes from inventory CSV's `Length_kb` if present (triage doesn't
     carry it in current schemas); boundary comes from `Assembly_Locator` or
-    `Boundary`. If lengths are unavailable we fall back to Corrected_rank
-    descending — i.e. top-15 by rank.
+    `Boundary`. Missing lengths cannot establish a length ranking.
     """
-    # Build a per-BGC view with length + boundary
-    inv_by_id = {_first(r, _BGCID_COLS): r for r in inventory
-                 if _first(r, _BGCID_COLS)}
-    rows = []
-    source = _pick_source(triage, inventory)
-    for r in source:
-        bgc_id = _first(r, _BGCID_COLS)
-        if not bgc_id:
-            continue
-        boundary = _resolve_boundary(r) or _resolve_boundary(inv_by_id.get(bgc_id, {}))
-        length = _safe_float(_first(r, _LEN_COLS))
-        if length is None and inv_by_id.get(bgc_id):
-            length = _safe_float(_first(inv_by_id[bgc_id], _LEN_COLS))
-        rows.append({"bgc_id": bgc_id, "length": length,
-                     "boundary": boundary or "Unknown"})
+    rows = _ranking_rows(triage, inventory, strain)
 
     if not rows:
         return None
@@ -197,12 +245,15 @@ def _fig_bgc_ranking(plt, triage: list[dict], inventory: list[dict],
     if all(r["length"] is None for r in rows):
         return None
 
-    fig, ax = plt.subplots(figsize=(7.2, max(2.4, 0.32 * len(rows) + 1.0)))
+    # Preserve every identifier; wrap only at the identity component boundary.
+    labels = [r["exact_locus"].replace(" / ", " /\n", 1) for r in rows]
+    longest = max(len(line) for label in labels for line in label.splitlines())
+    fig, ax = plt.subplots(figsize=(max(10.0, 5.0 + longest * 0.065),
+                                   max(3.0, 0.52 * len(rows) + 1.2)))
     y_pos = list(range(len(rows)))[::-1]  # longest at top
     lengths = [r["length"] or 0 for r in rows]
     colours = [_BOUNDARY_COLOURS.get(r["boundary"], _DEFAULT_COLOUR)
                for r in rows]
-    labels  = [r["bgc_id"] for r in rows]
 
     ax.barh(y_pos, lengths, color=colours, edgecolor="#1a1a1a", linewidth=0.4)
     ax.set_yticks(y_pos)
@@ -211,7 +262,7 @@ def _fig_bgc_ranking(plt, triage: list[dict], inventory: list[dict],
     ax.set_title("Top 15 BGCs by region length", loc="left", fontsize=11)
 
     # Legend (one swatch per boundary actually present)
-    present_boundaries = list({r["boundary"] for r in rows})
+    present_boundaries = sorted({r["boundary"] for r in rows})
     handles = [plt.Rectangle((0, 0), 1, 1,
                              color=_BOUNDARY_COLOURS.get(b, _DEFAULT_COLOUR))
                for b in present_boundaries]
@@ -224,9 +275,9 @@ def _fig_bgc_ranking(plt, triage: list[dict], inventory: list[dict],
     plt.close(fig)
 
     _write_sidecar(out_dir / "fig_bgc_ranking_data.csv",
-                   ["bgc_id", "length_kb", "boundary"],
+                   ["bgc_id", "length_kb", "boundary", "exact_locus"],
                    [[r["bgc_id"], r["length"] if r["length"] is not None else "",
-                     r["boundary"]] for r in rows])
+                     r["boundary"], r["exact_locus"]] for r in rows])
     return png_path
 
 
@@ -341,11 +392,14 @@ def _fig_assembly_tier(plt, triage: list[dict], inventory: list[dict],
     ax.set_xlabel("BGC count")
     ax.set_title(f"Assembly-locator composition (n={total})",
                  loc="left", fontsize=11)
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.6),
-              ncol=len(bars), fontsize=8, frameon=False)
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 0.02),
+               ncol=len(bars), fontsize=8, frameon=False)
 
     png_path = out_dir / "fig_assembly_tier.png"
-    fig.tight_layout()
+    # Reserve figure space for the legend so tight_layout cannot compress it
+    # onto the axis label when a single boundary category fills the bar.
+    fig.tight_layout(rect=(0, 0.16, 1, 1))
     fig.savefig(png_path, dpi=_safe_dpi(fig, 150))
     plt.close(fig)
 

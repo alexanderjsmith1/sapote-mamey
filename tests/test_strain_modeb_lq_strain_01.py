@@ -5,6 +5,8 @@ gracefully where cohort data is absent), that the strain-structure gate accepts 
 flags a truncated one, and that the release tag derives via the dedup_and_guard SSOT (AS- is PUBLIC per
 the v9.7.236 PI decision; AJS-/PENDING-/unrecognized still fail safe to PRIVATE).
 """
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
 import os
 import sys
 import json
@@ -56,18 +58,18 @@ def test_gate_flags_missing_claim_ceiling():
     assert any("CLAIM_CEILING" in p for p in problems)
 
 
-def test_release_derives_via_ssot_as_is_public(tmp_path):
+def test_release_derives_via_ssot_unlisted_as_is_private(tmp_path):
     # AMBER_RELEASE_DRIFT: release now derives from dedup_and_guard.derive_release (the SSOT),
     # not a stale inline AS->PRIVATE rule. Per the v9.7.236 PI decision the AS- cohort is PUBLIC,
     # so a digit-bearing AS strain with no intake release emits PUBLIC.
-    pkg = _minimal_package(tmp_path, strain="AS-777", release=None)
+    pkg = _minimal_package(tmp_path, strain=synthetic_namespace_id('AS', width=3, case_index=917, separator=True), release=None)
     md, _ = build_strain_sapote(pkg)
-    assert "release **PUBLIC**" in md
+    assert 'release **PRIVATE**' in md
 
 
 def test_release_failsafe_private_on_ajs_and_pending(tmp_path):
     # The fail-safe is preserved for AJS-/PENDING- (and unrecognized) identifiers.
-    for strain in ("AJS-777", "PENDING-777"):
+    for strain in ((synthetic_namespace_id('AJS', width=3, case_index=917, separator=True)), (synthetic_namespace_id('PENDING', width=None, case_index=917, separator=True))):
         pkg = _minimal_package(tmp_path, strain=strain, release=None)
         md, _ = build_strain_sapote(pkg)
         assert "release **PRIVATE**" in md, strain

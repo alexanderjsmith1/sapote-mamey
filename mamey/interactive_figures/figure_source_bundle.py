@@ -122,8 +122,94 @@ def _write_csv(path: Path, rows: Sequence[dict[str, Any]], fields: Sequence[str]
         writer.writerows(rows)
 
 
+def verify_source_bundle(
+    widget_data: str | Path,
+    source_bundle: str | Path,
+    *,
+    required_tables: Sequence[str] = (),
+    expected_receipt_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Check the saved widget and table bindings before consuming figure sources.
+
+    The same receipt bytes are parsed and hashed. Call again with the returned
+    receipt hash before writing a successful final receipt to detect source drift.
+    Source reconciliation status remains separate from rendering or scientific QA.
+    """
+    widget_path = Path(widget_data).resolve()
+    bundle = Path(source_bundle).resolve()
+    receipt_path = bundle / "SOURCE_BUNDLE_RECEIPT.json"
+    if not receipt_path.is_file():
+        raise ValueError("FIGURE_INPUT_SOURCE_RECEIPT_MISSING")
+    raw = receipt_path.read_bytes()
+    receipt_sha256 = _sha256_bytes(raw)
+    if expected_receipt_sha256 is not None and receipt_sha256 != expected_receipt_sha256:
+        raise ValueError("FIGURE_INPUT_SOURCE_RECEIPT_CHANGED")
+    try:
+        receipt = json.loads(raw)
+    except (ValueError, UnicodeError) as exc:
+        raise ValueError("FIGURE_INPUT_SOURCE_RECEIPT_INVALID") from exc
+    if not isinstance(receipt, dict) or receipt.get("status") not in {"PASS", "PASS_WITH_ISSUES"}:
+        raise ValueError("FIGURE_INPUT_SOURCE_BUNDLE_NOT_USABLE")
+    source = receipt.get("source")
+    if not isinstance(source, dict) or source.get("widget_sha256") != _sha256_path(widget_path):
+        raise ValueError("FIGURE_INPUT_WIDGET_BINDING_MISMATCH")
+    outputs = receipt.get("outputs")
+    if not isinstance(outputs, list) or not outputs:
+        raise ValueError("FIGURE_INPUT_SOURCE_OUTPUT_BINDINGS_MISSING")
+    bound_outputs: dict[str, dict[str, Any]] = {}
+    for row in outputs:
+        if not isinstance(row, dict):
+            raise ValueError("FIGURE_INPUT_SOURCE_OUTPUT_BINDING_INVALID")
+        name = row.get("path")
+        if not isinstance(name, str) or not name or "\\" in name:
+            raise ValueError("FIGURE_INPUT_SOURCE_OUTPUT_BINDING_INVALID")
+        relative = Path(name)
+        if relative.is_absolute() or ".." in relative.parts or name in bound_outputs:
+            raise ValueError(f"FIGURE_INPUT_SOURCE_OUTPUT_BINDING_INVALID: {name}")
+        if not isinstance(row.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"]):
+            raise ValueError(f"FIGURE_INPUT_SOURCE_TABLE_BINDING_FAILED: {name}")
+        bound_outputs[name] = row
+    for name in required_tables:
+        if name not in bound_outputs:
+            raise ValueError(f"FIGURE_INPUT_SOURCE_TABLE_BINDING_FAILED: {name}")
+    for name, record in bound_outputs.items():
+        path = bundle / name
+        if not path.resolve().is_relative_to(bundle) or not path.is_file() or record["sha256"] != _sha256_path(path):
+            raise ValueError(f"FIGURE_INPUT_SOURCE_TABLE_BINDING_FAILED: {name}")
+    return {"receipt_path": str(receipt_path), "receipt_sha256": receipt_sha256, "receipt": receipt}
+
+
+def read_verified_source_tables(
+    source_bundle: str | Path,
+    source_binding: dict[str, Any],
+    *,
+    tables: Sequence[str],
+    encoding: str = "utf-8",
+) -> dict[str, list[dict[str, str]]]:
+    """Parse only the exact CSV bytes named by the initially admitted receipt.
+
+    The returned rows can be passed to chart builders without rereading live paths.
+    Admission/final receipt checks remain separate and are still mandatory.
+    """
+    bundle = Path(source_bundle).resolve()
+    records = {row["path"]: row for row in source_binding["receipt"]["outputs"]}
+    parsed = {}
+    for name in tables:
+        record = records.get(name)
+        path = bundle / name
+        if record is None or not path.resolve().is_relative_to(bundle) or not path.is_file():
+            raise ValueError(f"FIGURE_INPUT_SOURCE_TABLE_BINDING_FAILED: {name}")
+        raw = path.read_bytes()
+        if _sha256_bytes(raw) != record["sha256"]:
+            raise ValueError(f"FIGURE_INPUT_SOURCE_TABLE_CONSUMED_MISMATCH: {name}")
+        parsed[name] = list(csv.DictReader(io.StringIO(raw.decode(encoding), newline="")))
+    return parsed
+
+
 def _member(zf: zipfile.ZipFile, suffix: str) -> str | None:
     hits = sorted(name for name in zf.namelist() if name.endswith(suffix))
+    if len(hits) > 1:
+        raise ValueError(f"FIGURE_INPUT_SOURCE_MEMBER_AMBIGUOUS: {suffix}: {hits!r}")
     return hits[0] if hits else None
 
 
@@ -136,7 +222,11 @@ def build_source_bundle(widget_data: str | Path, package_dir: str | Path, outdir
     widget_path = Path(widget_data).resolve()
     package_root = Path(package_dir).resolve()
     destination = Path(outdir).resolve()
-    payload = json.loads(widget_path.read_text(encoding="utf-8"))
+    if destination.exists():
+        raise ValueError("FIGURE_SOURCE_OUTPUT_EXISTS: choose a new output directory")
+    widget_bytes = widget_path.read_bytes()
+    widget_sha256 = _sha256_bytes(widget_bytes)
+    payload = json.loads(widget_bytes.decode("utf-8"))
     strains = payload.get("strains") or {}
     if not strains:
         raise ValueError("widget data has no strains")
@@ -147,7 +237,7 @@ def build_source_bundle(widget_data: str | Path, package_dir: str | Path, outdir
             raise ValueError("FIGURE_INCLUDE_BY_DEFAULT_INVALID: include_by_default must be boolean")
         if cohort_role == "EXTERNAL_BENCHMARK" and include_by_default:
             raise ValueError("FIGURE_EXTERNAL_BENCHMARK_DEFAULT_ON: external benchmarks must be default-off")
-    destination.mkdir(parents=True, exist_ok=True)
+    destination.mkdir(parents=True)
 
     bgc_records: list[dict[str, Any]] = []
     class_memberships: list[dict[str, Any]] = []
@@ -759,6 +849,8 @@ def build_source_bundle(widget_data: str | Path, package_dir: str | Path, outdir
         "PACKAGE_STATES.csv": package_states,
         "WIDGET_MACHINERY_RECONCILIATION_ISSUES.csv": machinery_reconciliation,
     }
+    if _sha256_path(widget_path) != widget_sha256:
+        raise ValueError("FIGURE_SOURCE_WIDGET_CHANGED_DURING_BUILD")
     output_receipts = []
     for name, rows in outputs.items():
         path = destination / name
@@ -796,7 +888,7 @@ def build_source_bundle(widget_data: str | Path, package_dir: str | Path, outdir
         "schema_version": SCHEMA_VERSION,
         "status": "FAIL" if hard_failure else ("PASS_WITH_ISSUES" if soft_issue else "PASS"),
         "profile": PROFILE,
-        "source": {"widget_data": str(widget_path), "widget_sha256": _sha256_path(widget_path), "package_dir": str(package_root)},
+        "source": {"widget_data": str(widget_path), "widget_sha256": widget_sha256, "package_dir": str(package_root)},
         "strain_count": len(strains), "present_package_count": len(strains) - len(missing_packages),
         "missing_packages": missing_packages, "missing_member_count": len(missing_members),
         "missing_required_member_count": len(missing_required_members),
@@ -804,6 +896,8 @@ def build_source_bundle(widget_data: str | Path, package_dir: str | Path, outdir
         "outputs": output_receipts, "machine_checks": checks, "claim_ceiling": GLOBAL_CLAIM_CEILING,
         "deduplication": "Physical CDS are projected by first-row retention on strain+contig+locus_tag+start+end before role precedence, matching the widget-data contract; retained BGC assignment remains explicit.",
     }
+    if _sha256_path(widget_path) != widget_sha256:
+        raise ValueError("FIGURE_SOURCE_WIDGET_CHANGED_DURING_BUILD")
     receipt_path = destination / "SOURCE_BUNDLE_RECEIPT.json"
     receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return receipt

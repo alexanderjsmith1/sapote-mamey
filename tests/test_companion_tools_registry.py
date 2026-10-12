@@ -56,8 +56,12 @@ def test_probe_is_offline_safe_without_detection():
     assert all(p.install_hint for p in probes)
 
 
-def test_probe_never_raises_with_detection():
-    # Real detection may find nothing in CI; it must still return a clean list, never raise.
+def test_probe_never_raises_with_detection(monkeypatch):
+    # Exercise the full registry on a hermetically missing PATH, not live optional software.
+    monkeypatch.setattr(C.shutil, "which", lambda name: None)
+    def missing(*args, **kwargs):
+        raise FileNotFoundError("synthetic missing interpreter/executable")
+    monkeypatch.setattr(C.subprocess, "run", missing)
     probes = C.probe_tools(run_detection=True)
     assert len(probes) == len(C.load_registry())
     for p in probes:
@@ -72,3 +76,29 @@ def test_registry_json_matches_declared_categories():
     declared = set(data["categories"])
     used = {t["category"] for t in data["tools"]}
     assert used <= declared, f"tool categories not in declared list: {used - declared}"
+
+
+def test_corason_is_optional_manual_and_not_a_core_or_runtime_claim(monkeypatch):
+    tools = {x.id: x for x in C.load_registry()}
+    corason = tools['corason']
+    assert corason.requirement == 'optional'
+    assert corason.category == 'synteny'
+    assert corason.network_required is False
+    assert corason.reference_db_required is False
+    assert 'NOT_PROBED' in corason.detection_command
+    assert corason.expected_version == ''
+    assert corason.verify_flag is False
+    assert 'aa70dddebafb210445794fd24b1c6b2e4177c58c' in str(corason.install)
+    assert 'PRIVATE' in corason.produces
+    assert 'query-only' in corason.purpose and 'BLAST-order' in corason.purpose
+    probes = C.probe_tools([corason], run_detection=False)
+    assert len(probes) == 1 and probes[0].present is False
+
+    # A manual entry never executes its marker or infers local installation.
+    def forbidden(*args, **kwargs):
+        raise AssertionError("manual entry must not launch a child")
+    monkeypatch.setattr(C.subprocess, "run", forbidden)
+    probes = C.probe_tools([corason], run_detection=True)
+    assert len(probes) == 1 and probes[0].present is False
+    assert probes[0].detected_version is None
+    assert probes[0].probe_status == "MANUAL_NOT_PROBED"

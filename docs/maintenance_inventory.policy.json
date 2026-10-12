@@ -1,0 +1,127 @@
+{
+  "schema": "sapote-mamey.maintenance-policy.v1",
+  "rule": "Explicit lifecycle declarations supplement live owner rosters. Version strings do not imply retirement. Unclassified pages retain a review hold.",
+  "history_prefixes": [
+    "docs/history/"
+  ],
+  "engineering_prefixes": [
+    "docs/working/",
+    "docs/release_planning/",
+    "docs/patch_notes/",
+    "docs/figure_factory/"
+  ],
+  "retained_history": [
+    "docs/QUICK_GUIDE.md",
+    "docs/user_guides/comprehensive_glossary.md",
+    "docs/user_guides/sapote_mamey_wheel_glossary.md"
+  ],
+  "optional_documents": [
+    "docs/OPTIONAL_HOOKS.md",
+    "docs/OPTIONAL_FIGURE_FACTORY_TOOLS.md",
+    "docs/companion_tools.md",
+    "docs/EXTERNAL_TOOL_INVENTORY.md"
+  ],
+  "optional_commands": {},
+  "optional_hooks": [
+    "hooks/require_phylo_workflow.sh",
+    "hooks/block_blastp_overconcurrency.sh",
+    "hooks/c10_tool_drift.py",
+    "hooks/reasoning_self_audit_stop.py",
+    "hooks/contradiction_and_magnitude_stop.py",
+    "hooks/state_save_reminder.py",
+    "hooks/no_stop_short.py",
+    "hooks/recommendation_contract.py"
+  ],
+  "generated_surfaces": [
+    {
+      "id": "command_catalog",
+      "outputs": [
+        "docs/COMMAND_CATALOG.generated.md"
+      ],
+      "owner_paths": [
+        "tools/gen_command_catalog.py",
+        "mamey/cli.py"
+      ],
+      "regeneration_rule": "python tools/gen_command_catalog.py",
+      "check_rule": "python tools/gen_command_catalog.py --check",
+      "trigger": "parser, canonical help, aliases or fixed optional command descriptions change",
+      "scope": "complete-generated-output"
+    },
+    {
+      "id": "user_catalog",
+      "outputs": [
+        "docs/USER_CATALOG.generated.md",
+        "docs/USER_CATALOG.generated.json"
+      ],
+      "owner_paths": [
+        "tools/gen_user_catalog.py"
+      ],
+      "regeneration_rule": "python tools/gen_user_catalog.py",
+      "check_rule": "python tools/gen_user_catalog.py --check",
+      "trigger": "owning registries or user-catalog rendering change",
+      "scope": "complete-generated-output"
+    },
+    {
+      "id": "marker_catalog",
+      "outputs": [
+        "docs/MARKER_CATALOG.generated.md",
+        "docs/MARKER_CATALOG.generated.json"
+      ],
+      "owner_paths": [
+        "tools/gen_marker_catalog.py"
+      ],
+      "regeneration_rule": "python tools/gen_marker_catalog.py",
+      "check_rule": "Owner --check covers JSON only; independently compare both fresh rendered files before accepting the pair",
+      "trigger": "owning marker tables or renderer change",
+      "scope": "complete-generated-output"
+    },
+    {
+      "id": "deliverable_menu",
+      "outputs": [
+        "docs/DELIVERABLE_MENU.md",
+        "docs/DELIVERABLE_MENU_v97146.md"
+      ],
+      "owner_paths": [
+        "tools/generate_deliverables_menu.py",
+        "mamey/data/deliverables_registry.json"
+      ],
+      "regeneration_rule": "python tools/generate_deliverables_menu.py --apply",
+      "check_rule": "python tools/generate_deliverables_menu.py --check",
+      "trigger": "canonical deliverables registry changes",
+      "scope": "complete-generated-output"
+    },
+    {
+      "id": "bootstrap",
+      "outputs": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "README.md",
+        "docs/BOOTSTRAP_FILE_AUDIT.md"
+      ],
+      "owner_paths": [
+        "tools/render_bootstrap_contract.py",
+        "bootstrap_contract.yml"
+      ],
+      "regeneration_rule": "python tools/render_bootstrap_contract.py --apply",
+      "check_rule": "python tools/render_bootstrap_contract.py --check",
+      "trigger": "shared bootstrap contract or maintained agent guidance changes",
+      "scope": "managed blocks plus byte-identical CLAUDE discovery copy; preserve maintained prose"
+    },
+    {
+      "id": "maintenance_inventory",
+      "outputs": [
+        "docs/MAINTENANCE_INVENTORY.generated.json",
+        "docs/MAINTENANCE_INVENTORY.generated.md"
+      ],
+      "owner_paths": [
+        "tools/gen_tools_inventory.py",
+        "tools/_maintenance_inventory.py",
+        "docs/maintenance_inventory.policy.json"
+      ],
+      "regeneration_rule": "python tools/gen_tools_inventory.py --maintenance",
+      "check_rule": "python tools/gen_tools_inventory.py --maintenance --check",
+      "trigger": "scoped command/tool/document membership, explicit policy, registry or owner input changes",
+      "scope": "complete-generated-output"
+    }
+  ]
+}

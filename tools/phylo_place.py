@@ -47,6 +47,11 @@ try:
 except ImportError:  # imported as tools.phylo_place
     from tools import _phylo16s as _p16
 
+try:
+    from _placement_report_metadata import add_arguments as _report_arguments, normalize_options as _report_options, reviewed_type_map, metadata_path_argument
+except ImportError:
+    from tools._placement_report_metadata import add_arguments as _report_arguments, normalize_options as _report_options, reviewed_type_map, metadata_path_argument
+
 ROOT = str(workspace_root())
 
 
@@ -112,9 +117,24 @@ CLAIM_SAFE = (
 )
 
 
-def _env(extra_first):
+def _positive_threads(value):
+    try:
+        threads = int(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("threads must be a positive integer") from exc
+    if isinstance(value, bool) or threads < 1 or str(value).strip() != str(threads):
+        raise argparse.ArgumentTypeError("threads must be a positive integer")
+    return threads
+
+
+def _env(extra_first, threads=None):
     e = dict(os.environ)
     e["PATH"] = extra_first + ":" + PHYLO_BIN + ":" + e.get("PATH", "")
+    if threads is not None:
+        budget = str(_positive_threads(threads))
+        for name in ("OMP_NUM_THREADS", "OMP_THREAD_LIMIT", "OPENBLAS_NUM_THREADS",
+                     "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+            e[name] = budget
     return e
 
 
@@ -341,7 +361,7 @@ def _assess_terminal_divergence(ref_aln, outdir):
     return len(flagged)
 
 
-def _align_queries(mafft, epa, reference, queries, outdir, fragmentary):
+def _align_queries(mafft, epa, reference, queries, outdir, fragmentary, threads=1):
     """Keep reference columns fixed and reject stale, incomplete or mismatched split output."""
     import tempfile
     import shutil
@@ -351,6 +371,7 @@ def _align_queries(mafft, epa, reference, queries, outdir, fragmentary):
         if not rows or len(rows) != len(pairs) or any(not seq for seq in rows.values()):
             raise ValueError("ALIGNMENT_EMPTY_OR_DUPLICATE_RECORDS")
         return rows
+    threads = _positive_threads(threads)
     refs = records(reference); query_ids = set(records(queries))
     widths = {len(seq) for seq in refs.values()}
     if len(widths) != 1 or set(refs) & query_ids:
@@ -361,8 +382,8 @@ def _align_queries(mafft, epa, reference, queries, outdir, fragmentary):
         try:
             with open(combined, "w") as handle, open(mafft_log, "w") as err:
                 subprocess.check_call([mafft, "--addfragments" if fragmentary else "--add", queries,
-                                       "--keeplength", "--anysymbol", "--quiet", reference],
-                                      env=_env(PLACEMENT_BIN), stdout=handle, stderr=err)
+                                       "--thread", str(threads), "--keeplength", "--anysymbol", "--quiet", reference],
+                                      env=_env(PLACEMENT_BIN, threads), stdout=handle, stderr=err)
         except subprocess.CalledProcessError as exc:
             raise RuntimeError(f"QUERY_ALIGNMENT_FAILED: MAFFT exit {exc.returncode}; diagnostic: {mafft_log}") from exc
         aligned = records(combined)
@@ -371,8 +392,8 @@ def _align_queries(mafft, epa, reference, queries, outdir, fragmentary):
         split_log = os.path.join(outdir, "query_alignment_split.stderr.log")
         try:
             with open(split_log, "w") as err:
-                subprocess.check_call([epa, "--redo", "--split", reference, combined, "--outdir", td],
-                                      env=_env(PLACEMENT_BIN), stdout=subprocess.DEVNULL, stderr=err)
+                subprocess.check_call([epa, "--redo", "--threads", str(threads), "--split", reference, combined, "--outdir", td],
+                                      env=_env(PLACEMENT_BIN, threads), stdout=subprocess.DEVNULL, stderr=err)
         except subprocess.CalledProcessError as exc:
             raise RuntimeError(f"QUERY_ALIGNMENT_SPLIT_FAILED: EPA-ng exit {exc.returncode}; diagnostic: {split_log}") from exc
         split = os.path.join(td, "query.fasta")
@@ -887,6 +908,7 @@ def _default_refpkg(a):
 
 
 def cmd_build_ref(a):
+    a.threads = _positive_threads(getattr(a, "threads", 1))
     if a.group not in GROUPS:
         if _is_per_genus_group(a.group):
             if not getattr(a, "add_outgroup", ""):
@@ -1040,7 +1062,7 @@ def cmd_build_ref(a):
     sys.stdout.write((f"[build-ref] {a.group}  ({'protein' if prot else 'nucleotide'})  aligning reference…") + "\n")
     mafft_log = os.path.join(outdir, "reference_alignment.stderr.log")
     with open(ref_aln, "w") as fh, open(mafft_log, "w") as err:
-        rc = subprocess.call([mafft, "--auto", "--anysymbol", "--quiet", ref_safe], env=_env(PLACEMENT_BIN),
+        rc = subprocess.call([mafft, "--auto", "--thread", str(a.threads), "--anysymbol", "--quiet", ref_safe], env=_env(PLACEMENT_BIN, a.threads),
                              stdout=fh, stderr=err)
     if rc != 0 or not os.path.getsize(ref_aln):
         sys.exit(f"REFERENCE_ALIGNMENT_FAILED: MAFFT exit {rc}; diagnostic: {mafft_log}")
@@ -1075,7 +1097,7 @@ def cmd_build_ref(a):
                "--bs-trees", str(a.bootstrap), "--threads", str(a.threads), "--prefix", pre,
                "--redo", "--force", "perf_threads"]
         sys.stdout.write((f"[build-ref] raxml-ng ML tree ({model}, {a.bootstrap} BS)…") + "\n")
-        if subprocess.call(cmd, env=_env(PLACEMENT_BIN)) != 0:
+        if subprocess.call(cmd, env=_env(PLACEMENT_BIN, a.threads)) != 0:
             sys.exit("raxml-ng failed")
         shutil.copy(pre + ".raxml.bestTree", ref_tree)
         bestmodel = pre + ".raxml.bestModel"
@@ -1088,7 +1110,7 @@ def cmd_build_ref(a):
         cmd = [iq, "-s", ref_aln, "-m", "MFP", "-mset", mset, "-B", str(max(1000, a.bootstrap)),
                "-T", str(a.threads), "-seed", "12345", "-redo", "-pre", pre]
         sys.stdout.write(("[build-ref] iqtree ML tree (raxml-ng absent; epa-ng will re-evaluate model)…") + "\n")
-        if subprocess.call(cmd, env=_env(PHYLO_BIN)) != 0:
+        if subprocess.call(cmd, env=_env(PHYLO_BIN, a.threads)) != 0:
             sys.exit("iqtree failed")
         shutil.copy(pre + ".treefile", ref_tree)
         bestmodel = ""
@@ -1137,13 +1159,79 @@ def cmd_build_ref(a):
         sys.stdout.write((f"[build-ref] rooted backbone on registry outgroup tip: {_og_hits[0].name}") + "\n")
     _stamp(outdir, a.group, "refpkg",
            {"molecule": "protein" if prot else "nucleotide", "model": model,
-            "approved_by": a.approved_by, "n_ref": sum(1 for l in open(ref_fasta) if l.startswith(">"))})
+            "approved_by": a.approved_by, "threads": a.threads, "n_ref": sum(1 for l in open(ref_fasta) if l.startswith(">"))})
     sys.stdout.write((f"[build-ref] refpkg ready: {outdir}\n            ref.aln.fasta · ref.tree · MODEL · _provenance.json") + "\n")
     return 0
 
 
 # ---------------------------------------------------------------- place
+def _epa_version_admission(epa, threads):
+    """Admit the selected executable before alignment/output, not a PATH namesake.
+
+    This minimum avoids the upstream rooted-tree bug; it is not a complete API or
+    scientific validation. Unknown/development banners cannot establish the fix.
+    """
+    import hashlib
+    from tools.graft_integrity import _executable_info
+    try:
+        before = _executable_info(epa)
+    except (OSError, ValueError) as exc:
+        sys.exit(f"EPA_VERSION_UNVERIFIED: cannot bind selected executable ({exc})")
+    if before.get("state") == "NOT_RECORDED":
+        sys.exit("EPA_VERSION_UNVERIFIED: selected EPA-ng is not an executable file")
+    command = [epa, "--version"]
+    try:
+        result = subprocess.run(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, check=False, timeout=10,
+                                env=_env(PLACEMENT_BIN, threads))
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        sys.exit(f"EPA_VERSION_UNVERIFIED: selected EPA-ng version probe failed ({type(exc).__name__})")
+    try:
+        after = _executable_info(epa)
+    except (OSError, ValueError) as exc:
+        sys.exit(f"EPA_EXECUTABLE_CHANGED: cannot rebind selected executable ({exc})")
+    if before != after:
+        sys.exit("EPA_EXECUTABLE_CHANGED: selected EPA-ng changed during its version probe")
+    if result.returncode != 0:
+        sys.exit(f"EPA_VERSION_UNVERIFIED: selected EPA-ng --version exited {result.returncode}")
+    stdout, stderr = result.stdout or b"", result.stderr or b""
+    try:
+        banner = "\n".join(part.decode("utf-8").strip() for part in (stdout, stderr) if part.strip())
+    except UnicodeError:
+        sys.exit("EPA_VERSION_UNVERIFIED: selected EPA-ng version output is not UTF-8")
+    match = re.fullmatch(r"EPA-ng v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", banner)
+    if match is None:
+        sys.exit("EPA_VERSION_UNVERIFIED: expected one exact EPA-ng release-version banner")
+    version = tuple(int(part) for part in match.groups())
+    if (0, 3, 0) <= version <= (0, 3, 3):
+        sys.exit("EPA_VERSION_KNOWN_ROOTED_TREE_BUG: EPA-ng 0.3.0-0.3.3 is refused; "
+                 "upstream requires at least 0.3.4 for rooted input. No alignment or placement started.")
+    if version < (0, 3, 4):
+        sys.exit("EPA_VERSION_UNSUPPORTED: this placement route requires EPA-ng >=0.3.4; "
+                 "older versions are not admitted by this prospective policy")
+    return {"state": "ADMITTED_KNOWN_BUG_MINIMUM", "version": ".".join(map(str, version)),
+            "policy": "EPA_NG_MINIMUM_0_3_4_ALL_PLACEMENTS", "probe_command": command,
+            "probe_returncode": result.returncode,
+            "probe_stdout_sha256": hashlib.sha256(stdout).hexdigest(),
+            "probe_stderr_sha256": hashlib.sha256(stderr).hexdigest(),
+            "executable": before,
+            "upstream_notice": "https://github.com/pierrebarbera/epa-ng#warning-v030---v033"}
+
+
+def _assert_epa_executable_unchanged(epa, admission):
+    from tools.graft_integrity import _executable_info
+    try:
+        current = _executable_info(epa)
+    except (OSError, ValueError) as exc:
+        sys.exit(f"EPA_EXECUTABLE_CHANGED: cannot rebind selected executable ({exc}); "
+                 "retain any partial placement outputs for review")
+    if current != admission["executable"]:
+        sys.exit("EPA_EXECUTABLE_CHANGED: selected EPA-ng differs from its admitted version probe; "
+                 "retain any partial placement outputs for review")
+
+
 def cmd_place(a):
+    threads = _positive_threads(getattr(a, "threads", 1))
     prov = json.load(open(os.path.join(a.refpkg, "_provenance.json")))
     ref_prot = prov.get("molecule") == "protein"
     q_prot = _is_protein(a.query)
@@ -1153,6 +1241,8 @@ def cmd_place(a):
     epa = _which("epa-ng", PLACEMENT_BIN)
     if not epa:
         sys.exit("epa-ng not found; install the placement env first (see docs/INSTALL.md)")
+    epa = os.path.realpath(os.path.abspath(epa))
+    epa_admission = _epa_version_admission(epa, threads)
     ref_aln = os.path.join(a.refpkg, "ref.aln.fasta")
     ref_tree = os.path.join(a.refpkg, "ref.tree")
     outdir = a.outdir or os.path.join(a.refpkg, "..", "placements")
@@ -1185,9 +1275,9 @@ def cmd_place(a):
     if _both:
         sys.exit(f"QUERY_ALREADY_IN_BACKBONE: {len(_both)} query record(s) are already reference tips "
                  f"(e.g. {_both[:3]}). Split the panel by role first: tools/panel_split.py")
-    q_aln = _align_queries(mafft, epa, ref_aln, a.query, outdir, a.fragmentary)
+    q_aln = _align_queries(mafft, epa, ref_aln, a.query, outdir, a.fragmentary, threads=threads)
 
-    cmd = [epa, "--redo", "--tree", ref_tree, "--ref-msa", ref_aln, "--query", q_aln, "--outdir", outdir]
+    cmd = [epa, "--redo", "--threads", str(threads), "--tree", ref_tree, "--ref-msa", ref_aln, "--query", q_aln, "--outdir", outdir]
     bm = os.path.join(a.refpkg, "ref.bestModel")
     if os.path.exists(bm):                       # raxml-ng bestModel = optimized params epa-ng needs
         cmd += ["--model", bm]
@@ -1196,76 +1286,186 @@ def cmd_place(a):
             os.path.exists(os.path.join(a.refpkg, "MODEL")) else "GTR+G"
         cmd += ["--model", model]
     sys.stdout.write(("[place] epa-ng placing queries onto the fixed reference backbone…") + "\n")
-    if subprocess.call(cmd, env=_env(PLACEMENT_BIN)) != 0:
+    _assert_epa_executable_unchanged(epa, epa_admission)
+    if subprocess.call(cmd, env=_env(PLACEMENT_BIN, threads)) != 0:
         sys.exit("epa-ng failed")
+    _assert_epa_executable_unchanged(epa, epa_admission)
     jp = os.path.join(outdir, "epa_result.jplace")
     sys.stdout.write((f"[place] jplace: {jp}") + "\n")
     _stamp(outdir, prov["group"], "placement",
-           {"n_query": sum(1 for l in open(a.query) if l.startswith(">")), "fragmentary": a.fragmentary})
+           {"epa_ng_admission": epa_admission,
+             "n_query": sum(1 for l in open(a.query) if l.startswith(">")), "fragmentary": a.fragmentary,
+            "threads": threads, "resource_environment": {k: _env(PLACEMENT_BIN, threads)[k] for k in
+                ("OMP_NUM_THREADS", "OMP_THREAD_LIMIT", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")}})
     return 0
 
 
 # ---------------------------------------------------------------- report
+def _strip_artifacts_checked(child, grp, variant, metadata):
+    """Read actual child outputs and independently check retained metadata/geometry."""
+    from pathlib import Path
+    from Bio import Phylo
+    from tools.graft_integrity import _file_info
+    from tools._placement_report_metadata import read_rows
+    stem = f"EPAng_{grp}_R04_{variant}"
+    expected = [f"{stem}.{extension}" for extension in ("png", "pdf")]
+    expected += [f"{stem}_{suffix}" for suffix in ("display_audit.tsv", "validation.tsv", "caption.txt")]
+    expected += ["tree_display.newick", "R_SESSION.txt", "render.log"]
+    for name in expected:
+        path = child / name
+        if not path.is_file() or path.is_symlink() or (name != "render.log" and not path.stat().st_size):
+            raise ValueError("STRIP_CHILD_OUTPUT_MISSING:" + name)
+    _fields, validations = read_rows(child / f"{stem}_validation.tsv")
+    checks = {row["check"]: row["status"] for row in validations}
+    required = {"tip_metadata_bijection", "retained_pairwise_branch_distances", "source_category_palette", "geography_category_palette"}
+    if len(validations) != len(required) or set(checks) != required or set(checks.values()) != {"PASS"}:
+        raise ValueError("STRIP_CHILD_VALIDATION_FAILED")
+    _fields, audit = read_rows(child / f"{stem}_display_audit.tsv")
+    by_tip = {row["tip"]: row for row in audit}
+    if len(by_tip) != len(audit) or set(by_tip) != set(metadata):
+        raise ValueError("STRIP_CHILD_TIP_BIJECTION_FAILED")
+    for tip, source in metadata.items():
+        row = by_tip[tip]
+        label = source["label"]
+        if variant == "experiment_id" and source["role"] == "query" and source.get("sample_id"):
+            label += " {" + source["sample_id"] + "}"
+        if row["label"] != label or row["source"] != source["source_category"] or row["geography"] != source["geography_category"]:
+            raise ValueError("STRIP_CHILD_METADATA_CHANGED")
+        for field in ("Candida", "MRSA"):
+            if row[field] != (source.get(field, "") if source["role"] == "query" else ""):
+                raise ValueError("STRIP_CHILD_RECORDED_CELL_CHANGED")
+    original = Phylo.read(child / "tree_input.newick", "newick")
+    display = Phylo.read(child / "tree_display.newick", "newick")
+    tips = [tip.name for tip in display.get_terminals()]
+    if len(set(tips)) != len(tips) or set(tips) != set(metadata):
+        raise ValueError("STRIP_CHILD_TREE_MEMBERSHIP_CHANGED")
+    import itertools
+    for a, b in itertools.combinations(tips, 2):
+        if abs(original.distance(a, b) - display.distance(a, b)) >= 1e-8:
+            raise ValueError("STRIP_CHILD_SAVED_GEOMETRY_CHANGED")
+    return [{"path": str(child / name), "sha256": _file_info(child / name)["sha256"]} for name in expected]
+
+
 def _color_strips_deliverable(a, outdir, grp, display_tree, labelmap_path):
-    """Build the colour-strip panel inputs from the gated display tree and render both label variants.
-
-    Writes <outdir>/color_strips/<grp>/ (inputs, provenance and omitted-tip receipts, figures) or
-    <outdir>/color_strips/COLOR_STRIPS_NOT_RENDERED.txt naming exactly what was missing. Never raises:
-    the report's tables and the diagnostic figure stand on their own.
-    """
-    cs_dir = os.path.join(outdir, "color_strips")
-    os.makedirs(cs_dir, exist_ok=True)
-    note = os.path.join(cs_dir, "COLOR_STRIPS_NOT_RENDERED.txt")
-    here = os.path.dirname(os.path.abspath(__file__))
-    renderer = os.path.join(here, "render_placement_COLOR_STRIPS.R")
-    owner = list(getattr(a, "owner_table", []) or [])
-    if not owner:
-        open(note, "w").write("colour-strip figure not rendered: no --owner-table given. The query rows' host, geography, "
-                              "sample id and assay cells come only from the owner table; supply it and rerun report.\n")
-        sys.stdout.write("[report] colour-strip figure skipped: no --owner-table\n"); return None
-    if not labelmap_path or not os.path.exists(labelmap_path):
-        open(note, "w").write("colour-strip figure not rendered: labelmap.tsv not found beside the jplace or refpkg.\n")
-        sys.stdout.write("[report] colour-strip figure skipped: no labelmap.tsv\n"); return None
+    """Produce typed current-attempt metadata/variant outcomes in fresh children."""
+    from pathlib import Path
     import importlib.util
-    spec = importlib.util.spec_from_file_location("build_placement_panel_inputs", os.path.join(here, "build_placement_panel_inputs.py"))
-    bpi = importlib.util.module_from_spec(spec); spec.loader.exec_module(bpi)
-    argv = ["--genus", grp, "--tree", display_tree, "--labelmap", labelmap_path, "--out", cs_dir, "--query-prefix", getattr(a, "query_prefix", "AS")]
-    for t in owner: argv += ["--owner-table", t]
-    for t in getattr(a, "owner_table_original", []) or []: argv += ["--owner-table-original", t]
-    for t in getattr(a, "reference_metadata", []) or []: argv += ["--resolved", t]
-    for t in getattr(a, "reviewed", []) or []: argv += ["--reviewed", t]
-    for t in getattr(a, "query_override", []) or []: argv += ["--query-override", t]
+    from tools import graft_integrity as gi
+    from tools._placement_report_metadata import read_rows
+    options = _report_options(a, context="report")
+    outcome = {"schema": "sapote.placement.strips.v1", "state": "NOT_REQUESTED", "requested": options["requested"],
+               "variants": [], "artifacts": [], "reason": "no metadata input supplied"}
+    if not options["requested"]:
+        return outcome
+    outcome.update(state="HOLD_PREREQUISITE_MISSING", reason="owner table required")
+    if not options["owner_table"]:
+        return outcome
+    if not labelmap_path or not Path(labelmap_path).is_file():
+        outcome["reason"] = "labelmap.tsv required"
+        return outcome
+    output_root = Path(outdir).absolute()
+    cs_dir = output_root / "color_strips"
+    panel = cs_dir / grp
+    controls = output_root / ("color_strip_controls_" + grp)
+    if any(path.is_symlink() for path in (cs_dir, panel, controls, *cs_dir.parents)) or panel.exists() or controls.exists() or (cs_dir.exists() and not cs_dir.is_dir()):
+        outcome.update(state="HOLD_OUTPUT_EXISTS", reason="fresh panel and controls required")
+        return outcome
+    here = Path(__file__).resolve().parent
+    renderer = here / "render_placement_COLOR_STRIPS.R"
+    context = {"schema": "sapote.placement.panel-context.v1", "molecule": getattr(a, "_report_molecule", "NOT_RECORDED"),
+               "query_tips": sorted(getattr(a, "_report_query_names", [])),
+               "reviewed_type_evidence": getattr(a, "_report_type_evidence", {"roles": {}}),
+               "length_state": getattr(a, "_report_length_admission", {}).get("state", "NOT_RECORDED"),
+               "length_receipt_sha256": getattr(a, "_report_length_admission", {}).get("receipt_sha256", "NOT_RECORDED"),
+               "length_receipt": getattr(a, "_report_length_admission", {}).get("receipt"),
+               "length_sources": getattr(a, "_report_length_admission", {}).get("sources")}
+    inputs = [Path(display_tree), Path(labelmap_path)] + [Path(path) for field, _flag in
+              (("owner_table", ""), ("owner_table_original", ""), ("resolved_metadata", ""), ("reviewed", ""), ("query_override", "")) for path in options[field]]
+    if renderer.is_file():
+        inputs.append(renderer)
+    before = {str(path): gi._file_info(path) for path in inputs}
     try:
+        controls.mkdir()
+        gi._write_json_exclusive(controls / "context.json", context)
+        spec = importlib.util.spec_from_file_location("build_placement_panel_inputs", here / "build_placement_panel_inputs.py")
+        bpi = importlib.util.module_from_spec(spec); spec.loader.exec_module(bpi)
+        argv = ["--genus", grp, "--tree", display_tree, "--labelmap", labelmap_path, "--out", str(cs_dir),
+                "--query-prefix", options["query_prefix"], "--metadata-context", str(controls / "context.json")]
+        for field, flag in (("owner_table", "--owner-table"), ("owner_table_original", "--owner-table-original"),
+                            ("resolved_metadata", "--resolved"), ("reviewed", "--reviewed"), ("query_override", "--query-override")):
+            for path in options[field]:
+                argv += [flag, path]
         built = bpi.main(argv)
-    except Exception as e:
-        open(note, "w").write(f"colour-strip inputs not built: {e}\n")
-        sys.stdout.write(f"[report] colour-strip inputs not built: {e}\n"); return None
-    panel = built["dir"]
-    if built["kept"] == 0:
-        open(note, "w").write("colour-strip figure not rendered: no tip has both a source and a geography category; see OMITTED_TIPS.tsv.\n")
-        return built
-    if not os.path.exists(renderer):
-        open(note, "w").write(f"colour-strip figure not rendered: renderer missing at {renderer}\n"); return built
-    import shutil
-    shutil.copy2(renderer, os.path.join(panel, "render_placement_COLOR_STRIPS.R"))
-    rscript = _which(getattr(a, "rscript", "Rscript") or "Rscript", "") or shutil.which(getattr(a, "rscript", "Rscript") or "Rscript")
-    if not rscript:
-        open(note, "w").write("colour-strip figure not rendered: Rscript not found (needs R with ape, ggtree, ggplot2, patchwork); "
-                              f"inputs are ready in {panel}; run `Rscript render_placement_COLOR_STRIPS.R` there.\n")
-        sys.stdout.write("[report] colour-strip inputs written; Rscript not found so the figure was not rendered\n"); return built
-    log = os.path.join(panel, "render_both.log")
-    with open(log, "w") as lh:
-        rc = subprocess.call([rscript, "render_placement_COLOR_STRIPS.R"], cwd=panel, stdout=lh, stderr=subprocess.STDOUT)
-    if rc != 0:
-        open(note, "w").write(f"colour-strip figure not rendered: Rscript exit {rc}; see {log}\n")
-        sys.stdout.write(f"[report] colour-strip render failed (exit {rc}); see {log}\n"); return built
-    if os.path.exists(note):
-        os.remove(note)
-    sys.stdout.write(f"[report] colour-strip figures: {panel}/EPAng_{grp}_R04_{{concise,experiment_id}}.png (kept {built['kept']}, omitted {built['omitted']})\n")
-    return built
-
+        outcome.update(builder=built, kept=built["kept"], omitted=built["omitted"], state="INPUTS_PRODUCED")
+        if not built["kept"] or (context["query_tips"] and not built["query_kept"]):
+            raise ValueError("STRIP_NO_QUERY_OR_EMPTY_DISPLAY")
+        if not renderer.is_file():
+            raise ValueError("STRIP_RENDERER_MISSING")
+        rscript = shutil.which(options["rscript"])
+        if not rscript:
+            raise ValueError("STRIP_RSCRIPT_UNAVAILABLE")
+        # Preserve the selected invocation path while anchoring it before child cwd changes.
+        rscript = str(Path(rscript).absolute())
+        _fields, rows = read_rows(panel / "metadata.tsv")
+        metadata = {row["tip"]: row for row in rows}
+        if len(metadata) != len(rows):
+            raise ValueError("STRIP_DUPLICATE_METADATA_TIP")
+        budget = _positive_threads(getattr(a, "threads", 1))
+        env = _env(PLACEMENT_BIN, budget)
+        env["NUMEXPR_NUM_THREADS"] = str(budget)
+        for variant in ("concise", "experiment_id"):
+            child = panel / "renders" / variant / grp
+            child.mkdir(parents=True, exist_ok=False)
+            child_inputs = []
+            for name in built["input_files"]:
+                gi._copy_exclusive(panel / name, child / name)
+                child_inputs.append(child / name)
+            gi._copy_exclusive(renderer, child / renderer.name)
+            child_inputs.append(child / renderer.name)
+            child_before = {str(path): gi._file_info(path) for path in child_inputs}
+            executable_before = gi._executable_info(rscript)
+            command = [rscript, str(child / renderer.name), variant]
+            child_record = {"schema": "sapote.placement.strip-child.v1", "state": "HOLD", "variant": variant,
+                            "argv": command, "inputs": child_before, "expected_outputs_before": "ABSENT_FRESH_CHILD",
+                            "executable_before": executable_before,
+                            "resource_environment": {key: env.get(key, "NOT_RECORDED") for key in gi.RESOURCE_KEYS}}
+            try:
+                with (child / "render.log").open("x") as log:
+                    result = subprocess.run(command, cwd=str(child), env=env, stdout=log, stderr=subprocess.STDOUT)
+                child_record["returncode"] = result.returncode
+                child_record["executable_after"] = gi._executable_info(rscript)
+                if child_record["executable_after"] != executable_before:
+                    raise ValueError("STRIP_EXECUTABLE_CHANGED")
+                if child_before != {str(path): gi._file_info(path) for path in child_inputs}:
+                    raise ValueError("STRIP_CHILD_INPUT_CHANGED")
+                if result.returncode:
+                    raise ValueError("STRIP_RENDER_FAILED")
+                child_record["artifacts"] = _strip_artifacts_checked(child, grp, variant, metadata)
+                child_record["state"] = "RENDERED"
+            except (ValueError, OSError, subprocess.SubprocessError) as exc:
+                child_record["reason"] = f"{type(exc).__name__}: {exc}"
+            gi._write_json_exclusive(child / "RENDER_RECEIPT.json", child_record)
+            outcome["variants"].append(dict(child_record, receipt=str(child / "RENDER_RECEIPT.json"),
+                                             receipt_sha256=gi._file_info(child / "RENDER_RECEIPT.json")["sha256"]))
+            if child_record["state"] != "RENDERED":
+                raise ValueError(child_record["reason"])
+            outcome["artifacts"].extend(child_record["artifacts"])
+        if before != {str(path): gi._file_info(path) for path in inputs}:
+            raise ValueError("STRIP_SOURCE_CHANGED")
+        outcome.update(state="RENDERED_WITH_OMISSIONS" if built["omitted"] else "RENDERED", reason=None)
+    except (ValueError, OSError, KeyError, subprocess.SubprocessError) as exc:
+        outcome.update(state="HOLD_REQUESTED_STRIPS", reason=f"{type(exc).__name__}: {exc}")
+    if panel.is_dir():
+        gi._write_json_exclusive(panel / "STRIP_ATTEMPT.json", outcome)
+        outcome["receipt"] = str(panel / "STRIP_ATTEMPT.json")
+        outcome["receipt_sha256"] = gi._file_info(panel / "STRIP_ATTEMPT.json")["sha256"]
+    return outcome
 
 def cmd_report(a):
+    report_options = _report_options(a, context="report")
+    for field, value in report_options.items():
+        if field != "requested":
+            setattr(a, field, value)
     gappa = _which("gappa", PLACEMENT_BIN)
     if not gappa:
         sys.exit("gappa not found; install the placement env first (see docs/INSTALL.md)")
@@ -1278,77 +1478,111 @@ def cmd_report(a):
         # on the value rather than silently relocating a placement report.
         grp = safe_label(json.load(open(pj)).get("group", "unknown"),
                          field=f"group in {os.path.basename(pj)}")
-    # 1) grafted tree: queries attached to the backbone (the picture)
-    from tools.graft_integrity import generate_checked_graft, generate_length_restored_graft
-    graft = generate_checked_graft(gappa, a.jplace, outdir, _env(PLACEMENT_BIN))
-    # 1b) v9.7.444: EPA-ng writes a 0.105361 default on reference edges that are 0 in ref.tree and on some query
-    #     pendants; the graft inherits both. Everything drawn below uses the length-restored graft; the raw gappa
-    #     graft stays on disk. Without the refpkg's ref.tree, say so in the report instead of drawing defaults silently.
-    refpkg_dir = a.refpkg or os.path.join(os.path.dirname(os.path.abspath(a.jplace)), "..", "refpkg")
-    ref_tree = os.path.join(refpkg_dir, "ref.tree")
-    branch_lengths_verified = False
-    if os.path.exists(ref_tree):
-        place_dir = os.path.dirname(os.path.abspath(a.jplace))
-        model = next((m for m in (os.path.join(refpkg_dir, "ref.bestModel"),
-                                  os.path.join(refpkg_dir, "ref.raxml.raxml.bestModel")) if os.path.exists(m)), None)
-        q_aln = os.path.join(place_dir, "query.aligned.fasta")
-        graft, n_reset, n_default, how = generate_length_restored_graft(
-            graft, a.jplace, ref_tree, outdir, ref_aln=os.path.join(refpkg_dir, "ref.aln.fasta"),
-            query_aln=q_aln if os.path.exists(q_aln) else None, model=model,
-            raxml=_which("raxml-ng", PLACEMENT_BIN), env=_env(PLACEMENT_BIN))
-        branch_lengths_verified = not n_default or how == "RAXML_NG_EVALUATE"
-        sys.stdout.write(f"[report] branch lengths: {n_reset} reference edges restored from ref.tree; "
-                         f"{len(n_default)} default query pendants ({how}) -> {graft}\n")
-    else:
-        with open(os.path.join(outdir, "BRANCH_LENGTHS_NOT_RESTORED.txt"), "w") as handle:
-            handle.write("ref.tree not found next to this placement: the grafted tree may carry EPA-ng's 0.105361 "
-                         "default on reference edges and query pendants. Pass --refpkg.\n")
-        sys.stdout.write("[report] WARNING: ref.tree not found; branch lengths NOT restored (see BRANCH_LENGTHS_NOT_RESTORED.txt)\n")
+    from tools._placement_report_metadata import file_binding as metadata_binding, jplace_query_names
+    metadata_sources = [path for field, _flag in (("owner_table", ""), ("owner_table_original", ""), ("resolved_metadata", ""), ("reviewed", ""), ("query_override", "")) for path in report_options[field]]
+    metadata_before = {path: metadata_binding(path) for path in metadata_sources}
+    lm = {}
+    lm_path = ""
+    for candidate in (os.path.join(os.path.dirname(a.jplace), "labelmap.tsv"),
+                      os.path.join(a.refpkg or "", "labelmap.tsv") if a.refpkg else "",
+                      os.path.join(os.path.dirname(a.jplace), "..", "refpkg", "labelmap.tsv")):
+        if candidate and os.path.isfile(candidate):
+            metadata_before[candidate] = metadata_binding(candidate)
+            metadata_sources.append(candidate)
+            current_map = _load_labelmap(candidate)
+            if lm and any(key in lm and lm[key] != value for key, value in current_map.items()):
+                raise ValueError("REPORT_LABELMAP_CONFLICT")
+            lm.update(current_map)
+            if not lm_path:
+                lm_path = candidate
+    from Bio import Phylo
+    import io
+    jp_data = json.load(open(a.jplace))
+    reference_tips = [tip.name for tip in Phylo.read(io.StringIO(re.sub(r"\{\d+\}", "", jp_data["tree"])), "newick").get_terminals()]
+    query_names = jplace_query_names(a.jplace)
+    tip_labels = {tip: lm.get(tip, tip) for tip in reference_tips + list(query_names)}
+    type_evidence = reviewed_type_map(report_options["reviewed"], tip_labels, query_tips=query_names, resolved_paths=report_options["resolved_metadata"])
+    for tip in reference_tips:
+        if tip not in type_evidence["roles"] and re.search(r"\[Type(?:;|\])|\btype\s+strain\b", tip_labels[tip], re.I):
+            raise ValueError("REPORT_UNVERIFIED_TYPE_LABEL_ANCHOR_REQUIRED")
+    if report_options["requested"] and not report_options["owner_table"]:
+        # A requested incomplete strip is recorded after length/table work, not guessed.
+        sys.stdout.write("[report] metadata strip requested without owner table; figure will be held\n")
+    summary_path = os.path.join(outdir, f"{grp}_REPORT_ATTEMPT.json")
+    if os.path.lexists(summary_path):
+        raise ValueError("REPORT_ATTEMPT_EXISTS")
+    # Numerical length admission owns the selected tree; filenames do not.
+    from tools.graft_integrity import produce_graft_length_evidence, admit_graft_length_evidence
+    place_dir = os.path.dirname(os.path.abspath(a.jplace))
+    refpkg_dir = os.path.abspath(a.refpkg or os.path.join(place_dir, "..", "refpkg"))
+    model = next((m for m in (os.path.join(refpkg_dir, "ref.bestModel"),
+                              os.path.join(refpkg_dir, "ref.raxml.raxml.bestModel")) if os.path.isfile(m)), None)
+    ref_prov = os.path.join(refpkg_dir, "_provenance.json")
+    # A single flat provenance file cannot independently establish two source roles.
+    sources = {"jplace": os.path.abspath(a.jplace), "reference_tree": os.path.join(refpkg_dir, "ref.tree"),
+               "reference_alignment": os.path.join(refpkg_dir, "ref.aln.fasta"),
+               "query_alignment": os.path.join(place_dir, "query.aligned.fasta"), "model": model,
+               "placement_provenance": pj,
+               "reference_provenance": ref_prov if os.path.abspath(ref_prov) != os.path.abspath(pj) else None}
+    length_admission = produce_graft_length_evidence(
+        sources, outdir, gappa, raxml=_which("raxml-ng", PLACEMENT_BIN), env=_env(PLACEMENT_BIN))
+    branch_lengths_verified = length_admission["state"] == "PASS_LENGTH_QA"
+    graft = length_admission["selected"]["restored"] if branch_lengths_verified else ""
+    molecule = "NOT_RECORDED"
+    if sources["reference_provenance"] and os.path.isfile(sources["reference_provenance"]):
+        molecule = json.load(open(sources["reference_provenance"])).get("molecule") or "NOT_RECORDED"
+    sys.stdout.write(f"[report] length state {length_admission['state']}; receipt {length_admission['receipt']}\n")
     # 2) per-query neighborhood + confidence table
     subprocess.call([gappa, "examine", "assign", "--jplace-path", a.jplace,
                      "--out-dir", outdir, "--allow-file-overwriting"], env=_env(PLACEMENT_BIN)) \
         if a.taxonomy else None
     # 3) best-hit table straight from the jplace (always available, no taxonomy file needed)
     tsv = os.path.join(outdir, f"{grp}_placements.tsv")
-    lm = {}
-    for cand in (os.path.join(os.path.dirname(a.jplace), "labelmap.tsv"),
-                 os.path.join(a.refpkg or "", "labelmap.tsv") if a.refpkg else "",
-                 os.path.join(os.path.dirname(a.jplace), "..", "refpkg", "labelmap.tsv")):
-        if cand and os.path.exists(cand):
-            lm = _load_labelmap(cand); break
     _jplace_besthit_tsv(a.jplace, tsv, lm)
     detailed_tsv = os.path.join(outdir, f"{grp}_placement_alternatives.tsv")
     _jplace_placements_tsv(a.jplace, detailed_tsv, lm)
     query_names = _jplace_query_names(a.jplace)
+    if branch_lengths_verified:
+        admit_graft_length_evidence(length_admission["receipt"], sources)
     # 4) readable neighborhoods: each query's nearest REFERENCE tip on the grafted tree
     nbtsv = os.path.join(outdir, f"{grp}_neighborhoods.tsv")
-    n_nb = _grafted_neighborhoods(graft, lm, nbtsv, query_names=query_names) if os.path.exists(graft) else 0
+    n_nb = _grafted_neighborhoods(graft, lm, nbtsv, query_names=query_names, type_evidence=type_evidence) if branch_lengths_verified else 0
     # 5) figure: grafted tree, queries highlighted
     fig_png = os.path.join(outdir, f"{grp}_placement_tree.png")
-    if os.path.exists(graft) and branch_lengths_verified:
+    render_selection = None
+    if branch_lengths_verified:
         try:
-            _render_tree(graft, lm, fig_png, fig_png.replace(".png", ".svg"), grp,
-                         query_names=query_names)
+            render_selection = _render_tree(graft, lm, fig_png, fig_png.replace(".png", ".svg"), grp,
+                         query_names=query_names, molecule=molecule, type_evidence=type_evidence)
         except Exception as e:
             sys.stdout.write((f"[report] figure skipped: {e}") + "\n"); fig_png = None
     else:
         fig_png = None
         sys.stdout.write("[report] figures held: reference lengths or default query pendants are unverified; "
                          "provide --refpkg and the re-estimation inputs before drawing.\n")
-    # 5b) the required deliverable: colour-strip figure in both label variants (render_placement_COLOR_STRIPS.R)
-    if os.path.exists(graft) and branch_lengths_verified:
-        lm_path = next((c for c in (os.path.join(os.path.dirname(a.jplace), "labelmap.tsv"),
-                                    os.path.join(a.refpkg or "", "labelmap.tsv") if a.refpkg else "",
-                                    os.path.join(os.path.dirname(a.jplace), "..", "refpkg", "labelmap.tsv")) if c and os.path.exists(c)), "")
-        gated = os.path.splitext(fig_png or os.path.join(outdir, f"{grp}_placement_tree.png"))[0] + ".rooted_split.newick"
-        _color_strips_deliverable(a, outdir, grp, gated if os.path.exists(gated) else graft, lm_path)
+    # Current report outputs are admitted from child results, not pre-existing filenames.
+    a._report_molecule = molecule
+    a._report_query_names = sorted(query_names)
+    a._report_type_evidence = type_evidence
+    a._report_length_admission = length_admission
+    strip_outcome = {"state": "NOT_REQUESTED", "requested": report_options["requested"], "variants": [], "artifacts": []}
+    if report_options["requested"] and not branch_lengths_verified:
+        strip_outcome.update(state="HOLD_LENGTH_ADMISSION", reason="numerical length evidence not admitted")
+    if branch_lengths_verified:
+        # Only a descriptor returned by THIS successful render can select a derived tree.
+        selected_for_strips = render_selection["path"] if render_selection else graft
+        if render_selection:
+            import hashlib
+            if hashlib.sha256(open(selected_for_strips, "rb").read()).hexdigest() != render_selection["sha256"]:
+                raise ValueError("DISPLAY_DERIVED_TREE_CHANGED")
+        strip_outcome = _color_strips_deliverable(a, outdir, grp, selected_for_strips, lm_path)
     # 6) METHODS CAPTION for the figure (self-explanatory; not just program names)
     cap_path = os.path.join(outdir, f"{grp}_placement_FIGURE_CAPTION.txt")
     try:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import figure_methods as FM
         prov = {}
-        pjson = os.path.join(a.refpkg or "", "_provenance.json") if a.refpkg else ""
+        pjson = sources["reference_provenance"] or ""
         if pjson and os.path.exists(pjson):
             prov = json.load(open(pjson))
         # result summary: n placed + LWR range from the besthit table
@@ -1364,7 +1598,7 @@ def cmd_report(a):
                     continue  # header or non-numeric LWR cell
         res = (f"{len(lwrs)} {grp} query sequences placed onto the reference backbone "
                f"(LWR {min(lwrs):.2f}-{max(lwrs):.2f})." if lwrs else None)
-        params = {"molecule": prov.get("molecule", "16S"), "model": prov.get("model", ""),
+        params = {"molecule": molecule, "model": prov.get("model", ""),
                   "n_reference": prov.get("n_ref", ""), "cohort": grp}
         extra = (f"Reference backbone = {prov.get('n_ref','?')} reference sequences for cohort '{grp}' (source-separated); "
                  "nearest reference is nearest AMONG these — enrich the reference set before species-level reading.")
@@ -1375,20 +1609,27 @@ def cmd_report(a):
                      "provable same-strain duplicates collapsed")
             extra += (f" Reference deduplicated before inference: {_ded['n_input']} input records → "
                       f"{_ded['n_kept']} tips ({_mode}; {_ded['n_dropped']} dropped, see reference_dedup.tsv).")
-        cap = FM.caption("phylo_placement", versions=FM.detect_versions(), params=params, result=res, extra=extra)
+        extra += (f" Length state: {length_admission['state']}; source-bound numerical evidence: "
+                  f"{length_admission['receipt']} (not biological validation). "
+                  "Historical software versions are not inferred from live executable probes.")
+        recorded_versions = prov.get("versions", {})
+        if not isinstance(recorded_versions, dict):
+            recorded_versions = {}
+        cap = FM.caption("phylo_placement", versions=recorded_versions, params=params, result=res, extra=extra)
         with open(cap_path, "w") as fh:
-            fh.write(f"Figure. {grp} 16S phylogenetic placement.\n\n" + cap + "\n")
+            fh.write(f"Figure. {grp} {molecule} phylogenetic placement.\n\n" + cap + "\n")
     except Exception as e:
         sys.stdout.write((f"[report] caption skipped: {e}") + "\n"); cap_path = None
     readme = os.path.join(outdir, f"{grp}_PLACEMENT_README.md")
     with open(readme, "w") as fh:
-        fh.write(f"# {grp} — 16S phylogenetic placement onto a reference backbone\n\n{CLAIM_SAFE}\n\n"
-                 "## How to read\n- **best_edge_lwr** = likelihood-weight ratio of the top placement "
-                 "(0–1; higher = more confident which branch).\n- **pendant_length** = branch length from the "
-                 "backbone to the query (long = query is divergent / poorly represented).\n- A query with high "
-                 "LWR + short pendant sits confidently *within* that clade's neighborhood; low LWR = ambiguous, "
-                 "report as 'near' not 'in'.\n\nSource-separated: this backbone is "
-                 f"**{grp} only** — never merged with other cohorts (moss/bees/attines/etc. are separate trees).\n")
+        fh.write(f"# {grp} — {molecule} phylogenetic placement onto a reference backbone\n\n{CLAIM_SAFE}\n\n"
+                 f"Length state: **{length_admission['state']}**. Evidence: `{length_admission['receipt']}`.\n\n"
+                 "## How to read\n- **best_edge_lwr** = the relative likelihood weight of the top retained placement; "
+                 "it is not a probability of clade membership or species identity.\n"
+                 "- **pendant_length** in the placement TSV is the raw jplace value, including any unestimated "
+                 "EPA-ng default. Admitted restored lengths are bound separately in the evidence ledger.\n"
+                 "- Neighborhood distances and figures are emitted only after numerical length QA. "
+                 "The sampled reference panel limits interpretation.\n")
         _ded = _dedup_summary(a.refpkg)
         if _ded:
             _byreason = ", ".join(f"{k.split(':', 1)[1]}={v}" for k, v in sorted(_ded["reasons"].items()))
@@ -1407,12 +1648,37 @@ def cmd_report(a):
     if n_nb:
         sys.stdout.write((f"[report] {nbtsv}  ({n_nb} queries → named nearest reference / neighborhood)") + "\n")
     if fig_png:
-        sys.stdout.write((f"[report] {fig_png}  (figure: queries red, outgroup grey, NR_ type refs blue, "
+        sys.stdout.write((f"[report] {fig_png}  (figure: queries red, outgroup grey, reviewed type refs blue, "
                           "other refs teal)") + "\n")
     if cap_path:
         sys.stdout.write((f"[report] {cap_path}  (methods caption — paste under the figure)") + "\n")
     sys.stdout.write((f"[report] {readme}\n[report] grafted tree + gappa outputs in {outdir}") + "\n")
-    return 0
+    if branch_lengths_verified:
+        try:
+            admit_graft_length_evidence(length_admission["receipt"], sources)
+        except (ValueError, OSError) as exc:
+            with open(os.path.join(outdir, "LENGTH_ADMISSION_CHANGED.txt"), "x") as handle:
+                handle.write(f"HOLD: selected length evidence changed during report; discard this report attempt: {exc}\n")
+            sys.stdout.write(f"[report] HOLD: selected length evidence changed during report: {exc}\n")
+            return 2
+    from tools.graft_integrity import _write_json_exclusive, _file_info
+    success = branch_lengths_verified and (not strip_outcome["requested"] or strip_outcome["state"] in {"RENDERED", "RENDERED_WITH_OMISSIONS"})
+    current_files = [tsv, detailed_tsv, readme] + ([nbtsv] if n_nb else []) + ([cap_path] if cap_path else [])
+    summary = {"schema": "sapote.placement.report-attempt.v1", "state": "COMPLETE" if success else "HOLD",
+               "length_state": length_admission["state"], "length_receipt": length_admission["receipt"],
+               "metadata_strips": strip_outcome, "diagnostic_figure": render_selection,
+               "reviewed_type_evidence": type_evidence, "metadata_source_bindings": metadata_before,
+               "table_artifacts": [_file_info(path) for path in current_files],
+               "profile": "metadata requested" if strip_outcome["requested"] else "tables and diagnostic; metadata NOT_REQUESTED"}
+    try:
+        if metadata_before != {path: metadata_binding(path) for path in metadata_sources}:
+            raise ValueError("REPORT_METADATA_SOURCE_CHANGED")
+    except (ValueError, OSError) as exc:
+        success = False
+        summary.update(state="HOLD", reason=f"metadata changed during report: {type(exc).__name__}: {exc}")
+    _write_json_exclusive(summary_path, summary)
+    sys.stdout.write(f"[report] current attempt {summary['state']}; strips {strip_outcome['state']}; {summary_path}\n")
+    return 0 if success else 2
 
 
 def _jplace_besthit_tsv(jplace, tsv, labelmap=None):
@@ -1496,7 +1762,7 @@ def _jplace_placements_tsv(jplace, tsv, labelmap=None, reference_names=None):
 
 
 
-def _grafted_neighborhoods(graft_newick, labelmap, out_tsv, query_names=None):
+def _grafted_neighborhoods(graft_newick, labelmap, out_tsv, query_names=None, type_evidence=None):
     """From the gappa-grafted tree, name each query's nearest REFERENCE tip (the readable neighborhood)."""
     from Bio import Phylo
     def pretty(n):
@@ -1529,9 +1795,10 @@ def _grafted_neighborhoods(graft_newick, labelmap, out_tsv, query_names=None):
     # v9.7.443: the nearest_type_strain column used to take the nearest reference of ANY kind, so a
     # panel with non-type neighbours (phylo_16s_panel --refs ...,nontype:Nx) reported e.g.
     # "Kribbella sp OP442298 1" as a type strain. It now takes the nearest reference whose record
-    # leads with an NR_ accession (the figure's type-reference class, _is_type_reference_label), and
+    # has explicit reviewed native-tip evidence in the shared type-role map, and
     # the nearest reference of any kind moves to two added columns. Blank when the panel has none.
-    type_refs = [x for x in refs if _is_type_reference_label(pretty(x.name))]
+    type_roles = (type_evidence or {}).get("roles", {})
+    type_refs = [x for x in refs if x.name in type_roles]
     rows = []
     for q in qs:
         if not refs:
@@ -1574,10 +1841,8 @@ def _organism_genus(label):
 
 
 def _is_type_reference_label(label):
-    """Display class only: the record's own leading identifier is an NR_ accession (NCBI 16S RefSeq
-    targeted loci, which NCBI curates from type material). Not an Assembly `fromtype` check and never
-    a `[Type]` label claim — it picks a colour, nothing more."""
-    return re.match(r"^\s*(?:REF[\s_]+)?NR_\d{5,}", label or "") is not None
+    """Deprecated compatibility predicate; a label alone never establishes type status."""
+    return False
 
 
 def _classify_outgroup_tips(ref_tips, pretty):
@@ -1648,7 +1913,7 @@ def _placement_display_labels(tips, labelmap, og_names, *, tip_fields=None, widt
 
 
 def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
-                 query_names=None):
+                 query_names=None, molecule="NOT_RECORDED", type_evidence=None):
     """Render the grafted tree: queries red/bold, outgroup grey, reference blue. Claim-safe title."""
     import matplotlib
     matplotlib.use("Agg")
@@ -1678,7 +1943,7 @@ def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
     og_tips, og_hint, og_source = _classify_outgroup_tips(ref_tips, pretty)
     og_names = {x.name for x in og_tips}
     roles = {x.name: ("query" if query_role(x) else "outgroup" if x.name in og_names else
-                      "reference_type" if _is_type_reference_label(pretty(x.name)) else
+                      "reference_type" if x.name in (type_evidence or {}).get("roles", {}) else
                       "reference_nontype") for x in tips}
     # HARD pre-render gate: refuse a pathological graft before drawing. cmd_report wraps this call
     # and reports "figure skipped: <reason>" — a FAILing placement tree never reaches a figure.
@@ -1699,7 +1964,16 @@ def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
                              "gating the graft file as written\n")
     if display_rooting is not None:
         gated_newick = os.path.splitext(png)[0] + ".rooted_split.newick"
-        Phylo.write(t, gated_newick, "newick", format_branch_length="%.10g")
+        Phylo.write(t, gated_newick, "newick", format_branch_length="%.17g", format_confidence="%.17g")
+        from tools.graft_integrity import _metric, _tips, _close_length
+        original_metric_tree = Phylo.read(graft_newick, "newick")
+        serialized_metric_tree = Phylo.read(gated_newick, "newick")
+        metric_tips = _tips(original_metric_tree)
+        before_metric = _metric(original_metric_tree, metric_tips)
+        after_metric = _metric(serialized_metric_tree, metric_tips)
+        if before_metric.keys() != after_metric.keys() or any(
+                not _close_length(after_metric[key][0], value[0]) for key, value in before_metric.items()):
+            raise ValueError("DISPLAY_ROOT_LENGTH_DRIFT")
         _ok, _msg = _graft_sane(gated_newick, og_hint)
     else:
         gated_newick = graft_newick
@@ -1747,9 +2021,9 @@ def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
         else:
             txt.set_color("#1f4e79")
         txt.set_fontsize(8)
-    ax.set_title(f"{group} 16S — AS strains (red) PLACED on reference backbone "
-                 "(NR_ type-material refs blue; other refs teal); outgroup grey\n"
-                 "EPA-ng placement; 16S = anchor, not a species call; neighborhood only",
+    ax.set_title(f"{group} {molecule} — queries (red) placed on reference backbone "
+                 "(reviewed type references blue; other references teal); outgroup grey\n"
+                 "EPA-ng placement; numerical length QA; sampled-reference neighborhood only",
                  fontsize=8.5)
     for s in ("top", "right", "left"):
         ax.spines[s].set_visible(False)
@@ -1767,10 +2041,9 @@ def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
         "roles": roles,
         "role_basis": {
             "outgroup": og_source,
-            "reference_type": "record's own leading identifier is an NR_ accession (NCBI 16S RefSeq "
-                              "targeted loci, curated from type material); display class only — not an "
-                              "NCBI Assembly fromtype check and not a [Type] label claim",
-            "reference_nontype": "any other reference accession"},
+            "reference_type": "explicit reviewed exact native-tip/source-sequence type evidence",
+            "reference_nontype": "other/unknown reference; no negative type assertion"},
+        "reviewed_type_evidence": type_evidence or {"roles": {}, "unknown_role": "NOT_RECORDED"},
         "gated_tree": os.path.basename(gated_newick),
         "display_rooting": display_rooting,
         "rooting_error": rooting_error,
@@ -1778,25 +2051,31 @@ def _render_tree(graft_newick, labelmap, png, svg, group, *, tip_fields=None,
         "authority": "Display source fields only; accession existence and sequence identity unverified"
     }, indent=2, sort_keys=True))
 
+    return {"state": "PRODUCED_DIAGNOSTIC", "path": str(gated_newick),
+            "sha256": hashlib.sha256(Path(gated_newick).read_bytes()).hexdigest(),
+            "artifacts": [{"path": str(path), "sha256": hashlib.sha256(Path(path).read_bytes()).hexdigest()}
+                          for path in (png, svg, str(svg) + ".labels.json")]}
+
 
 def cmd_all(a):
+    _report_options(a, context="all")
+    a.threads = _positive_threads(getattr(a, "threads", 1))
     if not (a.refpkg and os.path.exists(os.path.join(a.refpkg, "ref.tree"))):
         cmd_build_ref(a)
         a.refpkg = _default_refpkg(a)
     cmd_place(a)
     a.jplace = os.path.join(os.path.abspath(a.outdir or os.path.join(a.refpkg, "..", "placements")),
                             "epa_result.jplace")
-    cmd_report(a)
-    return 0
+    return cmd_report(a)
 
 
 def main():
     ap = argparse.ArgumentParser(description="Reference-backbone phylogenetic placement (MAFFT/EPA-ng/gappa).", allow_abbrev=False)  # v9.7.412: no silent prefix matching
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    b = sub.add_parser("build-ref", allow_abbrev=False, help="build the frozen reference backbone from type strains")
+    b = sub.add_parser("build-ref", allow_abbrev=False, help="build the frozen reference backbone from supplied references")
     b.add_argument("ref_fasta"); b.add_argument("--group", required=True)
-    b.add_argument("--refpkg"); b.add_argument("--threads", default="2")
+    b.add_argument("--refpkg"); b.add_argument("--threads", type=_positive_threads, default=1, help="positive thread budget for reference/alignment/placement tools (default 1)")
     b.add_argument("--bootstrap", type=int, default=10,
                    help="reference-backbone bootstraps. Default 10: this is a PLACEMENT backbone — "
                         "EPA-ng reports its own per-query support (LWR), so reference-node bootstraps "
@@ -1819,7 +2098,7 @@ def main():
     b.add_argument("--strain-aliases", metavar="TSV", default=DEFAULT_STRAIN_ALIAS_REGISTRY,
                    help="reviewed accession-to-strain alias registry used before inference; "
                         "defaults to the bundled 16S reference strain alias registry")
-    b.add_argument("--reference-metadata", metavar="TSV", default="",
+    b.add_argument("--reference-metadata", metavar="TSV", default=None, type=metadata_path_argument,
                    help="explicit panel metadata with tip/taxon/role; required for one-per-species "
                         "when FASTA headers contain accession-only tip IDs")
     b.add_argument("--min-ref-len", type=int, default=0, metavar="BP",
@@ -1829,21 +2108,14 @@ def main():
 
     p = sub.add_parser("place", allow_abbrev=False, help="place query sequences onto a frozen backbone")
     p.add_argument("--refpkg", required=True); p.add_argument("--query", required=True)
-    p.add_argument("--outdir"); p.add_argument("--fragmentary", action="store_true",
+    p.add_argument("--outdir"); p.add_argument("--threads", type=_positive_threads, default=1, help="positive thread budget for reference/alignment/placement tools (default 1)")
+    p.add_argument("--fragmentary", action="store_true",
                                                help="align short/partial queries with MAFFT --addfragments")
     p.set_defaults(func=cmd_place)
 
     r = sub.add_parser("report", allow_abbrev=False, help="grafted tree + neighborhood table + claim-safe README")
     r.add_argument("--refpkg"); r.add_argument("--jplace", required=True); r.add_argument("--outdir")
-    r.add_argument("--owner-table", action="append", default=[], metavar="TSV",
-                   help="owner query table(s) for the colour-strip deliverable (see build_placement_panel_inputs.py); "
-                        "without one the required figure is not rendered and COLOR_STRIPS_NOT_RENDERED.txt says why")
-    r.add_argument("--owner-table-original", action="append", default=[], metavar="TSV")
-    r.add_argument("--reference-metadata", action="append", default=[], metavar="TSV", help="resolve_reference_metadata.py output(s)")
-    r.add_argument("--reviewed", action="append", default=[], metavar="TSV")
-    r.add_argument("--query-override", action="append", default=[], metavar="TSV")
-    r.add_argument("--query-prefix", default="AS")
-    r.add_argument("--rscript", default="Rscript")
+    _report_arguments(r, legacy_resolved_alias=True)
     r.add_argument("--taxonomy", action="store_true", help="also run gappa examine assign (needs a taxonomy file)")
     r.set_defaults(func=cmd_report)
 
@@ -1851,7 +2123,7 @@ def main():
     for x in (a1,):
         x.add_argument("ref_fasta", nargs="?"); x.add_argument("--group", required=True)
         x.add_argument("--refpkg"); x.add_argument("--query", required=True); x.add_argument("--outdir")
-        x.add_argument("--threads", default="2"); x.add_argument("--bootstrap", type=int, default=10)
+        x.add_argument("--threads", type=_positive_threads, default=1, help="positive thread budget for reference/alignment/placement tools (default 1)"); x.add_argument("--bootstrap", type=int, default=10)
         x.add_argument("--approved-by", default=""); x.add_argument("--fragmentary", action="store_true")
         x.add_argument("--taxonomy", action="store_true")
         x.add_argument("--add-outgroup", default="", metavar="GENUS"); x.add_argument("--outgroup-scope", default="genus")
@@ -1859,12 +2131,17 @@ def main():
         density.add_argument("--one-per-species", action="store_true")
         density.add_argument("--one-per-genus", action="store_true")
         x.add_argument("--strain-aliases", metavar="TSV", default=DEFAULT_STRAIN_ALIAS_REGISTRY)
-        x.add_argument("--reference-metadata", metavar="TSV", default="")
+        x.add_argument("--reference-metadata", metavar="TSV", default=None, type=metadata_path_argument)
         x.add_argument("--min-ref-len", type=int, default=0)
+    _report_arguments(a1)
     a1.set_defaults(func=cmd_all)
 
     a = ap.parse_args()
-    return a.func(a)
+    try:
+        return a.func(a)
+    except (ValueError, OSError) as exc:
+        sys.stderr.write(f"[phylo_place] refused: {exc}\n")
+        return 2
 
 
 if __name__ == "__main__":

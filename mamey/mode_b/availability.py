@@ -51,9 +51,7 @@ BINDING_SCORE = {
 }
 
 _BGC_RE = re.compile(r"\bBGC[_ -]?(\d{1,4})\b", re.I)
-_FULL_NODE_RE = re.compile(r"\b(NODE_\d+_length_\d+_cov_[0-9.]+)", re.I)
-_NODE_RE = re.compile(r"\b(NODE_\d+)\b", re.I)
-_REGION_RE = re.compile(r"\bregion[_ -]?(\d{1,4})\b", re.I)
+_FULL_NODE_RE = re.compile(r"NODE_\d+_length_\d+_cov_\d+(?:\.\d+)?", re.I)
 
 _CLASSIFICATION_PRIORITY = (
     "locus_map_data", "locus_map", "blastp_per_gene", "kcb_mibig",
@@ -66,10 +64,40 @@ _CLASSIFICATION_PRIORITY = (
 _STRAIN_FIELDS = ("strain", "strain_id", "Strain", "Strain_ID")
 _BGC_FIELDS = ("bgc", "bgc_id", "BGC", "BGC_ID", "BGC_number")
 _NODE_FIELDS = (
-    "full_node", "contig", "Contig", "node", "node_id", "assembly_locator",
-    "region_member", "source_gbk",
+    "full_node", "contig", "Contig", "node", "node_id", "Node_ID",
+    "assembly_locator", "Assembly_Locator", "region_member", "source_gbk", "Source_GBK",
 )
 _REGION_FIELDS = ("region", "Region", "region_id", "antismash_region", "antiSMASH_Region", "region_number")
+_ATOMIC_NODE_FIELDS = ("full_node", "contig", "Contig", "node", "node_id", "Node_ID")
+_DISPLAY_NODE_FIELDS = ("assembly_locator", "Assembly_Locator")
+_MEMBER_FIELDS = ("region_member", "source_gbk", "Source_GBK")
+_ATOM_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:+-]*")
+_MEMBER_RE = re.compile(r"(.+)\.region(\d+)\.gbk", re.I)
+_PATH_BGC_RE = re.compile(r"(?<![A-Za-z0-9])BGC[_ -]?(\d{1,4})(?![A-Za-z0-9])", re.I)
+_UNRESOLVED_NODES = {"NODE_UNRESOLVED", "UNKNOWN_LOCUS", "UNRESOLVED"}
+
+
+@dataclass(frozen=True)
+class _Identity:
+    """Typed identity before binding; invalid input is never reduced to missing.
+
+    Raw identity fields stay internal, so fixed diagnostics do not echo an
+    invalid/private payload into logs. Source rows remain the immutable record.
+    """
+    strain: str = ""
+    bgc: str = ""
+    full_node: str = ""
+    region: str = ""
+    node_token: str = ""
+    diagnostics: tuple[str, ...] = ()
+    supplied: frozenset[str] = frozenset()
+    raw_fields: tuple[tuple[str, str], ...] = ()
+    field_states: tuple[tuple[str, str], ...] = ()
+
+    @property
+    def components(self) -> tuple[str, str, str, str]:
+        return self.strain, self.bgc, self.full_node, self.region
+
 
 
 @dataclass(frozen=True)
@@ -99,6 +127,8 @@ class EvidenceObservation:
     record_count: int = 1
     freshness_state: str = "UNVERIFIED"
     notes: str = ""
+    identity_diagnostics: str = ""
+    identity_field_states: str = ""
 
 
 def _sha256(path: Path) -> str:
@@ -119,11 +149,12 @@ def _first(row: Mapping[str, object], names: Sequence[str]) -> str:
 
 def normalize_strain(value: object) -> str:
     text = str(value or "").strip()
-    # Inventory/evidence-index fields may use any portable public strain label.
+    # Portable strain labels are exact identifiers, including their spelling.
+    # Case folding would silently merge independently named inventory strains.
     # Do not guess a generic id out of a path; path discovery resolves against
     # the actual inventory labels in _Resolver.find_strain().
     if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", text):
-        return text.upper()
+        return text
     return ""
 
 
@@ -134,25 +165,205 @@ def normalize_bgc(value: object) -> str:
 
 def normalize_region(value: object) -> str:
     text = str(value or "").strip()
+    match = re.fullmatch(r"(?:region[_ -]?)?(\d+)", text, re.I)
+    return f"region{int(match.group(1)):03d}" if match and int(match.group(1)) > 0 else ""
+
+
+def _atomic_node(value: object) -> tuple[str, str, str]:
+    text = str(value or "").strip()
     if not text:
-        return ""
-    match = _REGION_RE.search(text)
-    if match:
-        return f"region{int(match.group(1)):03d}"
-    if text.isdigit():
-        return f"region{int(text):03d}"
-    return ""
+        return "", "", ""
+    if _FULL_NODE_RE.fullmatch(text):
+        return text.upper(), "", ""
+    if re.fullmatch(r"NODE_\d+", text, re.I):
+        return "", text.upper(), ""
+    if re.match(r"NODE_\d+(?:_|$)", text, re.I):
+        return "", "", "INCOMPLETE_NODE"
+    if text.upper() in _UNRESOLVED_NODES:
+        return "", "", "UNRESOLVED_SENTINEL"
+    if not _ATOM_RE.fullmatch(text) or re.match(r"[A-Za-z]:", text):
+        return "", "", "INVALID_CONTIG_ATOM"
+    if _MEMBER_RE.fullmatch(text):
+        return "", "", "MEMBER_IN_ATOMIC_FIELD"
+    # Generic identifiers are exact, case-sensitive labels. In particular,
+    # accession version and namespace are not guessed or coalesced.
+    return text, "", ""
 
 
 def normalize_node(value: object) -> str:
-    text = str(value or "").strip().replace(".region", " region")
-    match = _FULL_NODE_RE.search(text)
-    return match.group(1).upper() if match else ""
+    """Normalize a complete *atomic field*, never search a filesystem path."""
+    return _atomic_node(value)[0]
 
 
 def _node_token(value: str) -> str:
-    match = _NODE_RE.search(value or "")
+    match = re.match(r"(NODE_\d+)(?:_length_|$)", value or "", re.I)
     return match.group(1).upper() if match else ""
+
+
+def _member_identity(value: str) -> tuple[str, str, str, str]:
+    """Return contig, region, short token, error from a region-member basename.
+
+    Opaque whole-record names carry provenance only. Directory components can
+    locate a file but never contribute contig identity.
+    """
+    if any(ord(c) < 32 for c in value) or "://" in value or "|" in value or "?" in value or "#" in value:
+        return "", "", "", "INVALID_MEMBER_PATH"
+    basename = value.replace("\\", "/").rsplit("/", 1)[-1]
+    match = _MEMBER_RE.fullmatch(basename)
+    if not match:
+        error = "MALFORMED_REGION_MEMBER" if re.search(r"\.region\d+", basename, re.I) else ""
+        return "", "", "", error
+    if re.search(r"\.region\d+", match.group(1), re.I):
+        return "", "", "", "AMBIGUOUS_REGION_MEMBER"
+    node, token, error = _atomic_node(match.group(1))
+    region = normalize_region(match.group(2))
+    return node, region, token, error or ("INVALID_REGION" if not region else "")
+
+
+def _collect_identity(row: Mapping[str, object]) -> _Identity:
+    candidates: dict[str, list[str]] = {k: [] for k in ("strain", "bgc", "full_node", "region", "node_token")}
+    diagnostics: list[str] = []
+    raw: list[tuple[str, str]] = []
+    states: list[tuple[str, str]] = []
+    supplied: set[str] = set()
+    native = None
+    native_node_fields: set[str] = set()
+    native_strain = _first(row, _STRAIN_FIELDS)
+    inventory_roles = ("Contig", "Node_ID", "antiSMASH_Region", "BGC_ID")
+    manifest_roles = ("contig", "node_id", "antismash_region", "bgc_id")
+    if native_strain and (all(str(row.get(k) or "").strip() for k in inventory_roles)
+                          or all(str(row.get(k) or "").strip() for k in manifest_roles)):
+        try:
+            try:
+                from ..exact_identity import (ExactLocusIdentityError,
+                    exact_locus_from_native_inventory_row, exact_locus_from_native_manifest_bgc)
+            except ImportError:  # supported direct-script import shape
+                from mamey.exact_identity import (ExactLocusIdentityError,
+                    exact_locus_from_native_inventory_row, exact_locus_from_native_manifest_bgc)
+            if all(str(row.get(k) or "").strip() for k in inventory_roles):
+                native = exact_locus_from_native_inventory_row(native_strain, row)
+                native_node_fields = {"Node_ID", "node_id"}
+            else:
+                native = exact_locus_from_native_manifest_bgc(native_strain, row)
+                native_node_fields = {"node_id"}
+        except ExactLocusIdentityError:
+            # Do not echo the helper exception: diagnostics contain field roles,
+            # never a potentially private raw locator or source payload.
+            diagnostics.append("native_identity:PRODUCER_ROLE_CONFLICT")
+
+    def add(field: str, component: str, value: str, error: str = "") -> None:
+        supplied.add(component)
+        if value:
+            candidates[component].append(value)
+        if error:
+            diagnostics.append(f"{field}:{error}")
+
+    for fields, component, normalizer in (
+        (_STRAIN_FIELDS, "strain", normalize_strain),
+        (_BGC_FIELDS, "bgc", normalize_bgc),
+        (_REGION_FIELDS, "region", normalize_region),
+    ):
+        for field in fields:
+            value = str(row.get(field) or "").strip()
+            if not value:
+                continue
+            raw.append((field, value))
+            normalized = normalizer(value)
+            if component == "bgc" and not _BGC_RE.fullmatch(value):
+                normalized = ""
+            error = "INVALID_" + component.upper() if not normalized else ""
+            add(field, component, normalized, error)
+            states.append((field, "invalid" if error else "complete"))
+
+    for field in _ATOMIC_NODE_FIELDS + _DISPLAY_NODE_FIELDS + _MEMBER_FIELDS:
+        value = str(row.get(field) or "").strip()
+        if not value:
+            continue
+        raw.append((field, value))
+        if native and field in native_node_fields:
+            states.append((field, "producer_normalized"))
+            continue
+        node = token = region = bgc = error = ""
+        producer_display = False
+        if field in _MEMBER_FIELDS:
+            node, region, token, error = _member_identity(value)
+            if not any((node, token, region, error)):
+                states.append((field, "provenance_only"))
+                continue
+        elif field in _DISPLAY_NODE_FIELDS and " " in value:
+            match = re.fullmatch(r"(\S+) (region\d+)(?: \((BGC\d{1,4})\))?", value, re.I)
+            if match:
+                display_node = match.group(1)
+                region = normalize_region(match.group(2))
+                bgc = normalize_bgc(match.group(3)) if match.group(3) else ""
+                if (native and display_node == native.normalized_node_id
+                        and region == normalize_region(native.region)
+                        and (not bgc or bgc == normalize_bgc(native.bgc_alias))):
+                    # Native display labels use the separately validated join
+                    # token; the physical locator still comes from Contig.
+                    node = normalize_node(native.full_contig)
+                    producer_display = True
+                else:
+                    node, token, error = _atomic_node(display_node)
+                if not region:
+                    error = error or "INVALID_REGION"
+            else:
+                error = "INVALID_DISPLAY_LOCATOR"
+        else:
+            # Bare atomic assembly_locator is a supported legacy table shape.
+            node, token, error = _atomic_node(value)
+        add(field, "full_node", node, error)
+        if token:
+            candidates["node_token"].append(token)
+        if region:
+            add(field, "region", region)
+        if bgc:
+            add(field, "bgc", bgc)
+        states.append((field, "invalid" if error else "producer_display" if producer_display
+                       else "partial" if token else "complete"))
+
+    values: dict[str, str] = {}
+    for component, items in candidates.items():
+        values[component] = items[0] if items else ""
+        if len(set(items)) > 1:
+            diagnostics.append(f"{component}:CONFLICT")
+    if values["node_token"] and values["full_node"]:
+        if _node_token(values["full_node"]) != values["node_token"]:
+            diagnostics.append("full_node:SHORT_NODE_CONFLICT")
+    exact = str(row.get("exact_locus") or "").strip()
+    if exact:
+        raw.append(("exact_locus", exact))
+        parts = exact.split("|")
+        expected = (values["strain"], values["full_node"], values["region"])
+        if len(parts) != 3:
+            diagnostics.append("exact_locus:MALFORMED")
+        else:
+            claimed = (normalize_strain(parts[0]), normalize_node(parts[1]), normalize_region(parts[2]))
+            if not all(claimed) or claimed != expected:
+                diagnostics.append("exact_locus:CONFLICT")
+        states.append(("exact_locus", "invalid" if any(d.startswith("exact_locus:") for d in diagnostics) else "complete"))
+    return _Identity(**values, diagnostics=tuple(sorted(set(diagnostics))),
+                     supplied=frozenset(supplied), raw_fields=tuple(raw), field_states=tuple(states))
+
+
+def _merge_identity(row: _Identity, path: _Identity) -> _Identity:
+    """Fill genuinely missing components only; contradictions remain visible."""
+    diagnostics = list(row.diagnostics + path.diagnostics)
+    values: dict[str, str] = {}
+    for component in ("strain", "bgc", "full_node", "region"):
+        explicit, candidate = getattr(row, component), getattr(path, component)
+        if explicit and candidate and explicit != candidate:
+            diagnostics.append(f"{component}:PATH_CONFLICT")
+        values[component] = explicit if component in row.supplied else candidate
+    token = row.node_token or path.node_token
+    if row.node_token and path.full_node and _node_token(path.full_node) != row.node_token:
+        diagnostics.append("full_node:PATH_SHORT_NODE_CONFLICT")
+    if token and values["full_node"] and _node_token(values["full_node"]) != token:
+        diagnostics.append("full_node:SHORT_NODE_CONFLICT")
+    return _Identity(**values, node_token=token,
+                     diagnostics=tuple(sorted(set(diagnostics))), supplied=row.supplied | path.supplied,
+                     raw_fields=row.raw_fields + path.raw_fields,
+                     field_states=row.field_states + tuple(("path." + f, state) for f, state in path.field_states))
 
 
 def load_contract(path: str | Path | None = None) -> dict:
@@ -192,10 +403,13 @@ def load_inventory(path: str | Path) -> list[InventoryLocus]:
     seen: set[tuple[str, str]] = set()
     exact_seen: set[tuple[str, str, str]] = set()
     for line_number, row in enumerate(rows, 2):
-        strain = normalize_strain(_first(row, _STRAIN_FIELDS))
-        bgc = normalize_bgc(_first(row, _BGC_FIELDS))
-        full_node = normalize_node(_first(row, _NODE_FIELDS))
-        region = normalize_region(_first(row, _REGION_FIELDS))
+        identity = _collect_identity(row)
+        strain, bgc, full_node, region = identity.components
+        if identity.diagnostics:
+            detail = "; ".join(identity.diagnostics)
+            if any(d.startswith("exact_locus:") for d in identity.diagnostics):
+                raise ValueError(f"Inventory row {line_number} exact_locus conflicts or is malformed: {detail}")
+            raise ValueError(f"Inventory row {line_number} has invalid/conflicting identity fields: {detail}")
         if not strain or not bgc:
             raise ValueError(f"Inventory row {line_number} lacks strain/BGC identity")
         alias_key = (strain, bgc)
@@ -207,22 +421,7 @@ def load_inventory(path: str | Path) -> list[InventoryLocus]:
             if exact_key in exact_seen:
                 raise ValueError(f"Inventory exact locus is duplicated: {'|'.join(exact_key)}")
             exact_seen.add(exact_key)
-        exact_locus = _first(row, ("exact_locus",))
-        if exact_locus:
-            parts = [part.strip() for part in exact_locus.split("|")]
-            if len(parts) != 3:
-                raise ValueError(f"Inventory row {line_number} has malformed exact_locus")
-            exact_identity = (
-                normalize_strain(parts[0]),
-                normalize_node(parts[1]),
-                normalize_region(parts[2]),
-            )
-            if exact_identity != (strain, full_node, region):
-                raise ValueError(
-                    f"Inventory row {line_number} exact_locus conflicts with strain/node/region columns"
-                )
-        else:
-            exact_locus = f"{strain}|{full_node or 'NODE_UNRESOLVED'}|{region or 'REGION_UNRESOLVED'}"
+        exact_locus = f"{strain}|{full_node or 'NODE_UNRESOLVED'}|{region or 'REGION_UNRESOLVED'}"
         loci.append(InventoryLocus(
             strain=strain,
             bgc=bgc,
@@ -253,12 +452,75 @@ def classify_path(path_text: str, contract: Mapping[str, object]) -> str:
     return ""
 
 
+def _path_wrapper_end(text: str, strain: str = "", bgc: str = "") -> int:
+    """Match exact strain spelling while retaining typed BGC case handling."""
+    pattern = re.escape(strain) + "_" if strain else ""
+    if bgc:
+        pattern += "(?i:" + re.escape(bgc) + ")_"
+    match = re.match(pattern, text) if pattern else None
+    return match.end() if match else 0
+
+
+def _path_identity(text: str, resolver: "_Resolver | None" = None) -> _Identity:
+    """Inventory-bounded path discovery, separate from explicit row fields."""
+    normalized = text.replace("\\", "/")
+    basename = normalized.rsplit("/", 1)[-1]
+    strains = resolver.find_strains(normalized) if resolver else []
+    node, region, token, error = _member_identity(basename)
+    literal_known = bool(resolver and any(l.full_node == node for l in resolver.by_alias.values()))
+    alias_text = normalized.rsplit("/", 1)[0] if "/" in normalized else ""
+    if not _MEMBER_RE.fullmatch(basename):
+        alias_text += "/" + basename
+    elif resolver and not literal_known:
+        # A known BGC wrapper is metadata; an embedded BGC-looking substring in
+        # a complete contig name is not. Match wrappers only at the beginning.
+        for strain, bgc in resolver.by_alias:
+            if (_path_wrapper_end(basename, strain, bgc)
+                    or _path_wrapper_end(basename, bgc=bgc)):
+                alias_text += "/" + bgc
+    aliases = sorted({f"BGC{int(m.group(1)):03d}" for m in _PATH_BGC_RE.finditer(alias_text)})
+    row: dict[str, str] = {}
+    diagnostics: list[str] = []
+    if len(strains) == 1:
+        row["strain"] = strains[0]
+    elif len(strains) > 1:
+        diagnostics.append("path_strain:AMBIGUOUS")
+    if len(aliases) == 1:
+        row["bgc"] = aliases[0]
+    elif len(aliases) > 1:
+        diagnostics.append("path_bgc:AMBIGUOUS")
+    # First prefer a literal member contig that exists in the inventory. For
+    # legacy prefixed filenames, only strip an exact known strain/BGC wrapper.
+    if resolver and not literal_known and _MEMBER_RE.fullmatch(basename):
+        wrappers: set[tuple[str, str]] = set()
+        if row.get("strain") and row.get("bgc"):
+            wrappers.add((row["strain"], row["bgc"]))
+        if row.get("bgc"):
+            wrappers.add(("", row["bgc"]))
+        if row.get("strain"):
+            wrappers.add((row["strain"], ""))
+        for strain, bgc in sorted(wrappers, key=lambda pair: sum(map(len, pair)), reverse=True):
+            end = _path_wrapper_end(basename, strain, bgc)
+            if end:
+                node, region, token, error = _member_identity(basename[end:])
+                break
+    if node or token:
+        row["full_node"] = node or token
+    if region:
+        row["region"] = region
+    identity = _collect_identity(row)
+    if error:
+        diagnostics.append("path_member:" + error)
+    return _Identity(**dict(zip(("strain", "bgc", "full_node", "region"), identity.components)),
+                     node_token=identity.node_token,
+                     diagnostics=tuple(sorted(set(identity.diagnostics + tuple(diagnostics)))),
+                     supplied=identity.supplied, raw_fields=identity.raw_fields,
+                     field_states=identity.field_states)
+
+
 def extract_identity(text: str) -> tuple[str, str, str, str]:
-    strain = normalize_strain(text)
-    bgc = normalize_bgc(text)
-    full_node = normalize_node(text)
-    region = normalize_region(text)
-    return strain, bgc, full_node, region
+    """Compatibility path candidate; generic strain is never guessed from a path."""
+    return _path_identity(text).components
 
 
 class _Resolver:
@@ -273,11 +535,13 @@ class _Resolver:
             self.by_strain[locus.strain].append(locus)
         self.strain_ids = sorted(self.by_strain, key=len, reverse=True)
 
+    def find_strains(self, text: str) -> list[str]:
+        return [strain for strain in self.strain_ids
+                if re.search(rf"(?<![A-Za-z0-9]){re.escape(strain)}(?![A-Za-z0-9])", text)]
+
     def find_strain(self, text: str) -> str:
-        for strain in self.strain_ids:
-            if re.search(rf"(?<![A-Za-z0-9]){re.escape(strain)}(?![A-Za-z0-9])", text, re.I):
-                return strain
-        return normalize_strain(text)
+        matches = self.find_strains(text)
+        return matches[0] if len(matches) == 1 else ""
 
     def bind(
         self,
@@ -285,28 +549,33 @@ class _Resolver:
         bgc: str,
         full_node: str,
         region: str,
-    ) -> tuple[str, InventoryLocus | None, str]:
-        strain = normalize_strain(strain)
-        bgc = normalize_bgc(bgc)
-        full_node = normalize_node(full_node)
-        region = normalize_region(region)
+        *,
+        identity: _Identity | None = None,
+    ) -> tuple[str, InventoryLocus | None, str, str]:
+        identity = identity or _collect_identity({"strain": strain, "bgc": bgc, "full_node": full_node, "region": region})
+        strain, bgc, full_node, region = identity.components
+        supplied_node_token = identity.node_token
+        if identity.diagnostics:
+            return "UNBOUND", None, "identity fields invalid/conflicting: " + "; ".join(identity.diagnostics), ""
         if strain and full_node and region:
             locus = self.by_exact.get((strain, full_node, region))
             if locus:
                 if bgc and bgc != locus.bgc:
-                    return "UNBOUND", None, "alias conflicts with exact locus"
-                return "EXACT_LOCUS", locus, "full assembly node and region match"
+                    return "UNBOUND", None, "alias conflicts with exact locus", "inventory:ALIAS_CONFLICT"
+                return "EXACT_LOCUS", locus, "full contig label and region match", ""
         if strain and bgc:
             locus = self.by_alias.get((strain, bgc))
             if locus:
-                if full_node and _node_token(full_node) and _node_token(full_node) != _node_token(locus.full_node):
-                    return "UNBOUND", None, "node token conflicts with inventory alias"
+                if full_node and locus.full_node and full_node != locus.full_node:
+                    return "UNBOUND", None, "full node conflicts with inventory alias", "inventory:FULL_CONTIG_CONFLICT"
+                if supplied_node_token and locus.full_node and supplied_node_token != _node_token(locus.full_node):
+                    return "UNBOUND", None, "node token conflicts with inventory alias or requires a contig crosswalk", "inventory:NODE_TOKEN_CONFLICT"
                 if region and locus.region and region != locus.region:
-                    return "UNBOUND", None, "region conflicts with inventory alias"
-                return "ALIAS_BOUND", locus, "strain and BGC alias match; exact locator not established by artifact"
+                    return "UNBOUND", None, "region conflicts with inventory alias", "inventory:REGION_CONFLICT"
+                return "ALIAS_BOUND", locus, "strain and BGC alias match; exact locator not established by artifact", ""
         if strain and strain in self.by_strain:
-            return "STRAIN_ONLY", None, "strain match only; do not localize to a BGC"
-        return "UNBOUND", None, "no inventory identity match"
+            return "STRAIN_ONLY", None, "strain match only; do not localize to a BGC", ""
+        return "UNBOUND", None, "no inventory identity match", "inventory:NO_IDENTITY_MATCH"
 
 
 def _observation(
@@ -323,8 +592,11 @@ def _observation(
     freshness_state: str = "UNVERIFIED",
     notes: str = "",
     digest: str | None = None,
+    identity: _Identity | None = None,
 ) -> EvidenceObservation:
-    binding, locus, binding_note = resolver.bind(strain, bgc, full_node, region)
+    identity = identity or _collect_identity({"strain": strain, "bgc": bgc, "full_node": full_node, "region": region})
+    strain, bgc, full_node, region = identity.components
+    binding, locus, binding_note, binding_diagnostic = resolver.bind(strain, bgc, full_node, region, identity=identity)
     return EvidenceObservation(
         channel=channel,
         source_label=source_label,
@@ -333,18 +605,20 @@ def _observation(
         source_bytes=path.stat().st_size,
         strain=locus.strain if locus else normalize_strain(strain),
         bgc=locus.bgc if locus else normalize_bgc(bgc),
-        full_node=locus.full_node if locus and binding == "EXACT_LOCUS" else normalize_node(full_node),
+        full_node=locus.full_node if locus and binding == "EXACT_LOCUS" else full_node,
         region=locus.region if locus and binding == "EXACT_LOCUS" else normalize_region(region),
         binding_state=binding,
         exact_locus=locus.exact_locus if locus and binding in {"EXACT_LOCUS", "ALIAS_BOUND"} else "",
         record_count=record_count,
         freshness_state=freshness_state or "UNVERIFIED",
         notes="; ".join(item for item in (notes, binding_note) if item),
+        identity_diagnostics="; ".join(identity.diagnostics + ((binding_diagnostic,) if binding_diagnostic else ())),
+        identity_field_states="; ".join(f"{field}={state}" for field, state in identity.field_states),
     )
 
 
-def _table_identity_groups(path: Path, max_rows: int = 250000) -> Counter[tuple[str, str, str, str]]:
-    groups: Counter[tuple[str, str, str, str]] = Counter()
+def _table_identity_groups(path: Path, max_rows: int = 250000) -> Counter[_Identity]:
+    groups: Counter[_Identity] = Counter()
     delimiter = _sniff_delimiter(path)
     with path.open("r", encoding="utf-8-sig", errors="replace", newline="") as handle:
         reader = csv.DictReader(handle, delimiter=delimiter)
@@ -356,14 +630,9 @@ def _table_identity_groups(path: Path, max_rows: int = 250000) -> Counter[tuple[
         for index, row in enumerate(reader):
             if index >= max_rows:
                 break
-            strain = normalize_strain(_first(row, _STRAIN_FIELDS))
-            bgc = normalize_bgc(_first(row, _BGC_FIELDS))
-            node_value = _first(row, _NODE_FIELDS)
-            region_value = _first(row, _REGION_FIELDS)
-            full_node = normalize_node(node_value)
-            region = normalize_region(region_value or node_value)
-            if any((strain, bgc, full_node, region)):
-                groups[(strain, bgc, full_node, region)] += 1
+            identity = _collect_identity(row)
+            if identity.raw_fields:
+                groups[identity] += 1
     return groups
 
 
@@ -414,10 +683,8 @@ def discover_evidence(
             if not channel:
                 continue
             digest = _sha256(path)
-            path_identity = extract_identity(relative)
-            if not path_identity[0]:
-                path_identity = (resolver.find_strain(relative), *path_identity[1:])
-            table_groups: Counter[tuple[str, str, str, str]] = Counter()
+            path_identity = _path_identity(relative, resolver)
+            table_groups: Counter[_Identity] = Counter()
             if (
                 inspect_tables
                 and path.suffix.lower() in {".csv", ".tsv"}
@@ -428,14 +695,15 @@ def discover_evidence(
                 except (csv.Error, OSError, UnicodeError):
                     table_groups = Counter()
             if table_groups:
-                for identity, count in sorted(table_groups.items()):
-                    merged = tuple(identity[i] or path_identity[i] for i in range(4))
+                for identity, count in sorted(table_groups.items(), key=lambda item: (item[0].components, item[0].diagnostics)):
+                    merged = _merge_identity(identity, path_identity)
                     observations.append(_observation(
                         channel=channel,
                         source_label=source_label,
                         path=path,
                         resolver=resolver,
-                        strain=merged[0], bgc=merged[1], full_node=merged[2], region=merged[3],
+                        strain=merged.strain, bgc=merged.bgc, full_node=merged.full_node, region=merged.region,
+                        identity=merged,
                         record_count=count,
                         notes="header-aware tabular row binding",
                         digest=digest,
@@ -446,8 +714,9 @@ def discover_evidence(
                     source_label=source_label,
                     path=path,
                     resolver=resolver,
-                    strain=path_identity[0], bgc=path_identity[1],
-                    full_node=path_identity[2], region=path_identity[3],
+                    strain=path_identity.strain, bgc=path_identity.bgc,
+                    full_node=path_identity.full_node, region=path_identity.region,
+                    identity=path_identity,
                     notes="path/content-name discovery candidate",
                     digest=digest,
                 ))
@@ -475,15 +744,19 @@ def load_evidence_index(
         if not artifact.is_file():
             raise FileNotFoundError(artifact)
         requested_binding = _first(row, ("binding_state",))
+        identity = _collect_identity(row)
+        # Only a recognized region-member basename contributes source-path
+        # identity. Arbitrary directory names and opaque files do not.
+        member = _collect_identity({"region_member": artifact_text})
+        identity = _merge_identity(identity, member)
         obs = _observation(
             channel=channel,
             source_label=_first(row, ("source_label",)) or source_label,
             path=artifact,
             resolver=resolver,
-            strain=_first(row, _STRAIN_FIELDS),
-            bgc=_first(row, _BGC_FIELDS),
-            full_node=_first(row, _NODE_FIELDS),
-            region=_first(row, _REGION_FIELDS),
+            strain=identity.strain, bgc=identity.bgc,
+            full_node=identity.full_node, region=identity.region,
+            identity=identity,
             record_count=int(_first(row, ("record_count",)) or 1),
             freshness_state=_first(row, ("freshness_state",)) or "UNVERIFIED",
             notes=_first(row, ("notes",)),
@@ -497,9 +770,9 @@ def load_evidence_index(
 
 
 def _deduplicate_observations(observations: Iterable[EvidenceObservation]) -> list[EvidenceObservation]:
-    best: dict[tuple[str, str, str, str, str, str], EvidenceObservation] = {}
+    best: dict[tuple[str, ...], EvidenceObservation] = {}
     for obs in observations:
-        key = (obs.channel, obs.source_path, obs.strain, obs.bgc, obs.full_node, obs.region)
+        key = (obs.channel, obs.source_path, obs.strain, obs.bgc, obs.full_node, obs.region, obs.identity_diagnostics)
         prior = best.get(key)
         if not prior or BINDING_SCORE[obs.binding_state] > BINDING_SCORE[prior.binding_state]:
             best[key] = obs

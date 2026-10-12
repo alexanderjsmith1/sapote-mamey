@@ -28,6 +28,17 @@ import collections
 import re
 import statistics
 
+
+def savefig_metadata(path, tool):
+    """Renderer stamp for savefig (see mamey/figure_stamp.py and tools/check_figure_provenance.py)."""
+    try:
+        from mamey.figure_stamp import savefig_metadata as _meta
+    except ImportError:  # bare-script run from a foreign cwd
+        import os, sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from mamey.figure_stamp import savefig_metadata as _meta
+    return _meta(path, tool)
+
 PRIMARY_MIN_ID, SECONDARY_MIN_ID = 50.0, 35.0
 EXCLUDED_VERDICTS = {"PARALOG_FAMILY", "HOUSEKEEPING_CONTEXT"}
 MAX_EXTRA = 5
@@ -140,8 +151,8 @@ def choose(ref, rows, splits, prots, core_contig, partner_contig=None, partner_r
     tag_to_pid = {p["tag"]: pid for pid, p in prots.items()}
     found, verdict = [], {}
     pid_of = lambda r: r.get("best_protein") if r.get("best_protein") in prots else tag_to_pid.get(r.get("best_locus"))
-    # When partner checks ran, a contig other than the core is drawn only if it holds a SUPPORTED find; a set-aside
-    # gene beside a supported one on the same contig is drawn with it.
+    # When partner checks ran, a contig other than the core is drawn only if it holds a SUPPORTED find. A set-aside
+    # gene beside it remains an ordinary gray CDS in the contig window, never a coloured reference match or ribbon.
     checked = any(r.get("partner_verdict") for r in rows)
     anchored = {prots[pid_of(r)]["contig"] for r in rows if r.get("partner_verdict") == "SUPPORTED" and pid_of(r)}
     for k, r in enumerate(rows):
@@ -149,8 +160,8 @@ def choose(ref, rows, splits, prots, core_contig, partner_contig=None, partner_r
         if checked and r.get("status") != "PRESENT_IN_CORE" and pid and prots[pid]["contig"] != core_contig \
                 and prots[pid]["contig"] not in anchored and prots[pid]["contig"] != partner_contig:
             continue
-        if r.get("partner_verdict") in EXCLUDED_VERDICTS and not (pid and prots[pid]["contig"] in anchored):
-            continue  # a housekeeping gene or a paralog-family member never pulls a contig in (partner checks)
+        if r.get("partner_verdict") in EXCLUDED_VERDICTS:
+            continue  # adjacency to a supported find does not promote a rejected gene into a reference match
         # A reciprocal-best test is the right guard for a match pulled in from elsewhere in the genome, where a
         # paralog can pose as the missing gene. Inside the core region it is the wrong guard: the table has already
         # decided the row is present, and when one protein is the best match for two reference genes only one of
@@ -812,9 +823,11 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
     cax = ax.inset_axes([xmin + 0.1, ybar - 0.07, 0.2 * (xmax - xmin), 0.14], transform=ax.transData)
     cb = fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax, orientation="horizontal")
     cb.set_label("Protein identity (%)", fontsize=7.5, labelpad=2); cb.ax.tick_params(labelsize=7)
-    fig.savefig(out_png, dpi=300, bbox_inches="tight", facecolor="white")
+    fig.savefig(out_png, dpi=300, bbox_inches="tight", facecolor="white",
+                metadata=savefig_metadata(out_png, "gap_rescue_locus_map"))
     if out_pdf:
-        fig.savefig(out_pdf, bbox_inches="tight", facecolor="white")
+        fig.savefig(out_pdf, bbox_inches="tight", facecolor="white",
+                    metadata=savefig_metadata(out_pdf, "gap_rescue_locus_map"))
     if pdf_pages is not None:
         pdf_pages.savefig(fig, bbox_inches="tight", facecolor="white")
     plt.close(fig)

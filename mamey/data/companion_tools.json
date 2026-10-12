@@ -1,5 +1,5 @@
 {
-  "_comment": "Machine-readable registry of EXTERNAL companion tools for the Sapote-Mamey analysis workflow. DESIGN DECISION: these tools are DETECTED, not BUNDLED. The Mamey offline core (deterministic extraction, judgment deferred) installs and runs with no network and no companion tool present. This file lets a new user (and `mamey doctor --companions`) discover which optional downstream tools are installed, what each one consumes/produces relative to a sealed Mamey package, and exactly how to obtain it on their platform. It NEVER makes any tool a requirement. Edit THIS file; mamey/companion_tools.py loads it and tests/test_companion_tools_registry.py guards it. Versions/commands were confirmed on macOS-arm64 (miniconda3, Python 3.13) on 2026-07-20; see docs/companion_tools.md for the human-readable guide.",
+  "_comment": "Machine-readable registry of EXTERNAL companion tools for the Sapote-Mamey analysis workflow. DESIGN DECISION: these tools are DETECTED, not BUNDLED. The Mamey offline core (deterministic extraction, judgment deferred) installs and runs with no network and no companion tool present. This file lets a new user (and `mamey doctor --companions`) discover which optional downstream tools are installed, what each one consumes/produces relative to a sealed Mamey package, and exactly how to obtain it on their platform. It NEVER makes any tool a requirement. Edit THIS file; mamey/companion_tools.py loads it and tests/test_companion_tools_registry.py guards it. Versions/commands were confirmed on macOS-arm64 (miniconda3, Python 3.13) on 2026-07-20; see docs/companion_tools.md for the human-readable guide. Registry version_verified values are historical install-note metadata, not current runtime or study-execution receipts. Numeric expected_version comparisons and verify_flag review states are reported separately; web/manual entries are not executed. Native tool-specific compatibility/resource/model gates remain authoritative.",
   "schema_version": "1.0",
   "detected_not_bundled": true,
   "offline_core_preserved": true,
@@ -420,19 +420,25 @@
           ],
           "command": "conda create -n sapote-phylo -c conda-forge -c bioconda gtotree iqtree fastani ncbi-datasets-cli",
           "reference_db": "bundled single-copy HMM sets (small); pulls HMMER/Prodigal/Muscle/etc.",
-          "notes": "Installation/upgrade requires approval and the Bioconda channel can change. Probe the resolved version/help. Run alignment with -j 1 -n 1 -M 1 -N; -B is optional and requires a multiplicity/paralogy audit. GToTree execution begins only after a user-approved size/resource preflight. Active contract: docs/LLM_COMPANION_TOOL_PROTOCOL.md."
+          "notes": "Released GToTree 1.8.19 is the workflow priority. The unreleased v2 rewrite is experimental source integration, not a released production workflow; further native v2 work is deferred. Installation/upgrade requires authorization and the Bioconda channel can change. Shared interface policy admits 1.8.19 and 2.0.x, refusing 1.8.16. For 1.8.19 the serial alignment flags are -j 1 -n 1 -M 1 -N; 2.0.x omits -n and uses detailed help -s. Native v2 also requires its separately admitted source/runtime profile, fresh software-probe receipt, recorded approval and explicit CPU budget; reviewed HMM search requests two workers per genome job even with -j 1 -M 1. -B remains optional and requires a multiplicity/paralogy audit. Active contract: docs/LLM_COMPANION_TOOL_PROTOCOL.md."
         }
       ],
       "detection": {
         "command": "GToTree -v",
-        "expected_version": ">=1.8.16; verify installed help",
-        "version_verified": "1.8.16",
-        "verify_flag": false
+        "expected_version": "1.8.19 or 2.0.x",
+        "version_verified": null,
+        "verify_flag": false,
+        "executable_candidates": [
+          "GToTree",
+          "gtotree"
+        ],
+        "version_policy_owner": "tools/_gtotree_versions.py",
+        "historical_version_note": "Previous registry recorded 1.8.16; current shared interface policy refuses it. This is not evidence of a current installation or study execution. Admission of a 2.0.x interface is experimental source compatibility, not release readiness or a recommendation to use it for study analyses."
       },
       "network_required": false,
       "reference_db_required": false,
       "workflow_doc": "docs/phylogenomics.md",
-      "battle_tested": "Used in this cohort's cross-genus core-genome placement (2026-07; confirmatory backbone over 6-locus MLSA)."
+      "battle_tested": "Historical cohort-use note: cross-genus core-genome placement (2026-07; confirmatory backbone over 6-locus MLSA). This is not current installation or native-run validation; bind original version and run receipts before using it as Methods evidence."
     },
     {
       "id": "ncbi_datasets",
@@ -693,18 +699,18 @@
       "category": "GCF-clustering",
       "requirement": "optional",
       "purpose": "Optional genome-side large-scale BGC clustering; GCF assignments remain method-specific.",
-      "consumes": "Genome-side region GBKs or operator-supplied MS inputs, according to the external tool.",
-      "produces": "Separate external analysis; no package scoring or scientific promotion.",
+      "consumes": "Source-bound genome-side antiSMASH region GBKs; query additionally requires an explicitly writable model, exact run, compatible HMM library and reviewed runtime/model manifests.",
+      "produces": "Additive PRIVATE selected-model/run membership exports with complete locus identity and attempt receipts; no package scoring or scientific promotion.",
       "mamey_io": {
         "feeds_mamey": false,
         "mamey_input": null,
-        "consumes_mamey_output": "export-metabolomics source staging and broad class hypotheses where applicable"
+        "consumes_mamey_output": "Hash-bound native manifest BGC identities and matching original source-region GBKs; no metabolomics inputs."
       },
       "install": [
         {
           "platform": "any",
           "command": "Manual optional setup: https://github.com/medema-group/bigslice",
-          "notes": "Detected, not bundled. Environment-specific; no installation or network access performed by the doctor."
+          "notes": "Detected, not bundled. Unknown runtime/model compatibility is held. No installation, download or model computation is performed by doctor; see docs/BIGSLICE_WORKFLOW.md."
         }
       ],
       "detection": {
@@ -716,6 +722,36 @@
       },
       "network_required": false,
       "reference_db_required": true
+    },
+    {
+      "id": "corason",
+      "name": "CORASON (optional original pinned profile)",
+      "category": "synteny",
+      "requirement": "optional",
+      "purpose": "Optional query-centered conserved-gene-core locus comparison. Multilocus, query-only and BLAST-order routes are distinct; no species/product/activity/assembly-link claim.",
+      "consumes": "Explicit independently public source/package roster, exact full-locus/query CDS selection, externally provisioned source/runtime/resource review manifest; no raw private AS inputs in initial profile.",
+      "produces": "PRIVATE scoped portable evidence with exact locus/neighborhood/leaf crosswalk, prefilter denominators, core/alignments/tree/order/SVG bindings and truthful actual route; raw SVG is not visual admission.",
+      "mamey_io": {
+        "feeds_mamey": false,
+        "mamey_input": null,
+        "consumes_mamey_output": "Validated package identity and matching original antiSMASH region members, downstream and additive only."
+      },
+      "install": [
+        {
+          "platform": "any",
+          "command": "Manual optional source/runtime review: https://github.com/nselem/corason",
+          "notes": "Not installed, downloaded, vendored or executed by this registry. Preferred source aa70dddebafb210445794fd24b1c6b2e4177c58c; AGPL-3.0; internal POD0.01 is not a release. See docs/CORASON_WORKFLOW.md."
+        }
+      ],
+      "detection": {
+        "command": "python -c \"reason='CORASON NOT_PROBED: external source/runtime/resource admission required'; raise SystemExit(2)\"",
+        "expected_version": "",
+        "version_verified": null,
+        "verify_flag": false,
+        "kind": "manual"
+      },
+      "network_required": false,
+      "reference_db_required": false
     }
   ]
 }

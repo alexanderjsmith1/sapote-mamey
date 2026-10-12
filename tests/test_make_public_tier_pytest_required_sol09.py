@@ -1,11 +1,12 @@
 """The public-tier builder must not silently turn a missing test runner into permission to ship."""
 from __future__ import annotations
 
-import os
 from pathlib import Path
 import shlex
 import subprocess
 import sys
+
+from tests._public_cut_fixture import public_cut_env, public_cut_source
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,17 +34,13 @@ def _wrapper(path: Path, *, pytest_probe: bool, pytest_exit: int = 0) -> Path:
 
 
 def _run(tmp_path: Path, wrapper: Path) -> subprocess.CompletedProcess[str]:
+    source = public_cut_source(tmp_path)
     output = tmp_path / "output"
     output.mkdir()
-    env = {
-        **os.environ,
-        "BUILD_STAMP": "20260909v97420a",
-        "PYTHON": str(wrapper),
-        "SAPOTE_ENABLE_DISABLED_TIERS": "1",  # v9.7.444: the public tier is disabled by default
-    }
+    env = public_cut_env(python=str(wrapper), skip_pytest=False)
     return subprocess.run(
-        ["bash", str(BUILDER), "public", str(ROOT), str(output)],
-        cwd=ROOT,
+        ["bash", str(BUILDER), "public", str(source), str(output)],
+        cwd=source,
         env=env,
         text=True,
         capture_output=True,

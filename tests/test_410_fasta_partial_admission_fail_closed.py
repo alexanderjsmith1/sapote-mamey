@@ -105,6 +105,8 @@ def test_no_fasta_still_uses_genbank_fallback(tmp_path, monkeypatch):
 def test_cli_returns_structured_failure_before_downstream_work(tmp_path, monkeypatch):
     import mamey.cli as cli
 
+    strain_id = "TEST-STRAIN"  # Independently synthetic subject shared by caller and context.
+
     monkeypatch.setenv("MAMEY_GBK_MAX_BYTES", "512")
     monkeypatch.setenv("MAMEY_GBK_MAX_RATIO", "100000")
     archive = _write_zip(tmp_path / "mixed.zip", [
@@ -116,7 +118,7 @@ def test_cli_returns_structured_failure_before_downstream_work(tmp_path, monkeyp
     ))
     monkeypatch.setattr(cli, "_acquire_package_lock", lambda *_a, **_k: object())
     monkeypatch.setattr(cli, "_phase_environment", lambda *_a, **_k: (
-        object(), False, "Streptomyces sp.", "Test strain", object()
+        object(), False, "Streptomyces sp.", "Test strain", SimpleNamespace(strain_id=strain_id)
     ))
     monkeypatch.setattr(cli, "emit", lambda *_a, **_k: None)
 
@@ -139,7 +141,7 @@ def test_cli_returns_structured_failure_before_downstream_work(tmp_path, monkeyp
 
     outdir = tmp_path / "out"
     result = cli.run_one_strain(
-        strain_id="TEST-STRAIN",
+        strain_id=strain_id,
         display_name="Test strain",
         input_zip=str(archive),
         outdir=str(outdir),

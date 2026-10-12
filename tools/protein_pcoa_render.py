@@ -31,13 +31,18 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
+import io
 import json
 import logging
 import math
 import os
+import platform
+import importlib.metadata
 import shutil
 import subprocess
 import sys
+import unicodedata
 import uuid
 from pathlib import Path
 try:  # CSV formula-cell guard, as every tools/ writer (tests/test_410_tools_csv_writer_coverage.py)
@@ -62,8 +67,173 @@ class RenderRefusal(RuntimeError):
     """An input or output that would make a figure wrong."""
 
 
-def read_tsv(path: Path) -> list[dict]:
-    with open(path, newline="") as fh:
+def _input_is_file(path: Path) -> bool:
+    """Distinguish optional absence from a malformed existing input path."""
+    if path.is_file():
+        return True
+    if path.exists() or path.is_symlink():
+        raise RenderRefusal(f"input must be a regular file: {path}")
+    return False
+
+
+def file_binding(path: Path) -> dict:
+    """Record an input or its absence, including optional files created later."""
+    try:
+        if not _input_is_file(path):
+            return {"path": str(path.resolve()), "state": "NOT_PROVIDED"}
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                digest.update(chunk)
+        return {"path": str(path.resolve()), "state": "PRESENT", "bytes": path.stat().st_size,
+                "sha256": digest.hexdigest()}
+    except OSError as exc:
+        raise RenderRefusal(f"cannot read input: {path}: {exc}") from exc
+
+
+def read_bound_bytes(path: Path, expected: dict) -> bytes | None:
+    """Check the exact buffer consumed, including admitted optional absence."""
+    try:
+        if _input_is_file(path):
+            raw = path.read_bytes()
+            actual = {"path": str(path.resolve()), "state": "PRESENT", "bytes": len(raw),
+                      "sha256": hashlib.sha256(raw).hexdigest()}
+        else:
+            raw = None
+            actual = {"path": str(path.resolve()), "state": "NOT_PROVIDED"}
+    except OSError as exc:
+        raise RenderRefusal(f"cannot read input: {path}: {exc}") from exc
+    if actual != expected:
+        raise RenderRefusal(f"consumed input differs from its admitted binding: {path}")
+    return raw
+
+
+def read_bound_json(path: Path, expected: dict) -> dict:
+    """Parse supplied metadata from the admitted bytes; preserve missing metadata."""
+    raw = read_bound_bytes(path, expected)
+    if raw is None:
+        return {}
+    with io.TextIOWrapper(io.BytesIO(raw)) as stream:
+        return json.load(stream)
+
+
+def admit_output_ids(sets: list[str], panels: list[str]) -> None:
+    """Keep each requested set/panel's artifacts distinct and inside the output."""
+    names = []
+    for panel in panels:
+        parts = panel.split("=", 1)
+        if len(parts) != 2 or not parts[0]:
+            raise RenderRefusal("each panel requires a nonempty NAME=COHORT specification")
+        names.append(parts[0])
+    if len(set(sets)) != len(sets) or len(set(names)) != len(names):
+        raise RenderRefusal("duplicate set IDs or panel names would overwrite replay artifacts")
+    if any(not value or "/" in value or "\\" in value for value in [*sets, *names]):
+        raise RenderRefusal("set IDs and panel names must be single output filename components")
+    prefixes = [f"PCOA_{s}_{name}" for s in sets for name in names]
+    collision_keys = [unicodedata.normalize("NFC", unicodedata.normalize("NFC", prefix).casefold())
+                      for prefix in prefixes]
+    if len(set(collision_keys)) != len(collision_keys):
+        raise RenderRefusal("set/panel combinations would overwrite the same replay artifact prefix")
+
+
+
+def historical_producer(run):
+    """Never substitute current rendering versions for historical fit versions."""
+    if run.get("resource_schema") == "sapote-mamey.protein-pcoa-resource.v1":
+        return {"state": "RECORDED", "producer_sources": run.get("producer_sources"),
+                "producer_runtime": run.get("producer_runtime")}
+    supplied = {key: run[key] for key in ("producer_sources", "producer_runtime", "producer") if key in run}
+    return {"state": "SUPPLIED_UNVERIFIED", "metadata": supplied} if supplied else {"state": "NOT_RECORDED"}
+
+
+def render_runtime(renderer):
+    packages = {}
+    for name in ("numpy", "matplotlib", "scipy"):
+        try:
+            packages[name] = importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError:
+            packages[name] = "NOT_INSTALLED"
+    return {"python": platform.python_version(), "implementation": platform.python_implementation(),
+            "platform": platform.platform(), "executable": sys.executable, "installed_distributions": packages,
+            "loaded_module_versions": {name: getattr(sys.modules.get(name), "__version__", "NOT_IMPORTED")
+                                       for name in ("numpy", "matplotlib", "scipy")},
+            "renderer": renderer, "r_runtime": "NOT_RECORDED", "fonts": "NOT_RECORDED",
+            "byte_equivalent_replay_claim": False}
+
+
+def admit_resource_run(directory, name, run, run_binding, input_paths, input_bindings, admitted):
+    """New resource attempts cannot masquerade as legacy incomplete kits."""
+    receipt_dir = directory / "RESOURCE_ATTEMPT"
+    resource_schema = run.get("resource_schema")
+    if resource_schema is None and not receipt_dir.exists():
+        return
+    if resource_schema != "sapote-mamey.protein-pcoa-resource.v1":
+        raise RenderRefusal("incomplete or unknown resource-attempt RUN")
+    for filename in ("monitored_resource.json", "terminal.json"):
+        path = receipt_dir / filename
+        binding = file_binding(path)
+        input_paths.append(path); input_bindings.append(binding); admitted[path.absolute()] = binding
+    resource_path, terminal_path = receipt_dir / "monitored_resource.json", receipt_dir / "terminal.json"
+    resource_binding = admitted[resource_path.absolute()]
+    terminal = read_bound_json(terminal_path, admitted[terminal_path.absolute()])
+    resource = read_bound_json(resource_path, resource_binding)
+    expected_resource = run.get("resource_receipt", {})
+    if not all(isinstance(x, dict) for x in (terminal, resource, expected_resource)):
+        raise RenderRefusal("resource receipt must contain metadata objects")
+    if not isinstance(terminal.get("run"), dict) or not isinstance(resource.get("watch"), dict):
+        raise RenderRefusal("resource receipt must contain metadata objects")
+    if (resource_binding.get("state") != "PRESENT"
+            or expected_resource.get("relative_path") != "RESOURCE_ATTEMPT/monitored_resource.json"
+            or expected_resource.get("sha256") != resource_binding.get("sha256")
+            or terminal.get("state") != "SUCCEEDED"
+            or terminal.get("run", {}).get("sha256") != run_binding.get("sha256")
+            or not run.get("attempt_id") or terminal.get("attempt_id") != run["attempt_id"]
+            or resource.get("attempt_id") != run["attempt_id"]
+            or resource.get("watch", {}).get("exit_code") != 0
+            or resource.get("watch", {}).get("stop_reason")
+            or resource.get("watch", {}).get("cleanup_error")):
+        raise RenderRefusal("resource attempt lacks a matching successful terminal chain")
+    outputs = run.get("outputs", {})
+    expected_names = {f"PCOA_{name}.tsv", f"REFERENCE_CLUSTERS_{name}.tsv"}
+    if not isinstance(outputs, dict) or set(outputs) != expected_names:
+        raise RenderRefusal("resource RUN output roster is incomplete")
+    for filename in sorted(expected_names):
+        path = directory / filename
+        binding = admitted.get(path.absolute())
+        if binding is None:
+            binding = file_binding(path)
+            input_paths.append(path); input_bindings.append(binding); admitted[path.absolute()] = binding
+        if (not isinstance(outputs[filename], dict) or binding.get("state") != "PRESENT"
+                or outputs[filename].get("sha256") != binding.get("sha256")):
+            raise RenderRefusal("resource RUN scientific output hash changed")
+
+
+def axis_metadata(run: dict, *, required: bool = False) -> dict:
+    """Keep unknown axis percentages distinct from supplied finite values."""
+    values = run.get("pct_axes")
+    if values is None:
+        if required:
+            raise RenderRefusal("axis percentages missing; provide RUN_<SET>.json with pct_axes")
+        return {"state": "NOT_PROVIDED", "pct_axes": None}
+    try:
+        if not isinstance(values, list) or len(values) < 2 or any(isinstance(v, bool) for v in values):
+            raise ValueError
+        values = [float(v) for v in values]
+        if not all(math.isfinite(v) for v in values):
+            raise ValueError
+    except (ValueError, TypeError):
+        raise RenderRefusal("pct_axes must contain at least two finite numeric axis percentages") from None
+    return {"state": "AVAILABLE", "pct_axes": values}
+
+
+def read_tsv(path: Path, *, expected_binding: dict | None = None) -> list[dict]:
+    if expected_binding is None:
+        with open(path, newline="") as fh:
+            return list(csv.DictReader(fh, delimiter="\t"))
+    raw = read_bound_bytes(path, expected_binding)
+    if raw is None:
+        raise RenderRefusal(f"required TSV input is missing: {path}")
+    with io.TextIOWrapper(io.BytesIO(raw), newline="") as fh:
         return list(csv.DictReader(fh, delimiter="\t"))
 
 
@@ -210,8 +380,9 @@ def render_matplotlib(spec: dict, out_prefix: Path) -> None:
 
 
 # ---------------------------------------------------------------- driver
-def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label_text, titles, out: Path, renderer: str):
-    drop = {l.strip() for l in open(a.drop_origins)} if a.drop_origins else set()
+def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label_text, titles, out: Path, renderer: str,
+                *, drop_origins: set[str] | None = None):
+    drop = ({l.strip() for l in open(a.drop_origins)} if a.drop_origins else set()) if drop_origins is None else drop_origins
     excluded = set(a.exclude_strain or [])
     bg, cpts, points = [], [], []
     n_ref = n_mib = 0
@@ -240,13 +411,16 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
     for p, lw, md in zip(cpts, low, mid):
         points.append(dict(x=p["x"], y=p["y"], layer="iso_low" if lw else ("iso_mid" if md else "iso_high"), size=1))
     title, tag, unit = titles.get(s, (s, s, "proteins"))
-    pct = run.get("pct_axes") or [float("nan"), float("nan")]
+    axes = axis_metadata(run, required=getattr(a, "require_axis_metadata", False))
+    pct = axes["pct_axes"]
     mt = "reference/MIBiG" if n_mib else "reference"
     nlo = sum(low); nmd = sum(mid); nhi = len(cpts) - nlo - nmd
     slo = len({p["strain"] for p, lw in zip(cpts, low) if lw}); smd = len({p["strain"] for p, md in zip(cpts, mid) if md})
     shi = len({p["strain"] for p, lw, md in zip(cpts, low, mid) if not lw and not md})
     top = a.mid_below if a.mid_below is not None else a.label_below
-    spec = dict(set=s, panel=panel, tag=tag, colour=colour, xlab=f"PCoA 1 ({pct[0]:.1f}%)", ylab=f"PCoA 2 ({pct[1]:.1f}%)",
+    spec = dict(set=s, panel=panel, tag=tag, colour=colour,
+                xlab=f"PCoA 1 ({pct[0]:.1f}%)" if pct is not None else "PCoA 1",
+                ylab=f"PCoA 2 ({pct[1]:.1f}%)" if pct is not None else "PCoA 2",
                 legend=dict(ref=f"reference genomes ({n_ref:,} {unit})", mibig=f"MIBiG ({n_mib:,} {unit})",
                             iso_low=f"{label_text} ({nlo:,} {unit}, {slo} strains): best {mt} match < {a.label_below:.0f}% identity",
                             iso_high=f"{label_text} ({nhi:,} {unit}, {shi} strains): best {mt} match >= {top:.0f}% identity"),
@@ -285,7 +459,8 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
     receipt = dict(set=s, panel=panel, cohorts=sorted(cohort_set), renderer=renderer, stamp=stamp, labels=len(groups),
                    numbered=numbered, threshold=thr, n_cohort_points=len(cpts), n_low=nlo, n_mid=nmd, n_ref=n_ref, n_mibig=n_mib,
                    label_rule=("top_strains" if a.top_strains else "distance_quantile"), top_strains=a.top_strains,
-                   quantile=a.quantile, label_below=a.label_below, mid_below=a.mid_below, title=title)
+                   quantile=a.quantile, label_below=a.label_below, mid_below=a.mid_below, title=title,
+                   axis_metadata=axes)
     (out / f"panel_{s}_{panel}.json").write_text(json.dumps(receipt, indent=1))
     return receipt
 
@@ -309,44 +484,98 @@ def main(argv=None) -> int:
     ap.add_argument("--quantile", type=float, default=0.95)
     ap.add_argument("--number-above", type=int, default=30)
     ap.add_argument("--renderer", choices=["auto", "r", "matplotlib"], default="auto")
+    ap.add_argument("--require-axis-metadata", action="store_true",
+                    help="refuse missing axis percentages before rendering; useful for publication replay")
     a = ap.parse_args(argv)
     if a.mid_below is not None and a.mid_below <= a.label_below:
         ap.error("--mid-below must be above --label-below")
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
         out = Path(a.out)
-        if out.exists() and any(out.iterdir()):
-            raise RenderRefusal(f"{out} is not empty; choose a new folder (delivered figures are never overwritten)")
-        out.mkdir(parents=True, exist_ok=True)
         kit = Path(a.kit)
         sets = a.set or sorted(p.stem[len("PCOA_"):] for p in kit.glob("out_*/PCOA_*.tsv"))
         if not sets:
             raise RenderRefusal(f"{kit}: no out_<SET>/PCOA_<SET>.tsv")
-        cohorts = {r["strain"]: r.get("cohort", "") for r in read_tsv(Path(a.cohort_table))}
+        admit_output_ids(sets, a.panel)
+        if out.exists() and any(out.iterdir()):
+            raise RenderRefusal(f"{out} is not empty; choose a new folder (delivered figures are never overwritten)")
+        out.mkdir(parents=True, exist_ok=True)
+        input_paths = [Path(a.cohort_table)]
+        input_paths.extend(Path(p) for p in (a.drop_origins, a.set_names) if p)
+        for s in sets:
+            directory = kit / f"out_{s}"
+            input_paths.extend(directory / f"{prefix}_{s}.{suffix}" for prefix, suffix in
+                               (("PCOA", "tsv"), ("NEAREST", "tsv"), ("RUN", "json")))
+        input_bindings = [file_binding(p) for p in input_paths]
+        # Keep each supplied path tied to its original binding even if a symlink
+        # is retargeted before consumption. The reader still checks its target.
+        admitted = {path.absolute(): record for path, record in zip(input_paths, input_bindings)}
+        runs = {}
+        for s in sets:
+            run_path = kit / f"out_{s}" / f"RUN_{s}.json"
+            try:
+                metadata = read_bound_json(run_path, admitted[run_path.absolute()])
+                if not isinstance(metadata, dict):
+                    raise RenderRefusal(f"{run_path}: expected a metadata object")
+                axis_metadata(metadata, required=a.require_axis_metadata)
+                admit_resource_run(kit / f"out_{s}", s, metadata, admitted[run_path.absolute()],
+                                   input_paths, input_bindings, admitted)
+                runs[s] = metadata
+            except (ValueError, TypeError) as exc:
+                raise RenderRefusal(f"{run_path}: invalid axis metadata: {exc}") from exc
+        cohorts_path = Path(a.cohort_table)
+        cohorts = {r["strain"]: r.get("cohort", "") for r in
+                   read_tsv(cohorts_path, expected_binding=admitted[cohorts_path.absolute()])}
         titles = {}
         if a.set_names:
-            for r in read_tsv(Path(a.set_names)):
+            names_path = Path(a.set_names)
+            for r in read_tsv(names_path, expected_binding=admitted[names_path.absolute()]):
                 t = r.get("title") or r.get("amr_gene_family") or r["set"]
                 titles[r["set"]] = (t, r.get("tag") or t, r.get("unit") or "proteins")
+        drop_origins = set()
+        if a.drop_origins:
+            drop_path = Path(a.drop_origins)
+            raw = read_bound_bytes(drop_path, admitted[drop_path.absolute()])
+            if raw is None:
+                raise RenderRefusal(f"drop-origin input is missing: {drop_path}")
+            with io.TextIOWrapper(io.BytesIO(raw)) as stream:
+                drop_origins = {line.strip() for line in stream}
         labels = dict(x.split("=", 1) for x in a.panel_label)
         colours = dict(x.split("=", 1) for x in a.cohort_colour)
         renderer = a.renderer if a.renderer != "auto" else ("r" if r_available() else "matplotlib")
+        producer_paths = [Path(__file__), _ROOT / "mamey" / "figure_policy.py"]
+        if renderer == "r":
+            producer_paths.append(R_SCRIPT)
+        producer_bindings = [file_binding(p) for p in producer_paths]
         receipts = []
         for s in sets:
             f = kit / f"out_{s}" / f"PCOA_{s}.tsv"
             if not f.exists():
                 raise RenderRefusal(f"{f} missing")
-            rows = read_tsv(f)
+            rows = read_tsv(f, expected_binding=admitted[f.absolute()])
             nf = f.parent / f"NEAREST_{s}.tsv"
-            near = {r["id"]: float(r["nearest_pident"]) for r in read_tsv(nf) if r.get("nearest_pident")} if nf.exists() else {}
-            rf = f.parent / f"RUN_{s}.json"
-            run = json.load(open(rf)) if rf.exists() else {}
+            nearest_binding = admitted[nf.absolute()]
+            if nearest_binding["state"] == "PRESENT":
+                near = {r["id"]: float(r["nearest_pident"]) for r in
+                        read_tsv(nf, expected_binding=nearest_binding) if r.get("nearest_pident")}
+            else:
+                read_bound_bytes(nf, nearest_binding)
+                near = {}
+            run = runs[s]
             for i, spec in enumerate(a.panel):
                 name, cs = spec.split("=", 1)
                 receipts.append(build_panel(a, s, rows, near, run, cohorts, name, set(cs.split(",")),
                                             colours.get(name, PALETTE[i % len(PALETTE)]), labels.get(name, f"{name} isolates"),
-                                            titles, out, renderer))
-        (out / "render_receipt.json").write_text(json.dumps(dict(args=vars(a), renderer=renderer, panels=receipts), indent=1))
+                                            titles, out, renderer, drop_origins=drop_origins))
+        if input_bindings != [file_binding(p) for p in input_paths]:
+            raise RenderRefusal("render inputs changed during drawing; retain outputs as an incomplete attempt")
+        if producer_bindings != [file_binding(p) for p in producer_paths]:
+            raise RenderRefusal("renderer source changed during drawing; retain outputs as an incomplete attempt")
+        outputs = [file_binding(p) for p in sorted(out.iterdir()) if p.is_file()]
+        (out / "render_receipt.json").write_text(json.dumps(dict(args=vars(a), renderer=renderer, panels=receipts,
+            inputs=input_bindings, outputs=outputs, producers=producer_bindings,
+            replay_mode="SAVED_COORDINATE_REPLAY", historical_producers={s: historical_producer(runs[s]) for s in sets},
+            rendering_runtime=render_runtime(renderer)), indent=1))
     except (RenderRefusal, FigureTextRefusal) as exc:
         _LOG.error("REFUSED: %s", exc)
         return 2

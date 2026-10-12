@@ -15,8 +15,8 @@ Edge/Full-contig BGCs carry a fragmentation caveat, and a single-strain domain i
 The domain->function vocabulary is SINGLE-SOURCED from `mamey.mamey_markers.MAMEY_MARKERS` (each
 Marker's regex Target + its `category`), so it never drifts from the engine's own marker set.
 
-Source-agnostic by design: `--domtblout-dir` lets a future Release-2 offline-pyHMMER
-(`scanner_pfam_150.hmm`) domtblout be folded in as a second, higher-recall domain source.
+The reserved `--domtblout-dir` option is refused until a source-bound importer exists.
+Independently generated HMMER output cannot silently become antiSMASH domain counts.
 """
 from __future__ import annotations
 
@@ -68,6 +68,11 @@ def load_strain(pkg):
     gbg = glob.glob(os.path.join(pkg, "*_gene_by_gene_all_bgcs.csv"))
     if not (os.path.isfile(man) and gbg):
         return None
+    if len(gbg) != 1:
+        raise ValueError(
+            f"DOMAIN_MATRIX_AMBIGUOUS_GENE_TABLE: expected one gene table in {pkg}; "
+            f"found {len(gbg)}: {', '.join(sorted(gbg))}"
+        )
     with open(man, encoding="utf-8") as fh:
         m = json.load(fh)
     sid = m.get("strain_id") or m.get("strain") or os.path.basename(os.path.dirname(pkg))
@@ -87,14 +92,27 @@ def load_strain(pkg):
 
 def build(cohort_dirs, vocab):
     strains = []
+    seen_packages = set()
+    strain_packages = {}
     for d in cohort_dirs:
         # accept a cohort dir (many package subdirs) or a single package dir
         pkgs = ([d] if os.path.isfile(os.path.join(d, "manifest.json"))
                 else [p for p in glob.glob(os.path.join(d, "*", "package")) + glob.glob(os.path.join(d, "*"))
                       if os.path.isdir(p)])
         for p in pkgs:
+            package_key = os.path.realpath(p)
+            if package_key in seen_packages:
+                continue
+            seen_packages.add(package_key)
             s = load_strain(p)
             if s:
+                prior_package = strain_packages.get(s["strain"])
+                if prior_package is not None:
+                    raise ValueError(
+                        f"DOMAIN_MATRIX_AMBIGUOUS_STRAIN: {s['strain']!r} occurs in distinct packages: "
+                        f"{prior_package} and {package_key}"
+                    )
+                strain_packages[s["strain"]] = package_key
                 strains.append(s)
     strains.sort(key=lambda s: s["strain"])
     all_domains = sorted({d for s in strains for d in s["domains"]})
@@ -159,10 +177,16 @@ def main(argv=None):
     ap.add_argument("--cohort-dir", nargs="+", required=True, help="cohort dir(s) of sealed packages, or package dirs")
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--domtblout-dir", default=None,
-                    help="(Release-2 hook) offline-pyHMMER domtblout dir — second higher-recall source; not required")
+                    help="reserved; currently refused because no source-bound domtblout importer exists")
     a = ap.parse_args(argv)
+    if a.domtblout_dir is not None:
+        ap.error("--domtblout-dir is not supported: no source-bound domtblout importer exists. "
+                 "Keep independently generated HMMER evidence separate from this antiSMASH census.")
     vocab = _vocab()
-    strains, all_domains, split = build(a.cohort_dir, vocab)
+    try:
+        strains, all_domains, split = build(a.cohort_dir, vocab)
+    except ValueError as exc:
+        ap.error(str(exc))
     if not strains:
         emit("no sealed packages with *_gene_by_gene_all_bgcs.csv found", file=sys.stderr)
         return 1

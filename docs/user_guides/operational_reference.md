@@ -13,7 +13,7 @@ Operational examples below use the bundle-local launcher. Run them with the sele
 > current source checking before reuse. Execute only the user's selected authorized operation.
 
 ## Workflow, Protocols, and Standard Operating Procedures
-**Bundle v9.7.449 · Engine 1.9.174**
+**Bundle v9.7.450 · Engine 1.9.175**
 Hamilton, Ontario
 
 *Sourced from: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`. All content from source files; no inference.*
@@ -57,7 +57,7 @@ renaming a Linux/x86_64 wheel to make it appear compatible with another machine.
 
 ```bash
 python mamey_run.py doctor                          # pre-flight: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # → engine 1.9.174, bundle 9.7.449
+python3 tools/sync_version.py --check # → engine 1.9.175, bundle 9.7.450
 PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -p no:cacheprovider --run-slow --run-network  # configured full suite
 ```
 
@@ -670,7 +670,7 @@ Class A = CONFIRM + SARP. Class B = one strong axis only. Class C = KCB or weake
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.449. Historical run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.450. Historical run facts retain their original version labels.*
 
 ---
 
@@ -742,7 +742,7 @@ The following is a retained v9.7.246 sequence, with the doctor invocation correc
 ```bash
 # 1. Environment and bundle integrity
 python3 mamey_run.py doctor
-python3 tools/sync_version.py --check # → engine 1.9.174, bundle 9.7.449
+python3 tools/sync_version.py --check # → engine 1.9.175, bundle 9.7.450
 
 # 2. Documentation anchors
 python3 tools/check_monolith_freshness.py          # exit 1 on stale anchor or retired doctrine
@@ -815,8 +815,8 @@ The v9.7.246 fabrication passed claim-safety, evidence-presence, citation, and p
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.449. Historical v4 section labels and run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.450. Historical v4 section labels and run facts retain their original version labels.*
 
 ## Version reference
 
-Current archive naming example: `sapote-mamey-v9.7.449-CODE-20261009v97449a.zip`. Bind the actual supplied archive and hash before extracting.
+Current archive naming example: `sapote-mamey-v9.7.450-CODE-20261011v97450a.zip`. Bind the actual supplied archive and hash before extracting.

@@ -33,6 +33,8 @@ def test_sync_version_refuses_all_mutation_when_any_rule_is_invalid(monkeypatch,
     second = tmp_path / "second.txt"
     first.write_text("version=old\n", encoding="utf-8")
     second.write_text("anchor=present\n", encoding="utf-8")
+    (tmp_path / "BUILD_STAMP.txt").write_text("patch=Fixture.\n", encoding="utf-8")
+    (tmp_path / "CHANGELOG.md").write_text("# v0.0.0\n- **Fixture.**\n", encoding="utf-8")
     monkeypatch.setattr(sv, "ROOT", tmp_path)
     monkeypatch.setattr(sv, "RULES", [
         ("first.txt", re.compile(r"version=old"), "version=new"),
@@ -55,19 +57,23 @@ def test_sync_version_refuses_anchor_writes_when_bootstrap_generator_fails(monke
     sv = _load("sync_version")
     target = tmp_path / "version.txt"
     target.write_text("version=old\n", encoding="utf-8")
+    (tmp_path / "BUILD_STAMP.txt").write_text("patch=Fixture.\n", encoding="utf-8")
+    (tmp_path / "CHANGELOG.md").write_text("# v0.0.0\n- **Fixture.**\n", encoding="utf-8")
     monkeypatch.setattr(sv, "ROOT", tmp_path)
     monkeypatch.setattr(sv, "RULES", [
         ("version.txt", re.compile(r"version=old"), "version=new"),
     ])
     monkeypatch.setattr(sv, "sync_build_stamp_patch", lambda check: [])
+    bootstrap_calls = []
     monkeypatch.setattr(
         sv, "sync_bootstrap_contract",
-        lambda check: (False, ["bootstrap-contract sync timed out after 120 seconds (--apply)"]),
+        lambda check: bootstrap_calls.append(check) or (False, ["bootstrap-contract sync timed out after 120 seconds (--apply)"]),
     )
     with pytest.raises(SystemExit) as exc:
         sv.main([])
     assert exc.value.code == 1
     assert target.read_text(encoding="utf-8") == "version=old\n"
+    assert bootstrap_calls == [False]
 
 
 def test_judgment_count_fails_closed_when_structure_gate_crashes(monkeypatch, tmp_path):

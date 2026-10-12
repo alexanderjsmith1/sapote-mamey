@@ -20,6 +20,10 @@
 # Usage:  tools/release_cut.sh <bundle_version> <src_dir> <out_dir> [build_letter] [--skip-tests]
 #         --skip-tests additionally requires PYTEST_RECEIPT=/absolute/receipt.json and
 #         PYTEST_RECEIPT_SHA256=<sha256>; a free-text PYTEST_LOG is never sufficient.
+#         RELEASE_PYTEST_MODE=partitioned uses distinct measured-baseline and final-PASS
+#         receipts and workflow.json. Resume with RELEASE_WORKFLOW_RESUME=1; a failed
+#         stage additionally needs RELEASE_WORKFLOW_RETRY=STAGE=reason. It cannot
+#         be combined with --skip-tests. Default stays monolithic.
 # Date:   pinned via RELEASE_DATE=YYYYMMDD (defaults to today) so a rolled clock can't desync a cut.
 # Example: RELEASE_DATE=20260710 tools/release_cut.sh 9.7.258 . ../cut258 a
 set -euo pipefail
@@ -33,7 +37,22 @@ DATE="${RELEASE_DATE:-$(date +%Y%m%d)}"
 STAMP="${DATE}v$(echo "$VER" | tr -d '.')${LETTER}"
 cd "$SRC"; SRC="$(pwd)"; OUT="$(cd "$(dirname "$OUT")" && pwd)/$(basename "$OUT")"
 say(){ printf '\n=== %s ===\n' "$*"; }; die(){ printf '\nABORT: %s\n' "$*" >&2; exit 1; }
+PYTEST_MODE="${RELEASE_PYTEST_MODE:-monolithic}"
+[[ "$PYTEST_MODE" == monolithic || "$PYTEST_MODE" == partitioned ]] || die "unknown RELEASE_PYTEST_MODE: $PYTEST_MODE"
+[[ "$PYTEST_MODE" != partitioned || "$SKIP_TESTS" -eq 0 ]] || die "partitioned mode cannot use --skip-tests."
+receipt_sha256(){
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1"; else shasum -a 256 "$1"; fi | awk '{print $1}'
+}
 
+PHASE="${RELEASE_WORKFLOW_PHASE:-}"
+if [[ "$PYTEST_MODE" == partitioned && -z "$PHASE" ]]; then
+  args=(cut --version "$VER" --source "$SRC" --out "$OUT" --letter "$LETTER" --date "$DATE"
+        --files-per-partition "${RELEASE_PARTITION_FILES:-20}")
+  [[ "${RELEASE_WORKFLOW_RESUME:-0}" == 0 ]] || args+=(--resume)
+  [[ -z "${RELEASE_WORKFLOW_RETRY:-}" ]] || args+=(--retry "$RELEASE_WORKFLOW_RETRY")
+  unset RELEASE_WORKFLOW_RESUME RELEASE_WORKFLOW_RETRY
+  exec python3 "$SRC/tools/release_workflow.py" "${args[@]}"
+fi
 source "$SRC/tools/cut_preflight.sh"
 
 assert_no_backup_debris(){
@@ -49,6 +68,8 @@ refresh_source_integrity(){
   local tier_tmp
   tier_tmp="$(mktemp)"
   python3 tools/tracked_file_policy.py --emit-manifest . code "$VER" "$STAMP" > "$tier_tmp"
+  # mktemp is private by default; the generated source manifest is shipped/readable metadata.
+  chmod 0644 "$tier_tmp"
   mv "$tier_tmp" TIER_MANIFEST.txt
   python3 - "$SRC" <<'PY'
 import hashlib
@@ -92,6 +113,8 @@ print(passed.group(1), skipped.group(1) if skipped else "0")
 PY
 }
 
+
+prepare_release(){
 say "validate CHANGELOG top entry for v$VER"
 head -1 CHANGELOG.md | grep -q "v$VER" || die "CHANGELOG top entry is not v$VER — write it first."
 # grep reads the whole entry (no -q): under pipefail, -q closes the pipe at the first match, awk dies of SIGPIPE on a long
@@ -114,6 +137,7 @@ python3 tools/render_bootstrap_contract.py --apply >/dev/null
 python3 tools/gen_command_catalog.py >/dev/null
 python3 tools/generate_deliverables_menu.py --apply >/dev/null
 python3 tools/gen_tools_inventory.py >/dev/null
+python3 tools/gen_tools_inventory.py --maintenance >/dev/null
 
 say "refresh current module inventory"
 python3 tools/check_module_accretion.py --write >/dev/null \
@@ -121,6 +145,11 @@ python3 tools/check_module_accretion.py --write >/dev/null \
 
 say "gate: version sync"
 python3 tools/sync_version.py --check | tail -1 | grep -q "OK" || die "version sync gate failed."
+}
+
+# Keep the default path in execution order; internal phases skip its suite.
+if [[ -z "$PHASE" ]]; then
+prepare_release
 mkdir -p "$OUT"
 DEFAULT_PYTEST_LOG="$OUT/pytest_full_suite_${STAMP}.log"
 if [[ "$SKIP_TESTS" -eq 0 ]]; then
@@ -173,6 +202,9 @@ python3 tools/gen_release_manifest.py --apply --pytest-log "$PYTEST_LOG" >/dev/n
 refresh_source_integrity || die "final source integrity refresh failed."
 python3 tools/gen_release_manifest.py --check --pytest-log "$PYTEST_LOG" >/dev/null \
   || die "release manifest does not match final identity/test log."
+fi
+
+post_test_gates(){
 python3 tools/render_bootstrap_contract.py --check >/dev/null \
   || die "bootstrap generated surfaces drifted after synchronization."
 python3 tools/gen_command_catalog.py --check >/dev/null \
@@ -181,6 +213,8 @@ python3 tools/generate_deliverables_menu.py --check >/dev/null \
   || die "generated deliverables menu drifted after synchronization."
 python3 tools/gen_tools_inventory.py --check >/dev/null \
   || die "generated tools inventory drifted after synchronization."
+python3 tools/gen_tools_inventory.py --maintenance --check >/dev/null \
+  || die "generated maintenance inventory drifted after synchronization."
 python3 tools/rewrite_release_identity.py "$VER" "$STAMP" --root . --check >/dev/null \
   || die "cut-owned release identity fields drifted after synchronization."
 assert_no_backup_debris
@@ -201,6 +235,9 @@ python3 tools/repo_health.py --strict 2>&1 | tail -6
 python3 tools/repo_health.py --strict >/dev/null 2>&1 \
   || die "strict repo-health gate failed — reduce the metric or record a signed STRICT_HEALTH_WAIVER.json entry (never raise the ceiling)."
 
+}
+
+build_tiers(){
 CUT_TIERS="${CUT_TIERS:-code}"
 say "cut the CODE tier ($CUT_TIERS) -> $OUT"
 export BUILD_STAMP="$STAMP" SKIP_INTIER_PYTEST=1
@@ -225,3 +262,18 @@ done
 # (blessed idiom, release.sh:66). The -exec runs it via `sh -c` so the fallback applies per file.
 say "checksums"; ( cd "$OUT" && find . -name '*.zip' -exec sh -c 'if command -v sha256sum >/dev/null 2>&1; then sha256sum "$@"; else shasum -a 256 "$@"; fi' _ {} + | sed 's|\./||' > SHA256SUMS.txt && cat SHA256SUMS.txt )
 say "done — v$VER / $STAMP cut into $OUT"
+}
+
+if [[ -n "$PHASE" ]]; then
+  case "$PHASE" in
+    prepare) prepare_release ;;
+    integrity) refresh_source_integrity ;;
+    post-gates) post_test_gates ;;
+    package) [[ ! -e "$OUT" && ! -L "$OUT" ]] || die "package target is occupied; preserve failed diagnostics and rebuild a fresh workflow."; build_tiers ;;
+    *) die "unknown internal workflow phase: $PHASE" ;;
+  esac
+  exit 0
+fi
+
+post_test_gates
+build_tiers

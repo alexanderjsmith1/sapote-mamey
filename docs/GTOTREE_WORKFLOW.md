@@ -69,6 +69,58 @@ python mamey_run.py doctor --companions       # confirm detection
 The drivers here find binaries via `--bin-dir`, then `$MAMEY_PHYLO_BIN`, then `PATH` — nothing is
 hardcoded to any one machine.
 
+### Shared GToTree interface admission
+
+Released **1.8.19** is the current workflow priority. The unreleased v2 rewrite is
+**experimental source integration**, not a released production workflow; further
+native v2 work is deferred. The interface allowlist below is retained for explicit
+compatibility/admission checks, not installation, study-version or release authority.
+
+`tools/_gtotree_versions.py` owns executable-name discovery, exact version
+admission, version-specific help/probe rules and alignment-only command building
+for the immutable planner, approved runner and packet gate. Accepted families
+remain **1.8.19** and **2.0.x**. A numeric major alone, a prerequisite's version,
+a prerelease suffix, conflicting banners, or nonzero version/help exit is not
+admission. Missing or drifted options produce a hold before analysis; a held
+planner writes a non-executable `COMMAND.sh` refusal stub. Re-plan into a fresh
+run after resolving the hold; old plans are preserved.
+
+The documented native contracts are the upstream [v1.8.19 source](https://github.com/AstrobioMike/GToTree/blob/c4e526449d5933339d2f0d2f9318de9e82eaef12/bin/GToTree)
+and [v2 rewrite parser](https://github.com/AstrobioMike/GToTree/blob/bc70746e6c01a1d44596b2adfba8e4e6717fe70d/gtotree/cli/parser.py).
+The v2 branch reports 2.0.0; this pin is not a proof that a historical locally
+patched 2.0 installation is identical. Its current [detailed help](https://github.com/AstrobioMike/GToTree/blob/bc70746e6c01a1d44596b2adfba8e4e6717fe70d/gtotree/cli/helpmenu.py)
+is requested with `-s`, because condensed `-h` omits required optional flags.
+Runtime interface probes must still pass for the selected executable.
+
+| Profile | Version/help probes | Alignment-only resources and flags |
+|---|---|---|
+| 1.8.19 | `-v`, `-h`, both exit zero | `-j jobs -n threads -M threads -N`; optional `-m` mapping and `-k` retention |
+| 2.0.x | `-v`, `-s`, both exit zero | `-j jobs -M threads -N`; no `-n`; optional `-m` mapping and `-k` retention |
+
+CLI interface admission and runtime/resource admission are separate. The reviewed
+v2 source hardcodes **two** threads in `search_threads_per_genome`; `-M` controls
+MUSCLE and does not set HMM-search CPUs. A version banner does not bind that source
+implementation to the selected executable. Without an admitted exact v2 source
+profile, the planner records `HOLD_RESOURCE_PROFILE`, unknown HMM threads and zero
+scheduled concurrent trees; the runner refuses `GTOTREE_RESOURCE_PROFILE` before
+creating outputs or launching analysis. This is a hold pending source/resource
+admission, not a claim that every v2 implementation is incompatible. The exact
+reviewed profile described in [runtime admission](GTOTREE_RUNTIME_ADMISSION.md)
+can admit the two-thread-per-genome search within an explicit phase-worker budget. There is no force bypass and no fabricated one-CPU receipt.
+
+The v1.8.19 controlled mapping retains basename keys. The reviewed v2 parser
+accepts the exact supplied input path or its extension-free genome ID; this
+planner/runner uses exact supplied absolute paths for v2 mapping keys. Full mapped
+labels, including accession-version dots, are preserved. The runner now passes its resolved exact HMM file
+for both profiles, explicitly caps MUSCLE threads and skips GToTree's internal
+tree on v1 as well as v2, because its separately configured IQ-TREE stage owns
+inference. These are recorded command/resource migrations, not a change to the
+marker filters or IQ-TREE scientific settings. 1.8.16 and future/unrecognized
+families remain refused. Marker sets and resulting trees are not pooled between
+major versions without a separate scientific comparison. The installed toolchain,
+selected marker hashes, retained/excluded tips and completion evidence are still
+required; interface admission alone is not native validation.
+
 ## 3. Tier 1 — full-pool MLSA within the authorized resource budget
 
 ```bash
@@ -245,14 +297,22 @@ the established 138-marker Actinobacteria workflow.
 
 | Version | Status |
 |---|---|
-| 1.8.19 | production version of the 138-marker workflow |
-| 2.0.x | admitted; its trees are not pooled with 1.8.19 trees without the migration above |
+| 1.8.19 | released-version priority for the 138-marker workflow; selected installation and run still require admission |
+| 2.0.x | experimental unreleased-source interface support; native work deferred; its trees are not pooled with 1.8.19 trees without the migration above |
 | 1.8.16 and anything else | refused (1.8.16 also has the interactive-prompt hang fixed in 1.8.19) |
 
-The planner checks installed help tokens, but its .447 command builder still emits
-the v1 `-n` flag for every accepted version. The runner omits `-n` for v2. Treat
-this as an interface-review hold whenever v2 lacks that option; acceptance in the
-version list alone is insufficient. See [companion run contracts](COMPANION_RUN_CONTRACTS.md). `--threads-per-tree N` (1–4, default 1) gives one approved tree N
-threads; trees run at once = `--max-concurrent-cores` ÷ N, so the four-core ceiling is unchanged.
+The planner and runner share the version-specific argv policy: `-n` is emitted
+only for 1.8.19; v2 uses `-M` for MUSCLE and omits `-n`. Successful version/help
+probes alone do not authorize v2 analysis. The governed v2 route additionally
+requires its exact reviewed runtime proof, recorded plan approval, and an explicit
+execution approval. See [runtime admission](GTOTREE_RUNTIME_ADMISSION.md) and
+[companion run contracts](COMPANION_RUN_CONTRACTS.md).
+
+`--threads-per-tree N` (1–4, default 1) controls MUSCLE and IQ-TREE. V1 schedules
+`--max-concurrent-cores` ÷ N trees. Governed v2 uses the admitted phase-worker
+estimate `max(2 * jobs, jobs * MUSCLE threads)` instead; its scheduled concurrency
+is the caller's at-most-four budget divided by that estimate. IQ-TREE's threads
+must also fit the caller budget and observed available CPUs. These are requested
+worker bounds, not total OS-thread or CPU-use guarantees.
 
 For the optional Barrnap route, see [version and integration scope](BARRNAP.md). The marker planner prints a recipe; the separate comparator selector has a BLASTn route that does not require Barrnap. Neither a printed plan nor an absent tool is evidence that marker extraction ran.

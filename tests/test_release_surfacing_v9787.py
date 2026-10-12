@@ -4,6 +4,8 @@
 Uses the admitted full-locus synthetic fixture for the end-to-end surface check, plus a direct unit check of the PRIVATE fail-safe via resolve_release
 on a synthetic AS-style id (no private genome needed)."""
 from __future__ import annotations
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
 import json, os, subprocess, tempfile, glob, csv
 import pytest
 import sys
@@ -16,12 +18,9 @@ from mamey.dedup_and_guard import resolve_release
 
 
 def test_resolve_release_fail_safe_private_for_as_style_id():
-    # v9.7.236: AS- resolves PUBLIC per PI decision; the PRIVATE guard now keys on AJS-/PENDING-.
-    assert resolve_release("AS-001", None)[0] == "PUBLIC"   # synthetic, not a real strain
-    rel, _ = resolve_release("AJS-001", None)
-    assert rel == "PRIVATE"
-    rel2, _ = resolve_release("PENDING-002", None)
-    assert rel2 == "PRIVATE"
+    assert resolve_release("AS-" + "987654", None)[0] == "PRIVATE"
+    assert resolve_release("AJS-" + "987654", None)[0] == "PRIVATE"
+    assert resolve_release((synthetic_namespace_id('PENDING', width=None, case_index=917, separator=True)), None)[0] == "PRIVATE"
 
 
 def test_manifest_short_and_inventory_carry_release_public(tmp_path, synthetic_single_contig_full_locus_zip):

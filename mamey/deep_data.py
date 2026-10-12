@@ -29,28 +29,47 @@ TIER1_DOMAINS = {"PKS_KS", "NRPS_A", "NRPS_C", "PKS_AT"}
 _CORE_BIOSYN_CLASSES = ("nrps", "pks", "polyketide", "nonribosomal", "hybrid")
 
 
-def extract_profiles(sid, snap):
+def extract_profiles(sid, snap, *, identity_context=None):
     """bgc_profile / domain_arch / domain_hits from a package's source_scans (ported verbatim)."""
-    ss = snap['source_scans']
-    da = ss.get('domain_architecture', {}).get('per_bgc', {}) or {}
-    rt = ss.get('resistance_tiers', {}).get('per_bgc', {}) or {}
-    bt = ss.get('blda_tta', {}).get('per_bgc', {}) or {}
-    um = ss.get('umed', {}).get('per_bgc', {}) or {}
-    cc = ss.get('cctt', {}).get('bgc_coupling', {}) or {}
+    if identity_context is not None:
+        source_rows = [(r["bgc_identity"]["bgc_id"], r["architecture"], r)
+                       for r in identity_context["records"]]
+        rt = bt = um = cc = {}
+    else:
+        ss = snap['source_scans']
+        da = ss.get('domain_architecture', {}).get('per_bgc', {}) or {}
+        rt = ss.get('resistance_tiers', {}).get('per_bgc', {}) or {}
+        bt = ss.get('blda_tta', {}).get('per_bgc', {}) or {}
+        um = ss.get('umed', {}).get('per_bgc', {}) or {}
+        cc = ss.get('cctt', {}).get('bgc_coupling', {}) or {}
+        source_rows = [(bgc_id, dinfo, None) for bgc_id, dinfo in da.items()]
     profiles = []; archs = []; hits = []
-    for bgc_id, dinfo in da.items():
+    for bgc_id, dinfo, source in source_rows:
+        tta = source["tta"] if source is not None else bt.get(bgc_id, {})
+        resistance = source["resistance"] if source is not None else rt.get(bgc_id, {})
+        maturation = source["umed"] if source is not None else um.get(bgc_id, {})
+        triggers = source["cctt_triggers"] if source is not None else cc.get(bgc_id, [])
         dc = dinfo.get('domain_counts', {}) or {}
         prof = {"sid": sid, "bgc_id": bgc_id,
-                "tta_codons": bt.get(bgc_id, {}).get('tta_codons', 0),
-                "tta_cds": bt.get(bgc_id, {}).get('tta_cds', 0),
-                "resistance_tier": rt.get(bgc_id, {}).get('tier', 'NULL_NO_SOURCE_DERIVED_RESISTANCE'),
-                "umed_verdict": um.get(bgc_id, {}).get('verdict', 'NOT_MATURATION_GATED'),
-                "cctt_triggers": ','.join(cc.get(bgc_id, [])),
+                "tta_codons": tta.get('tta_codons', 0),
+                "tta_cds": tta.get('tta_cds', 0),
+                "resistance_tier": resistance.get('tier', 'NULL_NO_SOURCE_DERIVED_RESISTANCE'),
+                "umed_verdict": maturation.get('verdict', 'NOT_MATURATION_GATED'),
+                "cctt_triggers": ','.join(triggers),
                 "total_domains": sum(dc.values())}
         for d in PROFILE_DOMAINS:
             prof[d] = dc.get(d, 0)
+        identity_fields = {"identity_state": "HOLD_IDENTITY_CONTEXT_UNAVAILABLE"}
+        if source is not None:
+            from .gold_bgc_identity import CHANNELS, canonical_digest
+            identity_fields = {"identity_state": "BOUND_NATIVE_INVENTORY",
+                               "bgc_identity": source["bgc_identity"],
+                               "exact_locus": source["exact_locus"],
+                               "source_record_index": source["source_record_index"],
+                               "measurement_sha256": canonical_digest({k: source[k] for k in CHANNELS})}
+        prof.update(identity_fields)
         profiles.append(prof)
-        archs.append({"sid": sid, "bgc_id": bgc_id, "architecture": str(dinfo)})
+        archs.append({"sid": sid, "bgc_id": bgc_id, "architecture": str(dinfo), **identity_fields})
         for dm in dinfo.get('domains', []):
             hits.append({"sid": sid, "region_key": dm.get('contig'),
                          "locus": f"{dm.get('contig')}:{dm.get('start')}", "domain": dm.get('domain'),
@@ -139,12 +158,32 @@ def build_deep_data_files(package_dir, sid):
     if isinstance(snap, dict) and snap.get("alias_of") and "source_scans" not in snap:
         snap = _load("manifest.json") or snap
     evidence = _load(f"{sid}_AntiSMASH_Evidence_Parse.json") or _load("*AntiSMASH_Evidence_Parse.json")
+    from .gold_bgc_identity import GoldBGCIdentityError, SCHEMA, load_gold_identity_context
+    identity_context = None
+    identity_receipt = {"schema_version": SCHEMA, "status": "HOLD",
+                        "reason": "GOLD_IDENTITY_CONTEXT_UNAVAILABLE"}
+    try:
+        snapshots = glob.glob(os.path.join(package_dir, "*Project_Memory_Snapshot.json"))
+        if len(snapshots) != 1:
+            raise GoldBGCIdentityError("GOLD_IDENTITY_SNAPSHOT_UNAVAILABLE")
+        raw_snapshot = _loadj(snapshots[0])
+        if (isinstance(raw_snapshot, dict) and raw_snapshot.get("alias_of")
+                and raw_snapshot["alias_of"] != "manifest.json"):
+            raise GoldBGCIdentityError("GOLD_IDENTITY_SNAPSHOT_ALIAS_INVALID")
+        identity_context = load_gold_identity_context(package_dir, sid, snap)
+        identity_receipt = identity_context["receipt"]
+    except GoldBGCIdentityError as exc:
+        identity_receipt["reason"] = str(exc)
+    except (OSError, ValueError, TypeError) as exc:
+        identity_receipt["reason"] = "GOLD_IDENTITY_CONTEXT_UNREADABLE"
+        identity_receipt["error_type"] = type(exc).__name__
     profiles = archs = hits = []
     if isinstance(snap, dict) and 'source_scans' in snap:
-        profiles, archs, hits = extract_profiles(sid, snap)
+        profiles, archs, hits = extract_profiles(sid, snap, identity_context=identity_context)
     act, cls, subs, ripp = extract_finer(sid, snap if isinstance(snap, dict) else {}, evidence)
     deep = {"bgc_profile": profiles, "domain_hits": hits, "active_sites": act, "class_pred": cls}
     gene = {"domain_arch": archs, "substrates": subs, "ripp": ripp, "tfbs": {}}
+    deep["bgc_identity_contract"] = gene["bgc_identity_contract"] = identity_receipt
     # v9.7.185 P13: persist Other_domain diagnostics so classifier gaps are visible in the package.
     try:
         _da = (snap.get("source_scans", {}) if isinstance(snap, dict) else {}).get("domain_architecture", {})
@@ -163,7 +202,7 @@ def build_deep_data_files(package_dir, sid):
     with open(_gt, "w") as f: json.dump(gene, f)
     _os.replace(_dt, _dp); _os.replace(_gt, _gp)
     return {"bgc_profile": len(profiles), "active_sites": len(act), "class_pred": len(cls),
-            "substrates": len(subs), "ripp": len(ripp)}
+            "substrates": len(subs), "ripp": len(ripp), "identity": identity_receipt}
 
 
 def modeb_verdict_rows(strain, triage, misanchored_ids=frozenset()):

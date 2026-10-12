@@ -10,15 +10,17 @@ from typing import Any
 
 from ..figure_policy import FigurePolicyError
 from .figure_set_registry import GLOBAL_CLAIM_CEILING, PROFILE, build_registry
-from .figure_set_renderer import _sha256, render_tranche
-from .figure_set_renderer_tranche2 import render_tranche_2
-from .figure_set_renderer_tranche3 import render_tranche_3
-from .figure_set_renderer_tranche4 import render_tranche_4
-from .figure_set_renderer_tranche5 import render_tranche_5
-from .figure_set_renderer_tranche6 import render_tranche_6
+from .figure_source_bundle import verify_source_bundle
+from .figure_set_renderer import _fresh_output_path, _load, _sha256, render_tranche
+from .figure_set_renderer_tranche2 import SOURCE_TABLES_2, render_tranche_2
+from .figure_set_renderer_tranche3 import SOURCE_TABLES_3, render_tranche_3
+from .figure_set_renderer_tranche4 import SOURCE_TABLES_4, render_tranche_4
+from .figure_set_renderer_tranche5 import SOURCE_TABLES_5, render_tranche_5
+from .figure_set_renderer_tranche6 import SOURCE_TABLES_6, render_tranche_6
 
 
 SCHEMA_VERSION = "sapote-mamey.codex-figure-atlas.v1"
+SOURCE_TABLES_ATLAS = tuple(sorted(set().union(SOURCE_TABLES_2, SOURCE_TABLES_3, SOURCE_TABLES_4, SOURCE_TABLES_5, SOURCE_TABLES_6)))
 
 
 def render_implemented_atlas(widget_data: str | Path, source_bundle: str | Path, outdir: str | Path, lead_ledger: str | Path | None = None) -> dict[str, Any]:
@@ -36,17 +38,32 @@ def render_implemented_atlas(widget_data: str | Path, source_bundle: str | Path,
         raise FigurePolicyError(
             "FIGURE_ATLAS_SOURCE_INADMISSIBLE", f"source_bundle_status={source_status}"
         )
-    # Refuse known-invalid inputs before creating output or invoking any tranche.
-    destination.mkdir(parents=True, exist_ok=True)
+    try:
+        source_binding = verify_source_bundle(widget_data, source_bundle, required_tables=SOURCE_TABLES_ATLAS)
+    except (ValueError, OSError) as exc:
+        raise FigurePolicyError("FIGURE_ATLAS_SOURCE_BINDING_INVALID", str(exc)) from exc
+    source_status = source_binding["receipt"]["status"]
+    widget_snapshot_sha256 = source_binding["receipt"]["source"]["widget_sha256"]
+    try:
+        destination = _fresh_output_path(outdir)
+    except ValueError as exc:
+        raise FigurePolicyError("FIGURE_ATLAS_OUTPUT_EXISTS", str(exc)) from exc
+    # Bind the exact parsed bytes before creating the atlas root or invoking a tranche.
+    try:
+        _load(widget_data, expected_widget_sha256=widget_snapshot_sha256)
+    except (ValueError, OSError) as exc:
+        raise FigurePolicyError("FIGURE_ATLAS_SOURCE_BINDING_INVALID", str(exc)) from exc
+    lead_ledger_sha256 = _sha256(Path(lead_ledger).resolve()) if lead_ledger else None
+    destination.mkdir(parents=True)
     receipts = [
-        render_tranche(widget_data, destination / "tranche_1"),
-        render_tranche_2(widget_data, source_bundle, destination / "tranche_2"),
-        render_tranche_3(widget_data, source_bundle, destination / "tranche_3"),
-        render_tranche_4(widget_data, source_bundle, destination / "tranche_4"),
-        render_tranche_5(widget_data, source_bundle, destination / "tranche_5"),
+        render_tranche(widget_data, destination / "tranche_1", expected_widget_sha256=widget_snapshot_sha256),
+        render_tranche_2(widget_data, source_bundle, destination / "tranche_2", expected_receipt_sha256=source_binding["receipt_sha256"]),
+        render_tranche_3(widget_data, source_bundle, destination / "tranche_3", expected_receipt_sha256=source_binding["receipt_sha256"]),
+        render_tranche_4(widget_data, source_bundle, destination / "tranche_4", expected_receipt_sha256=source_binding["receipt_sha256"]),
+        render_tranche_5(widget_data, source_bundle, destination / "tranche_5", expected_receipt_sha256=source_binding["receipt_sha256"]),
     ]
     if lead_ledger:
-        receipts.append(render_tranche_6(widget_data, source_bundle, lead_ledger, destination / "tranche_6"))
+        receipts.append(render_tranche_6(widget_data, source_bundle, lead_ledger, destination / "tranche_6", expected_receipt_sha256=source_binding["receipt_sha256"], expected_lead_ledger_sha256=lead_ledger_sha256))
     expected_count = 200 if lead_ledger else 175
     ids = [figure_id for receipt in receipts for figure_id in receipt["implemented_ids"]]
     figures = []
@@ -97,6 +114,12 @@ def render_implemented_atlas(widget_data: str | Path, source_bundle: str | Path,
         atlas_status = "PASS_WITH_ISSUES"
     else:
         atlas_status = "PASS"
+    try:
+        verify_source_bundle(widget_data, source_bundle, required_tables=SOURCE_TABLES_ATLAS, expected_receipt_sha256=source_binding["receipt_sha256"])
+    except (ValueError, OSError) as exc:
+        raise FigurePolicyError("FIGURE_ATLAS_SOURCE_BINDING_CHANGED", str(exc)) from exc
+    if lead_ledger and _sha256(Path(lead_ledger).resolve()) != lead_ledger_sha256:
+        raise FigurePolicyError("FIGURE_ATLAS_LEAD_LEDGER_CHANGED", "no successful atlas receipt committed")
     receipt = {
         "schema_version": SCHEMA_VERSION,
         "status": atlas_status,
@@ -112,7 +135,10 @@ def render_implemented_atlas(widget_data: str | Path, source_bundle: str | Path,
             "release_approval": "NOT_ASSESSED",
         },
         "source_bundle_receipt": str(source_receipt_path),
+        "source_bundle_receipt_sha256": source_binding["receipt_sha256"],
+        "widget_sha256": widget_snapshot_sha256,
         "lead_ledger": str(Path(lead_ledger).resolve()) if lead_ledger else None,
+        "lead_ledger_sha256": lead_ledger_sha256,
         "index": {"path": index.name, "sha256": _sha256(index)},
         "figures": figures,
     }

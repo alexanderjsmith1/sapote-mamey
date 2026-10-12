@@ -111,7 +111,7 @@ def test_ranking_standout_first(tmp_path):
 
 def test_graceful_no_crosswalk(tmp_path):
     """No crosswalk -> capacity-only dossier; measured columns say 'no measured data'."""
-    _pkg(tmp_path, "AS-320", "Streptomyces sp.",
+    _pkg(tmp_path, "AS-976", "Streptomyces sp.",
          af_rows=[("BGC001", "terpene", "20.0", "Medium", "kcbZ")],
          triage_rows=[("BGC001", "terpene", "20.0", "35.0", "Medium", "kcbZ")])
     res = run(tmp_path, depth=3)  # no activity_table

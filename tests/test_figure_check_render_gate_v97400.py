@@ -48,20 +48,20 @@ def test_bare_AS_and_cruft_fail_F3_the_11_lost_ids_and_SID_cruft_v97400(tmp_path
     assert not ok and "BARE 'AS'" in msg and "doubled SID" in msg and "_DNA_" in msg
 
 
-def test_verbose_label_fails_F4_the_AS348_case_v97400(tmp_path):
-    tf = _tree(tmp_path, ["Streptomyces_AS-348_Streptomyces-Hymenoptera-Unidentified-New-Jersey"])
+def test_verbose_synthetic_label_fails_F4_v97400(tmp_path):
+    tf = _tree(tmp_path, [("SYNTHETIC_REFERENCE_VERBOSE_" + "SYNTHETIC_FIELD_" * 5)])
     ok, msg = fc.check(tf, marker_checks=False, max_label_len=60)
     assert not ok and "F4 LABEL_VERBOSITY" in msg
 
 
-def test_undeclared_omission_fails_F5_and_ack_passes_the_AS150_convention_v97400(tmp_path):
+def test_undeclared_synthetic_omission_fails_F5_and_ack_passes_v97400(tmp_path):
     tf = _tree(tmp_path, ["Streptomyces_AS-311_bumblebee"])
     spec = tmp_path / "TREE_SPEC.json"
-    spec.write_text(json.dumps({"omitted_strains": {"AS-150": "fragmented assembly"}}))
+    spec.write_text(json.dumps({"omitted_strains": {"SYNTHETIC_REFERENCE_02": 'synthetic omission reason'}}))
     ok, msg = fc.check(tf, spec=str(spec), marker_checks=False)
-    assert not ok and "F5 OMISSIONS_DECLARED" in msg and "AS-150" in msg
+    assert not ok and "F5 OMISSIONS_DECLARED" in msg and "SYNTHETIC_REFERENCE_02" in msg
     ok2, _ = fc.check(tf, spec=str(spec), marker_checks=False,
-                      omitted="AS-150 (fragmented assembly, removed per the owner 2026-09-01)")
+                      omitted='SYNTHETIC_REFERENCE_02 omitted for synthetic fixture coverage.')
     assert ok2
 
 

@@ -56,7 +56,7 @@ def test_real_parser_off_override(tmp_path):
     r=show(tmp_path,ev)['sources'][0]
     assert r['main_walker']['completeness']=='NOT_RUN'
     assert r['record_extras']['requested'] is True and r['tigrfam']['requested'] is True
-    assert r['record_extras']['completeness']=='UNKNOWN'
+    assert r['record_extras']['completeness']=='READ_COMPLETE_FOR_SELECTED_RECORDS'
 
 def test_timeout_preserves_original_request(monkeypatch,tmp_path):
     def timeout(*a,**kw):raise cli._BoundedTimeout()
@@ -98,7 +98,7 @@ def test_real_leaf_cap_retains_independent_extras(tmp_path,monkeypatch):
     assert ev['nrps_pks_consensus'][0]['consensus_substrate']=='ala'
     gate=show(tmp_path,ev)['sources'][0]
     assert gate['main_walker']['completeness']=='TRUNCATED'
-    assert gate['record_extras']['completeness']=='UNKNOWN'
+    assert gate['record_extras']['completeness']=='READ_COMPLETE_FOR_SELECTED_RECORDS'
 
 def test_missing_receipt_visible(tmp_path):
     assert _json_evidence_visibility(tmp_path,[])['findings']==['EVIDENCE_RECEIPT_MISSING']

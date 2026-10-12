@@ -61,8 +61,16 @@ def root_on_outgroup(newick_in, newick_out, marker="outgroup"):
     outgroups = [c for c in tree.get_terminals() if marker.lower() in c.name.lower()]
     if not marker or len(outgroups) != 1:
         raise ValueError("OUTGROUP_NOT_UNIQUE")
+    gi = _load("graft_integrity")
+    before = gi._metric(tree, set(tips))
     tree.root_with_outgroup(outgroups[0])
-    Phylo.write(tree, newick_out, "newick")
+    with Path(newick_out).open("x", encoding="utf-8") as handle:
+        Phylo.write(tree, handle, "newick", format_branch_length="%.17g", format_confidence="%.17g")
+    after_tree = Phylo.read(newick_out, "newick")
+    after = gi._metric(after_tree, set(tips))
+    if before.keys() != after.keys() or any(not gi._close_length(after[key][0], value[0])
+                                            for key, value in before.items()):
+        raise ValueError("DISPLAY_ROOT_LENGTH_DRIFT")
     return outgroups[0].name
 
 
@@ -83,6 +91,55 @@ def _run_layout(run):
             pick("refpkg/ref.aln.fasta", "ref.aln.fasta", "../refpkg/ref.aln.fasta"),
             pick("place/query.aligned.fasta", "query.aligned.fasta"))
 
+
+
+def _admit_run_layout(run):
+    return _load("graft_integrity").admit_placement_run(run)
+
+
+def _length_audit_supplements(out, admission, caller_paths):
+    """Export numerical evidence, not an unadvertised second alignment payload."""
+    gi = _load("graft_integrity")
+    sources = admission["sources"]
+    roster = [("receipt", Path(admission["receipt"]))]
+    roster += [("output/" + rel, Path(admission["receipt"]).parent / rel)
+               for rel in sorted(admission["outputs"])]
+    roster += [("source/" + role, Path(path)) for role, path in sources.items()
+               if path is not None and role not in {"reference_alignment", "query_alignment"}
+               and Path(path).is_file()]
+    targets = [(role, path, "F01_lengthaudit_" + hashlib.sha256(role.encode()).hexdigest()[:16] +
+                "_" + path.name) for role, path in roster]
+    index_name = "F01_lengthaudit_BINDINGS.json"
+    # Match the existing exporter's implicit supplements before it can overwrite basenames.
+    automatic = []
+    for pattern in ("*_ledger.tsv", "*_selection.tsv", "custom_*.tsv", "*_pairings.tsv",
+                    "required_closest_type.tsv", "reference_metadata.tsv", "host_metadata.tsv",
+                    "genus_roster.tsv", "label_sanity.tsv", "resolution_gaps.tsv",
+                    "PANEL_SOURCE_MANIFEST.json", "BUILD_RECEIPT.json"):
+        automatic.extend(Path(out).glob(pattern))
+    names = {}
+    for path in list(caller_paths) + automatic:
+        key = path.name.casefold()
+        resolved = str(path.resolve())
+        if key in names and names[key] != resolved:
+            raise ValueError("DISPLAY_SUPPLEMENT_BASENAME_COLLISION")
+        names[key] = resolved
+    for name in [item[2] for item in targets] + [index_name]:
+        if name.casefold() in names or (Path(out) / name).exists():
+            raise ValueError("DISPLAY_SUPPLEMENT_BASENAME_COLLISION")
+        names[name.casefold()] = name
+    index, paths = [], []
+    for role, source, name in targets:
+        target = Path(out) / name
+        gi._copy_exclusive(source, target)
+        paths.append(target)
+        index.append({"role": role, "export_filename": name, "sha256": digest(target)})
+    index_path = Path(out) / index_name
+    gi._write_json_exclusive(index_path, {
+        "schema": "sapote.placement.length-export.v1", "state": admission["state"],
+        "receipt_sha256": admission["receipt_sha256"], "files": index,
+        "scope": "Figure replay and numerical evidence; original alignments are not included; full native readmission requires them."})
+    return paths + [index_path]
 
 def refused_reference_tips(newick, builder):
     """Validate all reference accessions. No automatic exclusion is supported."""
@@ -164,7 +221,7 @@ def _concise_reference_source(raw, category):
     return _SHORT_SOURCE.get(category, category)
 
 
-def _publication_reference_label(row, include_location=True, detailed=False):
+def _publication_reference_label(row, include_location=True, detailed=False, type_evidence=None):
     """Use the same controlled source/location grammar as publication query labels."""
     builder = _load("build_placement_ggtree_inputs")
     original = row.get("ref_label") or row["tip"]
@@ -187,8 +244,9 @@ def _publication_reference_label(row, include_location=True, detailed=False):
                             flags=re.I)
     source = raw_source.strip() if detailed else _concise_reference_source(raw_source, category)
     source_context = " · ".join(value for value in (source, location) if value)
-    role_value = (row.get("reference_role") or "").strip().lower()
-    type_target = (row.get("type_strain_of") or "").strip()
+    proof = (type_evidence or {}).get("roles", {}).get(row["tip"], {})
+    role_value = proof.get("role", "")
+    type_target = proof.get("type_strain_of", "")
     role_marker = {"type_reference": "type strain", "cultured_non_type_reference": "cultured non-type"}.get(role_value, "")
     if role_value == "type_reference" and type_target:
         role_marker = f"type strain of {type_target}"
@@ -196,7 +254,7 @@ def _publication_reference_label(row, include_location=True, detailed=False):
     return " ".join(value for value in (stem, f"[{context}]" if context else "", accession) if value)
 
 
-def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None):
+def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None, type_evidence=None):
     if label_style not in {"withloc", "noloc", "compact", "publication", "publication-detailed", "publication-noloc", "internal"}:
         raise ValueError("LABEL_STYLE_INVALID")
     output = []
@@ -243,7 +301,7 @@ def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None):
             taxon = row.get("reference_species") or ""
             if label_style in {"publication", "publication-detailed", "publication-noloc", "internal"}:
                 label = _publication_reference_label(
-                    row, include_location=label_style != "publication-noloc",
+                    row, type_evidence=type_evidence, include_location=label_style != "publication-noloc",
                     detailed=label_style == "publication-detailed")
             else:
                 label = _without_location(row) if label_style == "noloc" else row.get("ref_label") or tip
@@ -257,7 +315,9 @@ def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None):
         normalized = builder._rect_metadata_row(tip, label, category or "", source or "")
         output.append(dict(tip=tip, label=label, role=role, taxon=taxon,
                            category=normalized[2], category_raw=normalized[4], category_state=normalized[5],
-                           source="" if label_style in {"noloc", "publication-noloc"} else normalized[3]))
+                           source="" if label_style in {"noloc", "publication-noloc"} else normalized[3],
+                           reference_role=(type_evidence or {}).get("roles", {}).get(tip, {}).get("role", "") if role != "query" else "",
+                           type_strain_of=(type_evidence or {}).get("roles", {}).get(tip, {}).get("type_strain_of", "") if role != "query" else ""))
     from collections import Counter
     reference_taxa = Counter(row["taxon"] for row in output
                              if row["role"] == "reference" and row["taxon"])
@@ -435,7 +495,7 @@ def _upstream_methods(run, group):
 
 
 def write_methods_package(run, out, prefix, refs, queries, rows, annotations,
-                          outgroup, args, dropped_count, png, pdf):
+                          outgroup, args, dropped_count, png, pdf, length_admission=None):
     """Write exact workflow counts and full publication methods beside a tree."""
     run, out, prefix = Path(run), Path(out), Path(prefix)
     n_ref, ref_width = _fasta_shape(refs)
@@ -452,7 +512,13 @@ def write_methods_package(run, out, prefix, refs, queries, rows, annotations,
             source_states[state] = source_states.get(state, 0) + 1
     upstream_path, upstream_text, tool_versions = _upstream_methods(run, args.group)
     final_tips = _tree_tip_count(f"{prefix}_display.nwk")
-    analysis_tips = _tree_tip_count(run / "report" / "epa_result.newick")
+    selected_tree = (Path(length_admission["selected"]["restored"]) if length_admission
+                     else run / "report" / "epa_result.newick")
+    analysis_tips = _tree_tip_count(selected_tree)
+    molecule = "NOT_RECORDED"
+    if length_admission and length_admission["sources"].get("reference_provenance"):
+        provenance = json.loads(Path(length_admission["sources"]["reference_provenance"]).read_text())
+        molecule = provenance.get("molecule") or "NOT_RECORDED"
     raxml_log = run / "refpkg" / "ref.raxml.raxml.log"
     inference_tool = ("RAxML-NG" if raxml_log.is_file() or
                       re.search(r"\braxml-ng\b", tool_versions, flags=re.I)
@@ -473,12 +539,15 @@ def write_methods_package(run, out, prefix, refs, queries, rows, annotations,
         }
     data = {
         "schema": "sapote.placement.methods.v1",
-        "workflow": "16S fixed-reference phylogenetic placement and display",
+        "workflow": f"{molecule} fixed-reference phylogenetic placement and display",
+        "length_admission": ({"state": length_admission["state"], "receipt_sha256": length_admission["receipt_sha256"],
+                              "selected_tree_sha256": digest(selected_tree), "scope": length_admission["qa"]["scope"]}
+                             if length_admission else {"state": "NOT_RECORDED"}),
         "group": args.group,
         "tools_and_roles": [
-            {"stage": "reference alignment", "tool": "MAFFT", "operation": "aligned reference 16S sequences"},
+            {"stage": "reference alignment", "tool": "MAFFT", "operation": f"aligned reference {molecule} sequences"},
             {"stage": "reference inference", "tool": inference_tool, "operation": "inferred the fixed maximum-likelihood reference tree under the recorded model"},
-            {"stage": "query alignment", "tool": "MAFFT --add/--addfragments --keeplength", "operation": "aligned query 16S sequences to the unchanged reference columns"},
+            {"stage": "query alignment", "tool": "MAFFT --add/--addfragments --keeplength", "operation": f"aligned query {molecule} sequences to the unchanged reference columns"},
             {"stage": "placement", "tool": "EPA-ng", "operation": "placed each query on the fixed reference topology by maximum likelihood"},
             {"stage": "graft and assignment", "tool": "gappa", "operation": "generated the grafted tree and placement summaries"},
             {"stage": "display preparation", "tool": "placement_display.py + Biopython", "operation": "rooted on the single bound outgroup, joined metadata, checked tip/alignment coverage and prepared labels"},
@@ -533,8 +602,11 @@ def write_methods_package(run, out, prefix, refs, queries, rows, annotations,
     methods = out / "METHODS.md"
     methods.write_text(
         f"# {args.name} — complete computational methods\n\n"
-        f"This record describes the exact fixed-reference 16S placement and display route for `{args.group}`. "
+        f"This record describes the fixed-reference {molecule} placement and display route for `{args.group}`. "
         "Counts are read from the bound alignments, trees and ledgers rather than copied from a caption.\n\n"
+        f"Numerical length state: `{data['length_admission']['state']}`; receipt: "
+        f"`{data['length_admission'].get('receipt_sha256', 'NOT_RECORDED')}`. "
+        "This is numerical QA, not biological validation.\n\n"
         "## Steps and software\n\n| Stage | Tool | Operation |\n|---|---|---|\n" + stages +
         "\n\n## Exact counts\n\n| Measure | Count |\n|---|---:|\n" + counts +
         f"\n\nReference deduplication actions: {ref_actions}.\n\n"
@@ -560,7 +632,7 @@ def main(argv=None):
     parser.add_argument("--host-table", required=True)
     parser.add_argument("--ref-source-db", required=True)
     parser.add_argument("--reference-role-table", default="",
-                        help="Optional TSV with accession and role columns; adds auditable type/non-type markers to reference labels")
+                        help="Optional reviewed exact native-tip/source-sequence evidence TSV; accession prefixes never establish type material")
     parser.add_argument("--required-reference-table", default="",
                         help="optional TSV pairing each query strain to a required reference species")
     parser.add_argument("--genus-roster", default="", help="Explicit TSV: strain and genus (or tophit_genus)")
@@ -595,8 +667,11 @@ def main(argv=None):
         out = Path(args.out).resolve() if args.out else run / f"display_{args.label_style}"
         if out.exists():
             raise ValueError("OUTPUT_EXISTS")
+        length_admission = _admit_run_layout(run)
+        src = Path(length_admission["selected"]["restored"])
+        refs = Path(length_admission["sources"]["reference_alignment"])
+        queries = Path(length_admission["sources"]["query_alignment"])
         builder = _load("build_placement_ggtree_inputs")
-        src, refs, queries = _run_layout(run)
         inputs = [src, refs, queries, Path(args.host_table), Path(args.ref_source_db)] + [Path(p) for p in args.aux_table]
         if args.required_reference_table:
             inputs.append(Path(args.required_reference_table))
@@ -604,22 +679,20 @@ def main(argv=None):
             inputs.append(Path(args.genus_roster))
         if args.reference_role_table:
             inputs.append(Path(args.reference_role_table))
+        inputs += [Path(length_admission["receipt"])]
+        inputs += [Path(path) for path in length_admission["sources"].values() if path is not None and Path(path).is_file()]
+        inputs += [Path(length_admission["receipt"]).parent / rel for rel in length_admission["outputs"]]
         hashes = {str(p.resolve()): digest(p) for p in inputs}
         refused_reference_tips(src, builder)
         coverage_check(src, refs, queries)
         genera = _genus_roster(args.genus_roster)
         organisms = _reference_organisms(args.ref_source_db, builder)
-        reference_roles = {}
-        reference_type_targets = {}
-        if args.reference_role_table:
-            with open(args.reference_role_table, newline='') as handle:
-                for item in csv.DictReader(handle, delimiter='\t'):
-                    accession = (item.get('accession') or '').strip()
-                    role = (item.get('role') or '').strip()
-                    if accession and role:
-                        key = builder._acckey(accession)
-                        reference_roles[key] = role
-                        reference_type_targets[key] = (item.get('type_strain_of') or '').strip()
+        from tools._placement_report_metadata import reviewed_type_map, jplace_query_names
+        from Bio import Phylo
+        native_tips = [tip.name for tip in Phylo.read(str(src), "newick").get_terminals()]
+        type_evidence = reviewed_type_map([args.reference_role_table] if args.reference_role_table else [],
+                                          {tip: tip for tip in native_tips},
+                                          query_tips=jplace_query_names(length_admission["sources"]["jplace"]))
         out.mkdir(parents=True, exist_ok=False)
         rooted = out / "rooted.nwk"
         outgroup = root_on_outgroup(src, rooted, args.outgroup_substr)
@@ -653,8 +726,9 @@ def main(argv=None):
             else:
                 acc = builder._ref_accession(row["tip"])
                 key = builder._acckey(acc) if acc else ""
-                row['reference_role'] = reference_roles.get(key, '')
-                row['type_strain_of'] = reference_type_targets.get(key, '')
+                proof = type_evidence['roles'].get(row['tip'], {})
+                row['reference_role'] = proof.get('role', '')
+                row['type_strain_of'] = proof.get('type_strain_of', '')
                 organism = organisms.get(key, "")
                 if organism:
                     habitat = row["reference_habitat"]
@@ -665,7 +739,7 @@ def main(argv=None):
                     row['reference_genus'] = match.group(1) if match else ""
                     species = re.match(r"^([A-Z][a-z-]+\s+[a-z][a-z-]+)(?:\s|$)", organism)
                     row['reference_species'] = species.group(1) if species else ""
-        rows = display_rows(annotations, args.label_style, outgroup)
+        rows = display_rows(annotations, args.label_style, outgroup, type_evidence=type_evidence)
         project_accessions_checked = refuse_project_strains_as_references(rows, args.host_table, builder)
         meta = out / "display_input.tsv"
         with meta.open('w', newline='') as handle:
@@ -708,7 +782,7 @@ def main(argv=None):
             raise ValueError('DISPLAY_SOURCE_CHANGED')
         methods_ledger, methods_md = write_methods_package(
             run, out, prefix, refs, queries, rows, annotations, outgroup, args,
-            dropped_count, png, pdf)
+            dropped_count, png, pdf, length_admission=length_admission)
         final = dict(schema='placement-display-v2', input_hashes=hashes, outgroup_tip=outgroup,
                      dropped_tips=dropped_count, dropped_tips_path=dropped_path.name,
                      dropped_tips_sha256=digest(dropped_path), label_style=args.label_style, display_receipt=receipt,
@@ -716,10 +790,13 @@ def main(argv=None):
                      methods_source='caller_supplied' if args.methods else 'outgroup_from_bound_metadata',
                      methods_ledger=methods_ledger.name, methods_ledger_sha256=digest(methods_ledger),
                      complete_methods=methods_md.name, complete_methods_sha256=digest(methods_md))
+        final['length_admission'] = {"state": length_admission["state"], "receipt_sha256": length_admission["receipt_sha256"],
+                                     "selected_tree_sha256": digest(src), "scope": length_admission["qa"]["scope"]}
         final['project_accessions_checked_against_reference_role'] = project_accessions_checked
         final['reference_selection_mode'] = ('keep_all_references' if args.keep_all_references
                                              else f'{args.neighbors_per_query}_nearest_per_query')
         final['standalone_collaborator_package'] = 'standalone_R_package'
+        final['reviewed_type_evidence'] = type_evidence
         final['standalone_package_contract'] = [
             f'{args.name}_render_figure.R', f'{args.name}_tree.nwk', f'{args.name}_analysis_tree.nwk',
             f'{args.name}_metadata.tsv', f'{args.name}_aligned_sequences.fasta',
@@ -727,20 +804,25 @@ def main(argv=None):
             f'{args.name}_clean.png', f'{args.name}_clean.pdf',
             f'{args.name}_rerender_captioned.sh', 'MANIFEST.json',
         ]
-        (out/'placement_display_receipt.json').write_text(json.dumps(final,indent=2)+'\n')
         package = out / 'standalone_R_package'
         export_command = [args.python, str(HERE/'export_tree_figure_source_package.py'),
                           str(out), '--out', str(package)]
-        for supplement_path in ([Path(args.host_table)] + [Path(p) for p in args.aux_table] +
-                                ([Path(args.reference_role_table)] if args.reference_role_table else []) +
-                                ([Path(args.required_reference_table)] if args.required_reference_table else []) +
-                                ([Path(args.genus_roster)] if args.genus_roster else [])):
+        caller_supplements = ([Path(args.host_table)] + [Path(p) for p in args.aux_table] +
+                              ([Path(args.reference_role_table)] if args.reference_role_table else []) +
+                              ([Path(args.required_reference_table)] if args.required_reference_table else []) +
+                              ([Path(args.genus_roster)] if args.genus_roster else []))
+        length_supplements = _length_audit_supplements(out, length_admission, caller_supplements)
+        for supplement_path in caller_supplements + length_supplements:
             export_command += ['--supplement', str(supplement_path)]
         _run(export_command)
         required_package_files = final['standalone_package_contract']
         missing_package_files = [name for name in required_package_files if not (package/name).is_file()]
         if missing_package_files:
             raise ValueError('STANDALONE_PACKAGE_INCOMPLETE: ' + ','.join(missing_package_files))
+        _admit_run_layout(run)
+        if any(digest(p) != h for p, h in hashes.items()):
+            raise ValueError("DISPLAY_SOURCE_CHANGED")
+        (out/'placement_display_receipt.json').write_text(json.dumps(final, indent=2)+'\n')
         _LOG.info(f'DISPLAY_COMPLETE {out}')
         return 0
     except (ValueError, OSError, sqlite3.Error) as exc:

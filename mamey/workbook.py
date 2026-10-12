@@ -100,6 +100,8 @@ def _write_cover_sheet(wb, run: "MameyRun") -> None:
     ws = wb.active
     ws.title = "README"
     counts = bgc_count_summary(run.bgcs)
+    from .report_release_policy import policy_for_run, guidance
+    policy = policy_for_run(run)
     GREEN = PatternFill("solid", fgColor="2C5F2E")
     WHITE_BOLD = Font(color="FFFFFF", bold=True)
     BOLD = Font(bold=True)
@@ -117,6 +119,8 @@ def _write_cover_sheet(wb, run: "MameyRun") -> None:
         ("Taxonomy",        run.context.taxonomy or "not verified"),
         ("Source",          run.context.source or "not supplied"),
         ("Mode",            run.context.analysis_mode),
+        ("Release",         policy["effective_release"]),
+        ("Release reason",  policy["release_reason"]),
         ("Mamey version",   run.context.version),
         ("Raw BGCs",        counts["raw"]),
         ("Corrected BGCs",  counts["corrected"]),
@@ -133,11 +137,13 @@ def _write_cover_sheet(wb, run: "MameyRun") -> None:
     row = len(meta) + 4
     ws[f"A{row}"] = "⏳ JUDGMENT PENDING"
     ws[f"A{row}"].font = Font(bold=True, color="856404")
-    ws[f"B{row}"] = ("This workbook contains deterministic extraction data only. "
-                     "Mode B cards, ecology, and bench guidance require the Sapote judgment layer: "
-                     "upload manifest.json to Claude and type 'Run full Sapote analysis on "
-                     + run.context.strain_id + "'.")
+    ws[f"B{row}"] = "Deterministic extraction; judgment pending. " + guidance(policy, run.context.strain_id)
     row += 2
+    for key, value in policy.items():
+        ws.cell(row, 1, "Policy: " + key)
+        ws.cell(row, 2, value)
+        row += 1
+    row += 1
 
     ws[f"A{row}"] = "WHAT'S IN EACH TAB"
     ws[f"A{row}"].font = WHITE_BOLD
@@ -207,6 +213,8 @@ def _write_cover_sheet(wb, run: "MameyRun") -> None:
 
 
 def write_per_strain_workbook(run: MameyRun, path: str | Path) -> None:
+    from .report_release_policy import policy_for_run, row_policy
+    policy_columns = row_policy(policy_for_run(run))
     wb = Workbook()
     _write_cover_sheet(wb, run)
     ws = wb.create_sheet("Strain_Summary")
@@ -222,11 +230,23 @@ def write_per_strain_workbook(run: MameyRun, path: str | Path) -> None:
         ws.append([b.node_id or b.contig, b.antismash_region, assembly_locator(b), b.bgc_id, b.user_label, b.contig, b.region_number, b.source_gbk, b.start, b.end, b.contig_length, b.edge_status, "; ".join(b.products)])
     _style_sheet(ws)
 
+    for key, value in {"Strain": run.context.strain_id, **policy_columns}.items():
+        col = wb["BGC_Crosswalk"].max_column + 1
+        wb["BGC_Crosswalk"].cell(1, col, key)
+        for index in range(2, wb["BGC_Crosswalk"].max_row + 1):
+            wb["BGC_Crosswalk"].cell(index, col, value)
+
     ws = wb.create_sheet("BGC_Inventory")
     ws.append(["Node/contig ID", "antiSMASH region", "Assembly locator", "BGC", "User-facing label", "Contig", "Region", "Source GBK", "Start", "End", "Length kb", "Edge", "Arch", "Arch rationale", "Products", "KCB top", "KCB score", "KCB evidence state", "KCB protein hits", "MIBiG hits", "RiQ", "RiQ label"])
     for b in run.bgcs:
         ws.append([b.node_id or b.contig, b.antismash_region, assembly_locator(b), b.bgc_id, b.user_label, b.contig, b.region_number, b.source_gbk, b.start, b.end, b.length_kb, b.edge_status, b.architecture_confidence, b.architecture_rationale, "; ".join(b.products), b.kcb_top, b.kcb_cumulative, getattr(b, "kcb_evidence_state", "UNKNOWN_KCB"), b.kcb_protein_hits, "; ".join(b.mibig_hits), b.riq_score, b.riq_label])
     _style_sheet(ws)
+
+    for key, value in {"Strain": run.context.strain_id, **policy_columns}.items():
+        col = wb["BGC_Inventory"].max_column + 1
+        wb["BGC_Inventory"].cell(1, col, key)
+        for index in range(2, wb["BGC_Inventory"].max_row + 1):
+            wb["BGC_Inventory"].cell(index, col, value)
 
     ws = wb.create_sheet("KCB_RiQ_Sweep")
     ws.append(["BGC", "KCB top", "KCB cumulative", "KCB evidence state", "Protein hits", "MIBiG hits", "RiQ score", "RiQ label"])
@@ -317,6 +337,19 @@ def write_per_strain_workbook(run: MameyRun, path: str | Path) -> None:
         for r in rows:
             ws.append([json.dumps(r.get(c), sort_keys=True) if isinstance(r.get(c), (dict, list)) else r.get(c, "") for c in cols])
         _style_sheet(ws)
+
+    from .rrefinder_status import state_from_structured, describe_state
+    rre_state = state_from_structured(ast)
+    ws = wb.create_sheet("antiSMASH_Evidence_Status")
+    ws.append(["channel", "state", "source_rows", "source_completeness", "upstream_search", "interpretation"])
+    ws.append(["RREfinder", rre_state["state"], rre_state["source_rows"],
+               rre_state["source_completeness"], rre_state["upstream_search"], describe_state(rre_state)])
+    from .json_evidence_state import project as json_project, describe as json_describe
+    json_state = ast.get("json_evidence_state") or json_project({})
+    for channel in json_state["channels"]:
+        ws.append([channel["channel"], channel["state"], channel["count"],
+                   channel["state"], "UNKNOWN", channel["interpretation"] + " " + json_describe(json_state)])
+    _style_sheet(ws)
 
     # P-LWC remains a trial-only sensitivity surface and is excluded from
     # scoring.  Keeping it in the workbook makes the several-strain trial

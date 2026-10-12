@@ -66,6 +66,7 @@ from _console import emit  # noqa: E402
 from gap_rescue_locus_map import draw_locus_map  # noqa: E402
 
 import argparse
+import hashlib
 import io
 import json
 import re
@@ -348,7 +349,7 @@ def analyse_region(label, prots, regions, core, reference, ref_name, source, out
                **{k.lower(): st[k] for k in ("PRESENT_IN_CORE", "MISSING_FOUND_CLEAR", "MISSING_FOUND_AMBIGUOUS",
                                               "MISSING_NOT_FOUND")},
                "partners": partners, "homology": homology, "partner_checks": checks,
-               "split_gene_check": split_check,
+               "split_gene_check": split_check, "map_outputs": [],
                "split_genes": [{c: s[c] for c in SPLIT_COLS} for s in splits],
                "non_claims": ["homology is similarity, not product identity",
                               "a partner contig is a candidate missing piece; no contigs are joined",
@@ -357,13 +358,24 @@ def analyse_region(label, prots, regions, core, reference, ref_name, source, out
                               "a partner verdict is homology and context evidence, not proof of one pathway"]}
     (out / "gap_rescue_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     if figure:
-        draw_locus_map(reference, rows, splits, prots, regions, core, label, ref_name, out / "gap_rescue.png",
-                       out / "gap_rescue.pdf", anchor=anchor)
+        rendered = draw_locus_map(reference, rows, splits, prots, regions, core, label, ref_name,
+                                  out / "gap_rescue.png", out / "gap_rescue.pdf", anchor=anchor)
+        # The renderer returns its metadata dict only after both savefig calls complete.
+        # A skipped/failed drawing never admits pre-existing files as current outputs.
+        if isinstance(rendered, dict):
+            for path in (out / "gap_rescue.png", out / "gap_rescue.pdf"):
+                try:
+                    payload = path.read_bytes()
+                except OSError as exc:
+                    raise ValueError(f"GAP_RESCUE_MAP_OUTPUT_UNREADABLE: {path}") from exc
+                receipt["map_outputs"].append({"path": path.name, "sha256": hashlib.sha256(payload).hexdigest(),
+                                               "bytes": len(payload)})
+            (out / "gap_rescue_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     if gene_table:   # the per-gene table, paired with the map (gene_table.*, map_and_table.*)
-        from gap_rescue_gene_table import edge_shares, write_gene_table
-        fams = {k: v.get("family", "") for k, v in prots.items()}
+        from gap_rescue_gene_table import edge_shares, protein_families, write_gene_table
+        fams = protein_families(prots)
         write_gene_table(out, rows, splits, core["identity"], label, reference, fams, ref_name or desc,
-                         edge_shares(rows, prots, core))
+                         edge_shares(rows, prots, core), pair_map=bool(receipt["map_outputs"]))
     return receipt
 
 

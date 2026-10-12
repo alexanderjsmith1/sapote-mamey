@@ -38,13 +38,19 @@ def test_moderate_chains_do_not_build_a_network():
 
 def test_result_names_its_input_and_build(tmp_path):
     import zipfile
-    from rggmci import _input_record
+    import hashlib
+    from rggmci import run, _provenance
     z = tmp_path / "g.zip"
     with zipfile.ZipFile(z, "w") as zf:
         zf.writestr("x.txt", "x")
-    rec = _input_record(z)
-    assert rec["antismash_zip"] == "g.zip" and len(rec["antismash_zip_sha256"]) == 64
-    assert "rggmci_built_from_bundle" in rec
+    result = run(z, reference_completion="off")
+    rec = result["input"]
+    assert rec == {"antismash_zip": "g.zip", "antismash_zip_sha256": hashlib.sha256(z.read_bytes()).hexdigest(),
+                   "label": "g"}
+    assert result["wrapper_context"]["distribution"] == "rggmci"
+    assert result["wrapper_context"]["provenance"] == _provenance()
+    assert result["wrapper_context"]["provenance"]["built_from_bundle"]
+
 
 
 def test_version_is_single_sourced():

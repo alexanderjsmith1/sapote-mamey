@@ -1,6 +1,8 @@
 """A sealed-looking directory basename must be handled as data, not tar options."""
 import hashlib
+import os
 import subprocess
+import sys
 import tarfile
 from pathlib import Path
 
@@ -16,6 +18,7 @@ def test_leading_dash_bundle_basename_is_not_tar_option(tmp_path):
     (src / "payload.txt").write_text("payload\n")
     out = tmp_path / "dist"
     result = subprocess.run(["bash", str(TOOL), str(src), str(out)],
+                            env=dict(os.environ, PYTHON=sys.executable),
                             capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stdout + result.stderr
     archive = out / "-fixture.tar.gz"

@@ -393,6 +393,8 @@ def _write_canonical_v1_views(wb: Workbook, run: MameyRun, triage: list[Any], co
     workbooks. These coded sheets are the Gate-3/Gate-5 merge contract.
     """
     _ensure_canonical_headers(wb)
+    from .report_release_policy import policy_for_run, row_policy
+    policy_columns = row_policy(policy_for_run(run))
     strain_id = run.context.strain_id
     ss = run.source_scans
     cctt_coupling = ss.cctt.get("bgc_coupling", {}) if ss else {}
@@ -411,6 +413,7 @@ def _write_canonical_v1_views(wb: Workbook, run: MameyRun, triage: list[Any], co
     package_status = "MAMEY_COMPLETE" if run.context.analysis_mode == "gold" else "PASS"
 
     _append_row_by_header(wb["A2_Strain_Registry"], {
+        **policy_columns,
         "strain": strain_id, "taxonomy": run.context.taxonomy, "ecology_source": run.context.source,
         "habitat": habitat, "assembly_bp": run.assembly.genome_bp, "contigs": run.assembly.contigs,
         "n50": run.assembly.n50, "gc_pct": run.assembly.gc_pct, "bgc_count": counts["raw"],
@@ -424,6 +427,7 @@ def _write_canonical_v1_views(wb: Workbook, run: MameyRun, triage: list[Any], co
         "scope": _scope_from_taxonomy(run.context.taxonomy),
     })
     _append_row_by_header(wb["A3_Run_Manifest"], {
+        **policy_columns,
         "run_date": today, "strain": strain_id, "version": f"Mamey v{run.context.version}",
         "mode": run.context.analysis_mode, "antismash_profile": getattr(run.context, "antismash_profile", "unknown"),
         "input_zip": run.context.input_zip, "raw_bgcs": counts["raw"],
@@ -470,6 +474,7 @@ def _write_canonical_v1_views(wb: Workbook, run: MameyRun, triage: list[Any], co
             "engine_version": getattr(run.context, "version", "") or "",
         }
         row_values.update(compat)
+        row_values.update(policy_columns)
         _append_row_by_header(wb["B1_BGC_Master"], row_values)
     # v9.7.367 CANDIDATE (Indigo2 §2 surface 2, the review lane wire-both ruling 2026-08-15): the
     # BeeCohort incident surface. A merged B1 row is appended with empty ab/af/novelty when its
@@ -674,7 +679,7 @@ def _write_canonical_v1_views(wb: Workbook, run: MameyRun, triage: list[Any], co
             "claim_ceiling": "CB-homology reconstruction hypothesis; physical linkage unproven — confirm by long-read/boundary PCR",
             "chemistry_consequence": "%s / %s" % (p.get("products_a") or "?", p.get("products_b") or "?"),
             "status": "PROMOTED_CANDIDATE_PENDING_SAPOTE"})
-    _append_row_by_header(wb["E1_Mode_B_Index"], {"strain": strain_id, "BGC_ID": "ALL", "mode_b_status": "JUDGMENT_PENDING", "analysis_platform": "Sapote/Claude", "date": today})
+    _append_row_by_header(wb["E1_Mode_B_Index"], {"strain": strain_id, "BGC_ID": "ALL", "mode_b_status": "JUDGMENT_PENDING", "analysis_platform": "NOT_RECORDED", "date": today})
     # E3_Megacluster_Registry: BGCs ≥100 kb — deterministic from inventory.
     _MEGA_KB = 100.0
     for _bgc in run.bgcs:
@@ -1497,7 +1502,7 @@ def update_e1_from_judgment(package_dir: str | Path, master_workbook_path: str |
             "products": products[:120],
             "subprograms": subprograms[:80],
             "mode_b_status": status,
-            "analysis_platform": "Sapote/Claude",
+            "analysis_platform": "NOT_RECORDED",
             "date": bgc_rec.get("timestamp", today)[:10] if status == "COMPLETE" else today,
             "report_file": report_file,
             "layperson_summary": lay_snippet,

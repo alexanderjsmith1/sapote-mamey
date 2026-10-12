@@ -4,7 +4,11 @@
 
 ## Output and result-scope checks
 
-Use a fresh output destination. The standalone CLI writes ordinary files into existing directories and does not guard against two input ZIPs with the same basename overwriting each other's outputs (`src/rggmci/cli.py:170–209`). It records per-input exceptions in SUMMARY and returns 1 if any input errored; earlier successful outputs remain. Pair tables are written only when pairs exist, so no new table is not by itself a failed run or a verified negative, and reuse can leave stale old tables.
+The primary antiSMASH CLI admits the entire input/output roster before analysis or directory creation. Use new JSON/TSV files and a new or empty ordinary `--out-dir`; an occupied directory (including unrelated or hidden files) or a symlink directory is refused. Duplicate physical inputs, case/Unicode-insensitive ZIP-stem collisions, input/output aliases, overlapping output paths and multi-input `--out`/`--pairs` are refused with exit 2. Rename colliding input files explicitly while retaining their provenance, or run them separately into fresh directories. Preflight refusals preserve existing bytes.
+
+For every successfully analyzed input in `--out-dir`, the CLI writes JSON, ranked-pair and related-locus TSVs, per-input summary/group TSVs, and the three completion tables. Requested pair TSVs and per-input related-locus TSVs are header-only when no rows exist: their empty schema contains identity/score fields (plus related-locus fields where applicable), while populated tables retain the engine's full columns. Zero rows describe the current result, not biological absence or proof that missing reference evidence was searched. Read the JSON and completion tier.
+
+JSON/TSV files are created exclusively, including completion tables from the shared byte formatter. Concurrent filesystem changes or a write failure can still leave partial fresh outputs; this is not a transactional batch. An output failure returns 2. Per-input analysis exceptions remain recorded in `SUMMARY.tsv`, with final exit 1 if any input errored; earlier successful outputs remain and a failed input has no success JSON. These admission rules cover the primary antiSMASH CLI; the optional subcommands have their own write contracts.
 
 The BLASTp layer returns 0 even when result queries are unmapped and excluded (`:105–117`). Review NOT_IN_RESULTS, unmapped queries and the exact query/result roster rather than interpreting a zero exit as complete coverage. Keep original files, generated manifest and input hashes. No cross-locus evidence transfer follows from a matching alias alone.
 
@@ -21,11 +25,14 @@ GenBank reader is used.
 
 ```bash
 pip install rggmci-*.whl
-rggmci my_genome.antismash.zip --out result.json --pairs pairs.tsv     # one genome
-rggmci antismash_zips/ --out-dir rggmci_results/                        # many genomes
+rggmci my_genome.antismash.zip --out result.json --pairs pairs.tsv --reference-completion off
+rggmci antismash_zips/ --out-dir rggmci_results/ --reference-completion off
 ```
 
-A batch writes one JSON and one pairs table per genome, plus `SUMMARY.tsv` and `CANDIDATE_GROUPS.tsv`.
+A successful batch writes one JSON, one pairs table and one related-locus table per genome, three
+completion tables per genome, plus `SUMMARY.tsv` and `CANDIDATE_GROUPS.tsv`. Empty pair/related-locus
+tables contain headers only. The examples above read saved antiSMASH evidence with completion explicitly
+off; optional completion still defaults to auto when this flag is omitted.
 [docs/OUTPUT_GUIDE.md](docs/OUTPUT_GUIDE.md) explains every column.
 
 The input is an antiSMASH result ZIP that includes its `knownclusterblast/` and `clusterblast/` output.
@@ -179,3 +186,69 @@ source file used.
 ## Licence
 
 MIT. See `LICENSE`.
+
+
+## Shared invocation contract (`rggmci-shared-invocation-v3`)
+
+The embedded pre-triage gate and standalone `run` use the same `run_archive` owner. Common preparation
+binds complete region identities, source coordinates/products/order and pre-enrichment records. Internal snapshots require an immutable parser-created
+process-local capability bound to archive bytes; caller JSON/hashes are not derivation authority. The
+public standalone `run` rejects snapshot overrides. The
+high-level default now supplies archive sequence context to the unchanged scoring gates. This is a
+behavior-affecting standalone input migration: complexity-sensitive outcomes can differ from older
+standalone runs. Explicit low-level `contigs=None` still means unavailable; explicit high-level None
+disables automatic extraction. FASTA-first/longest-GBK-per-contig fallback is retained; clipped region
+sequence is not a whole genome. Receipts contain lengths/hashes, never nucleotide/protein payloads.
+
+Expected TypeError/ValueError/AttributeError coordinate failures retain legacy partial bounds and shared
+diagnostics. Unexpected exceptions and typed resource refusals propagate. Relevant guarded GBK/FASTA
+members refuse common intake before a subset is reported. General source-reader malformed/empty-member
+warnings remain visible. The embedded wrapper cannot convert a canonical preparation refusal into an
+empty successful RGGMCI result.
+
+Both routes default to completion auto, sensitivity sensitive, threads4, residue scope st_paralog and
+no registry anchor. MIBiG/Pfam database assets resolve explicit path, then the corresponding RGGMCI environment variable,
+then an explicitly supplied registry anchor. Mamey no longer searches its installation ancestry
+implicitly. A missing higher-priority database retains its explicit missing state. Existing aligner fallback remains:
+DIAMOND tries explicit, then environment, then PATH; completion can fall back to BLAST+. Receipts bind
+the actual selected content. Standalone
+`--registry-from` matches Mamey `--rggmci-registry-from`; `--label` matches `--rggmci-label` for one input.
+Mamey exposes matching `--rggmci-threads`, `--rggmci-diamond`, `--rggmci-diamond-db`,
+`--rggmci-residue-scope`, `--rggmci-residue-work-dir` and `--rggmci-completion-work-dir` controls.
+Shared threads reach both existing completion and residue interfaces; legacy low-level residue calls
+retain their prior default. Completion OFF skips optional aligner probing; an explicit residue database
+is a distinct requested layer. No automatic database download is introduced.
+
+Per successful input the canonical set is eight artifacts: JSON and seven TSVs (ranked pairs, related
+loci, candidate groups, summary, and three completion tables). Every row key is retained, including
+later-row-only fields; nested evidence uses JSON cells with spreadsheet protection. Empty candidate
+tables have headers only. Empty completion tables retain their explicit tier row. JSON includes full
+region metadata and four-component endpoint identities: logical strain / full physical contig / region /
+BGC alias. Ambiguous alias/source bindings refuse instead of being guessed. Scientific results and
+effective resource fingerprints are shared; distribution/path/provenance presentation is confined to
+`wrapper_context`. Compare complete analytical data, not a selected subset of scores.
+
+Standalone primary writes remain exclusive and use whole-roster preflight; batch failures retain the
+attempted-input denominator. Per-input canonical summary/group TSVs coexist with aggregate SUMMARY.tsv
+and CANDIDATE_GROUPS.tsv. Mamey writes its canonical set before sealing with prefix
+`<strain>_4A_RGGMCI_canonical`; legacy CSV/workbook views derive from the same result and remain distinct
+presentation contracts. No legacy sealed package is rewritten. Shared source is an implementation
+contract; runtime parity, optional active-resource profiles and published standalone synchronization
+require their own bound validation. Candidate labels remain unadjudicated homology hypotheses, not
+physical joins, compound identity or biological accuracy.
+
+## Shared functional context (invocation schema v3)
+
+The embedded and standalone high-level programs derive the same CDS/domain context directly from
+archive features, using the shared native parser and gene-context builder. Ranked pairs and exported
+split-candidate views retain `functional_rescue_class`, both core fractions and functional-role strings,
+`modular_continuation`, and both assembly-line/release CDS counts. These are existing source-derived
+annotations; they do not change RG-GMCI confidence thresholds or prove physical linkage or product identity.
+The result also records functional/modular profiles and context counts bound to the input archive hash.
+
+This migrates native-only annotations into the shared invocation. Package gene-context file write/readback
+no longer determines scientific pair fields. Absent CDS context retains `UNKNOWN_NO_PROFILE` and existing
+empty defaults; raised extraction/computation errors and resource refusals propagate consistently.
+Existing general source-reader malformed/empty-member warnings remain visible.
+The native wrapper consumes shared profiles for its downstream report/triage context. Low-level scorer
+APIs and explicit unavailable sequence context (`contigs=None`) retain their previous semantics.

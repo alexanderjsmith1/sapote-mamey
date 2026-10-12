@@ -385,7 +385,9 @@ def _build_rrefinder_rows(
 ) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     seen = set()
+    from .rrefinder_status import source_identity_conflict
     for source in evidence_rows or []:
+        identity_conflict = source_identity_conflict(source)
         contig = str(source.get("record_id") or "")
         start, end, strand = _parse_location(source.get("location"))
         key = (
@@ -397,13 +399,22 @@ def _build_rrefinder_rows(
             str(source.get("rrefam_identifier") or ""),
             str(source.get("evalue") or ""),
             str(source.get("bitscore") or ""),
+            identity_conflict,
+            str(source.get("module_record_id") or "") if identity_conflict else "",
         )
         if key in seen:
             continue
         seen.add(key)
-        bgc_id, mapping_status, mapping_method, candidates = _map_interval(
-            contig, start, end, bgcs
-        )
+        if identity_conflict:
+            bgc_id, mapping_status, candidates = "UNMAPPED", "IDENTITY_CONFLICT_SOURCE_RECORD", []
+            mapping_method = "SOURCE_RECORD_ID_CONFLICT:" + _json({
+                "containing_record_id": contig,
+                "module_record_id": source.get("module_record_id"),
+            })
+        else:
+            bgc_id, mapping_status, mapping_method, candidates = _map_interval(
+                contig, start, end, bgcs
+            )
         products = ""
         if len(candidates) == 1:
             products = "; ".join(_value(candidates[0], "products", []) or [])
@@ -590,6 +601,9 @@ def build_structured_tables(zip_path, evidence, bgcs):
         "rrefinder_mapped": sum(row["mapping_status"] == "MAPPED" for row in rrefinder),
         "rrefinder_unmapped": sum(row["mapping_status"] != "MAPPED" for row in rrefinder),
     }
+    from .rrefinder_status import derive_rrefinder_state
+    rre_state = derive_rrefinder_state(evidence, len(rrefinder))
+    from .json_evidence_state import project as project_json_state
     return {
         "schema_version": SCHEMA_VERSION,
         "report_only_contract": REPORT_ONLY_CONTRACT,
@@ -598,7 +612,9 @@ def build_structured_tables(zip_path, evidence, bgcs):
             if any(counts[key] for key in ("modules", "ripp_motifs", "motifs", "rrefinder", "hmm"))
             else "NULL_NO_STRUCTURED_ANTISMASH_EVIDENCE"
         ),
-        "rrefinder_status": "PASS" if rrefinder else "NULL_NO_RREFINDER_HITS",
+        "rrefinder_status": rre_state["state"],
+        "rrefinder_evidence_state": rre_state,
+        "json_evidence_state": project_json_state(evidence),
         "hmm_status": "PASS" if hmm else "NULL_NO_PFAM_TIGRFAM_HITS",
         "antismash_version": antismash_version,
         "table_columns": TABLE_COLUMNS,

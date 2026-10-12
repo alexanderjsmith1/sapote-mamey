@@ -150,7 +150,7 @@ def test_write_portfolio_binding_writes_additive_provenance_file(tmp_path):
     root, config_path = _write_project(tmp_path)
     binding = load_portfolio_binding(root, config_path)
     out = write_portfolio_binding(root, binding)
-    assert out == root / "lab_quest_outputs" / "portfolio_binding.json"
+    assert out == root / "project_outputs" / "portfolio_binding.json"
     payload = json.loads(out.read_text(encoding="utf-8"))
     assert payload["schema"] == "mamey_portfolio_binding_v1"
     assert payload["availability"]["strain_count"] == 2
@@ -179,8 +179,8 @@ def test_cli_write_binding_flag_writes_file(tmp_path):
     proc = _run_tool(["--project-root", str(root), "--config", str(config_path), "--write-binding"])
     assert proc.returncode == 0, proc.stderr
     payload = json.loads(proc.stdout)
-    assert (root / "lab_quest_outputs" / "portfolio_binding.json").is_file()
-    assert payload["binding_path"] == str(root / "lab_quest_outputs" / "portfolio_binding.json")
+    assert (root / "project_outputs" / "portfolio_binding.json").is_file()
+    assert payload["binding_path"] == str(root / "project_outputs" / "portfolio_binding.json")
 
 
 def test_cli_refuses_bad_config_nonzero_exit(tmp_path):

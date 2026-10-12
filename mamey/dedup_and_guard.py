@@ -28,36 +28,16 @@ PENDING_PATTERN = re.compile(r'\bPENDING\b', re.I)
 PUBLIC_PATTERN  = re.compile(r'^(SID\d+|PSEUDO|AGLAU|ACITR|AGRAE|MHUMI|SPHIL|SCLAV|SDROZ)$')
 
 def derive_release(strain, private_registry=frozenset(), published_registry=None):
-    """Fail-safe to PRIVATE. PUBLIC only if a known-cleared shape AND no private guard trips.
+    """Default PRIVATE; an exact supplied public roster is explicit authority.
 
-    v9.7.236 (PI decision): AS-series is PUBLIC as of the 2026 Hymenoptera paper — same basis as the
-    .219 AS_SCRUB retirement and the .229 `cohort_figures.is_private()` flip. AS- no longer trips the
-    private guard (release-tier now agrees with figure-tier). AJS-/PENDING- remain private.
-
-    v9.7.331 (defensive scope, NOT a behavior change by default): the blanket AS->PUBLIC rule cannot
-    tell a *published* AS strain (in the 2026 Hymenoptera set) from one that is unpublished on PI word
-    only (e.g. AS-XXX: no deposited 16S, not in the n=181 accession table). When an explicit
-    `published_registry` is supplied, only AS strains listed in it stay PUBLIC; any other AS strain
-    fails safe to PRIVATE. (v9.7.432) the roster is keyed on *configured vs not*,
-    NOT on truthiness. `None` (the default) means NOT CONFIGURED and preserves v9.7.236 exactly, so
-    no existing run changes. Any supplied set -- INCLUDING AN EMPTY ONE -- means CONFIGURED, and an
-    AS strain absent from it is PRIVATE. That is what lets an operator express "nothing in the
-    cohort is published yet" (owner ruling 2026-09-15). Previously an empty roster was falsy and
-    returned PUBLIC, so the mechanism failed OPEN against this function's own fail-safe contract.
-    AJS-/PENDING-/private_registry remain unconditionally PRIVATE regardless of the allowlist."""
+    Identifier shapes and historical cohort decisions never grant publication
+    permission to new inputs. Hard private guards outrank any supplied roster.
+    An omitted roster and an empty roster both yield PRIVATE.
+    """
     s = str(strain)
-    if (AJS_PATTERN.search(s) or PENDING_PATTERN.search(s)
-            or s in private_registry):
+    if _trips_private_guard(s, private_registry):
         return "PRIVATE"
-    if PUBLIC_PATTERN.match(s):
-        return "PUBLIC"
-    if AS_PATTERN.search(s):
-        # AS-series PUBLIC by the v9.7.236 PI decision; an explicit published_registry narrows PUBLIC
-        # to the enumerated published set so an unpublished AS strain cannot ride the blanket rule.
-        if published_registry is not None and s not in published_registry:
-            return "PRIVATE"
-        return "PUBLIC"
-    return "PRIVATE"   # unrecognized -> never leak
+    return "PUBLIC" if published_registry is not None and s in published_registry else "PRIVATE"
 
 
 def _trips_private_guard(strain, private_registry=frozenset()):
@@ -96,38 +76,21 @@ def resolve_release(strain, override=None, private_registry=frozenset(), publish
     # unknown override value -> ignore, fall back to derived (fail-safe)
     return derive_release(strain, private_registry, published_registry), False
 
-def leak_audit(rows):
-    """Return private-identifier cells appearing in PUBLIC rows.
+def leak_audit(rows, *, public_strains=frozenset()):
+    """Return private-shaped cells in PUBLIC rows.
 
-    v9.7.401: this module's own `derive_release()` implements the v9.7.236 PI decision
-    that AS-series strains are PUBLIC by default -- but `leak_audit()` was never updated for
-    that decision. It flagged ANY cell matching the private-identifier regexes (which include
-    `AS_PATTERN`) in a PUBLIC row, including the row's OWN `strain`/`BGC_ID` identifiers --
-    which, for a genuinely-PUBLIC AS-strain (the majority case in this cohort), naturally
-    repeat that strain's own AS-series identifier in its own cells. Reproduced directly: a
-    minimal, correctly-tagged PUBLIC AS-series row reported itself as its own leak (its
-    BGC_ID and strain cells carrying the row's own identifier). No literal example token
-    here: the .401 source-ID guard pins mamey/ at zero AS-shaped literals, synthetics included.
-
-    Scope-honest: `leak_audit()` is not currently called anywhere in the live pipeline
-    (grep-verified across the bundle) -- it is exported and covered by its own test file, but
-    nothing in `tools/`/`mamey/` actually invokes it today. This closes a real, reproducible
-    bug in a claim-safety-critical helper before something wires it up trusting its name and
-    existing tests, not a claim that a real leak has ever silently passed through it in
-    production.
-
-    Fixed by exempting a cell that exactly equals the row's own declared strain, but ONLY when
-    that strain is independently confirmed genuinely PUBLIC via `derive_release()` -- so a row
-    whose OWN strain is actually AJS-/PENDING- (i.e. mistagged PUBLIC) is still correctly
-    flagged, and a DIFFERENT strain's private-shaped identifier appearing anywhere else in the
-    row (e.g. a stray reference in a free-text field) is still caught either way.
+    An own-strain self-reference is exempt only with separately supplied exact
+    public authority, never because a row labels itself PUBLIC or matches a
+    historical prefix. Hard private guards still win. This helper does not by
+    itself establish that a live pipeline or export audit invoked it.
     """
     leaks = []
     for r in rows:
         if r.get("release") != "PUBLIC":
             continue
         own_strain = str(r.get("strain") or "")
-        own_is_legit_public = bool(own_strain) and derive_release(own_strain) == "PUBLIC"
+        own_is_legit_public = (bool(own_strain) and own_strain in public_strains
+                               and not _trips_private_guard(own_strain))
         for k, v in r.items():
             if not v:
                 continue

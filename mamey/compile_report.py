@@ -48,6 +48,7 @@ except ImportError:  # direct execution: no parent package to resolve against.
 
 import contextlib
 import csv
+import math
 import json
 from pathlib import Path
 from typing import Any
@@ -193,7 +194,10 @@ def _read_manifests(pkg: Path) -> dict[str, Any]:
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError) as exc:
             man = {}
             manifest_read_status = f"INVALID_MANIFEST: {type(exc).__name__}"
+    from .report_release_policy import policy_for_package
+    policy = policy_for_package(pkg, ms.get("strain_id") or man.get("strain_id") or pkg.parent.name)
     return {
+        "report_release_policy": policy,
         "manifest_read_status": manifest_read_status,
         "strain_id": ms.get("strain_id") or man.get("strain_id") or pkg.parent.name,
         "taxonomy": man.get("taxonomy") or "not verified",
@@ -213,7 +217,7 @@ def _read_manifests(pkg: Path) -> dict[str, Any]:
         # compiling, labelled so it's clearly the renderer's version, not the
         # original run's, when the two may differ.
         "bundle_version": man.get("bundle_version") or f"{_ACTIVE_BUNDLE_VERSION} (compiler; not recorded at run time)",
-        "release": (man.get("release") or "").upper(),
+        "release": policy["effective_release"],
         "mamey_version": ms.get("mamey_version") or "?",
         "mode": read_manifest_field(F_MODE, manifest=man, manifest_short=ms, default="?"),
         # BCHERRY-374 (rebased to .375b): run-level red flags (CONTAMINATION_SUSPECT,
@@ -231,21 +235,104 @@ def _triage_rows(pkg: Path) -> tuple[list[str], list[dict]]:
     with csvp.open(newline="", encoding="utf-8") as f:
         rd = csv.DictReader(f)
         rows = list(rd)
-        return (rd.fieldnames or []), rows
+        fields = rd.fieldnames or []
+        if any(fields.count(key) > 1 for key in _REPORT_IDENTITY_HEADERS):
+            for row in rows:
+                row["__report_duplicate_identity_headers"] = True
+        return fields, rows
 
 
-def _node_label(row: dict) -> str:
-    """§15: every BGC reference carries node + region, never bare.
-    Tolerant of the several column spellings the CSV may use."""
-    bid = row.get("BGC_ID") or row.get("bgc_id") or "?"
-    node = (row.get("Node_ID") or row.get("contig/NODE") or row.get("Contig")
-            or row.get("node") or "").strip()
-    region = (row.get("antiSMASH_Region") or row.get("region") or "").strip()
-    if node and region:
-        return f"{bid} ({node} · {region})"
-    if node:
-        return f"{bid} ({node})"
-    return bid  # honest: no node available rather than a fabricated one
+_REPORT_IDENTITY_HEADERS = (
+    "Strain", "strain", "strain_id", "Strain_ID", "Contig", "contig",
+    "Node_ID", "node_id", "node", "Full_Node_ID", "full_node_or_contig", "full_node",
+    "antiSMASH_Region", "antismash_region", "region", "Region",
+    "BGC_ID", "bgc_id", "bgc_alias", "BGC_alias",
+    "Report_locus_identity", "Exact_locus", "exact_locus",
+)
+
+
+def _report_identity_context(pkg: Path) -> dict:
+    """Same-package identity roster only, not Gold measurements or BLAST linkage.
+
+    Actual manifest and inventory records must agree. Directory names, source
+    filenames and a serialized display label never supply identity authority.
+    """
+    from .exact_identity import (exact_locus_from_native_inventory_row,
+                                 exact_locus_from_native_manifest_bgc)
+    from .gold_bgc_identity import _admit_records, GoldBGCIdentityError
+
+    def read_object(path):
+        if path.is_symlink():
+            raise ValueError("symlinked identity source")
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError("duplicate identity source key")
+                result[key] = value
+            return result
+        value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique)
+        if not isinstance(value, dict):
+            raise ValueError("identity source is not an object")
+        return value
+
+    try:
+        manifest = read_object(pkg / "manifest.json")
+        strain = manifest.get("strain_id")
+        if not isinstance(strain, str) or not strain.strip():
+            raise ValueError("missing package strain")
+        short_path = pkg / "manifest_short.json"
+        if short_path.exists() or short_path.is_symlink():
+            short = read_object(short_path)
+            if "strain_id" in short and short["strain_id"] != strain:
+                raise ValueError("manifest strain conflict")
+        files = list(pkg.glob("*_2_inventory.csv"))
+        if len(files) != 1 or files[0].is_symlink():
+            raise ValueError("inventory unavailable or ambiguous")
+        with files[0].open(newline="", encoding="utf-8") as stream:
+            reader = csv.DictReader(stream)
+            fields = reader.fieldnames or []
+            if (any(fields.count(k) != 1 for k in
+                    ("Strain", "Contig", "Node_ID", "antiSMASH_Region", "BGC_ID"))
+                    or any(fields.count(k) > 1 for k in _REPORT_IDENTITY_HEADERS)):
+                raise ValueError("inventory identity headers invalid")
+            inventory = list(reader)
+        native = _admit_records(strain, manifest.get("bgcs"), exact_locus_from_native_manifest_bgc)
+        board = _admit_records(strain, inventory, exact_locus_from_native_inventory_row)
+        if set(native) != set(board) or any(native[k][0] != board[k][0] for k in native):
+            raise ValueError("manifest and inventory identity differ")
+        return {"status": "BOUND_PACKAGE_IDENTITY", "strain": strain,
+                "identities": {identity.exact_locus: identity for identity, _ in native.values()}}
+    except (OSError, UnicodeDecodeError, ValueError, TypeError, KeyError, csv.Error, GoldBGCIdentityError):
+        return {"status": "REPORT_IDENTITY_HOLD", "reason": "PACKAGE_CONTEXT_INVALID"}
+
+
+def _report_identity_hold(reason: str, row: dict | None = None) -> str:
+    bid = (row or {}).get("BGC_ID") or (row or {}).get("bgc_id")
+    suffix = f" (unbound alias: {_md_cell(bid)})" if bid else ""
+    return f"REPORT_IDENTITY_HOLD[{reason}]" + suffix
+
+
+def _node_label(row: dict, identity_context: dict | None = None) -> str:
+    """Admit the typed native row against actual same-package identity sources."""
+    from .exact_identity import ExactLocusIdentityError, exact_locus_from_native_inventory_row
+    context = identity_context or {}
+    if row.get("__report_duplicate_identity_headers"):
+        return _report_identity_hold("DUPLICATE_IDENTITY_HEADER", row)
+    strain = context.get("strain") or row.get("Strain") or row.get("strain_id") or row.get("strain")
+    try:
+        identity = exact_locus_from_native_inventory_row(strain, row)
+    except (ExactLocusIdentityError, ValueError, TypeError, KeyError):
+        return _report_identity_hold("ROW_COMPONENT_INVALID", row)
+    if context.get("status") != "BOUND_PACKAGE_IDENTITY":
+        return _report_identity_hold("PACKAGE_CONTEXT_UNAVAILABLE", row) + " — " + identity.exact_locus
+    if context.get("identities", {}).get(identity.exact_locus) != identity:
+        return _report_identity_hold("ROW_NOT_IN_PACKAGE", row) + " — " + identity.exact_locus
+    # A source-provided display column cannot replace, or contradict, typed fields.
+    for name in ("Report_locus_identity", "Exact_locus", "exact_locus"):
+        if name in row and row[name] != identity.exact_locus:
+            return _report_identity_hold("DISPLAY_COMPONENT_CONFLICT", row)
+    return identity.exact_locus
 
 
 # ── deterministic §12: wet-lab decision matrix derived from triage columns ──────
@@ -329,19 +416,20 @@ def _decision_for(row: dict) -> tuple[str, str]:
 
 
 def _decision_matrix(pkg: Path) -> str:
+    identity_context = _report_identity_context(pkg)
     fields, rows = _triage_rows(pkg)
     if not rows:
         return "# 12. Wet-lab decision matrix\n\n*(triage board CSV not found in package)*\n"
     out = ["# 12. Wet-lab decision matrix\n",
            "*Derived deterministically from the triage board (rank, score, novelty, standing rule).*\n",
-           "| BGC (node · region) | Action | Dereplicate | Rationale |",
+           "| Locus identity or HOLD | Action | Dereplicate | Rationale |",
            "|---|---|---|---|"]
     for r in rows:
         action, why = _decision_for(r)
         # dereplicate flag: a named KCB hit means a known scaffold to dereplicate against
         kcb = (r.get("KCB_top") or r.get("kcb_top") or "").strip()
         derep = "yes" if kcb and kcb.lower() not in ("none", "") else "no"
-        out.append(f"| {_node_label(r)} | {action} | {derep} | {why} |")
+        out.append(f"| {_node_label(r, identity_context)} | {action} | {derep} | {why} |")
     return "\n".join(out) + "\n"
 
 
@@ -398,17 +486,18 @@ def _blastp_from_channel_stores(pkg: Path) -> str:
         return ""
     out = ["# 10. BLASTP evidence summary\n",
            "*Per-BGC BLASTP from the package's internal, unmixed channel stores. Best rank-1 hit per "
-           "channel; **%ID and %positives shown separately** (similarity, not identity; per-gene top-10 "
+           "channel; locus association is HOLD until source/query/package linkage is verified. "
+           "**%ID and %positives shown separately** (similarity, not identity; per-gene top-10 "
            "with both metrics are in `blastp_nr/`, `blastp_clustered_nr/`, `blastp_swissprot/`).*\n",
-           "| BGC | channel | best %ID | best %pos | nearest subject |",
-           "|---|---|--:|--:|---|"]
+           "| Locus identity status | Supplied alias | channel | best %ID | best %pos | nearest subject |",
+           "|---|---|---|--:|--:|---|"]
     if read_failures:
         detail = ", ".join(f"{channel}={count}" for channel, count in sorted(read_failures.items()))
         out.insert(2, f"**BLASTP_CHANNEL_INPUT_INVALID:** unreadable top-10 table count by channel: {detail}. "
                       "These files were not interpreted as no-hit evidence.\n")
     for bgc in sorted(by_bgc, key=lambda b: int("".join(ch for ch in b if ch.isdigit()) or 0)):
         for lab, (pid, pos, title) in by_bgc[bgc].items():
-            out.append(f"| {bgc} | {lab} | {pid:.0f}% | {pos:.0f}% | {_md_cell(title)} |")
+            out.append(f"| {_report_identity_hold('BLAST_SOURCE_LINK_UNBOUND')} | {_md_cell(bgc)} | {lab} | {pid:.0f}% | {pos:.0f}% | {_md_cell(title)} |")
     return "\n".join(out) + "\n"
 
 
@@ -416,7 +505,8 @@ def _md_cell(text) -> str:
     """v9.7.410 hostile audit: BLAST subject titles are external text and the classic NCBI form
     carries pipes (`gi|123|ref|WP_…`). Unescaped, one such title split the compiled report's
     evidence table into extra columns and shifted every later cell under the wrong header."""
-    return str(text if text is not None else "").replace("|", "\\|").replace("\n", " ")
+    return (str(text if text is not None else "").replace("\\", "\\\\")
+            .replace("|", "\\|").replace("\r\n", " ").replace("\r", " ").replace("\n", " "))
 
 
 def _blastp_summary(pkg: Path) -> str:
@@ -436,13 +526,14 @@ def _blastp_summary(pkg: Path) -> str:
     if not rows:
         return "# 10. BLASTP evidence summary\n\n*(BLASTP summary table is empty)*\n"
     out = ["# 10. BLASTP evidence summary\n",
-           "*Class-defining BGC-level BLASTP evidence (similarity, not identity).*\n",
-           "| BGC | Top titles | Best %ID | Coverage | Claim level | Next action |",
-           "|---|---|---|---|---|---|"]
+           "*Alias-indexed BLASTP evidence (similarity, not identity); locus association remains HOLD "
+           "until source/query/package linkage is verified.*\n",
+           "| Locus identity status | Supplied alias | Top titles | Best %ID | Coverage | Claim level | Next action |",
+           "|---|---|---|---|---|---|---|"]
     for r in rows:
         bid = r.get("bgc_id", "?")
         out.append(
-            f"| {bid} | {_md_cell((r.get('top_titles','') or '')[:60])} | "
+            f"| {_report_identity_hold('BLAST_SOURCE_LINK_UNBOUND')} | {_md_cell(bid)} | {_md_cell((r.get('top_titles','') or '')[:60])} | "
             f"{r.get('best_pct_identity','')} | {r.get('best_query_coverage','')} | "
             f"{r.get('current_claim_level','')} | {_md_cell((r.get('recommended_next_action','') or '')[:50])} |")
     return "\n".join(out) + "\n"
@@ -468,6 +559,8 @@ def _slot(key: str, strain: str, pkg: Path) -> str:
 # ── section builders (deterministic) ───────────────────────────────────────────
 
 def _cover(m: dict) -> str:
+    from .report_release_policy import describe_policy
+    policy_note = "\n\n" + describe_policy(m["report_release_policy"]) if m.get("report_release_policy") else ""
     tag = f"  ·  **{m['release']}**" if m["release"] in ("PRIVATE", "MERGED-PRIVATE") else ""
     manifest_status = m.get("manifest_read_status", "RECORDED")
     manifest_note = (f"\n\n*Manifest input status: {manifest_status}; report fields use typed fallbacks.*"
@@ -478,7 +571,7 @@ def _cover(m: dict) -> str:
             + (f" ({m['interior_pct']}% interior)" if m['interior_pct'] is not None else "")
             + f" · {m['raw_bgcs']} raw / {m['corrected_bgcs']} corrected BGCs · "
             f"Mamey v{m['mamey_version']} · bundle {m['bundle_version']}\n"
-            + manifest_note)
+            + manifest_note + policy_note)
 
 
 def _assembly_table(m: dict) -> str:
@@ -512,10 +605,13 @@ def _triage_board(pkg: Path) -> str:
     fields, rows = _triage_rows(pkg)
     if not rows:
         return "# 5. Triage board\n\n*(triage board CSV not found in package)*\n"
-    # render every BGC, no omissions; preserve CSV column order
-    head = "| " + " | ".join(fields) + " |\n"
-    sep = "|" + "|".join("---" for _ in fields) + "|\n"
-    body = "".join("| " + " | ".join(str(r.get(c, "")) for c in fields) + " |\n" for r in rows)
+    # Add admitted identity/HOLD; every original column remains in original order.
+    context = _report_identity_context(pkg)
+    output_fields = ["Report_locus_identity", *fields]
+    head = "| " + " | ".join(_md_cell(c) for c in output_fields) + " |\n"
+    sep = "|" + "|".join("---" for _ in output_fields) + "|\n"
+    body = "".join("| " + " | ".join(_md_cell(v) for v in
+                  [_node_label(r, context), *(r.get(c, "") for c in fields)]) + " |\n" for r in rows)
     return f"# 5. Triage board (all BGCs)\n\n{head}{sep}{body}"
 
 
@@ -601,9 +697,10 @@ def _mode_b_cards(pkg: Path) -> str:
         card = js._mode_b_path(pkg, bid)
         if card.exists():
             out.append("\n---\n")
+            out.append("**" + _report_identity_hold("AUTHORED_CARD_LINK_UNVERIFIED", {"BGC_ID": bid}) + "**\n\n")
             out.append(card.read_text(encoding="utf-8").strip() + "\n")
         else:
-            out.append(f"\n---\n\n*(card file missing for {bid} — register says COMPLETE; investigate)*\n")
+            out.append(f"\n---\n\n*({_report_identity_hold('AUTHORED_CARD_LINK_UNVERIFIED', {'BGC_ID': bid})}; card file missing — register says COMPLETE; investigate)*\n")
     return "\n".join(out)
 
 
@@ -700,6 +797,7 @@ def _key_findings(pkg: Path, m: dict) -> str:
     triage rows (§12 wet-lab decision matrix) — those classes are permanently excluded from
     "discovery lead" status by `mamey/data/rules_registry.json` and must not headline the report's
     one always-populated, reader-facing narrative section."""
+    identity_context = _report_identity_context(pkg)
     _, rows = _triage_rows(pkg)
     if not rows:
         return "# Key findings\n\n*(triage table unavailable)*\n"
@@ -719,16 +817,19 @@ def _key_findings(pkg: Path, m: dict) -> str:
         if raw is None or (isinstance(raw, str) and not raw.strip()):
             return None
         try:
-            return float(raw)
+            value = float(raw)
+            return value if math.isfinite(value) and value >= 0 else None
         except (TypeError, ValueError):
             return None
-    eligible = [r for r in rows if not _excluded(r)] or rows  # fail-safe: never emit an empty banner
+    eligible = [r for r in rows if not _excluded(r)]
     out = ["# Key findings\n"]
+    if not eligible:
+        out.append("- No BGCs are eligible for the lead summary under the recorded exclusion rules; all records remain in the triage inventory.")
     for r in sorted(eligible, key=lambda row: (_score(row) is not None, _score(row) or 0.0),
                     reverse=True)[:5]:
         kcb = (r.get("KCB_top") or "").strip() or "no KCB hit"
         prod = (r.get("Products") or "").strip()
-        out.append(f"- **{_node_label(r)}** — {prod}; nearest MIBiG "
+        out.append(f"- **{_node_label(r, identity_context)}** — {prod}; nearest MIBiG "
                    f"neighbour by protein similarity (KCB): {kcb}. Capacity consistent with this "
                    f"class; product identity requires isolation.")
     invalid_scores = sum(1 for r in rows if _score(r) is None)
@@ -737,8 +838,8 @@ def _key_findings(pkg: Path, m: dict) -> str:
                    "KCB scores remain unresolved and were not counted as measured zero.")
     nnov = sum(1 for r in rows if _score(r) == 0.0)
     if nnov:
-        out.append(f"- **{nnov} low/zero-KCB BGC(s)** — no protein-level MIBiG comparator; highest "
-                   f"discovery value and priority for targeted BLASTp / isolation.")
+        out.append(f"- **{nnov} low/zero-KCB BGC(s)** — recorded KCB score is zero. "
+                   "This observation alone does not establish an absent comparator, chemical novelty or experimental priority.")
     ip = m.get("interior_pct")
     out.append(f"- **Assembly {m.get('assembly_tier', '?')}**"
                + (f" ({ip}% interior)" if ip is not None else "")
@@ -766,6 +867,13 @@ def _described_toc() -> str:
         ("14. Methods and claim-safety note", "pipeline, claim ceilings, citation format"),
     ]
     return "# Contents\n\n" + "\n".join(f"- **{s}** — {d}" for s, d in secs) + "\n"
+
+
+def _rrefinder_evidence_note(pkg: Path, strain: str) -> str:
+    from .rrefinder_status import read_package_state, describe_state
+    from .json_evidence_state import read_package_state as read_json_state, describe as describe_json
+    return ("## RREfinder evidence availability\n\n" + describe_state(read_package_state(pkg, strain)) + "\n\n"
+            + "## JSON extraction visibility\n\n" + describe_json(read_json_state(pkg, strain)) + "\n")
 
 
 def build_report(package_dir: str | Path, generate_figures: bool = True,
@@ -812,6 +920,7 @@ def build_report(package_dir: str | Path, generate_figures: bool = True,
         _slot("executive_summary", strain, pkg),
         _slot("layperson_guide", strain, pkg),
         _assembly_table(m),
+        _rrefinder_evidence_note(pkg, strain),
         _triage_board(pkg),
         _figures(pkg, generate=generate_figures, preflight_note=locus_map_note),
         _slot("ecological_synthesis", strain, pkg),
@@ -1121,7 +1230,7 @@ def _render_compiled_pdf(md: str, out_pdf: "Path", pkg: "Path") -> dict:
       (2) md_to_pdf.sh is run with cwd = package dir so the report's relative image paths
           (gold_figures/…, locus_maps/…) resolve for xelatex.
     A PDF-derived screenshot is never a source-artwork substitute."""
-    import shutil, subprocess
+    import os, shutil, subprocess
     pkg = Path(pkg)
     script = Path(__file__).resolve().parents[1] / "tools" / "md_to_pdf.sh"
     if not script.exists():
@@ -1137,7 +1246,8 @@ def _render_compiled_pdf(md: str, out_pdf: "Path", pkg: "Path") -> dict:
         # cwd=pkg changes the working dir, so relative render_md/out_pdf would not resolve
         # inside the script (this was the RENDER_FAILED / FileNotFoundError on *.render.md).
         r = subprocess.run(["bash", str(script), str(render_md.resolve()), str(out_pdf.resolve()), "boss"],
-                           cwd=str(pkg), capture_output=True, text=True, timeout=600)
+                           cwd=str(pkg), capture_output=True, text=True, timeout=600,
+                           env={**os.environ, "MAMEY_REPORT_IDENTITY_PACKAGE": str(pkg.resolve())})
     except Exception as e:
         return {"status": "ERROR", "path": None, "detail": str(e)}
     if r.returncode == 0 and out_pdf.exists():

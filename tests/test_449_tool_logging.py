@@ -67,10 +67,11 @@ def test_missing_plot_libraries_still_show_warnings(tmp_path, monkeypatch, capsy
 def test_gene_table_completion_message_is_logged_and_visible(tmp_path, monkeypatch, capsys, records):
     mod = load('gap_rescue_gene_table')
     import gap_directed_rescue
-    monkeypatch.setattr(gap_directed_rescue, 'load_genome', lambda *a: ({}, []))
+    core = 'SYNTHETIC / NODE_1_length_900_cov_1 / region001 / BGC001'
+    monkeypatch.setattr(gap_directed_rescue, 'load_genome', lambda *a: ({}, [{'identity': core}]))
     monkeypatch.setattr(mod, 'edge_shares', lambda *a: {})
     monkeypatch.setattr(mod, 'write_gene_table', lambda *a: {'rows': 3})
-    (tmp_path/'gap_rescue_receipt.json').write_text(json.dumps({'label': 'fixture', 'core': 'fixture'}))
+    (tmp_path/'gap_rescue_receipt.json').write_text(json.dumps({'label': 'fixture', 'core': core}))
     (tmp_path/'gap_rescue.tsv').write_text('name\n')
     assert mod.main(['--run', str(tmp_path), '--zip', 'fixture.zip', '--reference', 'fixture.gbk']) == 0
     assert capsys.readouterr().out == f'[gap_rescue_gene_table] 3 rows -> {tmp_path}\n'
@@ -101,7 +102,7 @@ def test_pcoa_completion_and_refusal_keep_text_and_streams(tmp_path, monkeypatch
 
 
 def test_locus_page_completion_message_survives_stdout_capture(tmp_path, monkeypatch, capsys, records):
-    import test_449_locus_reading_pages as fixtures
+    from tests import test_449_locus_reading_pages as fixtures
     mod = load('locus_reading_pages')
     monkeypatch.setattr(fixtures, 'lrp', mod)
     data = fixtures.fx.__wrapped__(tmp_path)

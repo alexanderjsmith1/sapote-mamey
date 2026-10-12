@@ -8,6 +8,8 @@ Input: tests/fixtures/rggmci_public_VWPH00000000.1_subset.zip, five regions cut 
 for NCBI WGS VWPH00000000.1 (Saccharopolyspora), with their ClusterBlast files. It gives 10 scored pairs, 4 HIGH,
 and three locus-proxy ties that once depended on the Python hash seed.
 """
+import csv
+import hashlib
 import json
 import os
 import subprocess
@@ -79,6 +81,41 @@ def test_package_own_tests_pass_in_a_clean_interpreter(package, tmp_path):
     assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-2000:]
 
 
+def test_package_cli_public_pair_outputs_match_engine_and_current_input(package, tmp_path):
+    """Actual built CLI, positive public fixture, and shared-formatter table bytes."""
+    from mamey import parsers, ref_completion, rggmci
+    bgcs = parsers.parse_bgcs_from_zip(str(FIXTURE), json_mode="off")
+    expected = rggmci.run_archive(str(FIXTURE), reference_completion="off", threads=1)
+    out = tmp_path / "new/results"
+    r = subprocess.run([sys.executable, "-m", "rggmci", str(FIXTURE), "--out-dir", str(out),
+                        "--reference-completion", "off", "--threads", "1"],
+                       cwd=tmp_path, env=_clean_env(package / "src"), capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    result = json.loads((out / f"{FIXTURE.stem}.json").read_text())
+    assert result["input"]["antismash_zip_sha256"] == hashlib.sha256(FIXTURE.read_bytes()).hexdigest()
+    assert result["ranked_pairs"], "positive output-contract test must exercise scored pairs"
+    assert [{k: p[k] for k in e} for p, e in zip(result["ranked_pairs"], expected["ranked_pairs"], strict=True)] == \
+        expected["ranked_pairs"]
+    with (out / f"{FIXTURE.stem}_pairs.tsv").open(newline="") as fh:
+        table = csv.DictReader(fh, delimiter="\t")
+        assert set(table.fieldnames) == {key for pair in result["ranked_pairs"] for key in pair}
+        rows = list(table)
+    expected_artifacts = rggmci.canonical_artifacts(expected, name=FIXTURE.stem)
+    for name, payload in expected_artifacts.items():
+        if name.endswith(".tsv"):
+            assert (out / name).read_bytes() == payload
+    assert len(rows) == len(result["ranked_pairs"])
+    assert [(row["pair"], float(row["rggmci_score"]), row["rggmci_confidence"]) for row in rows] == \
+        [(row["pair"], row["rggmci_score"], row["rggmci_confidence"]) for row in expected["ranked_pairs"]]
+    with (out / "SUMMARY.tsv").open(newline="") as fh:
+        summary = list(csv.DictReader(fh, delimiter="\t"))
+    assert len(summary) == 1 and int(summary[0]["scored_pairs"]) == len(rows)
+    direct = tmp_path / "shared_formatter"
+    direct.mkdir()
+    for path in ref_completion.write_tables(result["reference_completion"], direct, f"{FIXTURE.stem}_"):
+        assert path.read_bytes() == (out / path.name).read_bytes()
+
+
 def test_repository_docs_name_files_that_exist(package):
     """CONTRIBUTING and the README templates name files of the standalone repository; each must exist there
     (the built package, a file make_repo_candidate.py writes) or in packaging/rggmci/."""
@@ -90,6 +127,48 @@ def test_repository_docs_name_files_that_exist(package):
     for doc in list((here / "repo_extras").rglob("*.md")) + list((here / "templates").rglob("*.md")):
         for ref in re.findall(r"`([A-Za-z0-9_\-/\.]+\.(?:py|sh))`", doc.read_text(encoding="utf-8")):
             name = Path(ref).name
+            # Contributor docs also identify upstream engine owners, outside the standalone tree.
+            if ref.startswith("mamey/") and (ROOT / ref).is_file():
+                continue
             if name not in known and f'"{name}"' not in writer:
                 missing.append(f"{doc.relative_to(here)}: {ref}")
     assert not missing, missing
+
+
+@pytest.mark.parametrize("kind", ["size", "ratio"])
+@pytest.mark.parametrize("mixed", [False, True])
+def test_built_package_shared_text_guard_parity(package, tmp_path, monkeypatch, kind, mixed):
+    import zipfile
+    from mamey import parsers, rggmci
+    member = "clusterblast/SYNTHETIC_REFUSED.txt"
+    archive = tmp_path / "SYNTHETIC_GUARD.zip"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        if mixed: zf.writestr("clusterblast/SYNTHETIC_ADMITTED.txt", "synthetic admitted marker")
+        zf.writestr(member, "X" * 4096)
+    monkeypatch.setenv("MAMEY_GBK_MAX_BYTES", "256" if kind == "size" else "8192")
+    monkeypatch.setenv("MAMEY_GBK_MAX_RATIO", "10000" if kind == "size" else "2")
+    with pytest.raises(parsers.GbkSizeGuardRefusal) as error:
+        rggmci.parse_clusterblast_reference_map(archive, [])
+    expected = {"type": type(error.value).__name__, "member": error.value.member, "reason": error.value.reason}
+    core = (package / "src/rggmci/core.py").read_text()
+    assert "from ._parsers import GbkSizeGuardRefusal, _safe_read_text" in core
+    assert "from .parsers import GbkSizeGuardRefusal, _safe_read_text" not in core
+    probe = """
+import json, sys, zipfile
+import rggmci.core as core
+from rggmci._parsers import GbkSizeGuardRefusal
+assert not any(m == 'mamey' or m.startswith('mamey.') for m in sys.modules)
+def forbidden(*a, **k):
+    raise AssertionError('unbounded whole read forbidden')
+zipfile.ZipFile.read = forbidden
+try:
+    core.parse_clusterblast_reference_map(sys.argv[1], [])
+except GbkSizeGuardRefusal as exc:
+    print(json.dumps({'type':type(exc).__name__, 'member':exc.member, 'reason':exc.reason}))
+else:
+    raise AssertionError('resource refusal became a successful/null map')
+"""
+    result = subprocess.run([sys.executable, "-c", probe, str(archive)], cwd=tmp_path,
+                            env=_clean_env(package / "src"), capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == expected

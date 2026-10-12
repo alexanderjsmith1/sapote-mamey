@@ -42,7 +42,7 @@ def test_bee_isolation_sources_remain_distinct(raw, expected):
 def test_compact_publication_labels_use_one_grammar_and_keep_accessions():
     display = load("placement_display")
     rows = [
-        dict(tip="AS_128", kind="query", as_id="AS-128", group="Streptomyces",
+        dict(tip="AS_971", kind="query", as_id="AS-971", group="Streptomyces",
              host="Bombus sp.", region="New Jersey", accession="PV981676"),
         dict(tip="Streptomyces_sampsonii_ATCC_25495_NR_025870", kind="reference",
              group="Streptomyces",
@@ -50,7 +50,7 @@ def test_compact_publication_labels_use_one_grammar_and_keep_accessions():
              reference_habitat="rhizosphere soil", reference_country="China"),
     ]
     labels = [row["label"] for row in display.display_rows(rows, "compact")]
-    assert labels[0] == "Streptomyces sp. AS-128 [bumblebee · New Jersey] (PV981676)"
+    assert labels[0] == "Streptomyces sp. AS-971 [bumblebee · New Jersey] (PV981676)"
     assert labels[1].startswith("Streptomyces sampsonii ATCC 25495 ")
     assert labels[1].endswith("(NR_025870)")
     assert all(".1)" not in label for label in labels)
@@ -75,18 +75,18 @@ def test_reference_definition_accession_prefix_is_removed_before_labeling(tmp_pa
 
 def test_explicit_genus_roster_can_replace_internal_cross_genus_group():
     display = load("placement_display")
-    row = dict(tip="AS_210", kind="query", as_id="AS-210",
+    row = dict(tip="AS_974", kind="query", as_id="AS-974",
                group="combined_hymenoptera", host="Bombus sp.",
                region="New Jersey", accession="PX565015")
     row["group"] = "Micromonospora"  # operation performed from the genus roster in main()
     label = display.display_rows([row], "publication")[0]["label"]
-    assert label == "Micromonospora sp. AS-210 [bumblebee · New Jersey] (PX565015)"
+    assert label == "Micromonospora sp. AS-974 [bumblebee · New Jersey] (PX565015)"
 
 
 def test_publication_noloc_keeps_sources_and_accessions_but_omits_geography():
     display = load("placement_display")
     rows = [
-        dict(tip="AS_128", kind="query", as_id="AS-128", group="Streptomyces",
+        dict(tip="AS_971", kind="query", as_id="AS-971", group="Streptomyces",
              host="Bombus sp.", region="New Jersey", accession="PV981676.1"),
         dict(tip="Streptomyces_sampsonii_NR_025870", kind="reference",
              group="Streptomyces",
@@ -96,7 +96,7 @@ def test_publication_noloc_keeps_sources_and_accessions_but_omits_geography():
     ]
     labels = [row["label"] for row in display.display_rows(rows, "publication-noloc")]
     assert labels == [
-        "Streptomyces sp. AS-128 [bumblebee] (PV981676)",
+        "Streptomyces sp. AS-971 [bumblebee] (PV981676)",
         "Streptomyces sampsonii [plant] (NR_025870)",
     ]
     assert all("New Jersey" not in label and "China" not in label for label in labels)
@@ -153,7 +153,7 @@ def test_detailed_publication_variant_retains_deposited_source():
 def test_internal_label_adds_bound_experiment_and_sample_only_to_query():
     display = load("placement_display")
     rows = [
-        dict(tip="AS_633", kind="query", as_id="AS-633", group="Streptomyces",
+        dict(tip="AS_984", kind="query", as_id="AS-984", group="Streptomyces",
              host="Bombus sp.", region="New Jersey", accession="PX558893",
              experiment_id="Exp 55", sample_id="64"),
         dict(tip="Streptomyces_sampsonii_NR_025870", kind="reference", group="Streptomyces",
@@ -163,7 +163,7 @@ def test_internal_label_adds_bound_experiment_and_sample_only_to_query():
     ]
     labels = [row["label"] for row in display.display_rows(rows, "internal")]
     assert labels == [
-        "Streptomyces sp. AS-633 [bumblebee · New Jersey; Exp 55 #64] (PX558893)",
+        "Streptomyces sp. AS-984 [bumblebee · New Jersey; Exp 55 #64] (PX558893)",
             "Streptomyces sampsonii [plant · Asia] (NR_025870)",
     ]
 
@@ -200,7 +200,7 @@ def test_identical_16s_from_distinct_isolates_is_retained(tmp_path):
     place = load("phylo_place")
     source = tmp_path / "queries.fasta"
     output = tmp_path / "dedup.fasta"
-    source.write_text(">AS-150\nACGTACGT\n>AS-152\nACGTACGT\n")
+    source.write_text(">AS-972\nACGTACGT\n>AS-973\nACGTACGT\n")
     kept, dropped = place._dedup_queries(str(source), str(output))
     assert (kept, dropped) == (2, 0)
     assert output.read_text().count(">") == 2
@@ -208,8 +208,8 @@ def test_identical_16s_from_distinct_isolates_is_retained(tmp_path):
 
 def test_reference_culture_code_is_not_promoted_to_query():
     place = load("phylo_place")
-    queries = {"AS_150_from_Andrena_PX558857"}
-    assert place._tree_tip_matches_query("AS_150_from_Andrena_PX558857_2", queries)
+    queries = {"AS_972_from_Andrena_PX558857"}
+    assert place._tree_tip_matches_query("AS_972_from_Andrena_PX558857_2", queries)
     assert not place._tree_tip_matches_query(
         "Streptomyces_anthocyanicus_strain_AS_4_1594_NR_027222", queries
     )
@@ -220,12 +220,12 @@ def test_required_reference_table_preserves_exact_query_species_pairing(tmp_path
     table = tmp_path / "required.tsv"
     table.write_text(
         "strain\treference_species\n"
-        "AS-128\tStreptomyces albovinaceus\n"
-        "AS-150\tStreptomyces zingiberis\n"
+        "AS-971\tStreptomyces albovinaceus\n"
+        "AS-972\tStreptomyces zingiberis\n"
     )
     assert builder._load_required_references(table) == {
-        "AS-128": "Streptomyces albovinaceus",
-        "AS-150": "Streptomyces zingiberis",
+        "AS-971": "Streptomyces albovinaceus",
+        "AS-972": "Streptomyces zingiberis",
     }
 
 
@@ -234,8 +234,8 @@ def test_required_reference_table_refuses_conflicting_pairing(tmp_path):
     table = tmp_path / "required.tsv"
     table.write_text(
         "strain\treference_species\n"
-        "AS-128\tStreptomyces albovinaceus\n"
-        "AS-128\tStreptomyces sampsonii\n"
+        "AS-971\tStreptomyces albovinaceus\n"
+        "AS-971\tStreptomyces sampsonii\n"
     )
     with pytest.raises(ValueError, match="REQUIRED_REFERENCE_TABLE_CONFLICT"):
         builder._load_required_references(table)
@@ -245,14 +245,14 @@ def test_required_reference_missing_from_backbone_refuses_instead_of_using_neare
     builder = load("build_placement_ggtree_inputs")
     graft = tmp_path / "graft.nwk"
     graft.write_text(
-        "(AS_128_from_Bombus_PV981676:0.01,"
+        "(AS_971_from_Bombus_PV981676:0.01,"
         "Streptomyces_sampsonii_NR_025436:0.001,"
         "Kitasatospora_setae_outgroup_NR_112082:0.2);\n"
     )
     required = tmp_path / "required.tsv"
     required.write_text(
         "strain\treference_species\n"
-        "AS-128\tStreptomyces albovinaceus\n"
+        "AS-971\tStreptomyces albovinaceus\n"
     )
     monkeypatch.setattr(sys, "argv", [
         "build_placement_ggtree_inputs.py",
@@ -278,19 +278,24 @@ def test_display_refuses_duplicate_reference_species():
         display.display_rows(rows, "publication")
 
 
-def test_reference_role_markers_are_explicit_in_publication_labels():
+def test_reference_role_markers_require_reviewed_exact_native_source_evidence(tmp_path):
     display = load("placement_display")
-    rows = [
-        dict(tip="Streptomyces_sampsonii_NR_025870", group="Streptomyces",
-             reference_species="Streptomyces sampsonii", reference_role="type_reference"),
-        dict(tip="Streptomyces_sp._KGS_6_13_KU840406", group="Streptomyces",
-             reference_species="Streptomyces sp.", reference_role="cultured_non_type_reference"),
-    ]
-    labels = [row["label"] for row in display.display_rows(rows, "publication")]
-    assert labels == [
-        "Streptomyces sampsonii [type strain] (NR_025870)",
-        "Streptomyces sp. [cultured non-type] (KU840406)",
-    ]
+    from tools._placement_report_metadata import reviewed_type_map
+    from .test_m5_placement_metadata_contract import table
+    tip = "NR_025870_1_Streptomyces_sampsonii_strain_S1_16S"
+    rows = [dict(tip=tip, group="Streptomyces", reference_species="Streptomyces sampsonii", reference_role="type_reference"),
+            dict(tip="Streptomyces_sp._KGS_6_13_KU840406", group="Streptomyces", reference_species="Streptomyces sp.", reference_role="cultured_non_type_reference")]
+    path = table(tmp_path/"roles.tsv", [dict(tip=tip, accession="NR_025870.1", source_accession="NR_025870.1",
+        taxon="Streptomyces sampsonii", strain="S1", role="type_reference", type_strain_of="Streptomyces sampsonii",
+        type_evidence="synthetic reviewed record", review_state="REVIEWED", source_url="https://example.org/synthetic/NR_025870.1",
+        strain_identity_basis="synthetic exact native-source strain")])
+    evidence = reviewed_type_map([path], {tip: tip})
+    unknown = [row["label"] for row in display.display_rows(rows, "publication")]
+    assert not any("type strain" in label or "cultured non-type" in label for label in unknown)
+    labels = [row["label"] for row in display.display_rows(rows, "publication", type_evidence=evidence)]
+    assert labels == ["Streptomyces sampsonii [type strain of Streptomyces sampsonii] (NR_025870)",
+                      "Streptomyces sp. (KU840406)"]
+    assert evidence["roles"][tip]["source_accession"] == "NR_025870.1"
 
 
 @pytest.mark.parametrize("taxon, role, error", [
@@ -317,12 +322,19 @@ def test_genus_sp_type_reference_is_admitted_with_explicit_named_target(tmp_path
     assert rows["ref_1"]["type_strain_of"] == "Nocardia exemplaris"
 
 
-def test_publication_label_displays_explicit_type_strain_target():
+def test_publication_label_displays_source_reviewed_explicit_type_strain_target(tmp_path):
     display = load("placement_display")
-    row = dict(tip="Nocardia_sp_X123", group="Nocardia", reference_species="Nocardia sp.",
-               reference_role="type_reference", type_strain_of="Nocardia exemplaris")
-    label = display.display_rows([row], "publication")[0]["label"]
+    from tools._placement_report_metadata import reviewed_type_map
+    from .test_m5_placement_metadata_contract import table
+    tip = "MZ000001_1_Nocardia_sp_strain_S1_16S"
+    row = dict(tip=tip, group="Nocardia", reference_species="Nocardia sp.", reference_role="type_reference", type_strain_of="Nocardia exemplaris")
+    path = table(tmp_path/"roles.tsv", [dict(tip=tip, accession="MZ000001.1", source_accession="MZ000001.1",
+        taxon="Nocardia sp.", strain="S1", role="type_reference", type_strain_of="Nocardia exemplaris", type_evidence="synthetic reviewed record",
+        review_state="REVIEWED", source_url="https://example.org/synthetic/MZ000001.1", strain_identity_basis="synthetic exact strain")])
+    evidence = reviewed_type_map([path], {tip: tip})
+    label = display.display_rows([row], "publication", type_evidence=evidence)[0]["label"]
     assert "[type strain of Nocardia exemplaris]" in label
+    assert "type strain" not in display.display_rows([row], "publication")[0]["label"]
 
 
 @pytest.mark.parametrize("raw, expected", [

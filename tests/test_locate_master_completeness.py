@@ -17,7 +17,7 @@ def test_picks_complete_master_over_alpha_last_partial(tmp_path):
     now = time.time()
     _make(tmp_path, "Mamey_Master.xlsx", 9, now - 100)                       # complete, older
     _make(tmp_path, "Mamey_v1.9.111_Master_After_AS-421.xlsx", 5, now - 50)  # partial
-    _make(tmp_path, "Mamey_v1.9.111_Master_After_AS-958.xlsx", 4, now - 10)  # alpha-last, newest, fewest
+    _make(tmp_path, "Mamey_v1.9.111_Master_After_SYNTHETIC_REFERENCE_01.xlsx", 4, now - 10)  # alpha-last, newest, fewest
     picked = _locate_master(tmp_path, None)
     assert picked is not None and picked.name == "Mamey_Master.xlsx"
 

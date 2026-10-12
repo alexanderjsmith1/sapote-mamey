@@ -30,7 +30,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from redact_public_tier import redact_text as _redact_text, redact_py as _redact_py  # noqa: E402
 from redact_public_tier import _is_keyed_registry, _redact_json_registry  # noqa: E402
-from mamey.privacy_profile import PrivacyProfileError, PublicExportPolicy, load_public_export_policy  # noqa: E402
+from scanner_hmm_release_policy import is_provisioned_scanner_asset  # noqa: E402
+from mamey.privacy_profile import (  # noqa: E402
+    PrivacyProfileError, PublicExportPolicy, load_public_export_policy,
+    verify_public_file_hold_omissions,
+)
 
 # Files that legitimately differ between tiers (build metadata) — never expected to match.
 METADATA_SKIP = {"SOURCE_CHECKSUMS_SHA256.txt", "TIER_MANIFEST.txt",
@@ -99,6 +103,7 @@ def _is_stripped(rel: str, policy: PublicExportPolicy | None = None) -> bool:
         rel = rel[2:]
     first = rel.split("/", 1)[0]
     return (rel in STRIP_FILE_PATHS
+            or is_provisioned_scanner_asset(rel)
             or bool(_RUNS_DIR_RE.match(first))
             or _is_policy_stripped(rel, policy)
             or any(rel.startswith(p) for p in STRIP_DIR_PREFIXES))
@@ -135,6 +140,12 @@ def main() -> int:
         # is already correctly routed would still read as new library debt.
         sys.stderr.write(f"FAIL: invalid privacy profile: {exc}\n")
         return 2
+    omitted_file_holds, hold_problems = verify_public_file_hold_omissions(
+        args.private_tree, args.public_tree, policy)
+    if hold_problems:
+        for problem in hold_problems:
+            sys.stderr.write("FAIL: " + problem + "\n")
+        return 2
     exts = tuple(e if e.startswith(".") else "." + e for e in args.ext.split(","))
 
     tested = matched = mismatched = skipped = identity = 0
@@ -146,6 +157,9 @@ def main() -> int:
             priv_p = os.path.join(root, fn)
             rel = os.path.relpath(priv_p, args.private_tree)
             relposix = "/" + rel.replace(os.sep, "/")
+            # Only exact current source/hash/receipt-bound omissions are admitted.
+            if rel.replace(os.sep, "/") in omitted_file_holds:
+                continue
             # a file under a dir the cut strips is absent from the public tier BY DESIGN, not drift
             if _is_stripped(rel, policy):
                 continue

@@ -31,7 +31,7 @@ from collections import defaultdict
 from .series_common import find_packages, load_package, strain_of
 from .bigscape_namespace import validate_membership_rows
 
-# Engine port (v9.7.330): the original Lab Quest/Blue workbench script hardcoded absolute paths under
+# Engine port (v9.7.330): the original Blue workbench script hardcoded absolute paths under
 # the user's home. As an engine subcommand these become optional inputs that DEGRADE GRACEFULLY:
 # domains come from the sealed package (BLUE_01's <strain>_domains.csv); the external enrichments
 # (curated bgc_gcf.csv, the cohort BLASTp tree, the strain-metadata workbooks) are opt-in flags and

@@ -324,6 +324,15 @@ def _run_figure_suite(pkg: Path, top_n: int = 10, **_kw) -> dict[str, Any]:
     try:
         rc = render_figures_command(_Args())
         out = Path(_Args.outdir)
+        if rc != 0:
+            return {
+                "status": "ERRORED",
+                "figures": 0,
+                "out": str(out),
+                "exit_code": rc,
+                "error": f"render_figures_command failed with exit code {rc}; "
+                         "inspect child diagnostics under figures_rendered/",
+            }
         figs = list(out.rglob("*.png")) + list(out.rglob("*.svg"))
         return {
             "status": "RAN" if rc == 0 and figs else "SKIPPED",

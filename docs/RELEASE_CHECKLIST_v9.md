@@ -163,4 +163,4 @@ promotional label or signed-looking metadata substitutes for this evidence.
 
 ## Version reference
 
-*Sapote-Mamey Bundle v9.7.449 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*
+*Sapote-Mamey Bundle v9.7.450 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*

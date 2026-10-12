@@ -8,10 +8,16 @@ prefix files (``.treefile`` / ``.contree`` / ``.log``). Behaviour is steered by 
 variables so one fake serves every card.
 """
 import importlib.util
+import hashlib
 import json
 import os
+from pathlib import Path
 import stat
 import sys
+import tempfile
+
+import pytest
+from tests._python_fixture_launcher import write_python_fixture
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -34,10 +40,26 @@ FAKE_GTOTREE = r'''#!/usr/bin/env python3
 import json, os, sys
 args = sys.argv[1:]
 if args == ["-v"]:
-    print(os.environ.get("FAKE_GTOTREE_VERSION", "GToTree v2.0.0")); sys.exit(0)
+    print(os.environ.get("FAKE_GTOTREE_VERSION", "GToTree v2.0.0"))
+    sys.exit(int(os.environ.get("FAKE_GTOTREE_VERSION_RC", "0")))
+if args in (["-h"], ["-s"]):
+    # Independent native-style declaration roster. v2 condensed -h omits the
+    # detailed mapping/alignment-only flags; the shared probe must request -s.
+    version = os.environ.get("FAKE_GTOTREE_VERSION", "GToTree v2.0.0")
+    v2 = version.startswith("GToTree v2")
+    flags = ["-f <file>", "-H <file>", "-j <int>", "-o <dir>"]
+    if not v2 or args == ["-s"]:
+        flags += ["-m <file>", "-M <int>", "-N", "-k"]
+    if not v2:
+        flags += ["-n <int>"]
+    missing = os.environ.get("FAKE_GTOTREE_HELP_MISSING", "")
+    flags = [line for line in flags if line.split()[0] != missing]
+    print("\n".join(flags))
+    sys.exit(int(os.environ.get("FAKE_GTOTREE_HELP_RC", "0")))
 rec = os.environ.get("FAKE_RECORD")
 if rec:
     with open(rec, "a") as fh: fh.write(json.dumps({"tool": "gtotree", "argv": args,
+        "python": sys.executable, "prefix": sys.prefix,
         "GToTree_HMM_dir": os.environ.get("GToTree_HMM_dir")}) + "\n")
 mode = os.environ.get("FAKE_GTOTREE_MODE", "ok")
 if mode == "fail_hmm":
@@ -88,7 +110,8 @@ import json, os, sys
 args = sys.argv[1:]
 rec = os.environ.get("FAKE_RECORD")
 if rec:
-    with open(rec, "a") as fh: fh.write(json.dumps({"tool": "iqtree", "argv": args}) + "\n")
+    with open(rec, "a") as fh: fh.write(json.dumps({"tool": "iqtree", "argv": args,
+        "python": sys.executable, "prefix": sys.prefix}) + "\n")
 prefix = args[args.index("--prefix") + 1] if "--prefix" in args else "iqtree"
 mode = os.environ.get("FAKE_IQTREE_MODE", "complete")
 good = open(os.environ["FAKE_GOOD_TREE"]).read()
@@ -103,6 +126,41 @@ elif mode == "interrupted":
     open(prefix + ".log", "w").write("IQ-TREE multicore version 3.0.1\nGenerating 1000 samples for ultrafast bootstrap...\n")
 sys.exit(int(os.environ.get("FAKE_IQTREE_RC", "0")))
 '''
+
+
+@pytest.fixture(name="tmp_path")
+def native_tree_tmp_path(tmp_path_factory):
+    """Scoped to four importing test modules; production requires space-free paths.
+
+    Keep a lifecycle/hash inventory under pytest's own basetemp, and remove only
+    the owned external synthetic tree before teardown completes.
+    """
+    receipt_dir = tmp_path_factory.mktemp("trees432_native_scope")
+    receipt_path = receipt_dir / "external_temp_receipt.json"
+    receipt = {"schema": "sapote-mamey.test-native-tree-temp.v1", "status": "ACTIVE",
+               "scope": "synthetic tree432 test fixture only", "external_temp_root": None,
+               "cleanup_complete": False}
+    with tempfile.TemporaryDirectory(prefix="sapote-trees432-", dir="/tmp") as temporary:
+        root = Path(temporary).resolve()
+        assert " " not in str(root), "native runner fixture needs a space-free physical path"
+        receipt["external_temp_root"] = str(root)
+        receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
+        try:
+            yield root
+        finally:
+            files = []
+            for path in sorted(root.rglob("*")):
+                if path.is_symlink():
+                    files.append({"path": path.relative_to(root).as_posix(), "kind": "symlink",
+                                  "target": os.readlink(path)})
+                elif path.is_file():
+                    data = path.read_bytes()
+                    files.append({"path": path.relative_to(root).as_posix(), "kind": "file",
+                                  "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()})
+            receipt.update(files_before_cleanup=files, file_count=len(files),
+                           file_bytes=sum(row.get("bytes", 0) for row in files))
+    receipt.update(status="CLEANED", cleanup_complete=not root.exists())
+    receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
 
 
 def _load(path, name):
@@ -121,14 +179,13 @@ def load_gate():
 
 
 def _script(path, body):
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write(body.replace("#!/usr/bin/env python3", "#!" + sys.executable, 1))
+    write_python_fixture(path, body, mode=None)
     os.chmod(path, os.stat(path).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     return path
 
 
 def install_fake_bins(tmp_path, monkeypatch, version="GToTree v2.0.0", gtotree_name="gtotree",
-                      with_hmm=True):
+                      with_hmm=True, admit_synthetic_resource_profile=True):
     """Fake env: <tmp>/env/bin/{gtotree,iqtree}, <tmp>/env/share/gtotree/hmm_sets/Actinobacteria.hmm.
     Returns dict(bin=..., hmm_dir=..., hmm=..., record=...)."""
     env = tmp_path / "env"
@@ -140,6 +197,31 @@ def install_fake_bins(tmp_path, monkeypatch, version="GToTree v2.0.0", gtotree_n
     if with_hmm:
         hmm.write_text("HMMER3/f [3.3]\nNAME  fake\n")
     _script(str(binp / gtotree_name), FAKE_GTOTREE)
+    if admit_synthetic_resource_profile:
+        # This child implements no native HMM search. Its exact source is bound
+        # here solely to retain downstream launcher/gate test coverage while
+        # the default native v2 resource profile remains held in production.
+        sys.path.insert(0, os.path.join(ROOT, "tools"))
+        import _gtotree_versions as policy
+        original_contract = policy.resource_contract
+        fake_path = binp / gtotree_name
+        fake_payload = fake_path.with_name(fake_path.name + ".fixture.py")
+        fake_sha = hashlib.sha256(fake_path.read_bytes()).hexdigest()
+        payload_sha = hashlib.sha256(fake_payload.read_bytes()).hexdigest()
+        def synthetic_resource_contract(version_text, threads, jobs):
+            result = original_contract(version_text, threads, jobs)
+            if result["profile"] == "2.0.x":
+                assert hashlib.sha256(fake_path.read_bytes()).hexdigest() == fake_sha
+                assert hashlib.sha256(fake_payload.read_bytes()).hexdigest() == payload_sha
+                assert version_text.strip() == version.strip()
+                result.update(status="PASS_EXPLICIT_CLI_RESOURCE_BOUND", hmm_threads=0,
+                    maximum_parallel_search_threads=0, hmm_control="NO_HMM_STAGE_IN_SYNTHETIC_CHILD",
+                    source_profile="TEST_ONLY_BOUND_SYNTHETIC_CHILD",
+                    synthetic_child={"path": str(fake_path), "sha256": fake_sha,
+                                     "payload_path": str(fake_payload), "payload_sha256": payload_sha,
+                                     "native_execution": False})
+            return result
+        monkeypatch.setattr(policy, "resource_contract", synthetic_resource_contract)
     _script(str(binp / "iqtree"), FAKE_IQTREE)
     record = tmp_path / "fake_record.jsonl"
     good = tmp_path / "good.tre"; good.write_text(GOOD_TREE)
@@ -151,7 +233,8 @@ def install_fake_bins(tmp_path, monkeypatch, version="GToTree v2.0.0", gtotree_n
     monkeypatch.setenv("FAKE_GOOD_TREE", str(good))
     monkeypatch.setenv("FAKE_NOSUPPORT_TREE", str(nosup))
     for var in ("FAKE_GTOTREE_MODE", "FAKE_DROP_TIPS", "FAKE_IQTREE_MODE", "FAKE_GTOTREE_RC",
-                "FAKE_IQTREE_RC", "FAKE_ALN_NAME"):
+                "FAKE_IQTREE_RC", "FAKE_ALN_NAME", "FAKE_GTOTREE_VERSION_RC",
+                "FAKE_GTOTREE_HELP_RC", "FAKE_GTOTREE_HELP_MISSING"):
         monkeypatch.delenv(var, raising=False)
     return {"bin": str(binp), "hmm_dir": str(hmm_dir), "hmm": str(hmm), "record": str(record)}
 

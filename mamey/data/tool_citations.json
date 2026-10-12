@@ -1,7 +1,7 @@
 {
   "schema": "sapote-mamey/tool_citations@1",
   "generated": "2026-07-22",
-  "provenance": "Crossref-verified this session (Lab Quest / a contributor lane tool-citation pass). Version-matched to the tools in Tools/TOOL_INVENTORY.md.",
+  "provenance": "Crossref-verified (a contributor lane tool-citation pass). Version-matched to the tools in Tools/TOOL_INVENTORY.md.",
   "note": "Every external tool/database with a paper of record. Software without one (openpyxl, reportlab, Pillow, pypdf, streamlit, ijson, pytest, pyfamsa, pytrimal, taxopy, gffutils) is cite-as-software: name+version+URL.",
   "count": 43,
   "references": [

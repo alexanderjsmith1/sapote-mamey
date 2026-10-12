@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from .figure_set_renderer import _load_with_benchmarks
+from .figure_source_bundle import read_verified_source_tables, verify_source_bundle
 
 
 SCHEMA_VERSION = "sapote-mamey.owner-kept-figure-inputs.v1"
@@ -83,10 +84,6 @@ def _truth(value: Any) -> bool:
     return str(value).strip().lower() in {"true", "1", "yes"}
 
 
-def _source_outputs(receipt: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    return {str(row.get("path")): row for row in receipt.get("outputs") or []}
-
-
 def build_owner_kept_inputs(
     widget_data: str | Path,
     source_bundle: str | Path,
@@ -94,43 +91,34 @@ def build_owner_kept_inputs(
     *,
     external_benchmark_ids: Sequence[str] = (),
 ) -> dict[str, Any]:
-    widget_path, payload, selected_ids, study_ids, benchmarks, selected_benchmarks = _load_with_benchmarks(
-        widget_data, external_benchmark_ids
-    )
+    widget_path = Path(widget_data).resolve()
     bundle = Path(source_bundle).resolve()
     destination = Path(outdir).resolve()
     if destination.exists():
         raise ValueError("FIGURE_INPUT_OUTPUT_EXISTS: choose a new output directory")
-    receipt_path = bundle / "SOURCE_BUNDLE_RECEIPT.json"
-    if not receipt_path.is_file():
-        raise ValueError("FIGURE_INPUT_SOURCE_RECEIPT_MISSING")
-    source_receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    if source_receipt.get("status") not in {"PASS", "PASS_WITH_ISSUES"}:
-        raise ValueError("FIGURE_INPUT_SOURCE_BUNDLE_NOT_USABLE")
-    source_widget_sha = str((source_receipt.get("source") or {}).get("widget_sha256") or "")
-    if source_widget_sha != _sha256(widget_path):
-        raise ValueError("FIGURE_INPUT_WIDGET_BINDING_MISMATCH")
-    bound_outputs = _source_outputs(source_receipt)
-    for name in REQUIRED_SOURCE_TABLES:
-        path = bundle / name
-        record = bound_outputs.get(name)
-        if not path.is_file() or not record or record.get("sha256") != _sha256(path):
-            raise ValueError(f"FIGURE_INPUT_SOURCE_TABLE_BINDING_FAILED: {name}")
+    source_binding = verify_source_bundle(widget_path, bundle, required_tables=REQUIRED_SOURCE_TABLES)
+    receipt_path = Path(source_binding["receipt_path"])
+    source_receipt = source_binding["receipt"]
+    widget_snapshot_sha256 = source_receipt["source"]["widget_sha256"]
+    widget_path, payload, selected_ids, study_ids, benchmarks, selected_benchmarks = _load_with_benchmarks(
+        widget_path, external_benchmark_ids, expected_widget_sha256=widget_snapshot_sha256
+    )
 
+    parsed_tables = read_verified_source_tables(bundle, source_binding, tables=REQUIRED_SOURCE_TABLES, encoding="utf-8-sig")
     selected = set(selected_ids)
     study = set(study_ids)
-    context_rows = [row for row in _read_csv(bundle / "STRAIN_CONTEXT.csv") if row.get("strain") in selected]
+    context_rows = [row for row in parsed_tables["STRAIN_CONTEXT.csv"] if row.get("strain") in selected]
     context = {row["strain"]: row for row in context_rows}
     if set(selected_ids) != set(context):
         raise ValueError("FIGURE_INPUT_CONTEXT_KEYSET_MISMATCH")
 
-    domain_rows = [row for row in _read_csv(bundle / "DOMAIN_CATEGORY_COUNTS.csv") if row.get("strain") in selected]
-    cassette_rows = [row for row in _read_csv(bundle / "CASSETTE_FAMILY_COUNTS.csv") if row.get("strain") in selected]
-    resistance_rows = [row for row in _read_csv(bundle / "RESISTANCE_FAMILY_COUNTS.csv") if row.get("strain") in selected]
-    extended_rows = [row for row in _read_csv(bundle / "BGC_EXTENDED_EVIDENCE.csv") if row.get("strain") in selected]
-    scan_rows = [row for row in _read_csv(bundle / "MANIFEST_SOURCE_SCAN_COUNTS.csv") if row.get("strain") in selected]
-    membership_rows = [row for row in _read_csv(bundle / "BGC_CLASS_MEMBERSHIPS.csv") if row.get("strain") in selected]
-    bgc_rows = [row for row in _read_csv(bundle / "BGC_RECORDS.csv") if row.get("strain") in selected]
+    domain_rows = [row for row in parsed_tables["DOMAIN_CATEGORY_COUNTS.csv"] if row.get("strain") in selected]
+    cassette_rows = [row for row in parsed_tables["CASSETTE_FAMILY_COUNTS.csv"] if row.get("strain") in selected]
+    resistance_rows = [row for row in parsed_tables["RESISTANCE_FAMILY_COUNTS.csv"] if row.get("strain") in selected]
+    extended_rows = [row for row in parsed_tables["BGC_EXTENDED_EVIDENCE.csv"] if row.get("strain") in selected]
+    scan_rows = [row for row in parsed_tables["MANIFEST_SOURCE_SCAN_COUNTS.csv"] if row.get("strain") in selected]
+    membership_rows = [row for row in parsed_tables["BGC_CLASS_MEMBERSHIPS.csv"] if row.get("strain") in selected]
+    bgc_rows = [row for row in parsed_tables["BGC_RECORDS.csv"] if row.get("strain") in selected]
 
     class_counts = Counter((row["strain"], row["product_class"]) for row in membership_rows)
     adapted = {
@@ -287,13 +275,14 @@ def build_owner_kept_inputs(
             path = stage / name
             _write_text(path, _csv_text(fields, rows))
             outputs.append({"path": name, "rows": len(rows), "bytes": path.stat().st_size, "sha256": _sha256(path)})
+        verify_source_bundle(widget_path, bundle, required_tables=REQUIRED_SOURCE_TABLES, expected_receipt_sha256=source_binding["receipt_sha256"])
         result = {
             "schema_version": SCHEMA_VERSION,
             "status": "PASS" if all(row["status"] == "REBUILD_READY" for row in readiness_rows) else "PASS_WITH_HOLDS",
             "source": {
                 "widget_data": widget_path.name,
-                "widget_sha256": _sha256(widget_path),
-                "source_bundle_receipt_sha256": _sha256(receipt_path),
+                "widget_sha256": widget_snapshot_sha256,
+                "source_bundle_receipt_sha256": source_binding["receipt_sha256"],
             },
             "study_denominator": len(study),
             "selected_records": len(selected_ids),

@@ -20,4 +20,4 @@ def test_species_from_tip_strips_accession_first():
 def test_culture_collection_code_is_not_an_accession():
     assert _m().species_from_tip("IFO_14684_Streptomyces_griseus")[1] == ""
 def test_query_label_grammar():
-    assert _m().query_label("AS-427", "Bombus sp.", "PX565021") == "AS-427 [Bombus sp.] (PX565021)"
+    assert _m().query_label("SYNTHETIC_REFERENCE_01", "SYNTHETIC_SOURCE", "SYNTH_ACC") == "SYNTHETIC_REFERENCE_01 [SYNTHETIC_SOURCE] (SYNTH_ACC)"

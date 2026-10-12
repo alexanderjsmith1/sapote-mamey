@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from ._python_fixture_launcher import write_python_fixture
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOL = ROOT / "tools/make_release_tarball.sh"
@@ -18,8 +19,7 @@ def test_postbuild_check_refuses_hidden_appledouble_member(tmp_path):
     shimdir = tmp_path / "shim"
     shimdir.mkdir()
     shim = shimdir / "tar"
-    shim.write_text(f'''#!{sys.executable}
-import io, os, subprocess, sys, tarfile
+    write_python_fixture(shim, '''import io, os, subprocess, sys, tarfile
 args = sys.argv[1:]
 real = "/usr/bin/tar"
 if "-czf" in args:
@@ -44,8 +44,8 @@ if "-tzf" in args:
     sys.exit(result.returncode)
 sys.exit(subprocess.run([real, *args]).returncode)
 ''')
-    shim.chmod(0o755)
     env = os.environ.copy()
+    env["PYTHON"] = sys.executable
     env["PATH"] = str(shimdir) + os.pathsep + env["PATH"]
     result = subprocess.run(["bash", str(TOOL), str(source), str(output)],
                             env=env, capture_output=True, text=True, timeout=30)

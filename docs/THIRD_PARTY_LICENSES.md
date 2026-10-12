@@ -10,9 +10,19 @@ is retained alongside it:
 
 | Component | Location | License | Copyright |
 |---|---|---|---|
-| **ijson** | `mamey/_vendor/ijson/` | BSD (2-clause) | © 2010 Ivan Sagalaev |
+| **ijson** | `mamey/_vendor/ijson/` | BSD-3-Clause (ijson); separate YAJL notice retained | © 2010 Ivan Sagalaev (ijson); © 2007–2014 Lloyd Hilaiel (YAJL) |
 
-The full license text is at `mamey/_vendor/ijson/LICENSE.txt` and is preserved unmodified.
+The retained file `mamey/_vendor/ijson/LICENSE.txt` contains the three-clause ijson
+redistribution/non-endorsement notice and disclaimer, followed by a distinct YAJL
+permission notice and disclaimer. Preserve both notices with the redistributed source.
+The YAJL notice does not establish which native backend or library is installed, selected
+or linked at runtime; inspect the exact obtained distribution and loaded backend separately.
+The local `version.py` declares ijson 3.5.0; this is a local declaration, not independent
+verification of an upstream tagged source or of the installed package.
+
+`pyproject.toml` declares `ijson>=3.2.0,<4.0` as a core dependency. The `json` extra is a
+compatibility alias. Retained fallback sources do not remove that installation requirement,
+and their presence does not prove that a particular fallback or pure-Python backend loaded.
 
 ## Runtime dependency license records (verify exact obtained distribution)
 
@@ -26,7 +36,7 @@ This CODE tree also contains three bootstrap wheel archives under `wheels/` (whe
 | pandas | BSD 3-Clause |
 | matplotlib | Matplotlib License (BSD-style, PSF-derived) |
 | openpyxl | MIT |
-| ijson | BSD (also a pip dependency; vendored copy above) |
+| ijson | Retained ijson source: BSD-3-Clause plus separate YAJL notice above; verify the exact installed distribution/backend |
 | biopython | Biopython License Agreement / BSD 3-Clause |
 | pyhmmer | MIT |
 | pyfamsa, pyfastani, pyfastx, pyfaidx | MIT / BSD (per project) |

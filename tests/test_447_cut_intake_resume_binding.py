@@ -138,7 +138,7 @@ def test_mismatched_or_unbound_success_holds_repeatedly_before_overwrite(tmp_pat
         receipt(out).write_text(json.dumps(data))
     else:
         extra = ['--' + change.removeprefix('option_'), {'option_source': 'changed source',
-                 'option_mode': 'standard', 'option_release': 'PRIVATE'}[change]]
+                 'option_mode': 'standard', 'option_release': 'PUBLIC'}[change]]
     before = m._tree_binding(package(out))
     for repeat in range(2):
         assert run(resume=True, extra=extra) == 1

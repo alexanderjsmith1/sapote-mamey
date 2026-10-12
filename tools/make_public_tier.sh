@@ -69,6 +69,14 @@ if [ -n "$PRIVACY_PROFILE" ] && [ ! -f "$PRIVACY_PROFILE" ]; then
   echo "FATAL: --privacy-profile is not a readable file: $PRIVACY_PROFILE" >&2
   exit 2
 fi
+# BEGIN PUBLIC AS PRIVACY PREFLIGHT
+# Fail before staging when inherited environment requests obsolete permissive
+# settings. A private merged scaffold remains separate from a public cut.
+if [ "$TIER" != "merged" ] && { [ "${AS_SCRUB:-1}" != "1" ] || [ "${AS_GUARD_RETIRED:-0}" != "0" ]; }; then
+  echo "REFUSED: public tiers require AS_SCRUB=1 and AS_GUARD_RETIRED=0 (check-only private-ID audit)." >&2
+  exit 2
+fi
+# END PUBLIC AS PRIVACY PREFLIGHT
 # v9.7.382 (Codex due-diligence): the documented direct path did not export BUILD_STAMP, so the old
 # `date`-default invented a stamp that disagreed with the staged BUILD_STAMP.txt build= line and made
 # check_release_manifest refuse the cut. Derive the default from the SOURCE BUILD_STAMP.txt; fail loudly
@@ -99,6 +107,20 @@ if [ -e "$ARCHIVE" ] || [ -L "$ARCHIVE" ]; then
   exit 9
 fi
 
+# Source-provenance file holds are independent of identity redaction.
+# Explicit actions below perform only file-hold work; full staged audits still run later.
+public_file_hold_action() {
+  if [ -n "$PRIVACY_PROFILE" ]; then
+    "$PYTHON" "$SRC/tools/public_release_audit.py" "$@" --privacy-profile "$PRIVACY_PROFILE"
+  else
+    "$PYTHON" "$SRC/tools/public_release_audit.py" "$@"
+  fi
+}
+if [ "$TIER" != "merged" ]; then
+  public_file_hold_action "$SRC" --check-public-export-file-holds \
+    || { echo "REFUSED: source-provenance file-hold preflight failed." >&2; exit 1; }
+fi
+
 WORK="$(mktemp -d)"
 ARCHIVE_TMPDIR=""
 cleanup() {
@@ -108,6 +130,12 @@ cleanup() {
 trap cleanup EXIT
 STAGE="$WORK/sapote-mamey"
 mkdir -p "$STAGE"; cp -a "$SRC/." "$STAGE/"
+
+# Apply only to the untouched disposable copy, before redaction or self-stamping.
+if [ "$TIER" != "merged" ]; then
+  public_file_hold_action "$STAGE" --apply-public-export-file-holds --file-hold-source "$SRC" \
+    || { echo "REFUSED: source-bound file-hold apply failed; disposable stage will be discarded." >&2; exit 1; }
+fi
 
 # BEGIN COMMON CORRESPONDENCE EXCLUSION
 # Owner ruling: this author note is correspondence, not bundle content. Apply to every tier,
@@ -188,17 +216,22 @@ case "$TIER" in
     ;;
   merged) : ;;   # keep everything, including private/ and real AS IDs
   public)
-    # v9.7.271: the Pfam HMM is CC0 (freely redistributable) and the only other stripped item, the
-    # teicoplanin fixtures, were retired for a small public fixture (v9.7.270). There is therefore
-    # nothing left that must be withheld from a public release, so the public tier now ships the SAME
-    # content as the code tier (HMM included) — it is a labelled alias of code pending the tier reorg.
-    # See NOTICE for the CC0 attribution. No strip, no download stubs, no fail-closed HMM check.
+    # Public uses the code content policy. Scanner databases are operator-provisioned
+    # rather than frozen into code releases, independently of Pfam's CC0 licence.
+    # The shared stage policy below removes the reserved databases and their indexes.
     rm -rf "$STAGE/private" "$STAGE/cohort" "$STAGE/merged_cohort" "$STAGE/data" \
            "$STAGE/release2_source_library" "$STAGE/docs/legacy" "$STAGE/offline_deps" 2>/dev/null || true
     strip_internal
-    echo "  public tier: ships full content incl. Pfam HMM (CC0) — content-identical to the code tier"
+    echo "  public tier: code content policy; operator-provisioned scanner databases/indexes excluded"
     ;;
 esac
+
+# Exact reserved asset names are owned by one policy, shared with tier derivation.
+# Only the disposable stage is mutated; merged is a private scaffold and keeps them.
+if [ "$TIER" != "merged" ]; then
+  "$PYTHON" "$SRC/tools/scanner_hmm_release_policy.py" --stage-root "$STAGE" \
+    || { echo "REFUSED: scanner asset stage exclusion failed." >&2; exit 1; }
+fi
 
 # --- 1b. self-stamp the release manifest version (prevents the v9.5.5-style drift) -------------------
 if [ "$VERSION" != "unknown" ] && [ -f "$STAGE/RELEASE_MANIFEST.md" ]; then
@@ -292,27 +325,13 @@ if [ "$TIER" != "merged" ] && [ -f "$SRC/tools/release_denylist.txt" ]; then
 fi
 
 # --- 3. leak audit — refuse to ship if anything survives --------------------
-# v9.7.156 (PI decision, the release owner, 2026-06-30): the AS-series privacy guard is
-# RETIRED. All AS strains have 16S on GenBank publicly associating strain/genus/host; BGC content
-# is not meaningful additional disclosure; Sapote-Mamey ships concurrent with the publications.
-# The AS-ID portions of the leak audit are DEMOTED from FAIL to WARN. The machinery is retained
-# (reusable if a future private cohort needs it) — set AS_GUARD_RETIRED=0 to re-arm. All OTHER
-# hygiene (private/ tree, internal working docs, denylist terms, SID redaction) stays hard-fail.
-AS_GUARD_RETIRED="${AS_GUARD_RETIRED:-1}"
-# v9.7.364 NOTE: this AS_SCRUB reference is the LEAK AUDIT, which is a different control from the
-# scrub removed above. The scrub REWROTE content; this only REPORTS. the Developer or User approved removing the
-# scrub machinery, not disabling a safety net, so the audit is retained as-is. If the AS-disclosure
-# decision (GOV-001) is ever repudiated, this is the switch that re-arms hard-fail leak detection.
-AS_SCRUB="${AS_SCRUB:-0}"
-_as_leak() {   # $1 = message. Fully deactivated when AS_SCRUB=0 (cohort public, PI 2026-07-06);
-               # WARN when the guard is retired but scrub armed; hard-fail only when fully armed.
-  if [ "$AS_SCRUB" != "1" ]; then
-    :   # cohort public — AS leak audit deactivated (re-arm with AS_SCRUB=1)
-  elif [ "$AS_GUARD_RETIRED" = "1" ]; then
-    echo "WARN (AS guard retired 2026-06-30): $1" >&2
-  else
-    echo "$1" >&2; FAIL=1
-  fi
+# M5 privacy policy: research AS data is excluded from public releases. These
+# controls perform check-only detection; they never rewrite scientific records.
+# Public exceptions and documented synthetic IDs remain owned by the detector.
+AS_GUARD_RETIRED="${AS_GUARD_RETIRED:-0}"
+AS_SCRUB="${AS_SCRUB:-1}"
+_as_leak() {
+  echo "$1" >&2; FAIL=1
 }
 FAIL=0
 # v9.7.442 (candidate, a session): assembly contig names are a SEPARATE disclosure class from
@@ -422,14 +441,14 @@ public_release_audit_stage() {
   local audit_flag="${1:-}"
   if [ -n "$PRIVACY_PROFILE" ] && [ -n "$audit_flag" ]; then
     "$PYTHON" "$STAGE/tools/public_release_audit.py" "$STAGE" \
-      --privacy-profile "$PRIVACY_PROFILE" "$audit_flag"
+      --file-hold-source "$SRC" --privacy-profile "$PRIVACY_PROFILE" "$audit_flag"
   elif [ -n "$PRIVACY_PROFILE" ]; then
     "$PYTHON" "$STAGE/tools/public_release_audit.py" "$STAGE" \
-      --privacy-profile "$PRIVACY_PROFILE"
+      --file-hold-source "$SRC" --privacy-profile "$PRIVACY_PROFILE"
   elif [ -n "$audit_flag" ]; then
-    "$PYTHON" "$STAGE/tools/public_release_audit.py" "$STAGE" "$audit_flag"
+    "$PYTHON" "$STAGE/tools/public_release_audit.py" "$STAGE" --file-hold-source "$SRC" "$audit_flag"
   else
-    "$PYTHON" "$STAGE/tools/public_release_audit.py" "$STAGE"
+    "$PYTHON" "$STAGE/tools/public_release_audit.py" "$STAGE" --file-hold-source "$SRC"
   fi
 }
 
@@ -540,6 +559,11 @@ if [ "$TIER" != "merged" ]; then
 fi
 
 # --- 3a. emit per-tier membership manifest (sorted path list) for cross-tier diffing ---
+if [ "$TIER" != "merged" ]; then
+  "$PYTHON" "$SRC/tools/scanner_hmm_release_policy.py" --stage-root "$STAGE" --check-only \
+    || { echo "REFUSED: scanner assets reappeared after staged gates." >&2; exit 1; }
+fi
+
 # NC-001/002/003: the manifest is generated by the ONE shared tracked-file policy that the checker
 # (tools/check_release_manifest.py) also consumes — so builder and checker can never enumerate two
 # file-sets. That policy excludes the cut's own RELEASE ARTIFACTS (cut logs, SHA256SUMS*, the tier
@@ -583,18 +607,13 @@ if [ -n "$CKF" ]; then
 fi
 
 # --- 3c. fail-closed invariant: no unpublished AS-### IDs in a public tier ---
-# release-health 2026-08-04 (the patch lane): this AS-ONLY invariant must honour AS_SCRUB exactly like the §3
-# leak audit above. Under the PI decision (2026-07-06, AS_SCRUB=0) the AS-/Hymenoptera cohort is PUBLIC,
-# so surviving AS IDs are EXPECTED, not a leak — running an `--as-only` fail here contradicted that policy
-# and refused every code/public cut (the two test_public_tier_strip_v9_7_267 failures). §3 already
-# deactivates the AS/AJS/PENDING leak checks when AS_SCRUB!=1; §3c was the one gate left un-gated. This
-# aligns them. Machinery retained + reversible: AS_SCRUB=1 re-arms the full AS invariant for a future
-# private cohort. `--as-only` never covered AJS-/PENDING-, so nothing else loses protection here.
+# Public cuts require the check-only invariant. Historical disclosure rulings
+# do not authorize inclusion of a user's current private research inputs.
 if [ "$TIER" != merged ] && [ "$AS_SCRUB" = "1" ]; then
   ( cd "$STAGE" && { "$PYTHON" -m pytest tests/test_no_unpublished_ids_in_public_tier.py -q 2>/dev/null || "$PYTHON" tools/redact_public_tier.py --tree . --walk --check-only --as-only; } ) \
     || { echo "FATAL: public-tier unpublished-ID invariant FAILED for $TIER" >&2; exit 5; }
 elif [ "$TIER" != merged ]; then
-  echo "  §3c AS-ID invariant DEACTIVATED (AS_SCRUB=0, PI 2026-07-06 — cohort public). Set AS_SCRUB=1 to re-arm." >&2
+  echo "FATAL: public-tier private-ID audit unexpectedly disabled" >&2; exit 5
 fi
 
 # --- 3d. tier-derivation parity gate (v9.7.97): the public tier must be an exact redaction-view

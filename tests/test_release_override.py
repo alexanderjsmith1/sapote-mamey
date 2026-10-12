@@ -46,6 +46,7 @@ def test_registry_membership_blocks_public_override():
     assert resolve_release("mysecret", "PUBLIC", private_registry=frozenset({"mysecret"})) == ("PRIVATE", True)
 
 
-def test_known_public_pattern_still_public_by_default():
-    assert resolve_release(_SID)[0] == "PUBLIC"
-    assert resolve_release("SCLAV")[0] == "PUBLIC"
+def test_public_looking_patterns_require_explicit_authority():
+    assert resolve_release(_SID)[0] == "PRIVATE"
+    assert resolve_release("SCLAV")[0] == "PRIVATE"
+    assert resolve_release("SCLAV", "PUBLIC") == ("PUBLIC", False)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 
 import pytest
@@ -40,8 +41,19 @@ def test_atlas_receipt_separates_independent_gates(tmp_path, monkeypatch, source
     # separation itself must still be present and publication must stay unset.
     source_bundle = tmp_path / "bundle"
     source_bundle.mkdir()
+    widget_path = tmp_path / "widget.json"
+    widget_path.write_text(json.dumps({"strains": {"TEST-STUDY": {"governance": "GOVERNED"}}}), encoding="utf-8")
+    outputs = []
+    for name in figure_atlas.SOURCE_TABLES_ATLAS:
+        table = source_bundle / name
+        table.write_text("value\n1\n", encoding="utf-8")
+        outputs.append({"path": table.name, "sha256": hashlib.sha256(table.read_bytes()).hexdigest()})
     (source_bundle / "SOURCE_BUNDLE_RECEIPT.json").write_text(
-        json.dumps({"status": source_status}), encoding="utf-8"
+        json.dumps({
+            "status": source_status,
+            "source": {"widget_sha256": hashlib.sha256(widget_path.read_bytes()).hexdigest()},
+            "outputs": outputs,
+        }), encoding="utf-8"
     )
     receipt = figure_atlas.render_implemented_atlas(
         tmp_path / "widget.json", source_bundle, tmp_path / "atlas"

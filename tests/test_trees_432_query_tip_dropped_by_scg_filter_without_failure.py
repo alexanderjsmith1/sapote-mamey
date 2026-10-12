@@ -8,6 +8,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _trees_432_fakes as F  # noqa: E402
+from _trees_432_fakes import native_tree_tmp_path  # noqa: E402,F401 - module-local tmp_path fixture
 
 
 def _v2_out(tmp_path, tips, dropped):
@@ -118,8 +119,13 @@ def test_runner_allows_declared_reference_drop(tmp_path, monkeypatch):
     # declared queries exclude the dropped one; without --allow-reference-drop it is still hard
     assert mod.main(F.base_args(gl, wd, query_tips="Streptomyces_coelicolor_A32")) == 7
     assert F.read_status(wd)["status"] == "REFERENCE_TIP_DROPPED"
-    rc = mod.main(F.base_args(gl, wd, query_tips="Streptomyces_coelicolor_A32", allow_reference_drop=True))
+    # Each run owns fresh evidence, including an explicitly permitted reference drop.
+    refused_status = (wd / 'run_status.json').read_bytes()
+    allowed_wd = tmp_path / 'wd_allowed'
+    rc = mod.main(F.base_args(gl, allowed_wd, query_tips="Streptomyces_coelicolor_A32", allow_reference_drop=True))
     assert rc == 0
-    st = F.read_status(wd)
+    st = F.read_status(allowed_wd)
     assert st["status"] == "DONE" and st["tip_retention"] == "REFERENCE_TIP_DROPPED_ALLOWED"
-    assert (wd / "DROPPED_BY_QC.tsv").exists()
+    assert (allowed_wd / "DROPPED_BY_QC.tsv").exists()
+    assert F.read_status(wd)["status"] == "REFERENCE_TIP_DROPPED"
+    assert (wd / 'run_status.json').read_bytes() == refused_status

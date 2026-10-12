@@ -12,6 +12,9 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import Any, Iterable
+import copy
+import hashlib
+import json
 import itertools
 import math
 from .crosswalk import contig_key
@@ -21,6 +24,12 @@ import zipfile
 from .models import BGCRecord
 from .antismash_evidence import _region_key_from_name  # internal stable-key helper
 from .ziputil import regular_file_names
+from .parsers import GbkSizeGuardRefusal, _safe_read_text
+from .parsers import archive_sha256, extract_contig_sequences, iter_region_core_inputs, validate_region_intake_resources, _open_region_core_snapshot, RGGMCI_CORE_RECORD_FIELDS
+from .rescue_groups import both_at_contig_ends, candidate_groups
+from .parsers import extract_cds_features, extract_domain_features
+from .gene_context import build_gene_context
+from .clusterblast_genes import functional_profile_from_gene_context, modular_profile_from_gene_context, rescue_functional_complementarity, modular_continuation
 from .class_architecture import product_families
 
 
@@ -580,7 +589,7 @@ class ClusterBlastReference:
 
 
 def _read_text(zf: zipfile.ZipFile, name: str) -> str:
-    return zf.read(name).decode("utf-8", errors="replace")
+    return _safe_read_text(zf, name)
 
 
 def _norm_type_tokens(text: str) -> set[str]:
@@ -822,6 +831,8 @@ def parse_clusterblast_reference_map(zip_path: str | Path, bgcs: list[BGCRecord]
             files.append(name)
             try:
                 refs.extend(_parse_clusterblast_refs_from_text(name, _read_text(zf, name), bgc_by_key))
+            except GbkSizeGuardRefusal:
+                raise  # Resource refusal is not missing-reference evidence.
             except Exception as exc:  # pragma: no cover - defensive parse ledger
                 refs.append(ClusterBlastReference(
                     bgc_id="PARSE_ERROR", contig="", region_number=None, region_key=None,
@@ -1534,7 +1545,8 @@ def run_rggmci(zip_path: str | Path, bgcs: list[BGCRecord],
                residue_work_dir: str | Path | None = None, reference_completion: str = "auto",
                mibig_db: str | Path | None = None, mibig_db_registry_from: str | Path | None = None,
                sensitivity: str = "sensitive", label: str | None = None, threads: int = 4,
-               completion_work_dir: str | Path | None = None, pfam_hmm: str | Path | None = None) -> dict[str, Any]:
+               completion_work_dir: str | Path | None = None, pfam_hmm: str | Path | None = None,
+               resource_receipt: dict | None = None) -> dict[str, Any]:
     """Score every region pair, then add two report-only evidence layers (neither changes a score or confidence).
 
     - Reference-guided completion (ref_completion.py), on by default: each edge region's best KnownClusterBlast MIBiG
@@ -1555,19 +1567,22 @@ def run_rggmci(zip_path: str | Path, bgcs: list[BGCRecord],
                                                         glycosyltransferase_bgcs=gt)
     result["reference_map_status"] = reference_map.get("status")
     result["reference_parse_error_count"] = reference_map.get("parse_error_count", 0)
-    from .ref_completion import complete, find_aligner, resolve_mibig_db, resolve_pfam_hmm
+    from .ref_completion import complete, find_aligner, resolve_mibig_db, resolve_pfam_hmm, resource_descriptor
     if reference_completion == "off":
         db_path, how, pfam_path, pfam_how = None, "off", None, "off"
     else:
         db_path, how = resolve_mibig_db(mibig_db, registry_from=mibig_db_registry_from)
         pfam_path, pfam_how = resolve_pfam_hmm(pfam_hmm, registry_from=mibig_db_registry_from)
+    if resource_receipt is not None:
+        resource_receipt["mibig_database"] = resource_descriptor(db_path, found_by=how)
+        resource_receipt["pfam_database"] = resource_descriptor(pfam_path, found_by=pfam_how)
     if diamond_db is None and db_path and find_aligner(diamond)[0] == "diamond":
         dmnd = Path(db_path, "mibig_proteins.dmnd")
         diamond_db = dmnd if dmnd.is_file() else None
     if diamond_db is not None:
         from .residue_tiling import add_residue_tiling
         add_residue_tiling(result, zip_path, bgcs, reference_map, diamond_db, diamond=diamond, scope=residue_scope,
-                           work_dir=residue_work_dir)
+                           work_dir=residue_work_dir, **({"resource_receipt": resource_receipt, "threads": threads} if resource_receipt is not None else {}))
 
     def _depth(a: str, b: str) -> float | None:
         r = depth_fields(a, b)["depth_ratio"]
@@ -1575,5 +1590,202 @@ def run_rggmci(zip_path: str | Path, bgcs: list[BGCRecord],
 
     complete(result, zip_path, bgcs, reference_map, edge, label=label, mibig_db=db_path, mibig_db_how=how,
              mode="off" if reference_completion == "off" else "auto", diamond=diamond, sensitivity=sensitivity,
-             threads=threads, depth_of=_depth, work_dir=completion_work_dir, pfam_hmm=pfam_path, pfam_found_by=pfam_how)
+             threads=threads, depth_of=_depth, work_dir=completion_work_dir, pfam_hmm=pfam_path, pfam_found_by=pfam_how,
+             **({"resource_receipt": resource_receipt} if resource_receipt is not None else {}))
     return result
+
+
+# High-level program contract. Low-level compute/run_rggmci contigs=None remains unavailable.
+SHARED_INVOCATION_SCHEMA = "rggmci-shared-invocation-v3"
+AUTO_SEQUENCE_CONTEXT = object()
+EMPTY_PAIR_COLUMNS = ["pair", "bgc_a", "contig_a", "region_a", "identity_a", "products_a", "edge_a",
+                      "bgc_b", "contig_b", "region_b", "identity_b", "products_b", "edge_b",
+                      "rggmci_score", "rggmci_confidence"]
+GROUP_COLUMNS = ["genome", "group", "n_regions", "n_contigs", "n_at_contig_ends", "high_pairs", "regions", "pairs",
+                 "possible_moderate_links"]
+SUMMARY_COLUMNS = ["genome", "regions", "scored_pairs", "high", "moderate", "high_cross_contig", "high_both_at_contig_ends",
+                   "candidate_groups", "largest_group_regions", "related_loci", "reference_map_status",
+                   "completion_tier", "completion_partners_accepted", "completion_split_genes_clear", "error"]
+
+
+def prepare_archive_inputs(zip_path: str | Path, *, core_snapshot: dict | None = None,
+                           contigs=AUTO_SEQUENCE_CONTEXT, label: str | None = None) -> dict:
+    """Prepare identical common records/context, never reinterpret explicit None as AUTO."""
+    if label is not None and (not isinstance(label, str) or not label.strip() or any(c in label for c in "\r\n\0")):
+        raise ValueError("RGGMCI_LOGICAL_LABEL_INVALID")
+    validate_region_intake_resources(zip_path)
+    checksum = archive_sha256(zip_path)
+    if core_snapshot is None:
+        diagnostics = []
+        records = [copy.deepcopy(fields) for _, _, fields, _ in
+                   iter_region_core_inputs(zip_path, intake_diagnostics=diagnostics)]
+    else:
+        records, diagnostics = _open_region_core_snapshot(core_snapshot, checksum)
+    aliases = set()
+    for record in records:
+        if set(record) != set(RGGMCI_CORE_RECORD_FIELDS):
+            raise ValueError("RGGMCI_CORE_SNAPSHOT_FIELD_MISMATCH")
+        if not record["bgc_id"] or record["bgc_id"] in aliases or not record["contig"] or not record["source_gbk"]:
+            raise ValueError("RGGMCI_CORE_IDENTITY_UNRESOLVED")
+        aliases.add(record["bgc_id"])
+        region = record["region_number"]
+        match = re.search(r"region(\d+)", Path(record["source_gbk"]).name, flags=re.I)
+        if not isinstance(region, int) or region <= 0 or (match and int(match.group(1)) != region):
+            raise ValueError("RGGMCI_CORE_REGION_IDENTITY_CONFLICT")
+    automatic = contigs is AUTO_SEQUENCE_CONTEXT
+    sequences = extract_contig_sequences(zip_path) if automatic else contigs
+    if sequences is not None and not isinstance(sequences, dict):
+        raise TypeError("contigs must be a mapping, None, or AUTO_SEQUENCE_CONTEXT")
+    if sequences is not None:
+        # Parser backends preserve ORIGIN case differently; molecular context is case-independent.
+        sequences = {key: str(value).upper() for key, value in sequences.items()}
+    sequence_roster = [] if sequences is None else [
+        {"contig": key, "length": len(value), "sha256": hashlib.sha256(value.encode()).hexdigest()}
+        for key, value in sorted(sequences.items())]
+    if archive_sha256(zip_path) != checksum:
+        raise ValueError("RGGMCI_INPUT_CHANGED_DURING_PREPARATION")
+    return {"bgcs": [BGCRecord(**copy.deepcopy(record)) for record in records], "contigs": sequences,
+            "records": records, "diagnostics": diagnostics,
+            "input": {"antismash_zip": Path(zip_path).name, "antismash_zip_sha256": checksum,
+                      "label": label if label is not None else Path(zip_path).stem},
+            "sequence_context": {"available": sequences is not None, "records": sequence_roster, "normalization": "uppercase"},
+            "sequence_context_origin": "archive_fasta_else_longest_gbk_per_contig" if automatic else "caller_supplied"}
+
+
+def result_summary(name: str, result: dict) -> dict:
+    pairs = result.get("ranked_pairs") or []
+    groups = result.get("candidate_groups") or []
+    block = result.get("reference_completion") or {}
+    high = lambda p: str(p.get("rggmci_confidence", "")).startswith("HIGH")
+    return dict(genome=name, regions=len(result.get("regions") or []), scored_pairs=len(pairs),
+                high=sum(high(p) for p in pairs),
+                moderate=sum(str(p.get("rggmci_confidence", "")).startswith("MODERATE") for p in pairs),
+                high_cross_contig=sum(high(p) and p.get("contig_a") != p.get("contig_b") for p in pairs),
+                high_both_at_contig_ends=sum(high(p) and p.get("contig_a") != p.get("contig_b")
+                                             and p.get("both_at_contig_ends", False) for p in pairs),
+                candidate_groups=len(groups), largest_group_regions=max((g["n_regions"] for g in groups), default=0),
+                related_loci=len(result.get("related_locus_pairs") or []),
+                reference_map_status=result.get("reference_map_status"), completion_tier=block.get("completion_tier", ""),
+                completion_partners_accepted=sum(bool(p.get("accepted")) for p in block.get("partners") or []),
+                completion_split_genes_clear=sum(p.get("split_call") == "CLEAR" for p in block.get("splits") or []), error="")
+
+
+def _archive_functional_context(zip_path: str | Path, bgcs: list[BGCRecord]) -> dict:
+    """Reuse the native feature/context owners without package-file readback.
+
+    Missing CDS context remains missing; raised parser/resource/computation failures propagate.
+    Existing general source-reader malformed/empty-member warnings are preserved.
+    No caller-supplied context or independently maintained classification rules are accepted.
+    """
+    context = build_gene_context(bgcs, extract_cds_features(zip_path), extract_domain_features(zip_path))
+    return {"functional_profiles": functional_profile_from_gene_context(context["bgcs"]),
+            "modular_profiles": modular_profile_from_gene_context(context["bgcs"]),
+            "provenance": {"schema_version": context["schema_version"], "source": "archive_cds_domain_features",
+                           "n_cds": context["n_cds"], "n_bgcs_with_cds": context["n_bgcs_with_cds"]}}
+
+
+def _annotate_functional_pair(pair: dict, functional: dict, modular: dict) -> None:
+    """The former native annotation fields, with unchanged rules and missing defaults."""
+    fc = rescue_functional_complementarity(functional.get(pair.get("bgc_a")), functional.get(pair.get("bgc_b")))
+    pair["functional_rescue_class"] = fc.get("functional_rescue_class", "UNKNOWN_NO_PROFILE")
+    pair["a_core_fraction"] = fc.get("a_core_fraction")
+    pair["b_core_fraction"] = fc.get("b_core_fraction")
+    pair["a_functional_roles"] = "; ".join(fc.get("a_roles", []))
+    pair["b_functional_roles"] = "; ".join(fc.get("b_roles", []))
+    mc = modular_continuation(modular.get(pair.get("bgc_a")), modular.get(pair.get("bgc_b")))
+    pair["modular_continuation"] = mc.get("modular_continuation")
+    for key in ("a_assembly_line_cds", "b_assembly_line_cds", "a_release_cds", "b_release_cds"):
+        pair[key] = mc.get(key, "")
+
+
+def run_archive(zip_path: str | Path, *, core_snapshot: dict | None = None,
+                contigs=AUTO_SEQUENCE_CONTEXT, label: str | None = None,
+                reference_completion: str = "auto", mibig_db=None, mibig_db_registry_from=None,
+                diamond=None, diamond_db=None, residue_scope: str = "st_paralog", residue_work_dir=None,
+                sensitivity: str = "sensitive", threads: int = 4, completion_work_dir=None, pfam_hmm=None) -> dict:
+    """The shared actual program invocation; scalar scientific gates remain in run_rggmci."""
+    if reference_completion == "on":  # Preserve the documented Mamey compatibility alias.
+        reference_completion = "auto"
+    if reference_completion not in {"auto", "off"} or threads < 1 or residue_scope not in {"st_paralog", "all"}:
+        raise ValueError("invalid shared RGGMCI completion/thread/residue configuration")
+    from .ref_completion import SENSITIVITIES, verify_resource_descriptor
+    if sensitivity not in SENSITIVITIES:
+        raise ValueError("invalid shared RGGMCI sensitivity")
+    prepared = prepare_archive_inputs(zip_path, core_snapshot=core_snapshot, contigs=contigs, label=label)
+    functional_context = _archive_functional_context(zip_path, prepared["bgcs"])
+    if archive_sha256(zip_path) != prepared["input"]["antismash_zip_sha256"]:
+        raise ValueError("RGGMCI_INPUT_CHANGED_DURING_FUNCTIONAL_CONTEXT")
+    resources = {}
+    result = run_rggmci(zip_path, prepared["bgcs"], contigs=prepared["contigs"],
+                       reference_completion=reference_completion, mibig_db=mibig_db,
+                       mibig_db_registry_from=mibig_db_registry_from, diamond=diamond, diamond_db=diamond_db,
+                       residue_scope=residue_scope, residue_work_dir=residue_work_dir, sensitivity=sensitivity,
+                       threads=threads, label=prepared["input"]["label"], completion_work_dir=completion_work_dir,
+                       pfam_hmm=pfam_hmm, resource_receipt=resources)
+    if archive_sha256(zip_path) != prepared["input"]["antismash_zip_sha256"]:
+        raise ValueError("RGGMCI_INPUT_CHANGED_DURING_INVOCATION")
+    for resource in resources.values():
+        verify_resource_descriptor(resource)
+    result["schema"] = SHARED_INVOCATION_SCHEMA
+    result["input"] = prepared["input"]
+    result["intake_diagnostics"] = prepared["diagnostics"]
+    result["regions"] = []
+    by_alias = {}
+    for record in prepared["records"]:
+        region = f"region{record['region_number']:03d}"
+        identity = f"{prepared['input']['label']} / {record['contig']} / {region} / {record['bgc_id']}"
+        enriched = {**record, "region": region, "identity": identity}
+        by_alias[record["bgc_id"]] = enriched
+        result["regions"].append(enriched)
+    for key in ("ranked_pairs", "related_locus_pairs", "split_candidates"):
+        for pair in result.get(key) or []:
+            for side in ("a", "b"):
+                source = by_alias.get(pair.get(f"bgc_{side}"))
+                if source is None or source["contig"] != pair.get(f"contig_{side}"):
+                    raise ValueError("RGGMCI_PAIR_IDENTITY_CONFLICT")
+                pair[f"region_{side}"] = source["region"]
+                pair[f"identity_{side}"] = source["identity"]
+                pair[f"source_gbk_{side}"] = source["source_gbk"]
+            if key in {"ranked_pairs", "split_candidates"}:
+                pair["both_at_contig_ends"] = both_at_contig_ends(pair)
+                _annotate_functional_pair(pair, functional_context["functional_profiles"],
+                                          functional_context["modular_profiles"])
+    result["functional_profiles"] = functional_context["functional_profiles"]
+    result["modular_profiles"] = functional_context["modular_profiles"]
+    result["functional_context"] = {**functional_context["provenance"],
+                                    "input_sha256": prepared["input"]["antismash_zip_sha256"]}
+    result["candidate_groups"] = candidate_groups(result.get("ranked_pairs") or [])
+    for group in result["candidate_groups"]:
+        for record in group["regions"]:
+            source = by_alias.get(record["bgc_id"])
+            if source is None or source["contig"] != record["contig"]:
+                raise ValueError("RGGMCI_GROUP_IDENTITY_CONFLICT")
+            record.update(region=source["region"], identity=source["identity"], source_gbk=source["source_gbk"])
+    result["invocation"] = dict(reference_completion=reference_completion, sensitivity=sensitivity, threads=threads,
+                                residue_scope=residue_scope, sequence_context=prepared["sequence_context"],
+                                resources={key: {k: v for k, v in item.items() if k != "path"}
+                                           for key, item in resources.items()})
+    paths = {key: item["path"] for key, item in resources.items()}
+    if "residue_tiling_status" in result:
+        # Preserve the former machine path explicitly in wrapper context, not analytical equality.
+        paths["residue_tiling_status.diamond_db"] = result["residue_tiling_status"].pop("diamond_db", None)
+    result["wrapper_context"] = {"resource_paths": paths, "sequence_context_origin": prepared["sequence_context_origin"]}
+    return result
+
+
+def canonical_artifacts(result: dict, *, name: str) -> dict[str, bytes]:
+    """One lossless deterministic export owner for both distribution wrappers."""
+    from .ref_completion import table_payloads, tsv_payload
+    if not name or Path(name).name != name or name in {".", ".."}:
+        raise ValueError("canonical artifact name must be a basename")
+    pairs = result.get("ranked_pairs") or []
+    related = result.get("related_locus_pairs") or []
+    logical = (result.get("input") or {}).get("label", name)
+    groups = [{"genome": logical, **group} for group in result.get("candidate_groups") or []]
+    output = {f"{name}.json": (json.dumps(result, indent=1, sort_keys=True, default=str) + "\n").encode(),
+              f"{name}_pairs.tsv": tsv_payload(pairs, EMPTY_PAIR_COLUMNS),
+              f"{name}_related_loci.tsv": tsv_payload(related, EMPTY_PAIR_COLUMNS + ["related_because"]),
+              f"{name}_candidate_groups.tsv": tsv_payload(groups, GROUP_COLUMNS),
+              f"{name}_summary.tsv": tsv_payload([result_summary(logical, result)], SUMMARY_COLUMNS)}
+    output.update(table_payloads(result.get("reference_completion") or {}, f"{name}_"))
+    return output

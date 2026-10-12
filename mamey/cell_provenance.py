@@ -32,7 +32,7 @@ STATUS_GLOSSARY = {
     'COMPLETE_INFERRED_LOW_CONFIDENCE': 'Filled by conservative inference; review before claims.',
     'NEEDS_ANTISMASH_OUTPUT': 'Needs antiSMASH output ZIP/folder; assembled FASTA alone is not enough.',
     'NEEDS_PROTEIN_FASTA': 'Needs protein FASTA before HMMER/DIAMOND evidence can be generated.',
-    'NEEDS_HMMER_DOMTBLOUT': 'Needs HMMER hmmscan --domtblout structured output.',
+    'NEEDS_HMMER_DOMTBLOUT': 'Needs source-bound HMMER structured output and integration review; no general workbook importer is available.',
     'NEEDS_DIAMOND_TSV': 'Needs DIAMOND BLASTP-like TSV output.',
     'MANUAL_BLASTP_OPTIONAL': 'Optional NCBI BLASTP spot-check for top proteins only.',
     'LOW_CONFIDENCE_REVIEW': 'Evidence exists but requires review before claims.',
@@ -114,7 +114,7 @@ def build_cell_provenance(run: Any, package_dir: str | Path) -> list[dict[str, s
     # External-evidence fields that will often be missing in standalone packages.
     external_rows = [
         ('Protein_Evidence', 'protein_fasta', 'Protein FASTA available', 'NEEDS_PROTEIN_FASTA', 'protein sequences', 'STRAIN_proteins.faa', 'protein FASTA extractor or gene caller', 'protein FASTA', 'Generate proteins from antiSMASH GenBank translations or local gene calling.'),
-        ('HMMER', 'hmmscan_domtblout', 'HMMER marker/cassette hits', 'NEEDS_HMMER_DOMTBLOUT', 'HMMER profile scan', 'STRAIN_hmmscan.domtblout', 'HMMER domtblout parser', 'HMMER', 'Run hmmscan --domtblout against protein FASTA and Mamey marker HMMs.'),
+        ('HMMER', 'hmmscan_domtblout', 'HMMER marker/cassette hits', 'NEEDS_HMMER_DOMTBLOUT', 'HMMER profile scan', 'STRAIN_hmmscan.domtblout', 'independent HMMER output; no general workbook importer', 'HMMER', 'Use a compatible local profile library and retain query, library and tool hashes plus coordinates. Review the output separately; keep this field pending until source-bound integration has a receipt.'),
         ('DIAMOND', 'diamond_hits_tsv', 'Fast BLASTP-like homolog hits', 'NEEDS_DIAMOND_TSV', 'DIAMOND blastp output', 'STRAIN_diamond_hits.tsv', 'DIAMOND TSV parser', 'DIAMOND', 'Run DIAMOND blastp against selected reference protein database.'),
         ('Manual_BLASTP', 'manual_blastp_top_leads', 'Manual NCBI BLASTP top-lead checks', 'MANUAL_BLASTP_OPTIONAL', 'manual NCBI web BLASTP', 'manual_blastp_notes.tsv', 'human review', 'manual BLASTP', 'Use only for a small number of top proteins, not 10,000-query bulk annotation.'),
     ]
@@ -143,8 +143,9 @@ def build_cell_provenance(run: Any, package_dir: str | Path) -> list[dict[str, s
             notes_for_llm='Edge or full-contig BGCs must carry fragmentation caveats.')
         add(worksheet='External_Evidence', cell_or_field=f'{bgc_id}.HMM_markers', data_label='Per-BGC HMM marker hits',
             current_value='', status_code='NEEDS_HMMER_DOMTBLOUT', derived_from='HMMER domtblout',
-            source_file='STRAIN_hmmscan.domtblout', source_parser='HMMER domtblout parser', evidence_type='HMMER', confidence='not evaluated',
-            why_missing_if_blank='HMMER domtblout was not packaged.', how_to_fill='Generate protein FASTA; run hmmscan --domtblout; import domtblout.',
+            source_file='STRAIN_hmmscan.domtblout', source_parser='independent HMMER output; no general workbook importer', evidence_type='HMMER', confidence='not evaluated',
+            why_missing_if_blank='Source-bound HMMER output and integration review are unavailable.',
+            how_to_fill='Use a compatible local profile library and retain query, library and tool hashes plus coordinates. Review the output separately; keep this field pending until source-bound integration has a receipt.',
             release_handling='Release 1 optional evidence / Release 2 automation candidate', notes_for_llm='Do not infer HMM evidence from product labels alone.')
         add(worksheet='External_Evidence', cell_or_field=f'{bgc_id}.manual_blastp_top_leads', data_label='Manual BLASTP top-lead spot-check candidates',
             current_value='', status_code='MANUAL_BLASTP_OPTIONAL', derived_from='selected top BGC proteins',
@@ -228,7 +229,13 @@ def _write_troubleshooting_folder(package_dir: Path) -> None:
     )
     _atomic_write_text(
         tdir / 'HMMER_Data_Workflow.md',
-        '# HMMER Data Workflow\n\nRun `hmmscan --domtblout STRAIN_hmmscan.domtblout mamey_markers.hmm STRAIN_proteins.faa` after generating a protein FASTA. Parse the `domtblout` file, not the large verbose output, when filling workbook evidence cells.\n',
+        '# HMMER Evidence and Integration Limits\n\n'
+        'HMMER profile matches support domain or protein-family evidence. They do not establish compound identity, activity or production.\n\n'
+        'Choose a compatible local profile library, protein FASTA and HMMER executable. Do not assume the historical filename `mamey_markers.hmm` identifies an available or validated asset. '
+        'Keep query amino-acid SHA-256 values, source identities, profile accessions, match coordinates, library and tool versions/hashes, search settings and original structured output together.\n\n'
+        'The main extraction CLI has no general `--hmmer-domtblout` option or automatic workbook importer. Review independently generated output separately and reconcile its sequence IDs and coordinates with source records. '
+        'Keep `NEEDS_HMMER_DOMTBLOUT` until the explicit source-bound integration/review step has a receipt; a completed search alone does not fill workbook cells. '
+        'antiSMASH annotations and an independent Pfam search remain separate evidence channels.\n',
     )
     _atomic_write_text(
         tdir / 'DIAMOND_Data_Workflow.md',

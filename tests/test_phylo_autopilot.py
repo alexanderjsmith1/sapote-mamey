@@ -51,7 +51,7 @@ def test_route_genus(genus, expect):
 
 
 def test_flag_other_gets_no_reference_group():
-    assigned = {"AS-61": {"genus": "Pseudescherichia", "pident": 99.0, "aln_len": "1400", "title": "x"},
+    assigned = {"SYNTHETIC_REFERENCE_01": {"genus": "Pseudescherichia", "pident": 99.0, "aln_len": "1400", "title": "x"},
                 "AS-1": {"genus": "Micromonospora", "pident": 99.0, "aln_len": "1400", "title": "y"}}
     refs = AP.genera_for_reference(assigned)
     assert "rare_genera" in refs and "Micromonospora" in refs["rare_genera"]

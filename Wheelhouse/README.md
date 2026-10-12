@@ -9,8 +9,7 @@ records, scanner definitions, and validation evidence. It contains data plus a p
  selvamicin producer); add your own records alongside it.
 - `scanners/` — the scanner registry (declarative gate rules) plus prior versions. A raw HMM domain
  hit is not a scanner hit: each scanner carries a cluster-level gate that must fire.
-- `validations/` — scanner validation evidence. Ships with two public worked examples: the AJS327
- answer key (published UC San Diego chemistry) and the selvamicin validation.
+- `validations/` — validation artifacts. A filename, historical status, or assertion of publication does not establish public provenance or reproduce a validation. Distribute examples only when their exact source and derived-result provenance are independently bound.
 - `engine/pyhmmer_scanner_engine.py` — prototype helpers for extracting region-CDS proteins and constructing HMMs. Its main block only prints “loaded”; it implements no scanning or registry-gate CLI. Imports require pyhmmer and Biopython; multi-sequence construction also imports pyfamsa.
 - `hmm/scanner_pfam.hmm` — a possible provisioned 35-family HMM path; model payloads are not guaranteed to ship in this lean cut. Selector lists in `bundle_support/` are not HMM models.
 - `reports/` — put generated cross-strain reports here.

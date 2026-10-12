@@ -139,9 +139,29 @@ def test_reestimate_replaces_the_default_pendant(tmp_path):
     assert q.branch_length < 0.06                             # 3 of 300 sites differ from B
 
 
-def test_report_draws_the_restored_graft():
-    src = inspect.getsource(phylo_place.cmd_report)
-    assert "generate_length_restored_graft" in src
-    assert "BRANCH_LENGTHS_NOT_RESTORED" in src
-    # the restored graft is created before the neighbourhood table and every figure are built from `graft`
-    assert src.index("generate_length_restored_graft(") < src.index("_grafted_neighborhoods(graft")
+def test_report_draws_the_restored_graft(tmp_path,monkeypatch):
+    from types import SimpleNamespace
+    import sys
+    from .test_m5_restored_graft_receipt import fixture_sources
+    run,report,sources,calls=fixture_sources(tmp_path,monkeypatch,default=True)
+    monkeypatch.setattr(phylo_place,'ROOT',str(tmp_path/'unused'))
+    monkeypatch.setattr(phylo_place,'_env',lambda *a:{})
+    monkeypatch.setattr(phylo_place,'_which',lambda name,*a:'synthetic-gappa' if name=='gappa' else sys.executable if name=='raxml-ng' else None)
+    monkeypatch.setattr(phylo_place,'_dedup_summary',lambda *a:None)
+    consumed=[]
+    def check_tree(tree,*a,**kw):
+        parsed=Phylo.read(tree,'newick')
+        refs=gi._tips(Phylo.read(sources['reference_tree'],'newick'))
+        metric=gi._metric(parsed,refs)
+        key=min(('REF_B',),tuple(sorted(refs-{'REF_B'})))
+        assert metric[key][0]==0
+        assert gi.query_pendant_paths(parsed,refs)['QUERY']==pytest.approx(.0123456789,abs=1e-13)
+        assert str(tree).endswith('lengths_restored.newick')
+        consumed.append(tree)
+        return 0
+    monkeypatch.setattr(phylo_place,'_grafted_neighborhoods',check_tree)
+    monkeypatch.setattr(phylo_place,'_render_tree',check_tree)
+    monkeypatch.setattr(phylo_place,'_color_strips_deliverable',lambda a,out,group,tree,*rest:check_tree(tree) or {'requested':False,'state':'NOT_REQUESTED','variants':[],'artifacts':[]})
+    args=SimpleNamespace(jplace=str(sources['jplace']),outdir=str(report),refpkg=str(sources['reference_tree'].parent),taxonomy=None)
+    assert phylo_place.cmd_report(args)==0
+    assert len(consumed)==3 and len(calls)==2

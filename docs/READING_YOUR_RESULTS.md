@@ -79,6 +79,7 @@ contiguity.
 
 ## Decide what to investigate next
 
+- For a figure handoff, inspect existing `gold_figures/` and `locus_maps/` where present, choose the figure roster with [Make and review figures](FIGURES_START_HERE.md), then use [Evidence to report](EVIDENCE_TO_REPORT.md) for captions, short findings and Methods facts. A Mode B card is an optional selected format.
 - Review a selected region's genes, domain support and reference matches, keeping the full identity.
 - For an edge or full-contig region, inspect candidate links and competing fragment explanations.
 - Treat assay observations as strain/extract context; do not assign them to a locus without evidence.

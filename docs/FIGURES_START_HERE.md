@@ -1,6 +1,6 @@
 # Make and review Mamey figures
 
-Sapote–Mamey v9.7.449 · Mamey engine 1.9.174
+Sapote–Mamey v9.7.450 · Mamey engine 1.9.175
 
 Whatever route you take, the figure must meet the [figure house rules](FIGURE_HOUSE_RULES.md).
 
@@ -8,6 +8,12 @@ Sapote-Mamey has several figure routes with **different input contracts**. Start
 the question you want to show, then choose a route below. A finished image is
 not a validated biological interpretation: keep the plotted values, source
 identity, denominator, methods, and any missingness or assembly warning with it.
+
+For figures with concise factual interpretation, continue with
+[Evidence to report](EVIDENCE_TO_REPORT.md): keep the selected plots, data and scripts,
+then prepare captions, short findings and Methods facts from their actual evidence.
+Mode B cards and white papers are separately selected formats; they are not prerequisites
+for this figure workflow.
 
 ## Aggregate rendering and recovery
 
@@ -163,7 +169,7 @@ Folder discovery selects lowercase `*.png` and excludes `_plot_only` images, App
 
 `tools/figure_methods.py` provides Python `blurb(workflow)` and `caption(workflow, versions=..., params=..., result=..., extra=...)` helpers. The workflow key must exist in `WORKFLOWS`; an unknown key raises `KeyError`. Treat the resulting prose as a draft: the helper inserts fixed method descriptions and citations, formats caller-supplied metadata, and does not verify that the stated methods, parameters or results describe the selected figure. Match each statement to its actual source and execution receipts. Version discovery is a separate best-effort probe, not an automatic part of `caption()` or proof of the software used for an earlier result. See [external-tool provenance](EXTERNAL_TOOL_INVENTORY.md).
 
-The current `caption()` always appends a claim-safety paragraph containing wording refused by the shared caption guard. Rewrite that operator-facing paragraph into appropriate analysis notes and retain the scientific limits as concrete statements of what was measured. Check the finished reader caption before use; do not assume the helper's draft already passes publication wording checks (`tools/figure_methods.py:131–165`; `tools/caption_guard.py:53–64`).
+`caption()` emits method and reading text; it does not append operator-governance prose. All built-in defaults are covered by the unchanged caption guard. Use `operator_notes(workflow)` separately for interpretation/provenance reminders; `CLAIM_SAFETY` remains available for compatibility, outside publication captions. Defaults do not assume verified type-strain status, automatic best-fit model selection, a particular support test or calibrated taxonomic confidence. Caller `versions`, `params`, `result` and `extra` are retained, not filtered: run `check_caption()` on the finished caption and bind every method/result statement to the actual figure receipts. Guard compliance is wording validation, not scientific approval.
 
 For Python callers, `check_caption(text)` raises `CaptionGovernanceError` on matched wording; `raises=False` returns `(phrase, reason)` findings. It collapses whitespace, ignores letter case and keeps only the longest overlapping phrase match. It does not validate methods, references, units, denominators, provenance or accuracy, and an empty string returns no findings. `scan_paths(paths)` reads UTF-8 files and returns only paths with findings. By default an unreadable input raises `CaptionUnreadableError`; with `strict=False`, such inputs are reported under `__unreadable__`. An empty path list or readable empty file also returns `{}`. Retain the intended input roster and confirm every file was readable and substantive before interpreting an empty report; it is not a checked-file inventory or scientific approval (`tools/caption_guard.py:49–91`). These helpers inspect text, not the rendered page.
 

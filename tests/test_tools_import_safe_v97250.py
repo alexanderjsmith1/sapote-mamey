@@ -44,30 +44,17 @@ SCANNED_DIRS = ("tools", "deliverable_tools")
 
 # Scripts whose top level is not import-safe today. Deprecated one-offs; delete the entry when the
 # file grows a `main()` and a `__main__` guard, or when the file is removed.
-NO_MAIN_GUARD_BASELINE = frozenset({
-    # DEPRECATED frozen cohort one-off; json.load(open('bgc_data.json')) at line 28.
-    "tools/build_master.py",
-    # Reads figure_ready/strain_summary.csv at import. Example script, never imported in production.
-    "tools/plot_examples.py",
-    # v9.7.416 brought deliverable_tools/ into scope and baselined SEVEN more offenders here.
-    # v9.7.417 REPAIRED all seven instead of carrying them: each grew a `__main__` guard, with the
-    # body indented and otherwise untouched (AST-verified statement for statement). The baseline is
-    # shrink-only and it shrank. Do not re-add them.
-})
+# .450: both known tools/ offenders now have guarded main() entry points.
+# The no-main ledger is paid down; never re-add the repaired entries.
+NO_MAIN_GUARD_BASELINE = frozenset()
+
 
 # The strict subset: module-level statements that WRITE, not merely read. A reader that fires on
 # import is untidy; a writer that fires on import edits canonical deliverables. This set exists so
 # the difference is visible and so it can only ever get smaller.
-WRITES_AT_IMPORT_BASELINE = frozenset({
-    # v9.7.417: the seven deliverable_tools/ writers are GONE from this ledger — guarded, not
-    # excused. Measured before and after on the v9.7.416 candidate with SAPOTE_WORKSPACE_ROOT
-    # pointed at an empty temp directory: importing build_working_genome_set.py wrote
-    # `sapote_deliverables/WORKING_GENOME_SET_2026-08-03/WORKING_GENOME_SET.csv` before the guard
-    # and nothing after it. (The other six crashed on missing inputs first in an EMPTY workspace —
-    # which is the fixture being empty, not those scripts being safe; against a real workspace they
-    # proceed.) One entry remains:
-    "tools/plot_examples.py",   # savefig at import; DEPRECATED example script, never imported
-})
+# .450: the final tools/plot_examples.py import writer is now guarded.
+WRITES_AT_IMPORT_BASELINE = frozenset()
+
 
 # Node types that constitute "work at module import". Assignments and defs are fine; a bare call,
 # a with-block, a loop, or a try that runs at top level is not.
@@ -253,17 +240,17 @@ def test_write_baseline_is_a_ratchet():
 
 
 def test_the_known_offenders_are_still_detected():
-    """Positive control: the gate must actually see what the audits found, in BOTH directories."""
-    detected = set()
-    for p in _tool_files():
-        tree = _parse(p)
-        if tree is None:
-            continue
-        if not _has_main_guard(tree) and _toplevel_work(tree):
-            detected.add(_rel(p))
-    assert NO_MAIN_GUARD_BASELINE <= detected, (
-        f"gate no longer detects the baselined offenders: {NO_MAIN_GUARD_BASELINE - detected}"
-    )
+    """Synthetic positive controls keep the empty paid-down ratchets meaningful."""
+    reader = ast.parse("rows = []\nfor row in open('fixture.csv'):\n    rows.append(row)\n")
+    writer = ast.parse("from pathlib import Path\nPath('fixture.txt').write_text('fixture')\n")
+    assert not _has_main_guard(reader)
+    assert _toplevel_work(reader)
+    assert not _has_main_guard(writer)
+    assert _toplevel_work(writer)
+    assert _toplevel_writes(writer) == [2]
+    guarded = ast.parse("if __name__ == '__main__':\n    open('fixture.txt', 'w').write('fixture')\n")
+    assert _has_main_guard(guarded)
+    assert not _toplevel_writes(guarded)
 
 
 def test_the_scan_actually_covers_deliverable_tools():

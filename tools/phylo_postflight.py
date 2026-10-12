@@ -24,6 +24,11 @@ Read-only. Exit 0 = clean (warnings allowed), 1 = at least one FAIL.
 """
 from __future__ import annotations
 import sys, os, re, csv, json, glob, argparse, statistics
+# Governed children retain Python safe-path and exclude CWD/PYTHONPATH. Admit only
+# this selected script's own directory for its shipped sibling dependencies.
+_script_tools = os.path.dirname(os.path.abspath(__file__))
+if _script_tools not in sys.path:
+    sys.path.insert(0, _script_tools)
 from _wbio import atomic_dump_json_owned as _atomic_write_json
 
 # Portable root (see phylo_preflight): env override, else script grandparent, else workstation.

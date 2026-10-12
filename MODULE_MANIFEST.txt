@@ -154,11 +154,13 @@ mamey/exclusion_gate.py	exclusion_gate.py — leak detector for whole-strain exc
 mamey/exclusions.py	exclusions.py — single source of truth (SSOT) for whole-strain exclusions.
 mamey/external_adapters.py	Build the scan_status dict consumed by MameyRun and written to manifest.json.
 mamey/external_data.py	external_data.py — resolve USER-PROVISIONED third-party datasets. Nothing here is redistributed.
+mamey/figure_factory_cli.py	Compatibility CLI front doors for the optional Figure Factory family.
 mamey/figure_factory_default_config.py	Synthesize a Figure Factory Next config plus its admitted inputs from a package.
 mamey/figure_factory_next.py	Portable, manifest-governed aggregate evidence figures.
 mamey/figure_policy.py	figure_policy.py — canonical figure-content policy for Sapote-Mamey.
 mamey/figure_review_queue.py	Build a portable, paginated owner-review surface for rendered figures.
 mamey/figure_save.py	Canonical paired figure writer and receipt inventory.
+mamey/figure_stamp.py	Write the Sapote-Mamey renderer stamp into saved figures.
 mamey/figure_theme.py	Governed Sapote-Mamey figure theme and export helpers.
 mamey/figures/__init__.py	Sapote-Mamey research patch namespace.
 mamey/figures/locus_comparison.py	Portable, evidence-supplied locus comparisons; no search or linkage inference.
@@ -176,6 +178,7 @@ mamey/gene_context.py	gene_context.py — normalized per-CDS gene context, seale
 mamey/genome_explore.py	mamey.genome_explore — efficient, question-driven genome exploration mode.
 mamey/genus_appendix.py	mamey genus-appendix — antifungal (AF) & antibacterial (AB) candidate appendices, by genus.
 mamey/genus_reference.py	genus_reference.py — read-only access to shipped genus reference banks (v9.7.99).
+mamey/gold_bgc_identity.py	Same-package native Gold identity admission; no scans, inference or package writes.
 mamey/good_guesses.py	mamey good-guesses — the "Good Guesses" interpretive-priors report (FA7 prototype).
 mamey/handoff.py	Portable handoff bundler (v9.7.199).
 mamey/hmm_blastp_adjudicate.py	hmm_blastp_adjudicate — the intrinsic-structure HMM channel, reconciled with extrinsic BLASTp.
@@ -204,6 +207,7 @@ mamey/interactive_figures/theme_gallery.py	Portable theme-gallery prototype for 
 mamey/interactive_figures/three_channel_evidence_matrix.py	Portable static adapter for a three-channel evidence matrix.
 mamey/interactive_figures/widget_data.py	Build the AS widget-data aggregate FROM sealed Mamey packages.
 mamey/issue_registry.py	Typed, user-visible issue and correction logging for sealed packages.
+mamey/json_evidence_state.py	Scoped extraction visibility. Source observation is never upstream validation.
 mamey/judgment_store.py	judgment_store.py — Persistent judgment register for Sapote Mode B output.
 mamey/kcb_frontpage.py	kcb_frontpage — read the antiSMASH "Most similar known cluster" column, for every region.
 mamey/kcb_locusmap.py	mamey/kcb_locusmap.py — offline KnownClusterBlast / ClusterBlast comparative locus maps.
@@ -270,6 +274,7 @@ mamey/modeb_structure_gate.py	modeb_structure_gate.py — structural validator f
 mamey/modeb_subsections.py	modeb_subsections.py — gate-safe #### subsections for the §1–§48 Mode B card (.344).
 mamey/modeb_template_emitter.py	modeb_template_emitter.py — canonical §1–§48 template emitter.
 mamey/models.py	Mamey data models.
+mamey/native_workspace.py	Bounded native working paths; no subprocess, science, installation or discovery.
 mamey/nominal_length.py	mamey/nominal_length.py — BGC length reporting + nominal-length normalization (DRAFT v9.7.104).
 mamey/nonks_second_proof.py	Explicit alternative second-proof policy; no default scientific promotion.
 mamey/npatlas_provision.py	mamey/npatlas_provision.py — user-provisioned NP Atlas ingestion (v9.7.405, punch-card B7).
@@ -316,6 +321,7 @@ mamey/reference_dark_prior.py	FA3 / ADD-03 — First-class Reference-Dark novelt
 mamey/reference_strain_registry.py	Typed loader for an operator-provisioned reference-strain registry.
 mamey/registry_detector.py	registry_detector.py — B2 Phase 1: registry-backed detector loader.
 mamey/registry_schema.py	Shared registry schema for Sapote/Mamey marker and cassette libraries.
+mamey/release_policy.py	Local release decisions and read-only cohort privacy admission.
 mamey/release_qa.py	Release QA integration for legacy matrix and dual-LLM handoff gates.
 mamey/release_receipt_freshness.py	Detect a validation receipt that is older than the code it claims to validate.
 mamey/render_all_figures.py	render_all_figures.py — post-seal aggregate over every applicable figure module.
@@ -324,6 +330,7 @@ mamey/render_safe.py	render_safe.py — layout-safe rendering helpers for boss-r
 mamey/report_card.py	mamey/report_card.py — render the cohesive L0–L1 per-BGC report card from a sealed package.
 mamey/report_from_spec.py	Run the BGC report builder from portable logical-source configuration.
 mamey/report_mode.py	mamey.report_mode — terse by default, legacy compact Mode B scaffold on demand (W7/W24).
+mamey/report_release_policy.py	Reader-facing policy provenance; never permission to transfer an artifact.
 mamey/report_theme.py	Portable Sapote-Mamey report theme tokens.
 mamey/rescue_groups.py	RG-GMCI candidate groups, and one GenBank file per group for the tools that read genes.
 mamey/rescue_two_proof.py	rescue_two_proof.py — the CORE join: RG-GMCI (_4A, reference-based) × KS-clade (_4B, reference-free)
@@ -332,6 +339,7 @@ mamey/resistance_dossier.py	resistance_dossier — post-seal per-BGC resistance-
 mamey/rggmci.py	Reference-Guided Genome Mining Candidate Inference (RG-GMCI).
 mamey/rggmci_rescue_atlas.py	Portable, claim-safe RG-GMCI complementary-rescue atlas.
 mamey/roster_v2.py	roster_v2 — package-native per-BGC, multi-channel gene roster model.
+mamey/rrefinder_status.py	Report-only source availability. Never infer an upstream search or biology.
 mamey/rules.py	mamey.rules — load the standing-rules registry and lint verdict text against it.
 mamey/s3_census_generator.py	§3 gene-census deepener — generate a size-proportionate biosynthetic-core section.
 mamey/sapote_cassettes.py	Sapote cassette registry draft.

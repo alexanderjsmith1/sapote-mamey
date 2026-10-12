@@ -2,36 +2,22 @@
 
 from __future__ import annotations
 
-import os
-import re
 import shutil
 import subprocess
-import sys
 import zipfile
 from pathlib import Path
 
 import pytest
 
+from tests._public_cut_fixture import public_cut_env, public_cut_source
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _build_stamp(root: Path) -> str | None:
-    match = re.search(
-        r"build=(\S+)",
-        (root / "BUILD_STAMP.txt").read_text(encoding="utf-8"),
-    )
-    return match.group(1) if match else None
-
-
 @pytest.mark.skipif(not shutil.which("bash"), reason="bash unavailable")
 def test_code_tier_scrubs_ds_store_from_stage_without_mutating_source(tmp_path: Path):
-    source = tmp_path / "source"
-    shutil.copytree(
-        ROOT,
-        source,
-        ignore=shutil.ignore_patterns(".DS_Store", ".pytest_cache", "__pycache__"),
-    )
+    source = public_cut_source(tmp_path)
     nested = source / "docs" / ".DS_Store"
     root_metadata = source / ".DS_Store"
     nested.write_bytes(b"Finder metadata fixture\x00")
@@ -39,11 +25,9 @@ def test_code_tier_scrubs_ds_store_from_stage_without_mutating_source(tmp_path: 
 
     out = tmp_path / "out"
     out.mkdir()
-    stamp = _build_stamp(source)
-    assert stamp, "fixture must retain a usable build stamp"
-    env = {**os.environ, "BUILD_STAMP": stamp, "SKIP_INTIER_PYTEST": "1", "PYTHON": sys.executable}  # v9.7.410: the cut script honours $PYTHON
+    env = public_cut_env()
     result = subprocess.run(
-        ["bash", "tools/make_public_tier.sh", "code", str(source), str(out)],
+        ["bash", str(ROOT / "tools/make_public_tier.sh"), "code", str(source), str(out)],
         cwd=source,
         env=env,
         capture_output=True,

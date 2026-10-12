@@ -14,6 +14,7 @@ import re
 import stat
 import sys
 from pathlib import Path
+from ._python_fixture_launcher import write_python_fixture
 
 import pytest
 
@@ -173,7 +174,7 @@ def test_unsearched_layers_are_marked_and_footnoted_without_a_page_search(fx, tm
 
 
 def _stub(path, body):
-    path.write_text("#!" + sys.executable + "\n" + body)
+    write_python_fixture(path, body, mode=None)
     path.chmod(path.stat().st_mode | stat.S_IEXEC)
     return path
 
@@ -186,7 +187,7 @@ open({str(calls)!r}, "a").write("hmmsearch\\n")
 out = sys.argv[sys.argv.index("--domtblout") + 1]
 cols = ["x"] * 23
 for tag in ("g2", "g3"):
-    cols[0], cols[3], cols[19], cols[20] = tag, "PKS_KS", "5", "250"
+    cols[0], cols[2], cols[3], cols[19], cols[20] = tag, "300", "PKS_KS", "5", "250"
     open(out, "a").write(" ".join(cols) + "\\n")
 """)
     dmd = _stub(tmp_path / "diamond", f"""import sys
@@ -195,7 +196,7 @@ out = sys.argv[sys.argv.index("-o") + 1]
 open(out, "w").write("g3\\tBGC0000001|abcQ\\t72.0\\t300\\t300\\t300\\t100\\t100\\t1e-50\\t500\\n")
 """)
     (fx / "faa").mkdir(exist_ok=True)
-    (fx / "faa" / f"{S}.faa").write_text("".join(f">{S}|{t}|x\nMKV\n" for t in ("g2", "g3", "g9")))
+    (fx / "faa" / f"{S}.faa").write_text("".join(f">{S}|{t}|x\n" + "M" * 300 + "\n" for t in ("g2", "g3", "g9")))
     (fx / "mp").mkdir(exist_ok=True)
     (fx / "mp" / "mibig_proteins.dmnd").write_text("")
     (fx / "mp" / "mibig_proteins.tsv").write_text("id\tname\nBGC0000001|abcQ\tabcQ\n")
@@ -207,11 +208,16 @@ open(out, "w").write("g3\\tBGC0000001|abcQ\\t72.0\\t300\\t300\\t300\\t100\\t100\
 def _seed_cache(out, tags, domain):
     ps = out / "_page_searches" / S
     ps.mkdir(parents=True)
-    (ps / "proteins.faa").write_text("".join(f">{t}\nMKV\n" for t in tags))
+    (ps / "proteins.faa").write_text("".join(f">{t}\n" + "M" * 300 + "\n" for t in tags))
     cols = ["x"] * 23
-    cols[0], cols[3], cols[19], cols[20] = "g2", domain, "7", "70"
+    cols[0], cols[2], cols[3], cols[19], cols[20] = "g2", "300", domain, "7", "70"
     (ps / "pfam.domtbl").write_text(" ".join(cols) + "\n")
     (ps / "mibig.tsv").write_text("")
+
+
+def _active_cache(out):
+    ps = out / "_page_searches" / S
+    return ps / json.loads((ps / "CURRENT.json").read_text())["generation"]
 
 
 def test_a_cache_for_another_protein_set_is_searched_again(fx, tmp_path):
@@ -222,16 +228,17 @@ def test_a_cache_for_another_protein_set_is_searched_again(fx, tmp_path):
     assert calls.read_text().split() == ["hmmsearch", "diamond"]
     p1 = (out / S / f"{STEM1}.md").read_text()
     assert "STALE_DOMAIN" not in p1 and "PKS_KS 5-250 †" in p1
-    assert (out / "_page_searches" / S / "proteins.faa").read_text().count(">") == 2
+    assert (_active_cache(out) / "proteins.faa").read_text().count(">") == 2
 
 
-def test_a_cache_for_the_same_protein_set_is_reused(fx, tmp_path):
+def test_a_legacy_cache_for_the_same_protein_set_requires_a_completion_receipt(fx, tmp_path):
     calls, kit = _search_kit(fx, tmp_path)
     out = tmp_path / "out"
     _seed_cache(out, ["g2", "g3"], "CACHED_DOMAIN")
     lrp.main(_argv(fx, out, *kit))
-    assert not calls.exists(), "a cache for exactly the needed proteins is not searched again"
-    assert "CACHED_DOMAIN 7-70 †" in (out / S / f"{STEM1}.md").read_text()
+    assert calls.read_text().split() == ["hmmsearch", "diamond"], "headers alone cannot admit legacy evidence"
+    assert "CACHED_DOMAIN" not in (out / S / f"{STEM1}.md").read_text()
+    assert (_active_cache(out) / "PAGE_SEARCH_RECEIPT.json").is_file()
 
 
 def test_a_contig_name_with_a_rewritten_coverage_string_still_shows_its_rows(fx, tmp_path):
@@ -253,7 +260,7 @@ open({str(calls)!r}, "a").write("hmmsearch\\n")
 out = sys.argv[sys.argv.index("--domtblout") + 1]
 cols = ["x"] * 23
 for tag in ("g2", "g3"):
-    cols[0], cols[3], cols[19], cols[20] = tag, "PKS_KS", "5", "250"
+    cols[0], cols[2], cols[3], cols[19], cols[20] = tag, "300", "PKS_KS", "5", "250"
     open(out, "a").write(" ".join(cols) + "\\n")
 """)
     dmd = _stub(tmp_path / "diamond", f"""import sys
@@ -265,7 +272,7 @@ open(out, "w").write("g3\\tBGC0000001|abcQ\\t72.0\\t300\\t300\\t300\\t100\\t100\
     next(g for g in led if g["locus_tag"] == "t1")["L2b_bind"] = "NOT_SEARCHED"
     _write_tsv(fx / "ledger" / f"{S}.tsv", led, lrp.LEDGER_COLUMNS)
     (fx / "faa").mkdir()
-    (fx / "faa" / f"{S}.faa").write_text("".join(f">{S}|{t}|x\nMKV\n" for t in ("g2", "g3", "g9", "t1")))
+    (fx / "faa" / f"{S}.faa").write_text("".join(f">{S}|{t}|x\n" + "M" * 300 + "\n" for t in ("g2", "g3", "g9", "t1")))
     (fx / "mp").mkdir()
     (fx / "mp" / "mibig_proteins.dmnd").write_text("")
     (fx / "mp" / "mibig_proteins.tsv").write_text("id\tname\nBGC0000001|abcQ\tabcQ\n")
@@ -282,7 +289,7 @@ open(out, "w").write("g3\\tBGC0000001|abcQ\\t72.0\\t300\\t300\\t300\\t100\\t100\
     t1 = next(r for r in p2.splitlines() if r.startswith("| t1 |"))
     assert "| no domain at the gathering threshold † |" in t1, "searched, no Pfam domain"
     assert lrp.DAGGER_SEARCHED.strip() in p2
-    assert (tmp_path / "out" / "_page_searches" / S / "proteins.faa").read_text().count(">") == 3
+    assert (_active_cache(tmp_path / "out") / "proteins.faa").read_text().count(">") == 3
 
 
 def test_the_automatic_summary_makes_no_compound_or_activity_claim(fx, tmp_path):
@@ -413,3 +420,36 @@ def test_the_tool_carries_no_workspace_path_or_strain_id():
     src = (ROOT / "tools" / "locus_reading_pages.py").read_text()
     assert not re.search(r"/Users/[^/\s]+/|/home/[^/\s]+/", src)
     assert not re.search(r"\bAS-\d+", src)
+
+
+@pytest.mark.parametrize("was_absent", [False, True])
+def test_build_binds_names_as_consumed_before_initial_search_hash(fx, tmp_path, monkeypatch, was_absent):
+    calls, kit = _search_kit(fx, tmp_path)
+    names_path = fx / "mp" / "mibig_proteins.tsv"
+    if was_absent:
+        names_path.unlink()  # synthetic fixture only
+    reader = lrp._page_mibig_names
+    def read_then_change(path):
+        result = reader(path)
+        Path(path).write_text("id\tname\nBGC0000001|abcQ\tchanged after read\n")
+        return result
+    monkeypatch.setattr(lrp, "_page_mibig_names", read_then_change)
+    def no_search(*_args, **_kwargs):
+        pytest.fail("consumed metadata mismatch must refuse before commands")
+    monkeypatch.setattr(lrp.subprocess, "run", no_search)
+    opened_logs = []
+    original_open = open
+    def capture_log(path, *args, **kwargs):
+        stream = original_open(path, *args, **kwargs)
+        if Path(path).name == "BUILD_LOG.tsv":
+            opened_logs.append(stream)
+        return stream
+    monkeypatch.setattr(lrp, "open", capture_log, raising=False)
+    out = tmp_path / "out"
+    with pytest.raises(ValueError, match="PAGE_SEARCH_SOURCE_CHANGED: consumed_mibig_names"):
+        lrp.main(_argv(fx, out, *kit))
+    assert not calls.exists()
+    assert not list(out.rglob("PAGE_SEARCH_RECEIPT.json"))
+    current = json.loads((out / "_page_searches" / "SOURCE_BINDING_RUN_RECEIPT.json").read_text())
+    assert current["status"] == "FAILED" and current["source_validation"] == "NOT_VERIFIED"
+    assert opened_logs and all(stream.closed for stream in opened_logs)

@@ -84,7 +84,7 @@ TOOLS_ALLOW = {
 # v9.7.371: "hooks" and "sapote_hooks" added — the v9.7.370 cut shipped those directories (an audit lane
 # hook_guard_org card) but this detector never learned them, so any doc naming a genuinely-shipped
 # hook (e.g. sapote_hooks.py, SEAL_GATE_snippet.sh) was flagged as a dangling reference.
-SEARCH_DIRS = ("tools", "mamey", "scripts", "tests", "Wheelhouse", "deliverable_tools", "hooks", "sapote_hooks", "bundle_support", ".", "sapote_addons")  # v9.7.444: optional add-on source (Lab Quest) ships in the bundle
+SEARCH_DIRS = ("tools", "mamey", "scripts", "tests", "Wheelhouse", "deliverable_tools", "hooks", "sapote_hooks", "bundle_support", ".", "sapote_addons")  # optional add-on sources ship in the bundle
 
 
 def _warn_unreadable(p: pathlib.Path, root: pathlib.Path, exc: Exception) -> None:
@@ -138,6 +138,26 @@ def scan(root: pathlib.Path):
     return out
 
 
+def _exact_relative_path_exists(root: pathlib.Path, reference: str) -> bool:
+    """Resolve in-bundle paths by directory-entry spelling on every filesystem.
+
+    A case-insensitive host must not certify a path that fails on Linux. External
+    references retain the established existence check and out-of-bundle policy.
+    """
+    parts = pathlib.PurePosixPath(reference).parts
+    if pathlib.PurePosixPath(reference).is_absolute() or ".." in parts:
+        return (root / reference).exists()
+    current = root
+    for component in parts:
+        try:
+            if component not in {entry.name for entry in current.iterdir()}:
+                return False
+        except (OSError, ValueError):
+            return False
+        current = current / component
+    return current.exists()
+
+
 def scan_tools(root: pathlib.Path, strict_paths: bool = False):
     """Return {name: [referencing_files...]} for backtick-quoted tool/module names that don't
     resolve anywhere under SEARCH_DIRS, after excluding historical/forward-looking docs, generic
@@ -167,7 +187,7 @@ def scan_tools(root: pathlib.Path, strict_paths: bool = False):
                 continue
             if strict_paths and "/" in raw:
                 # path-qualified: the exact relative path must exist
-                if not (root / raw).exists():
+                if not _exact_relative_path_exists(root, raw):
                     out.setdefault(raw, set()).add(rel)
                 continue
             if name in existing:

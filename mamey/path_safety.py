@@ -8,7 +8,7 @@ existing reference GBK and still reported a normal write. ``--outdir`` is the wh
 of these tools, so a path that leaves it must fail closed rather than succeed quietly.
 
 The bundle already contains several ad-hoc containment checks (``mamey/document_factory._contained``,
-``mamey/lab_quest.contained_path``, and inline ``is_relative_to`` guards in
+inline ``is_relative_to`` guards in
 ``cohort_enzyme_neighborhoods.py``, ``scan_channel_alias.py``, ``tool_database_reader.py``). Each is
 bound to its own module's error type or project-root semantics. This module is the general form for
 tools that have none, following the same shape as ``mamey.csv_safety``: importable from ``tools/``,

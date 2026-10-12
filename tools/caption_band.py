@@ -157,6 +157,9 @@ def add_band(plot_png, caption_md, outdir=None) -> Path:
     out_png = outdir / f"{stem}_with_caption.png"
     canvas.save(out_png, dpi=(300, 300))
     canvas.save(outdir / f"{stem}_with_caption.pdf", "PDF", resolution=300)
+    from mamey.figure_stamp import stamp_file
+    for made in (out_png, outdir / f"{stem}_with_caption.pdf"):
+        stamp_file(made, "caption_band")
     sidecar = outdir / f"{stem}_CAPTION.md"
     if caption_md.resolve() != sidecar.resolve():
         shutil.copyfile(caption_md, sidecar)

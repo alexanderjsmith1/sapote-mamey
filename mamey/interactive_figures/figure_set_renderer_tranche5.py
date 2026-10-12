@@ -27,8 +27,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+from .figure_source_bundle import read_verified_source_tables, verify_source_bundle
 from .figure_set_registry import GLOBAL_CLAIM_CEILING, PROFILE, build_registry
 from .figure_set_renderer import (
+    _fresh_output_path,
     Chart, HOST_ORDER, _host, _load, _sha256, _strain_key, _validate_outputs,
     _write_rows, render_svg,
 )
@@ -40,6 +42,8 @@ FAMILY_BASES = {
     "DOM": 129, "ACT": 137, "CCT": 145, "MIS": 153, "PRI": 161,
     "NOV": 169, "RGG": 177, "EVD": 193,
 }
+SOURCE_TABLES_5 = ('BGC_EXTENDED_EVIDENCE.csv', 'DOMAIN_FAMILY_CALLS.csv', 'RGGMCI_BGC_SUMMARY.csv', 'BGC_CLASS_PAIRS.csv', 'EVIDENCE_CHANNEL_STATES.csv', 'BGC_RECORDS.csv', 'BGC_CLASS_MEMBERSHIPS.csv')
+
 IMPLEMENTED_IDS_5 = tuple(
     ["FS021"]
     + [f"FS{base + offset:03d}" for base in FAMILY_BASES.values() for offset in range(7)]
@@ -118,10 +122,10 @@ def _resistance_ordinal(value: str) -> float:
     return 0.0
 
 
-def _metric_rows(bundle: Path) -> list[dict[str, Any]]:
-    extended = _read(bundle / "BGC_EXTENDED_EVIDENCE.csv")
-    domains = _read(bundle / "DOMAIN_FAMILY_CALLS.csv")
-    rgg = _read(bundle / "RGGMCI_BGC_SUMMARY.csv")
+def _metric_rows(bundle: Path, *, parsed_tables: dict[str, list[dict[str, str]]] | None = None) -> list[dict[str, Any]]:
+    extended = (parsed_tables["BGC_EXTENDED_EVIDENCE.csv"] if parsed_tables is not None else _read(bundle / "BGC_EXTENDED_EVIDENCE.csv"))
+    domains = (parsed_tables["DOMAIN_FAMILY_CALLS.csv"] if parsed_tables is not None else _read(bundle / "DOMAIN_FAMILY_CALLS.csv"))
+    rgg = (parsed_tables["RGGMCI_BGC_SUMMARY.csv"] if parsed_tables is not None else _read(bundle / "RGGMCI_BGC_SUMMARY.csv"))
     domain_total: Counter[tuple[str, str]] = Counter()
     for row in domains:
         domain_total[(row["strain"], row["bgc_id"])] += int(_num(row.get("physical_domain_rows")) or 0)
@@ -366,9 +370,9 @@ def _build_active_site_charts(
     return charts
 
 
-def _cooccurrence_host_chart(bundle: Path, governed: Sequence[str], strains: dict[str, Any]) -> Chart:
+def _cooccurrence_host_chart(bundle: Path, governed: Sequence[str], strains: dict[str, Any], *, parsed_tables: dict[str, list[dict[str, str]]] | None = None) -> Chart:
     governed_set = set(governed)
-    rows = [row for row in _read(bundle / "BGC_CLASS_PAIRS.csv") if row["strain"] in governed_set]
+    rows = [row for row in (parsed_tables["BGC_CLASS_PAIRS.csv"] if parsed_tables is not None else _read(bundle / "BGC_CLASS_PAIRS.csv")) if row["strain"] in governed_set]
     pair_counts = Counter(" + ".join(sorted((row["class_a"], row["class_b"]))) for row in rows)
     pairs = _top(pair_counts, 12)
     host_strains = Counter(_host(strains[sid]) for sid in governed)
@@ -379,8 +383,8 @@ def _cooccurrence_host_chart(bundle: Path, governed: Sequence[str], strains: dic
                  {"row": "host", "column": "class_pair", "value": "pairs_per_strain", "legend": "Class-pair memberships per governed strain"})
 
 
-def _evidence_charts(bundle: Path, memberships_all: Sequence[dict[str, str]], strains: dict[str, Any], governed: Sequence[str]) -> list[Chart]:
-    rows_all = _read(bundle / "EVIDENCE_CHANNEL_STATES.csv")
+def _evidence_charts(bundle: Path, memberships_all: Sequence[dict[str, str]], strains: dict[str, Any], governed: Sequence[str], *, parsed_tables: dict[str, list[dict[str, str]]] | None = None) -> list[Chart]:
+    rows_all = (parsed_tables["EVIDENCE_CHANNEL_STATES.csv"] if parsed_tables is not None else _read(bundle / "EVIDENCE_CHANNEL_STATES.csv"))
     governed_set = set(governed)
     rows = [row for row in rows_all if row["strain"] in governed_set]
     positive = lambda state: state.upper() in {"PASS", "MAMEY_COMPLETE", "RECOVERY_VALIDATED"} or state.upper().startswith("COMPLETED")
@@ -416,7 +420,7 @@ def _evidence_charts(bundle: Path, memberships_all: Sequence[dict[str, str]], st
     ):
         values: dict[str, list[float]] = defaultdict(list)
         if category == "boundary":
-            for row in _read(bundle / "BGC_RECORDS.csv"):
+            for row in (parsed_tables["BGC_RECORDS.csv"] if parsed_tables is not None else _read(bundle / "BGC_RECORDS.csv")):
                 if row["strain"] in governed_set and score[row["strain"]] is not None:
                     values[row["boundary"]].append(score[row["strain"]])
         else:
@@ -453,30 +457,38 @@ def _evidence_charts(bundle: Path, memberships_all: Sequence[dict[str, str]], st
     return charts
 
 
-def build_charts_5(payload: dict[str, Any], governed: Sequence[str], bundle: Path) -> list[Chart]:
+def build_charts_5(payload: dict[str, Any], governed: Sequence[str], bundle: Path, *, parsed_tables: dict[str, list[dict[str, str]]] | None = None) -> list[Chart]:
     strains = payload["strains"]
-    memberships_all = _read(bundle / "BGC_CLASS_MEMBERSHIPS.csv")
-    metric_rows = _metric_rows(bundle)
-    charts = [_cooccurrence_host_chart(bundle, governed, strains)]
+    memberships_all = (parsed_tables["BGC_CLASS_MEMBERSHIPS.csv"] if parsed_tables is not None else _read(bundle / "BGC_CLASS_MEMBERSHIPS.csv"))
+    metric_rows = _metric_rows(bundle, parsed_tables=parsed_tables)
+    charts = [_cooccurrence_host_chart(bundle, governed, strains, parsed_tables=parsed_tables)]
     for metric in METRICS:
         charts.extend(_build_metric_charts(metric, metric_rows, memberships_all, strains, governed))
-    charts.extend(_evidence_charts(bundle, memberships_all, strains, governed))
+    charts.extend(_evidence_charts(bundle, memberships_all, strains, governed, parsed_tables=parsed_tables))
     if tuple(chart.figure_id for chart in charts) != IMPLEMENTED_IDS_5:
         raise AssertionError("tranche 5 figure order does not match registry IDs")
     return charts
 
 
-def render_tranche_5(widget_data: str | Path, source_bundle: str | Path, outdir: str | Path) -> dict[str, Any]:
-    widget_path, payload, all_ids, governed = _load(widget_data)
+def render_tranche_5(
+    widget_data: str | Path, source_bundle: str | Path, outdir: str | Path,
+    *, expected_receipt_sha256: str | None = None,
+) -> dict[str, Any]:
+    widget_path = Path(widget_data).resolve()
     bundle = Path(source_bundle).resolve()
     source_receipt = bundle / "SOURCE_BUNDLE_RECEIPT.json"
     if not source_receipt.is_file():
         raise ValueError("source bundle has no SOURCE_BUNDLE_RECEIPT.json")
-    destination = Path(outdir).resolve(); destination.mkdir(parents=True, exist_ok=True)
+    source_binding = verify_source_bundle(widget_path, bundle, required_tables=SOURCE_TABLES_5, expected_receipt_sha256=expected_receipt_sha256)
+    destination = _fresh_output_path(outdir)
+    widget_snapshot_sha256 = source_binding["receipt"]["source"]["widget_sha256"]
+    widget_path, payload, all_ids, governed = _load(widget_path, expected_widget_sha256=widget_snapshot_sha256)
+    parsed_tables = read_verified_source_tables(bundle, source_binding, tables=SOURCE_TABLES_5)
+    destination.mkdir(parents=True)
     figures_dir, data_dir, text_dir = destination / "figures", destination / "data", destination / "text"
     for directory in (figures_dir, data_dir, text_dir): directory.mkdir(parents=True, exist_ok=True)
     registry = {record["figure_set_id"]: record for record in build_registry()}
-    charts = build_charts_5(payload, governed, bundle)
+    charts = build_charts_5(payload, governed, bundle, parsed_tables=parsed_tables)
     manifest = []
     for chart in charts:
         svg_path = figures_dir / f"{chart.figure_id}.svg"
@@ -514,11 +526,12 @@ def render_tranche_5(widget_data: str | Path, source_bundle: str | Path, outdir:
         f'<h1>Codex Figure Factory tranche 5</h1><p>92 source-backed strain- and cohort-specific sets. {html.escape(GLOBAL_CLAIM_CEILING)}</p>'
         f'</header><main>{cards}</main></body></html>', encoding="utf-8")
     checks = _validate_outputs(destination, manifest, governed, IMPLEMENTED_IDS_5, LABEL_IDS_5)
+    verify_source_bundle(widget_path, bundle, required_tables=SOURCE_TABLES_5, expected_receipt_sha256=source_binding["receipt_sha256"])
     receipt = {
         "schema_version": SCHEMA_VERSION,
         "status": "PASS" if all(check["status"] == "PASS" for check in checks) else "FAIL",
         "profile": PROFILE,
-        "source": {"widget_data": str(widget_path), "widget_sha256": _sha256(widget_path), "source_bundle": str(bundle), "source_bundle_receipt_sha256": _sha256(source_receipt)},
+        "source": {"widget_data": str(widget_path), "widget_sha256": widget_snapshot_sha256, "source_bundle": str(bundle), "source_bundle_receipt_sha256": source_binding["receipt_sha256"]},
         "governed_strains": len(governed), "all_packaged_strains": len(all_ids),
         "implemented_count": len(manifest), "implemented_ids": list(IMPLEMENTED_IDS_5),
         "lead_context_policy": "not rendered without an explicit lead ledger",

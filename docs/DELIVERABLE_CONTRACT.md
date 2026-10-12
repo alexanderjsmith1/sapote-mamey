@@ -14,12 +14,28 @@ The following full-suite offer applies when the user requests strain analysis. A
 or completed extraction does not authorize unrelated analysis, all-BGC authoring, external
 submissions, or publication. For a bounded question, deliver the requested result directly.
 
-The deep-dive deliverables are the bundle's primary value. A user must never have to know they exist in order to receive them. At the point any strain reaches analysis-complete (all A1 extraction outputs present), Sapote must not end its turn without doing ONE of:
+The primary analysis handoff is the selected **figure set with its supporting evidence**. Start with
+the scientific question and an explicit figure roster, then use the appropriate existing renderer or
+recipe in [Make and review figures](FIGURES_START_HERE.md). Retain each figure's plotted data,
+source identities and hashes, calculation/parameters, public caption, methods, execution status and
+visual-review record. A rendered image alone does not establish scientific acceptance. Record
+omitted or held figures and the reason instead of silently substituting an older image.
 
-1. **Auto-produce** the full per-strain deep-dive set — Layperson-Ranked Guide, Technical Full-Analysis Report, Compound Detection & Isolation Bench Guide, Fermentation Card, and gene-by-gene detail for the top BGC leads; or
-2. **Explicitly offer it** — a clear, plain-language question asking whether to generate the deep-dive deliverable set, presented as the first item in the next-steps block, phrased so a first-time user understands what they would receive.
+A full Mode B card, consolidated deep-dive PDF, white paper, bench guide or fermentation card is a
+separately selected interpretation deliverable. Their absence does not make a completed requested
+figure set incomplete. Existing card profiles and report tools remain available when their depth
+and format serve the user's question. A bounded evidence brief or caption can accompany figures
+without being promoted to a finished Mode B card.
 
-Default delivery format is a **single consolidated PDF** containing all of the above, because a PDF is the colleague-facing hand-off format; markdown and per-file outputs are offered as alternatives. If the user has stated a standing preference (auto-generate, a named subset, or a format), honor it and skip the question. The offer/auto-build is mandatory and may not be silently dropped: an analysis that stops at the workbook without surfacing the deep-dive set is an **incomplete delivery**.
+Use the LLM to connect source observations, explain disagreements, draft captions and Methods facts,
+and help the user choose the next informative figure. Bind every numerical statement and locus
+attribution to its actual evidence. Preserve the user's edits and scientific decisions. Do not
+invent an analysis, model version, metadata field or result to complete the narrative.
+
+EPA-ng placement, GToTree genome phylogeny and BiG-SLiCE family comparisons have separate input,
+resource and execution contracts. The aggregate figure renderer does not run or establish completion
+of those companion analyses. Admit their actual outputs and metadata before choosing a downstream
+figure; a planner, available executable or existing database is not a completed analysis.
 
 **Generation-time requirements (non-negotiable; verify before any deliverable is handed over).** Every generated deliverable — in tables, prose, headers, and chat — MUST satisfy both:
 
@@ -74,7 +90,7 @@ per-scan CSVs.
 | Issue log | `issue_log.md` | Per-run issues and caveats |
 | Checksums | `checksums_sha256.txt` | Core tracked-file integrity; mutable receipts are exempt and post-seal tracking has its own anchored contract. Inspect actual validator integrity/coverage results |
 
-### A2 — Sapote interpretation documents (PROMPT_BACKED)
+### A2 — Selected Sapote interpretation documents (PROMPT_BACKED)
 
 | Deliverable | Audience | Required sections |
 |---|---|---|

@@ -13,14 +13,17 @@ except ImportError:  # direct execution: no parent package to resolve against.
     from mamey.console import emit
 
 import csv
+import hashlib
 import html
+import io
 import json
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Sequence
 
+from .figure_source_bundle import read_verified_source_tables, verify_source_bundle
 from .figure_set_registry import GLOBAL_CLAIM_CEILING, PROFILE, build_registry
-from .figure_set_renderer import Chart, _load, _sha256, _validate_outputs, _write_rows, build_charts, render_svg
+from .figure_set_renderer import _fresh_output_path, Chart, _load, _sha256, _validate_outputs, _write_rows, build_charts, render_svg
 from .figure_set_renderer_tranche2 import build_charts_2
 from .figure_set_renderer_tranche3 import build_charts_3
 from .figure_set_renderer_tranche4 import build_charts_4
@@ -39,13 +42,19 @@ SOURCE_TO_LEAD = (
     ("NOV", "FS170", "FS176"), ("RGG", "FS178", "FS184"), ("HST", "FS186", "FS192"),
     ("EVD", "FS194", "FS200"),
 )
+SOURCE_TABLES_6 = ('BGC_CLASS_MEMBERSHIPS.csv', 'BGC_CLASS_PAIRS.csv', 'BGC_EXTENDED_EVIDENCE.csv', 'BGC_GENE_FEATURE_TOKENS.csv', 'BGC_MACHINERY_ASSIGNMENTS.csv', 'BGC_RECORDS.csv', 'DOMAIN_FAMILY_CALLS.csv', 'EVIDENCE_CHANNEL_STATES.csv', 'MIBIG_GENE_CONVERGENCE.csv', 'MODULE_DOMAIN_CALLS.csv', 'MODULE_SUBSTRATE_BGC_SUMMARY.csv', 'MODULE_SUBSTRATE_CALLS.csv', 'RGGMCI_BGC_SUMMARY.csv', 'SOURCE_MEMBER_LEDGER.csv')
+
 IMPLEMENTED_IDS_6 = tuple(lead_id for _family, _source_id, lead_id in SOURCE_TO_LEAD)
 
 
-def _read_lead_ledger(path: str | Path, governed: Sequence[str]) -> tuple[Path, list[dict[str, str]], dict[str, list[str]]]:
+def _read_lead_ledger(
+    path: str | Path, governed: Sequence[str], *, expected_sha256: str | None = None,
+) -> tuple[Path, list[dict[str, str]], dict[str, list[str]]]:
     ledger_path = Path(path).resolve()
-    with ledger_path.open(newline="", encoding="utf-8-sig") as stream:
-        lines = [ln for ln in stream if not ln.lstrip().startswith("#")]  # skip mamey provenance lines
+    raw = ledger_path.read_bytes()
+    if expected_sha256 is not None and hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError("FIGURE_INPUT_LEAD_LEDGER_CONSUMED_MISMATCH")
+    lines = [ln for ln in io.StringIO(raw.decode("utf-8-sig"), newline="") if not ln.lstrip().startswith("#")]  # skip mamey provenance lines
     rows = list(csv.DictReader(lines))
     if not rows or "strain" not in (rows[0].keys() if rows else ()):
         raise ValueError("lead ledger must contain at least one row and a strain column")
@@ -69,13 +78,13 @@ def _read_lead_ledger(path: str | Path, governed: Sequence[str]) -> tuple[Path, 
     return ledger_path, included, by_strain
 
 
-def build_charts_6(payload: dict[str, Any], all_ids: Sequence[str], governed: Sequence[str], bundle: Path, leads: dict[str, list[str]]) -> list[Chart]:
+def build_charts_6(payload: dict[str, Any], all_ids: Sequence[str], governed: Sequence[str], bundle: Path, leads: dict[str, list[str]], *, parsed_tables: dict[str, list[dict[str, str]]] | None = None) -> list[Chart]:
     source_charts = []
     source_charts.extend(build_charts(payload, all_ids, governed))
-    source_charts.extend(build_charts_2(payload, all_ids, governed, bundle))
-    source_charts.extend(build_charts_3(payload, all_ids, governed, bundle))
-    source_charts.extend(build_charts_4(payload, all_ids, governed, bundle))
-    source_charts.extend(build_charts_5(payload, governed, bundle))
+    source_charts.extend(build_charts_2(payload, all_ids, governed, bundle, parsed_tables=parsed_tables))
+    source_charts.extend(build_charts_3(payload, all_ids, governed, bundle, parsed_tables=parsed_tables))
+    source_charts.extend(build_charts_4(payload, all_ids, governed, bundle, parsed_tables=parsed_tables))
+    source_charts.extend(build_charts_5(payload, governed, bundle, parsed_tables=parsed_tables))
     lookup = {chart.figure_id: chart for chart in source_charts}
     charts = []
     for family, source_id, lead_id in SOURCE_TO_LEAD:
@@ -117,16 +126,25 @@ def build_charts_6(payload: dict[str, Any], all_ids: Sequence[str], governed: Se
     return charts
 
 
-def render_tranche_6(widget_data: str | Path, source_bundle: str | Path, lead_ledger: str | Path, outdir: str | Path) -> dict[str, Any]:
-    widget_path, payload, all_ids, governed = _load(widget_data)
+def render_tranche_6(
+    widget_data: str | Path, source_bundle: str | Path, lead_ledger: str | Path, outdir: str | Path,
+    *, expected_receipt_sha256: str | None = None, expected_lead_ledger_sha256: str | None = None,
+) -> dict[str, Any]:
+    widget_path = Path(widget_data).resolve()
     bundle = Path(source_bundle).resolve(); source_receipt = bundle / "SOURCE_BUNDLE_RECEIPT.json"
     if not source_receipt.is_file(): raise ValueError("source bundle has no SOURCE_BUNDLE_RECEIPT.json")
-    ledger_path, ledger_rows, leads = _read_lead_ledger(lead_ledger, governed)
-    destination = Path(outdir).resolve(); destination.mkdir(parents=True, exist_ok=True)
+    source_binding = verify_source_bundle(widget_path, bundle, required_tables=SOURCE_TABLES_6, expected_receipt_sha256=expected_receipt_sha256)
+    destination = _fresh_output_path(outdir)
+    widget_snapshot_sha256 = source_binding["receipt"]["source"]["widget_sha256"]
+    widget_path, payload, all_ids, governed = _load(widget_path, expected_widget_sha256=widget_snapshot_sha256)
+    ledger_snapshot_sha256 = expected_lead_ledger_sha256 if expected_lead_ledger_sha256 is not None else _sha256(Path(lead_ledger).resolve())
+    ledger_path, ledger_rows, leads = _read_lead_ledger(lead_ledger, governed, expected_sha256=ledger_snapshot_sha256)
+    parsed_tables = read_verified_source_tables(bundle, source_binding, tables=SOURCE_TABLES_6)
+    destination.mkdir(parents=True)
     figures_dir, data_dir, text_dir = destination / "figures", destination / "data", destination / "text"
     for directory in (figures_dir, data_dir, text_dir): directory.mkdir(parents=True, exist_ok=True)
     registry = {record["figure_set_id"]: record for record in build_registry()}
-    charts = build_charts_6(payload, all_ids, governed, bundle, leads)
+    charts = build_charts_6(payload, all_ids, governed, bundle, leads, parsed_tables=parsed_tables)
     manifest = []
     for chart in charts:
         svg_path = figures_dir / f"{chart.figure_id}.svg"; csv_path = data_dir / f"{chart.figure_id}_data.csv"; text_path = text_dir / f"{chart.figure_id}_CAPTION_METHODS.md"
@@ -135,7 +153,7 @@ def render_tranche_6(widget_data: str | Path, source_bundle: str | Path, lead_le
         text_path.write_text(
             f"# {chart.figure_id} — {chart.title}\n\n## Caption\n\n{spec['caption_template']}\n\n"
             f"## Methods\n\n{spec['methods_template']}\n\n## Lead-ledger method\n\n{chart.subtitle}\n\n"
-            f"Ledger SHA-256: `{_sha256(ledger_path)}`. Declared lead strains: {', '.join(sorted(leads))}. "
+            f"Ledger SHA-256: `{ledger_snapshot_sha256}`. Declared lead strains: {', '.join(sorted(leads))}. "
             "BGC-specific entries, where supplied, are retained in the plotted-data sidecar; strain-level highlighting does not elevate every BGC in that strain.\n\n"
             f"## Claim ceiling\n\n{GLOBAL_CLAIM_CEILING}\n\n## Citation status\n\n"
             "Citations and lead-ledger provenance must be reviewed at manuscript freeze.\n",
@@ -151,11 +169,14 @@ def render_tranche_6(widget_data: str | Path, source_bundle: str | Path, lead_le
         svg_text = (destination / figure["svg"]).read_text(encoding="utf-8")
         if "Ledger-declared lead context" not in svg_text or not all(strain in svg_text for strain in leads): highlighted_failures.append(figure["figure_set_id"])
     checks.append({"check_id": "LEAD_CONTEXT_RENDERED", "status": "PASS" if not highlighted_failures else "FAIL", "detail": "failures=" + (",".join(highlighted_failures) or "none")})
+    verify_source_bundle(widget_path, bundle, required_tables=SOURCE_TABLES_6, expected_receipt_sha256=source_binding["receipt_sha256"])
+    if _sha256(ledger_path) != ledger_snapshot_sha256:
+        raise ValueError("FIGURE_INPUT_LEAD_LEDGER_CHANGED: no successful receipt committed")
     receipt = {
         "schema_version": SCHEMA_VERSION, "status": "PASS" if all(check["status"] == "PASS" for check in checks) else "FAIL",
         "profile": PROFILE, "release_scope": "PRIVATE_REVIEW", "governed_strains": len(governed), "all_packaged_strains": len(all_ids),
         "implemented_count": len(manifest), "implemented_ids": list(IMPLEMENTED_IDS_6),
-        "source": {"widget_data": str(widget_path), "widget_sha256": _sha256(widget_path), "source_bundle": str(bundle), "source_bundle_receipt_sha256": _sha256(source_receipt), "lead_ledger": str(ledger_path), "lead_ledger_sha256": _sha256(ledger_path)},
+        "source": {"widget_data": str(widget_path), "widget_sha256": widget_snapshot_sha256, "source_bundle": str(bundle), "source_bundle_receipt_sha256": source_binding["receipt_sha256"], "lead_ledger": str(ledger_path), "lead_ledger_sha256": ledger_snapshot_sha256},
         "lead_strains": sorted(leads), "lead_ledger_rows": len(ledger_rows), "machine_checks": checks,
         "claim_ceiling": GLOBAL_CLAIM_CEILING, "figures": manifest, "index": {"path": index.name, "sha256": _sha256(index)},
     }

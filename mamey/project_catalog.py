@@ -123,7 +123,8 @@ class ProjectCatalog:
 
     def __init__(self, project_root: str | Path):
         self.project_root = _project_root(project_root)
-        self.path = self.project_root / "lab_quest_outputs" / CATALOG_FILENAME
+        from .portfolio_config import project_output_dir
+        self.path = project_output_dir(self.project_root) / CATALOG_FILENAME
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if not self.path.exists():
             self._write({"schema": CATALOG_SCHEMA, "entries": [], "claim_ceiling": self.claim_ceiling})
@@ -257,7 +258,8 @@ def _portfolio_files(root: Path) -> tuple[list[Path], dict[str, Any] | None]:
     already consolidates both into one registry_sha256 (mamey/project_registry.py), so only that
     single hash needs to travel with the handoff.
     """
-    binding_path = root / "lab_quest_outputs" / "portfolio_binding.json"
+    from .portfolio_config import project_output_dir
+    binding_path = project_output_dir(root) / "portfolio_binding.json"
     if not binding_path.is_file():
         return [], None
     from .portfolio_config import PORTFOLIO_BINDING_SCHEMA, load_portfolio_binding
@@ -368,7 +370,8 @@ def import_private_project_handoff(input_zip: str | Path, project_root: str | Pa
                 target = staging.joinpath(*member.parts)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
-            catalog_path = staging / "lab_quest_outputs" / CATALOG_FILENAME
+            from .portfolio_config import project_output_dir
+            catalog_path = project_output_dir(staging) / CATALOG_FILENAME
             if not catalog_path.is_file() or _sha256(catalog_path) != manifest.get("catalog_sha256"):
                 raise ValueError("private handoff catalog is absent or hash-mismatched")
             shutil.copytree(staging, root, dirs_exist_ok=True)
@@ -376,8 +379,8 @@ def import_private_project_handoff(input_zip: str | Path, project_root: str | Pa
             shutil.rmtree(staging, ignore_errors=True)
     report = ProjectCatalog(root).verification_report()
     if manifest.get("portfolio") is not None:
-        from .portfolio_config import load_portfolio_binding
-        binding_path = root / "lab_quest_outputs" / "portfolio_binding.json"
+        from .portfolio_config import load_portfolio_binding, project_output_dir
+        binding_path = project_output_dir(root) / "portfolio_binding.json"
         payload = json.loads(binding_path.read_text(encoding="utf-8"))
         current = load_portfolio_binding(root, str(payload.get("config_relative_path") or ""))
         for key in ("config_sha256", "registry_sha256"):

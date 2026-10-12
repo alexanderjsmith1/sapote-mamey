@@ -91,3 +91,61 @@ have no HIGH pair, and 27 of them have no contig-edge region at all. One of the 
 one contig are not paired: Saccharothrix variisporea DSM 43911 / Ga0197496_11 = RBXR01000001.1 / region001 / BGC001
 and Saccharothrix variisporea DSM 43911 / Ga0197496_11 = RBXR01000001.1 / region032 / BGC032 sit at the two ends of
 one 9.4 Mb contig and share type I PKS references. They are a related locus, not a rescue.
+
+
+## Shared invocation contract (`rggmci-shared-invocation-v3`)
+
+The embedded pre-triage gate and standalone `run` use the same `run_archive` owner. Common preparation
+binds complete region identities, source coordinates/products/order and pre-enrichment records. Internal snapshots require an immutable parser-created
+process-local capability bound to archive bytes; caller JSON/hashes are not derivation authority. The
+public standalone `run` rejects snapshot overrides. The
+high-level default now supplies archive sequence context to the unchanged scoring gates. This is a
+behavior-affecting standalone input migration: complexity-sensitive outcomes can differ from older
+standalone runs. Explicit low-level `contigs=None` still means unavailable; explicit high-level None
+disables automatic extraction. FASTA-first/longest-GBK-per-contig fallback is retained; clipped region
+sequence is not a whole genome. Receipts contain lengths/hashes, never nucleotide/protein payloads.
+
+Expected TypeError/ValueError/AttributeError coordinate failures retain legacy partial bounds and shared
+diagnostics. Unexpected exceptions and typed resource refusals propagate. Relevant guarded GBK/FASTA
+members refuse common intake before a subset is reported. General source-reader malformed/empty-member
+warnings remain visible. The embedded wrapper cannot convert a canonical preparation refusal into an
+empty successful RGGMCI result.
+
+Both routes default to completion auto, sensitivity sensitive, threads4, residue scope st_paralog and
+no registry anchor. MIBiG/Pfam database assets resolve explicit path, then the corresponding RGGMCI environment variable,
+then an explicitly supplied registry anchor. Mamey no longer searches its installation ancestry
+implicitly. A missing higher-priority database retains its explicit missing state. Existing aligner fallback remains:
+DIAMOND tries explicit, then environment, then PATH; completion can fall back to BLAST+. Receipts bind
+the actual selected content. Standalone
+`--registry-from` matches Mamey `--rggmci-registry-from`; `--label` matches `--rggmci-label` for one input.
+Mamey exposes matching `--rggmci-threads`, `--rggmci-diamond`, `--rggmci-diamond-db`,
+`--rggmci-residue-scope`, `--rggmci-residue-work-dir` and `--rggmci-completion-work-dir` controls.
+Shared threads reach both existing completion and residue interfaces; legacy low-level residue calls
+retain their prior default. Completion OFF skips optional aligner probing; an explicit residue database
+is a distinct requested layer. No automatic database download is introduced.
+
+Per successful input the canonical set is eight artifacts: JSON and seven TSVs (ranked pairs, related
+loci, candidate groups, summary, and three completion tables). Every row key is retained, including
+later-row-only fields; nested evidence uses JSON cells with spreadsheet protection. Empty candidate
+tables have headers only. Empty completion tables retain their explicit tier row. JSON includes full
+region metadata and four-component endpoint identities: logical strain / full physical contig / region /
+BGC alias. Ambiguous alias/source bindings refuse instead of being guessed. Scientific results and
+effective resource fingerprints are shared; distribution/path/provenance presentation is confined to
+`wrapper_context`. Compare complete analytical data, not a selected subset of scores.
+
+Standalone primary writes remain exclusive and use whole-roster preflight; batch failures retain the
+attempted-input denominator. Per-input canonical summary/group TSVs coexist with aggregate SUMMARY.tsv
+and CANDIDATE_GROUPS.tsv. Mamey writes its canonical set before sealing with prefix
+`<strain>_4A_RGGMCI_canonical`; legacy CSV/workbook views derive from the same result and remain distinct
+presentation contracts. No legacy sealed package is rewritten. Shared source is an implementation
+contract; runtime parity, optional active-resource profiles and published standalone synchronization
+require their own bound validation. Candidate labels remain unadjudicated homology hypotheses, not
+physical joins, compound identity or biological accuracy.
+
+Shared invocation v3 adds the existing native functional-role and modular-continuation annotations to
+both distributions before canonical export. Ranked pairs and split-candidate views carry the same ten
+fields and source-derived functional/modular profiles, from the same archive CDS/domain/context parser.
+This does not change RG-GMCI scoring thresholds or establish physical linkage. Missing context retains
+explicit UNKNOWN_NO_PROFILE defaults. Raised extraction/computation failures propagate; existing general
+source-reader malformed/empty-member warnings remain visible. Package gene-context write/readback no
+longer determines the analytical annotation. Low-level explicit contigs=None remains unavailable.

@@ -34,7 +34,7 @@ The scanner keys on specific filenames. Contract changes require corresponding s
 
 ### Output modes
 - default: a human table + workspace context + ranked next-actions.
-- `--json`: the same as a dict (for tooling / Lab Quest / dashboards).
+- `--json`: the same as a dict (for tooling and dashboards).
 - `--emit-md PATH`: also write the report to a file (a `DISCOVERY.md` you can commit).
 - `--depth N`: bound recursion (default 6); a package dir stops descent (its subdirs aren't packages).
 

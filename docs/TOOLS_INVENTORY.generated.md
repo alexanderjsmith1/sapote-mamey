@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**438 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**460 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -8,9 +8,23 @@
 |---|---|
 | `_bankio.py` | Banked tool read/write boundary; delegates journal checks and lock ownership. |
 | `_console.py` | the single owner of direct terminal emission for tools/ and deliverable_tools/. |
-| `_gtotree_versions.py` | the one list of GToTree versions the phylo tools accept. |
+| `_embedding_replay.py` | Validated saved-coordinate replay shared by optional embedding displays. |
+| `_gtotree_runtime.py` | Exact reviewed GToTree runtime admission; no model or biological authorization. |
+| `_gtotree_runtime_probe.py` | Executed only by approved whole-process watched driver; software-only. |
+| `_gtotree_versions.py` | Shared GToTree admission, probe and argv policy for existing phylogeny tools. |
+| `_maintenance_inventory.py` | Build deterministic maintenance navigation from explicit owners and scoped rosters. |
+| `_mlsa_resources.py` | Whole-worker admission for build_mlsa; no nested native watcher or science changes. |
 | `_phylo16s.py` | Configured data roots, local database lookup and checked external tool execution. |
 | `_phylo_metadata.py` | Conservative display normalization for phylogeny metadata. |
+| `_placement_report_metadata.py` | Stdlib contracts for placement report options and reviewed native-tip roles. |
+| `_protein_pcoa_resources.py` | Resource admission and watched attempts for the existing protein PCoA owner. |
+| `_release_import_smoke.py` | Discover and test the complete production import surface in controlled workers. |
+| `_release_import_worker.py` | Controlled shared-interpreter worker; importing this file performs no work. |
+| `_release_partition_runner.py` | Sequential, resumable pytest stages with immutable per-attempt evidence. |
+| `_release_partitions.py` | Internal coverage and provenance checks for explicit partitioned validation. |
+| `_release_pytest_evidence.py` | Capture actual pytest identities and outcomes for partition validation. |
+| `_release_validation.py` | Internal bounded-process and existing-interpreter support for release tests. |
+| `_release_workflow.py` | Source-bound serial stage records with explicit retries and generated navigation. |
 | `_safe_walk.py` | shared directory-walk helper that surfaces permission errors instead of |
 | `_tip_label.py` | Compatibility imports for the portable 16S tools. |
 | `_wbio.py` | Shared atomic workbook I/O for the secondary-sheet builders. |
@@ -57,7 +71,7 @@
 | `bigscape_mibig_batches.py` | split the MIBiG reference set into small, prokaryote-filtered |
 | `bigscape_pipeline.py` | bigscape_pipeline.py -- one-command BiG-SCAPE GCF layer for a Mamey cohort. |
 | `bigscape_prep.py` | stage antiSMASH region GBKs into a BiG-SCAPE input dir. |
-| `bigslice_query.py` | bigslice_query.py -- BiG-SLiCE as a second, feature-based GCF opinion (complements BiG-SCAPE). |
+| `bigslice_query.py` | Bound BiG-SLiCE 2.0.0/schema-1.0.1 query, cluster and read adapter. |
 | `bind_panel_metadata.py` | Bind display metadata onto a GToTree panel's figure_metadata.tsv. |
 | `bioassay_plate_map.py` | Map source-plate wells to destination wells with an explicit geometry profile. |
 | `bioassay_to_activity_channel.py` | emit MEASURED fraction-screen data as Sapote-Mamey |
@@ -157,6 +171,7 @@
 | `check_dangling_refs.py` | list references to `examples/<file>` OR tool/module names that don't |
 | `check_deliverable_suite.py` | mechanical enforcement of the Sapote full-run deliverable contract. |
 | `check_duplicate_dict_keys.py` | fail closed on NEW duplicate dict-literal keys. |
+| `check_figure_provenance.py` | List every figure under a folder with the renderer stamp it carries. |
 | `check_instruction_mirror.py` | Diagnose drift between this bundle's assistant contract and an explicitly configured mirror. |
 | `check_license_docs.py` | every file granted CC-BY-4.0 in LICENSE-DOCS.txt must actually ship. |
 | `check_manifest_contract.py` | Validate a Mamey package against schemas/manifest_contract.json. |
@@ -200,6 +215,7 @@
 | `comparator_select.py` | pick a phylogenomic comparator genome by the 16S method. |
 | `compilation_gate.py` | gate a strain compendium markdown/PDF before it can be called |
 | `compile_figure_owner_review.py` | Compile human figure decisions into a deterministic, non-rendering action plan. |
+| `corason_adapter.py` | Optional, external CORASON plan/run/read. No work occurs at import time. |
 | `cross_strain_denominator_audit.py` | fail-closed invariant on cohort-size denominators (v9.7.116). |
 | `cut_audit.py` | reproducible sealed-cut audit + card rebase-verify harness. |
 | `cut_preflight.sh` | Cut preflight: refuse release-root review artifacts and purge working-copy bytecode. |
@@ -227,7 +243,7 @@
 | `figure_factory_demo.py` | Stage an explicitly synthetic, hash-bound Figure Factory example. |
 | `figure_factory_next.py` | Render receipt-bound aggregate evidence figures from an external data root. |
 | `figure_house_rules.py` | House rules for publication figures: one place for the rules, and a checker that applies them. |
-| `figure_methods.py` | reusable, versioned METHODS-CAPTION library for Sapote-Mamey figure tools. |
+| `figure_methods.py` | Reusable methods-caption drafts and separate operator notes. |
 | `figure_readiness_board.py` | Report repair-spec binding and figure-receipt readiness states. |
 | `figure_render_qc.py` | Check rendered figures before anyone uses them. |
 | `file_atlas.py` | describe every Python file in the bundle, from the source, with receipts. |
@@ -344,6 +360,7 @@
 | `preview_figure_themes.py` | CLI wrapper for the portable Sapote-Mamey figure-theme gallery prototype. |
 | `professionalism_linter.py` | post-hoc "professionalism" check for Sapote interpretive text |
 | `project_catalog.py` | Operate the portable, hash-bound project catalog without the UI. |
+| `protein_embedding_replay.py` | Replay saved TriMap or t-SNE coordinates from a hash-bound manifest. |
 | `protein_pcoa_compare.py` | Compare cohort collections on a protein PCoA kit, with statistics, dot plots and resistance-family carriage. |
 | `protein_pcoa_ordinate.py` | Build a protein-class PCoA kit from antiSMASH region files: cohort proteins among reference and MIBiG protein… |
 | `protein_pcoa_render.py` | Draw protein-class PCoA figures from an ordination kit: cohort proteins among reference and MIBiG proteins. |
@@ -367,6 +384,9 @@
 | `relabel_and_render.py` | Relabel GToTree tip names from genome FASTA headers to a consistent |
 | `release.sh` | single fail-closed build entrypoint for a Sapote-Mamey release (v9.7.97). |
 | `release_cut.sh` | one-command, gate-enforced release cut. |
+| `release_owner_consumer.py` | Verify one completed release record before an explicitly authorized owner consumer. |
+| `release_validate.py` | Admit an existing test interpreter and produce measured release-validation evidence. |
+| `release_workflow.py` | Run the optional partitioned cut through one resumable, source-bound stage record. |
 | `remediate_phantom_locus.py` | find and excise fabricated locus citations from authored Mode B cards. |
 | `render_activity_lead_reports.py` | the Day-5-shaped activity-lead deliverable. |
 | `render_all.py` | Render a built GToTree/IQ-TREE tree with publication-ready tip labels. |
@@ -401,6 +421,7 @@
 | `scan_marker_census.py` | Emit a line-addressable census of registry-backed and inline scan markers. |
 | `scan_prevalence.py` | cohort prevalence for mamey keyword-scan DBs (resistance/regulator/ |
 | `scan_registry_parity.py` | Prove that registry-backed source scans match the literal fallback. |
+| `scanner_hmm_release_policy.py` | Stage-only export policy for operator-provisioned scanner databases/indexes. |
 | `schema_deployed_audit.py` | reconcile the coded sheets in WORKBOOK_SCHEMA.md against what the |
 | `scope_cluster.py` | scope an over-merged antiSMASH region to its TRUE protocluster. |
 | `seal_sweep.py` | seal_sweep.py  (candidate patch F10) |
@@ -410,6 +431,7 @@
 | `signoff_check.py` | the "would a master's student sign off?" gate, mechanised. |
 | `silent_exit_audit.py` | Inventory of SILENT SUCCESS EXITS in the guard surface. |
 | `sixteen_s_similarity_check.py` | do the deposited 16S similarity values reproduce from the sequences on file? |
+| `stamp_figure.py` | Stamp saved figures with the bundle renderer's name. Used by the R renderers after they save. |
 | `strain_bigscape_report.py` | strain_bigscape_report.py -- per-strain BiG-SCAPE report as a standard Sapote-Mamey deliverable. |
 | `strain_level_bgc_logic.py` | Build readable per-strain BGC product-logic reports from the CP050 workup. |
 | `strain_slides.py` | Per-strain slide decks: every antiSMASH region of one strain, with every evidence channel held for it. |

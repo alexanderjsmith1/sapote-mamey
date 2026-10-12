@@ -14,4 +14,4 @@ Review independently generated output in a separate workspace and reconcile its 
 
 ## Generated package copies
 
-Package `Troubleshooting/HMMER_Data_Workflow.md` is emitted from Python literals in `mamey/cell_provenance.py`, not copied from this guide. Older generated text may mention `mamey_markers.hmm` and “fill workbook evidence cells” without an implemented import contract. This guide clarifies that limitation; correcting the generator requires a separately reviewed code change.
+Package `Troubleshooting/HMMER_Data_Workflow.md` is emitted from Python literals in `mamey/cell_provenance.py`, not copied from this guide. New package copies state the same integration limit and preserve the pending worklist status. Historical packages may still mention `mamey_markers.hmm` and “fill workbook evidence cells”; retain those originals as historical evidence rather than treating their wording as an implemented import contract.

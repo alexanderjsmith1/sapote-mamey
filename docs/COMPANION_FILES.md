@@ -47,6 +47,6 @@ Bundle source, installed dependencies, supplied biological inputs and validated 
 
 The installer selects `${PYTHON:-python3}` and requires an activated virtual environment by default. Its normal path uses an offline wheel pool; `--online` explicitly permits missing-wheel fallback through pip. Wheel tags must match the interpreter, operating system and architecture; the historical cp312/manylinux description does not establish macOS compatibility. Core dependency installation is required, figure dependencies are best-effort, and the final import check does not validate biological workflows or external reference assets.
 
-The script searches several neighboring roots for wheels, including supplied uploads. An explicit wheel-directory argument adds a preferred search root; it does not restrict discovery to that directory. Inspect discovery scope when only a selected wheel set is authorized. `SAPOTE_INSTALL_LAB_QUEST=1` opts into the separate Lab Quest source installation and its Streamlit dependency.
+The script searches several neighboring roots for wheels, including supplied uploads. An explicit wheel-directory argument adds a preferred search root; it does not restrict discovery to that directory. Inspect discovery scope when only a selected wheel set is authorized.
 
 For reader-side cohort tools, start with the [Multi-Cohort Comparison Toolkit guide](../deliverable_tools/README.md). Its catalog launcher is lightweight; individual tools can depend on governed data or write existing rosters. Do not infer read-only behavior from the term companion.

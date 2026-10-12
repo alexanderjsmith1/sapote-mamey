@@ -136,15 +136,15 @@ def test_public_bounded_entrypoint_uses_record_scoped_identity(tmp_path):
     assert evidence["riq_unmapped_count"] == 1
 
 
-def test_leaf_cap_cannot_assign_an_unfinished_record(monkeypatch):
+def test_auxiliary_cap_allows_safe_record_closure(monkeypatch):
     monkeypatch.setattr(ae, "BOUNDED_MAX_RECORDS_STREAMING", 1)
     second = _record("contig_beta", 0.99)
     second["clusterblast"] = {"first": "hit", "second": "stop"}
     evidence = _parse({"records": [_record("contig_alpha", 0.1), second]})
     assert evidence["json_bounded_truncated"] is True
-    assert _scores(evidence) == {"contig_alpha_c1": 0.1}
-    assert evidence["riq_unmapped_count"] == 1
-    assert evidence["loose_hits"][-1]["riq_identity_status"] == "UNMAPPED_INCOMPLETE_RECORD"
+    assert _scores(evidence) == {"contig_alpha_c1": 0.1, "contig_beta_c1": 0.99}
+    assert evidence["riq_unmapped_count"] == 0
+    assert evidence["json_bounded_walks"][0]["walk_complete"] is True
 
 
 @pytest.mark.parametrize("shape", ["object", "dotted_key", "nested_array"])

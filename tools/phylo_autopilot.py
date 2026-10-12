@@ -30,6 +30,7 @@ deferred to the downstream tools and to the human.
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 import json
 import os
 import re
@@ -193,7 +194,7 @@ def parse_blast_genus(blast_tsv_text: str, conflict_delta: float = 0.5) -> dict:
     return out
 
 
-def assign_genus(query_fasta, db, blastn="blastn", threads=2, runner=subprocess.run) -> dict:
+def assign_genus(query_fasta, db, blastn="blastn", threads=1, runner=subprocess.run) -> dict:
     r = runner([blastn, "-query", query_fasta, "-db", db, "-max_target_seqs", "5", "-max_hsps", "1",
                 "-num_threads", str(threads), "-outfmt", "6 qseqid stitle pident length"],
                capture_output=True, text=True)
@@ -318,9 +319,30 @@ def cmd_route(a):
                       "reference_genera_by_group": refs, "routing_table": a.out}, indent=2))
 
 
+try:
+    from _placement_report_metadata import add_arguments as _report_arguments, normalize_options as _report_options, to_argv as _report_argv, metadata_path_argument
+except ImportError:
+    from tools._placement_report_metadata import add_arguments as _report_arguments, normalize_options as _report_options, to_argv as _report_argv, metadata_path_argument
+
+
 def cmd_run_16s(a):
     """Route a 16S multi-FASTA, auto-build a reference for one group, and (unless --dry-run) shell
     phylo_place for that group. phylo_place enforces the tree-approval gate; this never bypasses it."""
+    if a.threads < 1:
+        raise ValueError("threads must be a positive integer")
+    report_options = _report_options(a, context="all")
+    reference_metadata = getattr(a, "reference_metadata", "")
+    if reference_metadata:
+        path = Path(reference_metadata).absolute()
+        if any(part.is_symlink() for part in (path, *path.parents)) or not path.is_file():
+            raise ValueError("AUTOPILOT_REFERENCE_METADATA_PATH_INVALID")
+        try:
+            from _placement_report_metadata import read_rows
+        except ImportError:
+            from tools._placement_report_metadata import read_rows
+        headers, _rows = read_rows(path)
+        if not {"tip", "taxon", "role"} <= headers:
+            raise ValueError("AUTOPILOT_REFERENCE_METADATA_SCHEMA_INVALID")
     os.makedirs(a.outdir, exist_ok=True)
     query_records = list(_fasta_records(a.query))
     qc_rows = _p16.screen_query_records(query_records, fragment_threshold=a.fragment_threshold)
@@ -365,6 +387,9 @@ def cmd_run_16s(a):
            "--outdir", os.path.join(a.outdir, "placement"), "--threads", str(a.threads),
            "--bootstrap", str(a.bootstrap),
            "--one-per-species", "--approved-by", a.approved_by]
+    cmd += _report_argv(report_options)
+    if reference_metadata:
+        cmd += ["--reference-metadata", str(Path(reference_metadata).absolute())]
     if fragmentary:
         cmd.append("--fragmentary")
     print("[autopilot] ->", " ".join(cmd))
@@ -389,9 +414,9 @@ def build_argparser():
 
     r = sub.add_parser("route", help="assign genus + route every 16S query (writes a routing table)")
     r.add_argument("--query", required=True)
-    r.add_argument("--db", required=True, help="BLAST 16S type-strain DB prefix")
+    r.add_argument("--db", required=True, help="BLAST 16S reference DB prefix; figure type marks require separate reviewed exact-tip evidence")
     r.add_argument("--out", default="routing_table.tsv")
-    r.add_argument("--threads", type=int, default=2)
+    r.add_argument("--threads", type=int, default=1, help="positive thread budget (default 1)")
     r.set_defaults(func=cmd_route)
 
     x = sub.add_parser("run-16s", help="route + auto-build reference + gated phylo_place for one group")
@@ -408,8 +433,10 @@ def build_argparser():
                    help="reference-backbone bootstraps (default 10: EPA-ng supplies per-query "
                         "support, so a placement backbone does not need 100 — that costs hours). "
                         "Raise only to publish the reference tree itself with node support.")
-    x.add_argument("--threads", type=int, default=2)
+    x.add_argument("--threads", type=int, default=1, help="positive thread budget forwarded to placement (default 1)")
     x.add_argument("--phylo-place", default="")
+    x.add_argument("--reference-metadata", default=None, type=metadata_path_argument, metavar="TSV", help="reference build metadata; distinct from repeatable --resolved report tables")
+    _report_arguments(x)
     x.add_argument("--dry-run", action="store_true")
     x.set_defaults(func=cmd_run_16s)
     return ap
@@ -417,11 +444,18 @@ def build_argparser():
 
 def main(argv=None):
     a = build_argparser().parse_args(argv)
+    if hasattr(a, "threads") and a.threads < 1:
+        sys.stderr.write("[autopilot] refusing invalid threads: positive integer required\n")
+        return 2
     if getattr(a, "cmd", None) == "run-16s" and not a.dry_run and not a.approved_by:
         print("[autopilot] refusing to build a tree without --approved-by (tree-approval gate). "
               "Use --dry-run to prepare inputs only.", file=sys.stderr)
         return 1
-    return a.func(a) or 0
+    try:
+        return a.func(a) or 0
+    except (ValueError, OSError) as exc:
+        print(f"[autopilot] refused: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

@@ -6,6 +6,12 @@ if [ "$#" -ne 4 ] || [ ! -d "$1" ] || [ ! -f "$3" ] || [ ! -f "$4" ]; then
   echo "REFUSED: usage: make_verified_code_tarball.sh FRESH_CODE_DIR OUTDIR SEALED_CODE_ZIP SELECTED_SEAL_RECEIPT" >&2
   exit 2
 fi
+# Export the same single executable locator to the nested archive producer.
+export PYTHON="${PYTHON:-python3}"
+if ! "$PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 1)' >/dev/null 2>&1; then
+  echo "REFUSED: Python 3.12 or newer required; PYTHON executable unavailable or incompatible: $PYTHON" >&2
+  exit 2
+fi
 src="$(cd -- "$1" && pwd -P)"
 outdir="$2"
 sealed_zip="$3"
@@ -25,7 +31,7 @@ sidecar="$scratch/$name.tar.gz.sha256"
 archive_sha="$(shasum -a 256 "$archive" | awk '{print $1}')"
 sidecar_sha="$(shasum -a 256 "$sidecar" | awk '{print $1}')"
 verification_log="$scratch/verification.log"
-if ! python3 "$tool_dir/verify_release_tarball.py" "$archive" \
+if ! "$PYTHON" "$tool_dir/verify_release_tarball.py" "$archive" \
   --zip "$sealed_zip" --seal-receipt "$seal_receipt" >"$verification_log"; then
   cat "$verification_log" >&2
   echo "REFUSED: CODE tarball differs from the selected sealed ZIP/receipt" >&2
@@ -37,7 +43,7 @@ if ! (cd "$scratch" && shasum -c -- "$name.tar.gz.sha256" >/dev/null); then
 fi
 mkdir -p "$outdir"
 outdir="$(cd -- "$outdir" && pwd -P)"
-if ! python3 "$tool_dir/publish_verified_pair.py" "$archive" "$sidecar" "$outdir" "$archive_sha" "$sidecar_sha"; then
+if ! "$PYTHON" "$tool_dir/publish_verified_pair.py" "$archive" "$sidecar" "$outdir" "$archive_sha" "$sidecar_sha"; then
   echo "HOLD: verified pair publication incomplete; read the committed-path receipt above" >&2
   exit 2
 fi

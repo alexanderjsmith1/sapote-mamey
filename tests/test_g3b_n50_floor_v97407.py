@@ -1,6 +1,6 @@
 """Regression test — v97401: phylo_preflight G3b gains an N50 floor (LOW_N50_BP).
 
-Receipt: AS-150 (2026-09-01) — 1,347 contigs slipped UNDER the FRAGMENTED_CONTIGS=1,500 count
+Receipt: AS-972 (2026-09-01) — 1,347 contigs slipped UNDER the FRAGMENTED_CONTIGS=1,500 count
 threshold, but N50 was 11.5 kb; SCG recovery was so gappy the tip took a 0.33 subs/site branch
 (83% of tree depth) on the BUILT tree and had to be removed post hoc. Contig count alone misses
 low-N50 shred; this floor catches it BEFORE the CPU is spent. Place in tests/.
@@ -27,7 +27,7 @@ def test_fasta_stats_reports_n50_v97401(tmp_path):
     assert (bp, nc, n50) == (100_000, 4, 30_000)
 
 
-def test_low_n50_shred_warns_below_count_threshold_the_AS150_case_v97401(tmp_path):
+def test_low_n50_shred_warns_below_count_threshold_the_AS972_case_v97401(tmp_path):
     # ~7 Mb in 1,400 x 5 kb contigs: count < FRAGMENTED_CONTIGS(1500) but N50=5 kb < LOW_N50_BP
     p = _fasta(tmp_path, "shred.fna", [5_000] * 1_400)
     fails, warns = [], []

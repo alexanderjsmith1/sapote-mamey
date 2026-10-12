@@ -571,28 +571,45 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="verify committed generated inventory")
     parser.add_argument("--connections", action="store_true", help="emit connection and utility evidence audit")
+    parser.add_argument("--maintenance", action="store_true", help="write owner-bound maintenance JSON and navigation; --check verifies both")
     parser.add_argument("--search", nargs="+", metavar="KEYWORD", help="search full internal-module docstrings")
     parser.add_argument("--top", type=int, default=10, help="maximum search results (default: 10)")
     parser.add_argument("--root", type=pathlib.Path, default=ROOT, help="project root for --connections/--search (default: bundle root)")
     parser.add_argument("--format", choices=("json", "tsv"), default="json", help="--connections output format")
     parser.add_argument("--output", type=pathlib.Path, help="atomically write --connections output instead of stdout")
     args = parser.parse_args(argv)
+    if args.maintenance and (args.root.resolve() != ROOT.resolve() or args.connections or args.search
+                             or args.output or args.format != "json" or args.top != 10):
+        parser.error("--maintenance uses only the owning bundle root and optional --check")
     if args.search:
         if args.top < 1:
             parser.error("--top must be at least 1")
         return capabilities_command(args.search, root=args.root, top=args.top)
-    if args.connections:
-        payload = audit_connections(args.root)
-        if args.format == "json":
-            content = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    if args.connections or args.maintenance:
+        code = 0
+        if args.maintenance:
+            from _maintenance_inventory import maintain
+            from gen_command_catalog import command_records
+            from mamey.companion_tools import load_registry
+            paths = [(pathlib.PurePosixPath("tools") / name).as_posix()
+                     if not name.startswith("../") else name.removeprefix("../") for name, _ in collect()]
+            try:
+                content, code = maintain(ROOT, command_records(), paths, load_registry(),
+                                         check=args.check, write_text=atomic_write_text)
+            except (ValueError, OSError, KeyError, TypeError, SyntaxError) as exc:
+                parser.error(f"maintenance inventory refused: {exc}")
         else:
-            content = render_connections_tsv(payload)
+            payload = audit_connections(args.root)
+            if args.format == "json":
+                content = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+            else:
+                content = render_connections_tsv(payload)
         if args.output:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             atomic_write_text(args.output, content)
         else:
             emit(content, end="")
-        return 0
+        return code
 
     rows = collect()
     md = render_md(rows)

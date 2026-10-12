@@ -33,7 +33,6 @@ from typing import Any
 
 from . import roster_v2
 from .csv_safety import CSV_LEADER_CLASS_JS, CSV_NUMERIC_TOKEN  # v9.7.410: one CSV-injection rule for Python + widget JS
-from .dedup_and_guard import derive_release  # SSOT for the release tag (v9.7.236: AS- is PUBLIC)
 
 
 SCHEMA_VERSION = "mamey_widget_deliverable_v2"
@@ -711,16 +710,16 @@ def _load_model(source: PackageSource) -> dict:
     claim, claim_name = source.json("claim_safety_status.json")
     package_status, package_status_name = source.json("package_status.json")
     strain = _text(manifest.get("strain_id") or intake.get("strain_id") or "UNKNOWN")
-    release = _text(intake.get("release"))
+    release = _text(intake.get("release") or manifest.get("release"))
     if not release:
         for bgc in manifest.get("bgcs", []):
             if bgc.get("release"):
                 release = _text(bgc.get("release")); break
     source_release = release or "UNSPECIFIED"
-    # SSOT release guard: fail-safe to PRIVATE only when derive_release says so
-    # (AJS-/PENDING-/unrecognized); a PUBLIC AS- strain keeps the package's own tag.
-    release_guard_val = derive_release(strain)
-    effective_release = "PRIVATE" if release_guard_val == "PRIVATE" else source_release
+    from .release_policy import resolve_package_privacy_records
+    compact, _ = source.json("manifest_short.json")
+    policy = resolve_package_privacy_records([manifest, intake, compact], strain)
+    effective_release = policy["effective_release"]
     version = _text(manifest.get("workflow_version") or "unknown")
     identities = _identity_map(strain, inventory, [triage, domains, genes], rggmci)
     gene_evidence, gene_evidence_receipt = _gene_evidence_rows(
@@ -759,7 +758,7 @@ def _load_model(source: PackageSource) -> dict:
             "taxonomy": _text(intake.get("taxonomy") or manifest.get("taxonomy")),
             "source": _text(intake.get("source") or manifest.get("source")),
             "release": effective_release, "source_release": source_release,
-            "release_guard": "PRIVATE_PREFIX_OVERRIDE" if (release_guard_val == "PRIVATE" and source_release != "PRIVATE") else "SOURCE_RELEASE_RETAINED",
+            "release_guard": policy["privacy_reason"],
             "workflow_version": version,
             "source_kind": source.kind, "claim_ceiling": CLAIM_CEILING,
         },

@@ -1,0 +1,41 @@
+# Experimental GToTree v2 software resource admission
+
+Released GToTree **1.8.19** is the current workflow priority. This document records
+experimental source-bound admission for the unreleased v2 rewrite, not a released
+production workflow. Further native v2 work is deferred; retained source/receipts
+and interface admission do not establish study use or release readiness.
+
+Default unverified v2 remains held. The existing v1.8.19 CLI contract remains unchanged. A version banner cannot authorize the fixed-two HMM profile. An exact policy-pinned logical manifest and a fresh watched software-only import/version/help probe provide an in-process typed result shared by planner, runner and execution-packet gate. JSON receipts cannot provide that result.
+
+The supplied `tools/gtotree_runtime_profile.json` binds one reviewed editable installation. Its logical roots are `environment` and `editable_source`; the caller supplies the actual roots. There are no workstation paths in this profile. Exact finder/startup bytes can nevertheless bind an installation's original location: relocation that changes those bytes requires independent review and a new policy-approved profile. Arbitrary manifests or a JSON CPU claim are refused. The approval covers software resource behavior only, and does not clear model, input, taxonomy, panel, biological, license or native-run approval requirements.
+
+The profile's HMM engine requests two pyhmmer search workers per concurrently searched genome (`2 * jobs`) and uses gathering cutoffs. Each concurrent SCG alignment requests the selected MUSCLE threads; up to `jobs` alignments run concurrently. The phase-worker estimate is `max(2 * jobs, jobs * MUSCLE threads)`; IQ-TREE's selected threads must also fit the caller's positive budget and observed available CPU count. These counts do not bound total OS threads/CPU use. All six one-thread environment controls are pinned. Periodic process-tree RSS/disk/time monitoring is not a kernel limit or an aggregate concurrency guarantee.
+
+To opt into software imports, supply all four options together on `plan`, `run_planned_tree.py`, or the packet-mode `gtotree_execution_gate.py` command:
+
+```text
+--gtotree-runtime-manifest tools/gtotree_runtime_profile.json
+--gtotree-runtime-environment /absolute/caller/environment
+--gtotree-runtime-source /absolute/caller/editable_source
+--gtotree-runtime-probe-dir /absolute/approved/fresh_diagnostics
+```
+
+The probe directory must be absent, its existing parent must be permitted, and it cannot overlap the runtime roots or the source bundle. No new sibling is guessed. An occupied or symlinked path is refused. Default watched ceilings are 3.8 GB RSS, 2 GiB minimum free disk and 900 seconds, configured by `--gtotree-rss-limit`, `--gtotree-min-disk`, and `--gtotree-timeout`. These portable finite settings can be explicitly changed by the caller; current campaign executions remain governed by their separate ceilings. The requested phase-worker budget defaults to four (`--gtotree-cpu-budget`). The existing planner retains its own maximum-four concurrent budget.
+
+Planning with these explicit options executes software probes, not a genome/model job. Without them the gate API remains read-only and v2 cannot pass resource admission. The probe sanitizes cwd, HOME, temporary/cache paths, PATH, Python user-site/safe-path/bytecode settings and six thread variables. Installed startup files still execute: this is not an OS sandbox. Source, interpreter, selected helpers, startup rosters, imported module origins and loaded/distribution versions are checked before/after. The saved original observation contained 900 module-file records; the manifest's 1,034 unique paths also include the full 175-file editable Python roster and reviewed installation files. This does not close native dynamic libraries, built-in/frozen modules or every future inactive import.
+
+A v2 planner recipe invokes the governed runner, never a direct native command. The recipe requires recorded `RUN_STATE.json` approval, an explicit `--approved` runner flag, and a new `GTOTREE_RUNTIME_PROBE_DIR` environment value at execution. It binds the selected plan's exact genome hashes, labels, query/outgroup roles, HMM hash, tool choices and worker policy. The planner writes an absolute input-list view for this route. GToTree's existing whitespace limitations still apply: a whitespace-bearing run path or unsafe tip label receives a HOLD and must be re-planned explicitly in a suitable workspace; the implementation does not silently rename biological identities or move inputs.
+
+For v2, GToTree, IQ-TREE, postflight and requested signoff/fastANI child processes use serial existing watcher calls, never nested watcher sessions. Selected execution inputs and executables are hashed and rechecked around every child. IQ-TREE and requested fastANI version observations are frozen separately from software profile authority. Existing query-loss, alignment, completion, hard tree QC and requested fastANI stage checks remain in force. Per-child resource stops or source drift prevent DONE. Optional signoff retains its advisory scientific role; a monitor/resource failure still fails the governed run. These serial per-child watches are not a single cumulative whole-pipeline time ceiling; the coordinator's own lightweight Python work is not RSS-monitored by those child watches.
+
+The immutable diagnostic order is request/before → resource receipt → origins/worker results → final software receipt. The typed result binds these records, source and coordinator hashes. Native phase receipts bind logs; the final run status binds execution bindings, frozen tool-version observations and phase receipts. Prior diagnostics and output roots are never reused as a fresh attempt.
+
+The v2 planner writes headerless `labels.tsv` keys exactly equal to the absolute paths in `genomes_absolute.txt`. The reviewed v2 native parser accepts its exact provided path or its extension-free genome ID; a basename retaining `.fna` is neither when an absolute path was provided. This runner deliberately uses the exact supplied-path form for v2, preserving full mapped-label spelling. The v1.8.19 basename mapping remains unchanged.
+
+The governed plan's mapping is independently reconstructed from its assembly records, admitted version and existing shared label normalization. Editing `labels.tsv` and matching CLI role labels cannot redefine those identities. The generated route binds its exact `outputs/governed_run` attempt; optional direct runner routes remain distinct from this plan-bound admission.
+
+After the governed runner reports DONE, use `plan_gtotree_iqtree.py discover --run-dir <plan directory>`. This reader requires the exact plan/state/input/mapping bindings, the current execution-binding receipt, successful output hashes and the native v2 `genomes-summary-info.tsv` roster. It checks original genome IDs, mapped labels, retained membership and the concatenation's unique discovery. Missing summary, failed/old receipts, changed outputs or competing root-level concatenations produce HOLD; a legacy-looking output folder cannot substitute. The runner's existing hard-QC semantics do not acquire a new summary requirement: a DONE run without that optional producer file still cannot pass this narrower discovery contract.
+
+Governed helper children retain Python safe-path with no `PYTHONPATH`. Mandatory postflight explicitly admits only its selected script directory for shipped sibling imports; its known helper sources are included in execution bindings. Signoff uses stdlib-only imports and remains advisory. Real tiny helper subprocess controls supplement fabricated external-tool transport tests. Neither set validates a real GToTree/IQ-TREE analysis.
+
+Explicit `--query-tips` values on the mapped-label route retain their complete spelling, including accession-version dots. Filename stemming remains a separate legacy ingress. Unexpected or duplicate current alignment headers are hard refusals before IQ-TREE; permitted reference loss never permits loss of an exactly declared mapped query. The independent direct-runner IQ-TREE bound checks both the caller budget and observed available CPUs.

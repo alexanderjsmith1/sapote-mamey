@@ -21,7 +21,8 @@ writer emits is tagged with its basis, and `novelty_basis` (default "fully_dark"
 canonical sheet) selects which definition the headline numbers use. The non-selected figure is
 still reported, explicitly labeled, so the two are never conflated.
 
-DETERMINISTIC. No scoring change. PRIVATE by construction (cohort spans AS strains).
+DETERMINISTIC. No scoring change. Legacy calls remain private; explicit public calls
+independently admit package identities and project master rows before synthesis.
 DEPENDENCY: a verified master (DAPR populated, Cross_Strain_Findings recomputed, denominator
 invariant holding). On a stale master it refuses rather than emitting wrong prose.
 """
@@ -307,10 +308,429 @@ def differentiating_capacities(prevalence: dict) -> list:
     return sorted(c for c, p in prevalence.items() if p["n_strains"] == 1 and c not in _DIFF_UBIQ)
 
 
+
+# Public synthesis deliberately has a separate strict projection from the legacy reader.
+PUBLIC_CLASS_VIEWS = ("RAW_ANTISMASH", "GENE_BACKED")
+PUBLIC_SCOPE_VERSION = "sapote_public_master_scope_v1"
+
+
+class PublicCohortScopeError(ValueError):
+    """Content-free refusal: input paths, row values and held identities are never echoed."""
+
+
+def _scope_refuse(code):
+    raise PublicCohortScopeError(code)
+
+
+def _scope_digest(path):
+    import hashlib
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def recheck_public_scope(view):
+    """Recheck all consumed byte bindings before publishing saved-result projections."""
+    try:
+        for path, digest in view["_bindings"].items():
+            if path.is_symlink() or _scope_digest(path) != digest:
+                _scope_refuse("PUBLIC_SCOPE_INPUT_CHANGED")
+        for package, names in view["_package_files"].items():
+            if _scope_package_files(package) != names:
+                _scope_refuse("PUBLIC_SCOPE_INPUT_CHANGED")
+    except PublicCohortScopeError:
+        raise
+    except Exception:
+        _scope_refuse("PUBLIC_SCOPE_INPUT_CHANGED")
+
+
+def _scope_package_files(package):
+    from .packaging import _package_files_fail_closed
+    return tuple(sorted(p.relative_to(package).as_posix()
+                        for p in _package_files_fail_closed(package)))
+
+
+def _scope_rows(wb, name, required, selected):
+    """Project selected identities before reading any other scientific field."""
+    if name not in wb.sheetnames:
+        _scope_refuse("PUBLIC_MASTER_REQUIRED_SHEET_MISSING")
+    ws = wb[name]
+    head = next(ws.iter_rows(min_row=1, max_row=1), ())
+    headers = [c.value for c in head]
+    if any(headers.count(k) != 1 for k in required):
+        _scope_refuse("PUBLIC_MASTER_HEADER_INVALID")
+    idx = {k: headers.index(k) for k in required}
+    rows = []
+    for row in ws.iter_rows(min_row=2):
+        cell = row[idx["strain"]] if idx["strain"] < len(row) else None
+        sid = cell.value if cell is not None else None
+        if sid not in selected:
+            continue
+        values = {}
+        for name_, i in idx.items():
+            c = row[i] if i < len(row) else None
+            if c is not None and c.data_type == "f":
+                _scope_refuse("PUBLIC_MASTER_FORMULA_UNSUPPORTED")
+            values[name_] = c.value if c is not None else None
+        rows.append(values)
+    return rows
+
+
+def _scope_text(value):
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        _scope_refuse("PUBLIC_MASTER_VALUE_INVALID")
+    return value
+
+
+def _scope_count(value):
+    import math
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        _scope_refuse("PUBLIC_MASTER_COUNT_INVALID")
+    if not math.isfinite(value) or value < 0 or int(value) != value:
+        _scope_refuse("PUBLIC_MASTER_COUNT_INVALID")
+    return int(value)
+
+
+def _scope_gene_backing(manifest):
+    """Adapt saved producer evidence to the existing selector; never execute scans."""
+    from types import SimpleNamespace
+    from .master_workbook import _gene_backed_carotenoid_bgcs
+    bgcs = manifest["bgcs"]
+    ids = {b["bgc_id"] for b in bgcs}
+    scans = manifest.get("source_scans")
+    if not isinstance(scans, dict):
+        _scope_refuse("GENE_BACKED_EVIDENCE_UNAVAILABLE")
+    da, pm = scans.get("domain_architecture"), scans.get("primary_metabolism")
+    if (not isinstance(da, dict) or da.get("status") != "SOURCE_DERIVED_STRUCTURED_DOMAINS"
+            or not isinstance(pm, dict) or pm.get("status") != "SOURCE_DERIVED"):
+        _scope_refuse("GENE_BACKED_EVIDENCE_UNAVAILABLE")
+    if any(not isinstance(x.get("per_bgc"), dict) or set(x["per_bgc"]) != ids for x in (da, pm)):
+        _scope_refuse("GENE_BACKED_COVERAGE_CONFLICT")
+    for rec in da["per_bgc"].values():
+        if (not isinstance(rec, dict) or not isinstance(rec.get("domains"), list)
+                or any(not isinstance(d, dict) or not isinstance(d.get("domain"), str)
+                       for d in rec["domains"])):
+            _scope_refuse("GENE_BACKED_EVIDENCE_UNAVAILABLE")
+    if any(not isinstance(x, dict) or not isinstance(x.get("families"), list)
+           for x in pm["per_bgc"].values()):
+        _scope_refuse("GENE_BACKED_EVIDENCE_UNAVAILABLE")
+    hits = pm.get("hits")
+    if not isinstance(hits, dict) or not isinstance(hits.get("pigment"), list):
+        _scope_refuse("GENE_BACKED_EVIDENCE_UNAVAILABLE")
+    for hit in hits["pigment"]:
+        if (not isinstance(hit, dict) or not isinstance(hit.get("product"), str)
+                or not isinstance(hit.get("contig"), str)
+                or isinstance(hit.get("start"), bool) or isinstance(hit.get("end"), bool)
+                or not isinstance(hit.get("start"), int) or not isinstance(hit.get("end"), int)
+                or hit["start"] > hit["end"]):
+            _scope_refuse("GENE_BACKED_EVIDENCE_UNAVAILABLE")
+        if not any(hit["contig"] == b["contig"] for b in bgcs):
+            _scope_refuse("GENE_BACKED_COVERAGE_CONFLICT")
+    run = SimpleNamespace(bgcs=[SimpleNamespace(**b) for b in bgcs],
+                          source_scans=SimpleNamespace(**scans))
+    return _gene_backed_carotenoid_bgcs(run)
+
+
+def load_public_master(master_path, *, runs_dir, privacy_profile=None, strains=None, class_view=None):
+    """Independently admit packages, then join only authorized saved master rows.
+
+    Public calls never trust a caller-provided row filter or precomputed prevalence.
+    Legacy private load_master remains unchanged. All errors are content-free codes.
+    """
+    import json
+    from .release_policy import load_bound_profile, package_release_policy
+    from .privacy_profile import load_public_export_policy
+    from .master_workbook import CANONICAL_V1_HEADERS, _b2_product_class_counts
+    from .class_architecture import with_family_labels
+    from .validate import verify_checksums
+    from .crosswalk import assembly_locator
+    from .cohort_deliverable import _load_version_gate
+    from .xlsx_determinism import guard_workbook_size
+    if class_view not in PUBLIC_CLASS_VIEWS:
+        _scope_refuse("PUBLIC_CLASS_VIEW_REQUIRED")
+    if not master_path:
+        _scope_refuse("PUBLIC_MASTER_PATH_REQUIRED")
+    view = {"_bindings": {}, "_package_files": {}, "_blocked": set(), "_packages": {},
+            "class_view": class_view, "registry": {}, "bgcs": [], "prevalence": {}}
+    try:
+        root = Path(runs_dir).resolve(strict=True)
+        master = Path(master_path)
+        if master.is_symlink() or not master.is_file():
+            _scope_refuse("PUBLIC_MASTER_PATH_INVALID")
+        view["_bindings"][master] = _scope_digest(master)
+        profile, pdigest = load_bound_profile(privacy_profile) if privacy_profile else (None, "")
+        policy = load_public_export_policy(privacy_profile)
+        view["_policy"] = policy
+        if privacy_profile:
+            view["_bindings"][Path(privacy_profile)] = pdigest
+        admitted, manifests, authority = {}, {}, {}
+        for package in sorted(root.glob("*/package")):
+            if package.is_symlink() or package.parent.is_symlink() or not package.is_dir():
+                _scope_refuse("PUBLIC_PACKAGE_CONTAINMENT_INVALID")
+            privacy = package_release_policy(package, package.parent.name, profile=profile, profile_sha256=pdigest)
+            for meta in [package / "manifest.json", package / "manifest_short.json", *sorted(package.glob("*_1_intake.json"))]:
+                if meta.exists():
+                    if meta.is_symlink():
+                        _scope_refuse("PUBLIC_PACKAGE_CONTAINMENT_INVALID")
+                    view["_bindings"][meta] = _scope_digest(meta)
+                    try:
+                        obj = json.loads(meta.read_text(encoding="utf-8"))
+                        identity = obj.get("strain_id") if isinstance(obj, dict) else None
+                        if isinstance(identity, str) and privacy["effective_release"] != "PUBLIC":
+                            view["_blocked"].add(identity)
+                    except (ValueError, OSError):
+                        if privacy["effective_release"] == "PUBLIC":
+                            _scope_refuse("PUBLIC_PRIVACY_METADATA_UNREADABLE")
+                        view["_blocked"].add(str(privacy["strain_id"]))
+                        import warnings
+                        warnings.warn("PRIVATE_PACKAGE_METADATA_UNREADABLE_EXCLUDED",
+                                      RuntimeWarning, stacklevel=2)
+            if package.parent.name != privacy["strain_id"]:
+                view["_blocked"].add(package.parent.name)
+            if privacy["effective_release"] != "PUBLIC":
+                view["_blocked"].add(str(privacy["strain_id"]))
+                continue
+            sid = privacy["strain_id"]
+            if not isinstance(sid, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", sid):
+                _scope_refuse("PUBLIC_IDENTITY_UNSAFE")
+            if sid in admitted:
+                _scope_refuse("PUBLIC_PACKAGE_IDENTITY_DUPLICATE")
+            admitted[sid] = package
+            authority[sid] = privacy["authority_sha256"]
+        if strains is not None:
+            if not strains or len(strains) != len(set(strains)) or any(s not in admitted for s in strains):
+                _scope_refuse("PUBLIC_REQUESTED_IDENTITY_UNAVAILABLE")
+            order = list(strains)
+        else:
+            order = sorted(admitted)
+        if not order:
+            _scope_refuse("PUBLIC_SCOPE_EMPTY")
+        selected = set(order)
+        view["_blocked"].update(set(admitted) - selected)
+        view["_blocked"].difference_update(selected)
+        for sid in order:
+            package = admitted[sid]
+            files = _scope_package_files(package)
+            if verify_checksums(package):
+                _scope_refuse("PUBLIC_PACKAGE_INTEGRITY_INVALID")
+            view["_package_files"][package] = files
+            for rel in files:
+                path = package / rel
+                view["_bindings"][path] = _scope_digest(path)
+            man = json.loads((package / "manifest.json").read_text(encoding="utf-8"))
+            if not isinstance(man, dict) or man.get("strain_id") != sid or not isinstance(man.get("bgcs"), list):
+                _scope_refuse("PUBLIC_PACKAGE_SCIENCE_INVALID")
+            ids = []
+            for bgc in man["bgcs"]:
+                if not isinstance(bgc, dict):
+                    _scope_refuse("PUBLIC_PACKAGE_SCIENCE_INVALID")
+                if bgc.get("release") != "PUBLIC":
+                    _scope_refuse("PUBLIC_PACKAGE_ROW_RELEASE_CONFLICT")
+                if any(not isinstance(bgc.get(k), str) or not bgc[k] for k in ("bgc_id", "contig", "antismash_region")):
+                    _scope_refuse("PUBLIC_BGC_IDENTITY_INVALID")
+                if not isinstance(bgc.get("products"), list) or any(not isinstance(x, str) for x in bgc["products"]):
+                    _scope_refuse("PUBLIC_PACKAGE_SCIENCE_INVALID")
+                for k in ("start", "end"):
+                    _scope_count(bgc.get(k))
+                if bgc["start"] > bgc["end"]:
+                    _scope_refuse("PUBLIC_PACKAGE_SCIENCE_INVALID")
+                ids.append(bgc["bgc_id"])
+            if len(ids) != len(set(ids)):
+                _scope_refuse("PUBLIC_BGC_IDENTITY_DUPLICATE")
+            manifests[sid] = man
+            view["_packages"][sid] = package
+        view["_manifests"] = manifests
+        guard_workbook_size(master)
+        wb = load_workbook(master, read_only=True, data_only=False)
+        try:
+            a2 = _scope_rows(wb, "A2_Strain_Registry", (*_A2_REQUIRED, "workflow_version", "bgc_count"), selected)
+            a3 = _scope_rows(wb, "A3_Run_Manifest", ("strain", "version"), selected)
+            b1 = _scope_rows(wb, "B1_BGC_Master", (*_B1_REQUIRED, "contig", "region", "BGC_ID", "assembly_locator", "engine_version"), selected)
+            classes = tuple(c for c in CANONICAL_V1_HEADERS["B2_Product_Class_Matrix"]
+                            if c not in ("strain", "label_provenance", "counts_reliability"))
+            b2 = _scope_rows(wb, "B2_Product_Class_Matrix", ("strain", "label_provenance", *classes), selected)
+        finally:
+            wb.close()
+        gate = _load_version_gate()
+        if gate is None:
+            _scope_refuse("PUBLIC_ENGINE_GATE_UNAVAILABLE")
+        versions = {}
+        for sid in order:
+            man = manifests[sid]
+            ar = [x for x in a2 if x["strain"] == sid]
+            vr = [x for x in a3 if x["strain"] == sid]
+            matrix = [x for x in b2 if x["strain"] == sid and x["label_provenance"] == class_view]
+            if len(ar) != 1 or len(vr) != 1 or len(matrix) != 1:
+                _scope_refuse("PUBLIC_MASTER_IDENTITY_CARDINALITY_INVALID")
+            ar, vr, matrix = ar[0], vr[0], matrix[0]
+            if (_scope_text(ar["taxonomy"]) != _scope_text(man.get("taxonomy"))
+                    or _scope_text(ar["ecology_source"]) != _scope_text(man.get("source"))
+                    or _scope_count(ar["bgc_count"]) != len(man["bgcs"])):
+                _scope_refuse("PUBLIC_MASTER_REGISTRY_CONFLICT")
+            stamps = [vr["version"], ar["workflow_version"], man.get("workflow_version")]
+            rows = [x for x in b1 if x["strain"] == sid]
+            expected = {b["bgc_id"]: b for b in man["bgcs"]}
+            if len(rows) != len(expected) or len({x["BGC_ID"] for x in rows}) != len(rows):
+                _scope_refuse("PUBLIC_MASTER_BGC_MEMBERSHIP_CONFLICT")
+            backed = _scope_gene_backing(man) if class_view == "GENE_BACKED" else set()
+            all_labels = []
+            for row in rows:
+                bgc = expected.get(row["BGC_ID"])
+                if bgc is None:
+                    _scope_refuse("PUBLIC_MASTER_BGC_MEMBERSHIP_CONFLICT")
+                if (row["contig"] != (bgc.get("node_id") or bgc["contig"])
+                        or row["region"] != bgc["antismash_region"]
+                        or row["assembly_locator"] != assembly_locator(bgc)
+                        or _scope_text(row["products"]) != "; ".join(bgc["products"])
+                        or _scope_text(row["kcb_top"]) != _scope_text(bgc.get("kcb_top"))):
+                    _scope_refuse("PUBLIC_MASTER_BGC_VALUE_CONFLICT")
+                stamps.append(row["engine_version"])
+                labels = with_family_labels(bgc["products"])
+                raw_counts = _b2_product_class_counts(labels)
+                all_labels.extend(labels)
+                members = {c for c in classes if raw_counts.get(c, 0) > 0}
+                if class_view == "GENE_BACKED":
+                    members.discard("carotenoid")
+                    if bgc["bgc_id"] in backed:
+                        members.add("carotenoid")
+                view["bgcs"].append({"strain": sid, "bgc_id": bgc["bgc_id"], "classes": sorted(members),
+                    "host_group": _host_group(ar["ecology_source"]), "genus": _genus_from_taxonomy(ar["taxonomy"]),
+                    "fully_dark": _is_fully_dark(row["kcb_top"]), "dark_or_unresolved": _is_dark_or_unresolved(row["kcb_top"])})
+            counts = _b2_product_class_counts(all_labels)
+            if class_view == "GENE_BACKED":
+                counts["carotenoid"] = len(backed)
+            if any(_scope_count(matrix[c]) != counts.get(c, 0) for c in classes):
+                _scope_refuse("PUBLIC_MASTER_CLASS_VIEW_CONFLICT")
+            parsed = [gate.parse_engine_version(_scope_text(v)) for v in stamps]
+            if None in parsed or len(set(parsed)) != 1:
+                _scope_refuse("PUBLIC_ENGINE_PROVENANCE_CONFLICT")
+            versions[sid] = stamps[0]
+            view["registry"][sid] = {"genus": _genus_from_taxonomy(ar["taxonomy"]), "host_group": _host_group(ar["ecology_source"]), "classes": {c for c in classes if counts.get(c, 0) > 0}}
+        engine = gate.parse_engine_version(versions[order[0]])
+        try:
+            gate.assert_uniform_scoring_engine(versions, engine)
+        except Exception:
+            _scope_refuse("PUBLIC_ENGINE_MIXED_OR_MISSING")
+        view["N"] = len(order)
+        for c in classes:
+            ns = sum(c in row["classes"] for row in view["registry"].values())
+            if ns:
+                frac = ns / view["N"]
+                view["prevalence"][c] = {"n_strains": ns, "informative": 1 <= ns < view["N"],
+                    "band": "ubiquitous" if ns == view["N"] else "common" if frac >= .5 else "occasional" if frac >= .2 else "rare"}
+        if not view["bgcs"]:
+            _scope_refuse("PUBLIC_SCOPE_NO_BGCS")
+        view["strains"] = order
+        view["receipt"] = {"schema_version": PUBLIC_SCOPE_VERSION, "class_view": class_view,
+            "strains": order, "strain_denominator": len(order), "bgc_denominator": len(view["bgcs"]),
+            "engine_version": engine, "master_sha256": view["_bindings"][master],
+            "profile_sha256": pdigest, "authority_sha256": {sid: authority[sid] for sid in order},
+            "package_inputs": {sid: {rel: view["_bindings"][admitted[sid] / rel]
+                                     for rel in view["_package_files"][admitted[sid]]} for sid in order}}
+        # Do not publish filenames within packages: those may themselves contain local/private labels.
+        view["receipt"]["package_inputs"] = {sid: sorted(files.values()) for sid, files in view["receipt"]["package_inputs"].items()}
+        recheck_public_scope(view)
+        return view
+    except PublicCohortScopeError:
+        raise
+    except Exception:
+        _scope_refuse("PUBLIC_SCOPE_INPUT_INVALID")
+
+
+def check_public_scope_text(view, text, *, relative_path="", digest=""):
+    """Fail closed for held identities and configured content-only policy literals."""
+    import hashlib
+    # Exact identifier token boundaries avoid promoting a folder/prefix naming rule into authority.
+    for identity in view["_blocked"]:
+        if identity and re.search(r"(?<![A-Za-z0-9])" + re.escape(identity) + r"(?![A-Za-z0-9])", text):
+            _scope_refuse("PUBLIC_SCOPE_HELD_IDENTIFIER_IN_CONTENT")
+    policy = view["_policy"]
+    actual = digest or hashlib.sha256(text.encode("utf-8")).hexdigest()
+    for ident in policy.private_identifiers:
+        if ident.literal not in text:
+            continue
+        allowed = any(a.identifier_id == ident.identifier_id and a.relative_path == relative_path
+                      and a.sha256 == actual and a.purpose == "CONTENT_ONLY_EXCEPTION" and a.state == "ACTIVE"
+                      for a in policy.allowlisted_occurrences)
+        if not allowed:
+            _scope_refuse("PUBLIC_SCOPE_PRIVATE_LITERAL_IN_CONTENT")
+
+
+def render_public_synthesis(view, novelty_basis):
+    """Render only an independently loaded view; all summaries are subset-derived."""
+    if novelty_basis not in ("fully_dark", "dark_or_unresolved"):
+        _scope_refuse("PUBLIC_NOVELTY_BASIS_INVALID")
+    reg, bgcs, prev, n = view["registry"], view["bgcs"], view["prevalence"], view["N"]
+    total = len(bgcs)
+    alt = "dark_or_unresolved" if novelty_basis == "fully_dark" else "fully_dark"
+    genera, hosts = Counter(x["genus"] or "Unresolved" for x in reg.values()), Counter(x["host_group"] for x in reg.values())
+    lines = ["# Cross-Strain Biosynthetic Synthesis (public subset)", "",
+             f"**Cohort:** {n} strains · {total} BGCs · {len(genera)} genera · {len(hosts)} host groups",
+             f"**Class view:** `{view['class_view']}` · projection `{PUBLIC_SCOPE_VERSION}`",
+             f"**Novelty basis:** `{novelty_basis}`; alternate `{alt}` is reported separately.",
+             "**Source:** independently release-admitted package identities joined to selected master rows. Capacity-level; KCB = similarity, not identity.", "",
+             "Class prevalence counts distinct admitted strains; class occurrence summaries count each admitted BGC once per selected class. No mixed-cohort aggregate or fit is reused.", "",
+             "## 1. Cohort composition",
+             f"{n} strains; genera: " + ", ".join(f"{g} ×{v}" for g, v in sorted(genera.items())) + ".",
+             "Host groups: " + ", ".join(f"{h} ×{v}" for h, v in sorted(hosts.items())) + ".", "",
+             "## 2. Capacity prevalence (selected class view)", "| Class | Strains | Band |", "|---|---:|---|"]
+    for c, record in sorted(prev.items()):
+        lines.append(f"| {c} | {record['n_strains']}/{n} | {record['band']} |")
+    lines += ["", "## 3. Host-associated class occurrences"]
+    host_class = defaultdict(Counter)
+    for b in bgcs:
+        for c in b["classes"]:
+            if prev[c]["informative"]:
+                host_class[c][b["host_group"]] += 1
+    biased = []
+    for c, counts in sorted(host_class.items()):
+        denom = sum(counts.values())
+        top, num = sorted(counts.items(), key=lambda x: (-x[1], x[0]))[0]
+        if denom >= 4 and num / denom >= .55:
+            biased.append((c, top, num, denom))
+    lines += ([f"- {c}: {top}, {num}/{denom} BGCs ({num/denom:.0%})." for c, top, num, denom in biased]
+              or ["No class exceeded the 55% display threshold at n≥4 BGCs in this subset."])
+    lines += ["", f"## 4. Reference-dark fractions (basis: `{novelty_basis}`)",
+              f"`{novelty_basis}`: {sum(b[novelty_basis] for b in bgcs)}/{total} ({sum(b[novelty_basis] for b in bgcs)/total:.1%}); "
+              f"`{alt}`: {sum(b[alt] for b in bgcs)}/{total} ({sum(b[alt] for b in bgcs)/total:.1%}).",
+              "", "| Host group | Dark % | n BGCs |", "|---|---:|---:|"]
+    for host, (pct, count) in sorted(novelty_by_host(bgcs, novelty_basis).items()):
+        lines.append(f"| {host} | {pct:.1f}% | {count} |")
+    lines += ["", "## 5. Classes unique within this public subset"]
+    unique = differentiating_capacities(prev)
+    lines.append(f"{len(unique)} classes carried by exactly one admitted strain after the standing display exclusions.")
+    for c in unique:
+        carrier = next(sid for sid in view["strains"] if c in reg[sid]["classes"])
+        lines.append(f"- {c} → {carrier} ({reg[carrier]['genus'] or 'Unresolved'}, {reg[carrier]['host_group']}).")
+    lines += ["", "## 6. Genus class occurrences"]
+    gc = defaultdict(Counter)
+    for b in bgcs:
+        for c in b["classes"]:
+            if c not in _GENUS_UBIQ:
+                gc[b["genus"] or "Unresolved"][c] += 1
+    for genus_, counts in sorted(gc.items()):
+        lines.append(f"- {genus_}: " + ", ".join(f"{c} ({v})" for c, v in sorted(counts.items(), key=lambda x: (-x[1], x[0]))[:4]) + ".")
+    if not gc:
+        lines.append("No selected class remained after the standing genus-display exclusions.")
+    lines += ["", "Counts describe only the admitted public subset and selected saved-evidence label view; they do not establish product identity or biological activity."]
+    text = "\n".join(lines) + "\n"
+    check_public_scope_text(view, text, relative_path="CROSS_STRAIN_SYNTHESIS.md")
+    return text
+
+
 def write_synthesis(master_path: str | Path, novelty_basis: str = "fully_dark",
                     host_overrides: dict | None = None,
-                    meta_overrides: dict | None = None) -> str:
+                    meta_overrides: dict | None = None, *, public_only=False,
+                    runs_dir=None, privacy_profile=None, strains=None, class_view=None) -> str:
     """Emit the cross-strain synthesis markdown. Raises on a stale/unverified master."""
+    if public_only:
+        if host_overrides or meta_overrides:
+            _scope_refuse("PUBLIC_METADATA_OVERRIDE_UNBOUND")
+        view = load_public_master(master_path, runs_dir=runs_dir,
+                                 privacy_profile=privacy_profile, strains=strains, class_view=class_view)
+        text = render_public_synthesis(view, novelty_basis)
+        recheck_public_scope(view)
+        return text
     if novelty_basis not in ("fully_dark", "dark_or_unresolved"):
         raise ValueError(f"novelty_basis must be 'fully_dark' or 'dark_or_unresolved', got {novelty_basis!r}")
     M = load_master(master_path, host_overrides, meta_overrides)

@@ -6,13 +6,15 @@ from __future__ import annotations
 import hashlib
 import os
 import subprocess
+import sys
 
 TOOL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                     "tools", "make_release_tarball.sh")
 
 
 def _run(*args):
-    return subprocess.run(["bash", TOOL, *args], capture_output=True, text=True, timeout=120)
+    return subprocess.run(["bash", TOOL, *args], env=dict(os.environ, PYTHON=sys.executable),
+                          capture_output=True, text=True, timeout=120)
 
 
 def test_sealed_dir_yields_matching_tarball_and_sha(tmp_path):

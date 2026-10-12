@@ -86,6 +86,14 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _fresh_output_path(outdir: str | Path) -> Path:
+    """Refuse any prior output, including empty directories and prior PASS receipts."""
+    destination = Path(outdir).resolve()
+    if destination.exists():
+        raise ValueError("FIGURE_OUTPUT_EXISTS: choose a new output directory")
+    return destination
+
+
 def _native_svg_rasterization_capability() -> dict[str, str]:
     """Probe the optional CairoSVG bridge without blocking native SVG output."""
     try:
@@ -181,9 +189,14 @@ def _require_single_antismash_profile(payload: dict[str, Any], governed: Sequenc
 def _load_with_benchmarks(
     path: str | Path,
     external_benchmark_ids: Sequence[str] = (),
+    *,
+    expected_widget_sha256: str | None = None,
 ) -> tuple[Path, dict[str, Any], list[str], list[str], list[str], list[str]]:
     source = Path(path).resolve()
-    payload = json.loads(source.read_text(encoding="utf-8"))
+    raw = source.read_bytes()
+    if expected_widget_sha256 is not None and hashlib.sha256(raw).hexdigest() != expected_widget_sha256:
+        raise ValueError("FIGURE_INPUT_WIDGET_BINDING_MISMATCH: consumed widget bytes do not match expected snapshot")
+    payload = json.loads(raw.decode("utf-8"))
     strains = payload.get("strains") or {}
     if not isinstance(strains, dict) or not strains:
         raise ValueError("widget data has no strains object")
@@ -228,14 +241,20 @@ def _load_with_benchmarks(
     return source, payload, all_ids, governed, benchmark_ids, requested
 
 
-def _load(path: str | Path) -> tuple[Path, dict[str, Any], list[str], list[str]]:
+def _load(
+    path: str | Path,
+    *,
+    expected_widget_sha256: str | None = None,
+) -> tuple[Path, dict[str, Any], list[str], list[str]]:
     """Preserve the four-value loader contract used by later renderer tranches.
 
     External benchmarks are still validated and remain default-off.  Tranche 1
     uses the extended loader below when an explicit comparison selection is
     requested; shared consumers keep receiving the historical four values.
     """
-    source, payload, all_ids, governed, _, _ = _load_with_benchmarks(path)
+    source, payload, all_ids, governed, _, _ = _load_with_benchmarks(
+        path, expected_widget_sha256=expected_widget_sha256
+    )
     return source, payload, all_ids, governed
 
 
@@ -969,6 +988,7 @@ def _caption_metadata(
     governed: Sequence[str],
     benchmark_ids: Sequence[str],
     selected_benchmarks: Sequence[str],
+    expected_widget_sha256: str | None = None,
 ) -> dict[str, str]:
     source_release = str((payload.get("meta") or {}).get("sourceRelease") or "UNDECLARED_SOURCE_RELEASE")
     host_grouped = "host cohort" in chart.title.lower()
@@ -977,8 +997,11 @@ def _caption_metadata(
         if host_grouped else
         "NOT_APPLICABLE: this renderer does not perform a genus-level comparison; any later cohort interpretation must use a separate genus-aware source."
     )
-    source_sha = _sha256(source)
-    source_bytes = source.stat().st_size
+    raw = source.read_bytes()
+    source_sha = hashlib.sha256(raw).hexdigest()
+    source_bytes = len(raw)
+    if expected_widget_sha256 is not None and source_sha != expected_widget_sha256:
+        raise ValueError("FIGURE_INPUT_WIDGET_BINDING_MISMATCH: caption widget bytes do not match expected snapshot")
     return {
         "caption_schema_version": CAPTION_METHOD_SCHEMA,
         "figure_question": str(spec.get("scientific_question") or ""),
@@ -1116,9 +1139,12 @@ def render_tranche(
     outdir: str | Path,
     *,
     external_benchmark_ids: Sequence[str] = (),
+    expected_widget_sha256: str | None = None,
 ) -> dict[str, Any]:
+    destination = _fresh_output_path(outdir)
+    widget_snapshot_sha256 = expected_widget_sha256 if expected_widget_sha256 is not None else _sha256(Path(widget_data).resolve())
     source,payload,all_ids,governed,benchmark_ids,selected_benchmarks=_load_with_benchmarks(
-        widget_data, external_benchmark_ids
+        widget_data, external_benchmark_ids, expected_widget_sha256=widget_snapshot_sha256
     )
     native_svg_rasterization = _native_svg_rasterization_capability()
     charts=build_charts(payload,all_ids,governed)
@@ -1132,6 +1158,7 @@ def render_tranche(
             chart, registry[chart.figure_id], source=source, payload=payload,
             all_ids=all_ids, governed=governed, benchmark_ids=benchmark_ids,
             selected_benchmarks=selected_benchmarks,
+            expected_widget_sha256=widget_snapshot_sha256,
         )
         for chart in charts
     }
@@ -1142,7 +1169,7 @@ def render_tranche(
     genus_receipts = {
         chart.figure_id: validate_genus_comparison("NOT_APPLICABLE") for chart in charts
     }
-    destination=Path(outdir).resolve(); destination.mkdir(parents=True,exist_ok=True)
+    destination.mkdir(parents=True)
     figures_dir=destination/"figures"; data_dir=destination/"data"; text_dir=destination/"text"
     for directory in (figures_dir,data_dir,text_dir): directory.mkdir(parents=True,exist_ok=True)
     manifest=[]
@@ -1166,7 +1193,9 @@ def render_tranche(
     index=destination/"OPEN_FIGURE_SET_TRANCHE_1.html"
     index.write_text(f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Codex Figure Factory tranche 1</title><style>body{{font:15px/1.45 system-ui;margin:0;background:#f4f6f8;color:#17212b}}header,main{{max-width:1500px;margin:auto;padding:22px}}article{{background:white;border:1px solid #d8dee5;border-radius:8px;padding:14px;margin:0 0 20px}}img{{max-width:100%;height:auto}}h1{{margin-bottom:4px}}h2{{font-size:18px}}a{{color:#31688e}}.caption{{margin-top:12px;padding:12px 14px;background:#f7f1e4;border-left:4px solid #168c8c}}details{{margin-top:10px}}</style></head><body><header><h1>Codex Figure Factory tranche 1</h1><p>20 implemented strain- and cohort-specific sets from the governed 200-set registry. {_esc(GLOBAL_CLAIM_CEILING)}</p></header><main>{cards}</main></body></html>''',encoding="utf-8")
     checks = _validate_outputs(destination, manifest, governed)
-    receipt={"schema_version":SCHEMA_VERSION,"status":"PASS" if all(c["status"] == "PASS" for c in checks) else "FAIL","profile":PROFILE,"source":{"path":str(source),"sha256":_sha256(source)},
+    if _sha256(source) != widget_snapshot_sha256:
+        raise ValueError("FIGURE_INPUT_WIDGET_BINDING_CHANGED: widget changed during render; no successful receipt committed")
+    receipt={"schema_version":SCHEMA_VERSION,"status":"PASS" if all(c["status"] == "PASS" for c in checks) else "FAIL","profile":PROFILE,"source":{"path":str(source),"sha256":widget_snapshot_sha256},
              "governed_strains":len(governed),"all_packaged_strains":len(all_ids),
              "source_strains":len(payload["strains"]),
              "native_svg_rasterization":native_svg_rasterization,

@@ -29,7 +29,7 @@ TOOLS = Path(__file__).resolve().parents[1] / "tools"
 def guard(tmp_path, monkeypatch):
     """Load the module with AS_STRAIN_MASTER pointed at a synthetic strain-data root."""
     asm = tmp_path / "strain_data"
-    for strain, genus in (("AS-940", "Streptomyces"), ("AS-941", "Nocardiopsis")):
+    for strain, genus in (("AS-986", "Streptomyces"), ("AS-987", "Nocardiopsis")):
         d = asm / strain
         d.mkdir(parents=True)
         (d / "STRAIN_CARD.md").write_text(
@@ -51,28 +51,28 @@ def _fab_card(tmp_path, strain, genus):
 def test_strain_phrase_eco_extracted_for_nonfinal_genus(guard):
     """The strain-phrase pattern must extract ecology for a NON-final alternation branch."""
     gen, eco = guard.card_identity(
-        "This BGC sits in Streptomyces sp. (bee-associated) strain AS-940.")
+        "This BGC sits in Streptomyces sp. (bee-associated) strain AS-986.")
     assert gen == "Streptomyces"
     assert "bee" in eco, "strain-phrase ecology not extracted for a non-final genus branch"
 
 
 def test_fabricated_ecology_fails_for_nonfinal_genus(guard, tmp_path):
     """A bee-associated claim on a moss strain must FAIL regardless of which genus phrases it."""
-    card = _fab_card(tmp_path, "AS-940", "Streptomyces")
+    card = _fab_card(tmp_path, "AS-986", "Streptomyces")
     status, _path, msg = guard.check(str(card))
     assert status == "FAIL" and "ECOLOGY" in msg, (status, msg)
 
 
 def test_fabricated_ecology_still_fails_for_final_genus(guard, tmp_path):
     """Control (worked pre-fix): the final alternation branch keeps failing the fabrication."""
-    card = _fab_card(tmp_path, "AS-941", "Nocardiopsis")
+    card = _fab_card(tmp_path, "AS-987", "Nocardiopsis")
     status, _path, msg = guard.check(str(card))
     assert status == "FAIL" and "ECOLOGY" in msg, (status, msg)
 
 
 def test_truthful_card_still_passes(guard, tmp_path):
     """A card agreeing with the STRAIN_CARD (moss) must PASS — the fix adds no false FAILs."""
-    p = tmp_path / "AS-940_ModeB_card.md"
-    p.write_text("## S1\nThis BGC sits in Streptomyces sp. (moss-associated) strain AS-940.\n")
+    p = tmp_path / "AS-986_ModeB_card.md"
+    p.write_text("## S1\nThis BGC sits in Streptomyces sp. (moss-associated) strain AS-986.\n")
     status, _path, msg = guard.check(str(p))
     assert status == "PASS", (status, msg)

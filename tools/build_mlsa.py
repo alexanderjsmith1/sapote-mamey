@@ -8,8 +8,9 @@ Pseudonocardiaceae ~156 tips). The MLSA supermatrix is ~9 kb across 5 housekeepi
 genes vs ~30k columns for the core-genome set, so IQ-TREE finishes in
 minutes-to-an-hour even at hundreds of taxa.
 
-MLSA IS CHEAP — run as many wide-net screens as you like, un-gated. It never needs the
-compute-approval preflight; that gate is only for the EXPENSIVE core-genome step. The
+The public CLI runs the whole MLSA computation under finite user-configurable
+resource monitoring. This does not confer scientific approval or core-genome execution
+approval. The
 output of a screen feeds prune_neighbors_from_tree.py, which emits a bounded (<=60-tip)
 panel into build_phylo_panel.py -> plan_gtotree_iqtree.py -> USER APPROVAL ->
 GToTree 138-SCG core-genome. Cores are committed only at that last, approved step.
@@ -60,6 +61,8 @@ except ModuleNotFoundError:
 
 from urllib.parse import quote
 import math
+from pathlib import Path
+from mamey import native_workspace as _native_workspace
 import sys as _sys
 def emit(*args, sep=" ", end="\n", file=None, flush=False):
     """print-compatible stdout/stderr writer (no bare print(); keeps strict-health print_calls flat)."""
@@ -210,7 +213,7 @@ def _write_status(out, status, detail):
 
 
 
-def main(argv=None):
+def _compute_main(argv=None, *, native_workdir=None, native_copy_limit=536870912, bound_bins=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if len(argv) < 2 or argv[0] in ("-h", "--help"):
         sys.stderr.write(__doc__)
@@ -224,7 +227,7 @@ def main(argv=None):
     seeds_dir = os.path.abspath(seeds_dir)
 
     # Resolve companions up front; fail clearly (never silently) if one is absent.
-    bins = {t: resolve_bin(t, bin_dir) for t in _BIN_ALIASES}
+    bins = dict(bound_bins) if bound_bins is not None else {t: resolve_bin(t, bin_dir) for t in _BIN_ALIASES}
     missing = [t for t, p in bins.items() if p is None]
     if missing:
         sys.stderr.write(
@@ -262,8 +265,10 @@ def main(argv=None):
         _write_status(out, "IN_PROGRESS", "Companion tools running")
         say(f"=== MLSA: {len(genomes)} genomes from {gdir} ===")
         try:
-            _run_pipeline(genomes, out, seeds_dir, bins, threads, log, say)
-        except (subprocess.CalledProcessError, OSError, ValueError) as exc:
+            _run_pipeline(genomes, out, seeds_dir, bins, threads, log, say,
+                          native_workdir=native_workdir, native_copy_limit=native_copy_limit)
+        except (subprocess.CalledProcessError, OSError, ValueError,
+                _native_workspace.NativeWorkspaceRefused) as exc:
             detail = f"BUILD_FAILED: {type(exc).__name__}: {exc}"
             if isinstance(exc, subprocess.CalledProcessError):
                 detail = f"TOOL_FAILURE: {exc.cmd[0]} exit {exc.returncode}"
@@ -282,7 +287,8 @@ def _taxon_tag(genome):
     return quote(os.path.splitext(os.path.basename(genome))[0], safe="._-")
 
 
-def _run_pipeline(genomes, out, seeds_dir, bins, threads, log, say):
+def _run_pipeline_worker(genomes, out, seeds_dir, bins, threads, log, say, *,
+                  native_workdir=None, native_copy_limit=536870912):
     with open(os.path.join(out, "taxon_map.tsv"), "w", newline="") as fh:
         writer = _SafeWriter(fh, delimiter="\t")
         writer.writerow(["taxon", "input_filename"])
@@ -305,19 +311,26 @@ def _run_pipeline(genomes, out, seeds_dir, bins, threads, log, say):
     loci_seqs = {L: {} for L in LOCI}
     report = []
     tags = [_taxon_tag(g) for g in genomes]
-    dbdir = os.path.join(out, "blastdb")
+    if native_workdir is None:
+        raise ValueError("NATIVE_WORKSPACE_REQUIRED: use governed main, or supply an owned internal workspace")
+    _native_workspace.shell_safe_path(native_workdir)
+    seed_copies, source_copies = [], []
+    original_dbdir = Path(out) / "blastdb"
+    dbdir = str(native_workdir)
     for L in LOCI:
-        shutil.copyfile(os.path.join(seeds_dir, L + ".faa"),
-                        os.path.join(dbdir, "seed_" + L + ".faa"))
+        seed_copies.append(_native_workspace.bounded_copy(
+            Path(seeds_dir) / (L + ".faa"), Path(dbdir) / ("seed_" + L + ".faa"), native_copy_limit))
     for i, tag in enumerate(tags, 1):
         faa = os.path.join(out, "proteomes", tag + ".faa")
         ffn = os.path.join(out, "cds", tag + ".ffn")
         ffn_seqs = _checked_fasta(ffn)
-        # BLAST parses database names itself. Use safe relative names in an
-        # explicit cwd; output directories and genome labels may contain spaces.
+        # BLAST can re-expand relative paths against cwd. The shared owner
+        # supplies a genuinely shell-safe cwd; original outputs may contain spaces.
         dbp = f"db{i:06d}"
         staged = f"input{i:06d}.faa"
-        shutil.copyfile(faa, os.path.join(dbdir, staged))
+        input_copy = _native_workspace.bounded_copy(faa, Path(dbdir) / staged, native_copy_limit)
+        source_copies.append(input_copy)
+        _write_native_identity(out, source_copies, seed_copies, "RUNNING")
         _sh([bins["makeblastdb"], "-in", staged, "-dbtype", "prot", "-out", dbp],
             log=log, cwd=dbdir)
         for L in LOCI:
@@ -348,8 +361,24 @@ def _run_pipeline(genomes, out, seeds_dir, bins, threads, log, say):
                 raise ValueError(f"OUTPUT_INVALID: BLAST subject {sid} missing from CDS")
             loci_seqs[L][tag] = ffn_seqs[sid]
             report.append((tag, L, pid, str(len(ffn_seqs[sid])), "HIT"))
+        if _native_workspace.digest(faa) != input_copy["source"] or _native_workspace.digest(Path(dbdir) / staged) != input_copy["copy"]:
+            raise ValueError("NATIVE_INPUT_CHANGED: BLAST proteome binding changed")
+        # Preserve original artifact location, with explicit finite per-database copy budget.
+        candidates = sorted(Path(dbdir).glob(dbp + ".*")) + [Path(dbdir) / staged]
+        remaining = 8 * input_copy["source"]["bytes"] + 1048576
+        for produced in candidates:
+            bound = _native_workspace.digest(produced, ceiling=remaining)
+            if bound["bytes"] > remaining:
+                raise ValueError("NATIVE_OUTPUT_LIMIT: BLAST database exceeds admitted copy estimate")
+            _native_workspace.bounded_copy(produced, original_dbdir / produced.name, remaining)
+            remaining -= bound["bytes"]
         if i % 25 == 0:
             say(f"  blastp {i}/{len(tags)}")
+    for seed in seed_copies:
+        if _native_workspace.digest(seed["source"]["path"]) != seed["source"] or _native_workspace.digest(seed["copy"]["path"]) != seed["copy"]:
+            raise ValueError("NATIVE_INPUT_CHANGED: BLAST seed binding changed")
+        _native_workspace.bounded_copy(seed["copy"]["path"], original_dbdir / Path(seed["copy"]["path"]).name, native_copy_limit)
+    _write_native_identity(out, source_copies, seed_copies, "SUCCEEDED")
     for L in LOCI:
         with open(os.path.join(out, "loci", L + ".fna"), "w") as fh:
             for tag in tags:
@@ -402,6 +431,37 @@ def _run_pipeline(genomes, out, seeds_dir, bins, threads, log, say):
         raise ValueError("OUTPUT_INVALID: IQ-TREE produced no nonempty treefile")
     say(f"TREE_OK -> {pre}.treefile")
     say("  now run: python tools/signoff_check.py " + pre + ".treefile")
+
+
+def _write_native_identity(out, source_copies, seed_copies, state):
+    payload = {"state": state, "source_copies": source_copies, "seed_copies": seed_copies,
+               "scope": "byte/path staging only; no identity inference", "child_process_group": "INHERIT_WATCHED_WORKER"}
+    pending = Path(out) / "native_blast_identity.json.tmp"
+    pending.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    os.replace(pending, Path(out) / "native_blast_identity.json")
+
+
+def _run_pipeline(genomes, out, seeds_dir, bins, threads, log, say, *, native_workdir=None,
+                  native_copy_limit=536870912):
+    """Computational API; public CLI adds the whole-worker monitor and source admission.
+
+    Direct callers own external resource monitoring; this API never starts a nested watcher.
+    """
+    if native_workdir is not None:
+        return _run_pipeline_worker(genomes, out, seeds_dir, bins, threads, log, say,
+                                    native_workdir=native_workdir, native_copy_limit=native_copy_limit)
+    owned = _native_workspace.OwnedWorkspace.create(_native_workspace.work_root(), "mamey-mlsa-api-")
+    try:
+        return _run_pipeline_worker(genomes, out, seeds_dir, bins, threads, log, say,
+                                    native_workdir=owned.path, native_copy_limit=native_copy_limit)
+    finally:
+        owned.cleanup()
+
+
+def main(argv=None):
+    """Public governed CLI; scientific worker remains separately callable."""
+    from tools._mlsa_resources import main as governed_main
+    return governed_main(argv)
 
 
 if __name__ == "__main__":

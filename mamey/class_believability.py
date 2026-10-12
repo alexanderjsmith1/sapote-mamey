@@ -26,7 +26,7 @@ TWO PASSES (RFC LQ-PATH-01 1b):
 Reads only post-seal artifacts (`*_gene_context.jsonl` + `_2_inventory.csv`), so this runs as a
 non-blocking post-seal subcommand and never touches `run_one_strain` or any gate.
 
-The phosphonate module is validated (ran across the AS + SID cohorts; matches the Lab Quest
+The phosphonate module is validated (ran across the AS + SID cohorts; matches the earlier
 `pathway_logic/phosphonate_logic.py` prototype). Other classes are added as small registry entries;
 only validated modules are shipped so the engine never manufactures a believability it can't defend.
 
@@ -79,7 +79,7 @@ class ClassModule:
     gateway_bit_re: re.Pattern = field(default=None)  # optional: extract the gateway bitscore for weak-hit test
 
 
-# --- phosphonate (validated; mirrors Lab Quest pathway_logic/phosphonate_logic.py) ----------------
+# --- phosphonate (validated; mirrors the pathway_logic/phosphonate_logic.py prototype) ----------------
 # PEP --(PEP mutase, PepM)--> phosphonopyruvate --(Ppd, TPP decarboxylase)--> phosphonoacetaldehyde
 #     --(aminotransferase / AA-kinase)--> amino-phosphonate warhead --(ATP-grasp / NRPS)--> phospho-PEPTIDE
 PHOSPHONATE = ClassModule(

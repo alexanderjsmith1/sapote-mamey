@@ -6,7 +6,7 @@ approval-gated and never invokes GToTree/IQ-TREE; this runner performs the actua
 a human has approved CPU use (the project's tree-approval gate). It refuses to run without an
 explicit ``--approved`` flag.
 
-It encodes the operational recipe verified on 2026-08-05 (GToTree v1.8.16 + IQ-TREE 3.x) and,
+Historical operational recipes included GToTree v1.8.16, now refused by shared policy, and,
 since v9.7.432 (TREES_432 tree round), the GToTree **v2.0.0** recipe verified on 2026-09-15
 (``gtotree -f <list> -H <hmm FILE> -j <jobs> -M <muscle threads> ...``), including the gotchas
 that silently break a naive run:
@@ -49,10 +49,16 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
-VERIFIED = "GToTree 1.8.16 / IQ-TREE 3.x, verified 2026-08-05; GToTree 2.0.0 recipe verified 2026-09-15"
+VERIFIED = "GToTree interface policy: 1.8.19 or 2.0.x; installed version/help and exact HMM bound per run"
 DEFAULT_HMM_SET = "Actinobacteria"
-GTOTREE_BINS = ("GToTree", "gtotree")   # 1.8 installs GToTree; 2.0 installs gtotree
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _gtotree_versions as _gtotree_policy  # noqa: E402
+from _gtotree_versions import (  # noqa: E402
+    GTOTREE_BINS, accepted as _gtotree_accepted, command as _gtotree_command,
+    probe as gtotree_probe,
+)
 
 
 def _emit(*a, file=None):
@@ -75,26 +81,15 @@ def _hmm_dir_for(gtotree_path):
 
 
 def gtotree_version(gtotree_path):
-    """Probe ``<gtotree> -v``. Returns ``(major: int | None, raw: str)``. ``None`` = unparseable."""
-    try:
-        proc = subprocess.run([gtotree_path, "-v"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              stdin=subprocess.DEVNULL, universal_newlines=True, timeout=60)
-        raw = (proc.stdout or "").strip().splitlines()
-        raw = raw[0].strip() if raw else ""
-    except (OSError, subprocess.SubprocessError) as exc:
-        return None, f"probe failed: {exc}"
-    m = re.search(r"v?(\d+)\.(\d+)\.(\d+)", raw)
-    return (int(m.group(1)) if m else None), raw
+    """Compatibility tuple from the complete admitted version/help probe."""
+    result = gtotree_probe(gtotree_path)
+    return (result.get("major") if result["verified_interface"] == "PASS" else None,
+            result.get("version") or result.get("error") or "probe failed")
 
 
-def gtotree_command(gtotree, major, genome_list, hmm, threads, parallel, out_dir):
-    """Version-correct GToTree invocation. v1.8: ``-n <threads> -j <parallel>``; v2.0: no ``-n``,
-    ``-M <muscle threads>``, ``-N`` (the runner makes the tree itself so seed/model stay pinned).
-    Both take ``-H``; v2 needs a FILE path there (resolve_hmm handles that)."""
-    if major is not None and major >= 2:
-        return [gtotree, "-f", genome_list, "-H", hmm, "-j", str(parallel), "-M", str(threads),
-                "-N", "-o", out_dir]
-    return [gtotree, "-f", genome_list, "-H", hmm, "-n", str(threads), "-j", str(parallel), "-o", out_dir]
+def gtotree_command(gtotree, version_text, genome_list, hmm, threads, parallel, out_dir):
+    """Delegate exact admitted version and explicit resources to the shared owner."""
+    return _gtotree_command(gtotree, version_text, genome_list, hmm, threads, parallel, out_dir)
 
 
 # v9.7.444: docs/GTOTREE_WORKFLOW.md section 5 prescribes this restricted ModelFinder search for the protein
@@ -172,6 +167,26 @@ def preflight_genome_list(genome_list, base_dir=None):
     return entries, errors
 
 
+def preflight_fresh_workdir(workdir, input_paths):
+    """Admit a new output root without mutating any path; this is not a resume API."""
+    lexical = Path(os.path.abspath(workdir))
+    for parent in (lexical, *lexical.parents):
+        if parent.is_symlink():
+            raise ValueError("WORKDIR_SYMLINK: output root or ancestor is a symlink")
+        if parent.exists() and not parent.is_dir():
+            raise ValueError("WORKDIR_PARENT_NOT_DIRECTORY: " + str(parent))
+    resolved = lexical.resolve()
+    if lexical.exists():
+        raise ValueError("WORKDIR_OCCUPIED: use a fresh output directory; existing evidence is preserved")
+    for supplied in input_paths:
+        selected = Path(supplied).resolve(strict=True)
+        if not selected.is_file():
+            raise ValueError("INPUT_NOT_REGULAR_FILE: " + str(supplied))
+        if selected == resolved or resolved in selected.parents or selected in resolved.parents:
+            raise ValueError("WORKDIR_INPUT_OVERLAP: " + str(supplied))
+    return str(resolved)
+
+
 def _tip_of(path):
     name = os.path.basename(path.strip())
     if name.endswith(".gz"):
@@ -200,7 +215,7 @@ def _write_status(workdir, status, **fields):
     payload = {"status": status}
     payload.update(fields)
     try:
-        with open(os.path.join(workdir, "run_status.json"), "w", encoding="utf-8") as fh:
+        with open(os.path.join(workdir, "run_status.json"), "x", encoding="utf-8") as fh:
             json.dump(payload, fh, indent=2, sort_keys=True)
     except OSError as exc:
         fields["run_status_write_error"] = str(exc)  # status could not be persisted; keep it in memory
@@ -218,7 +233,7 @@ def _load_module(path, name):
     return mod
 
 
-def hard_tree_qc(treefile, outgroup, tools_dir=None, mamey_dir=None, genomes_dir=None):
+def hard_tree_qc(treefile, outgroup, tools_dir=None, mamey_dir=None, genomes_dir=None, *, launch=None, log=None, env=None):
     """HARD tree-QC gate for a FINISHED treefile — run BEFORE this runner may report DONE.
 
     Finding 3 (DEEP_AUDIT3_phylo): the CLI-blessed genome executor produced a tree and
@@ -270,8 +285,16 @@ def hard_tree_qc(treefile, outgroup, tools_dir=None, mamey_dir=None, genomes_dir
         cmd = [sys.executable, pf, treefile, "--outgroup", og_primary]
         if genomes_dir:
             cmd += ["--genomes-dir", genomes_dir]
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              stdin=subprocess.DEVNULL, universal_newlines=True)
+        if launch is None:
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                  stdin=subprocess.DEVNULL, universal_newlines=True)
+        else:
+            from types import SimpleNamespace
+            rc = launch(cmd, log, env)
+            watched_log = launch.root / ("watch_%03d.log" % launch.count)
+            with watched_log.open(encoding="utf-8", errors="replace") as f:
+                diagnostic = f.read(65536)
+            proc = SimpleNamespace(returncode=rc, stdout=diagnostic)
         if proc.stdout:
             lines.append(proc.stdout.rstrip("\n"))
         if proc.returncode != 0:
@@ -301,13 +324,13 @@ def hard_tree_qc(treefile, outgroup, tools_dir=None, mamey_dir=None, genomes_dir
     return ok, lines
 
 
-def _run_requested_fastani(refs, queries, workdir, threads, log, env):
+def _run_requested_fastani(refs, queries, workdir, threads, log, env, *, launch=None, executable=None):
     """Operational stage receipt; no ANI threshold/content interpretation is added."""
     stage = {"requested": True, "status": "FASTANI_LAUNCH_FAILED", "returncode": None,
              "references": refs, "queries": queries, "output": None}
     failure_status = "FASTANI_LAUNCH_FAILED"
     try:
-        fastani = _resolve(["fastANI"])
+        fastani = executable or _resolve(["fastANI"])
         stage["executable"] = fastani
         if not fastani:
             stage.update(status="FASTANI_UNAVAILABLE", detail="requested fastANI executable is not on PATH")
@@ -319,7 +342,7 @@ def _run_requested_fastani(refs, queries, workdir, threads, log, env):
         stage["attempted_output"] = attempt
         cmd = [fastani, "--ql", queries, "--rl", refs, "-o", attempt, "-t", str(threads)]
         stage["command"] = cmd
-        rc = run(cmd, log, env)
+        rc = (launch or run)(cmd, log, env)
         stage["returncode"] = rc
         _emit(f"FASTANI_EXIT rc={rc}", file=log)
         if rc != 0:
@@ -340,10 +363,91 @@ def _run_requested_fastani(refs, queries, workdir, threads, log, env):
         return stage
 
 
+def validate_plan_binding(args, entries, tips, runtime, gtotree, iqtree):
+    from _gtotree_runtime import APPROVED_MANIFEST_SHA256, require_verified
+    require_verified(runtime, gtotree)
+    root = Path(args.plan_dir).resolve(strict=True)
+    manifest = json.loads((root / "RUN_MANIFEST.json").read_text())
+    state = json.loads((root / "RUN_STATE.json").read_text())
+    if state.get("approved") is not True or state.get("run_id") != manifest.get("run_id"):
+        raise ValueError("PLAN_APPROVAL_REQUIRED")
+    binding = manifest["runtime_binding"]
+    if (binding["manifest_sha256"] != APPROVED_MANIFEST_SHA256 or
+            Path(binding["manifest"]).resolve() != Path(args.gtotree_runtime_manifest).resolve() or
+            Path(binding["environment"]).resolve() != Path(args.gtotree_runtime_environment).resolve() or
+            Path(binding["editable_source"]).resolve() != Path(args.gtotree_runtime_source).resolve()):
+        raise ValueError("PLAN_RUNTIME_BINDING")
+    rows = manifest["assemblies"]
+    planned = _gtotree_policy.plan_mapping_rows(rows, manifest["toolchain"]["gtotree"]["version"])
+    layout = _gtotree_policy.governed_paths(root, manifest.get("execution_layout"))
+    if (Path(args.workdir).resolve() != layout["workdir_relative"] or
+            Path(args.genome_list).resolve() != root / "input_view/genomes_absolute.txt"):
+        raise ValueError("PLAN_OUTPUT_BINDING")
+    if [str(Path(e).resolve()) for e in entries] != [str(Path(r["object_path"]).resolve()) for r in rows]:
+        raise ValueError("PLAN_INPUT_ROSTER")
+    for row in rows:
+        if _sha256(row["object_path"]) != row["object_sha256"]:
+            raise ValueError("PLAN_INPUT_IDENTITY")
+    mapping = [line.split("\t") for line in (root / "input_view/labels.tsv").read_text().splitlines()]
+    if mapping != [[name, label] for name, label, role in planned]:
+        raise ValueError("PLAN_MAPPING_BINDING")
+    bound_tips = [label for name, label, role in planned]
+    if (tips != bound_tips or Path(args.mapping_file).resolve() != root / "input_view/labels.tsv" or
+            (args.query_tips or "").split(",") != [t for t,r in zip(tips,rows) if r["role"] == "QUERY"] or
+            args.outgroup.split(",") != [t for t,r in zip(tips,rows) if r["role"] == "OUTGROUP"]):
+        raise ValueError("PLAN_TIP_ROLE_BINDING")
+    resources = manifest["resource_policy"]
+    if (args.threads != resources["muscle_threads"] or args.parallel != resources["gtotree_jobs"] or
+            int(args.iqtree_threads) != resources["iqtree_threads_per_tree"] or
+            args.gtotree_cpu_budget != resources["maximum_concurrent_cores"] or
+            Path(gtotree).resolve() != Path(manifest["toolchain"]["gtotree"]["path"]).resolve() or
+            Path(iqtree).resolve() != Path(manifest["toolchain"]["iqtree"]["path"]).resolve() or
+            _sha256(args.hmm) != manifest["hmm"]["sha256"]):
+        raise ValueError("PLAN_TOOL_OR_RESOURCE_BINDING")
+    return {"schema": "GTOTREE_GOVERNED_PLAN_BINDING_V1", "plan_directory": str(root),
+            "manifest_sha256": _sha256(root / "RUN_MANIFEST.json"),
+            "state_sha256": _sha256(root / "RUN_STATE.json"),
+            "genome_list": str(Path(args.genome_list).resolve()),
+            "genome_list_sha256": _sha256(args.genome_list),
+            "mapping": str(Path(args.mapping_file).resolve()),
+            "mapping_sha256": _sha256(args.mapping_file),
+            "workdir": str(layout["workdir_relative"])}
+
+
+def completed_artifact(path, workdir):
+    """Bind a current producer output; this is not a cross-file transaction."""
+    root = Path(workdir).resolve(strict=True)
+    p = Path(path).absolute()
+    if (not p.is_file() or root not in p.resolve().parents or
+            any(q.is_symlink() for q in (p, *p.parents))):
+        raise ValueError("EXECUTION_OUTPUT_IDENTITY")
+    return {"path": str(p), "sha256": _sha256(p), "bytes": p.stat().st_size}
+
+
+def mapped_tips(entries, mapping_file=None, *, version_text="1.8.19"):
+    """Retain default tips; explicit version-specific mapping must cover every input."""
+    if not mapping_file:
+        return [_tip_of(e) for e in entries]
+    mapping = {}
+    with open(mapping_file, encoding="utf-8") as f:
+        for line in f:
+            cells = line.rstrip("\n").split("\t")
+            if len(cells) != 2 or not all(cells) or cells[0] in mapping or cells[1] in mapping.values():
+                raise ValueError("GTOTREE_MAPPING_IDENTITY")
+            # GToTree labels become Newick/FASTA tips; whitespace and grammar chars are unsafe.
+            if any(ch.isspace() or ch in "():,;[]'\"" for ch in cells[1]):
+                raise ValueError("GTOTREE_MAPPING_UNSAFE_TIP")
+            mapping[cells[0]] = cells[1]
+    keys = _gtotree_policy.mapping_input_keys(entries, version_text)
+    if set(mapping) != set(keys):
+        raise ValueError("GTOTREE_MAPPING_ROSTER")
+    return [mapping[key] for key in keys]
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Execute an APPROVED GToTree->IQ-TREE->signoff[->fastANI] run.")
     ap.add_argument("--genome-list", required=True, help="file of absolute FASTA paths (one per line)")
-    ap.add_argument("--workdir", required=True, help="output workdir (MUST contain no spaces)")
+    ap.add_argument("--workdir", required=True, help="fresh, absent output workdir (MUST contain no spaces); existing directories are refused")
     ap.add_argument("--outgroup", required=True, help="comma-separated outgroup tip label(s) = FASTA basename(s)")
     ap.add_argument("--hmm", default=DEFAULT_HMM_SET,
                     help=f"GToTree HMM set name or .hmm file path (default {DEFAULT_HMM_SET}); must resolve "
@@ -370,6 +474,13 @@ def main(argv=None):
     ap.add_argument("--signoff", help="path to signoff_check.py (optional; run on the treefile if given)")
     ap.add_argument("--approved", action="store_true",
                     help="REQUIRED. Affirms a human approved this CPU run (tree-approval gate).")
+    from _gtotree_runtime import (add_runtime_arguments, runtime_from_arguments,
+        verified_interface, resource_pass, RuntimeRefused, WatchedLaunch)
+    add_runtime_arguments(ap)
+    ap.add_argument("--gtotree-bin", help="explicit selected GToTree launcher")
+    ap.add_argument("--iqtree-bin", help="explicit selected IQ-TREE executable")
+    ap.add_argument("--mapping-file", help="exact headerless two-column TSV: v1 basename or v2 exact supplied input path to tip")
+    ap.add_argument("--plan-dir", help="frozen planner directory; requires its recorded approval and exact roster")
     a = ap.parse_args(argv)
 
     if not a.approved:
@@ -391,20 +502,91 @@ def main(argv=None):
         for e in gl_errors:
             _emit("  " + e, file=sys.stderr)
         return 2
-    expected_tips = [_tip_of(e) for e in entries]
+    # Admit the complete selected input roster before any output creation.
+    input_roster = [a.genome_list] + [
+        e if os.path.isabs(e) else os.path.join(os.path.dirname(os.path.abspath(a.genome_list)), e)
+        for e in entries]
+    for selected in (a.tree_spec, a.signoff, a.mapping_file):
+        if selected:
+            input_roster.append(selected)
+    for selected in (a.ani_refs, a.ani_queries):
+        if selected:
+            ani_entries, ani_errors = preflight_genome_list(selected)
+            if ani_errors:
+                for detail in ani_errors:
+                    _emit("REFUSED: ANI_INPUT_" + detail, file=sys.stderr)
+                return 2
+            input_roster += [selected] + [
+                e if os.path.isabs(e) else os.path.join(os.path.dirname(os.path.abspath(selected)), e)
+                for e in ani_entries]
+    try:
+        a.workdir = preflight_fresh_workdir(a.workdir, input_roster)
+    except (OSError, ValueError) as exc:
+        _emit("REFUSED: " + str(exc), file=sys.stderr)
+        return 2
 
-    gtotree = _resolve(GTOTREE_BINS)
-    iqtree = _resolve(["iqtree", "iqtree2"])
+    spec = None
+    if a.tree_spec:
+        try:
+            with open(a.tree_spec, encoding="utf-8") as fh:
+                spec = json.load(fh)
+            if not isinstance(spec, dict):
+                raise ValueError("TREE_SPEC_INVALID: JSON object required")
+        except (OSError, ValueError) as exc:
+            _emit("REFUSED: TREE_SPEC_INVALID: " + str(exc), file=sys.stderr)
+            return 2
+    gtotree = os.path.abspath(a.gtotree_bin) if a.gtotree_bin else _resolve(GTOTREE_BINS)
+    iqtree = os.path.abspath(a.iqtree_bin) if a.iqtree_bin else _resolve(["iqtree", "iqtree2"])
     if not gtotree:
         _emit("ERROR: GToTree/gtotree not on PATH (activate the phylo or gtotree2 conda env).", file=sys.stderr); return 3
     if not iqtree:
         _emit("ERROR: iqtree/iqtree2 not on PATH.", file=sys.stderr); return 3
-    major, ver_raw = gtotree_version(gtotree)
-    if major is None:
-        _emit(f"ERROR: could not parse GToTree version from '{gtotree} -v' ({ver_raw}); refusing to guess flags.",
-              file=sys.stderr); return 3
+    try:
+        runtime = runtime_from_arguments(a, gtotree)
+        gt_probe = verified_interface(runtime, gtotree) if runtime else gtotree_probe(gtotree)
+    except (OSError, ValueError) as exc:
+        _emit("REFUSED: " + str(exc), file=sys.stderr)
+        return 3
+    ver_raw = str(gt_probe.get("version") or "")
+    if gt_probe.get("verified_interface") != "PASS" or not _gtotree_accepted(ver_raw):
+        _emit("REFUSED: GTOTREE_INTERFACE: " + json.dumps(gt_probe, sort_keys=True),
+              file=sys.stderr)
+        return 3
+    # Mapping keys depend on the successfully admitted native interface. This is
+    # still before output creation or any genome/model child (software probe only).
+    try:
+        expected_tips = mapped_tips(entries, a.mapping_file, version_text=ver_raw)
+    except (OSError, ValueError) as exc:
+        _emit("REFUSED: " + str(exc), file=sys.stderr)
+        return 2
+    plan_binding = None
+    if a.plan_dir:
+        try:
+            plan_binding = validate_plan_binding(a, entries, expected_tips, runtime, gtotree, iqtree)
+            input_roster += [os.path.join(a.plan_dir, name) for name in
+                             ("RUN_MANIFEST.json", "RUN_STATE.json")]
+        except (OSError, ValueError, KeyError) as exc:
+            _emit("REFUSED: PLAN_BINDING: " + str(exc), file=sys.stderr)
+            return 3
+    major = gt_probe["major"]
+    try:
+        gt_resources = (_gtotree_policy.resource_contract(ver_raw, a.threads, a.parallel,
+            verified_runtime=runtime, cpu_budget=a.gtotree_cpu_budget) if runtime else
+            _gtotree_policy.resource_contract(ver_raw, a.threads, a.parallel))
+        if runtime:
+            iq_threads = int(a.iqtree_threads)
+            if (iq_threads < 1 or iq_threads > a.gtotree_cpu_budget or
+                    iq_threads > gt_resources["cpu_count_observed"]):
+                raise RuntimeRefused("GTOTREE_IQTREE_CPU_BUDGET")
+    except ValueError as exc:
+        _emit("REFUSED: " + str(exc), file=sys.stderr)
+        return 3
+    if not resource_pass(gt_resources):
+        _emit("REFUSED: GTOTREE_RESOURCE_PROFILE: " + json.dumps(gt_resources, sort_keys=True),
+              file=sys.stderr)
+        return 3
 
-    env = dict(os.environ)
+    env = runtime.native_environment() if runtime else dict(os.environ)
     hmm_dir = env.get("GToTree_HMM_dir") or (_hmm_dir_for(gtotree) or "")
     try:
         hmm_file, hmm_dir, hmm_sha = resolve_hmm(a.hmm, hmm_dir or None, a.hmm_sha256)
@@ -412,14 +594,16 @@ def main(argv=None):
         _emit(f"ERROR: {exc}", file=sys.stderr); return 3
     env["GToTree_HMM_dir"] = hmm_dir.rstrip("/") + "/"
 
-    os.makedirs(a.workdir, exist_ok=True)
-    ncbi_dir = os.path.join(a.workdir, "ncbi_data")
-    os.makedirs(ncbi_dir, exist_ok=True)
-    env["NCBI_assembly_data_dir"] = ncbi_dir            # v1 spelling
-    env["NCBI_ASSEMBLY_DATA_DIR"] = ncbi_dir            # v2 spelling
-    # v2 exits if Pfam_data_dir is unset; an empty dir is the correct starting state.
-    env.setdefault("Pfam_data_dir", os.path.join(a.workdir, "pfam_data") + "/")
-    os.makedirs(env["Pfam_data_dir"], exist_ok=True)
+    inherited_pfam = env.get("Pfam_data_dir")
+    if inherited_pfam and not os.path.isdir(inherited_pfam):
+        _emit("REFUSED: PFAM_INPUT_DIRECTORY_MISSING: selected Pfam_data_dir must already exist", file=sys.stderr)
+        return 2
+    # Recheck the full roster, including the resolved HMM, before making parents.
+    try:
+        a.workdir = preflight_fresh_workdir(a.workdir, input_roster + [hmm_file])
+    except (OSError, ValueError) as exc:
+        _emit("REFUSED: " + str(exc), file=sys.stderr)
+        return 2
     env["PYTHONUNBUFFERED"] = "1"
 
     here = os.path.dirname(os.path.abspath(__file__))
@@ -428,11 +612,70 @@ def main(argv=None):
         _emit("ERROR: tools/gtotree_execution_gate.py not found beside this runner; the completion and "
               "tip-retention gates cannot run, so the run is refused.", file=sys.stderr); return 3
 
+    qt = [t for t in (a.query_tips or "").split(",") if t.strip()] or None
+    try:
+        if a.mapping_file and qt is not None:
+            # These are exact admitted labels, not genome filenames. A dot or
+            # accession version is part of identity and must not be stemmed.
+            queries = set(qt)
+            if len(queries) != len(qt) or not queries.issubset(set(expected_tips)):
+                raise ValueError("MAPPED_QUERY_TIP_IDENTITY")
+        else:
+            queries = gate.declared_query_tips(expected_tips, spec, qt)
+    except (TypeError, ValueError) as exc:
+        _emit("REFUSED: QUERY_DECLARATION_INVALID: " + str(exc), file=sys.stderr)
+        return 2
+    # Exclusive root creation preserves occupied destinations, including a late race.
+    try:
+        os.makedirs(a.workdir, exist_ok=False)
+    except OSError as exc:
+        _emit("REFUSED: WORKDIR_CREATE_FAILED: " + str(exc), file=sys.stderr)
+        return 2
+    ncbi_dir = os.path.join(a.workdir, "ncbi_data")
+    os.mkdir(ncbi_dir)
+    env["NCBI_assembly_data_dir"] = ncbi_dir
+    env["NCBI_ASSEMBLY_DATA_DIR"] = ncbi_dir
+    if not inherited_pfam:
+        env["Pfam_data_dir"] = os.path.join(a.workdir, "pfam_data") + "/"
+        os.mkdir(env["Pfam_data_dir"])
+    # Existing external Pfam input is reused, never mkdir'ed by this owner.
     logp = os.path.join(a.workdir, "run_planned_tree.log")
-    base_status = {"gtotree": gtotree, "gtotree_version": ver_raw, "gtotree_major": major, "iqtree": iqtree,
+    launch = run
+    fastani_executable = None
+    if runtime:
+        fastani_executable = _resolve(["fastANI"]) if a.ani_refs else None
+        if a.ani_refs and not fastani_executable:
+            _write_status(a.workdir, "FASTANI_UNAVAILABLE")
+            _emit("REFUSED: requested fastANI executable is unavailable", file=sys.stderr)
+            return 8
+        executables = [gtotree, iqtree, sys.executable]
+        if fastani_executable:
+            executables.append(fastani_executable)
+        bound_sources = [__file__, os.path.join(here, "gtotree_execution_gate.py"),
+            os.path.join(here, "_gtotree_runtime.py"), os.path.join(here, "_gtotree_versions.py"),
+            os.path.join(here, "_release_validation.py"), os.path.join(here, "phylo_postflight.py"),
+            os.path.join(here, "tree_sanity_check.py"),
+            os.path.join(here, "_wbio.py"), os.path.join(here, "phylo_preflight.py"),
+            os.path.join(here, "_console.py"),
+            os.path.join(os.path.dirname(here), "mamey", "__init__.py"),
+            os.path.join(os.path.dirname(here), "mamey", "outgroup_registry_path.py"),
+            os.path.join(os.path.dirname(here), "mamey", "phylo_evidence.py")]
+        try:
+            launch = WatchedLaunch(runtime, a.workdir, input_roster + [hmm_file] + bound_sources,
+                executables, rss_limit=a.gtotree_rss_limit, min_disk=a.gtotree_min_disk,
+                timeout=a.gtotree_timeout)
+        except (OSError, ValueError) as exc:
+            _write_status(a.workdir, "EXECUTION_BINDING_FAILED", detail=str(exc))
+            return 3
+    base_status = {"gtotree": gtotree, "gtotree_version": ver_raw, "gtotree_major": major,
+                   "gtotree_probe": gt_probe, "gtotree_resource_contract": gt_resources, "iqtree": iqtree,
                    "hmm_file": hmm_file, "hmm_sha256": hmm_sha, "genome_list": os.path.abspath(a.genome_list),
                    "n_genomes": len(entries), "log": logp}
-    with open(logp, "w") as log:
+    if runtime:
+        base_status["execution_phases"] = launch.receipts
+        base_status["execution_bindings_sha256"] = _sha256(os.path.join(a.workdir, "EXECUTION_BINDINGS.json"))
+        base_status["plan_binding"] = plan_binding
+    with open(logp, "x") as log:
         _emit(f"# {VERIFIED}", file=log)
         _emit(f"# GToTree={gtotree} ({ver_raw})\n# iqtree={iqtree}\n# GToTree_HMM_dir={env['GToTree_HMM_dir']}",
               file=log)
@@ -440,11 +683,31 @@ def main(argv=None):
 
         # 1) GToTree
         gt_out = os.path.join(a.workdir, "gtotree")
-        if os.path.isdir(gt_out):
-            shutil.rmtree(gt_out)
-        cmd = gtotree_command(gtotree, major, a.genome_list, hmm_file if major >= 2 else a.hmm,
+        cmd = gtotree_command(gtotree, ver_raw, a.genome_list, hmm_file,
                               a.threads, a.parallel, gt_out)
-        rc = run(cmd, log, env)
+        if a.mapping_file:
+            cmd.extend(["-m", os.path.abspath(a.mapping_file)])
+        # Version/executable observations are watched and bound independently of the source profile.
+        if runtime:
+            tool_versions = []
+            for software_cmd in ([iqtree, "--version"],
+                                 *([[fastani_executable, "--version"]] if fastani_executable else [])):
+                if launch(software_cmd, log, env):
+                    _write_status(a.workdir, "EXECUTION_TOOL_PROBE_FAILED", **base_status)
+                    return 3
+                phase_log = launch.root / ("watch_%03d.log" % launch.count)
+                if phase_log.stat().st_size > 65536:
+                    _write_status(a.workdir, "EXECUTION_VERSION_TEXT_LIMIT", **base_status)
+                    return 3
+                tool_versions.append({"executable": software_cmd[0],
+                    "executable_sha256": _sha256(software_cmd[0]), "argv": software_cmd,
+                    "observed_stdout_stderr": phase_log.read_text(encoding="utf-8", errors="replace"),
+                    "log_sha256": _sha256(phase_log), "phase_receipt": launch.receipts[-1]})
+            version_path = os.path.join(a.workdir, "TOOL_VERSIONS.json")
+            with open(version_path, "x", encoding="utf-8") as f:
+                json.dump(tool_versions, f, indent=2)
+            base_status["tool_versions_sha256"] = _sha256(version_path)
+        rc = launch(cmd, log, env)
         _emit(f"GTOTREE_EXIT rc={rc}", file=log)
         if rc != 0:
             tail = _log_tail(logp)
@@ -462,14 +725,15 @@ def main(argv=None):
 
         # 1b) Tip retention (TREES_432 query-drop card): GToTree's SCG-hit filter drops genomes
         # and still exits 0. Diff the alignment against the genome list; a dropped QUERY is fatal.
-        spec = None
-        if a.tree_spec and os.path.isfile(a.tree_spec):
-            with open(a.tree_spec, encoding="utf-8") as fh:
-                spec = json.load(fh)
-        qt = [t for t in (a.query_tips or "").split(",") if t.strip()] or None
-        queries = gate.declared_query_tips(expected_tips, spec, qt)
-        retention = gate.tip_retention(expected_tips, gate.gtotree_retained_tips(gt_out), queries, gt_out,
+        retained_tips = gate.gtotree_retained_tips(gt_out)
+        retention = gate.tip_retention(expected_tips, retained_tips, queries, gt_out,
                                        a.allow_reference_drop)
+        if retention["status"] in ("TIPS_RETAINED", "REFERENCE_TIP_DROPPED_ALLOWED"):
+            if retention["unexpected"]:
+                retention["status"] = "UNEXPECTED_ALIGNMENT_TIP"
+            elif retained_tips is not None and len(retained_tips) != len(set(retained_tips)):
+                retention["status"] = "DUPLICATE_ALIGNMENT_TIP"
+                retention["duplicates"] = sorted({tip for tip in retained_tips if retained_tips.count(tip) > 1})
         _emit(f"=== tip retention: {retention['status']} (runlog says: {retention['runlog_claim']}) ===", file=log)
         for ln in gate.format_dropped(retention):
             _emit(ln, file=log)
@@ -477,9 +741,13 @@ def main(argv=None):
             gate.write_dropped_by_qc(os.path.join(a.workdir, "DROPPED_BY_QC.tsv"), retention)
         if retention["status"] not in ("TIPS_RETAINED", "REFERENCE_TIP_DROPPED_ALLOWED"):
             _write_status(a.workdir, retention["status"], gtotree_rc=rc, dropped=retention["dropped"],
-                          unexpected=retention["unexpected"], **base_status)
-            _emit(f"REFUSED: {retention['status']} — GToTree removed a declared tip and exited 0. "
-                  "NOT building a tree without it.", file=sys.stderr)
+                          unexpected=retention["unexpected"], duplicates=retention.get("duplicates", []), **base_status)
+            if retention["status"] in ("UNEXPECTED_ALIGNMENT_TIP", "DUPLICATE_ALIGNMENT_TIP"):
+                _emit(f"REFUSED: {retention['status']} — current alignment does not preserve the declared "
+                      "unique tip roster. NOT building a tree from this alignment.", file=sys.stderr)
+            else:
+                _emit(f"REFUSED: {retention['status']} — GToTree removed a declared tip and exited 0. "
+                      "NOT building a tree without it.", file=sys.stderr)
             for ln in gate.format_dropped(retention):
                 _emit(ln, file=sys.stderr)
             _emit(f"  Drops recorded in {os.path.join(a.workdir, 'DROPPED_BY_QC.tsv')}. Review the assembly "
@@ -494,7 +762,7 @@ def main(argv=None):
         # emitted COMMAND.sh template already pins `--seed 12345 -T 1`; match it so the CLI-blessed
         # executor is reproducible like the planner and the placement path.
         prefix = os.path.join(a.workdir, "iqtree")
-        rc = run(iqtree_command(iqtree, aln, prefix, a.seed, a.iqtree_threads, a.outgroup,
+        rc = launch(iqtree_command(iqtree, aln, prefix, a.seed, a.iqtree_threads, a.outgroup,
                                 getattr(a, "iqtree_model", "")), log, env)
         _emit(f"IQTREE_EXIT rc={rc}", file=log)
         if rc != 0:
@@ -525,7 +793,8 @@ def main(argv=None):
         # it draws. A contaminant/rogue tip, a misplaced taxon, malformed labels, missing support,
         # or a bootstrap killed mid-run is now caught and surfaced (typed WARN/refusal), not
         # silently reported complete.
-        qc_ok, qc_lines = hard_tree_qc(treefile, a.outgroup)
+        qc_ok, qc_lines = (hard_tree_qc(treefile, a.outgroup, launch=launch, log=log, env=env)
+                           if runtime else hard_tree_qc(treefile, a.outgroup))
         _emit("=== tree QC (hard) ===", file=log)
         for _ln in qc_lines:
             _emit(_ln, file=log)
@@ -544,14 +813,17 @@ def main(argv=None):
 
         # 4) sign-off gate (advisory)
         if a.signoff and os.path.exists(a.signoff):
-            run([sys.executable, a.signoff, treefile], log, env)
+            launch([sys.executable, a.signoff, treefile], log, env)
 
         # 5) Optional until requested; a requested incomplete stage fails the overall run.
         ani_out = None
         ani_fields = {}
         if a.ani_refs:
-            stage = _run_requested_fastani(a.ani_refs, a.ani_queries or a.genome_list,
-                                          a.workdir, a.threads, log, env)
+            stage = (_run_requested_fastani(a.ani_refs, a.ani_queries or a.genome_list,
+                                          a.workdir, a.threads, log, env,
+                                          launch=launch, executable=fastani_executable) if runtime else
+                     _run_requested_fastani(a.ani_refs, a.ani_queries or a.genome_list,
+                                          a.workdir, a.threads, log, env))
             ani_fields["fastani_stage"] = stage
             _emit(f"FASTANI_STAGE status={stage['status']} rc={stage['returncode']} "
                   f"detail={stage.get('detail', '')}", file=log)
@@ -567,6 +839,25 @@ def main(argv=None):
                 return 8
             ani_out = stage["output"]
 
+    if runtime:
+        try:
+            launch.revalidate()
+            if launch.resource_failed:
+                raise RuntimeRefused("GTOTREE_EXECUTION_RESOURCE_FAILURE")
+            artifacts = {name: completed_artifact(path, a.workdir) for name, path in
+                         (("alignment", aln), ("treefile", treefile),
+                          ("contree", completion["contree"]), ("iqtree_log", completion["log"]))}
+            summary = os.path.join(gt_out, gate.V2_GENOME_SUMMARY)
+            # Missing native summary does not change the existing runner's hard-QC semantics.
+            # Discovery requires it and will HOLD rather than invent its denominator.
+            artifacts["genome_summary"] = (completed_artifact(summary, a.workdir)
+                                            if os.path.lexists(summary) else None)
+            if ani_out:
+                artifacts["fastani"] = completed_artifact(ani_out, a.workdir)
+            base_status["completed_artifacts"] = artifacts
+        except (OSError, ValueError) as exc:
+            _write_status(a.workdir, "EXECUTION_BINDING_DRIFT", detail=str(exc), **base_status)
+            return 3
     _write_status(a.workdir, "DONE", treefile=treefile, contree=completion["contree"], alignment=aln,
                   support_nodes=completion["support_nodes"], tip_retention=retention["status"],
                   dropped=retention["dropped"], fastani=ani_out, **ani_fields, **base_status)

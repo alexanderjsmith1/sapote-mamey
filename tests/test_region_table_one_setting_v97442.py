@@ -1,6 +1,8 @@
 """region_table_one_setting: a cross-genome region table never mixes antiSMASH strictness."""
 from __future__ import annotations
 
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+
 import csv
 import sys
 import zipfile
@@ -100,7 +102,7 @@ def test_drop_list_for_a_missing_strain_is_refused(tmp_path):
 
 def test_hard_excluded_strain_is_dropped_and_recorded(tmp_path):
     _zip(tmp_path / "AS-1.zip", "loose", [("NODE_1", "NRPS", False)])
-    _zip(tmp_path / "AS-260.zip", "loose", [("NODE_1", "PKS", False)])
-    rows, receipt, problems = rt.build(rt.find_zips([tmp_path]), "loose", {}, {"AS-260"})
+    _zip(tmp_path / (synthetic_namespace_id('AS', width=3, case_index=917, separator=True) + '.zip'), "loose", [("NODE_1", "PKS", False)])
+    rows, receipt, problems = rt.build(rt.find_zips([tmp_path]), "loose", {}, {(synthetic_namespace_id('AS', width=3, case_index=917, separator=True))})
     assert problems == [] and {r["strain"] for r in rows} == {"AS-1"}
     assert [r["status"] for r in receipt] == ["kept", "hard-excluded"]

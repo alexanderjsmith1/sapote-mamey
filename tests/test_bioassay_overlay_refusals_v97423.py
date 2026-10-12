@@ -5,10 +5,10 @@ SPEC=importlib.util.spec_from_file_location('bioassay_overlay', Path(__file__).r
 M=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(M)
 
 @pytest.mark.parametrize('rows,code', [
- ('AS-9001,positive,negative\nAS-9001,negative,positive\n','BIOASSAY_METADATA_CONFLICT'),
- ('AS-9001,positive,negative\nAS-9001,positive,negative\n','BIOASSAY_METADATA_DUPLICATE'),
- ('AS-9001,posiitve,negative\n','BIOASSAY_METADATA_VALUE'),
- ('AS-9001,0.5,negative\n','BIOASSAY_METADATA_VALUE'),
+ ('SYNTHETIC_REFERENCE_01,positive,negative\nSYNTHETIC_REFERENCE_01,negative,negative\n','BIOASSAY_METADATA_CONFLICT'),
+ ('SYNTHETIC_REFERENCE_01,positive,negative\nSYNTHETIC_REFERENCE_01,positive,negative\n','BIOASSAY_METADATA_DUPLICATE'),
+ ('SYNTHETIC_REFERENCE_01,synthetic_invalid_state,negative\n','BIOASSAY_METADATA_VALUE'),
+ ('SYNTHETIC_REFERENCE_01,not tested,negative\n','BIOASSAY_METADATA_VALUE'),
  (',positive,negative\n','BIOASSAY_METADATA_IDENTITY'),
 ])
 def test_invalid_or_ambiguous_rows_refuse(tmp_path, rows, code):
@@ -16,8 +16,8 @@ def test_invalid_or_ambiguous_rows_refuse(tmp_path, rows, code):
  with pytest.raises(ValueError,match=code):M._load_bioassay(p)
 
 def test_explicit_not_tested_stays_distinct_from_blank(tmp_path):
- p=tmp_path/'data.csv';p.write_text('strain,anti_Candida,anti_MRSA\nAS-9001,not_tested,\n')
- assert M._load_bioassay(p)['AS-9001']=={'anti_candida':'not_tested','anti_mrsa':''}
+ p=tmp_path/'data.csv';p.write_text('strain,anti_Candida,anti_MRSA\nSYNTHETIC_REFERENCE_01,not_tested,\n')
+ assert M._load_bioassay(p)['SYNTHETIC_REFERENCE_01']=={'anti_candida':'not_tested','anti_mrsa':''}
 
 
 @pytest.mark.parametrize('data', [

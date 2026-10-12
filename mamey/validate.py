@@ -572,7 +572,18 @@ def _json_evidence_visibility(root, files):
                 entry[section]["requested"] = ev[key]
                 if ev[key] is False:
                     entry[section]["completeness"] = "NOT_RUN"
-            entry[section]["limit"] = "Independent record path; legacy extractor suppresses some errors and supplies no completion receipt"
+            entry[section]["limit"] = "Independent record path; completion requires a valid selected-record/handler receipt and does not certify upstream searches or missing modules"
+        from .json_evidence_state import project as project_json_state
+        projected = project_json_state(ev)
+        entry["channel_visibility"] = projected
+        channels = {row["channel"]: row for row in projected["channels"]}
+        entry["riq"] = channels["RiQ"]
+        for section, channel in (("record_extras", "Record extras"), ("tigrfam", "TIGRFAM record parse")):
+            entry[section]["completeness"] = channels[channel]["state"]
+            entry[section]["records_seen"] = channels[channel]["count"]
+        for row in projected["channels"]:
+            if row["state"] in ("RECEIPT_CONFLICT", "STORAGE_HELD", "IDENTITY_HELD", "PARSE_HELD", "HANDLER_FAILED", "SOURCE_CONFLICT_HELD"):
+                result["findings"].append("JSON_CHANNEL_" + row["state"])
         result["sources"].append(entry)
     result["findings"] = sorted(set(result["findings"]))
     if result["findings"]:

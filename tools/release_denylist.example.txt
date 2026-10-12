@@ -27,9 +27,13 @@
 #   - Do NOT list terms you actually want to keep — every match is scrubbed.
 #
 # NOTE ON STRAIN IDS
-#   Strain identifiers (AS-###/AJS-###/PENDING-###) have their own redaction
-#   path controlled by AS_SCRUB (see docs/CUSTOM_PRIVACY_TIERS.md), separate
-#   from this denylist. Use this file for names, codenames, and free-text terms.
+#   Nonmerged cuts already rewrite supported staged documentation/configuration
+#   through the maintained strain-ID redactor, independently of AS_SCRUB.
+#   Separate check-only gates require AS_SCRUB=1 and AS_GUARD_RETIRED=0 and
+#   refuse surviving private-ID candidates. Explicit public/synthetic exceptions
+#   remain owned by the detector. Classify or exclude private inputs before
+#   cutting; rewriting cannot certify an unknown dataset. Use this denylist
+#   for names, codenames, and free-text terms.
 #
 # ---------------------------------------------------------------------------
 # Replace the placeholders below with your own private terms, then rename to

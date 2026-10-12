@@ -76,7 +76,7 @@ echo "[sapote-addons] pooled $n_wheels wheel(s); offline first; online fallback=
 # wheels (scipy/pandas/matplotlib/logomaker, ~83 MB) were not attached this session.
 CORE_PKGS="pyrodigal pyfastani pyswrd pyopal scoring_matrices biopython archspec pytest ijson \
   pyhmmer pyskani pyfamsa pytrimal pytantan pyrodigal-gv gb-io pyfastx dendropy taxopy"
-FIGURE_PKGS="numpy matplotlib scipy pandas logomaker pycirclize dna_features_viewer"
+FIGURE_PKGS="numpy matplotlib scipy pandas logomaker pycirclize dna-features-viewer"
 
 # Install into the interpreter that the verification step below imports from. Outside a virtual
 # environment, refuse unless the operator explicitly allows overriding system Python protections.
@@ -134,7 +134,8 @@ for m, stage in core:
         print(f"  FAIL {m:12s} -> {e}"); ok = False
 # FIGURES — optional; report presence, never fail the install
 for m, stage in [("numpy","figures/math"), ("matplotlib","figure rendering"),
-                 ("pandas","figure data"), ("pycirclize","genome atlas")]:
+                 ("pandas","figure data"), ("pycirclize","genome atlas"),
+                 ("dna_features_viewer","gene-arrow diagrams")]:
     try:
         importlib.import_module(m); print(f"  OK   {m:12s} -> {stage}")
     except Exception:
@@ -144,16 +145,6 @@ if not ok:
 print("[sapote-addons] required dependency imports verified; external data/binaries require separate provisioning.")
 PY
 
-# v9.7.444: the optional Lab Quest interface ships as source in sapote_addons/lab_quest. Opt in with
-# SAPOTE_INSTALL_LAB_QUEST=1; it needs a streamlit wheel in the pool. Skipped cleanly otherwise.
-if [ "${SAPOTE_INSTALL_LAB_QUEST:-0}" = "1" ]; then
-  LQ="$HERE/sapote_addons/lab_quest"
-  if [ -f "$LQ/pyproject.toml" ] && install_group "$LQ"; then
-    echo "[sapote-addons] Lab Quest add-on installed (python mamey_run.py lab-quest --help)"
-  else
-    echo "[sapote-addons] Lab Quest add-on NOT installed (needs a streamlit wheel in the add-on pool); core is unaffected"
-  fi
-fi
 echo "[sapote-addons] done. Run a comparison with:  python3 -m mamey compare --help"
 
 # Optional GECCO adapter (not installed by this script):

@@ -116,12 +116,12 @@ def test_rrefinder_coordinate_mapping_retains_ambiguous_and_unmapped(tmp_path):
     assert out["report_only_contract"] == "REPORT_ONLY_NO_SCORING"
 
 
-def test_empty_rrefinder_is_valid_null_table(tmp_path):
+def test_empty_rrefinder_without_receipt_has_unknown_completeness(tmp_path):
     path = _rre_zip(tmp_path, [_record("NODE_1", {})])
     evidence = {"rrefinder_hits": extract_rrefinder_hits(path)}
     out = build_structured_tables(path, evidence, [])
     assert out["rrefinder"] == []
-    assert out["rrefinder_status"] == "NULL_NO_RREFINDER_HITS"
+    assert out["rrefinder_status"] == "UNKNOWN_COMPLETENESS"
     assert out["table_columns"]["rrefinder"] == RREFINDER_COLUMNS
 
 

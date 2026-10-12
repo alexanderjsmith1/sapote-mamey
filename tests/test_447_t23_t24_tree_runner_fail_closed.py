@@ -76,7 +76,9 @@ def test_cached_gate_from_another_tree_cannot_mask_missing_own_gate(runner,monke
 
 def main_fixture(runner,monkeypatch,tmp_path,ani_mode='success',qc_fault=None):
     tools,mamey,tree,qc_calls,load=gates(runner,monkeypatch,tmp_path,qc_fault)
-    work=tmp_path/'work';work.mkdir()
+    work=tmp_path/'work'  # runner exclusively creates this fresh attempt
+    pfam=tmp_path/'external_pfam';pfam.mkdir()
+    prior_bytes=[None]
     expected_tree=work/'iqtree.treefile';expected_contree=work/'iqtree.contree';alignment=work/'alignment.faa'
     engine_calls=[]
     execution=SimpleNamespace(ALIGNMENT_NAMES=['alignment.faa'],find_alignment=lambda path:str(alignment),
@@ -86,15 +88,28 @@ def main_fixture(runner,monkeypatch,tmp_path,ani_mode='success',qc_fault=None):
     monkeypatch.setattr(runner,'_load_module',lambda path,name:execution if str(path).endswith('gtotree_execution_gate.py') else load(path,name))
     original_qc=runner.hard_tree_qc
     monkeypatch.setattr(runner,'hard_tree_qc',lambda treefile,outgroup:original_qc(treefile,outgroup,str(tools),str(mamey)))
-    monkeypatch.setattr(runner,'preflight_genome_list',lambda *args:(['/synthetic/query.fna','/synthetic/out.fna'],[]))
+    # Real tiny source files exercise the actual containment/input preflight.
+    genomes=[tmp_path/'synthetic_query.fna',tmp_path/'synthetic_out.fna']
+    for genome in genomes:genome.write_text('>synthetic_unknown\nNNNN\n')
+    listing=tmp_path/'genomes.txt';listing.write_text(''.join(str(g)+'\n' for g in genomes))
+    refs=tmp_path/'refs.txt';refs.write_text(str(genomes[1])+'\n')
+    queries=tmp_path/'queries.txt';queries.write_text(str(genomes[0])+'\n')
     monkeypatch.setattr(runner,'_resolve',lambda names:None if names==['fastANI'] and ani_mode=='unavailable' else '/mock/fastANI' if names==['fastANI'] else '/mock/iqtree' if names==['iqtree','iqtree2'] else '/mock/GToTree')
-    monkeypatch.setattr(runner,'gtotree_version',lambda path:(2,'MOCK_GTOTREE_VERSION'))
-    monkeypatch.setattr(runner,'_hmm_dir_for',lambda path:'/synthetic/hmm')
-    monkeypatch.setattr(runner,'resolve_hmm',lambda *args:('/synthetic/hmm/mock.hmm','/synthetic/hmm','mock-sha'))
-    monkeypatch.setenv('Pfam_data_dir',str(work/'pfam')+'/')
+    monkeypatch.setattr(runner,'gtotree_probe',lambda path:{
+        'status':'PRESENT','version':'GToTree v1.8.19','normalized_version':'1.8.19',
+        'major':1,'profile':'1.8.19','version_exit':0,'help_exit':0,
+        'help_contract':'PASS','verified_interface':'PASS','missing_help_tokens':[]})
+    hmm=tmp_path/'mock.hmm';hmm.write_text('synthetic HMM source; never parsed\n')
+    monkeypatch.setattr(runner,'_hmm_dir_for',lambda path:str(tmp_path))
+    monkeypatch.setattr(runner,'resolve_hmm',lambda *args:(str(hmm),str(tmp_path),hashlib.sha256(hmm.read_bytes()).hexdigest()))
+    monkeypatch.setenv('Pfam_data_dir',str(pfam)+'/')
     def run(command,log,env=None):
         engine_calls.append(command)
-        if command[0]=='/mock/GToTree':alignment.write_text('mock alignment; not parsed\n');return 0
+        if command[0]=='/mock/GToTree':
+            # Seed only after fresh admission: current-attempt unrelated bytes
+            # must never satisfy the later requested ANI producer.
+            if prior_bytes[0] is not None:(work/'fastani.tsv').write_text(prior_bytes[0])
+            alignment.write_text('mock alignment; not parsed\n');return 0
         if command[0]=='/mock/iqtree':
             expected_tree.write_text('mock core tree; not biological\n');expected_contree.write_text('mock consensus; not biological\n');return 0
         assert command[0]=='/mock/fastANI'
@@ -103,15 +118,15 @@ def main_fixture(runner,monkeypatch,tmp_path,ani_mode='success',qc_fault=None):
         if ani_mode in ('success','partial_nonzero'):attempt.write_text('mock ANI bytes; no scientific interpretation\n')
         return 7 if ani_mode in ('nonzero','partial_nonzero') else 0
     monkeypatch.setattr(runner,'run',run)
-    argv=['--genome-list','/synthetic/genomes.txt','--workdir',str(work),'--outgroup','synthetic_out','--approved']
-    return SimpleNamespace(work=work,argv=argv,engine_calls=engine_calls,tree=expected_tree,contree=expected_contree,alignment=alignment)
+    argv=['--genome-list',str(listing),'--workdir',str(work),'--outgroup','synthetic_out','--approved']
+    return SimpleNamespace(work=work,argv=argv,engine_calls=engine_calls,tree=expected_tree,contree=expected_contree,alignment=alignment,seed_prior=lambda value:prior_bytes.__setitem__(0,value),listing=listing,refs=refs,queries=queries)
 
 
 @pytest.mark.parametrize('mode,status',[('nonzero','FASTANI_FAILED'),('partial_nonzero','FASTANI_FAILED'),
     ('unavailable','FASTANI_UNAVAILABLE'),('missing_output','FASTANI_OUTPUT_MISSING'),('launch_error','FASTANI_LAUNCH_FAILED')])
 def test_requested_ani_failure_is_nonzero_typed_and_preserves_core_tree(runner,monkeypatch,tmp_path,capsys,mode,status):
     state=main_fixture(runner,monkeypatch,tmp_path,mode)
-    rc=runner.main(state.argv+['--ani-refs','/synthetic/refs.txt','--ani-queries','/synthetic/queries.txt'])
+    rc=runner.main(state.argv+['--ani-refs',str(state.refs),'--ani-queries',str(state.queries)])
     output=capsys.readouterr()
     receipt=json.loads((state.work/'run_status.json').read_text())
     assert rc==8 and receipt['status']==status and receipt['fastani'] is None
@@ -125,8 +140,8 @@ def test_requested_ani_failure_is_nonzero_typed_and_preserves_core_tree(runner,m
 @pytest.mark.parametrize('mode',['nonzero','missing_output','unavailable'])
 def test_prior_ani_table_cannot_mask_a_requested_failure(runner,monkeypatch,tmp_path,mode):
     state=main_fixture(runner,monkeypatch,tmp_path,mode)
-    prior=state.work/'fastani.tsv';prior.write_text('prior ANI artifact must remain unadvertised\n')
-    assert runner.main(state.argv+['--ani-refs','/synthetic/refs.txt'])==8
+    prior=state.work/'fastani.tsv';state.seed_prior('prior ANI artifact must remain unadvertised\n')
+    assert runner.main(state.argv+['--ani-refs',str(state.refs)])==8
     receipt=json.loads((state.work/'run_status.json').read_text())
     assert receipt['fastani'] is None and receipt['fastani_stage']['output'] is None
     assert prior.read_text()=='prior ANI artifact must remain unadvertised\n'
@@ -137,14 +152,14 @@ def test_prior_ani_table_cannot_mask_a_requested_failure(runner,monkeypatch,tmp_
 
 def test_current_mock_ani_success_publishes_verified_bytes(runner,monkeypatch,tmp_path,capsys):
     state=main_fixture(runner,monkeypatch,tmp_path)
-    prior=state.work/'fastani.tsv';prior.write_text('old bytes\n')
-    assert runner.main(state.argv+['--ani-refs','/synthetic/refs.txt'])==0
+    prior=state.work/'fastani.tsv';state.seed_prior('old bytes\n')
+    assert runner.main(state.argv+['--ani-refs',str(state.refs)])==0
     receipt=json.loads((state.work/'run_status.json').read_text())
     assert receipt['status']=='DONE' and receipt['fastani']==str(prior)
     assert prior.read_text()=='mock ANI bytes; no scientific interpretation\n'
     assert receipt['fastani_stage']['output_sha256']==hashlib.sha256(prior.read_bytes()).hexdigest()
     command=next(cmd for cmd in state.engine_calls if cmd[0]=='/mock/fastANI')
-    assert command[command.index('--ql')+1]=='/synthetic/genomes.txt'
+    assert command[command.index('--ql')+1]==str(state.listing)
     assert 'DONE.' in capsys.readouterr().out
 
 
@@ -159,7 +174,7 @@ def test_unrequested_ani_preserves_done_status_shape_without_ani_launch(runner,m
 @pytest.mark.parametrize('fault',['postflight_missing','evidence_missing','evidence_loader_none','evidence_import_error','sanity_missing'])
 def test_main_actual_qc_failure_blocks_done_and_requested_ani(runner,monkeypatch,tmp_path,capsys,fault):
     state=main_fixture(runner,monkeypatch,tmp_path,qc_fault=fault)
-    assert runner.main(state.argv+['--ani-refs','/synthetic/refs.txt'])==6
+    assert runner.main(state.argv+['--ani-refs',str(state.refs)])==6
     receipt=json.loads((state.work/'run_status.json').read_text())
     assert receipt['status']=='TREE_QC_FAILED'
     assert all(cmd[0]!='/mock/fastANI' for cmd in state.engine_calls)
@@ -168,9 +183,9 @@ def test_main_actual_qc_failure_blocks_done_and_requested_ani(runner,monkeypatch
 
 def test_current_output_publication_failure_is_typed_and_preserves_prior_file(runner,monkeypatch,tmp_path):
     state=main_fixture(runner,monkeypatch,tmp_path)
-    prior=state.work/'fastani.tsv';prior.write_text('prior bytes\n')
+    prior=state.work/'fastani.tsv';state.seed_prior('prior bytes\n')
     monkeypatch.setattr(runner.os,'replace',lambda *args:(_ for _ in ()).throw(PermissionError('MOCK_PUBLISH_DENIED')))
-    assert runner.main(state.argv+['--ani-refs','/synthetic/refs.txt'])==8
+    assert runner.main(state.argv+['--ani-refs',str(state.refs)])==8
     receipt=json.loads((state.work/'run_status.json').read_text())
     assert receipt['status']=='FASTANI_OUTPUT_PUBLISH_FAILED' and receipt['fastani'] is None
     assert prior.read_text()=='prior bytes\n'
@@ -185,7 +200,17 @@ def test_current_output_hash_read_failure_is_typed_and_not_published(runner,monk
         if '.fastani_attempt_' in str(path):raise PermissionError('MOCK_OUTPUT_UNREADABLE')
         return original(path)
     monkeypatch.setattr(runner,'_sha256',sha)
-    assert runner.main(state.argv+['--ani-refs','/synthetic/refs.txt'])==8
+    assert runner.main(state.argv+['--ani-refs',str(state.refs)])==8
     receipt=json.loads((state.work/'run_status.json').read_text())
     assert receipt['status']=='FASTANI_OUTPUT_VALIDATION_FAILED' and receipt['fastani'] is None
     assert not (state.work/'fastani.tsv').exists()
+
+
+def test_historical_occupied_attempt_refuses_before_engines_and_preserves_prior_bytes(runner,monkeypatch,tmp_path):
+    state=main_fixture(runner,monkeypatch,tmp_path)
+    state.work.mkdir()
+    prior=state.work/'fastani.tsv';prior.write_text('historical ANI bytes\n')
+    assert runner.main(state.argv+['--ani-refs',str(state.refs)])==2
+    assert state.engine_calls==[]
+    assert prior.read_text()=='historical ANI bytes\n'
+    assert list(state.work.iterdir())==[prior]

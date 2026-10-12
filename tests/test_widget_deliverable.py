@@ -167,7 +167,7 @@ def test_pages_are_self_contained_and_claim_safe(package: Path, tmp_path: Path):
     data = json.loads((out / "widget_data.json").read_text())
     assert data["meta"]["source_release"] == "PUBLIC"
     assert data["meta"]["release"] == "PRIVATE"
-    assert data["meta"]["release_guard"] == "PRIVATE_PREFIX_OVERRIDE"
+    assert data["meta"]["release_guard"] == "legacy_public_requires_exact_authority"
     assert "post-seal widget deliverable · PRIVATE" in priority
 
 
@@ -274,3 +274,19 @@ def test_widget_csv_export_uses_shared_string_only_leader_policy():
     assert csv_safe_cell("\t=1") == "'\t=1"
     assert csv_safe_cell("\xa0=1") == "\xa0=1"
 
+
+
+def test_explicit_public_decision_preserved_without_rewriting_package(package, tmp_path):
+    import hashlib
+    from mamey.release_policy import resolve_run_release
+    path = package / "manifest.json"
+    data = json.loads(path.read_text())
+    data.update(release="PUBLIC", release_decision=resolve_run_release("AS-TEST", "PUBLIC").to_dict())
+    path.write_text(json.dumps(data))
+    before = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in package.rglob("*") if p.is_file()}
+    out = tmp_path / "explicit_widgets"
+    render_widget_deliverable(package, out)
+    rendered = json.loads((out / "widget_data.json").read_text())
+    assert rendered["meta"]["release"] == "PUBLIC"
+    assert rendered["meta"]["release_guard"] == "operator_public_override"
+    assert before == {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in package.rglob("*") if p.is_file()}

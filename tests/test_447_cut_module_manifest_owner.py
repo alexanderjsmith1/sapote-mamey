@@ -18,7 +18,7 @@ def source_refresh_fragment(source):
     return source[first:last]
 
 
-def execute_owner_fragment(tmp_path, *, writer_present=True, writer_fails=False):
+def execute_owner_fragment(tmp_path, *, writer_present=True, writer_fails=False, inventory_fails=None):
     (tmp_path/'tools').mkdir()
     if writer_present:
         (tmp_path/'tools/check_module_accretion.py').write_text('# mocked owner, never executed\n')
@@ -31,7 +31,15 @@ VER=fixture STAMP=fixture
 say(){ printf '%s\n' "$*"; }
 die(){ printf 'ABORT: %s\n' "$*" >&2; exit 1; }
 python3(){
-  printf '%s\n' "$1" >> invocation.log
+  # NUL framing preserves argv boundaries, including the spaces in python -c.
+  printf '%s\\0' "$#" "$@" >> invocation.log
+  if [[ "$1" == tools/gen_tools_inventory.py ]]; then
+    if [[ "${INVENTORY_FAIL:-}" == ordinary && "$#" == 1 ]] ||
+       [[ "${INVENTORY_FAIL:-}" == maintenance && "${2:-}" == --maintenance ]]; then
+      printf 'mock inventory refused\n' >&2
+      return 2
+    fi
+  fi
   if [[ "$1" == tools/check_module_accretion.py ]]; then
     [[ -f "$1" ]] || { printf 'mock missing owner\n' >&2; return 2; }
     [[ "${WRITER_FAIL:-0}" == 0 ]] || { printf 'mock owner refused incomplete scan\n' >&2; return 2; }
@@ -41,23 +49,40 @@ python3(){
 }
 '''+body+'''
 # This stub is only an ordering witness, not the real checksum generator.
-refresh_source_integrity(){ printf 'source_integrity\n' >> invocation.log; }
+refresh_source_integrity(){ printf '1\\0source_integrity\\0' >> invocation.log; }
 refresh_source_integrity
 printf 'synthetic phase completed\n'
 ''')
     import os
-    environment = dict(os.environ, WRITER_FAIL='1' if writer_fails else '0')
+    environment = dict(os.environ, WRITER_FAIL='1' if writer_fails else '0',
+                       INVENTORY_FAIL=inventory_fails or '')
     result = subprocess.run(['bash',str(script),str(tmp_path)],env=environment,text=True,capture_output=True)
-    return result, (tmp_path/'invocation.log').read_text().splitlines()
+    fields = (tmp_path/'invocation.log').read_bytes().split(b'\0')
+    assert fields.pop() == b'', 'unterminated invocation log'
+    calls = []
+    while fields:
+        argc = int(fields.pop(0))
+        assert argc > 0 and len(fields) >= argc, 'incomplete invocation log'
+        calls.append([field.decode('utf-8') for field in fields[:argc]])
+        del fields[:argc]
+    return result, calls
 
 
 def test_module_owner_invoked_after_other_source_generators_before_integrity(tmp_path):
     result, calls = execute_owner_fragment(tmp_path)
     assert result.returncode == 0
-    assert calls == ['tools/rewrite_release_identity.py','tools/sync_version.py','-c',
-                     'tools/render_bootstrap_contract.py','tools/gen_command_catalog.py',
-                     'tools/generate_deliverables_menu.py','tools/gen_tools_inventory.py',
-                     'tools/check_module_accretion.py','source_integrity']
+    assert calls == [
+        ['tools/rewrite_release_identity.py', 'fixture', 'fixture', '--root', '.'],
+        ['tools/sync_version.py'],
+        ['-c', "import sys; sys.path.insert(0,'tools'); import sync_version as sv; sv.sync_build_stamp_patch(check=False)"],
+        ['tools/render_bootstrap_contract.py', '--apply'],
+        ['tools/gen_command_catalog.py'],
+        ['tools/generate_deliverables_menu.py', '--apply'],
+        ['tools/gen_tools_inventory.py'],
+        ['tools/gen_tools_inventory.py', '--maintenance'],
+        ['tools/check_module_accretion.py', '--write'],
+        ['source_integrity'],
+    ]
     assert 'synthetic phase completed' in result.stdout
 
 
@@ -65,9 +90,23 @@ def test_module_owner_invoked_after_other_source_generators_before_integrity(tmp
 def test_missing_or_refusing_owner_aborts_before_integrity(tmp_path,present,fails):
     result,calls = execute_owner_fragment(tmp_path,writer_present=present,writer_fails=fails)
     assert result.returncode != 0
-    assert calls[-1]=='tools/check_module_accretion.py'
-    assert 'source_integrity' not in calls
+    assert calls[-1] == ['tools/check_module_accretion.py', '--write']
+    assert ['source_integrity'] not in calls
     assert 'module inventory refresh failed.' in result.stderr
+    assert 'synthetic phase completed' not in result.stdout
+
+
+@pytest.mark.parametrize('inventory_fails', ['ordinary', 'maintenance'])
+def test_refusing_inventory_aborts_before_module_owner_and_integrity(tmp_path, inventory_fails):
+    result, calls = execute_owner_fragment(tmp_path, inventory_fails=inventory_fails)
+    assert result.returncode != 0
+    inventory_call = ['tools/gen_tools_inventory.py']
+    if inventory_fails == 'maintenance':
+        inventory_call.append('--maintenance')
+    assert calls[-1] == inventory_call
+    assert ['tools/check_module_accretion.py', '--write'] not in calls
+    assert ['source_integrity'] not in calls
+    assert 'mock inventory refused' in result.stderr
     assert 'synthetic phase completed' not in result.stdout
 
 

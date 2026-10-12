@@ -53,22 +53,27 @@ def test_render_all_refuses_when_manifest_missing(tmp_path):
 
 
 def test_render_all_default_sets_against_bare_package(tmp_path):
-    """A bare package (manifest + empty figure inputs) should not crash —
-    every set should skip or run cleanly, never error."""
+    """Missing lead input is a child refusal, not successful optional absence."""
     from mamey.render_all_figures import render_all
     pkg = _bare_pkg(tmp_path)
     summary = render_all(pkg)
-    # ok==True means no fail-fast trip (defaults to continue_on_error=True)
-    assert summary["ok"] is True
-    # Default sets were requested
     assert set(summary["sets"].keys()) >= {"smoke", "brief", "locus-maps",
                                             "figure-suite", "domain-level"}
-    # No set should be ERRORED on a bare package (they should all SKIPPED)
-    errored = [(s, r) for s, r in summary["sets"].items()
-               if r.get("status") == "ERRORED"]
-    # We allow up to one — brief might genuinely fail trying to render with
-    # no inventory CSV. But certainly not all of them.
-    assert len(errored) <= 1, f"too many errored on bare package: {errored}"
+    result = summary["sets"]["figure-suite"]
+    assert result["status"] == "ERRORED"
+    assert result["exit_code"] == 1
+    assert result["figures"] == 0
+    assert result["error"] == (
+        "render_figures_command failed with exit code 1; "
+        "inspect child diagnostics under figures_rendered/"
+    )
+    assert summary["ok"] is False
+    assert summary["completion_state"] == "FAIL"
+    assert summary["independent_gates"]["render_execution"] == "FAIL"
+    assert "Triage board missing" in (
+        pkg / "figures_rendered" / "NO_FIGURES_RENDERED.md"
+    ).read_text(encoding="utf-8")
+
 
 
 def test_render_all_dry_run_lists_sets_without_running(tmp_path):
@@ -417,3 +422,142 @@ def test_cli_writes_summary_json(tmp_path):
     assert data["package"] == "."
     assert data.get("strain_id") == "AS-XXX", "shipped summary cannot identify its package"
     assert "smoke" in data["sets"]
+
+
+# Synthetic adapter controls: no biological data or rendering dependency.
+def _synthetic_aggregate_package(tmp_path):
+    pkg = tmp_path / "SYNTHETIC_REFERENCE_FIGURE_PACKAGE"
+    pkg.mkdir()
+    (pkg / "manifest.json").write_text(
+        json.dumps({"strain_id": "SYNTHETIC_REFERENCE_FIGURE_SUBJECT"}),
+        encoding="utf-8",
+    )
+    return pkg
+
+
+@pytest.mark.parametrize("exit_code", [1, 2])
+@pytest.mark.parametrize("old_figure", [False, True])
+def test_figure_suite_child_failure_is_error(tmp_path, monkeypatch, exit_code, old_figure):
+    from mamey import render_all_figures as subject
+    from mamey import chatgpt_commands
+
+    pkg = _synthetic_aggregate_package(tmp_path)
+    old = pkg / "figures_rendered" / "prior.svg"
+    if old_figure:
+        old.parent.mkdir()
+        old.write_text("<svg><!-- prior synthetic marker --></svg>", encoding="utf-8")
+    calls = []
+
+    def child(args):
+        calls.append((args.package, args.outdir, args.figure_set))
+        return exit_code
+
+    monkeypatch.setattr(chatgpt_commands, "render_figures_command", child)
+    result = subject._run_figure_suite(pkg)
+    assert calls == [(str(pkg), str(pkg / "figures_rendered"), "standard")]
+    assert result == {
+        "status": "ERRORED", "figures": 0,
+        "out": str(pkg / "figures_rendered"), "exit_code": exit_code,
+        "error": f"render_figures_command failed with exit code {exit_code}; "
+                 "inspect child diagnostics under figures_rendered/",
+    }
+    assert old.exists() is old_figure
+    if old_figure:
+        assert old.read_text(encoding="utf-8") == "<svg><!-- prior synthetic marker --></svg>"
+
+
+@pytest.mark.parametrize("produce_figure", [False, True])
+def test_figure_suite_zero_controls(tmp_path, monkeypatch, produce_figure):
+    from mamey import render_all_figures as subject
+    from mamey import chatgpt_commands
+
+    pkg = _synthetic_aggregate_package(tmp_path)
+
+    def child(args):
+        if produce_figure:
+            out = pathlib.Path(args.outdir)
+            out.mkdir()
+            (out / "current.svg").write_text("<svg/>", encoding="utf-8")
+        return 0
+
+    monkeypatch.setattr(chatgpt_commands, "render_figures_command", child)
+    result = subject._run_figure_suite(pkg)
+    assert result["status"] == ("RAN" if produce_figure else "SKIPPED")
+    assert result["figures"] == int(produce_figure)
+    assert result["exit_code"] == 0
+
+
+@pytest.mark.parametrize("fail_fast", [False, True])
+def test_figure_suite_child_failure_propagates_to_cli_receipt(tmp_path, monkeypatch, capsys, fail_fast):
+    from types import SimpleNamespace
+    from mamey import render_all_figures as subject
+    from mamey import chatgpt_commands
+
+    pkg = _synthetic_aggregate_package(tmp_path)
+    calls = []
+
+    def child(args):
+        calls.append("child")
+        return 2
+
+    def later(_pkg, **_kwargs):
+        calls.append("later")
+        return {"status": "SKIPPED", "figures": 0,
+                "skipped_reason": "synthetic optional absence"}
+
+    monkeypatch.setattr(chatgpt_commands, "render_figures_command", child)
+    monkeypatch.setattr(subject, "_run_smoke", later)
+    monkeypatch.setattr(subject, "figure_stack_preflight", lambda: (True, "synthetic preflight"))
+    args = SimpleNamespace(package=str(pkg), include="figure-suite,smoke", exclude=None,
+                           all_sets=False, workbook=None, top_n=10,
+                           fail_fast=fail_fast, dry_run=False)
+    assert subject.render_all_figures_command(args) == 1
+    assert calls == (["child"] if fail_fast else ["child", "later"])
+    summary = json.loads((pkg / "render_all_figures_summary.json").read_text(encoding="utf-8"))
+    assert summary["ok"] is False
+    assert summary["completion_state"] == "FAIL"
+    assert summary["independent_gates"] == {
+        "render_execution": "FAIL", "publication_approval": "NOT_ASSESSED",
+        "biological_validation": "NOT_ASSESSED", "release_approval": "NOT_ASSESSED",
+    }
+    result = summary["sets"]["figure-suite"]
+    assert result["status"] == "ERRORED"
+    assert result["exit_code"] == 2
+    assert result["figures"] == 0
+    assert result["out"] == "figures_rendered"
+    assert ("smoke" in summary["sets"]) is (not fail_fast)
+    assert summary["package"] == "."
+    assert str(pkg) not in json.dumps(summary)
+    assert "ERRORED" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("mode", ["exclude", "dry-run"])
+def test_figure_suite_excluded_and_dry_run_controls(tmp_path, monkeypatch, mode):
+    from types import SimpleNamespace
+    from mamey import render_all_figures as subject
+    from mamey import chatgpt_commands
+
+    pkg = _synthetic_aggregate_package(tmp_path)
+
+    def forbidden(_args):
+        pytest.fail("excluded/dry-run child must not execute")
+
+    monkeypatch.setattr(chatgpt_commands, "render_figures_command", forbidden)
+    monkeypatch.setattr(subject, "figure_stack_preflight", lambda: (True, "synthetic preflight"))
+    args = SimpleNamespace(package=str(pkg), include="figure-suite",
+                           exclude="figure-suite" if mode == "exclude" else None,
+                           all_sets=False, workbook=None, top_n=10, fail_fast=False,
+                           dry_run=mode == "dry-run")
+    assert subject.render_all_figures_command(args) == 0
+    receipt = pkg / "render_all_figures_summary.json"
+    if mode == "dry-run":
+        assert not receipt.exists()
+        summary = subject.render_all(pkg, include=["figure-suite"], dry_run=True)
+        assert summary["sets"] == {"figure-suite": {"status": "DRY_RUN"}}
+        assert summary["completion_state"] == "DRY_RUN"
+    else:
+        summary = json.loads(receipt.read_text(encoding="utf-8"))
+        assert summary["requested"] == []
+        assert summary["sets"] == {}
+        assert summary["ok"] is True
+        assert summary["completion_state"] == "PASS"

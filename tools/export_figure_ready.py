@@ -30,12 +30,38 @@ def rows(ws):
 
 def main(wb_path, out=None):
     out=out or os.path.join(os.path.dirname(wb_path) or '.', 'figure_ready')
+    from pathlib import Path
+    destination = Path(out)
+    if (destination.is_symlink() or (destination.exists() and not destination.is_dir())
+            or (destination.is_dir() and any(destination.iterdir()))):
+        raise ValueError("FIGURE_EXPORT_REQUIRES_FRESH_OUTPUT")
     os.makedirs(out, exist_ok=True)
-    wb=openpyxl.load_workbook(wb_path, read_only=True, data_only=True)
+    from io import BytesIO
+    import hashlib, json
+    source_bytes = Path(wb_path).read_bytes()
+    wb=openpyxl.load_workbook(BytesIO(source_bytes), read_only=True, data_only=True)
+    from mamey.report_release_policy import policy_for_master_rows, row_policy
+    policy_rows = list(rows(wb["A2_Strain_Registry"])) + list(rows(wb["B1_BGC_Master"]))
+    if "A3_Run_Manifest" in wb.sheetnames:
+        policy_rows += list(rows(wb["A3_Run_Manifest"]))
+    # Passthrough evidence participates in the same conservative export scope.
+    # A legacy diagnostic/finding without its own identity and authority stays local.
+    optional_rows = {name: list(rows(wb[name])) for name in
+                     ("TIGRFAM_Check", "Cross_Strain_Findings") if name in wb.sheetnames}
+    for records in optional_rows.values():
+        policy_rows += records
+    source_sha = hashlib.sha256(source_bytes).hexdigest()
+    export_policy = policy_for_master_rows(policy_rows)
+    provenance = {"source_master_sha256": source_sha, "policy": export_policy,
+                  "scope": "Local derivative; recorded policy is not distribution authorization"}
+    policy_bytes = (json.dumps(provenance, sort_keys=True, indent=2) + "\n").encode()
+    Path(out, "release_policy.json").write_bytes(policy_bytes)
+    policy_sha = hashlib.sha256(policy_bytes).hexdigest()
     def W(csvname, header, records):
         with open(os.path.join(out,csvname),'w',newline='',encoding='utf-8') as f:
-            w=_SafeWriter(f); w.writerow(header)
-            for rec in records: w.writerow(rec)
+            metadata = {**row_policy(export_policy), "source_master_sha256": source_sha, "release_policy_sha256": policy_sha}
+            w=_SafeWriter(f); w.writerow(header + list(metadata))
+            for rec in records: w.writerow(list(rec) + list(metadata.values()))
         return len(records)
 
     # ---- strain_summary ----
@@ -117,7 +143,7 @@ def main(wb_path, out=None):
     if 'TIGRFAM_Check' in wb.sheetnames:
         DN={'TIGR01454':'ansamycin','TIGR03604':'thiopeptide','TIGR03828':'enediyne','TIGR04186':'nucleoside'}
         dl=[]
-        for r in rows(wb['TIGRFAM_Check']):
+        for r in optional_rows['TIGRFAM_Check']:
             sid=r.get('strain') or r.get('strain')
             for acc,nm in DN.items():
                 v=r.get(acc)
@@ -126,7 +152,7 @@ def main(wb_path, out=None):
         if dl: n6=W('diagnostics_long.csv',['strain','tigrfam_acc','diagnostic_name','present','n_hits'],dl)
     if 'Cross_Strain_Findings' in wb.sheetnames:
         fr=[[r.get('#'),r.get('finding'),r.get('metric'),r.get('value'),r.get('claim_status'),r.get('note')]
-            for r in rows(wb['Cross_Strain_Findings']) if r.get('finding')]
+            for r in optional_rows['Cross_Strain_Findings'] if r.get('finding')]
         if fr: n7=W('cross_strain_findings.csv',['n','finding','metric','value','claim_status','note'],fr)
 
     # ---- data dictionary ----
@@ -135,6 +161,9 @@ def main(wb_path, out=None):
 Tidy long-format CSVs derived from `{os.path.basename(wb_path)}` ({N} strains).
 All headers are snake_case; one observation per row; no formulas; UTF-8.
 Class-level labels are antiSMASH product-class calls (hypotheses), never assayed chemistry.
+Every CSV appends policy/provenance columns from release_policy.json: these describe the entire input master conservatively.
+Missing or mixed authority remains PRIVATE/HOLD. Recorded PUBLIC metadata does not authorize distribution.
+Source master SHA-256: {source_sha}. Policy SHA-256: {policy_sha}.
 
 ## strain_summary.csv  ({n1} rows — one per strain)
 Columns (exact CSV header): {', '.join(ss_hdr)}.

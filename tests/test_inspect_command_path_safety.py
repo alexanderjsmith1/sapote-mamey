@@ -10,6 +10,7 @@ import sys
 import zipfile
 
 from mamey.package_inspector import inspect_command, _inspect_strain_guess
+from ._python_fixture_launcher import write_python_fixture
 
 
 def archive(path):
@@ -44,9 +45,8 @@ def test_recommendation_does_not_execute_filename_substitution(tmp_path, capsys)
     fakebin = tmp_path / 'bin'
     fakebin.mkdir()
     stub = fakebin / 'python'
-    stub.write_text('#!' + sys.executable + '\nimport json,os,sys\n'
-                    'open(os.environ["CAPTURE_ARGV"],"w").write(json.dumps(sys.argv[1:]))\n')
-    stub.chmod(0o755)
+    write_python_fixture(stub, 'import json,os,sys\n'
+                         'open(os.environ["CAPTURE_ARGV"],"w").write(json.dumps(sys.argv[1:]))\n')
     captured = tmp_path / 'argv.json'
     env = dict(os.environ, PATH=str(fakebin) + os.pathsep + os.environ['PATH'],
                CAPTURE_ARGV=str(captured))

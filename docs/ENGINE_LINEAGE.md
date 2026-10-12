@@ -1346,3 +1346,7 @@ Future engine bumps must include:
 ## Engine 1.9.174 — bundle 9.7.449, unsealed candidate
 
 The CLI adds the optional post-run gap-rescue wrapper. Companion region binding preserves full assembler contig identifiers through the existing parser rule. Scoring formulas and thresholds are unchanged; engine identity changes because engine source changed. Existing delivered packages are not rewritten.
+
+## Engine 1.9.175 — bundle 9.7.450, unsealed candidate
+
+The antiSMASH archive parser now prefers full output records over archived input copies of the same contig only when the two sequences match exactly; mismatches and unusable identities are kept apart and reported, not silently merged. This can change which CDS and coordinates a contig carries when an archive holds both an input copy and an output record, so packages from 1.9.174 built from such archives are not directly poolable with 1.9.175 for gene-level tables. Run-level release decisions are carried on the run context (`release_decision`). Scoring formulas and thresholds are unchanged. Existing delivered packages are not rewritten.

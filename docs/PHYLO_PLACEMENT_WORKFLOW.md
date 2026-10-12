@@ -45,9 +45,17 @@ what EPA-ng and related placement methods were built for, and it is exactly the 
    routed query is shorter than 1,200 bp; unsupported symbols and reads shorter than 200 bp are held.
 4. **`report`** — `gappa examine graft` (a tree with the queries attached = the figure) + a
    `<group>_placements.tsv` (per query: best edge, LWR, pendant length) + a claim-safe README; the optional advisory
-   sign-off helper runs only if found at the resolved workspace's `Tools/signoff_check.py`.
+   sign-off helper runs only if found in the resolved external workspace's uppercase `Tools/` directory as `signoff_check.py`. This is an optional workspace path; the bundled helper is `tools/signoff_check.py`.
    Its status is not a hard completion gate. Reporting can return zero while a figure
    or caption is held; inspect the actual output roster and diagnostics.
+
+## EPA-ng version admission before placement
+
+`place` checks the exact selected EPA-ng executable with `--version` before creating its output directory or aligning queries. The upstream [rooted-input warning](https://github.com/pierrebarbera/epa-ng#warning-v030---v033) identifies a result-breaking bug in 0.3.0–0.3.3 and recommends at least 0.3.4. This route conservatively requires a release version >=0.3.4 for every placement, because it does not independently prove that an arbitrary supplied reference tree is unrooted. Older versions outside the known affected range are unsupported by this policy, rather than automatically labelled affected.
+
+A missing, failed, timed-out, ambiguous, unknown or development-version banner is refused. There is no version-gate bypass. The executable content is bound around the version probe and checked again before and after placement; success provenance retains the observed release version, selected executable identity and probe-output hashes. A changed executable after alignment or placement causes a refusal and retains partial outputs for inspection, without a success stamp. This is not a transaction or a guarantee against concurrent executable replacement between checks. Existing `--redo` and output reuse behavior is otherwise unchanged: use a fresh output directory and preserve earlier evidence.
+
+The gate avoids this documented version risk; it does not validate all EPA-ng APIs, models, input-tree rooting, cohort metadata or historical results. No affected past run is inferred without its actual executable/version and tree provenance. Existing reports remain usable without rerunning placement, and this new check does not invent historical versions for them.
 
 ## Example (after install; approval recorded)
 ```bash

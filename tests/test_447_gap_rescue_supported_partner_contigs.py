@@ -56,7 +56,8 @@ def test_a_contig_with_no_supported_find_is_not_drawn():
             _row("q3", "MISSING_FOUND_CLEAR", "PARALOG_FAMILY", 69.0), _row("q4", "MISSING_FOUND_CLEAR", "SINGLE_GENE", 59.0)]
     drawn = {p for _, p, _ in _choose(rows)[0]}
     assert "q4" not in drawn                 # the far contig holds no supported find
-    assert {"q1", "q2", "q3"} <= drawn       # the paralog-family gene is kept beside the supported one
+    assert {"q1", "q2"} <= drawn             # the core and supported neighbour remain reference matches
+    assert "q3" not in drawn                 # the rejected neighbour remains gray CDS context, with no ribbon
 
 
 def test_without_partner_checks_the_old_rule_holds():

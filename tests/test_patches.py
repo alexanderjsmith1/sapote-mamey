@@ -35,7 +35,7 @@ def test_dedup_last_wins():
 def test_release_as_private():     assert derive_release("AS-XXX")=="PRIVATE"
 def test_release_ajs_private():    assert derive_release("AJS-XXX")=="PRIVATE"
 def test_release_pending_private():assert derive_release("PENDING-XXX")=="PRIVATE"
-def test_release_sid_public():     assert derive_release("SID"+"3212")=="PUBLIC"  # split literal: survives clean-tier SID anonymization
+def test_release_sid_requires_authority(): assert derive_release("SID"+"3212")=="PRIVATE"  # split literal: survives clean-tier SID anonymization
 def test_release_unknown_failsafe_private(): assert derive_release("WWXY00000000")=="PRIVATE"
 def test_release_registry_override():
     assert derive_release("WeirdName", private_registry={"WeirdName"})=="PRIVATE"

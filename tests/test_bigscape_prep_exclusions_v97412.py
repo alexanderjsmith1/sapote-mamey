@@ -1,6 +1,6 @@
 """Regression — v9.7.412: bigscape_prep skips ruled hard-excluded strains.
 
-Exists because on 2026-09-04 a curated BiG-SCAPE run silently staged AS-260 (hard_excluded in
+Exists because on 2026-09-04 a curated BiG-SCAPE run silently staged AS-975 (hard_excluded in
 OFFICIAL_DATA/exclusions.json, 174 region GBKs) — bigscape_prep honoured antiSMASH strictness but
 NOT the exclusion ledger, so a contaminated assembly's BGCs entered the GCF network. This test pins
 the fix: a hard-excluded strain is skipped-and-reported at stage time; a governed strain stages.

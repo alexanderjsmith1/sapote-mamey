@@ -43,7 +43,7 @@ def test_partc_sections_ground_from_tables():
         assert "Gln" in _section_body(16, f, {})        # real substrate value
         assert "never a phenotype" in _section_body(7, f, {})  # discipline preserved
 
-def test_is_private_as_now_public():
+def test_unknown_figure_identity_defaults_private():
     from mamey.cohort_figures import is_private
-    assert is_private("AS-441") is False
-    assert is_private("AJS-1") is True
+    assert is_private("AS-" + "987654") is True
+    assert is_private("AJS-" + "987654") is True

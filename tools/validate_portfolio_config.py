@@ -28,7 +28,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--project-root", required=True)
     parser.add_argument("--config", required=True, help="existing project-root-relative portfolio configuration")
-    parser.add_argument("--write-binding", action="store_true", help="write additive lab_quest_outputs/portfolio_binding.json")
+    parser.add_argument("--write-binding", action="store_true", help="write additive project_outputs/portfolio_binding.json")
     args = parser.parse_args()
     binding = load_portfolio_binding(args.project_root, args.config)
     result = binding.as_dict()

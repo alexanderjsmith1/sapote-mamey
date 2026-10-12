@@ -506,14 +506,29 @@ def _scan_patterns(cds_list: list[CDSFeature], patterns: dict[str, list[str]]) -
 def _bgc_overlap_or_near(cds: CDSFeature, bgc: BGCRecord, flank: int = 10000) -> bool:
     return cds.contig == bgc.contig and not (cds.end < bgc.start - flank or cds.start > bgc.end + flank)
 
-def bgc_coupling(bgcs: list[BGCRecord], scan_hits: dict[str, Any], flank: int = 10000) -> dict[str, list[str]]:
+def _bgc_key(bgc, record_key=None):
+    """Keep legacy alias keys by default; native attribution supplies a physical key."""
+    return record_key(bgc) if record_key is not None else bgc.bgc_id
+
+
+def _native_bgc_anchor(bgc):
+    return {name: getattr(bgc, name, None) for name in
+            ("contig", "node_id", "antismash_region", "bgc_id")}
+
+
+def _native_bgc_key(bgc):
+    anchor = _native_bgc_anchor(bgc)
+    return tuple(anchor[name] for name in ("contig", "node_id", "antismash_region", "bgc_id"))
+
+
+def bgc_coupling(bgcs: list[BGCRecord], scan_hits: dict[str, Any], flank: int = 10000, *, _record_key=None) -> dict[str, list[str]]:
     by_bgc = defaultdict(list)
     for group, hits in scan_hits.get("hits", {}).items():
         for h in hits:
             fake = CDSFeature(h["contig"], h["start"], h["end"], h.get("strand", 0), h.get("locus_tag"), h.get("product"), None, {})
             for bgc in bgcs:
                 if _bgc_overlap_or_near(fake, bgc, flank=flank):
-                    by_bgc[bgc.bgc_id].append(group)
+                    by_bgc[_bgc_key(bgc, _record_key)].append(group)
     return {k: sorted(set(v)) for k, v in by_bgc.items()}
 
 # ---- related-family vetoes: CCTT/resistance diagnostics over-call on cross-reacting relatives ----
@@ -601,7 +616,7 @@ def _region_domain_names(cds_list: list, bgc, flank: int = 10000) -> set:
     return names
 
 
-def apply_cctt_vetoes(cctt: dict, bgcs: list, cds_list: list) -> dict:
+def apply_cctt_vetoes(cctt: dict, bgcs: list, cds_list: list, *, _record_key=None) -> dict:
     """Drop a class-definitive CCTT call when a dominant cross-reacting family is in-region and the
     region is not independently typed as that class. Records what was vetoed for the audit trail.
 
@@ -611,7 +626,7 @@ def apply_cctt_vetoes(cctt: dict, bgcs: list, cds_list: list) -> dict:
     feeds non-tetronate glyceryl routes); only a FabH/KSIII closure or a Diels-Alderase does. This
     wires the previously-orphaned grader into the real co-fire site (AS-XXX BGC020 case)."""
     coupling = cctt.get("bgc_coupling", {})
-    by_id = {b.bgc_id: b for b in bgcs}
+    by_id = {_bgc_key(b, _record_key): b for b in bgcs}
     vetoed = {}
     tet_grades = {}
     ptm_tet_precedence = {}
@@ -669,7 +684,7 @@ def apply_cctt_vetoes(cctt: dict, bgcs: list, cds_list: list) -> dict:
     return cctt
 
 
-def couple_kcb_ptm(bgcs: list[BGCRecord], cctt: dict, flbr: dict) -> dict:
+def couple_kcb_ptm(bgcs: list[BGCRecord], cctt: dict, flbr: dict, *, _record_key=None) -> dict:
     """v9.7.19 §4-sibling for the HSAF/PTM antifungal class. The CDS-only T43-PTM scan misses
     KCB-identified HSAF/PTM clusters because the identity lives in the knownclusterblast neighbourhood,
     not the product label (e.g. AS-XXX BGC020: a generic `NRPS,T1PKS` label but a KCB neighbourhood naming
@@ -687,7 +702,7 @@ def couple_kcb_ptm(bgcs: list[BGCRecord], cctt: dict, flbr: dict) -> dict:
     routes: dict[str, str] = {}
     TRIG = "T43-PTM_hsaf_tetramate"
     for bgc in bgcs:
-        if TRIG in coupling.get(bgc.bgc_id, []):
+        if TRIG in coupling.get(_bgc_key(bgc, _record_key), []):
             continue  # already fired via the CDS scan
         parts = list(bgc.products) + list(getattr(bgc, "mibig_hits", []) or [])
         if bgc.kcb_top:
@@ -696,13 +711,13 @@ def couple_kcb_ptm(bgcs: list[BGCRecord], cctt: dict, flbr: dict) -> dict:
         if ccp and ccp != "UNRESOLVED":
             parts.append(ccp)
         ev = " ".join(parts).lower()
-        fl = set(flbr_cpl.get(bgc.bgc_id, []))
+        fl = set(flbr_cpl.get(_bgc_key(bgc, _record_key), []))
         lone_hybrid = ("hyb_KS" in fl) and ("mod_KS" not in fl)      # single hybrid megasynthase, not multi-module
         route_a = bool(ptm_re.search(ev)) if ptm_re else False       # KCB/product names the PTM compound
         route_b = lone_hybrid and bool(re.search(r"tetramate|macrolactam", ev))  # architecture + tetramate class
         if route_a or route_b:
-            coupling[bgc.bgc_id] = sorted(set(coupling.get(bgc.bgc_id, []) + [TRIG]))
-            routes[bgc.bgc_id] = "kcb_anchor" if route_a else "lone_hybrid_architecture"
+            coupling[_bgc_key(bgc, _record_key)] = sorted(set(coupling.get(_bgc_key(bgc, _record_key), []) + [TRIG]))
+            routes[_bgc_key(bgc, _record_key)] = "kcb_anchor" if route_a else "lone_hybrid_architecture"
     cctt["ptm_kcb_coupling"] = routes
     return cctt
 
@@ -737,7 +752,7 @@ def scan_tfbs(contigs: dict[str, str], cds_list: list[CDSFeature], upstream_bp: 
         counts[h["motif"]] += 1
     return {"status": "MOTIF_SCAN_PRELIMINARY", "upstream_bp": upstream_bp, "counts": dict(counts), "hits": hits[:1000], "total_hits": len(hits), "claim_safety": "Simple motif scan; replace with calibrated TFBS models/background scoring before manuscript use."}
 
-def scan_blda_tta(cds_list: list[CDSFeature], bgcs: list[BGCRecord], organism: str = "") -> dict[str, Any]:
+def scan_blda_tta(cds_list: list[CDSFeature], bgcs: list[BGCRecord], organism: str = "", *, _record_key=None) -> dict[str, Any]:
     # v9.7.87 Item A: bldA-dependent translational control is actinomycete-specific. On a
     # non-actinomycete the TTA codons counted below are GC-content noise, not a developmental
     # signal — so the per-BGC tier must ALSO report NOT_APPLICABLE, not a T1–T4 tier. v9.7.86
@@ -746,19 +761,19 @@ def scan_blda_tta(cds_list: list[CDSFeature], bgcs: list[BGCRecord], organism: s
     from .cohort_resolver import actino_status as _actino_status
     _non_actino = _actino_status(organism or "") == "non_actinomycete"
 
-    per_bgc = {b.bgc_id: {"tta_codons": 0, "total_codons": 0, "tta_cds": 0, "total_cds": 0, "tta_loci": []} for b in bgcs}
+    per_bgc = {_bgc_key(b, _record_key): {"tta_codons": 0, "total_codons": 0, "tta_cds": 0, "total_cds": 0, "tta_loci": []} for b in bgcs}
     for cds in cds_list:
         nt = (cds.nucleotide_seq or "").upper()
         codons = [nt[i:i+3] for i in range(0, len(nt) - 2, 3)] if nt else []
         tta_count = sum(1 for c in codons if c == "TTA")
         for bgc in bgcs:
             if _bgc_overlap_or_near(cds, bgc, flank=0):
-                per_bgc[bgc.bgc_id]["total_cds"] += 1
-                per_bgc[bgc.bgc_id]["total_codons"] += len(codons)
-                per_bgc[bgc.bgc_id]["tta_codons"] += tta_count
+                per_bgc[_bgc_key(bgc, _record_key)]["total_cds"] += 1
+                per_bgc[_bgc_key(bgc, _record_key)]["total_codons"] += len(codons)
+                per_bgc[_bgc_key(bgc, _record_key)]["tta_codons"] += tta_count
                 if tta_count:
-                    per_bgc[bgc.bgc_id]["tta_cds"] += 1
-                    per_bgc[bgc.bgc_id]["tta_loci"].append(cds.locus_tag)
+                    per_bgc[_bgc_key(bgc, _record_key)]["tta_cds"] += 1
+                    per_bgc[_bgc_key(bgc, _record_key)]["tta_loci"].append(cds.locus_tag)
     for bgc_id, d in per_bgc.items():
         if _non_actino:
             # TTA counts are still recorded (above) for transparency, but no tier is asserted.
@@ -797,9 +812,9 @@ def scan_cassettes(cds_list: list[CDSFeature], bgcs: list[BGCRecord]) -> dict[st
     scan.update({"bgc_coupling": coupling, "per_bgc": per_bgc})
     return scan
 
-def scan_umed(cds_list: list[CDSFeature], bgcs: list[BGCRecord]) -> dict[str, Any]:
-    scan = _scan_patterns(cds_list, UMED_PATTERNS)
-    coupling = bgc_coupling(bgcs, scan, flank=5000)
+def scan_umed(cds_list: list[CDSFeature], bgcs: list[BGCRecord], *, _record_key=None, _hits=None) -> dict[str, Any]:
+    scan = dict(_hits) if _hits is not None else _scan_patterns(cds_list, UMED_PATTERNS)
+    coupling = bgc_coupling(bgcs, scan, flank=5000, _record_key=_record_key)
     per_bgc = {}
     for bgc in bgcs:
         product_text = " ".join(with_family_labels(bgc.products)).lower()
@@ -808,14 +823,14 @@ def scan_umed(cds_list: list[CDSFeature], bgcs: list[BGCRecord]) -> dict[str, An
         # "nucleoside" inside "nucleoside-sugar".
         _prod_tokens = {t.strip() for t in re.split(r"[;,/|]+|\s+", product_text) if t.strip()}
         needs_maturation = any(x in _prod_tokens for x in ["ripp", "lanthipeptide", "lassopeptide", "thioamide", "azole", "nucleoside"])
-        hits = coupling.get(bgc.bgc_id, [])
+        hits = coupling.get(_bgc_key(bgc, _record_key), [])
         if needs_maturation and hits:
             verdict = "IN_CLUSTER_OR_PROXIMAL_MATURATION_SOURCE_SUPPORTED"
         elif needs_maturation and not hits:
             verdict = "MATURATION_GAP_SOURCE_DERIVED"
         else:
             verdict = "NOT_MATURATION_GATED"
-        per_bgc[bgc.bgc_id] = {"needs_maturation": needs_maturation, "umed_hits": hits, "verdict": verdict}
+        per_bgc[_bgc_key(bgc, _record_key)] = {"needs_maturation": needs_maturation, "umed_hits": hits, "verdict": verdict}
     scan.update({"bgc_coupling": coupling, "per_bgc": per_bgc, "claim_safety": "Source-derived maturation scan; HMMER confirmation still recommended."})
     return scan
 
@@ -1048,6 +1063,7 @@ _BARE_ABBREV_PATTERNS = {
 
 def scan_domain_architecture(bgcs: list[BGCRecord], domains: list[DomainFeature]) -> dict[str, Any]:
     per_bgc = {b.bgc_id: {"domain_counts": {}, "domains": [], "module_count": 0, "core_summary": []} for b in bgcs}
+    native = [{"identity": _native_bgc_anchor(b), "architecture": {"domain_counts": {}, "domains": [], "module_count": 0, "core_summary": []}} for b in bgcs]
     # v9.7.185 P13: track what lands in the Other_domain catch-all so a classifier gap self-announces.
     _other_breakdown: dict[str, int] = {}
     _known_core = ("PKS_KS", "PKS_AT", "PKS_DH", "PKS_ER", "PKS_KR", "PKS_ACP")
@@ -1070,47 +1086,47 @@ def scan_domain_architecture(bgcs: list[BGCRecord], domains: list[DomainFeature]
             _other_breakdown[dom.domain] = _other_breakdown.get(dom.domain, 0) + 1
             if dom.domain in _known_core:
                 _misfiled_core[dom.domain] = _misfiled_core.get(dom.domain, 0) + 1
-        for bgc in bgcs:
+        for record_index, bgc in enumerate(bgcs):
             if dom.contig == bgc.contig and not (dom.end < bgc.start or dom.start > bgc.end):
-                rec = per_bgc[bgc.bgc_id]
-                # v9.7.335: parsers.py extracts "aSModule" (it even says so in a comment); this
-                # tested "module" and so counted ZERO for every BGC in every manifest — the
-                # authoritative handoff told the judgment kernel each megasynthase had no modules.
-                if dom.feature_type == "aSModule":
-                    rec["module_count"] += 1
-                # v9.7.374 patch-candidate (bcherry AS-XXX widget-runtime audit): aSModule and
-                # CDS_motif features are not themselves domain instances -- an aSModule's own
-                # "domains" qualifier lists every constituent domain's full name (e.g. a single
-                # module summary feature literally contains the substrings "PKS_KS", "PKS_AT",
-                # "PKS_DH", "PKS_KR" concatenated), and a CDS_motif is a conserved active-site
-                # sub-motif WITHIN one physical domain (e.g. 4 separate "PKSI-AT-*_m*" motif
-                # features inside a single AT domain), not a second/third/fourth/fifth AT domain.
-                # Letting either feature_type increment domain_counts double/multi-counts the
-                # SAME physical domain once per constituent-name mention or once per submotif.
-                # Live-reproduced on a real gold AS-XXX run (BGC021, NODE_32_..., 2 real AT
-                # domains): domain_counts['PKS_AT'] read 10 before this fix (2 real aSDomain
-                # PKS_AT hits + 1 aSModule self-match + 4 CDS_motif submotif hits + ...), 2 after
-                # -- matching AS-XXX_3_antismash_modules.csv's real per-domain row count exactly.
-                # This is independent of and compatible with the already-staged sibling card
-                # AUDIT_374_domain_class_patterns_bare_abbrev_haystack_fix (that card
-                # narrows which TEXT the classifier searches; this one narrows which FEATURE
-                # TYPES are allowed to increment a count at all -- different mechanism, same
-                # scan_domain_architecture() function, non-overlapping lines).
-                for cls in classes:
-                    if dom.feature_type in ("aSModule", "CDS_motif"):
-                        continue
-                    rec["domain_counts"][cls] = rec["domain_counts"].get(cls, 0) + 1
-                rec["domains"].append({
-                    "contig": dom.contig,
-                    "start": dom.start,
-                    "end": dom.end,
-                    "feature_type": dom.feature_type,
-                    "domain": dom.domain,
-                    "bitscore": dom.bitscore,
-                    "evalue": dom.evalue,
-                    "classes": classes
-                })
-    for rec in per_bgc.values():
+                for rec in (per_bgc[bgc.bgc_id], native[record_index]["architecture"]):
+                    # v9.7.335: parsers.py extracts "aSModule" (it even says so in a comment); this
+                    # tested "module" and so counted ZERO for every BGC in every manifest — the
+                    # authoritative handoff told the judgment kernel each megasynthase had no modules.
+                    if dom.feature_type == "aSModule":
+                        rec["module_count"] += 1
+                    # v9.7.374 patch-candidate (bcherry AS-XXX widget-runtime audit): aSModule and
+                    # CDS_motif features are not themselves domain instances -- an aSModule's own
+                    # "domains" qualifier lists every constituent domain's full name (e.g. a single
+                    # module summary feature literally contains the substrings "PKS_KS", "PKS_AT",
+                    # "PKS_DH", "PKS_KR" concatenated), and a CDS_motif is a conserved active-site
+                    # sub-motif WITHIN one physical domain (e.g. 4 separate "PKSI-AT-*_m*" motif
+                    # features inside a single AT domain), not a second/third/fourth/fifth AT domain.
+                    # Letting either feature_type increment domain_counts double/multi-counts the
+                    # SAME physical domain once per constituent-name mention or once per submotif.
+                    # Live-reproduced on a real gold AS-XXX run (BGC021, NODE_32_..., 2 real AT
+                    # domains): domain_counts['PKS_AT'] read 10 before this fix (2 real aSDomain
+                    # PKS_AT hits + 1 aSModule self-match + 4 CDS_motif submotif hits + ...), 2 after
+                    # -- matching AS-XXX_3_antismash_modules.csv's real per-domain row count exactly.
+                    # This is independent of and compatible with the already-staged sibling card
+                    # AUDIT_374_domain_class_patterns_bare_abbrev_haystack_fix (that card
+                    # narrows which TEXT the classifier searches; this one narrows which FEATURE
+                    # TYPES are allowed to increment a count at all -- different mechanism, same
+                    # scan_domain_architecture() function, non-overlapping lines).
+                    for cls in classes:
+                        if dom.feature_type in ("aSModule", "CDS_motif"):
+                            continue
+                        rec["domain_counts"][cls] = rec["domain_counts"].get(cls, 0) + 1
+                    rec["domains"].append({
+                        "contig": dom.contig,
+                        "start": dom.start,
+                        "end": dom.end,
+                        "feature_type": dom.feature_type,
+                        "domain": dom.domain,
+                        "bitscore": dom.bitscore,
+                        "evalue": dom.evalue,
+                        "classes": classes
+                    })
+    for rec in list(per_bgc.values()) + [row["architecture"] for row in native]:
         counts = rec["domain_counts"]
         summary = []
         if counts.get("PKS_KS"):
@@ -1130,6 +1146,7 @@ def scan_domain_architecture(bgcs: list[BGCRecord], domains: list[DomainFeature]
     return {
         "status": "SOURCE_DERIVED_STRUCTURED_DOMAINS",
         "per_bgc": per_bgc,
+        "native_architecture_records_v1": native,
         # v9.7.185 P13: expose Other_domain offenders + any misfiled core token (empty = P11 holding).
         "other_domain_breakdown": dict(sorted(_other_breakdown.items(), key=lambda kv: -kv[1])[:25]),
         "misfiled_core_tokens": _misfiled_core,
@@ -1144,15 +1161,15 @@ RES_CLASS_CONCORDANCE = {
     "Beta_lactamase_fold": ["betalactone", "beta-lactone", "betalactam", "beta-lactam"],
 }
 
-def resistance_tier_classification(bgcs: list[BGCRecord], resistance_scan: dict[str, Any], transporters: dict[str, Any], cds_list: list | None = None) -> dict[str, Any]:
+def resistance_tier_classification(bgcs: list[BGCRecord], resistance_scan: dict[str, Any], transporters: dict[str, Any], cds_list: list | None = None, *, _record_key=None) -> dict[str, Any]:
     diagnostic_groups = {"Erm_methylase", "VanHAX_like", "APH_AAC", "Fosfomycin"}
     generic_groups = {"Beta_lactamase_fold", "Self_resistance_general"}
     res_coupling = resistance_scan.get("bgc_coupling", {})
     trans_coupling = transporters.get("bgc_coupling", {})
     per_bgc = {}
     for bgc in bgcs:
-        groups = set(res_coupling.get(bgc.bgc_id, []))
-        trans = set(trans_coupling.get(bgc.bgc_id, []))
+        groups = set(res_coupling.get(_bgc_key(bgc, _record_key), []))
+        trans = set(trans_coupling.get(_bgc_key(bgc, _record_key), []))
         product_text = " ".join(bgc.products).lower()
         # v9.7.33 #28: HGT guard is now gene-level, not product-label-only. A region antiSMASH mis-types as a
         # biosynthetic class (e.g. an ICE labeled "lanthipeptide-class-v") still surfaces its mobility machinery.
@@ -1198,7 +1215,7 @@ def resistance_tier_classification(bgcs: list[BGCRecord], resistance_scan: dict[
             tier = "NULL_NO_SOURCE_DERIVED_RESISTANCE"
             confidence = "NONE"
             rationale = f"No source-derived resistance/self-protection or transporter evidence proximal to BGC.{veto_note}"
-        per_bgc[bgc.bgc_id] = {
+        per_bgc[_bgc_key(bgc, _record_key)] = {
             "tier": tier,
             "confidence": confidence,
             "class_concordant_groups": concord,
@@ -1804,6 +1821,42 @@ def scan_misanchor_guards(cds_list: list[CDSFeature], bgcs: list[BGCRecord]) -> 
                              "credit is suppressed unless a Tier-1 diagnostic independently fires.")}
 
 
+def _native_bgc_profiles(bgcs, cds_list, domain_architecture, blda, cctt, flbr,
+                         resistance, transporters, umed, organism=""):
+    """Independently attribute all Gold profile channels before alias collapse.
+
+    Raw pattern hits and the existing classifiers/guards are reused. Legacy
+    dictionaries stay untouched, including their historical collision behavior.
+    """
+    key = _native_bgc_key
+    native_cctt = {"hits": cctt.get("hits", {}),
+                   "bgc_coupling": bgc_coupling(bgcs, cctt, _record_key=key)}
+    native_cctt = apply_cctt_vetoes(native_cctt, bgcs, cds_list, _record_key=key)
+    native_flbr = {"bgc_coupling": bgc_coupling(bgcs, flbr, _record_key=key)}
+    native_cctt = couple_kcb_ptm(bgcs, native_cctt, native_flbr, _record_key=key)
+    native_resistance = {"bgc_coupling": bgc_coupling(bgcs, resistance, _record_key=key)}
+    native_transporters = {"bgc_coupling": bgc_coupling(bgcs, transporters, _record_key=key)}
+    native_tiers = resistance_tier_classification(
+        bgcs, native_resistance, native_transporters, cds_list=cds_list, _record_key=key)
+    native_tta = scan_blda_tta(cds_list, bgcs, organism=organism, _record_key=key)
+    native_umed = scan_umed(cds_list, bgcs, _record_key=key, _hits=umed)
+    architecture = domain_architecture.pop("native_architecture_records_v1")
+    records = []
+    for index, (bgc, source) in enumerate(zip(bgcs, architecture), 1):
+        record_key = key(bgc)
+        records.append({
+            "source_record_index": index, "identity": source["identity"],
+            "architecture": source["architecture"],
+            "tta": native_tta["per_bgc"][record_key],
+            "resistance": native_tiers["per_bgc"][record_key],
+            "umed": native_umed["per_bgc"][record_key],
+            "cctt_triggers": native_cctt["bgc_coupling"].get(record_key, []),
+            "coverage": {channel: "MEASURED" for channel in
+                         ("architecture", "tta", "resistance", "umed", "cctt_triggers")},
+        })
+    return {"schema_version": "native_bgc_profiles_v1", "records": records}
+
+
 def run_source_scans(bgcs: list[BGCRecord], cds_list: list[CDSFeature], contigs: dict[str, str], domains: list[DomainFeature] | None = None, organism: str = "") -> SourceScanBundle:
     from .class_architecture import annotate_architecture
     annotate_architecture(bgcs, cds_list, domains or [])  # v9.7.21: per-BGC class-capacity call onto each record
@@ -1887,6 +1940,8 @@ def run_source_scans(bgcs: list[BGCRecord], cds_list: list[CDSFeature], contigs:
         # concordance module unavailable; field stays empty dict
         from . import degradation as _degradation
         _degradation.record("source_scans.run_source_scans.concordance_module", _deg_exc)
+    domain_architecture["native_bgc_profiles_v1"] = _native_bgc_profiles(
+        bgcs, cds_list, domain_architecture, blda, cctt, flbr, res, trans, umed, organism)
     return SourceScanBundle(chitin, tfbs, blda, regs, trans, res, cctt, flbr, cassettes, umed, efls,
                             domain_architecture, resistance_tiers, wetlab_rows,
                             qs_signals, glycosylation_arms, per_bgc_dss, rggmci, primary_metabolism,

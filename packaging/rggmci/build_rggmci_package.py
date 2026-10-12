@@ -24,8 +24,17 @@ VERBATIM = ["rggmci.py", "ziputil.py", "pair_scan_caps.py", "_gbk_shim.py", "csv
 # Copied unchanged under another name. The engine and the package share one implementation of candidate groups.
 RENAMED = {"rescue_groups.py": "groups.py"}
 IMPORT_REWRITES = {
+    "from .parsers import archive_sha256, extract_contig_sequences, iter_region_core_inputs, validate_region_intake_resources, _open_region_core_snapshot, RGGMCI_CORE_RECORD_FIELDS\n":
+        "from ._parsers import archive_sha256, extract_contig_sequences, iter_region_core_inputs, validate_region_intake_resources, _open_region_core_snapshot, RGGMCI_CORE_RECORD_FIELDS\n",
+    "from .rescue_groups import both_at_contig_ends, candidate_groups\n":
+        "from .groups import both_at_contig_ends, candidate_groups\n",
     "from .crosswalk import contig_key\n": "from ._ids import contig_key\n",
     "from .models import BGCRecord\n": "from ._records import BGCRecord\n",
+    "from .parsers import extract_cds_features, extract_domain_features\n":
+        "from ._parsers import extract_cds_features, extract_domain_features\n",
+    "from .gene_context import build_gene_context\n": "from ._gene_context import build_gene_context\n",
+    "from .clusterblast_genes import functional_profile_from_gene_context, modular_profile_from_gene_context, rescue_functional_complementarity, modular_continuation\n":
+        "from ._functional_profiles import functional_profile_from_gene_context, modular_profile_from_gene_context, rescue_functional_complementarity, modular_continuation\n",
     "from .antismash_evidence import _region_key_from_name  # internal stable-key helper\n":
         "from ._ids import _region_key_from_name  # lifted verbatim from mamey/antismash_evidence.py\n",
 }
@@ -40,7 +49,15 @@ LIFT = {  # target module -> [(source module, [top-level names])]
     "_ids.py": [("crosswalk.py", ["contig_key"]), ("antismash_evidence.py", ["_region_key_from_name"])],
     "_parsers.py": [("parsers.py", ["_region_orig_bounds_from_zip", "_contig_length_map_from_zip",
                                      "_record_contig_id", "_feature_products", "_edge_status",
-                                     "read_genbank_records", "is_macos_cruft", "_replicon_intake_key"])],
+                                     "read_genbank_records", "is_macos_cruft", "_replicon_intake_key",
+                                     "iter_region_core_inputs", "project_rggmci_records", "archive_sha256",
+                                     "extract_contig_sequences", "validate_region_intake_resources", "_open_region_core_snapshot",
+                                     "extract_cds_features", "extract_domain_features"])],
+    "_feature_records.py": [("models.py", ["CDSFeature", "DomainFeature"])],
+    "_gene_context.py": [("gene_context.py", ["build_gene_context"])],
+    "_functional_profiles.py": [("clusterblast_genes.py", ["functional_profile_from_gene_context",
+                                    "modular_profile_from_gene_context", "rescue_functional_complementarity",
+                                    "modular_continuation"])],
     # The BLASTp round trip uses the bundle's own FASTA header, NCBI-safe batching and result parsers, so a
     # user's results read the same way here and in the bundle's `blastp-followup`.
     "_blastp_io.py": [("bgc_blastp_panel.py", ["fasta_header", "wrap_fasta", "assign_rounds"]),
@@ -95,6 +112,15 @@ def lift(src_path: pathlib.Path, names: list[str]) -> tuple[str, list[str], set[
     return code, imports, need
 
 
+def _rewrite_optional_guard_import(text: str) -> str:
+    """Carry the shared resource guard when present, preserving older core imports."""
+    old = "from .parsers import GbkSizeGuardRefusal, _safe_read_text\n"
+    new = "from ._parsers import GbkSizeGuardRefusal, _safe_read_text\n"
+    if text.count(old) > 1:
+        raise SystemExit("IMPORT_REWRITE_FAILED: shared parser guard import found more than once")
+    return text.replace(old, new)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--bundle", required=True, type=pathlib.Path)
@@ -115,6 +141,7 @@ def main(argv=None) -> int:
     for f in VERBATIM:
         text = (m / f).read_text()
         if f == "rggmci.py":
+            text = _rewrite_optional_guard_import(text)
             for old, new in IMPORT_REWRITES.items():
                 if text.count(old) != 1:
                     raise SystemExit(f"IMPORT_REWRITE_FAILED: {old.strip()!r} not found exactly once")
@@ -151,6 +178,8 @@ def main(argv=None) -> int:
                 if imp.startswith("from ."):
                     if "ziputil" in imp:
                         header.append("from .ziputil import regular_file_names")
+                    elif src_name == "parsers.py" and "models" in imp:
+                        header.append("from ._feature_records import CDSFeature, DomainFeature")
                     continue
                 header.append(imp)
         body = "\n".join(dict.fromkeys(header)) + "\n\n\n" + "\n\n\n".join(parts) + "\n"

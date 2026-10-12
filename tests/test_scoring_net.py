@@ -112,7 +112,10 @@ def test_cli_wiring_is_warn_only_and_gold_only():
     ("source_scans.py", "source_scans.run_source_scans.concordance_per_bgc"),
     ("source_scans.py", "source_scans.run_source_scans.concordance_module"),
     ("source_scans.py", "source_scans.registry_detector_activation"),
-    ("parsers.py", "parsers.parse_bgcs_from_zip.region_coords_fallback"),
+    # The common parser invokes this diagnostic callback only after its structural
+    # handler admits fallback. Runtime replacement (expected breadcrumb plus
+    # unexpected/typed refusal) is test_actual_embedded_coordinate_callback_has_common_admission_and_breadcrumb
+    # in test_rggmci_shared_region_intake.py; all other site guards remain below.
     # v9.7.403 — ("packaging.py", "packaging.write_manifest.base_reload") REMOVED, and this is a
     # net STRENGTHENING of the invariant, not a deleted safety net. C402-T01 replaced that
     # soft-fallback (record a degradation breadcrumb, then rebuild the manifest from an EMPTY

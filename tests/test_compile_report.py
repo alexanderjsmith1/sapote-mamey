@@ -178,7 +178,8 @@ def test_decision_matrix_derived_with_node_labels(tmp_path):
     md = cr.build_report(pkg, generate_figures=False)
     sec = md.split("# 12.")[1]
     # §15: node+region label, never bare
-    assert "BGC012 (NODE_3 · r001)" in sec
+    assert "REPORT_IDENTITY_HOLD[ROW_COMPONENT_INVALID] (unbound alias: BGC012)" in sec
+    assert "BGC012 (NODE_3 · r001)" not in sec
     # strong top-rank lead -> PRIORITY ISO
     assert "PRIORITY ISO" in sec
     # saccharide -> EXCL by standing rule

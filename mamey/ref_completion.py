@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
 import logging
 import os
@@ -380,7 +381,9 @@ def partner_checks(rows, prots, hits, core, ref_acc, mibig_db=None, pfam_hmm=Non
     for h in hits:
         if h["sseqid"] in prots and float(h["pident"]) >= MIN_ID and float(h["qcovhsp"]) >= MIN_COV:
             per_q.setdefault(h["qseqid"], set()).add(h["sseqid"])
-    recip, recip_status = {}, "not run: no MIBiG DIAMOND database (--mibig-db)"
+    recip = {}
+    recip_status = ("not needed: no outside-core finds" if not finds else
+                    "not run: no MIBiG DIAMOND database (--mibig-db)")
     if mibig_db and finds:
         with tempfile.TemporaryDirectory() as td:
             qf = Path(td, "finds.faa")
@@ -583,6 +586,43 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def resource_descriptor(path: str | Path | None, *, found_by: str = "") -> dict:
+    """Bind selected local content without copying database/protein payloads."""
+    item = {"found_by": found_by, "path": str(path) if path is not None else None, "files": {}}
+    if path is None:
+        return item
+    root = Path(path)
+    candidates = ([root / name for name in (DB_FAA, DB_TSV, DB_CLUSTERS, DB_MANIFEST, DB_DMND + ".dmnd")]
+                  if root.is_dir() else [root])
+    if root.is_file():
+        candidates += [Path(str(root) + suffix) for suffix in (".h3f", ".h3i", ".h3m", ".h3p")]
+    for candidate in candidates:
+        if candidate.is_file():
+            item["files"][candidate.name] = {"bytes": candidate.stat().st_size, "sha256": _sha256(candidate)}
+    return item
+
+
+def verify_resource_descriptor(item: dict) -> None:
+    """Refuse a changed active resource instead of asserting a stale content binding."""
+    if resource_descriptor(item.get("path"), found_by=item.get("found_by", "")) != item:
+        raise ValueError("RGGMCI_RESOURCE_CHANGED_DURING_INVOCATION")
+
+
+def tsv_payload(rows: list[dict], columns: list[str], *, fixed_order: bool = False) -> bytes:
+    """Lossless row-key union; JSON nested cells, existing spreadsheet safety."""
+    cols = list(columns) if fixed_order or not rows else list(rows[0])
+    extras = sorted({key for row in rows for key in row} - set(cols))
+    cols.extend(extras)
+    handle = io.StringIO(newline="")
+    writer = SafeWriter(handle, delimiter="\t")
+    writer.writerow(cols)
+    for row in rows:
+        writer.writerow([json.dumps(row.get(col), sort_keys=True, separators=(",", ":"))
+                         if isinstance(row.get(col), (dict, list, tuple)) else
+                         ("" if row.get(col) is None else row.get(col)) for col in cols])
+    return handle.getvalue().encode("utf-8")
 
 
 def _gene_kind(q: dict) -> str:
@@ -1001,7 +1041,7 @@ def complete(result: dict[str, Any], zip_path: str | Path, bgcs: list[Any], refe
              sensitivity: str = DEFAULT_SENSITIVITY, threads: int = 4,
              depth_of: Callable[[str, str], float | None] | None = None,
              work_dir: str | os.PathLike | None = None, pfam_hmm: str | os.PathLike | None = None,
-             pfam_found_by: str = "") -> dict[str, Any]:
+             pfam_found_by: str = "", resource_receipt: dict | None = None) -> dict[str, Any]:
     """Run reference-guided completion and attach it to `result` (in place): result["reference_completion"] and three
     fields on every ranked pair. mode "off" records tier OFF and runs nothing. Returns the completion block."""
     if sensitivity not in SENSITIVITIES:
@@ -1013,6 +1053,10 @@ def complete(result: dict[str, Any], zip_path: str | Path, bgcs: list[Any], refe
     # the input is judged before the machine: a ZIP of region files only reads the same everywhere (see Tiers)
     has_genome = have_db and has_whole_genome_gbk(zip_path)
     aligner, binary = find_aligner(diamond) if has_genome else ("", "")   # probed only when it could be used
+    if resource_receipt is not None:
+        resource_receipt["completion_aligner"] = resource_descriptor(binary or None, found_by=aligner or "not_used")
+        if aligner == "blastp":
+            resource_receipt["completion_makeblastdb"] = resource_descriptor(shutil.which("makeblastdb"), found_by="PATH")
     if mode == "off":
         tier = "OFF"
     elif not have_db:
@@ -1199,23 +1243,23 @@ def complete(result: dict[str, Any], zip_path: str | Path, bgcs: list[Any], refe
     return block
 
 
-def write_tables(block: dict[str, Any], out_dir: str | Path, prefix: str) -> list[Path]:
-    """The three completion tables as TSV (`<prefix>reference_completion.tsv`, `…split_genes.tsv`,
-    `…partner_contigs.tsv`). Written even when empty, so a reader sees the tier."""
-    out = Path(out_dir)
-    paths = []
+def table_payloads(block: dict[str, Any], prefix: str) -> dict[str, bytes]:
+    """The shared completion table bytes, including explicit unavailable-tier rows."""
+    result = {}
     for name, cols, key in (("reference_completion", COMPLETION_GENE_COLS, "genes"),
                             ("split_genes", COMPLETION_SPLIT_COLS + ["split_call_before_recurrence"], "splits"),
                             ("partner_contigs", COMPLETION_PARTNER_COLS, "partners")):
-        path = out / f"{prefix}{name}.tsv"
-        with open(path, "w", newline="") as fh:
-            w = SafeWriter(fh, delimiter="\t")
-            w.writerow(cols)
-            rows = block.get(key) or []
-            if not rows:
-                w.writerow([block.get("completion_tier", "")] + [""] * (len(cols) - 1))
-            for r in rows:
-                w.writerow([r.get(c, "") for c in cols])
+        rows = block.get(key) or [{"completion_tier": block.get("completion_tier", "")}]
+        result[f"{prefix}{name}.tsv"] = tsv_payload(rows, cols, fixed_order=True)
+    return result
+
+
+def write_tables(block: dict[str, Any], out_dir: str | Path, prefix: str) -> list[Path]:
+    """Write the shared completion table bytes (legacy overwrite semantics retained)."""
+    paths = []
+    for name, payload in table_payloads(block, prefix).items():
+        path = Path(out_dir) / name
+        path.write_bytes(payload)
         paths.append(path)
     return paths
 

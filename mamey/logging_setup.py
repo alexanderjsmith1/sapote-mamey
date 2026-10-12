@@ -15,12 +15,15 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import threading
+from types import MethodType
 
 _ROOT_NAME = "mamey"
 _DEFAULT_FMT = "%(message)s"
 _LEVELS = {"debug": logging.DEBUG, "info": logging.INFO,
            "warning": logging.WARNING, "error": logging.ERROR}
 _configured = False
+_configuration_lock = threading.RLock()
 
 
 class _LiveStdoutHandler(logging.StreamHandler):
@@ -45,8 +48,10 @@ class _LiveStdoutHandler(logging.StreamHandler):
 
 def configure(level: str | int | None = None, fmt: str = _DEFAULT_FMT,
               stream=None) -> logging.Logger:
-    """(Re)configure the mamey root logger. Called lazily by get_logger; callable
-    explicitly by the CLI to change level/format/stream."""
+    """(Re)configure the mamey root logger explicitly or at the first log-level check.
+
+    Merely obtaining a logger leaves handlers, levels and propagation unchanged.
+    """
     global _configured
     root = logging.getLogger(_ROOT_NAME)
     if level is None:
@@ -66,10 +71,25 @@ def configure(level: str | int | None = None, fmt: str = _DEFAULT_FMT,
     return root
 
 
-def get_logger(name: str) -> logging.Logger:
-    """Factory: get_logger(__name__) -> child of the 'mamey' logger, configuring on first use."""
+def _is_enabled_with_configuration(logger: logging.Logger, level: int) -> bool:
+    """Initialize on a log call before stdlib level filtering can drop its first record."""
     if not _configured:
-        configure()
-    if name == _ROOT_NAME or name.startswith(_ROOT_NAME + "."):
-        return logging.getLogger(name)
-    return logging.getLogger(f"{_ROOT_NAME}.{name}")
+        with _configuration_lock:
+            if not _configured:
+                configure()
+    return logging.Logger.isEnabledFor(logger, level)
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Return the standard named logger; configure on its first log-level check.
+
+    Logger identity and handler methods remain those of logging.Logger. Stdlib
+    debug/info/warning/error calls check isEnabledFor before creating a record,
+    so first-use setup preserves both filtering and the default stdout message.
+    """
+    qualified = name if name == _ROOT_NAME or name.startswith(_ROOT_NAME + ".") else f"{_ROOT_NAME}.{name}"
+    logger = logging.getLogger(qualified)
+    if not getattr(logger, "_mamey_lazy_configuration", False):
+        logger.isEnabledFor = MethodType(_is_enabled_with_configuration, logger)
+        logger._mamey_lazy_configuration = True
+    return logger

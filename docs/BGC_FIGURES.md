@@ -14,6 +14,12 @@ genes, shaded by BLAST %identity; claim-safe caption + legend. Reads the antiSMA
 `<stem>_kcb_locusmap.png` + `.svg` + `<stem>_kcb_locusmap_data.csv`. Similarity, not identity; a
 SUPPORTING figure, never acceptance evidence for a card.
 
+## Optional Python dependencies
+
+From the bundle root and the intended virtual environment, install `python -m pip install -e '.[figures]'` (or the broader `.[all]`). This selects DNA Features Viewer (`dna-features-viewer`, imported as `dna_features_viewer`), pyCirclize (`pycirclize`) and Biopython alongside the plotting stack. Native `figures diagram` and `figures atlas` require Biopython's `Bio.SeqIO`; the legacy tool's GBK parser has a separate built-in fallback. ANI additionally needs `pyskani` from the separate `addons` extra; `figures` and `all` do not provision that scanner/comparison stack, external binaries or reference datasets.
+
+The two plotting libraries have no declared version interval pending API compatibility validation. Dependency selection does not establish a successful install, valid scientific input or successful rendering. For offline wheels and the best-effort add-on installer, see [Install](INSTALL.md#3-add-the-features-you-need). Optional imports stay local to the render functions; a lean core install does not acquire these libraries.
+
 ## Current routes and limits
 
 There are distinct producers; do not transfer one route's receipt or data guarantee to another.

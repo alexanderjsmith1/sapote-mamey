@@ -13,7 +13,9 @@ def _read_json(_path, *, encoding="utf-8"):
     # (the pre-.400 snapshot duplicated the whole manifest; see mamey/snapshot_alias.py).
     if (isinstance(_d, dict) and _d.get("alias_of") and "source_scans" not in _d
             and "Project_Memory_Snapshot" in os.path.basename(str(_path))):
-        _mp = os.path.join(os.path.dirname(str(_path)) or ".", str(_d["alias_of"]))
+        if _d["alias_of"] != "manifest.json":
+            return _d  # no external/ambient identity lookup
+        _mp = os.path.join(os.path.dirname(str(_path)) or ".", "manifest.json")
         if os.path.isfile(_mp):
             with open(_mp, encoding=encoding) as _fh:
                 return _json.load(_fh)
@@ -115,19 +117,28 @@ def _main_stage():
     all_sids=set(_read_json(bd)['strains'].keys())
     snaps=find_snaps()
     P=[]; A=[]; H=[]; ACT=[]; CLS=[]; SUBS=[]; RIPP=[]; done=set()
+    bindings = dict(deep.get("bgc_identity_contracts", {}))
     bounded=set(); offline=set()
     for sid,sp in snaps.items():
         if sid not in all_sids: continue
         try: s=_read_json(sp)
         except Exception: continue
         if 'source_scans' not in s: continue
-        p,a,h=extract(sid,s); P+=p; A+=a; H+=h; done.add(sid)
+        from mamey.gold_bgc_identity import GoldBGCIdentityError, SCHEMA, load_gold_identity_context
+        context = None
+        try:
+            context = load_gold_identity_context(os.path.dirname(sp), sid, s)
+            bindings[sid] = context["receipt"]
+        except GoldBGCIdentityError as exc:
+            bindings[sid] = {"schema_version": SCHEMA, "status": "HOLD", "reason": str(exc)}
+        p,a,h=extract(sid,s,identity_context=context); P+=p; A+=a; H+=h; done.add(sid)
         jm=json_mode_of(sp)
         (offline if jm=='off' else bounded if jm!='unknown' else offline).add(sid)
         if jm!='off':  # only bounded runs carry the finer-sheet data
             evp=glob.glob(f'{os.path.dirname(sp)}/**/*AntiSMASH_Evidence_Parse.json',recursive=True)
             act,cls,subs,ripp=extract_bounded_finer(sid, s, evp[0] if evp else None)
             ACT+=act; CLS+=cls; SUBS+=subs; RIPP+=ripp
+    deep['bgc_identity_contracts'] = gene['bgc_identity_contracts'] = bindings
     deep['bgc_profile']=merge_section(deep.get('bgc_profile',[]), P, done)
     deep['domain_hits']=merge_section(deep.get('domain_hits',[]), H, done)
     gene['domain_arch']=merge_section(gene.get('domain_arch',[]), A, done)

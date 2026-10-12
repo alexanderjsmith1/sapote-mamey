@@ -170,6 +170,79 @@ def _check_engine_uniformity(master: Path) -> tuple[bool, Optional[str]]:
         return False, str(exc)
 
 
+
+def _run_public_cohort(runs_dir, out, strains, master_path, novelty_basis,
+                       with_figures, figure_series, privacy_profile, class_view):
+    """Publish one fresh atomic public projection only after every scoped gate."""
+    import hashlib
+    import json
+    import os
+    import tempfile
+    from .cohort_synthesis import (load_public_master, render_public_synthesis,
+                                  recheck_public_scope, check_public_scope_text,
+                                  PublicCohortScopeError)
+    target = Path(out)
+    result = CohortDeliverableResult(out_dir=target, engine_uniform=False)
+    try:
+        if target.is_symlink() or (target.exists() and (not target.is_dir() or any(target.iterdir()))):
+            raise PublicCohortScopeError("PUBLIC_COHORT_OUTPUT_NOT_EMPTY")
+        view = load_public_master(master_path, runs_dir=runs_dir, privacy_profile=privacy_profile,
+                                  strains=strains, class_view=class_view)
+        text = render_public_synthesis(view, novelty_basis)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix=".sapote-public-cohort-", dir=target.parent) as temp:
+            stage = Path(temp) / "deliverable"
+            stage.mkdir()
+            (stage / "CROSS_STRAIN_SYNTHESIS.md").write_text(text, encoding="utf-8")
+            figure_count = 0
+            if with_figures:
+                from .cohort_figures import generate
+                figures = generate(runs_dir=str(runs_dir), out=str(stage / "figures"),
+                                   strains=view["strains"], public_only=True, series=figure_series,
+                                   privacy_profile=privacy_profile, canonical_scope=view)
+                if figures.get("strains") != view["strains"]:
+                    raise PublicCohortScopeError("PUBLIC_FIGURE_MEMBERSHIP_CONFLICT")
+                if figures.get("caption_status") != "WRITTEN":
+                    raise PublicCohortScopeError("PUBLIC_FIGURE_CAPTIONS_UNAVAILABLE")
+                figure_count = int(figures.get("figures", 0))
+            artifacts = {}
+            for path in sorted(stage.rglob("*")):
+                if not path.is_file() or path.is_symlink():
+                    if path.is_symlink():
+                        raise PublicCohortScopeError("PUBLIC_OUTPUT_CONTAINMENT_INVALID")
+                    continue
+                rel = path.relative_to(stage).as_posix()
+                payload = path.read_bytes()
+                digest = hashlib.sha256(payload).hexdigest()
+                check_public_scope_text(view, rel)
+                if path.suffix.lower() not in (".png", ".pdf", ".jpg", ".jpeg"):
+                    check_public_scope_text(view, payload.decode("utf-8"), relative_path=rel, digest=digest)
+                artifacts[rel] = digest
+            receipt = {**view["receipt"], "novelty_basis": novelty_basis,
+                       "figures_requested": bool(with_figures), "artifacts_sha256": artifacts}
+            receipt_text = json.dumps(receipt, sort_keys=True, indent=2) + "\n"
+            check_public_scope_text(view, receipt_text, relative_path="cohort_scope_receipt.json")
+            (stage / "cohort_scope_receipt.json").write_text(receipt_text, encoding="utf-8")
+            recheck_public_scope(view)
+            if target.is_symlink() or (target.exists() and (not target.is_dir() or any(target.iterdir()))):
+                raise PublicCohortScopeError("PUBLIC_COHORT_OUTPUT_NOT_EMPTY")
+            os.rename(stage, target)  # fresh or empty target only; never merge stale outputs
+        result.strains = view["strains"]
+        result.engine_uniform = True
+        result.synthesis_report = target / "CROSS_STRAIN_SYNTHESIS.md"
+        result.deliverables = [result.synthesis_report]
+        if with_figures:
+            result.figures_dir = target / "figures"
+            result.figure_count = figure_count
+            result.deliverables.append(result.figures_dir / "figure_captions.md")
+        return result
+    except PublicCohortScopeError as exc:
+        result.warnings.append(str(exc))
+    except Exception:
+        result.warnings.append("PUBLIC_COHORT_EXPORT_FAILED")
+    return result
+
+
 def run_cohort_deliverable(
     runs_dir: str | Path,
     out: str | Path = "cohort_deliverable",
@@ -179,6 +252,8 @@ def run_cohort_deliverable(
     with_figures: bool = True,
     figure_series: str = "all",
     public_only: bool = False,
+    privacy_profile=None,
+    class_view=None,
 ) -> CohortDeliverableResult:
     """Produce a cohort deliverable bundle from a runs directory.
 
@@ -190,6 +265,9 @@ def run_cohort_deliverable(
     Every step is best-effort and records a warning rather than aborting the whole bundle,
     EXCEPT that the gate fails if the net result is zero human-readable deliverables.
     """
+    if public_only:
+        return _run_public_cohort(runs_dir, out, strains, master_path, novelty_basis,
+                                  with_figures, figure_series, privacy_profile, class_view)
     runs_dir = Path(runs_dir)
     out_dir = Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)

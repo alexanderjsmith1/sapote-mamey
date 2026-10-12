@@ -23,7 +23,7 @@ a colour is a documented category, judgment stays with the owner.
 import os as _os, sys as _sys  # resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-import argparse, csv, re  # noqa: E402
+import argparse, csv, re, json, shutil  # noqa: E402
 try:  # v9.7.410 CSV formula-cell guard (CLAUDE_v9.7.410_tools_csv_writer_coverage)
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ImportError:  # bare-script run: bundle root is one level up
@@ -131,19 +131,63 @@ def main(argv=None):
     ap.add_argument("--outgroup-source", default="", help="category for the outgroup if not deposited")
     ap.add_argument("--outgroup-geo", default="")
     ap.add_argument("--outgroup-evidence", default="", help="URL + verbatim text for the outgroup categories")
+    ap.add_argument("--metadata-context", default="", help="internal source-bound report context; omitted means unrecorded length/molecule")
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     from Bio import Phylo
 
+    from _placement_report_metadata import reviewed_type_map, file_binding, normalize_options, TYPE_FIELDS
+    from types import SimpleNamespace
+    options = normalize_options(SimpleNamespace(owner_table=a.owner_table, owner_table_original=a.owner_table_original,
+                                resolved_metadata=a.resolved + a.outgroup_resolved, reviewed=a.reviewed,
+                                query_override=a.query_override, query_prefix=a.query_prefix, rscript="Rscript"))
+    for raw in [a.tree, a.labelmap] + ([a.metadata_context] if a.metadata_context else []):
+        path = Path(raw).absolute()
+        if any(part.is_symlink() for part in (path, *path.parents)) or not path.is_file():
+            raise ValueError("PANEL_INPUT_PATH_INVALID")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", a.genus):
+        raise ValueError("PANEL_NAME_INVALID")
     out = Path(a.out) / a.genus
-    out.mkdir(parents=True, exist_ok=True)
+    if out.exists() or any(path.is_symlink() for path in (out, *out.parents)):
+        raise ValueError("PANEL_OUTPUT_EXISTS_OR_SYMLINK")
+    source_paths = [a.tree, a.labelmap] + a.resolved + a.outgroup_resolved + a.owner_table + a.owner_table_original + a.reviewed + a.query_override
+    if a.metadata_context:
+        source_paths.append(a.metadata_context)
+    source_bindings = {str(Path(path).absolute()): file_binding(path) for path in source_paths}
     tree = Phylo.read(a.tree, "newick")
     tips = [t.name for t in tree.get_terminals()]
+    if len(set(tips)) != len(tips) or any(not tip for tip in tips):
+        raise ValueError("PANEL_TIP_INVENTORY_INVALID")
+    context = {"molecule": "NOT_RECORDED", "length_state": "NOT_RECORDED", "length_receipt_sha256": "NOT_RECORDED"}
+    native_queries = None
+    if a.metadata_context:
+        context = json.loads(Path(a.metadata_context).read_text())
+        if context.get("schema") != "sapote.placement.panel-context.v1":
+            raise ValueError("PANEL_CONTEXT_INVALID")
+        native_queries = context.get("query_tips")
+        if not isinstance(native_queries, list) or any(not isinstance(tip, str) for tip in native_queries) or len(set(native_queries)) != len(native_queries) or not set(native_queries) <= set(tips):
+            raise ValueError("PANEL_QUERY_ROSTER_INVALID")
+        if context.get("length_state") == "PASS_LENGTH_QA":
+            from tools.graft_integrity import admit_graft_length_evidence, _metric, _tips, _close_length
+            admission = admit_graft_length_evidence(context["length_receipt"], context["length_sources"])
+            if admission["receipt_sha256"] != context["length_receipt_sha256"]:
+                raise ValueError("PANEL_LENGTH_RECEIPT_CHANGED")
+            admitted_tree = Phylo.read(admission["selected"]["restored"], "newick")
+            if _tips(admitted_tree) != set(tips):
+                raise ValueError("PANEL_LENGTH_TREE_MEMBERSHIP_CHANGED")
+            expected_metric = _metric(admitted_tree, set(tips)); actual_metric = _metric(tree, set(tips))
+            if expected_metric.keys() != actual_metric.keys() or any(not _close_length(actual_metric[key][0], value[0]) for key, value in expected_metric.items()):
+                raise ValueError("PANEL_LENGTH_TREE_METRIC_CHANGED")
     titles = {r["safe"]: r["original"] for r in read_tsv(a.labelmap)}
+    labels = {tip: titles.get(tip, tip) for tip in tips}
+    type_evidence = reviewed_type_map(a.reviewed, labels, query_tips=native_queries or (), resolved_paths=a.resolved + a.outgroup_resolved)
+    if a.metadata_context and context.get("reviewed_type_evidence") != type_evidence:
+        raise ValueError("PANEL_TYPE_EVIDENCE_CHANGED")
     resolved = {}
     for p in a.resolved + a.outgroup_resolved:
         for r in read_tsv(p):
-            resolved.setdefault(r["exact_accession"], r)
+            if r.get("verification_status") in {"STRAIN_CONFIRMED", "STRAIN_CONFIRMED_NO_METADATA", "STRAIN_CONFIRMED_NULL_DECLARED"}:
+                resolved.setdefault(r["exact_accession"], r)
     codex = {}
     reviewed = {}
     for p in a.reviewed:
@@ -168,12 +212,19 @@ def main(argv=None):
 
     rows, prov, omitted = [], [], []
     outgroup_tip = ""
+    owner_joins = {}
     P = re.escape(a.query_prefix)
     for tip in tips:
         qm = re.match(rf"^{P}_(\d+)$", tip) or re.search(rf"_strain_{P}_(\d+)_16S", tip)
-        if qm:
-            sid = f"{a.query_prefix}-{qm.group(1)}"
+        if ((tip in native_queries) if native_queries is not None else bool(qm)):
+            sid = tip
+            if not (overrides.get(tip) or codex.get(tip)) and qm:
+                sid = f"{a.query_prefix}-{qm.group(1)}"
             r = overrides.get(sid) or codex.get(sid)
+            if r:
+                if sid in owner_joins and owner_joins[sid] != tip:
+                    raise ValueError("PANEL_QUERY_OWNER_ALIAS_AMBIGUOUS")
+                owner_joins[sid] = tip
             if not r:
                 omitted.append((tip, sid, "query row absent from the owner tables and no override supplied")); continue
             if not r.get("source_category") or not r.get("geography_category"):
@@ -236,7 +287,15 @@ def main(argv=None):
                 why.append("registry outgroup: used for rooting, then dropped from the display")
             omitted.append((tip, title, "; ".join(why)))
             continue
-        typ = "Type" if acc.startswith("NR_") else ""
+        type_row = type_evidence["roles"].get(tip)
+        typ = "Type" if type_row else ""
+        if type_row:
+            name = type_row["taxon"] + " " + type_row["strain"]
+            prov.append((tip, "type_material", "type strain of " + type_row["type_strain_of"], type_row["type_evidence"], "SOURCE_REVIEWED", type_row["source_url"]))
+        else:
+            prov.append((tip, "type_material", "", title, "NOT_RECORDED", ""))
+            if re.search(r"\[Type(?:;|\])|\btype\s+strain\b", name, re.I):
+                raise ValueError("PANEL_UNVERIFIED_TYPE_LABEL_ANCHOR_REQUIRED")
         tags = [x for x in [typ, "outgroup" if is_out else "", src, geo] if x]
         label = f"{name} [{'; '.join(tags)}] ({acc})"
         rows.append({"tip": tip, "label": label, "sample_id": "", "role": "outgroup" if is_out else "reference",
@@ -245,6 +304,7 @@ def main(argv=None):
         if is_out:
             outgroup_tip = tip
 
+    out.mkdir(parents=True, exist_ok=False)
     cols = ["tip", "label", "sample_id", "role", "source_category", "geography_category", "Candida", "MRSA", "type_display", "label_original"]
     with open(out / "metadata.tsv", "w", encoding="utf-8", newline="") as h:
         w = _SafeDictWriter(h, fieldnames=cols, delimiter="\t", lineterminator="\n"); w.writeheader(); w.writerows(rows)
@@ -254,15 +314,44 @@ def main(argv=None):
         w = _SafeWriter(h, delimiter="\t", lineterminator="\n"); w.writerow(["tip", "record_title", "reason"]); w.writerows(omitted)
     (out / "exclude_tips.txt").write_text("".join(t + "\n" for t, _, _ in omitted), encoding="utf-8")
     (out / "outgroup.txt").write_text(outgroup_tip + "\n", encoding="utf-8")
-    (out / "title.txt").write_text(f"{a.genus} 16S rRNA EPA-ng placement\n", encoding="utf-8")
-    Phylo.write(tree, str(out / "tree_input.newick"), "newick", format_branch_length="%.10g")
+    (out / "title.txt").write_text(f"{a.genus} {context['molecule']} EPA-ng placement\n", encoding="utf-8")
+    shutil.copyfile(a.tree, out / "tree_input.newick")
+    query_set = set(native_queries) if native_queries is not None else {tip for tip in tips if re.match(rf"^{P}_(\d+)$", tip) or re.search(rf"_strain_{P}_(\d+)_16S", tip)}
+    context.update(input_tips=len(tips), kept_tips=len(rows), input_queries=len(query_set),
+                   kept_queries=sum(row["role"] == "query" for row in rows),
+                   omitted_queries=len(query_set - {row["tip"] for row in rows}),
+                   query_role_basis="exact jplace roster" if native_queries is not None else "legacy prefix compatibility; no native receipt claim")
+    with (out / "figure_context.tsv").open("w", encoding="utf-8", newline="") as handle:
+        writer = _SafeWriter(handle, delimiter="\t", lineterminator="\n")
+        writer.writerow(["field", "value"])
+        for field in ("molecule", "length_state", "length_receipt_sha256", "input_tips", "kept_tips", "input_queries", "kept_queries", "omitted_queries", "query_role_basis"):
+            writer.writerow([field, context[field]])
+    (out / "TYPE_EVIDENCE.json").write_text(json.dumps(type_evidence, indent=2, sort_keys=True) + "\n")
+    with (out / "TYPE_EVIDENCE.tsv").open("w", encoding="utf-8", newline="") as handle:
+        writer = _SafeDictWriter(handle, fieldnames=sorted(TYPE_FIELDS), delimiter="\t", lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(type_evidence["roles"].values())
+    if source_bindings != {str(Path(path).absolute()): file_binding(path) for path in source_paths}:
+        raise ValueError("PANEL_INPUT_CHANGED_DURING_BUILD")
     dep = sum(p[4].startswith('DEPOSITED') for p in prov); lit = sum(p[4] == 'COLLECTION_OR_LITERATURE' for p in prov)
     emit(f"[build_placement_panel_inputs] {a.genus}: {len(tips)} tips in tree; kept {len(rows)} ({sum(r['role']=='query' for r in rows)} query, "
          f"{sum(r['role']=='reference' for r in rows)} reference, {sum(r['role']=='outgroup' for r in rows)} outgroup); omitted {len(omitted)}",
          f"[build_placement_panel_inputs] field provenance: {dep} DEPOSITED, {lit} COLLECTION_OR_LITERATURE, "
          f"{sum(p[4]=='OWNER_REGISTRY' for p in prov)} OWNER_REGISTRY, {sum(p[4]=='OWNER_RULING' for p in prov)} OWNER_RULING",
          sep="\n")
-    return {"kept": len(rows), "omitted": len(omitted), "outgroup": outgroup_tip, "dir": str(out)}
+    input_files = ["metadata.tsv", "METADATA_PROVENANCE.tsv", "OMITTED_TIPS.tsv", "exclude_tips.txt", "outgroup.txt", "title.txt", "tree_input.newick", "figure_context.tsv", "TYPE_EVIDENCE.json", "TYPE_EVIDENCE.tsv"]
+    result = {"schema": "sapote.placement.panel-inputs.v1", "state": "INPUTS_PRODUCED", "kept": len(rows),
+              "omitted": len(omitted), "query_kept": sum(row["role"] == "query" for row in rows),
+              "input_tips": tips, "kept_tips": [row["tip"] for row in rows], "omitted_tips": [row[0] for row in omitted],
+              "query_role_basis": "exact jplace roster" if native_queries is not None else "legacy prefix compatibility; no native receipt claim",
+              "owner_joins": owner_joins, "outgroup": outgroup_tip, "dir": str(out), "source_bindings": source_bindings,
+              "input_files": input_files, "artifacts": [file_binding(out / name) for name in input_files]}
+    if set(result["kept_tips"]) & set(result["omitted_tips"]) or set(result["kept_tips"]) | set(result["omitted_tips"]) != set(tips):
+        raise ValueError("PANEL_TIP_PARTITION_INVALID")
+    with (out / "BUILD_RECEIPT.json").open("x") as handle:
+        json.dump(result, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    return result
 
 
 if __name__ == "__main__":

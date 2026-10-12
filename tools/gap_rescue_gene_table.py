@@ -42,9 +42,27 @@ from mamey.logging_setup import get_logger as _get_logger
 
 _OUT = _get_logger(__name__)
 
-COLS = ["CDS", "Size (aa)", "Protein family (antiSMASH)", "Reference gene", "Reference annotation", "Identity (%)",
-        "Location"]
+# These are saved full-protein lengths; their ratio is not alignment coverage.
+COLS = ["CDS", "Size (aa)", "Protein family (antiSMASH)", "Reference gene", "Reference size (aa)", "Local/reference size ratio",
+        "Reference annotation", "Identity (%)", "Location"]
 FLAG = {"SUPPORTED": "", "PARALOG_FAMILY": "; paralog family", "SINGLE_GENE": "; single gene"}
+
+
+
+def protein_families(prots: dict) -> dict:
+    """Map generated protein IDs and locus tags without silently replacing a family.
+
+    Equal aliases retain the existing lookup behavior. Conflicting annotations cannot
+    be assigned safely to a shared key, so refuse before writing a gene table.
+    """
+    families = {key: value.get("family", "") for key, value in prots.items()}
+    for value in prots.values():
+        key, family = value["tag"], value.get("family", "")
+        if key in families and families[key] != family:
+            raise ValueError(f"Ambiguous protein-family key {key!r}: generated IDs and locus tags "
+                             "have conflicting family annotations")
+        families[key] = family
+    return families
 
 
 def smcog(gene_functions: list) -> str:
@@ -147,6 +165,29 @@ def _num(v) -> str:
         return str(v or "")
 
 
+def _len(v) -> str:
+    """A saved positive whole-protein length in aa, or blank if absent or invalid."""
+    try:
+        n = float(v)
+        return str(int(n)) if n > 0 and n.is_integer() else ""
+    except (TypeError, ValueError, OverflowError):
+        return ""
+
+
+def _ratio(ours, ref) -> str:
+    """Dimensionless local/reference full-protein length ratio, not alignment coverage.
+
+    No single ratio is assigned to two separate split pieces.
+    """
+    a, b = _len(ours), _len(ref)
+    if not a or not b:
+        return ""
+    try:
+        return f"{int(a) / int(b):.2f}"
+    except (ValueError, OverflowError):
+        return ""
+
+
 def edge_shares(rows, prots: dict, core: dict | None) -> dict:
     """best_locus -> percent of that gene inside the core region, for PRESENT_IN_CORE genes that only partly lie in it.
 
@@ -210,6 +251,8 @@ def table_rows(rows, splits, core_identity: str, families: dict, annotations: di
             out.append({"CDS": f"{x.get('piece1_locus', '')} + {x.get('piece2_locus', '')}", "Size (aa)": "",
                         "Protein family (antiSMASH)": " / ".join(f or "-" for f in fams) if any(fams) else "",
                         "Reference gene": r.get("name", ""),
+                        "Reference size (aa)": _len(r.get("reference_len_aa")),
+                        "Local/reference size ratio": "",
                         "Reference annotation": annotations.get(r.get("name", "")) or r.get("reference_product", ""),
                         "Identity (%)": f"{_num(x.get('piece1_identity_pct'))} / {_num(x.get('piece2_identity_pct'))}",
                         "Location": "split across " + " + ".join(_piece(x, k) for k in ("piece1", "piece2"))})
@@ -234,6 +277,8 @@ def table_rows(rows, splits, core_identity: str, families: dict, annotations: di
                     "Size (aa)": str(r.get("best_len_aa") or "") if found else "",
                     "Protein family (antiSMASH)": fam if found else "",
                     "Reference gene": r.get("name", ""),
+                    "Reference size (aa)": _len(r.get("reference_len_aa")),
+                    "Local/reference size ratio": _ratio(r.get("best_len_aa"), r.get("reference_len_aa")) if found else "",
                     "Reference annotation": annotations.get(r.get("name", "")) or r.get("reference_product", ""),
                     "Identity (%)": _num(r.get("best_identity_pct")) if found else "",
                     "Location": loc})
@@ -249,14 +294,14 @@ def _draw(table: list[dict], title: str, label: str, png: Path, pdf: Path, capti
         _OUT.warning("[gap_rescue_gene_table] matplotlib absent: gene_table.png/.pdf not drawn")
         return False
     ink, sub, rule = "#17212E", "#54637A", "#D5DAE1"
-    heads = [f"CDS ({label})", "Size (aa)", "Protein family (antiSMASH)", "Reference gene", "Reference annotation",
-             "Identity (%)", f"In {label}"]
-    widths, wraps = [0.09, 0.055, 0.21, 0.08, 0.25, 0.065, 0.25], [12, 6, 34, 14, 40, 6, 40]
+    heads = [f"CDS\n({label})", "Size (aa)", "Protein family (antiSMASH)", "Reference gene", "Reference\nsize (aa)",
+             "Local/ref.\nsize ratio", "Reference annotation", "Identity\n(%)", f"In\n{label}"]
+    widths, wraps = [0.085, 0.05, 0.17, 0.08, 0.065, 0.075, 0.185, 0.06, 0.24], [12, 6, 27, 14, 6, 6, 30, 6, 38]
     cells = [[textwrap.fill(str(v), w) for v, w in zip(row.values(), wraps)] for row in table]
     nlines = [max(c.count("\n") + 1 for c in row) for row in cells]
     cap = textwrap.fill(caption, 175) if caption else ""
     cap_h = 0.22 * (cap.count("\n") + 1) + 0.1 if cap else 0.0
-    H = 1.15 + cap_h + 0.2 * sum(nlines) + 0.12 * len(cells)
+    H = 1.32 + cap_h + 0.2 * sum(nlines) + 0.12 * len(cells)
     with plt.rc_context({"font.family": ["Arial", "DejaVu Sans"], "pdf.fonttype": 42}):
         fig = plt.figure(figsize=(13.3, H))
         fig.text(0.02, 1 - 0.25 / H, title, fontsize=13, fontweight="bold", color=ink, va="top")
@@ -265,7 +310,7 @@ def _draw(table: list[dict], title: str, label: str, png: Path, pdf: Path, capti
         y, x = 1 - (0.7 + cap_h) / H, 0.02
         for c, wd in zip(heads, widths):
             fig.text(x, y, c, fontsize=9, fontweight="bold", color=ink, va="top"); x += wd * 0.96 / sum(widths)
-        y -= 0.32 / H
+        y -= (0.32 + 0.17 * max(h.count("\n") for h in heads)) / H
         fig.add_artist(plt.Line2D([0.02, 0.98], [y + 0.06 / H] * 2, color=ink, linewidth=0.8))
         for row, n in zip(cells, nlines):
             x = 0.02
@@ -309,8 +354,12 @@ def pair_with_map(out: Path) -> list[Path]:
 
 
 def write_gene_table(out, rows, splits, core_identity: str, label: str, reference, families: dict,
-                     ref_name: str = "", edge: dict | None = None, known_tags=None) -> dict:
-    """Write gene_table.tsv (+ .png/.pdf) and the map pairing into `out`; returns {"rows": n, "files": [...]}."""
+                     ref_name: str = "", edge: dict | None = None, known_tags=None, *, pair_map: bool = True) -> dict:
+    """Write table outputs; returns {"rows": n, "files": [...]}, counts and captions.
+
+    pair_map keeps saved-map pairing for standalone replay by default. A fresh caller
+    must explicitly admit a successfully rendered current map before pairing it.
+    """
     out = Path(out)
     table = table_rows(rows, splits, core_identity, families, reference_annotations(reference), edge, known_tags)
     with open(out / "gene_table.tsv", "w", newline="") as fh:
@@ -325,14 +374,18 @@ def write_gene_table(out, rows, splits, core_identity: str, label: str, referenc
     from gap_rescue_locus_map import count_summary, count_sentence
     counts = count_summary(rows, splits, core_identity, known_tags)
     caption = count_sentence(counts, core_identity or "the core") + "."
+    rendered_caption = caption + " Size ratio = local/reference full-protein length; not alignment coverage."
     with open(out / "gene_table_counts.tsv", "w", newline="") as fh:   # one row per pair, for inventories to read
         w = _SafeDictWriter(fh, fieldnames=list(counts), delimiter="\t", lineterminator="\n")
         w.writeheader(); w.writerow(counts)
     files.append(out / "gene_table_counts.tsv")
-    if _draw(table, title, label, out / "gene_table.png", out / "gene_table.pdf", caption):
+    if _draw(table, title, label, out / "gene_table.png", out / "gene_table.pdf", rendered_caption):
         files += [out / "gene_table.png", out / "gene_table.pdf"]
-    files += pair_with_map(out)
-    return {"rows": len(table), "files": [str(f) for f in files], "counts": counts, "caption": caption}
+        # The table must be current, and its caller must admit the map separately.
+        if pair_map:
+            files += pair_with_map(out)
+    return {"rows": len(table), "files": [str(f) for f in files], "counts": counts, "caption": caption,
+            "rendered_caption": rendered_caption}
 
 
 def main(argv=None) -> int:
@@ -349,14 +402,22 @@ def main(argv=None) -> int:
     receipt = json.loads((a.run / "gap_rescue_receipt.json").read_text())
     prots, regions = gdr.load_genome(a.zip, receipt["label"])
     core = next((g for g in regions if g.get("identity") == receipt["core"]), None)
-    fams = {k: v.get("family", "") for k, v in prots.items()}
-    fams.update({v["tag"]: v.get("family", "") for v in prots.values()})
+    if core is None:
+        raise SystemExit(f"{receipt['core']} is not a region of this zip; check --zip and the saved run receipt")
+    fams = protein_families(prots)
     rows = list(csv.DictReader(open(a.run / "gap_rescue.tsv"), delimiter="\t"))
     splits = list(csv.DictReader(open(a.run / "gap_rescue_split_genes.tsv"), delimiter="\t")) \
         if (a.run / "gap_rescue_split_genes.tsv").exists() else []
+    known_tags = {v["tag"] for v in prots.values()}
+    missing = sorted({r["best_locus"] for r in rows
+                      if r.get("status") != "MISSING_NOT_FOUND" and r.get("best_locus")
+                      and r["best_locus"] not in known_tags})
+    if missing:
+        raise SystemExit("Saved gap-rescue found loci are not in this zip: " + ", ".join(missing)
+                         + "; check --zip and the saved run receipt")
     res = write_gene_table(a.run, rows, splits, receipt["core"], receipt["label"], a.reference, fams,
                            a.reference_name or receipt.get("reference_name", ""), edge_shares(rows, prots, core),
-                           {v["tag"] for v in prots.values()})
+                           known_tags)
     _OUT.info(f"[gap_rescue_gene_table] {res['rows']} rows -> {a.run}")
     return 0
 

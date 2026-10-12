@@ -8,6 +8,7 @@ Humans: choose a row, read its guide and supply its inputs. Assistants: read `AG
 |---|---|---|---|
 | First analysis | Extract and validate one strain from this antiSMASH result ZIP. | antiSMASH ZIP; strain metadata; permitted output root | [First analysis](MASTER_WALKTHROUGH.md) |
 | Read your results | Explain this existing package, its issue log and missing evidence. | existing package; manifest and source bindings | [Read your results](READING_YOUR_RESULTS.md) |
+| Evidence to report | Make the selected figures and give me short findings and Methods facts from these reviewed sources. | source-bound packages/evidence; question and figure roster; permitted output root; public/private scope | [Evidence to report](EVIDENCE_TO_REPORT.md) |
 | Mode B card | Author and verify this source-bound locus using the explicitly selected profile. | validated package; full locus identity; selected profile; admitted evidence | [Mode B card](MODEB_PROFILE_MATRIX.md) |
 | Strain slides builder | Build the main strain deck and complete region-gene-table companion. | validated package; strain ID; sources JSON; fresh output destination/tag | [Strain slides builder](STRAIN_SLIDES.md) |
 | Figure rendering | Render the selected figure set from this package into an external folder. | source-bound package; selected figure set; renderer inputs | [Figure rendering](FIGURES_START_HERE.md) |
@@ -26,6 +27,7 @@ Humans: choose a row, read its guide and supply its inputs. Assistants: read `AG
 
 - **First analysis:** return region inventory, package, validation receipts. Validated extraction is not authored interpretation.
 - **Read your results:** return result explanation, evidence gaps. Read existing evidence before considering a rerun.
+- **Evidence to report:** return selected figures, plotted data/scripts, authored captions, short findings/Methods facts and unresolved evidence states. Retain actual execution and visual-review evidence; this route does not require a Mode B card or white paper and does not itself approve publication.
 - **Mode B card:** return authored card, verification receipt, unresolved scientific holds. Carry the same contract through emission and verification; structural checks are not scientific acceptance.
 - **Strain slides builder:** return main PPTX, gene-table PPTX, assets, build receipt. v2n is .447 plus candidate .448 gallery/caption changes; a tag does not enable features. Displayed annotations are bounded, not lossless.
 - **Figure rendering:** return figures, renderer receipts, rendered-page review. Check actual source availability and rendered output. In .447 an external image destination can still refresh package integrity records; use a working package copy to preserve the sealed original.

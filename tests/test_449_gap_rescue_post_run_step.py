@@ -121,11 +121,12 @@ def test_the_screen_gets_the_resolved_inputs_and_the_receipt_says_screen_not_adj
     import gap_rescue_all_regions
     seen = {}
 
-    def fake_main(argv):
+    def fake_main(argv, *, _attempt):
         seen["argv"] = argv
+        seen["attempt"] = _attempt
         out = Path(argv[argv.index("--out") + 1])
         out.mkdir(parents=True, exist_ok=True)
-        (out / "run_receipt.json").write_text(json.dumps({"label": "TST-1"}))
+        (out / "run_receipt.json").write_text(json.dumps({**_attempt, "status": "SUCCEEDED", "label": "TST-1"}))
         return 0
 
     monkeypatch.setattr(cli.shutil, "which", lambda name: "/made/up/diamond")
@@ -142,3 +143,32 @@ def test_the_screen_gets_the_resolved_inputs_and_the_receipt_says_screen_not_adj
 def test_the_subcommand_is_registered():
     with pytest.raises(SystemExit):
         cli.main(["gap-rescue", "--help"])
+
+
+@pytest.mark.parametrize("failure", ["input", "tool"])
+def test_public_preflight_supersedes_prior_success_before_refusal(workspace, monkeypatch, failure):
+    out = workspace / "out"; out.mkdir()
+    prior = b'{"status":"SUCCEEDED","map_pdfs":["old.pdf"],"combined_map_pdf":"old_combined.pdf"}\n'
+    (out / "run_receipt.json").write_bytes(prior)
+    (out / "old_combined.pdf").write_bytes(b"prior diagnostic PDF")
+    if failure == "input":
+        (workspace / "TST-1.zip").unlink()
+    monkeypatch.setattr(cli.shutil, "which", lambda name: None)
+    with pytest.raises(SystemExit, match="not found" if failure == "input" else "no DIAMOND"):
+        cli.gap_rescue_command(_args(workspace, no_pfam=True))
+    receipt = json.loads((out / "run_receipt.json").read_text())
+    assert receipt["status"] == "FAILED" and receipt["error_type"] == "SystemExit"
+    assert receipt["map_pdfs"] == [] and receipt["combined_map_pdf"] == ""
+    assert (out / receipt["superseded_receipt"]).read_bytes() == prior
+    assert len(list(out.glob("run_receipt.superseded.*.json"))) == 1
+    assert (out / "old_combined.pdf").read_bytes() == b"prior diagnostic PDF"
+
+
+def test_public_cli_rejects_child_without_current_success_proof(workspace, monkeypatch):
+    import gap_rescue_all_regions
+    monkeypatch.setattr(cli.shutil, "which", lambda name: "/made/up/diamond")
+    monkeypatch.setattr(gap_rescue_all_regions, "main", lambda argv, **kwargs: 0)
+    with pytest.raises(SystemExit, match="no successful current batch receipt"):
+        cli.gap_rescue_command(_args(workspace, no_pfam=True))
+    receipt = json.loads((workspace / "out/run_receipt.json").read_text())
+    assert receipt["status"] == "FAILED" and receipt["map_pdfs"] == []

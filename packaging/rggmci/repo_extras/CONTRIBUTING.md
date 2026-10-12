@@ -6,18 +6,30 @@ Source fixes should be made in their owning bundle/template paths and reviewed w
 
 The repository candidate builder refuses a nonempty nongit destination. For a nonempty Git checkout it stages a new candidate, then deletes every target child except `.git` and moves replacement files in (`make_repo_candidate.py:68–88`). This can remove untracked/local evidence and interrupt midway; it is not a read-only sync or automatic contribution step. Preserve accepted evidence in place and use a reviewed fresh candidate when regeneration is authorized. Candidate generation is a separate action; preserve the source checkout and local evidence before a maintainer runs it.
 
-## Retained contribution note — unchanged below
-
-# Contributing
+## Contribution ownership
 
 This repository is built from Sapote-Mamey by `build_rggmci_package.py`. The scorer (`core.py`) and the
-lifted helpers (`_parsers.py`, `_ids.py`, `_blastp_io.py`) are copies of Sapote-Mamey source. Don't edit them
+lifted helpers (`_parsers.py`, `_ids.py`, `_blastp_io.py`) are copies of Sapote-Mamey source. The builder also copies `mamey/rescue_groups.py` unchanged as `groups.py`; grouping fixes belong in that engine source. Don't edit them
 here: a change made here would be lost on the next build and would make this package disagree with the
 engine. Report problems in them as issues; fixes go into Sapote-Mamey and reach this repository on the next
 build.
 
-The reader, grouping, BLASTp round trip, command line, tests and docs are package-only and can be changed
-here, with a matching change to the templates in Sapote-Mamey.
+The reader, BLASTp round trip and command line are maintained in the package templates under
+`packaging/rggmci/templates/`. Package tests and docs are maintained in those templates or
+`packaging/rggmci/repo_extras/`, as applicable. Keep standalone changes synchronized with their
+owning template or repository-extra source so regeneration preserves them.
 
 `tests/test_example_matches_engine.py` pins the package to the engine's own output on the public example, so
 any drift fails the tests.
+
+## Shared invocation ownership
+
+The actual shared invocation, input preparation, identity enrichment and canonical export belong in
+`mamey/rggmci.py`, with common parsing in `mamey/parsers.py` and completion/resource formatting in
+`mamey/ref_completion.py`. `reader.py`, `__init__.py` and `cli.py` are thin template adapters, not alternate
+scientific implementations. Match inputs, logical labels, defaults, sequence context and active resource
+content when testing both distributions. Static copied/lifted equality and one engine-produced golden
+fixture do not establish actual pipeline equality or independent biological correctness. Retain complete
+canonical JSON/table comparisons, explicit missing/refusal states and isolated optional-resource profiles.
+The repository-candidate golden producer must be reviewed against the current shared invocation before
+publication synchronization; do not infer that an old generated test already covers the new default.

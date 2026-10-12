@@ -73,6 +73,15 @@ def test_e1_rows_written_per_bgc(pkg, tmp_path):
     rows = [e1.cell(row=r, column=1).value for r in range(2, e1.max_row + 1)
             if e1.cell(row=r, column=1).value == "AS-TEST"]
     assert len(rows) == 3, f"Expected 3 per-BGC rows, got {len(rows)}"
+    # A historical placeholder named one assistant; the judgment store does not
+    # carry author/model provenance. Reconciliation must not invent it for any row.
+    headers = [cell.value for cell in e1[1]]
+    platform_col = headers.index("analysis_platform") + 1
+    status_col = headers.index("mode_b_status") + 1
+    assert {e1.cell(row=r, column=platform_col).value
+            for r in range(2, e1.max_row + 1)} == {"NOT_RECORDED"}
+    assert {e1.cell(row=r, column=status_col).value
+            for r in range(2, e1.max_row + 1)} == {"COMPLETE", "PENDING"}
 
 
 def test_e1_no_all_placeholder_after_update(pkg, tmp_path):

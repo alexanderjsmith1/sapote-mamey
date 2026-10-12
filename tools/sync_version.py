@@ -501,16 +501,27 @@ def changelog_headline() -> str:
     return "; ".join(heads[:8])
 
 
-def sync_build_stamp_patch(check: bool) -> list[str]:
-    """Rewrite (or --check) the BUILD_STAMP.txt `patch=` line from the CHANGELOG head."""
+def _build_stamp_patch_plan() -> tuple[pathlib.Path, str, str, list[str]]:
+    """Admit the patch field and headline without writing any owner surface."""
     p = ROOT / "BUILD_STAMP.txt"
     if not p.exists():
-        return [f"MISSING FILE: BUILD_STAMP.txt"]
+        return p, "", "", ["MISSING FILE: BUILD_STAMP.txt"]
     txt = p.read_text(encoding="utf-8")
+    count = len(re.findall(r"(?m)^patch=.*$", txt))
+    if count != 1:
+        return p, txt, txt, [f"INVALID BUILD_STAMP.txt patch= line: expected exactly one line, observed {count}"]
     head = changelog_headline()
     if not head:
-        return ["could not derive patch line from CHANGELOG.md"]
+        return p, txt, txt, ["could not derive patch line from CHANGELOG.md"]
     new = re.sub(r"(?m)^patch=.*$", f"patch={head}", txt)
+    return p, txt, new, []
+
+
+def sync_build_stamp_patch(check: bool) -> list[str]:
+    """Rewrite (or --check) the BUILD_STAMP.txt `patch=` line from the CHANGELOG head."""
+    p, txt, new, problems = _build_stamp_patch_plan()
+    if problems:
+        return problems
     if new == txt:
         return []
     if check:
@@ -569,6 +580,11 @@ def main(argv=None):
     ns = parser.parse_args(argv)
     check = ns.check
     problems, updates = plan_rule_updates()
+    if not check:
+        # Admit patch metadata before any bootstrap or anchored write. The final
+        # owner call re-reads the stamp after anchored identity updates.
+        _, _, _, patch_problems = _build_stamp_patch_plan()
+        problems.extend(patch_problems)
     changed = []
     if check:
         problems.extend(f"OUT OF SYNC: {rel}" for rel in updates)
@@ -579,11 +595,11 @@ def main(argv=None):
         sys.exit(1)
     else:
         # v9.7.405: the bootstrap-doc regeneration runs BEFORE any anchored write. It derives
-        # from the SSOT (pyproject), so ordering is safe — and a failed or timed-out generator
-        # refuses the whole bump instead of leaving anchors rewritten around stale docs.
+        # from the SSOT (pyproject). Failure leaves anchored writes unapplied, while the
+        # delegated generator may retain partially written bootstrap outputs.
         _bc_ok, _bc_msgs = sync_bootstrap_contract(check=False)
         if not _bc_ok:
-            sys.stderr.write("version sync REFUSED (no file written):\n"
+            sys.stderr.write("version sync REFUSED (no anchored write applied; bootstrap outputs may be partial):\n"
                              + "\n".join("  " + x for x in _bc_msgs) + "\n")
             sys.exit(1)
         for rel, text in updates.items():
@@ -643,19 +659,26 @@ def main(argv=None):
         sys.stdout.write((f"version sync OK  (engine {ENGINE}, bundle {BUNDLE})") + "\n")
         return
 
-    # C1: sync the BUILD_STAMP patch line from the CHANGELOG head
-    changed += sync_build_stamp_patch(check=False)
+    # C1: sync and verify the final patch metadata after anchored writes.
+    # A typed refusal is a failure, not a successful change message.
+    patch_changes = sync_build_stamp_patch(check=False)
+    patch_problems = sync_build_stamp_patch(check=True)
+    if patch_changes not in ([], ["patched BUILD_STAMP.txt (patch= line)"]):
+        problems.extend(patch_changes)
+    problems.extend(problem for problem in patch_problems if problem not in problems)
+    if not problems:
+        changed += patch_changes
 
     # v9.7.155: regenerate the bootstrap docs from the SSOT so they never go stale on a bump
     # (bootstrap docs regenerated above, before the anchored writes — v9.7.405)
 
+    if problems:
+        sys.stdout.write(("\n".join(problems)) + "\n")
+        sys.exit(1)
     for c in changed:
         sys.stdout.write((f"patched {c}") + "\n")
     if not changed:
         sys.stdout.write(("nothing to patch — already in sync") + "\n")
-    if problems:
-        sys.stdout.write(("\n".join(problems)) + "\n")
-        sys.exit(1)
     sys.stdout.write((f"done — engine {ENGINE}, bundle {BUNDLE}") + "\n")
 
 

@@ -326,7 +326,7 @@ def apply_manifest_with_counts(root: pathlib.Path, passed: int, skipped: int,
 
 
 def run_fixed_point(root: pathlib.Path, seed_passed: int, seed_skipped: int, provenance: str,
-                    max_iterations: int = 5, tier_zip_names=()) -> tuple[int, int, int]:
+                    max_iterations: int = 5, tier_zip_names=(), subset_runner=None) -> tuple[int, int, int]:
     """Converge the manifest's test-count row against its own manifest-reading test subset.
 
     Both lanes did this by hand at .404: apply the manifest with a measured full-suite count,
@@ -358,6 +358,7 @@ def run_fixed_point(root: pathlib.Path, seed_passed: int, seed_skipped: int, pro
             "discovered under tests/ -- refusing (nothing to converge against)"
         )
     passed, skipped = seed_passed, seed_skipped
+    measure = subset_runner or _run_pytest_subset
     for iteration in range(1, max_iterations + 1):
         # A pre-apply failure here is EXPECTED, not refused: a manifest-consumer test failing
         # against a stale manifest (e.g. a version/stamp freshness check) is exactly the drift
@@ -365,9 +366,9 @@ def run_fixed_point(root: pathlib.Path, seed_passed: int, seed_skipped: int, pro
         # base_passed is already correctly lower, and the post-apply delta below captures the
         # fix automatically. Only a still-failing (or newly-failing) subset AFTER the apply is
         # refused: that means the apply itself did not do what it claims.
-        base_passed, base_skipped, _base_failed, _base_out = _run_pytest_subset(consumer_files, root)
+        base_passed, base_skipped, _base_failed, _base_out = measure(consumer_files, root)
         apply_manifest_with_counts(root, passed, skipped, provenance, tier_zip_names)
-        after_passed, after_skipped, after_failed, after_out = _run_pytest_subset(consumer_files, root)
+        after_passed, after_skipped, after_failed, after_out = measure(consumer_files, root)
         if after_failed:
             raise SystemExit(
                 f"gen_release_manifest --fixed-point: {after_failed} manifest-consumer test(s) "
@@ -391,7 +392,31 @@ def _tail_lines(text: str, lines: int = 20) -> str:
     return "\n".join(text.strip().splitlines()[-lines:])
 
 
+class ManifestRefused(Exception):
+    """A typed CLI refusal with its original diagnostic and exit status."""
+
+    def __init__(self, message: str, code: int = 2):
+        super().__init__(message)
+        self.code = code
+
+
+def deliver_refusals(operation):
+    """Preserve the inspectable command while delivering its typed refusals."""
+    from functools import wraps
+
+    @wraps(operation)
+    def checked(*args, **kwargs):
+        try:
+            return operation(*args, **kwargs)
+        except ManifestRefused as exc:
+            emit(str(exc), file=sys.stderr)
+            return exc.code
+    return checked
+
+
+@deliver_refusals
 def main(argv=None):
+    """Generate or check the manifest, raising typed expected refusals."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", default=".", help="bundle root (default: cwd)")
     g = ap.add_mutually_exclusive_group(required=True)
@@ -404,6 +429,14 @@ def main(argv=None):
     ap.add_argument("--pytest-log", help="pytest summary log to read pass/skip counts from")
     ap.add_argument("--tests-passed", type=int, help="explicit passed count (overrides --pytest-log)")
     ap.add_argument("--tests-skipped", type=int, help="explicit skipped count (overrides --pytest-log)")
+    structured = ap.add_mutually_exclusive_group()
+    structured.add_argument("--partition-baseline", type=pathlib.Path,
+                            help="Verified MEASURED baseline seed; --fixed-point only")
+    structured.add_argument("--partition-receipt", type=pathlib.Path,
+                            help="Verified final partition PASS; --check only, without source mutation")
+    ap.add_argument("--partition-receipt-sha256", help="Expected structured receipt SHA-256")
+    ap.add_argument("--partition-admission", type=pathlib.Path,
+                    help="Fresh external environment admission directory for structured counts")
     ap.add_argument("--max-iterations", type=int, default=5,
                     help="--fixed-point only: convergence iteration ceiling (default: 5)")
     ap.add_argument(
@@ -415,12 +448,38 @@ def main(argv=None):
     root = pathlib.Path(args.root).resolve()
     manifest = root / "RELEASE_MANIFEST.md"
     if not manifest.exists():
-        emit(f"gen_release_manifest: no RELEASE_MANIFEST.md at {root}", file=sys.stderr)
-        return 2
+        raise ManifestRefused(f"gen_release_manifest: no RELEASE_MANIFEST.md at {root}")
+
+    structured_path = args.partition_baseline or args.partition_receipt
+    partition_counts = partition_environment = None
+    if structured_path is not None:
+        if (args.pytest_log is not None or args.tests_passed is not None or args.tests_skipped is not None
+                or not args.partition_receipt_sha256 or args.partition_admission is None
+                or (args.partition_baseline is not None and not args.fixed_point)
+                or (args.partition_receipt is not None and not args.check)):
+            raise ManifestRefused("gen_release_manifest: structured counts require an expected SHA-256 and fresh external admission; "
+                                  "baseline is --fixed-point only, final is --check only; logs/operator counts cannot be mixed")
+        try:
+            from _release_partition_runner import verified_counts
+            partition_counts, partition_environment = verified_counts(root, structured_path,
+                args.partition_receipt_sha256, admission_output=args.partition_admission,
+                python=sys.executable, baseline=args.partition_baseline is not None)
+        except (OSError, ValueError) as exc:
+            raise ManifestRefused("gen_release_manifest: structured evidence refused: " + str(exc)) from exc
+    elif args.partition_receipt_sha256 is not None or args.partition_admission is not None:
+        raise ManifestRefused("gen_release_manifest: partition evidence options require a structured receipt")
 
     if args.fixed_point:
         passed, skipped = args.tests_passed, args.tests_skipped
         provenance = "operator-supplied counts, no log bound"
+        subset_runner = None
+        if partition_counts is not None:
+            passed, skipped = partition_counts["passed"], partition_counts["skipped"]
+            provenance = "receipt-bound partitioned profile"
+            from _release_partition_runner import measure_manifest_subset
+            def subset_runner(files, subset_root):
+                return measure_manifest_subset(files, subset_root,
+                    evidence=args.partition_admission / "consumer_subsets", environment=partition_environment)
         if args.pytest_log and (passed is None or skipped is None):
             lp, ls = counts_from_log(pathlib.Path(args.pytest_log))
             provenance = ("receipt-bound log" if passed is None and skipped is None
@@ -435,10 +494,12 @@ def main(argv=None):
         try:
             final_passed, final_skipped, _iters = run_fixed_point(
                 root, passed, skipped, provenance, max_iterations=args.max_iterations,
-                tier_zip_names=args.tier_zips)
+                tier_zip_names=args.tier_zips, subset_runner=subset_runner)
         except SystemExit as exc:
             sys.stderr.write(str(exc) + "\n")
             return 1
+        except (OSError, ValueError) as exc:
+            raise ManifestRefused("gen_release_manifest: configured consumer subset refused: " + str(exc), 1) from exc
         sys.stdout.write(f"converged: {final_passed} passed\n")
         return 0
 
@@ -449,6 +510,9 @@ def main(argv=None):
     # operator assertion. Both are legitimate at cut time — describing the second as the first
     # is not, and the row is read later as if it were evidence.
     provenance = "operator-supplied counts, no log bound"
+    if partition_counts is not None:
+        passed, skipped = partition_counts["passed"], partition_counts["skipped"]
+        provenance = "receipt-bound partitioned profile"
     if args.pytest_log and (passed is None or skipped is None):
         lp, ls = counts_from_log(pathlib.Path(args.pytest_log))
         provenance = ("receipt-bound log" if passed is None and skipped is None
@@ -468,8 +532,7 @@ def main(argv=None):
         try:
             test_bound_text, canonical_test_row = ensure_test_evidence_row(text, passed, skipped, provenance)
         except ValueError as exc:
-            emit(f"gen_release_manifest: {exc}", file=sys.stderr)
-            return 2
+            raise ManifestRefused(f"gen_release_manifest: {exc}") from exc
     rules = build_rules(engine, bundle, stamp, passed, skipped, args.tier_zips,
                         health_print_calls=repo_health_print_calls(root))
 
@@ -494,8 +557,7 @@ def main(argv=None):
         msg = ("RELEASE_MANIFEST sync rule matched ZERO times (line reworded/removed; "
                "the field is no longer kept in sync): " + ", ".join(zero_match))
         if args.check:
-            emit(msg, file=sys.stderr)
-            return 1
+            raise ManifestRefused(msg, 1)
         emit("WARNING — " + msg, file=sys.stderr)
 
     if args.check:

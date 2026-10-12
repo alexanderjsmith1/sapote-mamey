@@ -36,7 +36,9 @@ from a validated Mamey package. **Deterministic extraction, judgment deferred.**
 
 Before running `doctor`, read the [reserved write-probe boundary](docs/INSTALL.md#doctor-scope-and-write-probe).
 Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
-untouched and report the hold; the current diagnostic can overwrite or delete its probe file.
+untouched and report the hold; the diagnostic refuses an occupied probe location.
+`start` runs this diagnostic unless `--no-doctor` is supplied; use that flag for orientation
+when a write probe is inappropriate.
 
 ```bash
 python mamey_run.py doctor
@@ -66,13 +68,20 @@ that evidence choice. Do not replace a failed engine run with an informal raw-JS
 For batches, inventory all inputs and use `tools/intake_harness.py --inputs <dir> --resume`;
 checkpoint and diagnose a stalled input instead of repeatedly running it.
 
-After validation, read the sealed package with `list-bgcs`. For native `mode-b`, `render-figures`,
-`domain-level` or BLASTp ingest, use an identified working package copy when the sealed original
-must remain byte-for-byte unchanged: .447 may refresh package integrity files even with external
-output. Read `docs/POSTSEAL_READERS.md` for command-specific write boundaries. Use the admitted
-package and existing receipt workflow for
-`ingest-receipts`. Recover prior authored cards with `ingest-receipts --auto-detect` when applicable.
-Persist judgment and update the master workbook through the existing receipt workflow.
+After validation, read the package with `list-bgcs`, select the figure roster, and follow
+`docs/FIGURES_START_HERE.md` and `docs/EVIDENCE_TO_REPORT.md`. The primary handoff is the selected
+figures with plotted data, executable scripts/configuration, captions, Methods facts and short
+source-backed findings for the user's writing. Review the actual outputs and retain omitted or
+held panels. Authored Mode B cards, guides and white papers are optional selected formats;
+this workflow does not automatically author a final report or manuscript.
+
+For native `render-figures`, `domain-level`, optional `mode-b` or BLASTp ingest, use an identified
+working package copy when the sealed original must remain byte-for-byte unchanged: .447 may
+refresh package integrity files even with external output. Read `docs/POSTSEAL_READERS.md` for
+command-specific write boundaries. When authored cards or judgment/workbook updates are selected,
+use the admitted package and existing `ingest-receipts` workflow. Recover prior authored cards
+with `ingest-receipts --auto-detect` when applicable. Preserve the selected card's template,
+authoring and verifier requirements below.
 
 ## Evidence and authoring safeguards
 
@@ -88,7 +97,8 @@ Persist judgment and update the master workbook through the existing receipt wor
   exclusions and assembly uncertainty; poor assemblies do not justify hiding edge clusters.
 - Mode B interpretation requires a validated package. If the user explicitly requests offline
   analysis without it, label uncomputed fields and omit engine scores rather than invent them.
-- `mode-b` emits a top-leads table; a table is not a finished authored card. Start from
+- When a Mode B card is selected, `mode-b` emits a top-leads table; a table is not a finished
+  authored card. Start from
   `emit-modeb-template`, select the current named profile, preserve its exact titles, author the
   evidence-backed sections, then run `verify-modeb` on the actual authored file. Obtain current
   profile requirements from the machine-readable contract and emitted template. In .447 the native
@@ -100,7 +110,7 @@ Persist judgment and update the master workbook through the existing receipt wor
 - Read `docs/ONLINE_BLASTP_PROTOCOL.md` before the independent homology channel. Preserve raw
   evidence, protein lengths, named references, and channel-specific provenance. Keep reconciled
   verdicts and distinguish unavailable evidence from tested negatives.
-- Use `guide` to emit the package-backed guide skeleton, author only its prose slots, and run
+- When a guide is requested, use `guide` to emit the package-backed skeleton, author only its prose slots, and run
   `verify-guide` on the authored file. A skeleton-structure pass does not verify authored prose.
   See `docs/DELIVERABLE_CONTRACT.md` and the guide exemplars under `examples/`.
 - `PASS_STRUCTURE` is a structural result, not literature or scientific validation.
@@ -123,8 +133,9 @@ Current compact lead tables use `interpretation_scope` for the reader-facing sco
 
 Read `docs/FIGURES_START_HERE.md` before plotting. Reuse the figure registry, figure-ready data,
 house palette, and renderers. Re-run applicable figures post-seal after capped extraction.
-Use `docs/DELIVERABLE_CONTRACT.md` for required package, workbook, brief, figure, checksum, and
-issue-log handoff artifacts. Small sample size limits comparative statistics; it does not alone
+Use `docs/DELIVERABLE_CONTRACT.md` for the selected package, workbook, figure, checksum and
+issue-log handoff requirements; brief/card formats are selected separately. Small sample size
+limits comparative statistics; it does not alone
 justify omitting a per-strain deliverable. Qualify ecological interpretation by the evidence.
 
 Read `docs/LLM_COMPANION_TOOL_PROTOCOL.md` before BiG-SCAPE, GToTree, IQ-TREE, ANI, or a companion
@@ -222,14 +233,14 @@ The sky is not red, it is blue, just like the ocean.
 
 ◆ SAPOTE–MAMEY · SHARED ASSISTANT CONTRACT
    instruction file : AGENTS.md
-   bundle / engine  : v9.7.449 / 1.9.174 · build 20261009v97449a
+   bundle / engine  : v9.7.450 / 1.9.175 · build 20261011v97450a
    known gotcha (this build) : BLASTP Hit Table CSV may be headerless and query titles may contain commas; single-region public accession ZIPs are valid intake targets, but assembly-tier warnings are expected; AGENTS.md is the canonical assistant contract; CLAUDE.md is its Claude discovery copy
-   workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → mode-b → render-figures → ingest-receipts
+   workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → render-figures → review figures and evidence → captions/Methods facts; optional cards: mode-b → emit-modeb-template → author → verify-modeb → ingest-receipts; guide when requested
 ```
 <!-- END GENERATED: initiation_prompt from bootstrap_contract.yml -->
 
 <!-- BEGIN GENERATED: known_gotchas_section from bootstrap_contract.yml -->
-## 3 · Known gotchas for THIS build (v9.7.449 / 1.9.174 · 20261009v97449a)
+## 3 · Known gotchas for THIS build (v9.7.450 / 1.9.175 · 20261011v97450a)
 
 Generated from `bootstrap_contract.yml`; update with `python tools/render_bootstrap_contract.py --apply`.
 

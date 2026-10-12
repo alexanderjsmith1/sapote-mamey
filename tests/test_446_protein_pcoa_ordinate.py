@@ -108,8 +108,9 @@ def test_ordinate_and_nearest_write_a_renderable_kit(inputs):
 
 def test_ordinate_refuses_without_diamond(inputs, monkeypatch):
     extract(inputs)
-    monkeypatch.setattr(ppo.shutil, "which", lambda name: None)
-    assert ppo.main(["ordinate", "--kit", str(inputs / "kit"), "--set", "KS"]) == 2
+    # A watched child does not inherit parent monkeypatches: bind the missing tool explicitly.
+    assert ppo.main(["ordinate", "--kit", str(inputs / "kit"), "--set", "KS",
+                     "--diamond", str(inputs / "missing_diamond")]) == 2
 
 
 def _hmm_file(path, name, seq):

@@ -54,7 +54,11 @@ SCHEMA_VERSION = "sapote-phylo-plan/1.1"
 # Accepted GToTree versions are one shared list (tools/_gtotree_versions.py), read by this planner
 # and by gtotree_execution_gate.py; the workflow doc states the same list.
 _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _gtotree_versions import ACCEPTED_GTOTREE_VERSIONS_TEXT, accepted as _gtotree_accepted  # noqa: E402
+from _gtotree_versions import (  # noqa: E402
+    ACCEPTED_GTOTREE_VERSIONS_TEXT, GTOTREE_BINS, accepted as _gtotree_accepted,
+    probe as _probe_gtotree, command as _gtotree_command, resource_contract as _gtotree_resource_contract,
+    safe_tip_label, plan_tip_rows, plan_mapping_rows, mapping_input_keys, GOVERNED_LAYOUT, governed_paths,
+)
 VERIFIED_GTOTREE_VERSION = "1.8.19"   # production version; kept as a name for callers
 DEFAULT_PANEL_CAP = 40
 HARD_PANEL_CAP = 60
@@ -401,27 +405,29 @@ def _probe(binary: str | None, version_flag: str, help_flag: str,
     version_text = ((ver.stdout or "") + "\n" + (ver.stderr or "")).strip().splitlines()
     help_text = (hp.stdout or "") + "\n" + (hp.stderr or "")
     missing = [token for token in required_help if token not in help_text]
+    probe_ok = ver.returncode == 0 and hp.returncode == 0 and bool(version_text)
     return {
-        "status": "PRESENT" if (ver.returncode == 0 or version_text) else "PROBE_FAILED",
+        "status": "PRESENT" if probe_ok else "PROBE_FAILED",
         "path": binary,
         "version": version_text[0].strip() if version_text else None,
         "version_exit": ver.returncode,
         "help_exit": hp.returncode,
-        "help_contract": "PASS" if not missing else "HOLD_HELP_DRIFT",
+        "help_contract": ("PROBE_FAILED" if not probe_ok else
+                          "PASS" if not missing else "HOLD_HELP_DRIFT"),
         "missing_help_tokens": missing,
     }
 
 
-def probe_toolchain(gtotree_bin: str | None, iqtree_bin: str | None) -> dict:
-    gtt = _probe(gtotree_bin, "-v", "-h", REQUIRED_GTOTREE_HELP)
+def probe_toolchain(gtotree_bin: str | None, iqtree_bin: str | None, verified_runtime=None) -> dict:
+    if verified_runtime is not None:
+        from _gtotree_runtime import verified_interface
+        gtt = verified_interface(verified_runtime, gtotree_bin)
+    else:
+        gtt = _probe_gtotree(gtotree_bin)
     iq = _probe(iqtree_bin, "--version", "-h", REQUIRED_IQTREE_HELP)
-    observed_gtt = str(gtt.get("version") or "")
-    gtt["verified_interface"] = (
-        "PASS" if _gtotree_accepted(observed_gtt) else "HOLD_UNVERIFIED_VERSION"
-    )
     helpers = {}
     gtt_parent = Path(gtotree_bin).parent if gtotree_bin else None
-    for name in ("hmmsearch", "prodigal", "muscle", "gtt-cat-alignments"):
+    for name in gtt.get("required_helpers", []):
         sibling = gtt_parent / name if gtt_parent else None
         resolved = (str(sibling.resolve()) if sibling and sibling.is_file() and os.access(sibling, os.X_OK)
                     else shutil.which(name))
@@ -430,9 +436,7 @@ def probe_toolchain(gtotree_bin: str | None, iqtree_bin: str | None) -> dict:
 
 
 def _safe_label(value: str, fallback: str) -> str:
-    label = re.sub(r"[\t\r\n]+", " ", value).strip() or fallback
-    # GToTree 1.8 rejects these characters anywhere in its mapping file.
-    return re.sub(r"[()*&^#$@!\\/|\[\]]", "_", label)
+    return safe_tip_label(value, fallback)
 
 
 def _write_new(path: Path, data: bytes) -> None:
@@ -455,14 +459,29 @@ def _write_tsv_new(path: Path, fieldnames: list[str], rows: list[dict]) -> None:
         writer.writerows(rows)
 
 
-def _command_text(run_dir: Path, hmm_relpath: Path, gtt_bin: str, iq_bin: str, threads: int = 1) -> str:
+def _command_text(run_dir: Path, hmm_relpath: Path, gtt_bin: str, iq_bin: str, threads: int = 1,
+                  version_text: str = "1.8.19", hold_reason: str | None = None,
+                  governed_argv: list[str] | None = None) -> str:
     # GToTree 1.8 contains shell loops that split paths on whitespace. Run from
     # the run directory and give it only controlled, space-free relative paths.
     if hmm_relpath.is_absolute() or any(" " in part for part in hmm_relpath.parts):
         raise ValueError("staged HMM path must be a space-free path relative to the run directory")
-    gtt = [gtt_bin, "-f", "input_view/genomes.txt", "-H", hmm_relpath.as_posix(),
-           "-m", "input_view/labels.tsv", "-j", "1", "-n", str(threads),
-           "-M", str(threads), "-N", "-k", "-o", "outputs/gtotree_alignment"]
+    if hold_reason or not _gtotree_accepted(version_text):
+        reason = re.sub(r"[^A-Z0-9_]", "_", hold_reason or "HOLD_UNVERIFIED_VERSION")
+        return ("#!/usr/bin/env bash\nset -euo pipefail\n"
+                f"# {reason}: no executable recipe was generated.\n"
+                "# Re-plan against an admitted version and successful native help contract.\n"
+                "exit 2\n")
+    if str(version_text).strip() in ("2.0.0", "GToTree v2.0.0"):
+        if not governed_argv:
+            return "#!/usr/bin/env bash\n# HOLD: governed v2 runner bindings missing\nexit 2\n"
+        return ("#!/usr/bin/env bash\nset -euo pipefail\n"
+                "# Requires RUN_STATE approved=true and an explicit --approved argument.\n"
+                + " ".join(shlex.quote(x) for x in governed_argv)
+                + ' --gtotree-runtime-probe-dir "${GTOTREE_RUNTIME_PROBE_DIR:?Set a fresh explicit software-probe directory}" "$@"\n')
+    gtt = _gtotree_command(gtt_bin, version_text, "input_view/genomes.txt",
+                           hmm_relpath.as_posix(), threads, 1, "outputs/gtotree_alignment",
+                           mapping_file="input_view/labels.tsv", keep_alignments=True)
     iq = [iq_bin, "-s", "<DISCOVERED_ALIGNMENT_PATH>", "-m", "MFP", "-mset",
           "LG,WAG,JTT,Q.pfam", "-mrate", "G,I,I+G", "-B", "1000", "--alrt", "1000",
           "-T", str(threads), "--seed", "12345", "--prefix", "outputs/iqtree/final"]
@@ -523,10 +542,20 @@ def plan(args: argparse.Namespace) -> int:
     if run_dir.exists():
         raise FileExistsError(f"run already exists; resume it instead of overwriting: {run_dir}")
 
-    gtt_bin = resolve_executable(args.gtotree_bin, ("GToTree",))
+    gtt_bin = resolve_executable(args.gtotree_bin, GTOTREE_BINS)
     iq_bin = resolve_iqtree(args.iqtree_bin)
-    toolchain = probe_toolchain(gtt_bin, iq_bin)
+    from _gtotree_runtime import runtime_from_arguments, resource_pass
+    runtime = runtime_from_arguments(args, gtt_bin)
+    toolchain = probe_toolchain(gtt_bin, iq_bin, runtime) if runtime else probe_toolchain(gtt_bin, iq_bin)
+    raw_gtt_version = str(toolchain["gtotree"].get("version") or "")
+    resource_contract = ((_gtotree_resource_contract(raw_gtt_version, threads, 1,
+                             verified_runtime=runtime, cpu_budget=args.max_concurrent_cores) if runtime else
+                             _gtotree_resource_contract(raw_gtt_version, threads, 1))
+                         if _gtotree_accepted(raw_gtt_version) else
+                         {"status": "HOLD_UNVERIFIED_VERSION", "hmm_threads": None})
 
+    if runtime:
+        concurrent_trees = args.max_concurrent_cores // resource_contract["phase_requested_threads"]
     admitted: list[dict] = []
     excluded: list[dict] = []
     network_rows: list[dict] = []
@@ -579,6 +608,8 @@ def plan(args: argparse.Namespace) -> int:
           toolchain["iqtree"]["help_contract"] != "PASS" or
           toolchain["gtotree"]["verified_interface"] != "PASS"):
         state = "HOLD_TOOL_INTERFACE_REVIEW"
+    elif not resource_pass(resource_contract):
+        state = "HOLD_RESOURCE_PROFILE"
     else:
         state = "PLANNED_AWAITING_APPROVAL"
 
@@ -586,6 +617,9 @@ def plan(args: argparse.Namespace) -> int:
     if len(labels) != len(set(labels)):
         raise ValueError("desired GToTree labels are not unique after safe-character normalization")
 
+    if runtime and (any(ch.isspace() for ch in str(run_dir)) or
+                    any(any(ch.isspace() or ch in "():,;[]'\"" for ch in label) for label in labels)):
+        state = "HOLD_NATIVE_PATH_OR_TIP_LABEL"
     run_dir.mkdir(parents=True)
     for rel in ("input_objects", "input_view", "references", "resources", "logs", "outputs", "qa"):
         (run_dir / rel).mkdir()
@@ -595,10 +629,15 @@ def plan(args: argparse.Namespace) -> int:
     object_paths = [r["object_relpath"] for r in admitted]
     _write_new(run_dir / "input_view" / "genomes.txt",
                ("\n".join(object_paths) + "\n").encode("utf-8"))
-    # GToTree 1.8's -m file is headerless and matches local inputs by basename.
-    # Full paths also trip its special-character check because they contain '/'.
-    label_lines = [f"{Path(r['object_path']).name}\t{label}"
-                   for r, label in zip(admitted, labels)]
+    if runtime:
+        _write_new(run_dir / "input_view" / "genomes_absolute.txt",
+                   ("\n".join(r["object_path"] for r in admitted) + "\n").encode("utf-8"))
+    # v1 maps basenames; v2 accepts the exact path supplied in its input list.
+    # A v2 basename retaining .fna is neither that path nor its extension-free ID.
+    # An unrecognized version remains a held, legacy-shaped inspection plan.
+    mapping_version = raw_gtt_version if _gtotree_accepted(raw_gtt_version) else "1.8.19"
+    mapping_keys = mapping_input_keys([r["object_path"] for r in admitted], mapping_version)
+    label_lines = [f"{key}\t{label}" for key, label in zip(mapping_keys, labels)]
     _write_new(run_dir / "input_view" / "labels.tsv",
                ("\n".join(label_lines) + "\n").encode("utf-8"))
     _write_tsv_new(run_dir / "references" / "REFERENCE_SELECTION.tsv",
@@ -631,9 +670,12 @@ def plan(args: argparse.Namespace) -> int:
             "duplicate_rows_excluded": len(excluded), "network_rows_not_staged": len(network_rows),
         },
         "resource_policy": {
-            "gtotree_jobs": 1, "hmm_threads": threads, "muscle_threads": threads,
+            "gtotree_jobs": 1, "hmm_threads": resource_contract["hmm_threads"],
+            "requested_threads_per_tree": threads, "muscle_threads": threads,
+            "gtotree_resource_contract": resource_contract,
             "iqtree_threads_per_tree": threads,
-            "max_concurrent_trees": concurrent_trees,
+            "phase_requested_threads": resource_contract.get("phase_requested_threads", threads),
+            "max_concurrent_trees": (concurrent_trees if resource_pass(resource_contract) else 0),
             "accepted_gtotree_versions": list(ACCEPTED_GTOTREE_VERSIONS_TEXT),
             "maximum_concurrent_cores": args.max_concurrent_cores,
         },
@@ -642,6 +684,12 @@ def plan(args: argparse.Namespace) -> int:
                 "object_relpath": hmm_relpath.as_posix(),
                 "profile_count": _hmm_profile_count(hmm)},
         "toolchain": toolchain,
+        "runtime_binding": ({"manifest": str(Path(args.gtotree_runtime_manifest).absolute()),
+                             "manifest_sha256": resource_contract["manifest_sha256"],
+                             "environment": str(Path(args.gtotree_runtime_environment).absolute()),
+                             "editable_source": str(Path(args.gtotree_runtime_source).absolute())}
+                            if runtime else None),
+        "execution_layout": dict(GOVERNED_LAYOUT) if runtime else None,
         "assemblies": admitted,
         "excluded_duplicates": excluded,
         "network_inputs_pending": network_rows,
@@ -663,8 +711,29 @@ def plan(args: argparse.Namespace) -> int:
     }
     _write_json_new(run_dir / "RUN_STATE.json", state_doc)
     _write_new(run_dir / hmm_relpath, hmm.read_bytes())
+    governed_argv = None
+    if runtime:
+        governed_argv = [sys.executable, str(Path(__file__).with_name("run_planned_tree.py")),
+            "--plan-dir", str(run_dir), "--genome-list", str(run_dir / "input_view/genomes_absolute.txt"),
+            "--mapping-file", str(run_dir / "input_view/labels.tsv"),
+            "--workdir", str(run_dir / "outputs/governed_run"),
+            "--hmm", str(run_dir / hmm_relpath), "--hmm-sha256", hmm_sha,
+            "--gtotree-bin", str(gtt_bin), "--iqtree-bin", str(iq_bin),
+            "--threads", str(threads), "--parallel", "1", "--iqtree-threads", str(threads),
+            "--query-tips", ",".join(label for r, label in zip(admitted, labels) if r["role"] == "QUERY"),
+            "--outgroup", ",".join(label for r, label in zip(admitted, labels) if r["role"] == "OUTGROUP"),
+            "--gtotree-runtime-manifest", str(args.gtotree_runtime_manifest),
+            "--gtotree-runtime-environment", str(args.gtotree_runtime_environment),
+            "--gtotree-runtime-source", str(args.gtotree_runtime_source),
+            "--gtotree-cpu-budget", str(args.max_concurrent_cores),
+            "--gtotree-rss-limit", str(args.gtotree_rss_limit),
+            "--gtotree-min-disk", str(args.gtotree_min_disk),
+            "--gtotree-timeout", str(args.gtotree_timeout)]
     _write_new(run_dir / "COMMAND.sh", _command_text(
-        run_dir, hmm_relpath, gtt_bin or "GToTree", iq_bin or "iqtree3", threads
+        run_dir, hmm_relpath, gtt_bin or "GToTree", iq_bin or "iqtree3", threads,
+        version_text=str(toolchain["gtotree"].get("version") or ""),
+        hold_reason=None if state == "PLANNED_AWAITING_APPROVAL" else state,
+        governed_argv=governed_argv
     ).encode("utf-8"))
     event = {"time_utc": manifest["created_utc"], "event": "PLAN_CREATED", "state": state,
              "execution_authorized": False}
@@ -674,9 +743,15 @@ def plan(args: argparse.Namespace) -> int:
 State: **{state}**. Execution and network access are **not approved**.
 
 Read `RUN_MANIFEST.json`, then `RUN_STATE.json`, then `COMMAND.sh`. The manifest is immutable.
-The command uses explicit GToTree 1.8-style controls `-j 1 -n {threads} -M {threads} -N -k`; IQ-TREE
-uses `-T {threads}`. At most {concurrent_trees} tree(s) of {threads} thread(s) may be active at once
-({args.max_concurrent_cores} cores in all). Accepted GToTree: {", ".join(ACCEPTED_GTOTREE_VERSIONS_TEXT)}.
+The shared interface profile is {toolchain["gtotree"].get("profile") or "UNRESOLVED"}.
+Resource admission: {resource_contract["status"]}; admitted HMM threads:
+{resource_contract["hmm_threads"] if resource_contract["hmm_threads"] is not None else "NOT_BOUND"}.
+MUSCLE is requested with `-M {threads}`; IQ-TREE uses `-T {threads}`. GToTree uses
+`-j 1 -N -k`, with `-n {threads}` only for 1.8.19. Scheduled concurrent trees:
+{manifest["resource_policy"]["max_concurrent_trees"]}; declared total core budget:
+{args.max_concurrent_cores}. A held plan has a refusal stub, not an executable recipe.
+Accepted version families: {", ".join(ACCEPTED_GTOTREE_VERSIONS_TEXT)}. CLI compatibility
+alone does not bind a native v2 HMM CPU profile; `-M` does not control HMM searches.
 
     Panel: {len(admitted)} unique local assemblies admitted / cap {panel_cap};
 {len(excluded)} normalized-sequence duplicate row(s) excluded; {len(network_rows)} network input(s)
@@ -687,6 +762,16 @@ After an approved GToTree process exits zero, run this planner's `discover` subc
 hash the observed alignment. Replace `<DISCOVERED_ALIGNMENT_PATH>` only with the path named by that
 receipt. Do not assume an output filename and do not use `-F` or IQ-TREE `--redo` to overwrite history.
 """
+    if runtime:
+        handoff = handoff.replace(
+            "After an approved GToTree process exits zero, run this planner's `discover` subcommand to locate and\n"
+            "hash the observed alignment. Replace `<DISCOVERED_ALIGNMENT_PATH>` only with the path named by that\n"
+            "receipt. Do not assume an output filename and do not use `-F` or IQ-TREE `--redo` to overwrite history.",
+            "After the governed runner reports DONE, run this planner's `discover --run-dir <this run>` "
+            "subcommand. It requires this plan's exact current DONE receipt, unchanged selected inputs, "
+            "bound output hashes and the native v2 summary/retained-label roster. Failed or partial runs "
+            "remain held; legacy output directories are never substituted. The runner already executes "
+            "IQ-TREE and hard QC. Do not use `-F` or IQ-TREE `--redo` to overwrite history.")
     _write_new(run_dir / "HANDOFF.md", handoff.encode("utf-8"))
     pointer = workspace / "CURRENT_RUN.txt"
     if not pointer.exists():
@@ -718,6 +803,162 @@ def _retained_count(output_root: Path) -> tuple[int | None, list[str]]:
     return (max(0, len(rows) - 1), [str(summaries[0])])
 
 
+def discover_governed_outputs(run_dir, manifest, admitted):
+    """Read the exact current governed attempt; never reuse a legacy output tree."""
+    receipt = {"schema_version": SCHEMA_VERSION, "run_id": manifest.get("run_id"),
+               "discovery_mode": "BOUND_GOVERNED_CURRENT_ATTEMPT", "admitted_taxa": admitted,
+               "status": "HOLD_GOVERNED_OUTPUT_BINDING", "alignment_candidates": [],
+               "observed_files": [], "genome_summary_paths": [],
+               "retained_taxa_from_summary": None}
+    try:
+        root = Path(run_dir).resolve(strict=True)
+        paths = governed_paths(root, manifest.get("execution_layout"))
+        workdir, output_root = paths["workdir_relative"], paths["gtotree_relative"]
+        status_path = paths["status_relative"]
+
+        def regular(path, inside=None):
+            path = Path(path).absolute()
+            if (not path.is_file() or any(p.is_symlink() for p in (path, *path.parents)) or
+                    (inside is not None and inside not in path.resolve().parents)):
+                raise ValueError("GOVERNED_FILE_IDENTITY")
+            return path
+
+        def read_json(path):
+            path = regular(path, root)
+            if path.stat().st_size > 16 * 1024 * 1024:
+                raise ValueError("GOVERNED_RECEIPT_SIZE")
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                raise ValueError("GOVERNED_RECEIPT_OBJECT")
+            return data
+
+        state = read_json(root / "RUN_STATE.json")
+        status = read_json(status_path)
+        if (status.get("status") != "DONE" or state.get("approved") is not True or
+                state.get("run_id") != manifest.get("run_id")):
+            raise ValueError("GOVERNED_CURRENT_DONE_REQUIRED")
+        expected_binding = {"schema": "GTOTREE_GOVERNED_PLAN_BINDING_V1", "plan_directory": str(root),
+            "manifest_sha256": file_sha256(regular(root / "RUN_MANIFEST.json", root)),
+            "state_sha256": file_sha256(regular(root / "RUN_STATE.json", root)),
+            "genome_list": str(root / "input_view/genomes_absolute.txt"),
+            "genome_list_sha256": file_sha256(regular(root / "input_view/genomes_absolute.txt", root)),
+            "mapping": str(root / "input_view/labels.tsv"),
+            "mapping_sha256": file_sha256(regular(root / "input_view/labels.tsv", root)),
+            "workdir": str(workdir)}
+        if status.get("plan_binding") != expected_binding:
+            raise ValueError("GOVERNED_PLAN_RECEIPT_DRIFT")
+        planned = plan_mapping_rows(manifest["assemblies"], manifest["toolchain"]["gtotree"]["version"])
+        mapping = [line.split("\t") for line in (root / "input_view/labels.tsv").read_text().splitlines()]
+        if mapping != [[name, label] for name, label, role in planned]:
+            raise ValueError("GOVERNED_MAPPING_DRIFT")
+        selected = (root / "input_view/genomes_absolute.txt").read_text().splitlines()
+        if selected != [row["object_path"] for row in manifest["assemblies"]]:
+            raise ValueError("GOVERNED_INPUT_ROSTER_DRIFT")
+        for row in manifest["assemblies"]:
+            if file_sha256(regular(row["object_path"], root)) != row["object_sha256"]:
+                raise ValueError("GOVERNED_INPUT_DRIFT")
+        binding_path = regular(workdir / "EXECUTION_BINDINGS.json", workdir)
+        if file_sha256(binding_path) != status.get("execution_bindings_sha256"):
+            raise ValueError("GOVERNED_EXECUTION_RECEIPT_DRIFT")
+        bindings = read_json(binding_path)["files"]
+        phases = status["execution_phases"]
+        if not isinstance(phases, list) or not phases:
+            raise ValueError("GOVERNED_PHASE_RECEIPTS_REQUIRED")
+        expected_phases = [workdir / ("watch_%03d.json" % number) for number in range(1, len(phases) + 1)]
+        if sorted(workdir.glob("watch_*.json")) != expected_phases:
+            raise ValueError("GOVERNED_PHASE_ROSTER_DRIFT")
+        for recorded, expected_path in zip(phases, expected_phases):
+            if Path(recorded["path"]) != expected_path or file_sha256(regular(expected_path, workdir)) != recorded["sha256"]:
+                raise ValueError("GOVERNED_PHASE_RECEIPT_DRIFT")
+            phase = read_json(expected_path)
+            watch = phase["watch"]
+            # Advisory signoff may have a scientific nonzero exit; resource loss may not.
+            if not isinstance(watch, dict) or watch.get("stop_reason") or watch.get("cleanup_error"):
+                raise ValueError("GOVERNED_PHASE_RESOURCE_FAILURE")
+            phase_log = regular(expected_path.with_suffix(".log"), workdir)
+            if file_sha256(phase_log) != phase["log_sha256"]:
+                raise ValueError("GOVERNED_PHASE_LOG_DRIFT")
+        versions = regular(workdir / "TOOL_VERSIONS.json", workdir)
+        if file_sha256(versions) != status["tool_versions_sha256"]:
+            raise ValueError("GOVERNED_TOOL_VERSION_RECEIPT_DRIFT")
+        required_inputs = [root / "RUN_MANIFEST.json", root / "RUN_STATE.json",
+                           root / "input_view/genomes_absolute.txt", root / "input_view/labels.tsv",
+                           *[Path(row["object_path"]) for row in manifest["assemblies"]],
+                           Path(status["hmm_file"])]
+        for path in required_inputs:
+            key = str(path.absolute())
+            row = bindings[key]
+            if (str(path.resolve(strict=True)) != row["resolved"] or
+                    file_sha256(path) != row["sha256"]):
+                raise ValueError("GOVERNED_SELECTED_INPUT_DRIFT")
+        if file_sha256(Path(status["hmm_file"])) != manifest["hmm"]["sha256"]:
+            raise ValueError("GOVERNED_HMM_DRIFT")
+        artifacts = status["completed_artifacts"]
+        required = ("alignment", "treefile", "contree", "iqtree_log", "genome_summary")
+        if not isinstance(artifacts, dict) or any(not isinstance(artifacts.get(k), dict) for k in required):
+            raise ValueError("GOVERNED_OUTPUT_RECEIPT_REQUIRED")
+        for row in artifacts.values():
+            if row is None:
+                continue
+            path = regular(row["path"], workdir)
+            if file_sha256(path) != row["sha256"] or path.stat().st_size != row["bytes"]:
+                raise ValueError("GOVERNED_OUTPUT_DRIFT")
+        alignment = regular(artifacts["alignment"]["path"], output_root)
+        summary = regular(artifacts["genome_summary"]["path"], output_root)
+        if summary != output_root / "genomes-summary-info.tsv" or alignment.parent != output_root:
+            raise ValueError("GOVERNED_NATIVE_LAYOUT")
+        # The reviewed v2 producer emits original genome IDs AND mapped labels for all inputs.
+        with summary.open(newline="", encoding="utf-8-sig") as handle:
+            reader = csv.DictReader(handle, delimiter="\t")
+            if (not {"genome_id", "label", "in_final_tree"}.issubset(reader.fieldnames or []) or
+                    len(reader.fieldnames) != len(set(reader.fieldnames))):
+                raise ValueError("GOVERNED_NATIVE_SUMMARY_SCHEMA")
+            summary_rows = list(reader)
+        expected = {Path(name).stem: (label, role) for name, label, role in planned}
+        if (len(summary_rows) != len(expected) or
+                {row["genome_id"] for row in summary_rows} != set(expected)):
+            raise ValueError("GOVERNED_NATIVE_SUMMARY_ROSTER")
+        retained = []
+        for row in summary_rows:
+            label, role = expected[row["genome_id"]]
+            decision = row.get("in_final_tree")
+            if row["label"] != label or not isinstance(decision, str) or decision.lower() not in ("yes", "no"):
+                raise ValueError("GOVERNED_NATIVE_SUMMARY_IDENTITY")
+            if decision.lower() == "yes":
+                retained.append(label)
+            elif role in ("QUERY", "OUTGROUP"):
+                raise ValueError("GOVERNED_REQUIRED_TIP_DROPPED")
+        with alignment.open(encoding="utf-8") as handle:
+            observed_tips = [line[1:].strip().split()[0] for line in handle if line.startswith(">")]
+        if (len(observed_tips) != len(set(observed_tips)) or len(retained) < 2 or
+                set(observed_tips) != set(retained)):
+            raise ValueError("GOVERNED_ALIGNMENT_MEMBERSHIP")
+        candidates, files = [], []
+        for path in sorted(p for p in output_root.rglob("*") if p.is_file()):
+            regular(path, output_root)
+            records = _count_fasta_records(path)
+            row = {"path": str(path), "relative_path": path.relative_to(root).as_posix(),
+                   "bytes": path.stat().st_size, "sha256": file_sha256(path), "fasta_records": records}
+            files.append(row)
+            if path.parent == output_root and records == len(retained):
+                candidates.append(row)
+        receipt.update(retained_taxa_from_summary=len(retained), genome_summary_paths=[str(summary)],
+                       observed_files=files, alignment_candidates=candidates,
+                       current_status_sha256=file_sha256(status_path),
+                       current_execution_bindings_sha256=file_sha256(binding_path),
+                       current_plan_binding=expected_binding)
+        if len(candidates) != 1:
+            receipt["status"] = "HOLD_AMBIGUOUS_ALIGNMENT" if candidates else "HOLD_NO_ALIGNMENT"
+        elif candidates[0]["path"] != str(alignment):
+            raise ValueError("GOVERNED_ALIGNMENT_RECEIPT_DRIFT")
+        else:
+            receipt["status"] = "PASS_UNIQUE_ALIGNMENT"
+    except (OSError, ValueError, KeyError, TypeError, IndexError, csv.Error) as exc:
+        receipt["status"] = "HOLD_GOVERNED_OUTPUT_BINDING"
+        receipt["detail"] = type(exc).__name__ + ": " + str(exc)
+    return receipt
+
+
 def discover_outputs(args: argparse.Namespace) -> int:
     """Read-only inventory after execution; never chooses by a hard-coded filename."""
     run_dir = Path(args.run_dir).expanduser().resolve()
@@ -726,6 +967,13 @@ def discover_outputs(args: argparse.Namespace) -> int:
         raise FileNotFoundError(f"RUN_MANIFEST.json missing: {run_dir}")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     admitted = int(manifest["panel_policy"]["admitted_unique_assemblies"])
+    if manifest.get("runtime_binding") is not None:
+        receipt = discover_governed_outputs(run_dir, manifest, admitted)
+        text = json.dumps(receipt, indent=2, sort_keys=True) + "\n"
+        if args.receipt:
+            _write_new(Path(args.receipt).expanduser().resolve(), text.encode("utf-8"))
+        emit(text, end="")
+        return 0 if receipt["status"] == "PASS_UNIQUE_ALIGNMENT" else 2
     output_root = run_dir / "outputs" / "gtotree_alignment"
     retained, summary_paths = _retained_count(output_root) if output_root.is_dir() else (None, [])
     files: list[dict] = []
@@ -768,7 +1016,7 @@ def discover_outputs(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
-    p = sub.add_parser("plan", help="create an immutable preflight; never run external analysis")
+    p = sub.add_parser("plan", help="create immutable preflight; explicit runtime-probe options authorize software probes only")
     panel_source = p.add_mutually_exclusive_group(required=True)
     panel_source.add_argument(
         "--prepared-panel",
@@ -788,10 +1036,12 @@ def build_parser() -> argparse.ArgumentParser:
                    help="ranked reference cap per focal query (default 3)")
     p.add_argument("--max-concurrent-cores", type=int, choices=(1, 2, 3, 4),
                    default=DEFAULT_MAX_CONCURRENT_CORES,
-                   help="maximum simultaneous one-core tree jobs (default and hard maximum 4)")
+                   help="requested concurrent phase-worker budget (default and hard maximum 4)")
     p.add_argument("--threads-per-tree", type=int, choices=(1, 2, 3, 4), default=1,
-                   help="threads for one approved tree (GToTree -n/-M, IQ-TREE -T); default 1; "
-                        "trees at once = max-concurrent-cores // threads, so the core ceiling is unchanged")
+                   help="requested threads for one approved tree (v1 GToTree -n/-M, IQ-TREE -T); default 1; "
+                        "v2 uses max(2 * jobs, jobs * MUSCLE threads) per tree; this is not total OS/CPU usage")
+    from _gtotree_runtime import add_runtime_arguments
+    add_runtime_arguments(p)
     p.add_argument("--gtotree-bin", default=None)
     p.add_argument("--iqtree-bin", default=None,
                    help="explicit executable; otherwise resolve iqtree3, iqtree2, then iqtree")

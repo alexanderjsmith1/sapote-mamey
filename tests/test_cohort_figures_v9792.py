@@ -10,6 +10,7 @@ import pytest
 mpl = pytest.importorskip("matplotlib")
 np = pytest.importorskip("numpy")
 from mamey import cohort_figures as cf
+from mamey.release_policy import resolve_run_release
 
 # Measured slow on the v9.7.417 seal (>=2s for this file alone; see the INDIGO_418 timing table).
 # Marked explicitly rather than inferred from the filename, so the fast partition is defined by
@@ -53,8 +54,9 @@ def _make_pkg(root, sid, tier, release, taxonomy, n_bgc=4):
               open(os.path.join(pkg, "deep_data.json"), "w"))
     json.dump({"substrates": substrates, "domain_arch": domain_arch, "ripp": [{"family": "lanthipeptides"}]},
               open(os.path.join(pkg, "gene_data.json"), "w"))
-    json.dump({"assembly_tier": tier, "raw_bgcs": n_bgc, "corrected_bgcs": n_bgc,
-               "release": release, "taxonomy": taxonomy},
+    json.dump({"strain_id": sid, "assembly_tier": tier, "raw_bgcs": n_bgc, "corrected_bgcs": n_bgc,
+               "release": release, "release_decision": resolve_run_release(sid, release).to_dict(),
+               "taxonomy": taxonomy},
               open(os.path.join(pkg, "manifest_short.json"), "w"))
     with open(os.path.join(pkg, f"{sid}_2_inventory.csv"), "w", newline="") as fh:
         w = csv.writer(fh); w.writerow(["BGC_ID", "Products"])
@@ -83,21 +85,67 @@ def test_cohort_figures_multi(tmp_path):
 
 
 def test_cohort_figures_single(tmp_path):
+    """Legacy measurements retain independent panels but cannot authorize loci."""
     runs = tmp_path / "runs"
-    _make_pkg(str(runs), "AS-902", "VERY_POOR", "PRIVATE", "Streptomyces sp.", 6)
+    strain = "SYNTHETIC_REFERENCE_LEGACY"
+    _make_pkg(str(runs), strain, "VERY_POOR", "PRIVATE", "Syntheticus sp.", 6)
     out = tmp_path / "figs1"
-    res = cf.generate(runs_dir=str(runs), out=str(out), strains=["AS-902"])
+    res = cf.generate(runs_dir=str(runs), out=str(out), strains=[strain])
     assert res["figures"] >= 1, res
-    assert glob.glob(f"{out}/*AS-902*perBGC_domain_heatmap.png")
+    assert {item["panel"] for item in res["identity_holds"]} == {
+        "perBGC_domain_heatmap", "perBGC_cctt_resistance"}
+    assert not glob.glob(f"{out}/*perBGC_domain_heatmap.png")
+    assert glob.glob(f"{out}/*perGene_active_site_completeness.png")
+    receipt = json.loads((out / "gold_bgc_identity_receipt.json").read_text())
+    assert receipt["status"] == "HOLD"
+
+
+def test_cohort_figures_single_native_bound_synthetic(tmp_path):
+    """Independently invented full-locus records admit the retained heatmap."""
+    from pathlib import Path
+    from tests._gold_identity_fixture import bind_synthetic_gold_package
+    runs = tmp_path / "runs"
+    strain = "SYNTHETIC_REFERENCE_NATIVE"
+    package = Path(_make_pkg(str(runs), strain, "GOOD", "PRIVATE", "Syntheticus sp.", 6))
+    bgcs = [{"bgc_id": f"BGC{index:03d}", "contig": f"ctg{index}_fixture_segment",
+             "node_id": f"ctg{index}", "antismash_region": f"region{index:03d}",
+             "region_number": index, "start": 0, "end": 100,
+             "products": [], "release": "PRIVATE"} for index in range(1, 7)]
+    with (package / f"{strain}_2_inventory.csv").open("w", newline="") as stream:
+        fields = ["Strain", "Contig", "Node_ID", "antiSMASH_Region", "BGC_ID", "Products"]
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        for bgc in bgcs:
+            writer.writerow({"Strain": strain, "Contig": bgc["contig"], "Node_ID": bgc["node_id"],
+                             "antiSMASH_Region": bgc["antismash_region"], "BGC_ID": bgc["bgc_id"],
+                             "Products": ""})
+    bound = bind_synthetic_gold_package(package, strain, manifest={"strain_id": strain,
+        "release": "PRIVATE", "taxonomy": "Syntheticus sp.", "bgcs": bgcs})
+    out = tmp_path / "figs_bound"
+    res = cf.generate(runs_dir=str(runs), out=str(out), strains=[strain])
+    assert res["figures"] >= 1, res
+    assert res["identity_holds"] == []
+    image, = out.glob(f"*{strain}*perBGC_domain_heatmap.png")
+    assert image.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+    identity_file, = out.glob("*perBGC_domain_heatmap_identity.csv")
+    with identity_file.open() as stream:
+        rows = list(csv.DictReader(stream))
+    assert {(row["strain"], row["full_contig"], row["antismash_region"], row["bgc_id"])
+            for row in rows} == {(strain, bgc["contig"], bgc["antismash_region"], bgc["bgc_id"])
+                                for bgc in bgcs}
+    assert len(rows) == 6
+    receipt = json.loads((out / "gold_bgc_identity_receipt.json").read_text())
+    assert receipt["status"] == "BOUND_NATIVE_INVENTORY"
+    assert receipt["binding"] == bound["context"]["receipt"]
 
 
 def test_cohort_figures_public_only(tmp_path):
     runs = tmp_path / "runs"
     _make_pkg(str(runs), "SID9002", "GOOD", "PUBLIC", "Streptomyces sp.", 4)
-    _make_pkg(str(runs), "AS-903", "POOR", "PUBLIC", "Streptomyces sp.", 4)   # v9.7.229: AS- is public now
+    _make_pkg(str(runs), "AS-903", "POOR", "PUBLIC", "Streptomyces sp.", 4)   # explicitly public synthetic reference
     _make_pkg(str(runs), "AJS-1", "POOR", "PRIVATE", "Streptomyces sp.", 4)   # genuinely unpublished series
     out = tmp_path / "figs_pub"
     res = cf.generate(runs_dir=str(runs), out=str(out), public_only=True)
-    # AS- and SID are public and kept; only the AJS-/PENDING- series is filtered out
+    # Explicit public decisions are kept; stored PRIVATE is filtered out.
     assert "AJS-1" not in res["strains"], res["strains"]
     assert any(s.startswith("AS-") for s in res["strains"]) and any(s.startswith("SID") for s in res["strains"]), res["strains"]

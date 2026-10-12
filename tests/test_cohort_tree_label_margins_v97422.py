@@ -1,6 +1,6 @@
 """v9.7.422 — cohort_tree_ggtree.R must not clip tip labels or the caption.
 
-Premise (live-observed on the AS-103 Sciscionella IQ-TREE figure, 2026-09-09, rendering the sealed
+Premise (live-observed on the SYNTHETIC_REFERENCE_01 Sciscionella IQ-TREE figure, 2026-09-09, rendering the sealed
 v9.7.420 template through R 4.5.3 / ggtree 4.0.4):
 
   1. RIGHT edge. `xlim(0, max_depth * (1 + 0.035 * longest))` reserves label room proportional to the

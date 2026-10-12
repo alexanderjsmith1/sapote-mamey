@@ -11,6 +11,9 @@
 # Claim-safety: these templates render evidence coverage and phylogenetic neighbourhood. Neither is a
 # product-identity claim. Captions are authored upstream and are not invented here.
 
+# Folder this file was sourced from; the renderer stamp script sits beside it.
+.sapote_tools_dir <- tryCatch(dirname(normalizePath(sys.frame(1)$ofile)), error = function(e) "tools")
+
 # ---- palette: mamey/figure_policy.py::COHORT_PALETTE -------------------------------------------
 SAPOTE_COHORT_PALETTE <- c(
   "BEE"                = "#0072B2",
@@ -140,6 +143,21 @@ sapote_wrap_labels <- function(x, width) {
 
 # ---- saving ------------------------------------------------------------------------------------
 # Emits the same pair the Python renderer does (SVG + 300-dpi PNG) at the profile width.
+# Write the renderer's name into saved files so tools/check_figure_provenance.py can tell bundle output
+# from a figure made another way. A failed stamp is a warning, never a silent pass.
+sapote_stamp_files <- function(paths, tool = "R figure theme") {
+  script <- Sys.getenv("SAPOTE_STAMP_SCRIPT", "")
+  if (!nzchar(script)) script <- file.path(.sapote_tools_dir, "stamp_figure.py")
+  py <- Sys.which("python3")
+  if (!nzchar(py) || !file.exists(script)) {
+    warning("FIGURE_STAMP_UNAVAILABLE: python3 or tools/stamp_figure.py not found; files are unstamped")
+    return(invisible(FALSE))
+  }
+  status <- system2(py, c(shQuote(script), shQuote(tool), shQuote(paths)))
+  if (!identical(as.integer(status), 0L)) warning("FIGURE_STAMP_FAILED: ", paste(paths, collapse = ", "))
+  invisible(identical(as.integer(status), 0L))
+}
+
 sapote_save_pair <- function(plot, out_prefix, profile, height_in) {
   spec <- sapote_profile(profile)
   ggplot2::ggsave(paste0(out_prefix, ".svg"), plot,
@@ -147,5 +165,6 @@ sapote_save_pair <- function(plot, out_prefix, profile, height_in) {
   ggplot2::ggsave(paste0(out_prefix, ".png"), plot,
                   width = spec$width_in, height = height_in, units = "in",
                   dpi = spec$minimum_raster_dpi)
+  sapote_stamp_files(c(paste0(out_prefix, ".svg"), paste0(out_prefix, ".png")))
   invisible(c(paste0(out_prefix, ".svg"), paste0(out_prefix, ".png")))
 }

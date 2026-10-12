@@ -1,57 +1,45 @@
-"""v9.7.267/.271 — harness for the PUBLIC-RELEASE tier content.
+"""Narrow synthetic public/code cut contracts, using the real gate chain.
 
-Runs the real `make_public_tier.sh public` on the source tree (with the tree's own build stamp so the
-version/manifest gates pass) and asserts the produced zip is COMPLETE: since Pfam is CC0 and the
-teicoplanin fixtures were retired for a small public fixture, nothing is withheld from the public tier
-anymore (v9.7.271), so it ships the Pfam HMM and the Micromonospora humida fixture in place and leaves
-no `.REMOVED.txt` download stubs — it is content-identical to the code tier. Skips if the
-toolchain/stamp is absent (e.g. a partial checkout)."""
-import os
+These checks do not certify the full source tree or biological fixture content.
+A synthetic user-provisioned legacy HMM is seeded deliberately, so the no-HMM
+assertions detect a missing strip rule rather than passing on absent input.
+The disabled public branch is enabled only for this disposable source fixture.
+"""
 import json
-import re
 import shutil
 import subprocess
-import sys
 import zipfile
 from pathlib import Path
 
 import pytest
 
+from tests._public_cut_fixture import (
+    HMM_PAYLOAD, HMM_RELATIVE, assert_scanner_archive_policy,
+    public_cut_env, public_cut_source,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def _build_stamp():
-    f = ROOT / "BUILD_STAMP.txt"
-    if not f.exists():
-        return None
-    m = re.search(r"build=(\S+)", f.read_text(encoding="utf-8"))
-    return m.group(1) if m else None
 
 
 @pytest.mark.skipif(not shutil.which("bash"), reason="bash unavailable")
 def test_public_tier_does_not_ship_user_provisioned_hmm(tmp_path):
-    stamp = _build_stamp()
-    if not stamp or not (ROOT / "tools" / "make_public_tier.sh").exists():
-        pytest.skip("build stamp or make_public_tier.sh unavailable")
-    out = tmp_path / "pub"; out.mkdir()
-    env = {**os.environ, "BUILD_STAMP": stamp, "SKIP_INTIER_PYTEST": "1", "PYTHON": sys.executable,  # v9.7.410: the cut script honours $PYTHON
-           "SAPOTE_ENABLE_DISABLED_TIERS": "1"}  # v9.7.444: non-CODE tiers are disabled by default; this test keeps them working
+    source = public_cut_source(tmp_path, with_hmm=True)
+    assert (source / HMM_RELATIVE).read_bytes() == HMM_PAYLOAD
+    out = tmp_path / "pub"
+    out.mkdir()
+    env = public_cut_env()
     r = subprocess.run(
-        ["bash", "tools/make_public_tier.sh", "public", str(ROOT), str(out)],
-        cwd=ROOT, env=env, capture_output=True, text=True, timeout=420,
+        ["bash", str(ROOT / "tools/make_public_tier.sh"), "public", str(source), str(out)],
+        cwd=source, env=env, capture_output=True, text=True, timeout=420,
     )
     combined = r.stdout + r.stderr
-    governance = json.loads((ROOT / "GOVERNANCE_DECISIONS.json").read_text(encoding="utf-8"))
+    governance = json.loads((source / "GOVERNANCE_DECISIONS.json").read_text(encoding="utf-8"))
     gov001 = next(item for item in governance["decisions"] if item.get("id") == "GOV-001")
     authorized = gov001.get("status") == "ACTIVE" and gov001.get("condition_currently_true") is False
-    if not authorized:
-        assert r.returncode == 8, combined[-3000:]
-        assert "GOVERNANCE_DECISION_NOT_ACTIVE" in combined or "GOVERNANCE_DECISION_INVALIDATED" in combined
-        assert not list(out.glob("*.zip")), "an unauthorized PUBLIC_RELEASE attempt must emit no ZIP"
-        return
+    assert authorized, "synthetic fixture must reach the real public content gates"
     assert r.returncode == 0, combined[-3000:]
-    # the fail-closed strip check must have run and passed
-    assert "content-identical to the code tier" in combined, combined[-2000:]
+    # Retain the builder branch witness; it does not establish that HMM stripping exists.
+    assert "operator-provisioned scanner databases/indexes excluded" in combined, combined[-2000:]
 
     zips = list(out.glob("*.zip"))
     assert len(zips) == 1, [p.name for p in zips]
@@ -60,7 +48,6 @@ def test_public_tier_does_not_ship_user_provisioned_hmm(tmp_path):
     # v9.7.274 (audit BLOCKER regression): BUILD_STAMP.txt and TIER_MANIFEST.txt must agree on the
     # tier. Before the fix the public bundle's BUILD_STAMP said tier=CODE while TIER_MANIFEST said
     # tier=public — a provenance contradiction.
-    import io
     with zipfile.ZipFile(zips[0]) as zf:
         def _read(suffix):
             n = next(x for x in zf.namelist() if x.endswith(suffix))
@@ -77,27 +64,30 @@ def test_public_tier_does_not_ship_user_provisioned_hmm(tmp_path):
     installs = [n for n in names if n.endswith("/docs/INSTALL.md") or n == "docs/INSTALL.md"]
     mh_fixture = [n for n in names if n.endswith("micromonospora_humida_JAFEUC01.zip")]
 
-    # nothing is withheld anymore: the HMM (CC0) ships, and there are no download stubs
+    # A present user-provisioned payload must not be redistributed; no download stubs are expected.
     assert not hmm, ("v9.7.362: the Pfam HMM is USER-PROVISIONED, not redistributed — the tier must "
                      "not ship it (see docs/EXTERNAL_DATA.md)")
+    assert (source / HMM_RELATIVE).read_bytes() == HMM_PAYLOAD
     assert not stubs, f"public tier must have no .REMOVED.txt stubs, found: {stubs}"
     assert installs, "public tier must ship docs/INSTALL.md"
     assert mh_fixture, "public tier must ship the Micromonospora humida fixture"
+    assert_scanner_archive_policy(zips[0], source)
 
 
 def test_public_tier_content_matches_code_tier(tmp_path):
-    # the public tier is now a labelled alias of the code tier — both ship the HMM. Guards against a
-    # regression that re-introduces a strip (which would silently diverge the two).
-    stamp = _build_stamp()
-    if not stamp or not (ROOT / "tools" / "make_public_tier.sh").exists():
-        pytest.skip("build stamp or make_public_tier.sh unavailable")
-    out = tmp_path / "code"; out.mkdir()
-    env = {**os.environ, "BUILD_STAMP": stamp, "SKIP_INTIER_PYTEST": "1", "PYTHON": sys.executable,  # v9.7.410: the cut script honours $PYTHON
-           "SAPOTE_ENABLE_DISABLED_TIERS": "1"}  # v9.7.444: non-CODE tiers are disabled by default; this test keeps them working
+    # Check the code branch independently; both branches must omit provisioned HMMs.
+    # This historical node name does not claim byte parity between whole releases.
+    source = public_cut_source(tmp_path, with_hmm=True)
+    assert (source / HMM_RELATIVE).read_bytes() == HMM_PAYLOAD
+    out = tmp_path / "code"
+    out.mkdir()
+    env = public_cut_env()
     r = subprocess.run(
-        ["bash", "tools/make_public_tier.sh", "code", str(ROOT), str(out)],
-        cwd=ROOT, env=env, capture_output=True, text=True, timeout=420,
+        ["bash", str(ROOT / "tools/make_public_tier.sh"), "code", str(source), str(out)],
+        cwd=source, env=env, capture_output=True, text=True, timeout=420,
     )
     assert r.returncode == 0, (r.stdout + r.stderr)[-3000:]
     names = zipfile.ZipFile(next(out.glob("*.zip"))).namelist()
     assert not [n for n in names if n.endswith("scanner_pfam.hmm")], "v9.7.362: HMM is user-provisioned"
+    assert_scanner_archive_policy(next(out.glob("*.zip")), source)
+

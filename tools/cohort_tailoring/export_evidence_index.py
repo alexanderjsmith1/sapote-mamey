@@ -6,9 +6,13 @@ No index is ingested automatically. The source-map JSON resolves logical inputs.
 import argparse,csv,io,json,re
 from pathlib import Path
 from urllib.parse import quote
-from build_atlas import identity,sha,write
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+if __package__:
+ from .build_atlas import identity,sha,write
+else:  # Bare script mode; let nested ImportError propagate unchanged.
+ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+ from build_atlas import identity,sha,write
 from mamey.csv_safety import SafeDictWriter
 
 def export(data_path,pin,parts,output):

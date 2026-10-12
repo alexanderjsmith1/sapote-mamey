@@ -42,14 +42,14 @@ def test_unknown_strong_kcb_defers():
     assert c.concordance == Concordance.ARCHITECTURE_DEFERS
 
 def test_pqq_tigr02109_is_pqq_not_mycofactocin():
-    # v9.7.432: antiSMASH TIGR02109 = PQQ_syn_pqqE (AS-78 BGC010 ctg137_10, with PqqA/PqqD/PQQ Pfams)
+    # v9.7.432: antiSMASH TIGR02109 = PQQ_syn_pqqE (AS-77 BGC010 ctg137_10, with PqqA/PqqD/PQQ Pfams)
     a,c,s = run([{'locus_tag':'g1','aa_length':'374','sec_met_domains':'Radical_SAM; TIGR02109'},
                  {'locus_tag':'g2','aa_length':'97','sec_met_domains':'PqqD'}],"Interior")
     assert s.product_class == PathwayType.PQQ.value
     assert a.has_tigr02109
 
 def test_mycofactocin_tigr03962_not_ranthipeptide():
-    # v9.7.432: AS-78 BGC047 — TIGR03962 (mycofact_rSAM, 9.4e-199) + SPASM + TIGR04085 on ctg87_19,
+    # v9.7.432: AS-77 BGC047 — TIGR03962 (mycofact_rSAM, 9.4e-199) + SPASM + TIGR04085 on ctg87_19,
     # TIGR03967 + Mycofactocin_RRE on ctg87_20. Old rule returned ranthipeptide HIGH.
     a,c,s = run([{'locus_tag':'ctg87_19','aa_length':'413','sec_met_domains':'Radical_SAM; SPASM; TIGR03962; TIGR04085'},
                  {'locus_tag':'ctg87_20','aa_length':'107','sec_met_domains':'Mycofactocin_RRE; TIGR03967'},

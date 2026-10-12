@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # COPY / MIRROR — canonical handback: July 19 2026/strain_sapote.py
-# (this is the live module the Lab Quest app imports; keep the two in sync)
 """
 FULL STRAIN SAPOTE — strain-level Mode B generator
 ==================================================
@@ -65,7 +64,7 @@ except ImportError:  # standalone `python strain_modeb.py`
     _sm_sys.path.insert(0, _sm_os.path.dirname(_sm_os.path.dirname(_sm_os.path.abspath(__file__))))
     from mamey.dedup_and_guard import derive_release  # type: ignore
 
-# B7-b8 / Lab Quest (v9.7.405): permanent exact-locus display contract -- an individual BGC is
+# B7-b8 (v9.7.405): permanent exact-locus display contract -- an individual BGC is
 # named "strain / full node-or-contig / region / BGC alias" wherever this module displays one,
 # never a bare alias or a short node token. See mamey/exact_identity.py for the fail-closed
 # validation this delegates to.
@@ -141,7 +140,7 @@ def _display_lead_tier(value) -> str:
 
 
 def _identity_index(strain: str, tri) -> dict[str, str]:
-    """Build alias -> exact-locus display for every triage row, fail closed (Lab Quest B7-b8)."""
+    """Build alias -> exact-locus display for every triage row, fail closed (B7-b8)."""
     if tri is None:
         return {}
     identities: dict[str, str] = {}

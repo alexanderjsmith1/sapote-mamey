@@ -44,7 +44,7 @@ def test_distance_rule_groups_same_strain_and_numbers_above_the_cap():
     cohort = [pt(2.0, 2.0, "AS-900", 50.0), pt(2.001, 2.0, "AS-900", 45.0), pt(0.2, 0.2, "AS-901", 99.0)]
     groups, texts, thr, numbered = ppr.choose_labels(cohort, BG)
     assert texts == ["AS-900 x2 (45%)"] and sorted(groups[0]) == [0, 1] and len(groups) == 1   # the on-grid point stays unlabelled
-    many = [pt(5 + i, 5 + i, f"AS-90{i % 3}", 50.0) for i in range(5)]
+    many = [pt(5 + i, 5 + i, f"SYNTHETIC_REFERENCE_01{i % 3}", 50.0) for i in range(5)]
     _, texts, _, numbered = ppr.choose_labels(many, BG, number_above=3)
     assert numbered and texts == ["1", "2", "3", "4", "5"]
 

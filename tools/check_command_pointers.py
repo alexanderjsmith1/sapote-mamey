@@ -37,9 +37,9 @@ PAT = re.compile(r"`mamey ([a-zA-Z][\w-]*)")
 EXTS = (".md", ".txt", ".py", ".html", ".rst")
 # words that legitimately follow `mamey ` without being subcommands
 NON_CMD_ALLOWED = {"--version", "-V", "--help", "-h", "run", "doctor"}  # run/doctor are real too
-# Real subcommands registered only when an optional add-on is installed (v9.7.444: Lab Quest moved to
-# sapote_addons/lab_quest). Docs may point at them; the core parser alone does not list them.
-ADDON_COMMANDS = {"lab-quest"}
+# Real subcommands registered only when an optional add-on is installed. Docs may point at them; the
+# core parser alone does not list them. None at present (v9.7.450 removed the Lab Quest add-on).
+ADDON_COMMANDS: set[str] = set()
 
 
 def live_subcommands():

@@ -20,8 +20,10 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+from .figure_source_bundle import read_verified_source_tables, verify_source_bundle
 from .figure_set_registry import GLOBAL_CLAIM_CEILING, PROFILE, build_registry
 from .figure_set_renderer import (
+    _fresh_output_path,
     Chart,
     HOST_ORDER,
     ROLE_ORDER,
@@ -39,6 +41,8 @@ from .figure_set_renderer import (
 
 
 SCHEMA_VERSION = "sapote-mamey.codex-figure-set-render.tranche2.v1"
+SOURCE_TABLES_2 = ('BGC_RECORDS.csv', 'BGC_CLASS_MEMBERSHIPS.csv', 'BGC_CLASS_PAIRS.csv', 'BGC_MACHINERY_ASSIGNMENTS.csv')
+
 IMPLEMENTED_IDS_2 = (
     "FS004", "FS006", "FS012", "FS014",
     "FS017", "FS018", "FS019", "FS020", "FS022", "FS023",
@@ -67,12 +71,12 @@ def _pair_label(row: dict[str, str]) -> str:
     return f"{row['class_a']} + {row['class_b']}"
 
 
-def build_charts_2(payload: dict[str, Any], all_ids: Sequence[str], governed: Sequence[str], source_bundle: Path) -> list[Chart]:
+def build_charts_2(payload: dict[str, Any], all_ids: Sequence[str], governed: Sequence[str], source_bundle: Path, *, parsed_tables: dict[str, list[dict[str, str]]] | None = None) -> list[Chart]:
     strains = payload["strains"]
-    bgcs = _read_csv(source_bundle / "BGC_RECORDS.csv")
-    memberships = _read_csv(source_bundle / "BGC_CLASS_MEMBERSHIPS.csv")
-    pairs = _read_csv(source_bundle / "BGC_CLASS_PAIRS.csv")
-    genes = _read_csv(source_bundle / "BGC_MACHINERY_ASSIGNMENTS.csv")
+    bgcs = (parsed_tables["BGC_RECORDS.csv"] if parsed_tables is not None else _read_csv(source_bundle / "BGC_RECORDS.csv"))
+    memberships = (parsed_tables["BGC_CLASS_MEMBERSHIPS.csv"] if parsed_tables is not None else _read_csv(source_bundle / "BGC_CLASS_MEMBERSHIPS.csv"))
+    pairs = (parsed_tables["BGC_CLASS_PAIRS.csv"] if parsed_tables is not None else _read_csv(source_bundle / "BGC_CLASS_PAIRS.csv"))
+    genes = (parsed_tables["BGC_MACHINERY_ASSIGNMENTS.csv"] if parsed_tables is not None else _read_csv(source_bundle / "BGC_MACHINERY_ASSIGNMENTS.csv"))
     governed_set = set(governed)
     all_set = set(all_ids)
     g_bgcs = [row for row in bgcs if row["strain"] in governed_set]
@@ -296,18 +300,25 @@ def build_charts_2(payload: dict[str, Any], all_ids: Sequence[str], governed: Se
     return charts
 
 
-def render_tranche_2(widget_data: str | Path, source_bundle: str | Path, outdir: str | Path) -> dict[str, Any]:
-    widget_path, payload, all_ids, governed = _load(widget_data)
+def render_tranche_2(
+    widget_data: str | Path, source_bundle: str | Path, outdir: str | Path,
+    *, expected_receipt_sha256: str | None = None,
+) -> dict[str, Any]:
+    widget_path = Path(widget_data).resolve()
     bundle = Path(source_bundle).resolve()
     source_receipt = bundle / "SOURCE_BUNDLE_RECEIPT.json"
     if not source_receipt.is_file():
         raise ValueError("source bundle has no SOURCE_BUNDLE_RECEIPT.json")
-    destination = Path(outdir).resolve()
-    destination.mkdir(parents=True, exist_ok=True)
+    source_binding = verify_source_bundle(widget_path, bundle, required_tables=SOURCE_TABLES_2, expected_receipt_sha256=expected_receipt_sha256)
+    destination = _fresh_output_path(outdir)
+    widget_snapshot_sha256 = source_binding["receipt"]["source"]["widget_sha256"]
+    widget_path, payload, all_ids, governed = _load(widget_path, expected_widget_sha256=widget_snapshot_sha256)
+    parsed_tables = read_verified_source_tables(bundle, source_binding, tables=SOURCE_TABLES_2)
+    destination.mkdir(parents=True)
     figures_dir, data_dir, text_dir = destination / "figures", destination / "data", destination / "text"
     for directory in (figures_dir, data_dir, text_dir): directory.mkdir(parents=True, exist_ok=True)
     registry = {record["figure_set_id"]: record for record in build_registry()}
-    charts = build_charts_2(payload, all_ids, governed, bundle)
+    charts = build_charts_2(payload, all_ids, governed, bundle, parsed_tables=parsed_tables)
     manifest = []
     for chart in charts:
         svg_path = figures_dir / f"{chart.figure_id}.svg"
@@ -344,13 +355,14 @@ def render_tranche_2(widget_data: str | Path, source_bundle: str | Path, outdir:
         f'<h1>Codex Figure Factory tranche 2</h1><p>21 additional source-complete strain- and cohort-specific sets. {html.escape(GLOBAL_CLAIM_CEILING)}</p>'
         f'</header><main>{cards}</main></body></html>', encoding="utf-8")
     checks = _validate_outputs(destination, manifest, governed, IMPLEMENTED_IDS_2, ("FS018", "FS186"))
+    verify_source_bundle(widget_path, bundle, required_tables=SOURCE_TABLES_2, expected_receipt_sha256=source_binding["receipt_sha256"])
     receipt = {
         "schema_version": SCHEMA_VERSION,
         "status": "PASS" if all(check["status"] == "PASS" for check in checks) else "FAIL",
         "profile": PROFILE,
         "source": {
-            "widget_data": str(widget_path), "widget_sha256": _sha256(widget_path),
-            "source_bundle": str(bundle), "source_bundle_receipt_sha256": _sha256(source_receipt),
+            "widget_data": str(widget_path), "widget_sha256": widget_snapshot_sha256,
+            "source_bundle": str(bundle), "source_bundle_receipt_sha256": source_binding["receipt_sha256"],
         },
         "governed_strains": len(governed), "all_packaged_strains": len(all_ids),
         "implemented_count": len(manifest), "implemented_ids": list(IMPLEMENTED_IDS_2),

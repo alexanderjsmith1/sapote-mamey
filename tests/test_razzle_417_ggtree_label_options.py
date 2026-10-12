@@ -2,9 +2,9 @@
 metadata table out of three.
 
 Reproduced on the real Kribbella placement panel, 2026-09-08:
-  * `AS-544 (Kribella, Moss, Ontario · Ontario)` — a misspelled genus + substrate + place crammed
+  * `AS-982 (Kribella, Moss, Ontario · Ontario)` — a misspelled genus + substrate + place crammed
     into the host field, and the location printed twice.
-  * `AS-539` — rendered bare, though its deposited GenBank record carries accession PX726356,
+  * `AS-981` — rendered bare, though its deposited GenBank record carries accession PX726356,
     host "Moss", geo "Canada: Ontario".
 """
 import importlib.util
@@ -31,9 +31,9 @@ def test_curated_host_wins_over_the_raw_folder_string(tmp_path):
     t = tmp_path / "s.tsv"
     t.write_text(
         "tip_label\thost_common\tlocation\tgenbank_accession\thost_raw\tlocation_raw\tsource\n"
-        "AS-544\tmoss\tOntario\tPX566632\tKribella, Moss, Ontario\tKribella, Moss, Ontario\tfolder_parse\n",
+        "AS-982\tmoss\tOntario\tPX566632\tKribella, Moss, Ontario\tKribella, Moss, Ontario\tfolder_parse\n",
         encoding="utf-8")
-    h = m._load_hosts(str(t))["AS-544"]
+    h = m._load_hosts(str(t))["AS-982"]
     assert h["host"] == "moss", "the curated host must win over the folder string"
     assert "Kribella" not in h["host"], "a misspelled genus from a folder name must never reach a label"
 
@@ -42,24 +42,24 @@ def test_curated_host_wins_over_the_raw_folder_string(tmp_path):
 
 def test_location_is_not_printed_twice():
     m = _mod()
-    got = m._label_styles("AS-544", "Kribella, Moss, Ontario", "Ontario", "")["withloc"]
+    got = m._label_styles("AS-982", "Kribella, Moss, Ontario", "Ontario", "")["withloc"]
     assert got.count("Ontario") == 1, f"region duplicated: {got}"
 
 
 def test_placeholder_values_are_not_rendered_as_findings():
     """"unknown" in a figure reads as a result; an absent parenthetical is the honest rendering."""
     m = _mod()
-    assert m._label_styles("AS-958", "ant", "unknown", "")["withloc"] == "AS-958 [ant]"
-    assert m._label_styles("AS-539", "", "", "")["full"] == "AS-539"     # never "AS-539 ( · )"
+    assert m._label_styles("SYNTHETIC_REFERENCE_01", "ant", "unknown", "")["withloc"] == "SYNTHETIC_REFERENCE_01 [ant]"
+    assert m._label_styles("SYNTHETIC_REFERENCE_02", "", "", "")["full"] == "SYNTHETIC_REFERENCE_02"     # never "SYNTHETIC_REFERENCE_02 ( · )"
 
 
 def test_every_style_is_available_and_ordered():
     m = _mod()
-    st = m._label_styles("AS-727", "other bee", "Ontario", "PX565053")
-    assert st["id"] == "AS-727"
-    assert st["host"] == "AS-727 [other bee]"
-    assert st["withloc"] == "AS-727 [other bee · Ontario] (PX565053)"
-    assert st["full"] == "AS-727 [other bee · Ontario] (PX565053)"
+    st = m._label_styles("AS-985", "other bee", "Ontario", "PX565053")
+    assert st["id"] == "AS-985"
+    assert st["host"] == "AS-985 [other bee]"
+    assert st["withloc"] == "AS-985 [other bee · Ontario] (PX565053)"
+    assert st["full"] == "AS-985 [other bee · Ontario] (PX565053)"
     assert set(m.LABEL_STYLES) == {"id", "host", "noloc", "withloc", "full"}
 
 

@@ -2,17 +2,17 @@
 grant the biosynthetic-logic-complementarity proof when the SAME rggmci.py subject-tiling
 accumulator that produced cdr also shows a contradicting pile of overlapping_subject_refs.
 
-Real-cohort grounding (.368 sealed AS-348_4A_RGGMCI_ranked_pairs.csv, pair BGC014+BGC033,
+Real-cohort grounding (.368 sealed AS-977_4A_RGGMCI_ranked_pairs.csv, pair BGC014+BGC033,
 NODE_19/NODE_74): rggmci_confidence=HIGH_RG_GMCI_RESCUE, functional_rescue_class=AMBIGUOUS,
 complementary_disjoint_refs=6, overlapping_subject_refs=22, rggmci.py's own subject_tiling_verdict
 = MIXED_SUBJECT_SIGNAL (never COMPLEMENTARY_SPLIT -- rggmci.py's Phase 4 gate, `cd >= 1 and ov >= 1`,
 demotes exactly this shape to MIXED, on purpose). The unfixed `_logic_proof` ignored
 overlapping_subject_refs entirely and returned True from the raw cdr>=3 count alone, and the real
-sealed AS-348_4D_two_proof_rescue.csv row for this pair reads
+sealed AS-977_4D_two_proof_rescue.csv row for this pair reads
 `RGGMCI_ONLY,logic-only rescue (no shared KS clade)` -- a live false biosynthetic-logic-
 complementarity claim over a pair whose own evidence is 22:6 paralogy-dominant.
 
-No shipped data: the fixtures below use the real AS-348 cd/ov counts (public, already-derived
+No shipped data: the fixtures below use the real AS-977 cd/ov counts (public, already-derived
 summary numbers, not sequence/strain-identifying content) with synthetic contig/BGC tokens.
 """
 import csv
@@ -38,7 +38,7 @@ def _write_4a(path, rows):
 
 
 def test_cdr_fallback_blocked_when_overlapping_subjects_also_present():
-    # Real AS-348 BGC014+BGC033 shape: cd=6 (clears the old cdr>=3 bar) but ov=22 -- rggmci.py's
+    # Real AS-977 BGC014+BGC033 shape: cd=6 (clears the old cdr>=3 bar) but ov=22 -- rggmci.py's
     # own Phase 4 gate calls this MIXED_SUBJECT_SIGNAL, not a clean split. The fallback must not
     # grant the logic proof from contradicted evidence.
     row = {"rggmci_confidence": "HIGH_RG_GMCI_RESCUE", "functional_rescue_class": "AMBIGUOUS",
@@ -76,7 +76,7 @@ def test_complementary_frc_proof_is_unaffected_by_overlapping_subjects():
 
 
 def test_end_to_end_mixed_signal_pair_is_hold_not_rescue(tmp_path):
-    # Real AS-348 BGC014+BGC033 shape end-to-end through two_proof_join: KS-clade present (so this
+    # Real AS-977 BGC014+BGC033 shape end-to-end through two_proof_join: KS-clade present (so this
     # isn't the "no KS at all" WEAK case) but the fallback is properly blocked -> MULTI_CHANNEL_HOLD
     # (advisory, complementarity still owed), never TWO_PROOF_RESCUE or RGGMCI_ONLY.
     a4 = _write_4a(os.path.join(tmp_path, "X_4A.csv"), [
@@ -93,7 +93,7 @@ def test_end_to_end_mixed_signal_pair_is_hold_not_rescue(tmp_path):
 
 def test_end_to_end_mixed_signal_pair_without_ks_is_weak(tmp_path):
     # Same contradicted-evidence pair, but no KS-clade co-membership at all: before the fix this
-    # was the real sealed AS-348 shape (RGGMCI_ONLY, "logic-only rescue (no shared KS clade)" --
+    # was the real sealed AS-977 shape (RGGMCI_ONLY, "logic-only rescue (no shared KS clade)" --
     # a live false complementarity claim). After the fix it correctly falls all the way to WEAK
     # (neither proof clears its bar), not RGGMCI_ONLY.
     a4 = _write_4a(os.path.join(tmp_path, "X_4A.csv"), [

@@ -1,6 +1,6 @@
 """clade_decontam must FAIL CLOSED when makeblastdb fails, and must never put a user filename in a BLAST path.
 
-Measured 2026-09-08 with BLAST+ 2.16.0: a reference named "AS78 assembly.fasta" makes makeblastdb
+Synthetic controls exercise fail-closed reference construction after upstream failure.
 exit 1 writing nothing, and blastn then exits 3 with EMPTY stdout. In sealed v9.7.413 both calls
 ignored their returncodes, so the empty output parsed as "no hits", `target_bits`/`contam_bits` were
 {}, `assign_contig` fell through to the GC rule and KEPT every contig — the tool certified an
@@ -14,9 +14,12 @@ correct implementation. Both tests below are behavioural.
 
 Hermetic: `subprocess.run` is replaced INSIDE the loaded module; no BLAST binary runs.
 """
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
 import importlib.util
 import sys
 import types
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -71,9 +74,10 @@ def test_db_path_never_carries_the_user_reference_filename(tmp_path, monkeypatch
         return _Proc(0, "")
 
     monkeypatch.setattr(m.subprocess, "run", fake_run)
-    ref = str(tmp_path / "AS78 assembly.fasta")
-    m.summed_bitscores_vs_ref(str(tmp_path / "asm.fa"), ref, "blastn", "makeblastdb", str(tmp_path))
-    assert "out" in seen
-    assert "AS78 assembly" not in seen["out"] and " " not in seen["out"], (
-        f"db path {seen['out']!r} carries the user's filename; a space in it defeats BLAST silently "
-        f"(sealed) or crashes the run (.415 draft)")
+    ref = str(tmp_path / (synthetic_namespace_id('AS', width=2, case_index=87, separator=False) + ' assembly.fasta'))
+    with tempfile.TemporaryDirectory(prefix="synthetic-clade-") as workdir:
+        m.summed_bitscores_vs_ref(str(tmp_path / "asm.fa"), ref, "blastn", "makeblastdb", workdir)
+        assert "out" in seen
+        assert (synthetic_namespace_id('AS', width=2, case_index=87, separator=False) + ' assembly') not in seen["out"] and " " not in seen["out"], (
+            f"db path {seen['out']!r} carries the user's filename; a space in it defeats BLAST silently "
+            f"(sealed) or crashes the run (.415 draft)")

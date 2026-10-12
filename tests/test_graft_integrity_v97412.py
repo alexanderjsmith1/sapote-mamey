@@ -106,22 +106,22 @@ def test_multiple_query_insertions_share_one_reference_edge(tmp_path):
 
 
 def test_report_aborts_before_consumers_on_graft_failure(tmp_path, monkeypatch):
-    import importlib.util
     from types import SimpleNamespace
-    import tools.graft_integrity as integrity
-    source = Path(__file__).resolve().parents[1] / "tools/phylo_place.py"
-    spec = importlib.util.spec_from_file_location("graft_report_integration", source)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    graft, jp = inputs(tmp_path)
-    before = graft.read_bytes()
+    from tools import phylo_place as module, graft_integrity as integrity
+    from .test_m5_restored_graft_receipt import fixture_sources
+    run, report, sources, calls = fixture_sources(tmp_path, monkeypatch)
+    preserved=report/'historical.newick';preserved.write_text('historical graft bytes\n')
     monkeypatch.setattr(module, "_which", lambda *a: "gappa")
-    def fail(*a): raise ValueError("GRAFT_INTEGRITY: synthetic refusal")
-    def consumed(*a): pytest.fail("downstream consumer ran after graft refusal")
+    monkeypatch.setattr(module, "_env", lambda *a: {})
+    monkeypatch.setattr(module, "ROOT", str(tmp_path/'unused'))
+    def fail(*a, **kwargs): raise ValueError("GRAFT_INTEGRITY: synthetic refusal")
+    def consumed(*a, **kwargs): pytest.fail("tree/distance consumer ran after graft refusal")
     monkeypatch.setattr(integrity, "generate_checked_graft", fail)
-    monkeypatch.setattr(module, "_jplace_besthit_tsv", consumed)
-    monkeypatch.setattr(module, "_grafted_neighborhoods", consumed)
-    args = SimpleNamespace(outdir=str(tmp_path), jplace=str(jp), refpkg=None, taxonomy=None)
-    with pytest.raises(ValueError, match="synthetic refusal"):
-        module.cmd_report(args)
-    assert graft.read_bytes() == before
+    for name in ('_grafted_neighborhoods','_render_tree','_color_strips_deliverable'):
+        monkeypatch.setattr(module,name,consumed)
+    args=SimpleNamespace(outdir=str(report),jplace=str(sources['jplace']),refpkg=str(sources['reference_tree'].parent),taxonomy=None)
+    assert module.cmd_report(args)==2
+    receipt=json.loads((report/'graft_length_evidence/receipt.json').read_text())
+    assert receipt['state']=='HOLD_LENGTH_QA' and 'synthetic refusal' in receipt['reason']
+    assert (report/'synthetic_placements.tsv').is_file()  # raw values remain explicitly available
+    assert calls==[] and preserved.read_text()=='historical graft bytes\n'

@@ -18,6 +18,6 @@ Report actual file paths and counts, command/exit status, input identity/hash, v
 
 ## Version reference
 
-Version reference: Mamey v1.9.174. Verify the loaded bundle before execution.
+Version reference: Mamey v1.9.175. Verify the loaded bundle before execution.
 
 An assistant session cannot assume BLAST, HMMER, antiSMASH or their databases are installed or usable. Check the selected command’s actual dependencies and report unavailable execution as a hold.

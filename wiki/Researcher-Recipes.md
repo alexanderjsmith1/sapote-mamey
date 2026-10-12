@@ -1,6 +1,6 @@
 # Researcher Recipes
 
-*Current to bundle v9.7.449 · engine Mamey 1.9.174. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
+*Current to bundle v9.7.450 · engine Mamey 1.9.175. Documentation only — confers no scientific, release, or publication authority; class-level hypotheses, judgment deferred.*
 
 
 Run commands from the extracted bundle root. Paths below are generic examples. Replace them with governed local paths; do not copy development-workspace paths into a project or public document.

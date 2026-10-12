@@ -55,9 +55,9 @@ GROUPS: list[tuple[str, str, tuple[str, ...]]] = [
     ("Phylogeny", "Use `phylo-autopilot` for 16S routing and EPA-ng placement, optional `phylo-mlsa` "
      "for a reviewed antiSMASH assembly sequence and local genome panel, or `phylo-run` for an approved "
      "GToTree/IQ-TREE genome workflow.", ("phylo-run", "phylo-mlsa", "phylo-autopilot", "ani", "signoff")),
-    ("Workflow, receipts, catalogs", "Non-destructive status and lookups.",
+    ("Workflow, receipts, catalogs", "Status, lookups and explicit maintenance actions. "
+     "Check each command's write boundary before invoking it.",
      ("workflow", "deliverables", "deliverable-queue", "ingest-receipts", "validate-finished-review-request", "list-bgcs", "literature", "lookup", "search",
-      "lab-quest",
       "triage-raw", "wheelhouse", "list", "clean", "add-strain")),
     ("Compatibility and maintainer commands", "Retained for existing scripts and specialized maintenance. "
      "They are not additional onboarding paths.",
@@ -68,10 +68,7 @@ GROUPS: list[tuple[str, str, tuple[str, ...]]] = [
 
 # Optional add-on commands (v9.7.444) register only when their package is installed. The catalog always lists them
 # with this fixed text, so the generated file is the same with or without the add-on.
-ADDON_COMMANDS = {
-    "lab-quest": "Optional add-on, not installed by default: a local review UI over a sealed package. "
-                 "Install with `pip install ./sapote_addons/lab_quest`; see docs/LAB_QUEST.md.",
-}
+ADDON_COMMANDS: dict[str, str] = {}  # none at present (v9.7.450 removed the Lab Quest add-on)
 
 def _md_cell(value: str) -> str:
     """Escape prose for a Markdown table cell.
@@ -113,6 +110,19 @@ def _subparsers():
     return {}
 
 
+def command_records(subs=None) -> list[dict]:
+    """Canonical catalog rows, stable across optional add-on installation state."""
+    subs = _subparsers() if subs is None else subs
+    groups = {name: title for title, _, names in GROUPS for name in names}
+    return [
+        {"name": name, "help": ADDON_COMMANDS.get(name, subs.get(name, {}).get("help", "")),
+         "aliases": [] if name in ADDON_COMMANDS else list(subs[name]["aliases"]),
+         "group": groups.get(name, "Other"),
+         "requirement": "optional-addon" if name in ADDON_COMMANDS else "parser-declared"}
+        for name in sorted(set(subs) | set(ADDON_COMMANDS))
+    ]
+
+
 def render() -> str:
     from mamey import BUNDLE_VERSION, __version__
     subs = _subparsers()
@@ -151,8 +161,9 @@ def render() -> str:
             help_ = _md_cell(subs[n]["help"])
             lines.append(f"| `{n}` | {help_ or '(no description)'} |")
         lines.append("")
-    alias_count = sum(len(meta["aliases"]) for meta in subs.values())
-    lines += [f"_{len(subs)} canonical commands catalogued; {alias_count} aliases folded into those rows._", ""]
+    records = command_records(subs)
+    alias_count = sum(len(meta["aliases"]) for meta in records)
+    lines += [f"_{len(records)} canonical commands catalogued; {alias_count} aliases folded into those rows._", ""]
     return "\n".join(lines)
 
 

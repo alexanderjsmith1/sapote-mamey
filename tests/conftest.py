@@ -121,38 +121,8 @@ def public_domain_reference_zip():
                 "expected BGC0000093.zip or BGC0000218.zip")
 
 
-def pytest_addoption(parser):
-    parser.addoption("--run-slow", action="store_true", default=False,
-                     help="include slow tests (figure/plot rendering, cohort builds)")
-    parser.addoption("--run-network", action="store_true", default=False,
-                     help="include tests marked @pytest.mark.network (need live network)")
-
-
-def pytest_collection_modifyitems(config, items):
-    run_slow = config.getoption("--run-slow")
-    run_network = config.getoption("--run-network")
-    skip_slow = pytest.mark.skip(reason="slow test; run with --run-slow")
-    skip_network = pytest.mark.skip(reason="network test; run with --run-network")
-
-    for item in items:
-        # Match the file-name hints against the FILE PATH only. item.nodeid also carries
-        # the test name and every parametrisation value, so matching the whole node id
-        # silently skips fast, unrelated tests whose parameters merely happen to
-        # contain a hint word (e.g. a parameter naming tools/cohort_tailoring/build_atlas.py).
-        # v9.7.418: the filename hint is gone. It was a NAME-based guess at cost and it
-        # over-captured in both directions -- .416 fixed one half (parametrisation values
-        # matching a hint word); this removes the other half (fast files whose FILENAME
-        # merely contains one). v9.7.438 removed the last inferred signal, the
-        # matplotlib-import probe: it hid 255 cheap tests to avoid four expensive ones.
-        # Slowness is now stated exactly one way, by an explicit mark on a test or
-        # module MEASURED at >=2s. A new slow test must mark itself; nothing infers it.
-        is_slow = "slow" in item.keywords
-        if is_slow:
-            item.add_marker(pytest.mark.slow)
-            if not run_slow:
-                item.add_marker(skip_slow)
-        if "network" in item.keywords and not run_network:
-            item.add_marker(skip_network)
+# Shared option registration and explicit-marker gating live in ../conftest.py
+# so isolated tools/ and deliverable_tools/ selectors receive the same policy.
 
 
 # v9.7.442: the no-claim-text rule gets a caller in every test that renders a figure.

@@ -32,7 +32,7 @@ VERSIONS = [("GToTree v1.8.19", True), ("1.8.19", True), ("GToTree v2.0.0", True
 def _planner_verdict(monkeypatch, version):
     def fake_run(argv, **kwargs):
         if argv[0].endswith("GToTree"):
-            text = version if argv[1] == "-v" else " ".join(planner.REQUIRED_GTOTREE_HELP)
+            text = version if argv[1] == "-v" else "\n".join(planner.REQUIRED_GTOTREE_HELP)
         else:
             text = "IQ-TREE 3.1.2" if argv[1] == "--version" else " ".join(planner.REQUIRED_IQTREE_HELP)
         return SimpleNamespace(stdout=text, stderr="", returncode=0)

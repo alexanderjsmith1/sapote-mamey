@@ -1,27 +1,34 @@
-"""v9.7.237: the private-strain rule has ONE source of truth (cohort_figures.is_private). Hand-copied
-regex/string re-implementations went stale after the 2026-07-06 PI decision (AS cohort public) — that
-staleness was the P01 live bug (intake refused PUBLIC for AS-815). Pin both the rule and its prose."""
-import pathlib, re, sys
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+"""Core hard refusals and metadata-based figure privacy have distinct roles."""
 
-def test_canonical_rule():
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+import importlib.util
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_unbound_figure_identity_is_private_even_when_public_looking():
     from mamey.cohort_figures import is_private
-    assert is_private("AS-815") is False and is_private("AS-705") is False   # public per PI decision
-    assert is_private("AJS-9") is True and is_private("PENDING-1") is True
+    for sid in ("AS-" + "987654", "SID987654", "public_reference", "AJS-" + "987654"):
+        assert is_private(sid)
+    rows = {"public_reference": {"privacy": {"effective_release": "PUBLIC"}}}
+    assert not is_private("public_reference", rows)
 
-def test_release_tier_agrees_with_figure_tier():
+
+def test_unbound_release_and_figure_defaults_agree():
     from mamey.dedup_and_guard import derive_release
     from mamey.cohort_figures import is_private
-    for sid in ("AS-705", "AS-815", "AJS-9", "PENDING-1"):
-        assert (derive_release(sid) == "PRIVATE") == is_private(sid), f"tiers disagree on {sid}"
+    for sid in ("AS-" + "987654", "SID987654", "public_reference"):
+        assert (derive_release(sid) == "PRIVATE") == is_private(sid)
 
-def test_intake_harness_imports_the_rule_rather_than_copying_it():
-    src = (ROOT / "tools" / "intake_harness.py").read_text(encoding="utf-8")
-    assert "is_private" in src, "intake_harness must import the canonical predicate"
 
-def test_no_prose_still_calls_AS_private():
-    """The three stale help/docstring/legend strings that told readers AS- is private."""
-    for rel in ("mamey/cli.py", "mamey/cohort_figures.py"):
-        src = (ROOT / rel).read_text(encoding="utf-8")
-        assert "PRIVATE (AS-/AJS-" not in src, f"stale AS-is-private prose in {rel}"
+def test_intake_guard_preserves_explicit_public_independently_of_figure_default(monkeypatch):
+    import sys
+    monkeypatch.setitem(sys.modules, "mamey.cohort_figures", None)
+    spec = importlib.util.spec_from_file_location("intake_guard_policy_test", ROOT / "tools/intake_harness.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert not module._is_private("public_reference")
+    assert not module._is_private("AS-" + "987654")
+    assert module._is_private("AJS-" + "987654")
+    assert module._is_private((synthetic_namespace_id('PENDING', width=None, case_index=917, separator=True)))

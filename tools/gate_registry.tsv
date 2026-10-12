@@ -84,3 +84,4 @@ check_no_bundle_write_defaults	WIRED	bundle-write default gate exercised by test
 handoff_gate	WIRED	one fail-closed check before a patch packet, deliverable or reply is handed over (queue/HASHES drift, orphan cards, replay, links, four-part BGC identity, figure text): pytest tests/test_444_handoff_gate.py
 sync_wiki_mirrors	WIRED	wiki mirror gate: pytest tests/test_445_wiki_mirrors_match_docs.py
 check_tygs_coverage	OPERATOR_ONLY	per-cohort TYGS coverage report for tree panels; run during panel building, not a release invariant
+check_figure_provenance	WIRED	Figure renderer-stamp check; imported by tests/test_figure_provenance_stamp.py; run on an output folder before figures leave it

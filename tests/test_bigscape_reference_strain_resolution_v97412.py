@@ -8,6 +8,8 @@ the three consumers (bigscape_known_novel / _cross_strain / _family_domains) now
 
 `pytest tests/test_bigscape_reference_strain_resolution_v97412.py`.
 """
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
 import pathlib
 import sys
 
@@ -35,7 +37,7 @@ def test_accession_prefix_and_wgs_forms():
 
 
 def test_as_cohort_unchanged():
-    assert strain_from_gbk_name("AS-260_NODE_262_length_16635_cov_7.148267.region001.gbk") == "AS-260"
+    assert strain_from_gbk_name((synthetic_namespace_id('AS', width=3, case_index=917, separator=True) + '_NODE_262_length_16635_cov_7.148267.region001.gbk')) == (synthetic_namespace_id('AS', width=3, case_index=917, separator=True))
     assert strain_from_gbk_name("AJS-327_NZ_SKBR01000001.1.region001.gbk") == "AJS-327"
     assert strain_from_gbk_name("SID10815_NODE_1.region001.gbk") == "SID10815"
 

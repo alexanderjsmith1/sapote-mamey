@@ -1,6 +1,7 @@
 """Actual shell wrapper with synthetic files and mocked external engine executables."""
 import importlib.util,json,os,shutil,subprocess,sys
 from pathlib import Path
+from ._python_fixture_launcher import write_python_fixture
 import pytest
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('build_bound',ROOT/'tools/build_tree_retention.py');mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
@@ -8,14 +9,17 @@ spec=importlib.util.spec_from_file_location('build_bound',ROOT/'tools/build_tree
 
 def prepare(tmp_path,drop_query=False,drop_ref=False,allow_ref=False,final_drop=False):
     repo=tmp_path/'repo';tools=repo/'tools';tools.mkdir(parents=True)
-    for name in ('build_tree.sh','build_tree_retention.py','gtotree_execution_gate.py','_gtotree_versions.py'):
+    for name in ('build_tree.sh','build_tree_retention.py','gtotree_execution_gate.py','_gtotree_versions.py','_gtotree_runtime.py'):
         shutil.copy2(ROOT/'tools'/name,tools/name)
     (tools/'phylo_preflight.py').write_text('raise SystemExit(0)\n')
     (tools/'gtotree_env.sh').write_text('export GToTree_HMM_dir="fixture-unused"\ngtotree_preflight() { return 0; }\n')
-    py=repo/'miniconda3/envs/phylo/bin';py.mkdir(parents=True);(py/'python').symlink_to(sys.executable)
+    py=repo/'miniconda3/envs/phylo/bin';py.mkdir(parents=True)
+    # A relocated symlink loses the selected venv's pyvenv.cfg and dependencies.
+    # Delegate through its exact invocation instead of inventing another Python env.
+    write_python_fixture(py/'python', 'import os,sys\nos.execv('+repr(sys.executable)+', ['+repr(sys.executable)+']+sys.argv[1:])\n')
     binaries=tmp_path/'bin';binaries.mkdir()
     def executable(name,text):
-        p=binaries/name;p.write_text('#!'+sys.executable+'\n'+text);p.chmod(0o755)
+        write_python_fixture(binaries/name,text)
     executable('GToTree',"""from pathlib import Path
 import os
 out=Path('gtotree');out.mkdir(exist_ok=True)
@@ -42,6 +46,17 @@ Path('iqtree.log').write_text('Total wall-clock time: mock only')
         if value:env[key]='1'
         else:env.pop(key,None)
     return tools,tree,env
+
+
+def test_fixture_phylo_python_preserves_selected_environment(tmp_path):
+    import Bio
+    tools,tree,env=prepare(tmp_path)
+    python=tools.parent/'miniconda3/envs/phylo/bin/python'
+    code='import Bio,json,sys;print(json.dumps({"python":sys.executable,"prefix":sys.prefix,"biopython":Bio.__version__}))'
+    result=subprocess.run([str(python),'-c',code],env=env,text=True,capture_output=True,timeout=20)
+    assert result.returncode==0,result.stdout+result.stderr
+    assert json.loads(result.stdout)=={'python':sys.executable,'prefix':sys.prefix,'biopython':Bio.__version__}
+
 
 @pytest.mark.parametrize('drop_query,drop_ref,allow_ref,final_drop,expected',[(False,False,False,False,'TIPS_RETAINED'),(True,False,False,False,'QUERY_TIP_DROPPED'),(False,True,False,False,'REFERENCE_TIP_DROPPED'),(False,True,True,False,'REFERENCE_TIP_DROPPED_ALLOWED'),(False,False,False,True,'QUERY_TIP_DROPPED')])
 def test_actual_shell_refuses_dropped_query_before_iqtree_and_checks_final(tmp_path,drop_query,drop_ref,allow_ref,final_drop,expected):

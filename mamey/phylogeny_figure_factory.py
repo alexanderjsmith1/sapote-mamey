@@ -201,9 +201,19 @@ def tree(root, obj, name):
         name + ".signoff_receipt",
     )
     tree_text = tree_path.read_text(encoding="utf-8")
-    if not re.fullmatch(r"[A-Za-z0-9_.:,;()\\-\\s]+", tree_text) or not tree_text.rstrip().endswith(";"):
-        raise ValueError(name + ": unsupported Newick syntax; normalize quoted/comments before admission")
-    o = overlay(); tips = o.tip_order(o.parse_newick(tree_text))
+    o = overlay()
+    try:
+        parsed = o.parse_newick(tree_text)
+        pending = [parsed]
+        while pending:
+            node = pending.pop()
+            pending.extend(node.children)
+            if node.children and node.support and not re.fullmatch(
+                    r"[0-9]+(?:\.[0-9]+)?(?:/[0-9]+(?:\.[0-9]+)?)?", node.support):
+                raise ValueError("internal support must be a numeric value or numeric pair")
+        tips = o.tip_order(parsed)
+    except ValueError as exc:
+        hold("PHYLO_TREE_INVALID", name + ": " + str(exc))
     roster_tips = {r["tree_tip"].strip() for r in tsv(roster, {"tree_tip"}, name + ".roster") if r["tree_tip"].strip()}
     if not tips or len(set(tips)) != len(tips) or set(tips) != roster_tips or obj["outgroup_tip"] not in roster_tips: raise ValueError(name + ": tree/roster/outgroup mismatch")
     if signoff["n_tips"] != len(tips):

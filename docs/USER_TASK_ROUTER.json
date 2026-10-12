@@ -40,6 +40,27 @@
       "completion_limit": "Read existing evidence before considering a rerun."
     },
     {
+      "id": "evidence_to_report",
+      "name": "Evidence to report",
+      "request": "Make the selected figures and give me short findings and Methods facts from these reviewed sources.",
+      "inputs": [
+        "source-bound packages/evidence",
+        "question and figure roster",
+        "permitted output root",
+        "public/private scope"
+      ],
+      "guide": "docs/EVIDENCE_TO_REPORT.md",
+      "outputs": [
+        "selected figures",
+        "plotted data and scripts",
+        "authored captions",
+        "short findings and Methods facts",
+        "unresolved evidence states",
+        "execution and visual-review evidence"
+      ],
+      "completion_limit": "Selected figure and writing workflow; Mode B cards and white papers are optional selected formats. Recorded checks do not themselves approve publication."
+    },
+    {
       "id": "mode_b",
       "name": "Mode B card",
       "request": "Author and verify this source-bound locus using the explicitly selected profile.",

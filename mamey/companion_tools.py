@@ -6,7 +6,9 @@ skani, GTDB-Tk) are what the *analysis* workflow runs downstream of a sealed Mam
 package. They are **DETECTED, NOT BUNDLED**: the deterministic Mamey core installs and
 runs offline with none of them present. This module reads the machine-readable registry
 (mamey/data/companion_tools.json), and `probe_tools()` runs each tool's detection command
-and reports present/missing + an install hint — WITHOUT ever failing when a tool is absent.
+and reports local detection, expected-version comparison and review state with an install hint.
+None of those states proves workflow execution, model readiness or scientific validation.
+Missing companions never fail the offline core.
 
 The registry data lives in mamey/data/companion_tools.json (the single source of truth).
 mamey/cli.py::doctor_command consumes probe_tools(); tests/test_companion_tools_registry.py
@@ -19,6 +21,9 @@ from __future__ import annotations
 import json
 import pathlib
 import platform
+import re
+import shutil
+import sys
 import shlex
 import subprocess
 from dataclasses import dataclass, field
@@ -49,6 +54,8 @@ class CompanionTool:
     reference_db_required: bool
     install: tuple = field(default_factory=tuple)
     verify_flag: bool = False
+    detection_kind: str = "local"
+    executable_candidates: tuple = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -57,6 +64,19 @@ class ToolProbe:
     present: bool
     detected_version: Optional[str]
     install_hint: str
+    probe_status: str = "NOT_PROBED"
+    version_status: str = "NOT_CHECKED"
+    review_required: bool = False
+    probe_executable: Optional[str] = None
+    probe_returncode: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class _Detection:
+    status: str
+    version: Optional[str] = None
+    executable: Optional[str] = None
+    returncode: Optional[int] = None
 
 
 def load_registry(path: pathlib.Path | None = None) -> list[CompanionTool]:
@@ -80,6 +100,16 @@ def load_registry(path: pathlib.Path | None = None) -> list[CompanionTool]:
         if req not in VALID_REQUIREMENTS:
             raise ValueError(f"companion tool {tid}: unknown requirement {req!r}")
         det = t["detection"]
+        if not isinstance(det, dict) or not isinstance(det.get("verify_flag", False), bool):
+            raise ValueError(f"companion tool {tid}: malformed detection/review metadata")
+        kind = det.get("kind", "local")
+        if not isinstance(kind, str) or kind not in {"local", "manual", "web-or-manual"}:
+            raise ValueError(f"companion tool {tid}: unknown detection kind {kind!r}")
+        candidates = det.get("executable_candidates", [])
+        if (not isinstance(candidates, list) or any(
+                not isinstance(x, str) or not x or pathlib.Path(x).name != x
+                or any(ch.isspace() or ch in "\\/" for ch in x) for x in candidates)):
+            raise ValueError(f"companion tool {tid}: malformed executable candidates")
         tools.append(CompanionTool(
             id=tid,
             name=t["name"],
@@ -91,6 +121,8 @@ def load_registry(path: pathlib.Path | None = None) -> list[CompanionTool]:
             detection_command=det["command"],
             expected_version=str(det.get("expected_version", "")),
             verify_flag=bool(det.get("verify_flag", False)),
+            detection_kind=kind,
+            executable_candidates=tuple(candidates),
             network_required=bool(t.get("network_required", False)),
             reference_db_required=bool(t.get("reference_db_required", False)),
             install=tuple(t.get("install", ())),
@@ -133,43 +165,141 @@ def install_hint_for(tool: CompanionTool, plat: str | None = None) -> str:
     return hint
 
 
-def _run_detection(command: str, timeout: float = 8.0) -> tuple[bool, Optional[str]]:
-    """Run a detection command; return (present, version_string_or_None). Never raises:
-    a missing tool, non-zero exit, or timeout all resolve to (False, None) / best-effort."""
+# Conservative best-effort inventory, not a tool-specific interface/runtime gate.
+_ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+_VERSION = re.compile(r"(?<![\w.])v?(\d+\.\d+(?:\.\d+)?)(?!\w|\.\d)")
+_DIAGNOSTIC = re.compile(
+    r"(?im)\bTraceback\b|\b(?:ModuleNotFoundError|ImportError|SyntaxError|"
+    r"RuntimeError|ValueError|OSError|FileNotFoundError):|^\s*(?:ERROR\b|FATAL\b)"
+    r"|\b(?:NOT_PROBED|WEB_SERVICE(?:_OR_MANUAL_INSTALL)?)\b"
+)
+_PROBE_TEXT_LIMIT = 65536
+
+
+def _detect_command(command: str, timeout: float = 8.0,
+                    executable_candidates: tuple = ()) -> _Detection:
+    """A zero-exit, unambiguous numeric version is local detection evidence only.
+
+    Bare Python probes use this process's exact invocation executable, preserving
+    venv semantics. Native candidates follow their declared order, with no fallback
+    after a selected executable fails. Output is not a historical run receipt.
+    """
+    if not isinstance(command, str) or not command.strip():
+        return _Detection("INVALID_COMMAND")
     try:
-        proc = subprocess.run(
-            shlex.split(command),
-            capture_output=True, text=True, timeout=timeout,
-        )
+        argv = shlex.split(command)
+        if not argv:
+            return _Detection("INVALID_COMMAND")
+        if re.fullmatch(r"python(?:\d+(?:\.\d+)?)?", argv[0]):
+            executable = sys.executable
+        else:
+            names = executable_candidates or (argv[0],)
+            executable = next((p for name in names if (p := shutil.which(name))), None)
+        if not executable:
+            return _Detection("MISSING_EXECUTABLE")
+        # Do not resolve symlinks: that can change a Python venv invocation.
+        executable = str(pathlib.Path(executable).absolute())
+        argv[0] = executable
+        proc = subprocess.run(argv, capture_output=True, text=True,
+                              stdin=subprocess.DEVNULL, timeout=timeout, check=False)
     except FileNotFoundError:
-        return False, None
-    except (subprocess.TimeoutExpired, OSError, ValueError):
-        return False, None
-    out = ((proc.stdout or "") + " " + (proc.stderr or "")).strip()
-    # Present if the command ran at all (exit 0), or printed a recognizable version line.
-    present = proc.returncode == 0 or bool(out)
-    version = out.splitlines()[0].strip() if out else None
-    if not present:
-        return False, None
-    return True, version
+        return _Detection("MISSING_EXECUTABLE")
+    except subprocess.TimeoutExpired:
+        return _Detection("PROBE_TIMEOUT")
+    except (OSError, ValueError, UnicodeError):
+        return _Detection("PROBE_FAILED")
+    if proc.returncode != 0:
+        return _Detection("PROBE_NONZERO_EXIT", executable=executable, returncode=proc.returncode)
+    out = _ANSI.sub("", (proc.stdout or "") + "\n" + (proc.stderr or ""))
+    if len(out) > _PROBE_TEXT_LIMIT:
+        return _Detection("PROBE_TEXT_LIMIT", executable=executable, returncode=0)
+    if _DIAGNOSTIC.search(out):
+        return _Detection("PROBE_DIAGNOSTIC_OUTPUT", executable=executable, returncode=0)
+    versions = set(_VERSION.findall(out))
+    if len(versions) != 1:
+        status = "AMBIGUOUS_VERSION" if versions else "NO_VERSION_EVIDENCE"
+        return _Detection(status, executable=executable, returncode=0)
+    return _Detection("DETECTED", versions.pop(), executable, 0)
+
+
+def _run_detection(command: str, timeout: float = 8.0) -> tuple[bool, Optional[str]]:
+    """Compatibility tuple; richer status is available through probe_tools()."""
+    result = _detect_command(command, timeout)
+    return result.status == "DETECTED", result.version
+
+
+def _version_status(version: str | None, expected: str) -> str:
+    """Compare registry numeric exact/x families; never eval a policy expression.
+
+    Registry alternatives use `or`. Unrecognized policies stay unverified rather
+    than silently admitting arbitrary versions. This is not native compatibility.
+    """
+    if version is None:
+        return "NOT_CHECKED"
+    if not expected.strip():
+        return "NOT_SPECIFIED"
+    alternatives = re.split(r"\s+or\s+", expected.strip())
+    parsed = []
+    for item in alternatives:
+        if not re.fullmatch(r"\d+(?:\.(?:\d+|x)){1,2}", item):
+            return "UNRECOGNIZED_POLICY"
+        components = item.split(".")
+        if "x" in components[:-1]:
+            return "UNRECOGNIZED_POLICY"
+        parsed.append(components)
+    observed = version.split(".")
+    for parts in parsed:
+        if parts[-1] == "x":
+            if len(observed) >= len(parts) and observed[:len(parts)-1] == parts[:-1]:
+                return "MATCH"
+        elif observed == parts:
+            return "MATCH"
+    return "MISMATCH"
 
 
 def probe_tools(registry: list[CompanionTool] | None = None,
                 run_detection: bool = True) -> list[ToolProbe]:
-    """Probe every registered tool. Optional (`run_detection=False`) skips subprocess calls
-    and just reports the registry with install hints — used by tests/offline contexts."""
+    """Local inventory only; web/manual entries never launch a subprocess.
+
+    `present` means a successful local numeric-version probe. Expected-version
+    comparison and verify_flag review requirements remain separate and visible.
+    No probe authorizes native execution or clears a model/resource/approval gate.
+    """
     reg = registry if registry is not None else load_registry()
     plat = _current_platform()
     probes: list[ToolProbe] = []
     for tool in reg:
-        if run_detection:
-            present, version = _run_detection(tool.detection_command)
+        if not run_detection:
+            result = _Detection("NOT_PROBED")
+        elif tool.detection_kind != "local":
+            result = _Detection("MANUAL_NOT_PROBED" if tool.detection_kind == "manual"
+                                else "WEB_OR_MANUAL_NOT_PROBED")
         else:
-            present, version = False, None
+            result = _detect_command(tool.detection_command,
+                                     executable_candidates=tool.executable_candidates)
         probes.append(ToolProbe(
             tool=tool,
-            present=present,
-            detected_version=version,
+            present=result.status == "DETECTED",
+            detected_version=result.version,
             install_hint=install_hint_for(tool, plat),
+            probe_status=result.status,
+            version_status=_version_status(result.version, tool.expected_version),
+            review_required=tool.verify_flag,
+            probe_executable=result.executable,
+            probe_returncode=result.returncode,
         ))
     return probes
+
+
+def probe_display_lines(probe: ToolProbe, tag: str = "") -> tuple[str, ...]:
+    """One doctor row: inventory, version policy and review do not imply readiness."""
+    tool = probe.tool
+    if probe.present:
+        review = "; REVIEW_REQUIRED" if probe.review_required else ""
+        return (f"    ⓘ   {tool.name}{tag}: detected {probe.detected_version}; "
+                f"expected {tool.expected_version or 'not specified'}; "
+                f"version {probe.version_status}{review}; workflow NOT_ASSESSED",)
+    if probe.probe_status in {"MANUAL_NOT_PROBED", "WEB_OR_MANUAL_NOT_PROBED", "NOT_PROBED"}:
+        return (f"    ⬚   {tool.name}{tag}: {probe.probe_status}; local installation NOT_ASSESSED",)
+    return (f"    ⬚   {tool.name}{tag}: {probe.probe_status}; local detection not established",
+            f"         install: {probe.install_hint}")

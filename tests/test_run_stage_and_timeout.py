@@ -32,12 +32,32 @@ def test_batch_plan_written(tmp_path):
 
 def test_start_here_written(tmp_path):
     # v9.7.161: smoke removed — START_HERE header is unconditional (gold is the only mode).
-    cli._write_start_here(tmp_path, "TESTY", "gold", "PASS", 71, 31, 25, 15, 47.25, "POOR")
+    assert cli._write_start_here(tmp_path, "TESTY", "gold", "PASS", 71, 31, 25, 15, 47.25, "POOR") is True
     p = tmp_path / "START_HERE.md"
     t = p.read_text()
     assert p.exists()
     assert "EXTRACTION COMPLETE" in t and "JUDGMENT PENDING" in t
-    assert "Run full Sapote analysis on TESTY" in t and "71 raw BGCs" in t
+    assert "71 raw BGCs" in t and "31 Interior / 25 Edge / 15 Full-contig" in t
+    assert "corrected 47.25" in t and "Assembly tier: POOR" in t
+    assert "mode=gold, validation=PASS" in t
+    assert "Extraction validation does not establish" in t
+    assert "register separately from extraction and figure review" in t
+    assert "a full Mode B card, DAPR, white paper or guide; those are optional authored formats" in t
+    assert "Select the question and figure roster" in t
+    assert "strain / full node-or-contig / region / BGC alias" in t
+    assert "TESTY_2_inventory.csv" in t and "gold_figures/" in t and "locus_maps/" in t
+    command = "python mamey_run.py render-figures --package <working-package-copy> --outdir <fresh-review-directory> --figure-set standard"
+    assert command in t and "refresh integrity records" in t
+    assert "docs/FIGURES_START_HERE.md" in t and "docs/EVIDENCE_TO_REPORT.md" in t
+    assert "actual execution and visual-review evidence" in t and "unresolved holds" in t
+    assert "A rendered image alone does not establish a scientific conclusion" in t
+    assert t.index("Select the question and figure roster") < t.index(command) < t.index("Optional authored format")
+    assert "Run full Sapote analysis on TESTY" in t and "Choose its named card/profile workflow" in t
+    assert "Trigger the judgment layer" not in t
+    assert "TESTY_BATCH_PLAN.md" in t and "TESTY_4A_RGGMCI_ranked_pairs.csv" in t
+    root = pathlib.Path(__file__).resolve().parents[1]
+    assert (root/"docs/FIGURES_START_HERE.md").is_file()
+    assert (root/"docs/EVIDENCE_TO_REPORT.md").is_file()
 
 
 def test_no_stale_v5_trigger_language():

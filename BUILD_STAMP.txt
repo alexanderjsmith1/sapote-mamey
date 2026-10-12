@@ -1,5 +1,5 @@
-version=9.7.449
-build=20261009v97449a
-engine=1.9.174
-patch=Partner headings preserve contig placement.; Structures follow the map reference.; Optional post-run gap-rescue command.; Reference-centred pair maps.; Gene tables paired with maps.; Isolate labels clear ribbons.; Bounded distant-match display.; Split-piece labels.
+version=9.7.450
+build=20261011v97450a
+engine=1.9.175
+patch=Full-genome annotation copies resolved at the reader.; Partner-check diagnostics say what was checked.; Rejected rescue neighbours stay grey.; Renderer stamps and a figure provenance check.; BLASTp runner keeps live searches through an NCBI outage.; Lab Quest removed.; Native workspaces and resource gates.; Report scope and privacy.
 tier=code

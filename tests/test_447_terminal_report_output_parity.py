@@ -4,6 +4,7 @@ import builtins
 import copy
 import importlib
 import io
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -39,7 +40,41 @@ def current_source(name, module):
     raise AssertionError(name)
 
 
-def parity(name, module_name, args=None, extras=None):
+def _reviewed_parent_output_delta(name, output, reviewed=()):
+    """Apply only explicitly reviewed current text contracts to historical parent output.
+
+    The frozen JSON remains historical. Every replacement must occur exactly once
+    in stdout and one stdout event; stderr and return values remain unchanged.
+    """
+    status, stdout, stderr, events = output
+    replacements = []
+    if name == 'inspect_command' and status == 0:
+        replacements = [
+            ('        --release <PUBLIC|PRIVATE> \\\n',
+             '        --release PRIVATE \\\n'),
+            ('    Then validate: python mamey_run.py validate <outdir>/fixture/package\n',
+             '    Then validate: python mamey_run.py validate <outdir>/fixture/package\n'
+             '    Release policy: this suggested command uses PRIVATE. For reviewed public inputs, replace with --release PUBLIC.\n'
+             '    For an exact public privacy-profile assignment, omit --release and provide --privacy-profile <path>.\n'),
+        ]
+    elif name == 'cohort_command' and status == 1:
+        replacements = [(
+            '  [FAIL] cohort mandatory-deliverable gate: no deliverable emitted. Most likely no verified cohort master workbook was found -- build the master first or pass --master-path.\n',
+            '  [FAIL] cohort mandatory-deliverable gate: no valid synthesis emitted; resolve the reported scope/master/engine failure.\n',
+        )]
+    replacements.extend(reviewed)
+    for historical, current in replacements:
+        assert stdout.count(historical) == 1
+        assert stderr.count(historical) == 0
+        assert sum(text.count(historical) for channel, text in events if channel == 'stdout') == 1
+        assert all(historical not in text for channel, text in events if channel != 'stdout')
+        stdout = stdout.replace(historical, current, 1)
+        events = [[channel, text.replace(historical, current, 1) if channel == 'stdout' else text]
+                  for channel, text in events]
+    return status, stdout, stderr, events
+
+
+def parity(name, module_name, args=None, extras=None, reviewed=()):
     module = importlib.import_module(module_name)
     outputs = []
     for source in (PARENT[name], current_source(name, module)):
@@ -50,7 +85,7 @@ def parity(name, module_name, args=None, extras=None):
         with redirect_stdout(stdout), redirect_stderr(stderr):
             result = namespace[name]() if args is None else namespace[name](args)
         outputs.append((result, stdout.getvalue(), stderr.getvalue(), events))
-    assert outputs[0] == outputs[1]
+    assert _reviewed_parent_output_delta(name, outputs[0], reviewed) == outputs[1]
     return outputs[1]
 
 
@@ -72,7 +107,56 @@ def test_explain(case, tmp_path):
         if case == 'corrupt_fallback': (package/'manifest_short.json').write_text('{broken')
         else: (package/'manifest_short.json').write_text(json.dumps(data))
         if case == 'issues': (package/'issue_log.md').write_text('\n'.join('- fixture issue '+str(i) for i in range(7)))
-    parity('explain_command','mamey.package_inspector',SimpleNamespace(package_dir=str(package)))
+    reviewed = []
+    if case != 'missing':
+        # Independently pin the policy-field projection of this synthetic fixture.
+        # Never derive the expected text by calling the implementation under test.
+        projection = {'strain_id': 'SYNTH', 'release': None, 'release_decision': None}
+        digest = hashlib.sha256(json.dumps(projection, sort_keys=True,
+                                          separators=(',', ':')).encode()).hexdigest()
+        bindings = {name: {'policy_fields_sha256': digest}
+                    for name in (['manifest.json'] if case == 'corrupt_fallback'
+                                 else ['manifest.json', 'manifest_short.json'])}
+        reason = 'privacy_metadata_unreadable' if case == 'corrupt_fallback' else 'release_not_recorded'
+        policy = (f'Release policy: PRIVATE; recorded: UNRESOLVED; state: HOLD; reason: {reason}; '
+                  f'admission: {reason}; authority SHA-256: not recorded (operator/default or unresolved authority); '
+                  'decision SHA-256: not recorded; provenance: '
+                  + json.dumps(bindings, sort_keys=True, separators=(',', ':'))
+                  + '. Recorded policy is not transfer authorization.')
+        rre = ('RREfinder: SOURCE_UNAVAILABLE; retained source rows: unavailable; source completeness: UNKNOWN. '
+               'Upstream search completion is UNKNOWN. Biological absence is not established.')
+        evidence = ('JSON evidence: requested=UNKNOWN, effective=UNKNOWN; '
+                    'Main JSON auxiliary=UNKNOWN (count=UNKNOWN); RiQ=UNKNOWN (count=UNKNOWN); '
+                    'Record extras=UNKNOWN (count=UNKNOWN); TIGRFAM record parse=UNKNOWN (count=UNKNOWN). '
+                    'Selected score observations: seen=UNKNOWN, mapped=UNKNOWN, unassigned=UNKNOWN, held=UNKNOWN. '
+                    'Archive regional maxima reconciliation=UNKNOWN. No similarity or biological validation implied. '
+                    'Limits: UNKNOWN. CLI budget: UNKNOWN. Main parse errors: UNKNOWN; skipped: UNKNOWN. '
+                    'Receipt SHA-256: not yet serialized. '
+                    'Selected extraction paths; not all-schema, upstream-search or biological completeness.')
+        reviewed = [
+            ('  Corrected BGCs: ?\n', '  Corrected BGCs: ?\n  ' + rre + '\n  ' + evidence + '\n  ' + policy + '\n'),
+            ('\n  To start judgment: upload manifest.json to Claude and type:\n'
+             '    "Run full Sapote analysis on SYNTH"\n',
+             '\n  ' + policy + ' Review the package locally. For Sapote judgment, use the validated '
+             'local package for SYNTH and the selected authoring contract. Transfer requires a separate '
+             'decision under the applicable project privacy policy.\n'),
+        ]
+        if case in {'full', 'issues'}:
+            reviewed += [
+                ('    1. BGC001 · NODE_fixture  AB=2\n',
+                 '    1. IDENTITY_HOLD (native board missing, ambiguous or unbound)  AB=2\n'),
+                ('    1. BGC002 · NODE_other  AF=1\n',
+                 '    1. IDENTITY_HOLD (native board missing, ambiguous or unbound)  AF=1\n'),
+            ]
+    output = parity('explain_command','mamey.package_inspector',
+                    SimpleNamespace(package_dir=str(package)), reviewed=reviewed)
+    if case != 'missing':
+        assert output[0] == 0
+        assert output[1].count(policy) == 2
+        assert output[1].count(rre) == output[1].count(evidence) == 1
+        assert 'upload manifest.json' not in output[1]
+        if case in {'full', 'issues'}:
+            assert output[1].count('IDENTITY_HOLD (native board missing, ambiguous or unbound)') == 2
 
 
 @pytest.mark.parametrize('count,json_output', [(0,False),(1,False),(2,False),(1,True)])
@@ -101,8 +185,13 @@ def test_inspect(case, tmp_path, monkeypatch):
                 for i in range(41 if case=='large' else 1):z.writestr(f'fixture.region{i+1:03}.gbk','opaque nonbiological fixture')
     shape={'summary':'synthetic fixture','accession_like':case=='accession',
            'shape':'single_region_antismash_accession' if case=='accession' else 'genome','accession':'FIXTURE'}
-    parity('inspect_command','mamey.package_inspector',SimpleNamespace(zip=str(archive)),
-           {'classify_antismash_zip':lambda *a:shape})
+    output = parity('inspect_command','mamey.package_inspector',SimpleNamespace(zip=str(archive)),
+                    {'classify_antismash_zip':lambda *a:shape})
+    if case in {'ordinary', 'accession', 'large'}:
+        assert output[0] == 0 and output[2] == ''
+        assert output[1].count('        --release PRIVATE ' + chr(92) + '\n') == 1
+        assert output[1].count('    Release policy: this suggested command uses PRIVATE. For reviewed public inputs, replace with --release PUBLIC.\n') == 1
+        assert output[1].count('    For an exact public privacy-profile assignment, omit --release and provide --privacy-profile <path>.\n') == 1
 
 
 @pytest.mark.parametrize('ok,warn,fail',[([],[],[]),(['fixture'],[],[]),([],['warning'],[]),([],[],['failure']),(['ok'],['warn'],['fail'])])
@@ -116,7 +205,20 @@ def test_chatgpt_init(present, challenge, tmp_path):
     (tmp_path/'mamey').mkdir()
     if present:(tmp_path/'AGENTS.md').write_text('bundle / engine: fixture\nknown gotcha (this build): fixture\n'+('challenge phrase: test-marker\n' if challenge else ''))
     (tmp_path/'README.md').write_text('fixture')
-    parity('chatgpt_init_command','mamey.cli',SimpleNamespace(),{'__file__':str(tmp_path/'mamey/cli.py')})
+    historical = ('   workflow         : doctor → inspect → run(gold + --capped-session) → validate → '
+                  'list-bgcs → mode-b → guide → render-figures → ingest-receipts\n')
+    current = ('   workflow         : doctor → inspect → run(gold + --capped-session) → validate → '
+               'list-bgcs → render-figures → review figures and evidence → captions/Methods facts; '
+               'optional cards: mode-b → emit-modeb-template → author → verify-modeb → ingest-receipts; '
+               'guide when requested\n')
+    output = parity('chatgpt_init_command','mamey.cli',SimpleNamespace(),
+                    {'__file__':str(tmp_path/'mamey/cli.py')},
+                    reviewed=[(historical, current)] if present else [])
+    if present:
+        assert output[0] == 0 and output[2] == ''
+        assert output[1].count(current) == 1 and historical not in output[1]
+    else:
+        assert output[0] == 1 and 'workflow' not in output[1]
 
 
 @pytest.mark.parametrize('kind,mode',[('receipt','empty'),('receipt','full'),('receipt','identity'),('receipt','structure'),
@@ -152,7 +254,10 @@ def test_cohort_status(ok,warnings,figures,monkeypatch):
                           figures_dir='fixture-figures',figure_count=figures,ok=ok,
                           out_dir='fixture-out',deliverables=['fixture.md'],strains=['SYNTH'])
     stub(monkeypatch,'mamey.cohort_deliverable','run_cohort_deliverable',result)
-    parity('cohort_command','mamey.cli',SimpleNamespace(runs_dir='fixture',out='fixture'))
+    output = parity('cohort_command','mamey.cli',SimpleNamespace(runs_dir='fixture',out='fixture'))
+    if not ok:
+        assert output[0] == 1 and output[2] == ''
+        assert output[1].count('  [FAIL] cohort mandatory-deliverable gate: no valid synthesis emitted; resolve the reported scope/master/engine failure.\n') == 1
 
 
 @pytest.mark.parametrize('count,mixed',[(0,False),(1,False),(1,True)])

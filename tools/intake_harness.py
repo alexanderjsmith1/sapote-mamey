@@ -14,6 +14,10 @@ USAGE:
       --registry out/intake_registry.csv --metrics out/intake_metrics.csv \
       --batch-report out/intake_batchN_report.md [--source "..."] [--mode gold] [--bench]
 
+New batches default to PRIVATE and source metadata "not verified". Reviewed public
+inputs require explicit --release PUBLIC and a source description. A release tag
+is metadata, not an export/redaction guarantee.
+
 Resume policy: successful completion is skipped only with a matching
 intake_completion_receipt.json binding source path/bytes, engine code/options and
 package path/bytes. Legacy or mismatched success is RUN_FAILED without replacement;
@@ -63,16 +67,9 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, ROOT)
 from _wbio import atomic_open
 
-# Release policy is owned by mamey.cohort_figures.is_private() — the single source of
-# truth updated for the 2026-07-06 PI public-cohort decision (AS- is public; only AJS-/
-# PENDING- remain private). Import it so this guard cannot drift from the engine again.
-# (Fixes stale-regex bug: the old guard blanket-refused PUBLIC for all AS-#### names,
-# contradicting is_private() which returns False for AS-.)
-try:
-    from mamey.cohort_figures import is_private as _is_private
-except Exception:  # pragma: no cover - fallback mirrors the canonical policy exactly
-    def _is_private(sid):
-        return str(sid).startswith(("AJS-", "PENDING-"))
+# Hard refusal is a core release-policy guard, independent of figure presentation
+# and optional plotting dependencies. Explicit reviewed PUBLIC remains possible.
+from mamey.dedup_and_guard import _trips_private_guard as _is_private
 import zipfile
 from mamey.diagnostic_rescue import CORE_TRIGGERS  # noqa: E402
 from mamey.cohort_resolver import is_placeholder_taxonomy  # noqa: E402
@@ -467,7 +464,7 @@ def main():
     ap.add_argument("--metrics", required=True)
     ap.add_argument("--batch-report", default=None)
     ap.add_argument("--batch-label", default="batch")
-    ap.add_argument("--source", default="public reference genome")
+    ap.add_argument("--source", default="not verified")
     ap.add_argument("--taxonomy-map", default=None,
                      help="Optional path to a JSON file of {strain_name: taxonomy_string} "
                           "overrides. When a strain name (as assigned by assign_unique_names) "
@@ -478,8 +475,8 @@ def main():
                           "Genus/host known only from institutional record — not the GBK — is "
                           "exactly the case this is for. Unmapped strains fall back to the prior "
                           "auto-derived behavior unchanged.")
-    ap.add_argument("--release", default="PUBLIC", choices=["PUBLIC", "PRIVATE"],
-                    help="release tag for these strains; PRIVATE for unpublished AS/AJS strains (hard guard)")
+    ap.add_argument("--release", default="PRIVATE", choices=["PUBLIC", "PRIVATE"],
+                    help="release tag (default PRIVATE); use PUBLIC only for reviewed public inputs")
     ap.add_argument("--mode", default="gold",
                     choices=["standard", "gold"],
                     help="Engine mode passed through to mamey run. gold is the default/only analysis "
@@ -487,7 +484,8 @@ def main():
     ap.add_argument("--bench", action="store_true", dest="bench",
                     help="run the bundled fixture in gold mode for a machine-normalization datapoint")
     ap.add_argument("--resume", action="store_true",
-                    help="skip only receipt-bound unchanged successful completions; retry NEEDS_ANTISMASH")
+                    help="skip only receipt-bound unchanged successful completions; retry NEEDS_ANTISMASH; "
+                         "changed release/source/code holds existing packages without relabelling")
     a = ap.parse_args()
 
     os.makedirs(a.outdir, exist_ok=True)
@@ -511,7 +509,7 @@ def main():
     smoke = None
     if getattr(a, 'bench', False) and os.path.exists(BENCH_FIXTURE):
         rc, wall, mem, _ = run_monitored(
-            [sys.executable, os.path.join(ROOT, "mamey_run.py"), "run", "--input-zip", BENCH_FIXTURE, "--strain", "MX_BENCH",
+            [sys.executable, os.path.join(ROOT, "mamey_run.py"), "run", "--input-zip", BENCH_FIXTURE, "--strain", "MX_BENCH", "--release", "PRIVATE",
              "--taxonomy", "Streptomyces sp.", "--source", "bench", "--mode", "gold",
              "--brief", "none", "--outdir", os.path.join(a.outdir, "_bench")], env=env)
         smoke = {"wall_s": wall, "peak_mb": mem, "rc": rc}

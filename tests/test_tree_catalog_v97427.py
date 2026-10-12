@@ -14,9 +14,9 @@ def test_phylo_staging_lowercase_host_column_is_loaded(tmp_path):
     table = tmp_path / "PHYLO_STRAIN_METADATA.tsv"
     table.write_text(
         "strain\tcohort\thost\tlocation\tgenbank_accession\n"
-        "AS-422\thymenoptera\tBombus sp.\tNew Jersey\tPX565017\n"
+        "AS-978\thymenoptera\tBombus sp.\tNew Jersey\tPX565017\n"
     )
-    assert builder._load_hosts(table)["AS-422"] == {
+    assert builder._load_hosts(table)["AS-978"] == {
         "host": "Bombus sp.", "region": "New Jersey", "acc": "PX565017",
         "experiment": "", "sample": "",
     }
