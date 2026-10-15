@@ -67,5 +67,14 @@ def test_fallback_passes_absolute_resources_and_reports_missing_dependencies(tmp
     assert '--resource-path='+str(source) in receipt['argv']
     latex.unlink();out.unlink()
     # A forced primary failure cannot claim success when fallback is unavailable.
+    # .452: a host with a real xelatex (Linux CI images often have one) made `command -v xelatex` succeed here, so
+    # the test depended on the host. Link every other command on PATH and leave the TeX engines and pandoc out.
+    sysbin=tmp_path/'sysbin';sysbin.mkdir();hidden={'xelatex','pdflatex','lualatex','pandoc'}
+    for d in os.environ['PATH'].split(os.pathsep):
+        if not d or not os.path.isdir(d): continue
+        for e in os.scandir(d):
+            if e.name in hidden or (sysbin/e.name).exists() or (sysbin/e.name).is_symlink(): continue
+            if os.access(e.path, os.X_OK) and not e.is_dir(): (sysbin/e.name).symlink_to(e.path)
+    env=dict(env,PATH=str(bins)+os.pathsep+str(sysbin))
     r=subprocess.run(['bash',str(ROOT/'tools/md_to_pdf.sh'),str(md),str(out)],cwd=caller,env=env,capture_output=True,text=True)
     assert r.returncode==2 and 'PDF_TOOLCHAIN_UNAVAILABLE' in r.stderr and not out.exists()

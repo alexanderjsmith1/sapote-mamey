@@ -427,8 +427,9 @@ def main(argv=None) -> int:
     except (OSError, UnicodeError, PhyloEvidenceError) as exc:
         sys.stderr.write(str(exc) + "\n")
         return 2
-    sys.stdout.write(json.dumps({"status": "PASS", "receipt": str(output)}, sort_keys=True) + "\n")
-    return 0
+    receipt_status = json.loads(output.read_text(encoding="utf-8")).get("status")
+    sys.stdout.write(json.dumps({"status": receipt_status, "receipt": str(output)}, sort_keys=True) + "\n")
+    return 0 if receipt_status == "PASS" else 2
 
 
 if __name__ == "__main__":

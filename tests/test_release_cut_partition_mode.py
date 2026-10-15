@@ -16,6 +16,13 @@ import zipfile
 
 import pytest
 
+# The partitioned route's import stage admits only the macOS sandbox-exec backend and refuses on every other host
+# (tools/_release_import_smoke.py, admit_sandbox). Tests that drive a fake cut through that stage need it; Linux CI
+# skips them with this reason instead of failing for a refusal that is working as designed.
+needs_import_sandbox = pytest.mark.skipif(
+    sys.platform != "darwin" or shutil.which("sandbox-exec") is None,
+    reason="partitioned cut needs the macOS sandbox-exec controlled-import backend")
+
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("partition_manifest_fixture", ROOT / "tests/test_release_partition_manifest.py")
@@ -140,6 +147,7 @@ printf 'parity gate: OK\n'
     return result, output, events.read_text() if events.exists() else "", source
 
 
+@needs_import_sandbox
 def test_partition_cut_preserves_all_post_test_gates_and_only_packages_after_final_binding(tmp_path):
     result, output, events, source = fake_cut(tmp_path)
     assert (source/"TIER_MANIFEST.txt").stat().st_mode & 0o777 == 0o644
@@ -174,6 +182,7 @@ def test_partition_cut_preserves_all_post_test_gates_and_only_packages_after_fin
     assert not list(output.glob("pytest_full_suite_*.log"))  # no invented monolithic log
 
 
+@needs_import_sandbox
 def test_complete_import_hold_stops_before_baseline_tests_and_packaging(tmp_path):
     result, output, events, _ = fake_cut(tmp_path, import_hold=True)
     assert result.returncode != 0
@@ -191,6 +200,7 @@ def test_complete_import_hold_stops_before_baseline_tests_and_packaging(tmp_path
 @pytest.mark.parametrize("options", [
     {"red_final": True}, {"failure": "repo_health.py"}, {"tamper": True},
 ])
+@needs_import_sandbox
 def test_red_unbound_or_failed_gate_cannot_build_a_package(tmp_path, options):
     result, output, events, _ = fake_cut(tmp_path, **options)
     assert result.returncode != 0
@@ -215,6 +225,7 @@ def test_partition_mode_cannot_be_combined_with_external_skip_tests(tmp_path):
     assert not list(output.rglob("*.zip")) if output.exists() else True
 
 
+@needs_import_sandbox
 def test_failed_real_cut_gate_resumes_without_repeating_source_suites(tmp_path):
     result, output, source, env, command, ready = fake_cut(tmp_path, failure='repo_health.py', context=True)
     assert result.returncode != 0
@@ -257,6 +268,7 @@ def test_occupied_seal_target_is_refused_before_any_work(tmp_path):
     assert target.read_text() == 'owner evidence' and not output.exists()
 
 
+@needs_import_sandbox
 def test_full_cut_root_can_be_independently_verified_without_stage_execution(tmp_path):
     import hashlib
     result, output, source, env, command, _ = fake_cut(tmp_path, context=True)

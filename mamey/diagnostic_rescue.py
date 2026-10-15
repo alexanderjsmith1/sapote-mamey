@@ -193,11 +193,26 @@ def parse_cb(path: str) -> dict[str, dict[str, Any]]:
     return refs
 
 
-def _cb_for_node(cb_dir: str, node_prefix: str) -> dict[str, dict[str, Any]]:
+def _cb_for_node(cb_dir: str, node_prefix: str, region: Any = None) -> dict[str, dict[str, Any]]:
     if not (cb_dir and node_prefix):
         return {}
     files = glob.glob(os.path.join(cb_dir, "%s_*.txt" % node_prefix))
-    return parse_cb(files[0]) if files else {}
+    if region is not None:
+        # P300-065: bind to the exact region member <contig>_c<region>.txt, not the contig's first file.
+        try:
+            want = int(region)
+        except (TypeError, ValueError):
+            return {}
+        pat = re.compile(re.escape(node_prefix) + r"_c0*(\d+)\.txt")
+        kept = []
+        for f in files:
+            m = pat.fullmatch(os.path.basename(f))
+            if m and int(m.group(1)) == want:
+                kept.append(f)
+        files = kept
+    # absent or ambiguous member -> hold (no deep tiling; the lead's tiling_verdict stays empty).
+    # File order never picks the evidence.
+    return parse_cb(files[0]) if len(files) == 1 else {}
 
 
 # v9.7.81 P2: unify locus-proxy with rggmci._locus_key (namespace-aware prefix+number split)
@@ -211,15 +226,15 @@ except ImportError:
     _HAVE_RGGMCI_LOCUS_KEY = False
 
 
-def _locus_num(name: str) -> int | None:
+def _locus_ns_num(name: str) -> tuple[str | None, int | None]:
     # v9.7.81: use rggmci._locus_key when available for cross-module SSOT.
-    # Falls back to the old last-digit-run approach if rggmci is unavailable.
+    # P300-064: keep the namespace prefix (it was discarded), so numbers are only ever compared
+    # inside one locus-tag namespace. The fallback uses the same prefix+trailing-number split.
     s = re.sub(r"\.\d+$", "", name or "")
     if _HAVE_RGGMCI_LOCUS_KEY:
-        _pre, num = _rggmci_locus_key(s)
-        return num  # may be None
-    m = re.findall(r"(\d+)", s)
-    return int(m[-1]) if m else None
+        return _rggmci_locus_key(s)
+    m = re.match(r"(.*?)(\d+)$", s)
+    return (m.group(1), int(m.group(2))) if m else (None, None)
 
 
 # Adjacency thresholds (locus-number proxy for genomic position). A genuine split tiles two
@@ -229,13 +244,29 @@ ADJ_MAX_LOCUS_GAP = 60
 ADJ_MAX_SPAN = 400
 
 
-def _adjacent(sa: set, sb: set) -> tuple[bool, int | None, int | None]:
-    na = {n for n in (_locus_num(s) for s in sa) if n is not None}
-    nb = {n for n in (_locus_num(s) for s in sb) if n is not None}
-    if not na or not nb:
-        return True, None, None  # no locus numbers -> cannot judge; stay permissive, don't block
-    gap = min(abs(a - b) for a in na for b in nb)
-    span = max(na | nb) - min(na | nb)
+def _adjacent(sa: set, sb: set) -> tuple[bool | None, int | None, int | None]:
+    """Locus-number adjacency within a shared namespace -> (adjacent, gap, span).
+
+    P300-064: numbers are compared only inside a namespace present on both sides (as in
+    rggmci._proxy_adjacency, including its tie-break). With no shared numbered namespace the
+    adjacency is unknown and returned as None, which never counts as support.
+    """
+    pa: dict = {}
+    pb: dict = {}
+    for side, subjects in ((pa, sa), (pb, sb)):
+        for s in subjects:
+            pre, num = _locus_ns_num(s)
+            if num is not None:
+                side.setdefault(pre, set()).add(num)
+    shared = set(pa) & set(pb)
+    if not shared:
+        return None, None, None  # adjacency cannot be measured -> unknown, not adjacent and not distant
+    ranked = []
+    for pre in shared:
+        na, nb = pa[pre], pb[pre]
+        ranked.append((min(abs(a - b) for a in na for b in nb), -len(na | nb), pre,
+                       max(na | nb) - min(na | nb)))
+    gap, _, _, span = min(ranked)
     return (gap <= ADJ_MAX_LOCUS_GAP and span <= ADJ_MAX_SPAN), gap, span
 
 
@@ -244,7 +275,8 @@ def tile_pair(cb_a: dict, cb_b: dict) -> dict[str, Any]:
 
     COMPLEMENTARY requires both (1) low reference-gene overlap (<=0.15) AND (2) ADJACENT subject loci
     (near each other in the reference). Complementary-but-distant loci are two clusters sharing a
-    genome, not a split — they get RECONSTRUCTION_NOT_SUPPORTED_DISTANT_LOCI.
+    genome, not a split — they get RECONSTRUCTION_NOT_SUPPORTED_DISTANT_LOCI. Low overlap whose
+    adjacency cannot be measured (no shared locus namespace) gets RECONSTRUCTION_ADJACENCY_UNKNOWN.
     """
     shared = set(cb_a) & set(cb_b)
     if not shared:
@@ -264,6 +296,8 @@ def tile_pair(cb_a: dict, cb_b: dict) -> dict[str, Any]:
     adj, gap, span = _adjacent(sa, sb)
     if of <= 0.15 and adj:
         verdict = "RECONSTRUCTION_SUPPORTED_COMPLEMENTARY"
+    elif of <= 0.15 and adj is None:
+        verdict = "RECONSTRUCTION_ADJACENCY_UNKNOWN"
     elif of <= 0.15 and not adj:
         verdict = "RECONSTRUCTION_NOT_SUPPORTED_DISTANT_LOCI"
     elif of <= 0.50:
@@ -277,13 +311,19 @@ def tile_pair(cb_a: dict, cb_b: dict) -> dict[str, Any]:
             "ref_source": cb_b[best]["source"] or cb_a[best]["source"]}
 
 
-def make_tiling_fn(cb_dir: str, node_of: Callable[[str], str]) -> Callable[[str, str], dict]:
-    """Build a deep-tiling function from a clusterblast dir. node_of(bgc_id) -> contig node prefix."""
+def make_tiling_fn(cb_dir: str, node_of: Callable[[str], Any]) -> Callable[[str, str], dict]:
+    """Build a deep-tiling function from a clusterblast dir.
+
+    node_of(bgc_id) -> (contig, region_number) for the exact region member, or a bare contig
+    prefix (legacy). Either way a locator matching no file, or more than one, gets no tiling.
+    """
     cache: dict[str, dict] = {}
 
     def _cb(bgc_id: str) -> dict:
         if bgc_id not in cache:
-            cache[bgc_id] = _cb_for_node(cb_dir, node_of(bgc_id))
+            loc = node_of(bgc_id)
+            contig, region = loc if isinstance(loc, tuple) else (loc, None)
+            cache[bgc_id] = _cb_for_node(cb_dir, contig, region)
         return cache[bgc_id]
 
     def tiling(bgc_a: str, bgc_b: str) -> dict:
@@ -376,7 +416,15 @@ def assess_pair(pair_rec: dict, cctt_a: Any, cctt_b: Any,
     arm_kcb = kcb_a if arm_side == "a" else kcb_b
     core_family = arm_family = None
     concordance = "not_evaluated"
-    if family_map and not family_map.get("_skipped"):
+    tier_cap_reason = None
+    # P300-063: keep "gate did not run" distinct from an evaluated result. An absent/empty map and a
+    # missing/corrupt map file (load_family_map's _skipped) both leave concordance not_evaluated.
+    if not family_map:
+        concordance_gate = "not_run_family_map_absent"
+    elif family_map.get("_skipped"):
+        concordance_gate = "not_run_family_map_unavailable"
+    else:
+        concordance_gate = "evaluated"
         core_family = kcb_family(core_kcb, family_map)
         arm_family = kcb_family(arm_kcb, family_map)
         concordance = _concordance(core_family, arm_family, family_map)
@@ -385,6 +433,11 @@ def assess_pair(pair_rec: dict, cctt_a: Any, cctt_b: Any,
                 tier = "DIAGNOSTIC_RESCUE_LOW"     # cross-family — co-occurrence, not a split
             elif concordance == "indeterminate":
                 tier = "DIAGNOSTIC_RESCUE_MODERATE"  # cannot confirm class concordance
+    # A HIGH needs the concordance gate to have run; an unrun gate must not be less restrictive than an
+    # evaluated family-less (indeterminate) pair, which is capped at MODERATE above.
+    if tier == "DIAGNOSTIC_RESCUE_HIGH_CONFIDENCE" and concordance_gate != "evaluated":
+        tier = "DIAGNOSTIC_RESCUE_MODERATE"
+        tier_cap_reason = "kcb_concordance_gate_not_run"
 
     core_class = cores[0].split("_")[0] if cores else "?"
     safe = (
@@ -404,7 +457,9 @@ def assess_pair(pair_rec: dict, cctt_a: Any, cctt_b: Any,
         "core_kcb_family": core_family,
         "arm_kcb_family": arm_family,
         "kcb_concordance": concordance,
+        "kcb_concordance_gate": concordance_gate,
         "rescue_tier": tier,
+        "rescue_tier_cap_reason": tier_cap_reason,
         "shared_scaffold": scaffold,
         "ref_source": (deep_tiling or {}).get("ref_source"),
         "reference_genes_covered": covered,
@@ -427,7 +482,8 @@ def build_leads(rggmci_full: dict, cctt_per_bgc: dict, deep_tiling_fn: Optional[
     """Build the ranked Diagnostic Rescue lead list from an RG-GMCI full payload + per-BGC CCTT.
 
     When `kcb_per_bgc` + `family_map` are supplied, the KCB-class concordance gate is active:
-    HIGH requires the core and arm to KCB to compatible biosynthetic families.
+    HIGH requires the core and arm to KCB to compatible biosynthetic families. Without a usable
+    family map the gate does not run and a HIGH is capped at MODERATE (`rescue_tier_cap_reason`).
     """
     kcb_per_bgc = kcb_per_bgc or {}
     seen: set[str] = set()

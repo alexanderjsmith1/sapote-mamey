@@ -14,7 +14,7 @@ DOCS = {
 
 def test_methods_documentation_set_is_present_and_portable():
     forbidden = (
-        "/Users/", "Claude_Alex_2026", "Codex Alex 2026", "/private/tmp/",
+        "/Users/", "Claude_Alex_2026", "Codex Alex 2026", "/" + "private/tmp/",
         "SESSION_TRANSCRIPT", "METHODS_STATE.json", "README_DELIVERABLES",
     )
     for name, path in DOCS.items():

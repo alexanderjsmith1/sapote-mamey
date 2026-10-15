@@ -4,7 +4,7 @@
 
 ### CLI, workbook, figures, packaging, stores, and parse layer of the Mamey engine
 
-**Version of record:** Mamey engine v1.9.175 · bundle v9.7.450 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23; architecture unchanged — B4 workbook column list may not reflect triggers added at v1.9.99)
+**Version of record:** Mamey engine v1.9.176 · bundle v9.7.451 · re-grounded 2026-09-14 (originally compiled v1.9.110 / v9.7.319, 2026-06-23; architecture unchanged — B4 workbook column list may not reflect triggers added at v1.9.99)
 **Author:** Alexander J. Smith
 **Companion to:** *The Mathematics of Sapote-Mamey* (Volumes I & II — the engine's quantitative core and subsystems).
 **Status:** Architecture reference. Every component is transcribed from engine source and cited to `module.py:symbol`; nothing is reconstructed from memory. Each cluster was verified against source; corrections made during review are noted inline.
@@ -785,8 +785,9 @@ This cluster covers everything that happens after the source-scan and scoring ph
 | `sec_met_domains` | domain features | Sorted set of domain names for this CDS |
 | `gene_functions` | qualifiers `gene_functions` + `sec_met_domain` + `note` | Blob used by locus-map classifier |
 | `gene_kind` | qualifier `gene_kind` | Kept for functional-role profiling (P-CBDB v9.7.100) |
-| `tta_codons` | nucleotide_seq scan | TTA codon count for bldA tier |
+| `tta_codons` | nucleotide_seq scan | TTA codon count for bldA tier. `null` (blank in `_cds_table.csv`) when no nucleotide sequence was available: not computed, not zero |
 | `has_translation` | bool | True when full translation is present |
+| `has_nucleotide` | bool | True when a nucleotide sequence was available for the TTA scan |
 
 **Assignment rule:** A CDS is assigned to a BGC when it shares the BGC's contig AND its coordinates overlap the BGC span. A CDS may appear under multiple BGC IDs only if those BGCs overlap (rare).
 

@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import re
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -73,6 +74,7 @@ def test_real_batch_with_a_broken_input_exits_one(tmp_path):
         [sys.executable, str(HARNESS), "--inputs", str(broken.parent), "--outdir", str(out),
          "--registry", str(out / "reg.csv"), "--metrics", str(out / "met.csv")],
         cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
-    assert "RUN_FAILED" in result.stdout, result.stdout + result.stderr
+    # "RUN_FAILED" alone also matches the summary's "RUN_FAILED 0"; require a non-zero count (.452).
+    assert re.search(r"RUN_FAILED [1-9]", result.stdout), result.stdout + result.stderr
     assert result.returncode == 1, result.stdout + result.stderr
     assert "BATCH_INCOMPLETE" in result.stdout

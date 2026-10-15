@@ -61,7 +61,8 @@ class CanonicalOverwriteRefused(RuntimeError):
 def is_canonical_dated_path(path: str | os.PathLike) -> bool:
     """True if `path` sits inside a dated deliverable folder (`..._YYYY-MM-DD/`)."""
     p = Path(path).expanduser()
-    return any(DATED_DIR_RE.match(parent.name) for parent in p.parents)
+    return any(DATED_DIR_RE.match(parent.name)
+               for target in (p, p.resolve()) for parent in target.parents)
 
 
 def guard_canonical_write(path: str | os.PathLike, *, force: bool = False,

@@ -145,8 +145,23 @@ def build_strain(strain, outdir):
     bgcs = sorted(set(nr)|set(mibig)|set(meta), key=lambda b:int(re.sub(r"\D","",b) or 0))
     cohort = {"strain":strain,"generated":"2026-08-03","channels_present":["nr","mibig"],
               "channels_absent":{"swissprot":"not run","clusterblast_general":"not extracted"},"bgcs":[]}
+    cohort["held_nr"] = {}
     for b in bgcs:
         m = meta.get(b,{}); ld = locus(b)
+        # v9.7.451: an nr row names its gene by tag and its BGC by the number of the run it came from; both can point at
+        # a different gene now (old BGC numbering, or a tag that is a position inside the region). Bind a row only when
+        # this BGC's locus data has that tag with the same protein length; hold the rest instead of displaying them.
+        nrb = {}
+        for g, row in nr.get(b, {}).items():
+            L = ld.get(g, {})
+            cur, rec = L.get("length_aa", ""), str(row.get("aa_length", "")).strip()
+            if not ld: why = "no locus data for this BGC"
+            elif not L: why = "tag not in this BGC"
+            elif not (cur.isdigit() and rec.isdigit()): why = "length not recorded"
+            elif int(cur) != int(rec): why = "length differs"
+            else: nrb[g] = row; continue
+            cohort["held_nr"][why] = cohort["held_nr"].get(why, 0) + 1
+        nr[b] = nrb
         genes = sorted(set(ld)|set(nr.get(b,{}))|set(mibig.get(b,{})), key=gkey)
         if not genes: continue
         bo = {"bgc_id":b,"node":m.get("node",""),"region":m.get("region",""),"products":m.get("products",""),

@@ -37,6 +37,7 @@ import collections
 import csv
 import json
 import hashlib
+import gzip
 import logging
 import os
 import re
@@ -247,14 +248,18 @@ def cmd_extract(a):
             records = list(parse_genbank_text(text))
             if not records:
                 raise OrdinateRefusal(f"REGION_PARSE_UNVERIFIED: {evidence['path']}")
-            if len({str(rec.id) for rec in records}) != len(records):
+            # Biopython's record id is the VERSION line; antiSMASH writes it without the 0 after a SPAdes coverage's point
+            # (NODE_1_length_9000_cov_71.028267 -> VERSION ..._cov_71.28267). The engine rule reads LOCUS for NODE_ contigs.
+            from mamey.parsers import _record_contig_id
+            if len({_record_contig_id(rec) for rec in records}) != len(records):
                 raise OrdinateRefusal(f"AMBIGUOUS_RECORD_IDENTITY: {evidence['path']}")
             for rec in records:
                 # Default identity is the record/region supplied by the source, not a
                 # inferred biological assembly. Independent assemblies with identical
                 # identifiers/bytes require explicit input-to-assembly bindings.
-                assembly = assembly_table.get(str(Path(path).resolve()), str(rec.id))
-                identity = (src, assembly, str(rec.id), evidence["file"])
+                rec_id = _record_contig_id(rec)
+                assembly = assembly_table.get(str(Path(path).resolve()), rec_id)
+                identity = (src, assembly, rec_id, evidence["file"])
                 if identity in seen_records:
                     if seen_records[identity]["sha256"] != evidence["sha256"]:
                         raise OrdinateRefusal(f"CONFLICTING_REGION_IDENTITY: {identity}")
@@ -270,7 +275,7 @@ def cmd_extract(a):
                         products = sorted(set(p for v in q.get("product", []) for p in v.split()))
                     base = dict(source=src, group=group, genus=g, strain=strain, origin=name,
                                 locus_tag=(q.get("locus_tag") or [""])[0], label=(q.get("label") or [""])[0],
-                                region_product="+".join(products), assembly=assembly, record_id=str(rec.id),
+                                region_product="+".join(products), assembly=assembly, record_id=rec_id,
                                 region=evidence["file"], source_sha256=evidence["sha256"],
                                 assembly_binding="EXPLICIT_INPUT_TABLE" if str(Path(path).resolve()) in assembly_table else "SOURCE_RECORD_ID",
                                 locus_identity=" / ".join(map(str, identity)) + " / " +
@@ -412,6 +417,50 @@ def classical_pcoa(D, k=3):
     return X, [100 * v / tr if tr else 0.0 for v in vals]
 
 
+def distance_matrix(allvsall_path, ids):
+    """Existing minimum bidirectional identity distance; IDs define matrix order.
+
+    Accept plain or gzip hit tables (qseqid, sseqid, pident). Missing pairs stay
+    one and the diagonal is zero. This function does not perform admission;
+    callers must bound the dense allocation before invoking it.
+    """
+    import numpy as np
+    ids = list(ids)
+    if len(set(ids)) != len(ids):
+        raise OrdinateRefusal("distance matrix IDs must be unique")
+    idx = {identifier: k for k, identifier in enumerate(ids)}
+    matrix = np.ones((len(ids), len(ids)), dtype=np.float32)
+    path = Path(allvsall_path)
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt") as stream:
+        for line in stream:
+            q, subject, identity = line.split("\t")
+            i, j, distance = idx[q], idx[subject], 1 - float(identity) / 100
+            if distance < matrix[i, j]:
+                matrix[i, j] = matrix[j, i] = distance
+    np.fill_diagonal(matrix, 0)
+    return matrix
+
+
+def _retain_allvsall(source, destination, ids, expected_source=None):
+    """Stream deterministic gzip and bind the exact consumed hit bytes."""
+    before = _resources.digest(source)
+    if expected_source is not None and before != expected_source:
+        raise OrdinateRefusal("all-vs-all differs from distance-consumed input")
+    consumed = hashlib.sha256()
+    with source.open("rb") as inp, destination.open("xb") as raw:
+        with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as out:
+            while block := inp.read(1024 * 1024):
+                consumed.update(block)
+                out.write(block)
+    if consumed.hexdigest() != before["sha256"] or _resources.digest(source) != before:
+        raise OrdinateRefusal("all-vs-all source changed during retention")
+    return dict(relative_path=destination.name, sha256=_resources.digest(destination)["sha256"],
+                uncompressed_sha256=before["sha256"], uncompressed_bytes=before["bytes"],
+                id_order_sha256=hashlib.sha256(("\n".join(ids) + "\n").encode()).hexdigest(),
+                id_order_source="PCOA table id column in row order", format="gzip qseqid,sseqid,pident TSV")
+
+
 def _ordinate_compute(a, request):
     import numpy as np
     kit = Path(a.kit); T = a.set; out = Path(request["scratch"])
@@ -449,20 +498,25 @@ def _ordinate_compute(a, request):
     ids = cohort + list(members); idx = {i: k for k, i in enumerate(ids)}; n = len(ids)
     if n < 4:
         raise OrdinateRefusal(f"{T}: only {n} points to ordinate")
-    _resources.admit(info, request["limits"], n=n)
+    matrix_estimate = _resources.admit(info, request["limits"], n=n)
+    if request.get("cluster_first", False):
+        if shutil.disk_usage(out).free < request["limits"]["min_free_disk_bytes"] + matrix_estimate["estimated_disk_bytes"]:
+            raise OrdinateRefusal("clustered matrix scratch growth plus free-disk floor is unavailable")
+        _resources.write_json(out / "matrix_admission.json", dict(state="ADMITTED", stage="POST_CLUSTER_MATRIX",
+            retained_n=n, input_counts=info, limits=request["limits"], estimate=matrix_estimate))
     if len(set(ids)) != n or any(i not in meta for i in ids):
         raise OrdinateRefusal("cluster centroids do not match admitted input membership")
     write_fasta(out / "kept.faa", [(i, seqs[i]) for i in ids])
     run([dmd, "makedb", "--in", out / "kept.faa", "-d", out / "kept", "--threads", a.threads, "--quiet"])
     run([dmd, "blastp", "-q", out / "kept.faa", "-d", out / "kept", "-o", out / "allvsall.tsv", "--more-sensitive", "-k", n,
          "--evalue", "1e-3", "--threads", a.threads, "--tmpdir", out, "--quiet", "-f", "6", "qseqid", "sseqid", "pident"])
-    D = np.ones((n, n), dtype=np.float32)
-    for line in open(out / "allvsall.tsv"):
-        q, s, p = line.split("\t")
-        i, j, d = idx[q], idx[s], 1 - float(p) / 100
-        if d < D[i, j]:
-            D[i, j] = D[j, i] = d
-    np.fill_diagonal(D, 0)
+    hit_binding = _resources.digest(out / "allvsall.tsv") if request.get("keep_allvsall", False) else None
+    D = distance_matrix(out / "allvsall.tsv", ids)
+    if hit_binding is not None and _resources.digest(out / "allvsall.tsv") != hit_binding:
+        raise OrdinateRefusal("all-vs-all changed while distance consumed it")
+    retained_hits = None
+    if request.get("keep_allvsall", False):
+        retained_hits = _retain_allvsall(out / "allvsall.tsv", out / "allvsall.tsv.gz", ids, expected_source=hit_binding)
     for x in ("allvsall.tsv", "kept.dmnd", "kept.faa", "refs.faa", "mibig.faa"):
         (out / x).unlink(missing_ok=True)
     X, pct = classical_pcoa(D)
@@ -477,6 +531,13 @@ def _ordinate_compute(a, request):
     run_rec = dict(set=T, points=n, isolate_sequences=len(cohort), reference_sequences=len(refs), mibig_sequences=len(mibig),
                    centroids=len(members), approx_id=approx, pct_axes=[round(float(p), 2) for p in pct],
                    seconds=round(time.time() - t0), cluster_attempts=cluster_attempts)
+    if request.get("cluster_first", False):
+        run_rec["admission_mode"] = "CLUSTER_FIRST"
+        run_rec["matrix_admission"] = dict(relative_path="RESOURCE_ATTEMPT/scratch/matrix_admission.json",
+            sha256=_resources.digest(out / "matrix_admission.json")["sha256"], retained_n=n,
+            estimate=matrix_estimate)
+    if retained_hits is not None:
+        run_rec["retained_allvsall"] = retained_hits
     return run_rec
 
 
@@ -520,6 +581,8 @@ def _ordinate_worker(request_path, expected_hash):
         raise OrdinateRefusal("DIAMOND executable drift")
     outputs = {name: _resources.digest(scratch / name) for name in
                (f"PCOA_{a.set}.tsv", f"REFERENCE_CLUSTERS_{a.set}.tsv")}
+    if request.get("keep_allvsall", False):
+        outputs["allvsall.tsv.gz"] = _resources.digest(scratch / "allvsall.tsv.gz")
     _resources.write_json(scratch / "completion.json", dict(attempt_id=request["attempt_id"],
         request_sha256=expected_hash, run=run_rec, outputs=outputs, runtime=_resources.runtime(),
         diamond=dict(binding=diamond_before, version=probe.stdout.strip(),
@@ -583,6 +646,12 @@ def main(argv=None) -> int:
     c = sub.add_parser("card", parents=[common]); c.add_argument("--card-fasta", required=True); c.add_argument("--aro-index", required=True)
     c.add_argument("--min-cohort", type=int, default=5)
     o = sub.add_parser("ordinate", parents=[common]); o.add_argument("--set", required=True); o.add_argument("--approx-id", type=float)
+    o.add_argument("--cluster-first", action=argparse.BooleanOptionalAction, default=None,
+                   help="admission order (default: cluster first when the set has reference or MIBiG sequences, which are "
+                        "clustered in every run; upper-bound first for a cohort-only set). --cluster-first admits watched "
+                        "clustering first, then the exact clustered n before all-vs-all/matrix allocation; "
+                        "--no-cluster-first admits the unclustered upper bound first.")
+    o.add_argument("--keep-allvsall", action="store_true", help="retain deterministic allvsall.tsv.gz and its SHA-256 in RUN metadata")
     o.add_argument("--preflight", action="store_true", help="stream metadata/counts only; requires an explicit fresh receipt destination")
     o.add_argument("--resource-receipt-dir", help="fresh explicit diagnostic directory for --preflight only")
     o.add_argument("--attempt-root", help="output kit root; out_<SET> must not exist (source kit is read-only)")

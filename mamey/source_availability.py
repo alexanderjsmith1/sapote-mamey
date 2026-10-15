@@ -336,8 +336,14 @@ def build_source_availability(
         directory = source_root if collection_relative == "." else source_root / collection_relative
         if not directory.exists() or not directory.is_dir():
             raise ValueError(f"CONSUMED_COLLECTION_PATH_MISSING:{collection['collection_id']}")
-        for dirpath, dirnames, filenames in os.walk(directory):
+        if not directory.resolve().is_relative_to(source_root):
+            raise ValueError("CONSUMED_COLLECTION_ESCAPES_SOURCE_ROOT")
+        def walk_error(error):
+            raise error
+        for dirpath, dirnames, filenames in os.walk(directory, onerror=walk_error):
             current = Path(dirpath)
+            if any((current / name).is_symlink() for name in dirnames):
+                raise ValueError("SOURCE_DIRECTORY_SYMLINK_HOLD")
             depth = len(current.relative_to(directory).parts)
             dirnames[:] = sorted(
                 name for name in dirnames

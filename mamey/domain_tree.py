@@ -81,7 +81,9 @@ def load_spec(path: Path | str) -> dict:
         spec = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         raise DomainTreeError(f"SPEC_INVALID_JSON: {e}") from e
-    missing = [k for k in REQUIRED_SPEC_KEYS if not str(spec.get(k, "")).strip()]
+    # A JSON null, number or boolean is not a value: str(None) == "None" would pass a blank check.
+    missing = [k for k in REQUIRED_SPEC_KEYS
+               if not isinstance(spec.get(k), str) or not spec[k].strip()]
     if missing:
         raise DomainTreeError(f"SPEC_INCOMPLETE: missing/empty {missing} "
                               f"(required: {list(REQUIRED_SPEC_KEYS)})")
@@ -90,6 +92,7 @@ def load_spec(path: Path | str) -> dict:
     if cls not in known:
         raise DomainTreeError(f"SPEC_UNKNOWN_CLASS: {cls!r} — known classes: {sorted(known)}")
     spec.setdefault("min_tips", MIN_TIPS)
+    _admit_min_tips(spec["min_tips"])
     spec.setdefault("outgroup", None)
     # v9.7.413 standing rule (2026-09-07): a tree with no recognisable outgroup is itself a gate
     # failure. A within-class paralog panel (every KS domain of one strain) legitimately has no
@@ -97,6 +100,10 @@ def load_spec(path: Path | str) -> dict:
     # silently. Refused here, at spec load, so the operator learns BEFORE the CPU-heavy inference
     # rather than after it (build_domain_tree has no skip argument and would discard the run).
     spec.setdefault("allow_no_outgroup", False)
+    if not isinstance(spec["allow_no_outgroup"], bool):
+        raise DomainTreeError(
+            f"SPEC_INVALID_FIELD: allow_no_outgroup must be JSON true or false, not "
+            f"{spec['allow_no_outgroup']!r}")
     if not str(spec.get("outgroup") or "").strip() and not spec["allow_no_outgroup"]:
         raise DomainTreeError(
             "SPEC_NO_OUTGROUP_UNDECLARED: this spec names no `outgroup`, and a tree with no "
@@ -104,6 +111,13 @@ def load_spec(path: Path | str) -> dict:
             "naming the rooting taxon, or set `allow_no_outgroup: true` to declare a tree that has "
             "no outgroup by construction (a within-class paralog panel).")
     return spec
+
+
+def _admit_min_tips(value) -> int:
+    """The tip floor must be a positive integer; a bool, fraction, string, zero or negative is refused."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise DomainTreeError(f"SPEC_INVALID_FIELD: min_tips must be a positive integer, not {value!r}")
+    return value
 
 
 def _tailoring_family_names() -> tuple:
@@ -121,14 +135,18 @@ def _tailoring_family_names() -> tuple:
 def stage_domains(domains: list[dict], domain_class: str, outdir: Path | str,
                   min_tips: int = MIN_TIPS) -> dict:
     """Stage extracted domain dicts (ks_phylogeny/tailoring_extract shape: needs `translation`,
-    `locus_tag`, `node`, `region`, plus optional `strain`) into a deterministic FASTA + provenance
+    `locus_tag`, `node`, `region` and `strain`) into a deterministic FASTA + provenance
     TSV. Dedups byte-identical sequences (receipt kept), applies the length window, refuses < min_tips.
+    Refuses a tip whose identity is missing or holds a '?' placeholder, and two different sequences
+    that would share one FASTA header.
 
     Returns {fasta, provenance, n_staged, n_dedup, n_short_excluded, n_long_flagged}."""
+    _admit_min_tips(min_tips)
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     lo, hi = LENGTH_WINDOWS.get(domain_class, DEFAULT_WINDOW)
     seen: dict[str, str] = {}       # seq-sha1 -> first header (dedup receipt)
+    header_sha: dict[str, str] = {}  # header -> seq-sha1 of every sequence that enters or dedups into the tree
     rows, fasta_lines = [], []
     n_dedup = n_short = n_long = 0
     for d in sorted(domains, key=lambda x: (x.get("node", ""), x.get("locus_tag", ""),
@@ -146,6 +164,16 @@ def stage_domains(domains: list[dict], domain_class: str, outdir: Path | str,
             status, n_long = "LONG_FLAGGED", n_long + 1
         if status != "SHORT_EXCLUDED" and sha in seen:
             status, n_dedup = f"DUP_OF:{seen[sha]}", n_dedup + 1
+        if status != "SHORT_EXCLUDED":
+            ident = [str(d.get(k) or "").strip() for k in ("strain", "node", "region", "locus_tag")]
+            if not all(ident) or "?" in hdr:
+                raise DomainTreeError(
+                    f"STAGE_INCOMPLETE_IDENTITY: tip {hdr!r} lacks a complete strain/node/region/locus_tag "
+                    f"identity (missing or '?' placeholder); fix the extraction before staging.")
+            if header_sha.setdefault(hdr, sha) != sha:
+                raise DomainTreeError(
+                    f"STAGE_DUPLICATE_HEADER: two different sequences share the tip {hdr!r}; "
+                    f"tip-to-locus mapping would be ambiguous.")
         rows.append({"header": hdr, "domain_class": domain_class, "aa_len": len(seq),
                      "seq_sha1": sha, "status": status,
                      "matched_tag": d.get("matched_tag", ""), "evalue": d.get("evalue", "")})
@@ -178,7 +206,7 @@ def build_tree(staged_fasta: Path | str, outdir: Path | str, approved_by: str,
     """mafft --auto → IQ-TREE (-m MFP -B 1000, pinned seed). CPU-heavy → refuses without approved_by
     (tree-approval gate parity with build-ref / run_planned_tree). `runner` is injectable for tests.
     Returns the treefile path."""
-    if not str(approved_by).strip():
+    if not isinstance(approved_by, str) or not approved_by.strip():
         raise DomainTreeError("APPROVAL_REQUIRED: CPU-heavy inference needs --approved-by <name> "
                               "(standing tree-approval rule).")
     outdir = Path(outdir)

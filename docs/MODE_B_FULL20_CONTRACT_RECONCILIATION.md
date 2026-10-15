@@ -1,4 +1,4 @@
-# MODE_B_FULL20_CONTRACT_RECONCILIATION.md
+# MODE_B_FULL20_CONTRACT_RECONCILIATION.md — HISTORICAL (retired §1–§20 contract)
 
 ## Current entry and implementation scope
 

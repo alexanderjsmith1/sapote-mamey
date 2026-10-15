@@ -78,7 +78,7 @@ def load_font(image_font, size: int, bold: bool = True):
 
 
 def flatten_md(md: str) -> list[str]:
-    """Markdown to plain band lines: keeps the words, drops headings marks, bold, code and links."""
+    """Markdown to plain band lines: keeps the words, drops heading marks, bold, italic, code and links."""
     out: list[str] = []
     for line in md.splitlines():
         s = line.strip()
@@ -89,6 +89,7 @@ def flatten_md(md: str) -> list[str]:
         if s.startswith("#"):
             s = s.lstrip("#").strip()
         s = re.sub(r"\*\*(.+?)\*\*", r"\1", s)
+        s = re.sub(r"(?<![*\w])\*(?=\S)(.+?)(?<=\S)\*(?![*\w])", r"\1", s)   # *italic* (species names); a leading "* item" is left for the list rule
         s = re.sub(r"`(.+?)`", r"\1", s)
         s = re.sub(r"\[(.+?)\]\((.+?)\)", r"\1", s)
         if s[:1] in "-*":

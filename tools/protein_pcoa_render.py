@@ -60,6 +60,13 @@ from mamey.figure_policy import FigureTextRefusal, assert_no_banned_figure_text,
 _LOG = logging.getLogger("protein_pcoa_render")
 R_SCRIPT = Path(__file__).resolve().parent / "protein_pcoa_render.R"
 PALETTE = ["#0072B2", "#009E73", "#8C510A", "#CC79A7", "#56B4E9", "#D55E00"]   # mamey.figure_policy.COHORT_PALETTE order
+LEADER_MAX_IN = 0.35   # M5_452 page: longest label leader at print size, read back from the drawn PDF (M3 Integrator ruling, 13 Oct 2026)
+LEADER_RGB = (0x55 / 255,) * 3   # protein_pcoa_page.R leader colour "#555555"
+PAGE_EXPAND = dict(x=(0.22, 0.22), y=(0.18, 0.22))   # page panel limits: data range +/- these fractions (room for 8 pt labels)
+BEE_TITLES = {"KS": "PKS ketosynthase (KS) domains", "AT": "PKS acyltransferase (AT) domains", "A": "NRPS adenylation (A) domains",
+              "C": "NRPS condensation (C) domains", "KR": "PKS ketoreductase (KR) domains", "DH": "PKS dehydratase (DH) domains",
+              "ER": "PKS enoylreductase (ER) domains", "TE": "Thioesterase (TE) domains", "MT": "Methyltransferase (MT) domains",
+              "E": "NRPS epimerization (E) domains"}   # page titles: bee Fig. S9 wording (KS, AT, A, C as printed there), same form for the rest
 REF_COLOUR, MIBIG_COLOUR = "#b5b5b5", "#3a78b5"
 
 
@@ -381,7 +388,8 @@ def render_matplotlib(spec: dict, out_prefix: Path) -> None:
 
 # ---------------------------------------------------------------- driver
 def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label_text, titles, out: Path, renderer: str,
-                *, drop_origins: set[str] | None = None):
+                *, drop_origins: set[str] | None = None, forced_groups=None, spec_only: bool = False, layout: str | None = None,
+                keep_k: int | None = None):
     drop = ({l.strip() for l in open(a.drop_origins)} if a.drop_origins else set()) if drop_origins is None else drop_origins
     excluded = set(a.exclude_strain or [])
     bg, cpts, points = [], [], []
@@ -406,6 +414,17 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
     kit_span = max(max(kx) - min(kx), max(ky) - min(ky)) if rows else 1.0   # every kit point, as in v5
     groups, texts, thr, numbered = choose_labels(cpts, bg, label_below=a.label_below, top_strains=a.top_strains, q=a.quantile,
                                                  number_above=a.number_above, span=kit_span)
+    if forced_groups is not None:   # label the same proteins as another panel
+        groups = forced_groups
+    all_groups = groups   # ranked: most distant outlier first (choose_labels)
+    if keep_k is not None:   # M5_452 page: the keep_k most distant outlier groups
+        groups = groups[:keep_k]; numbered = len(groups) > a.number_above
+    short = ({r["strain"]: r.get("short") or r["strain"] for r in read_tsv(Path(a.label_names))} if getattr(a, "label_names", None) else {})
+    if short and not numbered:   # short canvas label (house rule 6 name goes to the LABELS key)
+        texts = [short.get(cpts[g[0]]["strain"], cpts[g[0]]["strain"]) + (f" x{len(g)}" if len(g) > 1 else "") for g in groups]
+    elif forced_groups is not None or keep_k is not None:
+        texts = ([str(n) for n in range(1, len(groups) + 1)] if numbered
+                 else [cpts[g[0]]["strain"] + (f" x{len(g)}" if len(g) > 1 else "") for g in groups])
     low = [p["pid"] is not None and p["pid"] < a.label_below for p in cpts]
     mid = [not lw and a.mid_below is not None and p["pid"] is not None and p["pid"] < a.mid_below for p, lw in zip(cpts, low)]
     for p, lw, md in zip(cpts, low, mid):
@@ -419,21 +438,33 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
     shi = len({p["strain"] for p, lw, md in zip(cpts, low, mid) if not lw and not md})
     top = a.mid_below if a.mid_below is not None else a.label_below
     spec = dict(set=s, panel=panel, tag=tag, colour=colour,
-                xlab=f"PCoA 1 ({pct[0]:.1f}%)" if pct is not None else "PCoA 1",
-                ylab=f"PCoA 2 ({pct[1]:.1f}%)" if pct is not None else "PCoA 2",
+                xlab=({"trimap": "TriMap 1", "tsne": "t-SNE 1"}.get(layout or getattr(a, "layout", "pcoa"))
+                      or (f"PCoA 1 ({pct[0]:.1f}%)" if pct is not None else "PCoA 1")),
+                ylab=({"trimap": "TriMap 2", "tsne": "t-SNE 2"}.get(layout or getattr(a, "layout", "pcoa"))
+                      or (f"PCoA 2 ({pct[1]:.1f}%)" if pct is not None else "PCoA 2")),
                 legend=dict(ref=f"reference genomes ({n_ref:,} {unit})", mibig=f"MIBiG ({n_mib:,} {unit})",
                             iso_low=f"{label_text} ({nlo:,} {unit}, {slo} strains): best {mt} match < {a.label_below:.0f}% identity",
                             iso_high=f"{label_text} ({nhi:,} {unit}, {shi} strains): best {mt} match >= {top:.0f}% identity"),
                 points=points, mid_fill=tint(colour),
                 labels=[dict(x=sum(cpts[k]["x"] for k in g) / len(g), y=sum(cpts[k]["y"] for k in g) / len(g), label=t)
                         for g, t in zip(groups, texts)])
+    if getattr(a, "source_style", None):   # M5_452_pcoa_source_style
+        spec["source_style"] = dict(genus=a.source_style, ref_fill=a.source_style_fill, mibig_fill="#3a78b5")
     if a.mid_below is not None:
         spec["legend"]["iso_mid"] = (f"{label_text} ({nmd:,} {unit}, {smd} strains): best {mt} match "
                                      f"{a.label_below:.0f}–{a.mid_below:.0f}% identity")
     assert_no_banned_figure_text([spec["tag"], spec["xlab"], spec["ylab"], *spec["legend"].values(), *texts],
                                  figure_id=f"{s}_{panel}")
-    prefix = out / f"PCOA_{s}_{panel}"
+    lay = layout or getattr(a, "layout", "pcoa"); prefix = out / f"{lay.upper()}_{s}_{panel}"
+    if spec_only:
+        dist = nn_dist([(p["x"], p["y"]) for p in cpts], bg) if bg else [math.inf] * len(cpts)
+        return dict(spec=spec, groups=groups, texts=texts, cpts=cpts, low=low, mid=mid, numbered=numbered, threshold=thr,
+                    counts=dict(n_cohort_points=len(cpts), n_low=nlo, n_mid=nmd, n_ref=n_ref, n_mibig=n_mib), layout=lay,
+                    all_groups=all_groups, dist=dist, short=short)
     stamp = uuid.uuid4().hex
+    if getattr(a, "min_text_pt", None):
+        spec["min_text"] = dict(min_text_pt=a.min_text_pt, print_width=a.print_width,
+                                helper=str(_ROOT / "tools" / "sapote_min_text.R"), layout=str(_ROOT / "tools" / "sapote_pub_layout.R"))
     if renderer == "r":
         spec_path = out / f".render_{s}_{panel}_{stamp}.json"
         spec_path.write_text(json.dumps(dict(spec, stamp=stamp)))
@@ -447,16 +478,26 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
         if not Path(f"{prefix}.{ext}").exists():
             raise RenderRefusal(f"{prefix.name}.{ext} was not written")
     assert_no_banned_figure_text(svg_visible_text(Path(f"{prefix}.svg").read_text()), figure_id=prefix.name)
+    if spec.get("min_text"):
+        sys.path.insert(0, str(_ROOT)); from tools._min_text_check import enforce as _mt_enforce
+        try:
+            _mt_enforce(f"{prefix}.pdf", a.min_text_pt)
+        except RuntimeError as exc:
+            raise RenderRefusal(str(exc)) from None
+    from mamey.figure_stamp import stamp_file
+    for ext in (".png", ".pdf", ".svg"):
+        stamp_file(Path(str(prefix) + ext), "protein_pcoa_render")
+    names = ({r["strain"]: r["display"] for r in read_tsv(Path(a.label_names))} if getattr(a, "label_names", None) else {})
     with open(out / f"LABELS_{s}_{panel}.tsv", "w", newline="") as fh:
         w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
-        w.writerow(["label", "label_text", "strain", "region_file", "locus_tag", "PC1", "PC2", "nearest_identity_pct", "fill"])
+        w.writerow(["label", "label_text", "strain", "display_name", "region_file", "locus_tag", "X", "Y", "nearest_identity_pct", "fill"])
         for n, (g, t) in enumerate(zip(groups, texts), 1):
             for k in g:
                 p = cpts[k]
-                w.writerow([n, t, p["strain"], p["row"].get("origin", ""), p["row"].get("locus_tag", ""), f"{p['x']:.5f}",
+                w.writerow([n, t, p["strain"], names.get(p["strain"], ""), p["row"].get("origin", ""), p["row"].get("locus_tag", ""), f"{p['x']:.5f}",
                             f"{p['y']:.5f}", f"{p['pid']:.1f}" if p["pid"] is not None else "",
                             "solid" if low[k] else ("light" if mid[k] else "open")])
-    receipt = dict(set=s, panel=panel, cohorts=sorted(cohort_set), renderer=renderer, stamp=stamp, labels=len(groups),
+    receipt = dict(set=s, panel=panel, layout=lay, min_text=spec.get("min_text"), cohorts=sorted(cohort_set), renderer=renderer, stamp=stamp, labels=len(groups),
                    numbered=numbered, threshold=thr, n_cohort_points=len(cpts), n_low=nlo, n_mid=nmd, n_ref=n_ref, n_mibig=n_mib,
                    label_rule=("top_strains" if a.top_strains else "distance_quantile"), top_strains=a.top_strains,
                    quantile=a.quantile, label_below=a.label_below, mid_below=a.mid_below, title=title,
@@ -465,13 +506,305 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
     return receipt
 
 
+def page_legend(a, leg, n_ref_genomes=None):
+    '''Bee Fig. S9 shared-legend wording (build_pcoa_figures.py legend_handles), plus the reference genome count (M5_452 P4).'''
+    who = (a.panel_label[0].split("=", 1)[1] if a.panel_label else "cohort protein")
+    ref = (getattr(a, "reference_label", None)
+           or (f"reference genomes, n = {n_ref_genomes:,} (cluster centroids)" if n_ref_genomes else "reference genomes (cluster centroids)"))
+    out = dict(ref=ref, mibig="MIBiG characterized clusters",
+               iso_low=f"{who}, best reference/MIBiG match < {a.label_below:.0f}% identity")
+    top = a.mid_below if a.mid_below is not None else a.label_below
+    if a.mid_below is not None:
+        out["iso_mid"] = f"{who}, best reference/MIBiG match {a.label_below:.0f}–{a.mid_below:.0f}% identity"
+    out["iso_high"] = f"{who}, best reference/MIBiG match ≥ {top:.0f}% identity"
+    return out
+
+
+def point_radius_pt(size_mm, stroke=0.35):
+    """Drawn radius (pt) of a ggplot2 shape 16/21 point: fontsize = size * .pt + stroke * .stroke / 2; circle radius 0.375 x fontsize,
+    plus half the outline."""
+    return 0.375 * (size_mm * 72.27 / 25.4 + stroke * 96 / 25.4 / 2) + stroke * 72.27 / 25.4 / 2
+
+
+def _boxes_overlap(a, b):
+    return a[0] < b[1] and b[0] < a[1] and a[2] < b[3] and b[2] < a[3]
+
+
+def _segment_hits_box(seg, box):
+    """Liang-Barsky clip: does the segment (x0, y0, x1, y1) pass through the box (x0, x1, y0, y1)?"""
+    x0, y0, x1, y1 = seg; dx, dy = x1 - x0, y1 - y0; t0, t1 = 0.0, 1.0
+    for p, q in ((-dx, x0 - box[0]), (dx, box[1] - x0), (-dy, y0 - box[2]), (dy, box[3] - y0)):
+        if p == 0:
+            if q < 0:
+                return False
+        else:
+            t = q / p
+            if p < 0:
+                t0 = max(t0, t)
+            else:
+                t1 = min(t1, t)
+            if t0 > t1:
+                return False
+    return True
+
+
+def _segments_cross(p, q):
+    """Proper crossing of two segments (x0, y0, x1, y1); touching end points do not count."""
+    def orient(ax, ay, bx, by, cx, cy):
+        return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+    d1 = orient(*q[:2], *q[2:], *p[:2]); d2 = orient(*q[:2], *q[2:], *p[2:])
+    d3 = orient(*p[:2], *p[2:], *q[:2]); d4 = orient(*p[:2], *p[2:], *q[2:])
+    return d1 * d2 < 0 and d3 * d4 < 0
+
+
+def place_labels_pt(targets, texts, obstacles, rect, blocked, *, font_size, italic, max_leader_pt, pad=1.5, step=1.5):
+    """M5_452 P2/P3: bee Fig. S9 label placement (bee kit plot_pcoa.py place_labels, lines 62-65), in print points on the final page:
+    for each label in rank order, anchor points on rings around its target (3 pt to max_leader_pt from the point edge, step pt apart,
+    16 directions, nearest ring first); keep the first label box that lies inside the panel rectangle and covers no point (any layer),
+    no earlier label or leader and no blocked box (panel title), and whose leader crosses no earlier leader. A label with no free spot is not drawn (None).
+    targets: [(x, y, radius)]; obstacles: (n, 3) array of point centre x, y and radius; rect and boxes: (x0, x1, y0, y1)."""
+    import numpy as np
+    from tools._min_text_check import _font_length
+    face, h = ("Arial-ItalicMT" if italic else "ArialMT"), 0.93 * font_size   # ascent 0.72 + descent 0.21 em
+    X, Y, R = obstacles[:, 0], obstacles[:, 1], obstacles[:, 2]
+    boxes, segs, out = list(blocked), [], []
+    angles = [k * math.pi / 8 for k in range(16)]
+    radii = [3.0 + step * n for n in range(int((max_leader_pt - 3.0) / step) + 1)]
+    for (tx, ty, tr), text in zip(targets, texts):
+        w = _font_length(text, face, font_size); best = None
+        for r in radii:
+            for th in angles:
+                c, s = math.cos(th), math.sin(th)
+                ax, ay = tx + (tr + r) * c, ty + (tr + r) * s
+                hj = 0.0 if c > 0.38 else (1.0 if c < -0.38 else 0.5); vj = 0.0 if s > 0.38 else (1.0 if s < -0.38 else 0.5)
+                b = (ax - hj * w - pad, ax + (1 - hj) * w + pad, ay - vj * h - pad, ay + (1 - vj) * h + pad)
+                if b[0] < rect[0] or b[1] > rect[1] or b[2] < rect[2] or b[3] > rect[3]:
+                    continue
+                dx = np.maximum(np.maximum(b[0] - X, 0.0), X - b[1]); dy = np.maximum(np.maximum(b[2] - Y, 0.0), Y - b[3])
+                if np.any(dx * dx + dy * dy < R * R):
+                    continue
+                seg = (tx + tr * c, ty + tr * s, ax, ay)
+                if any(_boxes_overlap(b, o) or _segment_hits_box(seg, o) for o in boxes) or any(_segment_hits_box(q, b) for q in segs):
+                    continue
+                if any(_segments_cross(seg, q) for q in segs):
+                    continue
+                best = dict(anchor=(ax, ay), seg=seg, hjust=hj, vjust=vj, box=b, leader_pt=r); break
+            if best:
+                break
+        out.append(best)
+        if best:
+            boxes.append(best["box"]); segs.append(best["seg"])
+    return out
+
+
+def embedding_meta(table, lays):
+    """Version and seed of the drawn embedding, from the fit receipt beside its table (<dir>/<TRIMAP|TSNE>_<SET>.json, as written by the
+    embedding step) when present; otherwise empty (the caption then gives no version)."""
+    if not table or all(l == "pcoa" for l in lays):
+        return {}
+    t = Path(table); cand = sorted(t.parent.glob("*_" + t.parent.name + ".json")) or sorted(t.parent.glob("*.json"))
+    for c in cand:
+        try:
+            d = json.loads(c.read_text()); m = d.get("trimap") or d.get("tsne") or {}
+            seeds = m.get("seeds") or ([m["seed"]] if "seed" in m else [])
+            k = int(t.stem.rsplit("seed", 1)[1]) - 1 if "seed" in t.stem else 0
+            return dict(version=m.get("version"), seed=seeds[k] if 0 <= k < len(seeds) else None, receipt=str(c))
+        except (ValueError, OSError, IndexError):
+            continue
+    return {}
+
+
+def build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, labels, titles, out, drop_origins, meta):
+    '''M5_452 page mode, defaults not knobs: one panel per layout in --page, bee Fig. S9 print style (tools/protein_pcoa_page.R), one
+    shared legend. Labels: the bee Fig. S9 outlier rule computed in each panel (choose_labels distance branch; bee kit plot_pcoa.py lines
+    85-90, 105-116), placed by the bee greedy placement (place_labels_pt) on the final page geometry read from a label-free trial PDF,
+    leaders <= LEADER_MAX_IN; the drawn PDF is read back (overlaps, leader lengths) and the page refused if a fault cannot be removed.'''
+    if not getattr(a, "min_text_pt", None):
+        raise RenderRefusal("--page needs --min-text-pt (the page is always saved through the min-text gate)")
+    if len(a.panel) != 1:
+        raise RenderRefusal("--page draws one cohort panel per layout; pass exactly one --panel")
+    if a.top_strains:
+        raise RenderRefusal("--page labels the bee Fig. S9 outliers and places them automatically; --top-strains is not used in page mode")
+    import numpy as np
+    from tools._min_text_check import enforce as _mt_enforce, page_label_faults as _faults, pdf_axis_panels as _axis_panels
+    name, cs = a.panel[0].split("=", 1); cohort_set = set(cs.split(",")); lays = a.page.split(","); P = len(lays)
+    by_lay = {}
+    for lay in lays:
+        r2 = rows
+        if lay != "pcoa":
+            ep = Path(emb_tables[s]); key = "TRIMAP" if lay == "trimap" else "TSNE"
+            emb = {r["id"]: r for r in read_tsv(ep, expected_binding=admitted[ep.absolute()])}
+            if any(r["id"] not in emb for r in rows) or len(emb) != len(rows):
+                raise RenderRefusal(f"{ep}: coordinates do not cover the kit ids")
+            r2 = [dict(r, PC1=emb[r["id"]][key + "1"], PC2=emb[r["id"]][key + "2"]) for r in rows]
+        by_lay[lay] = r2
+    full = [build_panel(a, s, by_lay[lay], near, run, cohorts, name, cohort_set, colours.get(name, PALETTE[0]),
+                        labels.get(name, f"{name} isolates"), titles, out, "r", drop_origins=drop_origins,
+                        spec_only=True, layout=lay, keep_k=None) for lay in lays]
+    n_out = [len(b["all_groups"]) for b in full]
+    genome_no = {}   # cohort table order: number n is the same genome in every panel and every page drawn from this table
+    for strain, coh in cohorts.items():
+        if coh in cohort_set and strain not in genome_no:
+            genome_no[strain] = len(genome_no) + 1
+    cohort_strains = {p["strain"] for b in full for p in b["cpts"]}
+    n_ref_genomes = len({r["strain"] for r in meta if r.get("strain") and r.get("source") not in ("isolate", "MIBiG")
+                         and r["strain"] not in cohort_strains})
+    legend = page_legend(a, full[0]["spec"]["legend"], n_ref_genomes)
+    lims = []
+    for b in full:
+        xs = [p["x"] for p in b["spec"]["points"]]; ys = [p["y"] for p in b["spec"]["points"]]
+        dx, dy = (max(xs) - min(xs)) or 1.0, (max(ys) - min(ys)) or 1.0
+        lims.append(dict(xlim=[min(xs) - PAGE_EXPAND["x"][0] * dx, max(xs) + PAGE_EXPAND["x"][1] * dx],
+                         ylim=[min(ys) - PAGE_EXPAND["y"][0] * dy, max(ys) + PAGE_EXPAND["y"][1] * dy]))
+    prefix = out / f"PAGE_{s}_{name}_{'_'.join(l.upper() for l in lays)}"
+    trials = out / f"fit_trials_{s}"; trials.mkdir(exist_ok=True)
+    col = lambda pts, k: [p[k] for p in pts]
+
+    def draw(labs, probe, tag=""):
+        stamp = uuid.uuid4().hex; pre = (trials / f"{prefix.name}_{tag}") if probe else prefix
+        page = dict(stamp=stamp, probe=probe, ncol=P, panel_height=3.6, italic_labels=bool(getattr(a, "italic_labels", False)),
+                    legend=legend, leader_colour="#555555",
+                    panels=[dict(tag=b["spec"]["tag"], xlab=b["spec"]["xlab"], ylab=b["spec"]["ylab"], **lims[c],
+                                 points={k: col(b["spec"]["points"], k) for k in ("x", "y", "layer", "size")},
+                                 labels={k: [l[k] for l in labs[c]] for k in ("x", "y", "label", "hjust", "vjust", "sx", "sy", "face")})
+                            for c, b in enumerate(full)],
+                    min_text=dict(min_text_pt=a.min_text_pt, print_width=a.print_width,
+                                  helper=str(_ROOT / "tools" / "sapote_min_text.R"), layout=str(_ROOT / "tools" / "sapote_pub_layout.R")))
+        spec_path = out / f".page_{s}_{stamp}.json"; spec_path.write_text(json.dumps(page))
+        try:
+            r = subprocess.run(["Rscript", str(_ROOT / "tools" / "protein_pcoa_page.R"), str(spec_path), str(pre), stamp],
+                               capture_output=True, text=True)
+        finally:
+            spec_path.unlink(missing_ok=True)
+        if r.returncode == 0:
+            done = Path(str(pre) + ".stamp")
+            if not done.exists() or done.read_text().strip() != stamp:
+                raise RenderRefusal(f"page renderer did not confirm stamp for {pre.name}")
+            done.unlink()
+        return pre, r, page
+
+    # 1. label-free trial page at the final size: panel rectangles (pt) from the drawn axis lines
+    pre, r, _ = draw([[] for _ in range(P)], True, "geometry")
+    if r.returncode != 0:
+        raise RenderRefusal(f"trial page failed for {prefix.name}: {r.stderr.strip()[-600:]}")
+    rects = _axis_panels(f"{pre}.pdf", P)
+    if len(rects) != P:
+        raise RenderRefusal(f"{pre.name}: found {len(rects)} panel axis frames, expected {P}")
+    # 2. bee greedy placement per panel, in print points
+    from tools._min_text_check import _font_length
+    placed, fs = [], float(a.min_text_pt)
+    for c, b in enumerate(full):
+        rx0, rx1, ry0, ry1 = rects[c]; (xl0, xl1), (yl0, yl1) = lims[c]["xlim"], lims[c]["ylim"]
+        tx = lambda x: rx0 + (x - xl0) / (xl1 - xl0) * (rx1 - rx0); ty = lambda y: ry0 + (y - yl0) / (yl1 - yl0) * (ry1 - ry0)
+        pts = b["spec"]["points"]
+        obst = np.array([(tx(p["x"]), ty(p["y"]), point_radius_pt(1.25 if p["layer"].startswith("iso") else
+                         0.17 * math.sqrt(3 + 1.5 * math.sqrt(p["size"])))) for p in pts])
+        title_w = _font_length(b["spec"]["tag"], "Arial-BoldMT", fs)
+        blocked = [(rx0, rx0 + title_w * 1.04 + 4.0, ry1 - 2.0 * fs, ry1)]   # annotate(hjust = -0.04, vjust = 1.4) top-left title
+        cp = b["cpts"]; groups = b["all_groups"]
+        texts = [b["short"].get(cp[g[0]]["strain"], cp[g[0]]["strain"]) + (f" x{len(g)}" if len(g) > 1 else "") for g in groups]
+        # page labels are always names (FIGURE_HOUSE_RULES rule 6): no numbered labels in page mode, whatever the outlier count
+        targets = [(tx(sum(cp[k]["x"] for k in g) / len(g)), ty(sum(cp[k]["y"] for k in g) / len(g)), point_radius_pt(1.25)) for g in groups]
+        italic = bool(getattr(a, "italic_labels", False))   # species names in italic
+        res = place_labels_pt(targets, texts, obst, (rx0, rx1, ry0, ry1), blocked, font_size=fs, italic=italic,
+                              max_leader_pt=LEADER_MAX_IN * 72)
+        dx_ = lambda X: xl0 + (X - rx0) / (rx1 - rx0) * (xl1 - xl0); dy_ = lambda Y: yl0 + (Y - ry0) / (ry1 - ry0) * (yl1 - yl0)
+        placed.append([dict(rank=n, text=t, res=q, face="italic" if italic else "plain", x=dx_(q["anchor"][0]) if q else None, y=dy_(q["anchor"][1]) if q else None,
+                            sx=dx_(q["seg"][0]) if q else None, sy=dy_(q["seg"][1]) if q else None)
+                       for n, (t, q) in enumerate(zip(texts, res), 1)])
+    # 3. final page through the full gate; the PDF is read back and a fault drops that panel's last placed label
+    final_log = []
+    for attempt in range(12):
+        labs = [[dict(x=l["x"], y=l["y"], label=l["text"], hjust=l["res"]["hjust"], vjust=l["res"]["vjust"], sx=l["sx"], sy=l["sy"],
+                      face=l["face"])
+                 for l in pl if l["res"]] for pl in placed]
+        pre, r, page = draw(labs, False)
+        bad = set()
+        if r.returncode != 0:
+            msg = r.stderr.strip()[-600:]
+            if "MIN_TEXT_DOES_NOT_FIT" not in msg:
+                raise RenderRefusal(f"page renderer failed for {prefix.name}: {msg}")
+            bad = {c for c, pl in enumerate(placed) if any(l["res"] and l["text"] in msg for l in pl)} or {c for c in range(P) if labs[c]}
+            final_log.append(dict(labelled={lays[c]: len(labs[c]) for c in range(P)}, refused=msg[-300:]))
+        else:
+            try:
+                _mt_enforce(f"{prefix}.pdf", a.min_text_pt)
+            except RuntimeError as exc:
+                raise RenderRefusal(str(exc)) from None
+            f = _faults(f"{prefix}.pdf", P, LEADER_MAX_IN, LEADER_RGB)
+            bad = {c for c, v in f.items() if v}
+            final_log.append(dict(labelled={lays[c]: len(labs[c]) for c in range(P)}, faults={lays[c]: v[:8] for c, v in f.items() if v}))
+            if not bad:
+                break
+        if not any(labs[c] for c in bad):
+            raise RenderRefusal(f"MIN_TEXT_DOES_NOT_FIT: {prefix.name} fails with no labels left to drop: {final_log[-1]}")
+        for c in bad:
+            last = max((l for l in placed[c] if l["res"]), key=lambda l: l["rank"], default=None)
+            if last:
+                last["res"] = None; last["dropped"] = "PDF read-back fault"
+    else:
+        raise RenderRefusal(f"{prefix.name}: no passing page after 12 final draws: {final_log[-3:]}")
+    assert_no_banned_figure_text(svg_visible_text(Path(f"{prefix}.svg").read_text()), figure_id=prefix.name)
+    if shutil.which("qlmanage"):   # PNG preview rendered from the checked PDF
+        tmp = out / f".ql_{page['stamp']}"; tmp.mkdir()
+        subprocess.run(["qlmanage", "-t", "-s", str(int(a.print_width * 600)), "-o", str(tmp), f"{prefix}.pdf"], capture_output=True)
+        ql = tmp / f"{prefix.name}.pdf.png"
+        if ql.exists():
+            shutil.move(str(ql), f"{prefix}.png")
+        shutil.rmtree(tmp, ignore_errors=True)
+    # A preview conversion can replace the PNG and its metadata.
+    from mamey.figure_stamp import stamp_file
+    for ext in (".png", ".pdf", ".svg"):
+        stamp_file(Path(str(prefix) + ext), "protein_pcoa_page")
+    names = ({r["strain"]: r["display"] for r in read_tsv(Path(a.label_names))} if getattr(a, "label_names", None) else {})
+    with open(out / f"LABELS_{s}_{name}_PAGE.tsv", "w", newline="") as fh:
+        w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
+        w.writerow(["panel", "layout", "outlier_rank", "drawn", "label_text", "leader_in", "genome_number", "strain", "display_name", "region_file", "locus_tag",
+                    "nearest_identity_pct", "fill", "x", "y", "distance_to_nearest_background", "threshold_p95"])
+        for c, (lay, b) in enumerate(zip(lays, full)):
+            for l, g in zip(placed[c], b["all_groups"]):
+                for k in g:
+                    p = b["cpts"][k]
+                    w.writerow(["abcdefgh"[c], lay, l["rank"], "yes" if l["res"] else ("no: " + l.get("dropped", f"no free spot within {LEADER_MAX_IN} in")),
+                                l["text"], f"{l['res']['leader_pt'] / 72:.3f}" if l["res"] else "", genome_no.get(p["strain"], ""), p["strain"],
+                                names.get(p["strain"], ""),
+                                p["row"].get("origin", ""), p["row"].get("locus_tag", ""), f"{p['pid']:.1f}" if p["pid"] is not None else "",
+                                "solid" if b["low"][k] else ("light" if b["mid"][k] else "open"), f"{p['x']:.5f}", f"{p['y']:.5f}",
+                                f"{b['dist'][k]:.5f}", f"{b['threshold']:.5f}"])
+    b0 = full[0]
+    receipt = dict(set=s, panel=name, page=lays, stamp=page["stamp"], style="bee Fig. S9 print (render_pcoa_print.R values)", staged=".452",
+                   label_rule="bee Fig. S9 outliers per panel (distance to the nearest reference/MIBiG point > p95 of reference/MIBiG "
+                              "nearest-neighbour distances; bee plot_pcoa.py lines 105-116)",
+                   placement=f"bee greedy placement (plot_pcoa.py place_labels, lines 62-65) in print points, leaders <= {LEADER_MAX_IN} in; "
+                             "labels cover no point, label, leader or panel title",
+                   labels={lay: dict(outlier_groups=n_out[c], outlier_points=sum(len(g) for g in full[c]["all_groups"]),
+                                     labelled=sum(1 for l in placed[c] if l["res"]), threshold=full[c]["threshold"],
+                                     numbered=False,
+                                     longest_leader_in=max((l["res"]["leader_pt"] / 72 for l in placed[c] if l["res"]), default=0.0))
+                           for c, lay in enumerate(lays)},
+                   genome_numbers=genome_no, prefix=prefix.name, title=titles.get(s, (s, s, "proteins"))[0],
+                   cohort_genomes={st: sum(1 for p in b0["cpts"] if p["strain"] == st) for st in dict.fromkeys(p["strain"] for p in b0["cpts"])},
+                   n_ref_centroids=sum(1 for p in b0["spec"]["points"] if p["layer"] == "ref"),
+                   n_mibig_centroids=sum(1 for p in b0["spec"]["points"] if p["layer"] == "mibig"),
+                   approx_id=run.get("approx_id"), pct_axes=(run.get("pct_axes") or [None, None])[:2], distance=run.get("distance"),
+                   embedding=embedding_meta(emb_tables.get(s), lays),
+                   leader_max_in=LEADER_MAX_IN, panel_rects_pt=rects, limits=lims, final_draws=final_log, n_reference_genomes=n_ref_genomes,
+                   legend=legend, **b0["counts"], quantile=a.quantile, label_below=a.label_below, mid_below=a.mid_below,
+                   min_text=page["min_text"])
+    (out / f"page_{s}_{name}.json").write_text(json.dumps(receipt, indent=1))
+    return receipt
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--kit", required=True, help="folder with out_<SET>/PCOA_<SET>.tsv")
     ap.add_argument("--set", action="append", help="set id to draw (repeatable); default: every set in the kit")
     ap.add_argument("--out", required=True, help="new or empty output folder")
-    ap.add_argument("--cohort-table", required=True, help="TSV with strain and cohort columns")
-    ap.add_argument("--panel", action="append", required=True, help="NAME=COHORT[,COHORT...] (repeatable)")
+    ap.add_argument("--cohort-table", help="TSV with strain and cohort columns (required unless --source-style)")
+    ap.add_argument("--panel", action="append", help="NAME=COHORT[,COHORT...] (repeatable; required unless --source-style)")
+    ap.add_argument("--source-style", metavar="GENUS",
+                    help="reference-only figure, no cohort (M5_452_pcoa_source_style): reference points as outlined circles in GENUS's "
+                         "colour from mamey/data/genus_palette.json, drawn above MIBiG points as outlined triangles, legend boxed; R renderer only")
     ap.add_argument("--panel-label", action="append", default=[], help="NAME=legend text for the cohort points")
     ap.add_argument("--cohort-colour", action="append", default=[], help="NAME=#hex fill for a panel's points")
     ap.add_argument("--set-names", help="TSV: set, title (or amr_gene_family), optional tag and unit columns")
@@ -484,9 +817,31 @@ def main(argv=None) -> int:
     ap.add_argument("--quantile", type=float, default=0.95)
     ap.add_argument("--number-above", type=int, default=30)
     ap.add_argument("--renderer", choices=["auto", "r", "matplotlib"], default="auto")
+    ap.add_argument("--layout", choices=["pcoa", "trimap", "tsne"], default="pcoa",
+                    help="pcoa: the kit's PC1/PC2; trimap/tsne: coordinates from --embedding-table, same points and styling")
+    ap.add_argument("--embedding-table", action="append", default=[], help="SET=TSV with id and TRIMAP1/TRIMAP2 or TSNE1/TSNE2 (layout trimap/tsne)")
+    ap.add_argument("--label-names", help="TSV: strain, display (house rule 6 name) for the LABELS key table")
+    ap.add_argument("--min-text-pt", type=float, default=None, help="floor for every text item at print size (enables the 8 pt gate)")
+    ap.add_argument("--print-width", type=float, default=7.2, help="declared print width in inches for the min-text gate")
+    ap.add_argument("--page", help="comma list of layouts drawn side by side on one bee-style page (e.g. pcoa,trimap); needs --min-text-pt")
+    ap.add_argument("--italic-labels", action="store_true", help="page mode: canvas labels in italic (species names)")
+    ap.add_argument("--caption-note", help="page mode: one study-design sentence appended to the written caption (checked by caption_guard)")
+    ap.add_argument("--reference-label", help="page mode: legend text for the grey reference points (e.g. reference genomes, n = 1,705 (cluster centroids; query genomes excluded))")
     ap.add_argument("--require-axis-metadata", action="store_true",
                     help="refuse missing axis percentages before rendering; useful for publication replay")
     a = ap.parse_args(argv)
+    if a.source_style:   # M5_452_pcoa_source_style
+        if a.page or a.renderer == "matplotlib":
+            ap.error("--source-style draws single panels with the R renderer (no --page, no --renderer matplotlib)")
+        a.panel = a.panel or ["references=__no_cohort__"]
+        pal = json.loads((_ROOT / "mamey" / "data" / "genus_palette.json").read_text())
+        a.source_style_fill = pal["default"].get(a.source_style, pal["fallback"])
+    elif not a.cohort_table or not a.panel:
+        ap.error("--cohort-table and --panel are required unless --source-style")
+    if a.page:   # M5_452 P1b page defaults (bee Fig. S9 print): tiers 70/85 %, 8 pt floor, italic species labels; no hand knobs
+        a.mid_below = 85.0 if a.mid_below is None else a.mid_below
+        a.min_text_pt = a.min_text_pt or 8.0
+        a.italic_labels = a.italic_labels or bool(a.label_names)
     if a.mid_below is not None and a.mid_below <= a.label_below:
         ap.error("--mid-below must be above --label-below")
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -500,12 +855,20 @@ def main(argv=None) -> int:
         if out.exists() and any(out.iterdir()):
             raise RenderRefusal(f"{out} is not empty; choose a new folder (delivered figures are never overwritten)")
         out.mkdir(parents=True, exist_ok=True)
-        input_paths = [Path(a.cohort_table)]
-        input_paths.extend(Path(p) for p in (a.drop_origins, a.set_names) if p)
+        input_paths = [Path(a.cohort_table)] if a.cohort_table else []
+        input_paths.extend(Path(p) for p in (a.drop_origins, a.set_names, a.label_names) if p)
+        emb_tables = dict(x.split("=", 1) for x in a.embedding_table)
+        if (a.layout != "pcoa" or (a.page and a.page != "pcoa")) and set(emb_tables) != set(a.set or emb_tables):
+            raise RenderRefusal("--layout trimap/tsne needs one --embedding-table per drawn --set")
+        input_paths.extend(Path(p) for p in emb_tables.values())
         for s in sets:
             directory = kit / f"out_{s}"
             input_paths.extend(directory / f"{prefix}_{s}.{suffix}" for prefix, suffix in
                                (("PCOA", "tsv"), ("NEAREST", "tsv"), ("RUN", "json")))
+            if a.page:   # M5_452 P4: the legend states the reference genome count, read from the kit metadata
+                if not (kit / f"{s}_META.tsv").is_file():
+                    raise RenderRefusal(f"--page needs {kit / (s + '_META.tsv')} (the legend states the reference genome count)")
+                input_paths.append(kit / f"{s}_META.tsv")
         input_bindings = [file_binding(p) for p in input_paths]
         # Keep each supplied path tied to its original binding even if a symlink
         # is retargeted before consumption. The reader still checks its target.
@@ -523,10 +886,12 @@ def main(argv=None) -> int:
                 runs[s] = metadata
             except (ValueError, TypeError) as exc:
                 raise RenderRefusal(f"{run_path}: invalid axis metadata: {exc}") from exc
-        cohorts_path = Path(a.cohort_table)
-        cohorts = {r["strain"]: r.get("cohort", "") for r in
-                   read_tsv(cohorts_path, expected_binding=admitted[cohorts_path.absolute()])}
-        titles = {}
+        cohorts = {}
+        if a.cohort_table:
+            cohorts_path = Path(a.cohort_table)
+            cohorts = {r["strain"]: r.get("cohort", "") for r in
+                       read_tsv(cohorts_path, expected_binding=admitted[cohorts_path.absolute()])}
+        titles = {k: (v, v, "proteins") for k, v in BEE_TITLES.items()} if a.page else {}   # M5_452 P6
         if a.set_names:
             names_path = Path(a.set_names)
             for r in read_tsv(names_path, expected_binding=admitted[names_path.absolute()]):
@@ -562,6 +927,18 @@ def main(argv=None) -> int:
                 read_bound_bytes(nf, nearest_binding)
                 near = {}
             run = runs[s]
+            if a.page:
+                mp = kit / f"{s}_META.tsv"
+                receipts.append(build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, labels, titles, out,
+                                           drop_origins, read_tsv(mp, expected_binding=admitted[mp.absolute()])))
+                continue
+            if a.layout != "pcoa":
+                ep = Path(emb_tables[s]); key = "TRIMAP" if a.layout == "trimap" else "TSNE"
+                emb = {r["id"]: r for r in read_tsv(ep, expected_binding=admitted[ep.absolute()])}
+                missing = [r["id"] for r in rows if r["id"] not in emb]
+                if missing or len(emb) != len(rows):
+                    raise RenderRefusal(f"{ep}: {len(missing)} kit ids without a coordinate; {len(emb)} vs {len(rows)} rows")
+                rows = [dict(r, PC1=emb[r["id"]][key + "1"], PC2=emb[r["id"]][key + "2"]) for r in rows]
             for i, spec in enumerate(a.panel):
                 name, cs = spec.split("=", 1)
                 receipts.append(build_panel(a, s, rows, near, run, cohorts, name, set(cs.split(",")),
@@ -576,6 +953,17 @@ def main(argv=None) -> int:
             inputs=input_bindings, outputs=outputs, producers=producer_bindings,
             replay_mode="SAVED_COORDINATE_REPLAY", historical_producers={s: historical_producer(runs[s]) for s in sets},
             rendering_runtime=render_runtime(renderer)), indent=1))
+        if a.page:   # M5_452 P5: documents written from the receipts, then the bundle text and render checks; any finding refuses
+            from tools.protein_pcoa_page_docs import write_page_docs, check_page_docs
+            render = json.loads((out / "render_receipt.json").read_text())
+            names = ({r["strain"]: r["display"] for r in read_tsv(Path(a.label_names))} if a.label_names else {})
+            stamp_date = subprocess.run(["date", "-u", "+%Y-%m-%d %H:%M:%SZ"], capture_output=True, text=True).stdout.strip()
+            for rec in receipts:
+                mp = kit / f"{rec['set']}_META.tsv"
+                docs = write_page_docs(out, rec, render, read_tsv(mp), names, a.caption_note, stamp_date)
+                qc = check_page_docs(out, _ROOT, docs)
+                if qc["caption_guard"] or qc["figure_render_qc_exit"] != 0 or "errors 0," not in qc["figure_render_qc"]:
+                    raise RenderRefusal(f"{rec['prefix']}: page documents failed the bundle checks: {json.dumps(qc)[:500]}")
     except (RenderRefusal, FigureTextRefusal) as exc:
         _LOG.error("REFUSED: %s", exc)
         return 2

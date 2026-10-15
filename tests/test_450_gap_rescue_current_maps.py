@@ -81,7 +81,7 @@ def test_successful_current_drawing_admits_even_identical_redraw(batch_maps, mon
     png_bytes = b.png.read_bytes() if same_bytes else b"current PNG\n"
     pdf_bytes = b.pdf.read_bytes() if same_bytes else b"current PDF\n"
     def draw(*args, **kwargs):
-        assert args[8:] == (b.png, b.pdf) and kwargs == {"anchor": None}
+        assert args[8:] == (b.png, b.pdf) and kwargs == {"anchor": None, "print_width": "double"}
         b.png.write_bytes(png_bytes)
         b.pdf.write_bytes(pdf_bytes)
         return {"contigs_drawn": [b.f.core["contig"]], "not_drawn": 0}

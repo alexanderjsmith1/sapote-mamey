@@ -32,6 +32,11 @@ except ImportError:  # bare-script run: bundle root is one level up
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 from pathlib import Path  # noqa: E402
 
+# Installed mamey does not make the bundle-local tools package importable.
+_root = str(Path(__file__).resolve().parents[1])
+if _root not in _sys.path:
+    _sys.path.insert(0, _root)
+
 # Verbatim deposited text -> shared registry category. Ordered keyword rules on the isolation_source
 # (or "host:<organism>") text; the first match wins. A documented source that matches no rule is shown
 # as "Other documented" (documented, not binned), never guessed into a named bin. Empty text = omitted.

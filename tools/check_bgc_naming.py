@@ -88,8 +88,12 @@ def _basename_violates(name: str) -> bool:
 
 def scan(root: str, strains: list[str] | None, tsv_out: str | None) -> int:
     violations: list[tuple[str, str]] = []  # (strain, path)
-    want = set(strains) if strains else None
-    for dirpath, dirnames, filenames in os.walk(root):
+    want = {s.upper() for s in strains} if strains else None
+    if not os.path.isdir(root):
+        return 2
+    def walk_error(error):
+        raise error
+    for dirpath, dirnames, filenames in os.walk(root, onerror=walk_error):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         if not AS_STRAIN_RE.search(dirpath):
             # still allow files whose OWN path segment names an AS strain
@@ -107,17 +111,17 @@ def scan(root: str, strains: list[str] | None, tsv_out: str | None) -> int:
         # convention, so --strains filtering and grouping are also case-consistent.
         m = BASENAME_STRAIN_RE.search(dirpath)
         strain = m.group(0).upper() if m else None
-        if strain is None:
-            continue
-        if want is not None and strain not in want:
-            continue
-        # check directory names too (folder-per-BGC rule: a BGC dir must be node-named)
-        for d in dirnames:
-            if _basename_violates(d):
-                violations.append((strain, os.path.join(dirpath, d) + os.sep))
-        for f in filenames:
-            if _basename_violates(f):
-                violations.append((strain, os.path.join(dirpath, f)))
+        # Reconcile each artifact's own strain token with its admitted directory.
+        for name, is_directory in [(d, True) for d in dirnames] + [(f, False) for f in filenames]:
+            own = BASENAME_STRAIN_RE.search(name)
+            own_strain = own.group(0).upper() if own else None
+            artifact_strain = own_strain or strain
+            if artifact_strain is None:
+                continue
+            if want is not None and artifact_strain not in want and strain not in want:
+                continue
+            if _basename_violates(name) or (strain and own_strain and strain != own_strain):
+                violations.append((artifact_strain, os.path.join(dirpath, name) + (os.sep if is_directory else "")))
 
     violations.sort()
     if tsv_out:
@@ -151,13 +155,22 @@ def _canonical_token(node_id: str, region: str) -> str:
     """
     node = node_id.strip()
     r = region.strip()
-    rm = re.search(r"(\d+)", r)
-    rnum = int(rm.group(1)) if rm else 0
-    return f"{node}.region{rnum:03d}"
+    from mamey.path_safety import safe_label
+    safe_label(node, field="crosswalk node_id")
+    rm = re.fullmatch(r"(?:region)?(\d+)", r, flags=re.I)
+    if rm is None or int(rm.group(1)) < 1:
+        raise ValueError("crosswalk requires a positive declared region")
+    return f"{node}.region{int(rm.group(1)):03d}"
 
 
 def crosswalk(inventory_csv: str, out: str | None) -> int:
     rows: list[tuple[str, str, str, str]] = []
+    filename_strains = {m.group(0).upper() for m in re.finditer(
+        r"(?<![A-Za-z0-9])AS-\d+(?![A-Za-z0-9])", os.path.basename(inventory_csv), re.I)}
+    if len(filename_strains) > 1:
+        raise ValueError("crosswalk inventory basename has conflicting strain identities")
+    filename_strain = next(iter(filename_strains), "")
+    seen_aliases, seen_loci = set(), set()
     with open(inventory_csv, newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
         cols = {c.lower(): c for c in (reader.fieldnames or [])}
@@ -172,11 +185,21 @@ def crosswalk(inventory_csv: str, out: str | None) -> int:
             bgc = (row.get(bgc_col) or "").strip()
             node = (row.get(node_col) or "").strip()
             region = (row.get(region_col) or "").strip()
-            if not bgc:
-                continue
+            if not BGC_RE.fullmatch(bgc) or int(re.search(r"\d+", bgc).group()) < 1:
+                raise ValueError("crosswalk requires a positive complete BGC alias")
             token = _canonical_token(node, region)
-            strain_match = re.search(r"AS-\d+", inventory_csv, re.IGNORECASE)
-            strain = strain_match.group(0).upper() if strain_match else ""
+            strain_col = cols.get("strain") or cols.get("strain_id")
+            strain = ((row.get(strain_col) or "").strip() if strain_col else "") or filename_strain
+            if not re.fullmatch(r"AS-\d+", strain, flags=re.I):
+                raise ValueError("crosswalk strain identity unavailable; ancestor paths are not authority")
+            strain = strain.upper()
+            if filename_strain and strain != filename_strain:
+                raise ValueError("crosswalk row and inventory strain identities conflict")
+            alias_number = int(re.search(r"\d+", bgc).group())
+            if (strain, alias_number) in seen_aliases or (strain, token) in seen_loci:
+                raise ValueError("crosswalk requires unique alias-to-locus mappings")
+            seen_aliases.add((strain, alias_number))
+            seen_loci.add((strain, token))
             region_token = token.rsplit(".", 1)[-1]
             safe = (f"{strain}__{node}__{region_token}__{bgc}"
                     if strain else f"{node}__{region_token}__{bgc}")

@@ -8,6 +8,8 @@ is left blank — an honest blank, not a fabricated value (evidence conservation
 """
 from __future__ import annotations
 
+import html
+
 COLUMNS = ["BGC_ID", "bgc_uid", "contig/NODE", "region", "antiSMASH_file", "workbook_row"]
 
 def _derive_uid(b: dict) -> str:
@@ -30,10 +32,18 @@ def resolver_rows(bgcs: list, workbook_map: dict | None = None) -> list:
         })
     return rows
 
+def _cell(value) -> str:
+    """Markdown table cell (P300-089): same escaping as modeb_gap_rescue._cell (quotes
+    left as typed), plus CR line breaks.
+
+    Display-only; the row dicts from resolver_rows keep the original source text."""
+    text = html.escape(str(value), quote=False).replace("|", "\\|").replace("`", "\\`")
+    return text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ")
+
 def resolver_md(rows: list) -> str:
     if not rows:
         return "_(no BGCs to resolve)_"
     hdr = "| " + " | ".join(COLUMNS) + " |"
     sep = "|" + "|".join(["---"] * len(COLUMNS)) + "|"
-    body = ["| " + " | ".join(str(r.get(c, "")) for c in COLUMNS) + " |" for r in rows]
+    body = ["| " + " | ".join(_cell(r.get(c, "")) for c in COLUMNS) + " |" for r in rows]
     return "\n".join([hdr, sep] + body)

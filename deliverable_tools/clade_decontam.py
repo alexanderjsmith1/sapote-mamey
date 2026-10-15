@@ -32,6 +32,9 @@ from __future__ import annotations
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
+from pathlib import Path
+_sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+import _phylo16s as _p16
 import argparse
 import os
 import re
@@ -150,9 +153,11 @@ def summed_bitscores_vs_ref(assembly_fa, ref_fa, blastn, makeblastdb, tmp):
         # makeblastdb's stderr to know whether the reference file, the path or the binary is at fault.
         raise RuntimeError(f"makeblastdb failed (rc={_mk.returncode}) for {ref_fa!r}: "
                            f"{(_mk.stderr or _mk.stdout).strip()[:300]}")
+    n = (_p16.blastdb_sequence_count(dbp, str(Path(blastn).with_name("blastdbcmd")))
+         or _p16.ALL_RECORDS_FALLBACK)
     proc = subprocess.run([blastn, "-query", assembly_fa, "-db", dbp, "-task", "megablast",
                            "-outfmt", "6 qseqid sseqid pident length bitscore", "-evalue", "1e-10",
-                           "-max_target_seqs", "5"], capture_output=True, text=True, check=True)
+                           "-max_target_seqs", str(n)], capture_output=True, text=True, check=True)
     return parse_summed_bitscores(proc.stdout)
 
 

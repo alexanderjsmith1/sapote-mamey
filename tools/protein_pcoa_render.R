@@ -25,16 +25,32 @@ g <- ggplot(pts, aes(x, y)) +
   annotate("text", x = -Inf, y = Inf, label = spec$tag, hjust = -0.04, vjust = 1.4, fontface = "bold", size = 9 / .pt) +
   scale_y_continuous(expand = expansion(mult = c(.03, .10))) +   # headroom so the class tag sits clear of the points
   labs(x = spec$xlab, y = spec$ylab) + theme_classic(base_size = 9) +
-  theme(legend.position = "bottom", legend.direction = "vertical", legend.justification = "left", legend.text = element_text(size = 7.5),
+  theme(legend.position = "bottom", legend.direction = "vertical", legend.justification = "left", legend.text = element_text(size = 8),
         legend.key.height = unit(10, "pt"), axis.line = element_line(linewidth = .4), axis.ticks = element_line(linewidth = .4))
+if (!is.null(spec$source_style)) {   # M5_452_pcoa_source_style: reference-only figure, outlined points, shape by source, boxed legend
+  ss <- spec$source_style
+  pts <- pts[order(pts$layer != "mibig"), ]; g$data <- pts   # MIBiG drawn first, reference points on top
+  g <- g + scale_colour_manual(values = c(ref = "black", mibig = "black"), labels = labs, breaks = lv, name = NULL) +
+    scale_fill_manual(values = c(ref = ss$ref_fill, mibig = ss$mibig_fill), labels = labs, breaks = lv, name = NULL) +
+    scale_shape_manual(values = c(ref = 21, mibig = 24), labels = labs, breaks = lv, name = NULL) +
+    scale_alpha_manual(values = c(ref = 1, mibig = 1), labels = labs, breaks = lv, name = NULL) +
+    guides(colour = guide_legend(override.aes = list(size = 2.4, stroke = .35))) +
+    theme(legend.box.background = element_rect(colour = "black", linewidth = .3), legend.box.margin = margin(3, 3, 3, 3))
+}
 lab <- if (length(spec$labels)) as.data.frame(spec$labels) else data.frame(x = numeric(0), y = numeric(0), label = character(0))
 if (nrow(lab)) {
   iso <- pts[pts$layer %in% c("iso_low", "iso_mid", "iso_high"), c("x", "y")]; iso$label <- ""   # empty labels keep text off the points
-  g <- g + geom_text_repel(data = rbind(lab[, c("x", "y", "label")], iso), aes(x, y, label = label), inherit.aes = FALSE, size = 2.1,
+  g <- g + geom_text_repel(data = rbind(lab[, c("x", "y", "label")], iso), aes(x, y, label = label), inherit.aes = FALSE, size = 8 / .pt,
     min.segment.length = 0, segment.size = .25, segment.colour = "#555555", box.padding = .4, point.padding = .2,
     force = 3, force_pull = .5, max.overlaps = Inf, max.iter = 20000, seed = 1)
 }
 w <- 7; h <- 7.2
+if (!is.null(spec$min_text)) {   # M5_452: floor all text, refuse colliding/clipped labels, save PNG + PDF through the shared helpers
+  mt <- spec$min_text; source(mt$layout); source(mt$helper)
+  rec <- mt_save(g, prefix, mt$print_width, h * mt$print_width / w, list(min_text_pt = mt$min_text_pt, print_width = mt$print_width, dpi = 600))
+  ggsave(paste0(prefix, ".svg"), mt_floor(g, mt$min_text_pt), width = mt$print_width, height = rec$height_in)
+  writeLines(stamp, paste0(prefix, ".stamp")); quit(save = "no", status = 0)
+}
 # cairo_pdf embeds editable text, but on a Mac without XQuartz capabilities("cairo") is TRUE and drawing text still fails
 # ("failed to load cairo DLL" is only a warning and no file appears); so draw text into a scratch file first and trust cairo only
 # when that file exists and is not empty, then Quartz on a Mac, then base pdf.

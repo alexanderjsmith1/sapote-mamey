@@ -179,9 +179,15 @@ def suite_pass(manifest, mode, here):
         return None, f"deliverable-suite check could not start: {exc}"
     try:
         j = json.loads(r.stdout)
-        return j.get("pass"), j.get("findings", [])
+        spass, findings = j.get("pass"), j.get("findings", [])
     except Exception:
         return None, r.stdout[-200:]
+    # The checker exits 0 for pass and 1 for fail. Any other exit, or an exit that
+    # disagrees with the parsed field, is a failed execution: the result is unmeasured.
+    if (r.returncode, spass) not in ((0, True), (1, False)):
+        return None, (f"deliverable-suite check execution failed or disagreed with its pass field "
+                      f"(exit {r.returncode}, pass {spass!r}); stderr: {(r.stderr or '')[-200:]}")
+    return spass, findings
 
 def main():
     ap = argparse.ArgumentParser()

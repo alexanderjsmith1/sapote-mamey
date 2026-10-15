@@ -287,7 +287,7 @@ def validate(path, mode="auto", check_v12=False):
 
             if "columns" in spec:
                 expected_cols = spec["columns"]
-                actual_cols = headers_clean[:len(expected_cols)]
+                actual_cols = headers[:len(expected_cols)]
                 mismatches = []
                 for i, (exp, act) in enumerate(zip(expected_cols, actual_cols)):
                     if exp.lower() != (act or "").lower():
@@ -300,7 +300,7 @@ def validate(path, mode="auto", check_v12=False):
                     results["status"] = "FAIL"
             elif "prefix" in spec:
                 pre = spec["prefix"]
-                actual_cols = headers_clean[:len(pre)]
+                actual_cols = headers[:len(pre)]
                 mismatches = []
                 for i, (exp, act) in enumerate(zip(pre, actual_cols)):
                     if exp.lower() != (act or "").lower():

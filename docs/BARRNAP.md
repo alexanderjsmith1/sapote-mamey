@@ -2,7 +2,7 @@
 
 Barrnap is mentioned in the [fungal workflow](PHYLO_FUNGAL_WORKFLOW.md), [fungal wiki](../wiki/Fungal-Phylogenetics.md), [field notes](../wiki/Troubleshooting-Field-Notes.md) and [GToTree guide](GTOTREE_WORKFLOW.md). It is an optional external tool, separate from Mamey's core pip installation.
 
-The shipped `tools/marker_candidate_search.py` prints a Barrnap-based rRNA plan; it does not execute Barrnap or complete sequence extraction. Its plan includes an unquoted supplied assembly path and a follow-on extraction comment: review quoting, selected version and expected output files before using it. `tools/comparator_select.py` has a separate BLASTn-seeded route explicitly described as not requiring Barrnap. Barrnap is therefore not a universal prerequisite for every bacterial or phylogenetic workflow.
+The shipped `tools/marker_candidate_search.py` prints a Barrnap-based rRNA plan; it does not execute Barrnap or complete sequence extraction. Every interpolated path and name in its plan is shell-quoted for POSIX shells, so spaces and shell metacharacters stay literal. The plan states that the Barrnap step writes a fresh 16S-only GFF and that extracting those features into the `.fna` BLAST query is a separate step the plan does not perform. Review the selected version and expected output files before using it. `tools/comparator_select.py` has a separate BLASTn-seeded route explicitly described as not requiring Barrnap. Barrnap is therefore not a universal prerequisite for every bacterial or phylogenetic workflow.
 
 ## Version and environment check
 

@@ -21,6 +21,23 @@ def build(report_root, out_root, mibig_json_dir, curated_context=None, receipt_o
     sources = sorted(source_root.rglob("REPORT.html"))
     if not sources:
         raise ValueError("MIBIG_BATCH_GATE: no REPORT.html inputs found")
+    receipt_path = Path(receipt_out).resolve() if receipt_out else destination_root / "MIBIG_COMPARATOR_CONTEXT_BATCH_RECEIPT.json"
+    destinations = [destination_root / source.relative_to(source_root) for source in sources] + [receipt_path]
+    resolved_destinations = [destination.resolve() for destination in destinations]
+    for i, destination in enumerate(resolved_destinations):
+        if any(destination == other or destination in other.parents or other in destination.parents
+               for other in resolved_destinations[i + 1:]):
+            raise ValueError("MIBIG_BATCH_GATE: output and receipt paths must be distinct and non-overlapping")
+    protected_roots = [source_root, Path(mibig_json_dir).resolve(), Path(__file__).resolve().parents[1]]
+    protected_files = [Path(p).resolve() for p in (curated_context, component_context) if p]
+    for destination in destinations:
+        resolved = destination.resolve()
+        if ((destination != receipt_path and not resolved.is_relative_to(destination_root))
+                or destination.exists() or destination.is_symlink()
+                or resolved in protected_files
+                or any(resolved == root or root in resolved.parents for root in protected_roots)):
+            raise ValueError("MIBIG_BATCH_GATE: unsafe or existing output destination")
+    source_hashes = {source: sha256(source) for source in sources + protected_files}
     staged = []
     for source in sources:
         relative = source.relative_to(source_root)
@@ -35,7 +52,8 @@ def build(report_root, out_root, mibig_json_dir, curated_context=None, receipt_o
         destination.write_text(enhanced, encoding="utf-8")
         records.append({
             "source_locator": relative.as_posix(),
-            "source_sha256": sha256(source),
+            "source_sha256": source_hashes[source],
+            "context_receipt": context_receipt,
             "output_locator": relative.as_posix(),
             "output_sha256": sha256(destination),
             "rows": context_receipt["rows"],
@@ -46,13 +64,14 @@ def build(report_root, out_root, mibig_json_dir, curated_context=None, receipt_o
             "comparator_context_unresolved_rows": context_receipt["comparator_context_unresolved_rows"],
             "component_bound_rows": context_receipt["component_bound_rows"],
         })
+    if any(sha256(source) != digest for source, digest in source_hashes.items()):
+        raise ValueError("MIBIG_BATCH_GATE: authoritative source changed during publication")
     receipt = {
         "status": "PASS", "report_count": len(records), "authoritative_inputs_mutated": False,
         "source_root_role": "authoritative per-strain report tree (read-only)",
         "output_root_role": "additive comparator-context report copies",
         "records": records,
     }
-    receipt_path = Path(receipt_out) if receipt_out else destination_root / "MIBIG_COMPARATOR_CONTEXT_BATCH_RECEIPT.json"
     receipt_path.parent.mkdir(parents=True, exist_ok=True)
     receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return receipt

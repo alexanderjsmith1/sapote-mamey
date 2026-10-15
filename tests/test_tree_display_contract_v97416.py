@@ -240,11 +240,11 @@ def test_sibling_checker_resolution_and_visible_unavailable(tmp_path):
     assert cp.returncode == 3 and "GATE_UNAVAILABLE" in cp.stderr
 
 
-def test_stem_exemption_uses_structure_and_retains_other_checks(tmp_path):
+def test_strict_wrapper_rejects_root_stem_and_retains_other_checks(tmp_path):
     tree = tmp_path / "test.nwk"
     tree.write_text("((A:0.01,B:0.01):0.8,OUTGROUP_X:0.8);")
     ok, report = gate.gate(tree)
-    assert ok and "stem-exemption" in report
+    assert not ok and "DOMINATING_BRANCH" in report and "stem-exemption" not in report
     tree.write_text("((A:0.91,B:0.01):0.8,OUTGROUP_X:0.8);")
     assert not gate.gate(tree)[0]
     tree.write_text("(((A:0.01,B:0.01):0.8,C:0.01):0.001,OUTGROUP_X:0.8);")

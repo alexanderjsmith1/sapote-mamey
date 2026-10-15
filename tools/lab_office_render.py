@@ -69,6 +69,9 @@ def main():
     if not jsons:
         emit(f"no Figure Studio JSON found under {args.dir}", file=sys.stderr); return 1
 
+    stems = [os.path.splitext(os.path.basename(path))[0] for path in jsons]
+    if len(stems) != len(set(stems)):
+        return 2  # refuse ambiguous outputs before any renderer or directory write
     out = args.out or os.path.join(args.dir, "_rendered")
     os.makedirs(out, exist_ok=True)
     rows, ok, fail = [], 0, 0

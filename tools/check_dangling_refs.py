@@ -41,7 +41,8 @@ import pathlib
 import re
 import sys
 
-REF = re.compile(r'examples/[A-Za-z0-9_./-]+\.(?:md|zip|xlsx|csv|json|py|html)')
+# .tsv/.txt/.R/.yml added: two .tsv templates named by live docs went missing unseen because the scan skipped .tsv.
+REF = re.compile(r'examples/[A-Za-z0-9_./-]+\.(?:md|zip|xlsx|csv|tsv|txt|json|py|R|yml|yaml|html)')
 HIST = re.compile(r"(CHANGELOG\.md$|BUNDLE_PATCH_NOTES_|RELEASE_NOTES_|PATCH_NOTES_)")
 # Meta-docs that *describe* the dangling refs (the audit ledger) must not count as committing them,
 # or the baseline could never be tightened to zero once the real docs are fixed.

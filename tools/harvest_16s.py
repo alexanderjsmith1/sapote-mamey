@@ -25,8 +25,17 @@ Then: phylo_place.py all <genus>_reference.fasta --group <genus> --query <genus>
 import argparse, csv, os, re, subprocess, sys
 
 DEF_AUTH = os.environ.get("PHYLO_AUTHORITATIVE_16S", "phylo_staging/authoritative_16S/authoritative_16S.fasta")
-DEF_DB = "Tools/databases/ncbi_16S_RefSeq/16S_ribosomal_RNA"
+# The 16S database is found by the shared lookup (_shared_16s_db); see docs/LOCAL_16S_DATABASE.md.
 
+
+
+def _shared_16s_db(explicit=None):
+    """The 16S RefSeq BLAST database prefix, from the one shared lookup (docs/LOCAL_16S_DATABASE.md)."""
+    _here = os.path.dirname(os.path.abspath(__file__))
+    if _here not in sys.path:
+        sys.path.insert(0, _here)
+    import _phylo16s
+    return _phylo16s.refseq_16s_blastdb(explicit)
 
 def _root():
     return os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
@@ -61,7 +70,7 @@ def main():
 
     root = _root()
     auth = a.authoritative or os.path.join(root, DEF_AUTH)
-    db = a.refseq_db or os.path.join(root, DEF_DB)
+    db = _shared_16s_db(a.refseq_db or None)
     bdc = a.blastdbcmd or os.path.join(root, "miniconda3/envs/blast/bin/blastdbcmd")
     try:
         os.makedirs(a.out_dir, exist_ok=True)

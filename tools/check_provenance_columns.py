@@ -153,8 +153,14 @@ def main(argv=None) -> int:
 
     targets: list[Path] = [Path(p) for p in ns.paths]
     for g in ns.glob:
-        targets += [Path(p) for p in glob.glob(g, recursive=True)]
-    targets = [p for p in targets if p.suffix.lower() in (".tsv", ".tab", ".csv") and p.is_file()]
+        matches = [Path(p) for p in glob.glob(g, recursive=True)]
+        if not matches:
+            return 2  # an explicitly requested glob was not assessed
+        targets += matches
+    if any(p.suffix.lower() not in (".tsv", ".tab", ".csv") or not p.is_file()
+           for p in targets):
+        return 2  # never silently drop a required target
+    targets = list(dict.fromkeys(targets))
 
     if not targets:
         emit("check_provenance_columns: no CSV/TSV targets given", file=sys.stderr)

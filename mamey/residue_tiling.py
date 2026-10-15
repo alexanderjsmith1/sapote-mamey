@@ -18,10 +18,12 @@ How, for one pair and one MIBiG cluster both regions already match in KnownClust
    RESIDUE_MAX_OVERLAP; OVERLAPPING when each side has that many and the overlap is larger; THIN otherwise.
 4. Per pair, over all shared clusters: COMPLEMENTARY_RESIDUES (some cluster complementary, none overlapping),
    OVERLAPPING_RESIDUES (the reverse), MIXED_RESIDUES (both), THIN_RESIDUES (neither), NO_SHARED_MIBIG_REFERENCE (no
-   shared cluster is in the DIAMOND database). The detail fields describe the top reference: the shared cluster
-   both sides match best (the higher of the two sides' lower summed bitscore), whatever its class, so the headline is
-   never picked for its answer. MIXED is common for modular PKS against class relatives at about 50% identity, where
-   one module cannot be told from another; it is an honest "cannot tell", not a weak rescue.
+   shared cluster is in the DIAMOND database), REGION_SOURCE_UNAVAILABLE (a region's own GenBank file was not found
+   in the ZIP, or held no translated protein: nothing was placed, so this is not thin evidence). The detail fields
+   describe the top reference: the shared cluster both sides match best (the higher of the two sides' lower summed
+   bitscore), whatever its class, so the headline is never picked for its answer. MIXED is common for modular PKS
+   against class relatives at about 50% identity, where one module cannot be told from another; it is an honest
+   "cannot tell", not a weak rescue.
 
 The result is evidence fields on each tested pair. It never changes a score or a confidence. Homology is
 similarity, not product identity, and no contigs are joined.
@@ -251,6 +253,10 @@ def add_residue_tiling(result: dict[str, Any], zip_path: str | Path, bgcs: list[
             kcb.setdefault(d.get("bgc_id"), set()).add(mibig_accession(d["ref"]))
     wanted = {x for p in todo for x in (p["bgc_a"], p["bgc_b"])}
     prots = region_proteins(zip_path, bgcs, wanted)
+    # a wanted region with no GenBank member (missing or ambiguous) or no translated protein cannot be placed
+    unavailable = {x for x in wanted if not any(seq for _name, seq in prots.get(x, []))}
+    status.update(regions_requested=len(wanted), regions_source_unavailable=sorted(unavailable),
+                  pairs_source_unavailable=0)
 
     tmp = tempfile.TemporaryDirectory(prefix="rggmci_residue_") if work_dir is None else None
     wd = Path(tmp.name if tmp else work_dir)
@@ -275,6 +281,10 @@ def add_residue_tiling(result: dict[str, Any], zip_path: str | Path, bgcs: list[
 
     for p in todo:
         a, b = p["bgc_a"], p["bgc_b"]
+        if a in unavailable or b in unavailable:
+            p["residue_tiling"] = "REGION_SOURCE_UNAVAILABLE"
+            status["pairs_source_unavailable"] += 1
+            continue
         shared = sorted((kcb.get(a, set()) & kcb.get(b, set())) & in_db)
         p["residue_references_tested"] = len(shared)
         if not shared:

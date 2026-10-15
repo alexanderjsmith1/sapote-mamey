@@ -164,8 +164,13 @@ def write_portfolio_binding(project_root: str | Path, binding: PortfolioBinding)
     """Write additive project-root provenance, never inside a sealed package."""
     root = _root(project_root)
     path = project_output_dir(root) / "portfolio_binding.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
-    temporary.write_text(json.dumps(binding.as_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if any(not candidate.resolve().is_relative_to(root) for candidate in (path, temporary)):
+        raise PortfolioConfigError("portfolio binding output escapes selected project root")
+    if temporary.exists() or temporary.is_symlink():
+        raise PortfolioConfigError("portfolio binding temporary output already exists")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with temporary.open("x", encoding="utf-8") as handle:
+        handle.write(json.dumps(binding.as_dict(), indent=2, sort_keys=True) + "\n")
     temporary.replace(path)
     return path

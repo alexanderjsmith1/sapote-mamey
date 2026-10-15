@@ -73,10 +73,30 @@ def _require(tool: str) -> str:
     return p
 
 
+def resolve_accessions(pfam_hmm: str, bare: list) -> list:
+    """Map each bare Pfam accession (PF00704) to the ACC the local file carries (PF00704.35).
+
+    Released Pfam-A.hmm stores versioned ACC lines, and hmmfetch's SSI index matches keys
+    exactly, so a bare key is "not found". Reads ACC lines only and stops once every key is
+    matched. A key with no ACC line is returned unchanged, so hmmfetch still refuses it."""
+    want, found = set(bare), {}
+    with open(pfam_hmm, "rb") as fh:
+        for line in fh:
+            if line.startswith(b"ACC"):
+                acc = line.split()[1].decode("ascii", "replace")
+                base = acc.split(".")[0]
+                if base in want and base not in found:
+                    found[base] = acc
+                    if len(found) == len(want):
+                        break
+    return [found.get(b, b) for b in bare]
+
+
 def build_profiles(pfam_hmm: str, out_hmm: str) -> int:
     _require("hmmfetch")
+    keys = resolve_accessions(pfam_hmm, PROFILES)
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as fh:
-        fh.write("\n".join(PROFILES) + "\n")
+        fh.write("\n".join(keys) + "\n")
         keyfile = fh.name
     try:
         with open(out_hmm, "wb") as out:

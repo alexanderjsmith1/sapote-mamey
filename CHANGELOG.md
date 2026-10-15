@@ -1,3 +1,36 @@
+# v9.7.451 — unsealed cut candidate · build 20261015v97451a
+
+Build 20261012v97451a; engine 1.9.176.
+
+- **Two-proof rescue holds an unreadable overlap count.** A blank or malformed overlapping-reference count no longer passes as zero: the pair becomes LOGIC_EVIDENCE_HOLD (or MULTI_CHANNEL_HOLD with a shared KS clade), and the logic version is 3. A legacy `_4A` without the column keeps its verdict and says so in `claim_note`.
+- **The hybrid gate counts each antiSMASH category once.** NRPS + NRP-metallophore is one class, so `architecture_rationale` and the reproducibility fingerprint change for affected regions.
+- **RG-GMCI and the KS scan read what is there.** Contig ends containing N are AMBIGUOUS_TERMINUS; `/contig_edge` is read from the region feature itself; a KS domain block ends at the next feature; thresholds are validated before work.
+- **Package runs say when record-limit coverage is unverified.** RECORD_LIMIT_COVERAGE_UNVERIFIED is reported when the antiSMASH log is missing or unrecognised; only NOT_DETECTED counts as no cap.
+- **Without biopython, a corrupt GBK is an error, not a package.** The GenBank shim refuses a record with no sequence and no numeric LOCUS length, as biopython does.
+- **Tree tip labels carry names only.** The grouped-reference suffix is gone from labels; the caption names each drawn strain and the strains merged into it. Every unambiguous INSDC country has a display region, and INSDC missing-value terms are not places.
+- **Evidence and outputs are admitted, not assumed.** Fixes across rescue, boundary, BiG-SCAPE, BLASTp, DIAMOND, handoff, portfolio and workbook paths refuse missing, malformed or aliased inputs and outputs, propagate child failures, and keep requested scope and identifiers.
+- **GitHub CI installs R and runs the R figure tests.** CI sets up R and the bundle's R installer, which now lists every package the shipped R scripts load; without R, the newer R tests skip with a reason instead of failing.
+- **BLASTp evidence binds to the protein that was searched.** Manual ingest saves the master workbook atomically and refuses a query that names another strain (QUERY_STRAIN_CONFLICT); native nr output records its channel; `deliverable_tools/roster_v2.py` shows an nr hit only where tag and length match; the new read-only `tools/blastp_tag_position_audit.py` keys rows whose tag is a position inside a region.
+- **Gap rescue checks adjacent finds for housekeeping context.** Every partner find that is not a paralog gets the neighbour check, support must come from a non-housekeeping find, and the marker list adds the MEP, ClpC-Lsr2, pantothenate and NAD operon families. Verdicts change when gap rescue runs again.
+- **Reference exports and handoffs fail closed.** A reference with an empty translation is refused; the database receipt binds the WAL actually read; handoff archives are never overwritten; assembly-line outputs, post-seal snapshots, crosswalk identity fields and partial MIBiG fetches are checked.
+- **Protein PCoA admits reference and MIBiG sets cluster-first by default.** Those sequences are clustered in every run, so the dense solver is admitted at the clustered count; a cohort-only set keeps the upper-bound admission, `--no-cluster-first` restores the old order, and the receipt records which applied.
+- **Errors say what happened.** The last silent `except: pass` in tools/ is gone (the ratchet measures 0); a local error in the NCBI fetch is no longer reported as an outage; the showdomycin row drops an unsupported zwitterion claim.
+
+- Accretion-justified: tools/gene_local_names.py — bounded local protein-name evidence adapter with source bindings; similarity labels do not establish function.
+
+- Candidate addition: tools/placement_root_variants.py binds unchanged source trees, strict gate results, and display-rooted split/diagnostic-only variants with hash receipts.
+- Candidate additions: tools/bgc_class_summary.py, tools/region_edge_totals.py, tools/region_protein_totals.py, tools/region_protein_references.py, tools/palette_distance_report.py, and tools/gap_rescue_panel_figure.py provide source-bound descriptive tables, palette checks, and rescue-panel rendering; no release or scientific adoption claim.
+
+- Accretion-justified: bioassay_paper.py — shared validated four-state bioassay table and renderer entry points.
+- Accretion-justified: extra_csv_manifest.py — explicit additional-table manifest parsing and validation.
+- Accretion-justified: protein_binding.py — sequence-bound protein query and annotation identity helpers.
+
+- **The suite runs on Linux CI.** On GitHub CI, v9.7.450 reported 5 failures and 60 errors, all from macOS assumptions in tests and one tool. The CORASON adapter tests use `/tmp` with its physical path resolved, which works on both hosts. The five partitioned-cut tests skip, with a stated reason, on hosts without the macOS `sandbox-exec` import backend; the import gate itself is unchanged. `tools/build_mlsa.py` puts the bundle root on its import path, so it runs from any folder when the package is installed. Two placement tools (`build_placement_panel_inputs.py`, `placement_display.py`) bind the bundle root the same way. A new guard test fails if a test or tool names the macOS temporary root or calls `sandbox-exec` without a platform check.
+- **No pytest cache in the CODE zip.** The tier's private-ID audit runs pytest without its cache, and the stage is cleared of `.pytest_cache`, `__pycache__` and `.DS_Store` just before zipping. The v9.7.450 zip carried 7 unlisted `.pytest_cache` entries (no data). A new test checks the archive members.
+- **Gap-rescue partner checks count sibling MIBiG entries of the same compound.** The rescue tools now pass compound names into the partner checks, and `same_family()` reads string or list names alike. Before, a gene whose best match was a sibling entry of the reference compound (for example bottromycin D against bottromycin A2) was set aside as a paralog. Family stems now match only when equal or when one is the other plus a known prefix (neo, iso, deoxy and similar), so a name inside another name (istamycin, distamycin) no longer counts. Engine 1.9.176. Existing rescue outputs are not rewritten; a rerun list ships with the change record.
+- **Locus maps name the grey genes.** Gap-rescue locus maps read one or more gene-name tables (BLASTp and local Swiss-Prot/MIBiG searches; the first table wins) and label genes as "name (db N%)", "(reference ref N%)" or "unnamed protein (db N%)". Sibling runs on the same core region can be drawn as extra references. Pale class fills replace flat grey. Names are similarity, not function.
+- **BLASTp identity figures and one genus palette.** `tools/blastp_identity_figures.py` draws the per-genome identity figure and the core-genes-by-class figure in the bee paper's layouts. It reads per-gene BLASTp results and a genome table instead of fixed paths, takes the top hit or the mean of the top 10 hits, and keeps nr and ClusteredNR separate or takes the better per gene. Genus colours now come from one file, `mamey/data/genus_palette.json`, and saved figures carry the renderer stamp.
+
 # v9.7.450 — unsealed cut candidate · build 20261011v97450a
 
 Build 20261011v97450a; engine 1.9.175.

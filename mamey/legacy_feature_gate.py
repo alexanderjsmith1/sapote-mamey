@@ -133,6 +133,8 @@ def validate_legacy_rows(rows: list[dict]) -> list[str]:
         status = row.get("current_status")
         if status not in {"active", "renamed", "superseded", "missing", "needs_test", "deferred"}:
             failures.append(f"P0 feature {feature} has invalid current_status={status!r}")
+        if status == "missing":
+            failures.append(f"P0 feature {feature} remains unresolved: {status}")
         if status in {"missing", "needs_test"} and not row.get("recovery_action"):
             failures.append(f"P0 feature {feature} lacks recovery_action")
         if not row.get("current_module_or_doc"):
@@ -147,7 +149,10 @@ def write_legacy_gate_outputs(matrix_path: Path, out_dir: Path, create_default: 
         write_default_legacy_matrix(matrix_path)
     rows = read_legacy_matrix(matrix_path)
     failures = validate_legacy_rows(rows)
-    status = "PASS" if not failures else "FAIL"
+    unverified = [row.get("legacy_feature", "") for row in rows
+                  if row.get("legacy_feature") in P0_FEATURES
+                  and row.get("current_status") in {"needs_test", "deferred"}]
+    status = "FAIL" if failures else "HOLD" if unverified else "PASS"
 
     findings_csv = out_dir / "LEGACY_FEATURE_GATE_FINDINGS.csv"
     _findings_tmp = findings_csv.with_name(findings_csv.name + ".tmp")
@@ -157,6 +162,9 @@ def write_legacy_gate_outputs(matrix_path: Path, out_dir: Path, create_default: 
         if failures:
             for failure in failures:
                 writer.writerow({"status": "FAIL", "finding": failure})
+        elif unverified:
+            for feature in unverified:
+                writer.writerow({"status": "HOLD", "finding": f"P0 feature remains unverified: {feature}"})
         else:
             writer.writerow({"status": "PASS", "finding": "all P0 legacy features accounted for"})
     _findings_tmp.replace(findings_csv)
@@ -174,8 +182,11 @@ def write_legacy_gate_outputs(matrix_path: Path, out_dir: Path, create_default: 
         lines.append("## Failures")
         for failure in failures:
             lines.append(f"- {failure}")
-    else:
+    elif not unverified:
         lines.append("All P0 legacy features are accounted for with current module/doc and test references.")
+    if unverified:
+        lines.append("## Unverified features")
+        lines.extend(f"- {feature}" for feature in unverified)
     _report_tmp = report.with_name(report.name + ".tmp")
     _report_tmp.write_text("\n".join(lines), encoding="utf-8")
     _report_tmp.replace(report)
@@ -186,6 +197,7 @@ def write_legacy_gate_outputs(matrix_path: Path, out_dir: Path, create_default: 
         "row_count": len(rows),
         "failure_count": len(failures),
         "failures": failures,
+        "unverified_features": unverified,
         "outputs": {
             "findings_csv": str(findings_csv),
             "report": str(report),

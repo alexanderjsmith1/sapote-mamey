@@ -11,11 +11,17 @@ python tools/bigscape_cohort_report.py \
 ```
 
 Use the chosen bundle Python environment. The explicit run ID scopes the family
-query, but the .447 reporter does not independently validate that the run exists or
-is complete before export. An absent run/cutoff can produce an empty report and a
-`PASS` receipt. Verify the completed run record, cutoff, admitted input counts and
-expected cohort membership before interpreting empty tables. Do not call an empty
-export a no-family biological result.
+query. Before export, the reporter refuses (`RUN_SCOPE_GATE`, exit 2) a run ID absent
+from the `run` table, a run with a blank recorded `end_time`, and a cutoff with no families
+in a run that has families at other cutoffs. Zero families pass only as
+`run_scope_state = VALID_EMPTY_COMPLETED_RUN`: a finished run that declared the
+cutoff. A database without a `run` table cannot prove completion; its receipt status
+is `RUN_COMPLETION_UNVERIFIED`, not `PASS`, and zero families there are refused.
+A run table without an `end_time` column likewise leaves completion unverified
+when families are present; it cannot admit an empty completed result.
+Admitted input counts and expected cohort membership are still not checked; verify
+them before interpreting empty tables. Do not call an empty export a no-family
+biological result.
 
 The reporter opens the database read-only and checks SQLite integrity, but requires
 stable database bytes for reproducible receipt hashes. Use a closed, checkpointed

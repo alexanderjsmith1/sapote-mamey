@@ -34,7 +34,7 @@ import sqlite3
 import stat
 import uuid
 from typing import Iterable, Sequence
-from .xlsx_determinism import save_workbook_safely as _save_wb_safely
+from .xlsx_determinism import atomic_save_workbook_safely as _save_wb_safely
 
 
 # External rollup importers historically repeated this positional schema in two tools and
@@ -482,6 +482,13 @@ def build_b5_rows(strain: str, csv_path: str | Path, xml_path: str | Path | None
         if rank > top_n:
             continue
         enr = enrich.get(qid, {})
+        # Source-only claims: never add the selected strain as if it were evidence.
+        declared = _query_strain_claims({"query_id": qid,
+                                        "query_gene": enr.get("query_title", "")})
+        if len(declared) > 1 or any(value != strain for value in declared):
+            raise BlastpBindingConflict(
+                f"QUERY_STRAIN_CONFLICT: source queries declare {sorted(declared)!r}, "
+                f"selected strain is {strain!r}; refusing to relabel source evidence")
         _subjmap = enr.get("subjects") or {}
         subj = _subjmap.get(h["subject_acc"]) or _subjmap.get(h["subject_acc"].split(".")[0], {})
         # node/contig: prefer full NODE_ from XML; else short ctg from the query id
@@ -995,6 +1002,31 @@ def _current_locus_rekey_index(package: Path) -> dict[str, list[dict[str, object
     return index
 
 
+def _query_strain_claims(row: dict) -> set[str]:
+    """Collect explicit source claims across aliases without selecting precedence.
+
+    Pipe panel headers and documented strain-first space deflines carry claims.
+    Known locus/contig/BGC-leading legacy titles carry no strain assertion. This
+    collector does not widen the existing acceptance or historical BGC re-keying.
+    """
+    claims = {str(row[name]).strip() for name in _STRAIN_ALIASES
+              if row.get(name) is not None and str(row[name]).strip()}
+    for name in _QUERY_ALIASES:
+        raw = str(row.get(name) or "").strip()
+        parts = [part.strip() for part in raw.split("|")]
+        if len(parts) >= 2 and parts[0] and _BGC_RE.fullmatch(parts[1]):
+            claims.add(parts[0])
+        words = raw.split()
+        if len(words) >= 2 and _BGC_RE.fullmatch(words[1]):
+            first = words[0]
+            legacy = (re.fullmatch(r"ctg\d+(?:_\d+)?", first)
+                      or _NODE_RE.match(first) or _BGC_RE.match(first)
+                      or first.startswith("gene=") or first == _gene_from_query(raw))
+            if not legacy:
+                claims.add(first)
+    return claims
+
+
 def _query_parts(row: dict) -> tuple[str, str, str, str]:
     raw_query = _pick(row, _QUERY_ALIASES)
     query_strain = _pick(row, _STRAIN_ALIASES)
@@ -1025,6 +1057,8 @@ def _validate_ingest_row(row: dict, package_strain: str, destination_bgc: str,
         "query_locus": locus, "query_aa_length": query_aa,
         "current_aa_length": str(current_aa or ""),
     }
+    if len(_query_strain_claims(row)) > 1:
+        return keys, "QUERY_STRAIN_CONFLICT"
     if not query_strain or not query_bgc:
         return keys, "LEGACY_PROVENANCE_HOLD"
     if query_strain != package_strain:
@@ -1057,6 +1091,9 @@ def _validate_rekey_ingest_row(
         "resolved_bgc": "",
         "resolution_state": "",
     }
+    if len(_query_strain_claims(row)) > 1:
+        keys["resolution_state"] = "QUERY_STRAIN_CONFLICT"
+        return keys, "QUERY_STRAIN_CONFLICT"
     if not query_strain or not locus:
         keys["resolution_state"] = "PROVENANCE_INCOMPLETE"
         return keys, "LEGACY_PROVENANCE_HOLD"
@@ -1116,8 +1153,9 @@ def _quarantine_row(reason: str, channel: str, package_strain: str, bgc: str,
 def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strain: str,
                            sources: list[dict], admitted: dict[str, int],
                            quarantined: list[dict],
-                           rekey_summary: dict | None = None) -> tuple[str, str]:
-    """Write deterministic, content-addressed quarantine and receipt artifacts."""
+                           rekey_summary: dict | None = None, *,
+                           preflight_only: bool = False) -> tuple[str, str]:
+    """Render/check immutable guard artifacts before publication, then optionally write."""
     source_rows = sorted(sources, key=lambda r: (r["bgc"], r["file"], r["sha256"]))
     token_payload = json.dumps(
         {"channel": channel, "kind": kind, "sources": source_rows},
@@ -1126,8 +1164,6 @@ def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strai
     token = hashlib.sha256(token_payload).hexdigest()[:16]
     qdir = package / "blastp_quarantine"
     rdir = package / "blastp_ingest_receipts"
-    qdir.mkdir(parents=True, exist_ok=True)
-    rdir.mkdir(parents=True, exist_ok=True)
     qpath = qdir / f"{channel}_{kind}_{token}_quarantine.csv"
     ordered_q = sorted(quarantined, key=lambda r: (
         r["destination_bgc"], r["query_locus"], r["reason"], r["source_file"],
@@ -1142,12 +1178,13 @@ def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strai
     qtext = buf.getvalue()
     if qpath.exists() and qpath.read_text(encoding="utf-8") != qtext:
         raise ValueError(f"immutable BLASTP quarantine collision: {qpath}")
-    _atomic_write_text(qpath, qtext)
 
     reason_counts = {reason: 0 for reason in _GUARD_REASONS}
     quarantined_by_bgc: dict[str, int] = {}
     for row in ordered_q:
-        reason_counts[row["reason"]] += 1
+        # New typed reasons are sparse: do not change zero-key payloads of existing
+        # immutable receipts for unchanged, non-conflicting evidence.
+        reason_counts[row["reason"]] = reason_counts.get(row["reason"], 0) + 1
         quarantined_by_bgc[row["destination_bgc"]] = \
             quarantined_by_bgc.get(row["destination_bgc"], 0) + 1
     all_bgcs = sorted(set(admitted) | set(quarantined_by_bgc))
@@ -1173,7 +1210,11 @@ def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strai
     rtext = json.dumps(receipt, indent=2, sort_keys=True) + "\n"
     if rpath.exists() and rpath.read_text(encoding="utf-8") != rtext:
         raise ValueError(f"immutable BLASTP receipt collision: {rpath}")
-    _atomic_write_text(rpath, rtext)
+    if not preflight_only:
+        qdir.mkdir(parents=True, exist_ok=True)
+        rdir.mkdir(parents=True, exist_ok=True)
+        _atomic_write_text(qpath, qtext)
+        _atomic_write_text(rpath, rtext)
     return str(qpath), str(rpath)
 
 
@@ -1421,16 +1462,21 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
             # Never leave a header-only or stale legacy overlay looking like evidence.
             overlay_deletions.add(opath)
 
+    rekey_summary = ({
+        "enabled": True,
+        "authority": "selected package *cds_table.csv",
+        "resolution_counts": dict(sorted(rekey_counts.items())),
+        "admitted_current_bgcs": dict(sorted(written.items())),
+    } if rekey_by_locus else None)
+    _write_guard_artifacts(
+        pkg, channel, "overlay", package_strain, sources, written, rejected,
+        rekey_summary, preflight_only=True,
+    )
     _commit_text_file_set(pkg, overlay_payloads, overlay_deletions)
 
     quarantine_path, receipt_path = _write_guard_artifacts(
         pkg, channel, "overlay", package_strain, sources, written, rejected,
-        ({
-            "enabled": True,
-            "authority": "selected package *cds_table.csv",
-            "resolution_counts": dict(sorted(rekey_counts.items())),
-            "admitted_current_bgcs": dict(sorted(written.items())),
-        } if rekey_by_locus else None),
+        rekey_summary,
     )
     _update_ingest_ledger(
         outdir, channel, written, rejected, package_strain, sources, receipt_path,
@@ -1618,6 +1664,10 @@ def install_channel_top10(package: str | Path, trove_dir: str | Path, channel: s
             w.writerow({k: r.get(k, "") for k in _TOP10_COLS})
         store_payloads[store / f"{bgc}_top10.csv"] = _buf.getvalue()
 
+    _write_guard_artifacts(
+        pkg, channel, "top10", package_strain, sources, written, rejected,
+        preflight_only=True,
+    )
     _commit_text_file_set(pkg, store_payloads, store_deletions)
 
     quarantine_path, receipt_path = _write_guard_artifacts(

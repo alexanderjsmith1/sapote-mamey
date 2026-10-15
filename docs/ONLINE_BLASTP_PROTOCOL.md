@@ -69,6 +69,31 @@ quarantine, or receipt for that empty discovery. Correct the layout or command a
 deleting immutable receipts. A discovered source with zero admitted rows still retains its normal
 receipt and quarantine evidence. No discovered source is not a verified no-hit result.
 
+Strain assertions are checked for agreement rather than selected by column precedence.
+The trove readers inspect every nonblank `query_strain`, `strain`, and `strain_id`, plus
+recognizable strain declarations in every supported query column. Pipe panel headers
+(`strain|BGC...|...`) and strain-first space deflines carry strain assertions; known
+locus/contig/BGC-leading legacy titles do not acquire an invented strain assertion.
+Conflicting assertions produce a row-level `QUERY_STRAIN_CONFLICT` quarantine in both
+strict and locus-rekey modes and in channel top-10 installation. A consistently foreign
+strain remains `FOREIGN_STRAIN`. Locus rekeying may resolve historical BGC aliases; it
+never authorizes changing a source strain.
+
+The manual hit-table route applies the same source-assertion collector to the raw CSV
+query and available XML query title, then compares those claims with the selected strain.
+Any explicit conflict refuses the whole input before workbook or package publication,
+including when no package was supplied. Legacy titles without a strain assertion retain
+their existing admission requirements; absence of a claim is not identity proof.
+
+Immutable quarantine/receipt collisions are checked before replacing or deleting channel
+outputs. Unchanged valid sources retain their earlier receipt bytes; the new conflict
+counter appears only when nonzero. Re-evaluating previously admitted conflicting evidence
+can require a hold at an immutable artifact collision. Existing normalized overlays may
+already have lost the contradictory raw header, and overlay destination changes can also
+produce a separate receipt. This guard prevents new admission; it does not retrospectively
+cleanse old packages. Retain the original source and receipts and use a separately reviewed
+fresh rebuild before adopting evidence whose earlier binding is uncertain.
+
 `ingest-blastp` accepts existing hit-table evidence. Use the selected working master, and the matching working package when exact binding and the package overlay are requested:
 
 ```bash
@@ -123,6 +148,14 @@ For each cited hit preserve accession, organism, percent identity, query coverag
 bitscore, query identity and source/database provenance. Retain missing translations and queries
 without admitted results as distinct states. Map results using identifiers and sequence evidence,
 not submission index alone.
+
+Some stored result sets name a gene by its position inside its antiSMASH region, written as a
+contig-prefixed tag (`ctg16_18` for the 18th CDS of a region on contig 16), and carry BGC numbers
+from an earlier engine. A join by tag or BGC number then attaches the hit to another gene. Readers
+that bind by protein SHA-256, or by tag and length, hold such rows. `tools/blastp_tag_position_audit.py`
+keys them without editing them: `TAG_OK`, `REGION_POSITION` (exactly one region on that contig has,
+at that position, a CDS of the recorded length) or a typed hold. A `REGION_POSITION` key is an
+inference from position and length; keyed rows become evidence only by an explicit decision.
 
 Compare hits with domains and comparator evidence when authoring a card. A named homolog is a
 functional hypothesis; numerical similarity thresholds alone do not prove a specific function.

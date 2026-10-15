@@ -32,7 +32,15 @@ def test_build_b5_rows_keys_hits_to_the_right_bgc(tmp_path):
         # query, subject, pid, alnlen, mm, gap, qs, qe, ss, se, evalue, bits
         w.writerow([PANEL_QUERIES[0], "WP_406477488.1", "90.816", "588", "54", "0", "1", "588", "1", "588", "0.0", "1110"])
         w.writerow([PANEL_QUERIES[1], "WP_364215112.1", "98.521", "878", "13", "0", "1", "878", "1", "878", "0.0", "1723"])
-    rows = build_b5_rows("S_mixed", csv_path)
+    # Each historical source is parsed under its declared strain. A mixed-strain
+    # result cannot be attributed to the invented destination "S_mixed".
+    source_rows = list(csv.reader(csv_path.open(newline="")))
+    rows = []
+    for declared in sorted({r[0].split("|")[0] for r in source_rows}):
+        subset = tmp_path / f"{declared}_hits.csv"
+        with subset.open("w", newline="") as handle:
+            csv.writer(handle).writerows(r for r in source_rows if r[0].split("|")[0] == declared)
+        rows.extend(build_b5_rows(declared, subset))
     bgcs = {r.get("BGC_ID") for r in rows}
     assert "BGC042" in bgcs and "BGC008" in bgcs   # both keyed correctly off the panel header
     # the panel header must not smear one query's BGC onto the other

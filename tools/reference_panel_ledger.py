@@ -20,6 +20,7 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
 
 import csv
+from pathlib import Path
 try:  # v9.7.410 CSV formula-cell guard (CLAUDE_v9.7.410_tools_csv_writer_coverage)
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ImportError:  # bare-script run: bundle root is one level up
@@ -72,6 +73,9 @@ def ledger_for_zip(zip_path):
             # --- OBSERVED: what antiSMASH supplied ---
             "bgc_id": b.bgc_id,
             "contig": b.contig,
+            "region": b.antismash_region or f"region{b.region_number:03d}",
+            "obs_kcb_mibig_accession": getattr(b, "closest_mibig_accession", "") or "UNRESOLVED",
+            "obs_kcb_protein_hits": "" if b.kcb_protein_hits is None else b.kcb_protein_hits,
             "obs_region_type": "; ".join(b.products),
             "obs_kcb_anchor": getattr(b, "closest_candidate_kcb_product", "") or "UNRESOLVED",
             "obs_edge_status": b.edge_status,
@@ -106,13 +110,16 @@ def main():
             rows = ledger_for_zip(os.path.join(src, zf))
             for r in rows:
                 r["source_file"] = zf
+                # the four-part identity, from the engine's own contig, region and alias (one bound source)
+                r["identity"] = f"{Path(zf).stem} / {r['contig']} / {r['region']} / {r['bgc_id']}"
             all_rows.extend(rows)
         except Exception as exc:  # noqa: BLE001
             emit(f"  skip {zf}: {exc}")
     if not all_rows:
         emit("no rows produced")
         return
-    cols = ["source_file", "bgc_id", "contig", "obs_region_type", "obs_kcb_anchor", "obs_edge_status",
+    cols = ["source_file", "identity", "bgc_id", "contig", "region", "obs_region_type", "obs_kcb_anchor",
+            "obs_kcb_mibig_accession", "obs_kcb_protein_hits", "obs_edge_status",
             "obs_size_kb", "obs_cds_count", "obs_annotation_class", "obs_pks_ks", "obs_nrps_c", "obs_nrps_a",
             "cmp_t43_markers", "cmp_t43_vetoed", "cmp_architecture_capacity", "cmp_architecture_confidence"]
     with open(out, "w", newline="") as fh:

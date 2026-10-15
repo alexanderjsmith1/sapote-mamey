@@ -9,6 +9,7 @@ from .assembly import metrics_from_sequences
 from .models import BGCRecord, AssemblyMetrics, CDSFeature, DomainFeature
 from .crosswalk import enrich_bgc_crosswalk, region_label, infer_node_id
 from .antismash_evidence import parse_antismash_evidence, apply_evidence_to_bgcs
+from .class_architecture import product_family
 from .ziputil import regular_file_names
 
 FASTA_EXTS = (".fasta", ".fa", ".fna", ".ffn")
@@ -695,7 +696,16 @@ def architecture_grade(edge_status: str, products: list[str], length_bp: int, kc
         "thioamide", "tomm", "azole",
     ]
     has_core = any(x in prod_text for x in core_terms)
-    distinct_core = sum(1 for x in core_terms if x in prod_text)
+    # P300-126: count distinct classes, not matched keywords. Each core-bearing product counts once, as its
+    # antiSMASH category (lanthipeptide-class-i and RiPP-like are one RiPP class; NRPS and NRP-metallophore one
+    # NRPS class). A product in antiSMASH's catch-all "other" category stands as its own class.
+    core_classes = set()
+    for product in products:
+        label = str(product).strip().lower()
+        if any(x in label for x in core_terms):
+            family = product_family(label)
+            core_classes.add(label if family == "other" else family)
+    distinct_core = len(core_classes)
     high_kcb = kcb_score is not None and kcb_score >= 10000
     # A chemical_hybrid signal is only meaningful with >=2 distinct core classes fused (R1).
     hybrid_coherent = bool(has_chemical_hybrid) and distinct_core >= 2
@@ -1239,6 +1249,38 @@ def extract_domain_features(zip_path: str | Path) -> list[DomainFeature]:
     return domains
 
 
+_RECORD_LIMIT_UNVERIFIED_REASON = {
+    "UNAVAILABLE": "no antiSMASH .log in the archive",
+    "UNRECOGNISED_LOG": "the archive's .log files are not antiSMASH logs",
+    "FAILED": "the archive or its .log files could not be read",
+}
+
+
+def record_limit_coverage_issue(probe: dict) -> str | None:
+    """The manifest issue for an antismash_record_limit_truncation() result, or None.
+
+    TRUNCATION_OBSERVED keeps the v9.7.187 wording. NOT_DETECTED is the only state that establishes no cap, so it
+    raises nothing. Every other state (P300-125 follow-up) says coverage is unverified, never that it was truncated.
+    """
+    if probe.get("truncated"):
+        an, sk = probe.get("analysed"), probe.get("skipped_count")
+        eg = (f", first {probe['first_skipped']}" if probe.get("first_skipped") else "")
+        sktxt = (f"{sk} eligible records were skipped ({eg.lstrip(', ')})" if sk
+                 else f"records beyond the cap were skipped{eg}")
+        return (f"RECORD_LIMIT_TRUNCATION: antiSMASH analysed only the largest {an} records "
+                f"(--limit); {sktxt} and were NOT scanned for BGCs, so the region count is a "
+                f"FLOOR, not the whole assembly. The contamination/GC stats above cover the full "
+                f"FASTA and are not comparable to the BGC coverage. Re-run antiSMASH with a higher "
+                f"--limit for complete coverage.")
+    state = probe.get("probe_state") or "FAILED"
+    if state == "NOT_DETECTED":
+        return None
+    reason = _RECORD_LIMIT_UNVERIFIED_REASON.get(state, f"probe state {state}")
+    return (f"RECORD_LIMIT_COVERAGE_UNVERIFIED: whether antiSMASH applied a --limit record cap could not be "
+            f"established ({reason}; probe_state={state}, logs_read={probe.get('logs_read', 0)}). The region "
+            f"count is not confirmed to cover every record. This is not evidence of truncation.")
+
+
 def antismash_record_limit_truncation(input_zip) -> dict:
     """v9.7.187: detect an antiSMASH ``--limit`` record cap from the archived .log.
 
@@ -1246,22 +1288,38 @@ def antismash_record_limit_truncation(input_zip) -> dict:
     skipped record is silently absent from the region set. The GC/contamination check reads the
     FULL FASTA, so a truncated run reports whole-assembly stats beside a BGC set that stops at
     the cap — an incomplete scan presented as MAMEY_COMPLETE. Returns
-    {truncated, analysed, first_skipped, skipped_count} so the caller can surface it.
+    {truncated, analysed, first_skipped, skipped_count, probe_state, logs_read} so the caller can surface it.
+
+    P300-125: ``truncated`` False alone is not a negative result. ``probe_state`` says what was established:
+    TRUNCATION_OBSERVED; NOT_DETECTED (an antiSMASH .log was read and holds no cap line); UNRECOGNISED_LOG
+    (.log files read, none names antiSMASH); UNAVAILABLE (no .log in the archive); FAILED (archive or every
+    .log unreadable). Only NOT_DETECTED is evidence of no cap.
     """
     import zipfile, re
-    out = {"truncated": False, "analysed": None, "first_skipped": None}
+    out = {"truncated": False, "analysed": None, "first_skipped": None,
+           "probe_state": "FAILED", "logs_read": 0}
     try:
         zf = zipfile.ZipFile(input_zip)
     except Exception:
         return out
-    for n in [x for x in regular_file_names(zf) if x.lower().endswith(".log")]:
+    logs = [x for x in regular_file_names(zf) if x.lower().endswith(".log")]
+    if not logs:
+        out["probe_state"] = "UNAVAILABLE"
+        return out
+    for n in logs:
         try:
             txt = zf.read(n).decode("utf-8", "replace")
         except Exception:
             continue
+        out["logs_read"] += 1
+        if "antismash" in txt.lower():
+            out["probe_state"] = "NOT_DETECTED"
+        elif out["probe_state"] == "FAILED":
+            out["probe_state"] = "UNRECOGNISED_LOG"
         m = re.search(r"[Oo]nly analysing the first (\d+) records", txt)
         if m:
             out["truncated"] = True
+            out["probe_state"] = "TRUNCATION_OBSERVED"
             out["analysed"] = int(m.group(1))
             # a genuinely skipped record: the "Not annotating skipped record X: skipping all but
             # largest N meaningful records" line is the authoritative skip signal.

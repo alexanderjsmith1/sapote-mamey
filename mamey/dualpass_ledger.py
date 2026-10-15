@@ -105,8 +105,9 @@ def normalize_ledger(path: str | os.PathLike, vocab: dict[str, Any] | None = Non
         return str(path)
     for d in rows:
         d["value"] = normalize_value(d.get("assertion_type", ""), d.get("value", ""), vocab)
-    out = str(path).replace(".tsv", "_norm.tsv")
-    with open(out, "w", newline="", encoding="utf-8") as fh:
+    source = Path(path)
+    out = str(source.with_name(source.stem + "_norm.tsv"))
+    with open(out, "x", newline="", encoding="utf-8") as fh:
         w = _SafeDictWriter(fh, fieldnames=list(rows[0].keys()), delimiter="\t")
         w.writeheader()
         for d in rows:
@@ -196,7 +197,8 @@ def merge(claude_path, codex_path, out_dir=None, normalize=True, miscall_file=No
             status = "CLAUDE_ONLY" if cl else "CODEX_ONLY"
         rule = _auto_rule(k, cl, cx, miscalls)
         counts[status] += 1
-        if rule:
+        escalated = rule.startswith("ESCALATE:")
+        if rule and not escalated:
             counts["auto_resolved"] += 1
         rows.append({
             "task": k[0], "strain": k[1], "bgc_id": k[2], "locus_tag": k[3], "assertion_type": k[4],
@@ -204,7 +206,7 @@ def merge(claude_path, codex_path, out_dir=None, normalize=True, miscall_file=No
             "claude_evidence": (cl or {}).get("evidence", ""), "codex_evidence": (cx or {}).get("evidence", ""),
             "claude_conf": (cl or {}).get("confidence", ""), "codex_conf": (cx or {}).get("confidence", ""),
             "status": status, "auto_resolution": rule,
-            "needs_discussion": "yes" if (status in ("DISAGREE", "CLAUDE_ONLY", "CODEX_ONLY") and not rule) else "no",
+            "needs_discussion": "yes" if (escalated or (status in ("DISAGREE", "CLAUDE_ONLY", "CODEX_ONLY") and not rule)) else "no",
         })
     out = os.path.join(outd, "DIVERGENCE.tsv")
     cols = ["task", "strain", "bgc_id", "locus_tag", "assertion_type", "claude_value", "codex_value",

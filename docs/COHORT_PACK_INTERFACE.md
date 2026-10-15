@@ -11,7 +11,7 @@ For exclusion/governance loading, an explicit environment binding is exclusive. 
 
 ## Pack contents and missing-source behavior
 - `OFFICIAL_DATA/exclusions.json` — `{hard_excluded, raw_assembly_void, strain_of_record, qc_hold_audit_only, governed}`.
-  With no pack bound or discovered, the shipped default excludes nothing. Non-strict loading can fall back to that empty default after a warning when a bound file is unreadable/missing. Strict loading refuses a missing or malformed bound source. Inspect the resolved source and warning state before using any governed denominator; “no exclusions loaded” does not prove all strains were approved.
+  With no pack bound or discovered, the shipped default excludes nothing. Non-strict loading can fall back to that empty default after a warning when a bound file is unreadable/missing. Strict loading refuses a missing or malformed bound source. The governed accessor `governed_excluded()` always loads strictly, so the governed-output exclusion gate, package validation and master-workbook ingest hold (raise, or report the gate as `ERROR`) on a failed binding instead of using the empty default. Raw-scope accessors keep the warning fallback. Inspect the resolved source and warning state before using any governed denominator; “no exclusions loaded” does not prove all strains were approved.
 - `OFFICIAL_DATA/*REGISTRY*.csv/.tsv` — strain⇄accession / genome registries used by cohort adapters.
 - A cohort roster (`strain_genus.csv`-shaped) if cohort figures/widgets are used; absent → those
   behavior depends on the selected adapter. Record its actual unavailable/held/empty state instead of treating an empty result as a completed cohort analysis.

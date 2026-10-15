@@ -40,6 +40,7 @@ try:
     from .csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter  # v9.7.410 CSV formula-cell guard (CLAUDE_410_csv_writer_coverage)
 except ImportError:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+import math
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -64,6 +65,9 @@ _REGION_RE = re.compile(r"(region\d+)", re.I)
 # aSDomain feature block: header "     aSDomain   <loc>" then indented /qualifiers to next feature.
 _FEATURE_HDR = re.compile(r"^ {5}(\S+)\s")
 _QUAL = re.compile(r'^ {21}/([A-Za-z_]+)=(.*)$')
+# A line starting in column 0 (ORIGIN, CONTIG, //, the next LOCUS) ends the feature table, so sequence
+# or record text can never be read as a continuation of the last qualifier.
+_RECORD_KEYWORD = re.compile(r"^\S")
 
 
 def _excluded_domain(domain_class: str, label: str = "") -> bool:
@@ -95,7 +99,7 @@ def _parse_gbk_asdomains(text: str, node: str, region: str) -> list[dict]:
         cur_key = None
         cur_val: list[str] = []
         i += 1
-        while i < n and not _FEATURE_HDR.match(lines[i]):
+        while i < n and not _FEATURE_HDR.match(lines[i]) and not _RECORD_KEYWORD.match(lines[i]):
             qm = _QUAL.match(lines[i])
             if qm:
                 if cur_key:
@@ -262,6 +266,7 @@ PLACED = "PLACED_ON_REFERENCE_MODULE"
 AMBIGUOUS = "AMBIGUOUS_MODULES"
 FAMILY = "MODULE_FAMILY"
 UNPLACED = "UNPLACED"
+SUPPORT_UNVERIFIED = "SUPPORT_UNVERIFIED"   # a split that could decide the placement has no admissible support
 MAX_QUERIES_PER_PLACED_MODULE = 2   # a duplicated module or an overlap; more reads as a family of similar modules
 PLACEMENT_FIELDS = ["query", "verdict", "reference", "module", "reference_tips_in_split", "query_tips_in_split",
                     "support_ufboot", "split_size"]
@@ -285,9 +290,12 @@ def _parse_newick(text: str) -> tuple[list[int], list[str], list[list[int]]]:
     """Minimal Newick reader: returns (parent, label, children) per node; node 0 is the root.
 
     Handles IQ-TREE output: quoted or bare tip names, internal labels such as '95.3/100', and branch lengths.
+    Raises ValueError for a malformed tree: unbalanced parentheses, an unterminated quote, no closing ';'
+    (a truncated treefile) or text after it.
     """
     parent, label, children = [-1], [""], [[]]
     cur, i, n = 0, 0, len(text)
+    closed = False
     while i < n:
         c = text[i]
         if c == "(":
@@ -298,8 +306,15 @@ def _parse_newick(text: str) -> tuple[list[int], list[str], list[list[int]]]:
             parent.append(p); label.append(""); children.append([]); children[p].append(len(parent) - 1)
             cur = len(parent) - 1; i += 1
         elif c == ")":
+            if cur == 0:
+                raise ValueError("malformed Newick: unbalanced ')'")
             cur = parent[cur]; i += 1
         elif c == ";":
+            if cur != 0:
+                raise ValueError("malformed Newick: unbalanced '(' before ';'")
+            if text[i + 1:].strip():
+                raise ValueError("malformed Newick: text after the closing ';'")
+            closed = True
             break
         elif c == ":":
             i += 1
@@ -307,23 +322,32 @@ def _parse_newick(text: str) -> tuple[list[int], list[str], list[list[int]]]:
                 i += 1
         else:
             if c == "'":
-                j = text.index("'", i + 1)
+                j = text.find("'", i + 1)
+                if j < 0:
+                    raise ValueError("malformed Newick: unterminated quoted label")
                 label[cur] = text[i + 1:j]; i = j + 1
             else:
                 j = i
                 while j < n and text[j] not in ",():;":
                     j += 1
                 label[cur] = text[i:j].strip(); i = j
+    if not closed:
+        raise ValueError("malformed Newick: no closing ';' (truncated tree?)")
     return parent, label, children
 
 
 def _ufboot(label: str) -> float | None:
-    """UFBoot support from an IQ-TREE internal label ('SH-aLRT/UFBoot' or a single number)."""
-    parts = label.split("/")
+    """UFBoot support from an IQ-TREE internal label ('SH-aLRT/UFBoot' or a single number).
+
+    None (unverified) unless every slash part is a finite number and the last one lies in 0..100.
+    """
     try:
-        return float(parts[-1])
+        values = [float(part) for part in label.split("/")]
     except ValueError:
         return None
+    if not all(math.isfinite(v) for v in values) or not 0.0 <= values[-1] <= 100.0:
+        return None
+    return values[-1]
 
 
 def place_on_reference_modules(newick_text: str, min_ufboot: float = 80.0,
@@ -337,19 +361,30 @@ def place_on_reference_modules(newick_text: str, min_ufboot: float = 80.0,
       MODULE_FAMILY               one reference KS but more query KS than that: a family of similar modules
       AMBIGUOUS_MODULES           more than one reference KS (several modules or references fit)
       UNPLACED                    no supported split holds a reference KS
+      SUPPORT_UNVERIFIED          a split holding a reference KS, smaller than any supported one, has a missing or
+                                  inadmissible support label, so the placement cannot be decided
     Advisory: it assigns no score and changes no RG-GMCI confidence.
     """
     parent, label, children = _parse_newick(newick_text)
     tips = [k for k in range(len(parent)) if not children[k]]
+    # One unique, non-blank label per tip. Tip sets below are frozensets, so a repeated label would
+    # collapse and undercount the query KS in a split; refuse instead of deduplicating.
+    if any(not label[t] for t in tips):
+        raise ValueError("tree has a tip with a blank label; placement needs one label per sequence")
+    dup = sorted(lab for lab, c in Counter(label[t] for t in tips).items() if c > 1)
+    if dup:
+        raise ValueError(f"tree has duplicate tip labels {dup}; placement needs one unique label per sequence")
     below: dict[int, frozenset] = {}
     for k in reversed(range(len(parent))):   # children always follow their parent in creation order
         below[k] = frozenset([label[k]]) if not children[k] else frozenset().union(*(below[c] for c in children[k]))
     alltips = frozenset(label[t] for t in tips)
-    splits = []
+    splits, unverified = [], []
     for k in range(1, len(parent)):
         if children[k]:
             s = _ufboot(label[k])
-            if s is not None and s >= min_ufboot:
+            if s is None:
+                unverified.append(below[k])
+            elif s >= min_ufboot:
                 splits.append((below[k], s))
     out = []
     for t in sorted(tips, key=lambda t: label[t]):
@@ -362,6 +397,13 @@ def place_on_reference_modules(newick_text: str, min_ufboot: float = 80.0,
             refs = sorted(x for x in side if x.startswith(reference_prefix))
             if refs and (best is None or len(side) < best[0]):
                 best = (len(side), refs, s, len(side) - len(refs))
+        held = [side for side in ((u if q in u else alltips - u) for u in unverified)
+                if any(x.startswith(reference_prefix) for x in side) and (best is None or len(side) < best[0])]
+        if held:
+            out.append({"query": q, "verdict": SUPPORT_UNVERIFIED, "reference": "", "module": "",
+                        "reference_tips_in_split": "", "query_tips_in_split": "", "support_ufboot": "",
+                        "split_size": ""})
+            continue
         if best is None:
             out.append({"query": q, "verdict": UNPLACED, "reference": "", "module": "", "reference_tips_in_split": "",
                         "query_tips_in_split": "", "support_ufboot": "", "split_size": ""})

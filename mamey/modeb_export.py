@@ -504,9 +504,8 @@ def _print_result(res: dict, require_both: bool = False) -> int:
             emit(f"  {fmt}: {st['path']}  ({st.get('bytes', 0)} bytes; {st.get('engine', '')})")
         elif st["status"].startswith("SKIPPED"):
             emit(f"  {fmt}: SKIPPED — {st.get('detail', '')}", file=sys.stderr)
-            # A skipped DOCX (no python-docx) is graceful, not a failure; a skipped PDF is.
-            if fmt == "pdf":
-                rc = 1
+            # Every present format was requested; an unavailable export is not delivered.
+            rc = 1
         else:
             emit(f"  {fmt}: {st['status']} — {st.get('detail', '')}", file=sys.stderr)
             rc = 1

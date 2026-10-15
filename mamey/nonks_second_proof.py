@@ -14,6 +14,9 @@ from .rescue_two_proof import two_proof_join, write_4d_csv, _logic_proof, _short
 DEFAULT_POLICY = 'ks_clade_v2'
 POSITION_POLICY = 'nonks_position_v1'
 POLICIES = (DEFAULT_POLICY, POSITION_POLICY)
+# Rescue labels need both members bound to the current manifest; otherwise the row is held.
+RESCUE_VERDICTS = ('TWO_PROOF_RESCUE', 'RGGMCI_ONLY')
+UNBOUND_HOLD = 'UNBOUND_MEMBER_HOLD'
 
 def _count(value):
     if isinstance(value, bool) or not isinstance(value, (int, float)) or (isinstance(value, float) and not math.isfinite(value)) or value < 0 or int(value) != value:
@@ -96,6 +99,12 @@ def apply_policy(rows, manifest, scorecards=(), policy=DEFAULT_POLICY):
         row['kcb_role'] = 'SUPPORTING_ONLY; never independent second proof'
         row['identity_a'] = identity_text(manifest['strain_id'], bgcs[a]) if a in bgcs else ''
         row['identity_b'] = identity_text(manifest['strain_id'], bgcs[b]) if b in bgcs else ''
+        if row.get('verdict') in RESCUE_VERDICTS and (a not in bgcs or b not in bgcs):
+            for side, bid in (('a', a), ('b', b)):
+                if bid not in bgcs:
+                    row['identity_' + side] = (f"IDENTITY_HOLD: bgc_{side} {bid!r} absent from the manifest; "
+                                               f"held from {row['verdict']}")
+            row['verdict'] = UNBOUND_HOLD
         if policy == POSITION_POLICY and a in bgcs and b in bgcs:
             states = [class_state(bgcs[x], domains.get(x)) for x in (a, b)]
             # One side can hold accessory genes; positive non-KS core on either

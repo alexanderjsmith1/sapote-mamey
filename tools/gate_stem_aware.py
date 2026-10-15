@@ -2,7 +2,7 @@
 """Run the sibling tree gate, optionally on a verified display's analysis parent.
 
 No bundle search or filename-derived authority. Missing machinery is a refusal.
-The structural ingroup-stem exemption never waives terminal or other branches.
+The plain gate stays strict. A separately bound diagnostic retains its failing verdict.
 """
 from __future__ import annotations
 
@@ -87,7 +87,22 @@ def verify_display(receipt_path, expected_sha256, tree, metadata, parent=None):
     return receipt, resolved
 
 
-def gate(tree, *, abs_limit=0.25, factor=10.0, dominate=0.50, outgroup=None):
+def locked_root_from_receipt(receipt_path, expected_sha256, checked_tree):
+    """.452: the registry-LOCKED outgroup accession recorded by placement_root_variants.prepare, read only from a
+    hash-verified receipt whose accepted display_rooted_split tree is the tree being gated."""
+    receipt_path = Path(receipt_path).resolve()
+    if not expected_sha256 or hashlib.sha256(receipt_path.read_bytes()).hexdigest() != expected_sha256:
+        raise ValueError("LOCKED_ROOT_RECEIPT_HASH_MISMATCH")
+    record = json.loads(receipt_path.read_text())
+    if record.get("schema") != "placement-root-variants-v1" or not record.get("locked_outgroup_accession"):
+        raise ValueError("LOCKED_ROOT_RECEIPT_SCHEMA")
+    split = (receipt_path.parent / record["variants"]["display_rooted_split"]["tree"]["path"]).resolve()
+    if split != Path(checked_tree).resolve() or record.get("accepted_variant") != "display_rooted_split":
+        raise ValueError("LOCKED_ROOT_RECEIPT_TREE_MISMATCH")
+    return record["locked_outgroup_accession"]
+
+
+def gate(tree, *, abs_limit=0.25, factor=10.0, dominate=0.50, outgroup=None, locked_root_accession=None):
     engine = engine_module()
     root = engine.parse(tree)
     nodes = list(root.walk())
@@ -96,35 +111,9 @@ def gate(tree, *, abs_limit=0.25, factor=10.0, dominate=0.50, outgroup=None):
         raise ValueError("GATE_DUPLICATE_OR_EMPTY_TREE_TIP")
     if any(not math.isfinite(n.l) or n.l < 0 for n in nodes):
         raise ValueError("GATE_INVALID_BRANCH_LENGTH")
-    ok, report = engine.check(root, abs=abs_limit, factor=factor, dominate=dominate, outgroup=outgroup)
-    if ok:
-        return True, report
-    # The engine's exact structured tree identifies the candidate stem. Printed
-    # rounded branch lengths cannot identify a branch and are never compared.
-    kinds = set(re.findall(r"^  \[([A-Z_]+)\]$", report, re.M))
-    if kinds != {"DOMINATING_BRANCH"}:
-        return False, report
-    ingroup = {t.name for t in tips if not engine._is_outgroup_tip(t.name, outgroup)}
-    outgroups = {t.name for t in tips} - ingroup
-    stems = [n for n in root.k if n.k and {t.name for t in n.leaves()} == ingroup]
-    if not outgroups or len(stems) != 1 or len(root.k) != 2:
-        return False, report
-    stem = stems[0]
-    depths = {root: 0.0}
-    for node in nodes:
-        for child in node.k:
-            depths[child] = depths[node] + child.l
-    maxdepth = max(depths[t] for t in tips) or 1.0
-    # If the engine reports only its longest branch, another dominating branch
-    # can be masked. Confirm that no other non-outgroup branch exceeds the same
-    # ceiling before exempting the root-adjacent ingroup stem.
-    offenders = [n for n in nodes if not engine._all_leaves_outgroup(n, outgroup)
-                 and n.l > dominate * maxdepth]
-    if offenders != [stem]:
-        return False, report
-    return True, (report + f"\n  [stem-exemption] root-adjacent ingroup stem only: {stem.l:.17g}; "
-                  f"{len(ingroup)} tips; all terminal and other branch checks retained."
-                  "\n  PASS (structural ingroup-stem display exemption; judgment deferred)")
+    ok, report = engine.check(root, abs=abs_limit, factor=factor, dominate=dominate, outgroup=outgroup,
+                              locked_root_accession=locked_root_accession)
+    return ok, report
 
 
 def main(argv=None):
@@ -136,17 +125,25 @@ def main(argv=None):
     ap.add_argument("--receipt-sha256")
     ap.add_argument("--outgroup", action="append")
     ap.add_argument("--render-prefix", help="After rendering, bind existing PDF, PNG and session outputs")
+    ap.add_argument("--diagnostic-rooting-receipt")
+    ap.add_argument("--diagnostic-rooting-sha256")
+    ap.add_argument("--locked-root-receipt", help=".452: root-variants receipt recording a registry-LOCKED outgroup")
+    ap.add_argument("--locked-root-receipt-sha256")
     a = ap.parse_args(argv)
     try:
         checked_tree = Path(a.tree)
         receipt, resolved = None, None
         display_note = ""
+        gate_outgroups = a.outgroup
         if a.receipt:
             if not a.metadata:
                 raise ValueError("DISPLAY_METADATA_REQUIRED")
             receipt, resolved = verify_display(a.receipt, a.receipt_sha256, a.tree, a.metadata, a.parent)
             checked_tree = resolved["inputs"]["analysis_tree"]
             _, original = read_meta(resolved["inputs"]["metadata"])
+            gate_outgroups = [row["tip"] for row in original if row["role"] == "outgroup"]
+            if not gate_outgroups:
+                raise ValueError("DISPLAY_BOUND_OUTGROUP_MISSING")
             _, displayed = read_meta(resolved["outputs"]["metadata"])
             removed = sum(r["role"] == "outgroup" for r in original) if receipt["parameters"]["prune_outgroup"] else 0
             display_note = (f"DISPLAY_NOTE: Display derivative: {len(displayed)} of {len(original)} tips shown; "
@@ -157,9 +154,22 @@ def main(argv=None):
             raise ValueError("A distinct analysis parent requires a hash-bound display receipt")
         elif a.receipt_sha256 or a.render_prefix:
             raise ValueError("DISPLAY_RECEIPT_REQUIRED")
-        ok, report = gate(checked_tree, outgroup=a.outgroup)
+        locked = (locked_root_from_receipt(a.locked_root_receipt, a.locked_root_receipt_sha256, checked_tree)
+                  if a.locked_root_receipt else None)
+        ok, report = gate(checked_tree, outgroup=gate_outgroups, locked_root_accession=locked)
+        diagnostic = bool(a.diagnostic_rooting_receipt)
+        if diagnostic:
+            if not receipt:
+                raise ValueError("DIAGNOSTIC_REQUIRES_BOUND_DISPLAY")
+            from tools.placement_root_variants import verify_diagnostic
+            verify_diagnostic(a.diagnostic_rooting_receipt, a.diagnostic_rooting_sha256, checked_tree)
+            if ok:
+                raise ValueError("DIAGNOSTIC_EXPECTED_STRICT_GATE_FAIL")
+            display_note += "\nDIAGNOSTIC_ONLY: root as built; strict gate FAIL; accepted variant is display_rooted_split."
+        elif a.diagnostic_rooting_sha256:
+            raise ValueError("DIAGNOSTIC_RECEIPT_REQUIRED")
         emit((display_note + "\n" if display_note else "") + report)
-        if not ok:
+        if not ok and not diagnostic:
             return 2
         if a.render_prefix:
             # Verify once more after graphics generation, before issuing a binding.
@@ -168,13 +178,18 @@ def main(argv=None):
             target = Path(str(prefix) + ".render_receipt.json")
             outputs = {suffix: binding(Path(str(prefix) + suffix), target.parent.resolve())
                        for suffix in (".pdf", ".png", ".session.txt")}
-            payload = {"schema": "sapote.tree-render.v1", "authority": "RENDER_ONLY_NOT_SCIENTIFIC_ACCEPTANCE",
+            payload = {"schema": "sapote.tree-render.v1", "authority": "DIAGNOSTIC_ONLY_GATE_FAIL" if diagnostic else "RENDER_ONLY_NOT_SCIENTIFIC_ACCEPTANCE",
+                       "gate_pass": ok, "accepted": not diagnostic,
                        "display_receipt": binding(Path(a.receipt), target.parent.resolve()),
                        "analysis_tree": binding(checked_tree, target.parent.resolve()),
                        "renderer": binding(Path(__file__).with_name("ggtree_rect_heatmap.R"), target.parent.resolve()),
                        "checker": binding(_engine_gate(), target.parent.resolve()),
                        "gate_wrapper": binding(Path(__file__), target.parent.resolve()),
                        "outputs": outputs, "gate_report": report}
+            if diagnostic:
+                from tools.placement_root_variants import verify_diagnostic
+                verify_diagnostic(a.diagnostic_rooting_receipt, a.diagnostic_rooting_sha256, checked_tree)
+                payload["root_variants"] = binding(Path(a.diagnostic_rooting_receipt), target.parent.resolve())
             write_exclusive(target, (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode())
         return 0
     except FileNotFoundError as exc:

@@ -48,7 +48,7 @@ def build(config,permitted_root,pilot=False,expected_config_sha256=None):
   transports={(r['locus_key'],r['gene_order']):dict(r) for r in connections['transport'].execute('select * from gene')}
   cassettes={(r['locus_key'],r['gene_order']):dict(r) for r in connections['cassette'].execute("select * from gene where membership='EXACT_REGION'")}
   # Binding failures stop the partition; no silent cross-assembly/protein join.
-  for name,c in list(connections.items())[1:]+[('reference',ref)]:
+  for name,c in [(name,c) for name,c in connections.items() if name!='census']+[('reference',ref)]:
    other={r['locus_key']:dict(r) for r in c.execute('select * from locus')}
    for l in loci:
     r=other.get(l['locus_key'])

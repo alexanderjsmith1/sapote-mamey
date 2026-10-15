@@ -42,7 +42,7 @@ def load_palette(path: str | Path) -> dict[tuple[str, str], str]:
     colors: dict[tuple[str, str], str] = {}
     for row in rows:
         field, value, color = row["field"].strip(), row["value"].strip(), row["color"].upper()
-        if field not in {"source", "geography"} or value.casefold() in MISSING:
+        if field not in {"source", "geography", "activity", "activity_calm", "country", "host"} or value.casefold() in MISSING:   # v9.7.444: + activity strips, deposited-country strips; .452: + activity_calm
             raise ValueError("PHYLO_PALETTE_VALUE")
         if not re.fullmatch(r"#[0-9A-F]{6}", color):
             raise ValueError("PHYLO_PALETTE_COLOR")

@@ -90,7 +90,7 @@ def test_query_label_wraps_to_two_lines_and_figure_is_wide_enough(tmp_path):
     pytest.importorskip("matplotlib")
     files, inv, nwk = _family(tmp_path, n_ref=0)
     out = tmp_path / "fam"
-    assert gs.main(_args(files, inv, nwk, out)) == 0
+    assert gs.main(_args(files, inv, nwk, out) + ["--print-width", "none"]) == 0   # the earlier screen layout
     assert gs.wrap_label("STRN1 / NODE_12_length_123456_cov_10.123456 / region003 / BGC012") == "STRN1 / NODE_12_length_123456_cov_10.123456\nregion003 / BGC012"
     from pypdf import PdfReader
     w_pt = float(PdfReader(str(out) + ".pdf").pages[0].mediabox.width)

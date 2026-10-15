@@ -119,8 +119,8 @@ def test_hold_is_surfaced_and_claim_safe_in_4d(tmp_path):
     assert "advisory HOLD" in body.lower() or "not a rescue" in body.lower()
     assert "not a merge" in body.lower() and "judgment deferred" in body.lower()
     # self-declared gate version bumped for the new verdict
-    assert TWO_PROOF_LOGIC_VERSION == "2"
-    assert (",2," in body) or body.rstrip().endswith(",2") or "two_proof_logic_version" in open(out).readline()
+    assert TWO_PROOF_LOGIC_VERSION == "3"   # .452: LOGIC_EVIDENCE_HOLD and the legacy-overlap note (owner ruling 14 Oct)
+    assert (",3," in body) or body.rstrip().endswith(",3") or "two_proof_logic_version" in open(out).readline()
 
 
 def test_multi_channel_hold_is_engine_neutral():

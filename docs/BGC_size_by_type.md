@@ -14,7 +14,7 @@ Outputs are three 160-dpi PNGs (`fig_bgc_size_by_type.png`, `fig_count_vs_size_f
 
 `--replot` restores rounded size columns from the CSV but initializes an **empty count table**. Its count panels are not reproduced from the original run. The source itself prints “count panels need full data.” Preserve the original full-data outputs and hashes; do not replace them with a replot and call the count/size comparison reproduced. Bank guard still applies even for replot (`:168–189`).
 
-The current plot title still states “opposite biases bracket the truth” (`:148`). That is a residual scientific-wording hold: the documentation correction does not change or approve the generated label. Do not adopt it without separate owner review. Full individual-locus discussion requires strain / full node-or-contig / region / BGC alias; this summary does not supply that mapping.
+The count-versus-size panel is titled “BGC count and BGC size (kb) by class: correlation with assembly fragmentation”. It describes what is plotted; the earlier title, “opposite biases bracket the truth”, was withdrawn because counts and kb cannot bound one quantity. Full individual-locus discussion requires strain / full node-or-contig / region / BGC alias; this summary does not supply that mapping.
 
 ## Historical cohort narrative, retained for provenance
 

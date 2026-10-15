@@ -1265,11 +1265,12 @@ def blastp_online_command(args) -> int:
             node_region = f"{_nid}.{_reg}" if (_nid and _reg) else _nid
         w.writerow(["locus_tag", "node_region", "aa_length", "antismash_domains", "blastp_top_def",
                     "blastp_accession", "blastp_organism", "pct_identity", "pct_positive", "query_coverage",
-                    "evalue", "bitscore", "agreement"])
+                    "evalue", "bitscore", "agreement", "channel", "source_channel"])
         for h in all_hits:
             w.writerow([h.locus_tag, node_region, h.aa_length, h.antismash_domains, h.blastp_top_def,
                         h.blastp_accession, h.blastp_organism, h.pct_identity, h.pct_positive, h.query_coverage,
-                        h.evalue, h.bitscore, h.agreement or reconcile(h.antismash_domains, h.blastp_top_def)])
+                        h.evalue, h.bitscore, h.agreement or reconcile(h.antismash_domains, h.blastp_top_def),
+                        _db, _db])
     emit(f"[blastp-online] wrote {out_csv} ({len(all_hits)} rows). {CLAIM_SAFETY}")
 
     # protocol §9 + function/novelty: the cluster-level reads that belong in §8/§10/§25/§29

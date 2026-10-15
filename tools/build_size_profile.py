@@ -6,9 +6,9 @@ nucleotide content (kb) of each strain's BGCs by class is far more fragmentation
 still contributes ~its true length. This module makes size-by-type a first-class Mamey output: it writes a
 Size_By_Type workbook sheet and emits the size figures, so every cohort (incl. the AS merge) gets it.
 
-Honest caveat carried in the outputs: size is biased slightly DOWN by edge truncation (clusters running off a
-contig end lose nucleotides), the opposite direction to count inflation — so count (upper) and size (lower)
-bracket the truth. See docs/BGC_size_by_type.md.
+Caveat carried in the outputs: size can be biased down by edge truncation (clusters running off a contig end lose
+nucleotides). Counts and kb are different units with different denominators, so the two figures are shown side by
+side; neither bounds a single true value. See docs/BGC_size_by_type.md.
 
 Outputs (to --out-dir): fig_bgc_size_by_type.png (+ _data.csv), fig_count_vs_size_fragmentation.png,
 fig_strain_class_size_heatmap.png. Adds the Size_By_Type sheet to --workbook when given.
@@ -29,6 +29,10 @@ except ImportError:  # bare-script run: bundle root is one level up
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 from mamey.class_architecture import with_family_labels  # noqa: E402  antiSMASH families for groupings; products stay types
 
+
+
+# Factual panel title: what is plotted, with no claim about which measure is closer to a true value.
+FRAGMENTATION_PANEL_TITLE = 'BGC count and BGC size (kb) by class:\ncorrelation with assembly fragmentation'
 
 
 def _bank_reader_scope(func):
@@ -145,7 +149,7 @@ def plot_all(out_dir, strains, sids, cols, siz, cnt):
     a1.barh(y-h/2,[r[2] for r in rows],h,color='#2E86AB',label='size (kb) vs fragmentation')
     a1.set_yticks(y); a1.set_yticklabels([r[0] for r in rows],fontsize=9); a1.axvline(0,color='#444',lw=0.9)
     a1.set_xlabel('correlation with fragmentation (log10 contigs)'); a1.spines[['top','right']].set_visible(False)
-    a1.set_title('Count inflates (+), size deflates (−):\nopposite biases bracket the truth',fontsize=10,weight='bold'); a1.legend(fontsize=8,frameon=False,loc='lower right')
+    a1.set_title(FRAGMENTATION_PANEL_TITLE,fontsize=10,weight='bold'); a1.legend(fontsize=8,frameon=False,loc='lower right')
     tc=[sum(cnt[s].values()) for s in sids]; ts=[sum(siz[s].values()) for s in sids]; a2b=a2.twinx()
     a2.scatter(lc,tc,s=22,c='#C0392B',alpha=0.7); a2b.scatter(lc,ts,s=22,c='#2E86AB',alpha=0.7,marker='s')
     for v,c,axx in [(tc,'#C0392B',a2),(ts,'#2E86AB',a2b)]:

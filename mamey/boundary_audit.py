@@ -63,8 +63,43 @@ LEAD_TIERS = {"Exceptional", "High", "Medium", "Low", "Inventory"}  # AQUARIUS_0
 CLAIM_CONF = {"High", "Moderate-High", "Moderate", "Low-Moderate", "Low", "Unknown"}
 
 
+def _admit_payloads(records, verdicts) -> list[str]:
+    """P300-031: admit the payload shape before any correspondence check.
+
+    `{}`, a missing strain, an undeclared collection or a wrongly typed one is malformed input,
+    not a valid zero-BGC dataset. A declared empty list is a genuine empty roster (denominator 0).
+    """
+    problems: list[str] = []
+    for side, payload in (("records", records), ("verdicts", verdicts)):
+        if not isinstance(payload, dict):
+            problems.append(f"SCHEMA {side}: payload is {type(payload).__name__}, not a JSON object")
+            continue
+        strain = payload.get("strain")
+        if not isinstance(strain, str) or not strain.strip():
+            problems.append(f"SCHEMA {side}: missing or empty strain identity ({strain!r})")
+        if side not in payload:
+            problems.append(f"SCHEMA {side}: {side!r} collection not declared "
+                            "(absent is not an empty roster)")
+            continue
+        rows = payload[side]
+        if not isinstance(rows, list):
+            problems.append(f"SCHEMA {side}: {side!r} is {type(rows).__name__}, not a list")
+            continue
+        bad = [i for i, row in enumerate(rows)
+               if not isinstance(row, dict) or not isinstance(row.get("bgc_id"), str)
+               or not row["bgc_id"].strip()]
+        if bad:
+            problems.append(f"SCHEMA {side}: {len(bad)}/{len(rows)} row(s) lack an object with a "
+                            f"string bgc_id (row index {bad[:12]})")
+    return problems
+
+
 def audit_payloads(records: dict, verdicts: dict, registry=None) -> tuple[int, list[str]]:
     problems: list[str] = []
+
+    schema_problems = _admit_payloads(records, verdicts)
+    if schema_problems:  # P300-031: malformed input is a hold, never a clean zero-BGC audit
+        return 1, schema_problems
 
     r_strain, v_strain = records.get("strain"), verdicts.get("strain")
     if r_strain != v_strain:
@@ -76,7 +111,18 @@ def audit_payloads(records: dict, verdicts: dict, registry=None) -> tuple[int, l
         from collections import Counter as _Counter
         _dups = sorted(k for k, n in _Counter(r["bgc_id"] for r in _rec_list).items() if n > 1)
         problems.append(f"DUPLICATE bgc_id in records (extractor double-emit): {_dups}")
-    verds = {v["bgc_id"]: v for v in verdicts.get("verdicts", [])}
+    _verd_list = verdicts.get("verdicts", [])
+    verds = {v["bgc_id"]: v for v in _verd_list}
+    if len(_verd_list) != len(verds):  # P300-030: one verdict per BGC; a later row must not hide an earlier one
+        _by_id: dict[str, list] = {}
+        for v in _verd_list:
+            _by_id.setdefault(v["bgc_id"], []).append(v)
+        _multi = {k: rows for k, rows in _by_id.items() if len(rows) > 1}
+        _conflicting = sorted(k for k, rows in _multi.items() if any(r != rows[0] for r in rows[1:]))
+        _identical = sorted(k for k in _multi if k not in _conflicting)
+        problems.append(
+            f"DUPLICATE bgc_id in verdicts ({len(_verd_list)} verdict rows for {len(verds)} unique "
+            f"loci; one verdict per BGC required): conflicting={_conflicting} identical={_identical}")
 
     dropped = sorted(set(recs) - set(verds))
     if dropped:

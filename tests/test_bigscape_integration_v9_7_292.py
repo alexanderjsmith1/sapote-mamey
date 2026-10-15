@@ -109,7 +109,7 @@ def test_end_to_end_real_triage_shape():
     # KNOWN card joined (this is the 0->N regression) with co-member AS-810
     assert "**KNOWN**" in known and "AS-810" in known, known
     # NOVEL card joined DESPITE the triage cov being corrupted vs the DB cov
-    assert "**NOVEL**" in novel, novel
+    assert "**NO_MIBIG_MEMBER**" in novel, novel
     assert known.count(ingest.BEGIN) == 1
     print("PASS test_end_to_end_real_triage_shape")
 

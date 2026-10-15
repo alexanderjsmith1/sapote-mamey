@@ -5,6 +5,7 @@ tree strips and a state describing the transformation; they do not infer ecologi
 """
 from __future__ import annotations
 
+import os
 import re
 
 
@@ -72,6 +73,11 @@ _KNOWN_COUNTRIES = {
     "Australia", "Austria", "Brazil", "Canada", "China", "Finland", "France", "Georgia",
     "Germany", "India", "Japan", "Mexico", "Mongolia", "Namibia", "Pakistan", "Russia",
     "South Africa", "South Korea", "Spain", "Taiwan", "USA", "United Kingdom", "Vietnam",
+    # v9.7.452: deposited countries of 16S reference panels that previously fell through to AS_RECORDED
+    # and stopped the display palette gate. "Korea" is kept as deposited (not aliased to South Korea).
+    "Antarctica", "Denmark", "Korea", "Lebanon", "Netherlands", "Norway", "Portugal", "Sweden",
+    "Thailand", "Togo", "Turkey", "Indonesia", "Martinique", "USSR", "Italy", "New Zealand",
+    "Algeria", "Egypt", "Argentina", "Chile", "Bangladesh", "Kuwait", "Philippines", "Turkmenistan", "Cuba", "Switzerland",
 }
 _COUNTRY_TO_DISPLAY = {
     "USA": "US", "Canada": "Canada", "Mexico": "North America",
@@ -84,7 +90,23 @@ _COUNTRY_TO_DISPLAY = {
     "China": "Asia", "Japan": "Asia", "Pakistan": "Asia", "South Korea": "Asia",
     "Taiwan": "Asia", "Vietnam": "Asia", "India": "Asia", "Mongolia": "Asia",
     "South Africa": "Africa", "Namibia": "Africa", "Australia": "Oceania",
+    # v9.7.452. Owner rulings 14 Oct 2026 for the two transcontinental countries and Antarctica:
+    # Turkey -> Asia, Antarctica -> Other documented
+    # (the shared palette has no Antarctica colour). The tip label keeps the deposited country.
+    # Russia stays out of this LABEL table: detailed labels keep the deposited "Russia" (pinned by
+    # test_phylo_publication_labels_v97427). The owner ruling Russia -> Europe applies to the strip colour and needs a
+    # separate strip-region field (own card).
+    "Turkey": "Asia", "Antarctica": "Other documented",
+    "Denmark": "Europe", "Netherlands": "Europe", "Norway": "Europe", "Portugal": "Europe", "Sweden": "Europe",
+    "Korea": "Asia", "Lebanon": "Asia", "Thailand": "Asia", "Togo": "Africa",
+    # Culture-collection records (BacDive) give "USSR" for older strains; it is not Russia, so it is not placed.
+    # Martinique is a Caribbean overseas department, drawn with North America.
+    "Indonesia": "Asia", "Martinique": "North America", "USSR": "Other documented",
+    "Italy": "Europe", "New Zealand": "Oceania",
+    # culture-collection origins of type strains (BacDive), 14 Oct
+    "Algeria": "Africa", "Egypt": "Africa", "Argentina": "South America", "Chile": "South America", "Bangladesh": "Asia", "Kuwait": "Asia", "Philippines": "Asia", "Turkmenistan": "Asia", "Cuba": "North America", "Switzerland": "Europe",
 }
+_GEO_PLACEHOLDERS = {"missing", "not determined", "not applicable", "not collected", "not provided", "restricted access"}
 _NAMED_OCEANS = {"Pacific Ocean", "Atlantic Ocean", "Indian Ocean", "Southern Ocean", "Arctic Ocean"}
 
 _COUNTRY_TO_CONTINENT = {
@@ -96,7 +118,12 @@ _COUNTRY_TO_CONTINENT = {
     "Russia":          "Europe",
     "Spain":           "Europe",
     "United Kingdom":  "Europe",
-    # Georgia: RULED "Europe" by the owner 2026-09-14 (NCBI BioSample convention).
+    "Denmark":         "Europe",
+    "Netherlands":     "Europe",
+    "Norway":          "Europe",
+    "Portugal":        "Europe",
+    "Sweden":          "Europe",
+    # Georgia: RULED "Europe" by Alex 2026-09-14 (NCBI BioSample convention).
     "Georgia":         "Europe",
     # Asia
     "China":           "Asia",
@@ -107,18 +134,58 @@ _COUNTRY_TO_CONTINENT = {
     "South Korea":     "Asia",
     "Taiwan":          "Asia",
     "Vietnam":         "Asia",
+    "Korea":           "Asia",
+    "Lebanon":         "Asia",
+    "Thailand":        "Asia",
+    "Turkey":          "Asia",   # owner ruling 14 Oct 2026 (transcontinental)
+    "Indonesia":       "Asia",
     # North America
     "Canada":          "North America",
     "Mexico":          "North America",
+    "Martinique":      "North America",
     "USA":             "North America",
     # South America
     "Brazil":          "South America",
     # Africa
     "Namibia":         "Africa",
     "South Africa":    "Africa",
+    "Togo":            "Africa",
     # Oceania
     "Australia":       "Oceania",
 }
+
+
+# v9.7.452: INSDC countries deposited on 16S reference records that had no display region, so the strip palette gate
+# stopped each new tree on one or two of them. Unambiguous places map to their continent; Caribbean islands follow the
+# Martinique entry (North America). Transcontinental or unclear places (Armenia, Azerbaijan, Cyprus, Kazakhstan,
+# French Southern and Antarctic Lands) and named seas stay unmapped, so the gate still holds them for a ruling.
+_INSDC_REGION = {
+    "Europe": ("Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Czech Republic", "Czechia",
+               "Estonia", "Faroe Islands", "Greece", "Hungary", "Iceland", "Ireland", "Lithuania", "Malta", "Poland",
+               "Romania", "Serbia", "Slovakia", "Slovenia", "Svalbard", "Ukraine"),
+    "Asia": ("Cambodia", "Hong Kong", "Iran", "Iraq", "Israel", "Jordan", "Kyrgyzstan", "Laos", "Macau", "Malaysia",
+             "Myanmar", "Nepal", "North Korea", "Oman", "Qatar", "Saudi Arabia", "Singapore", "Sri Lanka", "Tajikistan",
+             "United Arab Emirates", "Uzbekistan", "Yemen"),
+    "Africa": ("Angola", "Botswana", "Burkina Faso", "Burundi", "Cameroon", "Cape Verde", "Central African Republic",
+               "Chad", "Cote d'Ivoire", "Democratic Republic of the Congo", "Djibouti", "Ethiopia", "Gabon", "Ghana",
+               "Guinea", "Kenya", "Madagascar", "Mali", "Mayotte", "Morocco", "Nigeria", "Republic of the Congo",
+               "Sao Tome and Principe", "Senegal", "Somalia", "Sudan", "Tanzania", "Tunisia", "Uganda", "Zambia",
+               "Zimbabwe"),
+    "North America": ("Bahamas", "Barbados", "Belize", "Costa Rica", "Curacao", "Dominica", "Dominican Republic",
+                      "Greenland", "Grenada", "Guatemala", "Montserrat", "Panama", "Puerto Rico",
+                      "Saint Vincent and the Grenadines", "Trinidad and Tobago"),
+    "South America": ("Bolivia", "Colombia", "Ecuador", "Falkland Islands (Islas Malvinas)", "French Guiana", "Peru",
+                      "Uruguay", "Venezuela"),
+    "Oceania": ("Fiji", "French Polynesia", "Guam", "Kiribati", "Marshall Islands", "Micronesia",
+                "Micronesia, Federated States of", "New Caledonia", "Palau", "Papua New Guinea", "Solomon Islands",
+                "Tonga"),
+}
+# Plain assignments, not a loop: tools must do no work at import (tests/test_tools_import_safe_v97250.py).
+# Existing entries win, as with setdefault.
+_INSDC_COUNTRY_REGION = {_c: _r for _r, _cs in _INSDC_REGION.items() for _c in _cs}
+_KNOWN_COUNTRIES = _KNOWN_COUNTRIES | set(_INSDC_COUNTRY_REGION)
+_COUNTRY_TO_DISPLAY = {**_INSDC_COUNTRY_REGION, **_COUNTRY_TO_DISPLAY}
+_COUNTRY_TO_CONTINENT = {**_INSDC_COUNTRY_REGION, **_COUNTRY_TO_CONTINENT}
 
 
 
@@ -140,8 +207,14 @@ def normalize_geography(location: str | None) -> dict[str, str]:
     admission gate can hold it rather than silently guessing a region.
     """
     raw = _clean(location)
-    if not raw:
+    # v9.7.452: INSDC missing-value terms ("missing: control sample", "missing: lab stock", "not determined") are not places.
+    if not raw or raw.split(":", 1)[0].strip().lower() in _GEO_PLACEHOLDERS:
         return {"raw": "", "display_location": "", "state": "NOT_RECORDED"}
+    if os.environ.get("SAPOTE_GEOGRAPHY_LEVEL") == "country":
+        # v9.7.444: report the deposited country (INSDC country part, before any ':' locality), not a continent bin.
+        prefix = raw.split(":", 1)[0].strip()
+        return {"raw": raw, "display_location": _country_name(raw) or _country_name(prefix) or prefix,
+                "state": "COUNTRY_AS_DEPOSITED"}
     if raw in _NAMED_OCEANS:
         return {"raw": raw, "display_location": raw, "state": "AS_RECORDED"}
     direct = _country_name(raw)
@@ -154,7 +227,25 @@ def normalize_geography(location: str | None) -> dict[str, str]:
         country = _country_name(prefix)
         if country:
             return {"raw": raw, "display_location": _COUNTRY_TO_DISPLAY.get(country, raw), "state": "COUNTRY_PREFIX"}
+        if prefix in _NAMED_OCEANS:
+            return {"raw": raw, "display_location": prefix, "state": "AS_RECORDED"}
     return {"raw": raw, "display_location": raw, "state": "AS_RECORDED"}
+
+
+# Strip colour only. Labels keep the deposited country (normalize_geography); a transcontinental country the owner has
+# ruled on is coloured by that ruling in the geography strip. Owner ruling 14 Oct 2026: Russia -> Europe.
+_STRIP_REGION = {"Russia": "Europe"}
+
+
+def strip_geography(location: str | None) -> dict[str, str]:
+    """normalize_geography() for the geography STRIP: same fields, but a country in _STRIP_REGION is drawn as its ruled
+    region. The label path does not use this, so a detailed label still reads the deposited country."""
+    geo = normalize_geography(location)
+    raw = geo["raw"]
+    country = (_country_name(raw) or _country_name(raw.split(":", 1)[0].strip())) if raw else None
+    if country in _STRIP_REGION:
+        return {"raw": raw, "display_location": _STRIP_REGION[country], "state": "STRIP_REGION_RULED"}
+    return geo
 
 
 def normalize_geography_continent(location: str | None) -> dict[str, str]:

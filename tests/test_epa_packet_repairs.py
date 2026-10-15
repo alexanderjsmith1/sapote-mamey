@@ -47,7 +47,7 @@ def test_matching_sequences_are_not_flagged():
     assert m.trim_alignment_termini(rows)[1]=={}
 
 @pytest.mark.parametrize('mismatch',[0,1])
-def test_group_label_reports_measured_bounds(tmp_path,mismatch):
+def test_group_label_preserves_record_and_ledger_bounds(tmp_path,mismatch):
     m=mod('collapse_near_identical');seq='ACGT'*200
     aln=tmp_path/'a.fa';tree=tmp_path/'t.nwk';meta=tmp_path/'m.tsv'
     aln.write_text(f'>r1\n{seq}\n>r2\n'+('T'+seq[1:] if mismatch else seq)+f'\n>q\n{seq}\n>outgroup\n'+('TTGA'*200)+'\n')
@@ -56,7 +56,11 @@ def test_group_label_reports_measured_bounds(tmp_path,mismatch):
     result=m.build_display(aln,tree,meta,dict(max_nt=1,min_cols=100,protect=[],prune_outgroup=False,group_label='representative'))
     rows=list(csv.DictReader(io.StringIO(result['metadata'].decode()),delimiter='\t'))
     label=next(r['label'] for r in rows if r['role']=='reference')
-    assert f'max {mismatch} nt differences' in label and 'min 800 shared sites' in label
+    assert label == 'Reference one'
+    ledger=list(csv.DictReader(io.StringIO(result['ledger'].decode()),delimiter='\t'))
+    grouped=[r for r in ledger if r['representative_tip']=='r1']
+    assert {r['max_pair_mismatches'] for r in grouped} == {str(mismatch)}
+    assert {r['min_pair_shared_columns'] for r in grouped} == {'800'}
     assert 'identical' not in label
 
 def test_accession_conflict_refuses_instead_of_pruning(tmp_path):

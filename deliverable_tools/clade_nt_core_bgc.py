@@ -28,6 +28,9 @@ from __future__ import annotations
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
+from pathlib import Path
+_sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+import _phylo16s as _p16
 import argparse
 import glob
 import os
@@ -230,8 +233,10 @@ def _blastn_dir(query_fa, db_fa, blastn, makeblastdb, tmp):
     subprocess.run([makeblastdb, "-in", db_fa, "-dbtype", "nucl", "-out", dbp],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
     fmt = "6 " + " ".join(BLAST_COLS)
+    n = (_p16.blastdb_sequence_count(dbp, str(Path(blastn).with_name("blastdbcmd")))
+         or _p16.ALL_RECORDS_FALLBACK)
     proc = subprocess.run([blastn, "-query", query_fa, "-db", dbp, "-outfmt", fmt,
-                           "-max_target_seqs", "5", "-evalue", "1e-5"],
+                           "-max_target_seqs", str(n), "-evalue", "1e-5"],
                           capture_output=True, text=True, check=True)
     return parse_blast_tab(proc.stdout)
 

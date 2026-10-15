@@ -16,6 +16,7 @@ import statistics
 import tarfile
 
 from .csv_safety import SafeDictWriter
+from .rescue_groups import CONTIG_END
 
 CLAIM_CEILING = (
     "Homology-guided paired-locus prioritization only. A shared MIBiG comparator "
@@ -117,13 +118,27 @@ def _generic_modular(locus_a: dict, locus_b: dict, row: dict) -> bool:
     )
 
 
+def _contig_end_observed(row: dict) -> bool:
+    """A side's boundary observes a contig end (Edge or Full-contig). Blank, unknown or malformed values do not."""
+    return row["boundary_a"] in CONTIG_END or row["boundary_b"] in CONTIG_END
+
+
+def boundary_evidence_state(row: dict) -> str:
+    """OBSERVED_CONTIG_END, BOTH_INTERIOR, or BOUNDARY_UNMEASURED when neither side observes an end and a side's value
+    is blank or not a recognised status."""
+    if _contig_end_observed(row):
+        return "OBSERVED_CONTIG_END"
+    if row["boundary_a"] == "Interior" and row["boundary_b"] == "Interior":
+        return "BOTH_INTERIOR"
+    return "BOUNDARY_UNMEASURED"
+
+
 def evidence_tier(row: dict) -> tuple[str, str]:
     both = min(row["unique_subjects_a"], row["unique_subjects_b"])
     ordered = row["reference_tiling_topology"] in {
         "DISJOINT_ADJACENT_SEGMENTS", "DISJOINT_SEPARATED_SEGMENTS"
     }
-    boundary = (row["boundary_a"] != "Interior" or row["boundary_b"] != "Interior" or
-                row["subject_tiling_verdict"] == "TERMINUS_TRUNCATION_SPLIT")
+    boundary = _contig_end_observed(row) or row["subject_tiling_verdict"] == "TERMINUS_TRUNCATION_SPLIT"
     if (row["rggmci_confidence"] == "HIGH_RG_GMCI_RESCUE" and both >= 3 and
             row["shared_subjects"] == 0 and row["combined_unique_subjects"] >= 10 and
             row["reference_protein_coverage"] >= .35 and row["max_reference_rank"] <= 3 and
@@ -154,7 +169,7 @@ def evidence_score(row: dict) -> float:
         10 * min(row["median_alignment_coverage"] / 90, 1) +
         10 * max(0, 1 - (row["max_reference_rank"] - 1) / 39) +
         3 * (row["rggmci_confidence"] == "HIGH_RG_GMCI_RESCUE") +
-        2 * (row["boundary_a"] != "Interior" or row["boundary_b"] != "Interior")
+        2 * _contig_end_observed(row)
     )
     if row["generic_modular_caution"]:
         score -= 8
@@ -261,6 +276,7 @@ def build_atlas(pair_rows: list[dict], locus_rows: list[dict], hit_rows: list[di
             "products_a": la.get("current_antismash_products", ""),
             "products_b": lb.get("current_antismash_products", ""),
         })
+        best["boundary_evidence_state"] = boundary_evidence_state(best)
         best["generic_modular_caution"] = _generic_modular(la, lb, best)
         best["evidence_score_0_100"] = evidence_score(best)
         best["evidence_tier"], best["tier_reason"] = evidence_tier(best)

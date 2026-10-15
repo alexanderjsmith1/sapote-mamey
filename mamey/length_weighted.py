@@ -5,6 +5,7 @@ corrected BGC count and is deliberately excluded from scoring and triage.
 """
 from __future__ import annotations
 
+import math
 import re
 from typing import Iterable
 
@@ -159,18 +160,49 @@ def nominal_length_bp(products):
     return nominal_length_profile(products)["nominal_bp"]
 
 
+COORDINATES_OBSERVED = "OBSERVED"
+COORDINATES_MISSING = "NOT_COMPUTED_MISSING_COORDINATES"
+COORDINATES_INVALID = "NOT_COMPUTED_INVALID_COORDINATES"
+
+
+def _admitted_span(bgc):
+    """Return (start, end, coordinate_status); P300-096: never synthesize a 1 bp length."""
+    start, end = getattr(bgc, "start", None), getattr(bgc, "end", None)
+    if start is None or end is None or start == "" or end == "":
+        return None, None, COORDINATES_MISSING
+    try:
+        if isinstance(start, bool) or isinstance(end, bool):
+            raise ValueError("boolean coordinate")
+        start_f, end_f = float(start), float(end)
+        if not (math.isfinite(start_f) and math.isfinite(end_f)):
+            raise ValueError("non-finite coordinate")
+        if start_f != int(start_f) or end_f != int(end_f):
+            raise ValueError("non-integer coordinate")
+    except (TypeError, ValueError, OverflowError):
+        return None, None, COORDINATES_INVALID
+    start_i, end_i = int(start_f), int(end_f)
+    if start_i < 0 or end_i < start_i:
+        return None, None, COORDINATES_INVALID
+    return start_i, end_i, COORDINATES_OBSERVED
+
+
+def _length_computed(row) -> bool:
+    return row.get("length_fraction") not in (None, "")
+
+
 def length_weighted_profile(bgcs):
     rows = []
     for bgc in bgcs:
-        length_bp = max(
-            0,
-            int(getattr(bgc, "end", 0) or 0)
-            - int(getattr(bgc, "start", 0) or 0)
-            + 1,
-        )
+        start, end, coordinate_status = _admitted_span(bgc)
         profile = nominal_length_profile(getattr(bgc, "products", []))
         nominal = int(profile["nominal_bp"])
-        fraction = min(1.0, length_bp / nominal) if nominal else 0.0
+        if coordinate_status == COORDINATES_OBSERVED:
+            length_bp = end - start + 1
+            fraction = round(min(1.0, length_bp / nominal) if nominal else 0.0, 6)
+        else:
+            # Missing or invalid coordinates are held as not computed, never a positive length.
+            length_bp = None
+            fraction = None
         boundary = str(getattr(bgc, "edge_status", "") or "")
         rows.append({
             "bgc_id": bgc.bgc_id,
@@ -182,7 +214,7 @@ def length_weighted_profile(bgcs):
             "nominal_mapping_status": profile["mapping_status"],
             "length_bp": length_bp,
             "nominal_full_length_bp": nominal,
-            "length_fraction": round(fraction, 6),
+            "length_fraction": fraction,
             "boundary": boundary,
             "assembly_quality_caveat": (
                 "ASSEMBLY_EDGE_OR_FULL_CONTIG"
@@ -190,6 +222,7 @@ def length_weighted_profile(bgcs):
                 else ""
             ),
             "metric_status": REPORT_ONLY_CONTRACT,
+            "coordinate_status": coordinate_status,
         })
     return rows
 
@@ -200,22 +233,27 @@ def summary(rows):
         row.get("nominal_mapping_status") == "DEFAULT_UNMAPPED"
         for row in rows
     )
+    # P300-096: weighted sums cover only rows with admitted coordinates; held rows get their
+    # own count so the computed denominator is never read as raw_regions.
+    computed = [row for row in rows if _length_computed(row)]
     return {
         "raw_regions": len(rows),
         "length_weighted_capacity_equivalents": round(
-            sum(float(row["length_fraction"]) for row in rows), 4
+            sum(float(row["length_fraction"]) for row in computed), 4
         ),
         "interior_weighted": round(
-            sum(float(row["length_fraction"]) for row in rows if row["boundary"] == "Interior"), 4
+            sum(float(row["length_fraction"]) for row in computed if row["boundary"] == "Interior"), 4
         ),
         "edge_weighted": round(
-            sum(float(row["length_fraction"]) for row in rows if row["boundary"] == "Edge"), 4
+            sum(float(row["length_fraction"]) for row in computed if row["boundary"] == "Edge"), 4
         ),
         "full_contig_weighted": round(
-            sum(float(row["length_fraction"]) for row in rows if row["boundary"] == "Full-contig"), 4
+            sum(float(row["length_fraction"]) for row in computed if row["boundary"] == "Full-contig"), 4
         ),
         "default_nominal_regions": defaulted,
         "normalized_nominal_regions": len(rows) - defaulted,
+        "length_computed_regions": len(computed),
+        "length_not_computed_regions": len(rows) - len(computed),
         "status": "TRIAL_ONLY_CAPACITY_METRIC",
         "report_only_contract": REPORT_ONLY_CONTRACT,
         "claim_safety": (

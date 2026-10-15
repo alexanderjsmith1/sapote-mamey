@@ -35,6 +35,13 @@ SCHEMA = "sapote.tree-display.v1"
 QUERY_PATTERN = r"^(?:QUERY(?:_|$)|AS[_-]?\d)"
 
 
+def group_suffix(extra, max_pair, min_shared):
+    """Display suffix for a representative standing for `extra` more references, with the group's measured bounds:
+    '(+N; 0 nt over >=S sites)' or '(+N; <=K nt over >=S sites)'. Short enough for a print label, and it never calls partial reads identical."""
+    bound = "0 nt" if int(max_pair) == 0 else f"\u2264{int(max_pair)} nt"
+    return f"(+{extra}; {bound} over \u2265{int(min_shared)} sites)"
+
+
 def digest(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -213,12 +220,9 @@ def build_display(aln, nwk, meta, parameters):
                     if column not in {"tip", "role", "taxon", "label"}:
                         result[column] = ""
             if group_label == "representative":
-                # The representative keeps its OWN category/source: they are that record's deposited
-                # fields, not a claim about the members, which stay in the ledger.
-                # SEXTANT_421l (2026-09-09): show the group as its representative -- a real record,
-                # whose label and source fields are its own -- with the member count appended. The
-                # members remain in the ledger. Bound here so the receipt covers the label.
-                result["label"] = f'{row["label"]} (+{len(members) - 1} grouped; max {max_pair} nt differences; min {min_shared} shared sites)'
+                # The display label belongs to this record; grouped members and
+                # measured comparisons remain in the collapse ledger.
+                result["label"] = row["label"]
             else:
                 result["label"] = (f'{row["taxon"]} {{{len(members)} reference isolates; '
                                    f'<={max_nt} nt; rep={name}}}')
@@ -290,7 +294,7 @@ def main(argv=None):
     ap.add_argument("--protect", action="append", default=[], help="Exact additional tip to retain; repeatable")
     ap.add_argument("--prune-outgroup", action="store_true")
     ap.add_argument("--group-label", choices=["group", "representative"], default="group",
-                    help="how a collapsed clade is labelled: a group summary, or its representative record with group size and measured pairwise bounds")
+                    help="how a collapsed clade is labelled: a group summary, or its representative record with its own label; members and measured bounds stay in the ledger")
     ap.add_argument("--out-prefix", required=True)
     a = ap.parse_args(argv)
     try:

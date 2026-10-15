@@ -388,15 +388,306 @@ def write_gene_table(out, rows, splits, core_identity: str, label: str, referenc
             "rendered_caption": rendered_caption}
 
 
+# ---- Genes in the window (card attine_452_locus_gene_tables) ------------------------------------------------------
+# A second table per run, read from the strain side: every CDS in the cropped map window (matched genes on the core
+# contig plus trim on each side), with its antiSMASH role and domains, the reference gene it matches, and its BLASTp
+# top-10 name bound by protein. The reference-side table above is unchanged.
+WINDOW_COLS = ["locus_tag", "start", "end", "strand", "aa", "antiSMASH_role", "domains_E_value", "smCOG",
+               "reference_gene_match", "BLASTp_name", "BLASTp_db", "BLASTp_top10_mean_id", "BLASTp_name_share"]
+SUMMARY_COLS = ["identity", "antiSMASH_product", "reference", "reference_name", "reference_genes", "in_region",
+                "distinct_proteins_in_region", "median_identity_in_region", "found_clearly_elsewhere",
+                "supported_elsewhere", "window_contig", "window_start", "window_end", "genes_in_window",
+                "genes_matched_in_window", "biosynthetic_in_window", "BLASTp_named_in_window"]
+WINDOW_STATUSES = ("PRESENT_IN_CORE", "MISSING_FOUND_CLEAR")
+_SEC_MET = re.compile(r"(\S+) \(E-value: ([^,]+)")
+_NRPS_PKS = re.compile(r"Domain: (\S+) \(\d+-\d+\)\. E-value: ([^.]+?\.?\d*e?-?\d*)\.")
+
+
+def genome_cds(zip_path) -> tuple[dict, dict]:
+    """-> ({locus tag: CDS facts}, {(contig, region number): antiSMASH product}) from the whole-genome GenBank of an
+    antiSMASH ZIP. Domains are the rule-based sec_met domains and the NRPS/PKS domains, each with its E-value."""
+    import io
+    import zipfile
+    try:
+        from Bio import SeqIO
+    except ImportError:  # biopython absent: the bundle's GenBank shim reads the same records
+        from mamey._gbk_shim import SeqIO
+    z = zipfile.ZipFile(zip_path)
+    gbk = next(n for n in z.namelist() if n.endswith(".gbk") and ".region" not in n and not Path(n).name.startswith("._"))
+    cds, products = {}, {}
+    for rec in SeqIO.parse(io.StringIO(z.read(gbk).decode(errors="replace")), "genbank"):
+        for f in rec.features:
+            q = f.qualifiers
+            if f.type == "region":
+                products[(rec.id, int(q.get("region_number", ["0"])[0]))] = "; ".join(q.get("product", []))
+            if f.type != "CDS":
+                continue
+            doms = []
+            for d in q.get("sec_met_domain", []):
+                m = _SEC_MET.match(d)
+                doms.append(f"{m.group(1)} ({m.group(2)})" if m else d.split(" (")[0])
+            for d in q.get("NRPS_PKS", []):
+                m = _NRPS_PKS.match(d)
+                if m:
+                    doms.append(f"{m.group(1)} ({m.group(2)})")
+            cds[q.get("locus_tag", [""])[0]] = {
+                "contig": rec.id, "start": int(f.location.start) + 1, "end": int(f.location.end),
+                "strand": "+" if (f.location.strand or 1) > 0 else "−", "aa": len(q.get("translation", [""])[0]),
+                "role": q.get("gene_kind", [""])[0], "domains": "; ".join(dict.fromkeys(doms)),
+                "smcog": smcog(q.get("gene_functions", []))}
+    return cds, products
+
+
+def _contig_key(contig: str) -> str:
+    """An assembler contig name up to its length (NODE_7_length_5000), which is unique within an assembly; other names
+    are returned unchanged."""
+    m = re.match(r"(NODE_\d+_length_\d+)_", contig or "")
+    return m.group(1) if m else (contig or "")
+
+
+def window_rows(rows, cds: dict, core_identity: str, names=None, trim_bp: int = 2000) -> tuple[list[dict], dict]:
+    """The genes in the window -> (table rows, window facts). The window is the core contig from the first to the last
+    gene that matches a reference gene there (in the region, or found clearly elsewhere on it), plus trim_bp each side.
+    names: {locus tag: BLASTp name row} (load_gene_names, bound by protein)."""
+    names = names or {}
+    core_contig = core_identity.split(" / ")[1]
+    match = {}
+    for r in rows:
+        if r.get("status") in WINDOW_STATUSES and r.get("best_locus"):
+            match.setdefault(r["best_locus"], []).append(f'{r["name"]} {float(r["best_identity_pct"]):.0f}%')
+    # antiSMASH can rewrite the coverage part of an assembler contig name in its GenBank record ids
+    # (cov_54.074455 -> cov_54.74455), so contigs are matched on the name before the coverage.
+    core_key = _contig_key(core_contig)
+    on_core = [t for t in match if t in cds and _contig_key(cds[t]["contig"]) == core_key]
+    if not on_core:
+        raise ValueError(f"GENE_WINDOW: no matched gene on the core contig {core_contig}")
+    lo = min(cds[t]["start"] for t in on_core) - trim_bp
+    hi = max(cds[t]["end"] for t in on_core) + trim_bp
+    tags = sorted((t for t, c in cds.items() if _contig_key(c["contig"]) == core_key and c["end"] > lo and c["start"] < hi),
+                  key=lambda t: cds[t]["start"])
+    out = []
+    for t in tags:
+        c, n = cds[t], names.get(t) or {}
+        out.append({"locus_tag": t, "start": c["start"], "end": c["end"], "strand": c["strand"], "aa": c["aa"],
+                    "antiSMASH_role": c["role"], "domains_E_value": c["domains"], "smCOG": c["smcog"],
+                    "reference_gene_match": "; ".join(match.get(t, [])),
+                    "BLASTp_name": n.get("top10_consensus_name", ""), "BLASTp_db": n.get("db", ""),
+                    "BLASTp_top10_mean_id": n.get("top10_mean_identity", ""),
+                    "BLASTp_name_share": n.get("consensus_share", "")})
+    facts = {"window_contig": core_contig, "window_start": lo, "window_end": hi, "genes_in_window": len(out),
+             "genes_matched_in_window": sum(1 for o in out if o["reference_gene_match"]),
+             "biosynthetic_in_window": sum(1 for o in out if o["antiSMASH_role"] == "biosynthetic"),
+             "BLASTp_named_in_window": sum(1 for o in out if o["BLASTp_name"])}
+    return out, facts
+
+
+def run_summary(rows, receipt: dict, products: dict, facts: dict) -> dict:
+    """One summary row for a run: the four-part identity, the antiSMASH product, the reference, and the counts."""
+    import statistics
+    ident = receipt["core"]
+    parts = ident.split(" / ")
+    m = re.match(r"region(\d+)", parts[2]) if len(parts) > 2 else None
+    core = [r for r in rows if r.get("status") == "PRESENT_IN_CORE"]
+    ids = [float(r["best_identity_pct"]) for r in core if r.get("best_identity_pct")]
+    return {"identity": ident, "antiSMASH_product": products.get((parts[1], int(m.group(1))), "") if m else "",
+            "reference": Path(receipt.get("reference", "")).stem, "reference_name": receipt.get("reference_name", ""),
+            "reference_genes": len(rows), "in_region": len(core),
+            "distinct_proteins_in_region": len({r["best_protein"] for r in core if r.get("best_protein")}),
+            "median_identity_in_region": f"{statistics.median(ids):.1f}" if ids else "",
+            "found_clearly_elsewhere": sum(1 for r in rows if r.get("status") == "MISSING_FOUND_CLEAR"),
+            "supported_elsewhere": sum(1 for r in rows if r.get("status") == "MISSING_FOUND_CLEAR"
+                                       and r.get("partner_verdict") == "SUPPORTED"),
+            **facts}
+
+
+PRINT_HEADS = ["Locus tag", "Position, strand", "aa", "antiSMASH role", "Domains (E-value)", "Reference gene matched",
+               "BLASTp top-10 name (db, mean identity)"]
+PRINT_SHARE = [0.085, 0.13, 0.045, 0.12, 0.24, 0.13, 0.25]
+PRINT_PT = 8.0
+CHAR_IN = 0.062   # wrap estimate for 8 pt Arial; the drawn text is measured afterwards and an overflow is refused
+
+
+def _print_cells(r: dict) -> list[str]:
+    name = r["BLASTp_name"]
+    if name:
+        try:
+            name = f'{name} ({r["BLASTp_db"]} {float(r["BLASTp_top10_mean_id"]):.1f}%)'
+        except ValueError:
+            name = f'{name} ({r["BLASTp_db"]})'
+    return [r["locus_tag"], f'{r["start"]:,}–{r["end"]:,} {r["strand"]}', str(r["aa"]), r["antiSMASH_role"],
+            r["domains_E_value"] or "–", r["reference_gene_match"], name]
+
+
+def draw_window_table(table: list[dict], title: str, pdf: Path, png_prefix: Path, width_in: float = 10.0,
+                      page_h_in: float = 7.5) -> list[Path]:
+    """The genes in the window as a print table: every text at 8 pt, pages of at most page_h_in. The title, headers and
+    cells are wrapped to their columns and then measured; any text wider than its space is refused
+    (GENE_WINDOW_PRINT), never shrunk. -> the files written."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+    import os as _o, sys as _s
+    _s.path.insert(0, _o.path.dirname(_o.path.abspath(__file__)))
+    from gap_rescue_locus_map import savefig_metadata
+    ink, rule = "#17212E", "#D5DAE1"
+    margin, line_in, pad_in = 0.3, PRINT_PT * 1.25 / 72, 0.06
+    usable = width_in - 2 * margin
+    cols = [s * usable for s in PRINT_SHARE]
+    wraps = [max(4, int((c - 0.08) / CHAR_IN)) for c in cols]
+    heads = [textwrap.fill(h, max(4, int((c - 0.08) / (CHAR_IN * 1.12)))) for h, c in zip(PRINT_HEADS, cols)]
+    title_w = textwrap.fill(title, max(20, int(usable / (CHAR_IN * 1.12))))
+    t_lines, h_lines = title_w.count("\n") + 1, max(h.count("\n") + 1 for h in heads)
+    head_in = 0.12 + t_lines * line_in + 0.12 + h_lines * line_in + 0.1
+    cells = [[textwrap.fill(v, w, break_long_words=True) if v else "" for v, w in zip(_print_cells(r), wraps)]
+             for r in table]
+    heights = [max(c.count("\n") + 1 for c in row) * line_in + pad_in for row in cells]
+    pages, cur, h = [], [], head_in
+    for row, rh in zip(cells, heights):
+        if cur and h + rh > page_h_in - margin:
+            pages.append(cur); cur, h = [], head_in
+        cur.append((row, rh)); h += rh
+    if cur:
+        pages.append(cur)
+
+    def place(fig, rend, x, y, H, text, space, **kw):
+        txt = fig.text(x / width_in, y / H, text, fontsize=PRINT_PT, va="top", linespacing=1.25, **kw)
+        w_in = txt.get_window_extent(rend).width / fig.dpi
+        if w_in > space + 1e-6:
+            raise ValueError(f"GENE_WINDOW_PRINT: {text[:40]!r} is {w_in:.2f} in wide in {space:.2f} in")
+
+    written = []
+    # savefig.bbox pinned: a global "tight" left by another module would crop the page off the print width
+    with plt.rc_context({"font.family": ["Arial", "Liberation Sans", "DejaVu Sans"], "pdf.fonttype": 42,
+                         "savefig.bbox": "standard"}), \
+            PdfPages(pdf, metadata=savefig_metadata(pdf, "gap_rescue_gene_table")) as book:
+        for pi, page in enumerate(pages, 1):
+            H = head_in + sum(rh for _, rh in page) + margin
+            fig = plt.figure(figsize=(width_in, H))
+            rend = fig.canvas.get_renderer()
+            try:
+                t = title_w + (f" ({pi} of {len(pages)})" if len(pages) > 1 else "")
+                place(fig, rend, margin, H - 0.12, H, t, usable, fontweight="bold", color=ink)
+                y, x = H - 0.12 - t_lines * line_in - 0.12, margin
+                for hd, cw in zip(heads, cols):
+                    place(fig, rend, x, y, H, hd, cw - 0.04, fontweight="bold", color=ink); x += cw
+                y -= h_lines * line_in + 0.04
+                fig.add_artist(plt.Line2D([margin / width_in, 1 - margin / width_in], [y / H] * 2, color=ink, lw=0.8))
+                y -= 0.06
+                for row, rh in page:
+                    x = margin
+                    for v, cw in zip(row, cols):
+                        if v:
+                            place(fig, rend, x, y, H, v, cw - 0.04, color=ink)
+                        x += cw
+                    y -= rh
+                    fig.add_artist(plt.Line2D([margin / width_in, 1 - margin / width_in], [(y + 0.02) / H] * 2,
+                                              color=rule, lw=0.5))
+            except ValueError:
+                plt.close(fig)
+                raise
+            book.savefig(fig, facecolor="white")
+            png = png_prefix.with_name(png_prefix.name + (f"_page{pi}.png" if len(pages) > 1 else ".png"))
+            fig.savefig(png, dpi=300, facecolor="white", metadata=savefig_metadata(png, "gap_rescue_gene_table"))
+            written.append(png)
+            plt.close(fig)
+    return [pdf] + written
+
+
+def write_window_table(out, run: Path, zip_path, names=None, trim_bp: int = 2000, label: str = "",
+                       draw: bool = True, width_in: float = 10.0) -> dict:
+    """gene_window_table.tsv (+ gene_window_table.pdf/png, 8 pt) and gene_window_summary.tsv for one gap-rescue run
+    folder, written to out (the run folder is only read)."""
+    import json
+    out = Path(out); out.mkdir(parents=True, exist_ok=True)
+    receipt = json.loads((Path(run) / "gap_rescue_receipt.json").read_text())
+    with open(Path(run) / "gap_rescue.tsv", newline="") as fh:
+        rows = list(csv.DictReader(fh, delimiter="\t"))
+    cds, products = genome_cds(zip_path)
+    table, facts = window_rows(rows, cds, receipt["core"], names, trim_bp)
+    with open(out / "gene_window_table.tsv", "w", newline="") as fh:
+        w = _SafeDictWriter(fh, fieldnames=WINDOW_COLS, delimiter="\t", lineterminator="\n")
+        w.writeheader(); w.writerows(table)
+    summary = run_summary(rows, receipt, products, facts)
+    with open(out / "gene_window_summary.tsv", "w", newline="") as fh:
+        w = _SafeDictWriter(fh, fieldnames=SUMMARY_COLS, delimiter="\t", lineterminator="\n")
+        w.writeheader(); w.writerow(summary)
+    files = [out / "gene_window_table.tsv", out / "gene_window_summary.tsv"]
+    if draw:
+        ref = receipt.get("reference_name") or Path(receipt.get("reference", "")).stem
+        title = (f"Genes in the window: {receipt['core']}, against the {ref} reference "
+                 f"({Path(receipt.get('reference', '')).stem}); matched genes ± {trim_bp / 1000:g} kb")
+        files += draw_window_table(table, title, out / "gene_window_table.pdf", out / "gene_window_table", width_in)
+    return {"rows": len(table), "summary": summary, "files": [str(f) for f in files]}
+
+
+def merge_summaries(folders, out_tsv) -> int:
+    """One summary table from the gene_window_summary.tsv of each folder, in the order given."""
+    rows = []
+    for f in folders:
+        with open(Path(f) / "gene_window_summary.tsv", newline="") as fh:
+            rows += list(csv.DictReader(fh, delimiter="\t"))
+    with open(out_tsv, "w", newline="") as fh:
+        w = _SafeDictWriter(fh, fieldnames=SUMMARY_COLS, delimiter="\t", lineterminator="\n")
+        w.writeheader(); w.writerows(rows)
+    return len(rows)
+
+
+def window_main(argv) -> int:
+    ap = argparse.ArgumentParser(description="Genes in the window of gap-rescue runs, and one summary table.")
+    ap.add_argument("--window", action="store_true", help="write the genes-in-the-window table of --run into --out")
+    ap.add_argument("--summary", nargs="+", type=Path, help="folders written by --window: merge their summaries into --out")
+    ap.add_argument("--run", type=Path, help="a gap_directed_rescue output folder (read only)")
+    ap.add_argument("--zip", type=Path, help="the antiSMASH ZIP the run used")
+    ap.add_argument("--label", default="", help="strain label (default: the run receipt's)")
+    ap.add_argument("--gene-names", nargs="*", type=Path, default=[], help="BLASTp name tables; rows bind by protein")
+    ap.add_argument("--prefer-db", nargs="*", default=["nr"], help="database priority for genes named twice (default nr)")
+    ap.add_argument("--length-fallback", default="query_aa_length", help="column read as a name row's protein length when "
+                    "aa_length is empty (default query_aa_length; '' for none). The tag binds only within 1 aa")
+    ap.add_argument("--trim-kb", type=float, default=2.0, help="window margin each side (default 2 kb, as the maps)")
+    ap.add_argument("--print-width", type=float, default=10.0, help="print table width, inches (default 10, landscape)")
+    ap.add_argument("--no-print", action="store_true", help="TSV only")
+    ap.add_argument("--out", type=Path, required=True)
+    a = ap.parse_args(argv)
+    if a.summary:
+        n = merge_summaries(a.summary, a.out)
+        _OUT.info(f"[gap_rescue_gene_table] summary of {n} runs -> {a.out}")
+        return 0
+    if not (a.run and a.zip):
+        raise SystemExit("--window needs --run and --zip")
+    import json
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import gap_directed_rescue as gdr
+    from gap_rescue_locus_map import load_gene_names
+    label = a.label or json.loads((a.run / "gap_rescue_receipt.json").read_text())["label"]
+    names = None
+    if a.gene_names:
+        prots, _ = gdr.load_genome(a.zip, label)
+        names = load_gene_names(a.gene_names, label, prots, prefer_db=a.prefer_db or None,
+                                length_fallback=a.length_fallback or None)
+    res = write_window_table(a.out, a.run, a.zip, names, int(round(a.trim_kb * 1000)), label, not a.no_print,
+                             a.print_width)
+    if names is not None:
+        (a.out / "gene_names_binding.json").write_text(json.dumps(
+            {"strain": label, "names_bound": len(names), "names_unbound": names.names_unbound,
+             "binding": names.binding, "prefer_db": a.prefer_db, "length_fallback": a.length_fallback}, indent=1) + "\n")
+    _OUT.info(f"[gap_rescue_gene_table] {res['rows']} genes in the window -> {a.out}")
+    return 0
+
+
 def main(argv=None) -> int:
+    import sys
+    args = sys.argv[1:] if argv is None else list(argv)
+    if "--window" in args or "--summary" in args:   # the genes-in-the-window table (card attine_452_locus_gene_tables)
+        return window_main(args)
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--run", required=True, type=Path, help="a gap_directed_rescue output folder")
     ap.add_argument("--zip", required=True, type=Path, help="the antiSMASH ZIP the run used (for protein families)")
     ap.add_argument("--reference", required=True, type=Path, help="the reference GenBank the run used")
     ap.add_argument("--reference-name", default="")
-    a = ap.parse_args(argv)
+    a = ap.parse_args(args)
     import json
-    import sys
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import gap_directed_rescue as gdr
     receipt = json.loads((a.run / "gap_rescue_receipt.json").read_text())

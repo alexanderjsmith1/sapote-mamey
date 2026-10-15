@@ -51,6 +51,7 @@ CODE_DIFF_PATCH_INCOMPAT = "DIFF_PATCH_APPLY_INCOMPATIBLE"  # git applies, but s
 CODE_DIFF_MALFORMED = "DIFF_MALFORMED"                    # neither git apply nor patch can apply it to --base
 CODE_DIFF_ALREADY_APPLIED = "DIFF_ALREADY_APPLIED"
 CODE_DIFF_NEEDS_ORDER = "DIFF_DOES_NOT_APPLY_TO_PRISTINE"  # advisory: likely needs an apply-order
+CODE_DIFF_NOT_CHECKED = "DIFF_APPLY_NOT_CHECKED"           # apply tools missing, failed to start or timed out
 
 # Compiled/binary artefacts are never a meaningful line-diff target: decoding them with
 # errors="replace" invents "removed lines" that mean nothing. They are ALSO a real hygiene
@@ -156,7 +157,7 @@ def _diff_apply_status(diff: Path, base: Path) -> tuple[str, str, str]:
     diff = diff.resolve()
     base = base.resolve()
     if not shutil.which("git") or not shutil.which("patch"):
-        return CODE_DIFF, "OK", "apply-check skipped: git or patch not on PATH"
+        return CODE_DIFF_NOT_CHECKED, "WARN", "apply-check skipped: git or patch not on PATH"
     try:
         g = subprocess.run(["git", "apply", "--check", str(diff)], cwd=base,
                            capture_output=True, text=True, timeout=60)
@@ -169,7 +170,7 @@ def _diff_apply_status(diff: Path, base: Path) -> tuple[str, str, str]:
                 timeout=60,
             )
     except (OSError, subprocess.SubprocessError) as exc:
-        return CODE_DIFF, "OK", f"apply-check skipped: {exc}"
+        return CODE_DIFF_NOT_CHECKED, "WARN", f"apply-check skipped: {exc}"
     git_ok, patch_ok = g.returncode == 0, pr.returncode == 0
     corrupt = "corrupt patch" in (g.stderr or "")
     if not git_ok and not patch_ok and not corrupt:
@@ -304,6 +305,8 @@ def main(argv: list[str] | None = None) -> int:
         out.append("        assemble the queue with patch -p1 (never git apply), or regenerate the diff git-apply-clean.")
         out.append("        DIFF_PATCH_APPLY_INCOMPATIBLE means git apply accepts the patch but strict")
         out.append("        patch -p1 --fuzz=0 rejects it; repair the patch before composition.")
+        out.append("        DIFF_APPLY_NOT_CHECKED means the apply check did not run (tool missing, failed")
+        out.append("        to start or timed out); applicability is unverified, not OK.")
     sys.stdout.write("\n".join(out) + "\n")
     return 0
 

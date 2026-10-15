@@ -164,6 +164,17 @@ def rebase_verify(args) -> int:
                   "raise --timeout or narrow --tests. New failures below are still real; a clean "
                   "delta under timeout is INCONCLUSIVE, not PASS.") + "\n")
 
+        valid_runs = all(
+            rc in (0, 1)
+            and re.search(r"\b\d+ (?:passed|failed)\b.*\bin [0-9.]+s", out)
+            and "Interrupted:" not in out
+            and "INTERNALERROR>" not in out
+            for rc, out in ((base_rc, base_out), (patch_rc, patch_out))
+        )
+        if not valid_runs:
+            sys.stdout.write("\nREBASE-VERIFY: INCONCLUSIVE (pytest did not complete valid test runs)\n")
+            return 2
+
         base_f = _pytest_failures(base_out)
         patch_f = _pytest_failures(patch_out)
         new_f = patch_f - base_f

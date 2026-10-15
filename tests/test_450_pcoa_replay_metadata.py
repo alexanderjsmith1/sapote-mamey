@@ -30,8 +30,18 @@ def replay(tmp_path, monkeypatch):
     captured = []
     def render(spec, prefix):
         captured.append(spec)
-        for extension in ["pdf", "png", "svg"]:
-            Path(f"{prefix}.{extension}").write_text('<svg xmlns="http://www.w3.org/2000/svg"><text>KS</text></svg>')
+        # The renderer is mocked; its outputs must still be valid files for
+        # the production provenance stamper. Do not mock or weaken that stamp.
+        from PIL import Image
+        from pypdf import PdfWriter
+        Image.new("RGB", (1, 1), "white").save(Path(f"{prefix}.png"))
+        writer = PdfWriter()
+        writer.add_blank_page(width=72, height=72)
+        with Path(f"{prefix}.pdf").open("wb") as stream:
+            writer.write(stream)
+        Path(f"{prefix}.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1">'
+            '<text>KS</text></svg>')
     monkeypatch.setattr(ppr, "render_matplotlib", render)
     args = ["--kit", str(tmp_path / "kit"), "--out", str(tmp_path / "output"),
             "--cohort-table", str(tmp_path / "cohorts.tsv"), "--panel", "demo=group_a", "--renderer", "matplotlib"]

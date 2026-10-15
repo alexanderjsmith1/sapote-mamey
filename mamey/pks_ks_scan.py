@@ -28,6 +28,8 @@ except ImportError:  # direct execution: no parent package to resolve against.
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from mamey.console import emit
 import csv
+import math
+import numbers
 try:
     from .csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter  # v9.7.410 CSV formula-cell guard (CLAUDE_410_csv_writer_coverage)
 except ImportError:
@@ -83,6 +85,9 @@ def ks_domains_from_gbk(text, contig, region):
     out = []
     blocks = re.split(r"\n     (?=aSDomain  )", text)
     for b in blocks[1:]:
+        # P300-128: a block ends at the next feature header (5-space key) or a column-0 line (ORIGIN, //),
+        # so an aSDomain without its own /translation or /locus_tag never borrows a later CDS or PFAM feature's.
+        b = re.split(r"\n(?= {5}\S|\S)", b, maxsplit=1)[0]
         flat = b.replace("\n                     ", " ")
         dom = re.search(r'/aSDomain="([^"]+)"', flat) or re.search(r'/domain="([^"]+)"', flat)
         if not dom:
@@ -123,7 +128,13 @@ def run_pks_ks_scan(input_zip, bgcs=None, threshold=DEFAULT_THRESHOLD):
 
     Keys: n_ks, n_contigs, threshold, cross_contig_clades (list of dicts), iterative_candidates (int),
     summary_line. `bgcs` is accepted for signature parity / future bgc_id mapping; not required.
+    A threshold that is not a finite number in [0, 1] (or is a bool) raises ValueError before any work.
     """
+    # P300-130: NaN makes both `c >= threshold` and `c < threshold` false, so named unions vanish while every
+    # unclassified pair is emitted; an out-of-range value defeats the gate the same way. Refuse it up front.
+    if (isinstance(threshold, bool) or not isinstance(threshold, numbers.Real)
+            or not math.isfinite(threshold) or not 0.0 <= threshold <= 1.0):
+        raise ValueError(f"KS containment threshold must be a finite number in [0, 1]; got {threshold!r}")
     doms = []
     try:
         with zipfile.ZipFile(input_zip) as zf:

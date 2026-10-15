@@ -38,7 +38,13 @@ def read_comparator_source(path: Path, source_format: str) -> list[dict[str, str
         raise ValueError(f"Unsupported comparator format: {source_format!r}")
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
-        fields = set(reader.fieldnames or ())
+        names = list(reader.fieldnames or ())
+        # P300-060: reject a repeated header before DictReader keeps only its last value
+        # (same admission as companion_evidence.table); never guess which column is authoritative.
+        duplicates = sorted({name for name in names if names.count(name) > 1})
+        if duplicates:
+            raise ValueError(f"Comparator source {path.name} has duplicate columns: {duplicates}")
+        fields = set(names)
         missing = sorted(required - fields)
         if missing:
             raise ValueError(f"Comparator source {path.name} missing columns: {missing}")

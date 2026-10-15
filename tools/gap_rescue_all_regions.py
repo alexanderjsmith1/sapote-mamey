@@ -146,7 +146,7 @@ def _run_all(zip_path, label, out, mibig_dir, mibig_db=None, names=None, pfam=No
         ref, name, source = chosen[ident]
         folder = out / f"{ident.split(' / ')[3]}_vs_{Path(ref).stem}"
         rc = gdr.analyse_region(label, prots, regions, core, ref, name, source, folder, None, threads, sensitivity,
-                                mibig_db, pfam, figure, write_proteins=False)
+                                mibig_db, pfam, figure, write_proteins=False, compounds=names)
         splits = rc["split_genes"]
         rows.append({"bgc": ident, "contig_edge": core.get("edge"), "check": "run", "reference": Path(ref).stem,
                      "reference_name": name, "reference_source": source, "reference_genes": rc["reference_genes"],

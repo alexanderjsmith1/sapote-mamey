@@ -88,7 +88,7 @@ def test_fresh_split_table_receives_locus_tag_family_aliases(fresh_saved_split, 
     assert len(map_calls) == len(table_calls) == 1
     assert map_calls[0] == ((f.reference, f.rows, f.splits, f.prots, f.regions, f.core, "SYNTHETIC",
                              "Explicit reference", f.out / "gap_rescue.png", f.out / "gap_rescue.pdf"),
-                            {"anchor": "r_split"})
+                            {"anchor": "r_split", "print_width": "double"})
     args, kwargs = table_calls[0]
     assert args[:6] == (f.out, f.rows, f.splits, f.core_id, "SYNTHETIC", f.reference)
     expected = {key: value.get("family", "") for key, value in f.prots.items()}

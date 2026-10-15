@@ -54,14 +54,8 @@ def _make_zip(members: dict[str, str]) -> io.BytesIO:
     return buf
 
 
-@pytest.mark.xfail(
-    not _SEQIO_AVAILABLE,
-    reason=(
-        "_gbk_shim is intentionally permissive and parses this GBK without raising; "
-        "the 'errored' warning path requires BioPython's strict parser"
-    ),
-    strict=True,
-)
+# .452: the shim now refuses a record with no sequence and no numeric LOCUS length, so the errored path works
+# without biopython too; the former strict xfail for the shim is removed.
 def test_malformed_gbk_warns_but_keeps_good_records(tmp_path):
     zp = tmp_path / "as_output.zip"
     zp.write_bytes(_make_zip({

@@ -32,9 +32,10 @@ if __name__ == "__main__":
                        capture_output=True, text=True)
     if r.returncode:
         print(r.stdout[-800:], r.stderr[-800:], sep="\n")
+        sys.exit(r.returncode)
     print(r.stdout.strip())
 
-    rel_tf = treefile.replace(".treefile", "_relabeled.treefile")
+    rel_tf = os.path.splitext(treefile)[0] + "_relabeled.treefile"
 
     # step 2 -- AS tips get genus + host
     tax, host = {}, {}
@@ -84,7 +85,7 @@ if __name__ == "__main__":
         print(f'  !! ABORT: relabelling changed the tree -- {before} tips before, {after} after.', '     A label almost certainly contains a newick structural character: ( ) , : ;', sep="\n")
         sys.exit(1)
 
-    out_tf = rel_tf.replace("_relabeled.treefile", "_labeled.treefile")
+    out_tf = os.path.splitext(treefile)[0] + "_labeled.treefile"
     open(out_tf, "w").write(nwk)
     print(f"AS tips labelled: {len(done)}")
     if missing:

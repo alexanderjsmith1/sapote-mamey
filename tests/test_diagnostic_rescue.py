@@ -72,11 +72,12 @@ def test_claim_ceiling_present_on_every_lead():
 
 
 def test_no_concordance_gate_when_family_map_absent():
-    # backward-compat: without a family map the concordant geometry pair stays HIGH
+    # P300-063: without a family map the concordance gate does not run, so the pair is capped at MODERATE
     lead = DR.assess_pair(_pair(), CCTT_A, CCTT_B, deep_tiling=TILING,
                           kcb_a=KCB_A, kcb_b=KCB_B, family_map=None)
-    assert lead["rescue_tier"] == "DIAGNOSTIC_RESCUE_HIGH_CONFIDENCE"
+    assert lead["rescue_tier"] == "DIAGNOSTIC_RESCUE_MODERATE"
     assert lead["kcb_concordance"] == "not_evaluated"
+    assert lead["rescue_tier_cap_reason"] == "kcb_concordance_gate_not_run"
 
 
 def test_below_covered_floor_not_high():

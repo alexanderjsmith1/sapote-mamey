@@ -93,12 +93,14 @@ def main():
     # here, is the only other way to force rc=1) -- so derive vstatus from it directly instead of
     # re-parsing free-text output.
     vstatus = "PASS" if r.returncode == 0 else "FAIL"
+    required_failed = r.returncode != 0
     open(os.path.join(args.out, f"{args.strain}_validate.txt"), "w", encoding="utf-8").write(vtxt)
     stages["validate"] = f"rc={r.returncode} ({vstatus})"
     log.append(f"2 VALIDATE: rc={r.returncode} -> {args.strain}_validate.txt")
 
     # 3 EXPLAIN
     r = run([PY, entry, "explain", args.package], cwd=engine_abs)
+    required_failed = required_failed or r.returncode != 0
     etxt = (r.stdout + r.stderr).strip()
     open(os.path.join(args.out, f"{args.strain}_explain.txt"), "w", encoding="utf-8").write(etxt)
     stages["explain"] = f"rc={r.returncode}, {len(etxt)} chars"
@@ -115,8 +117,12 @@ def main():
 
     # 4 FIGURES
     fig_note = "skipped (no --figures)"
+    if args.figures and not os.path.isdir(args.figures):
+        required_failed = True
+        fig_note = "requested figure directory unavailable"
     if args.figures and os.path.isdir(args.figures):
         r = run([PY, LAB_OFFICE, "--dir", args.figures])
+        required_failed = required_failed or r.returncode != 0
         fig_note = (r.stdout + r.stderr).strip().splitlines()[-1] if (r.stdout or r.stderr) else "ran"
     stages["figures"] = fig_note
     log.append(f"4 FIGURES: {fig_note}")
@@ -140,7 +146,7 @@ def main():
         fh.write("\n---\n_One-command pipeline (`mamey_pipeline.py`). Engine deferred judgment; this only chains + "
                  "reports. Class-level hypotheses, judgment deferred; no bioactivity/structure claims._\n")
     emit('[mamey_pipeline] ' + ' | '.join(log), f'[mamey_pipeline] REPORT -> {rep}', sep="\n")
-    return 0
+    return 1 if required_failed else 0
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ except ImportError:
 import json, glob, os, csv, ast, collections, re, argparse, hashlib, warnings
 import json as _j
 import contextlib
+from functools import wraps
 import math
 from mamey.class_architecture import with_family_labels  # antiSMASH families for groupings; products stay types
 from pathlib import Path
@@ -54,15 +55,31 @@ def _loadj(p):   # B1: context-managed json load — no leaked handle (was _load
     with open(p, encoding="utf-8") as _f:
         return json.load(_f)
 
-if _HAVE_MPL:   # B4: this ran unconditionally at import -> NameError('plt') when matplotlib absent,
-    # making the whole 1580-line module unimportable and defeating the _HAVE_MPL guard above.
-    plt.rcParams.update({"font.size":9,"axes.titlesize":12,"axes.titleweight":"bold",
-                         "figure.dpi":PUBLICATION_RASTER_DPI,"savefig.dpi":PUBLICATION_RASTER_DPI,"axes.edgecolor":"#444",
-                         "savefig.bbox":"tight","savefig.pad_inches":0.35,"font.family":"DejaVu Sans"})
+# Apply the cohort style only while constructing and saving its own figures.
+# Importing this module must not alter unrelated renderers' output dimensions.
+_COHORT_STYLE = {
+    "font.size": 9, "axes.titlesize": 12, "axes.titleweight": "bold",
+    "figure.dpi": PUBLICATION_RASTER_DPI, "savefig.dpi": PUBLICATION_RASTER_DPI,
+    "axes.edgecolor": "#444", "savefig.bbox": "tight",
+    "savefig.pad_inches": 0.35, "font.family": "DejaVu Sans",
+}
+
+
+def _with_cohort_style(function):
+    @wraps(function)
+    def styled(*args, **kwargs):
+        if not _HAVE_MPL:
+            return function(*args, **kwargs)
+        with matplotlib.rc_context(_COHORT_STYLE):
+            return function(*args, **kwargs)
+    return styled
+
+
 TCOLOR={"GOOD":"#1b7837","MODERATE":"#7b3294","POOR":"#e08214","VERY_POOR":"#b2182b"}
 GENUS={}; FIGNUM=[0]
 
 
+@_with_cohort_style
 def _save_pair(fig, path, *, renderer="cohort_figures", provenance="normalized_cohort_tables"):
     # 408: 15 of this file's figures use `constrained_layout=True`, whose own layout engine
     # actively repositions the axes/tick-labels on every draw -- including the draw triggered by
@@ -614,6 +631,7 @@ def _f13_file_receipt(path):
     return {"filename": target.name, "sha256": _f13_digest(target), "bytes": target.stat().st_size}
 
 
+@_with_cohort_style
 def _render_f13_domain_pca(S, order, out, *, cohort_manifest=None,
                            cohort_manifest_sha256=None, denominator_registry=None,
                            denominator_registry_sha256=None, profile="SINGLE_COLUMN"):
@@ -868,6 +886,7 @@ def _heatmap_cell_text_colour(image, value):
     return "#000000" if black_contrast >= white_contrast else "#ffffff"
 
 
+@_with_cohort_style
 def heatmap(mat, rowlabs, order, S, title, fid, OUT, cbar="count", lognorm=True,
             annot=True, cmap="magma_r", row_raw=None, divider=True):
     mat=np.array(mat,float)
@@ -958,6 +977,7 @@ def _domain_counts_from_architecture(record):
     return counts
 
 
+@_with_cohort_style
 def figs_multi(S, order, OUT, *, f13_cohort_manifest=None,
                f13_cohort_manifest_sha256=None, f13_denominator_registry=None,
                f13_denominator_registry_sha256=None, f13_profile="SINGLE_COLUMN"):
@@ -1317,6 +1337,7 @@ def figs_single(S, sid, OUT):
             "receipt_sha256": canonical_digest(receipt)}
 
 
+@_with_cohort_style
 def _figs_single_panels(S, sid, OUT):
     deep=S[sid]["deep"]
     # v9.7.185 P12: this per-BGC heatmap is fed from aSDomain counts. Transporters/regulators/
@@ -1397,6 +1418,7 @@ def _figs_single_panels(S, sid, OUT):
         _gold_identity_sidecar(f"{OUT}/{fname}_identity.csv", bgcs)
     emit(f"  single-strain figures for {sid} written")
 
+@_with_cohort_style
 def generate(runs_dir="runs_gold", out="cohort_figures", strains=None, public_only=False, series="F",
              f13_cohort_manifest=None, f13_cohort_manifest_sha256=None,
              f13_denominator_registry=None, f13_denominator_registry_sha256=None,
@@ -1526,6 +1548,7 @@ def soft_div_x(ax, order, y):
 def _load_inv_d(S, order):
     return {s: _inventory_rows(S[s]) for s in order}
 
+@_with_cohort_style
 def bubble_matrix(rows, order, count_fn, color_fn, title, fid, OUT, clab, slab, cmap="viridis", color_is_count=False):
     """rows: list of row keys; count_fn(row,s)->size count; color_fn(row,s)->color value or None."""
     nx,ny=len(order),len(rows)
@@ -1569,6 +1592,7 @@ def bubble_matrix(rows, order, count_fn, color_fn, title, fid, OUT, clab, slab, 
     fname=stamp_d(fig,fid); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
     sidecar(f"{OUT}/{fname}_data.csv",["row"]+list(order),[[rows[i]]+list(counts[i]) for i in range(ny)])
 
+@_with_cohort_style
 def build(S, order, OUT):
     inv=_load_inv_d(S,order)
     # per-BGC product class + length + kcb + node, keyed (s,bgc)
@@ -1858,6 +1882,7 @@ def _matrix_label_kwargs(n_cols):
     return style
 # --- end PATCH_07 ---------------------------------------------------------------------------------
 
+@_with_cohort_style
 def hmap(mat, rowlabs, order, title, fid, OUT, cbar="count", cmap="magma_r", lognorm=True, annot=True, row_raw=None):
     mat=np.array(mat,float)
     if mat.size == 0:
@@ -1904,6 +1929,7 @@ def _load_inv_g(S, order):
     return {s: _inventory_rows(S[s]) for s in order}
 
 # ---------------- BATCH 1: rarity & novelty ----------------
+@_with_cohort_style
 def batch1(S, order, OUT):
     inv=_load_inv_g(S,order)
     # G01 rare-chemistry CCTT triggers (drop the two ubiquitous: HAL, LAN)
@@ -1977,6 +2003,7 @@ def batch1(S, order, OUT):
 BATCHES={1:batch1}
 
 # ---------------- BATCH 2: architecture & regulation ----------------
+@_with_cohort_style
 def batch2(S, order, OUT):
     inv=_load_inv_g(S,order)
     def bin_heat(per_strain_vals, edges, labels, title, fid, cbar, cmap="magma_r"):
@@ -2028,6 +2055,7 @@ def _strain_profiles(S, order):
         prof[s]=np.log1p(acc)
     return prof
 
+@_with_cohort_style
 def batch3(S, order, OUT):
     inv=_load_inv_g(S,order)
     # G09 strain x strain similarity matrix (correlation on z-scored relative domain composition;
@@ -2143,6 +2171,7 @@ def _short_node(s):
     parts=str(s).split("_")
     return "_".join(parts[:2]) if len(parts)>=2 else str(s)
 
+@_with_cohort_style
 def batch4(S, order, OUT):
     inv=_load_inv_g(S,order)
     dc=collections.defaultdict(lambda: collections.defaultdict(int))

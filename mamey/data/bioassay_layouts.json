@@ -1,0 +1,17 @@
+{
+  "_comment": "Per-collection display rules for the paper bioassay renderers (mamey/bioassay_paper.py, tools/bioassay_a0*.R). Collection names live here, not in code. A user may pass their own file with --layout-config. Keys: focal_group: roster group drawn by genus in A01 (other groups drawn as one row each; null = all rows by genus). a06_subset_group: roster group A06 is restricted to (null = all). split_larvae: keep the two P. larvae strains apart in A02. group_axis_label: A02 y-axis title. unassigned_label: display text for genus 'Unassigned'. plain_rows: row names drawn in plain type and placed last in A01. a03_genus_keep: genera kept by name in A03 (others become 'Other genera'; null = keep all). a03_source_shape / a04_source_shape: show the source-group shape legend. a02_width_in, a03_height_in: print sizes (in). a04_pool_candida: draw A04 as one Candida axis (the higher of C. albicans, C. auris and species-not-recorded per isolate) even when split_candida splits A01. a04_candida_axis_label: the Candida name on that axis (default Candida sp.). tree_pool_candida: placement-tree activity strips show one pooled Candida column (the strongest recorded state across species) instead of one column per species.",
+  "moss": {"focal_group": "Bryophytes", "a06_subset_group": "Bryophytes", "split_larvae": false,
+           "group_axis_label": "Source group", "unassigned_label": "No 16S genus on record", "plain_rows": ["Lichens", "Mushrooms"],
+           "a03_genus_keep": ["Streptomyces", "Nocardia", "Pseudonocardia", "Unassigned"],
+           "a03_source_shape": true, "a04_source_shape": true, "a02_width_in": 5.6, "a03_height_in": 4.6,
+           "split_candida": true, "a04_point_labels": "strong", "axis_title_ink": true,
+           "a04_pool_candida": true, "a04_candida_axis_label": "C. albicans and C. auris"},
+  "bee": {"focal_group": null, "a06_subset_group": "Bryophytes", "split_larvae": true,
+          "group_axis_label": "Host group", "unassigned_label": "No 16S sequence", "plain_rows": ["Lichens", "Mushrooms"],
+          "a03_genus_keep": null, "a03_source_shape": false, "a04_source_shape": false, "a02_width_in": 6.4, "a03_height_in": 4.9},
+  "attine": {"focal_group": null, "a06_subset_group": "Bryophytes", "split_larvae": false,
+             "group_axis_label": "Source group", "unassigned_label": "16S not determined", "plain_rows": ["Lichens", "Mushrooms"],
+             "a03_genus_keep": null, "a03_source_shape": true, "a04_source_shape": false, "a02_width_in": 5.6, "a03_height_in": 4.6,
+             "split_candida": true, "tree_pool_candida": true, "a04_point_labels": "nonzero", "axis_title_ink": true, "a04_pool_candida": true,
+             "a04_candida_axis_label": "C. albicans and C. auris"}
+}

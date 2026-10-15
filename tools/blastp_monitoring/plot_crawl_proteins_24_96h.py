@@ -143,9 +143,12 @@ if __name__ == "__main__":
         parts = PurePosixPath(key).parts
         return "/".join(parts) if parts and not key.startswith("/") and ".." not in parts else ""
 
+    _digest_cache: dict[Path, bytes] = {}
     def digest(path):
-        with path.open("rb") as fh:
-            return hashlib.file_digest(fh, "sha256").digest()
+        if path not in _digest_cache:
+            with path.open("rb") as fh:
+                _digest_cache[path] = hashlib.file_digest(fh, "sha256").digest()
+        return _digest_cache[path]
 
     LEDGERS = discover_active_ledgers()
     _QUERY_INDEX = build_query_index()
@@ -192,6 +195,15 @@ if __name__ == "__main__":
                         continue
                     # Full ledger-relative identity prevents cross-strain basename collisions.
                     candidates = _QUERY_INDEX.get(panel_key(row.get("file", "")), [])
+                    # The runner records the sha256 of the query it sent. When the ledger has it,
+                    # count the copy with those bytes: the same relative path may also exist, with
+                    # other bytes, in another _QUERIES* folder (for example a superseded queue).
+                    sent_sha = (row.get("query_sha256") or "").strip().lower()
+                    if candidates and sent_sha:
+                        try:
+                            candidates = [path for path in candidates if digest(path).hex() == sent_sha]
+                        except OSError:
+                            candidates = []
                     if not candidates:
                         missing_files += 1
                         unknown_lanes.add(name)

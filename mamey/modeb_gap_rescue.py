@@ -23,7 +23,14 @@ def _table(path):
     with path.open(encoding="utf-8-sig", newline="") as f:
         r = csv.DictReader(f, delimiter="\t")
         rows = list(r)
-        if not r.fieldnames or any(None in row for row in rows):
+        if not r.fieldnames:
+            raise ValueError(f"malformed TSV: {path.name}")
+        # P300-060: a repeated header keeps only its last value under DictReader, and a short
+        # row fills missing fields with None; both are source defects, not rows to read.
+        duplicates = sorted({name for name in r.fieldnames if r.fieldnames.count(name) > 1})
+        if duplicates:
+            raise ValueError(f"duplicate TSV header(s) in {path.name}: {duplicates}")
+        if any(None in row or None in row.values() for row in rows):
             raise ValueError(f"malformed TSV: {path.name}")
         return set(r.fieldnames), rows
 

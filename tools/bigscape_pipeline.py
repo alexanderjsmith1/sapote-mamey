@@ -22,6 +22,7 @@ Usage:
       --inputs pkgA.zip pkgB/ ... \
       --pfam /path/Pfam-A.hmm --mibig-dir mibig_gbks/ \
       --workdir bigscape_run/ \
+      --strictness loose \
       [--cutoffs 0.3,0.5,0.7] [--cores 1] [--ingest-package MameyPkg/] \
       [--bigscape /path/to/BiG-SCAPE] [--skip-cluster] [--mibig-name local_set]
 
@@ -31,7 +32,7 @@ The MIBiG route uses the guarded bigscape_launch.sh with -m, never -r.
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-import argparse, contextlib, glob, os, sqlite3, subprocess, sys
+import argparse, contextlib, glob, json, os, sqlite3, subprocess, sys
 from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -40,6 +41,9 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from mamey.bigscape_namespace import NamespaceError, normalize_run_id  # noqa: E402
+
+# Same flavors bigscape_prep.py admits; prep stays the authority and re-checks them.
+PREP_STRICTNESS = ("loose", "relaxed", "strict")
 
 
 class PipelineRunError(RuntimeError):
@@ -126,6 +130,31 @@ def _resolve_exact_run(db, before, explicit_run_id):
     return next(iter(created))
 
 
+def _prep_policy_args(a):
+    """Forward prep's required strictness contract; never invent a default flavor."""
+    if a.skip_prep:
+        return []
+    if a.allow_mixed and a.strictness:
+        raise PipelineRunError(
+            "PREP_STRICTNESS_CONFLICT", "choose --strictness or --allow-mixed, not both"
+        )
+    if a.allow_mixed and not (a.mixed_justification or "").strip():
+        raise PipelineRunError(
+            "PREP_MIXED_JUSTIFICATION_REQUIRED",
+            "--allow-mixed requires a documented --mixed-justification",
+        )
+    if not a.strictness and not a.allow_mixed:
+        raise PipelineRunError(
+            "PREP_STRICTNESS_REQUIRED",
+            "prep requires --strictness {loose|relaxed|strict}, or --allow-mixed with "
+            "--mixed-justification",
+        )
+    forwarded = ["--strictness", a.strictness] if a.strictness else ["--allow-mixed"]
+    if a.assume_strictness:
+        forwarded += ["--assume-strictness", a.assume_strictness]
+    return forwarded
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--inputs", nargs="+", required=True, help="antiSMASH zips and/or Mamey package dirs")
@@ -143,6 +172,16 @@ def main(argv=None):
     ap.add_argument("--mibig-index-dir", default=os.path.join(os.path.dirname(HERE), "mamey", "data", "mibig"),
                     help="MIBiG index dir (holds mibig_reference_index.*.json) used to filter refs during --chunk-mibig batching")
     ap.add_argument("--skip-prep", action="store_true")
+    ap.add_argument("--strictness", choices=PREP_STRICTNESS,
+                    help="antiSMASH strictness to stage; forwarded to bigscape_prep.py. "
+                         "Required for prep unless --allow-mixed")
+    ap.add_argument("--allow-mixed", action="store_true",
+                    help="forward prep's mixed-input override; requires --mixed-justification")
+    ap.add_argument("--mixed-justification",
+                    help="why the inputs are known single-flavor by other means; recorded in "
+                         "PREP_STRICTNESS_POLICY.json")
+    ap.add_argument("--assume-strictness", choices=PREP_STRICTNESS,
+                    help="forwarded to prep for inputs whose strictness cannot be detected")
     ap.add_argument("--skip-cluster", action="store_true")
     ap.add_argument(
         "--run-id",
@@ -151,6 +190,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     explicit_run_id = _exact_run_id(a.run_id) if a.run_id is not None else None
+    prep_policy = _prep_policy_args(a)
     if a.skip_cluster and explicit_run_id is None:
         raise PipelineRunError(
             "RUN_ID_REQUIRED_SKIP", "--skip-cluster requires an explicit run_id"
@@ -186,7 +226,13 @@ def main(argv=None):
     # (1) prep
     if not a.skip_prep:
         emit("[1/4] prep: extracting + strain-prefixing region GBKs")
-        run([sys.executable, tool("bigscape_prep.py"), "--inputs", *a.inputs, "--out", inp])
+        with open(os.path.join(a.workdir, "PREP_STRICTNESS_POLICY.json"), "w", encoding="utf-8") as fh:
+            json.dump({"strictness": a.strictness, "allow_mixed": a.allow_mixed,
+                       "mixed_justification": a.mixed_justification if a.allow_mixed else None,
+                       "assume_strictness": a.assume_strictness,
+                       "forwarded_prep_args": prep_policy}, fh, indent=2)
+        run([sys.executable, tool("bigscape_prep.py"), "--inputs", *a.inputs, "--out", inp,
+             *prep_policy])
     n = len(glob.glob(os.path.join(inp, "*.gbk")))
     emit(f"      input has {n} region GBKs")
 

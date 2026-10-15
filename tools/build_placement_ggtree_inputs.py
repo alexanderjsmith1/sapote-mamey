@@ -367,6 +367,21 @@ def _load_ref_source_bundle(db_path):
     return out, fields
 
 
+def _load_ref_type_keys(db_path):
+    """Accession keys the supplied reference DB flags as type material (record.is_type = 1)."""
+    if not db_path:
+        return set()
+    import sqlite3
+    from contextlib import closing
+    from pathlib import Path
+    db = Path(db_path).resolve(strict=True)
+    with closing(sqlite3.connect(db.as_uri() + "?mode=ro", uri=True)) as con:
+        if "is_type" not in {row[1] for row in con.execute("PRAGMA table_info(record)")}:
+            return set()
+        return {_acckey(acc) for (acc,) in con.execute("SELECT acc_base FROM record WHERE is_type = 1")
+                if isinstance(acc, str) and _ACC.fullmatch(acc)}
+
+
 def _load_ref_sources(db_path):
     """Compatibility view of explicitly supplied deposited metadata."""
     return _load_ref_source_bundle(db_path)[0]
@@ -375,7 +390,7 @@ def _load_ref_sources(db_path):
 def _rect_metadata_row(tip, label, category_raw, source_raw):
     """Renderer fields plus the untouched metadata and transformation states."""
     category = _phylo_meta.normalize_isolation_source(category_raw)
-    source = _phylo_meta.normalize_geography(source_raw)
+    source = _phylo_meta.strip_geography(source_raw)   # strip colour; labels keep the deposited country
     return [
         tip, label, category["display_category"], source["display_location"],
         category["raw"], category["state"], source["raw"], source["state"],
@@ -718,6 +733,19 @@ def _ref_label_or_refuse(name, modal, src_map=None):
             "Repair the tip, or drop it from the panel; the label is not guessed.",
         )
 
+def reference_genera(path, outgroup_substr="outgroup"):
+    from Bio import Phylo
+    result = set()
+    for tip in Phylo.read(path, "newick").get_terminals():
+        if _is_query(tip.name) or (outgroup_substr and outgroup_substr.lower() in tip.name.lower()):
+            continue
+        plain = re.sub(r"^\s*[A-Z]{2}[ _]?\d+(?:[ _.]?\d+)?\s+", "", tip.name.replace("_", " "))
+        match = re.match(r"([A-Z][a-z]+)\s", plain)
+        if match:
+            result.add(match.group(1))
+    return result
+
+
 def main():
     ap = argparse.ArgumentParser(allow_abbrev=False)  # v9.7.412: no silent prefix matching
     ap.add_argument("--graft", required=True, help="grafted placement newick (epa_result.newick)")
@@ -727,7 +755,7 @@ def main():
                     help="strain table (generic TSV: strain/tip_label + host + location + accession). "
                          "Supply this or --aux-table for metadata labels; otherwise tips may be bare. No auto-location.")
     ap.add_argument("--outgroup-substr", default="outgroup",
-                    help="substring identifying the outgroup tip (also matched: a genus != the modal ingroup genus)")
+                    help="substring identifying the supplied outgroup tip; other genera remain references")
     ap.add_argument("--keep-all-refs", action="store_true")
     ap.add_argument("--aux-table", action="append", default=[],
                     help="Explicit TSV with strain, host, region, accession; repeatable; conflicts refused")
@@ -742,6 +770,11 @@ def main():
                          "registry outgroup tip is treated as outgroup (keeps full genus names).")
     ap.add_argument("--origin-table", default="", help="TSV: type_strain\tcategory — colors reference tips by isolation origin")
     ap.add_argument("--ref-source-db", default="", help="Explicit SQLite file with record(acc_base, isolation_source, country); no automatic discovery")
+    ap.add_argument("--require-reference-metadata", choices=("none", "source", "both"), default="none",
+                    help="v9.7.444: a reference tip without a deposited isolation source ('source') or without "
+                         "source and country ('both') is not eligible for the display; each query takes its next "
+                         "eligible nearest reference instead. Type strains (record.is_type = 1) are always eligible. Omitted tips are recorded in the reference selection "
+                         "table (mode omitted_no_deposited_metadata), never silently. Requires --ref-source-db.")
     ap.add_argument("--required-reference-table", default="",
                     help="TSV: strain, reference_species. The named species must exist in the "
                          "backbone and is counted first within each query's neighbor quota.")
@@ -774,7 +807,7 @@ def main():
 
     def genus(x):
         pp = re.sub(r"^\s*[A-Z]{2}[ _]?\d+(?:[ _.]?\d+)?\s+", "", (x.name or "").replace("_", " "))
-        m = re.match(r"([A-Za-z]+)", pp)
+        m = re.match(r"([A-Z][a-z]+)\s", pp)
         return m.group(1) if m else ""
 
     q = [x for x in tips if _is_query(x.name)]
@@ -787,12 +820,15 @@ def main():
     lab_modal = "" if a.family_level else modal
 
     def is_og(x):
-        n = (x.name or "").lower()
-        if a.family_level:
-            # family-level (multi-genus) tree: ONLY the true registry outgroup is an outgroup;
-            # every other genus is a legitimate reference to be pruned/labelled normally.
-            return a.outgroup_substr.lower() in n
-        return (a.outgroup_substr.lower() in n) or (genus(x) and genus(x) != modal)
+        return bool(a.outgroup_substr and a.outgroup_substr.lower() in (x.name or "").lower())
+
+    # Validate native reference identity before choosing a genus-routing mode.
+    for reference in non_q:
+        _ref_label_or_refuse(reference.name, lab_modal)
+
+    observed = {genus(x) for x in non_q if not is_og(x) and genus(x)}
+    if len(observed) > 1 and not a.family_level:
+        _refuse("MULTI_GENUS_REQUIRES_FAMILY_LEVEL", "references span multiple genera; use --family-level")
 
     og = [x for x in non_q if is_og(x)]
     refs = [x for x in non_q if x not in og]
@@ -808,10 +844,35 @@ def main():
         _refuse("REQUIRED_REFERENCE_TABLE_NO_QUERY_MATCH",
                 "none of the declared strains is a query tip in this tree")
 
+    true_rankings = {qq.name: sorted(refs, key=lambda r: (t.distance(qq, r), r.name or "")) for qq in q}
     selection_rows = []
+    # v9.7.444: optional eligibility rule (house rule: tips with no deposited source or geography are omitted
+    # from figures). Evaluated from the same explicitly supplied reference DB the labels use.
+    _need = getattr(a, "require_reference_metadata", "none")
+    if _need != "none" and not a.ref_source_db:
+        _refuse("REQUIRE_REFERENCE_METADATA_WITHOUT_DB", "--require-reference-metadata needs --ref-source-db")
+    _elig_fields = _load_ref_source_bundle(a.ref_source_db)[1] if _need != "none" else {}
+    _type_keys = _load_ref_type_keys(a.ref_source_db) if _need != "none" else set()
+    def _eligible(r):
+        if _need == "none":
+            return True
+        # Type strains are always kept (Alex 2026-09-26, option 1); their missing cells stay blank.
+        _acc = _ref_accession(r.name)
+        if _acc and _acckey(_acc) in _type_keys:
+            return True
+        _st, _cat, _loc = _reference_source_fields(r.name, _elig_fields, True)
+        return bool(_cat) and (bool(_loc) if _need == "both" else True)
+    _omitted = {}
     if a.keep_all_refs:
         for r in sorted(refs, key=lambda tip: tip.name or ""):
+            if not _eligible(r):
+                _omitted[r.name or ""] = ""
+                selection_rows.append(("", r.name or "", "", "", "omitted_no_deposited_metadata"))
+                continue
             selection_rows.append(("", r.name or "", "", "", "keep_all_references"))
+        for x in list(refs):
+            if (x.name or "") in _omitted:
+                t.prune(x)
     elif q:
         keep = set(id(x) for x in q) | set(id(x) for x in og)
         for qq in q:
@@ -829,6 +890,12 @@ def main():
                     continue
                 if len(selected) >= max(1, a.neighbors):
                     break
+                if not _eligible(candidate):
+                    if (candidate.name or "") not in _omitted:
+                        _omitted[candidate.name or ""] = qq.name or ""
+                        selection_rows.append((qq.name or "", candidate.name or "", "",
+                                               f"{t.distance(qq, candidate):.12g}", "omitted_no_deposited_metadata"))
+                    continue
                 selected.append((candidate, "nearest_per_query"))
             for rank, (r, mode) in enumerate(selected, 1):
                 keep.add(id(r))
@@ -913,6 +980,16 @@ def main():
                          "reference tips are NOT_REQUESTED and will render without their deposited "
                          "isolation source / host / country. Pass --ref-source-db if that is not "
                          "intended; there is no automatic discovery.\n")
+    # v9.7.444 trial: reference-backbone supports describe splits of reference tips. After pruning, a node whose
+    # references now sit under fewer than two of its children no longer shows the split its label measured; blank it.
+    blanked_supports = 0
+    for clade in t.get_nonterminals():
+        if clade.confidence is not None and sum(
+                any(not _is_query(x.name) for x in k.get_terminals()) for k in clade.clades) < 2:
+            clade.confidence = None
+            blanked_supports += 1
+    if blanked_supports:
+        sys.stderr.write(f"[ggtree-inputs] SUPPORTS_BLANKED_AFTER_PRUNE: {blanked_supports}\n")
     nwk_out = a.out_prefix + "_pruned.nwk"
     ann_out = a.out_prefix + "_ggtree_annotation.tsv"
     selection_out = a.out_prefix + "_reference_selection.tsv"
@@ -996,8 +1073,11 @@ def main():
     with open(selection_tmp, "w", encoding="utf-8", newline="") as out:
         writer = _SafeWriter(out, delimiter="\t", lineterminator="\n")
         writer.writerow(["query_tip", "reference_tip", "neighbor_rank",
-                         "patristic_distance", "selection_mode"])
-        writer.writerows(selection_rows)
+                         "patristic_distance", "selection_mode", "true_nearest_reference", "true_neighbor_rank"])
+        for row in selection_rows:
+            ranked = true_rankings.get(row[0], [])
+            names = [tip.name for tip in ranked]
+            writer.writerow([*row, names[0] if names else "", names.index(row[1]) + 1 if row[1] in names else ""])
     # Bind exact admitted input bytes and outputs without packaging machine-specific absolute paths.
     for path, expected in source_hashes.items():
         with open(path, "rb") as handle:

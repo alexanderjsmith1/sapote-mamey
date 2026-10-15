@@ -28,3 +28,39 @@ geography	Indian Ocean	#AA4499
 geography	Southern Ocean	#999933
 geography	Arctic Ocean	#BBBBBB
 geography	Other documented	#666666
+activity	active (≥80%)	#B00020
+activity	tested, inactive	#4D4D4D
+activity	not tested	#C8C8C8
+activity_calm	active (≥80%)	#1F4E79
+activity_calm	tested, inactive	#B8C4D2
+activity_calm	not tested	#ECEFF3
+country	USA	#D62728
+country	Canada	#6A51A3
+country	Algeria	#DB9D85
+country	Brazil	#C6A76B
+country	Cameroon	#B8AC65
+country	China	#A8B165
+country	Denmark	#95B56C
+country	Georgia	#81B978
+country	India	#6BBC87
+country	Indonesia	#54BD97
+country	Italy	#40BEA8
+country	Japan	#37BDB7
+country	Mongolia	#41BBC5
+country	Morocco	#58B7D1
+country	Norway	#72B3DA
+country	Philippines	#8CADE0
+country	Portugal	#A4A6E2
+country	Russia	#B9A0E0
+country	South Africa	#CA9ADA
+country	South Korea	#D796D1
+country	Spain	#DF94C5
+country	Sweden	#E393B6
+country	Thailand	#E495A6
+country	Turkmenistan	#E19895
+country	Hungary	#C4A57A
+country	Puerto Rico	#7FA7A0
+country	Costa Rica	#9C755F
+country	Fiji	#1F9E89
+country	Togo	#B5651D
+country	Germany	#8C6D31

@@ -21,7 +21,7 @@ class ExactLocusIdentityError(ValueError):
 
 _MISSING = {"", "?", "-", "na", "n/a", "nan", "none", "null", "unknown"}
 _SHORT_NODE = re.compile(r"^NODE_\d+$", re.IGNORECASE)
-_REGION = re.compile(r"^region\d{3,}$", re.IGNORECASE)
+_REGION = re.compile(r"^region[0-9]{3,}$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -49,6 +49,11 @@ class NativeLegacyEvidenceAnchorBinding:
     board_identity: NativeManifestBGCIdentity
 
 
+def _is_region_label(text: str) -> bool:
+    """True only for regionNNN with a positive ordinal; region000 names no region."""
+    return bool(_REGION.fullmatch(text)) and int(text[6:]) > 0
+
+
 def _required(value: object, label: str) -> str:
     text = "" if value is None else str(value).strip()
     if text.lower() in _MISSING:
@@ -73,9 +78,9 @@ def exact_locus_display(
         raise ExactLocusIdentityError(
             f"short node token {node_text!r} is not a full node-or-contig identifier"
         )
-    if not _REGION.fullmatch(region_text):
+    if not _is_region_label(region_text):
         raise ExactLocusIdentityError(
-            f"region {region_text!r} is not the required regionNNN identity"
+            f"region {region_text!r} is not the required regionNNN identity (positive ordinal)"
         )
     return f"{strain_text} / {node_text} / {region_text} / {alias_text}"
 
@@ -194,8 +199,8 @@ def exact_locus_from_native_inventory_row(
     if "Region" in row:
         ordinal = _required(row["Region"], "native inventory numeric Region")
         label = supplied["antismash_region"]
-        if (not re.fullmatch(r"[0-9]+", ordinal) or not _REGION.fullmatch(label)
-                or ordinal.lstrip("0") != label[6:].lstrip("0")):
+        if (not re.fullmatch(r"[0-9]+", ordinal) or not _is_region_label(label)
+                or int(ordinal) != int(label[6:])):
             raise ExactLocusIdentityError(
                 "native inventory numeric Region disagrees with antiSMASH_Region"
             )

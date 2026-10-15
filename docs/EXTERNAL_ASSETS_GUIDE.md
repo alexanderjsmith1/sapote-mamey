@@ -125,10 +125,12 @@ specific downstream stage). **Fallback:** what happens when it is absent.
 - **Purpose / stage:** local BLASTp for the homology/comparator channels (Mode-B, reference comparison).
 - **Need:** OPTIONAL / STAGE-ONLY. **Fallback:** remote NCBI BLAST or skip the local channel.
 - **How:** install **NCBI BLAST+** (bioconda `blast`, or NCBI binaries). Then acquire the DB you need:
-  **Swiss-Prot** / **16S** (small, local, no rate limit) via `update_blastdb.pl` or `makeblastdb`;
-  **nr** (very large) only if you truly need it. **Env:** `BLAST_BIN` (folder of the BLAST+
-  executables, read by the `tools/phylo_*` and outgroup tools) — otherwise the tool on `PATH`. There is
-  no engine variable for a database directory; each command takes its database path as an argument.
+  **Swiss-Prot** / **16S** (small, local, no rate limit) via `update_blastdb.pl` or `makeblastdb`.
+  For 16S, [LOCAL_16S_DATABASE.md](LOCAL_16S_DATABASE.md) gives the full build, a partial build for chosen genera,
+  the optional SQLite store, and every tool that reads them (one shared lookup: `$SAPOTE_16S_DB`).
+  Fetch **nr** (very large) only if you truly need it. **Env:** `BLAST_BIN` (folder of the BLAST+
+  executables, read by the `tools/phylo_*` and outgroup tools) — otherwise the tool on `PATH`. Apart from
+  the 16S lookup above, there is no engine variable for a database directory; each command takes its database path as an argument.
   Set `NCBI_EMAIL` for the E-utilities fetch tools.
 - **Source:** NCBI (BLAST+ is public domain; nr/Swiss-Prot from NCBI/UniProt under their terms).
 

@@ -1,0 +1,22 @@
+{
+ "about": "Genus colours for Sapote-Mamey figures. One file, so a colour change reaches every renderer that reads it. 'default' is the house palette (workspace genus_util.py GENUS_PALETTE, 28 Sep 2026) plus Peterkaempfera (#16504C, the bee paper's Fig. 5/S17 v4 colour, 29 Sep) and Actinophytocola (attine figures). 'sets' are per-paper overrides already used in those papers' figures. A renderer takes 'default', then the chosen set on top; unknown genera use 'fallback'.",
+ "fallback": "#8C8C8C",
+ "default": {
+  "Streptomyces": "#1B7837", "Nocardia": "#7E5AA2", "Micromonospora": "#C0973F", "Actinomadura": "#4C78A8",
+  "Streptosporangium": "#B07AA1", "Saccharopolyspora": "#E45756", "Saccharothrix": "#72B7B2", "Kribbella": "#54A24B",
+  "Actinomycetospora": "#EECA3B", "Pseudonocardia": "#14325C", "Nocardiopsis": "#FF9DA6", "Amycolatopsis": "#A6761D",
+  "Actinacidiphila": "#1B3A5C", "Devosia": "#8C6D31", "Knufia": "#17BECF", "Kitasatospora": "#D67195",
+  "Kutzneria": "#D4A6C8", "Mycolicobacterium": "#79706E", "Tsukamurella": "#A0522D",
+  "Pseudonocardiaceae bacterium": "#F6C08A", "Peterkaempfera": "#16504C", "Actinophytocola": "#B5446E",
+  "Unassigned": "#BFC7D2",
+  "Actinoplanes": "#A0CBE8", "Kocuria": "#FFBE7D", "Mycolicibacterium": "#79706E",
+  "No 16S sequence": "#C9D0D9", "No 16S genus on record": "#C9D0D9"
+ },
+ "sets": {
+  "moss": {"Streptomyces": "#0F4C5C"},
+  "attine": {"Pseudonocardiaceae bacterium": "#33AA88", "Pseudonocardiaceae": "#33AA88", "Phytohabitans": "#2E86AB",
+             "Brachybacterium": "#00CED1", "Mycobacterium": "#5C4B8A", "Microlunatus": "#9370DB", "Microbacterium": "#56B4E9",
+             "Gordonia": "#881111", "Dietzia": "#FF6F91", "Citrobacter": "#006655", "Arboricoccus": "#9922DD",
+             "Advenella": "#C9A100", "Taibaiella": "#73112E", "Patulibacter": "#8E6C8A", "Tetrathiobacter": "#6E7F80"}
+ }
+}

@@ -350,6 +350,10 @@ def assign_rounds(rows: list[dict], strain: str, proteins_per_file: int = 20,
     if NCBI reports CPU-limit/timeouts.
     """
     rows = list(rows)
+    if proteins_per_file <= 0 or max_residues <= 0:
+        raise ValueError("BLASTP batch record and residue caps must be positive")
+    if any(_residues(row) > max_residues for row in rows):
+        raise ValueError("BLASTP batch held: an intact protein exceeds the requested residue cap")
     if not rows:
         return []
 

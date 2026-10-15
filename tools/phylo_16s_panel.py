@@ -220,17 +220,21 @@ def rank_references(con, queries, sources, exclude, scope_genus, habitat_tags=No
                           "-out", f"{tmp}/refdb"], "makeblastdb (panel reference pool)")
         p = _p16.run_checked(
             [_p16.blast_bin("blastn"), "-task", "blastn", "-db", f"{tmp}/refdb",
-             "-query", qry_fa, "-outfmt", "6 qseqid sseqid pident length",
-             "-max_target_seqs", "2000", "-num_threads", "4", "-evalue", "1e-20"],
+             "-query", qry_fa, "-outfmt", "6 qseqid sseqid pident length qseq sseq",
+             "-max_target_seqs", str(len(cands)), "-num_threads", "4", "-evalue", "1e-20"],
             "blastn (panel reference ranking)")
         best = {}
         for line in p.stdout.splitlines():
             f = line.split("\t")
-            if len(f) != 4 or f[0] not in {row[0] for row in queries} or f[1] not in cands:
+            if len(f) not in (4, 6) or f[0] not in {row[0] for row in queries} or f[1] not in cands:
                 raise ValueError("malformed or unbound BLAST ranking row")
             sid, pid, ln = f[1], float(f[2]), int(f[3])
             if not __import__('math').isfinite(pid) or not 0 <= pid <= 100 or ln <= 0:
                 raise ValueError("invalid BLAST identity or alignment length")
+            if len(f) == 6:
+                unamb = _p16.unambiguous_identity(f[4], f[5])[0]
+                if unamb is not None:
+                    pid = unamb
             if ln < 500:
                 continue
             if sid not in best or (pid, ln) > best[sid]:

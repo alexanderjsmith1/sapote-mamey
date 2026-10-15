@@ -1,4 +1,4 @@
-# ACCEPTANCE_TESTS_MODE_B_FULL20_CONTRACT.md
+# ACCEPTANCE_TESTS_MODE_B_FULL20_CONTRACT.md — HISTORICAL (retired §1–§20 contract)
 
 ## Current entry and implementation scope
 

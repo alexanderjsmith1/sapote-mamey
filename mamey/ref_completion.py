@@ -181,11 +181,14 @@ def search(ref, prots, regions, hits, core):
     return rows, partners
 
 
-def _open_end_distance(p: dict, terminus: str) -> int:
-    """bp from a protein's N- or C-terminal end to the nearer end of its contig."""
-    fwd = p["strand"] >= 0
-    x = (p["start"] if fwd else p["end"]) if terminus == "N" else (p["end"] if fwd else p["start"])
-    return min(x, p["contig_len"] - x)
+def _open_end_distance(p: dict, terminus: str) -> int | None:
+    """bp from a protein's N- or C-terminal end to the contig end that terminus faces, where the rest of the gene
+    would lie: a forward gene's C-terminal end faces the contig's right end and its N-terminal end the left end, a
+    reverse gene's the opposite. None when the strand is not 1 or -1: the facing end is then unknown."""
+    if p.get("strand") not in (1, -1):
+        return None
+    right = (terminus == "C") == (p["strand"] == 1)
+    return p["contig_len"] - p["end"] if right else p["start"]
 
 
 def split_genes(ref, prots, regions, hits) -> tuple[list[dict], str]:
@@ -219,7 +222,7 @@ def split_genes(ref, prots, regions, hits) -> tuple[list[dict], str]:
                 # a covers the reference's start, so its C-terminal end is open; b covers the end, so its N-terminal end is
                 da, db = _open_end_distance(pa, "C"), _open_end_distance(pb, "N")
                 if (overlap > SPLIT_MAX_OVERLAP or 100 * union / n_aa < SPLIT_MIN_UNION
-                        or da > SPLIT_END_BP or db > SPLIT_END_BP):
+                        or da is None or db is None or da > SPLIT_END_BP or db > SPLIT_END_BP):
                     continue
                 score = float(a["bitscore"]) + float(b["bitscore"])
                 if found is None or score > found[0]:
@@ -265,10 +268,16 @@ PARTNER_WINDOW_BP, PARALOG_LIMIT, RECIPROCAL_MARGIN, NEIGHBOUR_GENES, HOUSEKEEPI
 # its best MIBiG score (PKS and NRPS modules match many clusters almost equally, so a score ratio, not a rank)
 RECIPROCAL_MIN = 0.9
 # a short, named list of primary-metabolism operon markers (lysine, arginine, ribosome, tRNA charging, transcription,
-# ATP synthase, gyrase); two of these beside a lone find mark a housekeeping block. Extend with evidence, not by guess.
+# ATP synthase, gyrase); two of these beside a find mark a housekeeping block. Extend with evidence, not by guess.
+# v9.7.451 evidence: MIBiG BGC0002362 carries housekeeping flanks, and a genome's matching blocks were called SUPPORTED:
+# the MEP-pathway pair with CarD and RadA (YgbB, IspD, CarD_*), the ClpC-Lsr2-AspS-pantothenate block (Clp_N,
+# ClpB_D2-small, Lsr2*, Pan_kinase, Asp_decarbox, Pantoate_ligase) and the NAD operon beside histidinol dehydrogenase
+# (NadA, QRPTase_*, Histidinol_dh).
 HOUSEKEEPING_PFAM = re.compile(r"^(DHDPS|DapB_[NC]|ArgJ|Arg_repressor(_C)?|Arginosuc_synth|Arginosuc_syn_C|"
                                r"Semialdhyde_dh[C1_]*|Ribosomal_\w+|tRNA-synt_\w+|RNA_pol_\w+|ATP-synt\w*|"
-                               r"DNA_gyraseB\w*|DNA_topoisoIV\w*)$")
+                               r"DNA_gyraseB\w*|DNA_topoisoIV\w*|"
+                               r"YgbB|IspD|CarD_TRCF_RID|CarD_C|Clp_N|ClpB_D2-small|Lsr2|Lsr2_DNA-bd|Pan_kinase|"
+                               r"Asp_decarbox|Pantoate_ligase|NadA|QRPTase_[NC]|Histidinol_dh)$")
 PARTNER_CHECK_COLS = ["partner_verdict", "reciprocal_best_mibig", "reciprocal_best_identity", "reciprocal_reference_identity",
                       "paralogs_in_genome", "adjacent_finds", "housekeeping_neighbours", "neighbour_pfams",
                       "reciprocal_family_ratio"]
@@ -337,7 +346,8 @@ def search_mibig(query_fasta: str, db: str | os.PathLike, threads: int = 1, sens
 
 def _partner_finds(rows, prots, hits, core, ref=None):
     """The finds partner_checks judges (outside the core), the sequence each is searched with (the stretch the reference
-    aligned to when the hit has genome coordinates, else the whole protein), and the reference-gene -> query id map."""
+    aligned to when the hit has genome coordinates, else the whole protein), the reference-gene -> query id map, and
+    each find's query key."""
     gid = {g["i"]: g["id"] for g in ref} if ref else {}
     qid = lambda i: gid.get(int(i), f"g{int(i):03d}")
     in_core = lambda p: p["contig"] == core["contig"] and p["start"] < core["end"] and p["end"] > core["start"]
@@ -349,12 +359,16 @@ def _partner_finds(rows, prots, hits, core, ref=None):
             k = (h["qseqid"], h["sseqid"])
             if k not in span or float(h["bitscore"]) > span[k][0]:
                 span[k] = (float(h["bitscore"]), *sorted((int(h["sstart"]), int(h["send"]))))
-    seqs = {}
+    pieces = []
     for r in finds:
         s = span.get((qid(r["reference_gene"]), r["best_protein"]))
-        aa = prots[r["best_protein"]]["aa"]
-        seqs[r["best_protein"]] = aa[s[1] - 1:s[2]] if s else aa
-    return finds, seqs, qid
+        pieces.append((r["best_protein"], *(s[1:] if s else (1, len(prots[r["best_protein"]]["aa"])))))
+    # one query per protein, named by the protein; a protein whose finds aligned to different stretches gets one query
+    # per stretch, so each reference gene is judged on its own stretch. keys[i] is the query of finds[i].
+    stretches = Counter(pid for pid, _a, _b in set(pieces))
+    keys = [pid if stretches[pid] == 1 else f"{pid}_{a}_{b}" for pid, a, b in pieces]
+    seqs = {k: prots[pid]["aa"][a - 1:b] for k, (pid, a, b) in zip(keys, pieces)}
+    return finds, seqs, qid, keys
 
 
 def partner_checks(rows, prots, hits, core, ref_acc, mibig_db=None, pfam_hmm=None, threads=4, sensitivity=None, *,
@@ -367,16 +381,19 @@ def partner_checks(rows, prots, hits, core, ref_acc, mibig_db=None, pfam_hmm=Non
       its best MIBiG score. The aligned stretch is searched when the hit carries genome coordinates (sstart, send), else
       the whole protein. The best cluster's identity and the reference's own identity are reported beside the ratio.
     - paralogs: other genome proteins matching the same reference gene (>= 30% over >= 50%).
-    - adjacent finds: other finds of this reference on the same contig within 10 kb.
-    - housekeeping neighbours: primary-metabolism Pfam domains among the 4 genes either side (needs pfam_hmm + pyhmmer).
-    Verdicts: PARALOG_FAMILY (reciprocal fails, or >= 5 paralogs), SUPPORTED (an adjacent find), HOUSEKEEPING_CONTEXT
-    (a lone find with >= 2 housekeeping neighbours), SINGLE_GENE (a lone find otherwise). Writes the fields into rows and
-    returns a summary. Nothing here changes a status; the figure draws SUPPORTED and SINGLE_GENE contigs only.
+    - adjacent finds: other genome proteins found for this reference on the same contig within 10 kb.
+    - housekeeping neighbours: primary-metabolism Pfam domains among the 4 genes either side (needs pfam_hmm + pyhmmer),
+      checked for every find that is not a paralog-family member, adjacent or lone: a MIBiG entry can carry a
+      housekeeping flank, and a block of matching housekeeping genes is adjacent to itself.
+    Verdicts: PARALOG_FAMILY (reciprocal fails, or >= 5 paralogs), HOUSEKEEPING_CONTEXT (>= 2 housekeeping neighbours),
+    SUPPORTED (an adjacent find that is not HOUSEKEEPING_CONTEXT), SINGLE_GENE (otherwise). Without the Pfam check,
+    SUPPORTED is adjacency alone and the summary says the check did not run. Writes the fields into rows and returns a
+    summary. Nothing here changes a status; the figure draws SUPPORTED and SINGLE_GENE contigs only.
     `search` and `pfam_names` default to search_mibig and _pfam_names; `ref` (reference gene dicts) maps reference gene
     numbers to query ids, which otherwise follow the tool's g001 form."""
     search = search or search_mibig
     pfam_names = pfam_names or _pfam_names
-    finds, seqs, qid = _partner_finds(rows, prots, hits, core, ref)
+    finds, seqs, qid, keys = _partner_finds(rows, prots, hits, core, ref)
     per_q = {}
     for h in hits:
         if h["sseqid"] in prots and float(h["pident"]) >= MIN_ID and float(h["qcovhsp"]) >= MIN_COV:
@@ -410,13 +427,15 @@ def partner_checks(rows, prots, hits, core, ref_acc, mibig_db=None, pfam_hmm=Non
     ref_in_db = bool(re.match(r"BGC\d{7}$", ref_acc or ""))
     if recip_status == "run" and not ref_in_db:
         recip_status = "run; not judged: the reference is not a MIBiG entry"
-    lone = []
-    for r in finds:
+    judged = []
+    for r, key in zip(finds, keys):
         p = prots[r["best_protein"]]
         r["paralogs_in_genome"] = max(0, len(per_q.get(qid(r["reference_gene"]), set())) - 1)
-        r["adjacent_finds"] = sum(1 for o in finds if o is not r and prots[o["best_protein"]]["contig"] == p["contig"]
-                                  and abs(prots[o["best_protein"]]["start"] - p["start"]) <= PARTNER_WINDOW_BP)
-        d = recip.get(r["best_protein"])
+        # distinct other genome proteins: two reference genes matching one protein are one find, not support
+        r["adjacent_finds"] = len({o["best_protein"] for o in finds if o["best_protein"] != r["best_protein"]
+                                   and prots[o["best_protein"]]["contig"] == p["contig"]
+                                   and abs(prots[o["best_protein"]]["start"] - p["start"]) <= PARTNER_WINDOW_BP})
+        d = recip.get(key)
         if d and d["best"]:
             r["reciprocal_best_mibig"], r["reciprocal_best_identity"] = d["best"][1], round(d["best"][2], 1)
             r["reciprocal_reference_identity"] = round(d["ref"][2], 1) if d["ref"] else ""
@@ -425,23 +444,31 @@ def partner_checks(rows, prots, hits, core, ref_acc, mibig_db=None, pfam_hmm=Non
         fails = bool(ref_in_db and d and d["best"] and d["fam"] < RECIPROCAL_MIN * d["best"][0])
         if fails or r["paralogs_in_genome"] >= PARALOG_LIMIT:
             r["partner_verdict"] = "PARALOG_FAMILY"
-        elif r["adjacent_finds"]:
-            r["partner_verdict"] = "SUPPORTED"
         else:
-            r["partner_verdict"] = "SINGLE_GENE"
-            lone.append(r)
-    pfam_status = "not run: no Pfam-A.hmm (--pfam)" if lone else "not needed"
-    if pfam_hmm and lone:
-        neigh = neighbour_ids(prots, [r["best_protein"] for r in lone])
+            r["partner_verdict"] = "SUPPORTED" if r["adjacent_finds"] else "SINGLE_GENE"
+            judged.append(r)
+    pfam_status = "not run: no Pfam-A.hmm (--pfam)" if judged else "not needed"
+    if pfam_hmm and judged:
+        neigh = neighbour_ids(prots, sorted({r["best_protein"] for r in judged}))
         wanted = {k: prots[k]["aa"] for ks in neigh.values() for k in ks}
         names = pfam_names(wanted, str(pfam_hmm), threads) if wanted else {}
         pfam_status = "run" if names or not wanted else "not run: pyhmmer unavailable"
-        for r in lone:
+        for r in judged:
             nb = neigh[r["best_protein"]]
             r["neighbour_pfams"] = "; ".join(f"{prots[k]['tag']}:{','.join(names.get(k, [])[:2]) or '-'}" for k in nb)
             r["housekeeping_neighbours"] = sum(1 for k in nb if any(HOUSEKEEPING_PFAM.match(n) for n in names.get(k, [])))
             if r["housekeeping_neighbours"] >= HOUSEKEEPING_MIN:
                 r["partner_verdict"] = "HOUSEKEEPING_CONTEXT"
+        # support must come from an adjacent find that is not itself housekeeping (housekeeping verdicts are final here,
+        # so one pass decides every find)
+        for r in judged:
+            if r["partner_verdict"] != "SUPPORTED":
+                continue
+            p = prots[r["best_protein"]]
+            if not any(o["partner_verdict"] != "HOUSEKEEPING_CONTEXT" for o in finds
+                       if o["best_protein"] != r["best_protein"] and prots[o["best_protein"]]["contig"] == p["contig"]
+                       and abs(prots[o["best_protein"]]["start"] - p["start"]) <= PARTNER_WINDOW_BP):
+                r["partner_verdict"] = "SINGLE_GENE"
     return {"reciprocal_mibig": recip_status, "neighbour_pfam": pfam_status,
             "verdicts": dict(Counter(r["partner_verdict"] for r in finds))}
 
@@ -571,12 +598,33 @@ def family_stem(name: str) -> str:
     return max(words, key=len) if words else ""
 
 
-def same_family(acc_a: str, acc_b: str, compounds: dict[str, list[str]]) -> bool:
+# a longer stem matches a shorter one only through one of these prefixes (neoabyssomicin ~ abyssomicin). Any other
+# overlap is a different compound: istamycin is inside distamycin, glycan inside phosphonoglycans.
+FAMILY_PREFIXES = ("neo", "iso", "nor", "epi", "homo", "dehydro", "deoxy", "dihydro", "demethyl", "desmethyl", "seco",
+                   "pre", "pro")
+
+
+def compound_names(value) -> list[str]:
+    """One accession's compound names as a list. A names table may hold a list, or one string with names joined by "/"
+    (tools/gap_directed_rescue.load_mibig_names); iterating such a string would read it one character at a time."""
+    if isinstance(value, str):
+        return [x.strip() for x in value.split("/") if x.strip()]
+    return [str(x) for x in (value or [])]
+
+
+def _stems_match(x: str, y: str) -> bool:
+    if x == y:
+        return True
+    short, long_ = sorted((x, y), key=len)
+    return long_.endswith(short) and long_[:-len(short)] in FAMILY_PREFIXES
+
+
+def same_family(acc_a: str, acc_b: str, compounds: dict) -> bool:
     if acc_a == acc_b:
         return True
-    stems_a = {family_stem(c) for c in compounds.get(acc_a, [])} - {""}
-    stems_b = {family_stem(c) for c in compounds.get(acc_b, [])} - {""}
-    return any(x in y or y in x for x in stems_a for y in stems_b)
+    stems_a = {family_stem(c) for c in compound_names(compounds.get(acc_a))} - {""}
+    stems_b = {family_stem(c) for c in compound_names(compounds.get(acc_b))} - {""}
+    return any(_stems_match(x, y) for x in stems_a for y in stems_b)
 
 
 # ── The MIBiG protein database ─────────────────────────────────────────────────────────────────────────────────────
@@ -920,7 +968,8 @@ def partner_tests(core: dict, ref: list[dict], rows: list[dict], splits: list[di
     A find passes when its reference gene is not a mobile element, it sits within PARTNER_END_BP of a contig end (or
     the contig is under PARTNER_SHORT_BP), and its verdict is SUPPORTED or SINGLE_GENE (PARALOG_FAMILY and
     HOUSEKEEPING_CONTEXT never pass). A CLEAR split piece passes on position alone. Support: >= SUPPORT_MIN_FINDS
-    passing finds, one of them SUPPORTED, or a passing CLEAR split piece. Accepted: support, and depth does not fail."""
+    passing finds on distinct genome proteins, one of them SUPPORTED, or a passing CLEAR split piece. Accepted:
+    support, and depth does not fail."""
     by_gene = {g["i"]: g for g in ref}
     best_hit = {}
     for h in hits:
@@ -956,7 +1005,8 @@ def partner_tests(core: dict, ref: list[dict], rows: list[dict], splits: list[di
                    and (f.get("split") == "CLEAR" or f.get("verdict") in ("SUPPORTED", "SINGLE_GENE"))]
         found = [f for f in passing if not f.get("split")]
         split_piece = any(f.get("split") == "CLEAR" for f in passing)
-        support = (len(found) >= SUPPORT_MIN_FINDS and any(f["verdict"] == "SUPPORTED" for f in found)) or split_piece
+        support = ((len({f["protein"] for f in found}) >= SUPPORT_MIN_FINDS
+                    and any(f["verdict"] == "SUPPORTED" for f in found)) or split_piece)
         dr = depth_of(core["contig"], contig)
         dok = None if dr is None else dr >= DEPTH_MIN
         accepted = support and dok is not False
@@ -1174,16 +1224,17 @@ def complete(result: dict[str, Any], zip_path: str | Path, bgcs: list[Any], refe
             with tempfile.NamedTemporaryFile("w", suffix=".faa", dir=work, delete=False) as fh:
                 fh.write("".join(f">w{i}\n{q}\n" for i, q in enumerate(wanted)))
             cached_search(fh.name, sensitivity=sensitivity)
-        # the housekeeping check scans the neighbours of lone finds with Pfam: a first pass without Pfam names the lone
-        # finds of every core, one Pfam scan covers all their neighbours, and the second pass reads that scan
+        # the housekeeping check scans the neighbours of every judged find (adjacent or lone) with Pfam: a first pass
+        # without Pfam names those finds for every core, one Pfam scan covers all their neighbours, and the second pass
+        # reads that scan
         pfam_cache: dict[str, list[str]] = {}
         if pfam_hmm:
-            lone_pids = set()
+            judged_pids = set()
             for bgc_id, acc, core, ref, rows, splits, status in staged:
                 partner_checks(rows, prots, by_acc.get(acc, []), core, acc, mibig_db=db["root"], threads=threads,
                                sensitivity=sensitivity, search=cached_search, compounds=db["compounds"], ref=ref)
-                lone_pids |= {r["best_protein"] for r in rows if r.get("partner_verdict") == "SINGLE_GENE"}
-            wanted_n = {k for ks in neighbour_ids(prots, sorted(lone_pids)).values() for k in ks}
+                judged_pids |= {r["best_protein"] for r in rows if r.get("partner_verdict") in ("SINGLE_GENE", "SUPPORTED")}
+            wanted_n = {k for ks in neighbour_ids(prots, sorted(judged_pids)).values() for k in ks}
             if wanted_n:
                 pfam_cache = _pfam_names({k: prots[k]["aa"] for k in sorted(wanted_n)}, str(pfam_hmm), threads,
                                          only=HOUSEKEEPING_PFAM)

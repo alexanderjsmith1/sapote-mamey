@@ -171,11 +171,11 @@ def test_portable_receipt_layout_and_roster_refuse(tmp_path, monkeypatch, case):
         gi.admit_placement_run(run)
 
 
-def test_actual_display_frontdoor_roots_admitted_restored_tree_before_build_boundary(tmp_path, monkeypatch):
+def test_actual_display_frontdoor_preserves_root_admitted_restored_tree_before_build_boundary(tmp_path, monkeypatch):
     run, report, sources, calls, admitted = produce(tmp_path, monkeypatch, default=True)
     (run / "host.tsv").write_text("strain\taccession\n")
     (run / "sources.sqlite").write_text("synthetic metadata boundary only")
-    builder = SimpleNamespace(_is_query=lambda name: name == "QUERY", _ref_accession=lambda name: name)
+    builder = SimpleNamespace(_is_query=lambda name: name == "QUERY", _ref_accession=lambda name: name, _asid=lambda name: name, reference_genera=lambda *a: {"Example"})
     original_load = display._load
     monkeypatch.setattr(display, "_load", lambda name: builder if name == "build_placement_ggtree_inputs" else original_load(name))
     monkeypatch.setattr(display, "_reference_organisms", lambda *a: {})
@@ -188,7 +188,7 @@ def test_actual_display_frontdoor_roots_admitted_restored_tree_before_build_boun
         raise ValueError("INTENTIONAL_BUILD_BOUNDARY_STOP")
     monkeypatch.setattr(display, "_run", boundary)
     out = tmp_path / "display"
-    assert display.main(display_args(run, out) + ["--outgroup-substr", "OG"]) == 2
+    assert display.main(display_args(run, out) + ["--outgroup-substr", "OG", "--group", "Example"]) == 2
     assert len(invoked) == 1
     assert (out / "rooted.nwk").is_file()
     assert not (out / "placement_display_receipt.json").exists()

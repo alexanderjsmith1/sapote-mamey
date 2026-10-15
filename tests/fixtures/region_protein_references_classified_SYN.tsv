@@ -1,0 +1,11 @@
+genome_key	role	genus	genus_from	accession	saccharide_regions	strictness	aa	regions	version	source	copies_of_accession
+Synthetica_alpha_GCF_000000001_1	reference	Synthetica	input		10	loose	200000	30	8.0.4	refs::Synthetica_alpha_GCF_000000001_1	1
+Synthetica_alpha_copy_GCA_000000001_1	reference	Synthetica	input		10	loose	201000	31	8.0.4	refs::Synthetica_alpha_copy_GCA_000000001_1	1
+Synthetica_beta_SYNB00000000.1	reference	Synthetica	input	SYNB00000000.1	12	loose	250000	40	8.0.4	refs::Synthetica_beta_SYNB00000000.1	1
+Synthetica_gamma_SYNC00000000.1	reference	Synthetica	input	SYNC00000000.1	12	loose	250000	40	8.0.4	refs::Synthetica_gamma_SYNC00000000.1	1
+Synthetica_delta_SYND00000000.1	reference	Synthetica	input	SYND00000000.1	3	loose	90000	9	8.0.4	refs::Synthetica_delta_SYND00000000.1	1
+Synthetica_eps_SYNE00000000.1	reference	Synthetica	input	SYNE00000000.1	0	not_loose_or_unknown	180000	25	8.0.4	refs::Synthetica_eps_SYNE00000000.1	1
+Synthetic_sid_collection_row	SID	Synthetica	input		9	loose	175000	22	8.0.4	sid::Synthetic_sid_collection_row	1
+SYN-973	isolate	Synthetica	input		8	loose	160000	20	8.0.4	iso::SYN-973	1
+Exemplaria_zeta_SYNZ00000000.1	reference	Exemplaria	input	SYNZ00000000.1	5	loose	300000	50	8.0.4	refs::Exemplaria_zeta_SYNZ00000000.1	1
+Otheria_eta_SYNH00000000.1	reference	Otheria	input	SYNH00000000.1	5	loose	120000	15	8.0.4	refs::Otheria_eta_SYNH00000000.1	1

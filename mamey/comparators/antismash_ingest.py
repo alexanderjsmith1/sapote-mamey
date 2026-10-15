@@ -261,7 +261,7 @@ def _collect_gbk_paths(input_paths: Iterable[Path], tmp_dir: Path) -> list[Path]
 def ingest_comparator_inputs(input_paths: list[Path], out_dir: Path) -> dict[str, str]:
     """Ingest comparator GBKs/ZIPs/directories and write comparator tables."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    tmp_dir = out_dir / "_extracted_comparators"
+    tmp_dir = Path(tempfile.mkdtemp(prefix="_extracted_comparators_", dir=out_dir))
     tmp_dir.mkdir(exist_ok=True)
     # COMP-P07: untrusted comparator ZIPs are extracted under out_dir only to parse CDS genes; once
     # all_genes is built the extracted tree is no longer referenced (outputs live in out_dir itself).

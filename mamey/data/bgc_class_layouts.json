@@ -1,0 +1,28 @@
+{
+  "default": "bee",
+  "anchor_group_default": "Bryophyte",
+  "layouts": {
+    "bee": {
+      "mode": "standard",
+      "labels": "strain",
+      "width": 7,
+      "height": 6.2,
+      "edge_width": 2.1
+    },
+    "bee-landscape": {
+      "mode": "standard",
+      "labels": "genus-strain",
+      "width": 9.4,
+      "height": 6.8,
+      "edge_width": 1.7
+    },
+    "moss": {
+      "mode": "grouped",
+      "labels": "group",
+      "width": 7,
+      "height_base": 2.6,
+      "row_height": 0.16,
+      "edge_width": 3.2
+    }
+  }
+}

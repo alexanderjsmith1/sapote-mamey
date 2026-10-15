@@ -222,18 +222,18 @@ def _redact_json_registry(text: str, as_only: bool) -> str:
     strains = d["strains"] if container_is_wrapped else d
     new_strains = {}
     seen = {}
+    reserved = {redact_text(str(key), as_only).strip() for key in strains}
     for k, v in strains.items():
         # mask ANY private ID in the key (AS-numbers AND others like AS-XXX), matching the
         # plain redactor's coverage; then disambiguate collisions so records aren't collapsed.
         mk = redact_text(str(k), as_only).strip()
-        if mk in seen:
-            seen[mk] += 1
-            mk = f"{mk}-{seen[mk]}"
-        else:
-            seen[mk] = 0
-            if mk in new_strains:
-                seen[mk] = 1
-                mk = f"{mk}-1"
+        if mk in new_strains:
+            base = mk
+            suffix = seen.get(base, 0) + 1
+            while f"{base}-{suffix}" in new_strains or f"{base}-{suffix}" in reserved:
+                suffix += 1
+            seen[base] = suffix
+            mk = f"{base}-{suffix}"
         vred = json.loads(redact_text(json.dumps(v), as_only))
         new_strains[mk] = vred
     if container_is_wrapped:

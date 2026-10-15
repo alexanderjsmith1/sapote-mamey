@@ -9,7 +9,8 @@ from_dir <- if (!is.na(from_i) && from_i < length(args)) args[from_i + 1] else N
 if (!is.na(from_i) && (is.na(from_dir) || startsWith(from_dir, "--")))
   stop("--from needs a directory of package archives; refusing to fall back to an online install")
 offline <- !is.na(from_dir)
-cran <- c("ggplot2","dplyr","tidyr","scales","patchwork","ape","ggrepel")
+# .452: every package the shipped R scripts load (tests/test_452_ci_installs_r.py keeps this list complete).
+cran <- c("ggplot2","dplyr","tidyr","scales","patchwork","ape","ggrepel","aplot","ggtext","svglite","jsonlite","readr","systemfonts","xml2")
 bioc <- c("ggtree","treeio")
 have <- function(p) requireNamespace(p, quietly = TRUE)
 check_only <- "--check" %in% commandArgs(trailingOnly = TRUE)

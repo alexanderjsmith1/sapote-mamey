@@ -62,6 +62,30 @@ python tools/phylo_16s_from_genome.py genome.fna \
 ```
 
 This uses local BLASTn and the specified database. Review its receipt and sequence before treating a span as a 16S query.
+To build that 16S database, fully or for chosen genera, and to see which tools read it, use [LOCAL_16S_DATABASE.md](LOCAL_16S_DATABASE.md).
+
+### How identity is measured
+
+For nearest-reference selection and genus-conflict review, 16S identity is measured over alignment
+columns where both sequences contain A, C, G, T or a gap. IUPAC ambiguity columns are excluded;
+gaps remain differences. Raw BLAST `pident` is a separate measurement. The routing table retains
+it as `pident_raw`; legacy imported hit tables without aligned sequences can only supply raw identity.
+The genome-neighbour panel records the identity basis beside its selected value.
+
+Local nearest-record searches set the subject limit to the database record count, or the exact
+number of candidates in a locally constructed panel database. The requested number of output
+references is applied after ranking. Genus routing ranks alignments at least 95 percent as long
+as the original top BLAST alignment; the named reference picker and local marker selector compare
+alignments at least 95 percent as long as the longest eligible alignment for that query. This keeps
+short perfect fragments from displacing long 16S evidence. Some tools use an 85 percent raw-identity floor to limit output
+and retry without it when a query has no eligible hit. That floor can still exclude an ambiguity-rich
+record when another record passes; all-record subject capacity is not an exhaustive alignment guarantee.
+A failed database-count probe uses a finite fallback where supported, so retain the actual count and
+search settings in the run evidence. A partial database establishes proximity only within that subset.
+See [How identity is measured in the local database guide](LOCAL_16S_DATABASE.md#how-identity-is-measured)
+for the shared rule and reporting fields. These measurements support reference selection, not species
+identification or scientific adoption.
+
 
 **Optional MLSA screen.** A full-assembly antiSMASH ZIP can be checked without starting inference:
 

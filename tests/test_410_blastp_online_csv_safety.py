@@ -70,13 +70,14 @@ def test_online_panel_neutralises_formula_leading_free_text(tmp_path, monkeypatc
 
     rows = _read_rows(out_csv)
     header, data = rows[0], rows[1]
-    # Column order / header must be unchanged by the fix.
+    # Existing column order is retained; actual database provenance is appended.
     assert header == [
         "locus_tag", "node_region", "aa_length", "antismash_domains", "blastp_top_def",
         "blastp_accession", "blastp_organism", "pct_identity", "pct_positive", "query_coverage",
-        "evalue", "bitscore", "agreement",
+        "evalue", "bitscore", "agreement", "channel", "source_channel",
     ]
-    assert len(data) == len(header) == 13
+    assert data[-2:] == ["nr", "nr"]
+    assert len(data) == len(header) == 15
 
     def_cell = data[header.index("blastp_top_def")]
     org_cell = data[header.index("blastp_organism")]

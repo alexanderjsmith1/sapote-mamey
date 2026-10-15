@@ -69,19 +69,32 @@ def _clade_index(scan):
     return idx
 
 
-def _logic_proof(row):
+# P300-144: a count cell is admitted only as a whole, nonnegative number. Blank, malformed, negative, fractional
+# and non-finite cells read as None, never as 0.
+_COUNT_CELL = re.compile(r"\s*(\d+)(?:\.0*)?\s*")
+
+
+def _count_cell(value):
+    m = _COUNT_CELL.fullmatch(str(value)) if value is not None else None
+    return int(m.group(1)) if m else None
+
+
+def _logic_proof_state(row):
+    """PRESENT, NOT_MET or UNRESOLVED for the RG-GMCI biosynthetic-logic proof of one _4A row.
+
+    UNRESOLVED: the disjoint-reference fallback cleared its bar but the overlapping_subject_refs cell is
+    present and blank or malformed, so the absence of contradicting evidence is not established.
+    """
     conf = (row.get("rggmci_confidence") or "").strip()
     frc = (row.get("functional_rescue_class") or "").strip()
     if conf not in HIGH:
-        return False
+        return "NOT_MET"
     if frc == "ACCESSORY_ONLY":
-        return False
+        return "NOT_MET"
     if frc == "COMPLEMENTARY":
-        return True
-    try:
-        cdr = int(float(row.get("complementary_disjoint_refs") or 0))
-    except ValueError:
-        cdr = 0
+        return "PRESENT"
+    # A blank or unreadable disjoint count is no positive evidence, so the fallback is not met.
+    cdr = _count_cell(row.get("complementary_disjoint_refs")) or 0
     # AUDIT_377: the complementary_disjoint_refs fallback (for a frc that didn\'t clear
     # COMPLEMENTARY, e.g. BOTH_CORE/AMBIGUOUS) is only genuine complementarity evidence when
     # UNCONTRADICTED. cd and overlapping_subject_refs come from the SAME rggmci.py subject-tiling
@@ -93,18 +106,31 @@ def _logic_proof(row):
     # data the module that computed it has already flagged as ambiguous (real cohort case, .368
     # AS-XXX BGC014+BGC033: cd=6 but ov=22 -- a 22:6 paralogy-dominant signal -- subject_tiling_verdict
     # MIXED_SUBJECT_SIGNAL, yet the unfixed cdr>=3 check alone still returned True).
-    try:
-        ov = int(float(row.get("overlapping_subject_refs") or 0))
-    except ValueError:
-        ov = 0
-    return cdr >= 3 and ov == 0
+    if cdr < 3:
+        return "NOT_MET"
+    if "overlapping_subject_refs" not in row:
+        # Legacy _4A schema without the column: read as zero, as before (pinned by
+        # test_rescue_two_proof_mixed_subject_signal). Owner ruling 14 Oct: keep passing, but say so in the receipt.
+        return "PRESENT_NO_OVERLAP_COLUMN"
+    ov = _count_cell(row.get("overlapping_subject_refs"))
+    if ov is None:
+        return "UNRESOLVED"
+    return "PRESENT" if ov == 0 else "NOT_MET"
+
+
+_LOGIC_PRESENT = ("PRESENT", "PRESENT_NO_OVERLAP_COLUMN")
+
+
+def _logic_proof(row):
+    return _logic_proof_state(row) in _LOGIC_PRESENT
 
 
 def two_proof_join(rggmci_4a_csv, ks_scan):
     """Return (rows, summary). rows = list of dicts for _4D. ks_scan = run_pks_ks_scan result."""
     cidx = _clade_index(ks_scan)
     rows = []
-    counts = {"TWO_PROOF_RESCUE": 0, "MULTI_CHANNEL_HOLD": 0, "RGGMCI_ONLY": 0, "KS_CLADE_ONLY": 0, "WEAK": 0}
+    counts = {"TWO_PROOF_RESCUE": 0, "MULTI_CHANNEL_HOLD": 0, "LOGIC_EVIDENCE_HOLD": 0, "RGGMCI_ONLY": 0,
+              "KS_CLADE_ONLY": 0, "WEAK": 0}
     seen_pairs = set()
     # 1) walk RG-GMCI ranked pairs
     if rggmci_4a_csv and os.path.exists(rggmci_4a_csv):
@@ -112,7 +138,8 @@ def two_proof_join(rggmci_4a_csv, ks_scan):
             for row in csv.DictReader(fh):
                 ca, cb = _short(row.get("contig_a")), _short(row.get("contig_b"))
                 seen_pairs.add(frozenset((ca, cb)))
-                logic = _logic_proof(row)
+                logic_state = _logic_proof_state(row)
+                logic = logic_state in _LOGIC_PRESENT
                 conf = (row.get("rggmci_confidence") or "").strip()
                 shared = cidx.get(ca, set()) & cidx.get(cb, set())
                 ks = bool(shared)
@@ -126,6 +153,10 @@ def two_proof_join(rggmci_4a_csv, ks_scan):
                     # complementarity still owed. Advisory HOLD, never a rescue (surfacer only). This is the
                     # subset previously mislabeled KS_CLADE_ONLY even though RG-GMCI DID rank the pair.
                     v = "MULTI_CHANNEL_HOLD"
+                elif logic_state == "UNRESOLVED":
+                    # P300-144: the overlap cell is blank or malformed, so the logic proof is neither met nor
+                    # refuted. Hold it; never WEAK ("below both bars") and never a rescue.
+                    v = "LOGIC_EVIDENCE_HOLD"
                 elif ks:
                     v = "KS_CLADE_ONLY"
                 else:
@@ -138,6 +169,7 @@ def two_proof_join(rggmci_4a_csv, ks_scan):
                     "functional_rescue_class": (row.get("functional_rescue_class") or "").strip(),
                     "ks_clade_id": ";".join(sorted(shared)) if shared else "",
                     "bgc_a": (row.get("bgc_a") or "").strip(), "bgc_b": (row.get("bgc_b") or "").strip(),
+                    "_overlap_column_absent": logic_state == "PRESENT_NO_OVERLAP_COLUMN",
                 })
     # 2) KS-clade links RG-GMCI never ranked (reference-dark) -> KS_CLADE_ONLY
     for c in ks_scan.get("cross_contig_clades", []):
@@ -156,16 +188,20 @@ def two_proof_join(rggmci_4a_csv, ks_scan):
                 })
     summary = (f"two-proof rescue: {counts['TWO_PROOF_RESCUE']} TWO_PROOF, "
                f"{counts['MULTI_CHANNEL_HOLD']} MULTI_CHANNEL_HOLD (2 homology channels, complementarity owed), "
+               f"{counts['LOGIC_EVIDENCE_HOLD']} LOGIC_EVIDENCE_HOLD (overlap count unreadable), "
                f"{counts['KS_CLADE_ONLY']} KS-only (reference-dark), {counts['RGGMCI_ONLY']} RGGMCI-only. "
                f"Candidates for adjudication — not merges. Judgment deferred.")
     return rows, summary, counts
 
 
-TWO_PROOF_LOGIC_VERSION = "2"  # .368: +MULTI_CHANNEL_HOLD advisory verdict (surfacer-only). bump on gate change.
+TWO_PROOF_LOGIC_VERSION = "3"  # .368: +MULTI_CHANNEL_HOLD (2). .452: +LOGIC_EVIDENCE_HOLD, legacy-overlap note (3). bump on gate change.
+_LEGACY_OVERLAP_NOTE = "overlap count absent (legacy _4A without overlapping_subject_refs); read as zero"
 _INTERP = {
     "TWO_PROOF_RESCUE": "complementary two-proof candidate (RG-GMCI logic + KS-clade homology)",
     "MULTI_CHANNEL_HOLD": ("two homology channels concordant (RG-GMCI HIGH/MODERATE + KS-clade), complementarity "
                            "proof NOT met — advisory HOLD, NOT a rescue; COMPLEMENTARY_SPLIT still required"),
+    "LOGIC_EVIDENCE_HOLD": ("RG-GMCI HIGH/MODERATE with disjoint references, but the overlapping-reference count is "
+                            "blank or unreadable — logic proof unresolved, HOLD, NOT a rescue"),
     "KS_CLADE_ONLY": "reference-dark KS-clade link (surface for adjudication)",
     "RGGMCI_ONLY": "logic-only rescue (no shared KS clade)",
     "WEAK": "below both bars",
@@ -178,7 +214,8 @@ def write_4d_csv(rows, out_path, strain_id=""):
             "second_proof_channel", "independent_proof_state", "position_verdict", "position_reference", "kcb_role"]
     note = ("two-proof candidate for adjudication; homology-guided linkage, NOT a merge or nucleotide join; "
             "the review lane adjudicates; judgment deferred")
-    order = {"TWO_PROOF_RESCUE": 0, "MULTI_CHANNEL_HOLD": 1, "KS_CLADE_ONLY": 2, "RGGMCI_ONLY": 3, "WEAK": 4}
+    order = {"TWO_PROOF_RESCUE": 0, "MULTI_CHANNEL_HOLD": 1, "LOGIC_EVIDENCE_HOLD": 2, "KS_CLADE_ONLY": 3,
+             "RGGMCI_ONLY": 4, "WEAK": 5}
     # AUDIT_374: write to a sibling .tmp then os.replace into place, so a crash mid-write
     # (this is a real production-invoked deliverable write from cli.py::_write_package(), called
     # inside a bare try/except that swallows the exception) never leaves _4D_two_proof_rescue.csv
@@ -192,7 +229,8 @@ def write_4d_csv(rows, out_path, strain_id=""):
             w = _SafeDictWriter(fh, fieldnames=cols)
             w.writeheader()
             for r in sorted(rows, key=lambda x: order.get(x["verdict"], 9)):
-                r2 = dict(r); r2["strain"] = strain_id; r2["claim_note"] = note
+                r2 = dict(r); r2["strain"] = strain_id
+                r2["claim_note"] = note + "; " + _LEGACY_OVERLAP_NOTE if r2.pop("_overlap_column_absent", False) else note
                 r2["interpretation"] = _INTERP.get((r2.get("verdict") or "").strip(), "")
                 if r2.get("rule_policy") == "nonks_position_v1" and r2.get("second_proof_channel") == "INTACT_RELATIVE_POSITION":
                     r2["interpretation"] = ("complementary HIGH linkage candidate + position CONSISTENT; adjudication required" if r2.get("verdict") == "TWO_PROOF_RESCUE" else "position veto; retain as contradicted candidate" if r2.get("verdict") == "POSITION_VETO" else "position insufficient; independent proof unresolved")

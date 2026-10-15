@@ -155,6 +155,7 @@ def main():
         emit("   ", ln)
     if r.returncode != 0:
         emit("   ! build error:", r.stderr.strip()[-300:])
+        raise SystemExit(f"required workbook build failed (exit {r.returncode}): {r.stderr.strip()[-300:]}")
 
     # intake summary
     bgc = __import__('_bankio', fromlist=['checked_json']).checked_json(os.path.join(a.banked_dir, "bgc_data.json"))

@@ -19,6 +19,8 @@ Nearest-NAMED-type rule
   sp./cf./aff./bacterium/uncultured/endophyte/symbiont (unnamed/provisional) are SKIPPED for the
   "named" pick but still reported as raw context, so an unnamed strain can never masquerade as the
   named comparator again.
+  Identity is computed over the alignment columns where both sequences carry A, C, G, T or a gap, and the search
+  covers every record of the database (see run_blastn).
 
 Genome resolution
   The 16S accession (NR_/NG_) is NOT a genome accession, so the genome is matched by name: inventory
@@ -49,7 +51,7 @@ from pathlib import Path
 # Generic engine tool: NO hardcoded user/project paths. All locations come from the environment
 # (set by the working folder) or CLI args, with generic relative fallbacks under the run root.
 ROOT = Path(os.environ.get("SAPOTE_ROOT", os.getcwd()))
-DEF_DB  = Path(os.environ.get("SAPOTE_16S_DB", ROOT / "blast_dbs" / "16S_ribosomal_RNA"))
+# The 16S database is found by the shared lookup at run time (_shared_16s_db); see docs/LOCAL_16S_DATABASE.md.
 DEF_INV = Path(os.environ.get("SAPOTE_GENOME_INVENTORY", ROOT / "OFFICIAL_DATA" / "GENOME_INVENTORY.tsv"))
 DEF_BLASTN = os.environ.get("SAPOTE_BLASTN") or shutil.which("blastn") or ""
 DEF_SEED = Path(os.environ.get("SAPOTE_16S_SEED", ROOT / "reference" / "16S_seed.fasta"))
@@ -142,10 +144,22 @@ def _revcomp(s: str):
 
 
 def run_blastn(query: Path, db: Path, blastn: Path, top: int):
-    fmt = "6 qseqid sacc pident length qlen qstart qend evalue bitscore stitle"
+    """blastn against every record of the 16S database, ranked by identity over unambiguous columns.
+
+    Every record: BLAST keeps the first N subjects in its own order, not the N most identical, so a small
+    -max_target_seqs missed the nearest type strain in large genera. Hits below 85% raw identity are left out to keep
+    the output small; if none pass, the search runs again without that floor. Unambiguous identity: BLAST pident counts
+    each IUPAC code (N, R, Y, ...) as a mismatch, so `pident` here is computed over the columns where both sequences
+    carry A, C, G, T or a gap (`_phylo16s.unambiguous_identity`); `pident_raw` keeps BLAST's value. `top` no longer
+    caps the search."""
+    p16 = _phylo16s_module()
+    n = p16.blastdb_sequence_count(str(db), str(Path(blastn).with_name("blastdbcmd"))) or p16.ALL_RECORDS_FALLBACK
+    fmt = "6 qseqid sacc pident length qlen qstart qend evalue bitscore stitle qseq sseq"
     cmd = [str(blastn), "-query", str(query), "-db", str(db), "-outfmt", fmt,
-           "-max_target_seqs", str(max(top * 6, 30)), "-num_threads", "4"]
-    p = subprocess.run(cmd, capture_output=True, text=True)
+           "-max_target_seqs", str(n), "-num_threads", "4"]
+    p = subprocess.run(cmd + ["-perc_identity", "85"], capture_output=True, text=True)
+    if p.returncode == 0 and not p.stdout.strip():
+        p = subprocess.run(cmd, capture_output=True, text=True)
     if p.returncode != 0:
         sys.exit(f"blastn failed:\n{p.stderr.strip()}")
     rows = []
@@ -155,10 +169,11 @@ def run_blastn(query: Path, db: Path, blastn: Path, top: int):
             continue
         qseqid, sacc, pident, length, qlen = f[0], f[1], float(f[2]), int(f[3]), int(f[4])
         stitle = f[9]
+        unamb = p16.unambiguous_identity(f[10], f[11])[0] if len(f) >= 12 else None
         cov = 100.0 * length / qlen if qlen else 0.0
         genus, sp, named = parse_org(stitle)
-        rows.append(dict(qseqid=qseqid, sacc=sacc, pident=pident, aln=length, qlen=qlen,
-                         cov=cov, genus=genus, sp=sp, named=named, stitle=stitle))
+        rows.append(dict(qseqid=qseqid, sacc=sacc, pident=unamb if unamb is not None else pident, pident_raw=pident,
+                         aln=length, qlen=qlen, cov=cov, genus=genus, sp=sp, named=named, stitle=stitle))
     return rows
 
 
@@ -212,6 +227,20 @@ def per_query(rows, inv_rows, n_named: int = 3):
     return results
 
 
+
+def _phylo16s_module():
+    """The shared 16S helpers (docs/LOCAL_16S_DATABASE.md)."""
+    _here = _os.path.dirname(_os.path.abspath(__file__))
+    if _here not in _sys.path:
+        _sys.path.insert(0, _here)
+    import _phylo16s
+    return _phylo16s
+
+
+def _shared_16s_db(explicit=None):
+    """The 16S RefSeq BLAST database prefix, from the one shared lookup (docs/LOCAL_16S_DATABASE.md)."""
+    return _phylo16s_module().refseq_16s_blastdb(explicit)
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Select a comparator genome via the 16S->named-type->inventory method.")
     ap.add_argument("query", help="16S query FASTA, OR a genome FASTA with --from-genome")
@@ -219,13 +248,14 @@ def main(argv=None):
                     help="treat the positional arg as a genome; extract 16S first (no barrnap needed)")
     ap.add_argument("--strain", default="", help="strain id for --from-genome output header (default: filename)")
     ap.add_argument("--seed", default=str(DEF_SEED), help="seed 16S FASTA for --from-genome extraction")
-    ap.add_argument("--db", default=str(DEF_DB))
+    ap.add_argument("--db", default=None, help="16S RefSeq BLAST DB prefix (default: the shared lookup, docs/LOCAL_16S_DATABASE.md)")
     ap.add_argument("--inventory", default=str(DEF_INV))
     ap.add_argument("--blastn", default=DEF_BLASTN)  # resolved from $SAPOTE_BLASTN / PATH at import
     ap.add_argument("--n-named", type=int, default=3, help="closest N distinct NAMED types to report (default 3)")
     ap.add_argument("--top", type=int, default=5, help="raw hits to fetch per query (internal)")
     ap.add_argument("--out", help="write a TSV of the picks")
     a = ap.parse_args(argv)
+    a.db = _shared_16s_db(a.db)
 
     if not a.blastn or not Path(a.blastn).exists():
         sys.exit("blastn not found; set $SAPOTE_BLASTN or pass --blastn /path/to/blastn")

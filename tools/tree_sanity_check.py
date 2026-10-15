@@ -119,6 +119,46 @@ def _all_leaves_outgroup(node, outgroup=None):
     return bool(lv) and all(_is_outgroup_tip(t.name, outgroup) for t in lv)
 
 
+def registry_locked_accession(registry, group):
+    """The outgroup accession a registry LOCKS for a genus-level ingroup, or None.
+
+    Reads an outgroup registry TSV (level, group, family, outgroup genus, outgroup reference with the
+    accession in brackets, source, status, note). Only a row with level 'genus', this group and
+    status LOCKED counts; any other status returns None, so the root-edge exemption below cannot be
+    reached by a PROVISIONAL or CONFIRM row."""
+    import re
+    for line in open(registry, encoding="utf-8"):
+        if line.startswith("#") or not line.strip():
+            continue
+        cols = line.rstrip("\n").split("\t")
+        if len(cols) >= 7 and cols[0] == "genus" and cols[1] == group and cols[6].strip() == "LOCKED":
+            m = re.search(r"\(([A-Z]{2}_?\d+(?:\.\d+)?)\)", cols[4])
+            return m.group(1) if m else None
+    return None
+
+
+def _accession_token(accession):
+    """NR_074529.1 -> nr_074529 (tip labels write the version with '_' or '.', or drop it)."""
+    return (accession or "").split(".")[0].casefold()
+
+
+def _locked_root_stem(root, outgroup, locked_accession):
+    """The ingroup half of the root edge to a registry-LOCKED outgroup, or None.
+
+    Applies only when the root has exactly two children, one holding only outgroup tips that carry
+    the locked accession and the other holding only ingroup tips. Any other shape returns None."""
+    if not locked_accession or len(root.k) != 2:
+        return None
+    token = _accession_token(locked_accession)
+    for og, ing in (root.k, root.k[::-1]):
+        og_tips = list(og.leaves())
+        if (_all_leaves_outgroup(og, outgroup)
+                and all(token in t.name.casefold() for t in og_tips)
+                and not any(_is_outgroup_tip(t.name, outgroup) for t in ing.leaves())):
+            return ing, og
+    return None
+
+
 class MalformedTree(ValueError):
     """The input holds no parseable Newick tree (empty, whitespace-only, or truncated).
 
@@ -186,7 +226,8 @@ def _no_tree_report(treefile, detail):
     ])
 
 
-def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require_outgroup=True):
+def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require_outgroup=True,
+          locked_root_accession=None):
     """Reusable HARD sanity gate. Returns (ok: bool, msg: str) — importable by the render tools so
     they can refuse a pathological tree BEFORE drawing. `msg` is the same multi-line report main()
     prints. ok=False (FAIL) when any NON-OUTGROUP terminal branch > max(abs, factor*p90-terminal) OR
@@ -211,7 +252,14 @@ def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require
     auditable rather than silent.
 
     `treefile` may be a path (read + parsed) or an already-parsed N node (so callers that already
-    hold a tree needn't reserialize)."""
+    hold a tree needn't reserialize).
+
+    .452 `locked_root_accession` (see registry_locked_accession): a genus tree rooted on a distant
+    outgroup the registry LOCKS (e.g. Streptomyces on Gordonia) has a long root edge, and after the
+    outgroup is split from the root the ingroup half of that edge is an internal branch that can
+    dominate a shallow 16S ingroup. When the accession is given, that one branch (and only it) is
+    exempted from DOMINATING_BRANCH, as the outgroup's own stem already is, and the report states
+    long_root=true with the full root-edge length. Every other branch, and LONG_TERMINAL, is unchanged."""
     if isinstance(treefile, N):
         r = treefile
     else:
@@ -255,8 +303,10 @@ def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require
     maxdepth = (max(depth[t] for t in tips) if tips else 0.0) or 1.0
     # DOMINATING_BRANCH considers only NON-outgroup branches; the outgroup stem is the intended
     # root anchor and is exempt. Track the longest exempted outgroup branch for an info line.
+    locked = _locked_root_stem(r, outgroup, locked_root_accession)
     longest = max(((n.l, n.name or "(internal)") for n in r.walk()
-                   if not _all_leaves_outgroup(n, outgroup)), default=(0.0, "(none)"))
+                   if not _all_leaves_outgroup(n, outgroup) and not (locked and n is locked[0])),
+                  default=(0.0, "(none)"))
     og_exempt = max(((n.l, n.name or "(internal)") for n in r.walk()
                      if _all_leaves_outgroup(n, outgroup)), default=None)
 
@@ -306,6 +356,14 @@ def check(treefile, abs=0.25, factor=10.0, dominate=0.50, outgroup=None, require
     if og_exempt is not None:
         lines.append(f"  [outgroup-exempt] {og_exempt[0]:.4f}  {og_exempt[1][:60]}  "
                      f"(designated outgroup; exempt from LONG_TERMINAL/DOMINATING_BRANCH)")
+    if locked:
+        lines.append(f"  [locked-outgroup root edge] long_root=true · root edge {locked[0].l + locked[1].l:.4f} "
+                     f"(ingroup half {locked[0].l:.4f} + outgroup half {locked[1].l:.4f}) · outgroup "
+                     f"{locked_root_accession} LOCKED in the registry; the ingroup half is exempt from "
+                     "DOMINATING_BRANCH (every other branch is still checked)")
+    elif locked_root_accession:
+        lines.append(f"  [locked-outgroup root edge] not applied: the root is not a two-way split between "
+                     f"the {locked_root_accession} outgroup and the ingroup")
     if not fails:
         lines.append("  PASS — no pathological/dominating branches.")
         return True, "\n".join(lines)
@@ -379,10 +437,21 @@ def main(argv=None):
                     help="declare a tree that has NO outgroup by construction (midpoint-rooted, or a "
                          "within-class paralog panel); without this a tree with no recognisable "
                          "outgroup FAILs with NO_OUTGROUP (standing rule, v9.7.413)")
+    ap.add_argument("--locked-outgroup-group", default=None,
+                    help=".452: genus of the ingroup; with --outgroup-registry, exempt the ingroup half of the root "
+                         "edge to the outgroup the registry LOCKS for that genus (only that branch)")
+    ap.add_argument("--outgroup-registry", default=None, help="outgroup registry TSV (with --locked-outgroup-group)")
     a=ap.parse_args(argv)
+    locked = None
+    if a.locked_outgroup_group:
+        if not a.outgroup_registry:
+            ap.error("--locked-outgroup-group needs --outgroup-registry")
+        locked = registry_locked_accession(a.outgroup_registry, a.locked_outgroup_group)
+        if not locked:
+            ap.error(f"the registry LOCKS no outgroup for genus {a.locked_outgroup_group}")
 
     ok, msg = check(a.treefile, abs=a.abs, factor=a.factor, dominate=a.dominate, outgroup=a.outgroup,
-                    require_outgroup=not a.allow_no_outgroup)
+                    require_outgroup=not a.allow_no_outgroup, locked_root_accession=locked)
     emit(msg)
     return 0 if ok else 2
 

@@ -411,10 +411,13 @@ def _class_tokens(text: str) -> set[str]:
     tokens: set[str] = set()
     if any(x in lowered for x in ("pks", "polyketide", "arylpolyene", "phenazine")):
         tokens.add("PKS")
-    if any(x in lowered for x in ("nrps", "nrp-", "napaa", "nonribosomal", "thioamide-nrp")):
+    if any(x in lowered for x in ("nrps", "nrp-", "napaa", "nonribosomal", "non-ribosomal",
+                                  "thioamide-nrp")):
         tokens.add("NRPS")
-    if any(x in lowered for x in ("ripp", "ribosomal", "lanthi", "lasso", "linaridin",
-                                  "thiopeptide", "ranthi", "sacti", "azole-containing")):
+    # 'ribosomal' is inside 'nonribosomal'; drop those words before the RiPP test.
+    ripp_text = lowered.replace("non-ribosomal", " ").replace("nonribosomal", " ")
+    if any(x in ripp_text for x in ("ripp", "ribosomal", "lanthi", "lasso", "linaridin",
+                                    "thiopeptide", "ranthi", "sacti", "azole-containing")):
         tokens.add("RiPP")
     if "terpene" in lowered:
         tokens.add("TERPENE")

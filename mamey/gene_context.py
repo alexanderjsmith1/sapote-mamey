@@ -52,9 +52,11 @@ def _aa_length(translation: str, start: int, end: int) -> int | None:
     return None
 
 
-def _tta_codons(nt: str) -> int:
+def _tta_codons(nt: str) -> int | None:
+    # P300-087: no nucleotide sequence means the scan did not run. Return None (not computed),
+    # never 0; a completed scan with no TTA still returns 0.
     if not nt:
-        return 0
+        return None
     nt = nt.upper()
     return sum(1 for i in range(0, len(nt) - 2, 3) if nt[i:i + 3] == "TTA")
 
@@ -136,6 +138,7 @@ def build_gene_context(bgcs: Iterable[Any], cds_list: Iterable[Any],
             "gene_kind": _gene_kind,
             "tta_codons": _tta_codons(nt),
             "has_translation": bool(translation),
+            "has_nucleotide": bool(nt),
         }
         for b in hit_bgcs:
             out[b.bgc_id].append(row)

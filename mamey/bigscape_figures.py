@@ -36,6 +36,23 @@ from .render_safe import safe_savefig_dpi as _safe_dpi
 _DEFAULT_SUBPROCESS_TIMEOUT_SEC = 1800
 
 
+LARGE_COMPONENT_MIN_RECORDS = 121
+LARGE_COMPONENT_LEGEND = "large component (over 120 records; cause not tested)"
+
+
+def _family_category(n_records, n_mibig, mibig_colour):
+    """Category, colour and node label for one shared component.
+
+    A component of more than 120 records is labelled by its size only. Size alone does not show why it is large
+    (assembly fragmentation, a promiscuous domain family or a cutoff effect are not tested here), so no cause is drawn.
+    """
+    if n_records >= LARGE_COMPONENT_MIN_RECORDS:
+        return "large-component", "#7B241C", f"large component\n({n_records} records)"
+    if n_mibig:
+        return "mibig-anchored", mibig_colour, "MIBiG-anchored family"
+    return "cohort-shared", "#27AE60", "cohort-shared family"
+
+
 def _subprocess_timeout_sec() -> float:
     """External-tool wall-clock timeout in seconds (env-overridable, read at call time)."""
     try:
@@ -154,13 +171,8 @@ def gcf_network(db, strain, run, cutoff, evidence=None, out="gcf_network.png", l
     for i, (ccid, mem) in enumerate(sorted(shared, key=lambda x: -len(x[1]))):
         n_mibig = sum(1 for rid in mem if rid not in rset and partner_is_mibig(rid))
         n = len(mem)
-        if n > 120:  # a large low-similarity component of many records is an assembly artifact, not one GCF
-            fcat, fcol, fname = "fragmented", "#7B241C", "fragmented supercomponent\n(assembly artifact)"
-        elif n_mibig:
-            fcat, fcol, fname = "mibig-anchored", MIBIG_C, "MIBiG-anchored family"
-            cats_present.add(fcat)
-        else:
-            fcat, fcol, fname = "cohort-shared", "#27AE60", "cohort-shared family"
+        fcat, fcol, fname = _family_category(n, n_mibig, MIBIG_C)
+        if fcat != "large-component":
             cats_present.add(fcat)
         fid = f"F{i}"; G.add_node(fid); col[fid] = fcol; size[fid] = 260 + min(n, 60) * 10; lab[fid] = fname
         families.append({"members_in_strain": sorted({recs[r] for r in mem if r in rset}),
@@ -198,7 +210,7 @@ def gcf_network(db, strain, run, cutoff, evidence=None, out="gcf_network.png", l
              Patch(color="#F39C12", label="named leads"),
              Patch(color=MIBIG_C, label=L.assert_not_bare_reference("MIBiG-anchored family")),
              Patch(color="#27AE60", label="cohort-shared family"),
-             Patch(color="#7B241C", label="fragmented supercomponent (assembly artifact)"),
+             Patch(color="#7B241C", label=LARGE_COMPONENT_LEGEND),
              Patch(color="#95A5A6", label="BGC (family member)")]
     ax.legend(handles=extra, loc="lower left", fontsize=8.2, framealpha=0.9)
     ax.axis("off"); plt.tight_layout()

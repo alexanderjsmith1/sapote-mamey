@@ -7,7 +7,7 @@ import sys
 
 import pytest
 from tools import run_planned_tree as runner
-from ._trees_432_fakes import native_tree_tmp_path  # scoped lifecycle-inventoried /private/tmp fixture
+from ._trees_432_fakes import native_tree_tmp_path  # scoped lifecycle-inventoried space-free temporary fixture
 
 ROOT = Path(__file__).resolve().parents[1]
 

@@ -610,7 +610,7 @@ fi
 # Public cuts require the check-only invariant. Historical disclosure rulings
 # do not authorize inclusion of a user's current private research inputs.
 if [ "$TIER" != merged ] && [ "$AS_SCRUB" = "1" ]; then
-  ( cd "$STAGE" && { "$PYTHON" -m pytest tests/test_no_unpublished_ids_in_public_tier.py -q 2>/dev/null || "$PYTHON" tools/redact_public_tier.py --tree . --walk --check-only --as-only; } ) \
+  ( cd "$STAGE" && { "$PYTHON" -m pytest tests/test_no_unpublished_ids_in_public_tier.py -q -p no:cacheprovider 2>/dev/null || "$PYTHON" tools/redact_public_tier.py --tree . --walk --check-only --as-only; } ) \
     || { echo "FATAL: public-tier unpublished-ID invariant FAILED for $TIER" >&2; exit 5; }
 elif [ "$TIER" != merged ]; then
   echo "FATAL: public-tier private-ID audit unexpectedly disabled" >&2; exit 5
@@ -643,6 +643,12 @@ if [ "$TIER" = code ] && [ -f "$SRC/tools/verify_tier_derivation.py" ]; then
     exit 6
   fi
 fi
+
+# BEGIN FINAL_STAGE_CACHE_CLEANUP
+# Post-audit tools must not leave runtime caches in the archive transaction.
+find "$STAGE" -type d \( -name .pytest_cache -o -name __pycache__ \) -prune -exec rm -rf {} +
+find "$STAGE" -type f -name .DS_Store -delete
+# END FINAL_STAGE_CACHE_CLEANUP
 
 # --- 4. zip with versioned, dated, chronological filename -------------------
 mkdir -p "$OUT"

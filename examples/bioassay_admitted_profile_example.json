@@ -1,0 +1,42 @@
+{
+  "schema_version": "sapote.bioassay-admitted-profile.v1",
+  "note": "Example profile for tools/bioassay_admitted_observations.py. Paths are relative to this file. Every mapping is the data owner's declaration; the tool decides none of them.",
+  "tables": [
+    {
+      "key": "plates96",
+      "platform": "96",
+      "path": "data/admitted_96_well.csv",
+      "columns": {
+        "row_id": "event_id", "strain": "strain_id", "plate": "fraction_plate", "well": "source_96_well",
+        "target": "organism", "material_group": "material_group", "material_id": "material_id",
+        "value": "percent_inhibition_uncapped", "dose": "dose_ug_ml", "timepoint": "timepoint",
+        "calibration": "calibration_status", "experiment": "assay_header"
+      }
+    },
+    {
+      "key": "plates384",
+      "platform": "384",
+      "path": "data/admitted_384_well.csv",
+      "columns": {
+        "strain": "strain_id", "plate": "assay_plate", "well": "target_384_well", "target": "organism",
+        "material_group": "material_group", "material_id": "material_id", "value": "percent_inhibition_uncapped",
+        "dose": "dose_ug_ml", "timepoint": "timepoint", "calibration": "calibration_basis"
+      }
+    }
+  ],
+  "corrections": {
+    "path": "data/material_corrections.tsv",
+    "platform_column": "platform",
+    "platform_values": {"96": "96-well", "384": "384-well"},
+    "match_columns": ["fraction_plate", "source_96_well", "strain_id"],
+    "apply": {"material_group": "material_group"}
+  },
+  "material_types": {"CRUDE": "CRUDE_EXTRACT", "FRACTION": "FLASH_FRACTION"},
+  "targets": {"Target species not named": "AMBIGUOUS"},
+  "dose_states": {"384": "VERIFIED", "96": "AS_RECORDED"},
+  "replicate_type": "SINGLETON",
+  "control_states": {
+    "signed plate calibration": {"state": "VALID", "basis": "Positive and negative control wells on each assay plate, signed by the owner."},
+    "expected media-only OD": {"state": "EXPECTED_OD_NORMALIZATION_HOLD", "basis": "Normalized to an expected OD, not a plate control; held until the owner rules."}
+  }
+}

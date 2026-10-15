@@ -57,6 +57,7 @@ mamey/bigscape_figures.py	BiG-SCAPE GCF network + clinker comparative figures (s
 mamey/bigscape_namespace.py	Single owner for portable BiG-SCAPE GCF identity and admission.
 mamey/bioactivity_metadata.py	Typed, claim-safe bioactivity metadata admission.
 mamey/bioassay_figure_factory.py	Typed bioassay observations for Figure Factory.
+mamey/bioassay_paper.py	Bound, descriptive bioassay figure preparation. No experimental inference.
 mamey/blast_ledger.py	blast_ledger.py — durable, cross-run contact ledger + fair-use budget for the online BLASTp channels
 mamey/blastp_autoharness.py	blastp_autoharness.py — the resumable automation layer over the NCBI web-BLASTp channel.
 mamey/blastp_availability.py	blastp_availability.py — Central Command BLASTp availability declaration (.345).
@@ -154,6 +155,7 @@ mamey/exclusion_gate.py	exclusion_gate.py — leak detector for whole-strain exc
 mamey/exclusions.py	exclusions.py — single source of truth (SSOT) for whole-strain exclusions.
 mamey/external_adapters.py	Build the scan_status dict consumed by MameyRun and written to manifest.json.
 mamey/external_data.py	external_data.py — resolve USER-PROVISIONED third-party datasets. Nothing here is redistributed.
+mamey/extra_csv_manifest.py	Explicit, checked source-file lists for offline result replay.
 mamey/figure_factory_cli.py	Compatibility CLI front doors for the optional Figure Factory family.
 mamey/figure_factory_default_config.py	Synthesize a Figure Factory Next config plus its admitted inputs from a package.
 mamey/figure_factory_next.py	Portable, manifest-governed aggregate evidence figures.
@@ -311,6 +313,7 @@ mamey/prior_report_corpus.py	Parse prior report corpora into source-bound, non-a
 mamey/privacy_profile.py	Portable, user-owned strain privacy profiles.
 mamey/project_catalog.py	Portable catalog and private-handoff utilities for multi-strain projects.
 mamey/project_registry.py	Generic strain privacy, genome-state, and bioassay-scope registry.
+mamey/protein_binding.py	Bind a BLASTp result or a gene-name row to a gene by its protein sequence, not by its locus tag.
 mamey/protein_signature.py	Content-addressed protein FASTA signatures for assembly and query provenance.
 mamey/rare_motif.py	Rare-motif BGC detection — cross-strain.
 mamey/raw_antismash_triage.py	raw_antismash_triage.py — guided pre-extraction genome triage (new, v9.7.233).

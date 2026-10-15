@@ -508,9 +508,10 @@ def _bgc_context_from_package(package: str | None, bgc: str | None, _cross: bool
                         role="gene context")
                     break
                 ctx["cds_count"] = len(cds)
+                # P300-087: a null tta_codons is not computed; it binds no card TTA claim.
                 ctx["tta_by_gene"] = {
                     str(g["locus_tag"]).lower(): g.get("tta_codons", 0)
-                    for g in cds if g.get("locus_tag")
+                    for g in cds if g.get("locus_tag") and g.get("tta_codons", 0) is not None
                 }
                 break
     return ctx

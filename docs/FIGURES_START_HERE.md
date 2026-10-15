@@ -1,6 +1,6 @@
 # Make and review Mamey figures
 
-Sapote–Mamey v9.7.450 · Mamey engine 1.9.175
+Sapote–Mamey v9.7.451 · Mamey engine 1.9.176
 
 Whatever route you take, the figure must meet the [figure house rules](FIGURE_HOUSE_RULES.md).
 
@@ -27,6 +27,7 @@ Use `python3 mamey_run.py render-all-figures --package <working-package-copy>` f
 | The same Mamey feature across several strains | One `<strain>/package/` per strain in a runs directory | `cohort-figures` below; [figure catalog](FIGURE_CATALOG.md) explains F, G, D and extended panels. |
 | A manuscript comparison from a master workbook | A checked workbook with strain registry and BGC master sheets | Export `figure_ready/` tables, then follow a [named figure recipe](../prompts/figure_prompts/_INDEX.md). The recipes are specifications, not an automatic renderer. |
 | A custom aggregate evidence-coverage bar chart | Counted metrics TSV plus an explicit cohort manifest | [Aggregate evidence guide](FIGURE_FACTORY_NEXT.md). This specialized route does not read BLASTp databases itself. |
+| BLASTp similarity of region genes to public proteins, per genome or per core class | Per-gene BLASTp result CSVs, plus a genome table (strain, genus, block, gene-context path) | `python3 tools/blastp_identity_figures.py --help`: `--measure top1|top10`, `--db best|nr|clustered`. Genus colours come from `mamey/data/genus_palette.json`. |
 | A tree or BiG-SCAPE gene-cluster-family panel | Bound tree/database, tips or regions, and matching metadata | [Tree figure grammar](TREE_FIGURE_GRAMMAR.md) or [BiG-SCAPE walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md). Do not derive host metadata from a strain ID. |
 
 Use the bundle's `mamey_run.py` entry point from the extracted code root so the

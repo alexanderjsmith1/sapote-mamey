@@ -454,6 +454,10 @@ def provision(
     already-normalized or non-NP-Atlas JSON keeps the historical verbatim behaviour."""
     if not os.path.isfile(source_path):
         raise NpatlasProvisionError(f"NPATLAS_PROVISION_REFUSAL: --source not found: {source_path}")
+    for destination in (out_path, out_path + ".tmp"):
+        if (os.path.realpath(destination) == os.path.realpath(source_path)
+                or (os.path.exists(destination) and os.path.samefile(destination, source_path))):
+            raise NpatlasProvisionError("NPATLAS_PROVISION_REFUSAL: output aliases source evidence")
     source_sha256 = sha256_file(source_path)
     source_bytes = os.path.getsize(source_path)
 

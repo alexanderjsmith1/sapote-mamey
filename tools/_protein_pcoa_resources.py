@@ -118,6 +118,31 @@ def admit(info, limits, *, n=None):
     return e
 
 
+def cluster_stage_estimate(info, limits):
+    """Linear clustering allowance; the dense solver is admitted only after clustering.
+
+    Fixed per-thread buffers and input multipliers are engineering estimates.
+    The same process-tree RSS cap and disk floor remain authoritative at runtime.
+    """
+    if info["records"] < 4:
+        raise ResourceRefusal("fewer than four input points")
+    baseline = estimate(info)["input_baseline_bytes"]
+    rss = baseline + 128 * 1024**2 * limits["threads"] + 16 * info["fasta_bytes"] + 4096 * info["records"]
+    disk = (256 * 1024**2 + 64 * info["fasta_bytes"] + 8 * info["metadata_bytes"]
+            + info["records"] * (8 * info["maximum_id_bytes"] + 4096))
+    if rss > limits["rss_limit_bytes"] * 0.8:
+        raise ResourceRefusal("cluster-stage estimated RSS exceeds 80% admission margin")
+    # Cohort members cannot be reduced by reference clustering.
+    irreducible_points = info["records"] - info["reference"] - info["mibig"]
+    if irreducible_points < 0:
+        raise ResourceRefusal("inconsistent input membership counts")
+    if irreducible_points >= 4:
+        admit(info, limits, n=irreducible_points)
+    return dict(stage="CLUSTER_ONLY", records=info["records"], input_baseline_bytes=baseline,
+                estimated_rss_bytes=rss, estimated_disk_bytes=disk,
+                estimate_not_guarantee=True, final_ordination_admission="PENDING_CLUSTERED_N")
+
+
 def _lines(path, ceiling, h, metrics):
     with clean_path(path).open("rb") as stream:
         while True:
@@ -198,7 +223,9 @@ def cluster_workspace_policy(a, info, limits):
         raise ResourceRefusal("cluster work root must be an existing directory")
     observed = root.stat()
     output_bound = info["records"] * (2 * info["maximum_id_bytes"] + 4)
-    required = estimate(info)["estimated_disk_bytes"] + info["fasta_bytes"] + info["records"] + output_bound
+    phase_estimate = (cluster_stage_estimate(info, limits) if getattr(a, "cluster_first", False)
+                      else estimate(info))
+    required = phase_estimate["estimated_disk_bytes"] + info["fasta_bytes"] + info["records"] + output_bound
     free = shutil.disk_usage(root).free
     if free < limits["min_free_disk_bytes"] + required:
         raise ResourceRefusal("cluster work filesystem lacks estimated growth plus free-disk floor")
@@ -341,22 +368,35 @@ def coordinate(a, script):
     try:
         info, inputs, _, _ = read_inputs(kit, a.set, limits)
         base.update(counts=info, estimate=estimate(info))
-        e = admit(info, limits)
+        # Reference and MIBiG sequences are clustered before the all-vs-all in every run, so by default their set is
+        # admitted at the clustering stage and the dense solver at the clustered count. A cohort-only set is never
+        # clustered and keeps the upper-bound admission. An explicit --cluster-first / --no-cluster-first wins.
+        requested = getattr(a, "cluster_first", None)
+        cluster_first = bool(info["reference"] or info["mibig"]) if requested is None else bool(requested)
+        a.cluster_first = cluster_first
+        e = cluster_stage_estimate(info, limits) if cluster_first else admit(info, limits)
+        base["admission_mode"] = "CLUSTER_FIRST" if cluster_first else "UPPER_BOUND_FIRST"
+        base["admission_mode_source"] = "DEFAULT" if requested is None else "EXPLICIT"
+        if cluster_first:
+            base.update(unclustered_upper_bound_estimate=estimate(info), estimate=e)
         free = shutil.disk_usage(receipt).free
         if free < limits["min_free_disk_bytes"] + e["estimated_disk_bytes"]:
             raise ResourceRefusal("estimated scratch growth plus free-disk floor is unavailable")
         workspace = cluster_workspace_policy(a, info, limits)
         sources = source_bindings(script)
-        admitted = dict(base, state="ADMITTED", counts=info, estimate=e, inputs=inputs, sources=sources,
+        admitted = dict(base, state="CLUSTER_STAGE_ADMITTED" if cluster_first else "ADMITTED", counts=info, estimate=e, inputs=inputs, sources=sources,
                         cluster_workspace=workspace)
         write_json(receipt / "admission.json", admitted)
         if preflight:
-            write_json(receipt / "terminal.json", dict(base, state="PREFLIGHT_ADMITTED", compute="NOT_EXECUTED"))
-            return dict(admitted, mode="METADATA_ONLY_PREFLIGHT", compute="NOT_EXECUTED")
+            state = "PREFLIGHT_CLUSTER_ADMITTED_ORDINATION_PENDING" if cluster_first else "PREFLIGHT_ADMITTED"
+            write_json(receipt / "terminal.json", dict(base, state=state, compute="NOT_EXECUTED"))
+            return dict(admitted, mode="METADATA_ONLY_PREFLIGHT", compute="NOT_EXECUTED", state=state)
         scratch = receipt / "scratch"
         scratch.mkdir(exist_ok=False)
         request = dict(admitted, scratch=str(scratch), set=a.set,
                        approx_id=a.approx_id, diamond=a.diamond,
+                       keep_allvsall=bool(getattr(a, "keep_allvsall", False)),
+                       cluster_first=cluster_first,
                        thread_environment={key: "1" for key in THREAD_ENVIRONMENT_KEYS})
         request_path = receipt / "request.json"
         write_json(request_path, request)
@@ -369,7 +409,8 @@ def coordinate(a, script):
         watched = run_watched([sys.executable, str(script), "--_ordinate-worker", str(request_path), request_hash],
                               cwd=receipt, log=receipt / "worker.log", env=env,
                               rss_limit=limits["rss_limit_bytes"],
-                              min_disk=max(limits["min_free_disk_bytes"], free - math.ceil(e["estimated_disk_bytes"] / 0.8)),
+                              min_disk=(limits["min_free_disk_bytes"] if cluster_first else
+                                  max(limits["min_free_disk_bytes"], free - math.ceil(e["estimated_disk_bytes"] / 0.8))),
                               timeout=limits["timeout_seconds"], poll_interval=0.2,
                               additional_disk_floors=(() if workspace is None else
                                   ((Path(workspace["root"]), workspace["monitor_min_free_bytes"]),)))
@@ -383,7 +424,28 @@ def coordinate(a, script):
         candidate = read_request_json(scratch / "completion.json")
         if candidate["attempt_id"] != attempt or candidate["request_sha256"] != request_hash:
             raise ResourceRefusal("worker completion does not match this attempt")
+        if cluster_first:
+            matrix = candidate["run"].get("matrix_admission", {})
+            matrix_path = scratch / "matrix_admission.json"
+            if (matrix.get("relative_path") != "RESOURCE_ATTEMPT/scratch/matrix_admission.json"
+                    or matrix.get("sha256") != digest(matrix_path)["sha256"]
+                    or matrix.get("retained_n") != candidate["run"].get("points")):
+                raise ResourceRefusal("post-cluster matrix admission binding mismatch")
+            matrix_record = read_request_json(matrix_path)
+            if (matrix_record.get("state") != "ADMITTED" or matrix_record.get("limits") != limits
+                    or matrix_record.get("retained_n") != matrix.get("retained_n")
+                    or matrix_record.get("estimate") != matrix.get("estimate")):
+                raise ResourceRefusal("post-cluster matrix admission receipt mismatch")
         expected_names = {f"PCOA_{a.set}.tsv", f"REFERENCE_CLUSTERS_{a.set}.tsv"}
+        scientific_names = set(expected_names)
+        if request["keep_allvsall"]:
+            expected_names.add("allvsall.tsv.gz")
+            retained = candidate["run"].get("retained_allvsall", {})
+            if (retained.get("relative_path") != "allvsall.tsv.gz"
+                    or retained.get("sha256") != candidate["outputs"].get("allvsall.tsv.gz", {}).get("sha256")):
+                raise ResourceRefusal("retained all-vs-all receipt binding mismatch")
+        elif "retained_allvsall" in candidate["run"]:
+            raise ResourceRefusal("unrequested retained all-vs-all output")
         if set(candidate["outputs"]) != expected_names:
             raise ResourceRefusal("unexpected worker output roster")
         for name, record in candidate["outputs"].items():
@@ -391,7 +453,7 @@ def coordinate(a, script):
                 raise ResourceRefusal("worker output hash mismatch")
         clean_path(target)
         clean_path(receipt)
-        # No blanket directory copy: admit only the two exact scientific outputs.
+        # No blanket directory copy: admit the exact scientific/opt-in replay output roster.
         for name in sorted(expected_names):
             source = clean_path(scratch / name)
             with source.open("rb") as inp, (target / name).open("xb") as out:
@@ -403,7 +465,7 @@ def coordinate(a, script):
                    producer_runtime=candidate["runtime"], diamond=candidate["diamond"],
                    resource_receipt={"relative_path": "RESOURCE_ATTEMPT/monitored_resource.json",
                                      "sha256": digest(resource_path)["sha256"]},
-                   outputs={name: digest(target / name) for name in sorted(expected_names)})
+                   outputs={name: digest(target / name) for name in sorted(scientific_names)})
         run_path = target / f"RUN_{a.set}.json"
         write_json(run_path, run)
         write_json(receipt / "terminal.json", dict(base, state="SUCCEEDED", run=digest(run_path)))

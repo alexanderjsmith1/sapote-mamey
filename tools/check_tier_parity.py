@@ -145,6 +145,11 @@ def main():
     a = ap.parse_args()
     zips = a.zips or (sorted(glob.glob(os.path.join(a.tiers_dir, "*.zip"))) if a.tiers_dir else [])
     if not zips: emit("no tier zips given", file=sys.stderr); sys.exit(2)
+    if a.receipt_out and any(
+            os.path.realpath(a.receipt_out) == os.path.realpath(source)
+            or (os.path.exists(a.receipt_out) and os.path.exists(source) and os.path.samefile(a.receipt_out, source))
+            for source in zips):
+        raise ValueError("tier parity receipt aliases an input archive")
     tiers = [inspect(z) for z in zips]
     findings = []
     typed_findings = [t["tier_name_finding"] for t in tiers if t["tier_name_finding"]]

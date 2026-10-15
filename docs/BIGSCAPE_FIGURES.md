@@ -24,7 +24,7 @@ The network is a **strain-centric membership subgraph**, not a pairwise-distance
 
 The strain record query is not constrained to the selected run; only component membership uses `run` and `cutoff`. Records absent from those components are labeled dark. A nonexistent/mismatched run or missing cutoff rows can therefore produce a written graph full of dark records rather than a run-binding refusal. Check that the selected run exists, completed and admits the exact region/reference roster; reconcile included/held/unassigned records before interpreting darkness. A dark record means absence from the loaded membership view, not chemical novelty or no homolog in nature.
 
-Components above 120 records are automatically labeled “fragmented supercomponent (assembly artifact).” That is a size heuristic; no fragmentation/assembly evidence is checked by this label. Keep the component-size observation separate from a biological/assembly explanation. MIBiG anchoring likewise does not establish primary metabolism, drug potential, product identity, or production. Clinker links show similarity between supplied regions; they do not prove split-pathway reconstruction or physical joining.
+Components above 120 records are labelled “large component (N records)”, and the legend says the cause is not tested. Size alone does not show why a component is large, so no assembly or biological explanation is drawn; put any such reading in the caption, with its evidence. MIBiG anchoring likewise does not establish primary metabolism, drug potential, product identity, or production. Clinker links show similarity between supplied regions; they do not prove split-pathway reconstruction or physical joining.
 
 ## Outputs and completion
 

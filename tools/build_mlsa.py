@@ -460,6 +460,11 @@ def _run_pipeline(genomes, out, seeds_dir, bins, threads, log, say, *, native_wo
 
 def main(argv=None):
     """Public governed CLI; scientific worker remains separately callable."""
+    # `tools` is the bundle root's package. The bundle root is on sys.path only when mamey was not importable above,
+    # so a Python with mamey installed (Linux CI) could not import it from another working directory.
+    _root = os.path.dirname(_HERE)
+    if _root not in sys.path:
+        sys.path.insert(0, _root)
     from tools._mlsa_resources import main as governed_main
     return governed_main(argv)
 

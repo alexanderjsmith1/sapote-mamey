@@ -118,6 +118,16 @@ def main(argv: list[str] | None = None) -> int:
     ap = build_arg_parser()
     ns = ap.parse_args(argv)
     try:
+        protected = [p for p in (getattr(ns, "source", None), getattr(ns, "predicate_file", None)) if p]
+        outputs = [p for p in (getattr(ns, "out", None), getattr(ns, "out_json", None), getattr(ns, "out_receipt", None)) if p]
+        if getattr(ns, "out", None):
+            outputs.append(ns.out + ".tmp")
+        def aliases(first, second):
+            return (os.path.realpath(first) == os.path.realpath(second)
+                    or (os.path.exists(first) and os.path.exists(second) and os.path.samefile(first, second)))
+        if any(aliases(out, source) for out in outputs for source in protected) or any(
+                aliases(first, second) for index, first in enumerate(outputs) for second in outputs[index+1:]):
+            raise Refusal("NPATLAS_PROVISION_REFUSAL: output aliases protected evidence or another output")
         if ns.command == "inspect":
             report = inspect_source(ns.source, root_prefix=ns.json_root, sample_limit=ns.sample_limit)
             payload = json.dumps(report, indent=2, default=str) + "\n"

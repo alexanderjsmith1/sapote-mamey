@@ -159,9 +159,11 @@ def _title_genus(stitle: str) -> str:
 
 
 def parse_blast_genus(blast_tsv_text: str, conflict_delta: float = 0.5) -> dict:
-    """Parse ranked hits and retain a near-tied different-genus conflict.
+    """Rank hits by unambiguous identity and retain a near-tied different-genus conflict.
 
-    The first BLAST row remains the top hit. A different genus within ``conflict_delta`` percentage
+    Identity excludes ambiguous columns when aligned sequences are supplied; legacy rows retain raw
+    identity. Rank only alignments at least 95% as long as the original top BLAST alignment,
+    so short perfect fragments cannot take over the route. A different genus within ``conflict_delta`` percentage
     points and at least 95% of the top alignment length prevents automatic tree routing.
     """
     candidates = {}
@@ -176,10 +178,19 @@ def parse_blast_genus(blast_tsv_text: str, conflict_delta: float = 0.5) -> dict:
         except ValueError:
             pidf, alnf = 0.0, 0.0
         candidates.setdefault(qid, []).append(
-            {"genus": genus, "pident": pidf, "aln_len": aln, "aln_len_numeric": alnf,
+            {"genus": genus, "pident": pidf, "pident_raw": pidf, "_alignment": p[4:6], "aln_len": aln, "aln_len_numeric": alnf,
              "title": stitle})
     out = {}
     for qid, hits in candidates.items():
+        anchor_len = hits[0]["aln_len_numeric"]
+        hits = [h for h in hits if h["aln_len_numeric"] >= 0.95 * anchor_len]
+        for hit in hits:
+            alignment = hit.pop("_alignment")
+            if len(alignment) == 2:
+                unamb = _p16.unambiguous_identity(*alignment)[0]
+                if unamb is not None:
+                    hit["pident"] = unamb
+        hits.sort(key=lambda h: (-h["pident"], -h["aln_len_numeric"], h["title"]))
         best = dict(hits[0])
         alternates = []
         for hit in hits[1:]:
@@ -195,12 +206,23 @@ def parse_blast_genus(blast_tsv_text: str, conflict_delta: float = 0.5) -> dict:
 
 
 def assign_genus(query_fasta, db, blastn="blastn", threads=1, runner=subprocess.run) -> dict:
-    r = runner([blastn, "-query", query_fasta, "-db", db, "-max_target_seqs", "5", "-max_hsps", "1",
-                "-num_threads", str(threads), "-outfmt", "6 qseqid stitle pident length"],
-               capture_output=True, text=True)
+    n = (_p16.blastdb_sequence_count(str(db), str(Path(blastn).with_name("blastdbcmd")))
+         or _p16.ALL_RECORDS_FALLBACK)
+    cmd = [str(blastn), "-query", str(query_fasta), "-db", str(db), "-max_target_seqs", str(n),
+           "-max_hsps", "1", "-num_threads", str(threads),
+           "-outfmt", "6 qseqid stitle pident length qseq sseq"]
+    r = runner(cmd + ["-perc_identity", "85"], capture_output=True, text=True)
     if getattr(r, "returncode", 1) != 0:
         raise RuntimeError(f"blastn failed: {getattr(r,'stderr','')[:400]}")
-    return parse_blast_genus(r.stdout)
+    assigned = parse_blast_genus(r.stdout)
+    missing = {h.split()[0] for h, _ in _fasta_records(query_fasta)} - assigned.keys()
+    if missing:
+        # A successful query must not hide another query's empty floor-filtered result.
+        r = runner(cmd, capture_output=True, text=True)
+        if getattr(r, "returncode", 1) != 0:
+            raise RuntimeError(f"blastn failed: {getattr(r,'stderr','')[:400]}")
+        assigned.update({q: hit for q, hit in parse_blast_genus(r.stdout).items() if q in missing})
+    return assigned
 
 
 def genera_for_reference(assigned: dict) -> dict:
@@ -262,7 +284,7 @@ def build_reference_fasta(genera, db, out_fasta, blastdbcmd="blastdbcmd", cap_pe
 def write_routing_table(assigned: dict, out_tsv: str) -> None:
     with open(out_tsv, "w") as fh:
         fh.write("query\ttophit_genus\tpident\taln_len\trouting_state\talternate_genera\t"
-                 "route_class\tgroup\ttophit_title\n")
+                 "route_class\tgroup\ttophit_title\tpident_raw\n")
         for q in sorted(assigned):
             info = assigned[q]
             conflict = info.get("routing_state") == "GENUS_CONFLICT"
@@ -271,7 +293,7 @@ def write_routing_table(assigned: dict, out_tsv: str) -> None:
             fh.write(f"{q}\t{info['genus']}\t{info['pident']:.2f}\t{info['aln_len']}\t"
                      f"{info.get('routing_state', 'TOP_HIT_ONLY')}\t"
                      f"{'|'.join(info.get('alternate_genera', []))}\t"
-                     f"{cls}\t{grp}\t{info['title']}\n")
+                     f"{cls}\t{grp}\t{info['title']}\t{info.get('pident_raw', info['pident']):.2f}\n")
 
 
 def plan_from_inputs(paths) -> dict:
@@ -309,6 +331,7 @@ def cmd_plan(a):
 
 
 def cmd_route(a):
+    a.db = _p16.refseq_16s_blastdb(a.db)
     assigned = assign_genus(a.query, a.db, threads=a.threads)
     write_routing_table(assigned, a.out)
     refs = genera_for_reference(assigned)
@@ -326,6 +349,7 @@ except ImportError:
 
 
 def cmd_run_16s(a):
+    a.db = _p16.refseq_16s_blastdb(a.db)
     """Route a 16S multi-FASTA, auto-build a reference for one group, and (unless --dry-run) shell
     phylo_place for that group. phylo_place enforces the tree-approval gate; this never bypasses it."""
     if a.threads < 1:
@@ -414,14 +438,14 @@ def build_argparser():
 
     r = sub.add_parser("route", help="assign genus + route every 16S query (writes a routing table)")
     r.add_argument("--query", required=True)
-    r.add_argument("--db", required=True, help="BLAST 16S reference DB prefix; figure type marks require separate reviewed exact-tip evidence")
+    r.add_argument("--db", default=None, help="BLAST 16S reference DB prefix (default: the shared lookup, docs/LOCAL_16S_DATABASE.md); figure type marks require separate reviewed exact-tip evidence")
     r.add_argument("--out", default="routing_table.tsv")
     r.add_argument("--threads", type=int, default=1, help="positive thread budget (default 1)")
     r.set_defaults(func=cmd_route)
 
     x = sub.add_parser("run-16s", help="route + auto-build reference + gated phylo_place for one group")
     x.add_argument("--query", required=True)
-    x.add_argument("--db", required=True)
+    x.add_argument("--db", default=None, help="BLAST 16S reference DB prefix (default: the shared lookup, docs/LOCAL_16S_DATABASE.md)")
     x.add_argument("--group", required=True, choices=sorted(set(ROUTE_TO_GROUP.values())))
     x.add_argument("--outdir", required=True)
     x.add_argument("--approved-by", default="", help="records tree-approval authorization (required unless --dry-run)")

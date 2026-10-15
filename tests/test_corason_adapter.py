@@ -22,8 +22,10 @@ from ._corason_contract_fixture import make_case, file_record, write_json, regio
 def case():
     # Native shell strings cannot safely handle the campaign path's spaces.
     # An explicit owned temporary root is removed only by this fixture.
-    with tempfile.TemporaryDirectory(prefix='corason_test_', dir='/private/tmp') as raw:
-        root = Path(raw)
+    # /tmp is space-free on both macOS and Linux; resolve the physical path below.
+    base = '/tmp'
+    with tempfile.TemporaryDirectory(prefix='corason_test_', dir=base) as raw:
+        root = Path(raw).resolve()
         def factory(**options):
             child = root / ('case_' + str(len(list(root.iterdir())))); child.mkdir()
             return make_case(child, A, **options)

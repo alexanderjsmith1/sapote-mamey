@@ -79,9 +79,9 @@ def test_ingest_known_and_novel(tmp_path=None):
     assert any(a == "BGC0000271" for a, _ in ctx[kkey]["mibig"])
     assert "SID3343" in ctx[kkey]["cross_strain_members"]
     assert ctx[kkey]["nearest_mibig"][2] == 0.20
-    # novel-family strain BGC is NOVEL with no anchor
+    # a family with no MIBiG member is described as such, not called NOVEL
     nkey = "AS-705:NODE_2_length_50.region003"
-    assert ctx[nkey]["status"] == "NOVEL"
+    assert ctx[nkey]["status"] == "NO_MIBIG_MEMBER"
     assert ctx[nkey]["mibig"] == []
 
     # run the CLI end to end
@@ -107,7 +107,7 @@ def test_ingest_known_and_novel(tmp_path=None):
     assert open(known_card).read().count(ingest.BEGIN) == 1
 
     novel_card = open(os.path.join(d, "cards", "AS-705_BGC003_ModeB.md")).read()
-    assert "**NOVEL**" in novel_card
+    assert "**NO_MIBIG_MEMBER**" in novel_card
     print("PASS test_ingest_known_and_novel")
 
 

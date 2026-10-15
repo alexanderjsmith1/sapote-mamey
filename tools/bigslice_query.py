@@ -235,7 +235,14 @@ def region_header(path, full_contig, region):
     count = len(re.findall(r"^     region\s+", text, re.M))
     numbers = re.findall(r'/region_number="([0-9]+)"', text)
     locus = re.findall(r"^LOCUS\s+\S+\s+(\d+)\s+bp\b", text, re.M)
-    if (loci != 1 or not origin or versions != [full_contig] or count != 1 or len(locations) != 1 or
+    names = re.findall(r"^LOCUS\s+(\S+)\s+\d+\s+bp\b", text, re.M)
+    # antiSMASH writes a SPAdes contig's VERSION without the 0 after the coverage point
+    # (NODE_1_length_9000_cov_71.028267 -> VERSION NODE_1_length_9000_cov_71.28267); LOCUS keeps it.
+    # Admit exactly that form, and only when LOCUS names the full contig; any other mismatch still refuses.
+    spades = re.fullmatch(r"(NODE_\d+_length_\d+_cov_\d+)\.(\d+)", full_contig)
+    version_ok = versions == [full_contig] or (
+        spades is not None and names == [full_contig] and versions == [f"{spades.group(1)}.{int(spades.group(2))}"])
+    if (loci != 1 or not origin or not version_ok or count != 1 or len(locations) != 1 or
             len(numbers) != 1 or int(numbers[0]) != int(region[6:]) or len(locus) != 1):
         refuse("GBK_REGION_UNSUPPORTED", "one exact versioned record/simple numbered region is required")
     lo, hi = map(int, locations[0])

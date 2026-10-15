@@ -102,6 +102,71 @@ def reference_size_kb_for(accession):
     return _load_reference_sizes().get(str(accession).split(".")[0])
 
 
+# Typed guard states. UNKNOWN means a named backbone could trip the guard but the fragment
+# metadata needed to decide (edge status, measured length) is absent or invalid. It is neither
+# a pass (CLEAR) nor a trip (TRIPPED). Same vocabulary as mode_b FRAGMENT_CEILING_STATES.
+CEILING_CLEAR = "CLEAR"
+CEILING_TRIPPED = "TRIPPED"
+CEILING_UNKNOWN = "UNKNOWN"
+ADMITTED_EDGE_STATUSES = FRAGMENT_BOUNDARIES | {"Interior"}
+UNVERIFIED_PREFIX = "METADATA_UNVERIFIED"
+
+
+def _measured_kb(length_kb):
+    """Finite positive length in kb, or None when the length is absent or invalid."""
+    if length_kb is None or isinstance(length_kb, bool):
+        return None
+    try:
+        kb = float(length_kb)
+    except (TypeError, ValueError):
+        return None
+    if kb != kb or kb in (float("inf"), float("-inf")) or kb <= 0:
+        return None
+    return kb
+
+
+def fragment_ceiling_state(product_name, edge_status, length_kb, reference_size_kb=None):
+    """Return (state, reason) with state CLEAR, TRIPPED or UNKNOWN.
+
+    The guard only applies when a large backbone is named: the matched reference is at or above
+    the floor, or a curated large-backbone keyword is present. Then an absent or unadmitted edge
+    status, or an absent, non-finite, zero or negative length on a fragment, gives UNKNOWN with a
+    METADATA_UNVERIFIED reason instead of a silent no-trip.
+    """
+    name = str(product_name or "").lower()
+    try:
+        ref = float(reference_size_kb) if reference_size_kb else 0.0
+    except (TypeError, ValueError):
+        ref = 0.0
+    by_reference = ref >= BACKBONE_MIN_KB
+    by_keyword = any(kw in name for kw in LARGE_BACKBONE_KEYWORDS)
+    if not (by_reference or by_keyword):
+        return CEILING_CLEAR, None
+    edge = str(edge_status).strip() if edge_status is not None else ""
+    if edge not in ADMITTED_EDGE_STATUSES:
+        return CEILING_UNKNOWN, (f"{UNVERIFIED_PREFIX}: edge status {edge_status!r} not admitted; "
+                                 f"fragment ceiling not evaluated")
+    if edge not in FRAGMENT_BOUNDARIES:
+        return CEILING_CLEAR, None
+    kb = _measured_kb(length_kb)
+    if kb is None:
+        return CEILING_UNKNOWN, (f"{UNVERIFIED_PREFIX}: cluster length {length_kb!r} is not a finite "
+                                 f"positive measurement; fragment ceiling not evaluated")
+
+    # (1) size-ratio path (preferred): the matched reference is itself a large backbone (>= floor),
+    # and the observed fragment is below the floor -> it cannot encode the reference backbone.
+    if by_reference and kb < BACKBONE_MIN_KB:
+        first = name.split("/")[0] or "named"
+        return CEILING_TRIPPED, (f"{kb:.1f}kb {edge_status} too small for the {ref:.0f}kb {first} reference cluster "
+                                 f"(reference-size path; >= {BACKBONE_MIN_KB}kb required)")
+
+    # (2) keyword fallback: no/short reference size available, but a curated large-backbone name is present.
+    if by_keyword and kb < BACKBONE_MIN_KB:
+        first = name.split("/")[0]
+        return CEILING_TRIPPED, f"{kb:.1f}kb {edge_status} too small for {first} backbone (>= {BACKBONE_MIN_KB}kb required)"
+    return CEILING_CLEAR, None
+
+
 def fragment_claim_ceiling(product_name, edge_status, length_kb, reference_size_kb=None):
     """Return (should_downgrade: bool, reason: str|None).
 
@@ -109,30 +174,12 @@ def fragment_claim_ceiling(product_name, edge_status, length_kb, reference_size_
     edge_status       : 'Interior' | 'Edge' | 'Full-contig'
     length_kb         : observed cluster length in kb (float)
     reference_size_kb : real size of the matched MIBiG reference cluster (kb), if known
+
+    (False, None) is an evaluated no-trip. (False, 'METADATA_UNVERIFIED: ...') means the guard
+    could not be evaluated; fragment_ceiling_state() gives the typed state.
     """
-    name = str(product_name or "").lower()
-    try:
-        kb = float(length_kb or 0)
-    except (TypeError, ValueError):
-        kb = 0.0
-    frag = str(edge_status) in FRAGMENT_BOUNDARIES
-
-    # (1) size-ratio path (preferred): the matched reference is itself a large backbone (>= floor),
-    # and the observed fragment is below the floor -> it cannot encode the reference backbone.
-    try:
-        ref = float(reference_size_kb) if reference_size_kb else 0.0
-    except (TypeError, ValueError):
-        ref = 0.0
-    if ref >= BACKBONE_MIN_KB and frag and 0 < kb < BACKBONE_MIN_KB:
-        first = name.split("/")[0] or "named"
-        return True, (f"{kb:.1f}kb {edge_status} too small for the {ref:.0f}kb {first} reference cluster "
-                      f"(reference-size path; >= {BACKBONE_MIN_KB}kb required)")
-
-    # (2) keyword fallback: no/short reference size available, but a curated large-backbone name is present.
-    if (any(kw in name for kw in LARGE_BACKBONE_KEYWORDS) and frag and 0 < kb < BACKBONE_MIN_KB):
-        first = name.split("/")[0]
-        return True, f"{kb:.1f}kb {edge_status} too small for {first} backbone (>= {BACKBONE_MIN_KB}kb required)"
-    return False, None
+    state, reason = fragment_ceiling_state(product_name, edge_status, length_kb, reference_size_kb)
+    return state == CEILING_TRIPPED, reason
 
 
 def apply_to_bgc(bgc):
@@ -147,22 +194,32 @@ def apply_to_bgc(bgc):
     name = getattr(bgc, "closest_candidate_kcb_product", "") or ""
     if (not name) or name == "UNRESOLVED":
         name = getattr(bgc, "kcb_top", "") or ""   # source-derived path keeps the product in kcb_top
-    edge = getattr(bgc, "edge_status", "Full-contig")
+    edge = getattr(bgc, "edge_status", None)   # missing edge metadata stays missing, not Full-contig
     kb = getattr(bgc, "length_kb", None)
-    kb = kb() if callable(kb) else (kb if kb is not None else round((getattr(bgc,"end",0)-getattr(bgc,"start",0))/1000, 2))
+    if callable(kb):
+        kb = kb()
+    elif kb is None and getattr(bgc, "start", None) is not None and getattr(bgc, "end", None) is not None:
+        kb = round((bgc.end - bgc.start) / 1000, 2)
     ref_kb = reference_size_kb_for(getattr(bgc, "closest_mibig_accession", None))
-    trip, reason = fragment_claim_ceiling(name, edge, kb, reference_size_kb=ref_kb)
-    if trip:
+    state, reason = fragment_ceiling_state(name, edge, kb, reference_size_kb=ref_kb)
+    if state == CEILING_TRIPPED:
         bgc.product_claim_ceiling = DOWNGRADE_CEILING
         bgc.needs_manual_kcb_check = "yes"
-        # bgc.notes may be a list or a str depending on the model; append type-safely.
-        note = f"FRAGMENT_CEILING: {reason}"
-        prev = getattr(bgc, "notes", None)
-        if isinstance(prev, list):
-            prev.append(note)
-        elif prev:
-            bgc.notes = f"{prev} | {note}"
-        else:
-            bgc.notes = note
+        _append_note(bgc, f"FRAGMENT_CEILING: {reason}")
         return reason
+    if state == CEILING_UNKNOWN:
+        # Neither a pass nor a trip: keep the ceiling, hold for manual check, and record why.
+        bgc.needs_manual_kcb_check = "yes"
+        _append_note(bgc, f"FRAGMENT_CEILING_{reason}")
     return None
+
+
+def _append_note(bgc, note):
+    # bgc.notes may be a list or a str depending on the model; append type-safely.
+    prev = getattr(bgc, "notes", None)
+    if isinstance(prev, list):
+        prev.append(note)
+    elif prev:
+        bgc.notes = f"{prev} | {note}"
+    else:
+        bgc.notes = note

@@ -1,0 +1,3 @@
+strain_id	cohort	antismash_zip	assembly_member	bgc_inventory_csv	mamey_clusterblast_csv
+QUERY_001	query	/path/to/QUERY_001_antismash.zip	input/QUERY_001.fna	/path/to/QUERY_001_2_inventory.csv	/path/to/QUERY_001_4A2_ClusterBlast_per_gene.csv
+QUERY_002	query	/path/to/QUERY_002_antismash.zip	input/QUERY_002.fna	/path/to/QUERY_002_2_inventory.csv	

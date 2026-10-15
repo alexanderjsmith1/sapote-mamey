@@ -568,7 +568,7 @@ def mode_b_command(args) -> int:
             out.append(f"| {r.get('locus_tag') or '?'} | "
                        f"{r.get('start')}-{r.get('end')} | {strand} | "
                        f"{r.get('aa_length') if r.get('aa_length') is not None else '--'} | "
-                       f"{doms} | {r.get('tta_codons', 0)} |")
+                       f"{doms} | {'--' if r.get('tta_codons', 0) is None else r.get('tta_codons', 0)} |")
         out.append("")
         return out
 

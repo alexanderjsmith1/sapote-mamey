@@ -68,7 +68,7 @@ def test_minimal_measured_capacity_at_or_below_ceiling():
 
 
 def test_absent_when_core_and_context_both_zero():
-    p = mod.architecture_profile("SYN-006", {})
+    p = mod.architecture_profile("SYN-006", {f: 0 for f in mod.CHITIN_FAMILIES})
     assert p.architecture_state == "ABSENT_NO_MEASURED_CHITIN_DOMAINS"
     assert p.domains_total == 0
 

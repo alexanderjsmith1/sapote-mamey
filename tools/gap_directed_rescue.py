@@ -63,7 +63,7 @@ from __future__ import annotations
 import os as _os, sys as _sys  # resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-from gap_rescue_locus_map import draw_locus_map  # noqa: E402
+from gap_rescue_locus_map import draw_locus_map, load_gene_names, load_other_references  # noqa: E402
 
 import argparse
 import hashlib
@@ -198,6 +198,13 @@ def _smcog(gene_functions) -> str:
 SENSITIVITY_DEFAULT = "ultra-sensitive"  # DIAMOND's fast default misses pathway genes at 25-40% identity
 
 
+class _AlignmentHits(list):
+    """Keep list compatibility while carrying the forward execution record to the receipt."""
+    def __init__(self, hits, provenance):
+        super().__init__(hits)
+        self.provenance = provenance
+
+
 def run_diamond(ref: list, prots: dict, threads: int, sensitivity: str | None = SENSITIVITY_DEFAULT) -> list[dict]:
     from mamey import diamond_align
     with tempfile.TemporaryDirectory() as td:
@@ -207,7 +214,7 @@ def run_diamond(ref: list, prots: dict, threads: int, sensitivity: str | None = 
         res = diamond_align.align_fasta(str(qf), str(rf), threads=threads, sensitivity=sensitivity)
     if not res.get("ok"):
         raise RuntimeError(f"DIAMOND unavailable: {res.get('reason')}; pass --hits with a precomputed table")
-    return res["hits"]
+    return _AlignmentHits(res["hits"], res.get("provenance", {"capture_state": "NOT_RECORDED"}))
 
 
 def read_hits(path: Path) -> list[dict]:
@@ -315,19 +322,25 @@ def choose_reference(zip_path, core, prots, reference=None, reference_name="", m
 
 def analyse_region(label, prots, regions, core, reference, ref_name, source, out, hits=None, threads=4,
                    sensitivity=SENSITIVITY_DEFAULT, mibig_db=None, pfam=None, figure=True, write_proteins=True,
-                   anchor=None, gene_table=True) -> dict:
-    """Search one core region against one reference and write every output; returns the receipt."""
+                   anchor=None, gene_table=True, compounds=None, print_width="double", row_label=None) -> dict:
+    """Search one core region against one reference and write every output; returns the receipt. `compounds` (accession
+    -> compound names, as load_mibig_names gives) lets the partner check count sibling MIBiG entries of the reference's
+    compound as its family."""
     ref, desc = load_reference(reference)
     out.mkdir(parents=True, exist_ok=True)
     if write_proteins:  # the ids the hit tables use; the all-regions runner writes one shared copy instead
         (out / "gap_rescue_proteins.faa").write_text("".join(f">{k}\n{v['aa']}\n" for k, v in prots.items()))
     sens = None if sensitivity == "default" else sensitivity
     homology = "precomputed hits" if hits is not None else f"DIAMOND ({sens or 'default fast'} mode)"
+    forward_alignment = getattr(hits, "provenance", {"capture_state": "PRECOMPUTED_UNVERIFIED", "backend": None})
     if hits is None:
         hits = run_diamond(ref, prots, threads, sens)
+        forward_alignment = getattr(hits, "provenance", {"capture_state": "NOT_RECORDED"})
     rows, partners = search(ref, prots, regions, hits, core)
     splits, split_check = split_genes(ref, prots, regions, hits)
-    checks = partner_checks(rows, prots, hits, core, Path(reference).stem.split(".")[0], mibig_db, pfam, threads, sens)
+    # compounds only when names were given, so a caller without names makes exactly the call it made before
+    checks = partner_checks(rows, prots, hits, core, Path(reference).stem.split(".")[0], mibig_db, pfam, threads, sens,
+                            **({"compounds": compounds} if compounds else {}))
     with open(out / "gap_rescue_split_genes.tsv", "w", newline="") as fh:
         w = SafeWriter(fh, delimiter="\t")
         w.writerow(SPLIT_COLS)
@@ -349,6 +362,7 @@ def analyse_region(label, prots, regions, core, reference, ref_name, source, out
                **{k.lower(): st[k] for k in ("PRESENT_IN_CORE", "MISSING_FOUND_CLEAR", "MISSING_FOUND_AMBIGUOUS",
                                               "MISSING_NOT_FOUND")},
                "partners": partners, "homology": homology, "partner_checks": checks,
+               "forward_alignment": forward_alignment,
                "split_gene_check": split_check, "map_outputs": [],
                "split_genes": [{c: s[c] for c in SPLIT_COLS} for s in splits],
                "non_claims": ["homology is similarity, not product identity",
@@ -358,8 +372,22 @@ def analyse_region(label, prots, regions, core, reference, ref_name, source, out
                               "a partner verdict is homology and context evidence, not proof of one pathway"]}
     (out / "gap_rescue_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
     if figure:
-        rendered = draw_locus_map(reference, rows, splits, prots, regions, core, label, ref_name,
-                                  out / "gap_rescue.png", out / "gap_rescue.pdf", anchor=anchor)
+        # print_width (11 Oct card .451): maps are drawn at a journal column width with text >= 8 pt; "none" (None)
+        # keeps the 13.5 in screen layout. A map whose text would touch at print size is refused and held in the
+        # receipt, never written; the gene table still lists every gene.
+        try:
+            rendered = draw_locus_map(reference, rows, splits, prots, regions, core, label, ref_name,
+                                      out / "gap_rescue.png", out / "gap_rescue.pdf", anchor=anchor,
+                                      print_width=print_width, **({"row_label": row_label} if row_label else {}))
+        except ValueError as exc:
+            if not str(exc).startswith(("GAP_RESCUE_MAP_TEXT_OVERLAP", "GAP_RESCUE_MAP_PRINT_WIDTH")):
+                raise
+            rendered = None
+            receipt["map_hold"] = str(exc)
+            (out / "gap_rescue_receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")
+        if isinstance(rendered, dict) and "print_width_in" in rendered:
+            receipt["map_print"] = {k: rendered[k] for k in ("print_width_in", "saved_width_in", "min_font_pt",
+                                                             "text_overlaps", "labels_omitted", "shrink_level")}
         # The renderer returns its metadata dict only after both savefig calls complete.
         # A skipped/failed drawing never admits pre-existing files as current outputs.
         if isinstance(rendered, dict):
@@ -396,8 +424,10 @@ def apply_adjudication(rows, folder: Path):
     return rows
 
 
-def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | None = None, anchor=None) -> dict:
-    """Redraw an earlier run's figure from its saved tables (no DIAMOND)."""
+def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | None = None, anchor=None,
+           gene_names=None, context_rows=False, other_maps=False, print_width="double", row_label=None,
+           trim_kb=None, panel=False, key=True) -> dict:
+    """Redraw an earlier run's figure from its saved tables (no DIAMOND). panel, key: see draw_locus_map."""
     import csv
     receipt = json.loads((folder / "gap_rescue_receipt.json").read_text())
     core = next((r for r in regions if r["identity"] == receipt["core"]), None)
@@ -409,8 +439,23 @@ def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | Non
         splits = list(csv.DictReader(fh, delimiter="\t"))
     out = out or folder
     out.mkdir(parents=True, exist_ok=True)
-    return draw_locus_map(Path(mibig_dir) / receipt["reference"], rows, splits, prots, regions, core, label,
-                          receipt.get("reference_name", ""), out / "gap_rescue.png", out / "gap_rescue.pdf", anchor=anchor)
+    if gene_names is not None and getattr(gene_names, "binding", None):
+        # receipt of how the name rows bound to this genome (by protein, by length, or not at all)
+        (out / "gene_names_binding.json").write_text(json.dumps(
+            {"strain": label, "names_bound": len(gene_names), "names_unbound": gene_names.names_unbound,
+             "binding": gene_names.binding}, indent=1) + "\n")
+    drawn = draw_locus_map(Path(mibig_dir) / receipt["reference"], rows, splits, prots, regions, core, label,
+                          receipt.get("reference_name", ""), out / "gap_rescue.png", out / "gap_rescue.pdf", anchor=anchor,
+                          context_partners=context_rows, gene_names=gene_names,
+                          other_refs=load_other_references(folder, core["identity"]) if other_maps else None,
+                          print_width=print_width, row_label=row_label, trim_kb=trim_kb,
+                          **({"panel": True, "key": key} if panel else {}))
+    if panel:   # the footnote is off the page: keep it beside the map for the caption
+        (out / "gap_rescue_footnote.txt").write_text(drawn["footnote"].rstrip(".") + ".\n")
+        # the classes this map fills, for one shared key across the panels (tools/gap_rescue_panel_figure.py)
+        (out / "gap_rescue_key.json").write_text(json.dumps(
+            {"classes": drawn["key_classes"], "class_unclear": drawn["key_class_unclear"], "key": key}, indent=1) + "\n")
+    return drawn
 
 
 def summary_line(receipt: dict, out) -> str:
@@ -439,11 +484,39 @@ def main(argv=None) -> int:
     ap.add_argument("--mibig-names", type=Path, default=_os.environ.get("SAPOTE_MIBIG_NAMES"),
                     help="MIBiG index JSON or accession<TAB>name TSV for figure titles (env SAPOTE_MIBIG_NAMES)")
     ap.add_argument("--pfam", type=Path, default=_os.environ.get("SAPOTE_PFAM_HMM"),
-                    help="pressed Pfam-A.hmm for neighbour context of lone finds (env SAPOTE_PFAM_HMM; needs pyhmmer)")
+                    help="pressed Pfam-A.hmm for the housekeeping check of every partner find (env SAPOTE_PFAM_HMM; needs pyhmmer)")
     ap.add_argument("--out", type=Path, help="output folder (required unless --redraw)")
     ap.add_argument("--anchor", help="reference gene name the two figure rows are centred on (default: the longest "
                                      "matched core enzyme on the core contig)")
     ap.add_argument("--redraw", type=Path, help="redraw the figure of an earlier run folder from its saved tables")
+    ap.add_argument("--gene-names", type=Path, nargs="+", help="one or more gene-name tables (GENE_BLASTP_NAMES.tsv "
+                                                               "columns): name and colour strain genes that match no "
+                                                               "reference gene; the first table naming a gene wins. "
+                                                               "Rows bind by protein_sha256, else by tag when aa_length "
+                                                               "agrees within 1 aa; others are left out and counted in "
+                                                               "gene_names_binding.json (redraw only)")
+    ap.add_argument("--length-fallback", default=None, help="with --gene-names: a column read as a name row's protein "
+                                                             "length when its aa_length is empty, e.g. query_aa_length "
+                                                             "(the length of the protein the search sent). The row still "
+                                                             "binds by tag only when that length agrees within 1 aa. "
+                                                             "Default: none, so such rows are left out (redraw only)")
+    ap.add_argument("--context-rows", action="store_true", help="also draw the contigs around matches the map does not "
+                                                               "draw, as context only (redraw only)")
+    ap.add_argument("--other-maps", action="store_true", help="label strain genes that another reference matched in a "
+                                                             "sibling run of the same region (redraw only)")
+    ap.add_argument("--print-width", choices=("double", "single", "none"), default="double",
+                    help="draw the map at a journal column width with all text >= 8 pt: double = 7.2 in (default), "
+                         "single = 3.5 in; none = the 13.5 in screen layout of earlier maps, unchanged")
+    ap.add_argument("--trim-kb", type=float, help="with --redraw: crop both rows to the matched genes plus this margin "
+                    "(kb) on each side; the title and footnote say so. Default: no crop")
+    ap.add_argument("--panel", action="store_true", help="with --redraw and a print width: draw the map as a panel of a "
+                    "multi-panel figure: no footnote on the page (it goes in the caption; the receipt keeps it) and "
+                    "reference genes with no name labelled by accession alone (the gene table keeps the product)")
+    ap.add_argument("--no-key", action="store_true", help="with --panel: leave out the identity colour bar and the "
+                    "gene-class legend, for a figure with one shared key")
+    ap.add_argument("--row-label", help="text left of the strain row (default --label). House rule 6: a reference strain "
+                                        "by its deposited name and strain, accession in brackets, e.g. "
+                                        "'Saccharothrix coeruleofusca JCM 3313 [GCF_014648515.1]'; isolates keep AS-xxx")
     ap.add_argument("--hits", type=Path)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--sensitivity", default=SENSITIVITY_DEFAULT,
@@ -451,12 +524,19 @@ def main(argv=None) -> int:
     ap.add_argument("--no-figure", action="store_true")
     ap.add_argument("--no-gene-table", action="store_true", help="skip gene_table.* and map_and_table.*")
     a = ap.parse_args(argv)
+    if a.no_key and not a.panel:
+        raise SystemExit("--no-key is for a figure panel; add --panel")
+    if a.panel and (not a.redraw or a.print_width == "none"):
+        raise SystemExit("--panel needs --redraw and a print width (double or single)")
     if a.redraw:
         if not a.mibig_dir:
             raise SystemExit("--redraw needs --mibig-dir (or SAPOTE_MIBIG_GBK_DIR) to read the reference GenBank file")
         assert_output_outside_bundle(a.out or a.redraw, __file__)
         prots, regions = load_genome(a.zip, a.label)
-        redraw(a.redraw, prots, regions, a.label, a.mibig_dir, a.out, a.anchor)
+        redraw(a.redraw, prots, regions, a.label, a.mibig_dir, a.out, a.anchor,
+               load_gene_names(a.gene_names, a.label, prots, length_fallback=a.length_fallback or None),
+               a.context_rows, a.other_maps,
+               None if a.print_width == "none" else a.print_width, a.row_label, a.trim_kb, a.panel, not a.no_key)
         _say(f"[gap_directed_rescue] redrew {a.redraw} -> {a.out or a.redraw}")
         return 0
     if not (a.core and a.out):
@@ -465,13 +545,15 @@ def main(argv=None) -> int:
     prots, regions = load_genome(a.zip, a.label)
     core = resolve_core(regions, a.core)
     sens = None if a.sensitivity == "default" else a.sensitivity
+    names = load_mibig_names(a.mibig_names)
     reference, name, source = choose_reference(a.zip, core, prots, a.reference, a.reference_name, a.mibig_dir,
-                                               a.mibig_db, load_mibig_names(a.mibig_names), a.threads, sens)
+                                               a.mibig_db, names, a.threads, sens)
     if reference is None:
         raise SystemExit(f"[gap_directed_rescue] {core['identity']}: {source}")
     receipt = analyse_region(a.label, prots, regions, core, reference, name, source, a.out,
                              read_hits(a.hits) if a.hits else None, a.threads, a.sensitivity, a.mibig_db, a.pfam,
-                             not a.no_figure, anchor=a.anchor, gene_table=not a.no_gene_table)
+                             not a.no_figure, anchor=a.anchor, gene_table=not a.no_gene_table, compounds=names,
+                             print_width=None if a.print_width == "none" else a.print_width, row_label=a.row_label)
     _say(summary_line(receipt, a.out))
     return 0
 

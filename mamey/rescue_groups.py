@@ -44,7 +44,10 @@ def _cross_contig(pair: dict[str, Any]) -> bool:
 
 
 def candidate_groups(pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Gather HIGH cross-contig pairs that share a region into groups; list touching MODERATE pairs beside them."""
+    """Gather HIGH cross-contig pairs that share a region into groups; list touching MODERATE pairs beside them.
+
+    A region alias carried by two HIGH pairs on different contigs is two loci under one name, not one region: it
+    raises RGGMCI_GROUP_IDENTITY_CONFLICT instead of keeping whichever row came last."""
     edges = [p for p in pairs if str(p.get("rggmci_confidence", "")).startswith("HIGH") and _cross_contig(p)]
     moderate = [p for p in pairs if str(p.get("rggmci_confidence", "")).startswith("MODERATE") and _cross_contig(p)]
     parent: dict[str, str] = {}
@@ -61,10 +64,14 @@ def candidate_groups(pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if ra != rb:
             parent[ra] = rb
     members: dict[str, dict[str, Any]] = {}
+    seen: dict[str, Any] = {}
     for p in edges:
         g = members.setdefault(find(p["bgc_a"]), {"regions": {}, "pairs": [], "high_pairs": 0})
-        g["regions"][p["bgc_a"]] = (p.get("contig_a"), p.get("products_a"), p.get("edge_a"))
-        g["regions"][p["bgc_b"]] = (p.get("contig_b"), p.get("products_b"), p.get("edge_b"))
+        for side in ("a", "b"):
+            alias = p[f"bgc_{side}"]
+            if seen.setdefault(alias, p.get(f"contig_{side}")) != p.get(f"contig_{side}"):
+                raise ValueError(f"RGGMCI_GROUP_IDENTITY_CONFLICT: {alias}")
+            g["regions"][alias] = (p.get(f"contig_{side}"), p.get(f"products_{side}"), p.get(f"edge_{side}"))
         g["pairs"].append(p.get("pair") or f"{p['bgc_a']}+{p['bgc_b']}")
         g["high_pairs"] += 1
     out = []

@@ -44,7 +44,7 @@ def test_skips_gracefully_without_tools(tmp_path, monkeypatch):
                "--- a/tools/x.py\n+++ b/tools/x.py\n@@ -1,3 +1,3 @@\n a = 1\n-b = 2\n+b = 20\n c = 3\n")
     monkeypatch.setattr(shutil, "which", lambda name: None)
     code, sev, note = m._diff_apply_status(d, base)
-    assert (code, sev) == (m.CODE_DIFF, "OK") and "skipped" in note
+    assert (code, sev) == (m.CODE_DIFF_NOT_CHECKED, "WARN") and "skipped" in note
 
 
 def test_git_ok_patch_reject_is_warned(tmp_path, monkeypatch):

@@ -55,10 +55,10 @@ save_pub <- function(p, stem, public_md, internal_md = NULL, w, h_body, title_md
   ggsave(out("_plot_only.png"), p, width = w, height = h_body, dpi = 300, bg = "white")
   cpl <- (w - 0.6) * 15
   h_cap <- 0.9 + 0.2 * ceiling(nchar(pub) / cpl) +
-    if (nzchar(int)) 0.35 + 0.15 * ceiling(nchar(int) / (cpl * 1.35)) else 0
+    if (nzchar(int)) 0.35 + 0.18 * ceiling(nchar(int) / (cpl * 1.35 * 6.8 / 8)) else 0   # M5_452: notes at 8 pt
   rule <- paste0("<span style='color:#C9D0D9'>", strrep("─", 60), "</span>")
   cap <- paste0("<span style='font-size:9.5pt; color:", PUB_INK, "'><b>", pub, "</b></span>",
-                if (nzchar(int)) paste0("<br><br>", rule, "<br><span style='font-size:6.8pt; color:", PUB_NOTE,
+                if (nzchar(int)) paste0("<br><br>", rule, "<br><span style='font-size:8pt; color:", PUB_NOTE,
                                         "'>Internal notes: ", int, "</span>") else "")
   cap_theme <- theme(plot.caption = element_textbox_simple(family = PUB_FONT, lineheight = 1.3, hjust = 0,
                                                            margin = margin(t = 36, b = 6)),

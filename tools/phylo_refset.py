@@ -31,13 +31,14 @@ asset; pairs with phylo_place.py. NOT engine-wired.
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
+import _phylo16s as _p16
 import argparse, os, re, subprocess, sys, tempfile
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # bundle root for `import mamey` (v9.7.367 A10)
 from mamey.workspace_root import workspace_root
 
 ROOT = str(workspace_root())
-DB16S = os.environ.get("NCBI_16S_DB", f"{ROOT}/Tools/databases/ncbi_16S_RefSeq/16S_ribosomal_RNA")
+DB16S = None  # resolved per call by the shared lookup (_shared_16s_db); see docs/LOCAL_16S_DATABASE.md
 BLAST_BIN = os.environ.get("BLAST_BIN", f"{ROOT}/miniconda3/envs/blast/bin")
 
 UNNAMED = re.compile(r"\b(sp|cf|aff|bacterium|uncultured|endophyte|symbiont|genomosp)\b\.?", re.I)
@@ -233,8 +234,18 @@ def dedup(recs, identity=99.5, min_cov=90.0, report=None, verbose=True):
 
 
 # ---------------------------------------------------------------- marker-blast
+
+def _shared_16s_db(explicit=None):
+    """The 16S RefSeq BLAST database prefix, from the one shared lookup (docs/LOCAL_16S_DATABASE.md)."""
+    _here = _os.path.dirname(_os.path.abspath(__file__))
+    if _here not in _sys.path:
+        _sys.path.insert(0, _here)
+    import _phylo16s
+    return _phylo16s.refseq_16s_blastdb(explicit)
+
 def marker_blast(query, top=5, db=DB16S, verbose=True):
     """BLAST each query 16S vs RefSeq 16S; union of top-N NAMED hits; return refs as (header, seq)."""
+    db = _shared_16s_db(db)
     bl = _bin("blastn"); bdc = _bin("blastdbcmd")
     if not (bl and bdc):
         sys.exit("blastn/blastdbcmd not found; set BLAST_BIN or install the 'blast' env")
@@ -243,22 +254,43 @@ def marker_blast(query, top=5, db=DB16S, verbose=True):
     with tempfile.TemporaryDirectory() as td:
         qfa = os.path.join(td, "q.fasta")
         _write_fasta([(h, s.replace("-", "")) for h, s in qrecs], qfa)
-        res = subprocess.run([bl, "-query", qfa, "-db", db,
-                              "-outfmt", "6 qseqid sacc pident length stitle", "-max_target_seqs", str(top * 4)],
-                             capture_output=True, text=True)
-        if res.returncode != 0:
-            sys.exit(f"blastn failed:\n{res.stderr[:400]}")
+        n = _p16.blastdb_sequence_count(db, bdc) or _p16.ALL_RECORDS_FALLBACK
+        cmd = [bl, "-query", qfa, "-db", db, "-outfmt",
+               "6 qseqid sacc pident length stitle qseq sseq", "-max_target_seqs", str(n)]
+
+        def search(extra):
+            res = subprocess.run(cmd + extra, capture_output=True, text=True)
+            if res.returncode != 0:
+                sys.exit(f"blastn failed:\n{res.stderr[:400]}")
+            hits = {}
+            for ln in res.stdout.splitlines():
+                parts = ln.split("\t")
+                if len(parts) < 5:
+                    continue
+                q, acc, pid, length, title = parts[:5]
+                if UNNAMED.search(title.split(" 16S")[0]):
+                    continue
+                hits.setdefault(q, []).append((acc, title, float(pid), int(length), parts[5:7]))
+            return hits
+
+        candidates = search(["-perc_identity", "85"])
+        missing = {h.split()[0] for h, _ in qrecs} - candidates.keys()
+        if missing:
+            candidates.update({q: hits for q, hits in search([]).items() if q in missing})
         per_q = {}
-        for ln in res.stdout.splitlines():
-            parts = ln.split("\t")
-            if len(parts) < 5:
-                continue
-            q, sacc, pid, length, stitle = parts[0], parts[1], parts[2], parts[3], parts[4]
-            if UNNAMED.search(stitle.split(" 16S")[0]):   # skip sp./uncultured for the NAMED backbone
-                continue
-            per_q.setdefault(q, [])
-            if len(per_q[q]) < top and sacc not in [a for a, _ in per_q[q]]:
-                per_q[q].append((sacc, stitle))
+        for q, hits in candidates.items():
+            min_length = 0.95 * max(h[3] for h in hits)
+            eligible = []
+            for acc, title, pid, length, alignment in hits:
+                if length < min_length:
+                    continue
+                unamb = _p16.unambiguous_identity(*alignment)[0] if len(alignment) == 2 else None
+                eligible.append((acc, title, pid if unamb is None else unamb, length))
+            picked = []
+            for acc, title, pid, length in sorted(eligible, key=lambda h: (-h[2], -h[3], h[0])):
+                if len(picked) < top and acc not in [a for a, _ in picked]:
+                    picked.append((acc, title))
+            per_q[q] = picked
         # union of accessions
         acc_title = {}
         for q, hits in per_q.items():

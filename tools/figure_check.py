@@ -61,6 +61,8 @@ def check(treefile, hostmap=None, spec=None, omitted="", max_label_len=60, marke
     queries = [t for t in tips if _HAS_ID.search(t) and not is_og(t)]
 
     # F1 — every query tip has a marker entry
+    if marker_checks and queries and not host:
+        fails.append(("F1 MARKER_COVERAGE", ["required query host map unavailable or empty"]))
     if marker_checks and host:
         missing = [t for t in queries if t not in host]
         if missing:

@@ -353,6 +353,11 @@ def run_panel(manifest: Path, input_dir: Path, output: Path, failure_output: Pat
         print(f"manifest error: {exc}", file=sys.stderr)
         return 2
 
+    sources = [input_dir / spec.source_zip for spec in specs]
+    if any(destination.resolve() == source.resolve()
+           or (destination.exists() and source.exists() and destination.samefile(source))
+           for destination in (output, failure_output) for source in sources):
+        return 2  # source archives are immutable even for failure receipts
     parsers, run_source_scans, engine_version, bundle_version = _load_engine()
     rows: list[dict[str, Any]] = []
     holds: list[Hold] = []

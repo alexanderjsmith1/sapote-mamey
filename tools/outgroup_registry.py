@@ -52,7 +52,7 @@ def _registry_default():
 
 REGISTRY = _registry_default()
 CACHE = os.environ.get("OUTGROUP_CACHE", f"{ROOT}/OFFICIAL_DATA/outgroup_cache")
-DB16S = os.environ.get("NCBI_16S_DB", f"{ROOT}/Tools/databases/ncbi_16S_RefSeq/16S_ribosomal_RNA")
+DB16S = None  # resolved per call by the shared lookup (_shared_16s_db); see docs/LOCAL_16S_DATABASE.md
 BLAST_BIN = os.environ.get("BLAST_BIN", f"{ROOT}/miniconda3/envs/blast/bin")
 
 def _cache_dir(sub):
@@ -146,9 +146,19 @@ def find_row(genus, scope="genus", path=REGISTRY):
     return None
 
 
+
+def _shared_16s_db(explicit=None):
+    """The 16S RefSeq BLAST database prefix, from the one shared lookup (docs/LOCAL_16S_DATABASE.md)."""
+    _here = os.path.dirname(os.path.abspath(__file__))
+    if _here not in sys.path:
+        sys.path.insert(0, _here)
+    import _phylo16s
+    return _phylo16s.refseq_16s_blastdb(explicit)
+
 # ---------------------------------------------------------------- 16S extraction
 def _title_index(db=DB16S):
     """Map accession -> title for every 16S DB entry (one blastdbcmd pass)."""
+    db = _shared_16s_db(db)
     bdc = _blastdbcmd()
     if not bdc:
         sys.exit("blastdbcmd not found; set BLAST_BIN or install the 'blast' env")
@@ -213,7 +223,8 @@ def _fetch_entry(bdc, acc):
 
     Title comes from `%t` (one line per defline), so a multi-defline BLAST entry never leaks a
     second `>` into the header this module writes."""
-    meta = subprocess.run([bdc, "-db", DB16S, "-entry", acc, "-outfmt", "%a@@@%t"],
+    db = _shared_16s_db(DB16S)
+    meta = subprocess.run([bdc, "-db", db, "-entry", acc, "-outfmt", "%a@@@%t"],
                           capture_output=True, text=True)
     if meta.returncode != 0 or "@@@" not in meta.stdout:
         return None
@@ -221,7 +232,7 @@ def _fetch_entry(bdc, acc):
     chosen = next((ln for ln in lines if ln.split("@@@", 1)[0].strip().split(".")[0] == acc.split(".")[0]),
                   lines[0])
     got_acc, title = (x.strip() for x in chosen.split("@@@", 1))
-    seq = subprocess.run([bdc, "-db", DB16S, "-entry", acc], capture_output=True, text=True)
+    seq = subprocess.run([bdc, "-db", db, "-entry", acc], capture_output=True, text=True)
     if seq.returncode != 0 or not seq.stdout.strip():
         return None
     body = "".join(l.strip() for l in seq.stdout.splitlines() if not l.startswith(">"))

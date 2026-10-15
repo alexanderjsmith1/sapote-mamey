@@ -10,8 +10,13 @@ HERE = Path(__file__).resolve().parent
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+# .452: placement_display writes a root-as-built diagnostic beside the accepted figure when the root edge is long
+# (#482). Its files are not figure sources: every lookup below skips them, and the README lists them as diagnostics.
+DIAGNOSTIC = "_GATE_FAIL_diagnostic_"
+
+
 def one(folder: Path, pattern: str, label: str) -> Path:
-    matches = sorted(folder.glob(pattern))
+    matches = sorted(p for p in folder.glob(pattern) if DIAGNOSTIC not in p.name)
     if len(matches) != 1:
         raise SystemExit(f"{label}: expected exactly one {pattern!r} in {folder}; found {len(matches)}")
     return matches[0]
@@ -27,7 +32,6 @@ def main():
     src, out = Path(a.source_dir).resolve(), Path(a.out).resolve()
     if out.exists(): raise SystemExit(f"output exists: {out}")
     if not src.is_dir(): raise SystemExit(f"source directory missing: {src}")
-    tree = one(src, "*_display.nwk", "display tree")
     meta = src / "display_input.tsv"
     fasta = src / "display_input.fasta"
     figure_png = one(src, "*_rect02.png", "PNG figure")
@@ -35,11 +39,16 @@ def main():
     figure_stem = figure_png.name.removesuffix("_rect02.png")
     if not figure_stem or figure_pdf.name != figure_stem + "_rect02.pdf":
         raise SystemExit("PNG/PDF figure stems do not match")
+    # the accepted display tree is bound by its exact name, never by a glob that a diagnostic could also match
+    tree = src / f"{figure_stem}_display.nwk"
+    if not tree.is_file():
+        raise SystemExit(f"display tree: expected {tree.name} in {src}")
+    diagnostics = sorted(p.name for p in src.iterdir() if DIAGNOSTIC in p.name)
     default_caption = one(src, "*_rect02.methods.txt", "caption sidecar")
     caption = Path(a.caption).resolve() if a.caption else default_caption
     methods = src / "METHODS.md"
     receipt_matches = [p for p in sorted(src.glob("*_display_receipt.json"))
-                       if p.name != "placement_display_receipt.json"]
+                       if p.name != "placement_display_receipt.json" and DIAGNOSTIC not in p.name]
     if len(receipt_matches) != 1:
         raise SystemExit(f"display receipt: expected one stem-specific receipt; found {len(receipt_matches)}")
     receipt = receipt_matches[0]
@@ -53,6 +62,8 @@ def main():
     if missing: raise SystemExit("missing required source files: " + ", ".join(missing))
     out.mkdir(parents=True)
     copies = [
+      (HERE/"placement_stamp.py","placement_stamp.py"),
+      (HERE.parent/"mamey/figure_stamp.py","mamey/figure_stamp.py"),
       (tree,f"{figure_stem}_tree.nwk"), (analysis_tree,f"{figure_stem}_analysis_tree.nwk"),
       (meta,f"{figure_stem}_metadata.tsv"), (fasta,f"{figure_stem}_aligned_sequences.fasta"),
       (caption,f"{figure_stem}_caption.txt"), (methods,f"{figure_stem}_methods.md"),
@@ -86,6 +97,17 @@ def main():
             if not source.is_file() or source.parent != src:
                 raise SystemExit(f"receipt-bound source unavailable: {source}")
             copies.append((source, record["path"]))
+    pages_path = src / f"{figure_stem}_rect02.pages.json"
+    if pages_path.is_file():
+        pages = json.loads(pages_path.read_text())
+        copies.append((pages_path, pages_path.name))
+        for page in pages['pages']:
+            for kind in ('pdf','png'):
+                filename = page[kind]
+                source = (src/filename).resolve()
+                if source.parent != src or Path(filename).name != filename or not source.is_file():
+                    raise SystemExit('page artifact outside figure folder or missing')
+                copies.append((source,filename))
     for source,name in copies:
         (out/name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source,out/name)
@@ -115,6 +137,12 @@ def main():
     # would otherwise be executed when an operator runs this helper. shlex.quote keeps the
     # generated script a data carrier rather than a second place the tool can run code.
     q = shlex.quote
+    summary = json.loads(display_summary.read_text()) if display_summary.is_file() else {}
+    replay_env = summary.get('render_environment', {})
+    allowed = {'GG_STRIPS','GG_ITALIC','GG_STRIP1_TITLE','GG_STRIP2_TITLE','GG_STRIP_KIND','GG_BLANK_MISSING',
+               'GG_FOCAL_FACE','GG_FOCAL_BAND','GG_FIT_LABELS','GG_FIG_WIDTH','GG_PRINT_WIDTH',
+               'GG_SUPPORT_MIN','GG_CAPTION_MD','GG_ACTIVITY_SPEC','GG_ACTIVITY_PALETTE','SAPOTE_GEOGRAPHY_LEVEL'}
+    replay_exports = '\n'.join('export '+key+'='+q(str(value)) for key,value in sorted(replay_env.items()) if key in allowed)
     (out/helper_name).write_text(f"""#!/bin/sh
 set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -125,6 +153,7 @@ export GG_STRIPS="2"
 export GG_ITALIC="1"
 export GG_STRIP1_TITLE="Isolation source"
 export GG_STRIP2_TITLE="Location"
+{replay_exports}
 export GG_GATE_TREE={q(analysis_name)}
 export GG_DISPLAY_RECEIPT={q(figure_stem + '_display_receipt.json')}
 export GG_DISPLAY_RECEIPT_SHA256={q(receipt_sha)}
@@ -136,10 +165,14 @@ python3 refresh_figure_source_manifest.py
 
 This folder contains the exact displayed tree, its parent analysis tree, aligned FASTA, metadata, caption, complete methods, clean PNG/PDF, and the R/ggtree renderer used to draw the figure. Paths are relative to this folder.
 
-Run `./{helper_name}` to make `{figure_stem}_captioned.png` and `{figure_stem}_captioned.pdf` with `{figure_stem}_caption.txt` in reserved white space below the tree. Edit `{figure_stem}_render_figure.R`, `{figure_stem}_metadata.tsv`, or the environment values in the helper to change typography, width, strips, colors, and caption layout. R packages required: ape, ggtree, ggplot2, aplot, treeio, and patchwork. Python 3 is used only for the included tree/display integrity gate.
+Run `./{helper_name}` to make `{figure_stem}_captioned.png` and `{figure_stem}_captioned.pdf` with `{figure_stem}_caption.txt` in reserved white space below the tree. Edit `{figure_stem}_render_figure.R`, `{figure_stem}_metadata.tsv`, or the environment values in the helper to change typography, width, strips, colors, and caption layout. R packages required: ape, ggtree, ggplot2, aplot, treeio, and patchwork. Python 3 runs the included integrity gate and provenance stamper; print-width correction requires pypdf.
 
 `{figure_stem}_clean.*` is the original clean render. `{figure_stem}_methods.md` and `{figure_stem}_caption.txt` travel with every copy. When available, `supplementary_ledgers/` retains reference-selection and grouping membership records. Editing the tree, FASTA, or scientific metadata creates a new analysis derivative and should receive a new receipt before publication.
-""",encoding="utf-8")
+"""
+    + (("\n## Diagnostics (not figure sources)\n\nThe source folder also holds a root-as-built diagnostic render, which "
+        "fails the strict tree gate by design and is kept only to show the tree before display rooting. It is not "
+        "copied here:\n\n" + "".join(f"- `{n}`\n" for n in diagnostics)) if diagnostics else ""),
+    encoding="utf-8")
     files = {str(p.relative_to(out)):{"sha256":sha(p),"bytes":p.stat().st_size}
              for p in sorted(out.rglob("*")) if p.is_file()}
     manifest={"schema":"sapote.tree-figure-source-package.v1","authority":"EDITABLE_RENDER_SOURCE_NOT_SCIENTIFIC_ACCEPTANCE","source_dir":str(src),"files":files}

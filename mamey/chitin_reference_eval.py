@@ -69,6 +69,7 @@ ARCHITECTURE_STATES = (
     "NON_ENDOCHITINASE_CHITIN_CONTEXT",
     "MINIMAL_MEASURED_CHITIN_DOMAIN_CAPACITY",
     "ABSENT_NO_MEASURED_CHITIN_DOMAINS",
+    "CHITIN_SCAN_INCOMPLETE_NOT_ABSENCE",
 )
 
 REFERENCE_QUALITY_STATES = (
@@ -105,12 +106,14 @@ class ChitinCapacityProfile:
     architecture_state: str
     architecture_text: str
     claim_ceiling: str = CLAIM_CEILING
+    missing_families: tuple = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "strain_id": self.strain_id, "counts": dict(self.counts),
             "domains_total": self.domains_total, "architecture_state": self.architecture_state,
             "architecture_text": self.architecture_text, "claim_ceiling": self.claim_ceiling,
+            "missing_families": list(self.missing_families),
         }
 
 
@@ -159,11 +162,17 @@ def architecture_profile(strain_id: str, counts: dict[str, Any]) -> ChitinCapaci
     """Type a strain's CGAD family counts into the workroom's architecture-profile vocabulary.
 
     `counts` is (or is compatible with) mamey source_scans.chitinase["counts"] -- a dict keyed by
-    CHITIN_FAMILIES; missing keys are treated as 0. Non-negative-int-coercible values only.
+    CHITIN_FAMILIES. A missing key counts as 0 for arithmetic, but the family is recorded in
+    `missing_families`, and a profile with no measured domain and any missing family is
+    CHITIN_SCAN_INCOMPLETE_NOT_ABSENCE, never observed absence. The scanner writes all five families.
+    Counts must be non-negative integers (an integral float is accepted; bool is refused).
     """
     c: dict[str, int] = {}
+    missing = tuple(fam for fam in CHITIN_FAMILIES if fam not in counts)
     for fam in CHITIN_FAMILIES:
         raw = counts.get(fam, 0)
+        if isinstance(raw, bool) or (isinstance(raw, float) and not raw.is_integer()):
+            raise ChitinReferenceEvalError(f"{strain_id}: count for {fam!r} is not a whole number: {raw!r}")
         try:
             n = int(raw)
         except (TypeError, ValueError):
@@ -188,6 +197,10 @@ def architecture_profile(strain_id: str, counts: dict[str, Any]) -> ChitinCapaci
         state, text = "CHITINASE_FAMILY_CAPACITY_WITHOUT_SUPPORTING_ARMS", (
             "Chitinase-family domains are present, while chitin-binding and AA10/LPMO support "
             "is not jointly observed.")
+    elif total == 0 and context == 0 and missing:
+        state, text = "CHITIN_SCAN_INCOMPLETE_NOT_ABSENCE", (
+            "No chitin-family domain was counted, but counts were not supplied for "
+            + ", ".join(missing) + "; missing counts are not observed absence.")
     elif total == 0 and context == 0:
         state, text = "ABSENT_NO_MEASURED_CHITIN_DOMAINS", (
             "No chitinase-family, chitin-binding, or AA10/LPMO-family domains were measured.")
@@ -200,7 +213,8 @@ def architecture_profile(strain_id: str, counts: dict[str, Any]) -> ChitinCapaci
             "without a GH18/GH19 endochitinase call.")
 
     return ChitinCapacityProfile(strain_id=strain_id, counts=c, domains_total=total,
-                                  architecture_state=state, architecture_text=text)
+                                  architecture_state=state, architecture_text=text,
+                                  missing_families=missing)
 
 
 def _parse_optional_float(raw: str | None) -> float | None:

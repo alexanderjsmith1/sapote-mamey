@@ -153,7 +153,10 @@ if __name__ == "__main__":
             _refuse("OUTGROUP_ROLE_SUFFIX_AMBIGUOUS", mode, len(matches))
     og = matches[0]
 
-    rel_tf = treefile.replace('.treefile', '_relabeled.treefile')
+    rel_tf = os.path.splitext(treefile)[0] + '_relabeled.treefile'
+    if (os.path.realpath(rel_tf) == os.path.realpath(treefile)
+            or (os.path.exists(rel_tf) and os.path.samefile(rel_tf, treefile))):
+        raise ValueError("relabeled tree output aliases the source tree")
     with open(rel_tf, 'w') as fh:
         fh.write(nwk)
 

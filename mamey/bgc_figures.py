@@ -140,6 +140,18 @@ def genome_atlas(strain_dir, out_png, top_n=20):
     return out_png
 
 
+def _symmetrize_ani(ani):
+    """Average the two directions of an ANI matrix; a missing direction (NaN, no hit) does not count as 0 %.
+
+    Both directions measured: their mean. One measured: that value. Neither: NaN, shown as "no hit".
+    """
+    import numpy as np
+    a = np.asarray(ani, dtype=float)
+    b = a.T
+    out = np.where(np.isnan(a), b, np.where(np.isnan(b), a, (a + b) / 2))
+    return out
+
+
 def ani_heatmap(strain_dirs, out_png, species_boundary=95.0):
     """All-vs-all ANI heatmap across strains (pyskani). Flags intransitivity, a sign
     that fragmented drafts are giving unreliable ANI (report, don't hide)."""
@@ -185,8 +197,8 @@ def ani_heatmap(strain_dirs, out_png, species_boundary=95.0):
             for r in SeqIO.parse(fastas[b], "fasta"):
                 for h in dbs[a].query(f"q:{r.id}", bytes(r.seq)):
                     hits.append(h.identity * 100)
-            ani[i, j] = float(np.mean(hits)) if hits else 0.0
-    ani = (ani + ani.T) / 2  # symmetrize
+            ani[i, j] = float(np.mean(hits)) if hits else np.nan  # no hit is not 0 % identity
+    ani = _symmetrize_ani(ani)
 
     # intransitivity check
     intransitive = False
@@ -196,15 +208,22 @@ def ani_heatmap(strain_dirs, out_png, species_boundary=95.0):
                 if (ani[i, j] >= 97 and ani[j, k] >= 97 and ani[i, k] < 92):
                     intransitive = True
     fig, ax = plt.subplots(figsize=(1.4 * len(names) + 3, 1.2 * len(names) + 2))
-    im = ax.imshow(ani, cmap="viridis", vmin=max(85, ani.min()), vmax=100)
+    shown = np.ma.masked_invalid(ani)
+    cmap = matplotlib.colormaps["viridis"].copy()
+    cmap.set_bad("#D9D9D9")
+    measured = ani[~np.isnan(ani)]
+    im = ax.imshow(shown, cmap=cmap, vmin=max(85, float(measured.min())) if measured.size else 85, vmax=100)
     ax.set_xticks(range(len(names)))
     ax.set_yticks(range(len(names)))
     ax.set_xticklabels(names, rotation=45, ha="right")
     ax.set_yticklabels(names)
     for i in range(len(names)):
         for j in range(len(names)):
-            ax.text(j, i, f"{ani[i, j]:.1f}", ha="center", va="center",
-                    color="white" if ani[i, j] < 96 else "black", fontsize=9)
+            if np.isnan(ani[i, j]):
+                ax.text(j, i, "no hit", ha="center", va="center", color="black", fontsize=8)
+            else:
+                ax.text(j, i, f"{ani[i, j]:.1f}", ha="center", va="center",
+                        color="white" if ani[i, j] < 96 else "black", fontsize=9)
     plt.colorbar(im, label="ANI (%)")
     note = ("\nNOTE: values intransitive — fragmented drafts give approximate ANI; confirm with reassembly."
             if intransitive else "")
@@ -223,12 +242,14 @@ def ani_heatmap(strain_dirs, out_png, species_boundary=95.0):
         _w = _SafeWriter(_mf)
         _w.writerow(["# provenance",
                      "pyskani nucleotide ANI, symmetrized; rows=query, cols=reference; "
-                     "numeric source for ani_heatmap.png (100.0 on the diagonal)"])
+                     "numeric source for ani_heatmap.png (100.0 on the diagonal; NO_HIT = no ANI hit either way)"])
         _w.writerow(["strain", *names])
         for _i, _rn in enumerate(names):
-            _w.writerow([_rn, *[f"{ani[_i, _j]:.4f}" for _j in range(len(names))]])
-    return {"out_png": out_png, "ani": ani.tolist(), "names": names,
-            "intransitive": intransitive, "ani_matrix_csv": matrix_csv}
+            _w.writerow([_rn, *["NO_HIT" if np.isnan(ani[_i, _j]) else f"{ani[_i, _j]:.4f}"
+                                for _j in range(len(names))]])
+    return {"out_png": out_png, "ani": [[None if np.isnan(v) else float(v) for v in row] for row in ani],
+            "names": names, "intransitive": intransitive, "ani_matrix_csv": matrix_csv,
+            "no_hit_pairs": int(np.isnan(ani).sum() // 2)}
 
 
 def figures_command(args):
@@ -240,8 +261,10 @@ def figures_command(args):
         return 0
     if args.fig_kind == "ani":
         res = ani_heatmap(args.strain_dirs, args.out)
-        emit(f"{res['out_png']} (intransitive={res['intransitive']})")
-        return 0
+        written = bool(res.get("out_png"))
+        emit(f"{res['out_png']} (intransitive={res['intransitive']}, no-hit pairs={res.get('no_hit_pairs', 0)})"
+             if written else f"figures ani: no figure written. {res.get('error', '')}".strip())
+        return 0 if written else 1
     if args.fig_kind == "gcf-network":
         # BiG-SCAPE GCF network from a BiG-SCAPE 2 DB. Membership is similarity, not identity.
         from mamey import bigscape_figures

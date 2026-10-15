@@ -28,6 +28,10 @@ import logging
 _LOG = logging.getLogger(__name__)
 
 HERE = Path(__file__).resolve().parent
+# Bind bundle-local tools even when mamey is already installed.
+_root = str(HERE.parent)
+if _root not in sys.path:
+    sys.path.insert(0, _root)
 
 
 def _load(name):
@@ -53,25 +57,18 @@ def digest(path):
 
 
 def root_on_outgroup(newick_in, newick_out, marker="outgroup"):
+    """Compatibility name: validate the marker and preserve the supplied root exactly."""
     from Bio import Phylo
     tree = Phylo.read(newick_in, "newick")
-    tips = [c.name for c in tree.get_terminals()]
-    if any(not n for n in tips) or len(tips) != len(set(tips)):
+    tips = [tip.name for tip in tree.get_terminals()]
+    if any(not name for name in tips) or len(tips) != len(set(tips)):
         raise ValueError("DUPLICATE_OR_EMPTY_TREE_TIP")
-    outgroups = [c for c in tree.get_terminals() if marker.lower() in c.name.lower()]
-    if not marker or len(outgroups) != 1:
+    outgroups = [name for name in tips if marker and marker.lower() in name.lower()]
+    if len(outgroups) != 1:
         raise ValueError("OUTGROUP_NOT_UNIQUE")
-    gi = _load("graft_integrity")
-    before = gi._metric(tree, set(tips))
-    tree.root_with_outgroup(outgroups[0])
-    with Path(newick_out).open("x", encoding="utf-8") as handle:
-        Phylo.write(tree, handle, "newick", format_branch_length="%.17g", format_confidence="%.17g")
-    after_tree = Phylo.read(newick_out, "newick")
-    after = gi._metric(after_tree, set(tips))
-    if before.keys() != after.keys() or any(not gi._close_length(after[key][0], value[0])
-                                            for key, value in before.items()):
-        raise ValueError("DISPLAY_ROOT_LENGTH_DRIFT")
-    return outgroups[0].name
+    with Path(newick_out).open("xb") as handle:
+        handle.write(Path(newick_in).read_bytes())
+    return outgroups[0]
 
 
 def _run_layout(run):
@@ -92,10 +89,8 @@ def _run_layout(run):
             pick("place/query.aligned.fasta", "query.aligned.fasta"))
 
 
-
 def _admit_run_layout(run):
     return _load("graft_integrity").admit_placement_run(run)
-
 
 def _length_audit_supplements(out, admission, caller_paths):
     """Export numerical evidence, not an unadvertised second alignment payload."""
@@ -242,7 +237,11 @@ def _publication_reference_label(row, include_location=True, detailed=False, typ
     if location:
         raw_source = re.sub(rf"\s*[·-]\s*{re.escape(location)}\s*$", "", raw_source,
                             flags=re.I)
-    source = raw_source.strip() if detailed else _concise_reference_source(raw_source, category)
+    # v9.7.444: no deposited isolation source or host -> no source word. reference_source is the joined display text and
+    # can hold only the country; classifying that country string used to print 'terrestrial' (other documented).
+    if not habitat.strip():
+        raw_source = ""
+    source = "" if not raw_source.strip() else raw_source.strip() if detailed else _concise_reference_source(raw_source, category)
     source_context = " · ".join(value for value in (source, location) if value)
     proof = (type_evidence or {}).get("roles", {}).get(row["tip"], {})
     role_value = proof.get("role", "")
@@ -254,16 +253,66 @@ def _publication_reference_label(row, include_location=True, detailed=False, typ
     return " ".join(value for value in (stem, f"[{context}]" if context else "", accession) if value)
 
 
-def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None, type_evidence=None):
-    if label_style not in {"withloc", "noloc", "compact", "publication", "publication-detailed", "publication-noloc", "internal"}:
+def _ref_designations(db_path, builder):
+    """acc key -> (deposited strain designation, is_type) from the explicitly supplied reference DB (v9.7.444 short labels)."""
+    import sqlite3
+    from contextlib import closing
+    db = Path(db_path).resolve(strict=True)
+    with closing(sqlite3.connect(db.as_uri() + "?mode=ro", uri=True)) as con:
+        cols = {row[1] for row in con.execute("PRAGMA table_info(record)")}
+        if not {"designation", "is_type"} <= cols:
+            raise ValueError("SHORT_LABEL_DB_COLUMNS_MISSING: record needs designation and is_type")
+        return {builder._acckey(acc): ((des or "").strip(), is_type == 1)
+                for acc, des, is_type in con.execute("SELECT acc_base, designation, is_type FROM record")
+                if isinstance(acc, str) and builder._ACC.fullmatch(acc)}
+
+
+_LABELMAP = {}
+
+
+def load_labelmap(path):
+    """tip -> deposited definition, from the refpkg labelmap.tsv (safe tip name, original FASTA header)."""
+    _LABELMAP.clear()
+    if Path(path).is_file():
+        for line in open(path, encoding="utf-8"):
+            tip, _, definition = line.rstrip("\n").partition("\t")
+            _LABELMAP[tip] = re.sub(r"^\S+\.\d+\s+", "", definition)
+
+
+def _short_reference_label(row, designations, builder):
+    """'Genus species STRAIN (T)': deposited species + deposited strain designation; (T) only from record.is_type."""
+    acc = builder._ref_accession(row["tip"])
+    designation, is_type = designations.get(builder._acckey(acc), ("", False)) if acc else ("", False)
+    species = (row.get("reference_species") or "").strip()
+    if not species:
+        raise ValueError(f"SHORT_LABEL_SPECIES_MISSING: {row['tip']}")
+    if " sp. " in species:
+        # An unnamed deposit already carries its strain from the deposited definition; the DB designation column
+        # can be malformed for these (MT829740: "DT2-5-2 16SMicromonosporasp."), so it is not appended.
+        designation = ""
+    elif not designation:
+        # v9.7.444 trial: a reference absent from the 16S DB takes its strain from the deposited definition kept in
+        # the refpkg labelmap ("Micromonospora chersina strain PNSB11.3 16S ..."), exactly as deposited.
+        m = re.search(r"\bstrain\s+(\S+)", _LABELMAP.get(row["tip"], ""))
+        designation = m.group(1).rstrip(",") if m else ""
+    return " ".join(x for x in (species, designation, "(T)" if is_type else "") if x)
+
+
+def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None, type_evidence=None, ref_db=None):
+    if label_style not in {"withloc", "noloc", "compact", "publication", "publication-detailed", "publication-noloc", "internal", "short"}:
         raise ValueError("LABEL_STYLE_INVALID")
     output = []
     builder = _load("build_placement_ggtree_inputs")
+    designations = _ref_designations(ref_db, builder) if label_style == "short" else {}
     for row in annotation_rows:
         tip = row["tip"]
         if row.get("kind") == "query":
             role, taxon = "query", ""
-            if label_style in {"compact", "publication", "publication-detailed", "publication-noloc", "internal"}:
+            if label_style == "short":
+                # v9.7.444: 'Genus sp. AS-###' only; the accession goes to the label-accession ledger, not the tip.
+                group = (row.get("group") or "").strip()
+                label = " ".join(x for x in (f"{group} sp." if group else "", row.get("as_id") or tip) if x)
+            elif label_style in {"compact", "publication", "publication-detailed", "publication-noloc", "internal"}:
                 aid = row.get("as_id") or tip
                 group = (row.get("group") or "").strip()
                 organism = f"{group} sp." if group else ""
@@ -292,14 +341,19 @@ def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None, type
                 raise ValueError(f"QUERY_ACCESSION_MISSING: {tip}; supply an accession in the host table or an explicit auxiliary table")
             if not builder._ACC.fullmatch(accession):
                 raise ValueError(f"QUERY_ACCESSION_INVALID: {tip}")
-            if not label.endswith(builder._display_accession(accession)):
+            if label_style != "short" and not label.endswith(builder._display_accession(accession)):
                 raise ValueError(f"QUERY_ACCESSION_LABEL_MISMATCH: {tip}")
         else:
             role = "outgroup" if tip == outgroup_tip or (outgroup_tip is None and "outgroup" in tip.lower()) else "reference"
             # Collapse eligibility is species-scoped. A genus-level key can merge
             # different species that share an identical or near-identical 16S segment.
             taxon = row.get("reference_species") or ""
-            if label_style in {"publication", "publication-detailed", "publication-noloc", "internal"}:
+            if label_style == "short":
+                label = _short_reference_label(row, designations, builder)
+                label = label.replace(" (T)", "")
+                if (type_evidence or {}).get("roles", {}).get(tip, {}).get("role") == "type_reference":
+                    label += " (T)"
+            elif label_style in {"publication", "publication-detailed", "publication-noloc", "internal"}:
                 label = _publication_reference_label(
                     row, type_evidence=type_evidence, include_location=label_style != "publication-noloc",
                     detailed=label_style == "publication-detailed")
@@ -312,6 +366,7 @@ def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None, type
             category, source = row.get("reference_habitat", ""), row.get("reference_country", "")
         if role == "outgroup":
             label = re.sub(r"\s+\(outgroup\)\s*$", "", label, flags=re.I)
+            # v9.7.444 trial (owner): short labels do not say "(outgroup)"; the short caption names the outgroup.
         normalized = builder._rect_metadata_row(tip, label, category or "", source or "")
         output.append(dict(tip=tip, label=label, role=role, taxon=taxon,
                            category=normalized[2], category_raw=normalized[4], category_state=normalized[5],
@@ -319,7 +374,9 @@ def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None, type
                            reference_role=(type_evidence or {}).get("roles", {}).get(tip, {}).get("role", "") if role != "query" else "",
                            type_strain_of=(type_evidence or {}).get("roles", {}).get(tip, {}).get("type_strain_of", "") if role != "query" else ""))
     from collections import Counter
-    reference_taxa = Counter(row["taxon"] for row in output
+    # v9.7.444 trial: short labels carry the strain, so a type strain and another deposited strain of the same species
+    # are different tips; only an identical drawn label is a duplicate.
+    reference_taxa = Counter((row["label"] if label_style == "short" else row["taxon"]) for row in output
                              if row["role"] == "reference" and row["taxon"])
     duplicates = sorted(taxon for taxon, count in reference_taxa.items() if count > 1)
     if duplicates:
@@ -343,6 +400,38 @@ def refuse_project_strains_as_references(rows, host_table, builder):
     if conflicts:
         raise ValueError("PROJECT_STRAIN_IN_REFERENCE_ROLE:" + ",".join(sorted(conflicts)))
     return len(project_accessions)
+
+
+def type_key(rows):
+    """.452: the caption keys '(T), type strain' only when a drawn reference or outgroup label carries (T); a key for
+    a marker that is not on the figure would describe something that is not drawn."""
+    return "; (T), type strain" if any(" (T)" in (r.get("label") or "") for r in rows
+                                       if r.get("role") in ("reference", "outgroup")) else ""
+
+
+_CAPTION_ACCESSION = re.compile(r"\s*\((?:[A-Z]{1,2}_?\d+(?:\.\d+)?)\)")
+
+
+def grouped_reference_sentence(collapse_ledger, labels, max_nt, min_cols):
+    """.452 (T1): the caption sentence that names grouped references, or '' when nothing was grouped.
+
+    Each drawn representative is named with the strains merged into it ("A (T) (also B (T))"); accessions are left
+    to the tip labels and the supplementary grouping table, which keeps every member and the measured bounds.
+    """
+    path = Path(collapse_ledger)
+    if not path.is_file():
+        return ""
+    groups = {}
+    with path.open(newline="", encoding="utf-8") as handle:
+        for row in csv.DictReader(handle, delimiter="\t"):
+            if row.get("action") == "COLLAPSED_MEMBER":
+                groups.setdefault(row["representative_tip"], []).append(row["tip"])
+    if not groups:
+        return ""
+    clean = lambda tip: _CAPTION_ACCESSION.sub("", labels.get(tip, tip)).strip()
+    named = [f"{clean(rep)} (also {'; '.join(clean(m) for m in sorted(members))})" for rep, members in sorted(groups.items())]
+    return (f" Reference strains whose 16S sequences differ by at most {max_nt} nt over at least {min_cols} shared sites "
+            f"are drawn once: {'; '.join(named)}. The measured bounds and every member are in the supplementary grouping table.")
 
 
 def write_dropped_tips(collapse_ledger, destination):
@@ -472,7 +561,8 @@ def _reference_selection_counts(path):
     if not Path(path).is_file():
         return {"pairings": 0, "queries_with_pairings": 0, "unique_references_selected": 0}
     with open(path, newline="", encoding="utf-8") as handle:
-        rows = list(csv.DictReader(handle, delimiter="\t"))
+        rows = [row for row in csv.DictReader(handle, delimiter="\t")
+                if row.get("selection_mode") != "omitted_no_deposited_metadata"]
     return {
         "pairings": len(rows),
         "queries_with_pairings": len({row.get("query_tip", "") for row in rows if row.get("query_tip")}),
@@ -550,7 +640,7 @@ def write_methods_package(run, out, prefix, refs, queries, rows, annotations,
             {"stage": "query alignment", "tool": "MAFFT --add/--addfragments --keeplength", "operation": f"aligned query {molecule} sequences to the unchanged reference columns"},
             {"stage": "placement", "tool": "EPA-ng", "operation": "placed each query on the fixed reference topology by maximum likelihood"},
             {"stage": "graft and assignment", "tool": "gappa", "operation": "generated the grafted tree and placement summaries"},
-            {"stage": "display preparation", "tool": "placement_display.py + Biopython", "operation": "rooted on the single bound outgroup, joined metadata, checked tip/alignment coverage and prepared labels"},
+            {"stage": "display preparation", "tool": "placement_display.py + Biopython", "operation": "retained the source root as a receipt, split the designated outgroup separation for display, joined metadata, checked tip/alignment coverage and prepared labels"},
             {"stage": "display grouping", "tool": "collapse_near_identical.py", "operation": "grouped eligible reference tips at the recorded mismatch and shared-column thresholds; retained all query tips"},
             {"stage": "render", "tool": "R + ggtree + ggplot2", "operation": "rendered the rectangular tree and metadata strips to PDF and PNG"},
         ],
@@ -611,7 +701,7 @@ def write_methods_package(run, out, prefix, refs, queries, rows, annotations,
         "\n\n## Exact counts\n\n| Measure | Count |\n|---|---:|\n" + counts +
         f"\n\nReference deduplication actions: {ref_actions}.\n\n"
         f"Display grouping actions: {display_actions}.\n\n"
-        f"The display was rooted on `{outgroup}`. Reference grouping allowed at most {args.max_nt} "
+        f"The source root was retained; the display splits the designated outgroup separation evenly across the root children; outgroup `{outgroup}`. Reference grouping allowed at most {args.max_nt} "
         f"mismatches over at least {args.min_cols} shared A/C/G/T columns. All query tips were protected. "
         f"Reference selection used `{data['parameters']['reference_selection_mode']}` and its per-query "
         f"assignments are recorded in `{prefix.name}_reference_selection.tsv`. "
@@ -629,27 +719,62 @@ def main(argv=None):
     parser.add_argument("run_dir")
     parser.add_argument("--name", required=True)
     parser.add_argument("--group", required=True)
+    parser.add_argument("--support-tree", default="", help="Support-labelled reference tree; default is the admitted reference tree. Root and lengths are preserved.")
     parser.add_argument("--host-table", required=True)
     parser.add_argument("--ref-source-db", required=True)
+    parser.add_argument("--omit-unsourced", action="store_true",
+                        help="v9.7.444 (house rule): omit reference tips with no deposited isolation source (and, for "
+                             "styles with a Location strip, no deposited country). Each query takes its next eligible "
+                             "reference; omitted tips go to DROPPED_TIPS.tsv (action OMITTED_NO_DEPOSITED_METADATA), "
+                             "not to the caption.")
+    parser.add_argument("--strip-set", choices=("source-location", "activity"), default="source-location",
+                        help="v9.7.444: 'activity' draws the two strips as Candida and MRSA activity from "
+                             "--bioassay-table (query tips only; references blank) instead of isolation source and location")
+    parser.add_argument("--activity-palette", choices=("default", "calm"), default="default",
+                        help=".452: activity strip colours, with --strip-set activity. 'default' is red / dark grey / grey "
+                             "(unchanged); 'calm' is dark blue / blue-grey / pale grey (palette field activity_calm)")
+    parser.add_argument("--isolate-emphasis", choices=("none", "bold", "bold-band"), default="none",
+                        help="v9.7.444: bold the isolate (query) labels; 'bold-band' also shades each isolate row from label through strips")
+    parser.add_argument("--caption-note", action="append", default=[], help="v9.7.444 trial: sentence appended to the short caption")
+    parser.add_argument("--label-accession", action="store_true", help="v9.7.444 trial: GenBank accession on every short tip label")
+    parser.add_argument("--plot-only", action="store_true", help="v9.7.444 trial: also render <prefix>_rect02_plot_only.png/pdf without the caption band")
+    parser.add_argument("--support-bootstraps", type=int, default=0,
+        help="v9.7.444 trial: replicate count behind the node supports (states them in the short caption)")
+    parser.add_argument("--fit-width", action="store_true",
+                        help="v9.7.444: size the label room from measured label widths so the tree fills the panel and the strips sit after the labels")
+    parser.add_argument("--geography-level", choices=("region", "country"), default="region",
+                        help="v9.7.444: 'country' draws the Location strip as the deposited country (palette field "
+                             "'country') instead of the continent bin; a country with no palette colour is refused")
+    parser.add_argument("--layout", default="", help="Bioassay layout profile; split_candida controls separate species strips.")
+    parser.add_argument("--layout-config", default="", help="Override mamey/data/bioassay_layouts.json.")
+    parser.add_argument("--bioassay-material", default="Crude extract", help="Material for a canonical long bioassay table.")
+    parser.add_argument("--bioassay-table", default="",
+                        help="strain-level measured activity table (strain, anti_Candida, anti_MRSA: positive / negative / "
+                             "not_tested), passed to the annotation builder; required by --strip-set activity")
     parser.add_argument("--reference-role-table", default="",
-                        help="Optional reviewed exact native-tip/source-sequence evidence TSV; accession prefixes never establish type material")
+                        help="Optional TSV with accession and role columns; adds auditable type/non-type markers to reference labels")
     parser.add_argument("--required-reference-table", default="",
                         help="optional TSV pairing each query strain to a required reference species")
     parser.add_argument("--genus-roster", default="", help="Explicit TSV: strain and genus (or tophit_genus)")
     parser.add_argument("--aux-table", action="append", default=[])
     parser.add_argument("--outgroup-substr", default="outgroup")
+    parser.add_argument("--outgroup-registry", default="",
+                        help=".452: outgroup registry TSV. When it LOCKS an outgroup for --group (genus level), the strict "
+                             "gate exempts the ingroup half of the root edge to that outgroup (long_root=true) and the "
+                             "renderer draws that edge shortened, with a break mark and its true length")
     parser.add_argument("--family-level", action="store_true")
     parser.add_argument("--max-nt", type=int, default=1,
                         help="display-only grouping threshold within a monophyletic deposited species (default: 1 nt)")
     parser.add_argument("--min-cols", type=int, default=500)
-    parser.add_argument("--neighbors-per-query", type=int, choices=tuple(range(1, 13)), default=2,
+    parser.add_argument("--neighbors-per-query", type=int, choices=tuple(range(1, 13)), default=3,
                         help="balanced publication display: retain each query's N nearest reference tips (1-12)")
     parser.add_argument("--keep-all-references", action="store_true",
                         help="diagnostic display only: retain the full placement backbone")
     parser.add_argument("--label-style",
-                        choices=["withloc", "noloc", "compact", "publication", "publication-detailed", "publication-noloc", "internal"],
+                        choices=["withloc", "noloc", "compact", "publication", "publication-detailed", "publication-noloc", "internal", "short"],
                         default="withloc",
                         help="publication styles use the same organism / isolate / source / accession grammar for queries and references")
+    parser.add_argument("--print-width", type=float, default=7.2, help="Printed page width in inches; minimum text 8 pt, maximum height 9 inches.")
     parser.add_argument("--figure-width", type=float, default=0.0,
                         help="render width in inches; 0 chooses from tip count and label length")
     parser.add_argument("--label-room", type=float, default=0.0,
@@ -667,25 +792,41 @@ def main(argv=None):
         out = Path(args.out).resolve() if args.out else run / f"display_{args.label_style}"
         if out.exists():
             raise ValueError("OUTPUT_EXISTS")
+        os.environ["SAPOTE_GEOGRAPHY_LEVEL"] = args.geography_level
         length_admission = _admit_run_layout(run)
         src = Path(length_admission["selected"]["restored"])
         refs = Path(length_admission["sources"]["reference_alignment"])
         queries = Path(length_admission["sources"]["query_alignment"])
+        activity = _load("_placement_activity")
+        split_activity = args.strip_set == "activity" and activity.profile(args.layout, args.layout_config or None).get("split_candida", False)
+        activity_strips = []
+        if split_activity:
+            pool_candida = activity.profile(args.layout, args.layout_config or None).get("tree_pool_candida", False)
+            measured_activity, activity_strips = activity.load(args.bioassay_table, args.bioassay_material, pool=pool_candida)
         builder = _load("build_placement_ggtree_inputs")
         inputs = [src, refs, queries, Path(args.host_table), Path(args.ref_source_db)] + [Path(p) for p in args.aux_table]
+        if args.layout:
+            inputs.append(Path(args.layout_config) if args.layout_config else HERE.parent/'mamey/data/bioassay_layouts.json')
         if args.required_reference_table:
             inputs.append(Path(args.required_reference_table))
         if args.genus_roster:
             inputs.append(Path(args.genus_roster))
+        if args.activity_palette != "default" and args.strip_set != "activity":
+            raise ValueError("ACTIVITY_PALETTE_NEEDS_ACTIVITY_STRIPS")
+        if args.strip_set == "activity" and not args.bioassay_table:
+            raise ValueError("STRIP_SET_ACTIVITY_NEEDS_BIOASSAY_TABLE")
+        if args.bioassay_table:
+            inputs.append(Path(args.bioassay_table))
         if args.reference_role_table:
             inputs.append(Path(args.reference_role_table))
         inputs += [Path(length_admission["receipt"])]
         inputs += [Path(path) for path in length_admission["sources"].values() if path is not None and Path(path).is_file()]
         inputs += [Path(length_admission["receipt"]).parent / rel for rel in length_admission["outputs"]]
+        support = Path(args.support_tree).resolve(strict=True) if args.support_tree else Path(length_admission["sources"]["reference_tree"])
+        inputs.append(support)
         hashes = {str(p.resolve()): digest(p) for p in inputs}
         refused_reference_tips(src, builder)
         coverage_check(src, refs, queries)
-        genera = _genus_roster(args.genus_roster)
         organisms = _reference_organisms(args.ref_source_db, builder)
         from tools._placement_report_metadata import reviewed_type_map, jplace_query_names
         from Bio import Phylo
@@ -693,9 +834,27 @@ def main(argv=None):
         type_evidence = reviewed_type_map([args.reference_role_table] if args.reference_role_table else [],
                                           {tip: tip for tip in native_tips},
                                           query_tips=jplace_query_names(length_admission["sources"]["jplace"]))
+        roster_path = args.genus_roster
+        if not roster_path:
+            with open(args.host_table, newline="", encoding="utf-8-sig") as handle:
+                fields = next(csv.reader(handle, delimiter="\t"), [])
+            if "strain" in fields and ({"genus", "tophit_genus"} & set(fields)):
+                roster_path = args.host_table
+        query_ids = {builder._asid(tip) for tip in _read_fasta(queries)}
+        genera = {key: value for key, value in _genus_roster(roster_path).items() if key in query_ids}
+        ref_genera = builder.reference_genera(src, args.outgroup_substr)
+        if len(ref_genera) > 1:
+            args.family_level = True
+        if args.family_level or not re.fullmatch(r"[A-Z][a-z]+", args.group):
+            missing = {builder._asid(tip) for tip in _read_fasta(queries)} - set(genera)
+            if missing:
+                raise ValueError("MIXED_GENUS_ROSTER_REQUIRED: supply --genus-roster or genus in --host-table")
         out.mkdir(parents=True, exist_ok=False)
         rooted = out / "rooted.nwk"
         outgroup = root_on_outgroup(src, rooted, args.outgroup_substr)
+        transferred = out / "supported.nwk"
+        _load("transfer_supports_to_graft").transfer_preserving_root(rooted, support, transferred)
+        rooted = transferred
         prefix = out / args.name
         command = [args.python, str(HERE / "build_placement_ggtree_inputs.py"), "--graft", str(rooted),
                    "--group", args.group, "--outgroup-substr", args.outgroup_substr,
@@ -709,6 +868,12 @@ def main(argv=None):
             command.append("--family-level")
         for path in args.aux_table:
             command += ["--aux-table", path]
+        if args.bioassay_table and not split_activity:
+            command += ["--bioassay-table", args.bioassay_table]
+        if args.omit_unsourced:
+            command += ["--require-reference-metadata",
+                        # Same tip set for both strip sets: eligibility follows the label (which shows the country), not the strips.
+                        "source" if args.label_style in {"noloc", "publication-noloc"} else "both"]
         _run(command)
         with open(f"{prefix}_ggtree_annotation.tsv") as handle:
             annotations = list(csv.DictReader(handle, delimiter="\t"))
@@ -739,11 +904,57 @@ def main(argv=None):
                     row['reference_genus'] = match.group(1) if match else ""
                     species = re.match(r"^([A-Z][a-z-]+\s+[a-z][a-z-]+)(?:\s|$)", organism)
                     row['reference_species'] = species.group(1) if species else ""
-        rows = display_rows(annotations, args.label_style, outgroup, type_evidence=type_evidence)
+                    # v9.7.444 trial: an unnamed deposit ("Actinomadura sp. NEAU-AAG7") is its own taxon, named
+                    # exactly as deposited (genus, "sp.", strain); nothing is inferred.
+                    sp_dep = None if species else re.match(r"^([A-Z][a-z]+) sp\.\s+(?:strain\s+)?(\S.*?)\s*$", organism)
+                    if sp_dep:
+                        # GenBank titles like "Actinomadura sp. S20-30 gene for 16S ribosomal RNA" leave "gene for".
+                        _strain = re.sub(r"\s+gene\s+for$", "", sp_dep.group(2), flags=re.I)
+                        row['reference_species'] = f"{sp_dep.group(1)} sp. {_strain}"
+        load_labelmap(Path(run) / "refpkg" / "labelmap.tsv")
+        rows = display_rows(annotations, args.label_style, outgroup, type_evidence=type_evidence, ref_db=args.ref_source_db)
+        if args.strip_set == "activity" and not split_activity:
+            # Query tips carry measured, strain-level activity; reference and outgroup tips are public comparators
+            # and stay blank (they were not part of the screen). Values are mapped, never inferred.
+            _act = {"positive": "active (\u226580%)", "negative": "tested, inactive", "not_tested": "not tested", "": "not tested"}
+            _by_tip = {a["tip"]: a for a in annotations}
+            for row in rows:
+                if row["role"] == "query":
+                    ann = _by_tip.get(row["tip"], {})
+                    row["category"] = _act[(ann.get("anti_candida") or "").strip().lower()]
+                    row["source"] = _act[(ann.get("anti_mrsa") or "").strip().lower()]
+                    row["category_raw"] = ann.get("anti_candida", "")
+                    row["category_state"] = "MEASURED_ACTIVITY"
+                else:
+                    row["category"] = row["source"] = row["category_raw"] = ""
+                    row["category_state"] = "NOT_SCREENED"
+        if split_activity:
+            rows = activity.decorate(rows, measured_activity, activity_strips, builder._asid)
+            # Legacy columns are blank; separate columns are bound in the same receipt.
+            for row in rows:
+                row['category'] = row['source'] = row['category_raw'] = ''
+                row['category_state'] = 'MEASURED_ACTIVITY' if row['role']=='query' else 'NOT_SCREENED'
+        if args.label_style == "short":
+            # Accessions leave the tip labels, so every drawn label is tied to its accession here (ledger + supplement table).
+            _acc_by_tip = {a["tip"]: (a.get("accession") or "").strip() for a in annotations if a.get("kind") == "query"}
+            with (out / "LABEL_ACCESSIONS.tsv").open("w", newline="", encoding="utf-8") as handle:
+                handle.write("label\trole\taccession\ttip\n")
+                for row in rows:
+                    acc = _acc_by_tip.get(row["tip"]) if row["role"] == "query" else builder._ref_accession(row["tip"])
+                    if not acc:
+                        raise ValueError(f"LABEL_ACCESSION_UNBOUND: {row['tip']}")
+                    shown = builder._display_accession(acc)
+                    if args.label_accession:
+                        # v9.7.444 trial: GenBank 16S accession on every tip label (the owner's rule for 16S trees).
+                        # versioned accession, as in the S2 and 2B trees (QA review row 26)
+                        acc_txt = f"({acc})"
+                        m = re.match(r"^(.*?)(\s+\(outgroup\))?$", row["label"])
+                        row["label"] = f"{m.group(1)} {acc_txt}{m.group(2) or ''}"
+                    handle.write(f"{row['label']}\t{row['role']}\t{shown}\t{row['tip']}\n")
         project_accessions_checked = refuse_project_strains_as_references(rows, args.host_table, builder)
         meta = out / "display_input.tsv"
         with meta.open('w', newline='') as handle:
-            writer = _SafeDictWriter(handle, fieldnames=['tip','label','role','taxon','category','category_raw','category_state','source','reference_role','type_strain_of'], delimiter='\t')
+            writer = _SafeDictWriter(handle, fieldnames=['tip','label','role','taxon','category','category_raw','category_state','source','reference_role','type_strain_of'] + [strip['column'] for strip in activity_strips], delimiter='\t')
             writer.writeheader(); writer.writerows(rows)
         aligned = out / 'display_input.fasta'
         # The complete alignment remains the inference record after the display tree is
@@ -752,22 +963,115 @@ def main(argv=None):
             f"{prefix}_pruned.nwk", refs, queries, allow_alignment_superset=True
         )
         aligned.write_text(''.join(f'>{tip}\n{seq}\n' for tip, seq in sequences.items()))
-        _run([args.python, str(HERE/'collapse_near_identical.py'), str(aligned), f'{prefix}_pruned.nwk', str(meta),
+        root_variants = _load("placement_root_variants")
+        locked_accession = None
+        if args.outgroup_registry:
+            locked_accession = _load("tree_sanity_check").registry_locked_accession(args.outgroup_registry, args.group)
+            if not locked_accession:
+                raise ValueError(f"OUTGROUP_REGISTRY_NOT_LOCKED: the registry locks no outgroup for {args.group}")
+        gated_tree, root_receipt, root_record = root_variants.prepare(
+            f'{prefix}_pruned.nwk', prefix, [outgroup], locked_accession=locked_accession)
+        if not root_record["variants"]["display_rooted_split"]["gate_pass"]:
+            raise ValueError("DISPLAY_ROOT_STRICT_GATE_FAIL: " + root_record["variants"]["display_rooted_split"]["gate_report"])
+        _run([args.python, str(HERE/'collapse_near_identical.py'), str(aligned), str(gated_tree), str(meta),
               '--max-nt', str(args.max_nt), '--min-cols', str(args.min_cols), '--group-label', 'representative', '--out-prefix', str(prefix)])
         collapse_ledger = Path(f'{prefix}_collapse_ledger.tsv')
         dropped_path = out / 'DROPPED_TIPS.tsv'
         dropped_count = write_dropped_tips(collapse_ledger, dropped_path)
+        if args.omit_unsourced:
+            # Append the references the builder made ineligible, so the trail keeps them (not the caption).
+            with open(f"{prefix}_reference_selection.tsv", newline="", encoding="utf-8") as handle:
+                omitted = sorted({r["reference_tip"] for r in csv.DictReader(handle, delimiter="\t")
+                                  if r.get("selection_mode") == "omitted_no_deposited_metadata"})
+            if omitted:
+                with dropped_path.open("a", newline="", encoding="utf-8") as handle:
+                    for tip in omitted:
+                        handle.write(f"{tip}\t\tOMITTED_NO_DEPOSITED_METADATA\t\t\t\t\t{{}}\n")
+                dropped_count += len(omitted)
         receipt = f'{prefix}_display_receipt.json'
         outgroup_label = next(row["label"] for row in rows if row["role"] == "outgroup")
         caption = args.methods or f"Outgroup: {outgroup_label}."
-        if args.figure_width and not 8 <= args.figure_width <= 40:
+        if args.label_style == "short" and not args.methods:
+            _nq = sum(r["role"] == "query" for r in rows); _nr = sum(r["role"] == "reference" for r in rows)
+            _og = re.sub(r"\s+\(outgroup\)$", "", outgroup_label)
+            _ogw = _og.split(" ")
+            _og = (f"*{' '.join(_ogw[:2])}* {' '.join(_ogw[2:])}".strip() if len(_ogw) >= 2 and re.match(r"^[a-z]", _ogw[1])
+                   and _ogw[1] != "sp." else f"*{_ogw[0]}* {' '.join(_ogw[1:])}".strip())
+            caption = (f"16S rRNA gene placement (EPA-ng) of {_nq} {os.environ.get('GG_ISOLATE_SOURCE', '')} *{', '.join(sorted(set(genera.values()))) if genera else args.group}* "
+                       f"{'isolate' if _nq == 1 else 'isolates'} (bold) among {_nr} reference strains{type_key(rows)}. "
+                       f"Root placed halfway along the designated outgroup separation ({_og}). Scale bar, substitutions per site.")
+            if args.label_accession:
+                caption += " GenBank 16S accessions in parentheses."
+            # a species drawn with two or more type-strain records is named once in the caption (QA review row 25)
+            _tsp = {}
+            for r in rows:
+                if r["role"] == "reference" and "(T)" in r["label"]:
+                    _m = re.match(r"^([A-Z][a-z]+ [a-z][a-z-]+)\s", r["label"])   # epithet must end in a space: "sp." is not a species
+                    if _m:
+                        _tsp.setdefault(_m.group(1), []).append(re.sub(r"^\S+ \S+ ", "", r["label"]).replace(" (T)", ""))
+            for _sp, _recs in sorted(_tsp.items()):
+                if len(_recs) > 1:
+                    _g, _e = _sp.split()
+                    caption += (f" *{_g[0]}. {_e}* is represented by {len(_recs)} type-strain 16S records ("
+                                + "; ".join(_recs) + ").")
+            for _note in args.caption_note:
+                caption += " " + _note.strip()
+            if args.support_bootstraps:
+                _smin = os.environ.get("GG_SUPPORT_MIN", "").strip()
+                if not _smin:
+                    raise ValueError("SUPPORT_BOOTSTRAPS_NEEDS_GG_SUPPORT_MIN")
+                caption += (f" Node numbers, bootstrap support of the reference tree ({args.support_bootstraps:,} "
+                            f"RAxML-NG replicates), shown when \u2265{_smin}.")
+            if split_activity:
+                caption += " Strips: " + "; ".join(strip['label'] for strip in activity_strips) + ". Recorded states are +, −, n.t. and blank; numeric readings, where present, retain the stated threshold. Reference cells are blank."
+                if any(strip['label'] == activity.POOLED for strip in activity_strips):
+                    caption += (" *Candida*: the strongest state recorded for *C. albicans*, *C. auris* or a reading that did not "
+                                "record which of the two was used (a positive in any one is shown as positive).")
+            elif args.strip_set == "activity":
+                caption += (" Strips: best inhibition of *Candida* sp. (the higher of the *C. albicans* and *C. auris* readings, where some readings did not record which of the two was used) and of MRSA by crude extract or fraction; "
+                            "active, \u226580% inhibition. Reference strains were not screened.")
+            else:
+                caption += " Strips: isolation source and country as deposited; white, no deposited value."
+        # .452 (T1 caption half): tip labels no longer carry a grouping suffix, so every caption (any label style, and a
+        # caption supplied with --methods) names each drawn representative and the strains merged into it; the measured
+        # bounds stay in the grouping table.
+        caption += grouped_reference_sentence(f'{prefix}_collapse_ledger.tsv', {r["tip"]: r["label"] for r in rows},
+                                              args.max_nt, args.min_cols)
+        if not 4 <= args.print_width <= 40:
+            raise ValueError("PRINT_WIDTH_INVALID")
+        if args.figure_width and args.figure_width != args.print_width:
+            raise ValueError("FIGURE_WIDTH_MUST_EQUAL_PRINT_WIDTH")
+        if args.figure_width and not 4 <= args.figure_width <= 40:
             raise ValueError("FIGURE_WIDTH_INVALID")
         if args.label_room and not 0.05 <= args.label_room <= 2.0:
             raise ValueError("LABEL_ROOM_INVALID")
         env = dict(os.environ, GG_HEXPAND=os.environ.get("GG_HEXPAND", "0.6"), SAPOTE_PYTHON=args.python, GG_DISPLAY_RECEIPT=receipt,
-                   GG_DISPLAY_RECEIPT_SHA256=digest(receipt), GG_GATE_TREE=f'{prefix}_pruned.nwk',
-                   GG_STRIPS='1' if args.label_style in {'noloc', 'publication-noloc'} else '2', GG_STRIP1_TITLE='Isolation source', GG_STRIP2_TITLE='Location',
+                   GG_DISPLAY_RECEIPT_SHA256=digest(receipt), GG_GATE_TREE=str(gated_tree),
+                   GG_ROOT_POLICY='display_rooted_split', GG_DIAGNOSTIC_ROOTING_RECEIPT='', GG_DIAGNOSTIC_ROOTING_SHA256='',
+                   GG_STRIPS=('2' if args.strip_set == 'activity' else '1' if args.label_style in {'noloc', 'publication-noloc'} else '2'),
+                   GG_STRIP1_TITLE=('*Candida* sp.' if args.strip_set == 'activity' else 'Isolation source'),
+                   GG_STRIP2_TITLE=('MRSA' if args.strip_set == 'activity' else 'Location'),
+                   GG_STRIP_KIND=('activity' if args.strip_set == 'activity' else 'source'),
+                   GG_ACTIVITY_PALETTE=args.activity_palette,
+                   GG_STRIP1_FACE=('italic' if args.strip_set == 'activity' else 'plain'),
+                   GG_BLANK_MISSING=('1' if args.omit_unsourced or split_activity else '0'),
+                   GG_FOCAL_FACE=('bold' if args.isolate_emphasis in {'bold', 'bold-band'} else os.environ.get('GG_FOCAL_FACE', 'plain')),
+                   GG_FOCAL_BAND=('#FFF1C4' if args.isolate_emphasis == 'bold-band' else ''),
+                   GG_FIT_LABELS='1', GG_PRINT_WIDTH=str(args.print_width), GG_ACTIVITY_SPEC=json.dumps(activity_strips),
+                   GG_CAPTION_MD=('1' if args.label_style == 'short' and not args.methods else ''),
                    GG_ITALIC='1', GG_FIGID=args.fig_id or args.name, GG_METHODS=caption)
+        if root_record.get("locked_outgroup_accession"):
+            # .452: the gate exempted the ingroup half of the root edge to the LOCKED outgroup; the renderer draws
+            # the root edge shortened with a break mark and prints its true length (measured on the gated tree).
+            _tsc = _load("tree_sanity_check")
+            _stem = _tsc._locked_root_stem(_tsc.parse(str(gated_tree)), [outgroup], root_record["locked_outgroup_accession"])
+            if not _stem:
+                raise ValueError("LOCKED_ROOT_EDGE_NOT_FOUND")
+            env['GG_LOCKED_ROOT_EDGE'] = f"{_stem[0].l + _stem[1].l:.4f}"
+            env['GG_LOCKED_ROOT_RECEIPT'] = str(root_receipt)
+            env['GG_LOCKED_ROOT_RECEIPT_SHA256'] = digest(root_receipt)
+            env['GG_METHODS'] = env['GG_METHODS'] + (f" The root edge to the outgroup ({_stem[0].l + _stem[1].l:.2f} substitutions "
+                                                     "per site) is drawn shortened, with a break mark.")
         if args.figure_width:
             env['GG_FIG_WIDTH'] = str(args.figure_width)
         if args.label_room:
@@ -778,6 +1082,34 @@ def main(argv=None):
         png, pdf = Path(f'{prefix}_rect02.png'), Path(f'{prefix}_rect02.pdf')
         if any(not p.is_file() or not p.stat().st_size for p in (png,pdf)):
             raise ValueError('RENDER_OUTPUT_MISSING')
+        diagnostic_artifacts = {}
+        if root_record["long_root_branch"] and not root_record.get("locked_outgroup_accession"):
+            diagnostic_prefix = Path(str(prefix) + '_root_as_built_GATE_FAIL_diagnostic')
+            original_tree = root_receipt.parent / root_record["variants"]["root_as_built"]["tree"]["path"]
+            root_variants.verify_diagnostic(root_receipt, digest(root_receipt), original_tree)
+            _run([args.python, str(HERE/'collapse_near_identical.py'), str(aligned), str(original_tree), str(meta),
+                  '--max-nt', str(args.max_nt), '--min-cols', str(args.min_cols), '--group-label', 'representative',
+                  '--out-prefix', str(diagnostic_prefix)])
+            diagnostic_receipt = Path(str(diagnostic_prefix) + '_display_receipt.json')
+            diagnostic_env = dict(env, GG_DISPLAY_RECEIPT=str(diagnostic_receipt),
+                                  GG_DISPLAY_RECEIPT_SHA256=digest(diagnostic_receipt), GG_GATE_TREE=str(original_tree),
+                                  GG_DIAGNOSTIC_ROOTING_RECEIPT=str(root_receipt),
+                                  GG_DIAGNOSTIC_ROOTING_SHA256=digest(root_receipt), GG_ROOT_POLICY='root_as_built',
+                                  GG_METHODS='Root-as-built variant. Scale bar, substitutions per site.')
+            result_diagnostic = _run([args.rscript, str(HERE/'ggtree_rect_heatmap.R'),
+                                     str(diagnostic_prefix) + '_display.nwk', str(diagnostic_prefix) + '_display_meta.tsv',
+                                     str(diagnostic_prefix) + '_rect02', focal], diagnostic_env)
+            (out/'render_root_as_built_diagnostic.log').write_text(result_diagnostic.stdout + result_diagnostic.stderr)
+            diagnostic_artifacts = {p.name: digest(p) for p in out.glob(diagnostic_prefix.name + '*') if p.is_file()}
+        if args.plot_only:
+            # v9.7.444 trial: same tree and strips, no caption band, beside the captioned figure.
+            env_po = dict(env, GG_METHODS='')
+            r_po = _run([args.rscript, str(HERE/'ggtree_rect_heatmap.R'), f'{prefix}_display.nwk', f'{prefix}_display_meta.tsv', f'{prefix}_rect02_plot_only', focal], env_po)
+            (out/'render_plot_only.log').write_text(r_po.stdout+r_po.stderr)
+            if any(not p.is_file() or not p.stat().st_size for p in (Path(f'{prefix}_rect02_plot_only.png'), Path(f'{prefix}_rect02_plot_only.pdf'))):
+                raise ValueError('PLOT_ONLY_OUTPUT_MISSING')
+        if caption and args.label_style == "short":
+            (out/'CAPTION.md').write_text(caption + "\n")
         if any(digest(p)!=h for p,h in hashes.items()):
             raise ValueError('DISPLAY_SOURCE_CHANGED')
         methods_ledger, methods_md = write_methods_package(
@@ -792,11 +1124,21 @@ def main(argv=None):
                      complete_methods=methods_md.name, complete_methods_sha256=digest(methods_md))
         final['length_admission'] = {"state": length_admission["state"], "receipt_sha256": length_admission["receipt_sha256"],
                                      "selected_tree_sha256": digest(src), "scope": length_admission["qa"]["scope"]}
+        final['activity_strips'] = activity_strips
+        final['bioassay_layout'] = args.layout
+        final['render_environment'] = {key: value for key, value in env.items() if key.startswith('GG_') and key not in {'GG_DISPLAY_RECEIPT','GG_DISPLAY_RECEIPT_SHA256','GG_GATE_TREE'} or key == 'SAPOTE_GEOGRAPHY_LEVEL'}
+        final['root_policy'] = 'display_rooted_split'
+        final['root_variants'] = {'path': root_receipt.name, 'sha256': digest(root_receipt),
+                                  'accepted_variant': 'display_rooted_split',
+                                  'original_gate_pass': root_record['variants']['root_as_built']['gate_pass'],
+                                  'split_gate_pass': True, 'diagnostic_artifacts': diagnostic_artifacts}
+        final['page_manifest'] = json.loads(Path(f'{prefix}_rect02.pages.json').read_text())
+        final['page_artifacts'] = {item[key]: digest(out/item[key]) for item in final['page_manifest']['pages'] for key in ('pdf','png')}
+        final['reviewed_type_evidence'] = type_evidence
         final['project_accessions_checked_against_reference_role'] = project_accessions_checked
         final['reference_selection_mode'] = ('keep_all_references' if args.keep_all_references
                                              else f'{args.neighbors_per_query}_nearest_per_query')
         final['standalone_collaborator_package'] = 'standalone_R_package'
-        final['reviewed_type_evidence'] = type_evidence
         final['standalone_package_contract'] = [
             f'{args.name}_render_figure.R', f'{args.name}_tree.nwk', f'{args.name}_analysis_tree.nwk',
             f'{args.name}_metadata.tsv', f'{args.name}_aligned_sequences.fasta',
@@ -804,6 +1146,7 @@ def main(argv=None):
             f'{args.name}_clean.png', f'{args.name}_clean.pdf',
             f'{args.name}_rerender_captioned.sh', 'MANIFEST.json',
         ]
+        (out/'placement_display_receipt.json').write_text(json.dumps(final,indent=2)+'\n')
         package = out / 'standalone_R_package'
         export_command = [args.python, str(HERE/'export_tree_figure_source_package.py'),
                           str(out), '--out', str(package)]
@@ -811,6 +1154,10 @@ def main(argv=None):
                               ([Path(args.reference_role_table)] if args.reference_role_table else []) +
                               ([Path(args.required_reference_table)] if args.required_reference_table else []) +
                               ([Path(args.genus_roster)] if args.genus_roster else []))
+        if args.bioassay_table:
+            caller_supplements.append(Path(args.bioassay_table))
+        if args.layout:
+            caller_supplements.append(Path(args.layout_config) if args.layout_config else HERE.parent/'mamey/data/bioassay_layouts.json')
         length_supplements = _length_audit_supplements(out, length_admission, caller_supplements)
         for supplement_path in caller_supplements + length_supplements:
             export_command += ['--supplement', str(supplement_path)]
@@ -821,8 +1168,7 @@ def main(argv=None):
             raise ValueError('STANDALONE_PACKAGE_INCOMPLETE: ' + ','.join(missing_package_files))
         _admit_run_layout(run)
         if any(digest(p) != h for p, h in hashes.items()):
-            raise ValueError("DISPLAY_SOURCE_CHANGED")
-        (out/'placement_display_receipt.json').write_text(json.dumps(final, indent=2)+'\n')
+            raise ValueError('DISPLAY_SOURCE_CHANGED')
         _LOG.info(f'DISPLAY_COMPLETE {out}')
         return 0
     except (ValueError, OSError, sqlite3.Error) as exc:

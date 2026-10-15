@@ -139,6 +139,8 @@ def submit_ebi(fasta, state, database="uniprotkb_bacteria", email=None,
             "acknowledgement; pass --confirm-public-sequence-upload"
         )
     d = _load(state)
+    if d and d.get("database") != database:
+        raise ValueError("blastp-ebi resume database differs from the saved state; use a new state")
     if d:
         pending = [lt for lt, j in d.get("jobs", {}).items()
                    if j and not str(j).startswith("ERR") and not (d.get("results") or {}).get(lt)]

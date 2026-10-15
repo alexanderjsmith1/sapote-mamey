@@ -36,6 +36,11 @@ discriminator the saccharide-cluster comparisons hinged on.
 from __future__ import annotations
 
 import os
+import hashlib
+import importlib
+import importlib.metadata
+import platform
+import sys
 import shutil
 import subprocess
 import tempfile
@@ -93,7 +98,7 @@ def _sensitivity_args(sensitivity: str | None) -> list[str]:
 
 
 def _run_diamond_blastp_raw(db_path: str, query_fasta: str, out_path: str, threads: int,
-                            sensitivity: str | None = None) -> None:
+                            sensitivity: str | None = None) -> list[str]:
     """Call DIAMOND blastp with an explicit -outfmt 6 column spec via the raw argv entry
     point. The high-level diamond4py .blastp() does not forward --outfmt, so we drive
     libdiamond.main() directly to get the identity/coverage columns."""
@@ -108,7 +113,65 @@ def _run_diamond_blastp_raw(db_path: str, query_fasta: str, out_path: str, threa
         "--quiet",
         *_sensitivity_args(sensitivity),
     ]
-    main(*args)
+    result = main(*args)
+    if result not in (None, 0):
+        raise RuntimeError(f"DIAMOND binding returned failure status: {result!r}")
+    return args
+
+
+def _forward_provenance(backend, query, reference, threads, min_pident, min_qcov, sensitivity, executable=None):
+    """Record the selected backend; omitted backend defaults stay explicitly unknown.
+
+    Fingerprints and version discovery are observational. Their failure is retained
+    as a warning and never changes the search settings or the hit rows.
+    """
+    record = {"schema_version": "sapote.forward-alignment.v1", "backend": backend,
+              "python_version": platform.python_version(), "python_executable": sys.executable,
+              "threads": threads, "sensitivity": sensitivity or "BACKEND_DEFAULT",
+              "backend_defaults": {"evalue": "NOT_EXPLICITLY_SET", "max_target_seqs": "NOT_EXPLICITLY_SET"},
+              "post_filters": {"min_pident": min_pident, "min_qcov": min_qcov},
+              "inputs": {}, "warnings": []}
+    def fingerprint(path):
+        try:
+            h = hashlib.sha256()
+            with open(path, "rb") as f:
+                for block in iter(lambda: f.read(1024 * 1024), b""):
+                    h.update(block)
+            return {"path": os.path.realpath(path), "sha256": h.hexdigest()}
+        except (OSError, TypeError) as exc:
+            record["warnings"].append(f"fingerprint unavailable: {path}: {type(exc).__name__}")
+            return {"path": str(path), "sha256": None}
+    record["inputs"] = {"query": fingerprint(query), "reference": fingerprint(reference)}
+    record["wrapper"] = fingerprint(__file__)
+    if backend == "diamond_cli":
+        record["executable"] = fingerprint(executable)
+        try:
+            result = subprocess.run([executable, "version"], capture_output=True, text=True, timeout=10, check=False)
+            version = (result.stdout or result.stderr or "").strip()
+            if result.returncode != 0 or not version:
+                raise RuntimeError("empty or unsuccessful version response")
+            record["engine_version_response"] = version
+        except Exception as exc:
+            record["engine_version_response"] = None
+            record["warnings"].append(f"engine version unavailable: {type(exc).__name__}")
+    else:
+        # The Python distribution version is not asserted to be the embedded engine version.
+        record["engine_version_response"] = None
+        record["engine_version_state"] = "NOT_REPORTED_BY_BINDING"
+        try:
+            record["binding_package_version"] = importlib.metadata.version("diamond4py")
+        except Exception:
+            record["binding_package_version"] = None
+            record["warnings"].append("diamond4py distribution metadata unavailable")
+        for name in ("diamond4py", "diamond4py.libdiamond"):
+            try:
+                module = importlib.import_module(name)
+                record[name] = fingerprint(getattr(module, "__file__", None))
+            except Exception as exc:
+                record[name] = {"path": None, "sha256": None}
+                record["warnings"].append(f"module identity unavailable: {name}: {type(exc).__name__}")
+    record["capture_state"] = "PARTIAL" if record["warnings"] else "CAPTURED"
+    return record
 
 
 def build_db(reference_fasta: str, db_path: str, threads: int = 1) -> dict[str, Any]:
@@ -164,6 +227,7 @@ def align_fasta(query_fasta: str, reference_fasta: str, threads: int = 1,
     if not _have_binding:
         return _align_fasta_cli(query_fasta, reference_fasta, threads, min_pident, min_qcov, sensitivity)
 
+    provenance = _forward_provenance("diamond4py", query_fasta, reference_fasta, threads, min_pident, min_qcov, sensitivity)
     tmp = tempfile.mkdtemp(prefix="mamey_diamond_")
     try:
         db_path = os.path.join(tmp, "ref.dmnd")
@@ -171,9 +235,9 @@ def align_fasta(query_fasta: str, reference_fasta: str, threads: int = 1,
         if not built["ok"]:
             return {"ok": False, "hits": [], "n_hits": 0, "reason": built["reason"]}
         out_path = os.path.join(tmp, "hits.tsv")
-        _run_diamond_blastp_raw(built["db_path"], query_fasta, out_path, threads, sensitivity)
+        provenance["alignment_argv"] = _run_diamond_blastp_raw(built["db_path"], query_fasta, out_path, threads, sensitivity)
         hits = _parse_outfmt6(out_path, min_pident=min_pident, min_qcov=min_qcov)
-        return {"ok": True, "hits": hits, "n_hits": len(hits), "reason": "ok"}
+        return {"ok": True, "hits": hits, "n_hits": len(hits), "reason": "ok", "provenance": provenance}
     except Exception as exc:
         return {"ok": False, "hits": [], "n_hits": 0, "reason": f"blastp failed: {type(exc).__name__}: {exc}"}
     finally:
@@ -189,6 +253,7 @@ def _align_fasta_cli(query_fasta: str, reference_fasta: str, threads: int,
     exe = shutil.which("diamond")
     if not exe:
         return {"ok": False, "hits": [], "n_hits": 0, "reason": "no diamond CLI on PATH"}
+    provenance = _forward_provenance("diamond_cli", query_fasta, reference_fasta, threads, min_pident, min_qcov, sensitivity, exe)
     tmp = tempfile.mkdtemp(prefix="mamey_diamondcli_")
     try:
         db_path = os.path.join(tmp, "ref.dmnd")
@@ -196,12 +261,13 @@ def _align_fasta_cli(query_fasta: str, reference_fasta: str, threads: int,
         subprocess.run([exe, "makedb", "--in", reference_fasta, "--db", db_path,
                         "--threads", str(threads), "--quiet"],
                        check=True, capture_output=True)
-        subprocess.run([exe, "blastp", "--db", db_path, "--query", query_fasta, "--out", out_path,
-                        "--outfmt", "6", *_OUTFMT6_COLS, "--threads", str(threads), "--quiet",
-                        *_sensitivity_args(sensitivity)],
-                       check=True, capture_output=True)
+        command = [exe, "blastp", "--db", db_path, "--query", query_fasta, "--out", out_path,
+                   "--outfmt", "6", *_OUTFMT6_COLS, "--threads", str(threads), "--quiet",
+                   *_sensitivity_args(sensitivity)]
+        provenance["alignment_argv"] = command
+        subprocess.run(command, check=True, capture_output=True)
         hits = _parse_outfmt6(out_path, min_pident=min_pident, min_qcov=min_qcov)
-        return {"ok": True, "hits": hits, "n_hits": len(hits), "reason": "ok (diamond CLI)"}
+        return {"ok": True, "hits": hits, "n_hits": len(hits), "reason": "ok (diamond CLI)", "provenance": provenance}
     except Exception as exc:
         return {"ok": False, "hits": [], "n_hits": 0,
                 "reason": f"diamond CLI failed: {type(exc).__name__}: {exc}"}
@@ -237,17 +303,19 @@ def search_db(query_fasta: str, db_path: str, threads: int = 1, sensitivity: str
 
 def _parse_outfmt6(path: str, min_pident: float = 0.0, min_qcov: float = 0.0) -> list[dict[str, Any]]:
     """Parse a DIAMOND -outfmt 6 TSV with the _OUTFMT6_COLS column order into dicts.
-    Numeric columns are cast; unparseable rows are skipped."""
-    if not os.path.exists(path):
-        return []
+    Numeric columns are cast; absent output or malformed rows refuse admission.
+    A produced empty file remains a completed zero-hit output.
+    """
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"DIAMOND output not produced: {path}")
     _float_cols = {"pident", "evalue", "bitscore", "qcovhsp", "scovhsp"}
     _int_cols = {"length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send"}
     hits: list[dict[str, Any]] = []
     with open(path) as fh:
-        for line in fh:
+        for line_number, line in enumerate(fh, 1):
             parts = line.rstrip("\n").split("\t")
             if len(parts) != len(_OUTFMT6_COLS):
-                continue
+                raise ValueError(f"malformed DIAMOND output row {line_number}: wrong field count")
             row: dict[str, Any] = {}
             ok = True
             for col, val in zip(_OUTFMT6_COLS, parts):
@@ -266,7 +334,7 @@ def _parse_outfmt6(path: str, min_pident: float = 0.0, min_qcov: float = 0.0) ->
                 else:
                     row[col] = val
             if not ok:
-                continue
+                raise ValueError(f"malformed DIAMOND numeric output row {line_number}")
             if row.get("pident", 0.0) < min_pident:
                 continue
             if row.get("qcovhsp", 0.0) < min_qcov:

@@ -27,6 +27,7 @@ from __future__ import annotations
 import collections
 import re
 import statistics
+from pathlib import Path
 
 
 def savefig_metadata(path, tool):
@@ -51,6 +52,138 @@ SEG_BREAK_KB = 15.0    # a stretch longer than this with no drawn gene on it is 
 BREAK_GAP_KB = 2.4     # drawing width of that cut; the omitted length is printed on it
 SPLIT_LABEL_KB = 10.0  # a split gene gets one label when its two drawn pieces are this close; otherwise one label per piece
 GREY, LINE = "#D5D9DF", "#6B7280"
+# v4 (12 Oct): a strain gene with no match to the reference is filled by its BLASTp function class when a gene-name table
+# is given. Pale fills, so they never read as one of the reference colours above.
+CLASS_FILL = {"biosynthetic core": "#F7D9A8", "tailoring": "#D9EBC9", "regulator": "#CFE0F1", "transport": "#E6D8F0",
+              "resistance": "#F4CCCC", "housekeeping": "#E2E4E8", "other": "#F1F2F4", "hypothetical": "#FFFFFF"}
+CLASS_ORDER = ["biosynthetic core", "tailoring", "regulator", "transport", "resistance", "housekeeping", "other",
+               "hypothetical"]
+# identity shading of the reference-to-strain bands; a figure that prints one shared key reads these (card
+# attine_452_gap_rescue_panel_figure), so the key and the maps cannot drift apart
+IDENTITY_RAMP = ("#EEF1F5", "#1F4E79")
+IDENTITY_RANGE = (30, 100)
+
+
+def key_classes(named_here) -> tuple[list[str], bool]:
+    """The gene classes a map fills, in CLASS_ORDER, and whether any fill is marked class unclear: the same rule the map's
+    own class legend uses, so a shared key built from these lists exactly what the maps show."""
+    rows = [r or {} for r in (named_here or {}).values()]
+    present = [c for c in CLASS_ORDER if any(r.get("function_class") == c for r in rows)]
+    return present, any(r.get("function_class_ambiguous") == "yes" for r in rows)
+DB_SHORT = {"nr": "nr", "ClusteredNR": "ClusteredNR", "Swiss-Prot": "Swiss-Prot", "MIBiG": "MIBiG"}  # label prefix per database
+NAME_CHARS = 38  # a BLASTp name is cut to this many characters on the map; the gene table keeps it whole
+
+
+class GeneNames(dict):
+    """{locus tag: name row}, with .binding: how many rows bound by sequence, by length, or not at all (and why), and
+    .unbound_tags: tags whose row did not bind and that no other row names."""
+    binding: dict = {}
+    unbound_tags: frozenset = frozenset()
+
+    @property
+    def names_unbound(self) -> int:
+        return sum(n for k, n in self.binding.items() if k.startswith("unbound"))
+
+
+def load_gene_names(paths, strain, prots=None, prefer_db=None, length_fallback=None):
+    """-> {locus tag: row} for one strain from one or more name tables in the GENE_BLASTP_NAMES.tsv columns (strain,
+    gene, top10_consensus_name, top10_mean_identity, consensus_share, function_class, function_class_ambiguous, db).
+    The first table that names a gene wins, so pass NCBI names before local ones. Empty when no path.
+
+    prots: the genome being drawn (gap_directed_rescue.load_genome). Given, each row binds to a gene by its protein, not
+    its tag (mamey.protein_binding): by protein_sha256 when the table has it, else by tag only when aa_length agrees within
+    1 aa. Locus tags are numbered per antiSMASH run, so a name computed on another run can belong to a different gene.
+    Rows that do not bind are left out and counted in .binding.
+
+    prefer_db: None (default, unchanged: file order) or databases in priority order, e.g. ("nr",). A gene named by more
+    than one database then takes the row of the first listed database; ties keep file order.
+
+    length_fallback: None (default, unchanged) or a column read as the row's length when aa_length is empty, e.g.
+    "query_aa_length" (the length of the protein the search actually sent). The tag still binds only when that length
+    agrees with the genome's protein within 1 aa; a row with a checksum binds by the checksum as before."""
+    import csv
+    try:
+        from mamey.protein_binding import bind_name_rows
+    except ImportError:   # run as a script from tools/: the bundle root is one level up
+        import os, sys
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from mamey.protein_binding import bind_name_rows
+    if not paths:
+        return GeneNames()
+    if isinstance(paths, (str, Path)):
+        paths = [paths]
+    rows = []
+    for path in paths:
+        with open(path, newline="") as fh:
+            rows += [r for r in csv.DictReader(fh, delimiter="\t") if r.get("strain") == strain]
+    if length_fallback:   # copies, so the caller's table rows are not changed
+        rows = [dict(r, aa_length=r.get(length_fallback, "")) if not (r.get("aa_length") or "").strip() else r
+                for r in rows]
+    if prefer_db:   # stable: within one priority the file order stands
+        rank = {d: i for i, d in enumerate(prefer_db)}
+        rows.sort(key=lambda r: rank.get(r.get("db", ""), len(rank)))
+    if prots is None:
+        out = GeneNames()
+        for r in rows:
+            out.setdefault(r["gene"], r)
+        return out
+    bound, how, lost = bind_name_rows(rows, {p["tag"]: p.get("aa", "") for p in prots.values()})
+    out = GeneNames(bound)
+    out.binding, out.unbound_tags = dict(how), frozenset(lost)
+    return out
+
+
+def _blastp_label(row, other=None, name_chars=NAME_CHARS) -> str:
+    """A grey label for a strain gene with no match to this map's reference. The percentage always says what it is
+    measured against: `nr` = mean identity of the top 10 NCBI nr hits; `<name> ref` = identity to a gene of another
+    reference cluster that a different map of the same region matched (other = (short name, identity))."""
+    name = (row.get("top10_consensus_name") or "").strip() if row else ""
+    name = name or "unnamed protein"   # a hit with no usable consensus name (12 Oct: was "no BLASTp name")
+    if len(name) > name_chars:
+        name = name[:name_chars - 1].rstrip() + "…"
+    if other:
+        return f"{name} ({other[0]} ref {other[1]:.0f}%)"
+    db = DB_SHORT.get((row or {}).get("db", ""), (row or {}).get("db", "") or "nr")
+    try:
+        return f"{name} ({db} {float(row.get('top10_mean_identity') or 0):.0f}%)"
+    except (TypeError, ValueError, AttributeError):
+        return name
+
+
+def load_other_references(run_folder, core_identity):
+    """-> {locus tag: (reference short name, identity)} from other gap-rescue runs of the same core region, found as
+    sibling folders of run_folder (same `core` in gap_rescue_receipt.json, different reference). A tag matched by
+    several references keeps its highest identity. Split-gene rows (two tags) are skipped."""
+    import csv
+    import json
+    out = {}
+    if not run_folder:
+        return out
+    run_folder = Path(run_folder)
+    for sib in sorted(p for p in run_folder.parent.iterdir() if p.is_dir() and p != run_folder):
+        try:
+            rec = json.loads((sib / "gap_rescue_receipt.json").read_text())
+        except (OSError, ValueError):
+            continue
+        if rec.get("core") != core_identity:
+            continue
+        nm = (rec.get("reference_name") or rec.get("reference", "")).split("/")[0].strip()
+        nm = nm[:24]
+        try:
+            rows = list(csv.DictReader(open(sib / "gap_rescue.tsv"), delimiter="\t"))
+        except OSError:
+            continue
+        for r in rows:
+            tag, st = r.get("best_locus") or "", r.get("status") or ""
+            if not tag or st not in ("PRESENT_IN_CORE", "MISSING_FOUND_CLEAR"):
+                continue
+            try:
+                ident = float(r.get("best_identity_pct") or 0)
+            except ValueError:
+                continue
+            if tag not in out or ident > out[tag][1]:
+                out[tag] = (nm, ident)
+    return out
 PAL = ["#56B4E9", "#D55E00", "#CC79A7", "#8FBC5A", "#009E73", "#F0E442", "#E69F00", "#0072B2", "#B07AA1", "#9C755F",
        "#76B7B2", "#EDC948", "#FF9DA7", "#59A14F", "#4E79A7", "#F28E2B", "#E15759", "#BAB0AC"]
 ACCESSION = re.compile(r"^([A-Z]{1,6}_?\d{3,}(\.\d+)?|orf\d+[a-z]?)$")
@@ -114,6 +247,16 @@ def short(g: dict) -> str:
     if len(p) > 28:
         p = p[:27] + "…"
     return f"{acc} ({p})" if acc else p
+
+
+def short_panel(g: dict) -> str:
+    """A gene's label in a figure panel: its name with a capital, else the bare accession the gene table prints (the
+    product in brackets is left to the table). With no accession, the short product label."""
+    name = g.get("name") or ""
+    if not name:   # no name or accession at all: the short product, as short() would print it without one
+        p = re.sub(r"\s+(protein|family protein)$", "", g.get("product") or "", flags=re.I)
+        return p if len(p) <= 28 else p[:27] + "…"
+    return short(g) if named(g) else name
 
 
 def anchor_gene(ref, drawn, prots, core_contig, name=None):
@@ -215,15 +358,236 @@ def choose(ref, rows, splits, prots, core_contig, partner_contig=None, partner_r
     return drawn, split_info, order, not_drawn, secondary
 
 
-def _arrow(ax, x0, x1, y, strand, fc):
+def _arrow(ax, x0, x1, y, strand, fc, ls="solid"):
     from matplotlib.patches import Polygon
     hd = min(0.5, (x1 - x0) * 0.35); h = H / 2
     pts = ([(x0, y - h), (x1 - hd, y - h), (x1, y), (x1 - hd, y + h), (x0, y + h)] if strand >= 0 else
            [(x1, y - h), (x0 + hd, y - h), (x0, y), (x0 + hd, y + h), (x1, y + h)])
-    ax.add_patch(Polygon(pts, closed=True, fc=fc, ec="#333333", lw=0.6, zorder=3))
+    ax.add_patch(Polygon(pts, closed=True, fc=fc, ec="#333333", lw=0.6, ls=ls, zorder=3))
 
 
 NOTE_WRAP = 140  # footnote characters per line
+# Print widths (bundle docs/FIGURE_STYLE.md, publication artwork gate): SINGLE_COLUMN 3.5 in and DOUBLE_COLUMN 7.2 in,
+# every plot label at least 8 pt at that width, and no touching or overlapping labels (house rule 10). The 13.5 in screen
+# layout drew 6-7.5 pt text, which printed near 3.7 pt on a 7.2 in page. print_width=None keeps that layout exactly.
+PRINT_WIDTHS = {"single": 3.5, "double": 7.2}
+MIN_PRINT_PT = 8.0
+PRINT_NAME_CHARS = 26   # a BLASTp name is cut to this many characters at print width; the gene table keeps it whole
+PRINT_DRIFT = 2.0       # an unmatched-gene label may sit at most this many label spacings from its gene; otherwise it is
+                        # left to the gene table and counted in the footnote
+# at print width, which unmatched-gene labels are kept first when a row is crowded (house rule: core and tailoring first)
+PRINT_CLASS_RANK = {"biosynthetic core": 0, "tailoring": 1, "regulator": 2, "transport": 3, "resistance": 4,
+                    "other": 5, "housekeeping": 6, "hypothetical": 7}
+
+
+def fill_label_gaps(fixed, cands, min_dx, drift):
+    """Place labels into the free gaps of a row. fixed: anchor x of labels already placed (never moved). cands:
+    [(gene mid, key)] in priority order. Each candidate takes the position nearest its gene, no farther than drift, that
+    clears every placed anchor by min_dx (labels at 60 degrees are parallel lines, so anchor spacing alone keeps them
+    apart). -> (placed [(x, mid, key)], dropped [key])."""
+    xs, placed, dropped = sorted(fixed), [], []
+    for mid, key in cands:
+        best = None
+        bounds = [float("-inf")] + xs + [float("inf")]
+        for a, b in zip(bounds, bounds[1:]):
+            lo, hi = max(a + min_dx, mid - drift), min(b - min_dx, mid + drift)
+            if lo > hi:
+                continue
+            p = min(max(mid, lo), hi)
+            if best is None or abs(p - mid) < abs(best - mid):
+                best = p
+        if best is None:
+            dropped.append(key)
+            continue
+        xs.append(best); xs.sort()
+        placed.append((best, mid, key))
+    return placed, dropped
+
+
+def spread_labels(mids, min_dx, lo=None, hi=None):
+    """Anchor x for labels on one row, in the order of mids (sorted ascending), at least min_dx apart. A crowded run
+    is centred on its genes instead of being pushed right one by one (pushing right marched a crowded row's labels
+    past the drawing: a two-record Saccharothrix map ran 1.9 in over a 7.2 in page). Runs that touch merge. lo/hi keep
+    each run inside the drawing when it fits. -> list of x."""
+    runs = []   # [start, count, sum of (mid - i * min_dx)]
+    for m in mids:
+        runs.append([m, 1, m])
+        while len(runs) > 1:
+            a, b = runs[-2], runs[-1]
+            if a[0] + a[1] * min_dx <= b[0] + 1e-12:
+                break
+            n = a[1] + b[1]
+            tot = a[2] + b[2] - b[1] * a[1] * min_dx   # b's members sit a[1] places further along the merged run
+            runs[-2:] = [[tot / n, n, tot]]
+    out = []
+    for i, (start, n, _) in enumerate(runs):
+        if lo is not None and hi is not None and (n - 1) * min_dx <= hi - lo:
+            start = min(max(start, lo), hi - (n - 1) * min_dx)
+        out += [start + j * min_dx for j in range(n)]
+    # clamping can push a run back into its neighbour; one left-to-right pass restores the spacing
+    for i in range(1, len(out)):
+        out[i] = max(out[i], out[i - 1] + min_dx)
+    return out
+
+
+def _text_quad(t, rend):
+    """Display-space corners of a drawn text item, rotation included (an axis-aligned box of a rotated label is far
+    larger than the label and would report false collisions)."""
+    import numpy as np
+    ang = t.get_rotation()
+    if not ang:
+        bb = t.get_window_extent(rend)
+        return [(bb.x0, bb.y0), (bb.x1, bb.y0), (bb.x1, bb.y1), (bb.x0, bb.y1)]
+    t.set_rotation(0)
+    bb = t.get_window_extent(rend)
+    t.set_rotation(ang)
+    ax_, ay_ = t.get_transform().transform(t.get_position())
+    c, s_ = np.cos(np.radians(ang)), np.sin(np.radians(ang))
+    return [(ax_ + (x - ax_) * c - (y - ay_) * s_, ay_ + (x - ax_) * s_ + (y - ay_) * c)
+            for x, y in ((bb.x0, bb.y0), (bb.x1, bb.y0), (bb.x1, bb.y1), (bb.x0, bb.y1))]
+
+
+def _quads_touch(p, q, gap=0.0):
+    """Separating-axis test for two convex quads; touching (separation <= gap) counts as a collision."""
+    for poly in (p, q):
+        for i in range(4):
+            (x1, y1), (x2, y2) = poly[i], poly[(i + 1) % 4]
+            nx, ny = y2 - y1, x1 - x2
+            n = (nx * nx + ny * ny) ** 0.5 or 1.0
+            pa = [(x * nx + y * ny) / n for x, y in p]; qa = [(x * nx + y * ny) / n for x, y in q]
+            if max(pa) + gap < min(qa) or max(qa) + gap < min(pa):
+                return False
+    return True
+
+
+def wrap_to_width(ax, rend, text, max_px, **kw):
+    """Greedy word wrap of each paragraph so no line is wider than max_px when drawn with kw (fontsize, weight):
+    measured, not estimated from a character count, so bold and wide glyphs cannot run past the drawing."""
+    probe = ax.text(0, 0, "", **kw)
+
+    def fits(s):
+        probe.set_text(s)
+        return probe.get_window_extent(rend).width <= max_px
+
+    def pieces(word):
+        # a word wider than the line (a systematic compound name has no spaces) breaks after a hyphen or comma,
+        # the usual break points in a chemical name; a piece with no such point stays whole
+        if fits(word):
+            return [word]
+        cuts = [i + 1 for i, ch in enumerate(word[:-1]) if ch in "-,"]
+        out_p, start = [], 0
+        while start < len(word):
+            end = len(word)
+            if not fits(word[start:end]):
+                ok = [c for c in cuts if c > start and fits(word[start:c])]
+                end = ok[-1] if ok else next((c for c in cuts if c > start), len(word))
+            out_p.append(word[start:end]); start = end
+        return out_p
+
+    out = []
+    for para in text.split("\n"):
+        line = ""
+        for part in para.split(" "):
+          for k, word in enumerate(pieces(part)):
+            if k:   # a broken name continues on the next line with no space
+                out.append(line); line = word; continue
+            trial = word if not line else line + " " + word
+            probe.set_text(trial)
+            if line and probe.get_window_extent(rend).width > max_px:
+                out.append(line); line = word
+            else:
+                line = trial
+        out.append(line)
+    probe.remove()
+    return "\n".join(out)
+
+
+def text_overlaps(ax, rend, bands=(), gap=0.0):
+    """Text collisions on a finished map: label against label, and label against a gene row (bands: display-space
+    rectangles (x0, y0, x1, y1)). The "//" break glyphs sit on the row line by design and are not tested against it.
+    -> list of (text a, text b or "gene row") for every touching or overlapping pair."""
+    items = [(t, _text_quad(t, rend)) for t in ax.texts if t.get_visible() and t.get_text().strip()]
+    out = []
+    for i in range(len(items)):
+        for j in range(i + 1, len(items)):
+            if _quads_touch(items[i][1], items[j][1], gap):
+                out.append((items[i][0].get_text(), items[j][0].get_text()))
+    for t, q in items:
+        if t.get_text().strip() == "//":
+            continue
+        for x0, y0, x1, y1 in bands:
+            if _quads_touch(q, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], gap):
+                out.append((t.get_text(), "gene row"))
+                break
+    return out
+
+
+def drop_scale_bar_if_crowded(fig, ax, rend, cax, sb_line, sb_text, y0, y1, fig_w):
+    """Print width: if the identity colour bar (with its tick labels and title) touches the 5 kb scale bar or its
+    label, move the scale bar under the colour bar, right-aligned, and grow the page. -> the new lower y limit."""
+    to_data = lambda bb: bb.transformed(ax.transData.inverted())
+    cb = to_data(cax.get_tightbbox(rend))
+    sb = to_data(sb_text.get_window_extent(rend))
+    xs = sb_line.get_xdata()
+    if cb.x1 < min(xs[0], sb.x0) - 0.05:
+        return y0
+    ynew = cb.y0 - 0.25
+    sb_line.set_ydata([ynew, ynew])
+    sb_text.set_y(ynew - 0.07)
+    lo = to_data(sb_text.get_window_extent(rend)).y0
+    if lo < y0 + 0.05:
+        y0 = lo - 0.15
+        ax.set_ylim(y0, y1)
+        fig.set_size_inches(fig_w, 6.2 * (y1 - y0) / 7.3)
+    return y0
+
+
+def place_class_legend(fig, ax, rend, cax, handles, xmin, xmax, ybar, y0, y1, fig_w, per_in, fs):
+    """Print width: put the gene-class legend beside the identity colour bar, clear of its tick labels and of the
+    5 kb scale bar, using the most columns that fit; below the colour bar when even one column does not fit. The
+    page grows downward when the legend needs it. -> the new lower y limit."""
+    kw = dict(fontsize=fs(6.5), frameon=False, title="Genes not in the reference, by protein-search name",
+              title_fontsize=fs(7), handlelength=1.6, bbox_transform=ax.transData)
+    to_data = lambda bb: bb.transformed(ax.transData.inverted())
+    cb = to_data(cax.get_tightbbox(rend))
+    x_left, x_right = cb.x1 + 0.3 * per_in, xmax - 5.6 - 0.2 * per_in   # the scale bar starts at xmax - 5.6
+    leg = None
+    for ncol in range(min(4, len(handles)), 0, -1):
+        leg = ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(x_left, ybar + 0.12), ncol=ncol, **kw)
+        if to_data(leg.get_window_extent(rend)).x1 <= x_right:
+            break
+    else:   # no room beside the bar: a row of its own under it
+        for ncol in range(min(4, len(handles)), 0, -1):
+            leg = ax.legend(handles=handles, loc="upper left", bbox_to_anchor=(xmin + 0.1, cb.y0 - 0.1), ncol=ncol, **kw)
+            if to_data(leg.get_window_extent(rend)).x1 <= xmax:
+                break
+    for _ in range(2):   # growing the page moves nothing in data units; measure again after the resize
+        lb = to_data(leg.get_window_extent(rend))
+        if lb.y0 >= y0 + 0.05:
+            break
+        y0 = lb.y0 - 0.15
+        ax.set_ylim(y0, y1)
+        fig.set_size_inches(fig_w, 6.2 * (y1 - y0) / 7.3)
+    return y0
+
+
+def footer_overlaps(ax, cax, rend):
+    """Collisions among the footer pieces that text_overlaps cannot see: the colour bar with its tick labels and
+    title, the gene-class legend, and every text on the map axes (footnote, scale-bar label, captions).
+    -> list of (a, b) name pairs whose boxes touch."""
+    boxes = []
+    if cax is not None:
+        boxes.append(("identity colour bar", cax.get_tightbbox(rend)))
+    leg = ax.get_legend()
+    if leg is not None:
+        boxes.append(("gene-class legend", leg.get_window_extent(rend)))
+    texts = [(t.get_text(), t.get_window_extent(rend)) for t in ax.texts if t.get_visible() and t.get_text().strip()]
+    out = []
+    for i, (na, a) in enumerate(boxes):
+        for nb, b in boxes[i + 1:] + texts:
+            if a.x0 <= b.x1 and b.x0 <= a.x1 and a.y0 <= b.y1 and b.y0 <= a.y1:
+                out.append((na, nb if isinstance(nb, str) else str(nb)))
+    return out
 
 
 def bulk_offset(ref, drawn, xpos, prots, core_contig):
@@ -438,7 +802,8 @@ def context_contigs(rows, prots, drawn, core_contig, flank=CONTEXT_FLANK, max_ro
 
 def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name, out_png, out_pdf=None, pdf_pages=None,
                    partner=None, pair_note="", partner_rows=None, link_label="RG-GMCI link", link_colour=LINK,
-                   anchor=None, context_partners=False):
+                   anchor=None, context_partners=False, gene_names=None, other_refs=None, print_width=None,
+                   row_label=None, trim_kb=None, panel=False, key=True):
     """rows, splits: gap_directed_rescue tables (dicts; strings or typed). prots, regions, core: its genome structures.
     partner: a second region (same keys as core) for an RG-GMCI pair map. Fragment A (the core) is turned so its contig
     end faces right, fragment B so its contig end faces left, with a link marker between them. The marker is
@@ -446,7 +811,29 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
     caller say what the pair is: a purple link for complementary fragments, a grey "overlap" marker for two copies of
     the same part of the reference, which is not a rescue. anchor: the reference gene both rows are centred on
     (anchor_gene). context_partners: add a context row for each off-region match this map does not draw (see
-    context_contigs). Off by default; it changes nothing that is drawn, ribboned or counted."""
+    context_contigs). Off by default; it changes nothing that is drawn, ribboned or counted.
+    print_width: None (the 13.5 in screen layout, unchanged), "single" (3.5 in) or "double" (7.2 in). At a print width
+    the map is drawn at that width with every text item at least 8 pt; matched-gene labels are all kept, unmatched-gene
+    labels fill the free space by function class and the rest are counted in the footnote (the gene table lists every
+    gene); the finished drawing is checked for touching text and refused (GAP_RESCUE_MAP_TEXT_OVERLAP) before any
+    file is written.
+    row_label: the text drawn left of the strain row (house rule 6: a reference strain by its deposited name and strain,
+    accession in brackets). Default: label; at a print width an underscored label is shown with spaces.
+    trim_kb: None (default, unchanged) or a margin in kb. Both rows are cropped to the drawn matches plus that margin
+    on each side: the reference row to its matched genes, the core contig to its matched genes (not the whole
+    antiSMASH region). Genes outside the window are not drawn; the title gives the full and shown reference length and
+    the footnote says the rows are cropped. Counts and the gene table are unchanged. Not used for pair maps.
+    panel: False (default, unchanged) or True for a panel of a multi-panel figure, at a print width only. The footnote is
+    not drawn (it is returned as before, for the caption), and a reference gene with no gene name is labelled by its
+    accession alone (short_panel); the gene table keeps the product. key: False leaves out the identity colour bar and
+    the gene-class legend, for a figure that prints one shared key; panel only. The scale bar is always drawn."""
+    if print_width is not None and print_width not in PRINT_WIDTHS:
+        raise ValueError(f"print_width must be None, 'single' or 'double', not {print_width!r}")
+    if panel and print_width is None:
+        raise ValueError("GAP_RESCUE_MAP_PANEL: panel needs a print width ('single' or 'double')")
+    if not key and not panel:
+        raise ValueError("GAP_RESCUE_MAP_PANEL: key=False is for a panel (panel=True) only")
+    label_of = short_panel if panel else short
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -473,6 +860,15 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
     if not partner:   # 6 Oct: one far match stretched a 1.2 Mb core contig across the figure, so every gene became a sliver
         drawn, far = main_blocks(drawn, prots, core, split_info)
         not_drawn += far
+    ref_full_len, trim = ref_len, (float(trim_kb) if trim_kb is not None and drawn and not partner else None)
+    if trim is not None:
+        if trim < 0:
+            raise ValueError("trim_kb must be zero or more")
+        ks_drawn = {k for k, _, _ in drawn}
+        r0 = max(0.0, min(ref[k]["s"] for k in ks_drawn) - trim)
+        r1 = min(ref_len, max(ref[k]["e"] for k in ks_drawn) + trim)
+        ref = [dict(g, s=max(g["s"], r0) - r0, e=min(g["e"], r1) - r0, _out=g["e"] <= r0 or g["s"] >= r1) for g in ref]
+        ref_len = r1 - r0
     verdict_of = {r.get("best_protein"): r.get("partner_verdict") for r in rows if r.get("best_protein")}
     single_gene = {c for c in order[1:] if c not in {prots[p]["contig"] for s in split_info.values() for p in s[:2]}
                    and not (partner and c == partner["contig"])
@@ -493,13 +889,16 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
         if c == core_contig or (partner and c == partner["contig"]):
             base = core if c == core_contig else partner
             lo, hi = base["start"], base["end"]
+            if trim is not None and ms:   # cropped: the window follows the matched genes, not the whole region
+                lo, hi = min(prots[pid]["start"] for _, pid, _ in ms), max(prots[pid]["end"] for _, pid, _ in ms)
             for _, pid, _ in ([] if partner else ms):   # a pair map keeps each fragment to its own region
                 lo, hi = min(lo, prots[pid]["start"]), max(hi, prots[pid]["end"])
         elif c in ctx:
             lo, hi, _ = ctx[c]
         else:
             lo = min(prots[pid]["start"] for _, pid, _ in ms); hi = max(prots[pid]["end"] for _, pid, _ in ms)
-        lo, hi = (0, L[c]) if L[c] <= 12000 else (max(0, lo - 2500), min(L[c], hi + 2500))
+        pad = 2500 if trim is None else int(trim * 1000)
+        lo, hi = (0, L[c]) if L[c] <= 12000 else (max(0, lo - pad), min(L[c], hi + pad))
         mids = [((prots[pid]["start"] + prots[pid]["end"]) / 2, (ref[k]["s"] + ref[k]["e"]) / 2) for k, pid, _ in ms]
         # strand first (2 Oct: after an order-based flip a siderophore map had every arrow pointing the wrong way): the
         # length-weighted share of matches whose strand disagrees with their reference gene decides; gene order (length-
@@ -554,7 +953,7 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
         for i, s in enumerate(seg):
             c = s["contig"]
             spans = [(prots[pid]["start"], prots[pid]["end"]) for _, pid, _ in by_contig[c]]
-            if c == core_contig:
+            if c == core_contig and trim is None:
                 spans.append((core["start"], core["end"]))
             parts = contig_parts(s["lo"], s["hi"], s["L"], spans)
             if s["flip"]:
@@ -598,231 +997,453 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
         else:
             off = 0.0
     xmin, xmax = min(0.0, off) - 0.6, max(ref_len, end + off) + 0.6
-    Y_V, Y_A = 2.3, 0.0
-    fig, ax = plt.subplots(figsize=(13.5, 6.2))
-    ax.set_xlim(xmin, xmax); ax.set_ylim(-3.6, 3.7); ax.axis("off")
-    fig.canvas.draw()
-    rend = fig.canvas.get_renderer()
-    inv = ax.transData.inverted()
-    cmap = LinearSegmentedColormap.from_list("id", ["#EEF1F5", "#1F4E79"]); norm = Normalize(30, 100)
-    for k, pid, ident in drawn:
-        a, b, _ = xpos[pid]; g = ref[k]
-        ax.add_patch(Polygon([(g["s"], Y_V - H / 2), (g["e"], Y_V - H / 2), (b + off, Y_A + H / 2), (a + off, Y_A + H / 2)],
-                             closed=True, fc=cmap(norm(ident)), ec="none", alpha=0.85, zorder=1))
-    ax.plot([0, ref_len], [Y_V, Y_V], color=LINE, lw=0.8, zorder=2)
-    # labels at 60 degrees are parallel lines: keep their anchors far enough apart that neighbours cannot touch
-    line_px = 7.5 * fig.dpi / 72 * 1.3
-    min_dx = abs(inv.transform((line_px / 0.866, 0))[0] - inv.transform((0, 0))[0])
-    highs, last = [], None
-    for k, g in enumerate(ref):
-        _arrow(ax, g["s"], g["e"], Y_V, g["strand"], colour.get(k, GREY))
-    for k, g in enumerate(ref):
-        if not (named(g) or k in colour):
-            continue
-        mx = lx = (g["s"] + g["e"]) / 2
-        if last is not None and lx < last + min_dx:
-            lx = last + min_dx
-        last = lx
-        if lx - mx > 0.05:  # a label pushed sideways keeps a thin lead to its gene
-            ax.plot([mx, lx], [Y_V + H / 2 + 0.02, Y_V + H / 2 + 0.07], color="#9CA3AF", lw=0.5, zorder=3)
-        t = ax.text(lx, Y_V + H / 2 + 0.08, short(g) if k in colour else g["name"], ha="left", va="bottom", fontsize=7.5,
-                    rotation=60, rotation_mode="anchor", style="italic" if named(g) else "normal",
-                    weight="bold" if k in colour else "normal", color="#111827" if k in colour else "#6B7280")
-        highs.append(t.get_window_extent(rend).transformed(inv).y1)
-    top = max(highs + [Y_V + H / 2 + 0.3]) + 0.2
-    acc = str(ref_gbk).replace("\\", "/").split("/")[-1].rsplit(".", 1)[0]
-    # the accession is only a MIBiG id when it looks like one: a reference taken from a GenBank record was being
-    # titled "MIBiG <GenBank accession>", which names the wrong database
-    kind = "MIBiG " if re.match(r"^BGC\d+", acc) else ""
-    if ref_name:
-        name = ref_name[:1].upper() + ref_name[1:]
-        # a compound list is wrapped, never cut: the cut used to land mid-word ("everninomici cluster")
-        if len(name) > 70:
-            parts, line, out_lines = name.split("/"), "", []
-            for q in parts:
-                line = q if not line else (line + "/" + q)
-                if len(line) > 70:
-                    out_lines.append(line); line = ""
-            if line:
-                out_lines.append(line)
-            name = "/\n".join(x.strip("/") for x in out_lines if x)
-        head = f"{name} cluster ({kind}{acc}, {ref_len:.1f} kb)"
-    else:
-        head = f"Reference cluster {acc} ({ref_len:.1f} kb)"
-    ax.text(0, top, head, fontsize=9, weight="bold", va="bottom")
+    Y_V, Y_A = (1.5 if panel else 2.3), 0.0   # a panel keeps a shorter ribbon band
+    gene_names, other_refs = gene_names or {}, other_refs or {}
+    W = PRINT_WIDTHS.get(print_width)       # None: the 13.5 in screen layout, unchanged
+    fs = (lambda v: v) if W is None else (lambda v: max(MIN_PRINT_PT, v))
+    note_wrap = NOTE_WRAP   # screen layout only; at a print width the footnote is wrapped by measurement
+    name_chars = NAME_CHARS if W is None else PRINT_NAME_CHARS
 
-    for i, s in enumerate(seg):
-        a, b = s["x0"] + off, s["x0"] + s["w"] + off
-        ax.plot([a, b], [Y_A, Y_A], color=LINE, lw=0.8, zorder=2)
-        if i and (i - 1, i) in pair_of:
-            ax.text(a - SPLIT_GAP_KB / 2, Y_A, "//", ha="center", va="center", fontsize=10, color="#B91C1C",
-                    weight="bold", zorder=4)
-            ax.text(a - SPLIT_GAP_KB / 2, Y_A + H / 2 + 0.12, "gap" + (" (RG-GMCI pair)" if link and i == 1 else ""),
-                    ha="center", va="bottom", fontsize=7, color="#B91C1C")
-        elif link and i == 1:
-            ax.text(a - SPLIT_GAP_KB / 2, Y_A, "//", ha="center", va="center", fontsize=10, color=link_colour, weight="bold",
-                    zorder=4)
-            ax.text(a - SPLIT_GAP_KB / 2, Y_A + H / 2 + 0.12, link_label, ha="center", va="bottom", fontsize=7,
-                    color=link_colour)
-        elif i and seg[i - 1]["contig"] == s["contig"]:
-            p = seg[i - 1]
-            omitted = (max(p["lo"], s["lo"]) - min(p["hi"], s["hi"])) / 1000
-            ax.text(a - BREAK_GAP_KB / 2, Y_A, "//", ha="center", va="center", fontsize=10, color=LINE, zorder=4)
-            ax.text(a - BREAK_GAP_KB / 2, Y_A + H / 2 + 0.12, f"{omitted:.0f} kb\nnot drawn", ha="center", va="bottom",
-                    fontsize=6.5, color=LINE, linespacing=1.1)
-        elif i:
-            ax.text(a - CUT_GAP_KB / 2, Y_A, "//", ha="center", va="center", fontsize=10, color=LINE, zorder=4)
-    for pid, (a, b, st) in xpos.items():
-        k = next((k for k, q, _ in drawn if q == pid), None)
-        _arrow(ax, a + off, b + off, Y_A, st, colour.get(k, GREY) if k is not None else GREY)
-    # labels at 60 degrees are parallel lines: keep their anchors far enough apart that neighbours cannot touch
-    line_px = 7 * fig.dpi / 72 * 1.3
-    min_dx = abs(inv.transform((line_px / 0.866, 0))[0] - inv.transform((0, 0))[0])
-    lows, done, last = [], set(), None
-    for k, pid, ident in sorted(drawn, key=lambda m: xpos[m[1]][0]):
-        a, b, _ = xpos[pid]
-        mid = lambda p: (xpos[p][0] + xpos[p][1]) / 2
-        if k in split_info and all(p in xpos for p in split_info[k][:2]) \
-                and abs(mid(split_info[k][0]) - mid(split_info[k][1])) <= SPLIT_LABEL_KB:  # pieces side by side: one label
-            if k in done:
+    def _render(fig_w, level=0):
+        """Draw the whole map on a canvas fig_w inches wide. -> (fig, ax, rend, result dict); nothing is saved.
+        level (print width only) is how far the map is shrunk to fit: 1 = no unmatched-gene names, 2 = also short
+        segment captions, 3 = also a wrapped row label (a narrower left gutter)."""
+        fig, ax = plt.subplots(figsize=(fig_w, 6.2))
+        ax.set_xlim(xmin, xmax); ax.set_ylim(-3.6, 3.7); ax.axis("off")
+        fig.canvas.draw()
+        rend = fig.canvas.get_renderer()
+        inv = ax.transData.inverted()
+        omitted = {"reference": 0, "strain": 0}
+        cmap = LinearSegmentedColormap.from_list("id", list(IDENTITY_RAMP)); norm = Normalize(*IDENTITY_RANGE)
+        for k, pid, ident in drawn:
+            a, b, _ = xpos[pid]; g = ref[k]
+            ax.add_patch(Polygon([(g["s"], Y_V - H / 2), (g["e"], Y_V - H / 2), (b + off, Y_A + H / 2), (a + off, Y_A + H / 2)],
+                                 closed=True, fc=cmap(norm(ident)), ec="none", alpha=0.85, zorder=1))
+        ax.plot([0, ref_len], [Y_V, Y_V], color=LINE, lw=0.8, zorder=2)
+        # labels at 60 degrees are parallel lines: keep their anchors far enough apart that neighbours cannot touch
+        line_px = fs(7.5) * fig.dpi / 72 * 1.3
+        min_dx = abs(inv.transform((line_px / 0.866, 0))[0] - inv.transform((0, 0))[0])
+        highs, last = [], None
+        for k, g in enumerate(ref):
+            if g.get("_out"):
                 continue
-            done.add(k)
-            p1, p2, i1, i2 = split_info[k]
-            lx = (mid(p1) + mid(p2)) / 2
-            lab = f"{short(ref[k])}-like, split {i1:.0f}% | {i2:.0f}%"
-        elif k in split_info and all(p in xpos for p in split_info[k][:2]):
-            # pieces drawn far apart (6 Oct: a spectinomycin-like map put one label between pieces 20 kb apart, and the
-            # spreading pass pushed the next gene's label along with it): each piece is labelled under itself
-            n = split_info[k][:2].index(pid) + 1
-            lx, lab = (a + b) / 2, f"{short(ref[k])}-like, split piece {n} of 2, {split_info[k][1 + n]:.0f}%"
+            _arrow(ax, g["s"], g["e"], Y_V, g["strand"], colour.get(k, GREY))
+
+        def ref_label(k, g, lx, mx):
+            if lx - mx > 0.05 or mx - lx > 0.05:  # a label pushed sideways keeps a thin lead to its gene
+                ax.plot([mx, lx], [Y_V + H / 2 + 0.02, Y_V + H / 2 + 0.07], color="#9CA3AF", lw=0.5, zorder=3)
+            t = ax.text(lx, Y_V + H / 2 + 0.08, label_of(g) if k in colour else g["name"], ha="left", va="bottom",
+                        fontsize=fs(7.5), rotation=60, rotation_mode="anchor", style="italic" if named(g) else "normal",
+                        weight="bold" if k in colour else "normal", color="#111827" if k in colour else "#6B7280")
+            highs.append(t.get_window_extent(rend).transformed(inv).y1)
+        if W is None:
+            for k, g in enumerate(ref):
+                if g.get("_out"):
+                    continue
+                if not (named(g) or k in colour):
+                    continue
+                mx = lx = (g["s"] + g["e"]) / 2
+                if last is not None and lx < last + min_dx:
+                    lx = last + min_dx
+                last = lx
+                ref_label(k, g, lx, mx)
         else:
-            lx, lab = (a + b) / 2, f"{short(ref[k])}-like {ident:.0f}%"
-        if last is not None and lx < last + min_dx:
-            lx = last + min_dx
-        last = lx
-        # the reference row already leads a displaced label back to its gene; the strain row did not, so a label
-        # spread sideways by min_dx could sit several genes away from the gene it names with nothing joining them
-        mx = (a + b) / 2
-        if lx - mx > 0.05:
-            ax.plot([mx + off, lx + off], [Y_A - H / 2 - 0.02, Y_A - H / 2 - 0.07],
-                    color="#9CA3AF", lw=0.5, zorder=3)
-        t = ax.text(lx + off, Y_A - H / 2 - 0.08, lab, ha="right", va="top", fontsize=7, rotation=60,
-                    rotation_mode="anchor", color="#111827")
-        lows.append(t.get_window_extent(rend).transformed(inv).y0)
-    # Where two or more ribbons meet one local gene, say so under it: a reader should not have to infer a shared
-    # match from crossing ribbons. The count is of reference-gene rows the table counts, not of ribbons drawn.
-    shared = {}
-    for k, pid, _ in drawn:
-        shared.setdefault(pid, set()).add(k)
-    # Shared genes often sit next to each other, so these notes are stacked in rows rather than overprinted: each
-    # one goes on the lowest row whose last note ends clear of it.
-    note_w = None
-    row_end = []
-    note_pos = []   # (text, left, right, row), returned for tests
-    for pid in sorted((p for p, ks_here in shared.items() if len(ks_here) >= 2 and p in xpos),
-                      key=lambda p: xpos[p][0]):
-        a, b, _ = xpos[pid]
-        cx = (a + b) / 2 + off
-        txt = f"matches {len(shared[pid])} reference genes"
-        if note_w is None:   # measure once; every note is the same length bar the digit
-            probe = ax.text(0, 0, txt, fontsize=6)
-            bb = probe.get_window_extent(rend).transformed(inv)
-            note_w = bb.x1 - bb.x0
-            probe.remove()
-        lo = cx - note_w / 2
-        # a note must clear the last note on its row by a visible gap: two notes that merely did not overlap were drawn
-        # flush, and read as one run-on line ("matches 2 reference genesmatches 9 reference genes")
-        r = next((i for i, x_end in enumerate(row_end) if lo > x_end + 0.15 * note_w), len(row_end))
-        if r == len(row_end):
-            row_end.append(cx + note_w / 2)
+            # print width: every matched gene keeps its label (pushed right as before); named genes with no match fill
+            # the free space within PRINT_DRIFT spacings of their gene, and the rest are counted
+            ks_m = sorted((k for k in range(len(ref)) if k in colour), key=lambda k: (ref[k]["s"] + ref[k]["e"]) / 2)
+            mids_m = [(ref[k]["s"] + ref[k]["e"]) / 2 for k in ks_m]
+            fixed = spread_labels(mids_m, min_dx, xmin, xmax)
+            for k, mx, lx in zip(ks_m, mids_m, fixed):
+                ref_label(k, ref[k], lx, mx)
+            cands = [((g["s"] + g["e"]) / 2, k) for k, g in enumerate(ref) if named(g) and k not in colour and not g.get("_out")]
+            placed_r, dropped_r = fill_label_gaps(fixed, cands if level < 1 else [], min_dx, PRINT_DRIFT * min_dx)
+            dropped_r += [k for _, k in cands] if level >= 1 else []
+            for lx, mx, k in placed_r:
+                ref_label(k, ref[k], lx, mx)
+            omitted["reference"] = len(dropped_r)
+        top = max(highs + [Y_V + H / 2 + 0.3]) + 0.2
+        acc = str(ref_gbk).replace("\\", "/").split("/")[-1].rsplit(".", 1)[0]
+        # the accession is only a MIBiG id when it looks like one: a reference taken from a GenBank record was being
+        # titled "MIBiG <GenBank accession>", which names the wrong database
+        kind = "MIBiG " if re.match(r"^BGC\d+", acc) else ""
+        title_chars = 70 if W is None else max(30, int((W - 0.3) * 72 / (fs(9) * 0.58)))
+        if ref_name:
+            name = ref_name[:1].upper() + ref_name[1:]
+            # a compound list is wrapped, never cut: the cut used to land mid-word ("everninomici cluster")
+            if len(name) > title_chars:
+                parts, line, out_lines = name.split("/"), "", []
+                for q in parts:
+                    line = q if not line else (line + "/" + q)
+                    if len(line) > title_chars:
+                        out_lines.append(line); line = ""
+                if line:
+                    out_lines.append(line)
+                name = "/\n".join(x.strip("/") for x in out_lines if x)
+            head = f"{name} cluster ({kind}{acc}, {ref_full_len:.1f} kb" + (f"; {ref_len:.1f} kb shown)" if trim is not None else ")")
         else:
-            row_end[r] = cx + note_w / 2
-        note_pos.append((txt, cx - note_w / 2, cx + note_w / 2, r))
-        t = ax.text(cx, Y_A + H / 2 + 0.06 + r * 0.13, txt,
-                    ha="center", va="bottom", fontsize=6, color="#6B7280")
-        lows.append(t.get_window_extent(rend).transformed(inv).y0)
-    ylab = min(lows + [Y_A - 0.5]) - 0.2
-    seg_labels = []
-    for s in seg:
-        a, b = s["x0"] + off, s["x0"] + s["w"] + off
-        node = re.match(r"(NODE_\d+)", s["contig"]); node = node.group(1) if node else s["contig"][:18]
-        regs = [r for r in regions if r["contig"] == s["contig"] and r["end"] > s["lo"] and r["start"] < s["hi"]]
-        alias = ", ".join(r["identity"].split(" / ")[-1] for r in regs if len(r["identity"].split(" / ")) == 4)
-        if s.get("parts", 1) > 1:   # one of several parts of this contig
-            extra = ", ".join(t for t in ("reversed" if s["flip"] else "", f"part {s['part']} of {s['parts']}") if t)
+            head = f"Reference cluster {acc} ({ref_full_len:.1f} kb" + (f"; {ref_len:.1f} kb shown)" if trim is not None else ")")
+        if W is not None:   # at a column width the whole title wraps, measured against the reference row's width
+            head = re.sub(r"(\d) kb\)", "\\1\u00a0kb)", head)   # a size and its unit never split across lines
+            span = ax.transData.transform([(0, 0), (xmax, 0)])
+            head = wrap_to_width(ax, rend, head, span[1][0] - span[0][0], fontsize=9, weight="bold")
+        ax.text(0, top, head, fontsize=9, weight="bold", va="bottom")
+
+        for i, s in enumerate(seg):
+            a, b = s["x0"] + off, s["x0"] + s["w"] + off
+            ax.plot([a, b], [Y_A, Y_A], color=LINE, lw=0.8, zorder=2)
+            if i and (i - 1, i) in pair_of:
+                ax.text(a - SPLIT_GAP_KB / 2, Y_A, "//", ha="center", va="center", fontsize=10, color="#B91C1C",
+                        weight="bold", zorder=4)
+                ax.text(a - SPLIT_GAP_KB / 2, Y_A + H / 2 + 0.12, "gap" + (" (RG-GMCI pair)" if link and i == 1 else ""),
+                        ha="center", va="bottom", fontsize=fs(7), color="#B91C1C")
+            elif link and i == 1:
+                ax.text(a - SPLIT_GAP_KB / 2, Y_A, "//", ha="center", va="center", fontsize=10, color=link_colour, weight="bold",
+                        zorder=4)
+                ax.text(a - SPLIT_GAP_KB / 2, Y_A + H / 2 + 0.12, link_label, ha="center", va="bottom", fontsize=fs(7),
+                        color=link_colour)
+            elif i and seg[i - 1]["contig"] == s["contig"]:
+                p = seg[i - 1]
+                omitted_kb = (max(p["lo"], s["lo"]) - min(p["hi"], s["hi"])) / 1000
+                ax.text(a - BREAK_GAP_KB / 2, Y_A, "//", ha="center", va="center", fontsize=10, color=LINE, zorder=4)
+                ax.text(a - BREAK_GAP_KB / 2, Y_A + H / 2 + 0.12, f"{omitted_kb:.0f} kb\nnot drawn", ha="center", va="bottom",
+                        fontsize=fs(6.5), color=LINE, linespacing=1.1)
+            elif i:
+                ax.text(a - CUT_GAP_KB / 2, Y_A, "//", ha="center", va="center", fontsize=10, color=LINE, zorder=4)
+        named_here = {}   # pid -> gene-name row, for strain genes with no reference match and a BLASTp name
+        for pid, (a, b, st) in xpos.items():
+            k = next((k for k, q, _ in drawn if q == pid), None)
+            row = gene_names.get(prots[pid]["tag"]) if k is None else None
+            if k is None and (row or prots[pid]["tag"] in other_refs):
+                row = named_here[pid] = row or {}
+                _arrow(ax, a + off, b + off, Y_A, st, CLASS_FILL.get(row.get("function_class"), GREY),
+                       ls="--" if row.get("function_class_ambiguous") == "yes" else "solid")
+            else:
+                _arrow(ax, a + off, b + off, Y_A, st, colour.get(k, GREY) if k is not None else GREY)
+        # labels at 60 degrees are parallel lines: keep their anchors far enough apart that neighbours cannot touch
+        line_px = fs(7) * fig.dpi / 72 * 1.3
+        min_dx = abs(inv.transform((line_px / 0.866, 0))[0] - inv.transform((0, 0))[0])
+        lows, done, last, entries = [], set(), None, []
+        for k, pid, ident in sorted(drawn, key=lambda m: xpos[m[1]][0]):
+            a, b, _ = xpos[pid]
+            mid = lambda p: (xpos[p][0] + xpos[p][1]) / 2
+            if k in split_info and all(p in xpos for p in split_info[k][:2]) \
+                    and abs(mid(split_info[k][0]) - mid(split_info[k][1])) <= SPLIT_LABEL_KB:  # pieces side by side: one label
+                if k in done:
+                    continue
+                done.add(k)
+                p1, p2, i1, i2 = split_info[k]
+                lx = (mid(p1) + mid(p2)) / 2
+                lab = f"{label_of(ref[k])}-like, split {i1:.0f}% | {i2:.0f}%"
+            elif k in split_info and all(p in xpos for p in split_info[k][:2]):
+                # pieces drawn far apart (6 Oct: a spectinomycin-like map put one label between pieces 20 kb apart, and the
+                # spreading pass pushed the next gene's label along with it): each piece is labelled under itself
+                n = split_info[k][:2].index(pid) + 1
+                lx, lab = (a + b) / 2, f"{label_of(ref[k])}-like, split piece {n} of 2, {split_info[k][1 + n]:.0f}%"
+            else:
+                lx, lab = (a + b) / 2, f"{label_of(ref[k])}-like {ident:.0f}%"
+            entries.append((lx, lab, (a + b) / 2, True))
+        # v4: strain genes with no reference match are labelled with their BLASTp name and top-10 mean identity, in grey,
+        # in the same spacing pass, so the two kinds of label never overprint each other
+        grey_rank = {}
+        for pid, row in named_here.items():
+            a, b, _ = xpos[pid]
+            lab = _blastp_label(row, other_refs.get(prots[pid]["tag"]), name_chars)
+            entries.append(((a + b) / 2, lab, (a + b) / 2, False))
+            grey_rank[(a + b) / 2, lab] = (PRINT_CLASS_RANK.get((row or {}).get("function_class"), 8), (a + b) / 2)
+
+        def strain_label(lx, lab, mx, is_match):
+            # the reference row already leads a displaced label back to its gene; the strain row did not, so a label
+            # spread sideways by min_dx could sit several genes away from the gene it names with nothing joining them
+            if lx - mx > 0.05 or (W is not None and mx - lx > 0.05):
+                ax.plot([mx + off, lx + off], [Y_A - H / 2 - 0.02, Y_A - H / 2 - 0.07],
+                        color="#9CA3AF", lw=0.5, zorder=3)
+            t = ax.text(lx + off, Y_A - H / 2 - 0.08, lab, ha="right", va="top",
+                        fontsize=fs(7) if is_match else fs(6.4),
+                        rotation=60, rotation_mode="anchor", color="#111827" if is_match else "#6B7280",
+                        style="normal" if is_match else "italic")
+            lows.append(t.get_window_extent(rend).transformed(inv).y0)
+        if W is None:
+            for lx, lab, mx, is_match in sorted(entries, key=lambda e: e[0]):
+                if last is not None and lx < last + min_dx:
+                    lx = last + min_dx
+                last = lx
+                strain_label(lx, lab, mx, is_match)
         else:
-            extra = ", ".join(t for t in ("reversed" if s["flip"] else "", "part" if s["hi"] - s["lo"] < s["L"] else "") if t)
-        in_core = s["contig"] == core_contig and core["end"] > s["lo"] and core["start"] < s["hi"]
-        if partner and s["contig"] == core_contig:
-            who = "fragment A, " + core["identity"].split(" / ")[-1]
-        elif partner and s["contig"] == partner["contig"]:
-            who = "fragment B, " + partner["identity"].split(" / ")[-1]
+            ms = sorted((e for e in entries if e[3]), key=lambda e: e[0])
+            fixed = spread_labels([e[0] for e in ms], min_dx, xmin - off, xmax - off)
+            for (_, lab, mx, _), lx in zip(ms, fixed):
+                strain_label(lx, lab, mx, True)
+            greys = sorted((e for e in entries if not e[3]), key=lambda e: grey_rank[e[0], e[1]])
+            placed_s, dropped_s = fill_label_gaps(fixed, [(e[0], e[1]) for e in greys] if level < 1 else [], min_dx,
+                                                  PRINT_DRIFT * min_dx)
+            dropped_s += [e[1] for e in greys] if level >= 1 else []
+            for lx, mx, lab in placed_s:
+                strain_label(lx, lab, mx, False)
+            omitted["strain"] = len(dropped_s)
+        # Where two or more ribbons meet one local gene, say so under it: a reader should not have to infer a shared
+        # match from crossing ribbons. The count is of reference-gene rows the table counts, not of ribbons drawn.
+        shared = {}
+        for k, pid, _ in drawn:
+            shared.setdefault(pid, set()).add(k)
+        # Shared genes often sit next to each other, so these notes are stacked in rows rather than overprinted: each
+        # one goes on the lowest row whose last note ends clear of it.
+        note_w = None
+        row_end = []
+        note_pos = []   # (text, left, right, row), returned for tests
+        note_h = 0.13
+        multi = sorted((p for p, ks_here in shared.items() if len(ks_here) >= 2 and p in xpos), key=lambda p: xpos[p][0])
+        for pid in (multi if W is None else []):   # at a print width the count goes to the footnote, off the ribbons
+            a, b, _ = xpos[pid]
+            cx = (a + b) / 2 + off
+            txt = f"matches {len(shared[pid])} reference genes"
+            if note_w is None:   # measure once; every note is the same length bar the digit
+                probe = ax.text(0, 0, txt, fontsize=fs(6))
+                bb = probe.get_window_extent(rend).transformed(inv)
+                note_w = bb.x1 - bb.x0
+                if W is not None:   # rows a full line apart at print size, so stacked notes cannot touch
+                    note_h = (bb.y1 - bb.y0) * 1.25
+                probe.remove()
+            lo = cx - note_w / 2
+            # a note must clear the last note on its row by a visible gap: two notes that merely did not overlap were drawn
+            # flush, and read as one run-on line ("matches 2 reference genesmatches 9 reference genes")
+            r = next((i for i, x_end in enumerate(row_end) if lo > x_end + 0.15 * note_w), len(row_end))
+            if r == len(row_end):
+                row_end.append(cx + note_w / 2)
+            else:
+                row_end[r] = cx + note_w / 2
+            note_pos.append((txt, cx - note_w / 2, cx + note_w / 2, r))
+            t = ax.text(cx, Y_A + H / 2 + 0.06 + r * note_h, txt,
+                        ha="center", va="bottom", fontsize=fs(6), color="#6B7280")
+            lows.append(t.get_window_extent(rend).transformed(inv).y0)
+        ylab = min(lows + [Y_A - 0.5]) - 0.2
+        seg_labels = []
+        for s in seg:
+            a, b = s["x0"] + off, s["x0"] + s["w"] + off
+            node = re.match(r"(NODE_\d+)", s["contig"]); node = node.group(1) if node else s["contig"][:18]
+            regs = [r for r in regions if r["contig"] == s["contig"] and r["end"] > s["lo"] and r["start"] < s["hi"]]
+            alias = ", ".join(r["identity"].split(" / ")[-1] for r in regs if len(r["identity"].split(" / ")) == 4)
+            if s.get("parts", 1) > 1:   # one of several parts of this contig
+                extra = ", ".join(t for t in ("reversed" if s["flip"] else "", f"part {s['part']} of {s['parts']}") if t)
+            else:
+                extra = ", ".join(t for t in ("reversed" if s["flip"] else "", "part" if s["hi"] - s["lo"] < s["L"] else "") if t)
+            in_core = s["contig"] == core_contig and core["end"] > s["lo"] and core["start"] < s["hi"]
+            if partner and s["contig"] == core_contig:
+                who = "fragment A, " + core["identity"].split(" / ")[-1]
+            elif partner and s["contig"] == partner["contig"]:
+                who = "fragment B, " + partner["identity"].split(" / ")[-1]
+            else:
+                # only the part holding the core region is called the core; another part of the core contig is named by
+                # its own region, or by none
+                who = "core, " + core["identity"].split(" / ")[-1] if in_core else (alias or "no antiSMASH region")
+            if s["contig"] in ctx:
+                who += "\ncontext only, not a rescue"
+            if s["contig"] in secondary:
+                who += "\nsecondary (35-50%)"
+            if s["contig"] in single_gene:
+                who += "\nsingle-gene find"
+            s["caption"] = f"{node}{' (' + extra + ')' if extra else ''}\n{who}"
+            shown = s["caption"]
+            if level >= 2:   # shrink step 2: the contig name only, cut to 14 characters, and the region on one line
+                shown = f"{node[:14]}\n{who.split(chr(10))[0]}"
+            t = ax.text((a + b) / 2, ylab, shown, ha="center", va="top",
+                        fontsize=fs(7.2), color="#374151", linespacing=1.3)
+            bb = t.get_window_extent(rend).transformed(inv)
+            seg_labels.append((t, bb.x0, bb.x1, bb.y1 - bb.y0, (a + b) / 2))
+        step = max((h for *_, h, _ in seg_labels), default=0.5) + 0.12
+        placed = []
+        for t, x0, x1, h, cx in seg_labels:  # a label that would touch its neighbour drops one level
+            lvl = 0
+            while any(l == lvl and not (x1 + 0.3 < p0 or x0 - 0.3 > p1) for p0, p1, l in placed):
+                lvl += 1
+            placed.append((x0, x1, lvl))
+            t.set_position((cx, ylab - lvl * step))
+        # The isolate label sits left of the plot, level with the isolate row. Drawn above the row at xmin, it fell inside the
+        # ribbon band whenever the isolate genes started at the left edge (seen on a candicidin-like map).
+        shown_label = row_label or label
+        if W is not None:
+            if not row_label:   # a file-safe reference label (Genus_species_strain) reads as its name
+                shown_label = label.replace("_", " ")
+            # a long label wraps in the gutter (house rule 6 names run long); shrink step 3 narrows the gutter further
+            shown_label = wrap_to_width(ax, rend, shown_label, (0.9 if level >= 3 else 1.5) * fig.dpi,
+                                        fontsize=9, weight="bold")
+        if "\n" in shown_label:   # a wrapped label grows upward from the row, clear of the gene labels hanging below it
+            ax.text(xmin - 0.4, Y_A - H / 2 + 0.02, shown_label, fontsize=9, weight="bold", va="bottom", ha="right",
+                    clip_on=False)
         else:
-            # only the part holding the core region is called the core; another part of the core contig is named by
-            # its own region, or by none
-            who = "core, " + core["identity"].split(" / ")[-1] if in_core else (alias or "no antiSMASH region")
-        if s["contig"] in ctx:
-            who += "\ncontext only, not a rescue"
-        if s["contig"] in secondary:
-            who += "\nsecondary (35-50%)"
-        if s["contig"] in single_gene:
-            who += "\nsingle-gene find"
-        s["caption"] = f"{node}{' (' + extra + ')' if extra else ''}\n{who}"
-        t = ax.text((a + b) / 2, ylab, s["caption"], ha="center", va="top",
-                    fontsize=7.2, color="#374151", linespacing=1.3)
-        bb = t.get_window_extent(rend).transformed(inv)
-        seg_labels.append((t, bb.x0, bb.x1, bb.y1 - bb.y0, (a + b) / 2))
-    step = max((h for *_, h, _ in seg_labels), default=0.5) + 0.12
-    placed = []
-    for t, x0, x1, h, cx in seg_labels:  # a label that would touch its neighbour drops one level
-        lvl = 0
-        while any(l == lvl and not (x1 + 0.3 < p0 or x0 - 0.3 > p1) for p0, p1, l in placed):
-            lvl += 1
-        placed.append((x0, x1, lvl))
-        t.set_position((cx, ylab - lvl * step))
-    # The isolate label sits left of the plot, level with the isolate row. Drawn above the row at xmin, it fell inside the
-    # ribbon band whenever the isolate genes started at the left edge (seen on a candicidin-like map).
-    ax.text(xmin - 0.4, Y_A, label, fontsize=9, weight="bold", va="center", ha="right", clip_on=False)
-    # the counts use split_display with this genome's locus tags, the rule the gene table uses, so the map footnote,
-    # the table caption and the table's rows agree
-    note = count_sentence(count_summary(rows, splits, core["identity"], {p["tag"] for p in prots.values()}),
-                          core["identity"])
-    if partner:  # one count per figure: the pair line carries the counts, the second line only what is not drawn
-        note = (pair_note + "\n" if pair_note else "") + (
-            f"{not_drawn} matches elsewhere in the genome are not drawn; see rggmci_pair_map.tsv" if not_drawn else
-            "Every match to this reference lies in the two fragments drawn")
-    elif not_drawn:
-        # a sentence of its own: after "Of these, N were set aside", a trailing "; 2 more not drawn" read as part of it
-        note += (f". {not_drawn} match{' found is' if not_drawn == 1 else 'es found are'} not drawn (flanking or unnamed reference genes, under {SECONDARY_MIN_ID:.0f}% identity, "
-                 f"beyond {MAX_EXTRA} contigs" + (f", or {far} more than {REACH_KB:.0f} kb along a contig from the drawn genes"
-                 if far else "") + "; see gap_rescue.tsv)")
-    if ctx:
-        # named, so a reader can check the contig; counted separately, so a context row can never be read as a rescue
-        note += (". Context row" + ("s" if len(ctx) > 1 else "") + " for "
-                 + ", ".join(f"{(re.match(r'NODE_\d+', c) or re.match(r'.{1,18}', c)).group(0)} "
-                             f"({n} match{'' if n == 1 else 'es'} not drawn)" for c, (_, _, n) in ctx.items())
-                 + ": the genes around a match that this map does not draw, shown for context only. They are not"
-                 " matched to a reference gene and are in no count on this figure")
-    if any(s.get("parts", 1) > 1 for s in seg):
-        note += ". A long stretch of a contig with no matched gene is cut out, and its length is printed at the cut"
-    if anc:
-        note += ". Rows are lined up on the majority of matched genes"  # no anchor arrow (3 Oct: "why are they there?")
-    ybot = ylab - (max((l for *_, l in placed), default=0) + 1) * step - 0.05
-    # wrapped, so the footnote never runs past the drawing and widens the saved figure (the owner, 2 Oct: "wrap the long line
-    # of text so the locus maps can be larger")
-    import textwrap
-    footnote = note   # returned unwrapped, so callers compare text, not line breaks
-    note = "\n".join(textwrap.fill(part, NOTE_WRAP) for part in note.split("\n"))
-    ax.text(xmin + 0.1, ybot, note, fontsize=6.8, color="#4B5563", va="top")
-    ybar = ybot - 0.3 - 0.25 * (note.count("\n") + 1)
-    ax.plot([xmax - 5.6, xmax - 0.6], [ybar, ybar], color="#111827", lw=1.2)
-    ax.text(xmax - 3.1, ybar - 0.07, "5 kb", ha="center", va="top", fontsize=7.5)
-    y0, y1 = ybar - 0.75, top + 0.5
-    ax.set_ylim(y0, y1)
-    fig.set_size_inches(13.5, 6.2 * (y1 - y0) / 7.3)  # grow the page, never squeeze the text
-    cax = ax.inset_axes([xmin + 0.1, ybar - 0.07, 0.2 * (xmax - xmin), 0.14], transform=ax.transData)
-    cb = fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax, orientation="horizontal")
-    cb.set_label("Protein identity (%)", fontsize=7.5, labelpad=2); cb.ax.tick_params(labelsize=7)
+            ax.text(xmin - 0.4, Y_A, shown_label, fontsize=9, weight="bold", va="center", ha="right", clip_on=False)
+        # the counts use split_display with this genome's locus tags, the rule the gene table uses, so the map footnote,
+        # the table caption and the table's rows agree
+        note = count_sentence(count_summary(rows, splits, core["identity"], {p["tag"] for p in prots.values()}),
+                              core["identity"])
+        if partner:  # one count per figure: the pair line carries the counts, the second line only what is not drawn
+            note = (pair_note + "\n" if pair_note else "") + (
+                f"{not_drawn} matches elsewhere in the genome are not drawn; see rggmci_pair_map.tsv" if not_drawn else
+                "Every match to this reference lies in the two fragments drawn")
+        elif not_drawn:
+            # a sentence of its own: after "Of these, N were set aside", a trailing "; 2 more not drawn" read as part of it
+            note += (f". {not_drawn} match{' found is' if not_drawn == 1 else 'es found are'} not drawn (flanking or unnamed reference genes, under {SECONDARY_MIN_ID:.0f}% identity, "
+                     f"beyond {MAX_EXTRA} contigs" + (f", or {far} more than {REACH_KB:.0f} kb along a contig from the drawn genes"
+                     if far else "") + "; see gap_rescue.tsv)")
+        if trim is not None:
+            note += (f". Both rows are cropped to the matched genes plus {trim:g} kb on each side; genes outside that window"
+                     " are not drawn (the gene table lists every gene)")
+        if ctx:
+            # named, so a reader can check the contig; counted separately, so a context row can never be read as a rescue
+            note += (". Context row" + ("s" if len(ctx) > 1 else "") + " for "
+                     + ", ".join(f"{(re.match(r'NODE_\d+', c) or re.match(r'.{1,18}', c)).group(0)} "
+                                 f"({n} match{'' if n == 1 else 'es'} not drawn)" for c, (_, _, n) in ctx.items())
+                     + ": the genes around a match that this map does not draw, shown for context only. They are not"
+                     " matched to a reference gene and are in no count on this figure")
+        if any(s.get("parts", 1) > 1 for s in seg):
+            note += ". A long stretch of a contig with no matched gene is cut out, and its length is printed at the cut"
+        if named_here:
+            n_other = sum(prots[p]["tag"] in other_refs for p in named_here)
+            note += (f". Grey labels: {len(named_here)} strain gene{'s' if len(named_here) != 1 else ''} with no match to this "
+                     "reference, named by protein search (NCBI BLASTp, or DIAMOND against Swiss-Prot or MIBiG; the commonest name "
+                     "among the top 10 hits) and filled by function class; "
+                     "a dashed outline marks a name used for both fatty-acid and polyketide enzymes. \"<database> N%\" is the mean "
+                     "identity of the top 10 hits in that database (nr, ClusteredNR, Swiss-Prot or MIBiG)")
+            if n_other:
+                refs = sorted({other_refs[prots[p]["tag"]][0] for p in named_here if prots[p]["tag"] in other_refs})
+                note += (f"; \"<name> ref N%\" is identity to a gene of another reference cluster matched to this same region "
+                         f"in a separate map ({', '.join(refs)}; {n_other} gene{'s' if n_other != 1 else ''})")
+            note += ". A name is similarity, not function"
+        # drawn strain genes with no reference match whose name row did not bind to this genome's protein
+        lost = getattr(gene_names, "unbound_tags", frozenset())
+        left_out = sum(1 for pid in xpos if prots[pid]["tag"] in lost and not any(q == pid for _, q, _ in drawn))
+        if left_out:
+            note += (f". {left_out} protein-search name{'s were' if left_out != 1 else ' was'} left out because the protein searched "
+                     "is not this genome's gene with that tag (tags are numbered per antiSMASH run)")
+        if omitted["reference"] or omitted["strain"]:   # print width only: names left off for space are counted, never lost
+            n_om = omitted["reference"] + omitted["strain"]
+            note += (f". {n_om} gene name{'s are' if n_om != 1 else ' is'} not printed for space "
+                     f"({omitted['reference']} reference, {omitted['strain']} strain); the gene table lists every gene")
+        if W is not None and multi:   # print width: the shared-match notes, as one sentence instead of text on the ribbons
+            per = collections.Counter(len(shared[p]) for p in multi)
+            note += (". " + "; ".join(f"{n} strain gene{'s' if n != 1 else ''} each match{'' if n != 1 else 'es'} {k} reference "
+                                      f"genes" for k, n in sorted(per.items()))
+                     + " (" + ", ".join(prots[p]["tag"] for p in multi) + ")")
+        if level >= 2:   # shrink step 2 shortened the segment captions; the receipt and gap_rescue.tsv keep full names
+            note += ". Contig names under the rows are shortened to fit; gap_rescue.tsv gives them in full"
+        if anc:
+            note += ". Rows are lined up on the majority of matched genes"  # no anchor arrow (3 Oct: "why are they there?")
+        ybot = ylab - (max((l for *_, l in placed), default=0) + 1) * step - 0.05
+        # wrapped, so the footnote never runs past the drawing and widens the saved figure (the owner, 2 Oct: "wrap the long line
+        # of text so the locus maps can be larger")
+        import textwrap
+        footnote = note   # returned unwrapped, so callers compare text, not line breaks
+        if W is None:
+            note = "\n".join(textwrap.fill(part, note_wrap) for part in note.split("\n"))
+        else:
+            span = ax.transData.transform([(xmin + 0.1, 0), (xmax, 0)])
+            note = wrap_to_width(ax, rend, note, span[1][0] - span[0][0], fontsize=fs(6.8))
+        if panel:   # a figure panel: the footnote goes to the caption (returned in res), not on the page
+            ybar = ybot - 0.2
+        else:
+            nt = ax.text(xmin + 0.1, ybot, note, fontsize=fs(6.8), color="#4B5563", va="top")
+        if panel:
+            pass
+        elif W is None:
+            ybar = ybot - 0.3 - 0.25 * (note.count("\n") + 1)
+        else:   # measured: at 8 pt a line is taller than the 0.25 units the screen layout allowed
+            nb = nt.get_window_extent(rend).transformed(inv)
+            ybar = nb.y0 - 0.35
+        sb_line, = ax.plot([xmax - 5.6, xmax - 0.6], [ybar, ybar], color="#111827", lw=1.2)
+        sb_text = ax.text(xmax - 3.1, ybar - 0.07, "5 kb", ha="center", va="top", fontsize=fs(7.5))
+        y0, y1 = ybar - (0.75 if key else 0.35), top + 0.5
+        ax.set_ylim(y0, y1)
+        fig.set_size_inches(fig_w, 6.2 * (y1 - y0) / 7.3)  # grow the page, never squeeze the text
+        if not key:   # a panel without its own key: the figure prints one shared colour bar and class legend
+            res = {"footnote": footnote, "note_pos": note_pos, "named_here": named_here, "omitted": omitted,
+                   "rows_y": (Y_V, Y_A), "cax": None}
+            return fig, ax, rend, res
+        if W is None:
+            cax = ax.inset_axes([xmin + 0.1, ybar - 0.07, 0.2 * (xmax - xmin), 0.14], transform=ax.transData)
+        else:   # at print width the bar keeps room for its 8 pt label: at least 1.6 in
+            per_in = (xmax - xmin) / (ax.get_position().width * fig_w)
+            cax = ax.inset_axes([xmin + 0.1, ybar - 0.07, max(0.2 * (xmax - xmin), 1.6 * per_in), 0.14],
+                                transform=ax.transData)
+        cb = fig.colorbar(ScalarMappable(norm=norm, cmap=cmap), cax=cax, orientation="horizontal")
+        cb.set_label("Protein identity (%)", fontsize=fs(7.5), labelpad=2); cb.ax.tick_params(labelsize=fs(7))
+        if W is not None:   # a narrow page: when the colour bar reaches the scale bar, the scale bar takes a line below
+            y0 = drop_scale_bar_if_crowded(fig, ax, rend, cax, sb_line, sb_text, y0, y1, fig_w)
+        if named_here:
+            from matplotlib.patches import Patch
+            present, unclear = key_classes(named_here)
+            handles = [Patch(fc=CLASS_FILL[c], ec="#333333", lw=0.6, label=c) for c in present]
+            if unclear:
+                handles.append(Patch(fc="white", ec="#333333", lw=0.6, ls="--", label="class unclear"))
+            if handles and W is None:
+                ax.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.55, 0.0), fontsize=fs(6.5), frameon=False,
+                          ncol=min(5, len(handles)), title="Genes not in the reference, by protein-search name",
+                          title_fontsize=fs(7), handlelength=1.6)
+            elif handles:
+                y0 = place_class_legend(fig, ax, rend, cax, handles, xmin, xmax, ybar, y0, y1, fig_w, per_in, fs)
+        res = {"footnote": footnote, "note_pos": note_pos, "named_here": named_here, "omitted": omitted,
+               "rows_y": (Y_V, Y_A), "cax": cax}
+        return fig, ax, rend, res
+
+    if W is None:
+        fig, ax, rend, res = _render(13.5)
+        tight_w = None
+    else:
+        # draw at the print width: redraw until the saved (tight) figure is no wider than W, so nothing shrinks on the
+        # page. Text sizes are absolute, so each pass only moves data, not type size.
+        pad = 2 * float(plt.rcParams["savefig.pad_inches"])   # savefig(bbox_inches="tight") adds this to the width
+        fitted, tried = False, []
+        # Shrink only as far as needed, in this order (owner, 12 Oct): drop unmatched-gene names, then shorten segment
+        # captions, then narrow the row-label gutter, and only then refuse.
+        for level in range(4):
+            fig_w, prev = W, None
+            for _ in range(12):
+                fig, ax, rend, res = _render(fig_w, level)
+                fig.canvas.draw()
+                tight_w = fig.get_tightbbox(fig.canvas.get_renderer()).width + pad
+                if W * 0.96 <= tight_w <= W:   # never wider than the column: wider would print every text below 8 pt
+                    fitted = True
+                    break
+                plt.close(fig)
+                target = W * 0.985
+                if prev and abs(fig_w - prev[0]) > 1e-6:   # secant step: part of the drawing does not scale with the canvas
+                    slope = (tight_w - prev[1]) / (fig_w - prev[0])
+                else:
+                    slope = (tight_w - pad) / fig_w
+                prev = (fig_w, tight_w)
+                if slope < 0.05:
+                    break
+                fig_w = fig_w + (target - tight_w) / slope
+                if fig_w < 1.0:   # what does not scale is wider than the column at this level
+                    break
+            tried.append(round(float(tight_w), 2))
+            if fitted:
+                break
+        if not fitted:
+            raise ValueError(f"GAP_RESCUE_MAP_PRINT_WIDTH: could not fit the map to {W} in after every shrink step "
+                             f"(widths {tried} in)")
+        res["shrink_level"] = level
+        # every text item on the page, at the size it prints: the canvas is no wider than W, so nothing is reduced
+        sizes = [t.get_fontsize() for t in ax.texts] + [t.get_fontsize() for a_ in fig.axes for t in a_.texts]
+        for a_ in fig.axes:
+            sizes += [lab.get_fontsize() for lab in a_.get_xticklabels() + a_.get_yticklabels() if lab.get_text()]
+            sizes += [a_.xaxis.label.get_fontsize()] if a_.xaxis.label.get_text() else []
+        leg = ax.get_legend()
+        if leg is not None:
+            sizes += [t.get_fontsize() for t in leg.get_texts()] + [leg.get_title().get_fontsize()]
+        res["min_font_pt"] = float(min(sizes) * W / max(tight_w, W))
+        # collisions: label against label, and label against a gene row
+        r_ = fig.canvas.get_renderer()
+        bands = []
+        for yy in res["rows_y"]:
+            (bx0, by0), (bx1, by1) = ax.transData.transform([(xmin, yy - H / 2), (xmax, yy + H / 2)])
+            bands.append((bx0, by0, bx1, by1))
+        res["overlaps"] = text_overlaps(ax, r_, bands) + footer_overlaps(ax, res["cax"], r_)
+        if res["min_font_pt"] < MIN_PRINT_PT - 1e-9:
+            plt.close(fig)
+            raise ValueError(f"GAP_RESCUE_MAP_PRINT_WIDTH: smallest text {res['min_font_pt']:.2f} pt at {W} in")
+        if res["overlaps"]:
+            plt.close(fig)
+            raise ValueError(f"GAP_RESCUE_MAP_TEXT_OVERLAP: {len(res['overlaps'])} touching text pair(s) at {W} in; "
+                             f"first: {res['overlaps'][:3]}")
     fig.savefig(out_png, dpi=300, bbox_inches="tight", facecolor="white",
                 metadata=savefig_metadata(out_png, "gap_rescue_locus_map"))
     if out_pdf:
@@ -831,9 +1452,19 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
     if pdf_pages is not None:
         pdf_pages.savefig(fig, bbox_inches="tight", facecolor="white")
     plt.close(fig)
-    return {"contigs_drawn": list(dict.fromkeys(s["contig"] for s in seg)), "not_drawn": not_drawn, "link_drawn": link,
-            "segments": [{"contig": s["contig"], "lo": s["lo"], "hi": s["hi"], "part": s.get("part", 1),
-                          "parts": s.get("parts", 1), "flip": s["flip"], "caption": s.get("caption", "")} for s in seg],
-            "split_gaps": sorted(pair_of), "footnote": footnote, "shared_notes": note_pos,
-            "flipped": {s["contig"]: s["flip"] for s in seg},
-            "anchor": short(ref[anc[0]]) if anc else "", "anchor_contig": prots[anc[1]]["contig"] if anc else ""}
+    named_here = res["named_here"]
+    out = {"contigs_drawn": list(dict.fromkeys(s["contig"] for s in seg)), "not_drawn": not_drawn, "link_drawn": link,
+           "segments": [{"contig": s["contig"], "lo": s["lo"], "hi": s["hi"], "part": s.get("part", 1),
+                         "parts": s.get("parts", 1), "flip": s["flip"], "caption": s.get("caption", "")} for s in seg],
+           "split_gaps": sorted(pair_of), "footnote": res["footnote"], "shared_notes": res["note_pos"],
+           "flipped": {s["contig"]: s["flip"] for s in seg},
+           "anchor": short(ref[anc[0]]) if anc else "", "anchor_contig": prots[anc[1]]["contig"] if anc else "",
+           "blastp_named": sorted(prots[p]["tag"] for p in named_here),
+           "key_classes": key_classes(named_here)[0], "key_class_unclear": key_classes(named_here)[1],
+           "trim_kb": trim, "reference_kb": {"full": round(ref_full_len, 3), "shown": round(ref_len, 3)}}
+    if W is not None:   # receipt fields for the print-width gate
+        out.update({"print_width_in": W, "saved_width_in": round(float(tight_w), 3),
+                    "min_font_pt": round(res["min_font_pt"], 2),
+                    "text_overlaps": len(res["overlaps"]), "labels_omitted": res["omitted"],
+                    "shrink_level": res["shrink_level"]})
+    return out

@@ -22,6 +22,8 @@ Claim ceiling: accounting/provenance only. No BGC, novelty, activity or producti
 import argparse, json, os, re, sys, glob
 from datetime import datetime, timedelta, timezone
 from collections import Counter, defaultdict
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from mamey.csv_safety import SafeWriter
 
 _slug = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd()).replace("/", "-")
 PROJ = os.path.expanduser(f"~/.claude/projects/{_slug}")
@@ -152,6 +154,8 @@ def main():
                          "sessions: lifetime totals are meaningless across different ages.")
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args()
+    if a.tsv and os.path.lexists(a.tsv):
+        return 2  # source aliases and prior outputs are never replaced
 
     since = None
     if a.since:
@@ -220,14 +224,14 @@ def main():
         sys.stdout.write((f"\nfiles written: {len(r['files'])}") + "\n")
 
     if a.tsv:
-        with open(a.tsv, "w") as fh:
-            fh.write("session\tchat\ttotal\tcache_read\tcache_write\toutput\t"
-                     "turns\ttok_per_turn\tsubagents\tfiles_written\n")
+        with open(a.tsv, "x", newline="", encoding="utf-8") as fh:
+            writer = SafeWriter(fh, delimiter="\t", lineterminator="\n")
+            writer.writerow(["session", "chat", "total", "cache_read", "cache_write", "output",
+                             "turns", "tok_per_turn", "subagents", "files_written"])
             for total, sid, color, r in rows:
                 t = r["tokens"]
-                fh.write(f"{sid}\t{color}\t{total}\t{t['cr']}\t{t['cw']}\t{t['out']}\t"
-                         f"{r['turns']}\t{total//max(r['turns'],1)}\t"
-                         f"{r['subagents']}\t{len(r['files'])}\n")
+                writer.writerow([sid, color, total, t['cr'], t['cw'], t['out'],
+                                 r['turns'], total//max(r['turns'],1), r['subagents'], len(r['files'])])
         sys.stdout.write((f"\nwrote {a.tsv}") + "\n")
     return 0
 

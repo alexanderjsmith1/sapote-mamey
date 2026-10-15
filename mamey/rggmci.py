@@ -172,7 +172,10 @@ def _terminus_sequence_state(bgc: BGCRecord, contigs: dict[str, str] | None) -> 
         if len(matches) != 1:
             return "TERMINUS_SEQUENCE_UNAVAILABLE"
         seq = matches[0]
-    seq = re.sub(r"[^ACGT]", "", str(seq).upper())
+    # P300-152: take the terminal windows in place. Deleting N or IUPAC codes first would slide an interior window
+    # onto the terminus; a window holding any non-ACGT base is AMBIGUOUS_TERMINUS unless its callable bases
+    # already show low complexity.
+    seq = re.sub(r"\s+", "", str(seq).upper())
     if not seq:
         return "TERMINUS_SEQUENCE_UNAVAILABLE"
     windows = []
@@ -180,17 +183,22 @@ def _terminus_sequence_state(bgc: BGCRecord, contigs: dict[str, str] | None) -> 
         windows.append(seq[:TT_COMPLEXITY_WINDOW_BP])
     if side in ("end", "both"):
         windows.append(seq[-TT_COMPLEXITY_WINDOW_BP:])
+    ambiguous = False
     for window in windows:
         if re.search(rf"([ACGT])\1{{{TT_HOMOPOLYMER_RUN_BP - 1},}}", window):
             return "HOMOPOLYMER_TERMINUS"
-        total = len(window)
+        callable_bases = re.sub(r"[^ACGT]", "", window)
+        ambiguous = ambiguous or len(callable_bases) != len(window)
+        total = len(callable_bases)
+        if not total:
+            continue
         entropy = -sum(
-            (window.count(base) / total) * math.log2(window.count(base) / total)
-            for base in "ACGT" if window.count(base)
+            (callable_bases.count(base) / total) * math.log2(callable_bases.count(base) / total)
+            for base in "ACGT" if callable_bases.count(base)
         )
         if entropy < TT_MIN_SHANNON_BITS:
             return "LOW_COMPLEXITY_TERMINUS"
-    return "COMPLEX_TERMINUS"
+    return "AMBIGUOUS_TERMINUS" if ambiguous else "COMPLEX_TERMINUS"
 
 
 _CLASS_TOKENS = (
@@ -490,6 +498,15 @@ def _glycosyltransferase_bgcs(zip_path: str | Path, bgcs: list[BGCRecord]) -> se
 
 _EDGE_STATUSES = {"Edge", "Full-contig"}
 _CONTIG_EDGE_RE = re.compile(r'/contig_edge="(True|False)"')
+# P300-153: the region feature block only (header plus its 21-space qualifier lines). A protocluster or
+# cand_cluster feature can carry a different flag; it must never stand in for the region's.
+_REGION_FEATURE_RE = re.compile(r"^ {5}region +\S.*(?:\n {21}.*)*", re.M)
+
+
+def _region_contig_edge(text: str) -> str | None:
+    """`True` or `False` from the region feature's own /contig_edge; None when absent or conflicting."""
+    flags = {m.group(1) for block in _REGION_FEATURE_RE.findall(text) for m in _CONTIG_EDGE_RE.finditer(block)}
+    return flags.pop() if len(flags) == 1 else None
 
 
 def _edge_status_fallback(bgcs: list[BGCRecord]) -> set[str]:
@@ -502,7 +519,7 @@ def _contig_edge_bgcs(zip_path: str | Path, bgcs: list[BGCRecord]) -> set[str]:
 
     RG-GMCI pairs only these (2026-09-27): a region antiSMASH places inside a contig is whole on that contig,
     and an assembly break cannot have separated it from anything. A region file without the flag falls back to the
-    engine's own edge status.
+    engine's own edge status, and so does a file whose region features disagree.
     """
     fallback = _edge_status_fallback(bgcs)
     out: set[str] = set()
@@ -511,9 +528,9 @@ def _contig_edge_bgcs(zip_path: str | Path, bgcs: list[BGCRecord]) -> set[str]:
             names = set(regular_file_names(zf))
             for b in bgcs:
                 name = getattr(b, "source_gbk", "")
-                m = _CONTIG_EDGE_RE.search(_read_text(zf, name)) if name in names else None
-                if m:
-                    if m.group(1) == "True":
+                flag = _region_contig_edge(_read_text(zf, name)) if name in names else None
+                if flag:
+                    if flag == "True":
                         out.add(b.bgc_id)
                 elif b.bgc_id in fallback:
                     out.add(b.bgc_id)
@@ -1300,7 +1317,18 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
         terminus_truncation_rescue = bool(
             (tt_a or tt_b) and diff_contig and (bool(shared_class) or severed_arm_geom)
         )
-        junction_evidence_state = "LONG_READ_ONLY" if low_complexity_junction else "SEQUENCE_COMPLEXITY_CLEAR"
+        # P300-152: CLEAR only when every truncated terminus was read and is complex. An unavailable or ambiguous
+        # terminus is UNRESOLVED, and a pair with no truncated terminus is NOT_APPLICABLE. Labels only: the
+        # override below still vetoes on low complexity alone, as before.
+        checked_termini = [state for state in (tt_seq_a, tt_seq_b) if state != "NOT_APPLICABLE"]
+        if low_complexity_junction:
+            junction_evidence_state = "LONG_READ_ONLY"
+        elif not checked_termini:
+            junction_evidence_state = "NOT_APPLICABLE"
+        elif all(state == "COMPLEX_TERMINUS" for state in checked_termini):
+            junction_evidence_state = "SEQUENCE_COMPLEXITY_CLEAR"
+        else:
+            junction_evidence_state = "SEQUENCE_COMPLEXITY_UNRESOLVED"
         if terminus_truncation_rescue and low_complexity_junction:
             terminus_truncation_rescue = False
             override_note = "LONG_READ_ONLY_low_complexity_or_homopolymer_terminus"

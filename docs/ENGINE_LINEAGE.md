@@ -1350,3 +1350,22 @@ The CLI adds the optional post-run gap-rescue wrapper. Companion region binding 
 ## Engine 1.9.175 — bundle 9.7.450, unsealed candidate
 
 The antiSMASH archive parser now prefers full output records over archived input copies of the same contig only when the two sequences match exactly; mismatches and unusable identities are kept apart and reported, not silently merged. This can change which CDS and coordinates a contig carries when an archive holds both an input copy and an output record, so packages from 1.9.174 built from such archives are not directly poolable with 1.9.175 for gene-level tables. Run-level release decisions are carried on the run context (`release_decision`). Scoring formulas and thresholds are unchanged. Existing delivered packages are not rewritten.
+
+## Engine 1.9.176 — bundle 9.7.451, unsealed candidate
+
+`mamey/ref_completion.py` reads compound names as lists whether a names file gives a string or a list, and `same_family()` matches family stems only when they are equal or differ by one known prefix (neo, iso, nor, epi, homo, dehydro, deoxy, dihydro, demethyl, desmethyl, seco, pre, pro). The gap-rescue tools now pass compound names into their partner checks. A partner gene whose best reciprocal match is a sibling MIBiG entry of the reference compound can now count toward the family score instead of being set aside as a paralog, and a name contained inside another name no longer counts. Gap-rescue tables from 1.9.175 can differ from 1.9.176 for those genes, so they are not directly poolable for partner verdicts. Thresholds are unchanged. Existing outputs are not rewritten.
+
+Also in 1.9.176:
+- The two-proof join holds a pair as LOGIC_EVIDENCE_HOLD when its overlap count is blank or malformed (logic version 3). A legacy `_4A` without the column keeps its verdict and says so in `claim_note`.
+- The hybrid gate counts each antiSMASH category once (NRPS + NRP-metallophore is one class), so `architecture_rationale` and the reproducibility fingerprint change for affected regions.
+- RG-GMCI reports AMBIGUOUS_TERMINUS for contig ends containing N.
+- KS-domain parsing stops at the next feature.
+- Package runs add RECORD_LIMIT_COVERAGE_UNVERIFIED when the record-limit probe cannot establish coverage.
+- The biopython-free GenBank shim refuses records with no sequence and no numeric LOCUS length.
+
+- BLASTp manual and trove ingest collect every explicit query strain claim; a contradictory or foreign claim is refused or held as QUERY_STRAIN_CONFLICT, and receipts are checked before tables change. The master workbook is saved atomically.
+- Native `blastp-online` CSVs add `channel` and `source_channel`.
+- Reference-guided completion runs the housekeeping-neighbour check on every non-paralog partner find; SUPPORTED needs an adjacent non-housekeeping find; HOUSEKEEPING_PFAM adds YgbB, IspD, CarD, Clp, Lsr2, pantothenate, NadA, QRPTase and Histidinol_dh families.
+- Assembly-line outputs and post-seal package snapshots are admitted fail-closed.
+
+Packages from 1.9.175 and 1.9.176 are not directly poolable for two-proof verdicts, hybrid grades or terminus states. Existing outputs are not rewritten.

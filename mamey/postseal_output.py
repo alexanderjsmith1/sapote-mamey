@@ -53,13 +53,22 @@ def output_file(package, command, filename, explicit=None):
 
 def package_binding(package):
     """Bind every original package file byte; symlinks are refused for snapshots."""
-    pkg = Path(package).resolve()
-    files = {}
+    raw = Path(package).expanduser()
+    if raw.is_symlink():
+        raise ValueError('POSTSEAL_PACKAGE_SYMLINK: immutable reader snapshots require a regular root')
+    pkg = raw.resolve()
+    if not pkg.is_dir():
+        raise ValueError('POSTSEAL_PACKAGE_UNAVAILABLE: snapshot root must be an existing directory')
+    # Preserve the established ValueError for a visible symlink. The shared
+    # fail-closed walker then admits every regular file and raises walk errors.
     for path in sorted(pkg.rglob('*')):
         if path.is_symlink():
             raise ValueError('POSTSEAL_PACKAGE_SYMLINK: immutable reader snapshots require regular files')
-        if path.is_file():
-            files[path.relative_to(pkg).as_posix()] = sha256_file(path)
+    from .packaging import _package_files_fail_closed
+    files = {path.relative_to(pkg).as_posix(): sha256_file(path)
+             for path in _package_files_fail_closed(pkg)}
+    if not pkg.is_dir():
+        raise ValueError('POSTSEAL_PACKAGE_CHANGED: snapshot root disappeared')
     digest = hashlib.sha256(''.join(f'{rel}\t{value}\n' for rel, value in files.items()).encode()).hexdigest()
     return {'package':str(pkg),'files_sha256':files,'package_tree_sha256':digest}
 

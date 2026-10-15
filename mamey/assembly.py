@@ -176,8 +176,10 @@ def fragmentation_tier(contigs: int | None, n50: int | None) -> str:
     """
     if not contigs or contigs <= 0:
         return "UNKNOWN"
+    if n50 is None or isinstance(n50, bool) or n50 <= 0:
+        return "UNKNOWN"  # no N50 measurement: contiguity is unassessed, not poor
     for tier, max_contigs, min_n50 in FRAGMENTATION_BANDS:
-        if contigs <= max_contigs and (n50 or 0) >= min_n50:
+        if contigs <= max_contigs and n50 >= min_n50:
             return tier
     return "HIGHLY_FRAGMENTED"
 

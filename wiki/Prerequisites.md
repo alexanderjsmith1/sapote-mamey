@@ -1,5 +1,5 @@
 <!-- Mirror of docs/PREREQUISITES.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
-# PREREQUISITES — Sapote–Mamey v9.7.450
+# PREREQUISITES — Sapote–Mamey v9.7.451
 
 Start with [INSTALL](../docs/INSTALL.md) or the [complete walkthrough](../docs/MASTER_WALKTHROUGH.md). The package metadata in [pyproject.toml](../pyproject.toml) defines the supported Python version, core requirements and extras. Use the [README tool table](../README.md#tool-downloads-and-licenses) for upstream downloads and licenses.
 
@@ -33,9 +33,9 @@ The ReportLab-based PDF path is part of core dependencies. Alternate document ro
 
 ## R figure stack
 
-Use R >= 4.3 for the R figure workflows. The base installer checks `ggplot2`, `dplyr`, `tidyr`, `scales`, `patchwork`, `ape`, `ggrepel` (CRAN) and `ggtree`, `treeio` (Bioconductor). Install that base set with `Rscript bundle_support/install_r_figure_packages.R`; `--check` reports readiness for its listed packages without installing.
+Use R >= 4.3 for the R figure workflows. The installer checks every package the shipped R scripts load: `ggplot2`, `dplyr`, `tidyr`, `scales`, `patchwork`, `ape`, `ggrepel`, `aplot`, `ggtext`, `svglite`, `jsonlite`, `readr`, `systemfonts`, `xml2` (CRAN) and `ggtree`, `treeio` (Bioconductor). GitHub CI installs R and runs it, so the R figure tests run there. Install that base set with `Rscript bundle_support/install_r_figure_packages.R`; `--check` reports readiness for its listed packages without installing.
 
-Renderer-specific prerequisites extend that list: **`svglite`** supplies the SVG device used by the figure workflows, and **`aplot`** is explicitly loaded by `tools/ggtree_rect_heatmap.R`. Provision them and their dependencies in the same R library used by the renderer. They may arrive transitively, but the base installer's successful check does not explicitly check them. Before choosing those renderers, check:
+Two of these packages serve specific renderers: **`svglite`** supplies the SVG device used by the figure workflows, and **`aplot`** is loaded by `tools/ggtree_rect_heatmap.R`. Install them in the same R library the renderer uses. To check just those two before choosing those renderers:
 
 ```bash
 Rscript -e 'p <- c("svglite", "aplot"); ok <- vapply(p, requireNamespace, logical(1), quietly=TRUE); print(ok); if (!all(ok)) quit(status=2)'
@@ -62,4 +62,4 @@ Maintainers install pytest separately and use the complete configured test profi
 
 [Barrnap](../docs/BARRNAP.md) is an external rRNA annotation option in the marker/fungal guidance, not a core Mamey dependency or a universal phylogeny requirement. Check the installed version, dependencies and database/model before using a historical command. The marker planner prints a recipe; it does not run Barrnap.
 
-Before `doctor`, review its [write-probe scope](../docs/INSTALL.md#doctor-scope-and-write-probe). Keep `runs/_doctor_probe` absent in the chosen editable installation; an existing probe file can be overwritten and removed. Its bundle-local write check does not validate every future output destination.
+Before `doctor`, review its [write-probe scope](../docs/INSTALL.md#doctor-scope-and-write-probe). Keep `runs/_doctor_probe` absent in the chosen editable installation; the diagnostic refuses an occupied probe location and preserves it. Its bundle-local write check does not validate every future output destination.

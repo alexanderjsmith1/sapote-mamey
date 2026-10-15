@@ -85,3 +85,6 @@ handoff_gate	WIRED	one fail-closed check before a patch packet, deliverable or r
 sync_wiki_mirrors	WIRED	wiki mirror gate: pytest tests/test_445_wiki_mirrors_match_docs.py
 check_tygs_coverage	OPERATOR_ONLY	per-cohort TYGS coverage report for tree panels; run during panel building, not a release invariant
 check_figure_provenance	WIRED	Figure renderer-stamp check; imported by tests/test_figure_provenance_stamp.py; run on an output folder before figures leave it
+bigscape_region_binding_check	WIRED	BiG-SCAPE staged-region vs package-inventory binding gate; exercised by tests/test_452_bigscape_region_binding_check.py
+_min_text_check	WIRED	printed-size text floor read back from figure PDFs; exercised by tests/test_m5_452_min_text_8pt.py and the R figure-card tests
+blastp_tag_position_audit	WIRED	BLASTp tag-to-protein binding audit; exercised by tests/test_451_blastp_tag_position_audit.py; never edits its inputs

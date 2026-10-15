@@ -873,6 +873,16 @@ def _apply_boundary_adjustment(report: ArchitectureReport) -> ArchitectureReport
 # STEP 2: KCB Concordance Check (EXPANDED)
 # ══════════════════════════════════════════════════════════════
 
+def _mibig_tag_present(tag: str, text: str) -> bool:
+    """True when ``tag`` occurs in ``text`` as a whole tag, not as a prefix of a longer one.
+
+    'Polyketide:Type I' is a prefix of 'Polyketide:Type II' and 'Polyketide:Type III';
+    a plain substring test let the Type I entry shadow both.
+    """
+    pattern = r"(?<![a-z0-9])" + re.escape(tag.lower()) + r"(?![a-z0-9])"
+    return re.search(pattern, (text or "").lower()) is not None
+
+
 # Map MIBiG class tags (from BGC annotations) to PathwayType
 # These are the structured class labels in MIBiG, not compound names
 MIBIG_CLASS_MAP = {
@@ -1036,7 +1046,7 @@ def check_kcb_concordance(arch: ArchitectureReport,
     # Try MIBiG class tag first (most reliable)
     if kcb_mibig_class:
         for key, ptype in MIBIG_CLASS_MAP.items():
-            if key.lower() in kcb_mibig_class.lower():
+            if _mibig_tag_present(key, kcb_mibig_class):
                 expected_type = ptype
                 result.kcb_class = ptype.value
                 break

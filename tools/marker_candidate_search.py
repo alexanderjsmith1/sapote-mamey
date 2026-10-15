@@ -47,6 +47,11 @@ except ImportError:  # bare-script run: bundle root is one level up
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 import argparse
+import shlex
+try:
+    import _phylo16s as _p16
+except ImportError:
+    from tools import _phylo16s as _p16
 import sys as _sys
 def emit(*args, sep=" ", end="\n", file=None, flush=False):
     """print-compatible stdout/stderr writer (no bare print(); keeps strict-health print_calls flat)."""
@@ -87,23 +92,42 @@ def parse_outfmt6(path, columns=OUTFMT6):
             if not line or line.startswith("#"):
                 continue
             parts = line.split("\t")
-            rows.append({columns[i]: parts[i] for i in range(min(len(columns), len(parts)))})
+            rows.append({(list(columns) + ["qseq", "sseq"])[i]: parts[i]
+                         for i in range(min(len(columns) + 2, len(parts)))})
     return rows
 
 
 def hits_to_candidates(rows, query, marker, max_hits=3, min_pident=0.0):
     """BLAST hits -> ordered, de-duplicated candidate list. Pure; unit-tested.
 
-    Ranks by bitscore desc, dedups by resolved accession (keeps the best hit per genome),
+    Ranks 16S by unambiguous identity when alignment columns are supplied (otherwise raw
+    identity); protein markers retain bitscore ranking. Dedups by resolved accession (keeps the best hit per genome),
     drops self-ish/below-threshold hits, and keeps the top `max_hits`. Each candidate is a
     REFERENCE row for build_phylo_panel with selection_basis=marker_blast_<marker>.
     """
-    seen, cands = set(), []
-    for r in sorted(rows, key=lambda x: float(x.get("bitscore", 0) or 0), reverse=True):
+    def identity(r):
+        if marker in RRNA_MARKERS and r.get("qseq") and r.get("sseq"):
+            pid = _p16.unambiguous_identity(r["qseq"], r["sseq"])[0]
+            if pid is not None:
+                return pid
         try:
-            pid = float(r.get("pident", 0) or 0)
+            return float(r.get("pident", 0) or 0)
         except ValueError:
-            pid = 0.0
+            return 0.0
+
+    def rank(r):
+        bits = float(r.get("bitscore", 0) or 0)
+        return (identity(r), bits) if marker in RRNA_MARKERS else (bits,)
+
+    if marker in RRNA_MARKERS:
+        longest = {}
+        for r in rows:
+            q = r.get("qseqid", "")
+            longest[q] = max(longest.get(q, 0), float(r.get("length", 0) or 0))
+        rows = [r for r in rows if float(r.get("length", 0) or 0) >= 0.95 * longest[r.get("qseqid", "")]]
+    seen, cands = set(), []
+    for r in sorted(rows, key=rank, reverse=True):
+        pid = identity(r)
         if pid < min_pident:
             continue
         acc = accession_from_subject(r.get("sseqid", ""))
@@ -142,31 +166,43 @@ def cmd_plan_blast(a):
          sep="\n")
     for m in markers:
         if m in RRNA_MARKERS:
+            gff, fna = shlex.quote(f"{a.query}_{m}.gff"), shlex.quote(f"{a.query}_{m}.fna")
             emit(f"\n## {m}: extract rRNA (needs barrnap; rRNA cannot be blastp-seeded)",
-                 f"barrnap --kingdom bac {a.assembly} | "
-                 f"awk '$3==\"rRNA\" && /16S/' > {a.query}_{m}.gff   # then bedtools getfasta",
+                 f"barrnap --kingdom bac {shlex.quote(a.assembly)} | "
+                 f"awk '$3==\"rRNA\" && /16S/' > {gff}",
+                 f"# NOT RUN: writes a fresh GFF ({gff}) of 16S features only. Extract those "
+                 f"features into {fna} with a reviewed extractor (e.g. bedtools getfasta) "
+                 "before the BLAST step; this plan does not create it.",
                  sep="\n")
             db = a.db or "<local 16S RefSeq db>"
             if a.remote:
-                emit(f"blastn -query {a.query}_{m}.fna -db nt -remote "
-                      f"-outfmt 6 -max_target_seqs 25 -out {a.query}_{m}_hits.tsv   "
-                      f"# NO personal email/ID; rate-limited")
+                emit(f"blastn -query {fna} -db nt -remote "
+                      f"-outfmt 6 -max_target_seqs 25 -out {shlex.quote(a.query + '_' + m + '_hits.tsv')}   "
+                      f"# exploratory capped search, not an exhaustive nearest-record result; NO personal email/ID; rate-limited")
             else:
-                emit(f"blastn -query {a.query}_{m}.fna -db {db} "
-                      f"-outfmt 6 -max_target_seqs 25 -num_threads 4 -out {a.query}_{m}_hits.tsv")
+                n = _p16.blastdb_sequence_count(db) if a.db else None
+                count = str(n) if n else '"${DB_RECORD_COUNT:?set the verified database sequence count}"'
+                fmt = "6 " + " ".join(OUTFMT6 + ["qseq", "sseq"])
+                emit("# Search every local record; re-plan if the database changes. "
+                     "Aligned columns support unambiguous 16S identity.",
+                     f"blastn -query {shlex.quote(a.query + '_' + m + '.fna')} -db {shlex.quote(db)} "
+                     f"-outfmt {shlex.quote(fmt)} -max_target_seqs {count} -num_threads 4 "
+                     f"-out {shlex.quote(a.query + '_' + m + '_hits.tsv')}", sep="\n")
         elif m in MARKER_SEEDS:
             seed = os.path.join(SEEDS_DIR, MARKER_SEEDS[m])
             db = a.db or "<local RefSeq protein db>"
             emit(f"\n## {m}: protein marker (seed {seed})",
-                 f"prodigal -i {a.assembly} -a {a.query}.faa -p single -q   # once per assembly",
-                 f"blastp -query {seed} -db {db} "
-                 f"-outfmt 6 -max_target_seqs 25 -num_threads 4 -out {a.query}_{m}_hits.tsv",
+                 f"prodigal -i {shlex.quote(a.assembly)} -a {shlex.quote(a.query + '.faa')} "
+                 "-p single -q   # once per assembly",
+                 f"blastp -query {shlex.quote(seed)} -db {shlex.quote(db)} "
+                 f"-outfmt 6 -max_target_seqs 25 -num_threads 4 "
+                 f"-out {shlex.quote(a.query + '_' + m + '_hits.tsv')}",
                  sep="\n")
         else:
             emit(f"# WARN unknown marker '{m}' (known: 16S, {', '.join(MARKER_SEEDS)})")
     emit(f"\n# then: python tools/marker_candidate_search.py to-panel "
-          f"--hits {a.query}_<marker>_hits.tsv --query {a.query} --marker <marker> "
-          f"--out {a.query}_candidates.tsv")
+          f"--hits {shlex.quote(a.query + '_<marker>_hits.tsv')} --query {shlex.quote(a.query)} "
+          f"--marker '<marker>' --out {shlex.quote(a.query + '_candidates.tsv')}")
     return 0
 
 

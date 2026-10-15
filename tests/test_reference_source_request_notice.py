@@ -59,5 +59,6 @@ def test_insdc_placeholders_do_not_render_as_deposited_fact(tmp_path):
     con.execute("INSERT INTO record VALUES ('NR_026344','','not applicable','not determined')")
     con.commit(); con.close()
     src = m._load_ref_sources(str(db))
-    assert src["NR114755"] == "Nigeria", src["NR114755"]      # the real country survives
+    # the real country survives (drawn as its region since v9.7.452 maps Nigeria to Africa)
+    assert src["NR114755"] == "Africa", src["NR114755"]
     assert src["NR026344"] == "", src["NR026344"]             # nothing real left -> METADATA_ABSENT

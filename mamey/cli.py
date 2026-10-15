@@ -1336,6 +1336,20 @@ def run_one_strain(
         emit(f"ERROR: {code}: {detail}", file=_sys.stderr, flush=True)
         return {"status": code, "written": False}
 
+    # M5_451 accession --strain fix: derive the Genus_species_Designation id BEFORE the run folder, lock and
+    # package are named, so folder, zip, manifest and every phase share one strain id. Previously
+    # _phase_environment derived it into context.strain_id only (manifest), while this function kept the
+    # accession for the folder, deep data and gene context -> GOLD_IDENTITY_STRAIN_CONFLICT holds and a skipped
+    # domain-level set. Same rule and inputs as _phase_environment (which now sees a non-accession id and no-ops).
+    _early_sid_note = None
+    if _label_is_accession(strain_id):
+        from .cohort_resolver import derive_strain_id as _derive_sid_early
+        _derived_early, _early_sid_note = _derive_sid_early(
+            strain_id, organism=taxonomy, filename=(os.path.basename(str(input_zip)) if input_zip else ""))
+        if _derived_early and _derived_early != strain_id:
+            strain_id = _derived_early
+        else:
+            _early_sid_note = None   # not derived: _phase_environment keeps its fallback note and issue
     out_root   = Path(outdir)
     run_dir    = out_root / strain_id
     package_dir = run_dir / "package"
@@ -1349,6 +1363,8 @@ def run_one_strain(
     global _RUN_T0
     _RUN_T0 = None
     _stage(f"start {strain_id} (mode={mode}, json-evidence={json_mode}, token-budget={token_budget})")
+    if _early_sid_note:
+        _stage(f"[NOTE] {_early_sid_note}")
     _timer, _label_accession, taxonomy, display_name, context = _phase_environment(
         package_dir, strain_id, mode, json_mode, token_budget, input_zip, brief,
         display_name, taxonomy, source, bioactivity, master_path, run_dir,
@@ -1695,6 +1711,10 @@ def run_one_strain(
         _release = (getattr(bgcs[0], "release", "") if bgcs else "") or "PRIVATE"
         _bgc_by_id = {b.bgc_id: b for b in bgcs}
 
+        # This run's maps: the manifest lists these, never a glob that would pick up stale files.
+        _lm_made: dict[str, tuple[str, str]] = {}
+        _lm_failed: dict[str, str] = {}
+
         # cache: extract each needed region GBK from the zip once, render rows
         _rows_cache: dict[str, list] = {}
 
@@ -1750,19 +1770,14 @@ def run_one_strain(
                 # hold the v8 bytes, not a second legacy render.
                 _shutil_lm.copyfile(_lm_dir / f"{_bid}_locus_map.png", _png)
                 _shutil_lm.copyfile(_lm_dir / f"{_bid}_locus_map_data.csv", _csv)
-                return
+                _lm_made[_png.name] = (_csv.name, "single")
             except Exception as _lm_exc:
-                # A post-seal figure cannot fail the core run, but the degradation is named:
-                # fall through to the legacy map rather than emitting nothing silently.
+                # A figure cannot fail the core run, but a failed v8 map is reported for that
+                # figure and not replaced by the legacy renderer (locus_map.py contract).
                 import sys as _sys_lm
-                _sys_lm.stderr.write(
-                    f"  locus map v8 unavailable for {_bid} "
-                    f"({type(_lm_exc).__name__}: {_lm_exc}); using legacy renderer\n")
-            _rows = _rows_for(_bid)
-            if not _rows:
-                return
-            _render_lm([(_title_lm(_bid), _rows)], _png, _csv,
-                       suptitle=f"{strain_id} — {_bid} locus ({_tag})", claim_prefix=_release)
+                _reason = f"{type(_lm_exc).__name__}: {_lm_exc}"
+                _lm_failed[_bid] = _reason
+                _sys_lm.stderr.write(f"  locus map v8 FAILED for {_bid} ({_reason}); no map written\n")
 
         # (1) top AB + top AF lead BGCs
         _ranked_ab = sorted(bgcs, key=lambda b: getattr(b, "ab_score", 0) or 0, reverse=True)
@@ -1793,20 +1808,20 @@ def run_one_strain(
             _render_lm([(_title_lm(_a), _ra), (_title_lm(_b), _rb)], _png, _csv,
                        suptitle=f"{strain_id} — RG-GMCI HIGH pair {_a} ↔ {_b} (split / homology candidate)",
                        claim_prefix=_release)
+            _lm_made[_png.name] = (_csv.name, "pair")
             _n_pairs += 1
 
-        _n_maps = len(list(_lm_dir.glob("*_locus.png")))
+        _n_maps = len(_lm_made)
+        for _bid, _reason in _lm_failed.items():
+            issues.append(f"LOCUS_MAP_V8_FAILED: {_bid}: {_reason}")
         # catalog the maps (filename, data_csv, kind) like every other figure deliverable
         try:
             import csv as _csv_lm
             with open(_lm_dir / "locus_map_manifest.csv", "w", newline="", encoding="utf-8") as _mf:
                 _w = _SafeWriter(_mf)
                 _w.writerow(["filename", "data_csv", "kind"])
-                for _p in sorted(_lm_dir.glob("*_locus.png")):
-                    if _p.name.endswith("_pair_locus.png"):
-                        _w.writerow([_p.name, _p.name.replace("_pair_locus.png", "_pair_locus_data.csv"), "pair"])
-                    else:
-                        _w.writerow([_p.name, _p.name.replace("_locus.png", "_locus_data.csv"), "single"])
+                for _name in sorted(_lm_made):
+                    _w.writerow([_name, *_lm_made[_name]])
         except Exception as _catalog_exc:
             message = (
                 f"LOCUS_MAP_CATALOG_WRITE_FAILED: {type(_catalog_exc).__name__}: "
@@ -1814,7 +1829,8 @@ def run_one_strain(
             )
             issues.append(message)
             _phase_receipt(package_dir, "locus_map_catalog", "ERROR", reason=message)
-        _phase_receipt(package_dir, "locus_maps", "END", n_maps=_n_maps, n_high_pairs=_n_pairs)
+        _phase_receipt(package_dir, "locus_maps", "END", n_maps=_n_maps, n_high_pairs=_n_pairs,
+                       n_failed=len(_lm_failed), failed=_lm_failed)
     except _LocusMapsSkipped as _swallowed:
         _LOGGER.debug("locus maps skipped (SKIP receipt already written): %r", _swallowed)
     except Exception as _lm_err:
@@ -2121,21 +2137,12 @@ def run_one_strain(
     # above still cover the whole assembly. Surface it so MAMEY_COMPLETE is not read as "whole
     # genome scanned".
     try:
-        from .parsers import antismash_record_limit_truncation as _artl
-        _trunc = _artl(input_zip)
-        if _trunc.get("truncated"):
-            _an = _trunc.get("analysed")
-            _sk = _trunc.get("skipped_count")
-            _eg = (f", first {_trunc['first_skipped']}" if _trunc.get("first_skipped") else "")
-            _sktxt = (f"{_sk} eligible records were skipped ({_eg.lstrip(', ')})"
-                      if _sk else f"records beyond the cap were skipped{_eg}")
-            issues.append(
-                f"RECORD_LIMIT_TRUNCATION: antiSMASH analysed only the largest {_an} records "
-                f"(--limit); {_sktxt} and were NOT scanned for BGCs, so the region count is a "
-                f"FLOOR, not the whole assembly. The contamination/GC stats above cover the full "
-                f"FASTA and are not comparable to the BGC coverage. Re-run antiSMASH with a higher "
-                f"--limit for complete coverage."
-            )
+        from .parsers import antismash_record_limit_truncation as _artl, record_limit_coverage_issue as _rlci
+        # .452 (P300-125 follow-up): only NOT_DETECTED establishes no cap; other probe states are reported as
+        # unverified coverage, not as truncation.
+        _limit_issue_text = _rlci(_artl(input_zip))
+        if _limit_issue_text:
+            issues.append(_limit_issue_text)
     except Exception as _limit_exc:
         _limit_issue = (
             "RECORD_LIMIT_PROBE_FAILED: antiSMASH record-limit coverage status is "
@@ -3714,10 +3721,10 @@ def _write_package(run: MameyRun, package_dir: Path,
     with _atomic_open_pkg(package_dir / f"{strain}_4_triage_board.csv", "w", newline="") as f:
         w = _SafeWriter(f)
         w.writerow(triage_headers)
-        # v9.7.230 (audit #3): distinguish parsed-zero from not-parsed for SubClusterBlast. If ANY BGC in
-        # the run carries subcluster hits, the tab was parsed, so an empty list is a real 0 ("NO_HITS")
-        # rather than a missing parse (blank). Lets Sapote treat absent submodule support as NEGATIVE evidence.
-        _subcluster_parsed = any(getattr(b, "subcluster_hits", None) for b in run.bgcs)
+        # SubClusterBlast: another region's hits say nothing about this region's own search, so a run-wide
+        # "any region had hits" flag must not turn an empty list into NO_HITS (v9.7.230 did). No per-region
+        # completion receipt reaches this writer, so an empty list stays blank (not established), never
+        # a negative.
         for rank, t in enumerate(triage, 1):
             bgc = next((b for b in run.bgcs if b.bgc_id == t.bgc_id), None)
             if not bgc:
@@ -3728,7 +3735,7 @@ def _write_package(run: MameyRun, package_dir: Path,
                 getattr(t, "architecture_capacity", "") or getattr(bgc, "architecture_capacity", "") or "",
                 getattr(t, "architecture_class_confidence", "") or getattr(bgc, "architecture_class_confidence", "") or "",
                 t.ab_score, t.af_score, t.novelty_score, t.lead_tier,
-                bgc.kcb_top or "", getattr(bgc, "clusterblast_top", "") or "", (bgc.clusterblast_ranked[0]["label"] if getattr(bgc, "clusterblast_ranked", None) else ""), len(getattr(bgc, "mibig_ranked", []) or ""), (("; ".join(f"{h['ref']}({h['mean_identity']})" for h in (getattr(bgc, "subcluster_hits", []) or [])[:3])) or ("NO_HITS" if _subcluster_parsed else "")), bgc.kcb_cumulative or "",
+                bgc.kcb_top or "", getattr(bgc, "clusterblast_top", "") or "", (bgc.clusterblast_ranked[0]["label"] if getattr(bgc, "clusterblast_ranked", None) else ""), len(getattr(bgc, "mibig_ranked", []) or ""), "; ".join(f"{h['ref']}({h['mean_identity']})" for h in (getattr(bgc, "subcluster_hits", []) or [])[:3]), bgc.kcb_cumulative or "",
                 ", ".join(cctt_coupling.get(bgc.bgc_id, [])),
                 "; ".join((rggmci_support.get(bgc.bgc_id) or [])[:10]),
                 _depth_floor(bgc, cctt_coupling, run.context.analysis_mode, rt_per_bgc),
@@ -4572,6 +4579,8 @@ def verify_citations_command(args) -> int:
 
     A node-less `strain + BGC-number` citation merged two distinct AS-XXX loci and mis-attributed an AB
     prior. This refuses any deliverable that cites a strain+BGC without a locating token (NODE_/ctg/region).
+    Exit 0 = every found file checked, no finding; 1 = findings; 2 = missing path, no .md input, or a file
+    that could not be read or gated (unchecked is never counted as verified).
     """
     import sys as _sys
     from .bgc_citation_gate import gate_text
@@ -4584,24 +4593,38 @@ def verify_citations_command(args) -> int:
         _sys.stderr.write(f"verify-citations: no such path: {p}\n")
         return 2
     total = 0
+    checked = 0
+    unchecked: list[Path] = []
     for f in files:
         try:
             findings = gate_text(f.read_text(encoding="utf-8", errors="replace"))
-        except Exception as e:  # noqa: BLE001 - a bad file is reported, not fatal to the scan
-            _sys.stderr.write(f"  [skip] {f}: {e}\n")
+        except Exception as e:  # noqa: BLE001 - an unreadable file or gate error is UNCHECKED, never verified
+            _sys.stderr.write(f"  [unchecked] {f}: {type(e).__name__}: {e}\n")
+            unchecked.append(f)
             continue
+        checked += 1
         if findings:
             total += len(findings)
             _sys.stdout.write(f"NODE-LESS CITATIONS in {f}:\n")
             for m in findings:
                 _sys.stdout.write(f"  {m}\n")
+    counts = f"{len(files)} found, {checked} checked, {len(unchecked)} unchecked"
     if total:
         _sys.stdout.write(
-            f"\nverify-citations: FAIL — {total} node-less BGC citation(s) across {len(files)} file(s). "
+            f"\nverify-citations: FAIL — {total} node-less BGC citation(s); files: {counts}. "
             "Cite by node·region (NODE_n_length_L_cov_C / regionNNN), never a bare BGC number.\n"
         )
         return 1
-    _sys.stdout.write(f"verify-citations: PASS — {len(files)} file(s), no node-less BGC citations.\n")
+    if unchecked:
+        _sys.stdout.write(
+            f"verify-citations: HOLD_UNCHECKED — files: {counts}. "
+            "An unread file or gate error is not a pass.\n"
+        )
+        return 2
+    if not files:
+        _sys.stdout.write(f"verify-citations: HOLD_NO_INPUT — no .md file under {p}; nothing was checked.\n")
+        return 2
+    _sys.stdout.write(f"verify-citations: PASS — files: {counts}; no node-less BGC citations.\n")
     return 0
 
 
@@ -4623,8 +4646,11 @@ def validate_command(args) -> int:
     pkg = _Path(args.package_dir)
     xlsx_candidates = sorted(pkg.glob("*_5_workbook.xlsx"))
     if not xlsx_candidates:
-        emit("WORKBOOK_CONTENT:", json.dumps({"status": "SKIP", "reason": "no *_5_workbook.xlsx found"}))
-        wb_blocks = False
+        # --workbook-strict asks for a checked workbook; with none to check it is a typed failure, not a SKIP.
+        wb_blocks = bool(getattr(args, "workbook_strict", False))
+        emit("WORKBOOK_CONTENT:", json.dumps(
+            {"status": "FAIL_WORKBOOK_MISSING", "reason": "--workbook-strict: no *_5_workbook.xlsx found"}
+            if wb_blocks else {"status": "SKIP", "reason": "no *_5_workbook.xlsx found"}))
     else:
         wb_result = validate_workbook_content(xlsx_candidates[0])
         emit("WORKBOOK_CONTENT:", json.dumps(wb_result, indent=2))
@@ -6404,8 +6430,9 @@ def build_parser():
                         "fast default misses 25-40%% identity homologues).")
     r.add_argument("--completion-pfam", dest="completion_pfam", default=None,
                    help="v9.7.445: pressed Pfam-A.hmm for the housekeeping-neighbour check (default: $RGGMCI_PFAM_HMM, "
-                        "then an explicit --rggmci-registry-from anchor). With pyhmmer installed, a lone partner find beside >= 2 "
-                        "primary-metabolism genes is set aside as HOUSEKEEPING_CONTEXT.")
+                        "then an explicit --rggmci-registry-from anchor). With pyhmmer installed, a partner find beside >= 2 "
+                        "primary-metabolism genes is set aside as HOUSEKEEPING_CONTEXT, and such finds do not count "
+                        "as support for an adjacent find.")
     r.add_argument("--rggmci-registry-from", dest="rggmci_registry_from", default=None,
                    help="Explicit common RGGMCI asset-registry anchor; no implicit install-tree search.")
     r.add_argument("--rggmci-threads", type=int, default=4)

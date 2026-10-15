@@ -239,7 +239,13 @@ def governed_excluded() -> set[str]:
     STRAIN-X is IN GOVERNED (decontaminated strain-of-record, ratified 2026-08-05).
     Strains under a QC hold are ALSO not counted, but they are not hard-excluded --
     see :func:`qc_hold_audit_only`.
+
+    Governed consumers load strictly: an explicitly bound (or discovered) pack whose
+    exclusions.json is missing, unreadable or malformed raises ``ValueError`` instead
+    of falling back to the empty default. A tree with no pack bound still returns the
+    empty generic default.
     """
+    load_exclusions(strict=True)
     return hard_excluded()
 
 

@@ -4,7 +4,9 @@
 Sources (all read from local files; this tool makes no network call):
   1. 16S genome hits  -- an NCBI web blastn of the isolate's 16S against core_nt, saved as
      tabular text (12 columns: qseqid sseqid pident length mismatch gapopen qstart qend sstart send
-     evalue bitscore). Only hits on a sequence that belongs to a complete or chromosome-level
+     evalue bitscore, optionally followed by qseq sseq). Aligned columns support unambiguous
+     identity; legacy twelve-column inputs retain raw BLAST identity and are labeled as such.
+     Only hits on a sequence that belongs to a complete or chromosome-level
      assembly resolve to a genome; the rest go to the issues table.
   2. NCBI genome table -- `datasets summary genome taxon <taxon> --assembly-level complete,chromosome`
      (assemblies) and the same with `--report sequence` (sequence -> assembly), plus
@@ -38,6 +40,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
+import _phylo16s as _p16
 try:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 except ModuleNotFoundError:
@@ -46,7 +49,7 @@ except ModuleNotFoundError:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 
 PANEL_COLUMNS = ["ncbi_accession", "source", "best_16S_identity", "blast_hits", "organism", "strain",
-                 "ncbi_type_material", "tygs_type_strain", "tygs_d4", "assembly_level", "why"]
+                 "ncbi_type_material", "tygs_type_strain", "tygs_d4", "assembly_level", "why", "best_16S_identity_basis"]
 ISSUE_COLUMNS = ["source", "item", "detail"]
 CLAIM_CEILING = ("Panel membership is comparator selection only; 16S identity and dDDH are relatedness "
                  "measurements, not species or genus calls.")
@@ -57,7 +60,7 @@ def _norm_acc(acc: str) -> str:
     return acc.strip()
 
 
-def read_blast(path: str, min_align: int):
+def read_blast(path: str, min_align: int, identity_basis=None):
     """Per subject sequence: best identity and bitscore over alignments of at least min_align bp."""
     best = {}
     with open(path, encoding="utf-8", errors="replace") as fh:
@@ -69,11 +72,18 @@ def read_blast(path: str, min_align: int):
                 pid, alen, bits = float(f[2]), int(f[3]), float(f[11])
             except ValueError:
                 continue
+            basis = "raw_blast_pident"
+            if len(f) >= 14:
+                unamb = _p16.unambiguous_identity(f[12], f[13])[0]
+                if unamb is not None:
+                    pid, basis = unamb, "unambiguous_alignment_columns"
             if alen < min_align:
                 continue
             s = _norm_acc(f[1])
             if s not in best or bits > best[s][1]:
                 best[s] = (pid, bits)
+                if identity_basis is not None:
+                    identity_basis[s] = basis
     return best
 
 
@@ -271,7 +281,8 @@ def build(args):
         return True
 
     # 1. 16S genome hits, ranked by best identity then bitscore
-    hits = read_blast(args.blast, args.min_align) if args.blast else {}
+    identity_basis = {}
+    hits = read_blast(args.blast, args.min_align, identity_basis) if args.blast else {}
     by_asm = {}
     for s, (pid, bits) in hits.items():
         asms = seqmap.get(s) or seqmap.get(s.split(".")[0])
@@ -293,7 +304,8 @@ def build(args):
     for acc, (pid, bits, s) in ranked:   # duplicates of a strain already kept do not use a --top-16s slot
         if n_added >= args.top_16s:
             break
-        if add(acc, "16S_genome_hit", best_16S_identity=f"{pid:.2f}", blast_hits=s):
+        if add(acc, "16S_genome_hit", best_16S_identity=f"{pid:.2f}", blast_hits=s,
+               best_16S_identity_basis=identity_basis[s]):
             n_added += 1
 
     # 2. TYGS closest type strains

@@ -50,6 +50,40 @@ observation table.
 
 The separate `emit` command creates the profile's complete 384 source/destination-pair geometry table. `validate` checks that complete table's unique pair roster and exact profile/quadrant/concentration strings. It is not a validator for a partial assay export, repeated well measurements, sample identity or the canonical observation schema; duplicate pairs and incomplete coverage are refused. Its checks do not use `mapping_state`, so a geometry PASS cannot clear an observation hold.
 
+## Bring admitted per-well tables in
+
+When a project's readings already sit in admitted per-well tables (one row per well reading, with plate, well,
+target, material, dose, time point, percent inhibition and a calibration basis), map them into the observation table
+with a profile instead of by hand:
+
+```bash
+python tools/bioassay_admitted_observations.py observations --profile profile.json --out observations.tsv
+python tools/bioassay_admitted_observations.py best-table --observations observations.tsv --out best.tsv
+```
+
+The profile (`sapote.bioassay-admitted-profile.v1`; see
+[`examples/bioassay_admitted_profile_example.json`](../examples/bioassay_admitted_profile_example.json)) names each
+table, its platform and the column for each field, plus the owner's declarations:
+
+- `material_types`: material group to material type. An unmapped group is held (`MATERIAL_GROUP_UNMAPPED`).
+- `targets`: `VERIFIED` or `AMBIGUOUS` per label; any other label stays `AS_RECORDED`.
+- `dose_states`: the dose state per platform when a dose is written; a blank dose is `UNRECORDED`.
+- `control_states`: the control state for each calibration basis, each with a written basis. A calibration the
+  profile does not name gets `UNRECORDED` and the row is held, so an expected-OD normalization is never included
+  silently.
+- `corrections`: an optional table that changes named fields on rows matched by key (for example a material
+  reclassified after the table was admitted).
+
+Values are copied as recorded; percent inhibition is not clipped. The command refuses to overwrite its output and
+writes `<out>.receipt.json` with the profile, each table and the corrections table by SHA-256, and the counts of
+included and held rows by reason.
+
+`best-table` reads included rows only. Per strain, target and material it gives the higher of the best 96-well
+reading (any recorded dose) and the best 384-well reading at one final concentration (`--dose-384`, default 120),
+after a floor (`--floor`, default 0; `--no-floor` keeps negative readings). It writes both platform values, which
+platform gave the best, and the reading counts. A combination never read has no row: not tested, never zero. Held
+qualitative or unruled readings do not enter it.
+
 ## What the observation table preserves
 
 - 96-well, 384-well, or explicitly declared other plate layouts;
@@ -148,7 +182,7 @@ that result to an individual biosynthetic locus without a separately admitted ex
 
 ## Current residual
 
-The bundle still needs mapping profiles for the project's distinct raw 96- and 384-well layouts,
+Admitted per-well tables can be brought in with `tools/bioassay_admitted_observations.py` (above). The bundle still needs mapping profiles for the project's distinct raw 96- and 384-well layouts,
 a generalized multi-target ggtree strip, an in-vivo observation schema, raw-plate mapping profiles,
 and a policy for choosing among repeated experiments before selection. The older
 `bioassay_to_activity_channel.py --recon`

@@ -93,6 +93,8 @@ def layer_identity(basename, organism, prefixes=REFERENCE_PREFIXES):
                     "region": region, "alias": "", "hold": "", "reference": True, "layer": layer}
     if "__" in basename:
         stem, rest = basename.split("__", 1)
+        if re.fullmatch(r"[A-Za-z]+-\d+", stem):
+            return None
         m = re.match(r"^(.+)\.(region\d+)\.gbk$", rest)
         acc, region = (m.group(1), m.group(2)) if m else (rest, "")
         return {"label": f"REF {org or stem.replace('_', ' ')}  {acc} {region}".strip(), "strain": "", "contig": acc,
@@ -181,7 +183,10 @@ def split_region_name(basename):
     stem = re.sub(r"\.gbk$", "", basename)
     if re.match(r"^BGC\d+", stem):
         return stem.split(".")[0], "", ""
-    m = re.match(r"^(.+?)_((?:NODE|contig|scaffold|tig|k\d+)_.+)\.(region\d+)$", stem, re.I)
+    m = re.match(r"^([A-Za-z]+-\d+)_+(.+)\.(region\d+)$", stem)
+    if m:
+        return m.group(1), m.group(2), m.group(3)
+    m = re.match(r"^(.+?)_+((?:NODE|contig|scaffold|tig|k\d+)_.+)\.(region\d+)$", stem, re.I)
     if m:
         return m.group(1), m.group(2), m.group(3)
     m = re.match(r"^(.+)\.(region\d+)$", stem)
@@ -207,7 +212,7 @@ def row_identity(basename, bound):
     strain, contig, region = split_region_name(basename)
     if not contig:                                   # reference cluster
         return {"label": strain, "strain": "", "contig": "", "region": "", "alias": "", "hold": "", "reference": True}
-    key = basename[len(strain) + 1:] if strain and basename.startswith(strain + "_") else basename
+    key = re.sub(r"^" + re.escape(strain) + r"_+", "", basename) if strain else basename
     rec = bound.get(key) or bound.get(basename)
     if rec and rec["alias"]:
         if rec["contig"] and rec["contig"] != contig:
@@ -364,6 +369,114 @@ def render(tree, clusters, labels, pairs, out, title, min_id):
     return n_links
 
 
+PRINT_WIDTHS = {"double": 7.2, "single": 3.5}
+MIN_PRINT_PT = 8.0
+
+
+def render_print(tree, clusters, labels, pairs, out, title, min_id, width_in, show_title=True):
+    """The family figure at a journal column width: every text at least 8 pt, the gene tracks taking the width the
+    labels leave, the legend listing only the roles drawn. The page is exactly width_in wide (no tight crop), so
+    nothing shrinks on the page. Refuses (ValueError) when the tracks would get under a third of the width."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import FancyArrow, Patch
+    pt = MIN_PRINT_PT
+    tips = [t.name for t in tree.get_terminals()]
+    n = len(tips)
+    left_ext = max(clusters[t]["anchor"] for t in tips)
+    right_ext = max(clusters[t]["length"] - clusters[t]["anchor"] for t in tips)
+    span = left_ext + right_ext
+    off = {t: left_ext - clusters[t]["anchor"] for t in tips}
+    scale = 1.0 / span
+    texts = {t: wrap_label_print(labels[t]["label"]) for t in tips}
+    probe = plt.figure(figsize=(width_in, 2)); rend = probe.canvas.get_renderer()
+    label_in = max(probe.text(0, 0, x, fontsize=pt, linespacing=1.15).get_window_extent(rend).width for x in texts.values()) / probe.dpi + 0.12
+    lines = max(x.count("\n") + 1 for x in texts.values())
+    present = [k for k in ROLE_COLOURS if any(g["role"] == k for t in tips for g in clusters[t]["genes"])]
+    ncol = 3 if width_in >= 6 else 2
+    leg_w = max(probe.text(0, 0, k, fontsize=pt).get_window_extent(rend).width for k in present) / probe.dpi + 0.45
+    while ncol > 1 and ncol * leg_w > width_in - 0.2:
+        ncol -= 1
+    plt.close(probe)
+    tree_in = min(1.0, 0.12 * width_in)
+    track_in = width_in - tree_in - label_in - 0.08
+    if track_in < width_in / 3:
+        raise ValueError(f"GCF_TREE_PRINT_WIDTH: labels need {label_in:.2f} in, leaving {track_in:.2f} in of {width_in} in for the tracks")
+    row_in = max(0.36, lines * pt * 1.25 / 72 + 0.08)
+    leg_rows = -(-len(present) // ncol)
+    top_in = 0.42 if show_title else 0.12
+    scale_in, leg_in = 0.38, leg_rows * 0.2 + 0.12
+    H = top_in + n * row_in + scale_in + leg_in
+    fig = plt.figure(figsize=(width_in, H))
+    bottom = (scale_in + leg_in) / H; height = n * row_in / H
+    ax_t = fig.add_axes([0.0, bottom, tree_in / width_in, height])
+    ax_g = fig.add_axes([tree_in / width_in, bottom, 1 - tree_in / width_in, height], sharey=ax_t)
+    ax_t.axis("off"); ax_g.axis("off")
+    depths = tree.depths(); xmax = max(depths.values()) or 1.0
+    ypos = {t: n - 1 - i for i, t in enumerate(tree.get_terminals())}
+    for cl in tree.get_nonterminals(order="postorder"):
+        ypos[cl] = sum(ypos[c] for c in cl.clades) / len(cl.clades)
+    for cl in tree.get_nonterminals():
+        x = depths[cl] / xmax
+        for c in cl.clades:
+            ax_t.plot([x, x], [ypos[cl], ypos[c]], color="#222", lw=0.8)
+            ax_t.plot([x, depths[c] / xmax], [ypos[c], ypos[c]], color="#222", lw=0.8)
+    ax_t.set_xlim(-0.02, 1.02); ax_t.set_ylim(-0.5, n - 0.5)
+    lab_units = (label_in + 0.04) / track_in
+    ytip = {t.name: ypos[t] for t in tree.get_terminals()}
+    for t in tips:
+        y = ytip[t]; lab = labels[t]
+        ax_g.text(-0.012, y, texts[t], ha="right", va="center", fontsize=pt, linespacing=1.15,
+                  color="#202124" if lab["reference"] else "#bb0000")
+        for g in clusters[t]["genes"]:
+            x0, x1 = (g["start"] + off[t]) * scale, (g["end"] + off[t]) * scale
+            w = x1 - x0; head = min(0.012, 0.5 * w)
+            args = (x0, y, w) if g["strand"] >= 0 else (x1, y, -w)
+            ax_g.add_patch(FancyArrow(*args, 0, width=0.34, head_width=0.46, head_length=head, length_includes_head=True,
+                                      fc=ROLE_COLOURS[g["role"]], ec="#333", lw=0.3))
+    n_links = 0
+    for i in range(n - 1):
+        A, B = tips[i], tips[i + 1]
+        gA = {g["id"]: g for g in clusters[A]["genes"]}; gB = {g["id"]: g for g in clusters[B]["genes"]}
+        for ga, gb, pid in pairs.get((A, B), []):
+            if ga in gA and gb in gB:
+                xa = ((gA[ga]["start"] + gA[ga]["end"]) / 2 + off[A]) * scale
+                xb = ((gB[gb]["start"] + gB[gb]["end"]) / 2 + off[B]) * scale
+                ax_g.plot([xa, xb], [ytip[A] - 0.24, ytip[B] + 0.24], ls=(0, (1.5, 1.5)), lw=0.5, color="#444", alpha=min(1.0, 0.35 + pid / 100))
+                n_links += 1
+    ax_g.set_xlim(-lab_units, 1.01); ax_g.set_ylim(-0.5, n - 0.5)
+    sb = fig.add_axes([tree_in / width_in, (leg_in + 0.06) / H, 1 - tree_in / width_in, (scale_in - 0.06) / H]); sb.axis("off")
+    sb.set_xlim(-lab_units, 1.01); sb.set_ylim(0, 1)
+    kb = 10000 if span > 15000 else 5000
+    sb.plot([0.0, kb * scale], [0.78, 0.78], color="#222", lw=1.0)
+    sb.text(kb * scale / 2, 0.62, f"{kb // 1000} kb", ha="center", va="top", fontsize=pt)
+    fig.legend(handles=[Patch(facecolor=ROLE_COLOURS[k], edgecolor="#333", lw=0.4, label=k) for k in present],
+               loc="lower center", ncol=ncol, fontsize=pt, frameon=False, bbox_to_anchor=(0.5, 0.0),
+               handlelength=1.4, columnspacing=1.2)
+    if show_title:
+        fig.text(0.01, 1 - 0.08 / H, title, fontsize=pt + 1, ha="left", va="top")
+    fig.canvas.draw()
+    sizes = [t.get_fontsize() for a_ in fig.axes for t in a_.texts] + [t.get_fontsize() for t in fig.texts]
+    leg = fig.legends[0]; sizes += [t.get_fontsize() for t in leg.get_texts()]
+    if min(sizes) < MIN_PRINT_PT - 1e-9:
+        plt.close(fig)
+        raise ValueError(f"GCF_TREE_PRINT_WIDTH: smallest text {min(sizes)} pt")
+    fig.savefig(str(out) + ".png", dpi=300, facecolor="white"); fig.savefig(str(out) + ".pdf", facecolor="white"); plt.close(fig)
+    return n_links
+
+
+def wrap_label_print(label):
+    """Print-width labels: the four-part identity on two lines, a reference's accession above its organism."""
+    parts = label.split(" / ")
+    if len(parts) == 4:
+        return f"{parts[0]} / {parts[1]}\n{parts[2]} / {parts[3]}"
+    if "  " in label:
+        a, b = label.split("  ", 1)
+        return f"{a}\n{b.strip()}"
+    return label
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--newick"); ap.add_argument("--db"); ap.add_argument("--family", type=int)
@@ -378,6 +491,10 @@ def main(argv=None):
     ap.add_argument("--max-tips", type=int, default=0, help="above this many members draw a pruned view (0 = never prune)")
     ap.add_argument("--prefilter-db", default=None, help="BiG-SCAPE database whose Pfam scan restricts which gene pairs are aligned (defaults to --db)")
     ap.add_argument("--focal", action="append", default=[], help="strain prefix whose rows anchor the pruned view (repeatable)")
+    ap.add_argument("--print-width", choices=["double", "single", "none"], default="double",
+                    help="draw at a journal column width with every text at least 8 pt: double = 7.2 in (default), "
+                         "single = 3.5 in; none = the earlier screen layout, unchanged")
+    ap.add_argument("--no-title", action="store_true", help="leave the title off the figure (it goes in the caption)")
     ap.add_argument("--out", required=True, help="output stem")
     a = ap.parse_args(argv)
     prefixes = tuple(a.reference_prefix) if a.reference_prefix else REFERENCE_PREFIXES
@@ -438,7 +555,14 @@ def main(argv=None):
         pairs = adjacent_pairs(clusters, order, a.min_id, a.prefilter_db)
     n_cand, n_all = pairs.pop("_stats", (0, 0))
     out = Path(a.out)
-    n_links = render(tree, clusters, labels, pairs, out, a.title + pruned_note, a.min_id)
+    if a.print_width == "none":
+        n_links = render(tree, clusters, labels, pairs, out, a.title + pruned_note, a.min_id)
+    else:
+        try:
+            n_links = render_print(tree, clusters, labels, pairs, out, a.title + pruned_note, a.min_id,
+                                   PRINT_WIDTHS[a.print_width], show_title=not a.no_title)
+        except ValueError as exc:
+            raise SystemExit(str(exc))
     with open(str(out) + "_gene_roles.tsv", "w", encoding="utf-8", newline="") as h:
         w = _SafeWriter(h, delimiter="\t", lineterminator="\n"); w.writerow(["row", "gene", "start", "end", "strand", "role", "track_flipped"])
         for t in order:
@@ -465,6 +589,8 @@ def main(argv=None):
            f"threshold and that share a Pfam domain in the BiG-SCAPE scan, or both lack one" if a.prefilter_db and not a.pairs else "") +
            f". Shared genes are homology, not compound identity; region boundaries are antiSMASH calls and contig-edge regions may be truncated. "
            f"Class-level architecture only; judgment deferred.")
+    if a.print_width != "none":
+        cap = cap.replace("(10 kb bar)", "(scale bar)")
     Path(str(out) + "_caption.txt").write_text(cap + "\n", encoding="utf-8")
     emit(f"[render_gcf_synteny_tree] {len(order)} clusters, {n_links} links, {holds} identity holds -> {out}.png/.pdf")
     return 0

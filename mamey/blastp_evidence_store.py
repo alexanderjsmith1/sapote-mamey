@@ -246,6 +246,17 @@ def ingest_blastp_round(
     existing = [r for r in _read_jsonl(manifest_path) if r.get("round_id") == round_id]
     if existing and not allow_update:
         raise ValueError(f"round_id already ingested: {round_id}")
+    # Admit every replacement input before removing any retained round evidence.
+    for source in (hit_table_csv, xml2, fasta):
+        if source:
+            source_path = Path(source).resolve()
+            if not source_path.is_file():
+                raise FileNotFoundError(f"BLASTP replacement input unavailable: {source}")
+            if existing and allow_update and any(source_path.is_relative_to(p.resolve()) for p in (raw_dir, parsed_dir)):
+                raise ValueError("BLASTP replacement input aliases the round being replaced")
+    hits = parse_hit_table_csv(hit_table_csv)
+    if xml2:
+        hits = merge_hit_xml(hits, parse_xml2(xml2))
     if existing and allow_update:
         # Remove old parsed/raw for this round; cumulative files are rebuilt below.
         if raw_dir.exists():
@@ -267,9 +278,6 @@ def ingest_blastp_round(
             shutil.copy2(srcp, dst)
             copied.append({"kind": label, "path": str(dst.relative_to(store)), "sha256": sha256_file(dst), "bytes": dst.stat().st_size})
 
-    hits = parse_hit_table_csv(hit_table_csv)
-    if xml2:
-        hits = merge_hit_xml(hits, parse_xml2(xml2))
     # Top 10 all-hit table: input already usually top 10, but preserve order.
     all_rows = [_hit_to_row(h, round_id) for h in hits]
     # One best row per query by bitscore.

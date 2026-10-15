@@ -89,7 +89,8 @@ def parse_gbk_cds(path):
 def ref_from_db(db, acc, provenance=None):
     """Require one matching DB record with CDS; preserve the historical list return."""
     from pathlib import Path
-    c = sqlite3.connect(Path(db).resolve().as_uri() + "?mode=ro", uri=True)
+    db = Path(db).resolve()
+    c = sqlite3.connect(db.as_uri() + "?mode=ro", uri=True)
     try:
         gid, gpath = select_gbk(c, acc)
         rows = c.execute("SELECT nt_start, nt_stop, strand, aa_seq, orf_num FROM cds "

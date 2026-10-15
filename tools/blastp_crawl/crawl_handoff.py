@@ -162,9 +162,15 @@ def cmd_pack(a) -> int:
     lanes = survey(br, wanted)
     if not lanes:
         sys.exit("pack: no gap lane with work left" + (f" among {sorted(wanted)}" if wanted else ""))
+    # Admit every home control target before publishing anything: a marker alias
+    # otherwise truncates the independent file it names, after the archive copy.
+    for ln in lanes:
+        _admit_merge_destination(br, ln["lane"].name, ["_HANDOFF_OUT.txt"])
+        if (ln["lane"] / "_HANDOFF_OUT.txt").is_dir():
+            raise ValueError("handoff marker destination is a directory")
     name = a.name or f"BLASTP_HANDOFF_{dt.date.today():%Y-%m-%d}"
     dest = out_parent / name
-    if dest.exists() or dest.with_suffix(".zip").exists():
+    if dest.exists() or dest.is_symlink() or dest.with_suffix(".zip").exists() or dest.with_suffix(".zip").is_symlink():
         sys.exit(f"pack refused: {dest} (or its .zip) already exists")
     (dest / "Blastp RESULTS").mkdir(parents=True)
     for rel in CODE_FILES:
@@ -215,7 +221,7 @@ def cmd_pack(a) -> int:
     (dest / "START_HERE.md").write_text(START_HERE.format(
         made=dt.date.today().isoformat(), n_lanes=len(rows), n_runnable=n_runnable, max_lanes=a.max_lanes))
     zpath = dest.with_suffix(".zip")
-    with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
+    with zipfile.ZipFile(zpath, "x", zipfile.ZIP_DEFLATED) as z:
         for p in sorted(dest.rglob("*")):
             if p.is_file() and p.name != ".DS_Store":
                 z.write(p, p.relative_to(out_parent).as_posix())
@@ -234,7 +240,7 @@ def cmd_return(a) -> int:
         sys.exit("return refused: lanes are still running; stop them first")
     out_dir = Path(a.out).expanduser() if a.out else Path.home() / "Desktop"
     out = out_dir / f"BLASTP_RETURN_{dt.datetime.now():%Y-%m-%d_%H%M}.zip"
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+    with zipfile.ZipFile(out, "x", zipfile.ZIP_DEFLATED) as z:
         z.write(root / MANIFEST, MANIFEST)
         for p in sorted((root / "Blastp RESULTS").glob(f"{LANE_PREFIX}*/**/*")):
             if p.is_file() and p.name not in (".DS_Store", "_runner.pid"):
@@ -246,17 +252,45 @@ def cmd_return(a) -> int:
     return 0
 
 
+def _admit_merge_destination(br: Path, lane: str, relative) -> None:
+    target = br.joinpath(lane, *relative)
+    if not target.resolve().is_relative_to(br.resolve() / lane):
+        raise ValueError(f"handoff destination escapes lane: {target}")
+    for component in (target, *target.parents):
+        if component == br:
+            break
+        if component.is_symlink():
+            raise ValueError(f"handoff destination is a symlink: {component}")
+        if component.is_file() and component.stat().st_nlink > 1:
+            raise ValueError(f"handoff destination has hardlink aliases: {component}")
+
+
 def cmd_merge(a) -> int:
     br = workspace() / "Blastp RESULTS"
     if a.execute:
         assert_output_outside_bundle(br, __file__, kind="BLASTp results")
     z = zipfile.ZipFile(a.zip)
     names = set(z.namelist())
+    if len(names) != len(z.namelist()):
+        raise ValueError("duplicate handoff archive members")
+    for name in names:
+        parts = name.rstrip("/").split("/")
+        if name.startswith("/") or "\\" in name or any(p in ("", ".", "..") for p in parts):
+            raise ValueError(f"unsafe handoff member: {name}")
+        if name == "Blastp RESULTS/":
+            continue
+        if name.startswith("Blastp RESULTS/"):
+            if len(parts) < 2 or not re.fullmatch(re.escape(LANE_PREFIX) + r"[0-9]+", parts[1]):
+                raise ValueError(f"invalid handoff lane: {name}")
+            _admit_merge_destination(br, parts[1], parts[2:])
     with z.open(MANIFEST) as fh:
         man = {r["lane"]: r for r in csv.DictReader(io.TextIOWrapper(fh, "utf-8"), delimiter="\t")}
     prefix = f"Blastp RESULTS/{LANE_PREFIX}"
     lanes = sorted({n.split("/")[1] for n in names if n.startswith(prefix)})
     stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    for lane in lanes:
+        for control in ("_ledger.csv", "_run.log", "_HANDOFF_OUT.txt", f"_ledger.csv.bak_premerge_{stamp}"):
+            _admit_merge_destination(br, lane, [control])
     print(f"{'EXECUTE' if a.execute else 'DRY RUN'}: {Path(a.zip).name} ({len(lanes)} lanes)")
     held = 0
     for lane in lanes:
@@ -277,6 +311,14 @@ def cmd_merge(a) -> int:
                 if r.get("status") == "fetched" and new.get(f, {}).get("status") != "fetched"]
         if lost:
             print(f"  {lane}: HELD, {len(lost)} home fetched rows are not fetched in the return"); held += 1; continue
+        conflict_names = [n for n in sorted(names)
+                          if n.startswith(f"Blastp RESULTS/{lane}/") and not n.endswith("/")
+                          and n[len(f"Blastp RESULTS/{lane}/"):] not in ("_ledger.csv", "_run.log", "_runner.pid", "_HANDOFF_OUT.txt")
+                          and (home / n[len(f"Blastp RESULTS/{lane}/"):]).exists()
+                          and (home / n[len(f"Blastp RESULTS/{lane}/"):]).read_bytes() != z.read(n)]
+        if conflict_names:
+            held += 1
+            continue  # preserve the ledger and handoff marker with conflicting evidence
         copied = same = conflict = 0
         for n in sorted(names):
             if not n.startswith(f"Blastp RESULTS/{lane}/") or n.endswith("/"):

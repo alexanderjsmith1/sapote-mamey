@@ -1,0 +1,35 @@
+{
+ "schema": "sapote.figure_tools.v1",
+ "about": "Figure-type ID -> the bundle tool that draws it. IDs are the Manuscript Figure Catalog IDs used across the papers. tools/gen_figure_options.py turns this into docs/FIGURE_OPTIONS.generated.md and docs/figure_options.generated.json.",
+ "common": [
+  {"flag": "--print-width", "help": "printed width in inches (3.5 single column, 7.2 double); text is held at 8 pt or more at that width"},
+  {"flag": "--min-text-pt", "help": "smallest printed text size in points (house floor 8)"},
+  {"flag": "--palette-set", "help": "genus colour overlay from mamey/data/genus_palette.json (moss, attine; bee uses the default set)"},
+  {"flag": "--dpi", "help": "PNG resolution; the PDF is vector"},
+  {"flag": "--out", "help": "new output folder or stem; tools refuse to overwrite"},
+  {"flag": "tools/caption_band.py <plot.png> <caption.md>", "help": "adds the croppable caption band and the caption sidecar (house convention)"},
+  {"flag": "tools/figure_render_qc.py <figures>", "help": "checks text size, captions and wording before anyone uses a figure"}
+ ],
+ "figures": [
+  {"id": "T01", "name": "16S similarity to the closest type strain", "draws": "Histogram of each isolate's 16S rRNA gene identity to its nearest type strain, coloured by genus.", "tool": "tools/taxonomy_T01_figures.py"},
+  {"id": "T02", "name": "Within-genus pairwise 16S identity", "draws": "Pairwise 16S identity between isolates of the same genus: one panel per genus, or all genera overlaid.", "tool": "tools/taxonomy_T02_within_genus.py"},
+  {"id": "T05", "name": "dDDH with the closest type strain", "draws": "Digital DDH (d4) of each sequenced isolate with its closest type strain, with confidence intervals.", "tool": "tools/taxonomy_T05_figures.py"},
+  {"id": "T06", "name": "16S identity against dDDH", "draws": "Scatter of 16S identity against dDDH, with the 98.65% and 70% thresholds.", "tool": "tools/taxonomy_T06_figures.py"},
+  {"id": "C02", "name": "Genera by isolation source", "draws": "Genus composition of the isolates in each isolation-source group.", "tool": "tools/genus_composition_figures.py"},
+  {"id": "B01", "name": "BGC classes by group", "draws": "antiSMASH region classes summed over the isolates of each group.", "tool": "tools/bgc_class_groups.py"},
+  {"id": "B02", "name": "BGC classes per genome", "draws": "antiSMASH region classes of each genome, with contig-edge counts.", "tool": "tools/bgc_classes_per_genome.py"},
+  {"id": "B03", "name": "Biosynthetic protein identity against genus references", "draws": "Each isolate's region proteins against reference genomes of its genus.", "tool": "tools/region_protein_by_genus.py", "note": "Codex card waiting on its rebase onto page_defaults."},
+  {"id": "B04", "name": "Gene cluster families in public genomes", "draws": "BiG-SCAPE families of each isolate, split by whether a public genome of the genus shares the family.", "tool": "tools/public_genome_families.py"},
+  {"id": "B05", "name": "Gene cluster family trees", "draws": "Per-family synteny trees of an isolate's regions among public genomes and MIBiG.", "tool": "tools/render_gcf_synteny_tree.py"},
+  {"id": "B06", "name": "Locus maps against the closest characterized cluster", "draws": "Reference cluster above the isolate's matching genes, matched genes joined by identity bands, genes elsewhere in the genome drawn beside the core.", "tool": "tools/gap_directed_rescue.py"},
+  {"id": "A01", "name": "Activity by genus", "draws": "Bioassay results by target organism and genus, four states kept (+, -, n.t., blank).", "tool": "tools/bioassay_a01.py"},
+  {"id": "A02", "name": "Strong activity by source", "draws": "Heat map of strong activity by target and isolation source.", "tool": "tools/bioassay_a02.py"},
+  {"id": "A03", "name": "Paenibacillus larvae against MRSA", "draws": "Scatter of inhibition of P. larvae against MRSA.", "tool": "tools/bioassay_a03.py"},
+  {"id": "A04", "name": "Candida against MRSA", "draws": "Scatter of Candida inhibition against MRSA, crude extracts or fractions.", "tool": "tools/bioassay_a04.py"},
+  {"id": "A06", "name": "Strong activity, Streptomyces against other genera", "draws": "Share of strongly active isolates, Streptomyces against other genera, with n under each bar.", "tool": "tools/bioassay_a06.py"},
+  {"id": "P01", "name": "BLASTp identity of BGC genes, by genome (and P02 by class)", "draws": "Mean identity of the top 10 BLASTp hits of each region gene, per genome; --figure by-class draws P02.", "tool": "tools/blastp_identity_figures.py"},
+  {"id": "P03", "name": "Protein PCoA pages", "draws": "Ordination of one protein class: cohort proteins among reference and MIBiG proteins.", "tool": "tools/protein_pcoa_render.py"},
+  {"id": "P05", "name": "TriMap or t-SNE of saved coordinates", "draws": "Replays saved TriMap or t-SNE coordinates from a hash-bound manifest.", "tool": "tools/protein_embedding_replay.py"},
+  {"id": "K01", "name": "Chitin genes, isolates against references", "draws": "Chitinase and chitin-binding gene counts of each isolate beside the reference genomes of its genus.", "tool": "tools/chitin_isolate_vs_references.py"}
+ ]
+}

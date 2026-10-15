@@ -87,6 +87,8 @@ def find_figures(paths: list[Path]) -> list[Path]:
                 continue
             if any(part in SKIP_DIRS or part.startswith("_withdrawn") for part in f.parts):
                 continue
+            if f.stem.endswith("_with_caption") and p.is_dir() and (f.parent / f"{_base_stem(f)}.png").exists():
+                continue   # the captioned copy of a figure already checked as <base>.png
             out.append(f)
     return out
 
@@ -203,8 +205,13 @@ class Ocr:
         return out
 
 
+def _base_stem(png: Path) -> str:
+    """tools/caption_band.py writes <base>_with_caption.png beside <base>_plot_only.png and <base>_CAPTION.md."""
+    return png.stem[: -len("_with_caption")] if png.stem.endswith("_with_caption") else png.stem
+
+
 def caption_file(png: Path) -> Path | None:
-    d, stem = png.parent, png.stem
+    d, stem = png.parent, _base_stem(png)
     fig_id = "_".join(stem.split("_")[:2])
     cands = [d / f"{stem}_CAPTION.md", d / f"CAPTION_{stem}.md", d / f"CAPTION_{fig_id}.md",
              d / "CAPTION.md", d / "CAPTIONS.md", *sorted(d.glob(f"CAPTION_{fig_id}*.md"))]
@@ -260,7 +267,7 @@ def check_image(png: Path, want_dpi: int) -> list[tuple[str, str]]:
 def check_files(png: Path) -> list[tuple[str, str]]:
     """Companion files are checked next to `png`, which is the SOURCE figure when a manifest is used."""
     flags, missing = [], []
-    if not (png.parent / f"{png.stem}_plot_only.png").exists():
+    if not (png.parent / f"{_base_stem(png)}_plot_only.png").exists():
         missing.append("_plot_only.png")
     if not (png.with_suffix(".pdf")).exists():
         missing.append(".pdf")

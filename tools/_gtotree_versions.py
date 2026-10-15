@@ -94,8 +94,10 @@ ACCEPTED_GTOTREE_VERSIONS = re.compile(
 )
 _ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 _BANNER = re.compile(r"^(?:GToTree\s+)?v?(\d+\.\d+\.\d+)$", re.IGNORECASE)
+# Released GToTree 1.8.19 numbers its required inputs: "      2)  [-H <file>] location of ...". A numbered
+# prefix ("2)") is a declaration like the "- " bullet; prose that merely mentions a flag still does not match.
 _DECLARATION = re.compile(
-    r"^\s*(?:-\s+)?\[?\s*(-[A-Za-z])(?:\s*[,|]\s*(--[A-Za-z][\w-]*))?"
+    r"^\s*(?:-\s+|\d+\)\s+)?\[?\s*(-[A-Za-z])(?:\s*[,|]\s*(--[A-Za-z][\w-]*))?"
 )
 _COMMON_OPTIONS = ("-f", "-H", "-m", "-j", "-M", "-N", "-k", "-o")
 PROBE_TEXT_LIMIT = 65536

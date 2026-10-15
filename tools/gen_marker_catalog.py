@@ -13,7 +13,7 @@ It introspects mamey.source_scans for module-level dicts of the shape {family: [
 (the *_PATTERNS / *_MOTIFS / *_VETOES tables), so new tables are picked up automatically.
 
     python3 tools/gen_marker_catalog.py                 # write docs/MARKER_CATALOG.generated.{md,json}
-    python3 tools/gen_marker_catalog.py --check         # exit 1 if the committed catalog is stale
+    python3 tools/gen_marker_catalog.py --check         # exit 1 if either committed file differs from a fresh render
 """
 from __future__ import annotations
 
@@ -94,13 +94,16 @@ def write(payload: dict) -> None:
 def main() -> int:
     payload = collect()
     if "--check" in sys.argv:
-        if not JSON_OUT.exists():
+        if not JSON_OUT.exists() or not MD_OUT.exists():
             emit("MARKER CATALOG missing — run gen_marker_catalog.py")
             return 1
-        committed = json.loads(JSON_OUT.read_text(encoding="utf-8"))
-        if committed.get("sha256") != payload["sha256"]:
-            emit("MARKER CATALOG DRIFT — docs/MARKER_CATALOG.generated.json is stale vs "
-                  "mamey/source_scans.py. Regenerate with gen_marker_catalog.py.")
+        # Compare the full rendered bytes of both files, not only the stored hash field:
+        # edited tables or a stale Markdown companion can keep a plausible sha256 value.
+        expected = (json.dumps(payload, indent=2, sort_keys=True), render_md(payload))
+        committed = (JSON_OUT.read_text(encoding="utf-8"), MD_OUT.read_text(encoding="utf-8"))
+        if committed != expected:
+            emit("MARKER CATALOG DRIFT — docs/MARKER_CATALOG.generated.{json,md} differ from a fresh "
+                  "render of mamey/source_scans.py. Regenerate with gen_marker_catalog.py.")
             return 1
         emit(f"marker catalog OK — in sync with source_scans.py ({len(payload['tables'])} tables)")
         return 0

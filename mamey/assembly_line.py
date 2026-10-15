@@ -141,6 +141,8 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
         return {"status": "no_domains_csv",
                 "note": "no *_domains.csv in package (pre-gene_context cut?); skipped", "bgcs": 0}
     strain = _strain_of(package_dir, dpath)
+    from .path_safety import safe_label, contained_output_path
+    safe_label(strain, field="assembly-line strain")
     try:
         from .postseal_output import output_directory
     except ImportError:
@@ -149,7 +151,12 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
     sealed = any((Path(package_dir) / name).exists() for name in ("checksums_sha256.txt", "seal_status.json", "SEAL_RECEIPT.md"))
     # Preserve the unsealed low-level assembly API used while constructing a run.
     root = output_directory(package_dir, "assembly-line", out_dir) if sealed else Path(out_dir or package_dir)
-    outd = str(output_directory(package_dir, "assembly-line", root / "ASSEMBLY_LINES") if sealed else root / "ASSEMBLY_LINES")
+    derived = root / "ASSEMBLY_LINES"
+    if derived.is_symlink():
+        raise ValueError("assembly-line output directory is a symlink")
+    outd = str(output_directory(package_dir, "assembly-line", derived) if sealed else derived)
+    if Path(outd).is_symlink():
+        raise ValueError("assembly-line output directory is a symlink")
     os.makedirs(outd, exist_ok=True)
     # v9.7.374 fix: was case-sensitive (same gap fixed for p450_tailoring.py at v9.7.371).
     # EXCLUDE_STRAINS (raw_analysis_excluded()) is canonical uppercase (e.g. "AS-XXX");
@@ -158,7 +165,7 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
     # whole-strain exclude gate and emitted assembly lines for a strain that
     # OFFICIAL_DATA/EXCLUSIONS.md policy says should produce none.
     if strain.strip().upper() in {s.upper() for s in EXCLUDE_STRAINS}:
-        with open(os.path.join(outd, "EXCLUDED.txt"), "w", encoding="utf-8") as fh:
+        with open(os.path.join(outd, "EXCLUDED.txt"), "x", encoding="utf-8") as fh:
             fh.write(f"strain {strain} on the whole-strain exclude list — no assembly lines emitted\n")
         return {"status": "excluded_strain", "strain": strain, "bgcs": 0}
 
@@ -180,8 +187,11 @@ def run(package_dir: str | os.PathLike, out_dir: str | os.PathLike | None = None
 
     cols = ["strain", "bgc_id", "n_modules", "n_KS", "n_C", "TE", "Epim", "monomers", "extenders",
             "class_consistency", "assembly_line"]
-    out = os.path.join(outd, f"{strain}_assembly_lines.csv")
-    with open(out, "w", newline="", encoding="utf-8") as fh:
+    candidate = Path(outd) / f"{strain}_assembly_lines.csv"
+    if candidate.exists() or candidate.is_symlink():
+        raise ValueError("assembly-line output already exists")
+    out = str(contained_output_path(outd, strain, "_assembly_lines.csv", field="assembly-line strain"))
+    with open(out, "x", newline="", encoding="utf-8") as fh:
         fh.write(CLAIM_HEADER + "\n")
         w = _SafeDictWriter(fh, fieldnames=cols, extrasaction="ignore")
         w.writeheader()

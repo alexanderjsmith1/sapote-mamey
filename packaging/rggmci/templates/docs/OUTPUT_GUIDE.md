@@ -58,7 +58,7 @@ One row per scored pair of regions.
 | `completion_tier` | whether reference-guided completion ran: `FULL`, `NO_ALIGNER`, `NO_MIBIG_PROTEINS`, `NO_WHOLE_GENOME_GENBANK` or `OFF` |
 | `ref_completion_partner` | `yes` when one region's contig is an accepted partner for the other region's reference; `no`; `no_reference` when neither region had a reference. Blank unless `FULL` |
 | `split_gene_links` | how many genes split across the two regions' contigs were called `CLEAR`; one broken gene counts once, however many references see it. Blank unless `FULL` |
-| `residue_tiling` | for pairs the paralog gate demoted, which stretch of each shared MIBiG protein each region covers: `COMPLEMENTARY_RESIDUES`, `OVERLAPPING_RESIDUES`, `MIXED_RESIDUES`, `THIN_RESIDUES`, `NO_SHARED_MIBIG_REFERENCE` or `NOT_TESTED`. Present only when the DIAMOND search ran (see below) |
+| `residue_tiling` | for pairs the paralog gate demoted, which stretch of each shared MIBiG protein each region covers: `COMPLEMENTARY_RESIDUES`, `OVERLAPPING_RESIDUES`, `MIXED_RESIDUES`, `THIN_RESIDUES`, `NO_SHARED_MIBIG_REFERENCE`, `REGION_SOURCE_UNAVAILABLE` (a region's own GenBank file or its proteins could not be read, so nothing was placed) or `NOT_TESTED`. Present only when the DIAMOND search ran (see below) |
 
 ### `acceptance_gate` verdicts
 

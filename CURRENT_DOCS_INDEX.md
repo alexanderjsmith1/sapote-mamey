@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.450 · engine 1.9.175 · build 20261011v97450a
+# Current Docs Index — v9.7.451 · engine 1.9.176 · build 20261015v97451a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -8,76 +8,79 @@ The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) is the compact and advanced comm
 generated `CLAUDE.md` copy supports Claude discovery; other assistants must be directed to AGENTS
 or receive it through their supported instruction mechanism.
 
-- [Choose a task](docs/USER_TASK_ROUTER.md): named human requests, required inputs, owning guides and completion evidence; [JSON routes](docs/USER_TASK_ROUTER.json) for assistants.
+Each listed entry starts with its status: `current` (follow it for new work), `reference` (background, specifications or dated examples; check current code before relying on a number) or `experimental` (report-only, not a release gate). Documents not listed here are historical records, not instructions.
+
+- `current` [Choose a task](docs/USER_TASK_ROUTER.md): named human requests, required inputs, owning guides and completion evidence; [JSON routes](docs/USER_TASK_ROUTER.json) for assistants.
 
 ## Operating guides
 
-- [Citation-compact report readers](docs/CITATION_COMPACT_READERS.md): template substitutions, citation preservation, sequential writes and structural QA limits.
+- `current` [Citation-compact report readers](docs/CITATION_COMPACT_READERS.md): template substitutions, citation preservation, sequential writes and structural QA limits.
 
-- [HTML template readers](docs/HTML_TEMPLATE_READERS.md): owning builders, browser/server routes, output writes and recovery boundaries.
-- [Structured domain/motif sidecar readers](docs/STRUCTURED_DOMAIN_MOTIF_EXTENSION.md): source admission, partial-output recovery and receipt scope.
+- `current` [HTML template readers](docs/HTML_TEMPLATE_READERS.md): owning builders, browser/server routes, output writes and recovery boundaries.
+- `current` [Structured domain/motif sidecar readers](docs/STRUCTURED_DOMAIN_MOTIF_EXTENSION.md): source admission, partial-output recovery and receipt scope.
 
-- [Use the large Sapote reference guides](docs/GUIDE/07_LARGE_REFERENCE_ENTRY.md): navigation, version differences and historical/deprecated sections.
+- `current` [Use the large Sapote reference guides](docs/GUIDE/07_LARGE_REFERENCE_ENTRY.md): navigation, version differences and historical/deprecated sections.
 
-- [Bundle metadata and integrity readers](docs/BUNDLE_METADATA_READERS.md): versions, checksum/membership scope, accretion baseline and required-artifact holds.
+- `current` [Bundle metadata and integrity readers](docs/BUNDLE_METADATA_READERS.md): versions, checksum/membership scope, accretion baseline and required-artifact holds.
 
-- [Immutable package readers](docs/POSTSEAL_READERS.md): external report destinations and source-bound BiG-SCAPE staging.
-- [Companion provisioning and retrieval controls](docs/447_COMPANION_RETRIEVAL_CONTROLS.md): clone installations, scanner subsets, optional R, protein input admission and RID checkpoints.
-- [Cohort bank transactions](docs/COHORT_BANK_TRANSACTIONS.md): schema admission, coherent readers and explicit interrupted-write recovery.
+- `current` [Immutable package readers](docs/POSTSEAL_READERS.md): external report destinations and source-bound BiG-SCAPE staging.
+- `current` [Companion provisioning and retrieval controls](docs/447_COMPANION_RETRIEVAL_CONTROLS.md): clone installations, scanner subsets, optional R, protein input admission and RID checkpoints.
+- `current` [Cohort bank transactions](docs/COHORT_BANK_TRANSACTIONS.md): schema admission, coherent readers and explicit interrupted-write recovery.
 
-- [Companion Tool Guide](docs/COMPANION_TOOL_GUIDE.md): standalone use, inputs/outputs and integration roles.
-- [JGI public reference context](docs/SMC_PUBLIC_REFERENCE_CONTEXT.md): historical IMG-ABC provenance and optional manual SMC references; automated retrieval is not implemented.
-- [Companion run contracts](docs/COMPANION_RUN_CONTRACTS.md): planner, runner and placement receipts and writes.
-- [Multi-Cohort Comparison Toolkit](deliverable_tools/README.md): named roster/dossier/cohort tools, per-tool dependencies and writes.
-- [Examples index](examples/README.md): fixtures and illustrative or historical evidence, with current source contracts.
-- [Project catalog and private handoff](docs/PROJECT_CATALOG.md): manifest-bound package locations, write behavior and partial-archive/import recovery.
-- [Deliverable queue](docs/DELIVERABLE_QUEUE.md): discovery states, package mutations, resume binding and per-strain recovery.
-- [Deliverable request templates](deliverables/README.md): supplied inputs, complete identity, bounded authoring and conversion contracts.
-- [Catalog reading and maintenance](docs/CATALOG_MAINTENANCE.md): generated owners, check scope and source-help limitations.
-- [Maintenance inventory](docs/MAINTENANCE_INVENTORY.generated.md): scoped command, optional-tool, generated-surface and document owners; explicit review holds and rebuild rules. [Machine records](docs/MAINTENANCE_INVENTORY.generated.json) use the same source declarations.
-- [Master workbook validation](docs/WORKBOOK_VALIDATION.md): deployed schema, fast/full scope, roster/hash checks and retained freeze discrepancies.
+- `current` [Companion Tool Guide](docs/COMPANION_TOOL_GUIDE.md): standalone use, inputs/outputs and integration roles.
+- `reference` [JGI public reference context](docs/SMC_PUBLIC_REFERENCE_CONTEXT.md): historical IMG-ABC provenance and optional manual SMC references; automated retrieval is not implemented.
+- `current` [Companion run contracts](docs/COMPANION_RUN_CONTRACTS.md): planner, runner and placement receipts and writes.
+- `current` [Multi-Cohort Comparison Toolkit](deliverable_tools/README.md): named roster/dossier/cohort tools, per-tool dependencies and writes.
+- `current` [Examples index](examples/README.md): fixtures and illustrative or historical evidence, with current source contracts.
+- `current` [Project catalog and private handoff](docs/PROJECT_CATALOG.md): manifest-bound package locations, write behavior and partial-archive/import recovery.
+- `current` [Deliverable queue](docs/DELIVERABLE_QUEUE.md): discovery states, package mutations, resume binding and per-strain recovery.
+- `current` [Deliverable request templates](deliverables/README.md): supplied inputs, complete identity, bounded authoring and conversion contracts.
+- `current` [Catalog reading and maintenance](docs/CATALOG_MAINTENANCE.md): generated owners, check scope and source-help limitations.
+- `current` [Maintenance inventory](docs/MAINTENANCE_INVENTORY.generated.md): scoped command, optional-tool, generated-surface and document owners; explicit review holds and rebuild rules. [Machine records](docs/MAINTENANCE_INVENTORY.generated.json) use the same source declarations.
+- `current` [Master workbook validation](docs/WORKBOOK_VALIDATION.md): deployed schema, fast/full scope, roster/hash checks and retained freeze discrepancies.
 
-- [Optional Barrnap](docs/BARRNAP.md): rRNA recipe versus execution, version/model checks and external setup.
+- `current` [Optional Barrnap](docs/BARRNAP.md): rRNA recipe versus execution, version/model checks and external setup.
 
-- [Runtime profiles](docs/ASSISTANT_RUNTIME_PROFILES.md): environment-dependent limits and migration from hosted sessions.
+- `current` [Runtime profiles](docs/ASSISTANT_RUNTIME_PROFILES.md): environment-dependent limits and migration from hosted sessions.
 
-- [Working with an assistant](docs/ASSISTANT_USER_GUIDE.md): choose inputs, task scope, evidence and completion criteria.
-- [Assistant governance](docs/ASSISTANT_GOVERNANCE.md): scope, permissions and conflict rules for project workflows.
+- `current` [Working with an assistant](docs/ASSISTANT_USER_GUIDE.md): choose inputs, task scope, evidence and completion criteria.
+- `current` [Assistant governance](docs/ASSISTANT_GOVERNANCE.md): scope, permissions and conflict rules for project workflows.
 
-- [Installation](docs/INSTALL.md), [prerequisites](docs/PREREQUISITES.md), and
+- `current` [Installation](docs/INSTALL.md), [prerequisites](docs/PREREQUISITES.md), and
   [external assets](docs/EXTERNAL_DATA.md): environment setup and separately supplied data.
-- [User manual](docs/GUIDE/01_User_Manual.md): running analyses and reading outputs.
-- [Command catalog](docs/COMMAND_CATALOG.generated.md) and [deliverable menu](docs/DELIVERABLE_MENU.md):
+- `current` [User manual](docs/GUIDE/01_User_Manual.md): running analyses and reading outputs.
+- `current` [Command catalog](docs/COMMAND_CATALOG.generated.md) and [deliverable menu](docs/DELIVERABLE_MENU.md):
   generated command and capability navigation. The menu is maintained by the deliverables registry.
-- [Glossary](docs/GLOSSARY.md): canonical reader-facing terms.
-- [Methods implementation template](docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md) and
+- `current` [Glossary](docs/GLOSSARY.md): canonical reader-facing terms.
+- `current` [Methods implementation template](docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md) and
   [reporting checklist](docs/METHODS_REPORTING_CHECKLIST.md): prospective, claim-safe manuscript authoring aids;
   their presence does not assert that a study or module was run.
-- [Mode B authoring](wiki/Mode-B-Gene-First-and-48-Section-Manual.md): use the selected machine-readable
+- `current` [Mode B authoring](wiki/Mode-B-Gene-First-and-48-Section-Manual.md): use the selected machine-readable
   profile and its emitted template; legacy section counts do not replace a named current profile.
-- [Mode B contract current50 v2](docs/MODEB_CURRENT50_V2_CONTRACT.md): the 50-section card with GECCO (§22), the contigs rescued into the BGC (§26), literature with relevance (§48–§49) and the data evidence table last (§50); `emit-modeb-template --contract current50_v2` and `verify-modeb --contract current50_v2`.
-- [Mode B expanded locus](docs/MODEB_EXPANDED_LOCUS.md): independently source-bound CDS inventories and bounded supported-anchor context; use `--require-expanded-locus` for an expanded work order. Core membership remains separate.
-- [Mode B gap-rescue reader](docs/MODEB_GAP_RESCUE_READER.md): supplied rescue context and existence checks; this does not adopt rescued genes into a locus.
-- [Mode B profiles](docs/MODEB_PROFILE_MATRIX.md): which card is which (scaffold, candidate, finished §1–§48, opt-in current50 v2), with each profile's producer, verifier and the status it can claim. "Full Mode B" means the selected finished profile.
-- [Mode B exemplar reader guide](docs/reference/modeb_exemplars/README.md): historical class sketches and a 48-section format reference. Use the example register to identify their scope; their locus-specific evidence and old pass labels do not validate a current 50-section finished card.
-- [BLASTp evidence](docs/ONLINE_BLASTP_PROTOCOL.md): existing results first (rollups to reservoir; trove to package overlay; HitTable to workbook), optional live submission.
-- [antiSMASH web submission](docs/ANTISMASH_WEB_SUBMISSION_SOP.md): the procedure for sending reference genomes to the public antiSMASH server; light-touch queue rule, loose with all 11 features, no email, one authorised batch at a time.
-- [BiG-SCAPE cohort walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md) and [troubleshooting](docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md): stage region files, run a cohort, inspect family verdicts and figures.
-- [BiG-SCAPE cohort networks and comparator context](docs/BIGSCAPE_COHORT_NETWORK_GUIDE.md): exact-identity cohort tables, evidence badges and citations, overmerged-region component metrics, interactive/static figures, and additive batch report enrichment.
-- [Strain slides](docs/STRAIN_SLIDES.md): one deck per strain from a sources file: complete region inventory and gene tables; selected region slides (with explicit omission rules) carry the gap-rescue map, gene strip, GECCO, RG-GMCI two-proof, BiG-SCAPE and BLASTp lines, GECCO-only candidates and a gene-table appendix; protein PCoA panels per strain.
-- [Isolate neighbourhood panel](docs/NEIGHBOUR_PANEL_16S_TYGS.md): one isolate's genome panel from its 16S BLAST hits on complete genomes, the NCBI genome table (`datasets`) and its TYGS closest type strains (`tools/neighbour_panel_candidates.py`; check with `tools/check_tygs_coverage.py`).
-- [Phylogenetic workflow](docs/PHYLO_AUTOPILOT_WORKFLOW.md), [placement](docs/PHYLO_PLACEMENT_WORKFLOW.md),
+- `current` [Mode B contract current50 v2](docs/MODEB_CURRENT50_V2_CONTRACT.md): the 50-section card with GECCO (§22), the contigs rescued into the BGC (§26), literature with relevance (§48–§49) and the data evidence table last (§50); `emit-modeb-template --contract current50_v2` and `verify-modeb --contract current50_v2`.
+- `current` [Mode B expanded locus](docs/MODEB_EXPANDED_LOCUS.md): independently source-bound CDS inventories and bounded supported-anchor context; use `--require-expanded-locus` for an expanded work order. Core membership remains separate.
+- `current` [Mode B gap-rescue reader](docs/MODEB_GAP_RESCUE_READER.md): supplied rescue context and existence checks; this does not adopt rescued genes into a locus.
+- `current` [Mode B profiles](docs/MODEB_PROFILE_MATRIX.md): which card is which (scaffold, candidate, finished §1–§48, opt-in current50 v2), with each profile's producer, verifier and the status it can claim. "Full Mode B" means the selected finished profile.
+- `reference` [Mode B exemplar reader guide](docs/reference/modeb_exemplars/README.md): historical class sketches and a 48-section format reference. Use the example register to identify their scope; their locus-specific evidence and old pass labels do not validate a current 50-section finished card.
+- `current` [BLASTp evidence](docs/ONLINE_BLASTP_PROTOCOL.md): existing results first (rollups to reservoir; trove to package overlay; HitTable to workbook), optional live submission.
+- `current` [antiSMASH web submission](docs/ANTISMASH_WEB_SUBMISSION_SOP.md): the procedure for sending reference genomes to the public antiSMASH server; light-touch queue rule, loose with all 11 features, no email, one authorised batch at a time.
+- `current` [BiG-SCAPE cohort walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md) and [troubleshooting](docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md): stage region files, run a cohort, inspect family verdicts and figures.
+- `current` [BiG-SCAPE cohort networks and comparator context](docs/BIGSCAPE_COHORT_NETWORK_GUIDE.md): exact-identity cohort tables, evidence badges and citations, overmerged-region component metrics, interactive/static figures, and additive batch report enrichment.
+- `current` [Strain slides](docs/STRAIN_SLIDES.md): one deck per strain from a sources file: complete region inventory and gene tables; selected region slides (with explicit omission rules) carry the gap-rescue map, gene strip, GECCO, RG-GMCI two-proof, BiG-SCAPE and BLASTp lines, GECCO-only candidates and a gene-table appendix; protein PCoA panels per strain.
+- `current` [Local 16S database](docs/LOCAL_16S_DATABASE.md): build the NCBI 16S type-strain BLAST database fully or for chosen genera, the optional SQLite store, and the shared lookup every 16S tool uses.
+- `current` [Isolate neighbourhood panel](docs/NEIGHBOUR_PANEL_16S_TYGS.md): one isolate's genome panel from its 16S BLAST hits on complete genomes, the NCBI genome table (`datasets`) and its TYGS closest type strains (`tools/neighbour_panel_candidates.py`; check with `tools/check_tygs_coverage.py`).
+- `current` [Phylogenetic workflow](docs/PHYLO_AUTOPILOT_WORKFLOW.md), [placement](docs/PHYLO_PLACEMENT_WORKFLOW.md),
   and [companion tools](docs/LLM_COMPANION_TOOL_PROTOCOL.md): inputs, resource scope and run receipts.
-- [Figure house rules](docs/FIGURE_HOUSE_RULES.md): the rules every figure meets (format, caption and methods, page wording, material labels, provenance) and what checks each one.
-- [Figure rendering](docs/FIGURE_FACTORY_NEXT.md) and [figure preflight](wiki/Figure-Factory-Preflight-and-Methods-Manual.md):
+- `current` [Figure house rules](docs/FIGURE_HOUSE_RULES.md): the rules every figure meets (format, caption and methods, page wording, material labels, provenance) and what checks each one.
+- `current` [Figure rendering](docs/FIGURE_FACTORY_NEXT.md) and [figure preflight](wiki/Figure-Factory-Preflight-and-Methods-Manual.md):
   actual input contracts, output sidecars and renderer-specific limits.
-- [Bioassay Figure Factory](docs/BIOASSAY_FIGURE_FACTORY.md): typed plate, material, replicate,
+- `current` [Bioassay Figure Factory](docs/BIOASSAY_FIGURE_FACTORY.md): typed plate, material, replicate,
   target, time-point, control, exclusion, and R-rendering contract.
-- [R figure workflows](docs/R_FIGURE_WORKFLOWS.md): current ggplot2/ggtree renderer map and the
+- `current` [R figure workflows](docs/R_FIGURE_WORKFLOWS.md): current ggplot2/ggtree renderer map and the
   admitted bioassay-to-tree path.
-- [Optional pairwise comparison](sapote_addons/README_OFFLINE_ANALYSIS.md) and
+- `current` [Optional pairwise comparison](sapote_addons/README_OFFLINE_ANALYSIS.md) and
   [optional hooks](docs/OPTIONAL_HOOKS.md): specialized capabilities with their own setup.
-- [Resources](resources/README.md) and [validation records](validation/README.md): data purpose,
+- `current` [Resources](resources/README.md) and [validation records](validation/README.md): data purpose,
   consumers and historical evidence boundaries.
 
 The [Master Walkthrough](docs/MASTER_WALKTHROUGH.md) connects installation to validated outputs;
@@ -87,60 +90,60 @@ The [Master Walkthrough](docs/MASTER_WALKTHROUGH.md) connects installation to va
 
 Use these guides for specialized tools, commands and input/output contracts.
 
-- [Optional external AB/AF activity-prediction channel](docs/AB_AF_EXTERNAL_ACTIVITY_CHANNEL.md)
-- [BGC functional logic workup](docs/BGC_FUNCTIONAL_LOGIC_WORKUP.md)
-- [Bioactivity Metadata Contract](docs/BIOACTIVITY_METADATA_CONTRACT.md)
-- [Bioassay activity-channel workflow — where it sits](docs/BIOASSAY_ACTIVITY_CHANNEL_WORKFLOW.md)
-- [Whole-genome chitin/GlcNAc reference-capacity evaluation](docs/CHITIN_REFERENCE_EVALUATION.md)
-- [Clear Match Finder](docs/CLEAR_MATCH_FINDER.md)
-- [cluster_completeness — assembly truncation vs biological absence](docs/CLUSTER_COMPLETENESS.md)
-- [cluster_discovery — candidate assembly lookup from marker-protein similarities](docs/CLUSTER_DISCOVERY.md)
-- [cluster_gene_compare — gene-by-gene BGC comparison as a real deliverable](docs/CLUSTER_GENE_COMPARE.md)
-- [cluster_relate — relationship tree + distance matrix from homologous clusters](docs/CLUSTER_RELATE.md)
-- [ClusterBlast-derived phylogeny candidate ledger](docs/CLUSTERBLAST_PHYLO_CANDIDATES.md)
-- [Cohort pack interface (external, operator-supplied, Git-ignored)](docs/COHORT_PACK_INTERFACE.md)
-- [Cohort protein comparison contract for Mode B](docs/COHORT_PROTEIN_COMPARISON_MODEB_CONTRACT.md)
-- [Definitive BGC prioritization ranker](docs/DEFINITIVE_BGC_RANKER.md)
-- [BGC-machinery domain-tree contract](docs/DOMAIN_TREE_CONTRACT.md)
-- [Enzyme neighborhood explorer](docs/ENZYME_NEIGHBORHOODS.md)
-- [Gene evidence disagreement review candidate](docs/EVIDENCE_DISAGREEMENTS_CANDIDATE.md)
-- [extract_cluster — bring a raw genome into the pipeline](docs/EXTRACT_CLUSTER.md)
-- [F13 BGC domain-count PCA source-artwork contract](docs/F13_BGC_DOMAIN_PCA.md)
-- [fetch_reference_cluster — reference/cohort cluster GBKs, as a shared step](docs/FETCH_REFERENCE_CLUSTER.md)
-- [Figure owner-review workflow](docs/FIGURE_OWNER_REVIEW_WORKFLOW.md)
-- [Figure Factory owner-review queue](docs/FIGURE_REVIEW_WORKFLOW.md)
-- [Bounded GToTree panel selection](docs/GTOTREE_PANEL_SELECTION.md)
-- [Literature atlas current-evidence refresh](docs/LITERATURE_ATLAS_CURRENT_EVIDENCE_REFRESH.md)
-- [Locus-map review contract](docs/LOCUS_MAP_REVIEW_CONTRACT.md)
-- [Locus map v8](docs/LOCUS_MAP_V8.md)
-- [FA6 — Mode B card exporter (modeb-export)](docs/MODEB_EXPORT_HOOK.md)
-- [Mode B gene-first exploration](docs/MODEB_GENE_FIRST_EXPLORATION.md)
-- [RATIFIED status vocabulary — Sapote-Mamey Mode B (the Developer or User ratification 2026-08-21)](docs/MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md)
-- [NPBDetect non-admissible prediction guard](docs/NPBDETECT_ADAPTER_GUARD.md): local NPBDetect model IDs permit only OUT_OF_DOMAIN/FAILED with null AB/AF probabilities and HOLD; preserved upstream audit notes do not grant admission.
-- [Outgroup generator + right-sized reference sets (outgroup_registry.py, phylo_refset.py)](docs/OUTGROUP_AND_REFSET_WORKFLOW.md)
-- [Owner-kept Figure Factory inputs](docs/OWNER_KEPT_FIGURE_INPUTS.md)
-- [Spec — Cohesive Per-BGC Report (L0–L3) + Comparison Matrix](docs/PER_BGC_REPORT_CARD_SPEC.md)
-- [TROUBLESHOOTING — EPA-ng placement + phylo tooling (2026-09-06)](docs/PHYLO_TROUBLESHOOTING.md)
-- [PKS ketosynthase-tree option guide](docs/PKS_KS_TREE_OPTIONS.md)
-- [Portable evidence-workspace interface](docs/PORTABLE_EVIDENCE_WORKSPACE.md)
-- [Portable strain privacy and evidence registry](docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md)
-- [Prevalence workflow — where it sits](docs/PREVALENCE_WORKFLOW.md)
-- [Portable project data home](docs/PROJECT_DATA_HOME.md)
-- [Sapote-Mamey Naming Contract](docs/PROJECT_NAMING.md)
-- [Exact-bound reference-BGC structural validator](docs/REFERENCE_BGC_STRUCTURAL_VALIDATOR.md)
-- [Reporting v2 — per-gene MIBiG convergence & structured antiSMASH tables](docs/reporting_v2_mibig_convergence.md)
-- [RG-GMCI complementary-rescue atlas](docs/RGGMCI_RESCUE_ATLAS.md)
-- [RiPP tree and sequence-network option guide](docs/RIPP_TREE_OPTIONS.md)
-- [Sapote Markdown authoring contract](docs/SAPOTE_MARKDOWN_AUTHORING_CONTRACT.md)
-- [Sapote-Mamey report theme](docs/SAPOTE_REPORT_THEME.md)
-- [scope_cluster — scope an over-merged antiSMASH region to its true protocluster](docs/SCOPE_CLUSTER.md)
-- [Screening exploration with ggplot2](docs/SCREENING_EXPLORATION_R.md)
-- [Strain BiG-SCAPE report + figure-label convention (v9.7.293)](docs/STRAIN_BIGSCAPE_REPORT.md)
-- [Strain-level BGC logic reports](docs/STRAIN_LEVEL_BGC_LOGIC.md)
-- [Token-light Sapote document factory](docs/TOKEN_LIGHT_DOCUMENT_FACTORY.md)
-- [Read only tool database inspection](docs/TOOL_DATABASE_INSPECTION.md)
-- [Two-stage modular BGC reports](docs/TWO_STAGE_MODULAR_BGC_REPORTS.md)
-- [Phylogenetic workflow gate guide](docs/WORKFLOW_GATES_GUIDE.md)
+- `current` [Optional external AB/AF activity-prediction channel](docs/AB_AF_EXTERNAL_ACTIVITY_CHANNEL.md)
+- `current` [BGC functional logic workup](docs/BGC_FUNCTIONAL_LOGIC_WORKUP.md)
+- `current` [Bioactivity Metadata Contract](docs/BIOACTIVITY_METADATA_CONTRACT.md)
+- `current` [Bioassay activity-channel workflow — where it sits](docs/BIOASSAY_ACTIVITY_CHANNEL_WORKFLOW.md)
+- `current` [Whole-genome chitin/GlcNAc reference-capacity evaluation](docs/CHITIN_REFERENCE_EVALUATION.md)
+- `current` [Clear Match Finder](docs/CLEAR_MATCH_FINDER.md)
+- `current` [cluster_completeness — assembly truncation vs biological absence](docs/CLUSTER_COMPLETENESS.md)
+- `current` [cluster_discovery — candidate assembly lookup from marker-protein similarities](docs/CLUSTER_DISCOVERY.md)
+- `current` [cluster_gene_compare — gene-by-gene BGC comparison as a real deliverable](docs/CLUSTER_GENE_COMPARE.md)
+- `current` [cluster_relate — relationship tree + distance matrix from homologous clusters](docs/CLUSTER_RELATE.md)
+- `current` [ClusterBlast-derived phylogeny candidate ledger](docs/CLUSTERBLAST_PHYLO_CANDIDATES.md)
+- `current` [Cohort pack interface (external, operator-supplied, Git-ignored)](docs/COHORT_PACK_INTERFACE.md)
+- `current` [Cohort protein comparison contract for Mode B](docs/COHORT_PROTEIN_COMPARISON_MODEB_CONTRACT.md)
+- `current` [Definitive BGC prioritization ranker](docs/DEFINITIVE_BGC_RANKER.md)
+- `current` [BGC-machinery domain-tree contract](docs/DOMAIN_TREE_CONTRACT.md)
+- `current` [Enzyme neighborhood explorer](docs/ENZYME_NEIGHBORHOODS.md)
+- `experimental` [Gene evidence disagreement review candidate](docs/EVIDENCE_DISAGREEMENTS_CANDIDATE.md)
+- `current` [extract_cluster — bring a raw genome into the pipeline](docs/EXTRACT_CLUSTER.md)
+- `current` [F13 BGC domain-count PCA source-artwork contract](docs/F13_BGC_DOMAIN_PCA.md)
+- `current` [fetch_reference_cluster — reference/cohort cluster GBKs, as a shared step](docs/FETCH_REFERENCE_CLUSTER.md)
+- `current` [Figure owner-review workflow](docs/FIGURE_OWNER_REVIEW_WORKFLOW.md)
+- `current` [Figure Factory owner-review queue](docs/FIGURE_REVIEW_WORKFLOW.md)
+- `current` [Bounded GToTree panel selection](docs/GTOTREE_PANEL_SELECTION.md)
+- `current` [Literature atlas current-evidence refresh](docs/LITERATURE_ATLAS_CURRENT_EVIDENCE_REFRESH.md)
+- `current` [Locus-map review contract](docs/LOCUS_MAP_REVIEW_CONTRACT.md)
+- `current` [Locus map v8](docs/LOCUS_MAP_V8.md)
+- `current` [FA6 — Mode B card exporter (modeb-export)](docs/MODEB_EXPORT_HOOK.md)
+- `current` [Mode B gene-first exploration](docs/MODEB_GENE_FIRST_EXPLORATION.md)
+- `reference` [RATIFIED status vocabulary — Sapote-Mamey Mode B (the Developer or User ratification 2026-08-21)](docs/MODEB_STATUS_VOCABULARY_RATIFIED_v9_7_373.md)
+- `current` [NPBDetect non-admissible prediction guard](docs/NPBDETECT_ADAPTER_GUARD.md): local NPBDetect model IDs permit only OUT_OF_DOMAIN/FAILED with null AB/AF probabilities and HOLD; preserved upstream audit notes do not grant admission.
+- `current` [Outgroup generator + right-sized reference sets (outgroup_registry.py, phylo_refset.py)](docs/OUTGROUP_AND_REFSET_WORKFLOW.md)
+- `current` [Owner-kept Figure Factory inputs](docs/OWNER_KEPT_FIGURE_INPUTS.md)
+- `reference` [Spec — Cohesive Per-BGC Report (L0–L3) + Comparison Matrix](docs/PER_BGC_REPORT_CARD_SPEC.md)
+- `current` [TROUBLESHOOTING — EPA-ng placement + phylo tooling (2026-09-06)](docs/PHYLO_TROUBLESHOOTING.md)
+- `current` [PKS ketosynthase-tree option guide](docs/PKS_KS_TREE_OPTIONS.md)
+- `current` [Portable evidence-workspace interface](docs/PORTABLE_EVIDENCE_WORKSPACE.md)
+- `current` [Portable strain privacy and evidence registry](docs/PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md)
+- `current` [Prevalence workflow — where it sits](docs/PREVALENCE_WORKFLOW.md)
+- `current` [Portable project data home](docs/PROJECT_DATA_HOME.md)
+- `current` [Sapote-Mamey Naming Contract](docs/PROJECT_NAMING.md)
+- `current` [Exact-bound reference-BGC structural validator](docs/REFERENCE_BGC_STRUCTURAL_VALIDATOR.md)
+- `current` [Reporting v2 — per-gene MIBiG convergence & structured antiSMASH tables](docs/reporting_v2_mibig_convergence.md)
+- `current` [RG-GMCI complementary-rescue atlas](docs/RGGMCI_RESCUE_ATLAS.md)
+- `current` [RiPP tree and sequence-network option guide](docs/RIPP_TREE_OPTIONS.md)
+- `current` [Sapote Markdown authoring contract](docs/SAPOTE_MARKDOWN_AUTHORING_CONTRACT.md)
+- `current` [Sapote-Mamey report theme](docs/SAPOTE_REPORT_THEME.md)
+- `current` [scope_cluster — scope an over-merged antiSMASH region to its true protocluster](docs/SCOPE_CLUSTER.md)
+- `current` [Screening exploration with ggplot2](docs/SCREENING_EXPLORATION_R.md)
+- `current` [Strain BiG-SCAPE report + figure-label convention (v9.7.293)](docs/STRAIN_BIGSCAPE_REPORT.md)
+- `current` [Strain-level BGC logic reports](docs/STRAIN_LEVEL_BGC_LOGIC.md)
+- `current` [Token-light Sapote document factory](docs/TOKEN_LIGHT_DOCUMENT_FACTORY.md)
+- `current` [Read only tool database inspection](docs/TOOL_DATABASE_INSPECTION.md)
+- `current` [Two-stage modular BGC reports](docs/TWO_STAGE_MODULAR_BGC_REPORTS.md)
+- `current` [Phylogenetic workflow gate guide](docs/WORKFLOW_GATES_GUIDE.md)
 
 ## Reference, development and history
 
@@ -174,24 +177,24 @@ do not turn a version-stamp update into a claim of a full content review.
 
 ## Practical help
 
-- [Find the right document](docs/DOCUMENTATION_MAP.md)
-- [Troubleshooting](docs/COMMON_MISTAKES.md)
-- [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
+- `current` [Find the right document](docs/DOCUMENTATION_MAP.md)
+- `current` [Troubleshooting](docs/COMMON_MISTAKES.md)
+- `current` [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
-- [Mode B user walkthrough](docs/MODE_B_USER_WALKTHROUGH.md): actual profile boundaries, commands and all 50 requirements.
+- `current` [Mode B user walkthrough](docs/MODE_B_USER_WALKTHROUGH.md): actual profile boundaries, commands and all 50 requirements.
 
 ## Diagnostic screening
 
-- [Experimental dominated diagnostic report](docs/DOMINATED_DIAGNOSTIC.md) — report-only thresholds and calibration hold.
+- `experimental` [Experimental dominated diagnostic report](docs/DOMINATED_DIAGNOSTIC.md) — report-only thresholds and calibration hold.
 
-- [Optional GECCO, metabolomics bridge and explicit non-KS policy](docs/COMPANION_CLASS_EVIDENCE.md) — external reader outputs, source binding and class-level interpretation.
+- `current` [Optional GECCO, metabolomics bridge and explicit non-KS policy](docs/COMPANION_CLASS_EVIDENCE.md) — external reader outputs, source binding and class-level interpretation.
 
 ## Human entry guides
 
-- [Read an existing result](docs/user_guides/READ_EXISTING_RESULT.md).
-- [Start a first run](docs/user_guides/FIRST_RUN_ORIENTATION.md).
-- [Troubleshoot and maintain a workflow](docs/user_guides/WORKFLOW_RECOVERY.md).
-- [Read locus maps, tables and protein PCoA comparisons](docs/LOCUS_AND_PCOA_TOOLS.md).
-- [Choose the next command](docs/user_guides/CHOOSE_NEXT_COMMAND.md).
+- `current` [Read an existing result](docs/user_guides/READ_EXISTING_RESULT.md).
+- `current` [Start a first run](docs/user_guides/FIRST_RUN_ORIENTATION.md).
+- `current` [Troubleshoot and maintain a workflow](docs/user_guides/WORKFLOW_RECOVERY.md).
+- `current` [Read locus maps, tables and protein PCoA comparisons](docs/LOCUS_AND_PCOA_TOOLS.md).
+- `current` [Choose the next command](docs/user_guides/CHOOSE_NEXT_COMMAND.md).
 
 [BiG-SCAPE class reading limits](docs/BIGSCAPE_CLASS_READING_GUIDE.md) accompany the generated vocabulary.

@@ -80,7 +80,7 @@ def _admit_current_draw(b, monkeypatch, same_bytes=False):
     def draw(*args, **kwargs):
         b.map_calls.append((args, kwargs))
         assert args[8:] == (b.f.out / "gap_rescue.png", b.f.out / "gap_rescue.pdf")
-        assert kwargs == {"anchor": "r_split"}
+        assert kwargs == {"anchor": "r_split", "print_width": "double"}
         for path, payload in b.admitted_maps.items():
             path.write_bytes(payload)
         return {"contigs_drawn": [b.f.core["contig"]], "not_drawn": 0}

@@ -20,6 +20,8 @@ page is the short list of what every one of them must produce.
 | 8 | Do not delete a figure with a known defect. Rename its image files with `_KNOWN_DEFECTIVE`, and log the rename and the reason. | Numbering and past review comments stay valid, and nobody reuses the file by accident. | By hand. |
 | 9 | File each review comment in the folder of the figure it is about, with the words exactly as written. | Comments kept only in a chat are lost when that chat is compacted. | By hand. |
 | 10 | Look at the rendered image before sending it. Check for clipped labels, overlapping text, empty panels and a wrong subset. | A saved file is not a checked figure. | By hand. |
+| 11 | Label points on an ordination page (PCoA, TriMap) with names, never with numbers. On the plot, use the short italic species name. In the caption key, give the rule-6 form: deposited name, strain designation and the accession in brackets. Fit and placement decide how many points get a label. | A number sends the reader to a key and hides the name the literature uses, which is the failure rule 6 exists to prevent. The owner ruled this on 12 Oct. | By hand. |
+| 12 | Draw a figure only through a sealed bundle route, or through a staged patch the cut owner has signed off. Before drawing, write a rule check: each row of this page, the `docs/FIGURE_STYLE.md` gate, the doc for that figure type, and the tool you will use. A setting that is not in the bundle docs or the bee scripts goes to the owner as a proposal, never as a shipped default. | Figures drawn with hand-set labels, private scripts or unsealed renderers reached review and had to be withdrawn. The owner ruled this on 12 Oct. | By hand. |
 
 ### A note on rule 5
 

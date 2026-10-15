@@ -1,0 +1,6 @@
+candidate_id	role	source_path	source_member	priority	cohort	taxonomy	display_label	tree_label	selection_basis	related_query_ids	reference_status	assembly_fromtype
+QUERY_001	QUERY	/path/to/QUERY_001_antismash.zip	input/QUERY_001.fna	1	query	Streptomyces sp.	Streptomyces sp. QUERY_001	Streptomyces_sp_QUERY_001				
+QUERY_002	QUERY	/path/to/QUERY_002_antismash.zip	input/QUERY_002.fna	2	query	Streptomyces sp.	Streptomyces sp. QUERY_002	Streptomyces_sp_QUERY_002				
+REF_ACCESSION_1	REFERENCE	/path/to/reference_1.fna		1	reference	Genus species	Genus species strain (GCA_000000000.1)	Genus_species_GCA_000000000.1	curator-supplied neighbour from a named source	QUERY_001,QUERY_002	REFERENCE_CANDIDATE	
+REF_TYPE_1	REFERENCE	/path/to/type_strain_1.fna		1	reference	Genus species	Genus species type strain (GCA_000000001.1)	Genus_species_GCA_000000001.1	nearest_type_strain_tygs	QUERY_001	TYPE_STRAIN	assembly from type material
+OUTGROUP_1	OUTGROUP	/path/to/outgroup_1.fna		1	reference	Genus2 species	Genus2 species strain (GCA_000000002.1)	Genus2_species_GCA_000000002.1				

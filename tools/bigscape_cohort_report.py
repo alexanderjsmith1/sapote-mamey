@@ -226,6 +226,60 @@ def _table_exists(connection, name):
     ).fetchone() is not None
 
 
+def _selected_run_scope(connection, run_id, cutoff):
+    """Bind the selected run and cutoff before any export can report PASS.
+
+    An absent run, an unfinished run or a cutoff the run never produced is
+    refused. A database without a ``run`` table cannot prove completion, so its
+    receipt stays unverified instead of PASS. Zero families from a finished run
+    that declared the cutoff is the only admitted empty state.
+    """
+    family_rows = connection.execute(
+        "SELECT count(*) FROM family WHERE run_id=? AND abs(cutoff-?)<1e-9", (run_id, cutoff)
+    ).fetchone()[0]
+    run_family_rows = connection.execute(
+        "SELECT count(*) FROM family WHERE run_id=?", (run_id,)
+    ).fetchone()[0]
+    if not _table_exists(connection, "run"):
+        if not family_rows:
+            raise ValueError(
+                f"RUN_SCOPE_GATE: no run table and no families for run {run_id} at cutoff "
+                f"{cutoff:.12g}; an absent run or cutoff cannot be told apart from an empty result"
+            )
+        return "UNVERIFIED_RUN_TABLE_ABSENT", "RUN_COMPLETION_UNVERIFIED"
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(run)")}
+    selected = ["end_time" if "end_time" in columns else "NULL",
+                "cutoffs" if "cutoffs" in columns else "NULL"]
+    rows = connection.execute(
+        f"SELECT {selected[0]},{selected[1]} FROM run WHERE id=?", (run_id,)
+    ).fetchall()
+    if len(rows) != 1:
+        raise ValueError(f"RUN_SCOPE_GATE: run {run_id} resolves {len(rows)} times in the run table")
+    end_time, declared = rows[0]
+    if "end_time" not in columns:
+        completion = "UNVERIFIED_NO_END_TIME_FIELD"
+    elif not str(end_time or "").strip():
+        raise ValueError(f"RUN_SCOPE_GATE: run {run_id} has no recorded end_time; incomplete or interrupted")
+    else:
+        completion = "COMPLETED"
+    if family_rows:
+        state = "COMPLETED_RUN_WITH_FAMILIES" if completion == "COMPLETED" else completion
+        return state, "PASS" if completion == "COMPLETED" else "RUN_COMPLETION_UNVERIFIED"
+    if run_family_rows:
+        raise ValueError(f"RUN_SCOPE_GATE: cutoff {cutoff:.12g} has no families in run {run_id}")
+    declared_cutoffs = {
+        round(float(value.strip()), 9)
+        for value in str(declared or "").split(",")
+        if re.fullmatch(r"[0-9]*\.?[0-9]+", value.strip())
+    }
+    if completion != "COMPLETED" or round(float(cutoff), 9) not in declared_cutoffs:
+        raise ValueError(
+            f"RUN_SCOPE_GATE: run {run_id} has no families and does not prove cutoff "
+            f"{cutoff:.12g} was declared by a completed run"
+        )
+    return "VALID_EMPTY_COMPLETED_RUN", "PASS"
+
+
 def _edge_param_id(connection):
     if not _table_exists(connection, "edge_params"):
         return None
@@ -305,6 +359,7 @@ def build(
         integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
         if integrity != "ok":
             raise RuntimeError(f"database integrity_check: {integrity}")
+        run_scope_state, receipt_status = _selected_run_scope(connection, run_id, cutoff)
         raw = connection.execute(
             """SELECT f.id,f.bin_label,b.id,g.path,b.product,b.category,b.contig_edge
                FROM family f JOIN bgc_record_family rf ON rf.family_id=f.id
@@ -429,9 +484,10 @@ def build(
     ]
     write_tsv(out / "BIGSCAPE_DIRECT_EDGES.tsv", direct_edges, edge_fields)
     receipt = {
-        "status": "PASS",
+        "status": receipt_status,
         "run_id": run_id,
         "cutoff": cutoff,
+        "run_scope_state": run_scope_state,
         "records": len(members),
         "strains": len(presence),
         "families": len(grouped),

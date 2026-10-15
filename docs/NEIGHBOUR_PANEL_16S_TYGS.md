@@ -17,6 +17,9 @@ files only and make no network call.
 
 ## 2. 16S BLAST (NCBI web BLAST)
 
+This step searches NCBI's `core_nt` online. For local searches against type strains only, build the local 16S RefSeq database described in [LOCAL_16S_DATABASE.md](LOCAL_16S_DATABASE.md).
+
+
 - **Search:** blastn (megablast) against `core_nt`, with the hit list set to 1,000.
 - **Output:** save the result as tabular text, 12 columns (`qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue
   bitscore`).

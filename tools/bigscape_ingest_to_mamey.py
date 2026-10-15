@@ -55,6 +55,22 @@ BEGIN = "<!-- BIGSCAPE_GCF_CONTEXT:BEGIN -->"
 END = "<!-- BIGSCAPE_GCF_CONTEXT:END -->"
 
 
+# Family status shown on cards. KNOWN = a MIBiG cluster shares the family. A family without one is described by that
+# observation, not called NOVEL: absence holds only for the reference panel loaded in that run. A blank or unrecognised
+# status from a TSV export stays UNKNOWN.
+NO_MIBIG_MEMBER = "NO_MIBIG_MEMBER"
+UNKNOWN_STATUS = "UNKNOWN"
+
+
+def _tsv_status(value):
+    v = (value or "").strip().upper()
+    if v == "KNOWN":
+        return "KNOWN"
+    if v in ("NOVEL", NO_MIBIG_MEMBER):
+        return NO_MIBIG_MEMBER
+    return UNKNOWN_STATUS
+
+
 def canon_locator(loc):
     """Cov-INDEPENDENT join key. A contig is uniquely identified by its NODE number + length;
     coverage is not identity and is formatted lossily by the triage board. Reduce any locator
@@ -177,7 +193,7 @@ def gcf_context(db, cutoff, names, run_id=None):
             "qualified_family_id": identity.qualified_family_id,
             "gcf_namespace": identity.gcf_namespace,
             "cutoff": identity.normalized_cutoff,
-            "status": "KNOWN" if mibig_acc else "NOVEL",
+            "status": "KNOWN" if mibig_acc else NO_MIBIG_MEMBER,
             "mibig": [(a, names.get(a, "?")) for a in mibig_acc],
             "cross_strain_members": others,
             "n_strains": len(d["strains"]),
@@ -233,7 +249,7 @@ def tsv_context(tsv_path, strain, cutoff):
                 "qualified_family_id": r.get("qualified_family_id") or None,
                 "gcf_namespace": r.get("gcf_namespace") or None,
                 "cutoff": r.get("normalized_cutoff") or None,
-                "status": "KNOWN" if (r.get("family_status") or "").upper() == "KNOWN" else "NOVEL",
+                "status": _tsv_status(r.get("family_status")),
                 "mibig": mib,
                 "cross_strain_members": None,  # signals "unavailable" to render_block
                 "n_strains": None,
@@ -257,7 +273,11 @@ def render_block(ctx):
         anch = "; ".join(f"{a} ({n})" for a, n in ctx["mibig"])
         lines.append(f"- MIBiG anchor(s) in family (architecture-consistent, capacity-level): {anch}.")
     else:
-        lines.append("- No MIBiG reference shares this family (no characterized analog at this cutoff).")
+        if st == UNKNOWN_STATUS:
+            lines.append("- MIBiG membership of this family is unknown in the supplied export.")
+        else:
+            lines.append("- No MIBiG cluster shares this family at this cutoff, in the reference panel loaded for this "
+                         "run. This is not evidence that no characterized analog exists.")
     if ctx["nearest_mibig"]:
         a, n, d = ctx["nearest_mibig"]
         lines.append(f"- Nearest characterized cluster: {a} ({n}), GCF distance {d} (0 identical .. 1 maximal).")

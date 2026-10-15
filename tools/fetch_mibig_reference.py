@@ -78,19 +78,27 @@ def _extract_from_tarball(tar_path, specs, version="4.0", outdir="refs", log=lam
 
     specs: list of 'ACCESSION:label'. Returns (written, missing).
     """
-    os.makedirs(outdir, exist_ok=True)
     want, bad = {}, []
+    destinations = set()
     for spec in specs:
         acc_field, label = (spec.split(":", 1) + [None])[:2] if ":" in spec else (spec, None)
         acc = canonical_acc(acc_field)
         if not acc:
             bad.append(spec)
             continue
-        want[acc] = label or acc
+        label = label or acc
+        destination = contained_output_path(outdir, label, ".gbk", field=f"label for {acc}").resolve()
+        if acc in want or destination in destinations or destination.exists():
+            raise ValueError("MIBiG request has duplicate accession/output or an existing destination")
+        want[acc] = label
+        destinations.add(destination)
+    if bad:
+        return [], bad
     written, missing = [], list(bad)
     if not want:
         return written, missing
     member_prefix = f"mibig_gbk_{version}/"
+    os.makedirs(outdir, exist_ok=True)
     with tarfile.open(tar_path, "r:gz") as tf:
         names = set(tf.getnames())
         for acc, label in want.items():
@@ -138,7 +146,7 @@ def main(argv=None):
         emit(f"[fetch_mibig_reference] NOT FOUND in MIBiG {a.version}: {', '.join(missing)}",
               file=sys.stderr)
     log(f"{len(written)} reference GBK(s) ready for cluster_gene_compare / cluster_brief.")
-    return 0 if written and not missing else (0 if written else 1)
+    return 0 if written and not missing else 1
 
 
 if __name__ == "__main__":

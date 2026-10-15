@@ -238,24 +238,98 @@ def rrna16s_db(explicit: str | None = None, must_exist: bool = True) -> str:
     return str(cand)
 
 
+_BLASTDB_ENVS = ("SAPOTE_16S_DB", "NCBI_16S_DB")
+_BLASTDB_REGISTRY_ID = "ncbi_16s_blastdb"
+_BLASTDB_DEFAULTS = ("Tools/databases/ncbi_16S_RefSeq/16S_ribosomal_RNA",
+                     "blast_dbs/16S_ribosomal_RNA")
+
+
+def _blastdb_present(prefix: pathlib.Path) -> bool:
+    return any(pathlib.Path(str(prefix) + ext).exists() for ext in (".nin", ".nal", ".ndb"))
+
+
 def refseq_16s_blastdb(explicit: str | None = None) -> str:
     """The local NCBI 16S RefSeq BLAST database PREFIX (no extension).
 
-    `$SAPOTE_16S_DB` / `$NCBI_16S_DB` (the names `tools/comparator_select.py` and
-    `tools/phylo_refset.py` already use), then the two locations this project keeps it in.
+    Every bundle tool that reads this database resolves it here, so one setting reaches all of
+    them. Resolution order, most specific first:
+
+        1. `explicit`, a tool's own `--db` / `--refseq-db` argument;
+        2. `$SAPOTE_16S_DB`, then `$NCBI_16S_DB`;
+        3. the `ncbi_16s_blastdb` row of `OFFICIAL_DATA/ASSET_REGISTRY.tsv` (a prefix, or a
+           directory holding `16S_ribosomal_RNA.*`);
+        4. `<root>/Tools/databases/ncbi_16S_RefSeq/16S_ribosomal_RNA`, then
+           `<root>/blast_dbs/16S_ribosomal_RNA`, the first that has database volumes.
+
+    How to build the database, fully or for chosen genera: docs/LOCAL_16S_DATABASE.md.
     """
     if explicit:
         return explicit
-    for var in ("SAPOTE_16S_DB", "NCBI_16S_DB"):
+    for var in _BLASTDB_ENVS:
         v = os.environ.get(var)
         if v:
             return v
     r = root()
-    for rel in ("Tools/databases/ncbi_16S_RefSeq/16S_ribosomal_RNA",
-                "blast_dbs/16S_ribosomal_RNA"):
-        if (r / (rel + ".nin")).exists() or (r / (rel + ".nal")).exists():
+    row = registry_row(_BLASTDB_REGISTRY_ID)
+    if row and row.get("path"):
+        cand = r / row["path"]
+        if cand.is_dir():
+            cand = cand / "16S_ribosomal_RNA"
+        if _blastdb_present(cand):
+            return str(cand)
+    for rel in _BLASTDB_DEFAULTS:
+        if _blastdb_present(r / rel):
             return str(r / rel)
-    return str(r / "blast_dbs/16S_ribosomal_RNA")
+    return str(r / _BLASTDB_DEFAULTS[-1])
+
+
+def blastdb_receipt(prefix: str, blastdbcmd: str | None = None) -> dict:
+    """What a tool records about the 16S database it used: the prefix, whether volumes exist, and the
+    `blastdbcmd -info` header (title, sequence count, date). A failed probe is recorded as such,
+    never as an empty database."""
+    rec = {"blastdb_prefix": str(prefix), "volumes_present": _blastdb_present(pathlib.Path(prefix))}
+    try:
+        exe = blastdbcmd or blast_bin("blastdbcmd")
+        out = subprocess.run([exe, "-db", str(prefix), "-info"], capture_output=True, text=True, timeout=120)
+        rec["blastdbcmd_info_exit"] = out.returncode
+        rec["blastdbcmd_info"] = [ln.strip() for ln in out.stdout.splitlines() if ln.strip()][:6]
+    except (SystemExit, OSError, subprocess.SubprocessError) as exc:
+        rec["blastdbcmd_info_exit"] = None
+        rec["blastdbcmd_info_error"] = f"{type(exc).__name__}: {exc}"[:300]
+    return rec
+
+
+_UNAMBIGUOUS = set("ACGT-")
+ALL_RECORDS_FALLBACK = 100000  # used when `blastdbcmd -info` cannot give the record count
+
+
+def unambiguous_identity(qseq: str, sseq: str) -> tuple[float | None, int]:
+    """Percent identity of one BLAST alignment over the columns where both sequences carry A, C, G, T or a gap.
+
+    BLAST's pident counts every IUPAC ambiguity code (N, R, Y, ...) as a mismatch, so a partial Sanger read with
+    ambiguous calls scores lower than the sequence it came from. Gaps still count as differences, as in pident.
+    Returns (identity, columns dropped); identity is None when no column is left."""
+    q, s = qseq.upper(), sseq.upper()
+    kept = [(a, b) for a, b in zip(q, s) if a in _UNAMBIGUOUS and b in _UNAMBIGUOUS]
+    dropped = min(len(q), len(s)) - len(kept)
+    if not kept:
+        return None, dropped
+    same = sum(1 for a, b in kept if a == b and a != "-")
+    return 100.0 * same / len(kept), dropped
+
+
+def blastdb_sequence_count(prefix: str, blastdbcmd: str | None = None) -> int | None:
+    """Number of sequences in a BLAST database, from `blastdbcmd -info`; None if it cannot be read.
+
+    Nearest-type-strain searches pass this as -max_target_seqs. BLAST keeps the first N subjects in its own order,
+    not the N most identical, so a small cap can miss the nearest record in a large genus."""
+    try:
+        exe = blastdbcmd or blast_bin("blastdbcmd")
+        out = subprocess.run([exe, "-db", str(prefix), "-info"], capture_output=True, text=True, timeout=120)
+    except (SystemExit, OSError, subprocess.SubprocessError):
+        return None
+    m = re.search(r"([\d,]+)\s+sequences", out.stdout or "")
+    return int(m.group(1).replace(",", "")) if m else None
 
 
 def _bin(name: str, env_dir: str, *extra_dirs: str) -> str:

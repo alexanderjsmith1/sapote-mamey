@@ -142,6 +142,11 @@ def parse_genbank_text(text: str) -> list[_Record]:
             len_m = re.search(r'^LOCUS\s+\S+\s+(\d+)\s+bp', entry, re.MULTILINE)
             if len_m:
                 seq = 'N' * int(len_m.group(1))
+        if not seq:
+            # .452: no ORIGIN sequence and no numeric LOCUS length is not a record. Biopython raises here, and so does
+            # the shim, so read_genbank_records() counts the file as errored instead of building a 0 bp record and a
+            # "complete" package from it (found on Linux without biopython, 14 Oct 2026).
+            raise ValueError(f"GBK_SHIM_NO_SEQUENCE: record {rec_id!r} has no ORIGIN sequence and no numeric LOCUS length")
         
         # Features
         feat_m = re.search(r'^FEATURES\s+Location/Qualifiers\n(.*?)(?=^ORIGIN|^CONTIG|^BASE COUNT|\Z)',

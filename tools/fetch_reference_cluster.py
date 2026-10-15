@@ -162,7 +162,8 @@ def stage_output_set(outdir, names):
 
 def ref_from_db(db_path, acc, label, provenance=None):
     """Reconstruct CDS (+ Pfam domains) for the one cluster whose gbk.path contains `acc` (see select_gbk)."""
-    c = sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True)
+    db_path = Path(db_path).resolve()
+    c = sqlite3.connect(db_path.as_uri() + "?mode=ro", uri=True)
     try:
         gid, gpath = select_gbk(c, acc)
     except (KeyError, ValueError):
@@ -216,14 +217,19 @@ def ref_from_ncbi(acc, label, timeout=60, provenance=None):
     import io
     url = ("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?" +
            urllib.parse.urlencode({"db": "nucleotide", "id": acc, "rettype": "gb", "retmode": "text"}))
+    # .452: retry only network failures. A local error (a missing module, a decode error) is raised as itself
+    # instead of being reported, after three retries, as an NCBI outage.
+    import http.client, time
+    last = None
     for _ in range(3):
         try:
             txt = urllib.request.urlopen(url, timeout=timeout).read().decode()
             break
-        except Exception:
-            import time; time.sleep(3)
+        except (OSError, http.client.HTTPException) as exc:   # URLError, HTTPError, timeouts, resets
+            last = exc
+            time.sleep(3)
     else:
-        raise RuntimeError(f"NCBI efetch failed for {acc}")
+        raise RuntimeError(f"NCBI efetch failed for {acc}: {type(last).__name__}: {last}")
     genes = []
     records = list(SeqIO.parse(io.StringIO(txt), "genbank"))
     if len(records) != 1:
@@ -262,6 +268,9 @@ def genes_to_gbk(genes, label, outdir):
         from mamey._gbk_shim import SeqIO
     if not genes:
         raise ValueError(f"no CDS reconstructed for {label}")
+    for g in genes:
+        if not isinstance(g.get("aa"), str) or not g["aa"].strip():
+            raise ValueError(f"{label}: CDS {g.get('tag', 'unknown')} has no translated protein; reference not ready")
     span = max(g["end"] for g in genes)
     rec = SeqRecord(Seq("N" * (span + 10)), id=f"{label}", name=label[:16],
                     description=f"{label} reference cluster (reconstructed)")
@@ -278,6 +287,21 @@ def genes_to_gbk(genes, label, outdir):
     # v9.7.438: same containment guard as fetch_mibig_reference -- the label names the file.
     p = contained_output_path(outdir, label, ".gbk")
     SeqIO.write(rec, str(p), "genbank")
+    # Validate the staged transport with the same reader and comparison matrix used
+    # downstream. Do not drop CDS or rewrite raw source translations to make them fit.
+    records = list(SeqIO.parse(str(p), "genbank"))
+    proteins = [f.qualifiers.get("translation", [""])[0]
+                for record in records for f in record.features if f.type == "CDS"]
+    expected = ["".join(g["aa"].split()) for g in genes]
+    if len(records) != 1 or proteins != expected:
+        raise ValueError(f"{label}: reconstructed CDS translations failed round-trip; reference not ready")
+    from Bio.Align import substitution_matrices
+    alphabet = set(substitution_matrices.load("BLOSUM62").alphabet)
+    for g, protein in zip(genes, proteins):
+        unsupported = set(protein) - alphabet
+        if unsupported:
+            raise ValueError(f"{label}: CDS {g.get('tag', 'unknown')} has symbols unsupported by "
+                             f"the BLOSUM62 comparison matrix: {sorted(unsupported)!r}; reference not ready")
     return str(p), len(genes), sum(1 for g in genes if g.get("gene"))
 
 

@@ -23,6 +23,10 @@ def _read(path: Path) -> str:
 
 def audit(bundle_root: Path, policy: dict[str, Any]) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
+    sections = ("active_documents", "routing_documents", "historical_documents", "forbidden_active_fragments")
+    if (not isinstance(policy, dict) or any(not isinstance(policy.get(section), dict) for section in sections)
+            or not any(policy[section] for section in sections)):
+        raise ValueError("instruction gate requires a nonempty valid policy scope")
 
     def add(kind: str, rel: str, ok: bool, detail: str) -> None:
         checks.append({"kind": kind, "path": rel, "ok": ok, "detail": detail})
@@ -81,6 +85,15 @@ def main() -> int:
 
     policy_path = args.policy or args.bundle_root / "mamey/data/llm_companion_instruction_policy.json"
     policy = json.loads(_read(policy_path))
+    for section in ("active_documents", "routing_documents", "historical_documents", "forbidden_active_fragments"):
+        for relative in policy[section]:
+            target = (args.bundle_root / relative).resolve()
+            if not target.is_relative_to(args.bundle_root.resolve()):
+                raise ValueError("instruction policy path escapes bundle root")
+    if args.out and (args.out.resolve().is_relative_to(args.bundle_root.resolve())
+                     or args.out.resolve() == policy_path.resolve()
+                     or args.out.exists() or args.out.is_symlink()):
+        raise ValueError("instruction gate output must be fresh and outside protected inputs")
     report = audit(args.bundle_root, policy)
     payload = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.out:

@@ -52,12 +52,12 @@ def test_any_git_rejection_is_reported_when_strict_patch_accepts(
     base = tmp_path / "base"
     base.mkdir()
     diff = tmp_path / "absolute-header.patch"
-    diff.write_text("--- a/value.txt\n+++ /private/tmp/value.txt\n", encoding="utf-8")
+    diff.write_text("--- a/value.txt\n+++ /tmp/value.txt\n", encoding="utf-8")
 
     def fake_run(args, **kwargs):
         if args[0] == "git":
             return subprocess.CompletedProcess(
-                args, 1, "", "error: invalid path '/private/tmp/value.txt'"
+                args, 1, "", "error: invalid path '/tmp/value.txt'"
             )
         return subprocess.CompletedProcess(args, 0, b"", b"")
 

@@ -1,5 +1,5 @@
-version=9.7.450
-build=20261011v97450a
-engine=1.9.175
-patch=Full-genome annotation copies resolved at the reader.; Partner-check diagnostics say what was checked.; Rejected rescue neighbours stay grey.; Renderer stamps and a figure provenance check.; BLASTp runner keeps live searches through an NCBI outage.; Lab Quest removed.; Native workspaces and resource gates.; Report scope and privacy.
+version=9.7.451
+build=20261015v97451a
+engine=1.9.176
+patch=Two-proof rescue holds an unreadable overlap count.; The hybrid gate counts each antiSMASH category once.; RG-GMCI and the KS scan read what is there.; Package runs say when record-limit coverage is unverified.; Without biopython, a corrupt GBK is an error, not a package.; Tree tip labels carry names only.; Evidence and outputs are admitted, not assumed.; GitHub CI installs R and runs the R figure tests.
 tier=code

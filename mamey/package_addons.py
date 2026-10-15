@@ -81,7 +81,9 @@ def emit_rescue_4b(package_dir, clusterblast_dir=None, enable_concordance=True):
     nodes = _node_map(man)
     tiling_fn = None
     if clusterblast_dir and os.path.isdir(clusterblast_dir):
-        tiling_fn = DR.make_tiling_fn(clusterblast_dir, lambda bid: nodes.get(bid, ""))
+        # P300-065: locate each BGC by contig AND region number from the same manifest record
+        regions = {b["bgc_id"]: b.get("region_number") for b in man.get("bgcs", [])}
+        tiling_fn = DR.make_tiling_fn(clusterblast_dir, lambda bid: (nodes.get(bid, ""), regions.get(bid)))
     fmap = DR.load_family_map() if enable_concordance else None
     leads = DR.build_leads(rggmci, _cctt(man), deep_tiling_fn=tiling_fn,
                            kcb_per_bgc=_kcb(package_dir), family_map=fmap)
@@ -89,12 +91,22 @@ def emit_rescue_4b(package_dir, clusterblast_dir=None, enable_concordance=True):
     return leads
 
 
+def _competition_cells(l):
+    """P300-115: the JSON's HIGH-lead competition fields as two Markdown cells ('—' = not computed)."""
+    n = l.get("competing_hypothesis_count")
+    best = l.get("mutually_exclusive_best")
+    return (f"{n if n is not None else '—'} | "
+            f"{'—' if best is None else ('yes' if best else 'no')}")
+
+
 def _write_4b(pkg, strain, leads, deep):
     p = os.path.join(pkg, strain)
     cols = ["pair", "rescue_tier", "kcb_concordance", "core_bgc", "core_node", "core_triggers",
             "core_kcb_family", "arm_bgc", "arm_node", "arm_roles", "arm_kcb_family", "shared_scaffold",
             "reference_genes_covered", "reference_gene_overlap", "overlap_fraction", "tiling_verdict",
-            "rggmci_confidence", "rggmci_gate", "promoted_over_rggmci", "claim_ceiling", "safe_claim"]
+            "rggmci_confidence", "rggmci_gate", "promoted_over_rggmci", "claim_ceiling", "safe_claim",
+            # P300-115: competition among HIGH leads (blank = not computed; only HIGH leads carry it)
+            "competing_hypothesis_count", "mutually_exclusive_best"]
     # v9.7.374: every write in this function goes to a .tmp sibling then os.replace()s into place,
     # so a process killed mid-write (SIGKILL/OOM/power loss) -- including on a re-run of `mamey run`
     # over a package_dir that already carries valid prior 4B files -- cannot truncate a previously
@@ -132,18 +144,41 @@ def _write_4b(pkg, strain, leads, deep):
             f.write("_No diagnostic-rescue candidates._\n")
             os.replace(_md_tmp, _md_path)
             return
-        f.write("| Tier | Concordance | Pair | Core | Arm | Scaffold | Genes | Overlap |\n")
-        f.write("|---|---|---|---|---|---|---|---|\n")
+        f.write("| Tier | Concordance | Pair | Core | Arm | Scaffold | Genes | Overlap "
+                "| Competing HIGH | Exclusive best |\n")
+        f.write("|---|---|---|---|---|---|---|---|---|---|\n")
         for l in leads:
             f.write(f"| {l['rescue_tier']} | {l.get('kcb_concordance','')} | {l['pair']} | "
                     f"{l['core_bgc']} ({l['core_triggers']}) | {l['arm_bgc']} ({l['arm_roles']}) | "
                     f"{l['shared_scaffold'] or '—'} | "
                     f"{l['reference_genes_covered'] if l['reference_genes_covered'] is not None else '—'} | "
-                    f"{l['reference_gene_overlap'] if l['reference_gene_overlap'] is not None else '—'} |\n")
+                    f"{l['reference_gene_overlap'] if l['reference_gene_overlap'] is not None else '—'} | "
+                    f"{_competition_cells(l)} |\n")
     os.replace(_md_tmp, _md_path)
 
 
 # ----------------------------------------------------------------------------- analysis-forward (P01)
+def _rescue_gate_note(l):
+    """P300-114: the gate states this lead recorded, so no tier gets a fixed (possibly wrong) reason."""
+    def _v(x):
+        return "\u2014" if x is None else x
+    conc = l.get("kcb_concordance") or "not_evaluated"
+    gate = l.get("kcb_concordance_gate") or ("not run" if conc == "not_evaluated" else "evaluated")
+    diag = l.get("arm_is_diagnostic_halogenase")
+    parts = [f"tiling {l.get('tiling_verdict') or 'not deep-tiled (RG-GMCI summary scaffold only)'}",
+             f"class concordance {conc} (gate {gate})"]
+    if l.get("reference_genes_covered") is None:
+        parts.append("gene floors not applied (no deep tiling)")
+    else:
+        parts.append(f"reference genes {l['reference_genes_covered']} (floor {DR.COVERED_FLOOR}), "
+                     f"core {_v(l.get('genes_on_scaffold_core'))} / arm {_v(l.get('genes_on_scaffold_arm'))} "
+                     f"(per-arm floor {DR.PER_ARM_FLOOR})")
+    parts.append(f"halogenase arm trigger {_v(None if diag is None else ('yes' if diag else 'no'))}")
+    if l.get("rescue_tier_cap_reason"):
+        parts.append(f"tier capped: {l['rescue_tier_cap_reason']}")
+    return "; ".join(parts)
+
+
 def write_analysis_forward(package_dir, top=12):
     """Write the START-HERE judgment directive (+ machine-readable JSON). Returns the .md path."""
     man = _manifest(package_dir)
@@ -175,22 +210,27 @@ def write_analysis_forward(package_dir, top=12):
             f.write(f"## \u25b6 Start full judgment\n\nTrigger:  **`Run full Sapote analysis on {strain}`**\n\n")
             f.write("Compilation order: " + " \u2192 ".join(COMPILATION_ORDER) + "\n\n")
             if high:
-                f.write("## \u2605 Judge these first \u2014 Diagnostic Rescue HIGH (concordant splits)\n\n")
+                f.write("## \u2605 Judge these first \u2014 Diagnostic Rescue HIGH\n\n")
                 for l in high:
                     f.write(f"- **{l['pair']}** \u2014 {l['core_bgc']} ({l['core_triggers']}) + "
                             f"{l['arm_bgc']} ({l['arm_roles']}) on {l['shared_scaffold']} "
-                            f"[{l.get('kcb_concordance','')}]. Judge both fragments together.\n")
+                            f"[{l.get('kcb_concordance','')}]. Judge both fragments together."
+                            + (f" Competing HIGH hypotheses: {l['competing_hypothesis_count']} "
+                               f"(mutually exclusive best: {'yes' if l.get('mutually_exclusive_best') else 'no'})."
+                               if l.get("competing_hypothesis_count") is not None else "")
+                            + "\n")
+                    f.write(f"  - Recorded gates: {_rescue_gate_note(l)}.\n")
                 f.write("\n")
             if moderate:
                 _cap = 8
-                f.write(f"## \u26a0 Worth a look \u2014 {len(moderate)} MODERATE rescue leads (lexicon-unknown / "
-                        "saccharide-arm)\n\nGeometry passes but class concordance is unconfirmed \u2014 a human "
-                        "should eyeball these; some may be real splits whose families aren't yet curated.\n\n")
+                f.write(f"## \u26a0 Worth a look \u2014 {len(moderate)} MODERATE rescue leads\n\n"
+                        "Each MODERATE lead missed or did not run at least one HIGH gate; its recorded gate "
+                        "states follow it. A human should eyeball these.\n\n")
                 f.write(f"Starting subset (top {min(_cap, len(moderate))} of {len(moderate)}; "
                         f"full list in `{strain}_Diagnostic_Rescue_Leads.md`):\n\n")
                 for l in moderate[:_cap]:
                     f.write(f"- {l['pair']} \u2014 {l.get('core_bgc','')} + {l.get('arm_bgc','')} "
-                            f"on {l.get('shared_scaffold','')}\n")
+                            f"on {l.get('shared_scaffold','')}. Recorded gates: {_rescue_gate_note(l)}.\n")
                 if len(moderate) > _cap:
                     f.write(f"- \u2026 and {len(moderate) - _cap} more (see the detail file)\n")
                 f.write("\n")
@@ -288,7 +328,8 @@ def add_d4_sheet(workbook_path, leads):
     ws = wb.create_sheet("D4_Diagnostic_Rescues")
     cols = ["pair", "rescue_tier", "kcb_concordance", "core_bgc", "core_node", "core_triggers",
             "core_kcb_family", "arm_bgc", "arm_node", "arm_roles", "arm_kcb_family", "shared_scaffold",
-            "reference_genes_covered", "reference_gene_overlap", "tiling_verdict", "safe_claim"]
+            "reference_genes_covered", "reference_gene_overlap", "tiling_verdict", "safe_claim",
+            "competing_hypothesis_count", "mutually_exclusive_best"]  # P300-115
     ws.append(cols)
     for l in leads:
         ws.append([l.get(c) for c in cols])
