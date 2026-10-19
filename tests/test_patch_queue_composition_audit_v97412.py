@@ -129,7 +129,8 @@ def test_a_binary_payload_is_not_line_compared(trees):
 
 def test_two_cards_dropping_one_target_with_different_content_collide(trees):
     """Either apply order silently loses the other card's content: no patch is involved, so a
-    file drop just overwrites. Observed live between two BLACK_CHERRY_2 .412 cards."""
+    file drop just overwrites. Recorded during the .412 patch-queue audit between two cards.
+    The private card labels are omitted; exact originals are retained outside CODE."""
     base, queue = trees
     (base / "tests").mkdir()
     (base / "tests" / "test_shared.py").write_text("def test_a():\n    pass\n")

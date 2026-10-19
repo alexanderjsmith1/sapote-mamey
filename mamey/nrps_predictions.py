@@ -31,6 +31,7 @@ Wire-in: call `write_nrps_prediction_csvs(records, package_dir, strain_id)` from
 after the JSON records are loaded (see the diff in AS-XXX_PATCH_G_diff.md).
 """
 from __future__ import annotations
+from .source_context import source_zipfile as _source_zipfile
 
 import csv
 try:
@@ -247,7 +248,7 @@ def _load_records(records_or_json: Any) -> list[dict]:
         if p.lower().endswith(".zip"):
             import zipfile
             from .ziputil import regular_file_names
-            with zipfile.ZipFile(p) as zf:
+            with _source_zipfile(p) as zf:
                 # the antiSMASH run JSON is the top-level .json (largest, not a KCB sidecar)
                 cands = [n for n in regular_file_names(zf)
                          if n.lower().endswith(".json") and "/" not in n.strip("/")]

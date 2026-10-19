@@ -135,7 +135,7 @@ class TestASRegex:
         """AS_760 with underscore should NOT match (underscore was in the old regex)."""
         # After the fix, the canonical pattern is AS-? (hyphen only, not underscore)
         from mamey.cohort_resolver import _AS_RE
-        assert not _AS_RE.match("AS_760")
+        assert not _AS_RE.match('AS_823')
 
     def test_ajs_matches(self):
         # .402 r3 (ajs_routing_only_boundary): AJS-shaped IDs no longer resolve as AS —

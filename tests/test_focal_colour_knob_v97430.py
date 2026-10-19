@@ -13,6 +13,8 @@ import subprocess
 import shutil
 import pytest
 
+R_EXECUTABLE = shutil.which("Rscript")
+
 RS = Path(__file__).resolve().parent.parent / "tools" / "ggtree_rect_heatmap.R"
 
 
@@ -39,7 +41,7 @@ def test_focal_face_knob_still_present():
     assert 'Sys.getenv("GG_FOCAL_FACE", "plain")' in s
 
 
-@pytest.mark.skipif(shutil.which("Rscript") is None, reason="R not installed in this environment")
+@pytest.mark.skipif(R_EXECUTABLE is None, reason="R not installed in this environment")
 def test_render_actually_resolves_the_real_source_line_correctly():
     """End-to-end against the ACTUAL shipped line (not a hand-copied duplicate): extract the
     `focal_colour <- Sys.getenv(...)` assignment straight out of the renderer file's text and
@@ -54,14 +56,14 @@ def test_render_actually_resolves_the_real_source_line_correctly():
     r_line = m.group(0)
 
     r1 = subprocess.run(
-        ["Rscript", "-e", f'{r_line}; cat(focal_colour)'],
+        [R_EXECUTABLE, "-e", f'{r_line}; cat(focal_colour)'],
         capture_output=True, text=True, env={"PATH": "/usr/local/bin:/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1"},
     )
     assert r1.returncode == 0, r1.stderr
     assert r1.stdout.strip() == "#000000"
 
     r2 = subprocess.run(
-        ["Rscript", "-e", f'{r_line}; cat(focal_colour)'],
+        [R_EXECUTABLE, "-e", f'{r_line}; cat(focal_colour)'],
         capture_output=True, text=True,
         env={"PATH": "/usr/local/bin:/usr/bin:/bin", "GG_FOCAL_COLOUR": "#bb0000", "PYTHONDONTWRITEBYTECODE": "1"},
     )

@@ -10,6 +10,13 @@ Also pinned here: Python 3.12 splits f-strings into FSTRING_MIDDLE, which is not
 private ID inside an f-string literal was invisible to the redactor. `tools/build_cohort_precompute.py`
 carried `AS-365/AS-705` in a WARN message through every previous public cut.
 """
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+_PATH_A = synthetic_namespace_id("AS", width=3, case_index=812, separator=True)
+_PATH_B = synthetic_namespace_id("AS", width=3, case_index=820, separator=True)
+_TEXT_A = synthetic_namespace_id("AS", width=3, case_index=808, separator=True)
+_TEXT_B = synthetic_namespace_id("AS", width=3, case_index=821, separator=True)
+
 import importlib.util, pathlib, sys, tokenize, io
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -19,10 +26,10 @@ rpt = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(rpt)
 
 def test_audit_paths_finds_a_strain_id_in_a_filename(tmp_path):
     (tmp_path / "docs").mkdir()
-    (tmp_path / "docs" / "AS-421_AS-696_notes.csv").write_text("x", encoding="utf-8")
+    (tmp_path / "docs" / f'{_PATH_A}_{_PATH_B}_notes.csv').write_text("x", encoding="utf-8")
     (tmp_path / "docs" / "clean.csv").write_text("x", encoding="utf-8")
     hits = rpt.audit_paths(tmp_path)
-    assert hits == ["docs/AS-421_AS-696_notes.csv"]
+    assert hits == [f'docs/{_PATH_A}_{_PATH_B}_notes.csv']
 
 
 def test_audit_paths_is_quiet_on_a_clean_tree(tmp_path):
@@ -44,8 +51,8 @@ def test_redactor_rewrites_fstring_literals():
 
 
 def test_redactor_actually_rewrites_an_id_inside_an_fstring(tmp_path):
-    """The dev tree legitimately contains real AS ids; asserting their absence here would be wrong.
-    What must hold is that the REDACTOR removes them from an f-string when it runs."""
-    out = rpt.redact_py('warn = f"legitimate for AS-365/AS-705 ({x})"\n')
-    assert "AS-365" not in out and "AS-705" not in out and "AS-XXX" in out
+    """Historical incident prose above is preserved; this injection uses fabricated controls.
+    Public references are not synthetic, and this test grants no disclosure exception."""
+    out = rpt.redact_py(f'warn = f"legitimate for {_TEXT_A}/{_TEXT_B} ({{x}})"\n')
+    assert f'{_TEXT_A}' not in out and f'{_TEXT_B}' not in out and "AS-XXX" in out
     assert "{x}" in out, "the {expr} part of an f-string is code and must never be rewritten"

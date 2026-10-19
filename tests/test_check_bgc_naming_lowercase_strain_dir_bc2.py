@@ -17,6 +17,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+if __package__ in (None, ""):
+    from _synthetic_identity_fixture import synthetic_namespace_id
+else:
+    from tests._synthetic_identity_fixture import synthetic_namespace_id
+_FORMAT_CASE_1 = synthetic_namespace_id('AS', width=2, case_index=80)
+
 
 def _module():
     path = Path(__file__).parents[1] / "tools" / "check_bgc_naming.py"
@@ -36,11 +42,11 @@ def _make_violation_tree(root: Path, strain_dirname: str) -> None:
 
 
 def test_lowercase_strain_dir_violation_is_caught(tmp_path):
-    _make_violation_tree(tmp_path, "as-40")
+    _make_violation_tree(tmp_path, f"{_FORMAT_CASE_1.lower()}")
     mod = _module()
     exit_code = mod.scan(str(tmp_path), None, None)
     assert exit_code == 1, (
-        "a bare-BGCnn violation under a lowercase 'as-40' strain directory must be caught "
+        f"a bare-BGCnn violation under a lowercase '{_FORMAT_CASE_1.lower()}' strain directory must be caught "
         "(scan() must not report a clean CI pass for an unscanned subtree)"
     )
 
@@ -54,7 +60,7 @@ def test_uppercase_strain_dir_violation_still_caught(tmp_path):
 
 
 def test_mixed_case_strains_both_counted_and_grouped_uppercase(tmp_path, capsys):
-    _make_violation_tree(tmp_path, "as-40")
+    _make_violation_tree(tmp_path, f"{_FORMAT_CASE_1.lower()}")
     _make_violation_tree(tmp_path, "AS-41")
     mod = _module()
     exit_code = mod.scan(str(tmp_path), None, None)
@@ -63,13 +69,13 @@ def test_mixed_case_strains_both_counted_and_grouped_uppercase(tmp_path, capsys)
     assert "2 violation(s)" in out
     assert "across 2 strain(s)" in out
     # normalized to uppercase for consistent grouping/filtering, matching crosswalk()'s convention
-    assert "AS-40" in out
+    assert f"{_FORMAT_CASE_1}" in out
     assert "AS-41" in out
 
 
 def test_cli_end_to_end_lowercase_strain_dir(tmp_path):
     # End-to-end via the actual CLI entry point, matching how validate/CI invoke this tool.
-    _make_violation_tree(tmp_path, "as-40")
+    _make_violation_tree(tmp_path, f"{_FORMAT_CASE_1.lower()}")
     script = Path(__file__).parents[1] / "tools" / "check_bgc_naming.py"
     result = subprocess.run(
         [sys.executable, str(script), "scan", str(tmp_path)],

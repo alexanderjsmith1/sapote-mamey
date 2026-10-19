@@ -38,10 +38,23 @@ def _cli(args: dict) -> list[str]:
     return out
 
 
+def label_selection_metadata(q: float) -> dict:
+    """Versioned label-table meaning; historical p95 stays valid only at q=0.95."""
+    import math
+    if isinstance(q, bool) or not isinstance(q, (int, float)) or not math.isfinite(q) or not 0 <= q <= 1:
+        raise ValueError("label quantile must be a finite number in [0, 1]")
+    percentile = f"{q * 100:g}"
+    return dict(version=2, quantile=q, threshold_column="threshold_distance",
+                quantile_column="label_quantile", legacy_column="threshold_p95",
+                legacy_state="SAME_AS_THRESHOLD_DISTANCE" if q == 0.95 else "BLANK_NONDEFAULT_QUANTILE",
+                label_rule=f"distance to the nearest reference/MIBiG point > p{percentile} of reference/MIBiG nearest-neighbour distances")
+
+
 def caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -> str:
     lays = rec["page"]; who = rec["legend"]["iso_low"].split(",")[0]
     per = sorted(rec["cohort_genomes"].values()); G = len(per)
-    n_q, n_lo, n_md = rec["n_cohort_points"], rec["n_low"], rec["n_mid"]; n_hi = n_q - n_lo - n_md
+    n_q, n_lo, n_md = rec["n_cohort_points"], rec["n_low"], rec["n_mid"]
+    n_unknown = rec.get("n_unknown", 0); n_hi = rec.get("n_high", n_q - n_lo - n_md - n_unknown)
     parts = [f"**{rec['title']}.** "
              + " and ".join(f"{LAYOUT_NAME[l][0].upper() + LAYOUT_NAME[l][1:] if k == 0 else LAYOUT_NAME[l]} (**{'abcdefgh'[k]}**)"
                             for k, l in enumerate(lays))
@@ -55,25 +68,47 @@ def caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -
                      "drawn with area proportional to the number of proteins it represents.")
     lo, md = rec["label_below"], rec["mid_below"]
     parts.append(f"{who[0].upper() + who[1:]}s are coloured by the identity of their best match to any reference or MIBiG protein: "
-                 f"dark red, < {lo:.0f}% ({n_lo:,}); light orange, {lo:.0f}–{md:.0f}% ({n_md:,}); open, ≥ {md:.0f}% ({n_hi:,}); they are "
+                 f"dark red, < {lo:.0f}% ({n_lo:,}); light orange, {lo:.0f}–{md:.0f}% ({n_md:,}); open circles, ≥ {md:.0f}% ({n_hi:,}); they are "
                  "drawn over the reference and MIBiG points, which can lie hidden beneath them.")
+    if n_unknown:
+        parts.append(f"Open diamonds show {n_unknown:,} proteins with unavailable best-reference/MIBiG identity; "
+                     "missing, nonnumeric and nonfinite values remain separate from the measured identity tiers.")
     if rec.get("distance"):
         parts.append(f"Distances: {rec['distance']}.")
     axes = []
     for k, l in enumerate(lays):
         t = "abcdefgh"[k]
         if l == "pcoa" and rec.get("pct_axes"):
-            axes.append(f"**{t}**, share of variance explained (axis 1, {rec['pct_axes'][0]:.1f}%; axis 2, {rec['pct_axes'][1]:.1f}%)")
+            metadata = rec.get("axis_metadata") or {}
+            definition = metadata.get("definition") or {}
+            values = metadata.get("pct_axes") or rec["pct_axes"]
+            display = f"axis 1, {values[0]:.1f}%; axis 2, {values[1]:.1f}%"
+            if definition.get("state") == "NATIVE_COORDINATE_SOURCE_BOUND":
+                axes.append(f"**{t}**, native eigenvalue/signed-trace ratios ({display}); "
+                            "each value is 100 times the axis eigenvalue divided by the signed trace of the "
+                            "double-centred squared-distance matrix. These ratios can exceed 100% or be negative "
+                            "for non-Euclidean distances; they are not conventional variance explained. "
+                            "Negative eigenvalues are clipped only when forming coordinates. All recorded ratios "
+                            "are retained without clipping or renormalization in the page metadata; only the first "
+                            "two axes are displayed. The definition is bound to the consumed coordinate table and "
+                            "inspected native source in the admitted upstream terminal chain; this renderer replays "
+                            "coordinates and does not execute a fit")
+            else:
+                axes.append(f"**{t}**, supplied percentage annotations ({display}); "
+                            "their definition and fit execution are unverified. These annotations are not "
+                            "interpreted as variance explained; values are displayed without clipping or renormalization")
         elif l != "pcoa":
-            em = rec.get("embedding") or {}
-            axes.append(f"**{t}**, unitless embedding coordinates" + (f" ({LAYOUT_NAME[l]} {em['version']}, seed {em['seed']})"
-                                                                         if em.get("version") and em.get("seed") is not None else ""))
+            em = ((rec.get("embedding") or {}).get("by_layout") or {}).get(l, {})
+            axes.append(f"**{t}**, unitless embedding coordinates" +
+                        (f" ({LAYOUT_NAME[l]} {em['version']}, supplied seed {em['seed']}; fit execution not verified)"
+                         if em.get("state") == "SUPPLIED_COORDINATE_BOUND" and em.get("version") and em.get("seed") is not None else ""))
     if axes:
         parts.append("Axes: " + "; ".join(axes) + ".")
     drawn = [r for r in labels if r["drawn"] == "yes"]
     numbered = any(v["numbered"] for v in rec["labels"].values())
     fit = "; ".join(f"{v['labelled']} of {v['outlier_groups']} in **{'abcdefgh'[k]}**" for k, v in enumerate(rec["labels"].values()))
-    rule = ("outlier proteins, those farther from every reference and MIBiG point than 95% of reference and MIBiG points are from "
+    selection = label_selection_metadata(rec.get("quantile", 0.95))
+    rule = (f"outlier proteins, those farther from every reference and MIBiG point than {selection['quantile'] * 100:g}% of reference and MIBiG points are from "
             "their nearest neighbour (outliers of one genome lying close together share one label)")
     if numbered:
         key = sorted({(int(r["genome_number"]), r["strain"]) for r in drawn})
@@ -87,7 +122,7 @@ def caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -
                      f"{rec['leader_max_in']} in at print size and are listed in LABELS_{rec['set']}_{rec['panel']}_PAGE.tsv. Labels: "
                      + "; ".join(f"*{t}*, {_italic_name(names.get(s, s))}" for t, s in key) + ".")
     else:
-        parts.append(f"No outlier protein is labelled ({fit} outlier groups).")
+        parts.append(f"No outlier protein is labelled ({fit} outlier groups). Selection rule: {rule}.")
     if note:
         parts.append(note.strip())
     parts.append("Proximity in a panel reflects sequence identity of these proteins only and does not establish product identity or "
@@ -119,13 +154,15 @@ def write_page_docs(out: Path, rec: dict, render: dict, meta: list[dict], names:
     mt = json.loads((out / f"{rec['prefix']}_min_text_check.json").read_text())
     lines = [f"# METHODS: {rec['prefix']} (written {date} by tools/protein_pcoa_page_docs.py)", "",
              f"Figure: `{rec['prefix']}.pdf` (vector, source artwork; {rec['min_text']['print_width']} in wide), `.svg`, `.png` (preview "
-             f"rendered from the checked PDF). Caption: `{cap.name}`. Genomes: `{gen.name}`. Labels: `LABELS_{rec['set']}_{rec['panel']}_PAGE.tsv`.",
+             f"drawn directly by R; `_plot_only.png` is a native 300-DPI slide export; captions remain separate). Caption: `{cap.name}`. Genomes: `{gen.name}`. Labels: `LABELS_{rec['set']}_{rec['panel']}_PAGE.tsv`.",
              "", "## Points", f"- cohort proteins: {rec['n_cohort_points']:,} from {len(cohort)} genomes (cohort table panel `{rec['panel']}`)",
              f"- reference: {rec['n_ref_centroids']:,} cluster centroids representing {rec['n_ref']:,} proteins from {rec['n_reference_genomes']:,} genomes "
              "(distinct non-cohort, non-MIBiG strains in the kit metadata)",
              f"- MIBiG: {rec['n_mibig_centroids']:,} centroids representing {rec['n_mibig']:,} proteins",
              f"- identity tiers (best reference/MIBiG match): < {rec['label_below']:.0f}% {rec['n_low']:,}; {rec['label_below']:.0f}-{rec['mid_below']:.0f}% "
-             f"{rec['n_mid']:,}; >= {rec['mid_below']:.0f}% {rec['n_cohort_points'] - rec['n_low'] - rec['n_mid']:,}",
+             f"{rec['n_mid']:,}; >= {rec['mid_below']:.0f}% {rec.get('n_high', rec['n_cohort_points'] - rec['n_low'] - rec['n_mid'] - rec.get('n_unknown', 0)):,}",
+             f"- identity unavailable (open diamonds): {rec.get('n_unknown', 0):,}; states and exact input values: "
+             f"{json.dumps(rec.get('identity_missingness', {}))}",
              "", "## Labels", f"- rule: {rec['label_rule']}", f"- placement: {rec['placement']}"]
     for k, (lay, v) in enumerate(rec["labels"].items()):
         lines.append(f"- panel {'abcdefgh'[k]} ({lay}): {v['labelled']} of {v['outlier_groups']} outlier groups labelled ({v['outlier_points']} outlier "
@@ -139,16 +176,20 @@ def write_page_docs(out: Path, rec: dict, render: dict, meta: list[dict], names:
     for b in render.get("inputs", []) + render.get("outputs", []):
         lines.append(f"- `{b.get('path')}` {b.get('sha256', b.get('state', ''))}")
     meth.write_text("\n".join(lines) + "\n")
-    return dict(caption=cap, methods=meth, genomes=gen)
+    return dict(caption=cap, methods=meth, genomes=gen, print_width_in=rec["min_text"]["print_width"])
 
 
-def check_page_docs(out: Path, root: Path, docs: dict) -> dict:
+def check_page_docs(out: Path, root: Path, docs: dict | list[dict]) -> dict:
     """caption_guard on caption + METHODS, figure_render_qc --ocr require on the folder; returns the summary (also QC_SUMMARY.json)."""
     sys.path.insert(0, str(root)); sys.path.insert(0, str(root / "tools"))
     from caption_guard import scan_paths
-    guard = scan_paths([str(docs["caption"]), str(docs["methods"])])
+    pages = [docs] if isinstance(docs, dict) else docs
+    widths = {float(page["print_width_in"]) for page in pages}
+    if len(widths) != 1:
+        raise ValueError("folder QA requires one common declared page width")
+    guard = scan_paths([str(page[key]) for page in pages for key in ("caption", "methods")])
     qc_dir = out / "QC_RENDER"
-    r = subprocess.run([sys.executable, str(root / "tools" / "figure_render_qc.py"), str(out), "--out", str(qc_dir), "--ocr", "require"],
+    r = subprocess.run([sys.executable, str(root / "tools" / "figure_render_qc.py"), str(out), "--out", str(qc_dir), "--ocr", "require", "--print-width-in", str(next(iter(widths)))],
                        capture_output=True, text=True)
     summary = dict(caption_guard={k: [list(x) for x in v] for k, v in guard.items()}, figure_render_qc_exit=r.returncode,
                    figure_render_qc=(r.stdout.strip().splitlines() or [""])[-1])

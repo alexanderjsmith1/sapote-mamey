@@ -5,12 +5,16 @@ Exits NONZERO on ANY of:
   * a missing / non-directory / non-Sapote root (identity anchors absent);
   * an unreadable tracked file (never silently skipped);
   * a cohort roster (mamey/data/strain_genus.csv);
-  * cohort AS-#### identifiers in shipped package DATA (mamey/**/*.{csv,tsv,json});
   * personal paths / internal workspace names anywhere in the tree;
-  * private literals anywhere in the tree (internal session codenames, workspace names, and
-    any operator-supplied terms);
+  * operator-declared private literals anywhere in the tree;
   * an untracked run directory at the root (runs*/);
   * a shipped cohort exclusions payload (OFFICIAL_DATA/exclusions.json inside the tree).
+
+Names and strain-to-class associations alone are permitted. The explicit strict identifier
+inventory remains a diagnostic utility, separate from public-cut admission.
+
+Deployment-specific private-literal checking uses a selected external privacy profile.
+This detector embeds no deployment vocabulary. Keep real profiles outside the packaged tree.
 
 Design: the whole-tree scan is ALWAYS on. A `.identity_banlist` file, if present, only ADDS extra
 private literals; it can never disable the structural scan. Detector tools that must contain the
@@ -45,20 +49,35 @@ from mamey.privacy_profile import (
     PUBLIC_FILE_HOLD_RECEIPT, _file_hold_root, _file_hold_identity,
     hash_public_file_hold, resolve_public_file_holds, public_file_hold_receipt,
     public_file_hold_directory, verify_public_file_hold_directory, public_file_hold_entry_identity,
-    public_file_hold_findings, verify_public_file_hold_omissions,
+    public_file_hold_findings, public_file_hold_prior_omission, verify_public_file_hold_omissions,
 )
 
-PERSONAL = re.compile(r"/Users/[^/]+/|/home/[^/]+/|Claude_Alex_\d+|Codex Alex \d+")
+PERSONAL = re.compile(r"/Users/[^/]+/|/home/[^/]+/")
+# Exact fixed container paths quoted by the two RiPPER contract documents.
+# Other files, other paths, suffixes/traversal and adjacent personal paths remain findings.
+_DOCUMENTED_CONTAINER_PATHS = {
+    "docs/RIPPER_ARCHIVED_LOCAL_CONTRACT.md": (
+        "/home/mnt/gbk/*.gbk", "/home/mnt/faa/query.faa",
+    ),
+    "docs/RIPPER_OPTIONAL_ADAPTER.md": ("/home/mnt/te_accessions.txt",),
+}
+
+
+def _personal_path_in_line(line: str, relative_path: str) -> bool:
+    for match in PERSONAL.finditer(line):
+        quoted = line[:match.start()].count("`") % 2 == 1
+        boundary = match.start() > 0 and line[match.start() - 1] in "` 	"
+        if quoted and boundary and any(line.startswith(path + "`", match.start())
+                                       for path in _DOCUMENTED_CONTAINER_PATHS.get(relative_path, ())):
+            continue
+        return True
+    return False
+
+
 AS_ID = re.compile(r"\bAS-\d{2,4}\b")
-# Banned identity: internal session codenames and private workspace names.
-BANNED_IDENTITY = (
-    "Claude_Alex_2026", "Codex Alex 2026", "/home/claude",
-    "Aquarius", "Cerulean", "Black Cherry", "BLACK_CHERRY", "Blizzard Blue", "Goldenrod",
-    "Laser Lemon", "Periwinkle", "Video Game Project", "Mango-Tango",
-    "WORKHORSE_CHATS",
-    # private-workspace locators (P0-8): specific tokens, low false-positive risk
-    "AS Strain Master", "Color folders", "MAMEY COMPLETE", "Claude August",
-)
+# Deployment-specific private values belong in a selected external privacy profile.
+# Compatibility hook for invented test markers; deployed source embeds no private vocabulary.
+BANNED_IDENTITY: tuple[str, ...] = ()
 # Files that legitimately contain the patterns they detect, or are audit self / fixtures.
 _ALLOW = {
     "public_release_audit.py", "audit_modeb_support_card.py", "combined_report_builder.py",
@@ -259,6 +278,14 @@ def apply_public_export_file_holds(source: Path, stage: Path, policy: PublicExpo
         with ExitStack() as descriptors:
             source_anchor = descriptors.enter_context(public_file_hold_directory(source))
             stage_anchor = descriptors.enter_context(public_file_hold_directory(stage))
+            prior = public_file_hold_prior_omission(source, policy)
+            if prior is not None:
+                omitted, problems = verify_public_file_hold_omissions(source, stage, policy)
+                if problems:
+                    return [], problems
+                verify_public_file_hold_directory(source_anchor)
+                verify_public_file_hold_directory(stage_anchor)
+                return [], []
             source_bindings = resolve_public_file_holds(source, policy)
             stage_bindings = resolve_public_file_holds(stage, policy)
             source_roster = [(x.hold_id, x.relative_path, x.sha256) for x in source_bindings]
@@ -582,9 +609,11 @@ def _strict_finding(kind: str, rel: Path, scope: str, *, count: int | None = Non
     return f"{kind}: locator={_strict_locator(rel, scope)}{suffix}"
 
 
-def strict_source_disclosure_findings(root: Path, *, show_identifiers: bool = False) -> list[str]:
-    """The strict pass: a pure function defining no identifier patterns, allowlists or redaction
-    policy of its own — every predicate is imported from the existing policy owner.
+def strict_source_disclosure_findings(root: Path, *, show_identifiers: bool = False,
+                                      identifier_inventory: bool = True) -> list[str]:
+    """Diagnostic source inventory; the release consumer requests only substantive findings.
+    Identifier matching alone grants no identity classification or disclosure verdict.
+    All predicates remain imported from the existing policy owner.
 
     Findings are REDACTED by default (v9.7.405, owner ruling on REPAIR_16): typed kind + hashed
     locator + count, so a retained CI log of a failing run does not itself disclose the cohort
@@ -625,7 +654,7 @@ def strict_source_disclosure_findings(root: Path, *, show_identifiers: bool = Fa
         ids -= _STRICT_PLACEHOLDERS | synthetic
         label = ("non-synthetic identifier in tests/" if in_tests
                  else "cohort identifier in python source")
-        if ids:
+        if ids and identifier_inventory:
             if show_identifiers:
                 shown = sorted(ids)
                 preview = ", ".join(shown[:8]) + (" ..." if len(shown) > 8 else "")
@@ -671,14 +700,6 @@ def audit(root: Path, policy: PublicExportPolicy | None = None, *,
 
     if (mamey / "data" / "strain_genus.csv").exists():
         hits.append("cohort roster ships: mamey/data/strain_genus.csv")
-    data_files, data_unreadable_dirs = safe_walk_files(mamey / "data")
-    for d in data_unreadable_dirs:
-        hits.append(f"unreadable tracked directory (cohort-id scan incomplete): {d}")
-    for f in data_files:
-        if f.suffix in {".csv", ".tsv", ".json"}:
-            t = _decode(f)
-            if isinstance(t, str) and AS_ID.search(t):
-                hits.append(f"cohort AS-#### id in shipped data: {f.relative_to(root)}")
     for d in root.glob("runs*"):
         if d.is_dir():
             hits.append(f"untracked run dir at root: {d.relative_to(root)}")
@@ -686,8 +707,6 @@ def audit(root: Path, policy: PublicExportPolicy | None = None, *,
         hits.append("cohort exclusions payload ships: OFFICIAL_DATA/exclusions.json")
     if (root / "future_improvements").is_dir():
         hits.append("internal future-work directory ships: future_improvements/")
-    for rel in audit_paths(root):
-        hits.append(f"cohort identifier in shipped path: {rel}")
 
     # whole-tree content scan (ALWAYS on)
     extra = []
@@ -721,18 +740,8 @@ def audit(root: Path, policy: PublicExportPolicy | None = None, *,
             continue
         # t is now a str (possibly "" for a legitimately-empty file, which scans clean)
         # Per line, for the same newline-spanning reason as the strict pass above.
-        if any(PERSONAL.search(_ln) for _ln in t.splitlines()):
+        if any(_personal_path_in_line(_ln, rel.as_posix()) for _ln in t.splitlines()):
             hits.append(f"personal path / workspace name: {rel}")
-        # Executable Python is deliberately outside this narrow documentation-safety gate.
-        # Rewriting Python string constants can change dictionaries, routing policy, and test-tool
-        # references even when tokenization preserves syntax. Python genericization therefore
-        # requires ordinary source patches plus regression tests; it is not a release-time rewrite.
-        if f.suffix != ".py":
-            cohort_ids = sorted(set(private_id_matches(t, as_only=True)))
-            if cohort_ids:
-                preview = ", ".join(cohort_ids[:8])
-                suffix = " ..." if len(cohort_ids) > 8 else ""
-                hits.append(f"cohort identifier in non-test content: {rel}: {preview}{suffix}")
         for b in list(BANNED_IDENTITY) + extra:
             if b in t:
                 hits.append(f"banned identity {b!r} in {rel}")
@@ -741,7 +750,8 @@ def audit(root: Path, policy: PublicExportPolicy | None = None, *,
         # the default scan already reached, so a caller reading the list sees the default gate's
         # findings first and the opt-in ones after. Root validation already passed above, so the
         # strict pass cannot re-report it.
-        hits.extend(strict_source_disclosure_findings(root, show_identifiers=show_identifiers))
+        hits.extend(strict_source_disclosure_findings(
+            root, show_identifiers=show_identifiers, identifier_inventory=False))
     return hits
 
 
@@ -751,7 +761,7 @@ def main(argv=None) -> int:
     ap.add_argument("--require-active-decision", action="append", default=[], metavar="ID",
                     help="require an ACTIVE, non-invalidated governance decision (repeatable)")
     ap.add_argument("--strict-source-disclosure", action="store_true",
-                    help="add the opt-in source/test disclosure pass to this audit (findings "
+                    help="add source/test personal-path and internal-literal checks (findings "
                          "redacted to typed kind + hashed locator + count by default)")
     ap.add_argument("--show-identifiers", action="store_true",
                     help="strict pass only: print relative paths and the matched identifiers "
@@ -798,10 +808,14 @@ def main(argv=None) -> int:
             if args.file_hold_source is not None:
                 ap.error("--file-hold-source is not used by source-only preflight")
             try:
-                selected = resolve_public_file_holds(root, policy)
+                prior = public_file_hold_prior_omission(root, policy)
+                selected = resolve_public_file_holds(root, policy) if prior is None else ()
             except (OSError, RuntimeError, PrivacyProfileError):
                 sys.stdout.write("PUBLIC FILE HOLD PREFLIGHT: REFUSED\n")
                 return 1
+            if prior is not None:
+                sys.stdout.write("PUBLIC FILE HOLD PREFLIGHT: PASS (%d verified prior omissions; not whole-tree clearance)\n" % len(prior["records"]))
+                return 0
             sys.stdout.write("PUBLIC FILE HOLD PREFLIGHT: PASS (%d selected; not whole-tree clearance)\n" % len(selected))
             return 0
         if args.file_hold_source is None:
@@ -845,10 +859,19 @@ def main(argv=None) -> int:
         joined = ", ".join(args.require_active_decision)
         emit(f"PUBLIC RELEASE GOVERNANCE: PASS ({joined} active and non-invalidated)")
     else:
-        emit("PUBLIC RELEASE AUDIT: PASS (root valid; whole-tree scan clean)")
+        vocabulary_status = "PASS" if policy.private_identifiers else "NOT_EVALUATED"
+        vocabulary_detail = ("configured literals checked" if policy.private_identifiers
+                             else "no configured private literals")
+        emit("PUBLIC RELEASE AUDIT: PASS (configured checks passed; scope shown below)",
+             "GENERIC PUBLIC CHECKS: PASS",
+             "CUSTOM PRIVATE VOCABULARY: " + vocabulary_status + " (" + vocabulary_detail + ")",
+             sep="\n")
     if args.report_json and not args.governance_only:
         sys.stdout.write(
-            json.dumps({"surface_types": audit_surface_report(root, policy)}, sort_keys=True) + "\n")
+            json.dumps({"surface_types": audit_surface_report(root, policy),
+                        "private_vocabulary_coverage": {
+                            "status": vocabulary_status,
+                            "configured_literal_count": len(policy.private_identifiers)}}, sort_keys=True) + "\n")
     return 0
 
 

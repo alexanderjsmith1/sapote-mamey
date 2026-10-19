@@ -1,5 +1,9 @@
 """v9.7.229: strain-ID auto-derivation — Genus_species_Designation from the organism record, never an
-LLM abbreviation; canonical AS-cohort IDs are never rewritten."""
+LLM abbreviation; canonical AS-cohort IDs are never rewritten.
+The AS-shaped controls selected here are authored parser fixtures using existing reserved
+fixture declarations. Their bound-snapshot noncollision does not grant disclosure permission;
+empirical/reference records, historical anchors and scientific assertions remain distinct.
+"""
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from mamey.cohort_resolver import derive_strain_id as d
@@ -13,7 +17,7 @@ def test_filename_fallback_when_record_empty():
     assert d("SID4912", "", "Streptomyces_sp__SID4912_x.zip")[0] == "Streptomyces_sp_SID4912"
 
 def test_never_rewrites_canonical_as_id():
-    assert d("AS-441", "Streptomyces sp.")[0] == "AS-441"
+    assert d('AS-971', "Streptomyces sp.")[0] == 'AS-971'
     assert d("Streptomyces_malaysiensis_SID8382", "Streptomyces malaysiensis SID8382")[0] == "Streptomyces_malaysiensis_SID8382"
 
 def test_no_genus_keeps_label_with_note():

@@ -28,13 +28,13 @@ def test_source_final_distinguishes_prior_generated_inputs_from_deferred_tier_ou
     rc, payload = _invoke(
         capsys,
         "--phase", "source-final",
-        "--assert-input", "module_manifest,tools_inventory",
-        "--assert-final", "module_manifest,tools_inventory,version_build,release_manifest",
+        "--assert-input", "module_manifest,tools_inventory,file_atlas",
+        "--assert-final", "module_manifest,tools_inventory,file_atlas,version_build,release_manifest",
     )
     assert rc == 0
     assert payload["status"] == "PASS"
-    assert payload["expected_inputs"] == ["module_manifest", "tools_inventory"]
-    assert payload["expected_final_outputs"] == ["module_manifest", "tools_inventory", "version_build", "release_manifest"]
+    assert payload["expected_inputs"] == ["module_manifest", "tools_inventory", "file_atlas"]
+    assert payload["expected_final_outputs"] == ["module_manifest", "tools_inventory", "file_atlas", "version_build", "release_manifest"]
     assert payload["deferred_outputs"] == ["tier_manifest", "source_checksums"]
 
 
@@ -49,7 +49,7 @@ def test_source_final_refuses_tier_outputs_as_source_final_and_creates_nothing(c
     rc, payload = _invoke(
         capsys,
         "--phase", "source-final",
-        "--assert-input", "module_manifest,tools_inventory",
+        "--assert-input", "module_manifest,tools_inventory,file_atlas",
         "--assert-final", "source_checksums", root=tmp_path,
     )
     assert rc == 2
@@ -62,7 +62,7 @@ def test_tier_final_accepts_final_source_surfaces_as_inputs(capsys):
     rc, payload = _invoke(
         capsys,
         "--phase", "tier-final",
-        "--assert-input", "module_manifest,tools_inventory,version_build,release_manifest",
+        "--assert-input", "module_manifest,tools_inventory,file_atlas,version_build,release_manifest",
         "--assert-final", "tier_manifest,source_checksums",
     )
     assert rc == 0
@@ -73,7 +73,7 @@ def test_tier_final_accepts_final_source_surfaces_as_inputs(capsys):
 def test_missing_owner_or_surface_path_refuses(capsys, tmp_path):
     rc = ownership.main([
         "--root", str(tmp_path), "--phase", "source-generated",
-        "--assert-input", "none", "--assert-final", "module_manifest,tools_inventory", "--json",
+        "--assert-input", "none", "--assert-final", "module_manifest,tools_inventory,file_atlas", "--json",
     ])
     payload = json.loads(capsys.readouterr().out)
     assert rc == 2

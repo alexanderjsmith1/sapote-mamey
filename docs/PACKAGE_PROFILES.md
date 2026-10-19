@@ -26,10 +26,12 @@ run the pipeline or read the code. The authorized maintainer controls sealing an
 
 **Disclosure should not be decided by a strain ID prefix.** Whether a strain's material may leave the project
 follows its exact assignment profile and the live release gates ([portable privacy and evidence](PORTABLE_STRAIN_PRIVACY_AND_EVIDENCE.md),
-whose default is non-public). Be aware that the CLI's `--privacy-profile` is optional. Without it, `mamey run`
-still applies a legacy derivation from the ID shape: `AS-` → PUBLIC, and `AJS-`/`PENDING`/unrecognized →
-PRIVATE (`mamey/cli.py`, `--release` help). That tag is a run label, not a disclosure decision. Select the exact
-profile whenever disclosure matters.
+whose default is non-public). The CLI's `--privacy-profile` is optional, but omitting both it and
+`--release` defaults to PRIVATE for every ID prefix. An exact public profile assignment or an admitted
+explicit `--release PUBLIC` request can select a public run label; an explicit PRIVATE override wins,
+and applicable private guards or nonpublic profile tiers can refuse a public request. Inspect the actual
+`release_decision` and selected policy. A run label is not a disclosure decision. Select the exact profile
+whenever disclosure matters.
 
 ### Historical: the multi-tier set (retired)
 Until v9.7.444, releases also cut CODE-analysis-free, SID/cohort-public, MERGED-PRIVATE and public tiers, plus a

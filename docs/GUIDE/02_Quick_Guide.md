@@ -1,6 +1,6 @@
 # Sapote Mamey Quick Guide
 
-**Version:** v9.7.451 / engine Mamey 1.9.176
+**Version:** v9.7.453 / engine Mamey 1.9.176
 
 Mamey extracts deterministic evidence from antiSMASH output. Sapote turns a validated evidence
 package into governed interpretation. Start at the [README](../../README.md). If you work through a
@@ -80,12 +80,13 @@ python mamey_run.py run --strain EXAMPLE \
   --input-zip path/to/antismash_result.zip \
   --taxonomy 'Genus sp.' --source 'recorded isolation source' \
   --mode gold --json-evidence bounded --brief none --locus-maps off \
+  --reference-completion off --require-workbook \
   --release PRIVATE --outdir analysis/runs/
-python mamey_run.py validate analysis/runs/EXAMPLE/package
+python mamey_run.py validate analysis/runs/EXAMPLE/package --workbook-strict
 python mamey_run.py explain analysis/runs/EXAMPLE/package
 ```
 
-This first run deliberately skips the brief and the locus maps. `PRIVATE` labels your local
+This first run deliberately skips the brief, locus maps and reference-completion searches. It requires the workbook; workbook production or strict validation failure means the requested table handoff is incomplete. `PRIVATE` labels your local
 artifacts; it does not claim that a public source genome is private. Choose another release tag
 only when it fits your output. If isolation metadata are missing, `--source 'not supplied'`
 records that gap; the GenBank `SOURCE` organism label in the archive is not the isolation habitat.

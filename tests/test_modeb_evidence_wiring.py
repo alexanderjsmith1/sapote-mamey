@@ -30,7 +30,7 @@ def test_section4_requires_blastp_online_channel():
 
 
 def test_section4_names_the_bgc_in_the_command():
-    # v9.7.371 (BLACK_CHERRY modeb_template_emitter_wrong_key_fix): the emitter's real facts key is
+    # v9.7.371 (regression_review modeb_template_emitter_wrong_key_fix): the emitter's real facts key is
     # "bgc_id" (see _section_body's own `bgc = facts.get("bgc_id")`); the old "bgc" key here was
     # validating the bug — production facts never carried it, so cards said `--bgc BGC` literally.
     s4 = _section_body(4, {"bgc_id": "BGC023", "gene_rows": []}, {})

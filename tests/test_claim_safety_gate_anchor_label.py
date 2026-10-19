@@ -4,8 +4,8 @@ The verb-only `lint_text()` missed the real BGC059 defect line `KNOWN -> tetrach
 production verb). This test asserts the label-anchor extension catches it while leaving corrected,
 class-level, negated, and idiomatic text clean.
 
-It self-skips if the extension is not yet applied, so it is safe to drop into `tests/` alongside the
-code change and activates automatically once the code lands.
+The label-anchor rule is shipped. Its regressions are unconditional: a broken enabling probe
+must fail, rather than silently skip the rule's assertions.
 """
 import pytest
 from mamey.claim_safety_gate import lint_text
@@ -17,8 +17,6 @@ def _extension_present():
     return len(lint_text(_KNOWN_BAD)) >= 1
 
 
-@pytest.mark.skipif(not _extension_present(),
-                    reason="label-anchor extension not applied to claim_safety_gate.lint_text yet")
 @pytest.mark.parametrize("text,expect_flagged", [
     ("| BGC059 | KNOWN -> tetrachlorizine | KNOWN |", True),
     ("BGC059  KNOWN → tetrachlorizine", True),                 # unicode arrow
@@ -34,6 +32,5 @@ def test_label_anchor_rule(text, expect_flagged):
 
 
 def test_known_bad_is_caught_once_applied():
-    if not _extension_present():
-        pytest.skip("extension not applied yet")
+    assert _extension_present(), "shipped label-anchor probe must not disable regressions"
     assert any("tetrachlorizine" in f for f in lint_text(_KNOWN_BAD))

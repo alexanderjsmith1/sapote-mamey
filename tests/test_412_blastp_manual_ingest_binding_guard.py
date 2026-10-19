@@ -39,6 +39,12 @@ import openpyxl  # noqa: E402
 import mamey.blastp_ingest as bi  # noqa: E402
 from mamey.master_workbook import CANONICAL_V1_HEADERS  # noqa: E402
 
+if __package__ in (None, ""):
+    from _synthetic_identity_fixture import synthetic_namespace_id
+else:
+    from tests._synthetic_identity_fixture import synthetic_namespace_id
+_FORMAT_CASE_1 = synthetic_namespace_id('AS', width=3, case_index=812)
+
 
 # --- fixtures: a package shaped like the real Actinomadura_RB68 ------------------------
 # manifest carries display_name "Actinomadura RB68" (Genus + StrainCode, masks the binomial)
@@ -184,7 +190,7 @@ def test_f10_self_hit_excluded_and_comparator_retained(tmp_path):
 
 def test_f10_unnamed_sp_strain_excludes_nothing(tmp_path):
     # regression pin: AS-series unnamed "<Genus> sp." strains still resolve to None (nothing dropped)
-    pkg = _package(tmp_path, strain="AS-421", display="Streptomyces sp. AS-421", taxonomy=None)
+    pkg = _package(tmp_path, strain=f"{_FORMAT_CASE_1}", display=f"Streptomyces sp. {_FORMAT_CASE_1}", taxonomy=None)
     assert bi._self_binomial(pkg) is None
 
 
@@ -210,7 +216,7 @@ def test_no_sealed_context_fails_open_and_still_writes(tmp_path):
     pkg.mkdir()
     (pkg / "manifest.json").write_text(json.dumps({"bgcs": [{"bgc_id": "BGC043"}]}), encoding="utf-8")
     ht = _hits(tmp_path, "open.csv",
-               "AS-696|BGC043|gene=ctg66_5|aa=420,WP_1.1,90.0,420,0,0,1,420,1,420,0.0,800,95\n")
-    res = bi.ingest_blastp(_master(tmp_path), "AS-696", ht, None, package=str(pkg))
+               "SYNTHETIC-CASE-019|BGC043|gene=ctg66_5|aa=420,WP_1.1,90.0,420,0,0,1,420,1,420,0.0,800,95\n")
+    res = bi.ingest_blastp(_master(tmp_path), "SYNTHETIC-CASE-019", ht, None, package=str(pkg))
     assert res["binding_guard"]["binding_validated"] is False
     assert res["overlay"]["genes"] == 1

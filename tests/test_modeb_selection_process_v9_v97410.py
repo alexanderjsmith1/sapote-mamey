@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 from __future__ import annotations
 
 from mamey.cli import build_parser
@@ -7,7 +8,7 @@ from tests.test_modeb_publication_quality_v9_7_372 import _card
 
 
 SELECTED = "AS-1 / NODE_1_length_1000_cov_10 / region001 / BGC001"
-COMPARATOR = "AS-2 / NODE_2_length_2000_cov_20 / region002 / BGC002"
+COMPARATOR = "SYNTHETIC-CASE-002 / NODE_2_length_2000_cov_20 / region002 / BGC002"
 SHA = "d" * 64
 HEADER = (
     "#### Selection process\n"

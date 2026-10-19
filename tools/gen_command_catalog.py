@@ -24,7 +24,7 @@ OUT = ROOT / "docs" / "COMMAND_CATALOG.generated.md"
 
 GROUPS: list[tuple[str, str, tuple[str, ...]]] = [
     ("Run and seal a strain", "Deterministic extraction — the only step that creates a package.",
-     ("run", "validate", "seal-package", "inspect", "start", "doctor", "capabilities", "resume", "fingerprint", "handoff", "explain", "release-qa", "tab-reconcile")),
+     ("run", "validate", "seal-package", "inspect", "intake-captured", "start", "doctor", "capabilities", "resume", "fingerprint", "handoff", "explain", "release-qa", "tab-reconcile")),
     ("Post-seal figures", "Start with `render-all-figures` for one sealed package. Use `figure-factory` "
      "for a receipt-bound custom configuration; the remaining commands are specialized builders.",
      ("render-figures", "figure-factory", "figures", "interactive-figures", "cohort-figures", "diagram", "atlas",

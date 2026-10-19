@@ -9,7 +9,7 @@ def clean(monkeypatch):
     monkeypatch.delenv("SAPOTE_ASSEMBLY_AUTHORITY",raising=False)
     s.clear_strain_data_cache()
 
-def pkg(root,home="MAMEY COMPLETE",version="999",contigs=9,engine="1.9.171"):
+def pkg(root,home="PACKAGE OUTPUTS",version="999",contigs=9,engine="1.9.171"):
     p=root/home/f"TST-1_SapoteMamey_v9.7.{version}_engine{engine}_loose_Complete_Package.zip"
     p.parent.mkdir(parents=True,exist_ok=True)
     with zipfile.ZipFile(p,"w") as z:
@@ -26,11 +26,11 @@ def test_uppercase_home_found_without_env(tmp_path):
     p=pkg(tmp_path);assert s.resolve_mamey_package("TST-1",str(tmp_path))==str(p)
 
 def test_archive_cannot_outrank_active(tmp_path):
-    p=pkg(tmp_path,"Mamey Complete",version="1");pkg(tmp_path,"Mamey Complete_ARCHIVE",version="999")
+    p=pkg(tmp_path,"Package Outputs",version="1");pkg(tmp_path,"Package Outputs_ARCHIVE",version="999")
     assert s.resolve_mamey_package("TST-1",str(tmp_path))==str(p)
 
 def test_empty_descriptor_explains_homes(tmp_path):
-    assert "Mamey Complete*" in s.strain_data_home("TST-1",str(tmp_path))["searched_homes"]
+    assert "Package Outputs*" in s.strain_data_home("TST-1",str(tmp_path))["searched_homes"]
 
 def test_clean_directory_wins_over_newer_raw(tmp_path):
     pkg(tmp_path);p=tmp_path/"clean/package";p.mkdir(parents=True)
@@ -64,8 +64,8 @@ def test_explicit_missing_authority_refuses(tmp_path,monkeypatch):
     assert s.resolve_mamey_package("TST-1",str(tmp_path)) is None
 
 def test_nested_excluded_cannot_outrank_active(tmp_path):
-    p=pkg(tmp_path,"Mamey Complete",version="1")
-    pkg(tmp_path,"Mamey Complete/variants_EXCLUDED",version="999")
+    p=pkg(tmp_path,"Package Outputs",version="1")
+    pkg(tmp_path,"Package Outputs/variants_EXCLUDED",version="999")
     assert s.resolve_mamey_package("TST-1",str(tmp_path))==str(p)
 
 def test_owner_matched_assembly_prefers_engine_and_lists_other(tmp_path):

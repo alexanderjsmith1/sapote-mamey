@@ -51,6 +51,6 @@ def test_audit_reports_every_missing_requirement_without_network(tmp_path: Path)
     )
     assert report["status"] == "FAIL"
     assert report["failed_resolution"] == ["python-docx", "lxml"]
-    assert len(commands) == 3
+    assert len(commands) == 4
     assert all("--no-index" in command for command in commands)
     assert all("--only-binary=:all:" in command for command in commands)

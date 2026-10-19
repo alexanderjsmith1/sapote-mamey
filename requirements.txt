@@ -14,6 +14,7 @@ PyYAML>=6.0,<7.0         # bootstrap_contract.yml generation/checks (tools/rende
 # REQUIRED if you generate any figures — FULL ANALYSIS MODE deliverables do.
 # These are HARD imports (no graceful fallback); the figure tools raise
 # ModuleNotFoundError without them.
+pyshp                    # local collection-map Shapefile basemaps; import name: shapefile
 matplotlib>=3.7,<4.0
 numpy>=1.24,<3.0          # imported directly by build_figures.py and the cohort SVD figures
 pandas>=2.0,<3.1           # required by mamey-native figure set and workbook-backed plots

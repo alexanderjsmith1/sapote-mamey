@@ -1,48 +1,38 @@
-"""Every strain-style ID in tests/ is on tools/test_synthetic_ids.txt.
+"""Lexical identifier diagnostics, not universal publication admission.
 
-The cut's public-tier audit (tools/make_public_tier.sh) refuses the CODE tier when a test carries an
-AS/AJS/PENDING identifier that is not on the allowlist. This test runs the same scan before a cut, so a
-missing entry fails the suite instead of aborting the release after both full-suite gates have passed.
+Names and strain-to-class associations alone are permitted under the current
+policy. Genuine meanings, declared-fixture truth and actual integrity checks remain.
 """
 import re
 from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-# Same pattern as make_public_tier.sh: hyphenated or dashless AS/AJS with two or more digits, or PENDING-<token>.
-ID = re.compile(r"\b(?:AS|AJS|as|ajs)-?[0-9]{2,}|\bPENDING-[A-Z0-9]+")
-PLACEHOLDERS = {"AS-XXX", "AJS-XXX", "PENDING-XXX"}
-
-
-def _normalise(token):
-    up = token.upper()
-    return re.sub(r"^(AS|AJS)([0-9])", r"\1-\2", up)
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from _identifier_role_policy import (ID, PLACEHOLDERS, normalise as _normalise,
+                                     audit_test_identifiers, digest, read_regular)
+ROOT=Path(__file__).resolve().parents[1]
+POLICY=Path(__file__).with_name('reviewed_public_reference_sites.json')
 
 
 def _allowlist():
-    lines = (ROOT / "tools" / "test_synthetic_ids.txt").read_text().splitlines()
-    return {l.strip() for l in lines if l.strip() and not l.lstrip().startswith("#")}
+    return {l.strip() for l in read_regular(ROOT/'tools/test_synthetic_ids.txt').decode().splitlines()
+            if l.strip() and not l.lstrip().startswith('#')}
 
 
-def test_every_test_id_is_allowlisted():
-    allowed = _allowlist()
-    missing = {}
-    for path in sorted((ROOT / "tests").rglob("*")):
-        if not path.is_file() or "__pycache__" in path.parts:
-            continue
-        try:
-            text = path.read_text()
-        except (UnicodeDecodeError, OSError):
-            continue  # binary fixtures: grep -I skips them too
-        for tok in set(ID.findall(text)):
-            if tok in PLACEHOLDERS:
-                continue
-            if _normalise(tok) not in allowed:
-                missing.setdefault(_normalise(tok), []).append(str(path.relative_to(ROOT)))
-    assert not missing, f"strain-style IDs in tests/ missing from tools/test_synthetic_ids.txt: {missing}"
+def _unreviewed_test_ids(root,allowed,policy_path):
+    # Compatibility arguments cannot create an override or a new permission.
+    actual={l.strip() for l in read_regular(root/'tools/test_synthetic_ids.txt').decode().splitlines()
+            if l.strip() and not l.lstrip().startswith('#')}
+    if set(allowed)!=actual or Path(policy_path).absolute()!=Path(root).absolute()/'tests/reviewed_public_reference_sites.json':
+        return {'SOURCE_POLICY_OVERRIDE_REFUSED':['tests/']}
+    record=audit_test_identifiers(root,root,digest(read_regular(policy_path)))
+    if record['state']=='PASS_SOURCE_ROLE_SCOPE':return {}
+    return {'SOURCE_ROLE_HOLD':record.get('findings') or record.get('issues') or ['audit unavailable']}
+
+
 
 
 def test_scan_matches_the_cut_audit_shapes():
-    assert ID.findall("f'AS-92{i}'") == ["AS-92"]          # a literal prefix is a token
-    assert ID.findall("f'AS-{970 + i}'") == []                # an arithmetic spelling is not
-    assert ID.findall("AS971 as-972 AJS-001") == ["AS971", "as-972", "AJS-001"]
-    assert _normalise("as971") == "AS-971"
+    assert ID.findall("f'AS-92{i}'")==['AS-92']
+    assert ID.findall("f'AS-{970 + i}'")==[]
+    assert ID.findall("AS971 as-972 AJS-001")==['AS971','as-972','AJS-001']
+    assert _normalise('as971')=='AS-971'

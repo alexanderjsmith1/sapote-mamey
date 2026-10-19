@@ -24,12 +24,21 @@ try:
 except ImportError:
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 import hashlib
+import io
 import json
+import math
 import os
 import re
+import stat
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+
+try:
+    from .output_transaction import preflight_output_roster, publish_payloads
+except ImportError:
+    from mamey.output_transaction import preflight_output_roster, publish_payloads
+
 
 
 ALLOWED_DECISIONS = {"CONSUME", "REJECT_WITH_REASON", "SUPERSEDED_WITH_RECEIPT"}
@@ -44,6 +53,10 @@ class ScanLimits:
     max_files: int = 100_000
     max_apparent_bytes: int = 20_000_000_000
     max_seconds: float = 60.0
+
+    def __post_init__(self) -> None:
+        if isinstance(self.max_seconds, float) and not math.isfinite(self.max_seconds):
+            raise ValueError("SCAN_TIME_LIMIT_MUST_BE_FINITE")
 
 
 def sha256_file(path: Path) -> str:
@@ -186,6 +199,8 @@ def build_source_catalog(
     """Metadata-first census.  No collection becomes authoritative here."""
 
     root = root.resolve(strict=True)
+    if not root.is_dir():
+        raise ValueError("source discovery root must be a directory")
     registry, registry_sha256 = load_collection_registry(collection_registry_path)
     if registry_sha256 != expected_collection_registry_sha256:
         raise ValueError("collection registry SHA-256 mismatch")
@@ -198,8 +213,19 @@ def build_source_catalog(
     pruned_depth = 0
     collection_rows: dict[tuple[str, str], dict] = {}
     truncation_reason = ""
+    scan_errors = []
 
-    for dirpath, dirnames, filenames in os.walk(root):
+    def record_scan_error(path, reason):
+        try:
+            relative = Path(os.path.abspath(path)).relative_to(root).as_posix()
+        except (TypeError, ValueError):
+            relative = "."
+        scan_errors.append({"relative_path": relative, "reason_code": reason})
+
+    def walk_error(error):
+        record_scan_error(getattr(error, "filename", None), "DIRECTORY_UNREADABLE")
+
+    for dirpath, dirnames, filenames in os.walk(root, onerror=walk_error):
         directory = Path(dirpath)
         depth = len(directory.parts) - root_depth
         dirnames[:] = sorted(name for name in dirnames if name not in NOISE_DIRECTORIES)
@@ -208,6 +234,19 @@ def build_source_catalog(
             pruned_depth += 1
             dirnames[:] = []
             continue
+        admitted_dirs = []
+        for name in dirnames:
+            path = directory / name
+            try:
+                mode = path.lstat().st_mode
+            except OSError:
+                record_scan_error(path, "DIRECTORY_STAT_UNAVAILABLE")
+                continue
+            if not stat.S_ISDIR(mode):
+                record_scan_error(path, "DIRECTORY_ALIAS_OR_TYPE_REFUSED")
+                continue
+            admitted_dirs.append(name)
+        dirnames[:] = admitted_dirs
         directories_seen += 1
         if time.monotonic() - started > limits.max_seconds:
             truncation_reason = "TRUNCATED_TIME_LIMIT"
@@ -217,9 +256,14 @@ def build_source_catalog(
         for name in filenames:
             path = directory / name
             try:
-                size = path.stat().st_size
+                observed = path.lstat()
             except OSError:
+                record_scan_error(path, "FILE_STAT_UNAVAILABLE")
                 continue
+            if not stat.S_ISREG(observed.st_mode):
+                record_scan_error(path, "FILE_ALIAS_OR_TYPE_REFUSED")
+                continue
+            size = observed.st_size
             files_seen += 1
             apparent_bytes += size
             local_files.append(name)
@@ -271,7 +315,8 @@ def build_source_catalog(
                     sorted(set(row["coverage_extraction_state"].split(";")) | {coverage_state})
                 )
 
-    status = "PASS_COMPLETE" if not truncation_reason and pruned_depth == 0 else (truncation_reason or "TRUNCATED_DEPTH_LIMIT")
+    status = (truncation_reason or ("TRUNCATED_DEPTH_LIMIT" if pruned_depth else "")
+              or ("INCOMPLETE_FILESYSTEM_SCAN" if scan_errors else "PASS_COMPLETE"))
     collections = list(collection_rows.values())
     collections.sort(key=lambda row: (row["collection_type"], row["relative_path"]))
     return {
@@ -281,12 +326,14 @@ def build_source_catalog(
         "root_display": f"evidence://{root_id}",
         "collection_registry_sha256": registry_sha256,
         "scan_limits": asdict(limits),
+        "scan_errors": scan_errors,
         "scan_counts": {
             "directories_seen": directories_seen,
             "files_seen": files_seen,
             "apparent_bytes_seen": apparent_bytes,
             "depth_pruned_directory_count": pruned_depth,
             "collection_count": len(collections),
+            "unadmitted_filesystem_surface_count": len(scan_errors),
         },
         "collections": collections,
         "non_claims": [
@@ -296,27 +343,43 @@ def build_source_catalog(
     }
 
 
-def write_catalog(catalog: dict, json_path: Path, tsv_path: Path) -> dict:
-    json_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(catalog, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+def serialize_catalog(catalog: dict) -> tuple[bytes, bytes]:
+    """Serialize both formats before publication, preserving the safe TSV schema."""
+    json_bytes = (json.dumps(catalog, indent=2, sort_keys=True) + "\n").encode("utf-8")
     fields = [
         "collection_id", "collection_type", "relative_path", "file_count_at_directory",
         "apparent_bytes_at_directory", "strain_keys_observed", "strain_count",
         "coverage_extraction_state", "classification_state", "authority_state", "generation_state",
     ]
-    with tsv_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = _SafeDictWriter(handle, fieldnames=fields, delimiter="\t", lineterminator="\n")
-        writer.writeheader()
-        for row in catalog["collections"]:
-            out = dict(row)
-            out["strain_keys_observed"] = ";".join(out["strain_keys_observed"])
-            writer.writerow(out)
-    return {
-        "catalog_json_sha256": sha256_file(json_path),
-        "catalog_tsv_sha256": sha256_file(tsv_path),
+    handle = io.StringIO(newline="")
+    writer = _SafeDictWriter(handle, fieldnames=fields, delimiter="\t", lineterminator="\n")
+    writer.writeheader()
+    for row in catalog["collections"]:
+        out = dict(row)
+        out["strain_keys_observed"] = ";".join(out["strain_keys_observed"])
+        writer.writerow(out)
+    tsv_bytes = handle.getvalue().encode("utf-8")
+    return json_bytes, tsv_bytes
+
+
+def write_catalog(catalog: dict, json_path: Path, tsv_path: Path, *,
+                  report_path: Path | None = None, report_bytes: bytes | None = None) -> dict:
+    if (report_path is None) != (report_bytes is None):
+        raise ValueError("report path and serialized bytes are required together")
+    (json_path, tsv_path), report_path = preflight_output_roster(
+        [json_path, tsv_path], replacement=report_path)
+    json_bytes, tsv_bytes = serialize_catalog(catalog)
+    receipt = {
+        "catalog_json_sha256": hashlib.sha256(json_bytes).hexdigest(),
+        "catalog_tsv_sha256": hashlib.sha256(tsv_bytes).hexdigest(),
         "status": catalog["status"],
         "collection_count": len(catalog["collections"]),
     }
+    for path in (json_path, tsv_path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    publish_payloads({json_path: json_bytes, tsv_path: tsv_bytes},
+                     replacement=(report_path, report_bytes) if report_path is not None else None)
+    return receipt
 
 
 def _load_decisions(path: Path) -> dict[str, dict]:
@@ -437,12 +500,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "scan":
+        limits = ScanLimits(args.max_depth, args.max_files, args.max_apparent_bytes, args.max_seconds)
+        preflight_output_roster([args.out_json, args.out_tsv], protected_paths=[args.collection_registry])
         catalog = build_source_catalog(
             root=args.root,
             root_id=args.root_id,
             collection_registry_path=args.collection_registry,
             expected_collection_registry_sha256=args.expected_collection_registry_sha256,
-            limits=ScanLimits(args.max_depth, args.max_files, args.max_apparent_bytes, args.max_seconds),
+            limits=limits,
         )
         result = write_catalog(catalog, args.out_json, args.out_tsv)
     else:

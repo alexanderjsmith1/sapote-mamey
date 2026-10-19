@@ -14,7 +14,9 @@ RULE. For every subprocess.run/Popen/call/check_output/check_call with an `env=`
   - a dict literal with the key "PYTHONDONTWRITEBYTECODE" -> OK;
   - a call to hermetic_env(...) -> OK;
   - a Name is resolved to its nearest prior assignment in the same function and judged by the
-    same rules; a comprehension / unresolvable value is treated as inheriting (not a literal);
+    same rules; a comprehension explicitly excluding the bytecode flag is rejected;
+    other unresolvable values remain outside this static check;
+  - -I/-E Python children need explicit -B because they ignore PYTHON* variables;
   - anything else -> FAIL, naming file:line and the helper to use.
 
 CLASS A (explicit compilation) — a SECOND leak the env rule cannot see. `python -m py_compile`
@@ -26,6 +28,7 @@ compileall.* call, anywhere in tests/ (this file excepted).
 """
 from __future__ import annotations
 import ast
+import re
 from pathlib import Path
 
 TESTS = Path(__file__).resolve().parent
@@ -54,6 +57,43 @@ def _spawns_compiler(node: ast.Call) -> bool:
     return False
 
 
+def _is_python_executable(value: ast.AST) -> bool:
+    """Recognize explicit Python calls without trusting flags of other programs.
+
+    A literal locator supports POSIX/Windows separators and standard python,
+    python3, python3.12 and .exe names. Wrappers/aliases/dynamic locators are
+    deliberately unrecognized and retain the ordinary child-environment check.
+    This is static syntax recognition, not verification of executable contents.
+    """
+    if (isinstance(value, ast.Attribute) and value.attr == "executable"
+            and isinstance(value.value, ast.Name) and value.value.id == "sys"):
+        return True
+    if isinstance(value, ast.Constant) and isinstance(value.value, str):
+        name = value.value.replace("\\", "/").rsplit("/", 1)[-1]
+        return re.fullmatch(r"python(?:[0-9]+(?:\.[0-9]+)*)?(?:\.exe)?", name, re.IGNORECASE) is not None
+    return False
+
+
+def _python_options(node: ast.Call) -> set[str]:
+    """Literal interpreter switches before -c/-m/the script, never script arguments.
+
+    This is a bounded static check, not a complete argv/data-flow interpreter.
+    """
+    if not node.args or not isinstance(node.args[0], (ast.List, ast.Tuple)):
+        return set()
+    argv = node.args[0].elts
+    if not argv or not _is_python_executable(argv[0]):
+        return set()
+    options = set()
+    for value in node.args[0].elts[1:]:
+        if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+            break
+        if value.value in {"-c", "-m", "--"} or not value.value.startswith("-"):
+            break
+        options.add(value.value)
+    return options
+
+
 def _dict_ok(d: ast.Dict) -> bool:
     for k in d.keys:
         if k is None:                       # **spread -> inherits os.environ (or a copy of it)
@@ -67,6 +107,18 @@ def _judge(value: ast.AST, scope: list[ast.stmt]) -> bool | None:
     """True=ok, False=violation, None=not a literal (treated as inheriting)."""
     if isinstance(value, ast.Dict):
         return _dict_ok(value)
+    if isinstance(value, ast.DictComp):
+        # The old intake test filtered the inherited flag out, then executed
+        # imports from the real source root. Do not bless that as inheritance.
+        for generator in value.generators:
+            for condition in generator.ifs:
+                for comparison in ast.walk(condition):
+                    if isinstance(comparison, ast.Compare):
+                        operands = [comparison.left, *comparison.comparators]
+                        if (any(isinstance(item, ast.Constant) and item.value == FLAG for item in operands)
+                                and any(isinstance(op, (ast.NotEq, ast.NotIn)) for op in comparison.ops)):
+                            return False
+        return None
     if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id == "hermetic_env":
         return True
     if isinstance(value, ast.Name):
@@ -102,8 +154,12 @@ def _violations(path: Path) -> list[str]:
                 if isinstance(node, ast.Call) and _is_subprocess_call(node):
                     if _spawns_compiler(node):
                         out.append(f"{path.name}:{node.lineno}")
+                    options = _python_options(node)
+                    explicit_no_bytecode = "-B" in options
+                    if options.intersection({"-I", "-E"}) and not explicit_no_bytecode:
+                        out.append(f"{path.name}:{node.lineno}")
                     for kw in node.keywords:
-                        if kw.arg == "env":
+                        if kw.arg == "env" and not explicit_no_bytecode:
                             upto = [x for x in flat if x.lineno <= node.lineno]
                             if _judge(kw.value, upto) is False:
                                 out.append(f"{path.name}:{node.lineno}")
@@ -119,7 +175,7 @@ def test_no_hermetic_child_without_bytecode_flag():
     assert not bad, (
         "subprocess child spawned with a from-scratch env lacking PYTHONDONTWRITEBYTECODE — it "
         "will write .pyc into the tree under test — or an explicit py_compile/compileall, which "
-        "writes .pyc by design. Build the env with conftest.hermetic_env(...) (adds only the "
+        "writes .pyc by design, or -I/-E ignores the env flag without explicit -B. Build the env with conftest.hermetic_env(...) (adds only the "
         "flag; hermeticity unchanged); syntax-check with in-process compile():\n  " + "\n  ".join(bad)
     )
 

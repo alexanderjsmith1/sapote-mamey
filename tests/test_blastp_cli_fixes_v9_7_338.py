@@ -123,7 +123,7 @@ def test_blp03_overlay_excludes_csv_only_selfhit_for_named_strain(tmp_path):
 
 def test_blp03_unnamed_strain_excludes_nothing(tmp_path):
     (tmp_path / "manifest.json").write_text(
-        '{"display_name": "Streptomyces sp. AS-421"}', encoding="utf-8")
+        '{"display_name": "Streptomyces sp. SYNTHETIC-CASE-013"}', encoding="utf-8")
     rows = [{"BGC_ID": "BGC001", "query_locus": "AS|BGC001|gene=ctg1_5|aa=300",
              "sciname": "", "pct_identity": "100.0", "hit_rank": 1,
              "subject_acc": "WP_A.1", "subject_desc": "synthase",

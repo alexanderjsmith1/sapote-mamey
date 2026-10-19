@@ -78,7 +78,7 @@ class ReleaseCutIntegrityTests(unittest.TestCase):
         self.assertNotIn("sed -i", text)
         self.assertIn("rewrite_release_identity.py", text)
         self.assertLess(
-            text.index("python3 -m pytest -q"),
+            text.index('"$PYTHON" -m pytest -q'),
             text.index("gen_release_manifest.py --apply --pytest-log"),
         )
         self.assertNotIn("--skip-tests requires PYTEST_LOG=", text)

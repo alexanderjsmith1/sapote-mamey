@@ -3,22 +3,22 @@ r"""
 redact_public_tier.py — CAS-safe SID + AS strain-identifier redaction for PUBLIC bundle tiers.
 
   - SID strains:  \bSID\d+\b               -> SID-XXX
-  - AS  strains:  (?<![A-Za-z])AS-\d{2,4}  -> AS-XXX
+  - AS  strains:  (?<![A-Za-z])AS-\d{2,}  -> AS-XXX
     (hyphenated + anchor-free: catches underscore-wrapped ..._AS-NNN_BGC05, but NOT dashless public
      KCB substrings like AL-KSAMP_AS10_SC01, and NOT CAS-/MCAS- cassette stable-IDs.)
 
 For .py files the rewrite is tokenize-aware: only COMMENT, STRING and FSTRING_MIDDLE spans are
 touched, never code
-identifiers or numeric literals, so a tree-wide walk is safe by construction (closes the --all-py
-foot-gun). Non-.py text files are scrubbed whole. CAS stable-IDs are guarded (abort on any change).
+identifiers or numeric literals (closes the --all-py foot-gun). Non-.py text files are scrubbed whole. CAS stable-IDs are guarded (abort on any change).
 Run on PUBLIC tiers only; the MERGED-PRIVATE scaffold legitimately retains strain IDs.
 
-v9.7.156 (PI decision, the release owner, 2026-06-30): the AS-series privacy guard is
-RETIRED — all AS strains are publicly disclosed (16S on GenBank associating strain/genus/host).
-The AS-ID patterns below are RETAINED but INACTIVE for enforcement (the leak audit that consumed
-them is now WARN, not FAIL; see make_public_tier.sh AS_GUARD_RETIRED). They are kept deliberately
-because the tooling is reusable if a future private cohort needs the same redaction. SID redaction
-is unaffected and remains active.
+Current enforcement is selected by the caller. Public export requires its active check and
+transformation gates; historical retired-switch notes do not grant family-wide publication.
+An AS/AJS-shaped match is a policy candidate, not proof of empirical identity or private status.
+Exact public references (including AJS327 and the enterocin AS-48 product token) stay distinct
+from fabricated fixture declarations. Authorized Type_Strains and authoritative snapshots
+need their own source-bound review/export disposition, never a synthetic exemption.
+
 """
 from __future__ import annotations
 
@@ -34,34 +34,25 @@ from _wbio import atomic_write_text  # v9.7.371 fix: this tool rewrites source f
 # route through the same crash-safe helper build_id_resolver.py/build_master.py already use in
 # this directory, instead of a direct write_text() that can leave a truncated file mid-redaction.
 
-# v9.7.371 fix: SID_RE/AS_RE/PENDING_RE/PRIVATE_ID_RE/_KEYED_ID below were case-sensitive. Per this
-# file's own docstring, SID redaction "is unaffected and remains active" (the AS-series guard is
-# retired-but-kept per the v9.7.156 PI decision, and AJS-/PENDING- remain actively private per
-# project convention) -- a lowercase/mixed-case SID or AJS/PENDING token (plausible casual
-# authoring, e.g. a comment or f-string reading a bare SID or PENDING token) survived redaction
-# untouched into a PUBLIC tier. Adding re.IGNORECASE is safety-positive only: it can only catch
-# MORE tokens that should be redacted, never fewer, and the substitution output (_as_sub / the
-# fixed "SID-XXX"/"AS-XXX"/"PENDING-XXX" replacements) is already canonical-cased regardless of
-# input case, so this cannot corrupt anything CAS_RE/KNOWN_PUBLIC_AS already guard. Note
-# re.IGNORECASE also extends existing [A-Z0-9] character classes to match lowercase automatically
-# (Python re semantics), so no character-class edits are needed alongside the flag.
+# Case-insensitive matching covers detector inputs that passed through differently
+# cased authoring paths. Callers select SID scope; this is not family-wide provenance
+# or publication authority. Existing exact reference carve-outs stay unchanged.
 SID_RE = re.compile(r"\bSID\d+\b", re.IGNORECASE)
-# v9.7.88: AS_RE catches our cohort IDs in three forms without false-matching public data:
-#   - AS-NNN / AJS-NNN  (hyphenated, 2-4 digits) — the canonical form
-#   - ASNNNN            (DASHLESS, 3-4 digits)    — e.g. a dashless 3-digit id; this is how one reached a public
-#                                                   tier (the old hyphen-only regex missed it)
+# AS_RE covers private-shaped candidates in three forms; exact reference policy is separate:
+#   - AS-NN... / AJS-N... (hyphenated, with the distinct numeric floors below)
+#   - ASNNN... (dashless, at least three digits); the old hyphen-only detector missed this grammar
 # It deliberately does NOT match dashless AJS (AJS327 is a public MIBiG organism), 2-digit dashless
 # (AS15 is public), CAS-/MCAS- cassette IDs, or LAS-NNN (the trailing AS-NNN is a compound-name tail).
 # v9.7.236: AJS split out from the shared A(?:JS|S)- alternation. The `\d{2,}` floor was written
-# for the 1-digit AS-N carve-out (prose like "AS-1"), but it silently applied to AJS too, so a
-# single-digit AJS id escaped redaction. AJS is unconditionally private (see
-# mamey.cohort_figures.is_private) and has no 1-digit prose collision, so it takes \d+.
-# Latent, not live: no AJS-<1 digit> strain exists in the current registry. All other carve-outs
+# for the 1-digit AS-N carve-out (prose like "AS-1"), but it silently applied to AJS too, so
+# a single-digit AJS-shaped input escaped detection, so that branch takes \d+.
+# This numeric grammar does not establish an empirical subject's disclosure status.
+# No current registry-absence assertion is made here. All other exact carve-outs
 # unchanged: AS-1, dashless AS15, dashless AJS327, LAS-/CAS-, and AS-48 via KNOWN_PUBLIC_AS.
 # v9.7.410 hostile audit: the hyphen in the canonical form was a literal ASCII `-`, so an id written
 # with a non-breaking hyphen (U+2011, what Word and many editors insert), an en/em dash, a soft
 # hyphen or zero-width char next to the hyphen, or the HTML entity `&#45;` survived the scrub
-# unchanged (AJS followed by U+2011 and digits — AJS is unconditionally private). `_ID_SEP` is one hyphen-like separator
+# unchanged for private-shaped AJS controls. `_ID_SEP` is one hyphen-like separator
 # (any of the Unicode dashes or its entity) optionally wrapped in invisible characters. The
 # dashless forms and every carve-out (AS-1, AS15, AJS327, LAS-/CAS-, AS-48) are unchanged.
 _ID_SEP = (r"(?:[­​‌‍⁠﻿]*"
@@ -69,19 +60,18 @@ _ID_SEP = (r"(?:[­​‌‍⁠﻿]*"
            r"[­​‌‍⁠﻿]*)")
 AS_RE  = re.compile(r"(?<![A-Za-z])(?:AJS" + _ID_SEP + r"\d+|AS" + _ID_SEP + r"\d{2,}|AS\d{3,})", re.IGNORECASE)
 # v9.7.115: digit ranges widened from {2,4}/{3,4} to {2,}/{3,} so a 5+-digit cohort ID redacts as a
-# WHOLE token (the old {2,4} left 'AS-XXX' -> 'AS-XXX1', and 'AS-XXX' escaped entirely). Cohort is
-# currently 3-digit, so this was a latent edge, not a live leak — but the SSOT should never leave a
-# partial ID. Carve-outs unchanged: AS-48 (KNOWN_PUBLIC_AS), 1-digit AS-N, LAS-/CAS-, dashless AJS/AS15.
+# WHOLE token (the old {2,4} left 'AS-XXX' -> 'AS-XXX1', and 'AS-XXX' escaped entirely).
+# Width is not a provenance rule: the detector must not leave a partial token. Carve-outs unchanged: AS-48 (KNOWN_PUBLIC_AS), 1-digit AS-N, LAS-/CAS-, dashless AJS/AS15.
 CAS_RE = re.compile(r"\b[MS]MC-\d+\b")
 PENDING_RE = re.compile(r"\bPENDING-(?!XXX\b)[A-Z0-9]+", re.IGNORECASE)
 PRIVATE_ID_RE = re.compile(
     r"(?<![A-Za-z])(?:AJS" + _ID_SEP + r"\d+|AS" + _ID_SEP + r"\d{2,}|AS\d{3,})|\bPENDING-(?!XXX\b)[A-Z0-9]+",
     re.IGNORECASE)
 # v9.7.97: known PUBLIC natural-product names that collide with the cohort AS-NNN form. AS-48 is the
-# bacteriocin enterocin AS-48 (MIBiG BGC0000489), public reference data — NOT a strain. No cohort or
-# private strain is AS-48 (cohort uses AS-3xx/4xx/6xx/7xx), so exempting the exact token is leak-safe.
+# bacteriocin enterocin AS-48 (MIBiG BGC0000489), public reference product data. This is an exact existing token carve-out, not a
+# statement that every subject sharing a spelling/family is public or synthetic.
 # Without this, the redactor corrupted "enterocin AS-48" -> "enterocin AS-XXX" in the shipped MIBiG index.
-# Extend ONLY with verified public NP names that can never be a private strain ID.
+# New reference exceptions require separate source-bound owner review; never infer a family exemption.
 KNOWN_PUBLIC_AS = {
     "AS-48",   # enterocin AS-48, a public natural-product name
     "AJS327",  # public MIBiG organism token retained in its validation-fixture filename
@@ -90,7 +80,7 @@ TEST_FILE_REF_RE = re.compile(r"\btest_[A-Za-z0-9_.-]+\.py\b", re.IGNORECASE)
 
 
 def _inside_test_file_reference(text: str, start: int, end: int) -> bool:
-    """True when an identifier is part of a shipped synthetic-test filename reference.
+    """True when an identifier is part of a shipped test filename reference.
 
     Test files themselves are preserved so the in-tier suite remains executable. Their exact
     filenames may also appear in changelogs, inventories, and guides; rewriting only the prose
@@ -280,10 +270,8 @@ def audit_paths(tree: Path) -> list[str]:
     # content-scrubbing pattern nine lines above, in this same file) has it. This function's own
     # docstring and the CHANGELOG.md v9.7.251 entry it cites both frame it as closing exactly the
     # "content-only scrubbing cannot see this" gap for a private strain ID leaked into a FILENAME —
-    # but a lowercase/mixed-case filename (e.g. "as-705_notes_backup.csv", plausible casual
-    # authoring or an OS that lowercases on copy) silently escaped this specific detector while an
-    # uppercase file with the identical strain ID was correctly caught. Reproduced: a tree with both
-    # "AS-705_....csv" and "as-705_...backup.csv" only flagged the uppercase one.
+    # but an injected lowercase/mixed-case filename silently escaped this specific detector while
+    # the uppercase spelling of the same private-shaped canary was correctly caught.
     pat = _re.compile(r"(?<![A-Za-z])(?:AJS-?\d+|AS-\d{2,}|AS\d{3,})", _re.IGNORECASE)
     known_public_upper = {k.upper() for k in KNOWN_PUBLIC_AS}
     hits = []

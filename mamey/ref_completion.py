@@ -42,6 +42,7 @@ Nothing here changes a score or a confidence. Homology is similarity, not produc
 Standard library only, so the standalone rggmci package ships this file unchanged.
 """
 from __future__ import annotations
+from .source_context import source_zipfile as _source_zipfile
 
 import csv
 import hashlib
@@ -329,19 +330,24 @@ def search_mibig(query_fasta: str, db: str | os.PathLike, threads: int = 1, sens
     dmnd = db if db.endswith(".dmnd") else (str(folder / (DB_DMND + ".dmnd")) if folder else "")
     faa = str(folder / DB_FAA) if folder else ""
     if aligner == "blastp" and not faa:
-        return {"ok": False, "hits": [], "reason": "BLAST+ needs a database folder with its FASTA"}
+        return {"ok": False, "hits": [], "reason": "BLAST+ needs a database folder with its FASTA",
+                "execution_state": "NOT_RUN", "execution_source": "native_preflight"}
     if not aligner:
-        return {"ok": False, "hits": [], "reason": "no aligner (DIAMOND, or BLAST+ blastp + makeblastdb)"}
+        return {"ok": False, "hits": [], "reason": "no aligner (DIAMOND, or BLAST+ blastp + makeblastdb)",
+                "execution_state": "NOT_RUN", "execution_source": "native_preflight"}
     if aligner == "diamond" and not Path(dmnd).is_file():
-        return {"ok": False, "hits": [], "reason": f"no DIAMOND database: {dmnd}"}
+        return {"ok": False, "hits": [], "reason": f"no DIAMOND database: {dmnd}",
+                "execution_state": "NOT_RUN", "execution_source": "native_preflight"}
     with tempfile.TemporaryDirectory(prefix="rggmci_search_") as td:
         try:
             hits = align(aligner, binary, Path(query_fasta), Path(faa or dmnd), Path(td), threads=threads,
                          sensitivity=sensitivity or "default", subject_db=dmnd if aligner == "diamond" else "",
                          evalue=evalue, max_target_seqs=max_target_seqs)
         except (subprocess.CalledProcessError, OSError) as exc:
-            return {"ok": False, "hits": [], "reason": f"{aligner} search failed: {type(exc).__name__}"}
-    return {"ok": True, "hits": hits, "reason": f"ok ({aligner})"}
+            return {"ok": False, "hits": [], "reason": f"{aligner} search failed: {type(exc).__name__}",
+                    "execution_state": "FAILED", "execution_source": "alignment_workflow"}
+    return {"ok": True, "hits": hits, "reason": f"ok ({aligner})",
+                "execution_state": "RUN", "execution_source": "alignment_workflow"}
 
 
 def _partner_finds(rows, prots, hits, core, ref=None):
@@ -401,6 +407,12 @@ def partner_checks(rows, prots, hits, core, ref_acc, mibig_db=None, pfam_hmm=Non
     recip = {}
     recip_status = ("not needed: no outside-core finds" if not finds else
                     "not run: no MIBiG DIAMOND database (--mibig-db)")
+    reverse = {"state": "NOT_NEEDED" if not finds else "NOT_RUN",
+               "execution_state": "NOT_RUN", "execution_source": "none", "callback_invoked": False,
+               "provider": "native_search_mibig" if search is search_mibig else "supplied_callback",
+               "query_count": len(seqs), "queries_with_mibig_accession_hits": 0,
+               "scope": "aligned_stretch_else_whole_protein_against_all_mibig_targets",
+               "reason": recip_status}
     if mibig_db and finds:
         with tempfile.TemporaryDirectory() as td:
             qf = Path(td, "finds.faa")
@@ -408,6 +420,12 @@ def partner_checks(rows, prots, hits, core, ref_acc, mibig_db=None, pfam_hmm=Non
             # every MIBiG target, not a top-N: a conserved family (SARP regulators, ABC transporters) matches many
             # clusters almost equally, and a cut-off can hide the reference family's own hit and fail a real gene
             res = search(str(qf), str(mibig_db), threads=threads, sensitivity=sensitivity, max_target_seqs=0)
+        reverse.update(callback_invoked=True,
+                       state="RUN" if res.get("ok") else
+                             ("NOT_RUN" if res.get("execution_state") == "NOT_RUN" else "FAILED"),
+                       execution_state=res.get("execution_state", "REPORTED_SUCCESS" if res.get("ok") else "UNKNOWN"),
+                       execution_source=res.get("execution_source", "supplied_search_callback"),
+                       reason=res.get("reason", ""))
         if res.get("ok"):
             recip_status = "run"
             for h in res["hits"]:
@@ -425,8 +443,15 @@ def partner_checks(rows, prots, hits, core, ref_acc, mibig_db=None, pfam_hmm=Non
         else:
             recip_status = f"not run: {res.get('reason')}"
     ref_in_db = bool(re.match(r"BGC\d{7}$", ref_acc or ""))
+    reverse["queries_with_mibig_accession_hits"] = sum(bool(recip.get(k, {}).get("best")) for k in set(keys))
     if recip_status == "run" and not ref_in_db:
         recip_status = "run; not judged: the reference is not a MIBiG entry"
+        reverse.update(state="UNJUDGED", reason=recip_status)
+    # This records the search owner's report, not independent process attestation.
+    provenance = {"schema": "rggmci-reciprocal-provenance-v1",
+                  "forward_winner": {"method": "highest_identity_reference_row_per_genome_protein_from_forward_hits",
+                                     "separate_search": False, "field": "reciprocal_best"},
+                  "reverse_search": reverse}
     judged = []
     for r, key in zip(finds, keys):
         p = prots[r["best_protein"]]
@@ -470,7 +495,8 @@ def partner_checks(rows, prots, hits, core, ref_acc, mibig_db=None, pfam_hmm=Non
                        and abs(prots[o["best_protein"]]["start"] - p["start"]) <= PARTNER_WINDOW_BP):
                 r["partner_verdict"] = "SINGLE_GENE"
     return {"reciprocal_mibig": recip_status, "neighbour_pfam": pfam_status,
-            "verdicts": dict(Counter(r["partner_verdict"] for r in finds))}
+            "verdicts": dict(Counter(r["partner_verdict"] for r in finds)),
+            "reciprocal_provenance": provenance}
 
 
 def neighbour_ids(prots: dict, pids: Iterable[str]) -> dict[str, list[str]]:
@@ -910,7 +936,7 @@ def whole_genome_gbk_name(zf: zipfile.ZipFile) -> str:
 
 def has_whole_genome_gbk(zip_path: str | Path) -> bool:
     try:
-        with zipfile.ZipFile(zip_path) as zf:
+        with _source_zipfile(zip_path) as zf:
             return bool(whole_genome_gbk_name(zf))
     except (OSError, zipfile.BadZipFile) as exc:   # an unreadable input is reported, not searched
         _log.debug("reference completion: cannot read %s as a ZIP: %s", zip_path, exc)
@@ -924,7 +950,7 @@ def genome_from_zip(zip_path: str | Path, label: str, bgcs: list[Any], edge_ids:
     from the ZIP's input FASTA, else from the GenBank record. SPAdes names are matched on their NODE number, because a
     record name can be shortened; other names must match exactly.
     """
-    with zipfile.ZipFile(zip_path) as zf:
+    with _source_zipfile(zip_path) as zf:
         names = regular_file_names(zf)
         genome = whole_genome_gbk_name(zf)
         if not genome:   # complete() records NO_WHOLE_GENOME_GENBANK before calling this; a direct caller still learns why
@@ -1150,8 +1176,10 @@ def complete(result: dict[str, Any], zip_path: str | Path, bgcs: list[Any], refe
                        sensitivity=sensitivity or "default", subject_db=db["dmnd"] if aligner == "diamond" else "",
                        evalue=evalue, max_target_seqs=max_target_seqs)
         except (subprocess.CalledProcessError, OSError) as exc:
-            return {"ok": False, "hits": [], "reason": f"{aligner} search failed: {type(exc).__name__}"}
-        return {"ok": True, "hits": hs, "reason": f"ok ({aligner})"}
+            return {"ok": False, "hits": [], "reason": f"{aligner} search failed: {type(exc).__name__}",
+                    "execution_state": "FAILED", "execution_source": "alignment_workflow"}
+        return {"ok": True, "hits": hs, "reason": f"ok ({aligner})",
+                "execution_state": "RUN", "execution_source": "alignment_workflow"}
 
     try:
         # reference discovery for edge regions with no KnownClusterBlast MIBiG hit in the database
@@ -1218,7 +1246,8 @@ def complete(result: dict[str, Any], zip_path: str | Path, bgcs: list[Any], refe
                 for h in res["hits"]:
                     cache[missing[int(h["qseqid"][1:])]].append(h)
             return {"ok": True, "hits": [dict(h, qseqid=n) for n, q in recs for h in cache.get(q, [])],
-                    "reason": f"ok ({aligner}, one search per genome)"}
+                    "reason": f"ok ({aligner}, one search per genome)",
+                    "execution_state": "RUN", "execution_source": "alignment_workflow" if missing else "sequence_cache"}
 
         if wanted:
             with tempfile.NamedTemporaryFile("w", suffix=".faa", dir=work, delete=False) as fh:
@@ -1280,6 +1309,7 @@ def complete(result: dict[str, Any], zip_path: str | Path, bgcs: list[Any], refe
                                    "partner_verdicts": "; ".join(f"{k}:{v}" for k, v in
                                                                  sorted(checks["verdicts"].items())),
                                    "reciprocal_check": checks["reciprocal_mibig"],
+                                   "reciprocal_provenance": checks["reciprocal_provenance"],
                                    "neighbour_pfam_check": checks["neighbour_pfam"],
                                    "accepted_partners": sum(p["accepted"] for p in parts)})
             block["genes"] += [{**common, **r} for r in rows]

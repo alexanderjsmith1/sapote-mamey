@@ -1,4 +1,4 @@
-"""BLACK_CHERRY_377 regression: `_logic_proof`'s complementary_disjoint_refs (cdr) fallback must not
+"""regression_review_377 regression: `_logic_proof`'s complementary_disjoint_refs (cdr) fallback must not
 grant the biosynthetic-logic-complementarity proof when the SAME rggmci.py subject-tiling
 accumulator that produced cdr also shows a contradicting pile of overlapping_subject_refs.
 

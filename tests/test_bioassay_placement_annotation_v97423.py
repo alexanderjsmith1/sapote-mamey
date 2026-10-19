@@ -1,4 +1,4 @@
-"""BLACK_CHERRY_4_423: --bioassay-table wires strain-level MEASURED bioassay onto EPA-ng placement
+"""regression_review_4_423: --bioassay-table wires strain-level MEASURED bioassay onto EPA-ng placement
 query tips only. Real CLI subprocess calls, mirroring tests/test_ggtree_inputs_positive_path.py."""
 from pathlib import Path
 import csv

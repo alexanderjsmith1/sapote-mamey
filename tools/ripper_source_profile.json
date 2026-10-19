@@ -1,0 +1,103 @@
+{
+  "schema_version": "ripper-source-profile/1",
+  "id": "archived-e90b3e6-mergeRidePfam",
+  "upstream": "https://github.com/streptomyces/ripper",
+  "revision": "e90b3e6e74ddee99685183ca421323737012a991",
+  "snapshot": "fa25d107f4c30f11fab0379ec6270de00fde3772",
+  "origin_state": "ARCHIVED_SOURCE_NOT_LIVE_GITHUB",
+  "container_source_equivalence": "UNKNOWN",
+  "license_status": "UNVERIFIED_NO_ROOT_LICENSE_OR_REVIEWED_SOURCE_HEADER",
+  "headers": [
+    "Accession",
+    "Organism",
+    "PPSerial",
+    "FastaID",
+    "Sequence",
+    "SameStrand",
+    "PP_TE_Distance",
+    "Prodigalscore",
+    "hname",
+    "signif",
+    "hdesc"
+  ],
+  "columns": {
+    "enzyme_accession": "Accession",
+    "peptide_id": "FastaID",
+    "sequence": "Sequence"
+  },
+  "channels": [
+    "main",
+    "distant"
+  ],
+  "accession_semantics": "local route subject CDS identifier, not input query FASTA identifier",
+  "local_contract": {
+    "script": "ripper_local.pl",
+    "input": "single GenBank record and single TE protein FASTA for this planning profile",
+    "batch_source_options": [
+      "-fofn",
+      "-indir"
+    ],
+    "te_selection": "first BLAST result, first hit; evalue 1e-3; no biological RTE classification",
+    "subject_id_preference": [
+      "locus_tag",
+      "old_locus_tag",
+      "protein_id",
+      "gene",
+      "strand_CDS_at_start"
+    ],
+    "network_side_effect": "Net::FTP->new ftp.ncbi.nih.gov at startup",
+    "execution_status": "NOT_IMPLEMENTED"
+  },
+  "reviewed_sources": [
+    {
+      "url": "https://archive.softwareheritage.org/api/1/content/sha1_git:fcd6702f8edc7c1f46b650e53f65f4c5d1c74be3/raw/",
+      "file": "ripper_local.pl",
+      "bytes": 30297,
+      "sha1_git": "fcd6702f8edc7c1f46b650e53f65f4c5d1c74be3",
+      "sha256": "d70d44f0c9d174e2be5ce023705f89e624a98e34bccfed20c534fd283d70d31a",
+      "scope": "read-only archived upstream source input, not vendored into candidate"
+    },
+    {
+      "url": "https://archive.softwareheritage.org/api/1/content/sha1_git:6e20b22dd1efca5317e764dccb645ce59154c4b6/raw/",
+      "file": "ripper_local.sh",
+      "bytes": 2624,
+      "sha1_git": "6e20b22dd1efca5317e764dccb645ce59154c4b6",
+      "sha256": "ddf84d765620f27d461279c0fc3b335850069a0ddd999d5111fa21609ffb4de6",
+      "scope": "read-only archived upstream source input, not vendored into candidate"
+    },
+    {
+      "url": "https://archive.softwareheritage.org/api/1/content/sha1_git:ca373fe98e7bf9a39c3652aa1f6bd91053b55aaf/raw/",
+      "file": "mergeRidePfam.pl",
+      "bytes": 5812,
+      "sha1_git": "ca373fe98e7bf9a39c3652aa1f6bd91053b55aaf",
+      "sha256": "53a2418b860d413fc1e7b7b3170026e6f637b5092fe0d2b4712fd0c11969f051",
+      "scope": "read-only archived upstream source input, not vendored into candidate"
+    },
+    {
+      "url": "https://archive.softwareheritage.org/api/1/content/sha1_git:e1ac002945d9d17168ac563e359c8901e5f3da9a/raw/",
+      "file": "local.conf",
+      "bytes": 1797,
+      "sha1_git": "e1ac002945d9d17168ac563e359c8901e5f3da9a",
+      "sha256": "f94455f444b65f18006ed35f8c3ec881f992857c480bd46baf9686b907da2d5f",
+      "scope": "read-only archived upstream source input, not vendored into candidate"
+    },
+    {
+      "url": "https://archive.softwareheritage.org/api/1/content/sha1_git:a5c0a4cd01c24f973071e582746cfd054595ce88/raw/",
+      "file": "ripdock.Dockerfile",
+      "bytes": 587,
+      "sha1_git": "a5c0a4cd01c24f973071e582746cfd054595ce88",
+      "sha256": "a7349253b457f28218b9ab58fdaecffc2340e4ea0cefff2da5932eb2627df316",
+      "scope": "read-only archived upstream source input, not vendored into candidate"
+    }
+  ],
+  "serial_contract": {
+    "PPSerial": "canonical positive ASCII decimal integer, no zero or leading zeros",
+    "FastaID": "Accession + '_' + exact PPSerial",
+    "source_counter_starts": {
+      "main": 1,
+      "distant": 9001
+    },
+    "channel_rule": "consistent serial begins 9 with at least four digits => distant; otherwise main",
+    "scope": "archived native counters and integer SQLite serialization; no padded/modified table compatibility claim"
+  }
+}

@@ -43,22 +43,22 @@ def _make_fixture_xlsx(path: Path):
         "Strain_Summary": [
             ["strain_id", "display_name", "genome_bp", "contigs", "n50", "gc_pct", "raw_bgcs", "corrected_bgcs", "interior_bgcs", "edge_bgcs", "full_contig_bgcs", "interior_pct", "assembly_tier", "rggmci_high_pairs", "top_antibacterial_locator", "top_antibacterial_products", "top_antibacterial_score", "top_antifungal_locator", "top_antifungal_products", "top_antifungal_score"],
             ["AS-1", "Streptomyces sp. AS-1", 7000000, 100, 50000, 72.1, 50, 30.5, 12, 10, 28, 24.0, "POOR", 3, "NODE_1 (BGC001)", "RiPP; lanthipeptide", 81.0, "NODE_2 (BGC002)", "NRPS; PKS", 42.0],
-            ["AS-2", "Actinomycete sp. AS-2", 8000000, 200, 20000, 69.1, 60, 20.0, 3, 12, 45, 5.0, "VERY_POOR", 5, "NODE_3 (BGC003)", "nucleoside; other", 90.0, "NODE_4 (BGC004)", "nucleoside; other", 72.0],
+            ["SYNTHETIC-CASE-002", "Actinomycete sp. SYNTHETIC-CASE-002", 8000000, 200, 20000, 69.1, 60, 20.0, 3, 12, 45, 5.0, "VERY_POOR", 5, "NODE_3 (BGC003)", "nucleoside; other", 90.0, "NODE_4 (BGC004)", "nucleoside; other", 72.0],
         ],
         "Special_Buckets": [
             ["strain_id", "nucleoside_priority_rows", "polyene_ptm_flag_rows", "other_token_rows", "rggmci_high_pairs", "note"],
             ["AS-1", 2, 1, 10, 3, "demo"],
-            ["AS-2", 5, 0, 8, 5, "demo"],
+            ["SYNTHETIC-CASE-002", 5, 0, 8, 5, "demo"],
         ],
         "Top_Antibacterial": [
             ["strain_id", "rank", "assembly_locator", "bgc_id", "products", "antibacterial_score", "kcb_top_context"],
             ["AS-1", 1, "NODE_1 (BGC001)", "BGC001", "RiPP", 81.0, "BGC0000001 | demo | knownclusterblast #1"],
-            ["AS-2", 1, "NODE_3 (BGC003)", "BGC003", "nucleoside", 90.0, "BGC0000002 | demo2 | knownclusterblast #1"],
+            ["SYNTHETIC-CASE-002", 1, "NODE_3 (BGC003)", "BGC003", "nucleoside", 90.0, "BGC0000002 | demo2 | knownclusterblast #1"],
         ],
         "Top_Antifungal": [
             ["strain_id", "rank", "assembly_locator", "bgc_id", "products", "antifungal_score", "kcb_top_context"],
             ["AS-1", 1, "NODE_2 (BGC002)", "BGC002", "NRPS; PKS", 42.0, "BGC0000003 | demo3 | knownclusterblast #1"],
-            ["AS-2", 1, "NODE_4 (BGC004)", "BGC004", "nucleoside", 72.0, "BGC0000004 | demo4 | knownclusterblast #1"],
+            ["SYNTHETIC-CASE-002", 1, "NODE_4 (BGC004)", "BGC004", "nucleoside", 72.0, "BGC0000004 | demo4 | knownclusterblast #1"],
         ],
     }
     with zipfile.ZipFile(path, "w") as z:

@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 import json
 from pathlib import Path
 import pytest
@@ -6,9 +7,9 @@ from mamey.bioassay_paper import prepare, write, numeric, activity, cli, sha
 @pytest.fixture
 def assay(tmp_path):
     roster=tmp_path/'roster.tsv';aliases=tmp_path/'aliases.json';table=tmp_path/'assay.tsv'
-    write(roster,[dict(strain='AS-1',genus='Streptomyces',group='Bryophytes'),dict(strain='AS-2',genus='Nocardia',group='Bryophytes'),dict(strain='AS-3',genus='Unassigned',group='Bryophytes')])
+    write(roster,[dict(strain='AS-1',genus='Streptomyces',group='Bryophytes'),dict(strain='SYNTHETIC-CASE-002',genus='Nocardia',group='Bryophytes'),dict(strain='AS-3',genus='Unassigned',group='Bryophytes')])
     aliases.write_text(json.dumps({'AS-4':'AS-1'}))
-    data=[('AS-1','Candida albicans','Crude extract','20'),('AS-1','Candida auris','Crude extract','50'),('AS-1','Candida (species not named)','Crude extract','90'),('AS-1','MRSA','Crude extract','0'),('AS-1','Foulbrood 19118-1','Crude extract','30'),('AS-1','Foulbrood 818','Crude extract','80'),('AS-2','MRSA','Crude extract','79.99'),('AS-2','Candida albicans','Crude extract',''),('AS-3','Candida albicans','Crude extract','n.t.'),('AS-3','MRSA','Crude extract','−'),('AS-4','Candida albicans','Fraction','108.81'),('AS-4','MRSA','Fraction','96.41')]
+    data=[('AS-1','Candida albicans','Crude extract','20'),('AS-1','Candida auris','Crude extract','50'),('AS-1','Candida (species not named)','Crude extract','90'),('AS-1','MRSA','Crude extract','0'),('AS-1','Foulbrood 19118-1','Crude extract','30'),('AS-1','Foulbrood 818','Crude extract','80'),('SYNTHETIC-CASE-002','MRSA','Crude extract','79.99'),('SYNTHETIC-CASE-002','Candida albicans','Crude extract',''),('AS-3','Candida albicans','Crude extract','n.t.'),('AS-3','MRSA','Crude extract','−'),('AS-4','Candida albicans','Fraction','108.81'),('AS-4','MRSA','Fraction','96.41')]
     rows=[dict(zip(('strain','organism','material','best_pct'),r)) for r in data]
     write(table,rows)
     return table,roster,aliases,rows
@@ -26,7 +27,7 @@ def test_missingness_and_four_states_are_not_zero(assay):
     write(table,rows)
     p=prepare(table,roster,aliases,'A01','bee')   # a pooling profile: this test is about the four states
     lookup={(r['strain'],r['target']):r for r in p['pooled']}
-    assert lookup['AS-2','Candida sp.']['state']==''
+    assert lookup['SYNTHETIC-CASE-002','Candida sp.']['state']==''
     assert lookup['AS-3','MRSA']['state']=='−'
     assert lookup['AS-3','Candida sp.']['state']=='mixed_qualitative'
     assert set(json.loads(lookup['AS-3','Candida sp.']['source_states']))=={'n.t.','+'}

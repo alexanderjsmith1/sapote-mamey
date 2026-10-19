@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """Fail-before / pass-after battery for CLAUDE_409_claimsafety_coverage.
 
 Covers LEAK-1 (verify-guide had no claim-safety gate) from
@@ -39,7 +40,7 @@ _FILL = (
 
 
 def _guide(part1_line: str, gene_summary: str) -> str:
-    return f"""# AS-40 BGC027 Guide
+    return f"""# SYNTHETIC-CASE-012 BGC027 Guide
 
 ## Part 1 - Overview
 {part1_line} {_FILL}
@@ -87,7 +88,7 @@ def _write(tmp_path, name, text):
 def test_leak1_overclaiming_guide_is_refused(tmp_path):
     """PART B (pass-after): a structurally-complete guide whose LAY prose carries an
     unhedged compound-identity + bioactivity claim FAILS verify-guide."""
-    md = _write(tmp_path, "AS-40_BGC027_Guide.md", _OVERCLAIM_GUIDE)
+    md = _write(tmp_path, "SYNTHETIC-CASE-012_BGC027_Guide.md", _OVERCLAIM_GUIDE)
     ok, errors, _warnings = verify_authored_guide(str(md), audience="both")
     assert ok is False, "overclaiming guide must not certify GREEN"
     assert any("claim-safety" in e for e in errors), (
@@ -97,7 +98,7 @@ def test_leak1_overclaiming_guide_is_refused(tmp_path):
 
 def test_leak1_clean_hedged_guide_still_passes(tmp_path):
     """PART C (no false positive): a hedged capacity-language guide passes GREEN."""
-    md = _write(tmp_path, "AS-40_BGC027_Guide.md", _CLEAN_GUIDE)
+    md = _write(tmp_path, "SYNTHETIC-CASE-012_BGC027_Guide.md", _CLEAN_GUIDE)
     ok, errors, _warnings = verify_authored_guide(str(md), audience="both")
     assert ok is True, f"clean hedged guide must still certify, got errors: {errors}"
 
@@ -109,7 +110,7 @@ def test_leak1_structure_checks_still_enforced(tmp_path):
         "## Part 5 - What next\n" + _FILL,
         "## Part 5 - What next\n<!-- LAY: fill me -->",
     )
-    md = _write(tmp_path, "AS-40_BGC027_Guide.md", stub)
+    md = _write(tmp_path, "SYNTHETIC-CASE-012_BGC027_Guide.md", stub)
     ok, errors, _warnings = verify_authored_guide(str(md), audience="both")
     assert ok is False
     assert any("residual" in e for e in errors), errors
@@ -124,7 +125,7 @@ if __name__ == "__main__":  # pragma: no cover - standalone fail-before/pass-aft
     with tempfile.TemporaryDirectory() as d:
         tp = pathlib.Path(d)
         for label, text in (("OVERCLAIM", _OVERCLAIM_GUIDE), ("CLEAN", _CLEAN_GUIDE)):
-            p = tp / "AS-40_BGC027_Guide.md"
+            p = tp / "SYNTHETIC-CASE-012_BGC027_Guide.md"
             p.write_text(text, encoding="utf-8")
             ok, errors, _ = verify_authored_guide(str(p), audience="both")
             print(f"[{label}] verify-guide -> {'OK' if ok else 'FAIL'} ({len(errors)} error(s))")

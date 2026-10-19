@@ -54,7 +54,8 @@ if __name__ == "__main__":   # v9.7.417 import safety — see tests/test_tools_i
     # workspace folder; anywhere it was absent this section silently computed 0/0 and REPORTED
     # a fabricated 0%). First home with matches wins; zero matches -> NOT MEASURED, never 0%.
     edge=tot=0
-    _homes=["mamey_packages","Mamey Complete*"]+[h.strip() for h in os.environ.get("MAMEY_PACKAGE_HOMES","").split(os.pathsep) if h.strip()]
+    from mamey.strain_data_home import package_home_patterns
+    _homes=package_home_patterns()
     _invs=[]
     for _h in _homes:
         _invs=sorted(glob.glob(os.path.join(ROOT,_h,"*","package","AS-*_2_inventory.csv")))

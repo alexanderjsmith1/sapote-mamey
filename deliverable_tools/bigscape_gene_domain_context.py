@@ -331,7 +331,7 @@ def render_figure(loci, focal, edges, rbh_by_identity, png_path, pdf_path, famil
         ax_net.plot([x1, x2], [y1, y2], color="#A4B1B3", linewidth=max(.7, 4 * (1 - distance)), zorder=1)
         ax_net.text((x1 + x2) / 2, (y1 + y2) / 2, f"{distance:.3f}", fontsize=6, color="#4F5D61")
     node_colors = ["#D6A72C", "#0B7A75", "#3E6E9E", "#8B5A3C"]
-    # AQUARIUS .436: the fixed 4-color list IndexErrors at >=5 members; a bare index % len
+    # inventory_review .436: the fixed 4-color list IndexErrors at >=5 members; a bare index % len
     # would instead collapse distinct loci onto one node color, making panel B's color key
     # non-unique. Keep the house 4 for <=4 loci; sample tab20 for larger families so every
     # locus keeps a unique, stable color.

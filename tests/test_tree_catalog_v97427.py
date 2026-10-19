@@ -10,14 +10,15 @@ import tree_catalog
 
 
 def test_phylo_staging_lowercase_host_column_is_loaded(tmp_path):
+    # Every metadata value below is an authored placeholder, not a study row.
     import build_placement_ggtree_inputs as builder
     table = tmp_path / "PHYLO_STRAIN_METADATA.tsv"
     table.write_text(
         "strain\tcohort\thost\tlocation\tgenbank_accession\n"
-        "AS-978\thymenoptera\tBombus sp.\tNew Jersey\tPX565017\n"
+        "HOST-COLUMN-FIXTURE-001\tfixture-cohort\tfixture host\tfixture region\tFIXTURE_ACCESSION_001\n"
     )
-    assert builder._load_hosts(table)["AS-978"] == {
-        "host": "Bombus sp.", "region": "New Jersey", "acc": "PX565017",
+    assert builder._load_hosts(table)["HOST-COLUMN-FIXTURE-001"] == {
+        "host": "fixture host", "region": "fixture region", "acc": "FIXTURE_ACCESSION_001",
         "experiment": "", "sample": "",
     }
 

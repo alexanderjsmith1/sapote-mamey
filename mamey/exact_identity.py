@@ -58,7 +58,7 @@ def _required(value: object, label: str) -> str:
     text = "" if value is None else str(value).strip()
     if text.lower() in _MISSING:
         raise ExactLocusIdentityError(f"missing {label}; exact-locus identity is fail-closed")
-    if any(ch in text for ch in ("\n", "\r", "|")):
+    if " / " in text or "|" in text or any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
         raise ExactLocusIdentityError(f"unsafe {label}; exact-locus identity is fail-closed")
     return text
 

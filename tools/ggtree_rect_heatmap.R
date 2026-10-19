@@ -390,6 +390,10 @@ for (i in seq_along(page_groups)) {
   if (n_strips != "0") cat("PANEL_Y_RANGES:", paste(validate_panel_ranges(combined), collapse=" | "), "\n")
   body <- if (n_strips == "0") combined else aplot::as.patchwork(combined)
   legend_grob <- function(g) {
+    # Text/grob measurement must never open the default disk device.
+    grDevices::pdf(NULL)
+    measurement_device <- grDevices::dev.cur()
+    on.exit(if (measurement_device %in% grDevices::dev.list()) grDevices::dev.off(measurement_device), add=TRUE)
     gt <- ggplotGrob(g + theme(legend.position="bottom",legend.text=element_text(size=8),legend.title=element_text(size=8)))
     gt$grobs[[which(gt$layout$name == "guide-box-bottom")]]
   }
@@ -409,6 +413,8 @@ for (i in seq_along(page_groups)) {
       scale_x_continuous(limits=c(0,1),expand=c(0,0)) + scale_y_continuous(limits=c(0,1),expand=c(0,0)) + theme_void() + theme(plot.margin=margin(2,6,2,6))
     final <- wrap_plots(list(body,cap),ncol=1,heights=c(body_h,caph))
   }
+  # Publication default: pagination belongs in the sidecar; draw only on explicit opt-in.
+  if (identical(Sys.getenv("GG_PAGE_TITLE"), "1"))
   final <- final + plot_annotation(title=sprintf("Page %d of %d",i,page_count), theme=theme(plot.title=element_text(size=8)))
   h_total <- min(9, body_h+caph+0.2)
   page_plots[[i]] <- final
@@ -428,7 +434,7 @@ if (page_count > 1) {
 # stamp_file is required before binding any render receipt.
 stamp_rc <- system2(python,c(shQuote(file.path(script_dir,"placement_stamp.py")),"--print-width",as.character(w),shQuote(page_files)))
 if (stamp_rc != 0) stop("PLACEMENT_STAMP_FAILED")
-jsonlite::write_json(list(schema="placement-pages-v1",root_policy=Sys.getenv("GG_ROOT_POLICY", "preserve_supplied"),diagnostic_only=nzchar(diagnostic_receipt),pages=page_rows,preview="first page",tip_count=n),paste0(out,".pages.json"),auto_unbox=TRUE,pretty=TRUE)
+jsonlite::write_json(list(schema="placement-pages-v1",page_titles=identical(Sys.getenv("GG_PAGE_TITLE"), "1"),root_policy=Sys.getenv("GG_ROOT_POLICY", "preserve_supplied"),diagnostic_only=nzchar(diagnostic_receipt),pages=page_rows,preview="first page",tip_count=n),paste0(out,".pages.json"),auto_unbox=TRUE,pretty=TRUE)
 cat(sprintf("wrote %s: %d pages at %.2f in, minimum 8 pt; %d tips\n",out,page_count,w,n))
 
 capture.output(sessionInfo(), file=paste0(out, ".session.txt"))

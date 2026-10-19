@@ -426,9 +426,26 @@ def apply_adjudication(rows, folder: Path):
 
 def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | None = None, anchor=None,
            gene_names=None, context_rows=False, other_maps=False, print_width="double", row_label=None,
-           trim_kb=None, panel=False, key=True) -> dict:
+           trim_kb=None, panel=False, key=True, named_contigs=None, genome_zip=None,
+           genome_zip_parse_sha256=None) -> dict:
     """Redraw an earlier run's figure from its saved tables (no DIAMOND). panel, key: see draw_locus_map."""
     import csv
+    named_inputs = []
+    named_sources = []
+    if named_contigs:
+        named_sources = [{"path": str(p.resolve()), "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
+                         for p in (Path(__file__), Path(__file__).with_name("gap_rescue_locus_map.py"))]
+        if out is None or out.is_symlink() or out.exists() or out.resolve().is_relative_to(folder.resolve()) or folder.resolve().is_relative_to(out.resolve()):
+            raise ValueError("NAMED_CONTIG_OUTPUT_HOLD: choose a fresh disjoint external output")
+        if genome_zip is None or not Path(genome_zip).is_file():
+            raise ValueError("NAMED_CONTIG_INPUT_HOLD: bind the supplied genome ZIP")
+        paths = [Path(genome_zip), folder / "gap_rescue_receipt.json", folder / "gap_rescue.tsv", folder / "gap_rescue_split_genes.tsv"]
+        adj = folder.parent / f"{folder.name}_ADJUDICATION.tsv"
+        if adj.is_file():
+            paths.append(adj)
+        named_inputs = [{"path": str(p.resolve()), "bytes": p.stat().st_size, "sha256": hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths]
+        if genome_zip_parse_sha256 is not None and named_inputs[0]["sha256"] != genome_zip_parse_sha256:
+            raise ValueError("NAMED_CONTIG_INPUT_CHANGED: genome ZIP differs from the parsed input")
     receipt = json.loads((folder / "gap_rescue_receipt.json").read_text())
     core = next((r for r in regions if r["identity"] == receipt["core"]), None)
     if core is None:
@@ -437,6 +454,25 @@ def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | Non
         rows = apply_adjudication(list(csv.DictReader(fh, delimiter="\t")), folder)
     with open(folder / "gap_rescue_split_genes.tsv") as fh:
         splits = list(csv.DictReader(fh, delimiter="\t"))
+    if named_contigs:
+        if receipt.get("label") != label:
+            raise ValueError("NAMED_CONTIG_IDENTITY_HOLD: source receipt strain differs")
+        core_parts = core["identity"].split(" / ")
+        if len(core_parts) != 4 or any(not p.strip() or p != p.strip() or p == "IDENTITY_HOLD" for p in core_parts) or core_parts[0] != label:
+            raise ValueError("NAMED_CONTIG_IDENTITY_HOLD: core four-part identity is unresolved")
+        if core_parts[1] != core["contig"]:
+            raise ValueError("NAMED_CONTIG_IDENTITY_HOLD: core identity node differs from its contig")
+        reference = (Path(mibig_dir) / receipt["reference"]).resolve()
+        if reference.parent != Path(mibig_dir).resolve() or not reference.is_file():
+            raise ValueError("NAMED_CONTIG_INPUT_HOLD: reference must be one file inside --mibig-dir")
+        from gap_rescue_locus_map import named_ambiguous_contexts, choose, reference_genes
+        ref, _ = reference_genes(reference)
+        matched = choose(ref, rows, splits, prots, core["contig"])[0]
+        named_ambiguous_contexts(named_contigs, label, prots, regions, rows, matched, core["contig"])
+        named_inputs.append({"path": str(reference.resolve()), "bytes": reference.stat().st_size,
+                             "sha256": hashlib.sha256(reference.read_bytes()).hexdigest()})
+        if any(not Path(x["path"]).is_file() or hashlib.sha256(Path(x["path"]).read_bytes()).hexdigest() != x["sha256"] for x in named_inputs):
+            raise ValueError("NAMED_CONTIG_INPUT_CHANGED: supplied input changed before rendering")
     out = out or folder
     out.mkdir(parents=True, exist_ok=True)
     if gene_names is not None and getattr(gene_names, "binding", None):
@@ -449,12 +485,27 @@ def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | Non
                           context_partners=context_rows, gene_names=gene_names,
                           other_refs=load_other_references(folder, core["identity"]) if other_maps else None,
                           print_width=print_width, row_label=row_label, trim_kb=trim_kb,
-                          **({"panel": True, "key": key} if panel else {}))
+                          **({"panel": True, "key": key} if panel else {}),
+                          **({"named_contigs": named_contigs} if named_contigs else {}))
     if panel:   # the footnote is off the page: keep it beside the map for the caption
         (out / "gap_rescue_footnote.txt").write_text(drawn["footnote"].rstrip(".") + ".\n")
         # the classes this map fills, for one shared key across the panels (tools/gap_rescue_panel_figure.py)
         (out / "gap_rescue_key.json").write_text(json.dumps(
             {"classes": drawn["key_classes"], "class_unclear": drawn["key_class_unclear"], "key": key}, indent=1) + "\n")
+    if named_contigs:
+        if any(not Path(x["path"]).is_file() or hashlib.sha256(Path(x["path"]).read_bytes()).hexdigest() != x["sha256"] for x in named_inputs + named_sources):
+            raise ValueError("NAMED_CONTIG_INPUT_CHANGED: preserve partial render as incomplete")
+        model = json.dumps({"proteins": prots, "regions": regions}, sort_keys=True, separators=(",", ":")).encode()
+        review = {"schema": "sapote.named-contig-review.v1", "scope": "REVIEW_CONTEXT_ONLY", "core_identity": core["identity"],
+                  "selections": drawn["named_contig_contexts"], "inputs": named_inputs,
+                  "genome_model_sha256": hashlib.sha256(model).hexdigest(),
+                  "genome_parse_binding": ({"state": "ZIP_HASH_VERIFIED_BEFORE_AND_AFTER_PARSE", "sha256": genome_zip_parse_sha256}
+                                           if genome_zip_parse_sha256 is not None else {"state": "OPERATOR_SUPPLIED_MODEL"}),
+                  "historical_alignment_binding": "NOT_ESTABLISHED_BY_REDRAW",
+                  "outputs": [{"path": p.name, "bytes": p.stat().st_size, "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
+                              for p in sorted(out.iterdir()) if p.is_file()],
+                  "source_bindings": named_sources}
+        (out / "named_contig_review.json").write_text(json.dumps(review, indent=2) + "\n")
     return drawn
 
 
@@ -517,6 +568,11 @@ def main(argv=None) -> int:
     ap.add_argument("--row-label", help="text left of the strain row (default --label). House rule 6: a reference strain "
                                         "by its deposited name and strain, accession in brackets, e.g. "
                                         "'Saccharothrix coeruleofusca JCM 3313 [GCF_014648515.1]'; isolates keep AS-xxx")
+    ap.add_argument("--named-contig", action="append", default=[], metavar="FOUR_PART_IDENTITY",
+                    help="redraw only: add an undrawn ambiguous contig as review context, never a rescue; repeatable. "
+                         "Exact 'strain / full contig / regionNNN / BGC###', or explicitly "
+                         "'strain / full contig / NO_ANTISMASH_REGION / NO_BGC_ALIAS' for a contig without a region. "
+                         "Requires a fresh --out; preserves statuses/counts and adds no reference ribbons")
     ap.add_argument("--hits", type=Path)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--sensitivity", default=SENSITIVITY_DEFAULT,
@@ -524,6 +580,10 @@ def main(argv=None) -> int:
     ap.add_argument("--no-figure", action="store_true")
     ap.add_argument("--no-gene-table", action="store_true", help="skip gene_table.* and map_and_table.*")
     a = ap.parse_args(argv)
+    if a.named_contig and not a.redraw:
+        raise SystemExit("--named-contig needs --redraw; it does not run or alter the rescue analysis")
+    if a.named_contig and not a.out:
+        raise SystemExit("--named-contig needs a fresh --out")
     if a.no_key and not a.panel:
         raise SystemExit("--no-key is for a figure panel; add --panel")
     if a.panel and (not a.redraw or a.print_width == "none"):
@@ -532,11 +592,28 @@ def main(argv=None) -> int:
         if not a.mibig_dir:
             raise SystemExit("--redraw needs --mibig-dir (or SAPOTE_MIBIG_GBK_DIR) to read the reference GenBank file")
         assert_output_outside_bundle(a.out or a.redraw, __file__)
-        prots, regions = load_genome(a.zip, a.label)
-        redraw(a.redraw, prots, regions, a.label, a.mibig_dir, a.out, a.anchor,
-               load_gene_names(a.gene_names, a.label, prots, length_fallback=a.length_fallback or None),
-               a.context_rows, a.other_maps,
-               None if a.print_width == "none" else a.print_width, a.row_label, a.trim_kb, a.panel, not a.no_key)
+        try:
+            parsed_zip_sha256 = hashlib.sha256(a.zip.read_bytes()).hexdigest() if a.named_contig else None
+            prots, regions = load_genome(a.zip, a.label)
+            if a.named_contig and hashlib.sha256(a.zip.read_bytes()).hexdigest() != parsed_zip_sha256:
+                raise ValueError("NAMED_CONTIG_INPUT_CHANGED: genome ZIP changed during parsing")
+            redraw(a.redraw, prots, regions, a.label, a.mibig_dir, a.out, a.anchor,
+                   load_gene_names(a.gene_names, a.label, prots, length_fallback=a.length_fallback or None),
+                   a.context_rows, a.other_maps,
+                   None if a.print_width == "none" else a.print_width, a.row_label, a.trim_kb, a.panel, not a.no_key,
+                   **({"named_contigs": a.named_contig, "genome_zip": a.zip,
+                       "genome_zip_parse_sha256": parsed_zip_sha256} if a.named_contig else {}))
+        except ValueError as exc:
+            if a.named_contig and str(exc).startswith("NAMED_CONTIG_"):
+                _say(f"[gap_directed_rescue] HOLD: {exc}")
+                return 2
+            raise
+        except OSError as exc:
+            if a.named_contig:
+                _say(f"[gap_directed_rescue] HOLD: NAMED_CONTIG_IO_HOLD: {exc}; "
+                     "preserve any incomplete output")
+                return 2
+            raise
         _say(f"[gap_directed_rescue] redrew {a.redraw} -> {a.out or a.redraw}")
         return 0
     if not (a.core and a.out):

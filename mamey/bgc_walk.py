@@ -11,12 +11,11 @@ Usage:
     render_walk(genes, hits)                 # text
     walk_svg(genes, hits, "out.svg")         # visual track
 """
-import pyhmmer
-from pyhmmer.easel import Alphabet, TextSequence, DigitalSequenceBlock
-from Bio import SeqIO
-abc=Alphabet.amino()
-
 def bgc_walk(gbk, hmm_file):
+    import pyhmmer
+    from pyhmmer.easel import Alphabet, TextSequence, DigitalSequenceBlock
+    from Bio import SeqIO
+    abc=Alphabet.amino()
     rec=next(SeqIO.parse(gbk,"genbank"))
     genes=[]
     for f in rec.features:

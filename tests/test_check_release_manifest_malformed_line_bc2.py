@@ -19,7 +19,23 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 GATE = ROOT / "tools" / "check_release_manifest.py"
 
 
+def _complete_synthetic_release_metadata(root):
+    # Full release-check contract now requires tier/build and checksum coverage.
+    # Append metadata records without replacing/removing the malformed test line.
+    import hashlib
+    (root / "BUILD_STAMP.txt").write_text("version=0.0.0\nbuild=SYNTHETIC\ntier=code\n", encoding="utf-8")
+    (root / "TIER_MANIFEST.txt").write_text(
+        "# TIER_MANIFEST tier=code version=0.0.0 stamp=SYNTHETIC\n"
+        "./BUILD_STAMP.txt\n./real_file.txt\n", encoding="utf-8")
+    sums = root / "SOURCE_CHECKSUMS_SHA256.txt"
+    prior = sums.read_text(encoding="utf-8")
+    sums.write_text(prior + "".join(
+        hashlib.sha256((root / name).read_bytes()).hexdigest() + "  ./" + name + "\n"
+        for name in ("BUILD_STAMP.txt", "TIER_MANIFEST.txt")), encoding="utf-8")
+
+
 def _run(root):
+    _complete_synthetic_release_metadata(root)
     return subprocess.run(
         [sys.executable, str(GATE), "--root", str(root)],
         capture_output=True, text=True, cwd=str(ROOT),

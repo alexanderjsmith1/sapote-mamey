@@ -3,6 +3,10 @@
 Covers the two gates (strain-internal, iterative-module caveat), deterministic extraction of an
 aSDomain /translation, and the A.3 routing (DOMAIN_ONLY_HINT -> adjudication queue; a two-proof
 rescue is never queued).
+
+The AS-shaped controls selected here are authored parser fixtures using existing reserved
+fixture declarations. Their bound-snapshot noncollision does not grant disclosure permission;
+empirical/reference records, historical anchors and scientific assertions remain distinct.
 """
 from pathlib import Path
 
@@ -46,9 +50,9 @@ def _write_region(tmp_path: Path, fname: str, text: str = _GBK) -> Path:
 
 
 def test_extracts_ks_with_translation(tmp_path):
-    d = _write_region(tmp_path, "AS-705_NODE_58_region001.gbk")
+    d = _write_region(tmp_path, 'AS-971_NODE_58_region001.gbk')
     res = ksp.extract_module_core_domains(d)
-    assert res["strain"] == "AS-705"
+    assert res["strain"] == 'AS-971'
     assert res["class_counts"]["PKS_KS"] == 2
     assert res["class_counts"]["PKS_AT"] == 1
     ks = [x for x in res["domains"] if x["domain_class"] == "PKS_KS"]
@@ -56,8 +60,8 @@ def test_extracts_ks_with_translation(tmp_path):
 
 
 def test_strain_internal_gate_rejects_mixed(tmp_path):
-    d = _write_region(tmp_path, "AS-705_NODE_58_region001.gbk")
-    (d / "AS-696_NODE_9_region001.gbk").write_text(_GBK, encoding="utf-8")
+    d = _write_region(tmp_path, 'AS-971_NODE_58_region001.gbk')
+    (d / 'AS-972_NODE_9_region001.gbk').write_text(_GBK, encoding="utf-8")
     with pytest.raises(ValueError, match="STRAIN-INTERNAL ONLY"):
         ksp.extract_module_core_domains(d)
 
@@ -68,22 +72,22 @@ def test_strain_internal_gate_rejects_unparseable_filename(tmp_path):
     # domains were still merged -- so one normally-named strain-A file plus one unparseably-named
     # file (potentially a contaminating strain B) fused into a fictitious "strain-internal" pathway.
     # The gate must now fail closed on any unrecognized filename before uniqueness is even checked.
-    d = _write_region(tmp_path, "AS-705_NODE_58_region001.gbk")
+    d = _write_region(tmp_path, 'AS-971_NODE_58_region001.gbk')
     (d / "contaminant_contig_region001.gbk").write_text(_GBK, encoding="utf-8")
     with pytest.raises(ValueError, match="could not determine a strain id"):
         ksp.extract_module_core_domains(d)
 
 
 def test_iterative_module_caveat_present(tmp_path):
-    d = _write_region(tmp_path, "AS-705_NODE_58_region001.gbk")
+    d = _write_region(tmp_path, 'AS-971_NODE_58_region001.gbk')
     res = ksp.extract_module_core_domains(d)
     assert any("ITERATIVE-MODULE GUARD" in c for c in res["claim_safety"])
 
 
 def test_fasta_header_round_trips(tmp_path):
-    d = _write_region(tmp_path, "AS-705_NODE_58_region001.gbk")
+    d = _write_region(tmp_path, 'AS-971_NODE_58_region001.gbk')
     fa = ksp.domain_fastas(ksp.extract_module_core_domains(d))
-    assert fa["PKS_KS"].startswith(">AS-705__NODE_58__region001__ctg1_1__")
+    assert fa["PKS_KS"].startswith('>AS-971__NODE_58__region001__ctg1_1__')
     assert "MKSAAAAAKS" in fa["PKS_KS"]
 
 

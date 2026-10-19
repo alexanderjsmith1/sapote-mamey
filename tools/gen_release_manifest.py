@@ -141,7 +141,7 @@ def tier_count_word(count):
 _PRINT_CALLS_RE = re.compile(r"print_calls\s+(\d+) direct terminal-emission calls")
 
 
-def repo_health_print_calls(root: pathlib.Path):
+def repo_health_print_calls(root: pathlib.Path, *, python: str | None = None):
     """The live `print_calls` count from the bundle's own `tools/repo_health.py`, or None.
 
     v9.7.440. The strict-repository-health row was the one numeric field in RELEASE_MANIFEST.md
@@ -162,7 +162,7 @@ def repo_health_print_calls(root: pathlib.Path):
         return None
     try:
         completed = subprocess.run(
-            [sys.executable, str(script)], cwd=str(root),
+            [sys.executable if python is None else python, str(script)], cwd=str(root),
             capture_output=True, text=True, timeout=900,
         )
     except (OSError, subprocess.SubprocessError):
@@ -266,10 +266,10 @@ def discover_manifest_reading_tests(root: pathlib.Path) -> list[pathlib.Path]:
     return out
 
 
-def _run_pytest_subset(files: list[pathlib.Path], root: pathlib.Path) -> tuple[int, int, int, str]:
+def _run_pytest_subset(files: list[pathlib.Path], root: pathlib.Path, *, python: str | None = None) -> tuple[int, int, int, str]:
     """Run exactly these test files with pytest -q; return (passed, skipped, failed, raw_output).
     `failed` sums reported 'failed' and 'error' counts -- either means the subset is not green."""
-    cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"] + [str(f) for f in files]
+    cmd = [sys.executable if python is None else python, "-m", "pytest", "-q", "-p", "no:cacheprovider"] + [str(f) for f in files]
     proc = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True)
     out = (proc.stdout or "") + (proc.stderr or "")
     failed_m = re.search(r"(\d+)\s+failed", out)
@@ -295,7 +295,7 @@ def _run_pytest_subset(files: list[pathlib.Path], root: pathlib.Path) -> tuple[i
 
 
 def apply_manifest_with_counts(root: pathlib.Path, passed: int, skipped: int,
-                               provenance: str, tier_zip_names=()) -> tuple[bool, str]:
+                               provenance: str, tier_zip_names=(), *, python: str | None = None) -> tuple[bool, str]:
     """Write RELEASE_MANIFEST.md's derived fields for (passed, skipped, provenance).
 
     Shares the exact same primitives main()'s --apply branch uses (read_truth,
@@ -311,7 +311,7 @@ def apply_manifest_with_counts(root: pathlib.Path, passed: int, skipped: int,
     text = manifest.read_text(encoding="utf-8")
     test_bound_text, _canonical_test_row = ensure_test_evidence_row(text, passed, skipped, provenance)
     rules = build_rules(engine, bundle, stamp, passed, skipped, tier_zip_names,
-                        health_print_calls=repo_health_print_calls(root))
+                        health_print_calls=repo_health_print_calls(root, python=python))
     new_text = test_bound_text
     for _label, pat, repl in rules:
         new_text = pat.sub(lambda m: m.expand(repl), new_text)
@@ -326,7 +326,7 @@ def apply_manifest_with_counts(root: pathlib.Path, passed: int, skipped: int,
 
 
 def run_fixed_point(root: pathlib.Path, seed_passed: int, seed_skipped: int, provenance: str,
-                    max_iterations: int = 5, tier_zip_names=(), subset_runner=None) -> tuple[int, int, int]:
+                    max_iterations: int = 5, tier_zip_names=(), subset_runner=None, *, python: str | None = None) -> tuple[int, int, int]:
     """Converge the manifest's test-count row against its own manifest-reading test subset.
 
     Both lanes did this by hand at .404: apply the manifest with a measured full-suite count,
@@ -358,7 +358,7 @@ def run_fixed_point(root: pathlib.Path, seed_passed: int, seed_skipped: int, pro
             "discovered under tests/ -- refusing (nothing to converge against)"
         )
     passed, skipped = seed_passed, seed_skipped
-    measure = subset_runner or _run_pytest_subset
+    measure = subset_runner or (lambda files, subset_root: _run_pytest_subset(files, subset_root, python=python))
     for iteration in range(1, max_iterations + 1):
         # A pre-apply failure here is EXPECTED, not refused: a manifest-consumer test failing
         # against a stale manifest (e.g. a version/stamp freshness check) is exactly the drift
@@ -367,7 +367,7 @@ def run_fixed_point(root: pathlib.Path, seed_passed: int, seed_skipped: int, pro
         # fix automatically. Only a still-failing (or newly-failing) subset AFTER the apply is
         # refused: that means the apply itself did not do what it claims.
         base_passed, base_skipped, _base_failed, _base_out = measure(consumer_files, root)
-        apply_manifest_with_counts(root, passed, skipped, provenance, tier_zip_names)
+        apply_manifest_with_counts(root, passed, skipped, provenance, tier_zip_names, python=python)
         after_passed, after_skipped, after_failed, after_out = measure(consumer_files, root)
         if after_failed:
             raise SystemExit(
@@ -418,6 +418,7 @@ def deliver_refusals(operation):
 def main(argv=None):
     """Generate or check the manifest, raising typed expected refusals."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--python", default=None, help="Explicit interpreter for evidence admission, subset tests and health probes; default: invoking runtime")
     ap.add_argument("--root", default=".", help="bundle root (default: cwd)")
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--check", action="store_true", help="report drift; exit 1 if any field is stale")
@@ -445,6 +446,11 @@ def main(argv=None):
     )
     args = ap.parse_args(argv)
 
+    from _release_validation import resolve_interpreter
+    try:
+        python = str(resolve_interpreter(sys.executable if args.python is None else args.python))
+    except (OSError, ValueError) as exc:
+        raise ManifestRefused("gen_release_manifest: selected interpreter refused: " + str(exc)) from exc
     root = pathlib.Path(args.root).resolve()
     manifest = root / "RELEASE_MANIFEST.md"
     if not manifest.exists():
@@ -463,7 +469,7 @@ def main(argv=None):
             from _release_partition_runner import verified_counts
             partition_counts, partition_environment = verified_counts(root, structured_path,
                 args.partition_receipt_sha256, admission_output=args.partition_admission,
-                python=sys.executable, baseline=args.partition_baseline is not None)
+                python=python, baseline=args.partition_baseline is not None)
         except (OSError, ValueError) as exc:
             raise ManifestRefused("gen_release_manifest: structured evidence refused: " + str(exc)) from exc
     elif args.partition_receipt_sha256 is not None or args.partition_admission is not None:
@@ -494,7 +500,7 @@ def main(argv=None):
         try:
             final_passed, final_skipped, _iters = run_fixed_point(
                 root, passed, skipped, provenance, max_iterations=args.max_iterations,
-                tier_zip_names=args.tier_zips, subset_runner=subset_runner)
+                tier_zip_names=args.tier_zips, subset_runner=subset_runner, python=python)
         except SystemExit as exc:
             sys.stderr.write(str(exc) + "\n")
             return 1
@@ -534,7 +540,7 @@ def main(argv=None):
         except ValueError as exc:
             raise ManifestRefused(f"gen_release_manifest: {exc}") from exc
     rules = build_rules(engine, bundle, stamp, passed, skipped, args.tier_zips,
-                        health_print_calls=repo_health_print_calls(root))
+                        health_print_calls=repo_health_print_calls(root, python=python))
 
     drift, new_text = [], test_bound_text
     if test_bound_text != text:

@@ -32,7 +32,7 @@ def _csv(path, header, rows):
 
 
 def _fixture(root):
-    pkg = os.path.join(root, "Mamey Complete", STRAIN, "package")
+    pkg = os.path.join(root, "Package Outputs", STRAIN, "package")
     _csv(os.path.join(pkg, f"{STRAIN}_2_inventory.csv"), ["BGC_ID", "Products", "KCB_top", "Node_ID", "antiSMASH_Region"],
          [["BGC001", "NRPS", "", "NODE_1", "region001"]])
     _csv(os.path.join(pkg, "locus_maps", "BGC001_NODE_1_locus_data.csv"),

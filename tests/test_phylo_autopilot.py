@@ -92,10 +92,10 @@ def test_parse_blast_genus_keeps_best_hit():
     # genus-leading (real `blastn -outfmt 6 stitle`) AND accession-leading (blastdbcmd %t) both work
     txt = ("AS-1\tStreptomyces griseus strain X 16S\t99.5\t1400\n"
            "AS-1\tStreptomyces coelicolor Y\t98.0\t1400\n"
-           "AS-2\tNR_3 Micromonospora echinospora Z\t97.2\t1350\n")
+           'SYNTHETIC-CASE-002\tNR_3 Micromonospora echinospora Z\t97.2\t1350\n')
     got = AP.parse_blast_genus(txt)
     assert got["AS-1"]["genus"] == "Streptomyces" and got["AS-1"]["pident"] == 99.5
-    assert got["AS-2"]["genus"] == "Micromonospora"   # leading NR_ accession skipped
+    assert got['SYNTHETIC-CASE-002']["genus"] == "Micromonospora"   # leading NR_ accession skipped
 
 
 def test_parse_blast_genus_holds_near_tied_different_genus():
@@ -162,10 +162,10 @@ def test_run_16s_refuses_without_approval(tmp_path, capsys):
 
 def test_run_16s_passes_bootstrap_to_phylo_place(tmp_path, monkeypatch):
     """The placement-appropriate bootstrap must reach the phylo_place command (the dial-in fix)."""
-    q = _write(tmp_path, "q.fasta", [("AS-1", "ACGT" * 350), ("AS-2", "ACGT" * 350)])
+    q = _write(tmp_path, "q.fasta", [("AS-1", "ACGT" * 350), ('SYNTHETIC-CASE-002', "ACGT" * 350)])
     monkeypatch.setattr(AP, "assign_genus", lambda *a, **k: {
         "AS-1": {"genus": "Micromonospora", "pident": 99.0, "aln_len": "1400", "title": "t"},
-        "AS-2": {"genus": "Micromonospora", "pident": 98.0, "aln_len": "1400", "title": "t"}})
+        'SYNTHETIC-CASE-002': {"genus": "Micromonospora", "pident": 98.0, "aln_len": "1400", "title": "t"}})
     monkeypatch.setattr(AP, "build_reference_fasta", lambda *a, **k: 5)
     seen = {}
 

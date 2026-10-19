@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.451 · engine 1.9.176 · build 20261015v97451a
+# Current Docs Index — v9.7.453 · engine 1.9.176 · build 20261018v97453a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -8,7 +8,7 @@ The [Quick Guide](docs/GUIDE/02_Quick_Guide.md) is the compact and advanced comm
 generated `CLAUDE.md` copy supports Claude discovery; other assistants must be directed to AGENTS
 or receive it through their supported instruction mechanism.
 
-Each listed entry starts with its status: `current` (follow it for new work), `reference` (background, specifications or dated examples; check current code before relying on a number) or `experimental` (report-only, not a release gate). Documents not listed here are historical records, not instructions.
+Each listed entry starts with its status: `current` (follow it for new work), `reference` (background, specifications or dated examples; check current code before relying on a number) or `experimental` (report-only, not a release gate). An unlisted document has no current-navigation declaration. Check its explicit lifecycle, owning source and the maintenance inventory; unlisted status alone does not establish that it is historical or safe to follow.
 
 - `current` [Choose a task](docs/USER_TASK_ROUTER.md): named human requests, required inputs, owning guides and completion evidence; [JSON routes](docs/USER_TASK_ROUTER.json) for assistants.
 
@@ -60,9 +60,11 @@ Each listed entry starts with its status: `current` (follow it for new work), `r
 - `current` [Mode B contract current50 v2](docs/MODEB_CURRENT50_V2_CONTRACT.md): the 50-section card with GECCO (§22), the contigs rescued into the BGC (§26), literature with relevance (§48–§49) and the data evidence table last (§50); `emit-modeb-template --contract current50_v2` and `verify-modeb --contract current50_v2`.
 - `current` [Mode B expanded locus](docs/MODEB_EXPANDED_LOCUS.md): independently source-bound CDS inventories and bounded supported-anchor context; use `--require-expanded-locus` for an expanded work order. Core membership remains separate.
 - `current` [Mode B gap-rescue reader](docs/MODEB_GAP_RESCUE_READER.md): supplied rescue context and existence checks; this does not adopt rescued genes into a locus.
+- `current` [Mode B evidence availability and writing](docs/MODEB_DATA_AVAILABILITY_AND_WRITING_CONTRACT.md): pre-authoring inventory, typed binding/freshness states, planner limits and the independently reviewed finished-card evidence matrix.
 - `current` [Mode B profiles](docs/MODEB_PROFILE_MATRIX.md): which card is which (scaffold, candidate, finished §1–§48, opt-in current50 v2), with each profile's producer, verifier and the status it can claim. "Full Mode B" means the selected finished profile.
 - `reference` [Mode B exemplar reader guide](docs/reference/modeb_exemplars/README.md): historical class sketches and a 48-section format reference. Use the example register to identify their scope; their locus-specific evidence and old pass labels do not validate a current 50-section finished card.
 - `current` [BLASTp evidence](docs/ONLINE_BLASTP_PROTOCOL.md): existing results first (rollups to reservoir; trove to package overlay; HitTable to workbook), optional live submission.
+- `current` [antiSMASH strictness and pooling](docs/ANTISMASH_PROFILE.md): recorded profile evidence, mismatch states and the selected-package pooling guard.
 - `current` [antiSMASH web submission](docs/ANTISMASH_WEB_SUBMISSION_SOP.md): the procedure for sending reference genomes to the public antiSMASH server; light-touch queue rule, loose with all 11 features, no email, one authorised batch at a time.
 - `current` [BiG-SCAPE cohort walkthrough](docs/BIGSCAPE_COHORT_WALKTHROUGH.md) and [troubleshooting](docs/troubleshooting/BIGSCAPE_TROUBLESHOOTING.md): stage region files, run a cohort, inspect family verdicts and figures.
 - `current` [BiG-SCAPE cohort networks and comparator context](docs/BIGSCAPE_COHORT_NETWORK_GUIDE.md): exact-identity cohort tables, evidence badges and citations, overmerged-region component metrics, interactive/static figures, and additive batch report enrichment.
@@ -87,6 +89,8 @@ The [Master Walkthrough](docs/MASTER_WALKTHROUGH.md) connects installation to va
 [prerequisites](docs/PREREQUISITES.md) distinguish Python extras, external tools and datasets.
 
 ## Tool and contract pages
+
+- `experimental` [Optional RiPPER plan/import adapter](docs/RIPPER_OPTIONAL_ADAPTER.md): isolated precursor-candidate planning and operator-supplied TSV admission; no live execution route or upstream compatibility claim.
 
 Use these guides for specialized tools, commands and input/output contracts.
 
@@ -144,6 +148,8 @@ Use these guides for specialized tools, commands and input/output contracts.
 - `current` [Read only tool database inspection](docs/TOOL_DATABASE_INSPECTION.md)
 - `current` [Two-stage modular BGC reports](docs/TWO_STAGE_MODULAR_BGC_REPORTS.md)
 - `current` [Phylogenetic workflow gate guide](docs/WORKFLOW_GATES_GUIDE.md)
+
+- `current` [Offline paper reference audit](docs/PAPER_REFERENCE_AUDIT.md): DOCX citation/reference and figure/table callout keys; parsing holds remain visible; no network or document edits.
 
 ## Reference, development and history
 

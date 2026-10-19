@@ -7,7 +7,7 @@ _TOOL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 spec = importlib.util.spec_from_file_location("_tbo", _TOOL); mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
 
 ROWS = [
-    {"role": "STUDY", "strain": "AS-1"}, {"role": "STUDY", "strain": "AS-2"}, {"role": "STUDY", "strain": "AS-3"},
+    {"role": "STUDY", "strain": "AS-1"}, {"role": "STUDY", "strain": 'SYNTHETIC-CASE-002'}, {"role": "STUDY", "strain": "AS-3"},
     {"role": "REFERENCE", "strain": "S. griseus"}, {"role": "REFERENCE", "strain": "S. albus"},
     {"role": "OUTGROUP", "strain": "K. setae"},
 ]
@@ -20,7 +20,7 @@ def test_counts_are_per_role_not_per_tip():
 
 def test_every_strain_still_enumerated_and_order_canonical():
     text = mod.group_denominators(ROWS)
-    for s in ("AS-1", "AS-2", "AS-3", "S. griseus", "S. albus", "K. setae"):
+    for s in ("AS-1", 'SYNTHETIC-CASE-002', "AS-3", "S. griseus", "S. albus", "K. setae"):
         assert s in text
     assert text.index("STUDY(") < text.index("REFERENCE(") < text.index("OUTGROUP(")
 

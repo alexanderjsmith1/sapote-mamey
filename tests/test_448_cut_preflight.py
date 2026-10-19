@@ -3,6 +3,7 @@ Never execute release_cut.sh, make_public_tier.sh or a build.
 """
 from pathlib import Path
 import subprocess
+import shlex
 import pytest
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -49,6 +50,11 @@ def test_source_only_helper_and_script_syntax():
     for rel in ['tools/cut_preflight.sh','tools/release_cut.sh','tools/make_public_tier.sh']:
         assert subprocess.run(['bash','-n',str(ROOT/rel)],capture_output=True).returncode==0
     release=(ROOT/'tools/release_cut.sh').read_text()
-    assert release.index('sapote_purge_cut_bytecode "$SRC"') < release.index('python3 tools/rewrite_release_identity.py')
+    identity = [line for line in release.splitlines()
+                if line.lstrip().startswith('"$PYTHON" tools/rewrite_release_identity.py')
+                and '--check' not in line.split()]
+    assert len(identity) == 1, 'one selected-Python source identity rewrite is required'
+    assert shlex.split(identity[0])[0] == '$PYTHON'
+    assert release.index('sapote_purge_cut_bytecode "$SRC"') < release.index(identity[0])
     tier=(ROOT/'tools/make_public_tier.sh').read_text()
     assert tier.index('sapote_assert_no_review_root "$SRC"') < tier.index('WORK="$(mktemp -d)"')

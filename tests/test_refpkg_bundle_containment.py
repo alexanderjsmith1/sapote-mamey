@@ -36,7 +36,7 @@ def test_refuses_write_inside_the_running_bundle(tmp_path):
 def test_allows_writes_outside_the_bundle(tmp_path):
     b = _make_fake_bundle(tmp_path)
     # sibling workspace tree home, and an unrelated temp dir
-    assert _refuses(b, str(tmp_path / "AS Strain Master/_PLACEMENT/streptomyces/refpkg")) is False
+    assert _refuses(b, str(tmp_path / "Unrelated Report Home/_PLACEMENT/streptomyces/refpkg")) is False
     assert _refuses(b, str(tmp_path / "strain_data/_PLACEMENT/x/refpkg")) is False
 
 

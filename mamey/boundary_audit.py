@@ -59,7 +59,7 @@ try:
 except Exception:  # pragma: no cover
     _HAVE_SCORING = False
 
-LEAD_TIERS = {"Exceptional", "High", "Medium", "Low", "Inventory"}  # AQUARIUS_01: 'Low' = specialized-but-low-scoring (class-gated bottom)
+LEAD_TIERS = {"Exceptional", "High", "Medium", "Low", "Inventory"}  # inventory_review_01: 'Low' = specialized-but-low-scoring (class-gated bottom)
 CLAIM_CONF = {"High", "Moderate-High", "Moderate", "Low-Moderate", "Low", "Unknown"}
 
 

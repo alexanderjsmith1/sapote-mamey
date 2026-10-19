@@ -61,7 +61,10 @@ def test_failed_submit_is_final_and_ordered(monkeypatch):
         return "<xml/>"
 
     monkeypatch.setattr(bo, "_post", fake_post)
-    monkeypatch.setattr(bo, "parse_blast_xml", lambda xml, batch: [])
+    monkeypatch.setattr(bo, "parse_blast_xml", lambda xml, batch: [
+        bo.BlastpHit(locus_tag=batch[0][0], aa_length=len(batch[0][1]),
+                    antismash_domains="", blastp_top_def="synthetic returned hit")
+    ])
     monkeypatch.setattr(bo.time, "sleep", lambda *_: None)
 
     results = bo.run_batches_online([[("BAD", "M")], [("good", "M")]],

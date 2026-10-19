@@ -4,7 +4,7 @@ aplot drew the tree panel over [scale-bar y, n + 0.6] and each strip over its de
 were slightly shorter than tree rows and cells drifted off their tips toward the bottom (half a row at tip 21 of 22).
 The renderer now gives the strips the tree's y range and refuses to write a figure whose panels differ.
 """
-import csv, os, random, shutil, subprocess
+import csv, os, random, shutil, subprocess, sys
 from pathlib import Path
 import pytest
 
@@ -44,8 +44,9 @@ def test_rendered_panels_share_one_y_range(tmp_path):
     out = tmp_path / "figure"
     cp = subprocess.run([r, str(ROOT / "tools/ggtree_rect_heatmap.R"), str(tree), str(meta), str(out), "T03"],
                         capture_output=True, text=True, timeout=180,
-                        env=dict(os.environ, SAPOTE_PYTHON=shutil.which("python3") or "python3", GG_STRIPS="2"))
+                        env=dict(os.environ, SAPOTE_PYTHON=sys.executable, GG_STRIPS="2"), cwd=tmp_path)
     assert cp.returncode == 0, cp.stdout + cp.stderr
+    assert not (tmp_path / "Rplots.pdf").exists(), "renderer leaked a default graphics device"
     line = next((l for l in cp.stdout.splitlines() if l.startswith("PANEL_Y_RANGES:")), None)
     assert line, "renderer did not report its panel y ranges (the alignment guard did not run)"
     ranges = [x.strip() for x in line.split(":", 1)[1].split("|")]
@@ -53,7 +54,7 @@ def test_rendered_panels_share_one_y_range(tmp_path):
     assert len(set(ranges)) == 1, ranges     # and all span the same y range
 
 
-def _guard(aligned):
+def _guard(aligned, cwd):
     r = _rscript()
     expand = "ggplot2::scale_y_discrete(limits=to, expand=ggplot2::expansion(add=c(1 + 0.12, 0.6)))" if aligned else "NULL"
     code = f"""
@@ -65,16 +66,16 @@ d <- data.frame(tip=factor(to, levels=to), v=seq_along(to))
 s <- function() ggplot(d, aes(0, tip, fill=v)) + geom_tile() + {expand}
 cat(validate_panel_ranges(s() |> insert_left(s(), width=1) |> insert_left(p, width=13)), sep="|")
 """
-    return subprocess.run([r, "-e", code], capture_output=True, text=True, timeout=120)
+    return subprocess.run([r, "-e", code], capture_output=True, text=True, timeout=120, cwd=cwd)
 
 
-def test_guard_refuses_strips_that_do_not_share_the_tree_range():
-    cp = _guard(aligned=False)
+def test_guard_refuses_strips_that_do_not_share_the_tree_range(tmp_path):
+    cp = _guard(aligned=False, cwd=tmp_path)
     assert cp.returncode != 0
     assert "ANNOTATION_PANEL_RANGE_MISMATCH" in cp.stderr, cp.stderr
 
 
-def test_guard_accepts_panels_that_share_the_tree_range():
-    cp = _guard(aligned=True)
+def test_guard_accepts_panels_that_share_the_tree_range(tmp_path):
+    cp = _guard(aligned=True, cwd=tmp_path)
     assert cp.returncode == 0, cp.stderr
     assert len(set(cp.stdout.strip().split("|"))) == 1 and cp.stdout.count("|") == 2, cp.stdout

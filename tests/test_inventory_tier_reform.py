@@ -1,4 +1,4 @@
-"""AQUARIUS_01 (v9.7.350/.351) — class-gated bottom tier guard.
+"""inventory bottom-tier policy (v9.7.350/.351) — class-gated bottom tier guard.
 
 the Developer or User's rule (2026-08-04): the Inventory tier is reserved for genuinely low-interest housekeeping
 classes (saccharide, terpene, geosmin, ectoine, NAPAA + the Developer or User-ratified broadened primary-metabolism/

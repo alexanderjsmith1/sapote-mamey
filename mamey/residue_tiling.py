@@ -33,6 +33,7 @@ MIBiG accession (`BGC0000001|1`, `BGC0000001.5|…`). Without either, the pairs 
 says why. Standard library only, so the standalone rggmci package ships this file unchanged.
 """
 from __future__ import annotations
+from .source_context import source_zipfile as _source_zipfile
 
 import csv
 import os
@@ -119,7 +120,7 @@ def _region_gbk_name(names: set[str], bgc: Any) -> str:
 def region_proteins(zip_path: str | Path, bgcs: Iterable[Any], wanted: set[str]) -> dict[str, list[tuple[str, str]]]:
     """Proteins of the wanted regions, read from each region's own GenBank file inside the antiSMASH ZIP."""
     out: dict[str, list[tuple[str, str]]] = {}
-    with zipfile.ZipFile(zip_path) as zf:
+    with _source_zipfile(zip_path) as zf:
         names = set(regular_file_names(zf))
         for b in bgcs:
             if b.bgc_id not in wanted:

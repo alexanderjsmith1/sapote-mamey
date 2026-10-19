@@ -104,7 +104,7 @@ def admitted(adapter,tmp_path,monkeypatch):
         name='imports-source' if current==source else 'imports-artifact';visit(name)
         if name=='imports-artifact' and after_import[0]:after_import[0]()
         if faults.get('held-'+name):return {'status':'HOLD'}
-        return {'status':'PASS','scope_counts':{'PRODUCTION':2}}
+        return {'status':json.loads((directory/'current.json').read_text())['status'],'scope_counts':{'PRODUCTION':2}}
     def watched(command,*,cwd,log,env,timeout):
         visit('consumer')
         assert cwd==consumer.parent and command[0]==str(consumer)
@@ -116,7 +116,8 @@ def admitted(adapter,tmp_path,monkeypatch):
         assert command[5:]==['--seal-target',str(args['target'])]
         assert payload['source_partition']['verified_totals']==totals
         assert payload['artifact_partition']['verified_totals']==totals
-        assert payload['source_complete_imports']['status']==payload['artifact_complete_imports']['status']=='PASS'
+        assert payload['source_complete_imports']['status']==json.loads((output/'imports-final/current.json').read_text())['status']
+        assert payload['artifact_complete_imports']['status']==json.loads(current_imports.read_text())['status']
         if during_consumer[0]:during_consumer[0]()
         log.write_text('synthetic owner consumer output\n')
         return {'exit_code':0,'stop_reason':None,'cleanup_error':None}
@@ -343,3 +344,15 @@ def test_cli_logging_preserves_exact_streams_without_global_configuration(adapte
         assert logging.Logger.manager.disable == disabled_level
     finally:
         logging.disable(previous_disable)
+
+
+def test_explicit_optional_import_readiness_remains_visible_to_owner(admitted):
+    fixture=admitted
+    for path in [fixture.output/'imports-final/current.json',fixture.current_imports]:
+        dump(path,{'status':'READY_WITH_OPTIONAL_UNAVAILABLE'})
+    record=json.loads(fixture.artifact.read_text())
+    record['import_safety']['status']='READY_WITH_OPTIONAL_UNAVAILABLE'
+    record['import_safety']['current_sha256']=fixture.module.file_pin(fixture.current_imports)['sha256']
+    dump(fixture.artifact,record);fixture.refresh()
+    result=fixture.module.consume(**fixture.args)
+    assert result['status']=='OWNER_CONSUMER_COMPLETED'

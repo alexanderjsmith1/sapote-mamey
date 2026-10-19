@@ -1,4 +1,4 @@
-"""Crash-safety regression for bgc_l0_program._write_rows (BLACK_CHERRY_377).
+"""Crash-safety regression for bgc_l0_program._write_rows (regression_review_377).
 
 Proves the atomic-write property directly: a fault mid-write must leave the REAL
 output path untouched (no truncated/partial table a later run could treat as

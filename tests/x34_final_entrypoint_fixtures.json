@@ -1,0 +1,37 @@
+{
+  "format": "X34_TINY_GENERIC_METADATA_v1",
+  "variants": {
+    "TOY-A": {
+      "held_alias": "BGC901",
+      "package_utf8": {
+        "TOY-A_4_triage_board.csv": "BGC_ID\n",
+        "blastp_ingest_receipts/toy-receipt.json": "{\n  \"admitted_total\": 0,\n  \"channel\": \"nr\",\n  \"locus_rekey\": {\n    \"admitted_current_bgcs\": {},\n    \"enabled\": true\n  },\n  \"package_strain\": \"TOY-A\",\n  \"quarantine_file\": \"toy.csv\",\n  \"quarantine_sha256\": \"b009316183d30645af5bb409c8ce4674a23b39f5fb4e5337b8dada9bafa3722c\",\n  \"quarantined_by_reason\": {\n    \"TOY_A_HOLD\": 1\n  },\n  \"quarantined_total\": 1,\n  \"schema\": \"mamey_blastp_locus_rekey_ingest_v2\",\n  \"sources\": [\n    {\n      \"bgc\": \"BGC900\",\n      \"destination_bgcs\": [],\n      \"file\": \"TOY-A/BGC900/BGC900_top_hit_per_gene.csv\",\n      \"sha256\": \"3af04bf4011a6ff3a5ef094a7eb94adec964e2ad8dce46909728b8a5221d3faf\"\n    }\n  ]\n}\n",
+        "blastp_online/_ingest_ledger.json": "{\n  \"nr\": {\n    \"BGC901\": {\n      \"admitted_rows\": 0,\n      \"evidence_complete\": false,\n      \"quarantined_rows\": 1,\n      \"receipt\": \"toy-receipt.json\",\n      \"source_sha256\": [],\n      \"strain\": \"TOY-A\"\n    }\n  }\n}\n",
+        "blastp_quarantine/toy.csv": "source_file,source_file_sha256,resolved_bgc,reason\nTOY-A/BGC900/BGC900_top_hit_per_gene.csv,3af04bf4011a6ff3a5ef094a7eb94adec964e2ad8dce46909728b8a5221d3faf,BGC901,TOY_A_HOLD\n",
+        "manifest.json": "{\n  \"locus_maps\": \"off\",\n  \"release\": \"PRIVATE\",\n  \"strain_id\": \"TOY-A\"\n}\n"
+      },
+      "reason": "TOY_A_HOLD",
+      "seal_marker_utf8": "{\n  \"fixture_only\": true\n}\n",
+      "semantic_ceiling": "Invented receipt/count metadata; no sequence or physical-locus authority; not a scientifically validated/sealed package.",
+      "source_relative_to_trove": "TOY-A/BGC900/BGC900_top_hit_per_gene.csv",
+      "source_sha256": "3af04bf4011a6ff3a5ef094a7eb94adec964e2ad8dce46909728b8a5221d3faf",
+      "source_utf8": "gene,aa_length\ntoy_a_locus,5\n"
+    },
+    "TOY-B": {
+      "held_alias": "BGC902",
+      "package_utf8": {
+        "TOY-B_4_triage_board.csv": "BGC_ID\n",
+        "blastp_ingest_receipts/toy-receipt.json": "{\n  \"admitted_total\": 0,\n  \"channel\": \"nr\",\n  \"locus_rekey\": {\n    \"admitted_current_bgcs\": {},\n    \"enabled\": true\n  },\n  \"package_strain\": \"TOY-B\",\n  \"quarantine_file\": \"toy.csv\",\n  \"quarantine_sha256\": \"9d223547c982c7b3174987c62c2b64d8b1f55e834be02aabd76d9fd7871f7ec9\",\n  \"quarantined_by_reason\": {\n    \"TOY_B_HOLD\": 1\n  },\n  \"quarantined_total\": 1,\n  \"schema\": \"mamey_blastp_locus_rekey_ingest_v2\",\n  \"sources\": [\n    {\n      \"bgc\": \"BGC900\",\n      \"destination_bgcs\": [],\n      \"file\": \"TOY-B/BGC900/BGC900_top_hit_per_gene.csv\",\n      \"sha256\": \"882ec5e70d27cee33a2990229af1c76701c67287109424b904fca9230a660055\"\n    }\n  ]\n}\n",
+        "blastp_online/_ingest_ledger.json": "{\n  \"nr\": {\n    \"BGC902\": {\n      \"admitted_rows\": 0,\n      \"evidence_complete\": false,\n      \"quarantined_rows\": 1,\n      \"receipt\": \"toy-receipt.json\",\n      \"source_sha256\": [],\n      \"strain\": \"TOY-B\"\n    }\n  }\n}\n",
+        "blastp_quarantine/toy.csv": "source_file,source_file_sha256,resolved_bgc,reason\nTOY-B/BGC900/BGC900_top_hit_per_gene.csv,882ec5e70d27cee33a2990229af1c76701c67287109424b904fca9230a660055,BGC902,TOY_B_HOLD\n",
+        "manifest.json": "{\n  \"locus_maps\": \"off\",\n  \"release\": \"PRIVATE\",\n  \"strain_id\": \"TOY-B\"\n}\n"
+      },
+      "reason": "TOY_B_HOLD",
+      "seal_marker_utf8": "{\n  \"fixture_only\": true\n}\n",
+      "semantic_ceiling": "Invented receipt/count metadata; no sequence or physical-locus authority; not a scientifically validated/sealed package.",
+      "source_relative_to_trove": "TOY-B/BGC900/BGC900_top_hit_per_gene.csv",
+      "source_sha256": "882ec5e70d27cee33a2990229af1c76701c67287109424b904fca9230a660055",
+      "source_utf8": "gene,aa_length\ntoy_b_locus,5\n"
+    }
+  }
+}

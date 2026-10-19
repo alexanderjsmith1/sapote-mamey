@@ -138,10 +138,16 @@ def main():
     # generated script a data carrier rather than a second place the tool can run code.
     q = shlex.quote
     summary = json.loads(display_summary.read_text()) if display_summary.is_file() else {}
-    replay_env = summary.get('render_environment', {})
+    replay_env = dict(summary.get('render_environment', {}))
+    # Freeze the actual title choice; ambient opt-in must not change an exported replay.
+    pages = json.loads(pages_path.read_text()) if pages_path.is_file() else {}
+    if type(pages.get('page_titles')) is bool:
+        replay_env['GG_PAGE_TITLE'] = '1' if pages['page_titles'] else '0'
+    else:  # Legacy receipts: only the literal opt-in enables a title.
+        replay_env['GG_PAGE_TITLE'] = '1' if replay_env.get('GG_PAGE_TITLE') == '1' else '0'
     allowed = {'GG_STRIPS','GG_ITALIC','GG_STRIP1_TITLE','GG_STRIP2_TITLE','GG_STRIP_KIND','GG_BLANK_MISSING',
                'GG_FOCAL_FACE','GG_FOCAL_BAND','GG_FIT_LABELS','GG_FIG_WIDTH','GG_PRINT_WIDTH',
-               'GG_SUPPORT_MIN','GG_CAPTION_MD','GG_ACTIVITY_SPEC','GG_ACTIVITY_PALETTE','SAPOTE_GEOGRAPHY_LEVEL'}
+               'GG_SUPPORT_MIN','GG_PAGE_TITLE','GG_CAPTION_MD','GG_ACTIVITY_SPEC','GG_ACTIVITY_PALETTE','SAPOTE_GEOGRAPHY_LEVEL'}
     replay_exports = '\n'.join('export '+key+'='+q(str(value)) for key,value in sorted(replay_env.items()) if key in allowed)
     (out/helper_name).write_text(f"""#!/bin/sh
 set -eu

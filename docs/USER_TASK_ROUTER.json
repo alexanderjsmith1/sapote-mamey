@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "baseline": {
-    "bundle": "9.7.447",
-    "engine": "1.9.172",
-    "build": "20261003v97447a"
+    "bundle": "9.7.452",
+    "engine": "1.9.176",
+    "build": "20261016v97452a"
   },
-  "authority": "Navigation only. Current user scope and AGENTS.md govern actions. Owning code and named machine contracts govern syntax and profiles. Candidate extensions are not release authority.",
+  "authority": "Navigation only. Current user scope and AGENTS.md govern actions. Owning code and named machine contracts govern syntax and profiles. Candidate extensions are not release authority. Baseline identifies the selected source anchors, not execution or semantic certification of every route.",
   "routes": [
     {
       "id": "first_analysis",
@@ -20,9 +20,10 @@
       "outputs": [
         "region inventory",
         "package",
-        "validation receipts"
+        "validation receipts",
+        "requested-output disposition"
       ],
-      "completion_limit": "Validated extraction is not authored interpretation."
+      "completion_limit": "Read main and workbook validation separately; --workbook-strict fails for a missing matching workbook. Validated extraction is not authored interpretation."
     },
     {
       "id": "read_results",
@@ -95,7 +96,7 @@
         "assets",
         "build receipt"
       ],
-      "completion_limit": "v2n is .447 plus candidate .448 gallery/caption changes; a tag does not enable features. Displayed annotations are bounded, not lossless."
+      "completion_limit": "The selected builder includes a reference-structure gallery when compatible assets are supplied; a tag does not enable features. Report actual gallery counts and omissions from the receipt. Displayed annotations are bounded, not lossless."
     },
     {
       "id": "figures",
@@ -112,7 +113,7 @@
         "renderer receipts",
         "rendered-page review"
       ],
-      "completion_limit": "Check actual source availability and rendered output. In .447 an external image destination can still refresh package integrity records; use a working package copy to preserve the sealed original."
+      "completion_limit": "Check actual source availability and rendered output. An external image destination can still refresh package integrity records; use a working package copy to preserve the sealed original."
     },
     {
       "id": "companions",

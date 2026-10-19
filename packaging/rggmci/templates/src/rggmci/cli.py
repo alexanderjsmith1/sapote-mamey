@@ -153,7 +153,7 @@ def fasta_main(argv) -> int:
         m = emit_fasta(a.zip, run(a.zip), a.out_dir, proteins_per_file=a.proteins_per_file,
                        confidences=("HIGH", "MODERATE") if a.include_moderate else ("HIGH",),
                        per_region=a.per_region, edge_genes=a.edge_genes)
-    except FileExistsError as exc:
+    except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
     print(f"{len(m['pairs'])} pairs, {len(m['proteins'])} proteins in {len(m['files'])} FASTA file(s) -> {a.out_dir}. "
@@ -177,8 +177,12 @@ def layer_main(argv) -> int:
     if missing or not (a.hits or a.xml2):
         print(f"not found: {', '.join(missing)}" if missing else "give --hits and/or --xml2", file=sys.stderr)
         return 2
-    layer = blastp_layer(a.manifest, a.hits, a.xml2, top_n=a.top_n, exclude_organisms=a.exclude_organism)
-    write_layer(layer, a.out_dir)
+    try:
+        layer = blastp_layer(a.manifest, a.hits, a.xml2, top_n=a.top_n, exclude_organisms=a.exclude_organism)
+        write_layer(layer, a.out_dir)
+    except (OSError, ValueError) as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
     st = [r["blastp_status"] for r in layer["proteins"]]
     print(f"{len(st)} proteins: {st.count('HIT')} with hits, {sum(s.startswith('NO_HITS') for s in st)} no hits, "
           f"{st.count('NOT_IN_RESULTS')} not in the results; {len(layer['pairs'])} pairs -> {a.out_dir}")
@@ -269,10 +273,11 @@ def main(argv=None) -> int:
             print(f"{z.name}: ERROR {type(exc).__name__}", file=sys.stderr)
             continue
         pairs = res.get("ranked_pairs") or []
-        s = _summary(name, res)
+        logical = (res.get("input") or {}).get("label", name)
+        s = _summary(logical, res)
         summary.append(s)
         for g in res.get("candidate_groups") or []:
-            all_groups.append({"genome": name, **{k: g[k] for k in ("group", "n_regions", "n_contigs", "n_at_contig_ends",
+            all_groups.append({"genome": logical, **{k: g[k] for k in ("group", "n_regions", "n_contigs", "n_at_contig_ends",
                                                                    "high_pairs")},
                                "regions": "; ".join(f"{r['identity']} [{r['products']}] {r['edge_status']}"
                                                     for r in g["regions"]),

@@ -24,6 +24,14 @@ import clade_decontam     # noqa: E402
 import clade_nt_core_bgc as ntc  # noqa: E402
 import clade_deepdive     # noqa: E402
 
+if __package__ in (None, ""):
+    from _synthetic_identity_fixture import synthetic_namespace_id
+else:
+    from tests._synthetic_identity_fixture import synthetic_namespace_id
+_FORMAT_CASE_1 = synthetic_namespace_id('AS', width=3, case_index=804)
+_FORMAT_CASE_3 = synthetic_namespace_id('AS', width=3, case_index=828)
+_FORMAT_CASE_2 = synthetic_namespace_id('AS', width=3, case_index=805)
+
 
 class TestCladeAni(unittest.TestCase):
     def test_boundary_flags(self):
@@ -35,30 +43,30 @@ class TestCladeAni(unittest.TestCase):
 
     def test_parse_and_matrix(self):
         # tab-separated fastANI output: query ref ani mapped total (paths -> basenames)
-        text = "\t".join(["AS-188.fna", "AS-932.fna", "94.65", "900", "1000"]) + "\n" + \
-               "\t".join(["AS-932.fna", "AS-188.fna", "94.60", "890", "1000"]) + "\n" + \
-               "\t".join(["AS-188.fna", "Nocardia_farcinica_type.fna", "88.10", "700", "1000"])
+        text = "\t".join([f"{_FORMAT_CASE_1}.fna", f"{_FORMAT_CASE_3}.fna", "94.61", "900", "1000"]) + "\n" + \
+               "\t".join([f"{_FORMAT_CASE_3}.fna", f"{_FORMAT_CASE_1}.fna", "94.56", "890", "1000"]) + "\n" + \
+               "\t".join([f"{_FORMAT_CASE_1}.fna", "Nocardia_farcinica_type.fna", "88.24", "700", "1000"])
         pairs = clade_ani.parse_fastani(text)
-        self.assertAlmostEqual(pairs[("AS-188", "AS-932")]["ani"], 94.65)
-        self.assertEqual(pairs[("AS-188", "AS-932")]["mapped"], 900)
+        self.assertAlmostEqual(pairs[(f"{_FORMAT_CASE_1}", f"{_FORMAT_CASE_3}")]["ani"], 94.61)
+        self.assertEqual(pairs[(f"{_FORMAT_CASE_1}", f"{_FORMAT_CASE_3}")]["mapped"], 900)
         labels = sorted({l for pr in pairs for l in pr})
         mat = clade_ani.build_matrix(pairs, labels)
-        self.assertEqual(mat["AS-188"]["AS-188"], 100.0)
-        self.assertAlmostEqual(mat["AS-188"]["AS-932"], 94.65)
+        self.assertEqual(mat[f"{_FORMAT_CASE_1}"][f"{_FORMAT_CASE_1}"], 100.0)
+        self.assertAlmostEqual(mat[f"{_FORMAT_CASE_1}"][f"{_FORMAT_CASE_3}"], 94.61)
 
     def test_nearest_named(self):
-        text = "\t".join(["AS-188.fna", "Nocardia_farcinica_type.fna", "88.10", "700", "1000"]) + "\n" + \
-               "\t".join(["AS-188.fna", "AS-932.fna", "94.65", "900", "1000"])
+        text = "\t".join([f"{_FORMAT_CASE_1}.fna", "Nocardia_farcinica_type.fna", "88.24", "700", "1000"]) + "\n" + \
+               "\t".join([f"{_FORMAT_CASE_1}.fna", f"{_FORMAT_CASE_3}.fna", "94.61", "900", "1000"])
         pairs = clade_ani.parse_fastani(text)
         labels = sorted({l for pr in pairs for l in pr})
         rows = clade_ani.nearest_named(pairs, labels)
-        # only AS-188 is a query; its nearest NAMED type is the farcinica type (AS-932 is a query)
-        r = [x for x in rows if x["strain"] == "AS-188"][0]
+        # only constructed parser case 1 is a query; its nearest NAMED type is the farcinica type (constructed parser case 3 is a query)
+        r = [x for x in rows if x["strain"] == f"{_FORMAT_CASE_1}"][0]
         self.assertEqual(r["nearest_named"], "Nocardia_farcinica_type")
         self.assertTrue(r["flag"].startswith("candidate_distinct"))
 
     def test_is_named_type(self):
-        self.assertFalse(clade_ani.is_named_type("AS-188"))
+        self.assertFalse(clade_ani.is_named_type(f"{_FORMAT_CASE_1}"))
         self.assertFalse(clade_ani.is_named_type("SID1234"))
         self.assertTrue(clade_ani.is_named_type("Nocardia_farcinica_type"))
 
@@ -164,7 +172,7 @@ class TestOrchestrator(unittest.TestCase):
             # everything absent -> every track must skip-with-note, no external tool invoked
             results, synth = clade_deepdive.run(
                 "Nocardia", empty_genomes, db=None,
-                strains="AS-188,AS-190,AS-932", out=out)
+                strains=f"{_FORMAT_CASE_1},{_FORMAT_CASE_2},{_FORMAT_CASE_3}", out=out)
             self.assertTrue(os.path.exists(synth))
             with open(synth) as fh:
                 text = fh.read()

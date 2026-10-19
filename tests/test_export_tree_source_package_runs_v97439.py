@@ -54,24 +54,24 @@ def _export(tmp_path: Path, stem: str, analysis_name: str = "analysis.nwk"):
 
 def test_exporter_exits_zero_and_prints_the_package_path(tmp_path):
     """The defect: rc=1 with NameError on the final line, after writing the whole package."""
-    result, out = _export(tmp_path, "AS-705_rect_v1")
+    result, out = _export(tmp_path, 'SYNTHETIC-CASE-020_rect_v1')
     assert result.returncode == 0, result.stderr
     assert "NameError" not in result.stderr
     assert result.stdout.strip() == str(out)
 
 
 def test_exporter_writes_the_package_it_advertises(tmp_path):
-    result, out = _export(tmp_path, "AS-705_rect_v1")
+    result, out = _export(tmp_path, 'SYNTHETIC-CASE-020_rect_v1')
     assert result.returncode == 0, result.stderr
-    for name in ("AS-705_rect_v1_tree.nwk", "AS-705_rect_v1_analysis_tree.nwk",
-                 "AS-705_rect_v1_caption.txt", "AS-705_rect_v1_render_figure.R",
-                 "AS-705_rect_v1_rerender_captioned.sh", "MANIFEST.json"):
+    for name in ('SYNTHETIC-CASE-020_rect_v1_tree.nwk', 'SYNTHETIC-CASE-020_rect_v1_analysis_tree.nwk',
+                 'SYNTHETIC-CASE-020_rect_v1_caption.txt', 'SYNTHETIC-CASE-020_rect_v1_render_figure.R',
+                 'SYNTHETIC-CASE-020_rect_v1_rerender_captioned.sh', "MANIFEST.json"):
         assert (out / name).is_file(), name
 
 
 @pytest.mark.parametrize("stem,analysis", [
-    ('AS-705_$(touch STEM_CANARY)', "analysis.nwk"),
-    ("AS-705_rect_v1", 'analysis_$(touch RECEIPT_CANARY).nwk'),
+    ('SYNTHETIC-CASE-020_$(touch STEM_CANARY)', "analysis.nwk"),
+    ('SYNTHETIC-CASE-020_rect_v1', 'analysis_$(touch RECEIPT_CANARY).nwk'),
 ])
 def test_generated_helper_does_not_execute_interpolated_values(tmp_path, stem, analysis):
     """A `$( )` in a filename or a receipt path must not run when the helper runs."""
@@ -90,7 +90,7 @@ def test_generated_helper_does_not_execute_interpolated_values(tmp_path, stem, a
 
 def test_helper_quotes_every_interpolated_value(tmp_path):
     """Read the generated script: no bare `$(` outside the two intended constructs."""
-    result, out = _export(tmp_path, "AS-705_rect_v1")
+    result, out = _export(tmp_path, 'SYNTHETIC-CASE-020_rect_v1')
     assert result.returncode == 0, result.stderr
     helper = next(out.glob("*_rerender_captioned.sh"))
     for line in helper.read_text().splitlines():

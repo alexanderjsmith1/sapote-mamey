@@ -43,8 +43,8 @@ def test_build_writes_html_and_complete_identity(tmp_path):
 
 
 def test_high_rggmci_pair_is_one_adjacent_review_unit(tmp_path):
-    a="AS-441 / NODE_69_length_9799_cov_77.372660 / region001 / BGC042"
-    b="AS-441 / NODE_28_length_73283_cov_62.230719 / region002 / BGC018"
+    a='SYNTHETIC-CASE-015 / NODE_69_length_9799_cov_77.372660 / region001 / BGC042'
+    b='SYNTHETIC-CASE-015 / NODE_28_length_73283_cov_62.230719 / region002 / BGC018'
     rows=[]
     for rank,(identity,partner) in enumerate(((a,b),(b,a)),1):
         rows.append({
@@ -61,8 +61,8 @@ def test_high_rggmci_pair_is_one_adjacent_review_unit(tmp_path):
     with src.open("w",newline="") as f:
         w=csv.DictWriter(f,fieldnames=list(rows[0]),delimiter="\t"); w.writeheader(); w.writerows(rows)
     mod.build(src,tmp_path/"out")
-    html_report=(tmp_path/"out"/"PER_STRAIN"/"AS-441"/"REPORT.html").read_text()
-    md_report=(tmp_path/"out"/"PER_STRAIN"/"AS-441"/"REPORT.md").read_text()
+    html_report=(tmp_path/"out"/"PER_STRAIN"/'SYNTHETIC-CASE-015'/"REPORT.html").read_text()
+    md_report=(tmp_path/"out"/"PER_STRAIN"/'SYNTHETIC-CASE-015'/"REPORT.md").read_text()
     assert html_report.count("HIGH RG-GMCI rescue unit")==1
     linked=html_report.split("HIGH RG-GMCI rescue unit",1)[1].split("</section>",1)[0]
     assert a in linked and b in linked

@@ -51,9 +51,18 @@ def test_identify_still_recognizes_legacy_sessions_convention(tmp_path):
     assert scl.identify(str(p)) == "Example Lane"
 
 
-def test_identify_does_not_hardcode_a_workspace_specific_literal():
-    src = (HOOKS_DIR / "session_cost_ledger.py").read_text(encoding="utf-8")
-    assert "Color folders" not in src
+def test_identify_uses_state_owner_with_distinct_and_misleading_parents(tmp_path):
+    """The direct STATE owner determines identity; parent names cannot supply it.
+
+    All transcript records here are fabricated; no real session payload is loaded.
+    """
+    for index, parent in enumerate(("arbitrary_parent", "Parent With Spaces", "sessions/Decoy Lane")):
+        p = tmp_path / f"invented_{index}.jsonl"
+        _write_fake_transcript(p, f"/invented/{parent}/Sea Green/STATE.md")
+        assert scl.identify(str(p)) == "Sea Green"
+    p = tmp_path / "not_state.jsonl"
+    _write_fake_transcript(p, "/invented/Decoy Lane/Sea Green/NOT_STATE.md")
+    assert scl.identify(str(p)) in (None, "?")
 
 
 def test_ledger_row_carries_real_identity_not_the_unknown_fallback(tmp_path, monkeypatch):

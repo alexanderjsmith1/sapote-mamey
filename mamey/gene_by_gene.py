@@ -12,6 +12,7 @@ package. One row per CDS within each top-N BGC, columns:
 For fragmented assemblies: edge/core-overlap flags and RG-GMCI adjacency.
 """
 from __future__ import annotations
+from .source_context import source_zipfile as _source_zipfile, source_exists as _source_exists
 
 import csv
 try:
@@ -223,7 +224,7 @@ def write_gene_count_crosscheck(package_dir: str | Path,
     manifest = json.loads((pdir / "manifest.json").read_text(encoding="utf-8"))
     as_version = (manifest.get("provenance", {}) or {}).get("antismash_version") \
         or manifest.get("antismash_version")
-    if not as_version and input_zip and Path(input_zip).exists():
+    if not as_version and input_zip and _source_exists(input_zip):
         try:
             from .parsers import extract_antismash_version as _eav
             as_version = _eav(input_zip)
@@ -234,9 +235,9 @@ def write_gene_count_crosscheck(package_dir: str | Path,
     # Build a basename -> GBK-text resolver from the input zip (primary) and package glob (fallback).
     zip_gbk: dict[str, str] = {}
     zip_unreadable: str | None = None
-    if input_zip and Path(input_zip).exists():
+    if input_zip and _source_exists(input_zip):
         try:
-            with zipfile.ZipFile(input_zip) as zf:
+            with _source_zipfile(input_zip) as zf:
                 for n in regular_file_names(zf):
                     if n.lower().endswith(".gbk"):
                         zip_gbk[Path(n).name] = zf.read(n).decode("utf-8", "replace")
@@ -450,7 +451,7 @@ def build_gene_by_gene_table(
         zip_candidates = sorted(pdir.parent.glob("*.zip"))
         for zp in zip_candidates:
             try:
-                with zipfile.ZipFile(zp) as z:
+                with _source_zipfile(zp) as z:
                     for name in regular_file_names(z):
                         if name.endswith(".gbk") and "region" in name:
                             key = Path(name).stem

@@ -15,7 +15,7 @@ from mamey import bigscape_figures as F
 def test_module_uses_canonical_ingest_identity():
     """The DB gbk-path form and the evidence short-node form must reduce to the SAME canonical key —
     this is what prevents attributing a network node to the wrong BGC (the .291/.292 mis-map class)."""
-    db_path = "AS-40_NODE_44_length_59421_cov_40.489923.region001.gbk"
+    db_path = "SYNTHETIC-CASE-012_NODE_44_length_59421_cov_40.489923.region001.gbk"
     ev_node = "NODE_44_length_59421_cov_40"          # as stored in all_evidence.json
     _strain, db_key, _mibig = ingest.parse_locator(db_path)
     ev_key = ingest.canon_locator(f"{ev_node}.region001")
@@ -32,7 +32,7 @@ def test_no_naive_node_regex_in_module():
 
 
 def test_run_and_cutoff_required():
-    r = F.gcf_network(db="x", strain="AS-40", run=None, cutoff=None)
+    r = F.gcf_network(db="x", strain="SYNTHETIC-CASE-012", run=None, cutoff=None)
     assert r["status"] == "MISSING_ARGS"
     print("PASS test_run_and_cutoff_required")
 

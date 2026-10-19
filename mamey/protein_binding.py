@@ -15,6 +15,7 @@ the same for each.
 from __future__ import annotations
 
 import hashlib
+import math
 import re
 from collections import Counter
 from pathlib import Path
@@ -92,9 +93,15 @@ def bind_one(tag: str, sha: str, query_len, by_sha: dict, length: dict) -> tuple
         tags = by_sha.get(sha.lower(), [])
         return (list(tags), "sha") if tags else ([], "unbound_sha_not_in_genome")
     try:
-        q = int(float(query_len))
-    except (TypeError, ValueError):
+        parsed = float(query_len)
+    except (TypeError, ValueError, OverflowError):
         return [], "unbound_no_sha_no_length"
+    # Amino-acid counts are positive integers. Never truncate a fractional
+    # value into the one-aa legacy slack or let nonfinite input crash a reader.
+    if (isinstance(query_len, bool) or not math.isfinite(parsed)
+            or not parsed.is_integer() or parsed <= 0):
+        return [], "unbound_invalid_length"
+    q = int(parsed)
     if tag not in length:
         return [], "unbound_tag_not_in_genome"
     if abs(length[tag] - q) <= LENGTH_SLACK_AA:

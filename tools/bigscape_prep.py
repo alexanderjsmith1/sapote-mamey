@@ -23,7 +23,7 @@ A mixed-flavor input can no longer form by accident: --strictness is required un
 
 Inputs may be:
   - raw antiSMASH output ZIPs (one per strain; strain ID = zip stem), and/or
-  - sealed Mamey Complete_Package dirs/zips (region GBKs are pulled from the packaged run).
+  - sealed Sapote-Mamey package directories/ZIPs (region GBKs are pulled from the packaged run).
 
 Usage:
   python bigscape_prep.py --inputs <dir-of-zips|zip...> --strictness loose  --out bigscape_input_loose/

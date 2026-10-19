@@ -336,7 +336,7 @@ def render_rationale(bgc, *, rg_note="", floored=False, floor_triggers=(), ripp_
     return f"{bgc.edge_status}; Arch {bgc.architecture_confidence}; KCB={bgc.kcb_cumulative}{_kcb_state_note}; RiQ={bgc.riq_score}; products={', '.join(bgc.products[:5]) or 'unresolved'}{('; ARCH-CAPACITY: ' + bgc.architecture_capacity + ' [' + bgc.architecture_class_confidence + ']') if getattr(bgc, 'architecture_capacity', '') else ''}{rg_note}{('; DIAG-FLOOR: ' + ','.join(floor_triggers) + ' floored to Medium') if floored else ''}{('; RIPP-FRAGMENT-FLOOR: completeness=fragment_no_precursor (RiPP-family, truncated <8kb, no precursor captured) — capped at bottom tier (Low for RiPP-family, class-gated)') if ripp_floored else ''}{('; AF-diagnostic('+','.join(t for t in corrob_triggers if any(d in t for d in AF_DIAGNOSTIC_TRIGGERS))+')') if af_diag else ''}{('; CCTT-UNCORROBORATED ('+','.join(sorted(_uncorr & set(triggers)))+'): fired on class-incompatible locus — excluded from class-capacity bonus/floor') if (_uncorr & set(triggers)) else ''}{('; PRIMARY-METAB/PIGMENT FLAG ('+','.join(sorted(pm_families))+'): AB/AF credit suppressed — housekeeping/pigment core, treat as non-bioactivity') if primary_flag else ''}{('; STANDING-RULE DOWNGRADE ('+standing_rule+'): excluded from corrected lead rank; reason=' + standing_rule_reason(standing_rule) + ('; structural novelty unaffected' if 'hglE' in standing_rule else '')) if standing_rule else ''}{('; MIS-ANCHOR ('+misanchor_flag+'): KCB anchor lacks its class diagnostic — anchor-derived credit suppressed') if misanchor_flag else ''}{('; MOBILE-ELEMENT DEMOTION ('+','.join(mobile_families)+'): region dominated by mobile/ICE machinery, not independently class-typed — AB/AF credit suppressed') if mobile_flag else ''}{esignal_note}"
 
 
-# --- AQUARIUS_01 (v9.7.350/.351): class-gated bottom tier ----------------------------------------
+# --- inventory bottom-tier policy (v9.7.350/.351): class-gated bottom tier ----------------------------------------
 # the Developer or User's rule (2026-08-04): the Inventory tier is reserved for genuinely low-interest HOUSEKEEPING
 # classes. A BGC whose product classes are ALL housekeeping stays "Inventory"; a BGC carrying any
 # specialized / antimicrobial-capable class that merely scored below the Medium threshold is labelled
@@ -758,7 +758,7 @@ def triage_bgcs(bgcs: list[BGCRecord], rggmci: dict | None = None, scans=None) -
                     standing_rule = "hglE-KS-PREV-001"
         if standing_rule:
             # saccharide/hglE-KS standing-rule -> housekeeping -> Inventory (unchanged);
-            # any non-housekeeping standing-rule target -> Low (class-gated bottom, AQUARIUS_01).
+            # any non-housekeeping standing-rule target -> Low (class-gated bottom, inventory bottom-tier policy).
             tier = bottom_tier(bgc); floored = False
         # F2 — RiPP completeness floor: a RiPP-family product on a truncated, sub-8kb region has no
         # precursor/core captured and can't be evaluated as a product. Cap at Inventory so a lone

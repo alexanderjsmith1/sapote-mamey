@@ -1,7 +1,7 @@
-"""test_modeb_evidence_gate.py — v9.7.354. Pins Codex's 2026-08-06 Mode B governance review.
+"""Fabricated Mode B language fixtures, independent of empirical strain findings.
 
-The gate must HOLD the exact over-promotion Codex caught (BGC010 HSAF/clifednamide card) and must
-NOT punish an honestly HOLD-worded card. Fixtures mirror the review's counterexamples.
+All subject names, assay descriptions and quantities in these examples are invented.
+The intentionally over-promoted card must HOLD; the cautious card remains admissible.
 """
 import importlib.util
 import sys
@@ -19,18 +19,19 @@ def _kinds(rep):
     return {v.kind for v in rep.violations}
 
 
-# The over-promoted card Codex demoted to HOLD (condensed to its offending sentences).
+# A fabricated negative control reproducing the same linguistic failure classes.
 BAD_CARD = """
+Fabricated negative-control card. Every assay description and quantity below is invented.
 BGC010 — PROMOTED, authoritative, good confidence. Strongest antifungal lead in the cohort.
 FkbH glyceryl starter + ornithine aminotransferase + trans-AT modules + release thioesterase = the HSAF grammar.
 This is a clifednamide congener. Novelty read: real at the congener level (AS-private two-member BiG-SCAPE
-family, 87.8% identity in one megasynthase, 3/38 KCB coverage; recognizable-gene share 0.375).
-Most consistent with AS-696's measured anti-Candida activity; AS-696 is most-active-in-vivo (crude-extract
+family, 84.2% identity in one megasynthase, 2/41 KCB coverage; recognizable-gene share 0.625).
+Most consistent with SYNTHETIC-MODEB-A's invented anti-Candida activity; SYNTHETIC-MODEB-A is most-active-in-vivo (crude-extract
 whole-cell assay). A nearby ABC transporter provides dedicated export/self-protection. Edge; near-complete
 full backbone. No fresh per-gene BLASTP panel exists.
 """
 
-# The verdict Codex said it would permit.
+# A fabricated cautious verdict using the same generic evidence-governance grammar.
 GOOD_CARD = """
 BGC010 — HOLD. High-priority complex PKS-NRPS hypothesis.
 OBSERVATION: the locus contains a trans-AT PKS/NRPS system and a separate FkbH/ACP-associated signal.
@@ -52,7 +53,7 @@ def test_bad_card_is_held():
     assert "ACTIVITY_INHERITANCE" in k
     assert "ASSAY_CONFLATION" in k
     assert "EDGE_VS_COMPLETENESS" in k
-    assert "ARITHMETIC_MISMATCH" in k       # 3/38 = 0.079, not 0.375
+    assert "ARITHMETIC_MISMATCH" in k       # 2/41 = 0.049, not 0.625
     assert "STRUCTURE_MISSING" in k         # no OBS/INF/ALT/FALS
 
 
@@ -95,5 +96,5 @@ def test_activity_inheritance_needs_validation():
 
 
 def test_arithmetic_denominator_mismatch():
-    rep = assess("Support is 3/38 genes; recognizable-gene share 0.375.")
+    rep = assess("Support is 2/41 genes; recognizable-gene share 0.625.")
     assert "ARITHMETIC_MISMATCH" in _kinds(rep)

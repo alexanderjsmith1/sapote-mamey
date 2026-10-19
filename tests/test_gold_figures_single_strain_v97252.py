@@ -42,7 +42,7 @@ def test_run_all_g_skips_cross_strain_batches_on_a_single_strain(monkeypatch):
     monkeypatch.setattr(cf, "BATCHES", {b: (lambda *a, _b=b, **k: called.append(_b)) for b in (1, 2, 3, 4)})
     monkeypatch.setattr(cf, "GNUM", [0])
     monkeypatch.setattr(cf.glob, "glob", lambda *a, **k: [])
-    cf._run_all_g({}, ["AS-696"], "/tmp")
+    cf._run_all_g({}, ['SYNTHETIC-CASE-019'], "/tmp")
     assert called == [1, 2], "batches 3-4 have no cross-strain data at n=1"
 
 
@@ -51,7 +51,7 @@ def test_run_all_g_runs_every_batch_for_two_or_more_strains(monkeypatch):
     monkeypatch.setattr(cf, "BATCHES", {b: (lambda *a, _b=b, **k: called.append(_b)) for b in (1, 2, 3, 4)})
     monkeypatch.setattr(cf, "GNUM", [0])
     monkeypatch.setattr(cf.glob, "glob", lambda *a, **k: [])
-    cf._run_all_g({}, ["AS-696", "AS-421"], "/tmp")
+    cf._run_all_g({}, ['SYNTHETIC-CASE-019', 'SYNTHETIC-CASE-013'], "/tmp")
     assert called == [1, 2, 3, 4], "multi-strain behaviour must be unchanged"
 
 

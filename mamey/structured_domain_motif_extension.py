@@ -1,4 +1,5 @@
 """Index saved Mamey structured exports. No original antiSMASH parser or new scan."""
+from .source_context import source_zipfile as _source_zipfile, captured_digest as _captured_digest, source_exists as _source_exists
 import argparse,collections,hashlib,json,re,sqlite3,zipfile,zlib,time,csv,io
 from pathlib import Path
 from .mode_b.gene_first_store_bridge import read_round_fasta
@@ -7,6 +8,8 @@ from . import tool_database_reader as owner
 from .csv_safety import SafeDictWriter
 TABLES=('modules','motifs','hmm','ripp_motifs','rrefinder')
 def sha(p):
+ bound=_captured_digest(p)
+ if bound is not None:return bound
  h=hashlib.sha256()
  with Path(p).open('rb') as f:
   for block in iter(lambda:f.read(1048576),b''):h.update(block)
@@ -74,10 +77,10 @@ def package_data(row,loci,sources,archive_cache):
   path=Path(source['original_locator']);key=source['source_sha256']
   if key not in archive_cache:
    a={'path':str(path),'expected_sha256':key,'state':'SOURCE_ARCHIVE_UNAVAILABLE','json_members':[]}
-   if path.is_file():
+   if _source_exists(path):
     actual=sha(path);a['actual_sha256']=actual;a['state']='ARCHIVE_HASH_VERIFIED' if actual==key else 'ARCHIVE_HASH_CONFLICT'
     if actual==key:
-     with zipfile.ZipFile(path) as z:a['json_members']=[{'member':n.filename,'bytes':n.file_size,'crc32':n.CRC,'state':'MEMBER_PRESENT_NOT_PARSED_IN_THIS_LANE'} for n in z.infolist() if n.filename.lower().endswith('.json')]
+     with _source_zipfile(path) as z:a['json_members']=[{'member':n.filename,'bytes':n.file_size,'crc32':n.CRC,'state':'MEMBER_PRESENT_NOT_PARSED_IN_THIS_LANE'} for n in z.infolist() if n.filename.lower().endswith('.json')]
    archive_cache[key]=a
   archive=archive_cache[key];assembly_ok=m.get('input_zip_sha256')==source['source_sha256'] and archive['state']=='ARCHIVE_HASH_VERIFIED'
  parse=json.loads(ep.read_text()) if ep.is_file() else {};boundloci={};locusrows=[]

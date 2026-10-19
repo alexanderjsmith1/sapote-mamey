@@ -17,7 +17,7 @@ import locator_reconciliation as L  # noqa: E402
 
 CURRENT_TITLE_CARD = (
     "<!-- MODE B TEMPLATE | bgc: BGC007 | node: NODE_14_length_159225_cov_15 -->\n\n"
-    "# Mode B — BGC007 (NODE_14_length_159225_cov_15) — AS-932\n\n"
+    '# Mode B — BGC007 (NODE_14_length_159225_cov_15) — SYNTHETIC-CASE-027\n\n'
     + ("filler line\n" * 400)  # push §1 well past the 500-char header window
     + "**BGC:** BGC007\n"
     "**Node / contig:** NODE_14_length_159225_cov_15\n"
@@ -50,7 +50,7 @@ def test_returns_none_when_no_region_anywhere():
 
 
 def test_legacy_title_region_is_secondary_not_authoritative():
-    row = {"Strain": "AS-932", "BGC_ID": "BGC007",
+    row = {"Strain": 'SYNTHETIC-CASE-027', "BGC_ID": "BGC007",
            "Node_ID": "NODE_14_length_159225_cov_15", "antiSMASH_Region": "region002"}
     verdict = L.reconcile_heading_only(CURRENT_TITLE_CARD, row)
     assert verdict["status"] == "UNPARSEABLE"
@@ -59,7 +59,7 @@ def test_legacy_title_region_is_secondary_not_authoritative():
 
 
 def test_legacy_title_cannot_fill_four_part_identity_on_agreement():
-    row = {"Strain": "AS-932", "BGC_ID": "BGC007",
+    row = {"Strain": 'SYNTHETIC-CASE-027', "BGC_ID": "BGC007",
            "Node_ID": "NODE_14_length_159225_cov_15", "antiSMASH_Region": "region001"}
     verdict = L.reconcile_heading_only(CURRENT_TITLE_CARD, row)
     assert verdict["status"] == "UNPARSEABLE"

@@ -16,8 +16,8 @@ def test_locates_capital_master(tmp_path):
 
 
 def test_locates_versioned_master_and_picks_last(tmp_path):
-    (tmp_path / "Mamey_v1.9.111_Master_After_AS-421.xlsx").write_bytes(b"x")
-    (tmp_path / "Mamey_v1.9.111_Master_After_AS-660.xlsx").write_bytes(b"x")
+    (tmp_path / 'Mamey_v1.9.111_Master_After_SYNTHETIC-CASE-013.xlsx').write_bytes(b"x")
+    (tmp_path / 'Mamey_v1.9.111_Master_After_SYNTHETIC-CASE-016.xlsx').write_bytes(b"x")
     got = cd._locate_master(tmp_path, None)
     assert got is not None and "Master" in got.name
 

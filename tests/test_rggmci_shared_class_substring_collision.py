@@ -1,4 +1,4 @@
-"""v9.7.377 BLACK_CHERRY correctness fix: _shared_class_tokens must not let a qualified
+"""v9.7.377 regression_review correctness fix: _shared_class_tokens must not let a qualified
 antiSMASH product class (e.g. 'NI-siderophore') collide, via naive substring containment,
 with its own unqualified substring class ('siderophore') -- these are listed separately in
 _CLASS_TOKENS because antiSMASH treats them as DIFFERENT, biosynthetically distinct product

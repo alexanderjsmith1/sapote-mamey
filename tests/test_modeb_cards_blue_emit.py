@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """v9.7.330 (Blue port): emit-modeb-cards — compact per-BGC Mode-B data cards.
 
 Tests the portable card rendering (composition tag, auto-priors with claim-safety, RG-GMCI banner)
@@ -36,13 +37,13 @@ def test_composition_tags():
 def _rec():
     return BGCRecord(bgc="BGC004", contig="NODE_1", len_kb=46.7, cls="phosphonate",
                      is_edge=False, ab=81, af=32, novelty="MED", lead_tier="High",
-                     kcb_top="rhizocticin A")
+                     kcb_top="fabricated comparator alpha")
 
 
 def test_card_renders_with_claim_safety_and_no_crash_on_empty_enrichment():
-    card = mc.card("AS-40", _rec(), dd={}, ref={}, rgg=[], cblast={}, blastp={}, gcf={},
+    card = mc.card("SYNTHETIC-CASE-012", _rec(), dd={}, ref={}, rgg=[], cblast={}, blastp={}, gcf={},
                    meta={}, boards={})
-    assert card.startswith("# Mode-B card — AS-40 · BGC004")
+    assert card.startswith("# Mode-B card — SYNTHETIC-CASE-012 · BGC004")
     assert "## Auto-priors" in card
     # priors must carry the claim-safety floor (routing, not activity; KCB = similarity)
     assert "not activity" in card.lower()
@@ -54,6 +55,6 @@ def test_card_rggmci_banner_on_high_split_link():
             "partner_products": "NRPS", "rescue_class": "core", "terminus": "", "shared_products": "",
             "guard": ""}]
     # an orphan core with a HIGH split link should surface the RGGMCI-rescued banner
-    card = mc.card("AS-40", _rec(), dd={}, ref={}, rgg=rgg, cblast={}, blastp={}, gcf={},
+    card = mc.card("SYNTHETIC-CASE-012", _rec(), dd={}, ref={}, rgg=rgg, cblast={}, blastp={}, gcf={},
                    meta={}, boards={})
     assert "RGGMCI" in card or "RG-GMCI" in card or "split-pathway" in card.lower()

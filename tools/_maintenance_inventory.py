@@ -13,7 +13,7 @@ import os
 import posixpath
 from pathlib import Path, PurePosixPath
 import re
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 
 POLICY = "docs/maintenance_inventory.policy.json"
@@ -200,7 +200,7 @@ def build_inventory(root: Path, commands: list[dict], tool_paths: list[str], com
 
 
 def _link(path: str) -> str:
-    return posixpath.relpath(path, "docs").replace(" ", "%20")
+    return quote(posixpath.relpath(path, "docs"), safe="/")
 
 
 def render_navigation(payload: dict) -> str:

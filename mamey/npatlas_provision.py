@@ -477,10 +477,10 @@ def provision(
     out_dir = os.path.dirname(os.path.abspath(out_path))
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
-    tmp_path = out_path + ".tmp"
-    with open(tmp_path, "w", encoding="utf-8") as fh:
+    # Unique sibling staging protects foreign predictable .tmp paths; final replacement stays explicit.
+    from .packaging import atomic_open
+    with atomic_open(out_path, "w", encoding="utf-8") as fh:
         fh.write(payload)
-    os.replace(tmp_path, out_path)
     output_sha256 = sha256_file(out_path)
 
     licence_id, licence_text = _npatlas_licence()

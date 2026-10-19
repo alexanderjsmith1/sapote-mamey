@@ -17,6 +17,7 @@ import uuid
 
 import _release_partitions as contract
 import _release_validation as support
+from _archive_suite_environment import declared_environment, suite_tool_header
 
 
 def source_digest(source: Path) -> str:
@@ -29,7 +30,8 @@ def machinery_digest() -> str:
     """Bind the actual runner, recorder, support and reused source verifier."""
     import verify_external_validation_receipt as existing
     files = [Path(__file__), Path(contract.__file__), Path(support.__file__),
-             Path(__file__).with_name("_release_pytest_evidence.py"), Path(existing.__file__)]
+              Path(__file__).with_name("_release_pytest_evidence.py"), Path(existing.__file__),
+              Path(__file__).with_name("_archive_suite_environment.py")]
     return hashlib.sha256(support.canonical_json([
         {"name": path.name, "sha256": support.sha256_file(path)} for path in files])).hexdigest()
 
@@ -47,7 +49,53 @@ def test_environment(source: Path, supplied: dict[str, str] | None = None) -> di
     # Recorder machinery stays explicit for plugin discovery in synthetic suites.
     env["PYTHONPATH"] = os.pathsep.join([str(Path(__file__).parent.resolve()),
                                        ".", str(Path(existing.__file__).parent.resolve())])
-    return env
+    return declared_environment(env)
+
+
+def _scratch_path(source: Path, environment: dict, token: str) -> Path:
+    """Derive the declared temp path without creating or adopting any entries."""
+    contract.require(len(token) == 32 and all(c in "0123456789abcdef" for c in token),
+                     "invalid scratch owner token")
+    root = Path(environment.get("TMPDIR") or "/tmp")
+    contract.require(root.is_absolute(), "TMPDIR must be an existing absolute directory")
+    parent = root.resolve(strict=True)
+    contract.require(parent.is_dir(), "TMPDIR must be an existing absolute directory")
+    source = source.resolve(strict=True)
+    actual = parent / ("sapote-release-" + token)
+    contract.require(not parent.is_relative_to(source) and not source.is_relative_to(actual),
+                     "pytest scratch overlaps source")
+    return root / actual.name
+
+
+def _reserve_scratch(source: Path, environment: dict, token: str) -> dict:
+    """Reserve an absent UUID location; pytest may recreate this owned directory."""
+    path = _scratch_path(source, environment, token)
+    parent = path.parent.resolve(strict=True)
+    identity = parent.stat()
+    actual = parent / path.name
+    contract.require(not parent.is_relative_to(source.resolve(strict=True))
+                     and not source.resolve(strict=True).is_relative_to(actual), "pytest scratch overlaps source")
+    actual.mkdir(mode=0o700, exist_ok=False)
+    return {"path": str(path), "resolved_path": str(actual), "owner_token": token,
+            "parent_device": identity.st_dev, "parent_inode": identity.st_ino}
+
+
+def _remove_scratch(source: Path, scratch: dict) -> bool:
+    """Clean only a successful reserved path; refuse changed parents or aliases."""
+    path = Path(scratch["path"])
+    expected = _scratch_path(source, {"TMPDIR": str(path.parent)}, scratch["owner_token"])
+    parent = expected.parent.resolve(strict=True)
+    identity = parent.stat()
+    actual = parent / expected.name
+    contract.require(path == expected and str(actual) == scratch["resolved_path"]
+                     and [identity.st_dev, identity.st_ino] == [scratch["parent_device"], scratch["parent_inode"]],
+                     "successful scratch parent or ownership changed")
+    if not actual.exists() and not actual.is_symlink():
+        return False
+    contract.require(actual.is_dir() and not actual.is_symlink() and actual.resolve(strict=True) == actual,
+                     "successful scratch is not a real owned directory")
+    shutil.rmtree(actual)
+    return True
 
 
 def binding(source: Path, environment: dict, size: int, policy: dict, *, baseline: bool = False) -> dict:
@@ -57,6 +105,7 @@ def binding(source: Path, environment: dict, size: int, policy: dict, *, baselin
         files_per_partition=size, purpose="baseline" if baseline else "final")
     value.pop("sha256")
     value["resource_policy"] = policy
+    value["pytest_temp_root"] = str(_scratch_path(source, environment.get("visible_environment", {}), "0" * 32).parent)
     value["sha256"] = hashlib.sha256(support.canonical_json(value)).hexdigest()
     return value
 
@@ -122,12 +171,16 @@ def _check_attempt(output: Path, ref: dict, expected: dict, source: Path,
     selected_files = list(dict.fromkeys(node.split("::", 1)[0] for node in (scheduled or [])))
     suffix = ["--collect-only"] if collect_only else selected_files
     token = attempt_path.parent.name
+    contract.require(isinstance(expected.get("pytest_temp_root"), str), "attempt temp root binding is missing")
+    scratch = _scratch_path(source, {"TMPDIR": expected["pytest_temp_root"]}, token)
     contract.require(len(tail) == 8 + len(suffix)
                      and tail[:5] == ["--rootdir", str(source), "-p", "_release_pytest_evidence", "--release-evidence"]
                      and Path(tail[5]).is_absolute()
                      and Path(tail[5]).parts[-3:] == ("attempts", token, "capture.json")
-                     and tail[6:8] == ["--basetemp", "/tmp/sapote-release-" + token]
+                     and tail[6:8] == ["--basetemp", str(scratch)]
                      and tail[8:] == suffix, "attempt command selection or evidence arguments changed")
+    contract.require(attempt.get("scratch", {}).get("path") == str(scratch)
+                     and attempt["scratch"].get("owner_token") == token, "attempt scratch ownership differs")
     contract.require(capture.get("invocation_args") == command[3:], "pytest invocation differs from measured command")
     policy = expected["resource_policy"]
     contract.require(watch.get("rss_stop_bytes") == policy["rss_limit"]
@@ -252,19 +305,24 @@ Every invocation is watched and source-bound, including the pre-apply red run.
     contract.require(files and len(files) == len(set(files)), "manifest consumer subset is empty or duplicated")
     selected = [str(path.resolve(strict=True).relative_to(source)) for path in files]
     token = uuid.uuid4().hex
+    child_env = test_environment(source)
+    scratch_path = _scratch_path(source, child_env, token)
     directory = evidence / token
-    directory.mkdir(parents=True, exist_ok=False)
     contract.require(not directory.resolve().is_relative_to(source), "manifest subset evidence is inside source")
+    directory.mkdir(parents=True, exist_ok=False)
     before = source_digest(source)
     command = [environment["resolved_executable"], *contract.FLAGS,
                "--rootdir", str(source), "-p", "_release_pytest_evidence", "--release-evidence", str(directory / "capture.json"),
-               "--basetemp", "/tmp/sapote-release-" + token, *selected]
+               "--basetemp", str(scratch_path), *selected]
     record = {"schema": "sapote-mamey.manifest-consumer-subset.v1", "status": "WORKING",
               "started_utc": support.utc_now(), "source_before": before,
               "environment_identity_sha256": environment["identity_sha256"], "command": command,
               "selected_files": selected, "machinery_sha256": machinery_digest()}
+    scratch = None
     try:
-        watch = support.run_watched(command, cwd=source, log=directory / "pytest.log", env=test_environment(source))
+        scratch = _reserve_scratch(source, child_env, token)
+        record["scratch"] = scratch
+        watch = support.run_watched(command, cwd=source, log=directory / "pytest.log", env=child_env)
         record["watch"] = watch
         record["source_after"] = source_digest(source)
         contract.require(record["source_after"] == before, "manifest subset changed source")
@@ -280,10 +338,7 @@ Every invocation is watched and source-bound, including the pre-apply red run.
         counts = summary["main_counts"]
         failures = counts.get("failed", 0) + summary["subtest_counts"].get("failed", 0)
         if watch["exit_code"] == 0:
-            scratch = Path("/tmp/sapote-release-" + token)
-            if scratch.exists():
-                contract.require(scratch.is_dir() and not scratch.is_symlink(), "subset scratch is unsafe")
-                shutil.rmtree(scratch)
+            if _remove_scratch(source, scratch):
                 record["successful_scratch_removed"] = True
         return counts.get("passed", 0), counts.get("skipped", 0) + summary["collection_skips"], failures, (directory / "pytest.log").read_text()
     except BaseException as exc:
@@ -314,6 +369,7 @@ class PartitionRunner:
         self.baseline = baseline
         self.policy = {"rss_limit": rss_limit, "min_disk": min_disk, "timeout": timeout}
         self.env = test_environment(self.source, env)
+        _scratch_path(self.source, self.env, "0" * 32)  # preflight only; no filesystem writes
         self.record = None
 
     def save(self):
@@ -323,12 +379,13 @@ class PartitionRunner:
     def execute(self, stage: dict, *, collect_only: bool, retry_reason: str | None) -> dict:
         """Measure one attempt and save failures as well as successes."""
         token = uuid.uuid4().hex
+        scratch_path = _scratch_path(self.source, self.env, token)
         directory = self.output / "attempts" / token
         directory.mkdir(parents=True)
         expected = None if collect_only else stage["plan"]["expected_nodes"]
         args = ["--rootdir", str(self.source), "-p", "_release_pytest_evidence",
                 "--release-evidence", str(directory / "capture.json"),
-                "--basetemp", "/tmp/sapote-release-" + token]
+                "--basetemp", str(scratch_path)]
         args.extend(["--collect-only"] if collect_only else stage["plan"]["files"])
         command = [self.resolved_python, *contract.FLAGS, *args]
         previous = stage["attempts"][-1] if stage["attempts"] else None
@@ -341,12 +398,15 @@ class PartitionRunner:
         entry = {"started": artifact(self.output, directory / "started.json"),
                  "retry_reason": retry_reason}
         stage["attempts"].append(entry); stage["status"] = "RUNNING"; self.save()
+        scratch = None
         try:
+            scratch = _reserve_scratch(self.source, self.env, token)
+            attempt["scratch"] = scratch
             contract.require(attempt["source_before"] == self.record["binding"]["source_tree_sha256"],
                              "source drift before attempt")
             watch = support.run_watched(command, cwd=self.source, log=directory / "pytest.log",
                 env=self.env, rss_limit=self.policy["rss_limit"], min_disk=self.policy["min_disk"],
-                timeout=self.policy["timeout"])
+                timeout=self.policy["timeout"], log_header=suite_tool_header(self.env, self.source))
             attempt["watch"] = watch
             attempt["log"] = artifact(self.output, directory / "pytest.log")
             attempt["source_after"] = source_digest(self.source)
@@ -380,15 +440,13 @@ class PartitionRunner:
             if log_path.is_file():
                 attempt["log"] = artifact(self.output, log_path)
             attempt["missing_nodes"] = [node for node in (expected or []) if node not in completed]
-            scratch = Path("/tmp/sapote-release-" + token)
             clean_green_scratch = (attempt["status"] == "PASS" or
                                   (attempt["status"] == "MEASURED" and attempt["watch"]["exit_code"] == 0))
-            if clean_green_scratch and scratch.exists():
+            if clean_green_scratch and scratch is not None:
                 # Only this UUID's known successful scratch, after durable capture/logs.
                 try:
-                    contract.require(scratch.is_dir() and not scratch.is_symlink(), "successful scratch is not a real directory")
-                    shutil.rmtree(scratch)
-                    attempt["successful_scratch_removed"] = True
+                    if _remove_scratch(self.source, scratch):
+                        attempt["successful_scratch_removed"] = True
                 except (OSError, ValueError) as exc:
                     attempt["status"] = "FAILED"
                     attempt["reason"] = "successful scratch cleanup refused: " + str(exc)

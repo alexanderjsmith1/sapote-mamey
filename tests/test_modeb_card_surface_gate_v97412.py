@@ -1,4 +1,4 @@
-"""Runnable fixtures for the v9.7.412 card-surface checks (BLACK_CHERRY-412).
+"""Runnable fixtures for the v9.7.412 card-surface checks (regression_review-412).
 
 Committed at Codex's request (2026-09-07): a prose receipt is not a test. Each check has a
 POSITIVE fixture (must fire) and the shared NEGATIVE fixture (must stay silent). The negative

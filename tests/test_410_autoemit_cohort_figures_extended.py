@@ -35,7 +35,7 @@ pytestmark = pytest.mark.slow
 def _two_strain_batch(root: Path) -> list[dict]:
     """Two sealed-shaped packages plus the ``run_batch`` result dicts that point at them."""
     results = []
-    for sid in ("AS-001", "AS-002"):
+    for sid in ("SYNTHETIC-CASE-001", "SYNTHETIC-CASE-002"):
         _mini_package(root, sid)
         results.append({"strain_id": sid, "status": "OK", "raw_bgcs": 2, "assembly_tier": "T1"})
     return results
@@ -52,7 +52,7 @@ def test_autoemit_fires_on_two_strain_batch(tmp_path: Path) -> None:
     assert out.is_dir()
     assert receipt["status"] == "PASS"
     assert receipt["figure_count"] >= 8, receipt
-    assert receipt["strains"] == ["AS-001", "AS-002"]
+    assert receipt["strains"] == ["SYNTHETIC-CASE-001", "SYNTHETIC-CASE-002"]
     assert (out / "fig9_domain_cooccur.png").is_file()
     assert any(ln.startswith("[cohort-figures-extended] ") and "figures ->" in ln for ln in lines)
 

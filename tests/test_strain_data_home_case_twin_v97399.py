@@ -1,7 +1,7 @@
 """Case-twin regression for mamey.strain_data_home (v9.7.399, 4 finding).
 
 Verified field failure (sealed v9.7.398, macOS APFS, 2026-09-01): with the house-rule
-``MAMEY_PACKAGE_HOMES="MAMEY COMPLETE"`` environment set, the built-in ``Mamey Complete*``
+``MAMEY_PACKAGE_HOMES="PACKAGE OUTPUTS"`` environment set, the built-in ``Package Outputs*``
 glob and the case-variant env home resolved the SAME physical directory under two path
 strings; ``_package_zip_index`` walked it twice, and the duplicated newest package landed
 in ``superseded_packages`` (shipped freshness test: 7 passed env-unset, 1 failed env-set).
@@ -40,9 +40,9 @@ def _clear_cache():
 def test_case_variant_env_home_does_not_case_twin_superseded(tmp_path, monkeypatch):
     """Env home differing only by case from an on-disk home must not duplicate packages."""
     root = str(tmp_path)
-    old = _write_package_zip(os.path.join(root, "Mamey Complete", STRAIN), "9.7.397")
-    new = _write_package_zip(os.path.join(root, "Mamey Complete", STRAIN), "9.7.398")
-    monkeypatch.setenv("MAMEY_PACKAGE_HOMES", "MAMEY COMPLETE")
+    old = _write_package_zip(os.path.join(root, "Package Outputs", STRAIN), "9.7.397")
+    new = _write_package_zip(os.path.join(root, "Package Outputs", STRAIN), "9.7.398")
+    monkeypatch.setenv("MAMEY_PACKAGE_HOMES", "PACKAGE OUTPUTS")
     _clear_cache()
     try:
         home = strain_data_home(STRAIN, root=root)

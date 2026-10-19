@@ -117,7 +117,7 @@ def _checksum_manifest_text(root: pathlib.Path) -> tuple[str | None, str | None]
         return None, f"could not read {name}: {type(exc).__name__}: {exc}"
 
 
-def checksum_problems(root: pathlib.Path) -> tuple[list[str], dict[str, int]]:
+def checksum_problems(root: pathlib.Path, *, strict_coverage: bool = False) -> tuple[list[str], dict[str, int]]:
     """Assertions 1 + 2 only: every SOURCE_CHECKSUMS_SHA256.txt entry recomputes to its recorded
     digest and names a file that exists (plus the malformed-line guard, CRM-01).
 
@@ -132,6 +132,8 @@ def checksum_problems(root: pathlib.Path) -> tuple[list[str], dict[str, int]]:
     """
     problems: list[str] = []
     n_ok = n_bad = n_missing = 0
+    seen: set[str] = set()
+    duplicates: list[str] = []
     manifest_text, manifest_problem = _checksum_manifest_text(root)
     if manifest_problem is not None:
         problems.append(manifest_problem)
@@ -166,6 +168,9 @@ def checksum_problems(root: pathlib.Path) -> tuple[list[str], dict[str, int]]:
                 logical = rel
             if logical in SKIP_SELF:
                 continue
+            if logical in seen:
+                duplicates.append(logical)
+            seen.add(logical)
             try:
                 p, rel = _checksum_target(root, rel)
             except FileNotFoundError:
@@ -202,6 +207,37 @@ def checksum_problems(root: pathlib.Path) -> tuple[list[str], dict[str, int]]:
                             f"SOURCE_CHECKSUMS_SHA256.txt — a checksums file with a line that "
                             f"can't be parsed is itself evidence of corruption. First: "
                             f"{malformed[0]!r}")
+        if strict_coverage:
+            from tracked_file_policy import is_tracked
+            expected: set[str] = set()
+            try:
+                def walk_error(exc):
+                    raise exc
+                for directory, dirs, names in _os.walk(root, onerror=walk_error, followlinks=False):
+                    for name in list(dirs):
+                        path = pathlib.Path(directory) / name
+                        rel = path.relative_to(root).as_posix()
+                        if rel == ".git":
+                            dirs.remove(name)
+                        elif path.is_symlink() and is_tracked(rel):
+                            raise OSError(f"symlinked release directory: {rel}")
+                    for name in names:
+                        path = pathlib.Path(directory) / name
+                        rel = path.relative_to(root).as_posix()
+                        if is_tracked(rel):
+                            _checksum_target(root, rel)
+                            expected.add(rel)
+            except (OSError, _UnsafeChecksumTarget) as exc:
+                problems.append(f"could not enumerate admitted checksum coverage: {exc}")
+            covered = {rel for rel in seen if is_tracked(rel)}
+            if not seen or n_ok == 0:
+                problems.append("checksum manifest has no verified content records")
+            if expected - covered:
+                problems.append("checksum manifest omits governed file(s): " + ", ".join(sorted(expected - covered)[:5]))
+            if covered - expected:
+                problems.append("checksum manifest has unexpected governed path(s): " + ", ".join(sorted(covered - expected)[:5]))
+            if duplicates:
+                problems.append("checksum manifest has duplicate normalized path(s): " + ", ".join(duplicates[:5]))
     return problems, {"n_ok": n_ok, "n_bad": n_bad, "n_missing": n_missing}
 
 
@@ -245,12 +281,27 @@ def membership_problems(root: pathlib.Path) -> list[str]:
         _sys.path.insert(0, _pol_dir)
     from tracked_file_policy import is_tracked as _tracked
 
+    try:
+        admitted_tier, _ = _checksum_target(root, "TIER_MANIFEST.txt")
+        tier_text = admitted_tier.read_text(encoding="utf-8", errors="strict")
+    except (OSError, UnicodeError, _UnsafeChecksumTarget) as exc:
+        return [f"TIER_MANIFEST.txt is unavailable or unsafe: {exc}"]
     if tier.is_file():
         listed = set()
-        for line in tier.read_text(encoding="utf-8", errors="ignore").splitlines():
+        seen_normalized = set()
+        duplicates = []
+        for line in tier_text.splitlines():
             line = line.strip()
             if line and not line.startswith("#"):
-                listed.add(line[2:] if line.startswith("./") else line)
+                rel = line[2:] if line.startswith("./") else line
+                normalized = PurePosixPath(rel.replace("\\", "/")).as_posix()
+                if normalized in seen_normalized:
+                    duplicates.append(normalized)
+                seen_normalized.add(normalized)
+                listed.add(rel)
+        if duplicates:
+            problems.append("TIER_MANIFEST has duplicate normalized path(s): "
+                            + ", ".join(duplicates[:5]))
         actual = set()
         for fp in root.rglob("*"):
             if not fp.is_file():
@@ -275,20 +326,27 @@ def membership_problems(root: pathlib.Path) -> list[str]:
 
 def check(root: pathlib.Path, quiet: bool = False) -> int:
     # --- 1 + 2: checksums recompute, and every entry exists -------------------------------
-    problems, _stats = checksum_problems(root)
+    problems, _stats = checksum_problems(root, strict_coverage=True)
     n_ok, n_bad, n_missing = _stats["n_ok"], _stats["n_bad"], _stats["n_missing"]
 
     # --- 3: TIER_MANIFEST stamp == BUILD_STAMP build ------------------------------------
     tier = root / "TIER_MANIFEST.txt"
     stamp = root / "BUILD_STAMP.txt"
     tier_stamp = build_stamp = ""
-    if tier.is_file():
-        m = re.search(r"stamp=(\S+)", tier.read_text(encoding="utf-8", errors="ignore"))
+    artifact_text = {}
+    for name in ("TIER_MANIFEST.txt", "BUILD_STAMP.txt"):
+        try:
+            admitted, _ = _checksum_target(root, name)
+            artifact_text[name] = admitted.read_text(encoding="utf-8", errors="strict")
+        except (OSError, UnicodeError, _UnsafeChecksumTarget) as exc:
+            problems.append(f"required release artifact {name} is unavailable or unsafe: {exc}")
+    if "TIER_MANIFEST.txt" in artifact_text:
+        m = re.search(r"stamp=(\S+)", artifact_text["TIER_MANIFEST.txt"])
         tier_stamp = m.group(1) if m else ""
-    if stamp.is_file():
-        m = re.search(r"^build=(\S+)", stamp.read_text(encoding="utf-8", errors="ignore"), re.M)
+    if "BUILD_STAMP.txt" in artifact_text:
+        m = re.search(r"^build=(\S+)", artifact_text["BUILD_STAMP.txt"], re.M)
         build_stamp = m.group(1) if m else ""
-    if tier.is_file() and stamp.is_file():
+    if len(artifact_text) == 2:
         if not tier_stamp:
             problems.append("TIER_MANIFEST.txt has no stamp= field")
         elif tier_stamp != build_stamp:

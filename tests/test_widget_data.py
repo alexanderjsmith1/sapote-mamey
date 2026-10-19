@@ -2,7 +2,7 @@
 
 Builds a tiny sealed-package layout on disk, emits the widget-data aggregate,
 and asserts the class/machinery/governance derivations, including the
-AS-920 (EXCLUSION_ONLY) and AS-922 (AUDIT_ONLY_QUARANTINED) governance flags.
+SYNTHETIC-CASE-WIDGET-EXCLUDED (EXCLUSION_ONLY) and SYNTHETIC-CASE-WIDGET-QUARANTINED (AUDIT_ONLY_QUARANTINED) governance flags.
 """
 
 from __future__ import annotations
@@ -71,25 +71,30 @@ def _fixture(runs_dir: Path) -> None:
         {"contig": "c1", "locus_tag": "g6", "start": "50", "end": "59",
          "length_aa": "120", "gene_functions": ""},
     ]
-    _make_package(runs_dir, "AS-999", inv, cds)
+    _make_package(runs_dir, "SYNTHETIC-CASE-WIDGET-GOVERNED", inv, cds)
 
-    # AS-920: EXCLUSION_ONLY governance override.
+    # SYNTHETIC-CASE-WIDGET-EXCLUDED: EXCLUSION_ONLY governance override.
     _make_package(
-        runs_dir, "AS-920",
+        runs_dir, "SYNTHETIC-CASE-WIDGET-EXCLUDED",
         [{"BGC_ID": "BGC001", "Products": "NRPS", "Boundary": "Edge"}],
         [{"contig": "c1", "locus_tag": "g1", "start": "1", "end": "9",
           "length_aa": "100", "gene_functions": "regulatory (smcogs) X"}],
     )
-    # AS-922: AUDIT_ONLY_QUARANTINED governance override.
+    # SYNTHETIC-CASE-WIDGET-QUARANTINED: AUDIT_ONLY_QUARANTINED governance override.
     _make_package(
-        runs_dir, "AS-922",
+        runs_dir, "SYNTHETIC-CASE-WIDGET-QUARANTINED",
         [{"BGC_ID": "BGC001", "Products": "PKS", "Boundary": "Full-contig"}],
         [{"contig": "c1", "locus_tag": "g1", "start": "1", "end": "9",
           "length_aa": "200", "gene_functions": "biosynthetic-additional (smcogs) X"}],
     )
 
 
-def test_widget_data_emit(tmp_path):
+def test_widget_data_emit(tmp_path, monkeypatch):
+    # Fabricated governance states are local test inputs, not cohort authority.
+    monkeypatch.setattr(wd, "GOVERNANCE_OVERRIDES", {
+        "SYNTHETIC-CASE-WIDGET-EXCLUDED": "EXCLUSION_ONLY",
+        "SYNTHETIC-CASE-WIDGET-QUARANTINED": "AUDIT_ONLY_QUARANTINED",
+    })
     runs_dir = tmp_path / "runs"
     _fixture(runs_dir)
 
@@ -101,9 +106,9 @@ def test_widget_data_emit(tmp_path):
 
     # structural validation passes
     assert wd.validate_widget_data(data) == []
-    assert set(data["strains"]) == {"AS-999", "AS-920", "AS-922"}
+    assert set(data["strains"]) == {"SYNTHETIC-CASE-WIDGET-GOVERNED", "SYNTHETIC-CASE-WIDGET-EXCLUDED", "SYNTHETIC-CASE-WIDGET-QUARANTINED"}
 
-    s = data["strains"]["AS-999"]
+    s = data["strains"]["SYNTHETIC-CASE-WIDGET-GOVERNED"]
 
     # bgcRows from inventory
     assert s["bgcRows"] == 3
@@ -126,10 +131,10 @@ def test_widget_data_emit(tmp_path):
 
     # governance overrides
     assert s["governance"] == "GOVERNED"
-    assert data["strains"]["AS-920"]["governance"] == "EXCLUSION_ONLY"
-    assert data["strains"]["AS-922"]["governance"] == "AUDIT_ONLY_QUARANTINED"
-    assert data["meta"]["governance"]["AS-920"] == "EXCLUSION_ONLY"
-    assert data["meta"]["governance"]["AS-922"] == "AUDIT_ONLY_QUARANTINED"
+    assert data["strains"]["SYNTHETIC-CASE-WIDGET-EXCLUDED"]["governance"] == "EXCLUSION_ONLY"
+    assert data["strains"]["SYNTHETIC-CASE-WIDGET-QUARANTINED"]["governance"] == "AUDIT_ONLY_QUARANTINED"
+    assert data["meta"]["governance"]["SYNTHETIC-CASE-WIDGET-EXCLUDED"] == "EXCLUSION_ONLY"
+    assert data["meta"]["governance"]["SYNTHETIC-CASE-WIDGET-QUARANTINED"] == "AUDIT_ONLY_QUARANTINED"
 
     # governed count excludes the two overridden strains
     assert data["meta"]["governedStrainCount"] == 1
@@ -160,8 +165,8 @@ def test_attine_host_group():
     finally:
         wd.ATTINE_ANT_STRAINS = saved
     # a bee host maps to BEE; a wasp host maps to WASP
-    xwalk = {"AS-421": {"host": "Bombus sp.", "genus": "X"},
-             "AS-441": {"host": "Wasp", "genus": "Y"}}
-    assert wd.host_context("AS-421", xwalk)["group"] == "BEE"
-    assert wd.host_context("AS-441", xwalk)["group"] == "WASP"
+    xwalk = {'SYNTHETIC-CASE-013': {"host": "Bombus sp.", "genus": "X"},
+             'SYNTHETIC-CASE-015': {"host": "Wasp", "genus": "Y"}}
+    assert wd.host_context('SYNTHETIC-CASE-013', xwalk)["group"] == "BEE"
+    assert wd.host_context('SYNTHETIC-CASE-015', xwalk)["group"] == "WASP"
     assert wd.host_context("AS-000", xwalk)["group"] == "UNRESOLVED"

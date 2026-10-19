@@ -1,4 +1,8 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 from __future__ import annotations
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+COMPARATOR_ID = synthetic_namespace_id("AS", width=3, case_index=918)
 
 from mamey.modeb_publication_gate import publication_quality_findings
 
@@ -92,7 +96,7 @@ def _card(*, table_break=False, omit=(), weaken_section=None) -> str:
                 "#### Cohort gene comparison",
                 "| Comparator exact locus | Query genes | Comparator genes | Sequence / synteny evidence | Agreement and mismatch | Allowed inference |",
                 "|---|---|---|---|---|---|",
-                "| AS-2 / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | ctg1_1 | ctg2_1 | count-first protein comparison | gene order agrees; product untested | cohort gene-family navigation only |",
+                f"| {COMPARATOR_ID} / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | ctg1_1 | ctg2_1 | count-first protein comparison | gene order agrees; product untested | cohort gene-family navigation only |",
                 "#### Cohort-comparison conclusion",
                 "The two exact genes support cohort navigation, not product transfer.",
             ])

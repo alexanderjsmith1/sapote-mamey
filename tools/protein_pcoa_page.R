@@ -16,19 +16,21 @@ if (!identical(page$stamp, stamp)) stop("stamp mismatch: refusing to draw a spec
 source(page$min_text$layout); source(page$min_text$helper)
 page <- .pg$page; prefix <- .pg$prefix; stamp <- .pg$stamp; mt <- page$min_text; fs <- mt$min_text_pt
 lv <- c("ref", "mibig", "iso_low", "iso_mid", "iso_high")
-COL <- c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = "black", iso_mid = "#d6604d", iso_high = "#d6604d")
-FILL <- c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = "#b2182b", iso_mid = "#f4a582", iso_high = "white")
+if (!is.null(page$legend$iso_unknown)) lv <- c(lv, "iso_unknown")
+COL <- c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = "black", iso_mid = "#d6604d", iso_high = "#d6604d", iso_unknown = "#555555")
+FILL <- c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = "#b2182b", iso_mid = "#f4a582", iso_high = "white", iso_unknown = "white")
 panel <- function(sp) {
   pts <- as.data.frame(lapply(sp$points, unlist), stringsAsFactors = FALSE); pts$layer <- factor(pts$layer, levels = lv); pts <- pts[order(pts$layer), ]
   pts$ps <- ifelse(pts$layer %in% c("ref", "mibig"), 0.17 * sqrt(3 + 1.5 * sqrt(pts$size)), 1.25)
   labs <- unlist(page$legend)[lv]
   g <- ggplot(pts, aes(x, y)) +
-    geom_point(aes(colour = layer, fill = layer, shape = layer, size = ps, alpha = layer), stroke = 0.35) + scale_size_identity() +
+    geom_point(aes(colour = layer, fill = layer, shape = layer, size = ps, alpha = layer), stroke = 0.35, show.legend = TRUE) + scale_size_identity() +
     scale_colour_manual(values = COL, labels = labs, breaks = lv, drop = FALSE, name = NULL) +
     scale_fill_manual(values = FILL, labels = labs, breaks = lv, drop = FALSE, name = NULL) +
-    scale_shape_manual(values = c(ref = 16, mibig = 16, iso_low = 21, iso_mid = 21, iso_high = 21), labels = labs, breaks = lv, drop = FALSE, name = NULL) +
-    scale_alpha_manual(values = c(ref = .7, mibig = .7, iso_low = 1, iso_mid = 1, iso_high = 1), labels = labs, breaks = lv, drop = FALSE, name = NULL) +
-    guides(colour = guide_legend(ncol = 1, override.aes = list(size = c(2.2, 2.2, 2.4, 2.4, 2.4), stroke = c(0, 0, .45, .6, .9)))) +
+    scale_shape_manual(values = c(ref = 16, mibig = 16, iso_low = 21, iso_mid = 21, iso_high = 21, iso_unknown = 23), labels = labs, breaks = lv, drop = FALSE, name = NULL) +
+    scale_alpha_manual(values = c(ref = .7, mibig = .7, iso_low = 1, iso_mid = 1, iso_high = 1, iso_unknown = 1), labels = labs, breaks = lv, drop = FALSE, name = NULL) +
+    guides(colour = guide_legend(ncol = 1, override.aes = list(size = unname(c(ref=2.2, mibig=2.2, iso_low=2.4, iso_mid=2.4, iso_high=2.4, iso_unknown=2.4)[lv]),
+                                                                  stroke = unname(c(ref=0, mibig=0, iso_low=.45, iso_mid=.6, iso_high=.9, iso_unknown=.9)[lv])))) +
     annotate("text", x = -Inf, y = Inf, label = sp$tag, hjust = -0.04, vjust = 1.4, fontface = "bold", size = fs / .pt) +
     coord_cartesian(xlim = unlist(sp$xlim), ylim = unlist(sp$ylim), expand = FALSE) +   # limits from the renderer (PAGE_EXPAND)
     labs(x = sp$xlab, y = sp$ylab) + theme_classic(base_size = fs) +
@@ -52,6 +54,18 @@ if (isTRUE(page$probe)) {   # M5_452 trial PDF at the final size, no gates (the 
 } else {
   rec <- mt_save(pg, prefix, mt$print_width, page$panel_height * nr + 1.0, list(min_text_pt = fs, print_width = mt$print_width, dpi = 600, min_panel_frac = 0.2))
   ggsave(paste0(prefix, ".svg"), pg, width = mt$print_width, height = rec$height_in)
+  ggsave(paste0(prefix, "_plot_only.png"), pg, width = mt$print_width, height = rec$height_in, dpi = 300, bg = "white")
 }
-sapote_stamp_files_required(paste0(prefix, if (isTRUE(page$probe)) ".pdf" else c(".png", ".pdf", ".svg")), "protein_pcoa_page")
+sapote_stamp_files_required(paste0(prefix, if (isTRUE(page$probe)) ".pdf" else c(".png", "_plot_only.png", ".pdf", ".svg")), "protein_pcoa_page")
+if (!isTRUE(page$probe)) {
+  namespaces <- sort(loadedNamespaces())
+  execution <- list(schema="sapote-mamey.r-page-execution.v1", stamp=stamp,
+    scope="CURRENT_RENDER_PROCESS", renderer="tools/protein_pcoa_page.R",
+    labeler="BEE_GREEDY_PRINT_POINT_PLACEMENT_AND_R_GEOM_TEXT",
+    numeric_fit_execution="NOT_EXECUTED_BY_THIS_RENDERER",
+    r_version=R.version.string, platform=R.version$platform,
+    loaded_namespace_versions=setNames(lapply(namespaces,function(n) as.character(getNamespaceVersion(n))),namespaces),
+    session_info=capture.output(sessionInfo()))
+  jsonlite::write_json(execution,paste0(prefix,"_runtime.json"),auto_unbox=TRUE,pretty=TRUE)
+}
 writeLines(stamp, paste0(prefix, ".stamp"))

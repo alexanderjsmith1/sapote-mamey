@@ -14,6 +14,7 @@ window (an all-lane empty spike would mean NCBI is returning nothing, distinct f
 
 Run: python3 "tools/blastp_monitoring/plot_crawl_12h_15min.py"
 """
+import argparse
 import csv
 import datetime
 import glob
@@ -23,24 +24,13 @@ import re
 import subprocess
 import sys
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
 ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
 PLOT_DIR = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", os.path.join(ROOT, "blastp_plots"))
 OUT = os.path.join(PLOT_DIR, "crawl_plots")
 BR = os.path.join(ROOT, "Blastp RESULTS")
 ROWS_RE = re.compile(r"(\d+)\s*row")
-HOURS = int(next((a.split("=")[1] for a in sys.argv[1:] if a.startswith("--hours=")),
-                 (sys.argv[sys.argv.index("--hours") + 1] if "--hours" in sys.argv else 12)))
+HOURS = 12
 BINM = 15
-
-os.chdir(ROOT)  # load_fetches uses BR relative to cwd
-spec = importlib.util.spec_from_file_location("pcr", os.path.join(PLOT_DIR, "plot_crawl_recent.py"))
-pcr = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(pcr)
-
 
 def live_lanes():
     """True count of live crawl lanes = the real runner python processes (NOT ledger history).
@@ -132,8 +122,23 @@ def _refuse_output_inside_bundle(path):
     except OutputInsideBundle as e:
         sys.exit(f"{e}\n  The plot folder is SAPOTE_BLASTP_PLOT_DIR, else SAPOTE_WORKSPACE_ROOT/blastp_plots.")
 
-def main():
+def main(argv=None):
+    global HOURS
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
+    parser.add_argument("--hours", type=int, default=12, help="trailing window in hours (default: 12)")
+    args, _ = parser.parse_known_args(argv)
+    HOURS = args.hours
     _refuse_output_inside_bundle(OUT)  # before any reading or plotting
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    # Code comes from the shipped sibling, not the operator output directory.
+    sibling = os.path.join(os.path.dirname(os.path.abspath(__file__)), "plot_crawl_recent.py")
+    spec = importlib.util.spec_from_file_location("pcr", sibling)
+    pcr = importlib.util.module_from_spec(spec)
+    os.chdir(ROOT)  # the sibling reads Blastp RESULTS relative to the workspace
+    spec.loader.exec_module(pcr)
     fetches = pcr.load_fetches()
     if not fetches:
         sys.exit("no fetched rows found")

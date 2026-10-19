@@ -1,0 +1,22 @@
+{
+  "schema_version": "ripper-run/1",
+  "upstream": "https://github.com/streptomyces/ripper",
+  "evidence_kind": "synthetic_fixture",
+  "state": "COMPLETE",
+  "reason": "Synthetic parser contract; no live RiPPER success",
+  "upstream_revision": "0000000000000000000000000000000000000000",
+  "exit_code": 0,
+  "runtime_versions": {
+    "RiPPER": "SYNTHETIC_NOT_EXECUTED",
+    "Pfam": "SYNTHETIC_NO_DATABASE"
+  },
+  "completed_accessions": [
+    "SYNTHETIC_TE_001",
+    "SYNTHETIC_TE_002"
+  ],
+  "raw_sha256": "8f358b6df0c95884506bea7370fb74305065c77128f92f706cff79d09bbacf74",
+  "config_sha256": "88bbfdfb1afd9e6de5d6c073ad0acc3c2a2565a98035b0bdd41e9d9b623e6657",
+  "completion_log_sha256": "979bd6e89bd1a04570db8981c13f8e7b590e1d4573f6e585209804c55a56f7a7",
+  "queries_sha256": "378975328d7b9e5c5333bcbaa92f475f134a62ada42ca89151a66644c09df314",
+  "columns_sha256": "4385ea232ef92eba61fc8bb65ad7e984f2a420bc8e89fd0d614269948ed11343"
+}

@@ -31,7 +31,7 @@ COMPILATION_ORDER = ["Layperson's Guide", "Synopsis", "Chapter", "KCB",
 # triage Rank, which is a score-based routing prior for the judgment layer. A standing-rule/fragment downgrade
 # caps the tier without zeroing the raw score, so without this a demoted Inventory fragment can sort above a
 # real High/Medium lead. Sort key: tier first (Exceptional→High→Medium→Inventory), tie-break by triage Rank.
-_LEAD_TIER_ORDER = {"Exceptional": 0, "High": 1, "Medium": 2, "Low": 3, "Inventory": 4}  # AQUARIUS_01: 'Low' ranks above Inventory
+_LEAD_TIER_ORDER = {"Exceptional": 0, "High": 1, "Medium": 2, "Low": 3, "Inventory": 4}  # inventory bottom-tier policy: 'Low' ranks above Inventory
 
 
 def _lead_tier_rank(row):

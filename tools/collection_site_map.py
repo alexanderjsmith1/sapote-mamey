@@ -3,6 +3,7 @@
 import argparse
 from collections import Counter
 import json
+import logging
 import math
 from pathlib import Path
 import sys
@@ -12,6 +13,7 @@ sys.path.insert(0,str(ROOT))
 from tools._map_export import read_table,write_table,print_setup,output_preflight,export,record_table_output
 from mamey.figure_theme import PALETTE
 
+LOG=logging.getLogger('collection_site_map')
 TOOL='collection_site_map'
 FIELDS=('site','latitude','longitude','source_group','isolates')
 
@@ -44,7 +46,10 @@ def basemap(path):
     if path is None:return [],[]
     path=Path(path);bound=[path]
     if path.suffix.lower()=='.shp':
-        import shapefile
+        try:
+            import shapefile
+        except ImportError as exc:
+            raise ValueError("MAP_DEPENDENCY_UNAVAILABLE: pyshp provides the shapefile module; install the selected bundle figures extra (python -m pip install -e '.[figures]') or provision its compatible offline wheels") from exc
         bound=[path.with_suffix(s) for s in ('.shp','.shx','.dbf','.prj')]
         if not all(p.is_file() for p in bound):raise ValueError('SHAPEFILE_COMPONENT_MISSING')
         prj=bound[-1].read_text().upper()
@@ -124,4 +129,9 @@ def main(argv=None):
     plt.close(fig)
     return 0
 
-if __name__=='__main__':raise SystemExit(main())
+if __name__=='__main__':
+    try:
+        raise SystemExit(main())
+    except (ValueError, FileExistsError) as exc:
+        LOG.error('collection_site_map: %s',exc)
+        raise SystemExit(2)

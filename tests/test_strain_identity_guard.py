@@ -2,6 +2,10 @@
 
 Regression anchor: on 2026-08-20 a reference run produced packages named CP025018_1, CP029711_1,
 CP108695_1, CP109162_1, CP120997_1, CP192113_1 before it was caught by eye.
+
+The AS-shaped controls selected here are authored parser fixtures using existing reserved
+fixture declarations. Their bound-snapshot noncollision does not grant disclosure permission;
+empirical/reference records, historical anchors and scientific assertions remain distinct.
 """
 import json
 import zipfile
@@ -46,7 +50,7 @@ class TestAccessionDetection:
         assert looks_like_accession(label) is True
 
     @pytest.mark.parametrize("label", [
-        "AS-190", "AS-696_second", "Streptomyces_malaysiensis_CP025018_1",
+        'AS-971', 'AS-972_second', "Streptomyces_malaysiensis_CP025018_1",
         "Nocardia_sp_NBC_01009", "Kribbella_albertanoniae", "SID10815",
     ])
     def test_real_identities_are_not_flagged(self, label):
@@ -105,14 +109,14 @@ class TestAutoResolution:
         assert "every output file" in ident.message
 
     def test_a_good_explicit_id_passes_through_untouched(self, tmp_path):
-        ident = resolve_strain_id("AS-190", _zip(tmp_path, "whatever.zip"))
-        assert ident.strain_id == "AS-190"
+        ident = resolve_strain_id('AS-971', _zip(tmp_path, "whatever.zip"))
+        assert ident.strain_id == 'AS-971'
         assert ident.source == "supplied"
         assert ident.refused is False
 
     def test_missing_zip_does_not_raise(self, tmp_path):
-        ident = resolve_strain_id("AS-190", str(tmp_path / "nope.zip"))
-        assert ident.strain_id == "AS-190"
+        ident = resolve_strain_id('AS-971', str(tmp_path / "nope.zip"))
+        assert ident.strain_id == 'AS-971'
 
 
 class TestRegressionAnchor:

@@ -12,6 +12,15 @@ if ! "$PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12)
   echo "REFUSED: Python 3.12 or newer required; PYTHON executable unavailable or incompatible: $PYTHON" >&2
   exit 2
 fi
+# Prefer GNU coreutils on Linux; stock macOS supplies the Perl shasum fallback.
+if command -v sha256sum >/dev/null 2>&1; then
+  SHA256=(sha256sum)
+elif command -v shasum >/dev/null 2>&1; then
+  SHA256=(shasum -a 256)
+else
+  echo "REFUSED: sha256sum or shasum required for SHA-256 verification" >&2
+  exit 2
+fi
 src="$(cd -- "$1" && pwd -P)"
 outdir="$2"
 sealed_zip="$3"
@@ -28,8 +37,8 @@ fi
 archive="$scratch/$name.tar.gz"
 sidecar="$scratch/$name.tar.gz.sha256"
 # Bind the produced bytes before verification; publish only this exact pair.
-archive_sha="$(shasum -a 256 "$archive" | awk '{print $1}')"
-sidecar_sha="$(shasum -a 256 "$sidecar" | awk '{print $1}')"
+archive_sha="$("${SHA256[@]}" "$archive" | awk '{print $1}')"
+sidecar_sha="$("${SHA256[@]}" "$sidecar" | awk '{print $1}')"
 verification_log="$scratch/verification.log"
 if ! "$PYTHON" "$tool_dir/verify_release_tarball.py" "$archive" \
   --zip "$sealed_zip" --seal-receipt "$seal_receipt" >"$verification_log"; then
@@ -37,7 +46,7 @@ if ! "$PYTHON" "$tool_dir/verify_release_tarball.py" "$archive" \
   echo "REFUSED: CODE tarball differs from the selected sealed ZIP/receipt" >&2
   exit 2
 fi
-if ! (cd "$scratch" && shasum -c -- "$name.tar.gz.sha256" >/dev/null); then
+if ! (cd "$scratch" && "${SHA256[@]}" -c -- "$name.tar.gz.sha256" >/dev/null); then
   echo "REFUSED: CODE tarball SHA-256 sidecar failed" >&2
   exit 2
 fi

@@ -13,15 +13,19 @@ If you already have results, use the results reader before rerunning. A new conv
 
 Use [INSTALL.md](../INSTALL.md) for the environment setup, then [MASTER_WALKTHROUGH.md](../MASTER_WALKTHROUGH.md) for the complete first-run procedure. Work from the program folder containing `mamey_run.py` and `pyproject.toml`, with a separate output location. The installation guide requires Python 3.12 or newer and distinguishes core requirements from optional features.
 
-These orientation commands are supported by the bundle parser:
+Use an authorized writable program installation for these commands. Before `doctor`, read its [reserved write-probe boundary](../INSTALL.md#doctor-scope-and-write-probe). Leave an occupied `runs/_doctor_probe` untouched. These orientation commands are supported by the bundle parser:
 
 ```bash
-python mamey_run.py start
+python -B mamey_run.py start --no-doctor
 python mamey_run.py doctor
 python mamey_run.py inspect '/your/actual/antismash-result.zip'
 ```
 
-Replace the example path before running it. `start` prints orientation; `doctor` checks the environment; `inspect` previews the input. They do not substitute for the extraction, validation and interpretation steps. The optional `doctor --probe-transports` flag makes network probes, so leave it out for an offline orientation.
+Replace the example path before running it. `start --no-doctor` prints orientation without the doctor probe; plain `start` also invokes `doctor`. The doctor checks selected environment properties and performs a temporary write probe beneath the program folder. `inspect` previews the input. None substitutes for extraction, validation or interpretation. A zero exit from `start` does not establish environment readiness: retain the diagnostics and separately check the chosen workflow. The Python check requires 3.12 or newer, matching `pyproject.toml`; module and executable discovery do not establish that the selected workflow produces valid output. The optional `doctor --probe-transports` flag makes network probes, so leave it out for an offline orientation.
+
+`--no-doctor` only skips that diagnostic. With bytecode writes disabled (`-B` or `PYTHONDONTWRITEBYTECODE=1`), the revised launcher does not create its provenance marker on a cache-free tree. It refuses untrusted or source-drift bytecode without purging it; valid bound caches may still be read. In normal bytecode-enabled mode the launcher can write its marker and clear unbound caches. Explicit `--purge-bytecode` requests cache removal and must not be used to alter preserved evidence.
+
+These cache controls do not make every command read-only: doctor and writing handlers retain their own side effects. For an inspection-only request, read the sources without executing them. Before claiming immutable orientation with `python -B mamey_run.py start --no-doctor`, verify the integrated startup and imports as well as the launcher boundary. The launcher change was tested with synthetic CLI fixtures; those tests do not establish full-program read-only execution.
 
 Read the current walkthrough when choosing extraction settings. The short route printed by `start` includes `--capped-session`; that setting forces the main JSON evidence off. It is different from the walkthrough’s bounded-JSON route. Choose the evidence scope deliberately rather than combining settings from two examples.
 

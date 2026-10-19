@@ -265,7 +265,6 @@ def _portable_locator(value: str, label: str) -> str:
         or lowered.startswith("file://")
         or "/users/" in lowered
         or "\\users\\" in lowered
-        or "codex alex 2026" in lowered
     ):
         _hold("MODEB_GF2_PRODUCER_HOLD", f"{label} is not a portable locator")
     path_part = locator.split("://", 1)[-1]

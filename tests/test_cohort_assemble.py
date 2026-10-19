@@ -69,7 +69,7 @@ def cohort_dir(tmp_path):
         ],
     )
     _write_package(
-        str(runs), "AS-002", "Nocardia sp.", "wasp-associated", "Mamey v1.9.118",
+        str(runs), "SYNTHETIC-CASE-002", "Nocardia sp.", "wasp-associated", "Mamey v1.9.118",
         [
             _bgc("BGC010", "NODE_9", "PKS"),
             _bgc("BGC011", "NODE_8", "NRPS; betalactone"),
@@ -91,7 +91,7 @@ def test_genus_and_source_extracted(cohort_dir):
     cohort = assemble_cohort(cohort_dir)
     by_strain = {r["strain"]: r for r in cohort["strain_summary"]}
     assert by_strain["AS-001"]["genus"] == "Streptomyces"
-    assert by_strain["AS-002"]["genus"] == "Nocardia"
+    assert by_strain["SYNTHETIC-CASE-002"]["genus"] == "Nocardia"
     assert by_strain["AS-001"]["source"] == "bee-associated"
     assert by_strain["AS-001"]["bgc_count"] == 2
 
@@ -101,8 +101,8 @@ def test_class_by_strain_matrix(cohort_dir):
     # products are ';'-split into classes
     assert cohort["class_by_strain"]["AS-001"].get("lassopeptide") == 1
     assert cohort["class_by_strain"]["AS-001"].get("RiPP") == 1
-    assert cohort["class_by_strain"]["AS-002"].get("NRPS") == 1
-    assert cohort["class_by_strain"]["AS-002"].get("betalactone") == 1
+    assert cohort["class_by_strain"]["SYNTHETIC-CASE-002"].get("NRPS") == 1
+    assert cohort["class_by_strain"]["SYNTHETIC-CASE-002"].get("betalactone") == 1
     # union class list covers every observed class
     for c in ("NRPS", "RiPP", "lassopeptide", "PKS", "betalactone", "terpene"):
         assert c in cohort["classes"]

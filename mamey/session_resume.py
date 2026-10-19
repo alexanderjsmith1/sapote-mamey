@@ -198,6 +198,20 @@ def build_resume(pkg: pathlib.Path,
                      and r['quality_tier']
                      and r['quality_tier'].upper() != 'FULL']
 
+    captured = full.get("captured_source")
+    evidence_errors = {}
+    if captured is not None:
+        for evidence_path in sorted(pkg.glob("*_AntiSMASH_Evidence_Parse.json")):
+            try:
+                evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+                if not isinstance(evidence, dict):
+                    raise ValueError("persisted evidence is not an object")
+                evidence_errors[evidence_path.name] = {key: evidence.get(key) for key in
+                    ("json_errors", "txt_errors", "source_completeness")}
+            except (OSError, ValueError, UnicodeError) as exc:
+                evidence_errors[evidence_path.name] = {"state": "READ_FAILED", "error_type": type(exc).__name__,
+                    "error": str(exc), "json_errors": None, "txt_errors": None, "source_completeness": None}
+
     # ---------- markdown render ----------
     md = _render_markdown(
         display=display, strain_id=strain_id, taxonomy=taxonomy, source=source,
@@ -214,7 +228,15 @@ def build_resume(pkg: pathlib.Path,
         last_session=last_session, judgment_status=judgment_status,
     )
 
+    if captured is not None:
+        md += "\n### Captured source evidence (persisted package fields)\n\n"
+        md += "```json\n" + json.dumps({"captured_source": captured, "evidence_errors": evidence_errors},
+                       indent=2, sort_keys=True, allow_nan=False) + "\n```\n"
+        md += "Source binding does not establish biological absence, upstream completion or a complete assembly.\n"
+
     return {
+        "captured_source": captured,
+        "captured_evidence_errors": evidence_errors,
         # back-compat keys (do not rename — existing tests + callers depend on these)
         'strain_id':       strain_id,
         'display':         display,

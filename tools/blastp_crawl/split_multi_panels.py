@@ -62,6 +62,12 @@ def main():
         if sum(1 for l in srcs[0].open() if l.startswith(">")) <= 1:
             continue
 
+        # Refuse an occupied archive before creating any new single-protein output.
+        # A dangling symlink still occupies the archive name and must be retained.
+        dest = ATTIC / strain
+        if a.execute and (dest.exists() or dest.is_symlink()):
+            raise FileExistsError(f"SPLIT_ARCHIVE_EXISTS: refusing to replace retained archive {dest}")
+
         # A lane may be DOUBLE-STAGED: the same gene present both as its own single-protein
         # panel and inside a _gap batch (four lanes as of 2026-09-23, overlap ~total).
         # Emit only genes not already staged singly, or the split would manufacture the
@@ -83,10 +89,7 @@ def main():
                     out = pdir / f"{strain}__gapK__{gene}.faa"
                     out.write_text(f">{gene}\n" + "\n".join(seq) + "\n")
         if a.execute:
-            dest = ATTIC / strain
             dest.parent.mkdir(parents=True, exist_ok=True)
-            if dest.exists():
-                shutil.rmtree(dest)
             shutil.move(str(gap), str(dest))
         lanes += 1
         files_in += len(srcs)

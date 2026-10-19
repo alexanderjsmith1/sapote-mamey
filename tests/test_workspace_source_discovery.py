@@ -18,7 +18,8 @@ from mamey.workspace_source_discovery import (
 class WorkspaceSourceDiscoveryTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.base = Path(self.temp.name)
+        # Output preflight refuses symlinked ancestors; macOS temp dirs sit under the /var -> /private/var link.
+        self.base = Path(self.temp.name).resolve()
         self.root = self.base / "evidence"
         self.root.mkdir()
         self.registry = self.base / "collections.json"

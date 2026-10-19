@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """TREES_432: the panel binder fills Candida/MRSA on QUERY rows from the bioassay table.
 
 Four assay states (+, -, n.t., blank). Blank stays blank; n.t. stays n.t.; a reference row is
@@ -18,7 +19,10 @@ sys.path.insert(0, str(ROOT / "tests"))
 import bind_panel_metadata as bpm  # noqa: E402
 from trees_432_panel_fixture import make_panel, rows  # noqa: E402
 
-ASSAY = "strain\tanti_candida\tanti_mrsa\nAS-1\t+\t+\nAS-2\t-\t+\nAS-3\tn.t.\tn.t.\nAS-4\t\t\nAS-5\t+\t\n"
+CANARY_A = synthetic_namespace_id("AS", width=3, case_index=918)
+CANARY_B = synthetic_namespace_id("AS", width=3, case_index=919)
+
+ASSAY = f"strain\tanti_candida\tanti_mrsa\nAS-1\t+\t+\n{CANARY_A}\t-\t+\nAS-3\tn.t.\tn.t.\nAS-4\t\t\nAS-5\t+\t\n"
 
 
 def _query(tip, ident, cand="", mrsa=""):
@@ -30,18 +34,18 @@ def test_four_states_preserved_exactly(tmp_path):
     table.write_text(ASSAY)
     assay = bpm.load_assay_table(table)
     assert assay["AS-1"] == ("+", "+")
-    assert assay["AS-2"] == ("-", "+")
+    assert assay[f"{CANARY_A}"] == ("-", "+")
     assert assay["AS-3"] == ("n.t.", "n.t.")
     assert assay["AS-4"] == ("", "")
     assert assay["AS-5"] == ("+", "")
 
-    data = [_query("AS-1", "AS-1"), _query("AS-2_cleaned_min1kb", "AS-2"), _query("AS-3", "AS-3"),
+    data = [_query("AS-1", "AS-1"), _query(f"{CANARY_A}_cleaned_min1kb", f"{CANARY_A}"), _query("AS-3", "AS-3"),
             _query("AS-4", "AS-4"), _query("AS-5", "AS-5"),
             dict(tip="GCF_1", identifier="GCF_1", role="REFERENCE", Candida="", MRSA="", metadata_status="base")]
     report = bpm.bind_assay_cells(data, assay, "bioassay_table.tsv")
     got = {r["identifier"]: (r["Candida"], r["MRSA"]) for r in data}
     assert got["AS-1"] == ("+", "+")
-    assert got["AS-2"] == ("-", "+")
+    assert got[f"{CANARY_A}"] == ("-", "+")
     assert got["AS-3"] == ("n.t.", "n.t.")          # not tested is not a negative
     assert got["AS-4"] == ("", "")                  # blank stays blank, never n.t.
     assert got["AS-5"] == ("+", "")
@@ -53,7 +57,7 @@ def test_four_states_preserved_exactly(tmp_path):
 
 def test_strain_id_comes_from_tip_prefix_when_identifier_is_not_a_strain():
     assert bpm.strain_id_from_row({"tip": (synthetic_namespace_id('AS', width=3, case_index=917, separator=True) + '_cleaned_min1kb'), "identifier": ""}) == (synthetic_namespace_id('AS', width=3, case_index=917, separator=True))
-    assert bpm.strain_id_from_row({"tip": "AS-696", "identifier": "AS-696"}) == "AS-696"
+    assert bpm.strain_id_from_row({"tip": f"{CANARY_B}", "identifier": f"{CANARY_B}"}) == f"{CANARY_B}"
 
 
 def test_missing_strain_is_reported_not_guessed(tmp_path):

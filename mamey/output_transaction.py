@@ -1,8 +1,9 @@
-"""Stage a complete fresh tool-output set; roll back owned links on ordinary failure.
+"""Stage a complete fresh tool-output set; roll back owned links on catchable failure.
 
 Requires stable inputs and no uncooperating output writer. Flat-file publication is
-not crash-atomic; a killed process may leave a partial set. Existing files are never
-replaced and rollback checks inode ownership before removing anything.
+not crash-atomic; a killed process may leave a partial set. Fresh outputs are never
+replaced. The byte publisher can explicitly replace one staged report last, and
+rollback checks inode ownership before removing anything.
 """
 from __future__ import annotations
 from contextlib import contextmanager
@@ -11,6 +12,9 @@ import shutil
 import stat
 from pathlib import Path, PurePosixPath
 import tempfile
+import uuid
+
+from .native_workspace import clean_path
 
 
 def _paths(root, names):
@@ -101,7 +105,7 @@ def fresh_output_set(outdir, names):
                 source_owned=source.stat()
                 os.link(source,target)
                 published.append((target,source_owned))
-        except Exception as primary:
+        except BaseException as primary:
             _rollback_owned(primary, published)
             _rollback_owned(primary, directories, directories=True)
             raise
@@ -143,25 +147,90 @@ def fresh_output_set(outdir, names):
 
 
 
-def publish_payloads(payloads):
-    """Publish fully serialized byte payloads at fresh paths; ordinary-fault rollback.
+def preflight_output_roster(fresh_paths, *, replacement=None, protected_paths=(), require_parents=False):
+    """Validate the complete output roster without creating directories or files.
 
-    Parents must exist. Caller preflights the whole roster before computation.
+    A replacement must be a regular file or absent, with an existing parent.
+    Casefolded component comparisons conservatively reject cross-platform aliases.
+    Stable paths and no uncooperating writer remain caller requirements.
+    """
+    fresh = tuple(clean_path(path, exists=False, refusal=ValueError) for path in fresh_paths)
+    protected_paths = tuple(protected_paths)
+    report = clean_path(replacement, exists=False, refusal=ValueError) if replacement is not None else None
+    outputs = fresh + ((report,) if report is not None else ())
+    keys = [tuple(part.casefold() for part in path.parts) for path in outputs]
+    for index, key in enumerate(keys):
+        for peer in keys[index + 1:]:
+            if key == peer[:len(key)] or peer == key[:len(peer)]:
+                raise ValueError('output paths collide')
+    for path in outputs:
+        if any(parent.exists() and not parent.is_dir() for parent in path.parents):
+            raise ValueError('output parent must be a directory')
+        for source in protected_paths:
+            source = Path(source)
+            source_key = tuple(part.casefold() for part in source.resolve().parts)
+            output_key = tuple(part.casefold() for part in path.resolve().parts)
+            if output_key == source_key or (path.exists() and source.exists() and path.samefile(source)):
+                raise ValueError('output aliases protected input')
+    if any(path.exists() for path in fresh):
+        raise ValueError('catalog outputs must be fresh')
+    if require_parents and any(not path.parent.is_dir() for path in fresh):
+        raise ValueError('all output paths must have existing parents')
+    if report is not None:
+        if not report.parent.is_dir():
+            raise ValueError('report output parent must exist')
+        if report.exists() and not stat.S_ISREG(report.lstat().st_mode):
+            raise ValueError('replacement output must be a regular file')
+    return fresh, report
+
+
+def publish_payloads(payloads, *, replacement=None):
+    """Publish fresh byte payloads, optionally replacing one report last.
+
+    All parents must exist. An existing report is staged and replaced only after
+    the fresh outputs succeed; any catchable pre-commit fault (including Ctrl-C)
+    rolls those owned outputs back. An absent report is created exclusively as the final fresh file.
     A crash can leave partial files; this is not an atomic cross-directory commit.
     """
-    payloads={Path(path):data for path,data in payloads.items()}
-    if any(not isinstance(data,bytes) for data in payloads.values()):raise ValueError('payloads must be serialized bytes')
-    if any(p.exists() or p.is_symlink() or not p.parent.is_dir() for p in payloads):
-        raise ValueError('all output paths must be fresh with existing parents')
-    published=[]
+    items = list(payloads.items())
+    if any(not isinstance(data, bytes) for _, data in items):
+        raise ValueError('payloads must be serialized bytes')
+    if replacement is not None and not isinstance(replacement[1], bytes):
+        raise ValueError('replacement payload must be serialized bytes')
+    paths, report = preflight_output_roster(
+        [path for path, _ in items], replacement=replacement[0] if replacement is not None else None,
+        require_parents=True)
+    items = list(zip(paths, (data for _, data in items)))
+    previous = report.lstat() if report is not None and report.exists() else None
+    published = []
+    staged = []
     try:
-        for path,data in payloads.items():
+        if previous is not None:
+            stage = report.with_name('.mamey-report-' + uuid.uuid4().hex)
+            with stage.open('xb') as handle:
+                staged.append((stage, os.fstat(handle.fileno())))
+                os.fchmod(handle.fileno(), stat.S_IMODE(previous.st_mode))
+                handle.write(replacement[1])
+                handle.flush()
+                os.fsync(handle.fileno())
+        elif report is not None:
+            items.append((report, replacement[1]))
+        for path, data in items:
             with path.open('xb') as handle:
-                owned=os.fstat(handle.fileno())
-                published.append((path,owned))
+                owned = os.fstat(handle.fileno())
+                published.append((path, owned))
                 handle.write(data)
                 handle.flush()
                 os.fsync(handle.fileno())
-    except Exception as primary:
+        if previous is not None:
+            current = report.lstat()
+            identity = lambda row: (row.st_dev, row.st_ino, row.st_size, row.st_mtime_ns, row.st_ctime_ns)
+            if identity(current) != identity(previous) or not stat.S_ISREG(current.st_mode):
+                raise ValueError('replacement output changed before commit')
+            os.replace(stage, report)
+            # Final filesystem operation: the report and the fresh roster are committed.
+            staged.clear()
+    except BaseException as primary:
         _rollback_owned(primary, published)
+        _rollback_owned(primary, staged)
         raise

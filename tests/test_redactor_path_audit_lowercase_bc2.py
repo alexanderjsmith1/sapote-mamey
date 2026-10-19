@@ -10,6 +10,10 @@ uppercase form was caught.
 
 Reproduced live against the unpatched tools/redact_public_tier.py before this fix.
 """
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+_CANARY = synthetic_namespace_id("AS", width=3, case_index=821, separator=True)
+
 import importlib.util, pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -20,20 +24,20 @@ _spec.loader.exec_module(rpt)
 
 def test_audit_paths_finds_a_lowercase_strain_id_in_a_filename(tmp_path):
     (tmp_path / "docs").mkdir()
-    (tmp_path / "docs" / "as-705_over_merge_decomposition_backup.csv").write_text("x", encoding="utf-8")
+    (tmp_path / "docs" / f'{_CANARY.lower()}_over_merge_decomposition_backup.csv').write_text("x", encoding="utf-8")
     hits = rpt.audit_paths(tmp_path)
-    assert hits == ["docs/as-705_over_merge_decomposition_backup.csv"], (
+    assert hits == [f'docs/{_CANARY.lower()}_over_merge_decomposition_backup.csv'], (
         f"a private strain ID leaked into a lowercase filename must be caught; got: {hits}"
     )
 
 
 def test_audit_paths_finds_both_cases_in_a_mixed_tree(tmp_path):
     (tmp_path / "docs").mkdir()
-    (tmp_path / "docs" / "AS-705_notes.csv").write_text("x", encoding="utf-8")
-    (tmp_path / "docs" / "as-705_notes_backup.csv").write_text("x", encoding="utf-8")
+    (tmp_path / "docs" / f'{_CANARY}_notes.csv').write_text("x", encoding="utf-8")
+    (tmp_path / "docs" / f'{_CANARY.lower()}_notes_backup.csv').write_text("x", encoding="utf-8")
     (tmp_path / "docs" / "clean.csv").write_text("x", encoding="utf-8")
     hits = sorted(rpt.audit_paths(tmp_path))
-    assert hits == sorted(["docs/AS-705_notes.csv", "docs/as-705_notes_backup.csv"])
+    assert hits == sorted([f'docs/{_CANARY}_notes.csv', f'docs/{_CANARY.lower()}_notes_backup.csv'])
 
 
 def test_lowercase_public_carve_outs_still_not_flagged(tmp_path):

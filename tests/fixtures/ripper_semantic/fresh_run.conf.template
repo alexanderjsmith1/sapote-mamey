@@ -1,0 +1,12 @@
+# TEMPLATE ONLY; replace all symbolic paths after explicit run admission
+sqlite3fn <fresh_run>/sqlite/ripp.sqlite3
+prepeptab ripper
+blastdbdir <fresh_run>/blastdb
+prodigalshortbin <verified_runtime>/prodigal-short
+minPPlen 20
+maxPPlen 120
+flankLen 17500
+maxDistFromTE 8000
+fastaOutputLimit 3
+prodigalScoreThresh 7.5
+sameStrandReward 5

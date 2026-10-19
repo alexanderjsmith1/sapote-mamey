@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
 import math
 from pathlib import Path
@@ -118,7 +119,7 @@ def load_gold_identity_context(package_dir, strain, snapshot=None):
         if len(files) != 1:
             _hold("GOLD_IDENTITY_INVENTORY_UNAVAILABLE")
         inventory_raw = files[0].read_bytes()
-        with files[0].open(encoding="utf-8", newline="") as stream:
+        with io.StringIO(inventory_raw.decode("utf-8"), newline="") as stream:
             reader = csv.DictReader(stream)
             required = ("Strain", "Contig", "Node_ID", "antiSMASH_Region", "BGC_ID")
             if any((reader.fieldnames or []).count(name) != 1 for name in required):

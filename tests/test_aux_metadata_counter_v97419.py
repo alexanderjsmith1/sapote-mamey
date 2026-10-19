@@ -19,8 +19,14 @@ import pytest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOL = os.path.join(ROOT, "tools", "build_placement_ggtree_inputs.py")
 
+if __package__ in (None, ""):
+    from _synthetic_identity_fixture import synthetic_namespace_id
+else:
+    from tests._synthetic_identity_fixture import synthetic_namespace_id
+_FORMAT_CASE_1 = synthetic_namespace_id('AS', width=3, case_index=800)
+
 GRAFT = ("((AS_1:0.01,NR_000001_1_Genus_alpha_strain_A_16S:0.01):0.02,"
-         "(AS_2:0.01,NR_000002_1_Genus_beta_strain_B_16S:0.01):0.02,"
+         f"({_FORMAT_CASE_1.replace("-", "_")}:0.01,NR_000002_1_Genus_beta_strain_B_16S:0.01):0.02,"
          "NR_000003_1_Other_gamma_strain_C_16S_outgroup:0.3);")
 
 
@@ -49,7 +55,7 @@ def test_a_wrong_cohort_table_does_not_report_a_successful_fill(tmp_path):
 
 
 def test_a_matching_table_reports_the_tips_it_enriched(tmp_path):
-    out = _run(tmp_path, "AS-1\tmoss\tOntario\tPX1.1\nAS-2\tbee\tQuebec\tPX2.1\n")
+    out = _run(tmp_path, f"AS-1\tmoss\tOntario\tPX1.1\n{_FORMAT_CASE_1}\tbee\tQuebec\tPX2.1\n")
     assert "filled 6 empty field(s) on tips in this tree" in out
     assert "NO tip was enriched" not in out
 

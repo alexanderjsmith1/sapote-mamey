@@ -54,7 +54,7 @@ def _load_tool(name):
 def test_phylo_place_finds_official_data_from_nested_cwd(tmp_path, monkeypatch):
     ws = tmp_path / "ws"; (ws / "OFFICIAL_DATA").mkdir(parents=True)
     (ws / "OFFICIAL_DATA" / "STRAIN_METADATA.tsv").write_text(
-        "tip_label\thost_common\tlocation\tgenbank_accession\nAS-0001\tbee\tON\tXX000001\n", encoding="utf-8")
+        "tip_label\thost_common\tlocation\tgenbank_accession\nAS-971\tbee\tON\tXX000001\n", encoding="utf-8")
     nested = ws / "strain_data" / "_PLACEMENT" / "rare_genera"; nested.mkdir(parents=True)
     monkeypatch.delenv("SAPOTE_WORKSPACE_ROOT", raising=False); monkeypatch.delenv("SAPOTE_ROOT", raising=False)
     monkeypatch.chdir(nested)
@@ -62,7 +62,7 @@ def test_phylo_place_finds_official_data_from_nested_cwd(tmp_path, monkeypatch):
     assert pp.official_data_root() == str(ws)
     pp._AS_META = None
     meta = pp._as_meta()
-    assert meta.get("AS-0001", {}).get("host") == "bee", "enriched labels must load from a nested cwd"
+    assert meta.get("AS-971", {}).get("host") == "bee", "enriched labels must load from a nested cwd"
 
 
 def test_phylo_place_is_loud_when_official_data_is_nowhere(tmp_path, monkeypatch, capsys):

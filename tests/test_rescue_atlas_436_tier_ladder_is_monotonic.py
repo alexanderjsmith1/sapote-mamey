@@ -1,7 +1,7 @@
 """Tier A must be at least as strict as Tier B on every gate they share.
 
-Finding and fix are an audit lane's
-(`GOLDENROD_436_rggmci_tier_a_missing_alignment_coverage_gate.md`): Tier A omits
+The .436 audit recorded a missing alignment-coverage gate in Tier A. The original
+private card filename is omitted here and retained by the maintainer outside CODE. Tier A omits
 the `median_alignment_coverage >= 55` floor that Tier B enforces.
 
 This file adds the regression test that card does not carry, and pins the

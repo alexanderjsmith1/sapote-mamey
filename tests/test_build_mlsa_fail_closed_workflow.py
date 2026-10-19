@@ -74,6 +74,10 @@ def test_python_stub_preserves_interpreter_path_and_literal_arguments(tmp_path, 
 
 @pytest.fixture
 def run(tmp_path, monkeypatch):
+    # Functional tool stubs should not depend on unrelated host-volume writes.
+    # Disk refusal/promotion controls remain in test_mlsa_resource_workspace.py.
+    monkeypatch.setattr("shutil.disk_usage",
+                        lambda path: type("Disk", (), {"free": 10**12})())
     bins = tmp_path / 'binary directory'; bins.mkdir()
     for name in mlsa._BIN_ALIASES:
         f = bins / name

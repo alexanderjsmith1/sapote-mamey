@@ -39,6 +39,8 @@ legacy scaffold profile; they do not select current50_v2. Supplying expanded inp
 to those batch routes creates a typed CONTRACT_REQUIRED refusal, so use the native
 explicit-v2 route for an expanded work order.
 
+The separate `modeb-round --from-precompute` imported-prefill option is unavailable and returns `COHORT_PREFILL_SOURCE_BINDING_UNAVAILABLE` before new templates or a worklist are written. Omit that option for package-backed templates; omission retains the default scaffold profile described above. Neither this hold nor the separate `--cohort-dir` source option implements source-bound imported prefill or enables the explicit expanded-locus profile.
+
 The inventory stores exact contig, locus tag, one-based inclusive coordinates,
 strand, translated length, normalized AA SHA-256 and full region identity. It pins
 the assembly archive/member and package CDS table. Literal GenBank LOCUS names are

@@ -1,35 +1,26 @@
 #!/usr/bin/env python3
 """
-verify_tier_derivation.py — assert that a public tier is an exact redaction-view
-of the PRIVATE source tree, using the project's own redaction logic.
+verify_tier_derivation.py — assert source/stage text parity after declared omissions.
 
-This is the cheap parity check that replaces re-running the full pytest suite per
-tier: if every file in the public tier equals redact(private_counterpart), the
-public tier carries no behavioral difference from the source by construction.
+This bounded text comparison complements suite execution and complete archive membership.
+It preserves strain names and strain-to-class associations. Missing/changed selected source
+text fails; metadata, structural and source-bound private-payload omissions remain explicit.
+It does not check binary files, public-only additions, or prove that tests ran.
 
-Usage:
-    verify_tier_derivation.py <private_tree> <public_tree> [--ext .py,.md,.json,...]
-
-Exit 0 = every shared file matches redact(private). Non-zero = drift (investigate).
-
-NOTE: redaction logic is imported from tools/redact_public_tier.py so there is a single
-source of truth for the rule. (Previously this file inlined its own copy, which drifted:
-it lacked the v9.7.97 AS-48 public-NP carve-out and so reported FALSE drift on every file
-mentioning the public bacteriocin enterocin AS-48. Import, do not duplicate.)
+Usage: verify_tier_derivation.py <private_tree> <public_tree> [--ext .py,.md,.json,...]
+Exit 0 = selected text matches after declared omissions. Non-zero = drift.
 """
 from __future__ import annotations
 
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-import argparse, os, sys
+from tracked_file_policy import check_default_r_device_outputs  # noqa: E402
+import argparse, logging, os, sys
 from pathlib import Path
 
-# --- single source of truth: import the live redaction logic ----------------
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# The cut preserves source text after the declared omissions below.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from redact_public_tier import redact_text as _redact_text, redact_py as _redact_py  # noqa: E402
-from redact_public_tier import _is_keyed_registry, _redact_json_registry  # noqa: E402
 from scanner_hmm_release_policy import is_provisioned_scanner_asset  # noqa: E402
 from mamey.privacy_profile import (  # noqa: E402
     PrivacyProfileError, PublicExportPolicy, load_public_export_policy,
@@ -109,20 +100,14 @@ def _is_stripped(rel: str, policy: PublicExportPolicy | None = None) -> bool:
             or any(rel.startswith(p) for p in STRIP_DIR_PREFIXES))
 
 def redact_text(t: str) -> str:
-    return _redact_text(t, as_only=True)
+    """Compatibility name: the cut preserves genuine labels and text."""
+    return t
 
 def redact_py(text: str) -> str:
-    return _redact_py(text, as_only=True)
+    return text
 
 def redact(path: str, text: str) -> str:
-    if path.endswith(".py"):
-        return text
-    # keyed strain registries use the collision-safe JSON redactor (same as the cut) so the
-    # parity check compares like with like — plain redact_text would collapse AS-keys and
-    # false-positive against the correctly-redacted cut.
-    if path.endswith(".json") and _is_keyed_registry(text):
-        return _redact_json_registry(text, True)
-    return redact_text(text)
+    return text
 
 def main() -> int:
     ap = argparse.ArgumentParser()
@@ -132,6 +117,9 @@ def main() -> int:
     ap.add_argument("--privacy-profile", default=None,
                     help="optional sapote_privacy_profile_v1 used by the public cut")
     args = ap.parse_args()
+    for root in (args.private_tree, args.public_tree):
+        if check_default_r_device_outputs(root):
+            return 2
     try:
         policy = load_public_export_policy(args.privacy_profile)
     except PrivacyProfileError as exc:
@@ -169,7 +157,7 @@ def main() -> int:
                 # completely ABSENT from the public tree was never counted as tested, matched,
                 # mismatched, or skipped, and never appeared anywhere in the report. Live-
                 # reproduced: a private-only .py file with no public counterpart produced a clean
-                # "OK: public tier == redact(private source) for every shared content file." /
+                # "OK: public tier matches source text after declared omissions." /
                 # exit 0, even though "for every shared content file" silently narrowed to only
                 # the files present in BOTH trees. A file dropped entirely is drift too (it is
                 # either a legitimate metadata-class omission that belongs in METADATA_SKIP, or a
@@ -178,26 +166,38 @@ def main() -> int:
                 # file must be surfaced, not swallowed.
                 missing_from_public.append(rel)
                 continue
-            if fn in METADATA_SKIP: skipped += 1; continue
-            priv = open(priv_p, encoding="utf-8", errors="ignore").read()
-            pub  = open(pub_p,  encoding="utf-8", errors="ignore").read()
+            if rel.replace(os.sep, "/") in METADATA_SKIP: skipped += 1; continue
+            try:
+                priv_bytes = Path(priv_p).read_bytes()
+                pub_bytes = Path(pub_p).read_bytes()
+            except OSError as exc:
+                logging.getLogger(__name__).error("FAIL: cannot read derivation input %s: %s", rel, type(exc).__name__)
+                return 2
             # tests/ and the synthetic-ID allowlist are deliberately NOT redacted
             # (they carry synthetic fixtures so the in-tier pytest gate stays passable).
             # Policy there is identity between tiers, not redaction-equality.
-            if "/tests/" in relposix or fn == "test_synthetic_ids.txt":
+            if fn.endswith(".py") or "/tests/" in relposix or fn == "test_synthetic_ids.txt":
                 identity += 1
-                if priv == pub:
+                if priv_bytes == pub_bytes:
                     matched += 1
                 else:
                     mismatched += 1; mismatches.append(rel + "  (expected identical, unredacted)")
                 continue
+            try:
+                # Strict decoding preserves errors; documentation uses the redactor's
+                # existing universal-newline comparison semantics.
+                priv = priv_bytes.decode("utf-8", errors="strict").replace("\r\n", "\n").replace("\r", "\n")
+                pub = pub_bytes.decode("utf-8", errors="strict").replace("\r\n", "\n").replace("\r", "\n")
+            except UnicodeError:
+                logging.getLogger(__name__).error("FAIL: invalid UTF-8 derivation input %s", rel)
+                return 2
             tested += 1
             if redact(rel, priv) == pub:
                 matched += 1
             else:
                 mismatched += 1; mismatches.append(rel)
 
-    emit(f"redaction-checked : {tested}", f"identity-checked  : {identity}  (tests/ + synthetic allowlist; not redacted by policy)", f"all checks passed : {matched}", f"metadata skipped  : {skipped}", f"MISMATCHES        : {mismatched}", sep="\n")
+    emit(f"text-checked      : {tested}", f"identity-checked  : {identity}  (Python + tests/ + synthetic allowlist; not redacted by policy)", f"all checks passed : {matched}", f"metadata skipped  : {skipped}", f"MISMATCHES        : {mismatched}", sep="\n")
     for m in mismatches[:25]:
         emit("   DRIFT:", m)
     emit(f"MISSING_FROM_PUBLIC : {len(missing_from_public)}  (private file has no public counterpart at all)")
@@ -208,9 +208,9 @@ def main() -> int:
             emit(f"\n{len(missing_from_public)} private file(s) have NO public-tier counterpart at all — "
                   "either add them to METADATA_SKIP if this is a legitimate build-metadata omission, "
                   "or investigate the cut step that dropped them.", file=sys.stderr)
-        emit("\nFAIL: public tier is NOT an exact redaction-view of the private source.", file=sys.stderr)
+        emit("\nFAIL: public tier differs from the selected source text.", file=sys.stderr)
         return 1
-    emit("\nOK: public tier == redact(private source) for every shared content file.")
+    emit("\nOK: public tier matches source text after declared omissions.")
     return 0
 
 if __name__ == "__main__":

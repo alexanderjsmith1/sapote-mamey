@@ -85,7 +85,7 @@ def _widget(package_names):
 
 def test_source_bundle_and_tranche2_render(tmp_path):
     packages = {}
-    for strain in ("AS-1", "AS-2"):
+    for strain in ("AS-1", 'SYNTHETIC-CASE-002'):
         name = f"{strain}_Complete_Package.zip"
         packages[strain] = name
         _write_package(tmp_path / name, strain)

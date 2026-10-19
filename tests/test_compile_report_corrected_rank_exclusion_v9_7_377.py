@@ -1,4 +1,4 @@
-"""Regression test — BLACK_CHERRY_377_compile_report_code_adversarial_review.
+"""Regression test — regression_review_377_compile_report_code_adversarial_review.
 
 `mamey/scoring.py::triage_bgcs()` leaves `corrected_rank` (written as the `Corrected_rank`
 column of `_4_triage_board.csv`) BLANK for THREE independent lead-exclusion reasons
@@ -18,7 +18,7 @@ contradicting scoring.py's own exclusion. `_key_findings()` had the parallel gap
 helper never checked `Corrected_rank` at all, so the same BGC's raw KCB_score could headline the
 report's Key Findings banner as the #1 finding.
 
-This is the same bug CLASS as BLACK_CHERRY_377_tranche5_mobile_element_lead_exclusion_gap (an
+This is the same bug CLASS as regression_review_377_tranche5_mobile_element_lead_exclusion_gap (an
 engine-excluded BGC silently posing as a valid lead in a downstream consumer) but in the
 compiled TEXT report itself rather than a figure family, and more severe: it does not merely
 fail to say "EXCL", it can promote the excluded BGC all the way to "PRIORITY ISO".

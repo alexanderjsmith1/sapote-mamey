@@ -22,7 +22,7 @@ def _sha(path: str | Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def _package(tmp_path: Path, strain: str = "AS-162") -> Path:
+def _package(tmp_path: Path, strain: str = "SYNTHETIC-CASE-004") -> Path:
     pkg = tmp_path / "package"
     pkg.mkdir(parents=True)
     (pkg / "manifest.json").write_text(json.dumps({"strain_id": strain}), encoding="utf-8")
@@ -43,7 +43,7 @@ def _package(tmp_path: Path, strain: str = "AS-162") -> Path:
 
 def _trove(tmp_path: Path, rows: list[dict], *, top10: bool = False) -> Path:
     root = tmp_path / ("top10_trove" if top10 else "overlay_trove")
-    bgc = root / "AS-162" / "BGC007"
+    bgc = root / "SYNTHETIC-CASE-004" / "BGC007"
     bgc.mkdir(parents=True)
     name = "BGC007_blastp_top10.csv" if top10 else "BGC007_top_hit_per_gene.csv"
     fields = sorted({key for row in rows for key in row})
@@ -56,7 +56,7 @@ def _trove(tmp_path: Path, rows: list[dict], *, top10: bool = False) -> Path:
 
 def _row(**overrides) -> dict:
     row = {
-        "strain": "AS-162", "bgc_id": "BGC007", "gene": "ctg1_1",
+        "strain": "SYNTHETIC-CASE-004", "bgc_id": "BGC007", "gene": "ctg1_1",
         "aa_length": "300", "subject_acc": "WP_1", "subject_organism": "Other species",
         "subject_def": "similar protein", "pct_identity": "72.0", "pct_positives": "81.0",
         "query_coverage": "98.0", "evalue": "1e-40", "bitscore": "200", "hit_rank": "1",
@@ -71,7 +71,7 @@ def _quarantine(result: dict) -> list[dict]:
 
 
 @pytest.mark.parametrize(("overrides", "reason"), [
-    ({"strain": "AS-190"}, "FOREIGN_STRAIN"),
+    ({"strain": "SYNTHETIC-CASE-007"}, "FOREIGN_STRAIN"),
     ({"bgc_id": "BGC008"}, "FOREIGN_BGC"),
     ({"gene": "ctg1_999"}, "NONCURRENT_LOCUS"),
     ({"aa_length": ""}, "ZERO_OR_BLANK_AA_LENGTH"),
@@ -81,7 +81,7 @@ def _quarantine(result: dict) -> list[dict]:
 def test_overlay_rejects_non_exact_rows(tmp_path, overrides, reason):
     pkg = _package(tmp_path)
     trove = _trove(tmp_path, [_row(**overrides)])
-    result = ingest_blastp_trove(pkg, trove, "nr", "AS-162")
+    result = ingest_blastp_trove(pkg, trove, "nr", "SYNTHETIC-CASE-004")
     assert result["genes"] == 0 and result["quarantined"] == 1
     assert _quarantine(result)[0]["reason"] == reason
     assert not (pkg / "blastp_online" / "BGC007_online_blastp.csv").exists()
@@ -91,12 +91,12 @@ def test_overlay_rejects_non_exact_rows(tmp_path, overrides, reason):
 def test_exact_row_is_admitted_with_durable_unmixed_provenance(tmp_path):
     pkg = _package(tmp_path)
     source = _trove(tmp_path, [_row()])
-    result = ingest_blastp_trove(pkg, source, "nr", "AS-162")
+    result = ingest_blastp_trove(pkg, source, "nr", "SYNTHETIC-CASE-004")
     assert result["genes"] == 1 and result["quarantined"] == 0
     with (pkg / "blastp_online" / "BGC007_online_blastp.csv").open(newline="") as fh:
         row = next(csv.DictReader(fh))
     assert (row["query_strain"], row["query_bgc"], row["query_locus"],
-            row["query_aa_length"]) == ("AS-162", "BGC007", "ctg1_1", "300")
+            row["query_aa_length"]) == ("SYNTHETIC-CASE-004", "BGC007", "ctg1_1", "300")
     assert row["channel"] == row["source_channel"] == "nr"
     assert len(row["source_file_sha256"]) == 64
     assert "nr" in ingested(pkg)["BGC007"]
@@ -106,7 +106,7 @@ def test_pipe_query_provenance_is_accepted(tmp_path):
     pkg = _package(tmp_path)
     row = _row()
     row.pop("strain"); row.pop("bgc_id"); row.pop("gene"); row.pop("aa_length")
-    row["query_locus"] = "AS-162|BGC007|ctg1_1|300"
+    row["query_locus"] = "SYNTHETIC-CASE-004|BGC007|ctg1_1|300"
     result = ingest_blastp_trove(pkg, _trove(tmp_path, [row]), "nr")
     assert result["genes"] == 1 and result["quarantined"] == 0
 
@@ -119,7 +119,7 @@ def test_legacy_overlay_is_quarantined_not_carried_forward(tmp_path):
         "locus_tag,aa_length,blastp_accession,channel\nctg1_2,250,OLD,ebi\n",
         encoding="utf-8",
     )
-    result = ingest_blastp_trove(pkg, _trove(tmp_path, [_row()]), "nr", "AS-162")
+    result = ingest_blastp_trove(pkg, _trove(tmp_path, [_row()]), "nr", "SYNTHETIC-CASE-004")
     rows = list(csv.DictReader((overlay / "BGC007_online_blastp.csv").open(newline="")))
     assert [r["locus_tag"] for r in rows] == ["ctg1_1"]
     assert any(r["reason"] == "LEGACY_PROVENANCE_HOLD" for r in _quarantine(result))
@@ -139,7 +139,7 @@ def test_conflicting_explicit_strain_fails_before_any_write(tmp_path):
     trove = _trove(tmp_path, [_row()])
     before = sorted(p.relative_to(pkg) for p in pkg.rglob("*"))
     with pytest.raises(ValueError, match="conflicts with package manifest"):
-        ingest_blastp_trove(pkg, trove, "nr", "AS-190")
+        ingest_blastp_trove(pkg, trove, "nr", "SYNTHETIC-CASE-007")
     assert sorted(p.relative_to(pkg) for p in pkg.rglob("*")) == before
     assert not (pkg / "blastp_online").exists()
 
@@ -149,22 +149,22 @@ def test_top10_conflicting_strain_also_fails_before_any_write(tmp_path):
     trove = _trove(tmp_path, [_row()], top10=True)
     before = sorted(p.relative_to(pkg) for p in pkg.rglob("*"))
     with pytest.raises(ValueError, match="conflicts with package manifest"):
-        install_channel_top10(pkg, trove, "nr", "AS-190")
+        install_channel_top10(pkg, trove, "nr", "SYNTHETIC-CASE-007")
     assert sorted(p.relative_to(pkg) for p in pkg.rglob("*")) == before
     assert not (pkg / "blastp_nr").exists()
 
 
 def test_top10_store_applies_same_guard_and_all_rejected_is_incomplete(tmp_path):
     pkg = _package(tmp_path)
-    source = _trove(tmp_path, [_row(), _row(strain="AS-190", subject_acc="BAD")], top10=True)
-    result = install_channel_top10(pkg, source, "nr", "AS-162")
+    source = _trove(tmp_path, [_row(), _row(strain="SYNTHETIC-CASE-007", subject_acc="BAD")], top10=True)
+    result = install_channel_top10(pkg, source, "nr", "SYNTHETIC-CASE-004")
     assert result["hits"] == 1 and result["quarantined"] == 1
     rows = list(csv.DictReader((pkg / "blastp_nr" / "BGC007_top10.csv").open(newline="")))
     assert len(rows) == 1 and rows[0]["subject_acc"] == "WP_1" and rows[0]["channel"] == "nr"
 
     pkg2 = _package(tmp_path / "second")
-    source2 = _trove(tmp_path / "second", [_row(strain="AS-190")], top10=True)
-    result2 = install_channel_top10(pkg2, source2, "nr", "AS-162")
+    source2 = _trove(tmp_path / "second", [_row(strain="SYNTHETIC-CASE-007")], top10=True)
+    result2 = install_channel_top10(pkg2, source2, "nr", "SYNTHETIC-CASE-004")
     assert result2["hits"] == 0 and result2["quarantined"] == 1
     assert not (pkg2 / "blastp_nr" / "BGC007_top10.csv").exists()
     assert "nr" not in ingested(pkg2).get("BGC007", set())
@@ -173,10 +173,10 @@ def test_top10_store_applies_same_guard_and_all_rejected_is_incomplete(tmp_path)
 def test_clean_reingest_is_idempotent_and_guard_artifacts_have_stable_hashes(tmp_path):
     pkg = _package(tmp_path)
     source = _trove(tmp_path, [_row()])
-    first = ingest_blastp_trove(pkg, source, "nr", "AS-162")
+    first = ingest_blastp_trove(pkg, source, "nr", "SYNTHETIC-CASE-004")
     hashes1 = {_sha(first["quarantine"]), _sha(first["receipt"]),
                _sha(pkg / "blastp_online" / "_ingest_ledger.json")}
-    second = ingest_blastp_trove(pkg, source, "nr", "AS-162")
+    second = ingest_blastp_trove(pkg, source, "nr", "SYNTHETIC-CASE-004")
     hashes2 = {_sha(second["quarantine"]), _sha(second["receipt"]),
                _sha(pkg / "blastp_online" / "_ingest_ledger.json")}
     assert first["quarantine"] == second["quarantine"]
@@ -213,7 +213,7 @@ def test_top10_install_propagates_configured_root_discovery_hold(tmp_path, monke
 
     monkeypatch.setattr(blastp_gate, "_strain_dirs_in", refuse_discovery)
     with pytest.raises(blastp_gate.BlastpDiscoveryError, match="BLASTP_DISCOVERY_HOLD"):
-        install_channel_top10(pkg, source, "nr", "AS-162")
+        install_channel_top10(pkg, source, "nr", "SYNTHETIC-CASE-004")
     assert not (pkg / "blastp_nr").exists()
 
 
@@ -235,10 +235,10 @@ def test_manual_binding_guard_refuses_corrupt_existing_manifest(tmp_path):
 ])
 def test_bgc_file_discovery_traversal_error_is_a_typed_hold(
         tmp_path, monkeypatch, installer, top10):
-    """AS-162 / NODE_1_length_1000_cov_20 / region007 / BGC007 cannot become absence."""
+    """SYNTHETIC-CASE-004 / NODE_1_length_1000_cov_20 / region007 / BGC007 cannot become absence."""
     pkg = _package(tmp_path)
     source = _trove(tmp_path, [_row()], top10=top10)
-    bgc_dir = source / "AS-162" / "BGC007"
+    bgc_dir = source / "SYNTHETIC-CASE-004" / "BGC007"
     original_iterdir = Path.iterdir
 
     def refuse_bgc_traversal(path):
@@ -248,7 +248,7 @@ def test_bgc_file_discovery_traversal_error_is_a_typed_hold(
 
     monkeypatch.setattr(Path, "iterdir", refuse_bgc_traversal)
     with pytest.raises(bi.BlastpTroveDiscoveryError, match="BLASTP_TROVE_DISCOVERY_HOLD"):
-        installer(pkg, source, "nr", "AS-162")
+        installer(pkg, source, "nr", "SYNTHETIC-CASE-004")
     assert not (pkg / "blastp_online").exists()
     assert not (pkg / "blastp_nr").exists()
 
@@ -256,15 +256,15 @@ def test_bgc_file_discovery_traversal_error_is_a_typed_hold(
 def test_missing_channel_pattern_remains_truthful_absence(tmp_path):
     """A readable BGC directory without the requested channel file is not a traversal hold."""
     pkg = _package(tmp_path)
-    source = tmp_path / "trove" / "AS-162" / "BGC007"
+    source = tmp_path / "trove" / "SYNTHETIC-CASE-004" / "BGC007"
     source.mkdir(parents=True)
     (source / "notes.txt").write_text("no BLASTp table\n", encoding="utf-8")
-    result = ingest_blastp_trove(pkg, source.parents[1], "nr", "AS-162")
+    result = ingest_blastp_trove(pkg, source.parents[1], "nr", "SYNTHETIC-CASE-004")
     assert result["genes"] == 0
 
 
 def test_manual_binding_cannot_treat_unreadable_package_as_legacy(tmp_path, monkeypatch):
-    """AS-162 / NODE_1_length_1000_cov_20 / region007 / BGC007 must remain bound."""
+    """SYNTHETIC-CASE-004 / NODE_1_length_1000_cov_20 / region007 / BGC007 must remain bound."""
     from mamey.blastp_ingest import _manual_binding_guard
     pkg = _package(tmp_path)
     source = tmp_path / "hits.csv"
@@ -278,11 +278,11 @@ def test_manual_binding_cannot_treat_unreadable_package_as_legacy(tmp_path, monk
 
     monkeypatch.setattr(Path, "iterdir", refuse_package)
     with pytest.raises(ValueError, match="BLASTP_PACKAGE_DISCOVERY_HOLD"):
-        _manual_binding_guard(pkg, "AS-162", [], source)
+        _manual_binding_guard(pkg, "SYNTHETIC-CASE-004", [], source)
 
 
 def test_nr_clustered_nr_and_swissprot_remain_separate_offline_stores(tmp_path):
-    """AS-162 / NODE_1_length_1000_cov_20 / region007 / BGC007 keeps channel identity."""
+    """SYNTHETIC-CASE-004 / NODE_1_length_1000_cov_20 / region007 / BGC007 keeps channel identity."""
     pkg = _package(tmp_path)
     cases = [
         ("nr", "BGC007_blastp_top10.csv", "ACC_NR", "blastp_nr"),
@@ -290,14 +290,14 @@ def test_nr_clustered_nr_and_swissprot_remain_separate_offline_stores(tmp_path):
         ("swissprot", "BGC007_blastp_top10_local.csv", "ACC_SWISSPROT", "blastp_swissprot"),
     ]
     for channel, filename, accession, _store_name in cases:
-        bgc_dir = tmp_path / f"trove_{channel}" / "AS-162" / "BGC007"
+        bgc_dir = tmp_path / f"trove_{channel}" / "SYNTHETIC-CASE-004" / "BGC007"
         bgc_dir.mkdir(parents=True)
         row = _row(subject_acc=accession)
         with (bgc_dir / filename).open("w", newline="", encoding="utf-8") as fh:
             writer = csv.DictWriter(fh, fieldnames=list(row))
             writer.writeheader()
             writer.writerow(row)
-        result = install_channel_top10(pkg, bgc_dir.parents[1], channel, "AS-162")
+        result = install_channel_top10(pkg, bgc_dir.parents[1], channel, "SYNTHETIC-CASE-004")
         assert result["hits"] == 1
 
     for channel, _filename, accession, store_name in cases:

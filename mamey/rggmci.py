@@ -8,6 +8,7 @@ cluster/genome in antiSMASH ClusterBlast / KnownClusterBlast output.  It is a
 homology-guided candidate-linkage method, not a physical contig joiner.
 """
 from __future__ import annotations
+from .source_context import source_zipfile as _source_zipfile
 
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
@@ -486,7 +487,7 @@ def _glycosyltransferase_bgcs(zip_path: str | Path, bgcs: list[BGCRecord]) -> se
     if not want:
         return out
     try:
-        with zipfile.ZipFile(zip_path) as zf:
+        with _source_zipfile(zip_path) as zf:
             names = set(regular_file_names(zf))
             for name, bgc_id in want.items():
                 if name in names and _GLYCOSYLTRANSFERASE_RE.search(_read_text(zf, name)):
@@ -524,7 +525,7 @@ def _contig_edge_bgcs(zip_path: str | Path, bgcs: list[BGCRecord]) -> set[str]:
     fallback = _edge_status_fallback(bgcs)
     out: set[str] = set()
     try:
-        with zipfile.ZipFile(zip_path) as zf:
+        with _source_zipfile(zip_path) as zf:
             names = set(regular_file_names(zf))
             for b in bgcs:
                 name = getattr(b, "source_gbk", "")
@@ -838,7 +839,7 @@ def parse_clusterblast_reference_map(zip_path: str | Path, bgcs: list[BGCRecord]
     bgc_by_key = {f"{b.contig}_c{int(b.region_number)}": b for b in bgcs if b.contig and b.region_number is not None}
     refs: list[ClusterBlastReference] = []
     files: list[str] = []
-    with zipfile.ZipFile(zip_path) as zf:
+    with _source_zipfile(zip_path) as zf:
         for name in regular_file_names(zf):
             low = name.lower()
             if not low.endswith(".txt"):

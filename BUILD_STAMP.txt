@@ -1,5 +1,5 @@
-version=9.7.451
-build=20261015v97451a
+version=9.7.453
+build=20261018v97453a
 engine=1.9.176
-patch=Two-proof rescue holds an unreadable overlap count.; The hybrid gate counts each antiSMASH category once.; RG-GMCI and the KS scan read what is there.; Package runs say when record-limit coverage is unverified.; Without biopython, a corrupt GBK is an error, not a package.; Tree tip labels carry names only.; Evidence and outputs are admitted, not assumed.; GitHub CI installs R and runs the R figure tests.
+patch=Analysis inputs are read from one bound snapshot.; Neutral public names replace internal code names.; Test identifiers have one role table and an optional registry guard.; RiPPER is an optional, experimental adapter.; Completed render packets are checked from one admitted generation.; Release and report tooling is tighter.; Stabilize the MLSA workflow test fixture.; Keep cohort tests importable in isolated partitions.
 tier=code

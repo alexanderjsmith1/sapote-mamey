@@ -198,11 +198,92 @@ python tools/gap_directed_rescue.py --zip <antiSMASH.zip> --label <strain> --cor
   locus, protein lengths, identity and coverage.
 - Modular PKS genes of the reference (genes carrying a KS domain) are drawn hatched and never count toward a partner:
   their best whole-gene match follows module paralogy. Order those pieces with KS placement (above).
-- Ribbons join reciprocal best matches only. When several reference genes share one genome protein as their best
-  match (paralogous PKS modules), only the closest keeps the ribbon; the table lists the others as cross-hits.
+- Ribbons use the forward-hit winner field `reciprocal_best`. When several reference genes select the same genome
+  protein, the reference row with the highest recorded identity keeps the ribbon; the table retains the other
+  cross-hits. This selection does not perform a reverse search or establish one-to-one orthology.
 - Homology comes from DIAMOND through `mamey.diamond_align`, or from `--hits`.
 - A partner contig is a candidate missing piece. Nothing is joined, and a fragmented assembly is never joined with
   full confidence. Identity is similarity, not product identity.
+
+## Review an undrawn ambiguous contig
+
+`tools/gap_directed_rescue.py --named-contig` is a repeatable, explicit redraw
+selection. It requires `--redraw`, the supplied genome ZIP and label, the local
+reference folder, and a fresh `--out`. The output path must not exist or be a
+symlink, including a dangling symlink; choose a disjoint destination outside the
+old run folder and bundle, not an ancestor or descendant of the old run folder.
+This option does not run a new search or change the rescue analysis.
+
+Copy each exact identity from the supplied source model as
+`strain / full contig / region / BGC alias`. The strain and full contig must agree
+with the selected model record. For a contig with no called antiSMASH region in
+that supplied input, use the explicit four-part form
+`strain / full contig / NO_ANTISMASH_REGION / NO_BGC_ALIAS`; do not use that form
+to hide a region that is present. Duplicate, unresolved or already drawn contigs
+are refused. A selected contig must contain an existing
+`MISSING_FOUND_AMBIGUOUS` candidate with consistent protein/locus binding; for a
+region selection the candidate must overlap that exact region.
+
+The added row is labeled `AMBIGUOUS` and is review context only. It adds no new
+reference ribbon and does not promote a partner, change gene statuses, rescue evidence counts
+or scores. Existing table evidence and candidate identity measurements remain
+available in the review record. Default contig selection is unchanged when this
+option is absent.
+
+The fresh output includes `named_contig_review.json` with schema
+`sapote.named-contig-review.v1`, exact selections, source/input/output hashes and
+`genome_parse_binding`. The CLI captures the ZIP hash before its actual
+`load_genome` call and verifies it after parsing and around the redraw; that path
+records `ZIP_HASH_VERIFIED_BEFORE_AND_AFTER_PARSE`. Direct callers supplying a
+protein/region model without that parse binding receive
+`OPERATOR_SUPPLIED_MODEL`. A model hash or a separately supplied ZIP does not
+upgrade an operator model to verified ZIP parsing.
+
+Both paths retain
+`historical_alignment_binding=NOT_ESTABLISHED_BY_REDRAW`: rereading and drawing
+saved tables does not establish which earlier alignment produced them. Preserve
+those earlier search receipts separately. A changed input or failed final
+binding can leave partial graphics; retain them as incomplete rather than
+claiming a completed review. The receipt and context row are not biological
+adjudication, release acceptance or proof of full figure-policy compliance.
+
+## Read forward and reverse match provenance
+
+For reference-completion results carrying schema `rggmci-reciprocal-provenance-v1`,
+read `cores[].reciprocal_provenance`. The shared partner-check result also exposes
+`reciprocal_provenance`; a gap-rescue receipt retains that result under
+`partner_checks`. This additive record distinguishes two operations:
+
+- `forward_winner` describes selection among retained forward-hit reference rows.
+  It names `reciprocal_best` and records `separate_search=false`; a true winner is
+  not evidence that a reverse search ran.
+- `reverse_search` records the selected provider, callback invocation, query and
+  recognized MIBiG-hit query counts, reported execution state/source and reason.
+  Keep this record separate from gene statuses, partner verdicts and scores.
+
+| Reverse state | What the record establishes |
+|---|---|
+| `NOT_NEEDED` | No outside-core finds required this check. |
+| `NOT_RUN` | The check lacked its selected database or the search owner reported an unavailable prerequisite. |
+| `FAILED` | The selected search returned a failed response rather than a successful result or a reported not-run preflight. |
+| `RUN` | The search owner reported success, including an empty result; this is not a positive match or biological absence. |
+| `UNJUDGED` | Success was reported, but the reference was not an eligible MIBiG accession for the reciprocal judgment. |
+
+`provider=native_search_mibig` identifies that actual selected function;
+`supplied_callback` identifies a function passed through the callback interface.
+Completion's internal cache closure is a supplied callback too, not necessarily
+an external plugin. Its reported `execution_source` can distinguish
+`alignment_workflow` from `sequence_cache`. Provider selection and callback-reported
+execution metadata do not independently attest an executable process or authenticate
+upstream results. Retain the actual alignment/cache evidence when available.
+
+The legacy `reciprocal_check` text remains separate and can say not run even when
+the structured state is `FAILED`. Neither wording changes a gene status, partner
+meaning, score or confidence. Older records may lack this additive field; that
+absence alone does not retrospectively prove whether a reverse search ran.
+Completion-level holds with no per-core result do not imply a per-core `RUN`.
+This mapping describes records that carry the named schema; it does not certify
+execution of an earlier experiment or an accepted release.
 
 ## Required gates
 

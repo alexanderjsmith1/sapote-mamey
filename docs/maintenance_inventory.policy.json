@@ -71,7 +71,7 @@
         "tools/gen_marker_catalog.py"
       ],
       "regeneration_rule": "python tools/gen_marker_catalog.py",
-      "check_rule": "Owner --check covers JSON only; independently compare both fresh rendered files before accepting the pair",
+      "check_rule": "python tools/gen_marker_catalog.py --check",
       "trigger": "owning marker tables or renderer change",
       "scope": "complete-generated-output"
     },

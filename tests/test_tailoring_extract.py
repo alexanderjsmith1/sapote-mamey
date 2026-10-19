@@ -8,6 +8,10 @@ tags, NOT aSDomains — an aSDomain-only feature must not satisfy a family, and 
 (substring matching would replicate the documented ks_phylogeny "pks" bug).
 
 Claim-safety: family membership = CAPACITY context, never a modification/identity claim.
+
+The AS-shaped controls selected here are authored parser fixtures using existing reserved
+fixture declarations. Their bound-snapshot noncollision does not grant disclosure permission;
+empirical/reference records, historical anchors and scientific assertions remain distinct.
 """
 import json
 from pathlib import Path
@@ -93,10 +97,10 @@ def test_exact_tag_extraction_with_receipts_and_mechanism_separation(tmp_path):
 
 def test_strain_internal_gate_fails_closed(tmp_path):
     d = _gbk_dir(tmp_path)
-    (d / "AS-2_NODE_9_region001.gbk").write_text(GBK)
+    (d / 'AS-971_NODE_9_region001.gbk').write_text(GBK)
     with pytest.raises(T.TailoringExtractError, match="STRAIN-INTERNAL ONLY.*multiple"):
         T.extract_tailoring_enzymes(d, families=("halogenase",))
-    (d / "AS-2_NODE_9_region001.gbk").unlink()
+    (d / 'AS-971_NODE_9_region001.gbk').unlink()
     (d / "mystery.gbk").write_text(GBK)          # unparseable strain id -> fail closed
     with pytest.raises(T.TailoringExtractError, match="STRAIN-INTERNAL ONLY.*mystery"):
         T.extract_tailoring_enzymes(d, families=("halogenase",))

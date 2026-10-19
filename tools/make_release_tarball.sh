@@ -33,6 +33,15 @@ if ! "$PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12)
   echo "REFUSED: Python 3.12 or newer required; PYTHON executable unavailable or incompatible: $PYTHON" >&2
   exit 2
 fi
+# Prefer GNU coreutils on Linux; stock macOS supplies the Perl shasum fallback.
+if command -v sha256sum >/dev/null 2>&1; then
+  SHA256=(sha256sum)
+elif command -v shasum >/dev/null 2>&1; then
+  SHA256=(shasum -a 256)
+else
+  echo "REFUSED: sha256sum or shasum required for SHA-256 verification" >&2
+  exit 2
+fi
 mkdir -p "$outdir"
 tarball="$outdir/$name.tar.gz"
 # COPYFILE_DISABLE stops tar from GENERATING AppleDouble (._*) entries. It does not stop tar from
@@ -63,6 +72,6 @@ fi
 # Relative-name sidecar (BC4 .400 seal-gate review, delta h): an awk-$2 sidecar truncated the
 # recorded path at the first space, so `shasum -c` failed on spaced outdirs — which the
 # workspace's release folders are. Relative name = space-safe AND portable across machines.
-( cd "$outdir" && shasum -a 256 -- "$name.tar.gz" > "$name.tar.gz.sha256" )
+( cd "$outdir" && "${SHA256[@]}" -- "$name.tar.gz" > "$name.tar.gz.sha256" )
 echo "tarball: $tarball"
 echo "sha256:  $(cut -d' ' -f1 "$tarball.sha256")"

@@ -5,7 +5,7 @@ Before any `doctor` example below, read the [write-probe boundary](../docs/INSTA
 Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
 untouched. The current diagnostic can overwrite or remove its probe file.
 
-*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.451 / engine Mamey 1.9.176*
+*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.453 / engine Mamey 1.9.176*
 *Historical sections retain their stated scope.*
 
 > This Manual tells you **how to run** Sapote–Mamey and **how to read what it gives you**, in the order you actually use it. For *why each part exists and how it relates to the rest*, see the **Encyclopedia** (cross-referenced as → §Vol.Chapter). The Manual is operational; the Encyclopedia is the deep reference behind it. Term definitions live in one place, the **Glossary** ([`GLOSSARY.md`](Glossary.md); its **Core concepts** section covers the load-bearing terms). This Manual and the Encyclopedia point to it rather than redefining terms.
@@ -32,7 +32,7 @@ Mamey is the factual floor; Sapote is the interpretive ceiling. The contract bet
 ## 2 · Setup and installation
 
 Mamey parses antiSMASH output; it does not run genome detection itself.
-*(engine 1.9.176, bundle v9.7.451)*
+*(engine 1.9.176, bundle v9.7.453)*
 
 ### 2.1 · What you need
 
@@ -97,7 +97,7 @@ Use CODE for all internal analysis. Never distribute MERGED-PRIVATE.
 
 ```bash
 python mamey_run.py doctor            # pre-flight check: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # should report `engine 1.9.176, bundle 9.7.451`
+python3 tools/sync_version.py --check # should report `engine 1.9.176, bundle 9.7.453`
 # Developer tests are separate from first-run setup; pytest is installed separately.
 # Default pytest omits marked slow/network partitions and may skip external fixtures.
 # A green scoped test run does not establish tier integrity or release readiness.
@@ -131,7 +131,7 @@ python mamey_run.py run \
 ```
 
 Key flags (→ Encyclopedia §VII.7 for the full tunable surface):
-- `--release` — local **PUBLIC** or **PRIVATE** output tag, not publication or disclosure permission. In .447 the legacy resolver can derive PUBLIC for AS labels; AJS/PENDING/unrecognized identifiers and private-registry safeguards can force PRIVATE. An explicit privacy profile uses its own assignments and override rules. Preserve the current owner-approved custody scope, choose PRIVATE for private candidate work and inspect the resulting privacy/release fields; do not infer custody from a strain prefix alone.
+- `--release` — local **PUBLIC** or **PRIVATE** output tag, not publication or disclosure permission. With neither a privacy profile nor an override, the current resolver defaults to PRIVATE for every identifier prefix. An exact public profile assignment or admitted explicit PUBLIC override has a separate recorded basis; an explicit PRIVATE override wins, and applicable private guards or nonpublic profile tiers can refuse PUBLIC. Inspect `release_decision` and the selected policy. Preserve the owner-approved custody scope; do not infer public authority from a strain prefix.
 - `--mode` — use `gold` for analysis. `standard` remains accepted as a deprecated alias to gold. Gold emits gene-level evidence and native Mode B support, not a finished authored card.
 - `--json-evidence bounded` — enables the region-mapped **RiQ** layer (streams large JSONs; RiQ is exempt from the record cap). `full` carries the richest active-site/substrate data.
 - `--source` — provenance string. **Provide it.** When absent, habitat falls to `ENGINE_DEFAULT_PLACEHOLDER`. Isolation source is a weak proxy for function in any case; never turn it into an ecological claim.
@@ -141,7 +141,7 @@ Key flags (→ Encyclopedia §VII.7 for the full tunable surface):
 - `MAMEY_COMPLETE_WITH_ISSUES` — completed, but the manifest carries `[ISSUE]` lines worth reading (MULTIBATCH, VERY_POOR assembly, PHO_CLUSTER, E-signal, etc.).
 - `VALIDATION_FAIL` — the package did not pass its integrity gate; do not use it.
 
-**The package naming convention.** The sealed package is named after the **bundle** version with the engine version as a provenance suffix: `<strain>_SapoteMamey_v<bundle-version>_engine<engine-version>_Complete_Package.zip`. Replace both version placeholders with the producing package manifest values; for this code bundle they are bundle **9.7.447** and engine **1.9.172**. An older package retains its original producing versions. (Before v9.7.85 it used only the engine version, which made the producing bundle unidentifiable from the filename.)
+**The package naming convention.** Use the actual `*Complete_Package.zip` filename printed by the run. It includes the producing bundle version, engine version and antiSMASH detection profile. Read those values from the producing manifest; do not reconstruct the filename from versions remembered from this guide. An older package retains its original producing identity.
 
 **Where the outputs land.** Inside `runs/<ID>/package/`: the numbered deliverables (`_1_…` intake through the triage board `_4_triage_board.csv` and the dedicated `_4c_AB_lead_board.csv` / `_4c_AF_lead_board.csv`), the `_5_workbook.xlsx`, the `AntiSMASH_Evidence_Parse.json`, the judgment register, and — in gold mode — the gene-by-gene deep layer. `OPEN_ME_FIRST.html` is the entry point; `START_HERE.md` is the reading order; `manifest.json` is the authoritative file inventory; `run_phase_receipts.jsonl` records per-phase START/DONE receipts; `checksums_sha256.txt` seals it.
 
@@ -533,4 +533,4 @@ Use [the Mode B user walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md) for packag
 
 ---
 
-*Sapote–Mamey User Manual · current to bundle v9.7.451 / engine Mamey 1.9.176 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
+*Sapote–Mamey User Manual · current to bundle v9.7.453 / engine Mamey 1.9.176 Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*

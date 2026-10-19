@@ -44,18 +44,18 @@ def _fam_by_id(payload, fid):
 
 
 def test_as_plus_mibig_family_is_not_private():
-    fam = {1: [_member("AS", "AS-001"), _member("MIBiG", "MIBiG")]}
+    fam = {1: [_member("AS", "AS-971"), _member("MIBiG", "MIBiG")]}
     f = _fam_by_id(_payload(fam), 1)
     assert f["private"] is False, "AS+MIBiG family clustered with a reference is KNOWN, not AS-private"
     assert f.get("mibig_n") == 1
 
 
 def test_as_only_family_is_private():
-    fam = {2: [_member("AS", "AS-001"), _member("AS", "AS-002")]}
+    fam = {2: [_member("AS", "AS-971"), _member("AS", 'SYNTHETIC-CASE-002')]}
     assert _fam_by_id(_payload(fam), 2)["private"] is True
 
 
 def test_as_plus_type_family_is_not_private():
     # regression guard: the existing Type disqualifier must still hold
-    fam = {3: [_member("AS", "AS-001"), _member("Type", "Streptomyces sp. WAC 06738")]}
+    fam = {3: [_member("AS", "AS-971"), _member("Type", "Streptomyces sp. WAC 06738")]}
     assert _fam_by_id(_payload(fam), 3)["private"] is False

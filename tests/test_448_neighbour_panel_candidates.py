@@ -42,7 +42,7 @@ def _fixture(tmp):
     tygs = ["comp_type\tquery_genome\tsubject_genome\tdigital_ddh_d4",
             "U vs. T\t<b>'AS-1.fna'</b> \t\"<I>Streptomyces</I> <I>gamma</I> <a href=\"\"x\"\">NRRL B-9</a>\"\t30.5",
             "U vs. T\t<b>'AS-1.fna'</b> \t\"<I>Streptomyces</I> <I>delta</I> <a>DSM 7</a>\"\t20.1",
-            "U vs. T\t<b>'AS-2.fna'</b> \t\"<I>Streptomyces</I> <I>beta</I> <a>Y2</a>\"\t80.0",
+            "U vs. T\t<b>'SYNTHETIC-CASE-002.fna'</b> \t\"<I>Streptomyces</I> <I>beta</I> <a>Y2</a>\"\t80.0",
             "T vs. T\tx\ty\t50"]
     (tmp / "tygs.tsv").write_text("\n".join(tygs) + "\n")
     (tmp / "ex.txt").write_text("GCF_000099.1\n")

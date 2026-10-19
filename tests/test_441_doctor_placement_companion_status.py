@@ -7,7 +7,9 @@ def test_workspace_env_and_blast_bin(tmp_path):
     (tmp_path / "miniconda3/envs/placement/bin").mkdir(parents=True)
     for b in ("mafft", "raxml-ng", "epa-ng"):
         (tmp_path / "miniconda3/envs/placement/bin" / b).write_text("")
+        (tmp_path / "miniconda3/envs/placement/bin" / b).chmod(0o755)
     bb = tmp_path / "custom_blast"; bb.mkdir(); (bb / "blastdbcmd").write_text("")
+    (bb / "blastdbcmd").chmod(0o755)
     env = {"SAPOTE_WORKSPACE_ROOT": str(tmp_path), "BLAST_BIN": str(bb), "PATH": str(tmp_path / "nothing")}
     found, missing = _placement_and_r_companion_status(env)
     assert set(found) == {"mafft", "raxml-ng", "epa-ng", "blastdbcmd"}

@@ -216,7 +216,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", required=True, help="New JSON output path")
     args = parser.parse_args(argv)
     out = Path(args.out)
-    if out.exists():
+    if out.exists() or out.is_symlink():
         parser.error(f"Output already exists: {out}")
     if bool(args.package) == bool(args.left or args.right):
         parser.error("Provide either --package or two protein FASTAs")
@@ -226,16 +226,14 @@ def main(argv: list[str] | None = None) -> int:
         result = package_signature(args.package) if args.package else compare(args.left, args.right)
     except (OSError, SignatureError) as exc:
         parser.error(str(exc))
-    out.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary = tempfile.mkstemp(prefix=out.name + ".", suffix=".tmp", dir=out.parent)
+    # Use the existing fresh-set owner: atomic no-replace links, with owned rollback.
+    from .output_transaction import fresh_output_set
+    payload = json.dumps(result, indent=2) + "\n"
     try:
-        with os.fdopen(fd, "w") as handle:
-            json.dump(result, handle, indent=2)
-            handle.write("\n")
-        os.replace(temporary, out)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
+        with fresh_output_set(out.parent, [out.name]) as stage:
+            (stage / out.name).write_text(payload, encoding="utf-8")
+    except (OSError, ValueError) as exc:
+        parser.error(str(exc))
     return 0
 
 

@@ -10,6 +10,12 @@ BUNDLE = Path(__file__).resolve().parents[1]
 SEQ = "MSTNPKPQRKTKRNTNRRPQDVKFPGGGQIVGGVYLLPRRGPRLGVRATRKTSERSQPRG"
 COLS = ["strain", "bgc", "file", "rid", "rtoe", "submit_iso", "status", "fetch_iso", "note"]
 
+if __package__ in (None, ""):
+    from _synthetic_identity_fixture import synthetic_namespace_id
+else:
+    from tests._synthetic_identity_fixture import synthetic_namespace_id
+_FORMAT_CASE_1 = synthetic_namespace_id('AS', width=3, case_index=800)
+
 
 def write_ledger(path, rows):
     with path.open("w", newline="") as fh:
@@ -44,14 +50,14 @@ def health(ws, *flags):
 
 def test_health_idle_skips_handed_off_lanes_and_lists_ledgerless_ones(tmp_path):
     ws = workspace(tmp_path, n=1)
-    workspace_two = workspace(tmp_path, n=2)            # same ws root, second lane
+    workspace_two = workspace(tmp_path, n=int(_FORMAT_CASE_1.split("-")[1]))            # same ws root, second lane
     assert ws == workspace_two
     q3 = ws / "Blastp RESULTS/_QUERIES_GAP_AS-3_K/AS-3/AS-3_gapK_p0000"
     q3.mkdir(parents=True)
     (q3 / "AS-3__gapK__x.faa").write_text(f">x\n{SEQ}\n")        # no lane folder, no ledger yet
-    (ws / "Blastp RESULTS/_STRAINGAP_SINGLE_CLNR_GAP_AS2/_HANDOFF_OUT.txt").write_text("out\n")
+    (ws / f"Blastp RESULTS/_STRAINGAP_SINGLE_CLNR_GAP_{_FORMAT_CASE_1.replace("-", "")}/_HANDOFF_OUT.txt").write_text("out\n")
     out = health(ws, "--idle")
-    assert "Handed off to another machine, not listed (1): AS2" in out
+    assert f"Handed off to another machine, not listed (1): {_FORMAT_CASE_1.replace("-", "")}" in out
     idle = [l.split()[0] for l in out.splitlines() if l.startswith("_STRAINGAP")]
     assert idle == ["_STRAINGAP_SINGLE_CLNR_GAP_AS1", "_STRAINGAP_SINGLE_CLNR_GAP_AS3"]
 

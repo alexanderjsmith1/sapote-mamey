@@ -121,32 +121,40 @@ def test_renderer_rows_entry_point_and_no_label_overlap(tmp_path: Path, monkeypa
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    original_close = plt.close
     kept: list = []
     monkeypatch.setattr(plt, "close", lambda fig=None: kept.append(fig))
-    rows = [
-        {"strain": "AS-901", "NRPS": 11, "T1PKS": 9, "RiPP-like": 10, "terpene": 8, "NAPAA": 3,
-         "lanthipeptide-class-i": 2, "NI-siderophore": 1, "other": 13},
-        {"strain": "AS-902", "NRPS": 18, "T1PKS": 13, "RiPP-like": 8, "terpene": 10, "NAPAA": 0,
-         "lanthipeptide-class-i": 1, "NI-siderophore": 2, "other": 14},
-    ]
-    res = render_cohort_class_heatmap(None, tmp_path / "h.png", tmp_path / "h.csv",
-                                      claim_prefix="PRIVATE", rows=rows)
-    assert res["status"] == "OK" and res["n_strains"] == 2
-    assert res["text_overlap_warnings"] == []          # project checker: axes-internal labels
-    fig = kept[0]
-    fig.canvas.draw()
-    rend = fig.canvas.get_renderer()
-    ax, cbar_ax = fig.axes[0], fig.axes[1]
-    footer = fig.texts[0].get_window_extent(rend)
-    ticks = [t.get_window_extent(rend) for t in ax.get_xticklabels() if t.get_text()]
-    # footer band sits wholly below the lowest class label
-    assert footer.y1 < min(b.y0 for b in ticks)
-    # class labels are vertical: no neighbour's box touches another
-    for i in range(len(ticks) - 1):
-        assert not ticks[i].overlaps(ticks[i + 1])
-    # title and colorbar label never collide
-    assert not ax.title.get_window_extent(rend).overlaps(
-        cbar_ax.yaxis.label.get_window_extent(rend))
+    try:
+        rows = [
+            {"strain": "AS-901", "NRPS": 11, "T1PKS": 9, "RiPP-like": 10, "terpene": 8, "NAPAA": 3,
+             "lanthipeptide-class-i": 2, "NI-siderophore": 1, "other": 13},
+            {"strain": "AS-902", "NRPS": 18, "T1PKS": 13, "RiPP-like": 8, "terpene": 10, "NAPAA": 0,
+             "lanthipeptide-class-i": 1, "NI-siderophore": 2, "other": 14},
+        ]
+        res = render_cohort_class_heatmap(None, tmp_path / "h.png", tmp_path / "h.csv",
+                                          claim_prefix="PRIVATE", rows=rows)
+        assert res["status"] == "OK" and res["n_strains"] == 2
+        assert res["text_overlap_warnings"] == []          # project checker: axes-internal labels
+        fig = kept[0]
+        fig.canvas.draw()
+        rend = fig.canvas.get_renderer()
+        ax, cbar_ax = fig.axes[0], fig.axes[1]
+        footer = fig.texts[0].get_window_extent(rend)
+        ticks = [t.get_window_extent(rend) for t in ax.get_xticklabels() if t.get_text()]
+        # footer band sits wholly below the lowest class label
+        assert footer.y1 < min(b.y0 for b in ticks)
+        # class labels are vertical: no neighbour's box touches another
+        for i in range(len(ticks) - 1):
+            assert not ticks[i].overlaps(ticks[i + 1])
+        # title and colorbar label never collide
+        assert not ax.title.get_window_extent(rend).overlaps(
+            cbar_ax.yaxis.label.get_window_extent(rend))
+    finally:
+        for inspected in kept:
+            if isinstance(inspected, matplotlib.figure.Figure):
+                original_close(inspected)
+                inspected.clear()
+                inspected.set_canvas(None)
 
 
 def test_renderer_empty_rows_writes_skip_card(tmp_path: Path) -> None:

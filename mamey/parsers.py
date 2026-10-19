@@ -1,4 +1,6 @@
 from __future__ import annotations
+from .source_context import source_archive as snapshot_zip, bound_source
+from .source_context import source_zipfile as _source_zipfile
 import copy
 import hashlib
 import weakref
@@ -10,7 +12,8 @@ from .models import BGCRecord, AssemblyMetrics, CDSFeature, DomainFeature
 from .crosswalk import enrich_bgc_crosswalk, region_label, infer_node_id
 from .antismash_evidence import parse_antismash_evidence, apply_evidence_to_bgcs
 from .class_architecture import product_family
-from .ziputil import regular_file_names
+from .ziputil import regular_file_names, nonregular_file_names, duplicate_member_names
+from .archive_snapshot import ArchiveSnapshot, archive_label_path
 
 FASTA_EXTS = (".fasta", ".fa", ".fna", ".ffn")
 GBK_EXTS = (".gbk", ".gbff", ".gb")
@@ -131,7 +134,7 @@ def extract_antismash_version(
     159 MB document just to read a version string.
     """
     refused = refused_members if refused_members is not None else set()
-    with zipfile.ZipFile(zip_path) as zf:
+    with snapshot_zip(zip_path) as zf:
         # Prefer small JSON files; for any JSON, read only a bounded prefix.
         json_names = [n for n in regular_file_names(zf) if n.lower().endswith(".json") and not is_macos_cruft(n)]
         for name in json_names:
@@ -206,7 +209,7 @@ def _antismash_version_from_gbk(
     """Read the antiSMASH version from a region GBK's ##antiSMASH-Data## structured comment."""
     refused = refused_members if refused_members is not None else set()
     try:
-        with zipfile.ZipFile(zip_path) as zf:
+        with snapshot_zip(zip_path) as zf:
             gbks = [n for n in regular_file_names(zf)
                     if n.lower().endswith(GBK_EXTS) and not is_macos_cruft(n)]
             for name in sorted(gbks):
@@ -277,6 +280,10 @@ def _replicon_intake_key(item) -> tuple[int, str]:
     return priority, str(source_name).casefold()
 
 
+class FastaIdentityConflict(ValueError):
+    """One contig ID names different sequences; no complete assembly can be admitted."""
+
+
 def read_fasta_sequences_from_zip(zip_path: str | Path) -> dict[str, str]:
     """Return the complete admitted FASTA sequence set from an archive.
 
@@ -286,18 +293,36 @@ def read_fasta_sequences_from_zip(zip_path: str | Path) -> dict[str, str]:
     cannot publish subset-derived assembly metrics, boundary lengths, or scans.
     """
     seqs = {}
-    with zipfile.ZipFile(zip_path) as zf:
+    sources = {}
+
+    def admit(contig, parts, member, ordinal):
+        sequence = "".join(parts)
+        if contig in seqs:
+            # FASTA case does not change nucleotide identity. Retain the first
+            # representation when identical, never choose a conflicting winner.
+            if seqs[contig].upper() != sequence.upper():
+                prior_member, prior_ordinal = sources[contig]
+                raise FastaIdentityConflict(
+                    f"FASTA_IDENTITY_CONFLICT: {contig!r} has conflicting sequences in "
+                    f"{prior_member!r} record {prior_ordinal} and {member!r} record {ordinal}; "
+                    "assembly identity held")
+            return
+        seqs[contig] = sequence
+        sources[contig] = (member, ordinal)
+
+    with snapshot_zip(zip_path) as zf:
         for name in regular_file_names(zf):
             if name.lower().endswith(FASTA_EXTS) and not is_macos_cruft(name):
                 # v9.7.410 correction: _safe_read_text propagates
                 # GbkSizeGuardRefusal. Returning the other members would make a
                 # partial assembly indistinguishable from a complete one.
                 text = _safe_read_text(zf, name)
-                cur, parts = None, []
+                cur, parts, ordinal = None, [], 0
                 for line in text.splitlines():
                     if line.startswith(">"):
                         if cur:
-                            seqs[cur] = "".join(parts)
+                            admit(cur, parts, name, ordinal)
+                        ordinal += 1
                         # PARSE-02: tolerate a bare ">" header (no id token) rather than
                         # raising IndexError on split()[0]; synthesize a stable placeholder id.
                         _tok = line[1:].split()
@@ -306,7 +331,7 @@ def read_fasta_sequences_from_zip(zip_path: str | Path) -> dict[str, str]:
                     elif cur:
                         parts.append(line.strip())
                 if cur:
-                    seqs[cur] = "".join(parts)
+                    admit(cur, parts, name, ordinal)
     return seqs
 
 def _require_seqio():
@@ -337,7 +362,7 @@ def region_gbk_count(zip_path: str | Path) -> int:
     rather than as evidence of emptiness.
     """
     try:
-        with zipfile.ZipFile(zip_path) as zf:
+        with snapshot_zip(zip_path) as zf:
             return sum(1 for n in regular_file_names(zf)
                        if n.lower().endswith(GBK_EXTS) and not is_macos_cruft(n)
                        and "region" in Path(n).name.lower())
@@ -346,15 +371,16 @@ def region_gbk_count(zip_path: str | Path) -> int:
 
 
 def read_genbank_records(zip_path: str | Path, region_only: bool = False,
-                         exclude_regions: bool = False):
+                         exclude_regions: bool = False, *, completeness_out=None):
     SeqIO = _require_seqio()
     records = []
+    member_status = []
     errored: list[str] = []        # GBKs that raised during parse
     empty: list[str] = []          # GBKs that parsed without error but yielded 0 records
     # v9.7.173: fail clearly on a directory input. A sealed Mamey package dir has no GBKs and
     # stores parsed JSON (not translations), so `mamey compare <package_dir>` used to crash with
     # a raw IsADirectoryError from zipfile.ZipFile below. Give an actionable message instead.
-    if Path(zip_path).is_dir():
+    if not isinstance(zip_path, ArchiveSnapshot) and archive_label_path(zip_path).is_dir():
         raise ValueError(
             f"read_genbank_records expects an antiSMASH output ZIP, got a directory: {zip_path}. "
             f"A sealed Mamey package stores parsed JSON (no GenBank records / protein "
@@ -362,8 +388,8 @@ def read_genbank_records(zip_path: str | Path, region_only: bool = False,
     # v9.7.184 P1: accept a single .gbk/.gb/.gbff file directly. The blastp-online --package help
     # advertises "antiSMASH region GBK/ZIP", but a bare GBK fell straight into ZipFile below and
     # raised BadZipFile. Parse the file in place instead, mirroring the zip path's record shape.
-    _p = Path(zip_path)
-    if _p.is_file() and _p.suffix.lower() in GBK_EXTS:
+    _p = archive_label_path(zip_path)
+    if not isinstance(zip_path, ArchiveSnapshot) and _p.is_file() and _p.suffix.lower() in GBK_EXTS:
         name = _p.name
         if region_only and "region" not in name.lower():
             return []
@@ -379,7 +405,7 @@ def read_genbank_records(zip_path: str | Path, region_only: bool = False,
         except Exception as exc:
             raise ValueError(f"could not parse GenBank file {name}: {exc}") from exc
         return records
-    with zipfile.ZipFile(zip_path) as zf:
+    with snapshot_zip(zip_path) as zf:
         gbks = [n for n in regular_file_names(zf) if n.lower().endswith(GBK_EXTS) and not is_macos_cruft(n)]
         if region_only:
             gbks = [n for n in gbks if "region" in Path(n).name.lower()]
@@ -392,6 +418,13 @@ def read_genbank_records(zip_path: str | Path, region_only: bool = False,
             _full = [n for n in gbks if "region" not in Path(n).name.lower()]
             if _full:                      # only exclude when a full-assembly GBK exists
                 gbks = _full
+        if completeness_out is not None:
+            for member in nonregular_file_names(zf):
+                if member.lower().endswith(GBK_EXTS) and not is_macos_cruft(member):
+                    member_status.append(dict(member=member, state="REFUSED", reason="NONREGULAR_MEMBER", records=0))
+            for member in duplicate_member_names(zf):
+                if member.lower().endswith(GBK_EXTS) and not is_macos_cruft(member):
+                    member_status.append(dict(member=member, state="REFUSED", reason="DUPLICATE_MEMBER", records=0))
         total_gbks = len(gbks)
         for name in sorted(gbks):
             n_before = len(records)
@@ -404,6 +437,7 @@ def read_genbank_records(zip_path: str | Path, region_only: bool = False,
                 _too_big = None
             if _too_big:
                 errored.append(name)
+                member_status.append(dict(member=name, state="REFUSED", reason="GBK_SIZE_GUARD", records=0))
                 continue
             try:
                 if SeqIO is not None:
@@ -418,7 +452,12 @@ def read_genbank_records(zip_path: str | Path, region_only: bool = False,
                         records.append((name, rec))
             except Exception:
                 # Resilient by design: one malformed GBK must not abort the others.
+                # SeqIO is lazy: earlier records from this member may already
+                # have been yielded before a later record fails. Those records
+                # must not supersede intact input or look like a complete file.
+                del records[n_before:]
                 errored.append(name)
+                member_status.append(dict(member=name, state="FAILED", reason="PARSE_EXCEPTION", records=0))
                 continue
             # A GBK that parses cleanly but produces zero records is *also* a silent
             # drop — and the more insidious one, because no exception is raised. This
@@ -426,6 +465,9 @@ def read_genbank_records(zip_path: str | Path, region_only: bool = False,
             # audit then has to diagnose from a distance, so surface it too.
             if len(records) == n_before:
                 empty.append(name)
+                member_status.append(dict(member=name, state="EMPTY", reason="NO_RECORDS", records=0))
+            else:
+                member_status.append(dict(member=name, state="COMPLETE", records=len(records)-n_before))
     skipped = errored + empty
     if skipped:
         def _names(lst):
@@ -500,29 +542,46 @@ def read_genbank_records(zip_path: str | Path, region_only: bool = False,
                 f"read_genbank_records: {count} {kind}; examples (max 3): "
                 + "; ".join(examples), stacklevel=2)
         records = selected
+    if completeness_out is not None:
+        completeness_out.clear()
+        completeness_out.update(schema="sapote.genbank-member-read.prototype.v1",
+                                input_sha256=archive_sha256(zip_path), members=member_status,
+                                scope="selected ZIP GenBank members; no JSON/TXT schema certification")
     return records
+
+class GenbankIdentityConflict(ValueError):
+    """Different full-record sequences claim one contig; assembly attribution is held."""
+
+
+def _full_genbank_sequences(zip_path: str | Path) -> dict[str, str]:
+    sequences, sources = {}, {}
+    for name, rec in read_genbank_records(zip_path, region_only=False):
+        if "region" in Path(name).name.lower():
+            continue
+        contig = _record_contig_id(rec)
+        sequence = str(rec.seq)
+        if contig in sequences and sequences[contig].upper() != sequence.upper():
+            raise GenbankIdentityConflict(
+                f"GENBANK_IDENTITY_CONFLICT: {contig!r} has conflicting full-record sequences in "
+                f"{sources[contig]!r} and {name!r}; assembly identity held")
+        if contig not in sequences:
+            sequences[contig] = sequence
+            sources[contig] = name
+    return sequences
+
 
 def assembly_metrics_from_zip(zip_path: str | Path) -> AssemblyMetrics:
     seqs = read_fasta_sequences_from_zip(zip_path)
     if seqs:
         return metrics_from_sequences(seqs)
-    seqs = {}
-    # PARSE-04: exclude clipped antiSMASH region GBKs from the contig set. They are region
-    # spans, not source contigs, and multiple regions collapse onto one contig id — fabricating
-    # genome_bp/contigs/n50 from clipped sequence. Same region-record test used in
-    # _contig_length_map_from_zip / parse_bgcs_from_zip.
-    for name, rec in read_genbank_records(zip_path, region_only=False):
-        if "region" in Path(name).name.lower():
-            continue
-        _cid = _record_contig_id(rec)
-        if _cid not in seqs or len(rec.seq) > len(seqs[_cid]):
-            seqs[_cid] = str(rec.seq)
+    seqs = _full_genbank_sequences(zip_path)
     # TODO PARSE-04: when every source record is a region GBK, seqs is empty and
     # metrics_from_sequences returns zeros/None (no fabrication) — the intended outcome. The
     # requested assembly_metrics_unavailable_region_only_input flag cannot be attached here
     # without changing the AssemblyMetrics dataclass schema (fixed positional fields used
     # project-wide); deferred rather than risk a wider refactor.
     return metrics_from_sequences(seqs)
+
 
 def count_single_cand_clusters(features) -> int:
     """Number of /kind="single" cand_cluster features in a region record. >=3 marks a composite region:
@@ -744,7 +803,7 @@ def _region_orig_bounds_from_zip(zip_path: str | Path) -> dict[str, tuple[int, i
     chromosome with many clipped region GBKs is falsely labeled Edge/Full-contig.
     """
     out: dict[str, tuple[int, int]] = {}
-    with zipfile.ZipFile(zip_path) as zf:
+    with snapshot_zip(zip_path) as zf:
         for name in regular_file_names(zf):
             if is_macos_cruft(name):
                 continue
@@ -780,14 +839,8 @@ def _contig_length_map_from_zip(zip_path: str | Path) -> dict[str, int]:
     seqs = read_fasta_sequences_from_zip(zip_path)
     if seqs:
         return {k: len(v) for k, v in seqs.items()}
-    lengths: dict[str, int] = {}
-    for name, rec in read_genbank_records(zip_path, region_only=False):
-        # Skip clipped antiSMASH region GBKs; they are not contig-length records.
-        if "region" in Path(name).name.lower():
-            continue
-        _cid = _record_contig_id(rec)
-        lengths[_cid] = max(lengths.get(_cid, 0), len(rec.seq))
-    return lengths
+    return {contig: len(sequence) for contig, sequence in _full_genbank_sequences(zip_path).items()}
+
 
 def _zip_has_record_json(zip_path: str | Path) -> bool:
     """True if the antiSMASH ZIP carries a record JSON.
@@ -799,7 +852,7 @@ def _zip_has_record_json(zip_path: str | Path) -> bool:
     in parse_bgcs_from_zip.
     """
     try:
-        with zipfile.ZipFile(zip_path) as zf:
+        with snapshot_zip(zip_path) as zf:
             return any(n.lower().endswith(".json") and not is_macos_cruft(n)
                        for n in regular_file_names(zf))
     except Exception:
@@ -807,6 +860,9 @@ def _zip_has_record_json(zip_path: str | Path) -> bool:
 
 
 def archive_sha256(path: str | Path) -> str:
+    path = bound_source(path)
+    if isinstance(path, ArchiveSnapshot):
+        return path.input_sha256
     digest = hashlib.sha256()
     with open(path, "rb") as handle:
         for chunk in iter(lambda: handle.read(1 << 20), b""):
@@ -820,7 +876,7 @@ def validate_region_intake_resources(zip_path: str | Path) -> None:
     General read_genbank_records skip/warning behavior is unchanged. The common
     region program must not silently proceed with a resource-refused subset.
     """
-    with zipfile.ZipFile(zip_path) as archive:
+    with snapshot_zip(zip_path) as archive:
         for name in regular_file_names(archive):
             if is_macos_cruft(name) or not name.lower().endswith(GBK_EXTS + FASTA_EXTS):
                 continue
@@ -903,7 +959,7 @@ def iter_region_core_inputs(zip_path: str | Path, *, embedded_metadata=None,
         orig_bounds = _region_orig_bounds_from_zip(zip_path)
         contig_lengths = _contig_length_map_from_zip(zip_path)
     for warning in source_warnings:
-        message = str(warning.message).replace(str(zip_path), Path(zip_path).name)
+        message = str(warning.message).replace(str(zip_path), archive_label_path(zip_path).name)
         # A ResourceWarning comes from garbage collection of some unrelated object that happened to run during the
         # read. It says nothing about the source, so it is passed on but not recorded as an intake diagnostic.
         if not issubclass(warning.category, ResourceWarning):
@@ -1002,7 +1058,7 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
     # absence is expected there and no warning fires.)
     if json_mode in ("bounded", "full") and not _zip_has_record_json(zip_path):
         warnings.warn(
-            f"no antiSMASH record JSON in {Path(zip_path).name}: KCB will come "
+            f"no antiSMASH record JSON in {archive_label_path(zip_path).name}: KCB will come "
             "from TXT clusterblast files (if present) and TIGRFAM diagnostics are "
             "UNAVAILABLE. Provide the full antiSMASH output (not just region GBKs) "
             "for complete evidence.",
@@ -1057,15 +1113,6 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
         )
         enrich_bgc_crosswalk(bgc, name)
         bgcs.append(bgc)
-    if core_snapshot_out is not None:
-        if archive_sha256(zip_path) != snapshot_sha:
-            raise ValueError("RGGMCI_INPUT_CHANGED_DURING_INTAKE")
-        core_snapshot_out.clear()
-        core_snapshot_out.update(input_sha256=snapshot_sha,
-                                 records_sha256=hashlib.sha256(json.dumps(snapshot_records, sort_keys=True).encode()).hexdigest(),
-                                 records=snapshot_records,
-                                 diagnostics=copy.deepcopy(intake_diagnostics),
-                                 _sealed_snapshot=_seal_region_core_snapshot(snapshot_sha, snapshot_records, intake_diagnostics))
     if evidence is None:
         evidence = parse_antismash_evidence(zip_path, json_mode=json_mode)
     apply_evidence_to_bgcs(bgcs, evidence)
@@ -1074,6 +1121,16 @@ def parse_bgcs_from_zip(zip_path: str | Path, json_mode: str = "off",
                                               b.kcb_cumulative, has_chemical_hybrid=b.has_chemical_hybrid)
         b.architecture_confidence = grade
         b.architecture_rationale = rationale
+    if core_snapshot_out is not None:
+        if archive_sha256(zip_path) != snapshot_sha:
+            raise ValueError("RGGMCI_INPUT_CHANGED_DURING_INTAKE")
+        pending_snapshot = dict(input_sha256=snapshot_sha,
+                                 records_sha256=hashlib.sha256(json.dumps(snapshot_records, sort_keys=True).encode()).hexdigest(),
+                                 records=snapshot_records,
+                                 diagnostics=copy.deepcopy(intake_diagnostics),
+                                 _sealed_snapshot=_seal_region_core_snapshot(snapshot_sha, snapshot_records, intake_diagnostics))
+        core_snapshot_out.clear()
+        core_snapshot_out.update(pending_snapshot)
     return bgcs
 
 def extract_cds_features(zip_path: str | Path) -> list[CDSFeature]:
@@ -1184,7 +1241,7 @@ def _region_record_offsets(zip_path: str | Path) -> dict[str, int]:
     """
     has_whole = False
     try:
-        with zipfile.ZipFile(zip_path) as zf:
+        with snapshot_zip(zip_path) as zf:
             for n in regular_file_names(zf):
                 base = Path(n).name.lower()
                 if base.endswith(GBK_EXTS) and "region" not in base and not is_macos_cruft(n):
@@ -1299,7 +1356,7 @@ def antismash_record_limit_truncation(input_zip) -> dict:
     out = {"truncated": False, "analysed": None, "first_skipped": None,
            "probe_state": "FAILED", "logs_read": 0}
     try:
-        zf = zipfile.ZipFile(input_zip)
+        zf = _source_zipfile(input_zip)
     except Exception:
         return out
     logs = [x for x in regular_file_names(zf) if x.lower().endswith(".log")]

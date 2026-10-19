@@ -66,7 +66,7 @@ def mutation_rows(before: dict, after: dict) -> list[dict]:
 
 
 def output_inventory(output: Path, stage: Stage) -> list[dict]:
-    """Bind explicit files and complete output trees, including their own child logs."""
+    """Bind explicit files and output trees, excluding discovered Finder metadata."""
     paths = set()
     for value in stage.outputs:
         path = output / relative_path(value)
@@ -77,7 +77,8 @@ def output_inventory(output: Path, stage: Stage) -> list[dict]:
         contract.require(tree.is_dir() and not tree.is_symlink(), "declared output tree is missing or a symlink: " + value)
         for path in tree.rglob("*"):
             contract.require(not path.is_symlink(), "output tree contains a symlink")
-            if path.is_file():
+            # Finder may add metadata after a stage finishes. Explicit files stay bound.
+            if path.is_file() and path.name != ".DS_Store":
                 paths.add(path)
     contract.require(all(path.resolve().is_relative_to(output.resolve()) for path in paths), "output escaped its root")
     return [{"path": path.relative_to(output).as_posix(), "sha256": support.sha256_file(path),
@@ -172,6 +173,8 @@ class Workflow:
         contract.require(self.data.get("context", {}) == self.context, "workflow context changed")
         contract.require(isinstance(self.data.get("stages"), list) and len(self.data["stages"]) == len(self.stages),
                          "workflow stage list is incomplete")
+        if self.data.get("environment") is None and all(isinstance(state, dict) and not state.get("attempts") for state in self.data["stages"]):
+            raise support.ValidationRefused("initial environment was never admitted; preserve this root and start a fresh workflow output after resolving the prerequisite")
         _, environment = partition.read_artifact(self.output, self.data.get("environment"))
         contract.require(environment.get("status") == "READY"
                          and environment.get("identity_sha256") == self.data["environment_identity_sha256"],
@@ -314,7 +317,10 @@ class Workflow:
             self.environment = support.admit_environment(self.python, output=directory, env=self.env,
                 rss_limit=self.policy["rss_limit"], min_disk=self.policy["min_disk"])
             if self.environment["status"] != "READY":
-                self.data.update(status="REFUSED_ENVIRONMENT", reason="workflow environment refused; inspect admission evidence",
+                recovery = ("; preserve this unadmitted root and start a fresh workflow output after resolving the prerequisite"
+                            if self.data.get("environment") is None else
+                            "; resolve the prerequisite and resume the original admitted workflow with unchanged bound inputs")
+                self.data.update(status="REFUSED_ENVIRONMENT", reason="workflow environment refused; inspect " + str(directory / "environment.json") + recovery,
                     latest_environment=partition.artifact(self.output, directory / "environment.json"))
                 self.save()
                 raise support.ValidationRefused(self.data["reason"])
@@ -353,6 +359,8 @@ class Workflow:
         before_digest = partition.source_digest(self.source)
         contract.require(before_digest == self.data["committed_source_sha256"], "source drift between workflow stages")
         before = source_snapshot(self.source)
+        contract.require(partition.source_digest(self.source) == before_digest,
+                         "source changed while taking stage input snapshot; preserve diagnostics and rebuild")
         directory = self.output / "attempts" / uuid.uuid4().hex
         directory.mkdir(parents=True)
         argv = self.expand(declared.retry_argv if reason and declared.retry_argv else declared.argv, reason)
@@ -369,10 +377,11 @@ class Workflow:
                 rss_limit=self.policy["rss_limit"], min_disk=self.policy["min_disk"], timeout=self.policy["timeout"])
             record["watch"] = watch
             contract.require(watch["exit_code"] == 0 and watch["stop_reason"] is None, "workflow stage failed or was stopped: " + declared.name)
+            self.check_inputs()
             record["outputs"] = output_inventory(self.output, declared)
             record["status"] = "PASS"
         except BaseException as exc:
-            record["status"] = "INTERRUPTED" if isinstance(exc, KeyboardInterrupt) else "FAILED"
+            record["status"] = "INTERRUPTED" if isinstance(exc, (KeyboardInterrupt, support.WatchedTermination)) else "FAILED"
             record["reason"] = str(exc)
             raise
         finally:

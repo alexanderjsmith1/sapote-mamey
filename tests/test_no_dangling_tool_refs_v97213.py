@@ -27,6 +27,7 @@ DANGLING_BASELINE = frozenset({
     "package_addons_html.py",
     "wac_validation_genelevel.py",  # v9.7.409 A11: 0-byte tool deleted; docs/working/GATE_AND_DATA_INTEGRITY_AUDIT.md is a dated audit that named it
     "COMMAND.sh",  # CODEX16: governed-workspace per-run artifact name (RUN_MANIFEST.json/COMMAND.sh/EVENTS.jsonl), not a shipped tools/ script
+    "SEAL_CANDIDATE.sh",  # v9.7.452: per-run owner-review wrapper written by tools/make_seal_script.py into its output folder, not a shipped tools/ script
 })
 
 

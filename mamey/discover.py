@@ -25,6 +25,7 @@ from pathlib import Path
 
 from .manifest_schema import read_manifest_field  # canonical trap-field reader (no raw ms.get on trap fields)
 from .workspace_source_discovery import ScanLimits, build_source_catalog, write_catalog
+from .output_transaction import preflight_output_roster, publish_payloads
 
 # ---- a package is any dir carrying a Mamey manifest -----------------------
 PKG_MARKERS = ("manifest_short.json", "manifest.json")
@@ -254,6 +255,19 @@ def _render(rep: dict) -> str:
 
 def discover_command(args):
     registry = getattr(args, "source_collection_registry", None)
+    catalog_json = getattr(args, "emit_source_catalog_json", None)
+    catalog_tsv = getattr(args, "emit_source_catalog_tsv", None)
+    # Reject inconsistent output requests before scanning, reporting or writing.
+    if bool(catalog_json) != bool(catalog_tsv):
+        raise ValueError("both source-catalog output paths are required together")
+    if catalog_json and not registry:
+        raise ValueError("source-catalog outputs require a source collection registry")
+    if registry and (not getattr(args, "expected_source_collection_registry_sha256", None)
+                     or not getattr(args, "source_root_id", None)):
+        raise ValueError("workspace evidence discovery requires the expected registry SHA-256 and source root ID")
+    catalog_paths, report_path = preflight_output_roster(
+        [catalog_json, catalog_tsv] if catalog_json else [],
+        replacement=getattr(args, "emit_md", None), protected_paths=[registry] if registry else [])
     rep = run(
         Path(args.root),
         args.depth,
@@ -272,21 +286,21 @@ def discover_command(args):
     )
     if getattr(args, "stale", False):  # filter the displayed table to re-run candidates
         rep = dict(rep, packages=[p for p in rep["packages"] if p.get("stale")])
-    if getattr(args, "json", False):
-        emit(json.dumps(rep, indent=2))
-    else:
-        emit(_render(rep))
-    if getattr(args, "emit_md", None):
-        Path(args.emit_md).write_text(_render(rep))
+    markdown = _render(rep) if report_path is not None or not getattr(args, "json", False) else None
+    display = json.dumps(rep, indent=2) if getattr(args, "json", False) else markdown
+    receipt = None
+    if catalog_paths:
+        receipt = write_catalog(rep["source_catalog"], *catalog_paths, report_path=report_path,
+                                report_bytes=markdown.encode("utf-8") if report_path is not None else None)
+    elif report_path is not None:
+        publish_payloads({}, replacement=(report_path, markdown.encode("utf-8")))
+    emit(display)
+    if report_path is not None:
         emit(f"\n[wrote {args.emit_md}]")
-    catalog_json = getattr(args, "emit_source_catalog_json", None)
-    catalog_tsv = getattr(args, "emit_source_catalog_tsv", None)
-    if bool(catalog_json) != bool(catalog_tsv):
-        raise ValueError("both source-catalog output paths are required together")
-    if catalog_json and "source_catalog" in rep:
-        receipt = write_catalog(rep["source_catalog"], Path(catalog_json), Path(catalog_tsv))
+    if receipt is not None:
         emit(f"\n[wrote source catalog: {receipt['collection_count']} collections, {receipt['status']}]")
-    return 0
+    source_catalog = rep.get("source_catalog")
+    return 3 if source_catalog is not None and source_catalog["status"] != "PASS_COMPLETE" else 0
 
 def _build_parser():
     p = argparse.ArgumentParser(prog="mamey discover",

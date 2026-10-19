@@ -101,13 +101,13 @@ def test_gtotree_labels_are_two_columns_headerless_and_use_staged_filenames(tmp_
     q.write_text(fasta("AAAA")); o.write_text(fasta("CCCC")); r.write_text(fasta("GGGG"))
     manifest = tmp_path / "m.tsv"
     write_manifest(manifest, [
-        {"candidate_id": "AS-441", "role": "QUERY", "source_path": q,
-         "tree_label": "Streptomyces_sp_AS-441"},
+        {"candidate_id": "SYNTHETIC-CASE-015", "role": "QUERY", "source_path": q,
+         "tree_label": "Streptomyces_sp_SYNTHETIC-CASE-015"},
         {"candidate_id": "OUT", "role": "OUTGROUP", "source_path": o,
          "tree_label": "Sister_genus_OUTGROUP"},
         {"candidate_id": "REF", "role": "REFERENCE", "source_path": r,
          "tree_label": "Streptomyces_reference_1",
-         "selection_basis": "curator-supplied comparator", "related_query_ids": "AS-441"},
+         "selection_basis": "curator-supplied comparator", "related_query_ids": "SYNTHETIC-CASE-015"},
     ])
     receipt = mod.build(manifest, tmp_path / "panel", 3, 3)
     lines = (tmp_path / "panel/labels.tsv").read_text().splitlines()
@@ -116,7 +116,7 @@ def test_gtotree_labels_are_two_columns_headerless_and_use_staged_filenames(tmp_
     assert all(len(row) == 2 for row in fields)
     assert fields[0] != ["staged_filename", "tree_label"]
     assert {row[0] for row in fields} == {
-        "Streptomyces_sp_AS-441.fna", "Sister_genus_OUTGROUP.fna",
+        "Streptomyces_sp_SYNTHETIC-CASE-015.fna", "Sister_genus_OUTGROUP.fna",
         "Streptomyces_reference_1.fna",
     }
     assert all(mod.safe_tree_label(row[1]) == row[1] for row in fields)

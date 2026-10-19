@@ -76,6 +76,9 @@ def truth_from_root(root: Path) -> dict[str, str]:
         "init_bundle": init_bundle.group(1) if init_bundle else "",
         "stamp_bundle": stamp_bundle.group(1) if stamp_bundle else "",
     }
+    for field in ("engine", "bundle", "build", "init_engine", "init_bundle", "stamp_bundle"):
+        if not vals[field].strip():
+            errs.append(f"missing required identity token: {field}")
     if vals["engine"] != vals["init_engine"]:
         errs.append(f"pyproject engine {vals['engine']} != mamey.__version__ {vals['init_engine']}")
     if vals["bundle"] != vals["init_bundle"]:
@@ -174,7 +177,7 @@ def check_tier_zip(path: Path, truth: dict[str, str]) -> list[str]:
     return errs
 
 
-def check_content(root: Path) -> list[str]:
+def check_content(root: Path, *, strict_coverage: bool = False) -> list[str]:
     """Fold the checksum-manifest verdict into the identity gate (v9.7.409).
 
     Runs tools/check_release_manifest's checksum_problems — does every SOURCE_CHECKSUMS_SHA256.txt
@@ -186,7 +189,7 @@ def check_content(root: Path) -> list[str]:
     error (fail-closed), never swallowed into a spurious PASS.
     """
     try:
-        problems, _stats = _checksum_problems(root)
+        problems, _stats = _checksum_problems(root, strict_coverage=strict_coverage)
     except Exception as exc:  # never let a reader crash masquerade as verified content
         return [f"content: could not verify tree against SOURCE_CHECKSUMS_SHA256.txt: {exc!r}"]
     return [f"content: {p}" for p in problems]
@@ -258,7 +261,7 @@ def main(argv: list[str] | None = None) -> int:
 
     truth = truth_from_root(root)
     errors = check_tree(root, truth)
-    errors.extend(check_content(root))  # v9.7.409: content must match the checksum manifest
+    errors.extend(check_content(root, strict_coverage=ns.strict_membership))  # v9.7.409: content must match the checksum manifest
     membership = check_membership(root)  # v9.7.430: and the manifest must LIST what the tree ships
     if ns.strict_membership:
         errors.extend(membership)

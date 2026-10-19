@@ -201,5 +201,5 @@ def test_scope_cluster_refuses_an_escaping_label(tmp_path):
     outdir.mkdir()
     with pytest.raises(UnsafeOutputLabel):
         module.contained_output_path(str(outdir), "../evil_nucleoside", "_scoped.gbk")
-    assert module.contained_output_path(str(outdir), "AS168_nucleoside", "_scoped.gbk") == (
-        outdir.resolve() / "AS168_nucleoside_scoped.gbk")
+    assert module.contained_output_path(str(outdir), 'SYNTHETIC-CASE-005_nucleoside', "_scoped.gbk") == (
+        outdir.resolve() / 'SYNTHETIC-CASE-005_nucleoside_scoped.gbk')

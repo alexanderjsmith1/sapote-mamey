@@ -81,7 +81,7 @@ def test_env_escape_hatch_overrides(tmp_path, monkeypatch):
     ("run-2026-06-09-scratch", False),
     ("_AF_LEADS_2026-08-05", True),
     ("runs", False),
-    ("AS-747", False),
+    ("SYNTHETIC-CASE-022", False),
     ("plots", False),          # NB: avoid the substring "figure" — conftest auto-skips by test name
     ("package", False),
     ("2026-08-05", False),          # bare date, no underscore-prefixed name

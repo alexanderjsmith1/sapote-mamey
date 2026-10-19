@@ -121,7 +121,7 @@ def test_reader_out_dir_defaults_outside_package(tool_name, suffix, tmp_path):
     FAIL-BEFORE: _reader_out_dir did not exist; the default was the package dir itself (inside)."""
     mod = _load_tool(tool_name)
     assert hasattr(mod, "_reader_out_dir")
-    pkg = tmp_path / "AS40" / "package"
+    pkg = tmp_path / "SYNTHETIC-CASE-012" / "package"
     pkg.mkdir(parents=True)
     got = Path(mod._reader_out_dir(None, str(pkg), suffix)).resolve()
     pkg_r = pkg.resolve()
@@ -136,7 +136,7 @@ def test_reader_out_dir_defaults_outside_package(tool_name, suffix, tmp_path):
 def test_reader_out_dir_refuses_explicit_inside_package(tool_name, tmp_path):
     """PASS-AFTER: an explicit --out that resolves inside the sealed package is refused."""
     mod = _load_tool(tool_name)
-    pkg = tmp_path / "AS40" / "package"
+    pkg = tmp_path / "SYNTHETIC-CASE-012" / "package"
     pkg.mkdir(parents=True)
     with pytest.raises(ValueError):
         mod._reader_out_dir(str(pkg / "sub"), str(pkg), "_x")

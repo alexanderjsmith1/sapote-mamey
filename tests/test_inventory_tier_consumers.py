@@ -1,4 +1,4 @@
-"""AQUARIUS_01: the new Low lead tier must survive every shipped consumer."""
+"""inventory_review_01: the new Low lead tier must survive every shipped consumer."""
 from __future__ import annotations
 
 import csv
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _cohort_module():
     path = ROOT / "tools" / "build_cohort_html.py"
-    spec = importlib.util.spec_from_file_location("build_cohort_html_aquarius", path)
+    spec = importlib.util.spec_from_file_location("build_cohort_html_inventory_review", path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)

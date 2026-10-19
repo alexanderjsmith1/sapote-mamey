@@ -18,12 +18,14 @@ FIXTURES = Path(__file__).parent / "fixtures" / "workspace_discovery_cli"
 class DiscoverWorkspaceSourceIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name) / "workspace"
+        # Output preflight refuses symlinked ancestors; macOS temp dirs sit under the /var -> /private/var link.
+        self.tmp = Path(self.temp.name).resolve()
+        self.root = self.tmp / "workspace"
         self.root.mkdir()
         collection = self.root / "modeb_compilation_2026-08-06"
         collection.mkdir()
         (collection / "STRAIN-001_ModeB_compilation.md").write_text("# prior report\n")
-        self.registry = Path(self.temp.name) / "registry.json"
+        self.registry = self.tmp / "registry.json"
         self.registry.write_text(
             json.dumps(
                 {
@@ -73,8 +75,8 @@ class DiscoverWorkspaceSourceIntegrationTests(unittest.TestCase):
     def test_supported_cli_emits_governed_catalog_for_generic_project(self):
         registry = FIXTURES / "collection_registry.json"
         project = FIXTURES / "project"
-        out_json = Path(self.temp.name) / "source_catalog.json"
-        out_tsv = Path(self.temp.name) / "source_catalog.tsv"
+        out_json = self.tmp / "source_catalog.json"
+        out_tsv = self.tmp / "source_catalog.tsv"
 
         with redirect_stdout(StringIO()):
             status = main([

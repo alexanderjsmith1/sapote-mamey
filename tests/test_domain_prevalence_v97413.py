@@ -10,9 +10,9 @@ def _load():
 def _census(p):
     c=sqlite3.connect(p)
     c.execute("create table attempt(id,strain,state,elapsed_seconds,detail)")
-    c.executemany("insert into attempt values(?,?,?,?,?)",[(1,"AS-1","COMPLETE",0,""),(2,"AS-2","COMPLETE",0,"")])
+    c.executemany("insert into attempt values(?,?,?,?,?)",[(1,"AS-1","COMPLETE",0,""),(2,'SYNTHETIC-CASE-002',"COMPLETE",0,"")])
     c.execute("create table locus(locus_key,strain,full_node,region,bgc_alias,exact_identity,source_member,source_member_sha256,region_start_1based,region_end_1based,region_nt,cds_count,roster_sha256,products_json,prior_index_state)")
-    c.executemany("insert into locus(locus_key,strain,exact_identity) values(?,?,?)",[("L1","AS-1","AS-1 / n / r / BGC1"),("L2","AS-2","AS-2 / n / r / BGC2")])
+    c.executemany("insert into locus(locus_key,strain,exact_identity) values(?,?,?)",[("L1","AS-1","AS-1 / n / r / BGC1"),("L2",'SYNTHETIC-CASE-002','SYNTHETIC-CASE-002 / n / r / BGC2')])
     c.commit(); c.close()
 
 def _gbk(p):

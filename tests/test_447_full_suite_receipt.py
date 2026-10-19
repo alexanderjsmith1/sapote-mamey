@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import sys
 
@@ -238,4 +239,10 @@ def test_recorder_profile_matches_both_canonical_cut_entrypoints():
     spec=importlib.util.spec_from_file_location('external_receipt',ROOT/'tools/verify_external_validation_receipt.py')
     external=importlib.util.module_from_spec(spec);spec.loader.exec_module(external)
     assert receipt.COMMAND_TAIL == external.COMMAND_TAIL
-    assert 'python3 '+' '.join(receipt.COMMAND_TAIL) in (ROOT/'tools/release_cut.sh').read_text()
+    lines = [line for line in (ROOT/'tools/release_cut.sh').read_text().splitlines()
+             if '-m pytest' in line and not line.lstrip().startswith('#')]
+    assert len(lines) == 2, 'both baseline and final must use the complete configured profile'
+    for line in lines:
+        assert 'PYTHONPATH=.' in line and '"$PYTHON" -m pytest' in line
+        words = shlex.split(line.split('>', 1)[0])
+        assert words[words.index('$PYTHON')+1:] == receipt.COMMAND_TAIL

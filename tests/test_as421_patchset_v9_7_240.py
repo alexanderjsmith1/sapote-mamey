@@ -54,7 +54,7 @@ def _write_polymers(pkg: Path, strain: str, rows: list[dict]) -> None:
             w.writerow({k: r.get(k, "") for k in _POLYMER_HEADER})
 
 
-def _pkg(tmp_path: Path, strain: str = "AS-421") -> Path:
+def _pkg(tmp_path: Path, strain: str = "SYNTHETIC-CASE-013") -> Path:
     pkg = tmp_path / strain / "package"
     pkg.mkdir(parents=True)
     # _strain_prefix() resolves the {strain}_predicted_polymers.csv filename from here
@@ -70,7 +70,7 @@ def test_p1_over_merge_banner_is_region_scoped(tmp_path):
     """
     from mamey import modeb_template_emitter as emit
 
-    strain = "AS-421"
+    strain = "SYNTHETIC-CASE-013"
     pkg = _pkg(tmp_path, strain)
     contig = "NODE_2_length_553361_cov_80.858698"
     _write_polymers(pkg, strain, [
@@ -99,7 +99,7 @@ def test_p1_manifest_fallback_covers_regions_without_polymer_rows(tmp_path):
     """
     from mamey import modeb_template_emitter as emit
 
-    strain = "AS-421"
+    strain = "SYNTHETIC-CASE-013"
     pkg = _pkg(tmp_path, strain)
     _write_polymers(pkg, strain, [])  # no rows at all
 
@@ -143,7 +143,7 @@ def test_p2_authored_verify_reads_protocluster_count_not_single(tmp_path, monkey
     pkg = tmp_path / "package"
     pkg.mkdir()
     (pkg / "manifest.json").write_text(json.dumps({
-        "strain_id": "AS-421",
+        "strain_id": "SYNTHETIC-CASE-013",
         "bgcs": [{
             "bgc_id": "BGC041",
             "single_protocluster_count": 1,
@@ -283,7 +283,7 @@ def test_p4a_isolate_giants_isolates_only_the_giant():
     """Pre-patch, one giant sent every protein of its BGC to a solo round."""
     from mamey.bgc_blastp_panel import assign_rounds
     rows = [_row("BGC007", "g_giant", 5129)] + [_row("BGC007", f"g{i}", 200) for i in range(6)]
-    rounds = assign_rounds(rows, "AS-421", proteins_per_file=30, max_residues=85000,
+    rounds = assign_rounds(rows, "SYNTHETIC-CASE-013", proteins_per_file=30, max_residues=85000,
                            giant_aa_threshold=2500, isolate_giants=True)
     sizes = sorted(len(r) for r in rounds)
     assert sizes == [1, 6], f"expected one solo giant + one packed round of 6, got {sizes}"
@@ -294,7 +294,7 @@ def test_p4a_isolate_giants_isolates_only_the_giant():
 def test_p4a_isolate_giants_no_giant_is_a_noop():
     from mamey.bgc_blastp_panel import assign_rounds
     rows = [_row("BGC001", f"g{i}", 300) for i in range(5)]
-    rounds = assign_rounds(rows, "AS-421", proteins_per_file=30, max_residues=85000,
+    rounds = assign_rounds(rows, "SYNTHETIC-CASE-013", proteins_per_file=30, max_residues=85000,
                            giant_aa_threshold=2500, isolate_giants=True)
     assert [len(r) for r in rounds] == [5]
 
@@ -317,7 +317,7 @@ def test_p4b_one_best_scope_honours_proteins_per_file(tmp_path):
                               locus_tag=f"ctg{i}_1", product="nonribosomal peptide synthetase",
                               translation="M" * 300))
 
-    summary = write_panel(tmp_path, "AS-421", bgcs, cds,
+    summary = write_panel(tmp_path, "SYNTHETIC-CASE-013", bgcs, cds,
                           genes_per_bgc=1, proteins_per_file=30, max_residues=85000,
                           first_pass_size=30, giant_aa_threshold=2500, isolate_giants=False)
     assert summary["one_best_unique_proteins"] == 46

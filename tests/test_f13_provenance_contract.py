@@ -53,7 +53,7 @@ def _cohort_manifest(path):
         {"identity": "SYN-02", "role": "STUDY", "include_by_default": True,
          "genus": "Streptomyces", "cohort": "WASP", "assembly_state": "PASS",
          "assembly_reason": "generic fixture passed"},
-        {"identity": "AS-815", "role": "STUDY", "include_by_default": False,
+        {"identity": 'SYNTHETIC-CASE-025', "role": "STUDY", "include_by_default": False,
          "genus": "Streptomyces", "cohort": "BEE", "assembly_state": "DEFAULT_OFF",
          "assembly_reason": "assembly quality is not bound"},
         {"identity": "AJS-001", "role": "EXTERNAL_BENCHMARK", "include_by_default": False,
@@ -104,7 +104,7 @@ def test_f13_emits_live_text_svg_and_complete_sidecars_only_for_default_study_ro
     output = tmp_path / "valid"
 
     result = figures._render_f13_domain_pca(
-        source, ["SYN-01", "SYN-02", "AS-815", "AJS-001"], output,
+        source, ["SYN-01", "SYN-02", 'SYNTHETIC-CASE-025', "AJS-001"], output,
         cohort_manifest=cohort_path, cohort_manifest_sha256=digest,
         denominator_registry=denominator_path,
         denominator_registry_sha256=denominator_digest,
@@ -129,7 +129,7 @@ def test_f13_emits_live_text_svg_and_complete_sidecars_only_for_default_study_ro
     assert set(provenance["pca"]["loadings"]) == {"PC1", "PC2"}
     assert provenance["denominator_policy"]["scope"] == "GOVERNED"
     assert provenance["denominator_policy"]["regions"] == 2
-    assert {row["identity"] for row in provenance["excluded_default_off_or_nonstudy_identities"]} == {"AS-815", "AJS-001"}
+    assert {row["identity"] for row in provenance["excluded_default_off_or_nonstudy_identities"]} == {'SYNTHETIC-CASE-025', "AJS-001"}
 
 
 def test_f13_holds_when_any_selected_bgc_lacks_a_complete_node_identity(tmp_path):
@@ -144,7 +144,7 @@ def test_f13_holds_when_any_selected_bgc_lacks_a_complete_node_identity(tmp_path
     output = tmp_path / "incomplete-identity"
 
     result = figures._render_f13_domain_pca(
-        source, ["SYN-01", "SYN-02", "AS-815", "AJS-001"], output,
+        source, ["SYN-01", "SYN-02", 'SYNTHETIC-CASE-025', "AJS-001"], output,
         cohort_manifest=cohort_path, cohort_manifest_sha256=digest,
         denominator_registry=denominator_path,
         denominator_registry_sha256=denominator_digest,
@@ -167,7 +167,7 @@ def test_f13_holds_when_observed_denominator_is_not_governed(tmp_path):
     output = tmp_path / "ungoverned-denominator"
 
     result = figures._render_f13_domain_pca(
-        source, ["SYN-01", "SYN-02", "AS-815", "AJS-001"], output,
+        source, ["SYN-01", "SYN-02", 'SYNTHETIC-CASE-025', "AJS-001"], output,
         cohort_manifest=cohort_path, cohort_manifest_sha256=cohort_digest,
         denominator_registry=denominator_path,
         denominator_registry_sha256=denominator_digest,
@@ -190,7 +190,7 @@ def test_f13_holds_when_denominator_registry_is_unbound(tmp_path):
     output = tmp_path / "unbound-denominator"
 
     result = figures._render_f13_domain_pca(
-        source, ["SYN-01", "SYN-02", "AS-815", "AJS-001"], output,
+        source, ["SYN-01", "SYN-02", 'SYNTHETIC-CASE-025', "AJS-001"], output,
         cohort_manifest=cohort_path, cohort_manifest_sha256=cohort_digest,
     )
 

@@ -97,7 +97,14 @@ substitute an earlier image because its filename matches the desired figure.
 
 ## 6. Hand over the selected evidence and writing material
 
-Return an index linking each intended figure to its actual state and files.
+Return an index linking each intended figure to its actual state and files. Keep the
+requested roster even when an output is missing. For each row, record the source
+binding, command/renderer, requested and produced formats, execution result,
+calculation/source review, visual-review result and remaining hold. Plain-language
+states such as completed, failed, unrun, omitted and held are useful review notes,
+not a new engine schema. Record why a panel was omitted and whether that choice
+was accepted; an empty view, written file or zero process exit does not settle it.
+
 For completed figures, keep the plot-only/vector image, captioned delivery
 image, authored caption/Methods, plotted table and executable script/config
 together, following the figure house rules. Include source/output checksums,
@@ -108,7 +115,11 @@ redraws saved tables.
 
 For a public package, review the exact archive contents and selected source
 closure before disclosure. Keep private data out of the package. File integrity,
-successful rendering and scientific review are separate recorded results.
+successful rendering and scientific review are separate recorded results. State
+what was checked: a structural pass covers only the named check; scientific
+validation requires review of the bound measurements, calculation and claim;
+release acceptance requires the separately authorized owner decision. Keep an
+unreviewed statement or panel held even if the files and renderer receipts pass.
 The [deliverable contract](DELIVERABLE_CONTRACT.md) defines the selected
 handoff; [portable evidence roots](PORTABLE_EVIDENCE_WORKSPACE.md) cover
 larger projects without moving their original evidence into the application.

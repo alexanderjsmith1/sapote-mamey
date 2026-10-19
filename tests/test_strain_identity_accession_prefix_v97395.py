@@ -8,6 +8,10 @@ id (``GCA_009862675_1_ASM986267v1_genomic`` after sanitization) is exactly the k
 accession-derived, non-identity label this module exists to warn about — the 2026-08-20
 incident this module's own docstring documents (CP025018_1, CP108695_1, ...) was a *bare*
 accession stem; this is the same failure mode one filename-shape away.
+
+The AS-shaped controls selected here are authored parser fixtures using existing reserved
+fixture declarations. Their bound-snapshot noncollision does not grant disclosure permission;
+empirical/reference records, historical anchors and scientific assertions remain distinct.
 """
 from mamey.strain_identity import resolve_strain_id
 
@@ -37,10 +41,10 @@ def test_bare_accession_stem_still_warns_no_regression_v97395():
 
 
 def test_real_cohort_style_stem_not_falsely_flagged_v97395():
-    # SID10815-shaped and AS-705-shaped stems must NOT be flagged -- this is the module's own
+    # SID-shaped and fabricated short-AS stems must NOT be flagged -- this is the module's own
     # documented tight-count design (2-letter prefixes demand >=6 digits; SID has only 3 letters
     # + 5 digits). The fix must not regress this.
-    for stem in ("SID10815", "AS-705", "AS_705_extraction_2"):
+    for stem in ("SID10815", 'AS-971', 'AS_971_extraction_2'):
         fake_zip = f"/nonexistent/{stem}.zip"
         ident = resolve_strain_id(None, fake_zip)
         assert not ident.message, f"{stem!r} must not be flagged as accession-derived"

@@ -51,8 +51,8 @@ def _panel(tmp_path: Path, rows: list[dict]) -> Path:
     return path
 
 
-def _row(path: Path | str, *, role="QUERY", query="Q1", strain="AS-441",
-         label="Streptomyces sp. AS-441", rank="", member="", accession=""):
+def _row(path: Path | str, *, role="QUERY", query="Q1", strain='SYNTHETIC-CASE-015',
+         label='Streptomyces sp. SYNTHETIC-CASE-015', rank="", member="", accession=""):
     return {"role": role, "query_id": query, "strain_id": strain, "label": label,
             "assembly_path": str(path), "archive_member": member, "accession": accession,
             "reference_rank": rank, "selection_basis": "ClusterBlast recurrence"}
@@ -117,7 +117,7 @@ def test_reference_selection_is_ranked_and_capped_one_to_three(tmp_path):
                  strain=f"REF-{i}", label=f"Reference {i}") for i in range(1, 6)]
     rows = tool.read_panel(_panel(tmp_path, [q, _outgroup(tmp_path), *refs]))
     selected = tool.select_reference_rows(rows, 3)
-    assert [r.strain_id for r in selected] == ["AS-441", "OUT-1", "REF-1", "REF-2", "REF-3"]
+    assert [r.strain_id for r in selected] == ['SYNTHETIC-CASE-015', "OUT-1", "REF-1", "REF-2", "REF-3"]
     with pytest.raises(ValueError):
         tool.select_reference_rows(rows, 4)
 
@@ -148,11 +148,11 @@ def test_prepared_panel_is_canonical_ingress_and_hash_contract_matches(tmp_path,
         writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
         writer.writeheader()
         writer.writerows([
-            {"candidate_id": "AS-441", "role": "QUERY", "source_path": "sources/q.fna",
-             "tree_label": "AS-441", "display_label": "Streptomyces sp. AS-441"},
+            {"candidate_id": 'SYNTHETIC-CASE-015', "role": "QUERY", "source_path": "sources/q.fna",
+             "tree_label": 'SYNTHETIC-CASE-015', "display_label": 'Streptomyces sp. SYNTHETIC-CASE-015'},
             {"candidate_id": "REF-1", "role": "REFERENCE", "source_path": "sources/r.fna",
              "tree_label": "REF-1", "selection_basis": "curator comparator",
-             "related_query_ids": "AS-441"},
+             "related_query_ids": 'SYNTHETIC-CASE-015'},
             {"candidate_id": "OUT-1", "role": "OUTGROUP", "source_path": "sources/o.fna",
              "tree_label": "OUT-1"},
         ])
@@ -211,7 +211,7 @@ def test_plan_stages_one_object_per_normalized_assembly_and_never_runs_tree(
     assert all(" " not in line for line in (run / "input_view/genomes.txt").read_text().splitlines())
     labels = (run / "input_view" / "labels.tsv").read_text().splitlines()
     assert len(labels) == 3 and not labels[0].startswith("input\t")
-    assert labels[0].endswith("\tStreptomyces sp. AS-441")
+    assert labels[0].endswith('\tStreptomyces sp. SYNTHETIC-CASE-015')
 
 
 def test_zip_member_is_hashed_and_source_archive_is_unchanged(tmp_path, good_probe):

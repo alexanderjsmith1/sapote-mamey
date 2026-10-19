@@ -105,7 +105,6 @@ def test_locus_map_footnote_counts_names_left_out_on_drawn_genes(monkeypatch, tm
     glm = _load("glm_foot_451", "tools/gap_rescue_locus_map.py")
     import matplotlib
     matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
     ref = [{"i": k + 1, "name": f"abc{k}", "product": "enzyme", "kind": "biosynthetic", "s": k * 2.0, "e": k * 2.0 + 1.5,
             "strand": 1} for k in range(4)]
     core = {"contig": "core", "start": 0, "end": 20000, "identity": "AS-1 / core / region001 / BGC001"}
@@ -121,7 +120,6 @@ def test_locus_map_footnote_counts_names_left_out_on_drawn_genes(monkeypatch, tm
     names = glm.GeneNames({"u0": {"top10_consensus_name": "kept", "top10_mean_identity": "70"}})
     names.binding, names.unbound_tags = {"sha": 1, "unbound_sha_not_in_genome": 2}, frozenset({"u1", "u2"})
     monkeypatch.setattr(glm, "reference_genes", lambda _p: (ref, 8.0))
-    monkeypatch.setattr(plt, "close", lambda fig=None: None)
     res = glm.draw_locus_map(tmp_path / "R.gbk", rows, [], prots, [core], core, "AS-1", "test", tmp_path / "m.png",
                              gene_names=names)
     assert res["blastp_named"] == ["u0"]

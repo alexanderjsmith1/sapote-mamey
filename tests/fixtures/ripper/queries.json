@@ -1,0 +1,19 @@
+{
+  "schema_version": "ripper-queries/1",
+  "queries": [
+    {
+      "enzyme_accession": "SYNTHETIC_TE_001",
+      "strain": "SYNTHETIC",
+      "full_contig": "NODE_SYNTHETIC_full_contig_001",
+      "region": "region001",
+      "bgc_alias": "SYNTHETIC_BGC_001"
+    },
+    {
+      "enzyme_accession": "SYNTHETIC_TE_002",
+      "strain": "SYNTHETIC",
+      "full_contig": "NODE_SYNTHETIC_full_contig_002",
+      "region": "region002",
+      "bgc_alias": "SYNTHETIC_BGC_002"
+    }
+  ]
+}

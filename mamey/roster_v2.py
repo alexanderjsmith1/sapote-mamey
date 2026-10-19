@@ -112,11 +112,11 @@ def _read_channel_store(pkg: Path, channel: str) -> dict[tuple[str, str], dict]:
     out: dict[tuple[str, str], dict] = {}
 
     # overlay store: blastp_online/<BGC>_online_blastp.csv — every channel lands here, rows
-    # distinguished by a "channel" column (nr/clustered_nr treated as interchangeable, matching
-    # this module's existing nr call sites).
+    # distinguished by an explicit channel column. Untagged legacy rows cannot
+    # establish which independent database was searched.
     od = pkg / _OVERLAY_DIR
     if od.is_dir():
-        accept = ("", channel, "nr", "clustered_nr") if channel in ("nr", "clustered_nr") else ("", channel)
+        accept = (channel,)
         for f in sorted(od.glob("*_online_blastp.csv")):
             try:
                 for r in csv.DictReader(f.open(newline="", encoding="utf-8")):

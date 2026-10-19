@@ -1,4 +1,8 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 from __future__ import annotations
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+COMPARATOR_ID = synthetic_namespace_id("AS", width=3, case_index=918)
 
 import importlib.util
 from pathlib import Path
@@ -54,7 +58,7 @@ def _section45() -> str:
         "#### Cohort gene comparison",
         "| Comparator exact locus | Query genes | Comparator genes | Sequence / synteny evidence | Agreement and mismatch | Allowed inference |",
         "|---|---|---|---|---|---|",
-        "| AS-2 / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | ctg1_1 | ctg2_1 | 82% identity over 205/240 aa with shared three-gene order | shared core order agrees but two accessory genes differ | supports only cohort navigation and does not establish product identity |",
+        f"| {COMPARATOR_ID} / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | ctg1_1 | ctg2_1 | 82% identity over 205/240 aa with shared three-gene order | shared core order agrees but two accessory genes differ | supports only cohort navigation and does not establish product identity |",
         "#### Cohort-comparison conclusion",
         "The measured match supports only cohort navigation and does not establish production or activity.",
         "#### Discriminating next comparison",
@@ -128,8 +132,8 @@ def test_filled_present_cells_reproduce_and_then_close_bypass():
         "| ctg1_1 | present | present | present | present | present | present | present |",
     )
     section45 = _section45().replace(
-        "| AS-2 / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | ctg1_1 | ctg2_1 | 82% identity over 205/240 aa with shared three-gene order | shared core order agrees but two accessory genes differ | supports only cohort navigation and does not establish product identity |",
-        "| AS-2 / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | ctg1_1 | ctg2_1 | present | present | present |",
+        f"| {COMPARATOR_ID} / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | ctg1_1 | ctg2_1 | 82% identity over 205/240 aa with shared three-gene order | shared core order agrees but two accessory genes differ | supports only cohort navigation and does not establish product identity |",
+        f"| {COMPARATOR_ID} / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | ctg1_1 | ctg2_1 | present | present | present |",
     )
     section46 = _section46().replace(
         "| Reference strain / REF_CONTIG_1 / region001 / BGC002 | ctg1_1 | ref_0001 | 3/4 core domains match the antiSMASH profile at the reference locus | two accessory genes differ and the release enzyme is absent | supports only profile-level navigation and does not establish product identity |",

@@ -30,6 +30,7 @@ panel_<SET>_<PANEL>.json (counts, threshold, stamp, renderer).
 from __future__ import annotations
 
 import argparse
+import re
 import csv
 import hashlib
 import io
@@ -153,7 +154,7 @@ def historical_producer(run):
     return {"state": "SUPPLIED_UNVERIFIED", "metadata": supplied} if supplied else {"state": "NOT_RECORDED"}
 
 
-def render_runtime(renderer):
+def render_runtime(renderer, rscript=None):
     packages = {}
     for name in ("numpy", "matplotlib", "scipy"):
         try:
@@ -164,7 +165,8 @@ def render_runtime(renderer):
             "platform": platform.platform(), "executable": sys.executable, "installed_distributions": packages,
             "loaded_module_versions": {name: getattr(sys.modules.get(name), "__version__", "NOT_IMPORTED")
                                        for name in ("numpy", "matplotlib", "scipy")},
-            "renderer": renderer, "r_runtime": "NOT_RECORDED", "fonts": "NOT_RECORDED",
+            "renderer": renderer, "r_executable": file_binding(Path(rscript)) if rscript else None,
+            "r_runtime": "NOT_RECORDED", "fonts": "NOT_RECORDED",
             "byte_equivalent_replay_claim": False}
 
 
@@ -213,10 +215,11 @@ def admit_resource_run(directory, name, run, run_binding, input_paths, input_bin
         if (not isinstance(outputs[filename], dict) or binding.get("state") != "PRESENT"
                 or outputs[filename].get("sha256") != binding.get("sha256")):
             raise RenderRefusal("resource RUN scientific output hash changed")
+    return True
 
 
 def axis_metadata(run: dict, *, required: bool = False) -> dict:
-    """Keep unknown axis percentages distinct from supplied finite values."""
+    """Validate finite annotations without assigning variance or execution meaning."""
     values = run.get("pct_axes")
     if values is None:
         if required:
@@ -230,7 +233,68 @@ def axis_metadata(run: dict, *, required: bool = False) -> dict:
             raise ValueError
     except (ValueError, TypeError):
         raise RenderRefusal("pct_axes must contain at least two finite numeric axis percentages") from None
-    return {"state": "AVAILABLE", "pct_axes": values}
+    return {"state": "AVAILABLE", "pct_axes": values,
+            "definition": {"state": "SUPPLIED_UNVERIFIED", "name": None},
+            "fit_execution": "UNVERIFIED_SUPPLIED_METADATA",
+            "renderer_fit_execution": "NOT_EXECUTED"}
+
+
+# A source-bound definition is supported only for this inspected numerical function.
+# This token fingerprint excludes layout/comments and includes the complete function.
+_NATIVE_PCOA_FUNCTION_SHA256 = "66e137cfad33f64123e36159a708aeaa356af30487755a5cc94d19049a9c8674"
+
+
+def bound_axis_metadata(run: dict, coordinates: dict, source: dict, source_bytes: bytes | None,
+                        run_binding: dict, resource_chain: bool) -> dict:
+    """Associate the known native ratio with bound coordinates; never execute a fit.
+
+    A supplied definition/seed/version field is insufficient. Native classification
+    needs the independently admitted terminal chain and exact coordinate/source hashes.
+    The historical source path is metadata only and is never opened.
+    """
+    axes = axis_metadata(run)
+    if axes["state"] != "AVAILABLE":
+        return axes
+    axes["annotation_run"] = run_binding
+    axes["coordinates"] = coordinates
+    if not resource_chain or run.get("resource_schema") != "sapote-mamey.protein-pcoa-resource.v1":
+        return axes
+    outputs, producers = run.get("outputs"), run.get("producer_sources")
+    if not isinstance(outputs, dict) or not isinstance(producers, list):
+        return axes
+    name = Path(coordinates.get("path", "")).name
+    native = [record for record in producers if isinstance(record, dict)
+              and Path(str(record.get("path", ""))).name == "protein_pcoa_ordinate.py"]
+    output = outputs.get(name)
+    if (len(native) != 1 or not isinstance(output, dict)
+            or coordinates.get("state") != "PRESENT" or source.get("state") != "PRESENT"
+            or output.get("sha256") != coordinates.get("sha256")
+            or native[0].get("sha256") != source.get("sha256")
+            or native[0].get("bytes") != source.get("bytes") or source_bytes is None
+            or hashlib.sha256(source_bytes).hexdigest() != source.get("sha256")):
+        return axes
+    import ast, tokenize
+    try:
+        text = source_bytes.decode("utf-8")
+        functions = [node for node in ast.parse(text).body
+                     if isinstance(node, ast.FunctionDef) and node.name == "classical_pcoa"]
+        snippet = ast.get_source_segment(text, functions[0])
+        tokens = [(tokenize.tok_name[token.type], token.string)
+                  for token in tokenize.generate_tokens(io.StringIO(snippet).readline)
+                  if token.type not in (tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE,
+                                        tokenize.INDENT, tokenize.DEDENT, tokenize.ENDMARKER)]
+        function_hash = hashlib.sha256(json.dumps(tokens, ensure_ascii=True, separators=(",", ":")).encode()).hexdigest()
+        if len(functions) != 1 or function_hash != _NATIVE_PCOA_FUNCTION_SHA256:
+            return axes
+    except (ValueError, SyntaxError, UnicodeError, IndexError, tokenize.TokenError):
+        return axes
+    axes["definition"] = {"state": "NATIVE_COORDINATE_SOURCE_BOUND",
+                          "name": "100 * eigenvalue / signed trace of the double-centred squared-distance matrix",
+                          "numeric_function_sha256": function_hash, "source": source,
+                          "negative_coordinate_eigenvalues": "clipped to zero for coordinates only",
+                          "percentages": "retained without clipping or renormalization"}
+    axes["fit_execution"] = "RECORDED_SUCCESSFUL_RESOURCE_CHAIN"
+    return axes
 
 
 def read_tsv(path: Path, *, expected_binding: dict | None = None) -> list[dict]:
@@ -242,6 +306,48 @@ def read_tsv(path: Path, *, expected_binding: dict | None = None) -> list[dict]:
         raise RenderRefusal(f"required TSV input is missing: {path}")
     with io.TextIOWrapper(io.BytesIO(raw), newline="") as fh:
         return list(csv.DictReader(fh, delimiter="\t"))
+
+
+def embedding_tsv_rows(path: Path, binding: dict) -> list[dict]:
+    """Validate raw column authority and row widths before dictionary projection."""
+    raw = read_bound_bytes(path, binding)
+    if raw is None:
+        raise RenderRefusal(f"{path}: required embedding table is missing")
+    try:
+        reader = csv.reader(io.StringIO(raw.decode("utf-8-sig"), newline=""), delimiter="\t", strict=True)
+        header = next(reader, None)
+        if not header or any(not h.strip() or h != h.strip() for h in header) or len(set(header)) != len(header):
+            raise RenderRefusal(f"{path}: embedding headers must be nonblank, unique and unpadded")
+        rows = []
+        for values in reader:
+            if len(values) != len(header):
+                raise RenderRefusal(f"{path}: embedding row {reader.line_num} has {len(values)} fields; expected {len(header)}")
+            rows.append(dict(zip(header, values)))
+        return rows
+    except (UnicodeError, csv.Error) as exc:
+        raise RenderRefusal(f"{path}: invalid embedding TSV: {exc}") from exc
+
+
+def embedding_coordinates(path: Path, rows: list[dict], key: str, binding: dict) -> list[dict]:
+    """Join a finite one-to-one saved embedding to the exact kit roster, preserving order."""
+    ids = [r.get("id") for r in rows]
+    if any(not isinstance(i, str) or not i.strip() for i in ids) or len(set(ids)) != len(ids):
+        raise RenderRefusal(f"{path}: kit ids must be nonempty and unique")
+    emb = {}
+    for r in embedding_tsv_rows(path, binding):
+        identifier = r.get("id")
+        if not isinstance(identifier, str) or not identifier.strip() or identifier in emb:
+            raise RenderRefusal(f"{path}: embedding ids must be nonempty and unique")
+        try:
+            finite = all(math.isfinite(float(r[key + axis])) for axis in ("1", "2"))
+        except (KeyError, TypeError, ValueError):
+            finite = False
+        if not finite:
+            raise RenderRefusal(f"{path}: embedding coordinates must be finite numeric values")
+        emb[identifier] = r
+    if set(emb) != set(ids):
+        raise RenderRefusal(f"{path}: coordinates do not cover the exact kit ids")
+    return [dict(r, PC1=emb[r["id"]][key + "1"], PC2=emb[r["id"]][key + "2"]) for r in rows]
 
 
 # ---------------------------------------------------------------- selection (pure, tested)
@@ -274,6 +380,21 @@ def quantile(values, q):
     return v[lo] + (v[hi] - v[lo]) * (pos - lo)
 
 
+def identity_measurement(raw):
+    """Keep missing/invalid similarity separate from finite percentage measurements."""
+    if raw is None or isinstance(raw, str) and not raw.strip():
+        return None, "NOT_PROVIDED"
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None, "NONNUMERIC"
+    if not math.isfinite(value):
+        return None, "NONFINITE"
+    if not 0 <= value <= 100:
+        raise RenderRefusal(f"nearest identity percentage outside [0, 100]: {raw!r}")
+    return value, "AVAILABLE"
+
+
 def choose_labels(cohort_pts, background, *, label_below=70.0, top_strains=0, q=0.95, number_above=30, span=None):
     """cohort_pts: list of dict(x, y, strain, pid (float or None)). background: list of (x, y).
     span: the plot span the 1.5% same-strain grouping distance is taken from. Pass the span of EVERY point in the kit
@@ -282,7 +403,8 @@ def choose_labels(cohort_pts, background, *, label_below=70.0, top_strains=0, q=
     bg_nn = nn_dist(background, background, k_self=True) if len(background) > 1 else []
     thr = quantile(bg_nn, q)
     d = nn_dist([(p["x"], p["y"]) for p in cohort_pts], background) if background else [math.inf] * len(cohort_pts)
-    low = [p["pid"] is not None and p["pid"] < label_below for p in cohort_pts]
+    pids = [identity_measurement(p["pid"])[0] for p in cohort_pts]
+    low = [pid is not None and pid < label_below for pid in pids]
     idx = list(range(len(cohort_pts)))
     if top_strains:
         if len(idx) <= top_strains:
@@ -295,7 +417,8 @@ def choose_labels(cohort_pts, background, *, label_below=70.0, top_strains=0, q=
                 if s in seen:
                     continue
                 seen.add(s)
-                same = [j for j in idx if cohort_pts[j]["strain"] == s and low[j] == low[i]]
+                same = [j for j in idx if cohort_pts[j]["strain"] == s and low[j] == low[i]
+                        and (pids[j] is None) == (pids[i] is None)]
                 groups.append([max(same, key=lambda j: (d[j], -j))])
                 if len(groups) >= top_strains:
                     break
@@ -308,6 +431,7 @@ def choose_labels(cohort_pts, background, *, label_below=70.0, top_strains=0, q=
     groups = []
     for i in cand:
         g = next((g for g in groups if cohort_pts[g[0]]["strain"] == cohort_pts[i]["strain"]
+                  and (pids[g[0]] is None) == (pids[i] is None)
                   and math.hypot(cohort_pts[g[0]]["x"] - cohort_pts[i]["x"], cohort_pts[g[0]]["y"] - cohort_pts[i]["y"]) < .015 * span),
                  None)
         (g.append(i) if g else groups.append([i]))
@@ -317,24 +441,42 @@ def choose_labels(cohort_pts, background, *, label_below=70.0, top_strains=0, q=
         if numbered:
             texts.append(str(n))
         else:
-            pids = [cohort_pts[k]["pid"] for k in g if cohort_pts[k]["pid"] is not None]
+            known_pids = [pids[k] for k in g if pids[k] is not None]
             texts.append(f"{cohort_pts[g[0]]['strain']}{' x' + str(len(g)) if len(g) > 1 else ''}"
-                         + (f" ({min(pids):.0f}%)" if pids else ""))
+                         + (f" ({min(known_pids):.0f}%)" if known_pids else ""))
     return groups, texts, thr, numbered
 
 
 # ---------------------------------------------------------------- rendering
-def r_available() -> bool:
+def discover_rscript() -> str | None:
     exe = shutil.which("Rscript")
     if not exe:
-        return False
+        return None
+    exe = str(Path(exe).absolute())
     r = subprocess.run([exe, "-e", 'q(status = as.integer(!all(sapply(c("ggplot2","ggrepel","jsonlite","svglite"), '
                               'requireNamespace, quietly = TRUE))))'], capture_output=True)
-    return r.returncode == 0
+    return exe if r.returncode == 0 else None
 
 
-def render_r(spec: Path, out_prefix: Path, stamp: str) -> None:
-    r = subprocess.run(["Rscript", str(R_SCRIPT), str(spec), str(out_prefix), stamp], capture_output=True, text=True)
+def r_available() -> bool:
+    return discover_rscript() is not None
+
+
+def selected_rscript(a) -> str:
+    exe = getattr(a, "_rscript", None)
+    if exe is None:
+        exe = discover_rscript()
+        if exe is None:
+            raise RenderRefusal("Rscript with required packages is unavailable")
+        a._rscript = exe
+    return exe
+
+
+def render_r(spec: Path, out_prefix: Path, stamp: str, *, rscript: str | None = None) -> None:
+    exe = rscript or discover_rscript()
+    if exe is None:
+        raise RenderRefusal("Rscript with required packages is unavailable")
+    r = subprocess.run([exe, str(R_SCRIPT), str(spec), str(out_prefix), stamp], capture_output=True, text=True)
     if r.returncode != 0:
         raise RenderRefusal(f"R renderer failed for {out_prefix.name}: {r.stderr.strip()[-400:]}")
     done = Path(str(out_prefix) + ".stamp")
@@ -365,6 +507,7 @@ def render_matplotlib(spec: dict, out_prefix: Path) -> None:
     lo = [p for p in spec["points"] if p["layer"] == "iso_low"]
     mid = [p for p in spec["points"] if p["layer"] == "iso_mid"]
     hi = [p for p in spec["points"] if p["layer"] == "iso_high"]
+    unknown = [p for p in spec["points"] if p["layer"] == "iso_unknown"]
     if lo:
         ax.scatter([p["x"] for p in lo], [p["y"] for p in lo], s=22, c=col, edgecolors="black", lw=.4, zorder=3,
                    label=spec["legend"]["iso_low"])
@@ -374,6 +517,9 @@ def render_matplotlib(spec: dict, out_prefix: Path) -> None:
     if hi:
         ax.scatter([p["x"] for p in hi], [p["y"] for p in hi], s=22, facecolors="white", edgecolors=col, lw=1.1, zorder=3,
                    label=spec["legend"]["iso_high"])
+    if unknown:
+        ax.scatter([p["x"] for p in unknown], [p["y"] for p in unknown], s=22, marker="D", facecolors="white",
+                   edgecolors="#555555", lw=1.1, zorder=3, label=spec["legend"]["iso_unknown"])
     for lab in spec["labels"]:
         ax.annotate(lab["label"], (lab["x"], lab["y"]), xytext=(6, 6), textcoords="offset points", fontsize=6,
                     arrowprops=dict(arrowstyle="-", lw=.35, color="#555555"))
@@ -400,8 +546,10 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
         if r["source"] == "isolate":
             if r.get("origin") in drop or r["strain"] in excluded or cohorts.get(r["strain"]) not in cohort_set:
                 continue
-            pid = near.get(r["id"])
-            cpts.append(dict(x=x, y=y, strain=r["strain"], pid=pid, row=r))
+            raw_identity = near.get(r["id"])
+            pid, identity_state = identity_measurement(raw_identity)
+            cpts.append(dict(x=x, y=y, strain=r["strain"], pid=pid, row=r, identity_state=identity_state,
+                             identity_raw=None if raw_identity is None else str(raw_identity)))
         else:
             layer = "mibig" if r["source"] == "MIBiG" else "ref"
             bg.append((x, y))
@@ -427,15 +575,21 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
                  else [cpts[g[0]]["strain"] + (f" x{len(g)}" if len(g) > 1 else "") for g in groups])
     low = [p["pid"] is not None and p["pid"] < a.label_below for p in cpts]
     mid = [not lw and a.mid_below is not None and p["pid"] is not None and p["pid"] < a.mid_below for p, lw in zip(cpts, low)]
-    for p, lw, md in zip(cpts, low, mid):
-        points.append(dict(x=p["x"], y=p["y"], layer="iso_low" if lw else ("iso_mid" if md else "iso_high"), size=1))
+    unknown = [p["pid"] is None for p in cpts]
+    for p, lw, md, unk in zip(cpts, low, mid, unknown):
+        points.append(dict(x=p["x"], y=p["y"], layer="iso_unknown" if unk else ("iso_low" if lw else ("iso_mid" if md else "iso_high")), size=1))
     title, tag, unit = titles.get(s, (s, s, "proteins"))
-    axes = axis_metadata(run, required=getattr(a, "require_axis_metadata", False))
+    axes = getattr(a, "_axis_metadata_by_set", {}).get(s) or axis_metadata(run, required=getattr(a, "require_axis_metadata", False))
     pct = axes["pct_axes"]
     mt = "reference/MIBiG" if n_mib else "reference"
-    nlo = sum(low); nmd = sum(mid); nhi = len(cpts) - nlo - nmd
+    nlo = sum(low); nmd = sum(mid); n_unknown = sum(unknown); nhi = len(cpts) - nlo - nmd - n_unknown
     slo = len({p["strain"] for p, lw in zip(cpts, low) if lw}); smd = len({p["strain"] for p, md in zip(cpts, mid) if md})
-    shi = len({p["strain"] for p, lw, md in zip(cpts, low, mid) if not lw and not md})
+    shi = len({p["strain"] for p, lw, md, unk in zip(cpts, low, mid, unknown) if not lw and not md and not unk})
+    sun = len({p["strain"] for p, unk in zip(cpts, unknown) if unk})
+    missingness = dict(states={state: sum(p["identity_state"] == state for p in cpts)
+                               for state in ("AVAILABLE", "NOT_PROVIDED", "NONNUMERIC", "NONFINITE")},
+                       records=[dict(id=p["row"]["id"], strain=p["strain"], state=p["identity_state"], raw=p["identity_raw"])
+                                for p, unk in zip(cpts, unknown) if unk])
     top = a.mid_below if a.mid_below is not None else a.label_below
     spec = dict(set=s, panel=panel, tag=tag, colour=colour,
                 xlab=({"trimap": "TriMap 1", "tsne": "t-SNE 1"}.get(layout or getattr(a, "layout", "pcoa"))
@@ -448,6 +602,8 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
                 points=points, mid_fill=tint(colour),
                 labels=[dict(x=sum(cpts[k]["x"] for k in g) / len(g), y=sum(cpts[k]["y"] for k in g) / len(g), label=t)
                         for g, t in zip(groups, texts)])
+    if n_unknown:
+        spec["legend"]["iso_unknown"] = f"{label_text} ({n_unknown:,} {unit}, {sun} strains): best {mt} identity unavailable"
     if getattr(a, "source_style", None):   # M5_452_pcoa_source_style
         spec["source_style"] = dict(genus=a.source_style, ref_fill=a.source_style_fill, mibig_fill="#3a78b5")
     if a.mid_below is not None:
@@ -458,9 +614,10 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
     lay = layout or getattr(a, "layout", "pcoa"); prefix = out / f"{lay.upper()}_{s}_{panel}"
     if spec_only:
         dist = nn_dist([(p["x"], p["y"]) for p in cpts], bg) if bg else [math.inf] * len(cpts)
-        return dict(spec=spec, groups=groups, texts=texts, cpts=cpts, low=low, mid=mid, numbered=numbered, threshold=thr,
-                    counts=dict(n_cohort_points=len(cpts), n_low=nlo, n_mid=nmd, n_ref=n_ref, n_mibig=n_mib), layout=lay,
-                    all_groups=all_groups, dist=dist, short=short)
+        return dict(spec=spec, groups=groups, texts=texts, cpts=cpts, low=low, mid=mid, unknown=unknown, numbered=numbered, threshold=thr,
+                    counts=dict(n_cohort_points=len(cpts), n_low=nlo, n_mid=nmd, n_high=nhi, n_unknown=n_unknown,
+                                identity_missingness=missingness, n_ref=n_ref, n_mibig=n_mib), layout=lay,
+                    all_groups=all_groups, dist=dist, short=short, axis_metadata=axes)
     stamp = uuid.uuid4().hex
     if getattr(a, "min_text_pt", None):
         spec["min_text"] = dict(min_text_pt=a.min_text_pt, print_width=a.print_width,
@@ -469,7 +626,7 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
         spec_path = out / f".render_{s}_{panel}_{stamp}.json"
         spec_path.write_text(json.dumps(dict(spec, stamp=stamp)))
         try:
-            render_r(spec_path, prefix, stamp)
+            render_r(spec_path, prefix, stamp, rscript=selected_rscript(a))
         finally:
             spec_path.unlink(missing_ok=True)
     else:
@@ -490,15 +647,16 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
     names = ({r["strain"]: r["display"] for r in read_tsv(Path(a.label_names))} if getattr(a, "label_names", None) else {})
     with open(out / f"LABELS_{s}_{panel}.tsv", "w", newline="") as fh:
         w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
-        w.writerow(["label", "label_text", "strain", "display_name", "region_file", "locus_tag", "X", "Y", "nearest_identity_pct", "fill"])
+        w.writerow(["label", "label_text", "strain", "display_name", "region_file", "locus_tag", "X", "Y", "nearest_identity_pct", "fill", "nearest_identity_state"])
         for n, (g, t) in enumerate(zip(groups, texts), 1):
             for k in g:
                 p = cpts[k]
                 w.writerow([n, t, p["strain"], names.get(p["strain"], ""), p["row"].get("origin", ""), p["row"].get("locus_tag", ""), f"{p['x']:.5f}",
                             f"{p['y']:.5f}", f"{p['pid']:.1f}" if p["pid"] is not None else "",
-                            "solid" if low[k] else ("light" if mid[k] else "open")])
+                            "unknown" if unknown[k] else ("solid" if low[k] else ("light" if mid[k] else "open")), p["identity_state"]])
     receipt = dict(set=s, panel=panel, layout=lay, min_text=spec.get("min_text"), cohorts=sorted(cohort_set), renderer=renderer, stamp=stamp, labels=len(groups),
-                   numbered=numbered, threshold=thr, n_cohort_points=len(cpts), n_low=nlo, n_mid=nmd, n_ref=n_ref, n_mibig=n_mib,
+                   numbered=numbered, threshold=thr, n_cohort_points=len(cpts), n_low=nlo, n_mid=nmd, n_high=nhi, n_unknown=n_unknown,
+                   identity_missingness=missingness, n_ref=n_ref, n_mibig=n_mib,
                    label_rule=("top_strains" if a.top_strains else "distance_quantile"), top_strains=a.top_strains,
                    quantile=a.quantile, label_below=a.label_below, mid_below=a.mid_below, title=title,
                    axis_metadata=axes)
@@ -517,6 +675,8 @@ def page_legend(a, leg, n_ref_genomes=None):
     if a.mid_below is not None:
         out["iso_mid"] = f"{who}, best reference/MIBiG match {a.label_below:.0f}–{a.mid_below:.0f}% identity"
     out["iso_high"] = f"{who}, best reference/MIBiG match ≥ {top:.0f}% identity"
+    if leg.get("iso_unknown"):
+        out["iso_unknown"] = f"{who}, best reference/MIBiG identity unavailable"
     return out
 
 
@@ -597,21 +757,127 @@ def place_labels_pt(targets, texts, obstacles, rect, blocked, *, font_size, ital
     return out
 
 
-def embedding_meta(table, lays):
-    """Version and seed of the drawn embedding, from the fit receipt beside its table (<dir>/<TRIMAP|TSNE>_<SET>.json, as written by the
-    embedding step) when present; otherwise empty (the caption then gives no version)."""
+def embedding_meta(table, lays, admitted=None):
+    """Optional exact sidecar metadata; binding is not proof that a fit was executed."""
     if not table or all(l == "pcoa" for l in lays):
         return {}
-    t = Path(table); cand = sorted(t.parent.glob("*_" + t.parent.name + ".json")) or sorted(t.parent.glob("*.json"))
-    for c in cand:
-        try:
-            d = json.loads(c.read_text()); m = d.get("trimap") or d.get("tsne") or {}
-            seeds = m.get("seeds") or ([m["seed"]] if "seed" in m else [])
-            k = int(t.stem.rsplit("seed", 1)[1]) - 1 if "seed" in t.stem else 0
-            return dict(version=m.get("version"), seed=seeds[k] if 0 <= k < len(seeds) else None, receipt=str(c))
-        except (ValueError, OSError, IndexError):
+    t = Path(table); sidecar = t.with_suffix(".json")
+    table_binding = admitted[t.absolute()] if admitted is not None else file_binding(t)
+    binding = admitted[sidecar.absolute()] if admitted is not None else file_binding(sidecar)
+    result = dict(state="NOT_PROVIDED", table=table_binding, receipt=binding, by_layout={},
+                  fit_execution="NOT_ESTABLISHED_BY_RENDER_REPLAY")
+    raw = read_bound_bytes(sidecar, binding)
+    if raw is None:
+        return result
+    try:
+        payload = json.loads(raw)
+    except (ValueError, UnicodeError) as exc:
+        raise RenderRefusal(f"{sidecar}: invalid embedding metadata JSON") from exc
+    if not isinstance(payload, dict):
+        raise RenderRefusal(f"{sidecar}: embedding metadata must be an object")
+    if table_binding["state"] != "PRESENT" or payload.get("coordinates_sha256") != table_binding["sha256"]:
+        result["state"] = "UNBOUND_METADATA"
+        return result
+    result["state"] = "SUPPLIED_COORDINATE_BOUND"
+    for lay in dict.fromkeys(l for l in lays if l != "pcoa"):
+        metadata = payload.get(lay)
+        if not isinstance(metadata, dict):
+            result["by_layout"][lay] = {"state": "METHOD_NOT_PROVIDED"}
             continue
-    return {}
+        version, seed = metadata.get("version"), metadata.get("seed")
+        if not isinstance(version, str) or not version.strip() or type(seed) is not int or seed < 0:
+            result["by_layout"][lay] = {"state": "INCOMPLETE_METHOD_METADATA"}
+            continue
+        result["by_layout"][lay] = dict(state="SUPPLIED_COORDINATE_BOUND", version=version, seed=seed,
+                                        parameters=metadata.get("parameters", {}))
+    return result
+
+
+def page_execution_record(prefix: Path, stamp: str) -> dict:
+    """Read the exact in-run R record and observe fonts used in the final PDF."""
+    path = Path(str(prefix) + "_runtime.json")
+    binding = file_binding(path)
+    if binding["state"] != "PRESENT":
+        raise RenderRefusal("page renderer did not supply an in-run runtime record")
+    payload = read_bound_json(path, binding)
+    versions = payload.get("loaded_namespace_versions") if isinstance(payload, dict) else None
+    if (not isinstance(payload, dict) or payload.get("schema") != "sapote-mamey.r-page-execution.v1"
+            or payload.get("stamp") != stamp or payload.get("scope") != "CURRENT_RENDER_PROCESS"
+            or payload.get("labeler") != "BEE_GREEDY_PRINT_POINT_PLACEMENT_AND_R_GEOM_TEXT"
+            or payload.get("numeric_fit_execution") != "NOT_EXECUTED_BY_THIS_RENDERER"
+            or not isinstance(payload.get("r_version"), str) or not payload["r_version"]
+            or not isinstance(versions, dict)
+            or any(not isinstance(versions.get(name), str) or not versions[name]
+                   for name in ("ggplot2", "jsonlite", "patchwork", "svglite", "ggtext"))):
+        raise RenderRefusal("page runtime record is incomplete or does not match the render stamp")
+    from pypdf import PdfReader
+    pdf = Path(str(prefix) + ".pdf")
+    pdf_binding = file_binding(pdf)
+    faces, raw_names, runs = set(), set(), []
+    def font_use(text, cm, tm, font, size):
+        if not text or not text.strip():
+            return
+        name = str(font.get("/BaseFont", "")) if font else ""
+        if not name:
+            raise RenderRefusal("final page PDF text has an unrecorded font")
+        raw_names.add(name)
+        faces.add(re.sub(r"^[A-Z]{6}\+", "", name.lstrip("/")))
+        runs.append(1)
+    try:
+        for page in PdfReader(pdf).pages:
+            page.extract_text(visitor_text=font_use)
+    except RenderRefusal:
+        raise
+    except Exception as exc:
+        raise RenderRefusal(f"cannot observe final PDF fonts: {exc}") from exc
+    if not faces or file_binding(pdf) != pdf_binding:
+        raise RenderRefusal("final page PDF font observation failed or PDF changed")
+    return dict(r_runtime=dict(state="RECORDED_IN_RENDER_PROCESS", binding=binding, record=payload),
+                fonts=dict(state="OBSERVED_FINAL_PDF_TEXT", faces=sorted(faces), base_fonts=sorted(raw_names),
+                           text_runs=len(runs), source_pdf=pdf_binding))
+
+
+def page_raster_artifacts(prefix: Path, print_width: float) -> list[dict]:
+    """Bind direct-R rasters at their declared width; metadata alone is insufficient."""
+    from PIL import Image
+    if not math.isfinite(print_width) or print_width <= 0:
+        raise RenderRefusal("page print width must be finite and positive")
+    records = []
+    for suffix, role in ((".png", "CLEAN_NATIVE_ARTWORK"), ("_plot_only.png", "CLEAN_NATIVE_SLIDE_ARTWORK")):
+        path = Path(str(prefix) + suffix)
+        if not path.is_file():
+            raise RenderRefusal(f"page native raster missing: {path.name}")
+        with Image.open(path) as image:
+            width, height = image.size
+            metadata_dpi = list(image.info.get("dpi", ())) or None
+        if width + 1 < print_width * 300:
+            raise RenderRefusal(f"page native-pixel floor failed: {path.name}: {width}px at {print_width}in")
+        records.append(dict(**file_binding(path), role=role, pixels=[width, height],
+                            declared_print_width_in=print_width, effective_dpi_by_width=width / print_width,
+                            metadata_dpi=metadata_dpi, provenance="DIRECT_NATIVE_R_RENDER_BY_BOUND_SOURCE"))
+    return records
+
+
+def write_page_labels(path, lays, full, placed, genome_no, names, q):
+    """Write new page tables; append canonical fields and retain the default p95 column."""
+    from tools.protein_pcoa_page_docs import label_selection_metadata
+    schema = label_selection_metadata(q)
+    with open(path, "w", newline="") as fh:
+        w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
+        w.writerow(["panel", "layout", "outlier_rank", "drawn", "label_text", "leader_in", "genome_number", "strain", "display_name", "region_file", "locus_tag",
+                    "nearest_identity_pct", "fill", "x", "y", "distance_to_nearest_background", "threshold_p95", "nearest_identity_state", "threshold_distance", "label_quantile"])
+        for c, (lay, b) in enumerate(zip(lays, full)):
+            for l, g in zip(placed[c], b["all_groups"]):
+                for k in g:
+                    p = b["cpts"][k]
+                    w.writerow(["abcdefgh"[c], lay, l["rank"], "yes" if l["res"] else ("no: " + l.get("dropped", f"no free spot within {LEADER_MAX_IN} in")),
+                                l["text"], f"{l['res']['leader_pt'] / 72:.3f}" if l["res"] else "", genome_no.get(p["strain"], ""), p["strain"],
+                                names.get(p["strain"], ""),
+                                p["row"].get("origin", ""), p["row"].get("locus_tag", ""), f"{p['pid']:.1f}" if p["pid"] is not None else "",
+                                "unknown" if b["unknown"][k] else ("solid" if b["low"][k] else ("light" if b["mid"][k] else "open")), f"{p['x']:.5f}", f"{p['y']:.5f}",
+                                f"{b['dist'][k]:.5f}", f"{b['threshold']:.5f}" if q == 0.95 else "", p["identity_state"],
+                                f"{b['threshold']:.5f}", q])
+    return schema
 
 
 def build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, labels, titles, out, drop_origins, meta):
@@ -633,10 +899,7 @@ def build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, la
         r2 = rows
         if lay != "pcoa":
             ep = Path(emb_tables[s]); key = "TRIMAP" if lay == "trimap" else "TSNE"
-            emb = {r["id"]: r for r in read_tsv(ep, expected_binding=admitted[ep.absolute()])}
-            if any(r["id"] not in emb for r in rows) or len(emb) != len(rows):
-                raise RenderRefusal(f"{ep}: coordinates do not cover the kit ids")
-            r2 = [dict(r, PC1=emb[r["id"]][key + "1"], PC2=emb[r["id"]][key + "2"]) for r in rows]
+            r2 = embedding_coordinates(ep, rows, key, admitted[ep.absolute()])
         by_lay[lay] = r2
     full = [build_panel(a, s, by_lay[lay], near, run, cohorts, name, cohort_set, colours.get(name, PALETTE[0]),
                         labels.get(name, f"{name} isolates"), titles, out, "r", drop_origins=drop_origins,
@@ -672,7 +935,7 @@ def build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, la
                                   helper=str(_ROOT / "tools" / "sapote_min_text.R"), layout=str(_ROOT / "tools" / "sapote_pub_layout.R")))
         spec_path = out / f".page_{s}_{stamp}.json"; spec_path.write_text(json.dumps(page))
         try:
-            r = subprocess.run(["Rscript", str(_ROOT / "tools" / "protein_pcoa_page.R"), str(spec_path), str(pre), stamp],
+            r = subprocess.run([selected_rscript(a), str(_ROOT / "tools" / "protein_pcoa_page.R"), str(spec_path), str(pre), stamp],
                                capture_output=True, text=True)
         finally:
             spec_path.unlink(missing_ok=True)
@@ -745,36 +1008,15 @@ def build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, la
     else:
         raise RenderRefusal(f"{prefix.name}: no passing page after 12 final draws: {final_log[-3:]}")
     assert_no_banned_figure_text(svg_visible_text(Path(f"{prefix}.svg").read_text()), figure_id=prefix.name)
-    if shutil.which("qlmanage"):   # PNG preview rendered from the checked PDF
-        tmp = out / f".ql_{page['stamp']}"; tmp.mkdir()
-        subprocess.run(["qlmanage", "-t", "-s", str(int(a.print_width * 600)), "-o", str(tmp), f"{prefix}.pdf"], capture_output=True)
-        ql = tmp / f"{prefix.name}.pdf.png"
-        if ql.exists():
-            shutil.move(str(ql), f"{prefix}.png")
-        shutil.rmtree(tmp, ignore_errors=True)
-    # A preview conversion can replace the PNG and its metadata.
-    from mamey.figure_stamp import stamp_file
-    for ext in (".png", ".pdf", ".svg"):
-        stamp_file(Path(str(prefix) + ext), "protein_pcoa_page")
+    # Preserve native R rasters and vector masters; PDF previews are review-only.
+    raster_artifacts = page_raster_artifacts(prefix, a.print_width)
+    execution = page_execution_record(prefix, page["stamp"])
     names = ({r["strain"]: r["display"] for r in read_tsv(Path(a.label_names))} if getattr(a, "label_names", None) else {})
-    with open(out / f"LABELS_{s}_{name}_PAGE.tsv", "w", newline="") as fh:
-        w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
-        w.writerow(["panel", "layout", "outlier_rank", "drawn", "label_text", "leader_in", "genome_number", "strain", "display_name", "region_file", "locus_tag",
-                    "nearest_identity_pct", "fill", "x", "y", "distance_to_nearest_background", "threshold_p95"])
-        for c, (lay, b) in enumerate(zip(lays, full)):
-            for l, g in zip(placed[c], b["all_groups"]):
-                for k in g:
-                    p = b["cpts"][k]
-                    w.writerow(["abcdefgh"[c], lay, l["rank"], "yes" if l["res"] else ("no: " + l.get("dropped", f"no free spot within {LEADER_MAX_IN} in")),
-                                l["text"], f"{l['res']['leader_pt'] / 72:.3f}" if l["res"] else "", genome_no.get(p["strain"], ""), p["strain"],
-                                names.get(p["strain"], ""),
-                                p["row"].get("origin", ""), p["row"].get("locus_tag", ""), f"{p['pid']:.1f}" if p["pid"] is not None else "",
-                                "solid" if b["low"][k] else ("light" if b["mid"][k] else "open"), f"{p['x']:.5f}", f"{p['y']:.5f}",
-                                f"{b['dist'][k]:.5f}", f"{b['threshold']:.5f}"])
+    label_schema = write_page_labels(out / f"LABELS_{s}_{name}_PAGE.tsv", lays, full, placed, genome_no, names, a.quantile)
     b0 = full[0]
     receipt = dict(set=s, panel=name, page=lays, stamp=page["stamp"], style="bee Fig. S9 print (render_pcoa_print.R values)", staged=".452",
-                   label_rule="bee Fig. S9 outliers per panel (distance to the nearest reference/MIBiG point > p95 of reference/MIBiG "
-                              "nearest-neighbour distances; bee plot_pcoa.py lines 105-116)",
+                   label_rule=label_schema["label_rule"] + " (bee plot_pcoa.py lines 105-116; configured quantile)",
+                   label_table_schema=label_schema,
                    placement=f"bee greedy placement (plot_pcoa.py place_labels, lines 62-65) in print points, leaders <= {LEADER_MAX_IN} in; "
                              "labels cover no point, label, leader or panel title",
                    labels={lay: dict(outlier_groups=n_out[c], outlier_points=sum(len(g) for g in full[c]["all_groups"]),
@@ -786,11 +1028,15 @@ def build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, la
                    cohort_genomes={st: sum(1 for p in b0["cpts"] if p["strain"] == st) for st in dict.fromkeys(p["strain"] for p in b0["cpts"])},
                    n_ref_centroids=sum(1 for p in b0["spec"]["points"] if p["layer"] == "ref"),
                    n_mibig_centroids=sum(1 for p in b0["spec"]["points"] if p["layer"] == "mibig"),
-                   approx_id=run.get("approx_id"), pct_axes=(run.get("pct_axes") or [None, None])[:2], distance=run.get("distance"),
-                   embedding=embedding_meta(emb_tables.get(s), lays),
+                   approx_id=run.get("approx_id"), pct_axes=(run.get("pct_axes") or [None, None])[:2],
+                   axis_metadata=b0["axis_metadata"], distance=run.get("distance"),
+                   embedding=embedding_meta(emb_tables.get(s), lays, admitted),
                    leader_max_in=LEADER_MAX_IN, panel_rects_pt=rects, limits=lims, final_draws=final_log, n_reference_genomes=n_ref_genomes,
                    legend=legend, **b0["counts"], quantile=a.quantile, label_below=a.label_below, mid_below=a.mid_below,
-                   min_text=page["min_text"])
+                   min_text=page["min_text"], execution=execution,
+                   artwork=dict(vector_masters=[prefix.name + ".pdf", prefix.name + ".svg"],
+                                rasters=raster_artifacts, caption="SEPARATE_EDITABLE_MARKDOWN",
+                                caption_band="NOT_GENERATED", publication_acceptance="NOT_ESTABLISHED"))
     (out / f"page_{s}_{name}.json").write_text(json.dumps(receipt, indent=1))
     return receipt
 
@@ -818,17 +1064,17 @@ def main(argv=None) -> int:
     ap.add_argument("--number-above", type=int, default=30)
     ap.add_argument("--renderer", choices=["auto", "r", "matplotlib"], default="auto")
     ap.add_argument("--layout", choices=["pcoa", "trimap", "tsne"], default="pcoa",
-                    help="pcoa: the kit's PC1/PC2; trimap/tsne: coordinates from --embedding-table, same points and styling")
+                    help="saved coordinates only: pcoa uses kit PC1/PC2; trimap/tsne use --embedding-table; no embedding fit is executed")
     ap.add_argument("--embedding-table", action="append", default=[], help="SET=TSV with id and TRIMAP1/TRIMAP2 or TSNE1/TSNE2 (layout trimap/tsne)")
     ap.add_argument("--label-names", help="TSV: strain, display (house rule 6 name) for the LABELS key table")
     ap.add_argument("--min-text-pt", type=float, default=None, help="floor for every text item at print size (enables the 8 pt gate)")
     ap.add_argument("--print-width", type=float, default=7.2, help="declared print width in inches for the min-text gate")
-    ap.add_argument("--page", help="comma list of layouts drawn side by side on one bee-style page (e.g. pcoa,trimap); needs --min-text-pt")
+    ap.add_argument("--page", help="saved layouts side by side on one R page (e.g. pcoa,trimap); default 8 pt floor")
     ap.add_argument("--italic-labels", action="store_true", help="page mode: canvas labels in italic (species names)")
     ap.add_argument("--caption-note", help="page mode: one study-design sentence appended to the written caption (checked by caption_guard)")
     ap.add_argument("--reference-label", help="page mode: legend text for the grey reference points (e.g. reference genomes, n = 1,705 (cluster centroids; query genomes excluded))")
     ap.add_argument("--require-axis-metadata", action="store_true",
-                    help="refuse missing axis percentages before rendering; useful for publication replay")
+                    help="require finite supplied axis annotations; does not verify their definition or fit execution")
     a = ap.parse_args(argv)
     if a.source_style:   # M5_452_pcoa_source_style
         if a.page or a.renderer == "matplotlib":
@@ -838,6 +1084,8 @@ def main(argv=None) -> int:
         a.source_style_fill = pal["default"].get(a.source_style, pal["fallback"])
     elif not a.cohort_table or not a.panel:
         ap.error("--cohort-table and --panel are required unless --source-style")
+    if a.page and a.renderer == "matplotlib":
+        ap.error("--page requires R; choose --renderer r or auto")
     if a.page:   # M5_452 P1b page defaults (bee Fig. S9 print): tiers 70/85 %, 8 pt floor, italic species labels; no hand knobs
         a.mid_below = 85.0 if a.mid_below is None else a.mid_below
         a.min_text_pt = a.min_text_pt or 8.0
@@ -846,6 +1094,11 @@ def main(argv=None) -> int:
         ap.error("--mid-below must be above --label-below")
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
+        from tools.protein_pcoa_page_docs import label_selection_metadata
+        try:
+            label_selection_metadata(a.quantile)
+        except ValueError as exc:
+            raise RenderRefusal(str(exc)) from exc
         out = Path(a.out)
         kit = Path(a.kit)
         sets = a.set or sorted(p.stem[len("PCOA_"):] for p in kit.glob("out_*/PCOA_*.tsv"))
@@ -858,9 +1111,10 @@ def main(argv=None) -> int:
         input_paths = [Path(a.cohort_table)] if a.cohort_table else []
         input_paths.extend(Path(p) for p in (a.drop_origins, a.set_names, a.label_names) if p)
         emb_tables = dict(x.split("=", 1) for x in a.embedding_table)
-        if (a.layout != "pcoa" or (a.page and a.page != "pcoa")) and set(emb_tables) != set(a.set or emb_tables):
+        if (a.layout != "pcoa" or (a.page and a.page != "pcoa")) and set(emb_tables) != set(sets):
             raise RenderRefusal("--layout trimap/tsne needs one --embedding-table per drawn --set")
-        input_paths.extend(Path(p) for p in emb_tables.values())
+        for embedding_table in emb_tables.values():
+            input_paths.extend([Path(embedding_table), Path(embedding_table).with_suffix(".json")])
         for s in sets:
             directory = kit / f"out_{s}"
             input_paths.extend(directory / f"{prefix}_{s}.{suffix}" for prefix, suffix in
@@ -869,11 +1123,15 @@ def main(argv=None) -> int:
                 if not (kit / f"{s}_META.tsv").is_file():
                     raise RenderRefusal(f"--page needs {kit / (s + '_META.tsv')} (the legend states the reference genome count)")
                 input_paths.append(kit / f"{s}_META.tsv")
+        # This inspected source is an input to definition provenance, not a fitter run.
+        axis_source_path = _ROOT / "tools" / "protein_pcoa_ordinate.py"
+        input_paths.append(axis_source_path)
         input_bindings = [file_binding(p) for p in input_paths]
         # Keep each supplied path tied to its original binding even if a symlink
         # is retargeted before consumption. The reader still checks its target.
         admitted = {path.absolute(): record for path, record in zip(input_paths, input_bindings)}
         runs = {}
+        a._axis_metadata_by_set = {}
         for s in sets:
             run_path = kit / f"out_{s}" / f"RUN_{s}.json"
             try:
@@ -881,8 +1139,13 @@ def main(argv=None) -> int:
                 if not isinstance(metadata, dict):
                     raise RenderRefusal(f"{run_path}: expected a metadata object")
                 axis_metadata(metadata, required=a.require_axis_metadata)
-                admit_resource_run(kit / f"out_{s}", s, metadata, admitted[run_path.absolute()],
+                resource_chain = admit_resource_run(kit / f"out_{s}", s, metadata, admitted[run_path.absolute()],
                                    input_paths, input_bindings, admitted)
+                source_binding = admitted[axis_source_path.absolute()]
+                a._axis_metadata_by_set[s] = bound_axis_metadata(
+                    metadata, admitted[(kit / f"out_{s}" / f"PCOA_{s}.tsv").absolute()],
+                    source_binding, read_bound_bytes(axis_source_path, source_binding),
+                    admitted[run_path.absolute()], bool(resource_chain))
                 runs[s] = metadata
             except (ValueError, TypeError) as exc:
                 raise RenderRefusal(f"{run_path}: invalid axis metadata: {exc}") from exc
@@ -907,10 +1170,17 @@ def main(argv=None) -> int:
                 drop_origins = {line.strip() for line in stream}
         labels = dict(x.split("=", 1) for x in a.panel_label)
         colours = dict(x.split("=", 1) for x in a.cohort_colour)
-        renderer = a.renderer if a.renderer != "auto" else ("r" if r_available() else "matplotlib")
+        a._rscript = discover_rscript() if a.renderer != "matplotlib" or a.page or a.source_style else None
+        renderer = "r" if a.page or a.source_style else (a.renderer if a.renderer != "auto" else ("r" if a._rscript else "matplotlib"))
+        if renderer == "r" and a._rscript is None:
+            raise RenderRefusal("Rscript with required packages is unavailable; install/select the documented R profile")
         producer_paths = [Path(__file__), _ROOT / "mamey" / "figure_policy.py"]
         if renderer == "r":
-            producer_paths.append(R_SCRIPT)
+            producer_paths.extend([R_SCRIPT, Path(a._rscript)])
+        if a.page:
+            producer_paths.extend(_ROOT / "tools" / name for name in (
+                "protein_pcoa_page.R", "protein_pcoa_page_docs.py", "figure_render_qc.py", "caption_guard.py",
+                "sapote_min_text.R", "sapote_pub_layout.R", "sapote_stamp_required.R", "sapote_figure_theme.R", "stamp_figure.py", "_min_text_check.py"))
         producer_bindings = [file_binding(p) for p in producer_paths]
         receipts = []
         for s in sets:
@@ -921,8 +1191,8 @@ def main(argv=None) -> int:
             nf = f.parent / f"NEAREST_{s}.tsv"
             nearest_binding = admitted[nf.absolute()]
             if nearest_binding["state"] == "PRESENT":
-                near = {r["id"]: float(r["nearest_pident"]) for r in
-                        read_tsv(nf, expected_binding=nearest_binding) if r.get("nearest_pident")}
+                near = {r["id"]: r.get("nearest_pident") for r in
+                        read_tsv(nf, expected_binding=nearest_binding)}
             else:
                 read_bound_bytes(nf, nearest_binding)
                 near = {}
@@ -934,11 +1204,7 @@ def main(argv=None) -> int:
                 continue
             if a.layout != "pcoa":
                 ep = Path(emb_tables[s]); key = "TRIMAP" if a.layout == "trimap" else "TSNE"
-                emb = {r["id"]: r for r in read_tsv(ep, expected_binding=admitted[ep.absolute()])}
-                missing = [r["id"] for r in rows if r["id"] not in emb]
-                if missing or len(emb) != len(rows):
-                    raise RenderRefusal(f"{ep}: {len(missing)} kit ids without a coordinate; {len(emb)} vs {len(rows)} rows")
-                rows = [dict(r, PC1=emb[r["id"]][key + "1"], PC2=emb[r["id"]][key + "2"]) for r in rows]
+                rows = embedding_coordinates(ep, rows, key, admitted[ep.absolute()])
             for i, spec in enumerate(a.panel):
                 name, cs = spec.split("=", 1)
                 receipts.append(build_panel(a, s, rows, near, run, cohorts, name, set(cs.split(",")),
@@ -949,21 +1215,42 @@ def main(argv=None) -> int:
         if producer_bindings != [file_binding(p) for p in producer_paths]:
             raise RenderRefusal("renderer source changed during drawing; retain outputs as an incomplete attempt")
         outputs = [file_binding(p) for p in sorted(out.iterdir()) if p.is_file()]
-        (out / "render_receipt.json").write_text(json.dumps(dict(args=vars(a), renderer=renderer, panels=receipts,
+        runtime = render_runtime(renderer, a._rscript)
+        page_executions = [rec["execution"] for rec in receipts if rec.get("execution")]
+        if a.page and page_executions:
+            runtime["r_runtime"] = dict(state="PER_PAGE_IN_RUN_RECORDS", pages=[x["r_runtime"] for x in page_executions])
+            runtime["fonts"] = dict(state="OBSERVED_FINAL_PDFS", pages=[x["fonts"] for x in page_executions])
+        render = dict(args={k: v for k, v in vars(a).items() if k != "_axis_metadata_by_set"}, renderer=renderer, panels=receipts,
             inputs=input_bindings, outputs=outputs, producers=producer_bindings,
             replay_mode="SAVED_COORDINATE_REPLAY", historical_producers={s: historical_producer(runs[s]) for s in sets},
-            rendering_runtime=render_runtime(renderer)), indent=1))
+            rendering_runtime=runtime, artifact_schema="sapote-mamey.render-packet.v1",
+            artifact_root=str(out.resolve()))
         if a.page:   # M5_452 P5: documents written from the receipts, then the bundle text and render checks; any finding refuses
             from tools.protein_pcoa_page_docs import write_page_docs, check_page_docs
-            render = json.loads((out / "render_receipt.json").read_text())
-            names = ({r["strain"]: r["display"] for r in read_tsv(Path(a.label_names))} if a.label_names else {})
+            names_path = Path(a.label_names) if a.label_names else None
+            names = ({r["strain"]: r["display"] for r in
+                      read_tsv(names_path, expected_binding=admitted[names_path.absolute()])} if names_path else {})
             stamp_date = subprocess.run(["date", "-u", "+%Y-%m-%d %H:%M:%SZ"], capture_output=True, text=True).stdout.strip()
+            page_docs = []
             for rec in receipts:
                 mp = kit / f"{rec['set']}_META.tsv"
-                docs = write_page_docs(out, rec, render, read_tsv(mp), names, a.caption_note, stamp_date)
-                qc = check_page_docs(out, _ROOT, docs)
-                if qc["caption_guard"] or qc["figure_render_qc_exit"] != 0 or "errors 0," not in qc["figure_render_qc"]:
-                    raise RenderRefusal(f"{rec['prefix']}: page documents failed the bundle checks: {json.dumps(qc)[:500]}")
+                docs = write_page_docs(out, rec, render, read_tsv(mp, expected_binding=admitted[mp.absolute()]), names, a.caption_note, stamp_date)
+                page_docs.append(docs)
+            qc = check_page_docs(out, _ROOT, page_docs)
+            if qc["caption_guard"] or qc["figure_render_qc_exit"] != 0 or "errors 0," not in qc["figure_render_qc"]:
+                raise RenderRefusal(f"page documents failed the bundle checks: {json.dumps(qc)[:500]}")
+        # A completion receipt covers the companion/QC phase as well as drawing.
+        # Failed attempts retain partial files but never receive this final receipt.
+        if input_bindings != [file_binding(p) for p in input_paths]:
+            raise RenderRefusal("render inputs changed during finalization; retain outputs as an incomplete attempt")
+        if producer_bindings != [file_binding(p) for p in producer_paths]:
+            raise RenderRefusal("renderer source changed during finalization; retain outputs as an incomplete attempt")
+        if outputs != [file_binding(Path(record["path"])) for record in outputs]:
+            raise RenderRefusal("drawn artifacts changed during finalization; retain outputs as an incomplete attempt")
+        render["outputs"] = [dict(file_binding(p), relative_path=p.relative_to(out).as_posix())
+                             for p in sorted(out.rglob("*")) if p.is_file()]
+        render["completion_state"] = "COMPLETE"
+        (out / "render_receipt.json").write_text(json.dumps(render, indent=1))
     except (RenderRefusal, FigureTextRefusal) as exc:
         _LOG.error("REFUSED: %s", exc)
         return 2

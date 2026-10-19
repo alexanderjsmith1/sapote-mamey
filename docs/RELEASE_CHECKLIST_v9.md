@@ -49,14 +49,23 @@ sealing or publishing a cut.
 python tools/cut_audit.py verify --tree '<reviewed-tree>' --python '<selected-python>' --zip '<archive.zip>' --sha256 '<archive-checksums.txt>'
 ```
 
-`verify` runs the supplied tree's checksum check and `tools/sync_version.py --check`
-when those files exist. Missing checksum/version-check files are reported as SKIP
-and do not themselves fail verification; even an absent tree can reach PASS when
-all selected checks are skipped. The ZIP hash check runs only when both archive
-arguments are supplied. Its checksum-file lookup uses the archive basename as a
-substring, not exact manifest-member admission. Require the intended tree and
-check files, review every skip, and independently verify exact checksum membership
-and archive identity. Exit 0 is not complete cut, extraction or release acceptance.
+`verify` requires an existing tree directory with readable, nonempty
+`SOURCE_CHECKSUMS_SHA256.txt` and `tools/sync_version.py` files. It refuses missing
+or invalid required inputs before running checks; the required tree artifacts
+must not themselves be symlinks or resolve outside that tree. The checksum check
+requires an available `sha256sum` or `shasum`, a successful exit, at least one
+checked entry and no reported failure. The version-sync check must also succeed.
+This operation executes the selected tree's checker, so select its code and
+execution scope deliberately.
+
+ZIP verification is optional. Omit both `--zip` and `--sha256` for a tree-only
+check; the ZIP result is then an explicitly optional SKIP, not a failed required
+gate. Supply both to select archive verification: a partial pair is refused,
+and the archive and checksum file must be readable, nonempty regular files.
+The checksum-file lookup still uses the archive basename as a substring, not
+exact manifest-member admission; independently verify exact checksum membership
+and archive identity. Required-input admission and a successful verification do
+not grant a version bump, cut, extraction acceptance, seal or publication.
 
 ```bash
 python tools/cut_audit.py rebase-verify --base '<reviewed-tree>' --card '<patch-card>' --tests '<selected-test-path>' --python '<selected-python>' --timeout '<seconds>'
@@ -76,12 +85,14 @@ is not proof that all selected test bodies are offline or free of external write
 Retain the separately authorized execution scope.
 
 Rebase exit 1 means patch application failed or new parsed FAILED/ERROR node IDs
-were found. Exit 2 means a suite timed out with no new parsed IDs; new failures can
-still produce exit 1 during timeout. Exit 0 means no new parsed IDs and no detected
-timeout. Other nonzero pytest exits are not independently checked for a valid,
-complete test run. Do not accept a clean delta when collection, invocation or
-process execution failed, or when required tests were skipped. Matching failure
-IDs in both copies do not prove equal failure causes or validate the base.
+were found after both runs met the helper's completion screen. Exit 2 marks an
+inconclusive run, including timeout, unsupported pytest exit status, missing
+passed/failed timing summary, interruption or internal error. A timeout does
+not become an accepted delta merely because no new node IDs were parsed.
+Exit 0 means both runs met that screen and no new parsed IDs were found; the
+screen does not certify the required node roster or investigate matching
+failure causes. Reconcile actual logs, selected nodes and skips independently.
+Matching failure IDs in both copies do not validate the base.
 
 Capture full subprocess logs, actual codes, admitted node roster/skips and
 before/after source bindings separately. The helper emits summaries, not a saved
@@ -163,4 +174,4 @@ promotional label or signed-looking metadata substitutes for this evidence.
 
 ## Version reference
 
-*Sapote-Mamey Bundle v9.7.451 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*
+*Sapote-Mamey Bundle v9.7.453 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md*

@@ -1,8 +1,8 @@
 """v9.7.115: AS_RE digit-range widening — 5+-digit cohort IDs redact as a whole token.
 
 The old AS_RE {2,4}/{3,4} bounds left 'AS-70531' -> 'AS-XXX1' (trailing digit) and missed dashless
-'AS70531' entirely. Widened to {2,}/{3,}. All AS- literals here are out-of-cohort synthetic test
-tokens (cohort is 3-digit AS-3xx/4xx/6xx/7xx); none is a real strain ID.
+'AS70531' entirely. Widened to {2,}/{3,}. Width fixtures are authored detector inputs. Genuine public-reference controls below
+are not synthetic declarations. No family-wide disclosure or registry-absence claim is made.
 """
 import sys
 import pathlib

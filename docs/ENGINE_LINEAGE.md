@@ -567,7 +567,7 @@ remains owed from the `.378` fingerprint bump; `.380` adds no new re-score oblig
 **Previous engine:** 1.9.131
 
 **Scoring/parser/extraction semantics changed: NO — EMITTED-OUTPUT class.** `.379` is the SAFE candidate
-on sealed `.378b`: only independently-verified-NEW cards were folded (the `AQUARIUS_379_REBASED_DIFFS`
+on sealed `.378b`: only independently-verified-NEW cards were folded (the `[private historical label omitted]`
 audit lane backlog was deliberately NOT folded — it is largely already-landed in `.378b` and
 forward-folding it reverts working fixes; it needs per-card new-vs-landed curation first). Every scored
 and extracted artifact is byte-identical to `.378b`: `scoring.py`, `rggmci.py`, `parsers.py`,
@@ -921,7 +921,7 @@ identical conditionals **by construction** for every current and future context 
 conditional section whose predicate the verify door previously could not see can newly ERROR — the
 divergence class the W4 closing report measured (disagreement in both directions) is closed.
 
-**What lands (AQUARIUS_370_w7_two_door_unification; the Developer or User include call 2026-08-18):** one hunk in
+**What lands ([private historical label omitted]; the Developer or User include call 2026-08-18):** one hunk in
 `mamey/authored_verify.py` (whitelist tuple → full tctx merge) + 5 door-parity tests including an
 every-key-visible pin that fails the suite on any future whitelist regression.
 
@@ -941,7 +941,7 @@ blast radius on 140 canonical cohort cards: zero verdict changes.
 
 **Scoring/parser/extraction semantics changed:** **NO.** No `DETERMINISM_WHITELIST` artifact moves — `_2`/`_3`/`_4_triage_board`/`_4c`/`_4A`/`_4B` are byte-for-byte unchanged, AB/AF/novelty priors and every standing rule are untouched, and the fold does not read or write any scoring path (`grep` of the three changed files against `scoring.py` = 0). This is a **Mode-B gate-semantics bump**, not a fingerprint-artifact bump: the integer moves because a *deterministic gate* changes acceptance behavior, and per the engine-versioning rule "deterministic gate/checkpoint rules tie to the engine version." `verify-modeb` verdicts change for under-authored §31–§48 cards — a card that skips a now-`conditional` section (e.g. §43 with an above-bar RG-GMCI pair) errors where it previously passed. That is the intended effect.
 
-**What lands (CERULEAN_369_full48_gate_binding; INDIGO2 generator-owner sign-off; the Developer or User green-lit the early fold + bump 2026-08-17):** three halves, all required —
+**What lands ([private historical label omitted]; [private contributor label omitted] generator-owner sign-off; the Developer or User green-lit the early fold + bump 2026-08-17):** three halves, all required —
 - `mamey/mode_b_receipt.py::_bgc_context_from_triage` binds four package-derived keys into the Mode-B context (`module_count` = aSModule features only; `protocluster_count`; `n_4a_rows` = above-bar RG-GMCI pairs only; `n_4d_rows`), read-only/deterministic; a read failure leaves the key absent → predicate fail-safe False.
 - `mamey/data/mode_b/modeb_full30_corrective_contract.json` flips seven §31–§48 sections `optional→conditional`, bound to predicates the engine already computes (§32/§33/§34→`has_assembly_line`, §35→`multi_protocluster`, §36→`boundary_or_overmerge_flag`, §38→`has_resistance_signal`, §43→`has_4a_rows`).
 - `mamey/authored_verify.py` extends the selective tctx→ctx merge with the four predicate-input keys, so `verify-modeb` and ingest/record evaluate the same conditionals (closes the two-door divergence; full W7 unification is a separate `.369` card).
@@ -1013,7 +1013,7 @@ not attempt to pool them backward before .359 (they simply don't exist earlier).
 
 > **WITHIN-1.9.119 NON-NEUTRAL UPDATES (comparability notes; the engine integer was held at the enforced
 > SSOT across these — re-score only the named loci, not the whole cohort):**
-> - **v9.7.350 — AQUARIUS_01 Inventory-tier reform (LABEL-only, forward-only):** the bottom tier became
+> - **v9.7.350 — [private historical label omitted] Inventory-tier reform (LABEL-only, forward-only):** the bottom tier became
 >   class-gated (housekeeping→`Inventory`, specialized→new `Low`). **No AB/AF/novelty value changed** — a
 >   pure re-label; all scores comparable .349↔.350. Only the `Lead_tier_auto` *string* differs for
 >   specialized below-Medium loci.

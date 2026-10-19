@@ -163,7 +163,7 @@ def test_causemap_overrides_have_distinct_real_keys():
     assert not any("XXX" in str(k) for k in literal_keys), f"placeholder key literal: {literal_keys}"
 
     # Behavior preserved: real strains fall through to DEFAULT_MAP.
-    for real_sid in ("AS-696", "AS-705", "SID-042"):
+    for real_sid in ("SYNTHETIC-CASE-019", "SYNTHETIC-CASE-020", "SID-042"):
         assert bv.CAUSEMAP.get(real_sid, bv.DEFAULT_MAP) == bv.DEFAULT_MAP
 
     # Authored routes preserved as reference for the pending editorial mapping.

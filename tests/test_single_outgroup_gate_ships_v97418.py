@@ -1,4 +1,4 @@
-"""v9.7.418 (GOLDENROD): exactly one outgroup gate ships — the superseded sibling must not.
+"""v9.7.418 (release_review): exactly one outgroup gate ships — the superseded sibling must not.
 
 The phylogeny lane's .417 audit (§3.3): `outgroup_sanity_gate.py` and `phylo_outgroup_gate.py` are the SAME
 distance-screen tool under two names; only `phylo_outgroup_gate.py` landed in the seal (verified:

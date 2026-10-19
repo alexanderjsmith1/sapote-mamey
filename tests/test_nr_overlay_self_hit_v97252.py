@@ -104,7 +104,7 @@ def test_self_binomial_from_manifest(tmp_path):
     assert _self_binomial(pkg) == "nocardia rhizosphaerae"
 
 
-@pytest.mark.parametrize("name", ["Micromonospora sp. AS-696", "Streptomyces sp.", "Nocardia"])
+@pytest.mark.parametrize("name", ['Micromonospora sp. SYNTHETIC-CASE-019', "Streptomyces sp.", "Nocardia"])
 def test_self_binomial_none_for_unnamed_species(tmp_path, name):
     """'genus sp.' must NOT become a self-binomial, or every unnamed congener is excluded."""
     assert _self_binomial(_pkg(tmp_path, name)) is None
@@ -157,7 +157,7 @@ def test_gene_with_only_self_hits_is_omitted(tmp_path):
 
 def test_unnamed_species_genome_keeps_all_hits(tmp_path):
     """AS-series strains are 'Micromonospora sp. AS-696' -- nothing may be excluded."""
-    pkg = _pkg(tmp_path, "Micromonospora sp. AS-696")
+    pkg = _pkg(tmp_path, 'Micromonospora sp. SYNTHETIC-CASE-019')
     res = write_nr_overlay(pkg, [
         _row("BGC020", "ctg4_1", "WP_A", "100.000", "Micromonospora sp. NPDC1", "900"),
     ])
@@ -229,7 +229,7 @@ def test_named_self_subject_with_invalid_identity_is_a_typed_hold():
 
 def test_invalid_bitscore_cannot_enter_or_rank_an_overlay(tmp_path):
     """STRAIN-TEST / NODE_1_length_1000_cov_20 / region001 / BGC001 fails before output."""
-    pkg = _pkg(tmp_path, "Micromonospora sp. AS-696")
+    pkg = _pkg(tmp_path, 'Micromonospora sp. SYNTHETIC-CASE-019')
     with pytest.raises(bi.BlastpNumericEvidenceError, match="BLASTP_NUMERIC_EVIDENCE_HOLD"):
         write_nr_overlay(pkg, [
             _row("BGC001", "ctg1_1", "WP_BAD", "72.0", "Other species", "not-a-score"),
@@ -244,7 +244,7 @@ def test_nonself_subject_does_not_require_identity_for_self_exclusion():
 
 def test_package_traversal_error_cannot_become_missing_domain_context(tmp_path, monkeypatch):
     """STRAIN-TEST / NODE_1_length_1000_cov_20 / region001 / BGC001 fails before output."""
-    pkg = _pkg(tmp_path, "Micromonospora sp. AS-696")
+    pkg = _pkg(tmp_path, 'Micromonospora sp. SYNTHETIC-CASE-019')
     original_iterdir = Path.iterdir
 
     def refuse_package(path):
@@ -261,7 +261,7 @@ def test_package_traversal_error_cannot_become_missing_domain_context(tmp_path, 
 
 
 def test_status_refuses_unreadable_overlay_directory(tmp_path, monkeypatch):
-    pkg = _pkg(tmp_path, "Micromonospora sp. AS-696")
+    pkg = _pkg(tmp_path, 'Micromonospora sp. SYNTHETIC-CASE-019')
     outdir = pkg / "blastp_online"
     outdir.mkdir()
     original_iterdir = Path.iterdir
@@ -277,7 +277,7 @@ def test_status_refuses_unreadable_overlay_directory(tmp_path, monkeypatch):
 
 
 def test_status_missing_overlay_directory_remains_empty(tmp_path):
-    pkg = _pkg(tmp_path, "Micromonospora sp. AS-696")
+    pkg = _pkg(tmp_path, 'Micromonospora sp. SYNTHETIC-CASE-019')
     assert blastp_status(pkg) == []
 
 
@@ -298,7 +298,7 @@ def test_existing_manifest_cannot_become_missing_via_exists_suppression(tmp_path
 @pytest.mark.parametrize("fail_position", [1, 2])
 def test_two_overlay_commit_failure_removes_every_new_output(tmp_path, monkeypatch, fail_position):
     """Caught failure at either commit position restores the absent-output file set."""
-    pkg = _pkg(tmp_path, "Micromonospora sp. AS-696")
+    pkg = _pkg(tmp_path, 'Micromonospora sp. SYNTHETIC-CASE-019')
     _inject_staged_replace_failure(monkeypatch, fail_position)
 
     with pytest.raises(RuntimeError, match="BLASTP_FILESET_COMMIT_HOLD"):
@@ -312,7 +312,7 @@ def test_two_overlay_commit_failure_removes_every_new_output(tmp_path, monkeypat
 def test_two_overlay_commit_failure_restores_every_existing_output(
         tmp_path, monkeypatch, fail_position):
     """Caught failure at either commit position restores exact pre-commit bytes."""
-    pkg = _pkg(tmp_path, "Micromonospora sp. AS-696")
+    pkg = _pkg(tmp_path, 'Micromonospora sp. SYNTHETIC-CASE-019')
     write_nr_overlay(pkg, _two_bgc_rows())
     paths = [pkg / "blastp_online" / f"BGC00{number}_online_blastp.csv"
              for number in (1, 2)]
@@ -331,7 +331,7 @@ def test_two_overlay_commit_failure_restores_every_existing_output(
 
 def test_pending_rollback_is_recovered_before_next_overlay_validation(tmp_path, monkeypatch):
     """A rollback failure leaves a recovery hold; the next writer restores before validating."""
-    pkg = _pkg(tmp_path, "Micromonospora sp. AS-696")
+    pkg = _pkg(tmp_path, 'Micromonospora sp. SYNTHETIC-CASE-019')
     write_nr_overlay(pkg, _two_bgc_rows())
     paths = [pkg / "blastp_online" / f"BGC00{number}_online_blastp.csv"
              for number in (1, 2)]
@@ -370,7 +370,7 @@ def test_pending_rollback_is_recovered_before_next_overlay_validation(tmp_path, 
 
 def test_successful_two_overlay_commit_cleans_transaction_debris(tmp_path):
     """A normal two-file commit publishes both complete identities and removes its journal."""
-    pkg = _pkg(tmp_path, "Micromonospora sp. AS-696")
+    pkg = _pkg(tmp_path, 'Micromonospora sp. SYNTHETIC-CASE-019')
     result = write_nr_overlay(pkg, _two_bgc_rows())
     assert result["bgcs"] == 2
     assert _overlay(pkg, "BGC001")[0]["blastp_accession"] == "WP_ONE"

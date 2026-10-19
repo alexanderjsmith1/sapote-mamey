@@ -48,11 +48,18 @@ def test_reconcile_confirm_and_review():
     assert bo.reconcile("PKS_KS", "") == "NO_HIT"
 
 
-def test_run_batch_online_fails_closed_without_network():
-    # NCBI unreachable in the sandbox -> ok=False, clear reason, ZERO fabricated hits.
+def test_run_batch_online_fails_closed_without_network(monkeypatch):
+    # Inject an unavailable transport: this unit test never submits a live query.
+    calls = []
+    def unavailable(params):
+        calls.append(params)
+        raise OSError("test transport unavailable")
+    monkeypatch.setattr(bo, "_post", unavailable)
     res = bo.run_batch_online([("x", "MKV")], poll_seconds=1, max_wait_seconds=2)
     assert res.ok is False
     assert res.hits == []
+    assert len(calls) == 1 and calls[0]["CMD"] == "Put"
+    assert res.reason == "channel unavailable: OSError: test transport unavailable"
 
 
 def test_run_batch_online_rejects_oversized():

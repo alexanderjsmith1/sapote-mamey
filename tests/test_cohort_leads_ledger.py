@@ -60,7 +60,7 @@ def cohort_dir(tmp_path):
     )
     # Strain B: 2 High with different AF for ranking, 1 High with misanchor
     _write_package(
-        str(runs), "AS-002", "Mamey v1.9.118",
+        str(runs), "SYNTHETIC-CASE-002", "Mamey v1.9.118",
         [
             _row("BGC010", "NODE_9", "region001", "PKS", "High", "60", "55", "kcbB1"),
             _row("BGC011", "NODE_8", "region001", "NRPS", "High", "60", "40", "kcbB2", "MISANCHOR"),

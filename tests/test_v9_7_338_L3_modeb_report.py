@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """v9.7.338 — L3 Mode-B / report / gate fixes (companion tests).
 
 Covers, in one file, the five staged fixes:
@@ -141,7 +142,7 @@ def test_mb02_write_narrative_rejects_deterministic_slots(tmp_path):
 # ── MB-03 ────────────────────────────────────────────────────────────────────
 
 def test_mb03_candidate_filter_catches_ecology_and_deepdive_sections():
-    for name in ("AS-40_ecology_section.md", "AS-40_deepdives_section.md"):
+    for name in ("SYNTHETIC-CASE-012_ecology_section.md", "SYNTHETIC-CASE-012_deepdives_section.md"):
         assert csg.CANDIDATE_NAME_RE.search(name), name
 
 

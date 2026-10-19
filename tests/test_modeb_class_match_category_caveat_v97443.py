@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """§44 §46 §47 class matching reads a package `Products` column that can carry antiSMASH's /category.
 
 `parsers._feature_products` wrote a region's /category beside its /product. A region whose product is
@@ -33,7 +34,7 @@ def _s44(tmp_path: pathlib.Path, focal_products: str) -> str:
     (focal / "AS-XXX_4_triage_board.csv").write_text(
         TRIAGE + f"BGC001,NODE_1,ctg1,region001,{focal_products},Interior,x,40,HIGH,1,\n")
     # NRPS-like product with its NRPS category in the same column
-    _pkg(cohort, "AS-2", "BGC001,ctgA,region001,NRPS-like; NRPS,,AS-2\n")
+    _pkg(cohort, "SYNTHETIC-CASE-002", "BGC001,ctgA,region001,NRPS-like; NRPS,,SYNTHETIC-CASE-002\n")
     em._PACKAGE_SCAN_CACHE.clear()
     card = em.emit_card_template(focal, "BGC001", sources={"cohort_dir": str(cohort)})
     parts = re.split(r"(?m)^## §(\d+) ", card)

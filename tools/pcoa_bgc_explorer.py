@@ -64,6 +64,8 @@ ORIG_START = re.compile(r"Orig\. start\s*::\s*(\d+)")
 ORIG_END = re.compile(r"Orig\. end\s*::\s*(\d+)")
 
 
+from tools.protein_pcoa_annotations import supplied_axis_annotations
+
 class ExplorerRefusal(RuntimeError):
     """An input that would make the explorer misleading."""
 
@@ -425,7 +427,11 @@ def build(a) -> dict:
             outliers.append(dict(set=s, title=title, group=group, point=i, strain=strings[q[5]], cohort_id=q[12], locus_tag=q[9],
                                  origin=q[10], length=q[11], nearest_pident=q[13], nearest_strain=q[15], isolation=ratio,
                                  tier=tier))
-        meta = dict(set=s, title=title, pct=run.get("pct_axes"), approx_id=run.get("approx_id"), strings=strings, pts=pts,
+        try:
+            annotations = supplied_axis_annotations(run)
+        except ValueError as exc:
+            raise ExplorerRefusal(f"AXIS_ANNOTATIONS: set {s}: {exc}") from exc
+        meta = dict(set=s, title=title, pct=annotations["pct_axes"], axis_annotations=annotations, approx_id=run.get("approx_id"), strings=strings, pts=pts,
                     dropped=dropped, isolation={str(i): c[0] for i, c in calls.items()}, mibig=set_mibig, sid_org=set_sid)
         _write_js(out / "data/sets" / f"{s}.js", f"sets/{s}", meta)
         index.append(dict(set=s, title=title, group=group, points=len(pts),

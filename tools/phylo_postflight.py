@@ -48,7 +48,6 @@ def _data_root():
 
 ROOT = _data_root()
 SSOT = f"{ROOT}/strain_data/_ANTISMASH_CANONICAL/STRAIN_METADATA_CONSOLIDATED.tsv"
-sys.path.insert(0, os.path.join(ROOT, "Tools"))
 try:
     from phylo_preflight import TAXA, FAMILY_LEVEL, rank_of          # single source of truth
 except Exception:

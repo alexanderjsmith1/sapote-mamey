@@ -21,7 +21,7 @@ def _make_db(path):
       create table bgc_record_family(record_id int, family_id int);
     """)
     # one strain BGC (dotted coverage) + one MIBiG BGC, same family
-    c.execute("insert into gbk values (1,'AS-311_NODE_107_length_28859_cov_19.006984.region001.gbk')")
+    c.execute("insert into gbk values (1,'SYNTHETIC-CASE-009_NODE_107_length_28859_cov_19.006984.region001.gbk')")
     c.execute("insert into gbk values (2,'BGC0000034.gbk')")
     c.execute("insert into bgc_record values (1,1,'T1PKS','PKS')")
     c.execute("insert into bgc_record values (2,2,'T1PKS','PKS')")
@@ -41,7 +41,7 @@ def test_extractor_emits_clean_locator():
         assert lines[0].split("\t") == ["run_id", "normalized_cutoff", "family_id", "qualified_family_id",
                                            "gcf_namespace", "strain", "node_region", "mibig_accession", "mibig_product"]
         row = lines[1].split("\t")
-        assert row[5] == "AS-311"
+        assert row[5] == 'SYNTHETIC-CASE-009'
         assert row[6] == "NODE_107_length_28859_cov_19.006984.region001"  # clean, dotted-cov OK
         assert row[7] == "BGC0000034"
 
@@ -52,19 +52,19 @@ def test_merge_unions_and_tags():
         a1 = os.path.join(t, "c1.tsv"); a2 = os.path.join(t, "c2.tsv")
         hdr = "run_id\tnormalized_cutoff\tfamily_id\tqualified_family_id\tgcf_namespace\tstrain\tnode_region\tmibig_accession\tmibig_product\n"
         prefix = "1\t0.5\t10\tbigscape-gcf:v1/run/1/cutoff/0.5/family/10\trun_id=1;cutoff=0.5\t"
-        open(a1, "w").write(hdr + prefix + "AS-311\tNODE_107_length_28859_cov_19.006984.region001\tBGC0000034\tT1PKS\n")
-        open(a2, "w").write(hdr + prefix + "AS-311\tNODE_107_length_28859_cov_19.006984.region001\tBGC0000034\tT1PKS\n"
-                                 + prefix + "AS-311\tNODE_107_length_28859_cov_19.006984.region001\tBGC0000042\tT1PKS\n")
+        open(a1, "w").write(hdr + prefix + 'SYNTHETIC-CASE-009\tNODE_107_length_28859_cov_19.006984.region001\tBGC0000034\tT1PKS\n')
+        open(a2, "w").write(hdr + prefix + 'SYNTHETIC-CASE-009\tNODE_107_length_28859_cov_19.006984.region001\tBGC0000034\tT1PKS\n'
+                                 + prefix + 'SYNTHETIC-CASE-009\tNODE_107_length_28859_cov_19.006984.region001\tBGC0000042\tT1PKS\n')
         base = os.path.join(t, "base.tsv")
         open(base, "w").write(
             "cutoff\tfamily_id\trun_id\tnormalized_cutoff\tqualified_family_id\tgcf_namespace\tn_strains\tstrains\tn_members\tbin\tdominant_product\tcontains_MIBiG\tmembers_locators\n"
-            "0.5\t10\t1\t0.5\tbigscape-gcf:v1/run/1/cutoff/0.5/family/10\trun_id=1;cutoff=0.5\t2\tAS-311,AS-421\t2\tPKS\tT1PKS\tno\tAS-311:NODE_107_length_28859_cov_19.006984.region001;AS-421:NODE_9_length_5_cov_1.0.region001\n"
-            "0.5\t11\t1\t0.5\tbigscape-gcf:v1/run/1/cutoff/0.5/family/11\trun_id=1;cutoff=0.5\t2\tAS-190,AS-424\t2\tsacch\tsaccharide\tno\tAS-190:NODE_1_length_9_cov_2.0.region001;AS-424:NODE_2_length_8_cov_3.0.region001\n")
+            '0.5\t10\t1\t0.5\tbigscape-gcf:v1/run/1/cutoff/0.5/family/10\trun_id=1;cutoff=0.5\t2\tSYNTHETIC-CASE-009,SYNTHETIC-CASE-013\t2\tPKS\tT1PKS\tno\tSYNTHETIC-CASE-009:NODE_107_length_28859_cov_19.006984.region001;SYNTHETIC-CASE-013:NODE_9_length_5_cov_1.0.region001\n'
+            '0.5\t11\t1\t0.5\tbigscape-gcf:v1/run/1/cutoff/0.5/family/11\trun_id=1;cutoff=0.5\t2\tSYNTHETIC-CASE-007,SYNTHETIC-CASE-014\t2\tsacch\tsaccharide\tno\tSYNTHETIC-CASE-007:NODE_1_length_9_cov_2.0.region001;SYNTHETIC-CASE-014:NODE_2_length_8_cov_3.0.region001\n')
         out = os.path.join(t, "kn.tsv")
         subprocess.run([sys.executable, str(MERGE), "--anchors", a1, a2,
                         "--base-cross-strain", base, "--out", out], check=True)
         rows = [r.split("\t") for r in open(out).read().splitlines()[1:]]
         by_fam = {r[1]: r for r in rows}
-        assert by_fam["10"][-3] == "KNOWN"   # fam 10 has the anchored AS-311 member
+        assert by_fam["10"][-3] == "KNOWN"   # fam 10 has the fabricated anchored study member
         assert by_fam["11"][-3] == "NOVEL"   # fam 11 has no anchored member
         assert by_fam["10"][-1] == "BGC0000034;BGC0000042"  # unioned across the two chat TSVs

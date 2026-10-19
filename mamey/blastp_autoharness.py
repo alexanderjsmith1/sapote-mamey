@@ -230,12 +230,17 @@ def state_path(package) -> Path:
 
 def load_state(package) -> dict | None:
     p = state_path(package)
+    if p.is_symlink():
+        raise ValueError("scheduler checkpoint is symlinked; preserve it and review recovery")
     if not p.exists():
         return None
     try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
+        state = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("scheduler checkpoint is unreadable or invalid; refusing to rebuild pending work") from exc
+    if not isinstance(state, dict):
+        raise ValueError("scheduler checkpoint must be an object; refusing to rebuild pending work")
+    return state
 
 
 def save_state(package, state: dict) -> None:

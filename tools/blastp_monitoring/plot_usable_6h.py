@@ -15,6 +15,7 @@ whatever sub-window was actually crawling. Prints totals + the current (last-bin
 
 Run: python3 "tools/blastp_monitoring/plot_usable_6h.py"
 """
+import argparse
 import csv
 import datetime
 import glob
@@ -23,10 +24,6 @@ import os
 import re
 import sys
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
 ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
 PLOT_DIR = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", os.path.join(ROOT, "blastp_plots"))
 BR = os.path.join(ROOT, "Blastp RESULTS")
@@ -34,13 +31,6 @@ OUT = os.path.join(PLOT_DIR, "crawl_plots")
 HOURS = 6
 BINM = 15
 ROWS_RE = re.compile(r"(\d+)\s*row")
-
-os.chdir(ROOT)
-spec = importlib.util.spec_from_file_location("pcr", os.path.join(PLOT_DIR, "plot_crawl_recent.py"))
-pcr = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(pcr)   # provides query_proteins()
-
-
 
 def _refuse_output_inside_bundle(path):
     """v9.7.443: ROOT falls back to the current directory; run from the bundle root, the plots
@@ -52,8 +42,20 @@ def _refuse_output_inside_bundle(path):
     except OutputInsideBundle as e:
         sys.exit(f"{e}\n  The plot folder is SAPOTE_BLASTP_PLOT_DIR, else SAPOTE_WORKSPACE_ROOT/blastp_plots.")
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
+    parser.parse_known_args(argv)
     _refuse_output_inside_bundle(OUT)  # before any reading or plotting
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    # Code comes from the shipped sibling, not the operator output directory.
+    sibling = os.path.join(os.path.dirname(os.path.abspath(__file__)), "plot_crawl_recent.py")
+    spec = importlib.util.spec_from_file_location("pcr", sibling)
+    pcr = importlib.util.module_from_spec(spec)
+    os.chdir(ROOT)  # the sibling reads Blastp RESULTS relative to the workspace
+    spec.loader.exec_module(pcr)
     now = datetime.datetime.now()
     start = now - datetime.timedelta(hours=HOURS)
     recs = []

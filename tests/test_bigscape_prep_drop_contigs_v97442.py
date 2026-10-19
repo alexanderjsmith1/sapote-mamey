@@ -28,7 +28,7 @@ def _run(tmp_path, drop_spec):
     (official / "exclusions.json").write_text(json.dumps({"hard_excluded": []}))
     indir = tmp_path / "zips"
     indir.mkdir(exist_ok=True)
-    _zip(indir / "AS-810.zip", ["NODE_1_length_900000_cov_40.1", "NODE_77_length_4000_cov_3.2", "NODE_78_length_3900_cov_2.9"])
+    _zip(indir / "SYNTHETIC-CASE-024.zip", ["NODE_1_length_900000_cov_40.1", "NODE_77_length_4000_cov_3.2", "NODE_78_length_3900_cov_2.9"])
     _zip(indir / "AS-001.zip", ["NODE_77_length_4000_cov_3.2"])
     removed = tmp_path / "removed.tsv"
     removed.write_text("NODE_77_length_4000_cov_3.2\tlow GC\nNODE_78_length_3900_cov_2.9\tlow GC\n")
@@ -40,17 +40,17 @@ def _run(tmp_path, drop_spec):
 
 
 def test_listed_contigs_are_dropped_for_that_strain_only(tmp_path):
-    r, out = _run(tmp_path, "AS-810={tsv}")
+    r, out = _run(tmp_path, "SYNTHETIC-CASE-024={tsv}")
     assert r.returncode == 0, r.stderr
     staged = sorted(p.name for p in out.glob("*.gbk"))
     assert staged == ["AS-001_NODE_77_length_4000_cov_3.2.region001.gbk",
-                      "AS-810_NODE_1_length_900000_cov_40.1.region001.gbk"]
+                      "SYNTHETIC-CASE-024_NODE_1_length_900000_cov_40.1.region001.gbk"]
     rows = (out / "DROPPED_CONTIG_REGIONS.tsv").read_text().splitlines()
     assert rows[0] == "strain\trecord\tsource_member" and len(rows) == 3
-    assert all(r.startswith("AS-810\t") for r in rows[1:])
+    assert all(r.startswith("SYNTHETIC-CASE-024\t") for r in rows[1:])
 
 
 def test_a_drop_list_for_a_strain_that_did_not_stage_fails(tmp_path):
-    r, _ = _run(tmp_path, "AS810={tsv}")
+    r, _ = _run(tmp_path, "SYNTHETICCASE024={tsv}")
     assert r.returncode == 2
     assert "not staged" in r.stderr

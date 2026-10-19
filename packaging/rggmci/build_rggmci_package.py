@@ -5,7 +5,9 @@ One source, two distributions. Nothing here re-implements the scorer: `mamey/rgg
 `ziputil.py`, `pair_scan_caps.py`, `_gbk_shim.py`, `residue_tiling.py` and `ref_completion.py` are copied byte-for-byte except three import
 lines, `rescue_groups.py` is copied unchanged as `groups.py`, and the region-parsing and naming
 helpers are lifted out of `parsers.py`, `crosswalk.py` and `antismash_evidence.py` by AST, with the
-module-level helpers they need. Only the record type, the zip reader and the CLI are new.
+module-level helpers they need. When these readers use source_context, it is copied and its
+standard-library capture reader dependencies are lifted from archive_snapshot.py; the engine-only
+parse/publication adapters are not shipped. Only the record type, the zip reader and the CLI are new.
 PROVENANCE.json records the bundle version and the SHA-256 of every source file used, so a build
 can always be traced to the bundle it came from.
 
@@ -133,12 +135,25 @@ def main(argv=None) -> int:
     if a.out.exists() and any(a.out.iterdir()):
         print(f"refusing to write into a non-empty directory: {a.out}", file=sys.stderr)
         return 2
+    verbatim = list(VERBATIM)
+    lift_extra = {}
+    intake_sources = set(VERBATIM) | {src for specs in LIFT.values() for src, _ in specs}
+    capture_readers = any(isinstance(node, ast.ImportFrom) and node.level == 1
+                          and node.module in {"source_context", "archive_snapshot"}
+                          for name in intake_sources for node in ast.walk(ast.parse((m / name).read_text())))
+    if capture_readers:
+        for name in ("source_context.py", "archive_snapshot.py"):
+            if not (m / name).is_file():
+                raise SystemExit(f"CAPTURE_READER_DEPENDENCY_MISSING: mamey/{name}")
+        verbatim.append("source_context.py")
+        lift_extra["archive_snapshot.py"] = [("archive_snapshot.py", [
+            "ArchiveSnapshot", "ArchiveSnapshotPolicy", "ArchiveSnapshotRefused",
+            "validate_captured", "captured_zip", "archive_label_path"])]
     pkg = a.out / "src" / "rggmci"
     pkg.mkdir(parents=True)
     used: dict[str, str] = {}
 
-    lift_extra = {}
-    for f in VERBATIM:
+    for f in verbatim:
         text = (m / f).read_text()
         if f == "rggmci.py":
             text = _rewrite_optional_guard_import(text)
@@ -158,7 +173,7 @@ def main(argv=None) -> int:
 
     for f, target in RENAMED.items():
         text = (m / f).read_text()
-        shipped = {m.removesuffix(".py") for m in VERBATIM}
+        shipped = {m.removesuffix(".py") for m in verbatim}
         for line in text.splitlines():   # relative imports only of modules the package also ships
             if line.startswith("from .") and line.split()[1].lstrip(".") not in shipped:
                 raise SystemExit(f"RENAMED_MODULE_NOT_STANDALONE: mamey/{f} imports from the engine: {line}")
@@ -177,9 +192,12 @@ def main(argv=None) -> int:
                     continue
                 if imp.startswith("from ."):
                     if "ziputil" in imp:
-                        header.append("from .ziputil import regular_file_names")
+                        header.append(imp)
                     elif src_name == "parsers.py" and "models" in imp:
                         header.append("from ._feature_records import CDSFeature, DomainFeature")
+                        header.append("from ._records import BGCRecord")
+                    elif src_name == "parsers.py" and any(name in imp for name in ("source_context", "archive_snapshot")):
+                        header.append(imp)
                     continue
                 header.append(imp)
         body = "\n".join(dict.fromkeys(header)) + "\n\n\n" + "\n\n\n".join(parts) + "\n"

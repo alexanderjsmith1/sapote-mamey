@@ -7,7 +7,7 @@ Use [task routes](USER_TASK_ROUTER.md) to choose a workflow, then the owning gui
 | Surface | Owner | Actual check scope |
 |---|---|---|
 | `COMMAND_CATALOG.generated.md` | `tools/gen_command_catalog.py` | `--check` compares rendered Markdown to the live CLI parser's canonical command names, aliases and help. It imports the CLI; it does not run handlers or list every flag. Group blurbs are hand-authored in the generator. |
-| `TOOLS_INVENTORY.generated.md` and the marked block in `BUNDLE_CAPABILITIES.md` | `tools/gen_tools_inventory.py` | `--check` compares generated inventory and, if BUNDLE_CAPABILITIES exists, its inventory block/count. Missing BUNDLE_CAPABILITIES is not itself refused. Tool summaries derive from source docstrings/headers, which can contain obsolete descriptions. |
+| `TOOLS_INVENTORY.generated.md` and the marked block in `BUNDLE_CAPABILITIES.md` | `tools/gen_tools_inventory.py` | Ordinary CODE `--check` requires both members and compares the generated inventory, capabilities inventory block and directory-map count. Missing or unreadable capabilities returns nonzero; ordinary generation requires its readable existing maintained prose before either output is written. Tool summaries derive from source docstrings/headers, which can contain obsolete descriptions. |
 | `USER_CATALOG.generated.md` and `.json` | `tools/gen_user_catalog.py` | `--check` compares both rendered outputs to source tables, the registry inventory and hard-coded scan descriptions. Those descriptions are not empirically validated by regeneration. |
 | `MARKER_CATALOG.generated.md` and `.json` | `tools/gen_marker_catalog.py` | `--check` requires both files and compares each as decoded UTF-8 text with a fresh render of the live tables (line endings are normalized); an edited table, a stale Markdown file or a missing file fails even when the stored `sha256` field is unchanged. Markdown displays only the first eight patterns per family; JSON carries the full table. |
 | `DELIVERABLE_MENU.md` and version-pinned compatibility pointer | `mamey/deliverables_registry.py`, from `mamey/data/deliverables_registry.json` | Compare pure owner-rendered menu and pointer content against the bound registry and versions. CLI `deliverables render` prints or writes a selected output; it has no dedicated check flag and stdout adds a newline. Rendering does not establish availability, completed work or gate admission. |
@@ -24,6 +24,25 @@ python tools/gen_marker_catalog.py --check
 ```
 
 These are declared check interfaces, not an assertion that they passed for your working tree. `gen_tools_inventory.py --root` controls search/connections modes; its ordinary inventory generation/check still uses the script's owning root. Do not use that flag as a general redirected-output sandbox.
+
+## Task-router and prose ownership
+
+`USER_TASK_ROUTER.md` and `USER_TASK_ROUTER.json` are a maintained navigation pair,
+separate from `USER_CATALOG.generated.*`. Their route inputs, outputs and
+completion limits need joint review when behavior changes. The maintenance
+inventory identifies the Markdown router as maintained prose; it does not
+regenerate or establish semantic parity with the JSON partner. Check both
+against the selected source and leave unresolved differences visible. A recorded
+baseline label binds the selected source anchors; it does not certify that every
+route was reviewed, executed or scientifically validated. Derive that binding
+from the selected build/version inputs and retain the actual review scope
+separately.
+
+For a prose repair, edit the canonical guide and identify any declared wiki
+mirror or generated inventory that depends on it. Request regeneration from
+that owner in the assembled writable candidate after the final prose change.
+Do not hand-edit generated outputs, run a writer on preserved source evidence,
+or change release/version metadata merely to make a guide appear current.
 
 ## Reading limits
 The command-catalog owner normalizes canonical parser rows and any fixed optional add-on metadata (none at present) through `command_records()`. Its footer counts that same union, so optional installation would not change the row count or add-on help/aliases. The retained .449 baseline had 117 rendered rows but a footer of 116. Bind the parser environment for each current check; rendering verifies declarations, not handler execution or add-on availability.
@@ -92,3 +111,5 @@ The machine inventory joins canonical command/catalog records, existing tools di
 Documentation scope is root Markdown plus Markdown under `docs/` and `wiki/`; other packaging/asset trees are outside this roster. Links in `CURRENT_DOCS_INDEX.md` declare navigation membership. Explicit generated, optional, historical and engineering classifications take priority over those links. Remaining documents and discovered tools retain review holds. A version string never retires a page, and navigation membership does not establish semantic currentness. Historical files and links remain in place.
 
 Maintained inputs and discovered source rows carry SHA-256 bindings. Generated output content is excluded from the inventory's own hash graph to avoid self, manifest and managed-prose cycles; use each owner's actual check and final source checksums for those bytes. The existing generated-surface planner keeps its narrower check-only phase contract; supplemental catalog/mirror owners are declared by this inventory policy. Inventory completeness does not certify every document, parser help text, tool entry point or scientific workflow.
+
+The ordinary tools-inventory writer precomputes the capabilities update before creating its output directory or replacing either member. Missing or unreadable capabilities leaves existing outputs intact; it does not invent a replacement for maintained prose. An existing marker-free capabilities file still receives an appended generated block. Search, connections and explicit maintenance modes keep their own contracts. The two default output replacements remain separate atomic writes: a late I/O failure or concurrent change can leave a mismatched pair, so regenerate and check both after interruption. Historical partial tiers relying on silent omission need an explicitly resolved compatibility contract.

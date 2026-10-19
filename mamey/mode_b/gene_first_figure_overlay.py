@@ -98,7 +98,6 @@ def _portable_locator(value: Any) -> str:
         or lowered.startswith("file://")
         or "/users/" in lowered
         or "\\users\\" in lowered
-        or "codex alex 2026" in lowered
     ):
         _refuse("MODEB_GF2_OVERLAY_BINDING_HOLD", "source summary locator is not portable")
     path_part = locator.split("://", 1)[-1]

@@ -1,4 +1,5 @@
-"""v9.7.385 (BLACK_CHERRY-384-02): §4 publication gate resolves the gene column among
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
+"""v9.7.385 (regression_review-384-02): §4 publication gate resolves the gene column among
 MULTIPLE candidate headers by cell shape, not by header column order.
 
 Regression guard. `.384` fixed the single-candidate case (a mandated identity-column-led
@@ -34,8 +35,8 @@ def test_descriptive_gene_column_ahead_of_locus_is_not_falsely_flagged_duplicate
         "Intro.\n\n" + _HEADING + "\n\n"
         "| strain | node | region | BGC | gene context | locus | nr accession | organism | identity |\n"
         "|---|---|---|---|---|---|---|---|---|\n"
-        "| AS-846 | NODE_9 | region001 | BGC005 | core biosynthetic gene | ctg9_18 | WP_1 | Nocardia | 90% |\n"
-        "| AS-846 | NODE_9 | region001 | BGC005 | core biosynthetic gene | ctg9_19 | WP_2 | Nocardia | 85% |\n"
+        "| SYNTHETIC-CASE-026 | NODE_9 | region001 | BGC005 | core biosynthetic gene | ctg9_18 | WP_1 | Nocardia | 90% |\n"
+        "| SYNTHETIC-CASE-026 | NODE_9 | region001 | BGC005 | core biosynthetic gene | ctg9_19 | WP_2 | Nocardia | 85% |\n"
         "#### Next subsection\nother\n"
     )
     assert "PUBLICATION_GENE_TABLE_DUPLICATE" not in _codes(s4)
@@ -49,8 +50,8 @@ def test_real_duplicate_is_not_masked_by_an_earlier_descriptive_gene_column():
         "Intro.\n\n" + _HEADING + "\n\n"
         "| strain | node | region | BGC | gene role | locus | nr accession | organism | identity |\n"
         "|---|---|---|---|---|---|---|---|---|\n"
-        "| AS-846 | NODE_9 | region001 | BGC005 | core biosynthetic gene | ctg9_18 | WP_1 | Nocardia | 90% |\n"
-        "| AS-846 | NODE_9 | region001 | BGC005 | resistance gene | ctg9_18 | WP_2 | Nocardia | 85% |\n"
+        "| SYNTHETIC-CASE-026 | NODE_9 | region001 | BGC005 | core biosynthetic gene | ctg9_18 | WP_1 | Nocardia | 90% |\n"
+        "| SYNTHETIC-CASE-026 | NODE_9 | region001 | BGC005 | resistance gene | ctg9_18 | WP_2 | Nocardia | 85% |\n"
         "#### Next subsection\nother\n"
     )
     assert "PUBLICATION_GENE_TABLE_DUPLICATE" in _codes(s4)

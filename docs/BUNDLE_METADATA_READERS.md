@@ -19,9 +19,9 @@ From the selected bundle, the documented integrity checker is:
 python tools/check_release_manifest.py --root "/absolute/path/to/selected/bundle"
 ```
 
-It recomputes admitted checksum targets, reports missing/mismatched/unsafe targets and malformed rows, checks the stamp when both identity files exist, and compares a present tier manifest with actual tracked membership. Cache/build/run-output exclusions follow `tools/tracked_file_policy.py`; inspect the reported scope. Working trees may have legitimate new files, but a candidate cut requires the selected owner to resolve membership and source drift before final regeneration.
+The command recomputes admitted checksum targets and enforces tracked-file coverage: it refuses empty/no-verified-content manifests, omitted or unexpected governed paths and duplicate normalized records, as well as missing, mismatched, unsafe or malformed targets. It also requires readable, safely admitted `TIER_MANIFEST.txt` and `BUILD_STAMP.txt`, checks their build stamps and compares tier membership with the tracked-file policy. Missing required identity files no longer pass this command. Cache/build/run-output exclusions still follow `tools/tracked_file_policy.py`.
 
-**Required-artifact hold:** the current checker conditionally evaluates tier/stamp checks and does not reject their absence by itself. A checksum-only tree can pass without either `TIER_MANIFEST.txt` or `BUILD_STAMP.txt`. Confirm the required identity/membership files and selected cut receipts exist separately; do not interpret this checker's PASS as a complete release gate. Keep release certification with the selected cut receipts and authorized maintainer decision.
+This scope describes `check_release_manifest.py`'s CLI, which enables strict coverage. The lower-level `checksum_problems` helper defaults to non-strict coverage, and `verify_release_identity.py` requests strict content coverage only with `--strict-membership`; do not transfer this CLI contract to every helper call. A successful check establishes the implemented content/metadata comparisons, not release authority, complete test execution, Linux validation or scientific acceptance. Candidate changes still require owner review and final metadata regeneration.
 
 ## Module inventory and accretion
 
@@ -32,3 +32,25 @@ It recomputes admitted checksum targets, reports missing/mismatched/unsafe targe
 ## Recovery and acceptance
 
 Retain exact failure output and file hashes. Separate unexpected corruption, intentional candidate changes, missing dependencies and unrun checks. Regenerate final metadata only through the authorized [cut protocol](../CUT_PROTOCOL.md), after the candidate and required gates are ready. Reader checks do not update version stamps, seal or publish a bundle. For retired tier history and the parity/derivation limits, read [tier differences](TIER_DIFFERENCES.md). Scientific evidence admission, selected-profile completeness and rendered-page review remain separate from file integrity.
+
+## Exact-identity seal-plan generation
+
+When `tools/make_seal_script.py` is present in the selected candidate, it is a standalone generation tool; it is not a `mamey_run.py` subcommand and does not execute pytest, collection, a subprocess, a seal or a release. Its generation mode reads an existing cut directory, pinned source/archive logs, explicit native execution manifests, the archive and expected SHA-256, exact named outcome dispositions, and a selected owner-consumer script. Every generation argument below is required. The output parent must already exist, and the output directory must be fresh and outside the cut and bound source/extracted trees.
+
+```bash
+python tools/make_seal_script.py \
+  --cut-folder /path/to/existing-cut \
+  --source-log /path/to/source.log --archive-log /path/to/archive.log \
+  --source-evidence /path/to/source-suite-input.json \
+  --archive-evidence /path/to/archive-suite-input.json \
+  --differences /path/to/exact-named-differences.json \
+  --archive /path/to/existing-cut/candidate.zip --archive-sha256 EXPECTED_ARCHIVE_SHA256 \
+  --owner-script /path/to/reviewed-owner-consumer.sh \
+  --output /path/to/fresh-review/seal-plan
+```
+
+The suite manifests use `sapote-mamey.seal-suite-input.v1` and pin the actual log and native `sapote-mamey.pytest-execution.v1` capture by path/hash, plus the selected tree digest. The generator requires complete admitted phase evidence, compatible selection/configuration/pytest version and the same exact collected identities. Order alone may differ; counts, progress dots and reconstructed JUnit names cannot establish identity. Collection-level skips and ambiguous subtest contexts refuse. Every observed main-outcome/reason/xfail difference needs exactly one matching named disposition with a nonblank explanation. That explanation is an operator judgment, not proof of its cause. The extracted archive must already exist and match ZIP file bytes/modes with no extra files; the tool does not extract it. This comparison does not certify source/package parity beyond the supplied archive/extracted tree.
+
+Generation writes `PLAN.json` and a mode-0600 `SEAL_CANDIDATE.sh` sequentially, reporting `PREPARED_OWNER_REVIEW`; a later failure can leave partial artifacts. Preserve any failed attempt and use a fresh destination. `--verify-plan PLAN --plan-sha256 EXPECTED_PLAN_SHA256` is a separate evidence-recheck mode and refuses generation arguments. It recomputes bound evidence, machinery, trees and named differences; it does not execute the consumer.
+
+The generated wrapper is a separate owner-execution artifact. It checks a plan-hash acknowledgment, rechecks the plan, then would hand off to the pinned consumer through `/bin/bash`. Its nonexecutable file mode does not prevent an explicit shell invocation. Setting an acknowledgment variable is not human authorization. Review the actual consumer, plan and remaining release gates before any separately authorized execution; this guide does not authorize it. Input/namespace races, immutable source-generation proof, consumer safety, Linux behavior, final-stack runtime and release/scientific adoption remain held. Historical logs lacking the native manifests cannot be retrospectively certified by this route. Generated inventories and final checksums stay with their canonical owners.

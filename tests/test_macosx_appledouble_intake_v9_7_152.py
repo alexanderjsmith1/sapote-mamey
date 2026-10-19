@@ -61,7 +61,7 @@ def test_is_macos_cruft_predicate():
     assert is_macos_cruft(".DS_Store") is True
     assert is_macos_cruft("AS-TEST/.DS_Store") is True
     assert is_macos_cruft("NODE_1_length_1000_cov_50.region001.gbk") is False
-    assert is_macos_cruft("AS-705_new.gbk") is False
+    assert is_macos_cruft('SYNTHETIC-CASE-020_new.gbk') is False
     assert is_macos_cruft("AS-TEST/clusterblast/region0.txt") is False
 
 

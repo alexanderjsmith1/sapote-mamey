@@ -8,7 +8,7 @@ bcw = importlib.util.module_from_spec(_s); _s.loader.exec_module(bcw)
 def _pkg(d):
     p = Path(d); (p/"judgment").mkdir(); (p/"mode_b_templates").mkdir()
     # authored card (judgment/) carries the store header AND the surviving template header
-    (p/"judgment"/"AS-660_BGC049_mode_b.md").write_text(
+    (p/"judgment"/"SYNTHETIC-CASE-016_BGC049_mode_b.md").write_text(
         "<!-- MODE B: BGC049 | authored -->\n<!-- MODE B TEMPLATE | bgc: BGC049 -->\n"
         "## §1 Identity\nbgc: BGC049\nreal authored content\n")
     # template of the SAME BGC, different filename
@@ -25,7 +25,7 @@ def test_cw2_dedup_by_bgc_id():
 
 def test_cw1_authored_not_skeleton():
     with tempfile.TemporaryDirectory() as d:
-        rows = bcw.modeb_section_rows(_pkg(d), "AS-660")
+        rows = bcw.modeb_section_rows(_pkg(d), "SYNTHETIC-CASE-016")
         labels = {str(x) for r in rows for x in r if "AUTHORED" in str(x) or "SKELETON" in str(x)}
         assert any("AUTHORED" in l for l in labels), labels
         assert not any("SKELETON" in l for l in labels), labels

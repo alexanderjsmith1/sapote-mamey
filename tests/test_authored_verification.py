@@ -66,7 +66,7 @@ def test_missing_guide_file_fails():
 
 
 # ---- Item 2: naming/write guard refuses a non-§ doc named Mode B ----
-_FAKE_MODEB = """# AS-385 BGC021 Mode B Card
+_FAKE_MODEB = """# SYNTHETIC-CASE-011 BGC021 Mode B Card
 ## 1 Engine summary
 text
 ## 2 Interpretation

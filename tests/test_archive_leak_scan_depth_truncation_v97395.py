@@ -1,12 +1,16 @@
 """Regression: archive_leak_scan.py must not silently report a scan as clean when a nested
 archive was skipped because it exceeded --max-depth.
 
-Fails against the pristine .394 file: a real private-ID leak ("AS-705") buried inside a nested
-zip beyond the depth cap produced ZERO findings of any kind -- not even a note -- so a genuine
+Fails against the pristine .394 file: an injected private-shaped detector canary buried inside a nested
+zip beyond the depth cap produced ZERO findings of any kind -- not even a note -- so an injected
 leak this tool exists specifically to catch (per its own module docstring: closing coverage
 holes other leak-audit tools miss) could pass as CLEAN.
 """
 from __future__ import annotations
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+_CANARY = synthetic_namespace_id("AS", width=3, case_index=821, separator=True)
+
 
 import io
 import sys
@@ -26,7 +30,7 @@ def _make_zip(entries: dict[str, str]) -> bytes:
 
 
 def test_depth_limit_truncation_is_visible_not_silent():
-    inner_leak = _make_zip({"notes.txt": "AS-705 is a real strain identifier here."})
+    inner_leak = _make_zip({"notes.txt": f'{_CANARY} is a fabricated detector control here.'})
     outer = _make_zip({"nested.zip": inner_leak})
 
     findings = als._scan_zip_bytes(outer, "outer.zip", as_only=True, denylist=[],
@@ -42,7 +46,7 @@ def test_depth_limit_truncation_is_visible_not_silent():
 def test_depth_limit_truncation_note_does_not_flip_exit_code_to_leak():
     # A truncation note must land in the "errs"/note bucket, never in the real-leak bucket --
     # it's a coverage gap, not a confirmed leak, and must not produce a false-positive LEAK exit.
-    inner_leak = _make_zip({"notes.txt": "AS-705 is a real strain identifier here."})
+    inner_leak = _make_zip({"notes.txt": f'{_CANARY} is a fabricated detector control here.'})
     outer = _make_zip({"nested.zip": inner_leak})
     findings = als._scan_zip_bytes(outer, "outer.zip", as_only=True, denylist=[],
                                     depth=0, max_depth=0)
@@ -51,9 +55,9 @@ def test_depth_limit_truncation_note_does_not_flip_exit_code_to_leak():
 
 
 def test_sufficient_depth_still_finds_the_real_leak():
-    inner_leak = _make_zip({"notes.txt": "AS-705 is a real strain identifier here."})
+    inner_leak = _make_zip({"notes.txt": f'{_CANARY} is a fabricated detector control here.'})
     outer = _make_zip({"nested.zip": inner_leak})
     findings = als._scan_zip_bytes(outer, "outer.zip", as_only=True, denylist=[],
                                     depth=0, max_depth=1)
     real = [f for f in findings if f["kind"] == "private_identifier"]
-    assert real and real[0]["token"] == "AS-705"
+    assert real and real[0]["token"] == f'{_CANARY}'

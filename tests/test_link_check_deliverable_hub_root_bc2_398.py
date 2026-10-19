@@ -55,10 +55,14 @@ def test_discovers_the_root_by_owning_where_things_live_regardless_of_its_name(t
     assert lc.DELIVERABLE_HUB_ROOT == str(hub_root)
 
 
-def test_no_hardcoded_workspace_specific_literal_in_source():
-    src = (HOOKS_DIR / "link_check.py").read_text(encoding="utf-8")
-    assert "AS Strain Master" not in src
-    assert "strain_data" in src  # the legacy fallback path is expected to remain
+def test_structural_marker_wins_over_misleading_conventional_parent(tmp_path, monkeypatch):
+    """An empty conventional directory cannot displace an indexed distinct home."""
+    (tmp_path / "strain_data").mkdir()
+    selected = tmp_path / "Unrelated Report Home"
+    selected.mkdir()
+    (selected / "WHERE_THINGS_LIVE.md").write_text("# invented index\n")
+    lc = _reload_hook(monkeypatch, tmp_path)
+    assert lc.DELIVERABLE_HUB_ROOT == str(selected)
 
 
 def test_orphan_detection_works_end_to_end_against_the_discovered_root(tmp_path, monkeypatch):

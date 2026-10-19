@@ -10,6 +10,11 @@ that the rendered report passes the bundle's OWN claim-safety linter, and an ENG
 test asserting the local regexes agree with mamey.modeb_structure_gate so "located"/"provenance"
 here mean what they mean in verify-modeb.
 """
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+_SCOPE_A = synthetic_namespace_id("AS", width=3, case_index=821, separator=True)
+_SCOPE_B = synthetic_namespace_id("AS", width=3, case_index=817, separator=True)
+
 import importlib.util
 import tempfile
 from pathlib import Path
@@ -131,24 +136,24 @@ def _write(tmp, name, text):
 
 def test_collision_same_strain_blocks():
     with tempfile.TemporaryDirectory() as tmp:
-        a = _write(tmp, "AS-705_a.md", "BGC008 (NODE_12_length_5_cov_1 · region001). [observed]")
-        b = _write(tmp, "AS-705_b.md", "BGC008 (NODE_5_length_9_cov_3 · region002). [inferred]")
+        a = _write(tmp, f'{_SCOPE_A}_a.md', "BGC008 (NODE_12_length_5_cov_1 · region001). [observed]")
+        b = _write(tmp, f'{_SCOPE_A}_b.md', "BGC008 (NODE_5_length_9_cov_3 · region002). [inferred]")
         _, _, located, _, collisions = dca.audit([a, b])
         assert any(c["code"] == "ID_COLLISION" and c["severity"] == "BLOCK" for c in collisions)
 
 
 def test_no_collision_cross_strain():
     with tempfile.TemporaryDirectory() as tmp:
-        a = _write(tmp, "AS-705_a.md", "BGC008 (NODE_12 · region001). [observed]")
-        b = _write(tmp, "AS-660_b.md", "BGC008 (NODE_9 · region001). [observed]")
+        a = _write(tmp, f'{_SCOPE_A}_a.md', "BGC008 (NODE_12 · region001). [observed]")
+        b = _write(tmp, f'{_SCOPE_B}_b.md', "BGC008 (NODE_9 · region001). [observed]")
         _, _, _, _, collisions = dca.audit([a, b])
         assert not any(c["code"].startswith("ID_COLLISION") for c in collisions)
 
 
 def test_no_collision_same_address_repeated():
     with tempfile.TemporaryDirectory() as tmp:
-        a = _write(tmp, "AS-705_a.md", "BGC008 (NODE_12 · region001). [observed]")
-        b = _write(tmp, "AS-705_b.md", "BGC008 (NODE_12_length_5_cov_1 · region001) again. [inferred]")
+        a = _write(tmp, f'{_SCOPE_A}_a.md', "BGC008 (NODE_12 · region001). [observed]")
+        b = _write(tmp, f'{_SCOPE_A}_b.md', "BGC008 (NODE_12_length_5_cov_1 · region001) again. [inferred]")
         _, _, _, _, collisions = dca.audit([a, b])
         assert not any(c["code"].startswith("ID_COLLISION") for c in collisions)
 

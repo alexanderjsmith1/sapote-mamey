@@ -5,7 +5,7 @@ THE PROBLEM THIS CLOSES
 -----------------------
 tools/ holds ~70 scripts. With no index, a contributor (human or LLM) cannot see what
 already exists and rebuilds it — which is exactly how a redundant public-cut / tier-parity /
-judgment-receipt tool got written. This generator reads the one-line summary out of every
+judgment-receipt tool got written. This generator reads the opening purpose paragraph out of every
 tool's docstring/header and:
   * writes docs/TOOLS_INVENTORY.generated.md (the full table), and
   * injects a compact `name — summary` list into docs/BUNDLE_CAPABILITIES.md between
@@ -120,6 +120,58 @@ def _first_doc_line_sh(path: pathlib.Path) -> str:
     return "(no header comment)"
 
 
+def _opening_paragraph(doc: str) -> str:
+    """Join source lines through the first paragraph break, without interpreting them.
+
+    Display extraction only: the raw AST docstring, first-line connection
+    evidence, source hashes, and capability search corpus remain unchanged.
+    """
+    paragraph = []
+    for line in doc.splitlines():
+        text = line.strip()
+        if not text:
+            if paragraph:
+                break
+            continue
+        paragraph.append(text)
+    return " ".join(paragraph)
+
+
+def _display_summary(paragraph: str, filename: str, missing: str) -> str:
+    """Remove only a matching filename prefix; never discard prose at an internal dash."""
+    if not paragraph:
+        return missing
+    summary = re.sub(r"^" + re.escape(filename) + r"\s+(?:—|-)\s*", "", paragraph, flags=re.I)
+    return (summary or "(no purpose description)").replace("|", "\\|")
+
+
+def _purpose_summary_py(path: pathlib.Path) -> str:
+    """Source opening paragraph for display; comments/function docstrings are not a fallback."""
+    return _display_summary(_opening_paragraph(_module_docstring_py(path)), path.name, "(no docstring)")
+
+
+def _purpose_summary_sh(path: pathlib.Path) -> str:
+    """Source opening header paragraph only; comments after executable code are not purpose."""
+    header = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        text = raw.strip()
+        if text.startswith("#!") and not header:
+            continue
+        if not text:
+            if header:
+                break
+            continue
+        if not text.startswith("#"):
+            break
+        text = text.lstrip("# ").strip()
+        if not text:
+            if header:
+                break
+            continue
+        header.append(text)
+    return _display_summary(" ".join(header), path.name, "(no header comment)")
+
+
 def tool_files() -> list[pathlib.Path]:
     """Discover nested tools with unambiguous relative locators."""
     out = []
@@ -136,13 +188,13 @@ def collect() -> list[tuple[str, str]]:
     for p in tool_files():
         name = p.relative_to(TOOLS).as_posix()
         if p.suffix == ".py":
-            rows.append((name, _first_doc_line_py(p)))
+            rows.append((name, _purpose_summary_py(p)))
         elif p.suffix == ".sh":
-            rows.append((name, _first_doc_line_sh(p)))
+            rows.append((name, _purpose_summary_sh(p)))
     # include top-level bootstrap.sh if present (env setup lives at root)
     boot = ROOT / "bootstrap.sh"
     if boot.exists():
-        rows.append(("../bootstrap.sh", _first_doc_line_sh(boot)))
+        rows.append(("../bootstrap.sh", _purpose_summary_sh(boot)))
     return rows
 
 
@@ -505,8 +557,11 @@ def render_connections_tsv(payload: dict) -> str:
     return buffer.getvalue()
 
 
-def _truncate(s: str, n: int = 110) -> str:
-    return s if len(s) <= n else s[: n - 1] + "…"
+def _catalog_code(text: str, *, table: bool = False) -> str:
+    """Quote an exact catalog locator without breaking code spans or table cells."""
+    fence = "`" * (max((len(match.group()) for match in re.finditer(r"`+", text)), default=0) + 1)
+    cooked = text.replace("|", "\\|") if table else text
+    return fence + (" " + cooked + " " if "`" in text else cooked) + fence
 
 
 def render_md(rows) -> str:
@@ -522,7 +577,7 @@ def render_md(rows) -> str:
     for name, desc in rows:
         if "/" in name and not name.startswith("../"):
             name = "tools/" + name
-        out.append(f"| `{name}` | {_truncate(desc)} |")
+        out.append(f"| {_catalog_code(name, table=True)} | {desc} |")
     out.extend([
         "",
         "**Additional engine-internal CLI (in `mamey/`, not auto-inventoried):**",
@@ -543,7 +598,7 @@ def render_manifest_block(rows) -> str:
     for name, desc in rows:
         if "/" in name and not name.startswith("../"):
             name = "tools/" + name
-        lines.append(f"- `{name}` — {_truncate(desc, 90)}")
+        lines.append(f"- {_catalog_code(name)} — {desc}")
     lines.append(END)
     return "\n".join(lines)
 
@@ -565,6 +620,12 @@ def inject(block: str, n: int | None = None) -> str:
         return pre + block + post
     # append a fresh section
     return text.rstrip() + "\n\n---\n\n" + block + "\n"
+
+
+def _refuse_unreadable_manifest(exc: Exception) -> int:
+    """Report an unreadable capabilities page; the check and write paths share this one refusal."""
+    emit(f"TOOLS INVENTORY REFUSED — cannot read docs/BUNDLE_CAPABILITIES.md: {exc}")
+    return 1
 
 
 def main(argv=None) -> int:
@@ -618,12 +679,16 @@ def main(argv=None) -> int:
         stale = []
         if not MD_OUT.exists() or MD_OUT.read_text(encoding="utf-8") != md:
             stale.append("docs/TOOLS_INVENTORY.generated.md")
-        if MANIFEST.exists() and (START not in MANIFEST.read_text(encoding="utf-8")
-                                  or block not in MANIFEST.read_text(encoding="utf-8")):
-            stale.append("docs/BUNDLE_CAPABILITIES.md inventory block")
-        if MANIFEST.exists():
-            _mt = MANIFEST.read_text(encoding="utf-8")
-            if _reconcile_dirmap_count(_mt, len(rows)) != _mt:
+        if not MANIFEST.exists():
+            stale.append("docs/BUNDLE_CAPABILITIES.md (missing)")
+        else:
+            try:
+                manifest_text = MANIFEST.read_text(encoding="utf-8")
+            except (OSError, UnicodeError) as exc:
+                return _refuse_unreadable_manifest(exc)
+            if START not in manifest_text or block not in manifest_text:
+                stale.append("docs/BUNDLE_CAPABILITIES.md inventory block")
+            if _reconcile_dirmap_count(manifest_text, len(rows)) != manifest_text:
                 stale.append("docs/BUNDLE_CAPABILITIES.md directory-map tool count")
         if stale:
             emit("TOOLS INVENTORY STALE — regenerate with gen_tools_inventory.py:\n  "
@@ -631,14 +696,19 @@ def main(argv=None) -> int:
             return 1
         emit(f"tools inventory OK — {len(rows)} tools, manifest in sync")
         return 0
+    # The ordinary CODE owner publishes a pair. Preflight the maintained member
+    # before creating output directories or replacing either existing output.
+    try:
+        updated_manifest = inject(block, len(rows))
+    except (OSError, UnicodeError) as exc:
+        return _refuse_unreadable_manifest(exc)
     MD_OUT.parent.mkdir(parents=True, exist_ok=True)
     # v9.7.374: bare Path.write_text() calls -- a process killed mid-write left a truncated
     # docs/TOOLS_INVENTORY.generated.md, or worse, a truncated docs/BUNDLE_CAPABILITIES.md (the
     # session-start menu itself). atomic_write_text (tmp+os.replace) is the same crash-safe
     # helper already used elsewhere in this codebase for exactly this write pattern.
     atomic_write_text(MD_OUT, md)
-    if MANIFEST.exists():
-        atomic_write_text(MANIFEST, inject(block, len(rows)))
+    atomic_write_text(MANIFEST, updated_manifest)
     emit(f"wrote inventory: {len(rows)} tools; injected block into docs/BUNDLE_CAPABILITIES.md")
     return 0
 

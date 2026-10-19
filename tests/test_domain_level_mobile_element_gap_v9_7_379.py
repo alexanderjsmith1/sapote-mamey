@@ -1,4 +1,4 @@
-"""v9.7.379 (BLACK_CHERRY_379) — regression: _top_bgcs_from_package must exclude a BGC the engine
+"""v9.7.379 (regression_review_379) — regression: _top_bgcs_from_package must exclude a BGC the engine
 demoted purely for mobile/IS-element dominance, mirroring scoring.is_lead_excluded()'s 3-flag gate.
 
 The triage CSV has no Mobile_element_flag column (cli.py triage_headers), so the check must read

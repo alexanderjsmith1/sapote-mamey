@@ -1,16 +1,4 @@
-"""tests/test_verify_tier_derivation.py — regression guard for the
-as_only mismatch found in v9.7.151b.
-
-verify_tier_derivation.py's redact_text()/redact_py() previously hardcoded
-as_only=False with a comment claiming this "mirrors the code/sid public-tier
-scrub" — but every real call site in tools/make_public_tier.sh passes
---as-only, which keeps public SID strain identifiers (Chevrette 2019 attine
-ant dataset) untouched. The verifier was checking against a stricter,
-never-actually-used policy and would false-positive (FATAL: drift) on any
-document mentioning a real SID strain number — first triggered by the
-docs/batches/ batch document set, the first bundle content to cite specific
-SID numbers (SID8370/8371/8375) in prose.
-"""
+"""Source/stage text parity preserves genuine names and detects scientific-text drift."""
 from __future__ import annotations
 
 from tests._synthetic_identity_fixture import synthetic_namespace_id
@@ -35,26 +23,15 @@ def test_redact_text_leaves_sid_untouched():
     )
 
 
-def test_redact_text_is_unconditional_for_public_derivation():
-    """Public-tier derivation must redact cohort IDs regardless of the legacy AS_SCRUB flag.
-
-    The cut builder now performs this transformation unconditionally. The parity verifier must
-    model the resulting tree exactly instead of allowing an environment variable to redefine it.
-    """
-    import importlib, os
-    text = "Strain AS-999 showed a novel phosphonate BGC."
-    os.environ.pop("AS_SCRUB", None)
+def test_names_are_preserved_independently_of_legacy_switches(monkeypatch):
     import verify_tier_derivation as vtd
-    importlib.reload(vtd)
-    assert "AS-999" not in vtd.redact_text(text)
-    os.environ["AS_SCRUB"] = "0"
-    importlib.reload(vtd)
-    assert "AS-999" not in vtd.redact_text(text)
-    os.environ["AS_SCRUB"] = "1"
-    importlib.reload(vtd)
-    assert "AS-999" not in vtd.redact_text(text)
-    os.environ.pop("AS_SCRUB", None)
-    importlib.reload(vtd)
+    text = "Strain AS-999; BGC class NRPS."
+    for value in (None, "0", "1", "invalid"):
+        if value is None: monkeypatch.delenv("AS_SCRUB", raising=False)
+        else: monkeypatch.setenv("AS_SCRUB", value)
+        assert vtd.redact_text(text) == text
+        assert vtd.redact("docs/note.md", text) == text
+        assert vtd.redact("data/labels.json", '{"AS-999":"NRPS"}') == '{"AS-999":"NRPS"}'
 
 
 def test_public_derivation_models_internal_and_run_directory_stripping():
@@ -86,31 +63,16 @@ def test_path_level_derivation_keeps_python_byte_identical():
     assert redact("mamey/widget_data.py", text) == text
 
 
-def test_redact_matches_real_tier_build_policy():
-    """Source-level regression guard: redact_text/redact_py must call the
-    underlying redaction function with as_only=True, matching every call
-    site in tools/make_public_tier.sh. Catches a future re-introduction of
-    the as_only=False mismatch even before it produces a false drift report.
-
-    Checks only actual call sites (`as_only=False)` as a function-call
-    argument, not prose mentions of the string in explanatory comments —
-    this file's own changelog comment legitimately quotes "as_only=False"
-    while describing the historical bug it fixed.
-    """
-    src = (pathlib.Path(__file__).resolve().parents[1]
-           / "tools" / "verify_tier_derivation.py").read_text(encoding="utf-8")
-    import re
-    # Match it as a real call-site argument: `as_only=False)` or `as_only=False,`
-    call_site_pattern = re.compile(r"as_only\s*=\s*False\s*[,)]")
-    bad_call_sites = [
-        line for line in src.splitlines()
-        if call_site_pattern.search(line) and not line.strip().startswith("#")
-    ]
-    assert not bad_call_sites, (
-        f"Found live as_only=False call site(s), not just comment mentions: {bad_call_sites}. "
-        "This diverges from the real tier-build policy (--as-only) and produces "
-        "false-positive drift reports on any document naming a public SID strain."
-    )
-    assert src.count("as_only=True") >= 2, (
-        "Expected as_only=True in both redact_text and redact_py wrappers"
-    )
+def test_derivation_checks_preserved_text_and_missing_or_changed_files(tmp_path, monkeypatch):
+    import verify_tier_derivation as vtd
+    source, stage = tmp_path / "source", tmp_path / "stage"
+    source.mkdir(); stage.mkdir()
+    text = "AS-999\tNRPS\n"
+    (source / "labels.txt").write_text(text)
+    (stage / "labels.txt").write_text(text)
+    monkeypatch.setattr(sys, "argv", ["verify_tier_derivation", str(source), str(stage)])
+    assert vtd.main() == 0
+    (stage / "labels.txt").write_text("AS-999\tPKS\n")
+    assert vtd.main() == 1
+    (stage / "labels.txt").unlink()  # only this test's newly created file
+    assert vtd.main() == 1

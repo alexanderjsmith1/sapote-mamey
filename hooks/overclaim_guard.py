@@ -57,7 +57,7 @@ def in_report_scope(path):
     """Is this an in-scope report artefact -- one under the canonical deliverable-report home?
 
     v9.7.400 REDESIGN (Codex pool review): the prior scope check hardcoded this specific
-    deployment's private folder name ('as strain master') as a raw substring test, alongside a
+    deployment's private folder name (retained in external history) as a raw substring test, alongside a
     second raw substring test for 'strain_data'. Neither generalizes to a differently-named or
     differently-laid-out workspace, and substring containment can match inside an unrelated,
     longer path segment rather than a genuine directory component. Replaced with: the engine's

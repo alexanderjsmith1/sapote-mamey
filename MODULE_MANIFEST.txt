@@ -35,6 +35,7 @@ mamey/antismash_evidence.py	(no docstring)
 mamey/antismash_input.py	antismash_input.py — recognise an antiSMASH result archive regardless of how it was named.
 mamey/antismash_tables.py	Normalized, report-only antiSMASH evidence tables.
 mamey/architecture_first.py	architecture_first.py — Sapote-Mamey v9.7.107 patch (v2.2)  # version-sync-ok
+mamey/archive_snapshot.py	Explicit bounded, immutable in-memory archive transaction prototype.
 mamey/assembly.py	(no docstring)
 mamey/assembly_line.py	assembly_line.py — deterministic PKS/NRPS assembly-line reader (roadmap #6, report layer).
 mamey/authored_verify.py	v9.7.192 — authored-output verification: read the FINISHED deliverable, not the skeleton.
@@ -69,10 +70,17 @@ mamey/blastp_followup.py	Iterative BLASTP result ingestion and follow-up batch p
 mamey/blastp_gate.py	blastp_gate.py — BLASTp-completeness HARD gate (.344).
 mamey/blastp_ingest.py	blastp_ingest.py (v9.7.163) — ingest NCBI BLASTp output into B5_BLASTp_Hits.
 mamey/blastp_online.py	blastp_online — the missing runner + interpreter for the NCBI web BLASTp channel.
+mamey/blastp_physical_binding.py	Explicit BLASTp physical assertions, bound through existing exact-identity owners.
 mamey/blastp_strain_db.py	Build per-strain BLASTp databases from a read-only cohort or strain store.
 mamey/boundary_audit.py	mamey.boundary_audit — enforce the deterministic↔judgment contract on real data (W4/W23).
 mamey/boundary_palette.py	boundary_palette.py — single source of truth for BGC boundary-tier colours.
 mamey/canonical_write_guard.py	canonical_write_guard.py — refuse to silently overwrite a canonical dated deliverable.
+mamey/capture_completion.py	Exact local completion bindings; receipts are evidence, never snapshot capabilities.
+mamey/capture_governance.py	Bounded invocation-local exclusions; JSON receipts store digests, never capabilities.
+mamey/captured_batch.py	Explicit all-or-nothing captured batch; sequential captures, cumulative private master.
+mamey/captured_harness.py	Opt-in direct-archive intake harness using captured all-or-nothing transactions.
+mamey/captured_intake_cli.py	Explicit captured intake CLI slice; publishes intake JSON, never a full package.
+mamey/captured_run.py	Opt-in actual single-run transaction; no unbound source or early master publication.
 mamey/card_verdicts.py	card_verdicts.py — surface the engine's EXISTING per-BGC capacity verdicts onto
 mamey/cell_provenance.py	(no docstring)
 mamey/chatgpt_commands.py	chatgpt_commands.py — ChatGPT-safe Mamey subcommands (v9.7.80 P1 patch).
@@ -185,6 +193,7 @@ mamey/good_guesses.py	mamey good-guesses — the "Good Guesses" interpretive-pri
 mamey/handoff.py	Portable handoff bundler (v9.7.199).
 mamey/hmm_blastp_adjudicate.py	hmm_blastp_adjudicate — the intrinsic-structure HMM channel, reconciled with extrinsic BLASTp.
 mamey/id_resolver.py	ID resolver — one row per BGC tying together the identifiers a reader needs to cross-reference.
+mamey/intake_session.py	Opt-in captured intake session; source binding is separate from scientific certainty.
 mamey/interactive_figures/__init__.py	Interactive-figure bridge for Sapote-Mamey.
 mamey/interactive_figures/bee_review_prototypes.py	Portable exploratory bee figures. Explicit JSON input, no implicit workspace discovery.
 mamey/interactive_figures/bigscape_extension.py	Optional BiG-SCAPE companion extension for the governed Figure Factory.
@@ -286,7 +295,7 @@ mamey/nrps_predictions.py	mamey/nrps_predictions.py — recover antiSMASH NRPS p
 mamey/optional_r.py	Offline, bounded admission for optional R renderer packages.
 mamey/outgroup_registry_path.py	Portable outgroup registry location and provenance; location never confers authority.
 mamey/output_checklist.py	(no docstring)
-mamey/output_transaction.py	Stage a complete fresh tool-output set; roll back owned links on ordinary failure.
+mamey/output_transaction.py	Stage a complete fresh tool-output set; roll back owned links on catchable failure.
 mamey/p450_tailoring.py	p450_tailoring.py — cytochrome-P450 oxidative-tailoring classifier (roadmap #11).
 mamey/package_addons.py	package_addons.py — post-package emitters wired into `mamey run` (patches P01 + P02).
 mamey/package_continuity_widgets.py	Read-only package continuity and refusal-explanation widgets.
@@ -358,6 +367,7 @@ mamey/session_resume.py	session_resume.py — session-state reducer for Mamey pa
 mamey/singleton_filter.py	singleton_filter.py — biosynthetic-relevance filter for the genome-unique singleton metric.
 mamey/snapshot_alias.py	snapshot_alias.py — load a Project_Memory_Snapshot, following the v9.7.400 alias stub.
 mamey/source_availability.py	Build logical, exact-locus source-availability tables for report routing.
+mamey/source_context.py	Per-run source binding for explicitly migrated readers; no global open patching.
 mamey/source_provenance.py	source_provenance.py — how strongly is this strain's isolation source evidenced?
 mamey/source_scans.py	Source-derived scanning engine — all pattern dictionaries and scan functions.
 mamey/split_detector.py	Contig-end split detector v2 — with discriminating filters to cut false positives.

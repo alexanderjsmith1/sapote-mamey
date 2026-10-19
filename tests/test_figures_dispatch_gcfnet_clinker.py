@@ -29,11 +29,11 @@ def test_gcf_network_routes_to_bigscape_figures(monkeypatch):
     monkeypatch.setattr(bigscape_figures, "gcf_network", fake_gcf_network)
 
     rc = bgc_figures.figures_command(_args(
-        fig_kind="gcf-network", db="d.db", strain="AS-660",
+        fig_kind="gcf-network", db="d.db", strain='SYNTHETIC-CASE-016',
         run=32, cutoff=0.5, evidence=None, out="net.png",
     ))
     assert rc == 0
-    assert called["strain"] == "AS-660" and called["run"] == 32
+    assert called["strain"] == 'SYNTHETIC-CASE-016' and called["run"] == 32
 
 
 def test_clinker_routes_to_bigscape_figures(monkeypatch):

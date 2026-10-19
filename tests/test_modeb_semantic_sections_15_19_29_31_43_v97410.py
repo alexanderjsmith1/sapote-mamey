@@ -1,4 +1,8 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 from __future__ import annotations
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+COMPARATOR_ID = synthetic_namespace_id("AS", width=3, case_index=918)
 
 from mamey.cli import build_parser
 from mamey.modeb_publication_gate import publication_quality_findings
@@ -39,11 +43,11 @@ def _section19(action: str = ACTION) -> str:
 
 
 def _section29() -> str:
-    return """
+    return f"""
 #### Cross-cluster interaction adjudication
 | Partner exact locus | Interaction mechanism | Evidence for | Evidence against | Physical-link state | Allowed inference | Discriminating test |
 |---|---|---|---|---|---|---|
-| AS-2 / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | trans-acting maturation of the ctg1_1 precursor | complementary maturation domains and a shared precursor-class prediction support functional coupling | different contigs and no matched expression evidence support independent pathways | NO_PHYSICAL_LINK | functional-coupling hypothesis only; pathway interaction remains unresolved | delete the partner maturation gene with complementation and measure the ctg1_1-dependent LC-MS feature readout |
+| {COMPARATOR_ID} / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | trans-acting maturation of the ctg1_1 precursor | complementary maturation domains and a shared precursor-class prediction support functional coupling | different contigs and no matched expression evidence support independent pathways | NO_PHYSICAL_LINK | functional-coupling hypothesis only; pathway interaction remains unresolved | delete the partner maturation gene with complementation and measure the ctg1_1-dependent LC-MS feature readout |
 """
 
 
@@ -152,8 +156,8 @@ def test_section19_requires_opposed_sources_and_exact_section20_link():
 
 def test_section29_requires_complete_partner_identity_and_measured_test():
     card = _structured_card().replace(
-        "AS-2 / NODE_2_length_20000_cov_20.000000 / region001 / BGC002",
-        "AS-2 / BGC002",
+        f"{COMPARATOR_ID} / NODE_2_length_20000_cov_20.000000 / region001 / BGC002",
+        f"{COMPARATOR_ID} / BGC002",
     ).replace(
         "delete the partner maturation gene with complementation and measure the ctg1_1-dependent LC-MS feature readout",
         "future work",
@@ -182,7 +186,7 @@ def test_section31_refuses_certification_without_external_roster():
 def test_section43_requires_valid_arithmetic_identity_and_receipt():
     section = _section43(
         total=2,
-        partner="AS-2 / NODE_2_length_20000_cov_20.000000 / region001 / BGC002",
+        partner=f"{COMPARATOR_ID} / NODE_2_length_20000_cov_20.000000 / region001 / BGC002",
     ).replace("| 2 | 0 | 0 | 2 | 0 |", "| 2 | 1 | 1 | 1 | 3 |").replace(SHA, "pending")
     codes = _target_codes(_replace(_structured_card(), 43, section))
     assert "SECTION_43_RUN_RECEIPT_INVALID" in codes

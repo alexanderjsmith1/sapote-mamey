@@ -121,7 +121,7 @@ def load_registry(path: pathlib.Path | None = None) -> list[Rule]:
 
 
 def load_inventory_tier_policy(path: pathlib.Path | None = None) -> dict:
-    """Load and validate the governed AQUARIUS_01 bottom-tier routing policy.
+    """Load and validate the governed inventory bottom-tier routing policy.
 
     The policy is kept beside standing rules so the scorer, audit, renderers, and
     documentation can share one class list and one normalization contract.  The

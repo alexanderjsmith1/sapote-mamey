@@ -1,6 +1,6 @@
 # Command catalog (generated)
 
-*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.451 · engine 1.9.176. Do not edit by hand; `--check` fails the build when stale.*
+*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.453 · engine 1.9.176. Do not edit by hand; `--check` fails the build when stale.*
 
 Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root (the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take `--package <sealed package dir>`; `run` is the only command that creates a package. Claim-safety: every output is a class-level hypothesis with judgment deferred.
 
@@ -18,6 +18,7 @@ _Deterministic extraction — the only step that creates a package._
 | `validate` | Validate an existing package directory |
 | `seal-package` | Run all QC gates on a package and emit a seal receipt |
 | `inspect` | Preview what Mamey sees in an antiSMASH ZIP before running |
+| `intake-captured` | Opt-in intake-only capture; writes intake.json and manifest.json |
 | `start` | Primary CLI starting point: show the five-command workflow and run the environment check |
 | `doctor` | Pre-flight environment check: Python, deps, write permissions, bundle integrity |
 | `capabilities` | Search full docstrings for existing internal tools before writing a new one |
@@ -181,4 +182,4 @@ _Retained for existing scripts and specialized maintenance. They are not additio
 | `codex-bigscape-figure-sets` | Legacy-named Figure Factory command: render the optional BiG-SCAPE figure extension |
 | `codex-heatmaps` | Legacy-named Figure Factory command: convert matrix CSVs into SVG/HTML figure packs |
 
-_117 canonical commands catalogued; 2 aliases folded into those rows._
+_118 canonical commands catalogued; 2 aliases folded into those rows._

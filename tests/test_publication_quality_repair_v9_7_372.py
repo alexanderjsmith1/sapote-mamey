@@ -3,7 +3,7 @@
 The gate-side program (broken tables, §§5-7 scaffolds, stream dispositions, section matrix,
 readiness cap) is implemented and tested by the Codex combined patch
 (tests/test_modeb_publication_quality_v9_7_372.py + the matrix/emitter/readiness files). These
-tests pin the AQUARIUS layers that patch does not touch: front-door named-profile alignment,
+tests pin the inventory_review layers that patch does not touch: front-door named-profile alignment,
 the contract JSON profile block, and the channel-separated matrix schema constants.
 """
 import json

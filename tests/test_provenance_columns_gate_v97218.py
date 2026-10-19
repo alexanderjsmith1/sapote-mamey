@@ -47,7 +47,7 @@ def test_good_per_bgc_table_passes(tmp_path):
     """The canonical strain/assembly_locator/contig/region/BGC_ID lead order must PASS."""
     p = _write(tmp_path, "good.tsv",
                ["strain", "assembly_locator", "contig", "region", "BGC_ID", "products"],
-               [["AS-421", "NODE_13 region001 (BGC001)", "NODE_13", "region001", "BGC001", "RiPP"]])
+               [['SYNTHETIC-CASE-013', "NODE_13 region001 (BGC001)", "NODE_13", "region001", "BGC001", "RiPP"]])
     r = _run(p)
     assert r.returncode == 0, r.stderr
 
@@ -55,7 +55,7 @@ def test_good_per_bgc_table_passes(tmp_path):
 def test_assembly_locator_alone_satisfies_contig_region(tmp_path):
     """assembly_locator encodes node+region, so it satisfies both without separate columns."""
     p = _write(tmp_path, "loc.tsv", ["strain", "assembly_locator", "BGC_ID"],
-               [["AS-421", "NODE_6 region002 (BGC041)", "BGC041"]])
+               [['SYNTHETIC-CASE-013', "NODE_6 region002 (BGC041)", "BGC041"]])
     r = _run(p)
     assert r.returncode == 0, r.stderr
 

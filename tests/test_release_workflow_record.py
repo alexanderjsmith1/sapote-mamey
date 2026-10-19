@@ -75,11 +75,13 @@ def test_transformed_source_resumes_at_failed_gate_without_repeating_prior_stage
     assert all(len(stage["attempts"]) == len(old["attempts"]) for stage, old in zip(again["stages"], result["stages"]))
 
 
-def test_changed_output_or_child_log_refuses_reuse(engine, tmp_path):
+@pytest.mark.parametrize("mutation", ["changed", "added"])
+def test_changed_output_or_child_log_refuses_reuse(engine, tmp_path, mutation):
     source, output, env = setup(tmp_path)
     plan = (engine.Stage("output", ("{PYTHON}", "-c", 'from pathlib import Path; p=Path(r"{OUT}")/"tree";p.mkdir();(p/"log").write_text("original")'), output_trees=("tree",)),)
     workflow(engine, source, output, plan, env).run()
-    (output / "tree/log").write_text("tampered")
+    target = output / ("tree/log" if mutation == "changed" else "tree/unexpected.txt")
+    target.write_text("tampered")
     with pytest.raises(ValueError, match="output inventory changed"):
         workflow(engine, source, output, plan, env).run(resume=True)
     data = json.loads((output / "workflow.json").read_text())
@@ -206,3 +208,42 @@ def test_closing_stage_events_records_failure_and_releases_lock(engine, tmp_path
     assert record['status'] == 'FAILED' and record['stages'][0]['attempts'] == []
     with engine.partition.exclusive(output):
         assert record['committed_source_sha256'] == engine.partition.source_digest(source)
+
+
+
+def test_discovered_finder_metadata_does_not_change_stage_inventory(engine, tmp_path):
+    tree = tmp_path / "tree"; tree.mkdir()
+    nested = tree / "nested"; nested.mkdir()
+    (nested / "evidence.txt").write_text("bound evidence")
+    plan = engine.Stage("tree", ("unused",), output_trees=("tree",))
+    before = engine.output_inventory(tmp_path, plan)
+    for parent in (tree, nested):
+        (parent / ".DS_Store").write_bytes(b"Finder metadata")
+    assert engine.output_inventory(tmp_path, plan) == before
+    (nested / ".DS_Store").write_bytes(b"changed Finder metadata")
+    assert engine.output_inventory(tmp_path, plan) == before
+    assert (tree / ".DS_Store").read_bytes() == b"Finder metadata"
+    assert (nested / ".DS_Store").read_bytes() == b"changed Finder metadata"
+    # A directory with that name must not hide real descendant evidence.
+    (tree / ".DS_Store").unlink()
+    hidden = tree / ".DS_Store"; hidden.mkdir()
+    (hidden / "evidence.txt").write_text("still bound")
+    assert engine.output_inventory(tmp_path, plan) != before
+
+
+def test_explicit_finder_named_output_remains_bound(engine, tmp_path):
+    metadata = tmp_path / ".DS_Store"; metadata.write_bytes(b"explicit output")
+    plan = engine.Stage("explicit", ("unused",), outputs=(".DS_Store",))
+    before = engine.output_inventory(tmp_path, plan)
+    assert [row["path"] for row in before] == [".DS_Store"]
+    metadata.write_bytes(b"changed explicit output")
+    assert engine.output_inventory(tmp_path, plan) != before
+
+
+def test_finder_named_symlink_still_refuses_inventory(engine, tmp_path):
+    tree = tmp_path / "tree"; tree.mkdir()
+    evidence = tmp_path / "evidence.txt"; evidence.write_text("outside tree")
+    (tree / ".DS_Store").symlink_to(evidence)
+    plan = engine.Stage("tree", ("unused",), output_trees=("tree",))
+    with pytest.raises(ValueError, match="output tree contains a symlink"):
+        engine.output_inventory(tmp_path, plan)

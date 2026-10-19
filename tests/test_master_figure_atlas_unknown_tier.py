@@ -23,7 +23,7 @@ def _input_with_unknown_tier():
          "top_antibacterial_score": 80, "top_antifungal_score": 40,
          "top_antibacterial_products": "RiPP", "top_antifungal_products": "NRPS",
          "top_antibacterial_locator": "NODE_1 (BGC001)", "top_antifungal_locator": "NODE_2 (BGC002)"},
-        {"strain_id": "AS-2", "assembly_tier": "",   # <- blank tier == UNKNOWN bucket
+        {"strain_id": 'SYNTHETIC-CASE-002', "assembly_tier": "",   # <- blank tier == UNKNOWN bucket
          "top_antibacterial_score": 55, "top_antifungal_score": 70,
          "top_antibacterial_products": "PKS", "top_antifungal_products": "nucleoside",
          "top_antibacterial_locator": "NODE_3 (BGC003)", "top_antifungal_locator": "NODE_4 (BGC004)"},
@@ -46,7 +46,7 @@ def test_unknown_tier_strain_is_plotted_and_bucketed(tmp_path):
     tiers = {r["assembly_tier"] for r in rows}
     strains = {r["strain_id"] for r in rows}
     # both strains are in the CSV (they always were) ...
-    assert strains == {"AS-1", "AS-2"}
+    assert strains == {"AS-1", 'SYNTHETIC-CASE-002'}
     # ... and the blank tier is now normalized to an explicit UNKNOWN bucket, not left blank/dropped
     assert "UNKNOWN" in tiers
     assert "" not in tiers

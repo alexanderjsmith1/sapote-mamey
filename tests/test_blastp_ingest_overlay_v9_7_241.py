@@ -45,7 +45,7 @@ openpyxl = pytest.importorskip("openpyxl")
 def _pkg(tmp_path: Path) -> Path:
     pkg = tmp_path / "package"
     pkg.mkdir()
-    gc = pkg / "AS-421_gene_context.jsonl"
+    gc = pkg / "SYNTHETIC-CASE-013_gene_context.jsonl"
     gc.write_text(
         json.dumps({"bgc_id": "BGC017", "cds": [
             {"locus_tag": "ctg2_360", "sec_met_domains": ["AMP-binding", "Condensation", "PCP"]},
@@ -63,8 +63,8 @@ def _pkg(tmp_path: Path) -> Path:
 def _row(bgc, gene, aa, acc, desc, pid, bits="500", rank="1", qs="1", qe="100"):
     """A B5 row as build_b5_rows() emits it."""
     return {
-        "strain": "AS-421", "BGC_ID": bgc, "contig": gene.split("_")[0],
-        "query_locus": f"AS-421|{bgc}|slot=1|role=core|gene={gene}|aa={aa}|reason=x",
+        "strain": "SYNTHETIC-CASE-013", "BGC_ID": bgc, "contig": gene.split("_")[0],
+        "query_locus": f"SYNTHETIC-CASE-013|{bgc}|slot=1|role=core|gene={gene}|aa={aa}|reason=x",
         "query_len": "", "hit_rank": rank, "subject_acc": acc, "subject_desc": desc,
         "sciname": "Streptosporangium saharense", "pct_identity": pid,
         "positives_pct": "", "align_len": "100", "mismatches": "", "gap_opens": "",
@@ -204,7 +204,7 @@ def _master(tmp_path: Path) -> Path:
 
 def _hit_table(tmp_path: Path, name="hits.csv") -> Path:
     """Headerless NCBI -outfmt 10 Hit Table, 13 columns."""
-    q = "AS-421|BGC017|slot=1|role=core|gene=ctg2_347|aa=386|reason=x"
+    q = "SYNTHETIC-CASE-013|BGC017|slot=1|role=core|gene=ctg2_347|aa=386|reason=x"
     p = tmp_path / name
     p.write_text(
         f"{q},WP_1.1,97.927,386,8,0,1,386,1,386,0.0,780,98.4\n"
@@ -218,11 +218,11 @@ def test_p7c_reingesting_the_same_hit_table_is_a_no_op(tmp_path):
     from mamey.blastp_ingest import ingest_blastp
     m, ht = _master(tmp_path), _hit_table(tmp_path)
 
-    first = ingest_blastp(m, "AS-421", ht, top_n=5)
+    first = ingest_blastp(m, "SYNTHETIC-CASE-013", ht, top_n=5)
     assert first["rows"] == 2
     assert first.get("duplicates_skipped", 0) == 0
 
-    second = ingest_blastp(m, "AS-421", ht, top_n=5)
+    second = ingest_blastp(m, "SYNTHETIC-CASE-013", ht, top_n=5)
     assert second["rows"] == 0, "re-ingesting the same table must append nothing"
     assert second["duplicates_skipped"] == 2
 
@@ -235,12 +235,12 @@ def test_p7c_a_distinct_hit_table_still_appends(tmp_path):
     from mamey.blastp_ingest import ingest_blastp
     m = _master(tmp_path)
     ht1 = _hit_table(tmp_path, "r1.csv")
-    q2 = "AS-421|BGC017|slot=2|role=core|gene=ctg2_360|aa=4071|reason=x"
+    q2 = "SYNTHETIC-CASE-013|BGC017|slot=2|role=core|gene=ctg2_360|aa=4071|reason=x"
     ht2 = tmp_path / "r2.csv"
     ht2.write_text(f"{q2},WP_9.1,96.491,4075,140,3,1,4071,1,4075,0.0,7714,97.2\n", encoding="utf-8")
 
-    ingest_blastp(m, "AS-421", ht1, top_n=5)
-    out = ingest_blastp(m, "AS-421", ht2, top_n=5)
+    ingest_blastp(m, "SYNTHETIC-CASE-013", ht1, top_n=5)
+    out = ingest_blastp(m, "SYNTHETIC-CASE-013", ht2, top_n=5)
     assert out["rows"] == 1 and out["duplicates_skipped"] == 0
     ws = openpyxl.load_workbook(m, read_only=True)["B5_BLASTp_Hits"]
     assert ws.max_row == 4

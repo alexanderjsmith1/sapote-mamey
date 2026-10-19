@@ -2,6 +2,8 @@
 from pathlib import Path
 import importlib.util
 import json
+import shlex
+import tomllib
 import sqlite3
 import subprocess
 import sys
@@ -69,8 +71,18 @@ def test_nested_inventory_does_not_depend_on_shared_discovery_bug(tmp_path, monk
 
 def test_release_runner_honours_configured_scope():
     script = (ROOT / 'tools/release_cut.sh').read_text()
-    assert 'python3 -m pytest -q' in script
-    assert 'python3 -m pytest tests/' not in script
+    profile = tool('verify_external_validation_receipt').COMMAND_TAIL
+    configured = tomllib.loads((ROOT/'pyproject.toml').read_text())['tool']['pytest']['ini_options']['testpaths']
+    assert {'tests', 'tools', 'deliverable_tools'} <= set(configured)
+    commands = [line for line in script.splitlines()
+                if '-m pytest' in line and not line.lstrip().startswith('#')]
+    assert len(commands) == 2
+    for line in commands:
+        assert '"$PYTHON" -m pytest' in line
+        words = shlex.split(line.split('>', 1)[0])
+        # Exact canonical argv has no positional test root or selection filter:
+        # collection therefore uses every configured testpath above.
+        assert words[words.index('$PYTHON')+1:] == profile
 
 def test_anti_emptying_guard_sees_adjacent_tools():
     spec = importlib.util.spec_from_file_location('_scope_guard', ROOT / 'tests/test_no_test_file_defines_zero_tests_v97416.py')

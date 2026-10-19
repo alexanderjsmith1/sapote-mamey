@@ -15,6 +15,14 @@ _lane = _fixture._lane
 
 SCRIPT = Path(__file__).resolve().parents[1] / "tools/blastp_monitoring/plot_crawl_proteins_24_96h.py"
 
+if __package__ in (None, ""):
+    from _synthetic_identity_fixture import synthetic_namespace_id
+else:
+    from tests._synthetic_identity_fixture import synthetic_namespace_id
+_FORMAT_CASE_3 = synthetic_namespace_id('AS', width=3, case_index=828)
+_FORMAT_CASE_2 = synthetic_namespace_id('AS', width=2, case_index=80)
+_FORMAT_CASE_1 = synthetic_namespace_id('AS', width=3, case_index=805)
+
 
 def run_plot(tmp_path, monkeypatch, *args):
     monkeypatch.setenv("SAPOTE_WORKSPACE_ROOT", str(tmp_path))
@@ -111,25 +119,25 @@ def test_timezone_label_comes_from_runtime_locale(tmp_path, monkeypatch):
 
 def test_strain_lanes_get_short_one_line_labels(tmp_path, monkeypatch):
     stamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    _lane(tmp_path, "_STRAINGAP_SINGLE_CLNR_GAP_AS932", "panel0.faa", stamp)
-    _lane(tmp_path, "_NR_RID_AS-40", "panel1.faa", stamp)
+    _lane(tmp_path, f"_STRAINGAP_SINGLE_CLNR_GAP_{_FORMAT_CASE_3.replace("-", "")}", "panel0.faa", stamp)
+    _lane(tmp_path, f"_NR_RID_{_FORMAT_CASE_2}", "panel1.faa", stamp)
     state = run_plot(tmp_path, monkeypatch)
     fig = state["fig"]
     texts = [t.get_text() for t in fig.legends[0].get_texts()]
-    assert any(t.startswith("AS-932 — ") for t in texts)
-    assert any(t.startswith("AS-40 nr — ") for t in texts)
+    assert any(t.startswith(f"{_FORMAT_CASE_3} — ") for t in texts)
+    assert any(t.startswith(f"{_FORMAT_CASE_2} nr — ") for t in texts)
     assert all("\n" not in t for t in texts)
     plt.close(fig)
 
 
 def test_same_strain_in_two_lanes_keeps_both_distinct(tmp_path, monkeypatch):
     stamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    _lane(tmp_path, "_STRAINGAP_SINGLE_CLNR_AS190", "panel0.faa", stamp)
-    _lane(tmp_path, "_STRAINGAP_SINGLE_CLNR_GAP_AS190", "panel1.faa", stamp)
+    _lane(tmp_path, f"_STRAINGAP_SINGLE_CLNR_{_FORMAT_CASE_1.replace("-", "")}", "panel0.faa", stamp)
+    _lane(tmp_path, f"_STRAINGAP_SINGLE_CLNR_GAP_{_FORMAT_CASE_1.replace("-", "")}", "panel1.faa", stamp)
     state = run_plot(tmp_path, monkeypatch)
     names = list(state["data"])
     assert len(names) == 2 and len(set(names)) == 2
-    assert all(name.startswith("AS-190 [") for name in names)
+    assert all(name.startswith(f"{_FORMAT_CASE_1} [") for name in names)
     plt.close(state["fig"])
 
 

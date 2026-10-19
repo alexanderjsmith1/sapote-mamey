@@ -203,7 +203,7 @@ def test_pc12_mobile_t1_resistance_nonconcordant_is_cargo_demoted():
     rec = {r.bgc_id: r for r in triage_bgcs([bgc], rggmci=None, scans=scans)}["BGC032"]
     assert rec.mobile_element_flag != ""        # mobile demotion now fires on the resistance path too
     assert rec.ab_score <= 25.0                 # AB floored
-    # AQUARIUS_01: class-gated bottom — the cargo is a specialized RiPP/lanthipeptide, so its bottom
+    # inventory_review_01: class-gated bottom — the cargo is a specialized RiPP/lanthipeptide, so its bottom
     # label is 'Low', not 'Inventory'. The guarded property holds: it is NOT floated to Medium by the
     # cargo T1, and stays below the lead board.
     assert rec.lead_tier == "Low"               # NOT floated to Medium by the cargo T1 (tier1_floor cargo-aware)

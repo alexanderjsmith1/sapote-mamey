@@ -289,19 +289,58 @@ def scan_tree(root, *, as_only: bool = True, archive_ext=None, denylist=None,
     denylist = denylist if denylist is not None else _load_denylist(None)
     findings: list[dict] = []
     n = 0
-    for p in sorted(root.rglob("*")):
-        if "__pycache__" in p.parts:
-            continue
-        # Suffix selection is lexical. is_file() follows symlinks and returns False for a
-        # broken link, silently suppressing exactly the archive-shaped candidates that
-        # scan_archive's lstat gate must classify.
-        if p.suffix.lower() not in archive_ext:
-            continue
-        n += 1
-        findings.extend(scan_archive(
-            p, as_only=as_only, denylist=denylist, max_depth=max_depth,
-            policy_identifiers=policy_identifiers, scan_builtin=scan_builtin,
-            max_member_bytes=max_member_bytes, max_expanded_bytes=max_expanded_bytes))
+    def note(path: Path, kind: str, token: str = "") -> None:
+        findings.append({"archive": str(path), "member": "", "kind": kind,
+                         "token": token, "snippet": "archive-tree enumeration incomplete"})
+
+    try:
+        mode = root.lstat().st_mode
+    except OSError as exc:
+        note(root, "tree_root_error", type(exc).__name__)
+        return findings, n
+    if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
+        note(root, "tree_root_not_directory")
+        return findings, n
+
+    def walk_error(exc: OSError) -> None:
+        note(Path(exc.filename) if exc.filename else root, "tree_walk_error", type(exc).__name__)
+
+    for directory, dirs, files in os.walk(root, topdown=True, followlinks=False, onerror=walk_error):
+        dirs.sort()
+        for name in list(dirs):
+            path = Path(directory) / name
+            if name == "__pycache__":
+                dirs.remove(name)
+                continue
+            # Select directories lexically too: a directory named *.zip is
+            # an archive candidate whose lstat admission must report nonregular.
+            archive_shaped = path.suffix.lower() in archive_ext
+            if archive_shaped:
+                n += 1
+                findings.extend(scan_archive(
+                    path, as_only=as_only, denylist=denylist, max_depth=max_depth,
+                    policy_identifiers=policy_identifiers, scan_builtin=scan_builtin,
+                    max_member_bytes=max_member_bytes, max_expanded_bytes=max_expanded_bytes))
+            try:
+                mode = path.lstat().st_mode
+            except OSError as exc:
+                note(path, "tree_walk_error", type(exc).__name__)
+                dirs.remove(name)
+                continue
+            if stat.S_ISLNK(mode):
+                if not archive_shaped:  # Already classified as archive_symlink above.
+                    note(path, "directory_symlink")
+                dirs.remove(name)
+        for name in sorted(files):
+            p = Path(directory) / name
+            # Lexical selection preserves broken archive symlinks for scan_archive's lstat gate.
+            if p.suffix.lower() not in archive_ext:
+                continue
+            n += 1
+            findings.extend(scan_archive(
+                p, as_only=as_only, denylist=denylist, max_depth=max_depth,
+                policy_identifiers=policy_identifiers, scan_builtin=scan_builtin,
+                max_member_bytes=max_member_bytes, max_expanded_bytes=max_expanded_bytes))
     return findings, n
 
 

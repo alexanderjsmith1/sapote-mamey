@@ -1,4 +1,4 @@
-"""v9.7.384 (GOLDENROD): manifest.json records input_zip_sha256.
+"""v9.7.384 (release_review): manifest.json records input_zip_sha256.
 
 Completes source-archive provenance: the sealed manifest already records
 `input_zip` (the path, cli.py F3 v9.7.198), but not the content digest — so

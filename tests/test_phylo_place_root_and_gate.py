@@ -12,6 +12,10 @@ CONTRACTS that matter without invoking the toolchain:
      provenance claims a registry-rooted backbone.
 
 Class-level taxonomy context; judgment deferred.
+
+The AS-shaped controls selected here are authored parser fixtures using existing reserved
+fixture declarations. Their bound-snapshot noncollision does not grant disclosure permission;
+empirical/reference records, historical anchors and scientific assertions remain distinct.
 """
 import importlib.util
 import re
@@ -44,14 +48,14 @@ def test_graft_gate_is_wired_and_refuses_before_render():
 def test_gate_decision_matches_the_installed_checker(tmp_path):
     tsc = _load_tsc()
     bad = tmp_path / "bad.newick"
-    bad.write_text("((AS-1:0.01,AS-2:0.01):0.01,(Ref_a:0.01,Ref_b:0.01):0.01,AS-3:0.40);")
+    bad.write_text('((AS-1:0.01,AS-971:0.01):0.01,(Ref_a:0.01,Ref_b:0.01):0.01,AS-3:0.40);')
     ok, msg = tsc.check(str(bad))
     # v9.7.413 addendum: `bad` carries no outgroup tag, so NO_OUTGROUP fires alone, not alongside a
     # DOMINATING_BRANCH finding on the same untrusted branch (see the suppression fix in
     # tools/tree_sanity_check.py::check()).
     assert not ok and "NO_OUTGROUP" in msg and "DOMINATING_BRANCH" not in msg
     good = tmp_path / "ok.newick"
-    good.write_text("((AS-1:0.01,AS-2:0.01):0.01,(Ref_a:0.01,Ref_b:0.01):0.01,Outer_x:0.31);")
+    good.write_text('((AS-1:0.01,AS-971:0.01):0.01,(Ref_a:0.01,Ref_b:0.01):0.01,Outer_x:0.31);')
     ok2, msg2 = tsc.check(str(good), outgroup="Outer")
     assert ok2 and "outgroup-exempt" in msg2
 

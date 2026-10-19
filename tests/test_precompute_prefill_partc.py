@@ -1,6 +1,9 @@
-"""v9.7.225 Part C: the card assembler pre-fills grounded facts from the cohort precompute tables,
-joined on assembly_locator (Part B key). Hermetic synthetic fixture."""
+"""Part C import hold and supplied-fact renderer coverage (§11/§14).
+
+Renderer facts are fabricated presentation inputs, not admitted cohort evidence.
+"""
 import csv, os, tempfile, sys, pathlib
+import pytest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from mamey.modeb_template_emitter import _precompute_facts, _section_body
 
@@ -17,22 +20,38 @@ def _fixture(root):
       ["Strain", "BGC_ID", "Assembly_Locator", "Safe_domain_claims", "Unsafe_domain_claims", "Domain_claim_ceiling"],
       ["AS-777", "BGC065", LOC, "RiPP maturation/tailoring", "confirmed RiPP product without precursor validation", "architecture/family-level; not product identity"])
 
-def test_join_and_prefill_sections():
+def test_imported_prefill_is_explicitly_held():
     with tempfile.TemporaryDirectory() as root:
         _fixture(root)
-        f = _precompute_facts(root, LOC)
-        assert f["pc_archetype"] == "lasso/other RiPP"
-        assert "family-level" in f["pc_claim_ceiling"]
-        # §11 pre-fills the archetype (grounded)
-        s11 = _section_body(11, f, {})
-        assert "lasso/other RiPP" in s11 and "grounded" in s11
-        # §14 pre-fills the claim ceiling + unsafe claims, keeps capacity language
-        s14 = _section_body(14, f, {})
-        assert "confirmed RiPP product without precursor validation" in s14
-        assert "never 'produces'" in s14
+        with pytest.raises(ValueError, match="COHORT_PREFILL_SOURCE_BINDING_UNAVAILABLE"):
+            _precompute_facts(root, LOC)
+
 
 def test_absent_precompute_leaves_authoring_prompt():
-    # no precompute dir -> sections keep their author prompt (non-fatal)
-    assert _precompute_facts("/nonexistent", LOC) == {}
+    # Supplying an unavailable imported capability holds; default prompts remain.
+    with pytest.raises(ValueError, match="COHORT_PREFILL_SOURCE_BINDING_UNAVAILABLE"):
+        _precompute_facts("/nonexistent", LOC)
     assert "Author:" in _section_body(14, {}, {})
     assert "Author:" in _section_body(11, {}, {})
+
+
+def test_section11_and_section14_render_supplied_facts():
+    # Keep renderer coverage separate from the unavailable cohort import.
+    f = {
+        "pc_archetype": "lasso/other RiPP",
+        "pc_archetype_note": "lasso or other RiPP maturation present",
+        "pc_domain_string": "AA_permease - Gly_kinase",
+        "pc_safe_claims": "RiPP maturation/tailoring",
+        "pc_unsafe_claims": "confirmed RiPP product without precursor validation",
+        "pc_claim_ceiling": "architecture/family-level; not product identity",
+    }
+    assert f["pc_archetype"] == "lasso/other RiPP"
+    assert "family-level" in f["pc_claim_ceiling"]
+    # §11 archetype and grounded wording remain renderer responsibilities.
+    s11 = _section_body(11, f, {})
+    assert "lasso/other RiPP" in s11 and "grounded" in s11
+    # §14 displays the ceiling and unsafe language without promoting production.
+    s14 = _section_body(14, f, {})
+    assert "confirmed RiPP product without precursor validation" in s14
+    assert "never 'produces'" in s14
+    assert "architecture/family-level; not product identity" in s14

@@ -22,9 +22,10 @@ asserted MY form, so they FAILED against the corrected engine — a test pinning
 no test, because the next composer reading a red suite would "fix" the engine back to the broken form.
 Corrected here to assert the canonical accession.
 
-Consequence already in the world: every per-genus figure delivered 2026-09-08 under
-AS Strain Master/_PLACEMENT/PER_GENUS_DELIVERABLE_2026-09-08/ prints the underscore-less
-accession. They need a re-render against .418 before anyone cites one.
+Historical consequence recorded for the 2026-09-08 per-genus deliverables: their
+figures printed the underscore-less accession and required re-rendering against .418.
+The original deployment path is omitted here, not renamed as a historical receipt.
+Exact historical labels remain in the maintainer's crosswalk outside CODE.
 """
 import importlib.util
 import os

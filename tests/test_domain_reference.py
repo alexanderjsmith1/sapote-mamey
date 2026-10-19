@@ -103,7 +103,7 @@ def test_emitter_writes_tsv_and_md():
 def test_merge_across_packages_sums_counts():
     with tempfile.TemporaryDirectory() as root:
         p1 = _pkg(root, "AS-1", [("BGC001", "PKS_KS", "PF00109")], [])
-        p2 = _pkg(root, "AS-2", [("BGC001", "PKS_KS", "PF00109"), ("BGC002", "PKS_KS", "PF00109")], [])
+        p2 = _pkg(root, 'SYNTHETIC-CASE-002', [("BGC001", "PKS_KS", "PF00109"), ("BGC002", "PKS_KS", "PF00109")], [])
         rows = B._merge_packages([p1, p2])
         ks = {r["domain"]: r for r in rows}["PKS_KS"]
         assert ks["n_bgcs"] == 3 and ks["n_packages"] == 2

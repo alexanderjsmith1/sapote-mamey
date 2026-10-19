@@ -35,6 +35,9 @@ from typing import Optional
 from .modeb_structure_gate import load_contract, _build_predicates
 from .manifest_schema import read_manifest_field
 
+COHORT_PREFILL_HOLD = ("COHORT_PREFILL_SOURCE_BINDING_UNAVAILABLE: imported cohort prefill is held; "
+                       "omit --from-precompute and use package-backed templates")
+
 
 # ---------------------------------------------------------------------------
 # Public entry points
@@ -72,56 +75,12 @@ def _section_floor_for(num: int, facts: dict) -> int:
 
 
 def _precompute_facts(pc_dir: str, join_locator: str, strain: str = "", bgc_id: str = "") -> dict:
-    """Part C: join a BGC's grounded facts from the cohort precompute tables on the assembly_locator
-    (Part B key). Cohort tables are the single source; sections pre-fill from these. Non-fatal."""
-    import csv as _csv
-    from pathlib import Path as _P
-    if not join_locator or not _P(pc_dir).is_dir():
-        return {}
+    """Hold optional imported facts until their selected-source binding is implemented.
 
-    def _rows(fn, key="Assembly_Locator"):
-        p = _P(pc_dir) / fn
-        if not p.is_file():
-            return []
-        with open(p, encoding="utf-8") as fh:
-            return [r for r in _csv.DictReader(fh) if r.get(key) == join_locator]
-
-    f = {}
-    arch = _rows("COHORT_domain_architecture_by_bgc.csv")
-    if arch:
-        f["pc_archetype"] = arch[0].get("architecture_archetype", "")
-        f["pc_archetype_note"] = arch[0].get("archetype_note", "")
-        f["pc_domain_string"] = arch[0].get("domain_architecture_string", "")
-    mod = _rows("COHORT_module_architecture_by_bgc.csv")
-    if mod:
-        f["pc_module_count"] = mod[0].get("aSModule_count", "")
-        f["pc_module_types"] = mod[0].get("module_types", "")
-    cc = _rows("COHORT_domain_claim_ceiling_by_bgc.csv")
-    if cc:
-        f["pc_safe_claims"] = cc[0].get("Safe_domain_claims", "")
-        f["pc_unsafe_claims"] = cc[0].get("Unsafe_domain_claims", "")
-        f["pc_claim_ceiling"] = cc[0].get("Domain_claim_ceiling", "")
-    roles = _rows("COHORT_domain_roles_by_bgc.csv")
-    if roles:
-        f["pc_roles"] = "; ".join(f"{r.get('domain_role_category','')}×{r.get('count','')}" for r in roles)
-    # resistance + nrps substrates key on (strain, bgc_id) — they carry node_region/contig, not the
-    # full assembly_locator. Similarity-level throughout.
-    if strain and bgc_id:
-        pr = _P(pc_dir) / "COHORT_resistance_signals_by_bgc.csv"
-        if pr.is_file():
-            with open(pr, encoding="utf-8") as fh:
-                rz = [r for r in _csv.DictReader(fh)
-                      if r.get("strain") == strain and r.get("bgc_id") == bgc_id and r.get("resistance_genes")]
-            if rz:
-                f["pc_resistance"] = "; ".join(r["resistance_genes"] for r in rz)
-        p = _P(pc_dir) / "COHORT_nrps_adomain_substrates.csv"
-        if p.is_file():
-            with open(p, encoding="utf-8") as fh:
-                subs = [r for r in _csv.DictReader(fh)
-                        if r.get("strain") == strain and r.get("bgc_id") == bgc_id]
-            if subs:
-                f["pc_substrates"] = subs  # additive agreement fields preserve predictor conflicts when available
-    return f
+    A readable locus or strain/BGC label cannot distinguish source versions.
+    Package-backed template facts and cohort table production remain available.
+    """
+    raise ValueError(COHORT_PREFILL_HOLD)
 
 
 def emit_card_template(package_dir: str | Path,
@@ -147,8 +106,8 @@ def emit_card_template(package_dir: str | Path,
       - Each section gets a one-line authoring prompt as an HTML comment
         the chat replaces with prose
 
-    Never raises on missing data — fields that can't be resolved show as
-    "—" and become part of §15 Missing evidence.
+    Missing data remains explicit. A present malformed gene-context source
+    refuses emission before a partial roster can be presented as a locus census.
     """
     pkg = Path(package_dir)
     if contract is None:
@@ -159,9 +118,8 @@ def emit_card_template(package_dir: str | Path,
         raise ValueError("EXPANDED_LOCUS_CONTRACT_REQUIRED: use --contract current50_v2 with expanded-locus sources")
     facts = _bgc_facts(pkg, bgc_id)
     facts.update(_over_merge_facts(pkg, facts))
-    # Part C (v9.7.225): pre-fill grounded facts from the cohort precompute layer, joined on the
-    # assembly_locator (Part B key). Cohort tables are the single source so no card re-derives modules,
-    # archetype, claim ceiling, or substrates. Non-fatal — absent tables/rows leave the pre-fills as "—".
+    # Imported cohort facts are an optional held capability. The shared reader
+    # refuses them; package-backed template emission needs no imported table.
     if precompute_dir:
         from .package_inspector import _cohort_locator
         _join = _cohort_locator({"Contig": facts.get("contig", ""), "antiSMASH_Region": facts.get("region", "")})
@@ -255,6 +213,9 @@ def emit_batch(package_dir: str | Path,
     """
     pkg = Path(package_dir)
     out_dir = pkg / out_subdir
+    if precompute_dir:
+        return {"out": str(out_dir), "emitted": [], "paths": {}, "identity_holds": [],
+                "skipped": {}, "skipped_reason": COHORT_PREFILL_HOLD}
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if contract is None:
@@ -1326,14 +1287,15 @@ def _gene_rows_for_bgc(pkg: Path, bgc_id: str) -> list[dict]:
     gene_context.jsonl is one JSON object per line, each carrying a bgc_id (or
     grouped by it, depending on the emitter version). Returns the rows for this
     BGC in genomic order (by start coord). Honest-blank ([]) on any absence or
-    parse error — never raises. (v9.7.155)
+    absence. A present malformed/unreadable source raises a typed source-integrity
+    refusal; no prefix or fallback may replace a failed canonical source.
     """
-    rows: list[dict] = []
     # canonical sealed source
     for name in (f"{_strain_prefix(pkg)}_gene_context.jsonl", "gene_context.jsonl"):
         gc = pkg / name
         if not gc.exists():
             continue
+        candidate_rows: list[dict] = []
         try:
             for line in gc.read_text(encoding="utf-8").splitlines():
                 line = line.strip()
@@ -1346,24 +1308,26 @@ def _gene_rows_for_bgc(pkg: Path, bgc_id: str) -> list[dict]:
                 if rid != bgc_id:
                     # some emitters write {bgc_id: [rows]} as a single object
                     if isinstance(obj.get(bgc_id), list):
-                        rows.extend(obj[bgc_id])
+                        candidate_rows.extend(obj[bgc_id])
                     continue
                 # current engine shape (gene_context.write_gene_context):
                 # {"bgc_id": X, "cds": [ {per-CDS row}, ... ]} — one object per BGC.
                 # Without this branch the whole wrapper is appended as a single row and
                 # every §4 gene table emits "1 CDS · 0 core" with an empty row.
                 if isinstance(obj.get("cds"), list):
-                    rows.extend(obj["cds"])
+                    candidate_rows.extend(obj["cds"])
                     continue
                 row = obj.get("row") if isinstance(obj.get("row"), dict) else obj
-                rows.append(row)
-        except (OSError, json.JSONDecodeError):
-            continue
-        if rows:
-            break
-    # stable genomic order; rows lacking start sort last
-    rows.sort(key=lambda r: (r.get("start") is None, r.get("start") or 0))
-    return rows
+                candidate_rows.append(row)
+            if any(not isinstance(row, dict) for row in candidate_rows):
+                raise ValueError("gene rows must be objects")
+            # Commit only a completely read and sortable candidate roster.
+            candidate_rows.sort(key=lambda r: (r.get("start") is None, r.get("start") or 0))
+        except (OSError, UnicodeError, ValueError, TypeError, AttributeError) as exc:
+            raise ValueError("GENE_CONTEXT_SOURCE_INVALID: canonical roster not admitted") from exc
+        if candidate_rows:
+            return candidate_rows
+    return []
 
 
 def _strain_prefix(pkg: Path) -> str:
@@ -1565,7 +1529,7 @@ def _bgc_facts(pkg: Path, bgc_id: str) -> dict:
     # (the durable normalized per-gene source: locus_tag, coords, strand, aa_length,
     # product, sec_met_domains, gene_kind, tta_codons). Feeds the §4 gene table that
     # sits alongside the gene-by-gene prose. Observed data — read straight from the
-    # sealed file; honest-blank on absence, never raises.
+    # sealed file; absent sources are explicit gaps, malformed sources refuse emission.
     facts["gene_rows"] = _gene_rows_for_bgc(pkg, bgc_id)
 
     # v9.7.343 (surfacing patch): the engine's Diagnostic-Rescue split-pathway

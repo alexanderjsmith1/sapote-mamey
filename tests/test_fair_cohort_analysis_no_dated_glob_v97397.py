@@ -42,7 +42,7 @@ def _fixture_root(tmp_path):
 
 
 def _write_inventory(root):
-    d = os.path.join(root, "Mamey Complete", AS_STRAIN, "package")
+    d = os.path.join(root, "Package Outputs", AS_STRAIN, "package")
     os.makedirs(d, exist_ok=True)
     with open(os.path.join(d, AS_STRAIN + "_2_inventory.csv"), "w", newline="") as f:
         w = csv.writer(f)

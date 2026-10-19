@@ -46,11 +46,37 @@ def _genome(flank_bp=20000):
     return prots, rows, core
 
 
-def _draw(monkeypatch, tmp_path, anchor=None):
+@pytest.fixture
+def _inspected_figures(monkeypatch):
+    """Keep inspected figures alive only through this test's assertions."""
     import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+    from matplotlib._pylab_helpers import Gcf
+    real_close = plt.close
+    existing = set(Gcf.get_all_fig_managers())
+    existing_figures = {manager.canvas.figure for manager in existing}
+    figures = []
+
+    def capture_close(fig=None):
+        if isinstance(fig, Figure) and fig not in existing_figures:
+            figures.append(fig)
+        else:
+            real_close(fig)
+
+    try:
+        with monkeypatch.context() as patch:
+            patch.setattr(plt, "close", capture_close)
+            yield figures
+    finally:
+        owned = set(figures)
+        owned.update(manager.canvas.figure for manager in Gcf.get_all_fig_managers()
+                     if manager not in existing and manager.canvas.figure not in existing_figures)
+        for fig in owned:
+            real_close(fig)
+
+
+def _draw(monkeypatch, tmp_path, anchor=None, *, figs):
     monkeypatch.setattr(glm, "reference_genes", lambda _p: (REF, REF_LEN))
-    figs = []
-    monkeypatch.setattr(plt, "close", lambda fig=None: figs.append(fig))
     prots, rows, core = _genome()
     glm.draw_locus_map(tmp_path / "BGC0000000.gbk", rows, [], prots, [core], core, "AS-0", "test", tmp_path / "m.png",
                        anchor=anchor)
@@ -73,12 +99,12 @@ def test_a_core_enzyme_on_a_partner_contig_beats_a_transporter_on_the_core_conti
     assert glm.anchor_gene(REF, drawn, prots, "core") == (N, "p20")
 
 
-def test_the_anchor_match_sits_directly_under_the_anchor_gene(monkeypatch, tmp_path):
+def test_the_anchor_match_sits_directly_under_the_anchor_gene(monkeypatch, tmp_path, _inspected_figures):
     """On a collinear locus the majority alignment (bulk_offset) also puts the anchor under its gene; 10 bp covers the
     whole-base rounding of the synthetic gene ends."""
     from matplotlib.patches import Polygon
     for anchor, k in ((None, N), ("ABC00004.1", 4)):
-        fig = _draw(monkeypatch, tmp_path, anchor)
+        fig = _draw(monkeypatch, tmp_path, anchor, figs=_inspected_figures)
         g = REF[k]
         ribbon = next(p for p in fig.axes[0].patches if isinstance(p, Polygon)
                       and abs(p.get_xy()[0][0] - g["s"]) < 1e-9 and abs(p.get_xy()[1][0] - g["e"]) < 1e-9)
@@ -87,8 +113,8 @@ def test_the_anchor_match_sits_directly_under_the_anchor_gene(monkeypatch, tmp_p
         assert bottom_mid == pytest.approx(top_mid, abs=0.01)
 
 
-def test_reference_labels_never_overlap_however_many_neighbours(monkeypatch, tmp_path):
-    fig = _draw(monkeypatch, tmp_path)
+def test_reference_labels_never_overlap_however_many_neighbours(monkeypatch, tmp_path, _inspected_figures):
+    fig = _draw(monkeypatch, tmp_path, figs=_inspected_figures)
     ax = fig.axes[0]
     labels = sorted((t for t in ax.texts if t.get_rotation() == 60 and t.get_position()[1] > 1.0),
                     key=lambda t: t.get_position()[0])
@@ -141,7 +167,6 @@ def test_rows_line_up_on_the_majority_of_matches_not_one_anchor_gene():
 def test_orientation_follows_the_long_core_genes_not_many_small_ones(monkeypatch, tmp_path):
     """The owner, 2 Oct (AS-365 BGC049): five small tailoring genes in reference order outvoted two NRPS genes in reverse
     order, and the NRPS ribbons crossed. Orientation is now weighted by gene length."""
-    import matplotlib.pyplot as plt
     ref = [{"i": 1, "name": "nrpsA", "product": "NRPS", "kind": "biosynthetic", "s": 0.0, "e": 12.0, "strand": 1},
            {"i": 2, "name": "nrpsB", "product": "NRPS", "kind": "biosynthetic", "s": 12.5, "e": 24.0, "strand": 1}]
     ref += [{"i": 3 + j, "name": f"t{j}", "product": "tailoring", "kind": "biosynthetic-additional",
@@ -156,7 +181,6 @@ def test_orientation_follows_the_long_core_genes_not_many_small_ones(monkeypatch
         rows.append({"status": "PRESENT_IN_CORE", "best_protein": f"p{k}", "best_identity_pct": 80.0,
                      "reciprocal_best": True, "partner_verdict": ""})
     core = {"contig": "core", "start": 0, "end": 31000, "identity": "AS-0 / core / region001 / BGC001"}
-    monkeypatch.setattr(plt, "close", lambda fig=None: None)
     res = glm.draw_locus_map(tmp_path / "BGC0000000.gbk", rows, [], prots, [core], core, "AS-0", "test", tmp_path / "m.png")
     assert res["flipped"]["core"] is True           # by count the five small (+) genes would have kept it forward
 
@@ -164,7 +188,6 @@ def test_orientation_follows_the_long_core_genes_not_many_small_ones(monkeypatch
 def test_strand_agreement_decides_orientation_before_gene_order(monkeypatch, tmp_path):
     """The owner, 2 Oct (AS-678 BGC021 against nocobactin): every reference gene and every match is on the + strand, but the
     matches sit in reverse reference order. An order-based flip turned every arrow the wrong way. Strand comes first."""
-    import matplotlib.pyplot as plt
     ref = [{"i": k + 1, "name": f"nbt{k}", "product": "NRPS", "kind": "biosynthetic", "s": k * 3.0, "e": k * 3.0 + 2.5,
             "strand": 1} for k in range(5)]
     monkeypatch.setattr(glm, "reference_genes", lambda _p: (ref, 15.0))
@@ -176,6 +199,5 @@ def test_strand_agreement_decides_orientation_before_gene_order(monkeypatch, tmp
         rows.append({"status": "PRESENT_IN_CORE", "best_protein": f"p{k}", "best_identity_pct": 50.0,
                      "reciprocal_best": True, "partner_verdict": ""})
     core = {"contig": "core", "start": 0, "end": 15000, "identity": "AS-0 / core / region001 / BGC001"}
-    monkeypatch.setattr(plt, "close", lambda fig=None: None)
     res = glm.draw_locus_map(tmp_path / "BGC0000000.gbk", rows, [], prots, [core], core, "AS-0", "test", tmp_path / "m.png")
     assert res["flipped"]["core"] is False           # arrows agree with the reference; order alone would have flipped it

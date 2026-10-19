@@ -336,6 +336,6 @@ if [ "$qcount" = 0 ]; then
 fi
 
 if [ "$deny" = 1 ]; then
-  printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by guardrail: do not create a top-level \"Sapote Mamey vX.Y.Z/\" folder — that mimics a real cut and confuses the team (the .351 overstep). Build a CANDIDATE under \"Patches for next cut Sapote Mamey (vX.Y.Z)/candidate_cut_*_AQUARIUS/\" and hand off a zip. The actual cut/seal is the Patch Chat + the Developer or User, never Claude Code. See memory: never-make-the-actual-cut, check-before-create."}}'
+  printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by guardrail: do not create a top-level \"Sapote Mamey vX.Y.Z/\" folder — that mimics a real cut and confuses the team (the .351 overstep). Build a CANDIDATE under \"Patches for next cut Sapote Mamey (vX.Y.Z)/candidate_cut_*_inventory_review/\" and hand off a zip. The actual cut/seal is the Patch Chat + the Developer or User, never Claude Code. See memory: never-make-the-actual-cut, check-before-create."}}'
 fi
 exit 0

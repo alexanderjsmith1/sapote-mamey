@@ -3,8 +3,8 @@ dated deliverable folder.
 
 `deliverable_tools/surface_flagged_leads.py` hardcoded BOTH its input and its output under
 `MAMEY_DATA_ROOT`, and `mamey surface-leads` accepted no arguments at all
-(`usage: mamey surface-leads [-h]`). Because the workspace's `strain_data` is a symlink to the
-canonical home (`AS Strain Master`), running the command once — to see what it does, to check it
+(`usage: mamey surface-leads [-h]`). Because the historical workspace's report alias (shown editorially as `report_alias`) was a symlink to the
+canonical home (shown editorially as `Canonical Report Home`), running the command once — to see what it does, to check it
 still works, to reproduce a number — rewrote the real dated deliverable in place, with no
 `--out`, no `--dry-run` and no warning. Observed on 2026-09-07 against the real workspace: a run
 rewrote `flagged_lead_surfacing_2026-08-05/FLAGGED_LEAD_SURFACING.md` and
@@ -17,6 +17,9 @@ and the CLI accepts and forwards it.
 
 Scope: output-location only. No scan, scorer, tier, gate, or emitted scientific value is touched;
 the default path is unchanged, so existing invocations behave exactly as before.
+
+Neutral historical display paths are editorial descriptions, not original receipt literals;
+exact originals are retained by the maintainer outside CODE. Tests use the current strain_data API.
 """
 import csv
 import importlib.util

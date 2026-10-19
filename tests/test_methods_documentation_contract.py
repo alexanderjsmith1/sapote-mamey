@@ -12,15 +12,16 @@ DOCS = {
 }
 
 
+def _portable_text(text):
+    forbidden = ("/Users/", "/home/", "/" + "private/tmp/",
+                 "SESSION_TRANSCRIPT", "METHODS_STATE.json", "README_DELIVERABLES")
+    return not any(token in text for token in forbidden) and not re.search(r"[A-Za-z]:[\\/]", text)
+
+
 def test_methods_documentation_set_is_present_and_portable():
-    forbidden = (
-        "/Users/", "Claude_Alex_2026", "Codex Alex 2026", "/" + "private/tmp/",
-        "SESSION_TRANSCRIPT", "METHODS_STATE.json", "README_DELIVERABLES",
-    )
     for name, path in DOCS.items():
         assert path.is_file(), f"missing {name}: {path.relative_to(ROOT)}"
-        text = path.read_text(encoding="utf-8")
-        assert not any(token in text for token in forbidden), (
+        assert _portable_text(path.read_text(encoding="utf-8")), (
             f"non-portable/task-packet token in {path.relative_to(ROOT)}")
 
 
@@ -65,3 +66,12 @@ def test_current_docs_index_links_the_methods_set():
     for path in DOCS.values():
         assert str(path.relative_to(ROOT)) in index
 
+
+
+def test_portability_controls_distinguish_paths_from_public_labels():
+    # Fabricated controls exercise the same admission predicate as the actual docs.
+    for text in ("/Users/InventedOwner/work/report.md", "/home/invented/report.md",
+                 r"Z:\Invented\report.md", "/" + "private/tmp/invented/report.md",
+                 "SESSION_TRANSCRIPT", "METHODS_STATE.json", "README_DELIVERABLES"):
+        assert not _portable_text(text)
+    assert _portable_text("docs/report.md; AS-320; NRPS; Sea Green")

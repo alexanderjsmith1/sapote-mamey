@@ -26,8 +26,8 @@ EXPERIMENT-SHEETS LAYOUT (--layout experiment-sheets, added v9.7.452). A lab wor
 sheet per experiment (or per run of experiments) has no `Isolate Index`. This mode walks every
 sheet (minus any --exclude-sheet pattern) and reads each row that names an AS/SID code:
   * AS codes are found with a CASE-SENSITIVE pattern (`AS-1`, `AS 1`, `AS1`, `SID-3`), so prose
-    such as "same tube as 9" never becomes a strain. A cell naming several codes
-    ("AS-1, AS-2", "AS-3 + AS-4") gives one record per code; `as_cell_raw` keeps the cell.
+    such as "same tube as 9" never becomes a strain. A cell naming several comma- or plus-separated codes
+    gives one record per code; `as_cell_raw` keeps the cell.
   * If one of a sheet's first 3 rows is a header (Date / Experiment number / Sample Number /
     Description / Location), those columns map to date / experiment / sample / description_raw /
     location_raw. Otherwise the experiment is the cell reading "Exp N" / "Experiment N" (else the

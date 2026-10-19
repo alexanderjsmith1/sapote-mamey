@@ -227,6 +227,14 @@ def recover(bank,mode):
         if journal.get('schema')!='sapote.bank-journal.v1' or len(tid)!=32 or any(x not in '0123456789abcdef' for x in tid):raise BankError('BANK_JOURNAL_INVALID')
         tx=root/'.ingest_transactions'/tid
         if tx.resolve()!=tx or not tx.is_dir():raise BankError('BANK_RECOVERY_PATH_INVALID')
+        # Recovery reads through these directories below, including the prior
+        # commit state in before/. A regular leaf alone cannot exclude a linked
+        # ancestor. Refuse displaced images before reading or restoring stores.
+        for image in (tx/'before',tx/'after'):
+            if image.resolve()!=image or not image.is_dir():raise BankError('BANK_RECOVERY_PATH_INVALID')
+        # Both finish and rollback may publish/remove STATE after the stores.
+        # Include it in preflight so a bad destination cannot cause a partial restore.
+        _regular(root/STATE)
         if journal.get('prior_state_exists'):
             old=tx/'before'/STATE;_regular(old)
             if not old.exists() or _hash(old.read_bytes())!=journal.get('prior_state_sha256'):raise BankError('BANK_PRIOR_STATE_IMAGE_MISMATCH')

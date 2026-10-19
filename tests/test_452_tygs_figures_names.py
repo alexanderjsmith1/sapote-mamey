@@ -1,5 +1,5 @@
 """v9.7.452: tools/tygs_figures.py keeps collection numbers whole across a wrapped TYGS line, and gives a
-family-level name no "sp." in the T05 row label. Synthetic IDs only (AS-971, AS-972)."""
+family-level name no "sp." in the T05 row label. These tests construct temporary formatting tables."""
 import importlib.util, sys
 from pathlib import Path
 

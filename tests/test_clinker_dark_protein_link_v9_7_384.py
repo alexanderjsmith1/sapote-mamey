@@ -1,4 +1,4 @@
-"""Regression test (BLACK_CHERRY wave 19, base .383): genes_for_gbk() must emit the `_aa`
+"""Regression test (regression_review wave 19, base .383): genes_for_gbk() must emit the `_aa`
 key that bigscape_clinker_widget.cluster_dark_proteins() pops, or the "identical-sequence
 grey-gene links" feature (reference-dark proteins linked across tracks by sequence
 similarity) is silently dead in every real run -- no error, no gap in the output, the

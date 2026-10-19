@@ -459,7 +459,11 @@ def _normalize_for_detection(text: str, fold_wrappers: bool = True) -> tuple[str
         if fch in _WRAP_TO_SPACE:
             fch = " "
         elif fch in _WRAP_TO_NEWLINE:
-            fch = "\n"
+            # Keep the literal ASCII arrow, not an HTML-comment closer.
+            ascii_arrow = (fch == ">" and j > 0 and a_out[j - 1] == "-"
+                           and (j < 2 or a_out[j - 2] != "-"))
+            if not ascii_arrow:
+                fch = "\n"
         b_out.append(fch)
         b_map.append(a_map[j])
     b_str = "".join(b_out)

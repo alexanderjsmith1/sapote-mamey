@@ -69,9 +69,49 @@ def _resolve_glob(d, pattern):
     return []
 
 
+
+def _refuse_output_source_aliases(outputs, sources):
+    """Refuse stable source aliases before opening any selected destination."""
+    source_paths = {os.path.realpath(os.fspath(source)) for source in sources}
+    for output in outputs:
+        output = os.fspath(output)
+        if os.path.islink(output):
+            raise ValueError(f'COHORT_OUTPUT_SOURCE_ALIAS: symlink destination {output}')
+        if os.path.realpath(output) in source_paths:
+            raise ValueError(f'COHORT_OUTPUT_SOURCE_ALIAS: source destination {output}')
+        if os.path.exists(output) and os.stat(output).st_nlink > 1:
+            raise ValueError(f'COHORT_OUTPUT_SOURCE_ALIAS: multiply linked destination {output}')
+
+
+def _admit_cli_outputs(runs_dir, strain_dirs, out_dir):
+    input_root = os.path.realpath(runs_dir)
+    output_root = os.path.realpath(out_dir)
+    if os.path.commonpath((input_root, output_root)) == input_root:
+        raise ValueError('COHORT_OUTPUT_INSIDE_SOURCE_ROOT')
+    names = ('COHORT_module_architecture_by_bgc.csv', 'COHORT_domain_architecture_by_bgc.csv',
+             'COHORT_domain_roles_by_bgc.csv', 'COHORT_domain_claim_ceiling_by_bgc.csv',
+             'COHORT_nrps_adomain_substrates.csv', 'COHORT_resistance_signals_by_bgc.csv',
+             'COHORT_BGC_FULL_TALLY.csv', 'MANIFEST.csv', 'VERSION.json')
+    sources = []
+    for directory in strain_dirs:
+        for name in ('antismash_module_summary_by_bgc.csv', 'ordered_domain_architectures_by_bgc.csv',
+                     'domain_role_counts_by_bgc.csv', 'domain_safe_unsafe_claims.csv',
+                     'resistance_gene_summary.json', 'manifest.json', 'list_bgcs.json'):
+            source = _resolve(directory, name)
+            if source:
+                sources.append(source)
+        for pattern in ('*_nrps_prediction.csv', '*_4_triage_board.csv'):
+            sources.extend(_resolve_glob(directory, pattern))
+    outputs = [os.path.join(out_dir, name) for name in names]
+    _refuse_output_source_aliases(outputs, sources)
+
+
 def _concat(strain_dirs, fname, out_csv):
-    """Passthrough: sources already carry Strain + Assembly_Locator -> concatenate, one header."""
+    """Concatenate only one unambiguous common schema; refuse before opening output."""
     rows, header = [], None
+    strain_dirs = list(strain_dirs)
+    sources = [p for d in strain_dirs if (p := _resolve(d, fname))]
+    _refuse_output_source_aliases([out_csv], sources)
     for d in strain_dirs:
         p = _resolve(d, fname)
         if not p:
@@ -79,10 +119,17 @@ def _concat(strain_dirs, fname, out_csv):
         with open(p, encoding="utf-8") as fh:
             r = csv.reader(fh)
             h = next(r, None)
-            if h and header is None:
+            if not h or any(not field.strip() for field in h) or len(set(h)) != len(h):
+                raise ValueError(f"COHORT_CONCAT_INVALID_HEADER: {p}")
+            if header is None:
                 header = h
+            elif h != header:
+                raise ValueError(f"COHORT_CONCAT_SCHEMA_CONFLICT: {p}")
             for row in r:
+                if len(row) != len(header):
+                    raise ValueError(f"COHORT_CONCAT_ROW_WIDTH_CONFLICT: {p}:{r.line_num}")
                 rows.append(row)
+    _refuse_output_source_aliases([out_csv], sources)
     with open(out_csv, "w", newline="", encoding="utf-8") as fh:
         w = _SafeWriter(fh)
         if header:
@@ -299,8 +346,9 @@ def main(argv=None):
     ap.add_argument("--runs-dir", required=True, help="dir of <strain>/ source subdirs (cohort_sources)")
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
-    os.makedirs(a.out, exist_ok=True)
     sd = _strain_dirs(a.runs_dir)
+    _admit_cli_outputs(a.runs_dir, sd, a.out)
+    os.makedirs(a.out, exist_ok=True)
     gm = _genus_map()
     counts = {
         "COHORT_module_architecture_by_bgc.csv": _concat(sd, "antismash_module_summary_by_bgc.csv", os.path.join(a.out, "COHORT_module_architecture_by_bgc.csv")),

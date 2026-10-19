@@ -1,0 +1,17 @@
+{
+  "schema": "sapote.test-public-reference-tokens.v1",
+  "scope": "exact existing reference spellings; never strain-wide disclosure permission",
+  "tokens": [
+    {
+      "token": "AS-48",
+      "kind": "public_natural_product_name",
+      "owner": "tools/redact_public_tier.py:KNOWN_PUBLIC_AS"
+    },
+    {
+      "token": "AJS327",
+      "kind": "existing_public_reference_organism_spelling",
+      "owner": "tools/redact_public_tier.py:KNOWN_PUBLIC_AS"
+    }
+  ],
+  "Type_Strains": "Existing explicitly authorized public examples are separate; no registry match creates an exemption."
+}

@@ -178,7 +178,8 @@ def resolve_strain_id(supplied: Optional[str], input_zip: str,
     accession-shaped label is refused **only** when the archive offers a real organism name.
     """
     suggestion, organism = _from_archive(input_zip)
-    stem = os.path.splitext(os.path.basename(input_zip or ""))[0]
+    from .archive_snapshot import archive_label_path
+    stem = archive_label_path(input_zip).stem if input_zip is not None else ""
 
     wanted = (supplied or "").strip()
     if wanted.lower() in ("", "auto"):

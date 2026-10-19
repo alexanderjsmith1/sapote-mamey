@@ -104,7 +104,7 @@ def _heartbeat_failed(exc: Exception) -> None:
         sys.stderr.write(f"[nr_rid_runner] manifest heartbeat failed for lane {_MANIFEST_LANE} "
                          f"({type(exc).__name__}: {exc}); further heartbeat errors are not repeated\n")
 
-# Optional strain submit order for multi-strain query roots, e.g. RID_PRIORITY="AS-1,AS-2".
+# Optional strain submit order for multi-strain query roots, e.g. RID_PRIORITY="SYNTHETIC-DEMO-A,SYNTHETIC-DEMO-B".
 FLAGSHIP = [s.strip() for s in os.environ.get("RID_PRIORITY", "").split(",") if s.strip()]
 
 # ── held RIDs, pacing and query checks (v9.7.443) ────────────────────────────────
@@ -721,7 +721,10 @@ def _run_lane(args):
             faa = pending
             key = relkey(faa); strain, bgc = Path(key).parts[0], Path(key).parts[1]
             last_submit = nowt          # respect pace whether or not this one succeeds
-            text = faa.read_text(errors="replace")
+            # Bind the checkpoint to the buffer submitted, not a later path generation.
+            query_bytes = faa.read_bytes()
+            with io.TextIOWrapper(io.BytesIO(query_bytes), errors="replace") as query_reader:
+                text = query_reader.read()
             why = unsearchable_reason(text, args.min_aa, args.max_aa, args.max_one_residue)
             if why:
                 led[key] = {"strain": strain, "bgc": bgc, "file": key, "rid": "", "rtoe": 0,
@@ -739,7 +742,7 @@ def _run_lane(args):
                 inflight[rid] = [faa, 0.0, nowt]; submitted += 1; consec_err = 0; pending = None
                 led[key] = {"strain": strain, "bgc": bgc, "file": key, "rid": rid,
                             "rtoe": rtoe, "submit_iso": now_iso(), "status": "submitted",
-                            "query_sha256": _sha(faa.read_bytes()),
+                            "query_sha256": _sha(query_bytes),
                             "query_roster": json.dumps([h for h, _ in read_fasta(text)]), "database": DATABASE,
                             "fetch_iso": "",
                             "note": ""}

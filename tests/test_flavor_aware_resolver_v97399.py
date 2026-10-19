@@ -45,7 +45,7 @@ def _clear_cache():
 
 def test_flavor_request_returns_only_that_flavor(tmp_path):
     root = str(tmp_path)
-    home = os.path.join(root, "Mamey Complete", STRAIN)
+    home = os.path.join(root, "Package Outputs", STRAIN)
     loose = _pkg(home, "9.7.398", "loose")
     relaxed = _pkg(home, "9.7.398", "relaxed")
     _clear_cache()
@@ -60,7 +60,7 @@ def test_flavor_request_returns_only_that_flavor(tmp_path):
 
 def test_flavorless_packages_never_satisfy_a_flavor_request(tmp_path):
     root = str(tmp_path)
-    pre398 = _pkg(os.path.join(root, "Mamey Complete", STRAIN), "9.7.376")
+    pre398 = _pkg(os.path.join(root, "Package Outputs", STRAIN), "9.7.376")
     _clear_cache()
     try:
         assert resolve_mamey_package(STRAIN, root=root, flavor="loose") is None, (

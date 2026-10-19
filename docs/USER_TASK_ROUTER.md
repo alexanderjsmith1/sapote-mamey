@@ -1,6 +1,6 @@
 # Choose a Sapote-Mamey task
 
-Start with your intended result and the files you have. These names can be used in a human request or assistant prompt. This navigation is bound to **.447 / engine 1.9.172 / build 20261003v97447a**; candidate extensions are labeled separately. Replace bracketed values with actual source paths and identities.
+Start with your intended result and the files you have. These names can be used in a human request or assistant prompt. The paired JSON records the selected source bundle, engine and build from its version anchors. This is a source binding, not a claim that every route has been executed or scientifically validated. Check the owning guide and current source for the selected task. Replace bracketed values with actual source paths and identities.
 
 Humans: choose a row, read its guide and supply its inputs. Assistants: read `AGENTS.md`, bind the current user scope, then choose a route. The [JSON routes](USER_TASK_ROUTER.json) provide the same names, inputs and completion limits; they grant no permission and are not a substitute for the owning guide or current CLI source.
 
@@ -25,12 +25,12 @@ Humans: choose a row, read its guide and supply its inputs. Assistants: read `AG
 
 ## What completion means
 
-- **First analysis:** return region inventory, package, validation receipts. Validated extraction is not authored interpretation.
+- **First analysis:** return region inventory, package, validation receipts and requested-output disposition. Read main and workbook results separately; `--workbook-strict` fails for a missing matching workbook. Validated extraction is not authored interpretation.
 - **Read your results:** return result explanation, evidence gaps. Read existing evidence before considering a rerun.
 - **Evidence to report:** return selected figures, plotted data/scripts, authored captions, short findings/Methods facts and unresolved evidence states. Retain actual execution and visual-review evidence; this route does not require a Mode B card or white paper and does not itself approve publication.
 - **Mode B card:** return authored card, verification receipt, unresolved scientific holds. Carry the same contract through emission and verification; structural checks are not scientific acceptance.
-- **Strain slides builder:** return main PPTX, gene-table PPTX, assets, build receipt. v2n is .447 plus candidate .448 gallery/caption changes; a tag does not enable features. Displayed annotations are bounded, not lossless.
-- **Figure rendering:** return figures, renderer receipts, rendered-page review. Check actual source availability and rendered output. In .447 an external image destination can still refresh package integrity records; use a working package copy to preserve the sealed original.
+- **Strain slides builder:** return main PPTX, gene-table PPTX, assets, build receipt. The selected builder includes a reference-structure gallery when compatible assets are supplied; a tag does not enable features. Report actual gallery counts and omissions from the receipt. Displayed annotations are bounded, not lossless.
+- **Figure rendering:** return figures, renderer receipts, rendered-page review. Check actual source availability and rendered output. An external image destination can still refresh package integrity records; use a working package copy to preserve the sealed original.
 - **Companion tools:** return bounded work order, input/output contract, readiness gaps. Read the companion protocol and resource preflight before compute; external submissions need matching user scope.
 - **Stored BLASTp evidence:** return channel-specific evidence, provenance, missing/failed/no-hit distinctions. Do not turn stored evidence review into an unrequested live submission.
 - **Recover a failed step:** return stage diagnosis, retained attempt, bounded next action. Do not overwrite failures or rerun unrelated stages; current handles determine whether work is running.
@@ -56,4 +56,4 @@ For a local execution request, use the bundle-local launcher and the workflow in
 
 ## Troubleshooting a request
 
-If a needed channel or dependency is missing, name it and continue independent work that remains supported. If a command fails, preserve the actual error and diagnose its stage. If a linked example is historical, use the current owning CLI and named schema. For a requested v2n deck, bind the reviewed .448 gallery/caption patch and structure assets rather than changing only the tag. Return concrete outputs, checks and remaining holds.
+If a needed channel or dependency is missing, name it and continue independent work that remains supported. If a command fails, preserve the actual error and diagnose its stage. If a linked example is historical, use the current owning CLI and named schema. For a requested reference-structure gallery, bind the selected builder and compatible structure assets, then inspect the actual gallery counts and output rather than changing only the tag. Return concrete outputs, checks and remaining holds.

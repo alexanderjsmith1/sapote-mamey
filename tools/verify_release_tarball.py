@@ -27,6 +27,9 @@ import unicodedata
 import zipfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from tracked_file_policy import is_default_r_device_output  # noqa: E402
+
 JUNK_NAMES = (".DS_Store",)
 JUNK_PARTS = ("__pycache__", ".pytest_cache")
 
@@ -99,6 +102,11 @@ def check(tarball: Path, sealed_zip: Path) -> list[str]:
     problems: list[str] = []
     with zipfile.ZipFile(sealed_zip) as z:
         infos = z.infolist()
+        defaults = sorted(i.filename for i in infos
+                          if is_default_r_device_output(i.filename.rstrip("/")))
+        if defaults:
+            return ["root default R device output in sealed ZIP; refuse repackaging: "
+                    + ", ".join(defaults[:5])]
         noncanonical_zip = sorted(i.filename for i in infos
                                   if not _canonical_member_path(i.filename, directory=i.is_dir()))
         if noncanonical_zip:

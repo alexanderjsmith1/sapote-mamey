@@ -51,8 +51,8 @@ def locked_dir_with_real_leak(tmp_path):
     root = _minimal_root(tmp_path)
     locked = root / "locked_sub"
     locked.mkdir()
-    # a real banned-identity literal, picked from the module's own live BANNED_IDENTITY tuple
-    # so this test tracks the real list rather than a synthetic stand-in.
+    # Synthetic vocabulary is installed by the fixture; permission failure must
+    # refuse regardless of whether the unreadable content can be inspected.
     banned_literal = audit_mod.BANNED_IDENTITY[0]
     (locked / "leaked_notes.md").write_text(f"internal note referencing {banned_literal}\n")
     os.chmod(locked, 0o000)
@@ -99,10 +99,12 @@ def test_clean_tree_still_passes(tmp_path):
     assert audit_mod.audit(root) == []
 
 
-def test_unreadable_directory_inside_mamey_data_flags_the_cohort_id_scan_specifically(tmp_path):
-    """The narrower mamey/data cohort-AS-id loop has its own independent unreadable-dir
-    check (not just the whole-tree scan), so an unscannable directory there is named as
-    incomplete for that specific scan too."""
+def test_unreadable_directory_inside_mamey_data_fails_whole_tree_content_audit(tmp_path):
+    """Unreadable data subtrees make the default content audit incomplete.
+
+    Names alone are permitted; inability to inspect a directory still refuses.
+    This guarantee is independent of the optional identifier inventory.
+    """
     root = _minimal_root(tmp_path)
     data_dir = root / "mamey" / "data"
     data_dir.mkdir()
@@ -115,6 +117,13 @@ def test_unreadable_directory_inside_mamey_data_flags_the_cohort_id_scan_specifi
         pytest.skip("chmod(0) does not restrict read access for this user (e.g. running as root)")
     try:
         hits = audit_mod.audit(root)
-        assert any("cohort-id scan incomplete" in h for h in hits)
+        expected = f"unreadable tracked directory (whole-tree scan incomplete): {locked}"
+        assert expected in hits, hits
     finally:
         os.chmod(locked, 0o755)
+
+
+@pytest.fixture(autouse=True)
+def synthetic_private_vocabulary(monkeypatch):
+    """Exercise detection with invented markers; unreadable content still refuses."""
+    monkeypatch.setattr(audit_mod, "BANNED_IDENTITY", ("SYNTHETIC_PRIVATE_TEST_MARKER", "regression_review"))

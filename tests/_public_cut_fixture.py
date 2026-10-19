@@ -24,6 +24,9 @@ TOOL_FILES = (
     "tracked_file_policy.py", "check_release_manifest.py",
     "verify_tier_derivation.py", "test_synthetic_ids.txt",
     "scanner_hmm_release_policy.py",
+    # Actual snapshot imports and the identity-key dependency; no role table is needed.
+    "finalize_public_archive.py", "identifier_source_roles.py",
+    "synthetic_id_registry_guard.py",
 )
 PACKAGE_FILES = (
     "__init__.py", "privacy_profile.py", "registry_schema.py",

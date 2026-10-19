@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """Cross-source pre-fill for §25 §40 §41 §44 §46 §47 and four-component template filenames.
 
 Fixtures use AS-XXX and synthetic references. Each test pins one failure that a naive
@@ -51,10 +52,10 @@ def _world(tmp_path: pathlib.Path):
         "bgc_id,query_gene,subject_gene,pct_identity,reference,reference_source\n"
         "BGC033,c4_1,s1,90,NZ_REF1,Ref genome one\n"
         "BGC033,c4_2,s2,80,NZ_REF1,Ref genome one\n")
-    _pkg(cohort, "AS-2", "BGC001,ctgA,region001,NRPS; thioamide-NRP; PKS,colibrimycin,AS-2\n")
+    _pkg(cohort, "SYNTHETIC-CASE-002", "BGC001,ctgA,region001,NRPS; thioamide-NRP; PKS,colibrimycin,SYNTHETIC-CASE-002\n")
     _pkg(cohort, "AS-3", "BGC001,ctgB,region001,NRPS-like; thioamide-NRP-like,x,AS-3\n")
     _pkg(cohort, "AS-EX", "BGC001,ctgC,region001,NRPS; thioamide-NRP,x,AS-EX\n")
-    _pkg(cohort / "_variants_excluded", "AS-2b", "BGC001,ctgD,region001,NRPS; thioamide-NRP,x,AS-2b\n")
+    _pkg(cohort / "_variants_excluded", "SYNTHETIC-CASE-002b", "BGC001,ctgD,region001,NRPS; thioamide-NRP,x,SYNTHETIC-CASE-002b\n")
     _pkg(cohort / "REFERENCE", "Genusa_alpha_T1",
          "BGC005,NC_1.1,region005,NRPS; thioamide-NRP,maduropeptin,\n", display="Genusa alpha T1",
          profile="relaxed")
@@ -63,7 +64,7 @@ def _world(tmp_path: pathlib.Path):
     meta = tmp_path / "meta.tsv"
     meta.write_text("strain\tgenus\thost\tlocation\texcluded\texclusion_reason\n"
                     "AS-XXX\tGenusa sp.\tbee\t\t\t\n"
-                    "AS-2\tOthergenus sp.\tbee\t\t\t\n"
+                    "SYNTHETIC-CASE-002\tOthergenus sp.\tbee\t\t\t\n"
                     "AS-3\tGenusa sp.\tbee\t\t\t\n"
                     "AS-EX\tThirdgenus sp.\tbee\t\tY\tcontaminated\n"
                     "AS-9\tFourthgenus sp.\tbee or wasp\t\t\t\n")
@@ -89,10 +90,10 @@ def _emit(tmp_path, **src):
 
 def test_prevalence_uses_exact_tokens_and_a_bounded_denominator(tmp_path):
     s44 = _emit(tmp_path)[44]
-    # AS-XXX + AS-2 match; AS-3 has only -like tokens; AS-EX is excluded; nested folders never counted
+    # AS-XXX + SYNTHETIC-CASE-002 match; AS-3 has only -like tokens; AS-EX is excluded; nested folders never counted
     assert "**Numerator:** 2 loci in 2 of 3 packages." in s44
     assert "AS-EX (contaminated)" in s44
-    assert "AS-2b" not in s44 and "Genusa alpha" not in s44
+    assert "SYNTHETIC-CASE-002b" not in s44 and "Genusa alpha" not in s44
     assert "BGC033 (this locus)" in s44
 
 
@@ -132,7 +133,7 @@ def test_host_match_uses_deposited_host_not_manifest_source(tmp_path):
     s47 = _emit(tmp_path)[47]
     assert "**Host (as deposited):** bee" in s47
     assert "cohort rebuild" not in s47
-    assert "| AS-2 | Othergenus sp. | — | 1 |" in s47
+    assert "| SYNTHETIC-CASE-002 | Othergenus sp. | — | 1 |" in s47
     assert "| AS-EX | Thirdgenus sp. | contaminated | 1 |" in s47
     assert "AS-3 " not in s47          # same genus is not 'unrelated'
     assert "AS-9" not in s47           # 'bee or wasp' is not 'bee'

@@ -1,4 +1,5 @@
-"""BLACK_CHERRY wave 19 — case-sensitivity false negative in bgc_citation_gate.py.
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
+"""regression_review wave 19 — case-sensitivity false negative in bgc_citation_gate.py.
 
 `_BGC_RE` was compiled without re.I, so a node-less citation written as `bgc016` or `Bgc016`
 (lowercase/mixed-case BGC label — plausible in hand-typed Mode B prose, which is exactly what
@@ -12,24 +13,28 @@ still holds after the case-insensitivity fix — lowercasing must not turn "bgcs
 a false-positive BGC-label match.
 """
 from mamey.bgc_citation_gate import find_nodeless_bgc_citations as f
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+
+CANARY_A = synthetic_namespace_id("AS", width=3, case_index=918)
+CANARY_B = synthetic_namespace_id("AS", width=3, case_index=919)
 
 
 def test_lowercase_bgc_label_is_flagged():
-    assert f("atratumycin (AS-162 bgc011), AB 94") != []
+    assert f(f"fabricated-compound-alpha ({CANARY_A} bgc011), AB 94") != []
 
 
 def test_mixed_case_bgc_label_is_flagged():
-    assert f("AS-162 Bgc016 mentioned here, no node token") != []
+    assert f(f"{CANARY_A} Bgc016 mentioned here, no node token") != []
 
 
 def test_uppercase_bgc_label_still_flagged():
-    assert f("atratumycin (AS-162 BGC011), AB 94") != []
+    assert f(f"fabricated-compound-alpha ({CANARY_A} BGC011), AB 94") != []
 
 
 def test_lowercase_node_region_form_still_clean():
-    good = "as-162 / node_35_length_72712_cov_100.179280 / region001 / bgc016 — atratumycin-family"
+    good = f"{CANARY_A.lower()} / node_35_length_72712_cov_100.179280 / region001 / bgc016 — fabricated-compound-alpha-family"
     assert f(good) == []
 
 
 def test_lowercase_count_phrase_still_does_not_trip():
-    assert f("as-385 has 37 bgcs total; 30 are real bgcs after dedup.") == []
+    assert f(f"{CANARY_B.lower()} has 37 bgcs total; 30 are real bgcs after dedup.") == []

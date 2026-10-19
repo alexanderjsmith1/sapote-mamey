@@ -139,6 +139,10 @@ def load_exclusions(*, strict: bool = False) -> dict[str, Any]:
     :func:`_warn_official_data_present_but_file_missing`); a genuinely code-only
     tree with no OFFICIAL_DATA directory anywhere stays silent, as documented.
     """
+    from .source_context import active
+    frame = active()
+    if frame is not None and getattr(frame, "governance", None) is not None:
+        return frame.governance.read(strict=strict)
     candidates = _candidate_json_paths()
     for p in candidates:
         try:

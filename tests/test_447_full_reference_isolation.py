@@ -32,6 +32,7 @@ def test_discovery_fixture_never_replaces_shared_time():
 @pytest.mark.parametrize('bare', [False, True])
 def test_bankio_import_preserves_path_and_resolves_shared_api(tmp_path, bare):
     # -I excludes the bundle/CWD so the bare-tools fallback is exercised honestly.
+    # It also ignores PYTHONDONTWRITEBYTECODE; -B preserves the imported source tree.
     source = '''import importlib.util, sys
 from pathlib import Path
 root = Path(sys.argv[1])
@@ -44,7 +45,7 @@ from mamey import bank_transaction as api
 for name in ("hold_reader", "release_reader_locks", "reader", "lock", "prepare", "coherent", "BankError", "STORES"):
  assert getattr(m, name) is getattr(api, name), name
 '''
-    result = subprocess.run([sys.executable, '-I', '-c', source, str(ROOT), 'bare' if bare else 'normal'], cwd=tmp_path, capture_output=True, text=True, timeout=10)
+    result = subprocess.run([sys.executable, '-I', '-B', '-c', source, str(ROOT), 'bare' if bare else 'normal'], cwd=tmp_path, capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
     assert not list(tmp_path.iterdir())
 
@@ -60,5 +61,5 @@ except pytest.skip.Exception as error:
  assert "Bio" in str(error)
 else: raise AssertionError("Missing optional Bio was not skipped")
 '''
-    result = subprocess.run([sys.executable, '-I', '-c', source, str(ROOT / 'tests/test_447_companion_class_evidence.py')], cwd=tmp_path, capture_output=True, text=True, timeout=10)
+    result = subprocess.run([sys.executable, '-I', '-B', '-c', source, str(ROOT / 'tests/test_447_companion_class_evidence.py')], cwd=tmp_path, capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr

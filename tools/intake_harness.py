@@ -486,7 +486,28 @@ def main():
     ap.add_argument("--resume", action="store_true",
                     help="skip only receipt-bound unchanged successful completions; retry NEEDS_ANTISMASH; "
                          "changed release/source/code holds existing packages without relabelling")
+    ap.add_argument("--capture-policy", help="Opt-in direct-archive captured batch policy JSON")
+    ap.add_argument("--capture-batch-policy", choices=["all-or-nothing"])
+    ap.add_argument("--capture-threads", type=int)
+    ap.add_argument("--capture-master", help="Optional cumulative master committed with the captured batch")
     a = ap.parse_args()
+    captured_error = None
+    if a.capture_policy:
+        from mamey.captured_harness import run as captured_intake
+        from mamey.intake_session import CapturedIntakeHold
+        import marshal
+        try:
+            engine = _engine_binding()
+            engine["executed_harness_code_sha256"] = hashlib.sha256(marshal.dumps(__loader__.get_code(__loader__.name))).hexdigest()
+            return captured_intake(a, engine=engine, taxonomy_map=load_taxonomy_map(a.taxonomy_map),
+                taxonomy_binding=_file_binding(a.taxonomy_map) if a.taxonomy_map else None)
+        except (OSError, ValueError) as exc:
+            captured_error = "CAPTURED_HARNESS_HOLD: " + str(exc)
+    elif a.capture_batch_policy or a.capture_threads or a.capture_master:
+        captured_error = "CAPTURED_HARNESS_POLICY_REQUIRED"
+    if captured_error is not None:
+        emit(captured_error)
+        return 2
 
     os.makedirs(a.outdir, exist_ok=True)
     stage_root = os.path.join(a.outdir, "_stage")

@@ -245,7 +245,10 @@ def load_gene_rows(path: Path, identity: Mapping[str, str]) -> list[dict[str, st
     }
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
-        missing = required - set(reader.fieldnames or [])
+        headers = reader.fieldnames or []
+        if any(not header or not header.strip() for header in headers) or len(headers) != len(set(headers)):
+            raise GeneFirstHold("MODEB_GENE_FIRST_SOURCE_HOLD: duplicate or blank gene-table columns")
+        missing = required - set(headers)
         if missing:
             raise GeneFirstHold(
                 f"MODEB_GENE_FIRST_SOURCE_HOLD: gene table missing columns {sorted(missing)}"
@@ -316,12 +319,17 @@ def load_evidence_index(
     historical_count = 0
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle, delimiter="\t")
-        missing = required - set(reader.fieldnames or [])
+        headers = reader.fieldnames or []
+        if any(not header or not header.strip() for header in headers) or len(headers) != len(set(headers)):
+            raise GeneFirstHold("MODEB_GENE_FIRST_SOURCE_HOLD: duplicate or blank evidence-index columns")
+        missing = required - set(headers)
         if missing:
             raise GeneFirstHold(
                 f"MODEB_GENE_FIRST_SOURCE_HOLD: evidence index missing columns {sorted(missing)}"
             )
         for line_number, row in enumerate(reader, 2):
+            if None in row or any(value is None for value in row.values()):
+                raise GeneFirstHold("MODEB_GENE_FIRST_SOURCE_HOLD: evidence-index row width differs from columns")
             row_identity = (
                 str(row.get("strain") or "").strip(),
                 _full_node_or_contig(row.get("full_node")),

@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """Regression test for `mamey/claim_safety_gate.py::candidate_text_files()` /
 `run_claim_safety_gate()` (v9.7.401, an audit lane, `.401` round tick 10).
 
@@ -49,19 +50,19 @@ def test_missing_package_dir_reports_not_requested(tmp_path):
 
 
 def test_readable_overclaim_still_caught(tmp_path):
-    (tmp_path / "AS-74_report.md").write_text(_OVERCLAIM_TEXT)
+    (tmp_path / "SYNTHETIC-CASE-021_report.md").write_text(_OVERCLAIM_TEXT)
     result = run_claim_safety_gate(tmp_path)
     assert result["claim_safety_status"] == "FAIL"
-    assert result["files_checked"] == ["AS-74_report.md"]
+    assert result["files_checked"] == ["SYNTHETIC-CASE-021_report.md"]
     assert result["finding_count"] == 1
     assert "streptomycin" in result["findings"][0]["finding"]
 
 
 def test_readable_safe_text_still_passes(tmp_path):
-    (tmp_path / "AS-74_report.md").write_text(_SAFE_TEXT)
+    (tmp_path / "SYNTHETIC-CASE-021_report.md").write_text(_SAFE_TEXT)
     result = run_claim_safety_gate(tmp_path)
     assert result["claim_safety_status"] == "PASS"
-    assert result["files_checked"] == ["AS-74_report.md"]
+    assert result["files_checked"] == ["SYNTHETIC-CASE-021_report.md"]
     assert result["finding_count"] == 0
 
 
@@ -69,7 +70,7 @@ def test_readable_safe_text_still_passes(tmp_path):
 def locked_subdir_with_overclaim(tmp_path):
     locked = tmp_path / "locked_sub"
     locked.mkdir()
-    (locked / "AS-74_report.md").write_text(_OVERCLAIM_TEXT)
+    (locked / "SYNTHETIC-CASE-021_report.md").write_text(_OVERCLAIM_TEXT)
     os.chmod(locked, 0o000)
     if os.access(locked, os.R_OK):
         os.chmod(locked, 0o755)
@@ -98,9 +99,9 @@ def test_unreadable_subdir_alongside_readable_clean_file_still_fails(locked_subd
     """A genuinely clean, readable sibling file must NOT mask the unreadable-subtree finding --
     the scan is incomplete regardless of what the readable portion looked like."""
     package_dir, locked = locked_subdir_with_overclaim
-    (package_dir / "AS-74_report.md").write_text(_SAFE_TEXT)
+    (package_dir / "SYNTHETIC-CASE-021_report.md").write_text(_SAFE_TEXT)
     result = run_claim_safety_gate(package_dir)
     assert result["claim_safety_status"] == "FAIL", result
-    assert result["files_checked"] == ["AS-74_report.md"]
+    assert result["files_checked"] == ["SYNTHETIC-CASE-021_report.md"]
     assert result["finding_count"] == 1
     assert result["findings"][0]["path"] == str(locked)

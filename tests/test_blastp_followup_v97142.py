@@ -6,8 +6,8 @@ from mamey.blastp_followup import parse_hit_table_csv, parse_xml2, merge_hit_xml
 
 def test_headerless_hit_table_preserves_first_row(tmp_path):
     p = tmp_path / 'hit.csv'
-    p.write_text('AS168|BGC001|ctg10_1|aa=100|role=core,WP_1.1,99.0,100,1,0,1,100,1,100,0.0,200,99.0\n'
-                 'AS168|BGC001|ctg10_1|aa=100|role=core,WP_2.1,50.0,50,20,0,1,50,1,50,1e-5,50,60.0\n')
+    p.write_text('SYNTHETIC-CASE-005|BGC001|ctg10_1|aa=100|role=core,WP_1.1,99.0,100,1,0,1,100,1,100,0.0,200,99.0\n'
+                 'SYNTHETIC-CASE-005|BGC001|ctg10_1|aa=100|role=core,WP_2.1,50.0,50,20,0,1,50,1,50,1e-5,50,60.0\n')
     rows = parse_hit_table_csv(p)
     assert len(rows) == 2
     assert rows[0].subject_id == 'WP_1.1'
@@ -16,9 +16,9 @@ def test_headerless_hit_table_preserves_first_row(tmp_path):
 
 def test_xml2_metadata_merges_hit_titles(tmp_path):
     hit = tmp_path / 'hit.csv'
-    hit.write_text('AS168|BGC002|ctg11_9|aa=317|role=core_or_context,WP_401454914.1,89.0,305,1,0,12,316,1,305,0.0,558,91.0\n')
+    hit.write_text('SYNTHETIC-CASE-005|BGC002|ctg11_9|aa=317|role=core_or_context,WP_401454914.1,89.0,305,1,0,12,316,1,305,0.0,558,91.0\n')
     xml = tmp_path / 'x.xml'
-    xml.write_text('''<?xml version="1.0"?><BlastXML2 xmlns="http://www.ncbi.nlm.nih.gov"><BlastOutput2><report><Report><results><Results><search><Search><query-title>AS168|BGC002|ctg11_9|aa=317|role=core_or_context</query-title><query-len>317</query-len><hits><Hit><description><HitDescr><id>ref|WP_401454914.1|</id><accession>WP_401454914</accession><title>presqualene diphosphate synthase HpnD [Streptomyces]</title><taxid>1883</taxid><sciname>Streptomyces</sciname></HitDescr></description><len>306</len><hsps><Hsp><bit-score>558</bit-score><evalue>0</evalue><identity>282</identity><positive>288</positive><align-len>305</align-len></Hsp></hsps></Hit></hits></Search></search></Results></results></Report></report></BlastOutput2></BlastXML2>''')
+    xml.write_text('''<?xml version="1.0"?><BlastXML2 xmlns="http://www.ncbi.nlm.nih.gov"><BlastOutput2><report><Report><results><Results><search><Search><query-title>SYNTHETIC-CASE-005|BGC002|ctg11_9|aa=317|role=core_or_context</query-title><query-len>317</query-len><hits><Hit><description><HitDescr><id>ref|WP_401454914.1|</id><accession>WP_401454914</accession><title>presqualene diphosphate synthase HpnD [Streptomyces]</title><taxid>1883</taxid><sciname>Streptomyces</sciname></HitDescr></description><len>306</len><hsps><Hsp><bit-score>558</bit-score><evalue>0</evalue><identity>282</identity><positive>288</positive><align-len>305</align-len></Hsp></hsps></Hit></hits></Search></search></Results></results></Report></report></BlastOutput2></BlastXML2>''')
     rows = merge_hit_xml(parse_hit_table_csv(hit), parse_xml2(xml))
     assert rows[0].subject_title.startswith('presqualene')
     _, qrows = summarize_results(rows)
@@ -60,7 +60,7 @@ def test_headerless_hit_table_recovers_unquoted_commas_in_query_title(tmp_path):
     # "complete genome, Type: T1PKS". The parser must join the leading fields
     # back into a single query id and keep subject_id/metrics aligned.
     p.write_text(
-        'AS168|BGC008|ctg15_126|NODE_15|region002|aa=420|products=PKS;_T1PKS|role=core_or_context|kcb=Streptomyces_violaceoruber_strain_S21_chromosome,_complete_genome_|_Type:_T1PKS,'
+        'SYNTHETIC-CASE-005|BGC008|ctg15_126|NODE_15|region002|aa=420|products=PKS;_T1PKS|role=core_or_context|kcb=Streptomyces_violaceoruber_strain_S21_chromosome,_complete_genome_|_Type:_T1PKS,'
         'RUP69732.1,96.860,414,13,0,6,419,43,456,0.0,780,99.03\n'
     )
     rows = parse_hit_table_csv(p)

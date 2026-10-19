@@ -1,0 +1,12 @@
+{
+  "schema_version": "ripper-queries/1",
+  "queries": [
+    {
+      "enzyme_accession": "SYNTHETIC_TE_001",
+      "strain": "SYNTHETIC",
+      "full_contig": "SYNTHETIC_RIPPER_READINESS_01",
+      "region": "region001",
+      "bgc_alias": "SYNTHETIC_BGC_001"
+    }
+  ]
+}

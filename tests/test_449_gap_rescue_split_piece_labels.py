@@ -23,11 +23,37 @@ def _prot(tag, contig, start_bp, contig_len=40000):
     return {"tag": tag, "contig": contig, "start": start_bp, "end": start_bp + 900, "strand": 1, "contig_len": contig_len}
 
 
-def _labels(monkeypatch, tmp_path, prots, core):
+@pytest.fixture
+def _inspected_figures(monkeypatch):
+    """Keep inspected figures alive only through this test's assertions."""
     import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+    from matplotlib._pylab_helpers import Gcf
+    real_close = plt.close
+    existing = set(Gcf.get_all_fig_managers())
+    existing_figures = {manager.canvas.figure for manager in existing}
+    figures = []
+
+    def capture_close(fig=None):
+        if isinstance(fig, Figure) and fig not in existing_figures:
+            figures.append(fig)
+        else:
+            real_close(fig)
+
+    try:
+        with monkeypatch.context() as patch:
+            patch.setattr(plt, "close", capture_close)
+            yield figures
+    finally:
+        owned = set(figures)
+        owned.update(manager.canvas.figure for manager in Gcf.get_all_fig_managers()
+                     if manager not in existing and manager.canvas.figure not in existing_figures)
+        for fig in owned:
+            real_close(fig)
+
+
+def _labels(monkeypatch, tmp_path, prots, core, *, figs):
     monkeypatch.setattr(glm, "reference_genes", lambda _p: (REF, 5.0))
-    figs = []
-    monkeypatch.setattr(plt, "close", lambda fig=None: figs.append(fig))
     rows = [{"status": "PRESENT_IN_CORE", "best_protein": f"q{i}", "best_identity_pct": 70.0, "reciprocal_best": True,
              "partner_verdict": ""} for i in range(3)] + [{"status": "MISSING_NOT_FOUND", "best_protein": None,
                                                            "best_identity_pct": 0.0, "reciprocal_best": False}]
@@ -38,17 +64,17 @@ def _labels(monkeypatch, tmp_path, prots, core):
     return [t.get_text() for t in figs[-1].axes[0].texts if "split" in t.get_text() and "-like" in t.get_text()]
 
 
-def test_pieces_drawn_far_apart_get_one_label_each(monkeypatch, tmp_path):
+def test_pieces_drawn_far_apart_get_one_label_each(monkeypatch, tmp_path, _inspected_figures):
     prots = {"q0": _prot("c_0", "core", 20000), "q1": _prot("c_1", "core", 21200), "q2": _prot("c_2", "core", 22400),
              "p1": _prot("s_1", "core", 100), "p2": _prot("s_2", "ctgX", 39000)}
     core = {"contig": "core", "start": 0, "end": 40000, "identity": "AS-0 / core / region001 / BGC001"}
-    labs = _labels(monkeypatch, tmp_path, prots, core)
+    labs = _labels(monkeypatch, tmp_path, prots, core, figs=_inspected_figures)
     assert sorted(labs) == ["AbcD-like, split piece 1 of 2, 64%", "AbcD-like, split piece 2 of 2, 61%"]
 
 
-def test_pieces_side_by_side_across_a_gap_keep_one_label(monkeypatch, tmp_path):
+def test_pieces_side_by_side_across_a_gap_keep_one_label(monkeypatch, tmp_path, _inspected_figures):
     prots = {"q0": _prot("c_0", "core", 35000), "q1": _prot("c_1", "core", 36200), "q2": _prot("c_2", "core", 37400),
              "p1": _prot("s_1", "core", 38800), "p2": _prot("s_2", "ctgX", 100)}
     core = {"contig": "core", "start": 30000, "end": 40000, "identity": "AS-0 / core / region001 / BGC001"}
-    labs = _labels(monkeypatch, tmp_path, prots, core)
+    labs = _labels(monkeypatch, tmp_path, prots, core, figs=_inspected_figures)
     assert labs == ["AbcD-like, split 64% | 61%"]

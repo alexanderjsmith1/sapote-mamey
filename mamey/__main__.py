@@ -5,6 +5,7 @@ precedence over any previously installed version in site-packages.
 """
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from mamey.cli import main
-raise SystemExit(main())
+if __name__ == "__main__":
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from mamey.cli import main
+    raise SystemExit(main())

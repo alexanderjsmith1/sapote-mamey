@@ -11,7 +11,7 @@
       "patterns": [
         "\\bNAPAA\\b"
       ],
-      "rationale": "Common and frequently adjacent to genuine BGCs; treated as NEUTRAL \u2014 neither downgraded nor excluded from comparative/ecological claims. (Nosema hypothesis remains retired, but that does not justify excluding NAPAA itself.)",
+      "rationale": "Common and frequently adjacent to genuine BGCs; treated as NEUTRAL — neither downgraded nor excluded from comparative/ecological claims. (Nosema hypothesis remains retired, but that does not justify excluding NAPAA itself.)",
       "date": "2026-06",
       "lead_blocking": false
     },
@@ -59,7 +59,7 @@
         "\\bnrp-metallophore\\b",
         "\\bNRP-metallophore\\b"
       ],
-      "rationale": "Permanent exclusion (BH-007b): the metallophore component is a metal-acquisition function, not a drug lead. Downgraded only when no committed NRPS/PKS backbone is present \u2014 a real NRPS that also chelates metal keeps its lead via the committed-class guard.",
+      "rationale": "Permanent exclusion (BH-007b): the metallophore component is a metal-acquisition function, not a drug lead. Downgraded only when no committed NRPS/PKS backbone is present — a real NRPS that also chelates metal keeps its lead via the committed-class guard.",
       "date": "2026-06",
       "lead_blocking": true,
       "false_positive_guard": []
@@ -75,7 +75,7 @@
         "\\bPREV-001\\b",
         "\\bhexacosalactone\\b"
       ],
-      "rationale": "Habitat-non-specific (8 strains / 7 genera / 3 habitats) \u2014 recorded as an informational property, NOT a downgrade. hglE-KS ranks as a normal lead; the \u00a74.3 enediyne-artifact guard in scoring.py is separate and unchanged.",
+      "rationale": "Habitat-non-specific (8 strains / 7 genera / 3 habitats) — recorded as an informational property, NOT a downgrade. hglE-KS ranks as a normal lead; the §4.3 enediyne-artifact guard in scoring.py is separate and unchanged.",
       "date": "2026-06",
       "lead_blocking": false
     },
@@ -122,7 +122,7 @@
   ],
   "routing_policies": {
     "inventory_bottom_tier": {
-      "id": "AQUARIUS-01-INVENTORY-BOTTOM-TIER",
+      "id": "inventory-bottom-tier-v1",
       "schema_version": "1.0",
       "status": "active",
       "decision_date": "2026-08-04",
@@ -156,12 +156,30 @@
         "other"
       ],
       "substring_aliases": [
-        {"contains": "saccharide", "canonical": "saccharide"},
-        {"contains": "geosmin", "canonical": "geosmin"},
-        {"contains": "terpene", "canonical": "terpene"},
-        {"contains": "ectoine", "canonical": "ectoine"},
-        {"contains": "napaa", "canonical": "napaa"},
-        {"contains": "hgle", "canonical": "hgle-ks"}
+        {
+          "contains": "saccharide",
+          "canonical": "saccharide"
+        },
+        {
+          "contains": "geosmin",
+          "canonical": "geosmin"
+        },
+        {
+          "contains": "terpene",
+          "canonical": "terpene"
+        },
+        {
+          "contains": "ectoine",
+          "canonical": "ectoine"
+        },
+        {
+          "contains": "napaa",
+          "canonical": "napaa"
+        },
+        {
+          "contains": "hgle",
+          "canonical": "hgle-ks"
+        }
       ],
       "ambiguous_review_tokens": [
         "2dos",
@@ -178,7 +196,8 @@
         "unresolved_below_medium": "Inventory"
       },
       "claim_ceiling": "Routing-prior labels over antiSMASH class annotations; neither Low nor Inventory proves product identity, production, activity, novelty, pathway completeness, ecological function, or biological housekeeping. Judgment deferred.",
-      "review_rule": "Rows containing an ambiguous_review_token or only broadened housekeeping classes require a keyed human disposition before a cohort-level reviewed-Inventory claim."
+      "review_rule": "Rows containing an ambiguous_review_token or only broadened housekeeping classes require a keyed human disposition before a cohort-level reviewed-Inventory claim.",
+      "identifier_note": "Public identifier migrated in this source revision. Exact historical label is retained by the maintainer outside CODE; historical dates and receipts are not rewritten."
     }
   },
   "_changelog": [
@@ -188,6 +207,6 @@
     },
     "2026-06-24 v9.7.122: added NI-SIDEROPHORE (BH-007) and NRP-METALLOPHORE (BH-007b) downgrade rules; committed-class guard protects mixed-class leads.",
     "2026-07-28 RG-03: removed the inert SACCHARIDE false_positive_guard list (the \\bsaccharide\\b word boundary already protects polysaccharide/lipopolysaccharide/aminoglycoside). RG-04: rules.py now validates status/action against the allowed enum sets at load. No behavior change to any live rule.",
-    "2026-08-04 AQUARIUS_01: added the governed inventory_bottom_tier routing policy. It class-gates only the below-Medium label (Low versus Inventory), changes no numeric prior, and carries an explicit claim ceiling and keyed-review rule."
+    "2026-08-04 [private historical rule label omitted]: added the governed inventory_bottom_tier routing policy. It class-gates only the below-Medium label (Low versus Inventory), changes no numeric prior, and carries an explicit claim ceiling and keyed-review rule."
   ]
 }

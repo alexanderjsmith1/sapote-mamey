@@ -13,6 +13,8 @@ here.
 from __future__ import annotations
 
 from tests._synthetic_identity_fixture import synthetic_namespace_id
+_CANARY = synthetic_namespace_id("AS", width=3, case_index=821, separator=True)
+
 
 import importlib.util
 import subprocess
@@ -63,17 +65,17 @@ def test_real_id_in_tests_fixture_is_a_strict_finding(tmp_path):
 def test_cohort_id_in_python_source_is_a_strict_finding(tmp_path):
     m = _load()
     root = _root(tmp_path)
-    (root / "mamey" / "legacy.py").write_text('"""Calibrated on AS-705."""\nX = 1\n')
+    (root / "mamey" / "legacy.py").write_text(f'"""Calibrated on {_CANARY}."""\nX = 1\n')
     hits = m.strict_findings(root, show_identifiers=True)
-    assert any("python source" in h and "AS-705" in h for h in hits), hits
+    assert any("python source" in h and f'{_CANARY}' in h for h in hits), hits
 
 
 def test_banned_identity_in_tests_is_a_strict_finding(tmp_path):
     m = _load()
     root = _root(tmp_path)
-    (root / "tests" / "test_thing.py").write_text('"""From the Cerulean session."""\n')
+    (root / "tests" / "test_thing.py").write_text('"""From the SYNTHETIC_PRIVATE_TEST_MARKER session."""\n')
     hits = m.strict_findings(root, show_identifiers=True)
-    assert any("banned identity" in h and "Cerulean" in h for h in hits), hits
+    assert any("banned identity" in h and "SYNTHETIC_PRIVATE_TEST_MARKER" in h for h in hits), hits
 
 
 # --- the sanctioned exemptions must keep working ---------------------------------------------
@@ -114,7 +116,7 @@ def test_default_gate_jurisdiction_is_not_rescanned(tmp_path):
     m = _load()
     root = _root(tmp_path)
     (root / "docs").mkdir()
-    (root / "docs" / "notes.md").write_text("Example from AS-705.\n")
+    (root / "docs" / "notes.md").write_text(f'Example from {_CANARY}.\n')
     assert m.strict_findings(root) == []
 
 
@@ -144,6 +146,15 @@ def test_clean_root_exits_0(tmp_path):
 
 def test_finding_root_exits_1(tmp_path):
     root = _root(tmp_path)
-    (root / "tests" / "test_bad.py").write_text('S = "AS-705"\n')
+    (root / "tests" / "test_bad.py").write_text(f'S = "{_CANARY}"\n')
     r = _run(str(root))
     assert r.returncode == 1, (r.stdout, r.stderr)
+
+import pytest
+
+import public_release_audit
+
+@pytest.fixture(autouse=True)
+def synthetic_private_vocabulary(monkeypatch):
+    """Exercise identity detection using invented values, never deployment names."""
+    monkeypatch.setattr(public_release_audit, "BANNED_IDENTITY", ("SYNTHETIC_PRIVATE_TEST_MARKER", "regression_review"))

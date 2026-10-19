@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """Fail-before / pass-after battery for CLAUDE_410_claimsafety_verb_normalize (v9.7.410).
 
 Target: mamey/claim_safety_gate.py::_normalize_for_detection / lint_text, on the pristine v9.7.409 base.
@@ -166,7 +167,7 @@ CLEAN = [
     ("negated contraction", "BGC027 doesn't produce venezuelin."),
     # NEW-stage guards
     ("accented organism names", "Isolated from Amycolatopsis méditerranei; Streptomyces Ångström-12 encodes a PKS."),
-    ("accented place / host names", "Kitasatospora sp. AS-40 was isolated in São Paulo from Blåbær-associated soil."),
+    ("accented place / host names", "Kitasatospora sp. SYNTHETIC-CASE-012 was isolated in São Paulo from Blåbær-associated soil."),
     ("digit-bearing identifiers untouched", "BGC027, ctg1_5031 and 10 of 19 genes are shared; K-mer 31."),
     ("literal ampersands", "R&D on 2 BGCs; AT&T; Tom &amp; Jerry; salt &lt; 3%."),
     ("non-markdown backslashes", "C:\\Users\\path and \\alpha values were recorded."),

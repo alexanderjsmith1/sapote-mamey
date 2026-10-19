@@ -30,7 +30,7 @@ _ROWS = [
 def _make_pkg(tmp_path):
     pkg = tmp_path / "package"
     pkg.mkdir()
-    (pkg / "AS-162_gene_by_gene_all_bgcs.csv").write_text(
+    (pkg / 'SYNTHETIC-CASE-004_gene_by_gene_all_bgcs.csv').write_text(
         "\n".join([_HEADER, *_ROWS]) + "\n", encoding="utf-8")
     return pkg
 

@@ -67,18 +67,18 @@ def test_load_crosswalk_missing_path():
 
 def test_join_measured_candida(tmp_path):
     """A Candida-positive strain with a High AF lead becomes a standout, joined to measured."""
-    _pkg(tmp_path, "AS-168", "Streptomyces sp.",
-         af_rows=[("BGC004", "phosphonate", "28.0", "High", "rhizocticin A"),
+    _pkg(tmp_path, "SYNTHETIC-CASE-005", "Streptomyces sp.",
+         af_rows=[("BGC004", "phosphonate", "31.5", "High", "rhizocticin A"),
                   ("BGC020", "NRPS", "12.0", "Inventory", "")],
-         triage_rows=[("BGC004", "phosphonate", "28.0", "53.0", "High", "rhizocticin A"),
+         triage_rows=[("BGC004", "phosphonate", "31.5", "58.5", "High", "rhizocticin A"),
                       ("BGC020", "NRPS", "12.0", "30.0", "Inventory", "")])
-    xw = _crosswalk(tmp_path, [("AS-168", "Streptomyces sp.", "Bombus sp.", "+", "+", "S. xylanilyticus")])
+    xw = _crosswalk(tmp_path, [("SYNTHETIC-CASE-005", "Streptomyces sp.", "Bombus sp.", "+", "+", "S. xylanilyticus")])
     res = run(tmp_path, activity_table=xw, depth=3)
 
     assert res["packages"] == 1
     assert res["lead_rows"] == 2
     assert res["measured_join"] == 1
-    assert res["standout_strains"] == ["AS-168"]
+    assert res["standout_strains"] == ["SYNTHETIC-CASE-005"]
 
     rows = {r["bgc_id"]: r for r in res["rows"]}
     # measured activity is STRAIN-level and joined onto every BGC row
@@ -87,9 +87,9 @@ def test_join_measured_candida(tmp_path):
     assert rows["BGC004"]["host"] == "Bombus sp."
     assert rows["BGC004"]["standout_strain"] == "yes"
     # capacity kept in separate columns
-    assert rows["BGC004"]["af_capacity_score"] == 28.0
+    assert rows["BGC004"]["af_capacity_score"] == 31.5
     assert rows["BGC004"]["af_lead_tier"] == "High"
-    assert rows["BGC004"]["novelty_prior"] == "53.0"
+    assert rows["BGC004"]["novelty_prior"] == "58.5"
     # reference-dark derives from an empty KCB anchor
     assert rows["BGC004"]["reference_dark"] == "no"
     assert rows["BGC020"]["reference_dark"] == "yes"
@@ -142,10 +142,10 @@ def test_triage_fallback_when_no_af_board(tmp_path):
 
 def test_claim_safety_framing_present(tmp_path):
     """The dossier must carry the strain-vs-BGC claim-safety framing text."""
-    _pkg(tmp_path, "AS-168", "Streptomyces sp.",
-         af_rows=[("BGC004", "phosphonate", "28.0", "High", "rhizocticin A")],
-         triage_rows=[("BGC004", "phosphonate", "28.0", "53.0", "High", "rhizocticin A")])
-    xw = _crosswalk(tmp_path, [("AS-168", "Streptomyces sp.", "Bombus sp.", "+", "+", "S. xylanilyticus")])
+    _pkg(tmp_path, "SYNTHETIC-CASE-005", "Streptomyces sp.",
+         af_rows=[("BGC004", "phosphonate", "31.5", "High", "rhizocticin A")],
+         triage_rows=[("BGC004", "phosphonate", "31.5", "58.5", "High", "rhizocticin A")])
+    xw = _crosswalk(tmp_path, [("SYNTHETIC-CASE-005", "Streptomyces sp.", "Bombus sp.", "+", "+", "S. xylanilyticus")])
     out = tmp_path / "dossier"
     res = run(tmp_path, out_dir=out, activity_table=xw, depth=3)
     md = (out / "AF_LEAD_DOSSIER.md").read_text()

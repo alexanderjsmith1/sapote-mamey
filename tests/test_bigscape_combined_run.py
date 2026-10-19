@@ -152,7 +152,7 @@ class TestGBKReconstruction:
         db = sqlite3.connect(self.db_path)
         cur = db.cursor()
         cur.execute(
-            "INSERT INTO gbk VALUES (99, '/fake/AS-846_NODE_1.gbk', 'h99', 'ATGC', '.', '.', 'AS-846')"
+            "INSERT INTO gbk VALUES (99, '/fake/SYNTHETIC-CASE-026_NODE_1.gbk', 'h99', 'ATGC', '.', '.', 'SYNTHETIC-CASE-026')"
         )
         cur.execute(
             "INSERT INTO cds VALUES (99, 99, 100, 400, 1, 1, 'biosynthetic', 'MTEST')"
@@ -160,10 +160,10 @@ class TestGBKReconstruction:
         db.commit()
         db.close()
 
-        n = self._reconstruct(exclude_strain="AS-846")
-        assert n == 3  # the 3 original, not the AS-846 one
+        n = self._reconstruct(exclude_strain="SYNTHETIC-CASE-026")
+        assert n == 3  # the 3 original, not the SYNTHETIC-CASE-026 one
         fnames = os.listdir(self.out_dir)
-        assert not any("AS-846" in f for f in fnames)
+        assert not any("SYNTHETIC-CASE-026" in f for f in fnames)
 
     def test_cds_translation_present(self):
         """CDS features carry /translation with the amino acid sequence."""

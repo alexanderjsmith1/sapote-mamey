@@ -42,9 +42,15 @@ import csv
 import hashlib
 import itertools
 import logging
+import math
 import json
 import sys
 from pathlib import Path
+
+# Resolve sibling packages even when an installed mamey makes the fallback unnecessary.
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 try:  # CSV formula-cell guard, as every tools/ writer (tests/test_410_csv_writer_coverage.py)
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
@@ -53,6 +59,7 @@ except ImportError:  # bare-script run: bundle root is one level up
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 from mamey.path_safety import assert_output_outside_bundle  # noqa: E402
+from tools.protein_pcoa_annotations import supplied_axis_annotations, supplied_axis_label
 
 from mamey.logging_setup import get_logger as _get_logger
 
@@ -238,7 +245,11 @@ def load_kit(kit: Path, of: dict, genus_override: dict, sets: list[str] | None):
                 pts["sid"].append(p)
             else:
                 pts["reference"].append(p)
-        data[s] = {"points": pts, "pct": run.get("pct_axes", [float("nan")] * 3)}
+        try:
+            annotations = supplied_axis_annotations(run)
+        except ValueError as exc:
+            raise CompareRefusal(f"AXIS_ANNOTATIONS: set {s}: {exc}") from exc
+        data[s] = {"points": pts, "pct": annotations["pct_axes"], "axis_annotations": annotations}
     return data, files, sorted(left_out), disagreements
 
 
@@ -331,15 +342,77 @@ def write_tsv(path: Path, rows: list[dict]):
                         for k, v in r.items()})
 
 
-def figures(out, data, rows, cols, colors, cut, by_collection, carr, plt):
+def comparison_text_geometry(fig, min_text_pt):
+    """Check actual final-width text, using shared collision and tick/data gates."""
+    from mamey.figure_policy import (FigurePolicyError, validate_layout_rectangles,
+                                     validate_tick_label_data_clearance)
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    artists = list(fig.texts)
+    for legend in fig.legends:
+        artists += list(legend.get_texts()) + [legend.get_title()]
+    tick_boxes, axes_boxes = [], []
+
+    def rectangle(text, key):
+        box = text.get_window_extent(renderer=renderer)
+        return dict(id=key, group="all-text", x0=box.x0, y0=box.y0, x1=box.x1, y1=box.y1)
+
+    for i, ax in enumerate(fig.axes):
+        if not ax.get_visible() or not ax.axison:
+            continue
+        key = f"axes-{i}"
+        box = ax.get_window_extent(renderer=renderer)
+        axes_boxes.append(dict(id=key, axis_id=key, x0=box.x0,y0=box.y0,x1=box.x1,y1=box.y1))
+        # Axis.draw uses _update_ticks to exclude locator ticks outside the view.
+        ticks = [label for axis in (ax.xaxis, ax.yaxis) for tick in axis._update_ticks()
+                 for label in (tick.label1, tick.label2) if label.get_visible()]
+        artists += (list(ax.texts) + [ax.title, ax._left_title, ax._right_title,
+                    ax.xaxis.label, ax.yaxis.label, ax.xaxis.offsetText, ax.yaxis.offsetText] + ticks)
+        legend = ax.get_legend()
+        if legend is not None:
+            artists += list(legend.get_texts()) + [legend.get_title()]
+        for n, text in enumerate(ticks):
+            if text.get_visible() and text.get_text().strip():
+                tick_boxes.append(dict(**rectangle(text, f"{key}-tick-{n}"), axis_id=key))
+    artists = list({id(t):t for t in artists if t.get_visible() and t.get_text().strip()}.values())
+    sizes = [t.get_fontsize() for t in artists]
+    if not sizes or min(sizes) < min_text_pt:
+        raise CompareRefusal(f"MIN_TEXT_FLOOR: found {min(sizes) if sizes else 'no text'} pt; requires {min_text_pt}")
+    try:
+        layout = validate_layout_rectangles(
+            [rectangle(t, f"text-{i}:{t.get_text()}") for i,t in enumerate(artists)],
+            canvas_width_px=fig.bbox.width,canvas_height_px=fig.bbox.height)
+        clearance = validate_tick_label_data_clearance(tick_boxes,axes_boxes,
+            canvas_width_px=fig.bbox.width,canvas_height_px=fig.bbox.height)
+    except FigurePolicyError as exc:
+        raise CompareRefusal(f"COMPARISON_TEXT_LAYOUT: {exc}") from exc
+    return dict(minimum_pt=min(sizes), requested_minimum_pt=min_text_pt,
+                layout=layout, tick_data_clearance=clearance)
+
+
+def figures(out, data, rows, cols, colors, cut, by_collection, carr, plt, min_text_pt=8.0):
     np = _need("numpy")
     from mamey.figure_policy import assert_no_banned_figure_text
     texts = []
 
     def save(fig, name):
+        geometry = comparison_text_geometry(fig, min_text_pt)
         assert_no_banned_figure_text(texts, figure_id=name)
         fig.savefig(out / f"{name}.png", dpi=400, facecolor="white"); fig.savefig(out / f"{name}.pdf", facecolor="white")
+        from tools._min_text_check import check
+        pdf = out / f"{name}.pdf"
+        readback = check(pdf, min_text_pt, float(fig.get_figwidth()))
+        receipt = dict(renderer="matplotlib", label_placement="FIXED_AXES_AND_LEGENDS_NO_POINT_LABELS",
+                       text_geometry=geometry, pdf_readback=readback,
+                       print_width_in=float(fig.get_figwidth()), native_png_dpi=400,
+                       source_sha256=sha256(Path(__file__)),
+                       outputs={p.name: dict(bytes=p.stat().st_size, sha256=sha256(p))
+                                for p in [pdf, out / f"{name}.png"]},
+                       publication_acceptance="NOT_ESTABLISHED")
+        (out / f"{name}_text_check.json").write_text(json.dumps(receipt, indent=2) + "\n")
         plt.close(fig); texts.clear()
+        if readback["status"] != "PASS":
+            raise CompareRefusal(f"MIN_TEXT_CHECK_FAILED: {name}: {readback}")
 
     # share below cut, one row per set
     fig, ax = plt.subplots(figsize=(6.4, 0.26 * len(rows) + 1.4))
@@ -355,11 +428,11 @@ def figures(out, data, rows, cols, colors, cut, by_collection, carr, plt):
                 ax.scatter(v * 100, y, s=12 + 1.2 * min(r[f"{k}_proteins"], 120), color=colors[k], edgecolor=INK, lw=0.4, zorder=3)
         q = r.get("genome_KW_q", float("nan"))
         labels.append(f"{r['set']}{' *' if q == q and q < 0.05 else ''}  (n {'/'.join(str(r[f'{k}_proteins']) for k in cols)})")
-    ax.set_yticks(range(len(rows))); ax.set_yticklabels(labels[::-1], fontsize=6.2)
-    ax.set_xlim(-2, 102); ax.set_xlabel(f"Proteins whose closest reference or MIBiG protein is below {cut:g}% identity (%)", fontsize=7)
+    ax.set_yticks(range(len(rows))); ax.set_yticklabels(labels[::-1], fontsize=min_text_pt)
+    ax.set_xlim(-2, 102); ax.set_xlabel(f"Proteins whose closest reference or MIBiG protein is below {cut:g}% identity (%)", fontsize=min_text_pt)
     for sp in ("top", "right"):
         ax.spines[sp].set_visible(False)
-    ax.legend([plt.Line2D([], [], ls="", marker="o", ms=6, mfc=colors[k], mec=INK, mew=0.4) for k in cols], cols, fontsize=6.5,
+    ax.legend([plt.Line2D([], [], ls="", marker="o", ms=6, mfc=colors[k], mec=INK, mew=0.4) for k in cols], cols, fontsize=min_text_pt,
               frameon=False, loc="lower right")
     texts += labels + cols
     fig.tight_layout(); save(fig, f"SHARE_BELOW_{cut:g}")
@@ -377,20 +450,20 @@ def figures(out, data, rows, cols, colors, cut, by_collection, carr, plt):
                 ax.plot([i - 0.32, i + 0.32], [median(v)] * 2, color=INK, lw=1.3)
         ax.axhline(cut, ls=(0, (2, 2)), lw=0.6, color=MUTED)
         q = r.get("genome_KW_q", float("nan"))
-        ax.set_title(f"{s}\n" + (f"genome-level q = {q:.2g}" if q == q else "too few genomes to test"), fontsize=5.8, loc="left")
-        ax.set_xticks(range(len(cols))); ax.set_xticklabels(cols, fontsize=5.2, rotation=0)
-        ax.tick_params(axis="y", labelsize=5.4)
+        ax.set_title(f"{s}\n" + (f"genome-level q = {q:.2g}" if q == q else "too few genomes to test"), fontsize=min_text_pt, loc="left")
+        ax.set_xticks(range(len(cols))); ax.set_xticklabels(cols, fontsize=min_text_pt, rotation=0)
+        ax.tick_params(axis="y", labelsize=min_text_pt)
         texts += [s] + cols
         for sp in ("top", "right"):
             ax.spines[sp].set_visible(False)
     for ax in list(axs.flat)[len(sets):]:
         ax.axis("off")
-    fig.subplots_adjust(left=0.07, right=0.99, top=0.95, bottom=0.05, hspace=0.75, wspace=0.12)
+    fig.tight_layout(pad=1.0, h_pad=1.4, w_pad=0.7)
     save(fig, "IDENTITY_DOTPLOTS")
 
     # one panel per collection
     for s in by_collection:
-        pts = data[s]["points"]; pct = data[s]["pct"]
+        pts = data[s]["points"]; annotations = data[s]["axis_annotations"]
         panels = cols + (["public collection (SID)"] if pts["sid"] else [])
         n = len(panels); ncol = 2; nrow = -(-n // ncol)
         fig, axs = plt.subplots(nrow, ncol, figsize=(7.2, 3.3 * nrow + 0.6), sharex=True, sharey=True, squeeze=False)
@@ -403,61 +476,61 @@ def figures(out, data, rows, cols, colors, cut, by_collection, carr, plt):
                 ax.scatter([p["x"] for p in st["at_or_above"]], [p["y"] for p in st["at_or_above"]], s=11, facecolor="white", edgecolor=colors[k], lw=0.7)
                 ax.scatter([p["x"] for p in st["below"]], [p["y"] for p in st["below"]], s=11, facecolor=colors[k], edgecolor=INK, lw=0.3)
                 ax.scatter([p["x"] for p in st["none"]], [p["y"] for p in st["none"]], s=10, marker="D", facecolor="none", edgecolor=colors[k], lw=0.6)
-                title = f"{k}: {len(c)} proteins from {len({p['strain'] for p in c})} genomes, {len(st['below'])} below {cut:g}%"
+                title = f"{k}: {len(c)} proteins from {len({p['strain'] for p in c})} genomes\n{len(st['below'])} below {cut:g}%"
             else:
                 ax.scatter([p["x"] for p in pts["sid"]], [p["y"] for p in pts["sid"]], s=10, marker="D", facecolor="none", edgecolor=SID_COLOR, lw=0.6)
                 title = f"{k}: {len(pts['sid'])} cluster centroids"
-            ax.set_title(title, fontsize=7, loc="left"); texts.append(title)
+            ax.set_title(title, fontsize=min_text_pt, loc="left"); texts.append(title)
             for sp in ("top", "right"):
                 ax.spines[sp].set_visible(False)
-            ax.tick_params(labelsize=6)
+            ax.tick_params(labelsize=min_text_pt)
         for ax in list(axs.flat)[n:]:
             ax.axis("off")
         for ax in axs[-1]:
-            ax.set_xlabel(f"PCoA 1 ({pct[0]:.1f}%)", fontsize=7)
+            ax.set_xlabel(supplied_axis_label(annotations, 0), fontsize=min_text_pt)
         for ax in axs[:, 0]:
-            ax.set_ylabel(f"PCoA 2 ({pct[1]:.1f}%)", fontsize=7)
+            ax.set_ylabel(supplied_axis_label(annotations, 1), fontsize=min_text_pt)
         leg = [("public genomes (cluster centroids)", dict(marker="o", ms=3, mfc=REF_COLOR, mec="none")),
                ("MIBiG", dict(marker="o", ms=3, mfc=MIBIG_COLOR, mec="none")),
                (f"closest match below {cut:g}% identity", dict(marker="o", ms=4.5, mfc=MUTED, mec=INK, mew=0.4)),
                (f"closest match {cut:g}% or more", dict(marker="o", ms=4.5, mfc="white", mec=MUTED, mew=0.8)),
                ("no identity value", dict(marker="D", ms=3.8, mfc="none", mec=MUTED, mew=0.8))]
-        fig.legend([plt.Line2D([], [], ls="", **kw) for _, kw in leg], [t for t, _ in leg], loc="lower center", ncol=3, fontsize=6.3, frameon=False)
+        fig.legend([plt.Line2D([], [], ls="", **kw) for _, kw in leg], [t for t, _ in leg], loc="lower center", ncol=3, fontsize=min_text_pt, frameon=False)
         texts += [t for t, _ in leg]
-        fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.10 + 0.02 * (2 - min(nrow, 2)), hspace=0.25, wspace=0.08)
+        fig.tight_layout(rect=(0, 0.11 + 0.02 * (2 - min(nrow, 2)), 1, 1), pad=1.0, h_pad=1.6, w_pad=0.8)
         save(fig, f"BY_COLLECTION_{s}")
 
     # carriage
     crow, per_genome, tests = carr
     if crow:
         has_d = "density" in tests
-        fig = plt.figure(figsize=(7.2, 0.3 * len(crow) + 1.6))
-        A = fig.add_axes([0.13, 0.12, 0.42, 0.78])
+        fig = plt.figure(figsize=(7.2, max(2.6, 0.3 * len(crow) + 1.6)))
+        A = fig.add_axes([0.13, 0.22, 0.42, 0.56])
         M = np.array([[r[f"{k}_share"] if r[f"{k}_share"] != "" else 0 for k in cols] for r in crow])
         A.imshow(M, cmap="Greys", vmin=0, vmax=1, aspect="auto")
         for i, r in enumerate(crow):
             for j, k in enumerate(cols):
-                A.text(j, i, r[f"{k}_genomes_carrying"], ha="center", va="center", fontsize=5.6, color="white" if M[i, j] > 0.55 else INK)
-        A.set_xticks(range(len(cols))); A.set_xticklabels(cols, fontsize=6.2); A.xaxis.tick_top()
+                A.text(j, i, r[f"{k}_genomes_carrying"], ha="center", va="center", fontsize=min_text_pt, color="white" if M[i, j] > 0.55 else INK)
+        A.set_xticks(range(len(cols))); A.set_xticklabels(cols, fontsize=min_text_pt); A.xaxis.tick_top()
         A.set_yticks(range(len(crow)))
-        A.set_yticklabels([f"{r['set']}{' *' if r['carriage_q'] == r['carriage_q'] and r['carriage_q'] < 0.05 else ''}" for r in crow], fontsize=6)
+        A.set_yticklabels([f"{r['set']}{' *' if r['carriage_q'] == r['carriage_q'] and r['carriage_q'] < 0.05 else ''}" for r in crow], fontsize=min_text_pt)
         A.tick_params(length=0)
         for sp in A.spines.values():
             sp.set_visible(False)
         panels = (["density"] if has_d else []) + (["raw"] if "raw" in tests else [])
         rng = np.random.default_rng(7)
         for i, name in enumerate(panels):
-            ax = fig.add_axes([0.66 + i * 0.20, 0.12, 0.12, 0.78])
+            ax = fig.add_axes([0.66 + i * 0.20, 0.22, 0.12, 0.56])
             vals = tests[name]["values"]
             for j, k in enumerate(cols):
                 v = vals[k]
                 if v:
                     ax.scatter(j + rng.uniform(-0.18, 0.18, len(v)), v, s=10, color=colors[k], edgecolor="white", lw=0.3)
                     ax.plot([j - 0.26, j + 0.26], [median(v)] * 2, color=INK, lw=1.2)
-            ax.set_xticks(range(len(cols))); ax.set_xticklabels(cols, fontsize=5, rotation=90); ax.tick_params(labelsize=5.6)
+            ax.set_xticks(range(len(cols))); ax.set_xticklabels(cols, fontsize=min_text_pt, rotation=90); ax.tick_params(labelsize=min_text_pt)
             ax.set_ylim(bottom=0)
             lab = "per 100 kb of region" if name == "density" else "proteins per genome (raw)"
-            ax.set_ylabel(lab, fontsize=6); ax.set_title(f"{'Density' if name == 'density' else 'Raw count'}\np = {tests[name]['kw_p']:.2g}", fontsize=6, loc="left")
+            ax.set_ylabel(lab, fontsize=min_text_pt); ax.set_title(f"{'Density' if name == 'density' else 'Raw count'}\np = {tests[name]['kw_p']:.2g}", fontsize=min_text_pt, loc="left")
             texts.append(lab)
             for sp in ("top", "right"):
                 ax.spines[sp].set_visible(False)
@@ -476,8 +549,12 @@ def main(argv=None) -> int:
     ap.add_argument("--region-kb", type=Path, help="TSV: strain, region_kb (antiSMASH region length per genome) for density")
     ap.add_argument("--permutations", type=int, default=20000)
     ap.add_argument("--no-figures", action="store_true")
+    ap.add_argument("--min-text-pt", type=float, default=8.0,
+                    help="text floor >=8 pt at each output PDF native width; smaller placement requires separate validation")
     a = ap.parse_args(argv)
     try:
+        if not math.isfinite(a.min_text_pt) or a.min_text_pt < 8:
+            raise CompareRefusal("MIN_TEXT_FLOOR: --min-text-pt must be finite and at least 8")
         _need("scipy"); _need("numpy")
         out = assert_output_outside_bundle(a.out, __file__)
         if out.exists() and any(out.iterdir()):
@@ -508,8 +585,15 @@ def main(argv=None) -> int:
         if not a.no_figures:
             matplotlib = _need("matplotlib"); matplotlib.use("Agg")
             import matplotlib.pyplot as plt
-            figures(out, data, rows, cols, colors, a.cut, a.by_collection, carr, plt)
-        (out / "CAPTION.md").write_text(CAPTION)
+            figures(out, data, rows, cols, colors, a.cut, a.by_collection, carr, plt, a.min_text_pt)
+        annotations = {s: d["axis_annotations"] for s, d in data.items()}
+        (out / "AXIS_ANNOTATIONS.json").write_text(json.dumps(annotations, indent=2) + "\n")
+        axis_notes = "\n## Saved axes\n\n" + "\n".join(
+            f"- {s}: {v['disclosure']} Supplied values: {v['pct_axes']}." for s, v in annotations.items())
+        text_note = (f"\n\nComparison plot text floor: {a.min_text_pt:g} pt at each PDF's native width "
+                     "(recorded in its text-check receipt). Reducing the artwork width reduces text size and needs "
+                     "separate validation. The existing matplotlib route draws fixed axes and legends; it places no point labels.\n")
+        (out / "CAPTION.md").write_text(CAPTION + axis_notes + text_note)
         with open(out / "SOURCES.tsv", "w", newline="") as fh:
             w = _SafeWriter(fh, delimiter="\t")
             w.writerow(["kind", "item", "detail"])
@@ -517,6 +601,10 @@ def main(argv=None) -> int:
                                     *files, *kit_tables(a.kit).values()]):
                 w.writerow(["input", str(f), sha256(Path(f))])
             w.writerow(["output", "DENOMINATOR.tsv", sha256(out / "DENOMINATOR.tsv")])
+            w.writerow(["output", "AXIS_ANNOTATIONS.json", sha256(out / "AXIS_ANNOTATIONS.json")])
+            w.writerow(["software", "axis_annotation_source_sha256", sha256(Path(supplied_axis_annotations.__code__.co_filename))])
+            for receipt in sorted(out.glob("*_text_check.json")):
+                w.writerow(["output", receipt.name, sha256(receipt)])
             import platform, numpy, scipy
             w.writerow(["software", "python", platform.python_version()])
             w.writerow(["software", "numpy", numpy.__version__]); w.writerow(["software", "scipy", scipy.__version__])

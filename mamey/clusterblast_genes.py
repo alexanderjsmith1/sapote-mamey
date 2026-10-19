@@ -26,6 +26,7 @@ indolocarbazole core gene is capacity evidence ("biosynthetic capacity consisten
 production or compound-identity claim. This module is deterministic Mamey extraction; it makes no judgment.
 """
 from __future__ import annotations
+from .source_context import source_zipfile as _source_zipfile
 
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -143,7 +144,7 @@ def parse_clusterblast_gene_map(zip_path: str | Path, bgcs: list[Any], top_refs:
                   for b in bgcs if getattr(b, "contig", None) and getattr(b, "region_number", None) is not None}
     blocks_by_bgc: dict[str, list[ReferenceBlock]] = {}
     parse_errors = 0
-    with zipfile.ZipFile(zip_path) as zf:
+    with _source_zipfile(zip_path) as zf:
         for nm in regular_file_names(zf):
             low = nm.lower()
             if not low.endswith(".txt"):

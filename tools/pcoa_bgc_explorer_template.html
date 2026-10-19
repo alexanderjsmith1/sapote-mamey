@@ -129,6 +129,7 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
         <div class="tip" id="tip" hidden></div>
       </div>
       <div class="legend" id="legend"></div>
+      <p class="stats" id="axisnote" style="padding:0 12px 12px" aria-live="polite"></p>
     </section>
 
     <aside class="card" id="detail" aria-live="polite">
@@ -153,7 +154,7 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
   </section>
 
   <footer id="foot">
-    Points sit where amino-acid identity puts them (all-against-all protein search, classical PCoA). Nearness to a reference or MIBiG protein is similarity of sequence, not a shared product. Gene labels come from antiSMASH and are hints at function. MIBiG hits, where shown, are DIAMOND blastp of each gene against MIBiG proteins; a close MIBiG gene is similarity, not the same compound. NCBI and Swiss-Prot hits, where shown, come from a copy of the BLASTp store and are bound to a gene by strain, locus tag and protein length, or by exact sequence; an NCBI hit is nearest-neighbour similarity, not characterization. A BGC number is shown only when a Mamey package was built from the same antiSMASH result as the region file; otherwise the region is on identity hold.
+    Points replay the supplied PC1/PC2/PC3 coordinates. Axis percentage annotations have an unverified definition and historical fit execution; they are not interpreted as variance explained. This explorer does not fit an ordination. Nearness to a reference or MIBiG protein is similarity of sequence, not a shared product. Gene labels come from antiSMASH and are hints at function. MIBiG hits, where shown, are DIAMOND blastp of each gene against MIBiG proteins; a close MIBiG gene is similarity, not the same compound. NCBI and Swiss-Prot hits, where shown, come from a copy of the BLASTp store and are bound to a gene by strain, locus tag and protein length, or by exact sequence; an NCBI hit is nearest-neighbour similarity, not characterization. A BGC number is shown only when a Mamey package was built from the same antiSMASH result as the region file; otherwise the region is on identity hold.
   </footer>
 </div>
 
@@ -456,6 +457,7 @@ footer { color: var(--muted); font-size: 12px; max-width: 95ch; }
     }
     $("legend").innerHTML = h;
     const strains = new Set(iso.map(p => S[p[5]]));
+    $("axisnote").textContent = D.axis_annotations?.disclosure || "Supplied axis percentage annotations: definition and historical fit execution unverified; not variance explained. Saved coordinates only.";
     $("pstats").textContent = `${iso.length.toLocaleString()} isolate points from ${strains.size} strains · ${P.length.toLocaleString()} points in all · ~${D.approx_id}% identity clusters`;
   }
 

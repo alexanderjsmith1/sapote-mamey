@@ -27,6 +27,9 @@ def require(condition, message):
         raise OwnerConsumptionRefused(message)
 
 
+IMPORT_READY_STATES = frozenset({'PASS','READY_WITH_OPTIONAL_UNAVAILABLE'})
+
+
 def owners():
     """Load existing release verifiers only after parsing and basic admission."""
     import release_workflow as workflow
@@ -172,7 +175,7 @@ def consume(*, source: Path, workflow: Path, workflow_sha256: str, evidence: Pat
         final_pin=output_pin(output,final_rows,'final/partition.json')
         final_proof=verify_partition(backend,source,final_pin,evidence/'source-partition',python,workflow_env=engine.env)
         source_imports=backend.workflow.verify_current_imports(source,output/'imports-final',evidence/'source-imports',python=python)
-        require(source_imports.get('status') == 'PASS', 'complete source import verification is not PASS')
+        require(source_imports.get('status') in IMPORT_READY_STATES, 'complete source import verification is not PASS')
         source_import_rows=stage_outputs(output,root_record,'imports-final')
         source_current_imports=output_pin(output,source_import_rows,'imports-final/current.json')
         package_rows=stage_outputs(output,root_record,'package')
@@ -196,9 +199,9 @@ def consume(*, source: Path, workflow: Path, workflow_sha256: str, evidence: Pat
         artifact_proof=verify_partition(backend,extracted,artifact_partition_pin,evidence/'artifact-partition',python,workflow_env=engine.env)
         require(artifact.get('summary') == artifact_proof['verified_totals'], 'artifact summary differs from independently verified outcomes')
         artifact_imports=backend.workflow.verify_current_imports(extracted,output/'artifact/imports',evidence/'artifact-imports',python=python)
-        require(artifact_imports.get('status') == 'PASS', 'complete artifact import verification is not PASS')
+        require(artifact_imports.get('status') in IMPORT_READY_STATES, 'complete artifact import verification is not PASS')
         current_imports=output_pin(output,artifact_rows,'artifact/imports/current.json')
-        require(artifact.get('import_safety',{}).get('status') == 'PASS'
+        require(artifact.get('import_safety',{}).get('status') == artifact_imports['status']
                 and artifact.get('import_safety',{}).get('current_sha256') == current_imports['sha256'],
                 'artifact complete import record differs')
         pins=[root_pin,consumer_pin,final_pin,source_current_imports,archive_pin,artifact_pin,artifact_partition_pin,current_imports]

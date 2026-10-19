@@ -473,7 +473,7 @@ def main(argv=None):
         description="Run BiG-SCAPE 2.x on a Mamey package/cohort's region GBKs and chain the "
                     "cohort widgets (post-seal, best-effort, engine-neutral).")
     src = ap.add_mutually_exclusive_group(required=True)
-    src.add_argument("--package", help="A single sealed Mamey Complete_Package dir/zip")
+    src.add_argument("--package", help="A single sealed Mamey package directory or ZIP")
     src.add_argument("--runs-dir", help="Cohort dir containing <ID>/package/ (or sealed zips)")
     src.add_argument("--input-gbk-dir", dest="input_gbk_dir",
                      help="Explicit dir of already-extracted antiSMASH region GBKs")

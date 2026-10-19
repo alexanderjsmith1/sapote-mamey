@@ -29,10 +29,10 @@ def _build_db(path):
     c.execute("insert into run(id) values (1)")
     # gbk + records: two strain BGCs + one MIBiG in a KNOWN family; one strain BGC in a NOVEL family
     rows = [
-        (1, "AS-705_NODE_1_length_100.region001.gbk"),   # known-family strain A
+        (1, "SYNTHETIC-CASE-020_NODE_1_length_100.region001.gbk"),   # known-family strain A
         (2, "SID3343_NODE_9_length_200.region002.gbk"),  # known-family strain B
         (3, "BGC0000271.gbk"),                            # MIBiG ref in known family
-        (4, "AS-705_NODE_2_length_50.region003.gbk"),    # novel-family strain A
+        (4, "SYNTHETIC-CASE-020_NODE_2_length_50.region003.gbk"),    # novel-family strain A
     ]
     for gid, p in rows:
         c.execute("insert into gbk(id,path) values (?,?)", (gid, p))
@@ -53,12 +53,12 @@ def _build_pkg(root):
     cards = os.path.join(root, "cards"); os.makedirs(cards, exist_ok=True)
     with open(os.path.join(root, "triage_board.csv"), "w") as fh:
         fh.write("strain,bgc,locator,product\n")
-        fh.write("AS-705,BGC001,NODE_1_length_100.region001,T2PKS\n")
+        fh.write("SYNTHETIC-CASE-020,BGC001,NODE_1_length_100.region001,T2PKS\n")
         fh.write("SID3343,BGC002,NODE_9_length_200.region002,T2PKS\n")
-        fh.write("AS-705,BGC003,NODE_2_length_50.region003,other\n")
+        fh.write("SYNTHETIC-CASE-020,BGC003,NODE_2_length_50.region003,other\n")
     for name, body in [
-        ("AS-705_BGC001_ModeB.md", "# AS-705 BGC001\n\n## §8 Comparator/KCB interpretation\n\nKCB partial.\n\n## §9 x\n"),
-        ("AS-705_BGC003_ModeB.md", "# AS-705 BGC003\n\n## §8 Comparator/KCB interpretation\n\nno KCB hit.\n\n## §9 x\n"),
+        ("SYNTHETIC-CASE-020_BGC001_ModeB.md", "# SYNTHETIC-CASE-020 BGC001\n\n## §8 Comparator/KCB interpretation\n\nKCB partial.\n\n## §9 x\n"),
+        ("SYNTHETIC-CASE-020_BGC003_ModeB.md", "# SYNTHETIC-CASE-020 BGC003\n\n## §8 Comparator/KCB interpretation\n\nno KCB hit.\n\n## §9 x\n"),
     ]:
         with open(os.path.join(cards, name), "w") as fh:
             fh.write(body)
@@ -72,15 +72,15 @@ def test_ingest_known_and_novel(tmp_path=None):
     _build_pkg(d)
     names = {}  # no index -> compound names show as accessions; fine for the test
     ctx = ingest.gcf_context(db, "0.5", names, run_id="1")
-    # known-family strain BGC (AS-705:...region001) present, KNOWN, anchors to BGC0000271
-    kkey = "AS-705:NODE_1_length_100.region001"
+    # known-family strain BGC (SYNTHETIC-CASE-020:...region001) present, KNOWN, anchors to BGC0000271
+    kkey = "SYNTHETIC-CASE-020:NODE_1_length_100.region001"
     assert kkey in ctx, ctx.keys()
     assert ctx[kkey]["status"] == "KNOWN"
     assert any(a == "BGC0000271" for a, _ in ctx[kkey]["mibig"])
     assert "SID3343" in ctx[kkey]["cross_strain_members"]
     assert ctx[kkey]["nearest_mibig"][2] == 0.20
     # a family with no MIBiG member is described as such, not called NOVEL
-    nkey = "AS-705:NODE_2_length_50.region003"
+    nkey = "SYNTHETIC-CASE-020:NODE_2_length_50.region003"
     assert ctx[nkey]["status"] == "NO_MIBIG_MEMBER"
     assert ctx[nkey]["mibig"] == []
 
@@ -92,7 +92,7 @@ def test_ingest_known_and_novel(tmp_path=None):
         ingest.main()
     finally:
         sys.argv = argv
-    known_card = os.path.join(d, "cards", "AS-705_BGC001_ModeB.md")
+    known_card = os.path.join(d, "cards", "SYNTHETIC-CASE-020_BGC001_ModeB.md")
     txt = open(known_card).read()
     assert ingest.BEGIN in txt and ingest.END in txt
     assert "**KNOWN**" in txt
@@ -106,7 +106,7 @@ def test_ingest_known_and_novel(tmp_path=None):
         sys.argv = argv
     assert open(known_card).read().count(ingest.BEGIN) == 1
 
-    novel_card = open(os.path.join(d, "cards", "AS-705_BGC003_ModeB.md")).read()
+    novel_card = open(os.path.join(d, "cards", "SYNTHETIC-CASE-020_BGC003_ModeB.md")).read()
     assert "**NO_MIBIG_MEMBER**" in novel_card
     print("PASS test_ingest_known_and_novel")
 

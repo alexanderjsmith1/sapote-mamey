@@ -1,4 +1,8 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 from __future__ import annotations
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+COMPARATOR_ID = synthetic_namespace_id("AS", width=3, case_index=918)
 
 from mamey.modeb_publication_gate import (
     _gene_orientation_findings,
@@ -29,7 +33,7 @@ Neither ctg1_1 nor ctg1_2 is assigned as producer self-protection without compou
 
 
 def _s45_positive() -> str:
-    return """#### Cohort comparison denominator
+    return f"""#### Cohort comparison denominator
 
 Two exact loci from two strains were compared after exact protein binding.
 
@@ -37,7 +41,7 @@ Two exact loci from two strains were compared after exact protein binding.
 
 | Comparator exact locus | Query genes | Comparator genes | Sequence / synteny evidence | Agreement and mismatch | Allowed inference |
 |---|---|---|---|---|---|
-| AS-2 / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | ctg1_1; ctg1_2 | ctg2_1; ctg2_2 | count-first protein comparison and ordered-neighbor agreement | two genes agree; release system differs | cohort gene-family navigation only |
+| {COMPARATOR_ID} / NODE_2_length_20000_cov_20.000000 / region001 / BGC002 | ctg1_1; ctg1_2 | ctg2_1; ctg2_2 | count-first protein comparison and ordered-neighbor agreement | two genes agree; release system differs | cohort gene-family navigation only |
 
 #### Cohort-comparison conclusion
 

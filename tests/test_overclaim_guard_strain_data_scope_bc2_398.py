@@ -1,10 +1,10 @@
 """An audit-lane .400 audit: hooks/overclaim_guard.py's REPORT-scope check hardcoded this specific
-deployment's private folder name ('as strain master') as a raw substring test, alongside a
+deployment's private folder name (retained in external history) as a raw substring test, alongside a
 second raw substring test for 'strain_data' -- neither generalizes to a differently-named or
 differently-laid-out workspace, and substring containment can match inside an unrelated,
 longer path segment rather than a genuine directory component.
 
-v9.7.400 REDESIGN (Codex pool review): "still contains workspace-specific 'as strain master'
+v9.7.400 REDESIGN (Codex pool review): "still contains deployment-specific folder
 matching and substring scope inference. Replace it with generic configured report roots or
 exact path components." Replaced with in_report_scope(): the engine's own documented, portable
 'strain_data' directory-name convention, checked as an exact path component; OR the

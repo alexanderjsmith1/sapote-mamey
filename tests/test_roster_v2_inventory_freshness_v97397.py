@@ -52,7 +52,7 @@ def test_newer_seal_beats_legacy_home_preference(tmp_path, monkeypatch):
     inventory under the legacy mamey_packages home (which previously won on +100)."""
     root = str(tmp_path)
     old = _write_inventory(os.path.join(root, "mamey_packages", STRAIN + "_SapoteMamey_v9.7.339_x", "package"))
-    new_dir = os.path.join(root, "Mamey Complete", STRAIN)
+    new_dir = os.path.join(root, "Package Outputs", STRAIN)
     _sibling_package_zip(new_dir, "9.7.376")
     new = _write_inventory(os.path.join(new_dir, "package"))
     monkeypatch.setattr(roster_v2, "ROOT", root)

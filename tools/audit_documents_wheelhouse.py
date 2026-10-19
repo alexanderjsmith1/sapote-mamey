@@ -3,7 +3,8 @@
 
 The audit never contacts an index and never installs a package.  It asks the
 selected interpreter's pip resolver whether each direct documents requirement
-has a compatible binary wheel in one local wheelhouse.  Optional import checks
+has a compatible binary wheel in one local wheelhouse, ignoring installed
+packages, then resolves the complete profile together.  Optional import checks
 are intended for a second pass after an operator performs the offline install.
 """
 from __future__ import annotations
@@ -51,16 +52,34 @@ def interpreter_path(value: str) -> Path:
     return Path(os.path.abspath(os.path.expanduser(value)))
 
 
+def validate_requirement(requirement: str) -> str:
+    """Allow named distributions with version clauses only; never URLs or pip options.
+
+    Deliberately narrower than PEP 508: custom markers, extras, direct references,
+    paths and requirement-file directives are outside this offline profile contract.
+    Pip still validates the version semantics. No packaging import is needed.
+    """
+    name = r"[A-Za-z0-9][A-Za-z0-9_.-]*"
+    version = r"[A-Za-z0-9][A-Za-z0-9.*+!_-]*"
+    clause = rf"(?:===|~=|==|!=|<=|>=|<|>)\s*{version}"
+    if not re.fullmatch(rf"\s*{name}\s*(?:{clause}(?:\s*,\s*{clause})*)?\s*", requirement):
+        raise ValueError(f"PROFILE_NAMED_VERSION_REQUIREMENT_ONLY:{requirement}")
+    return requirement.strip()
+
+
 def read_profile(path: Path) -> list[str]:
     requirements: list[str] = []
-    for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        line = raw.split("#", 1)[0].strip()
+    for line_number, raw in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), start=1):
+        # Only a whitespace-separated # begins an inline comment. URL fragments
+        # cannot be silently stripped into an apparently acceptable requirement.
+        line = re.split(r"\s+#", raw, maxsplit=1)[0].strip()
+        if line.startswith("#"):
+            continue
         if not line:
             continue
         if line.startswith(("-", ".")):
             raise ValueError(f"PROFILE_DIRECT_REQUIREMENT_ONLY:{path}:{line_number}:{line}")
-        requirement_name(line)
-        requirements.append(line)
+        requirements.append(validate_requirement(line))
     if not requirements:
         raise ValueError(f"PROFILE_EMPTY:{path}")
     return requirements
@@ -83,20 +102,28 @@ def audit_requirements(
     if not wheelhouse.is_dir():
         raise ValueError(f"WHEELHOUSE_NOT_FOUND:{wheelhouse}")
 
+    requirements = [validate_requirement(requirement) for requirement in requirements]
+    if not requirements:
+        raise ValueError("PROFILE_EMPTY")
     environment = dict(os.environ)
     environment.update({
         "PIP_DISABLE_PIP_VERSION_CHECK": "1",
         "PIP_NO_CACHE_DIR": "1",
         "PIP_PROGRESS_BAR": "off",
+        "PIP_CONFIG_FILE": os.devnull,
     })
+    # --isolated ignores user pip config/environment; a local --find-links path
+    # and PIP_CONFIG_FILE disables site/global files as well. Wheel metadata
+    # remains an independently reviewed input, not an OS network sandbox.
+    resolver = [
+        str(python), "-m", "pip", "--isolated", "install", "--dry-run",
+        "--ignore-installed", "--no-index", "--only-binary=:all:",
+        "--disable-pip-version-check", "--no-cache-dir", "--find-links", str(wheelhouse),
+    ]
     rows: list[dict[str, Any]] = []
     for requirement in requirements:
         name = requirement_name(requirement)
-        command = [
-            str(python), "-m", "pip", "install", "--dry-run", "--no-index",
-            "--only-binary=:all:", "--disable-pip-version-check",
-            "--find-links", str(wheelhouse), requirement,
-        ]
+        command = [*resolver, requirement]
         resolved = runner(command, capture_output=True, text=True, env=environment)
         combined = (resolved.stdout or "") + (resolved.stderr or "")
         row: dict[str, Any] = {
@@ -122,11 +149,19 @@ def audit_requirements(
                 row["import_tail"] = _tail((imported.stdout or "") + (imported.stderr or ""))
         rows.append(row)
 
+    joint = runner([*resolver, *requirements], capture_output=True, text=True, env=environment)
+    joint_resolution = {
+        "status": "PASS" if joint.returncode == 0 else "FAIL",
+        "resolver_returncode": joint.returncode,
+        "resolver_tail": _tail((joint.stdout or "") + (joint.stderr or "")),
+    }
     failed_resolution = [row["distribution"] for row in rows if row["resolution"] != "PASS"]
     failed_import = [row["distribution"] for row in rows if row.get("import") == "FAIL"]
     return {
-        "schema_version": "sapote-documents-wheelhouse-audit-1.0",
-        "status": "PASS" if not failed_resolution and not failed_import else "FAIL",
+        "schema_version": "sapote-documents-wheelhouse-audit-1.1",
+        "status": "PASS" if not failed_resolution and not failed_import and joint.returncode == 0 else "FAIL",
+        "joint_resolution": joint_resolution,
+        "resolution_scope": "fresh binary-only per-requirement and complete-profile dry runs; no installation",
         "network_policy": "NO_INDEX_LOCAL_BINARY_WHEELS_ONLY",
         "python": str(python),
         "wheelhouse": str(wheelhouse),
@@ -158,7 +193,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     except Exception as exc:
         report = {
-            "schema_version": "sapote-documents-wheelhouse-audit-1.0",
+            "schema_version": "sapote-documents-wheelhouse-audit-1.1",
             "status": "FAIL",
             "error": str(exc),
         }

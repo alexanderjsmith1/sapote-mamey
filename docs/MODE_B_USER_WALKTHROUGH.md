@@ -36,6 +36,8 @@ python mamey_run.py emit-modeb-template --package '/path/to/package' --bgc '<ali
 
 Supply applicable cross-source inputs with `--cohort-dir`, `--reference-dir`, `--strain-metadata` and `--bigscape-regions-dir`; the strain metadata is read as supplied. The source-argument helper also serves `modeb-round`, `deliverable-queue` and `tools/emit_modeb_template_full50.py`. Missing source fields remain holds. A flag's existence does not establish that its input was available or admitted.
 
+Imported cohort prefill is unavailable: `modeb-round --from-precompute <dir>` reports `COHORT_PREFILL_SOURCE_BINDING_UNAVAILABLE` and exits nonzero before writing new templates or a round worklist. Omit `--from-precompute` for the supported package-backed route. The flag does not validate imported facts against the selected assembly. This restriction is separate from the cross-source `--cohort-dir` option above. Retain prior templates and their source records; the new hold does not validate earlier imported prefill.
+
 Author the saved template from admitted evidence. Preserve exact titles, channel separation, full identities, alternatives and per-claim sources. Do not fill missing evidence with plausible prose. Save the authored card separately from the template, then verify that actual file:
 
 ```bash

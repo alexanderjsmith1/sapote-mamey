@@ -50,7 +50,10 @@ def table(path: Path, need: list[str]) -> list[dict]:
 
 
 def read_polygons(paths: list[Path], extent):
-    import shapefile
+    try:
+        import shapefile
+    except ImportError as exc:
+        raise ValueError("MAP_DEPENDENCY_UNAVAILABLE: pyshp provides the shapefile module; install the selected bundle figures extra (python -m pip install -e '.[figures]') or provision its compatible offline wheels") from exc
     lo0, lo1, la0, la1 = extent
     out = []
     for p in paths:

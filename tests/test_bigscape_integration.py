@@ -42,10 +42,10 @@ def test_discover_inputs_priority():
 def test_stage_gbks_into_no_space_dir():
     src = tempfile.mkdtemp(prefix="bs src with spaces ")  # deliberately spaced source
     try:
-        _write(os.path.join(src, "AS-705.region001.gbk"))
-        _write(os.path.join(src, "AS-705.region002.gbk"))
-        _write(os.path.join(src, "._AS-705.region003.gbk"))  # AppleDouble -> skipped
-        _write(os.path.join(src, "AS-705.txt"))              # non-GBK -> skipped
+        _write(os.path.join(src, "SYNTHETIC-CASE-020.region001.gbk"))
+        _write(os.path.join(src, "SYNTHETIC-CASE-020.region002.gbk"))
+        _write(os.path.join(src, "._SYNTHETIC-CASE-020.region003.gbk"))  # AppleDouble -> skipped
+        _write(os.path.join(src, "SYNTHETIC-CASE-020.txt"))              # non-GBK -> skipped
         out = os.path.join(tempfile.mkdtemp(prefix="bs_work_"), "input")
         n = bsr.stage_gbks("gbk_dir", [src], out)
         staged = sorted(os.listdir(out))

@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """v9.7.348 external activity-prediction channel — validator + score-neutrality gates.
 
 Implements CODEX_01's 10 interface acceptance gates + the CODEX_02 / verdict rules, plus the
@@ -83,7 +84,7 @@ def test_gate2_duplicate_exact_key_fails():
 
 # two strains sharing BGC001 remain SEPARATE (no false duplicate) — CODEX_01 fixture 1
 def test_two_strains_same_bgc_are_separate():
-    d = doc(valid_pred(strain="AS-1"), valid_pred(strain="AS-2"))
+    d = doc(valid_pred(strain="AS-1"), valid_pred(strain="SYNTHETIC-CASE-002"))
     assert ap.validate_activity_predictions(d) == []
 
 

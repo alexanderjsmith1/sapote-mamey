@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """mamey/bioassay_paper.py: a cell with no numeric reading shows its recorded state(s), and collection rules live in config.
 
 House rule: an assay cell has exactly four non-numeric states, +, −, n.t. and blank, and none is coerced into another.
@@ -19,7 +20,7 @@ ALLOWED = {'+', '−', '+/−', 'n.t.', ''}
 
 def _fixture(tmp_path, rows, roster=None):
     r = tmp_path / 'roster.tsv'; a = tmp_path / 'aliases.json'; t = tmp_path / 'assay.tsv'
-    write(r, roster or [dict(strain='AS-1', genus='Unassigned', group='G1'), dict(strain='AS-2', genus='Unassigned', group='G1'),
+    write(r, roster or [dict(strain='AS-1', genus='Unassigned', group='G1'), dict(strain='SYNTHETIC-CASE-002', genus='Unassigned', group='G1'),
                         dict(strain='AS-3', genus='Unassigned', group='G1')])
     a.write_text('{}')
     write(t, [dict(zip(('strain', 'organism', 'material', 'best_pct'), x)) for x in rows])
@@ -35,7 +36,7 @@ def _profiles(tmp_path, **over):
     (['−'], '−'), (['-'], '−'), (['+'], '+'), (['+', '−'], '+/−'), (['n.t.'], 'n.t.'), ([''], ''), (['', 'n.t.'], ''),
 ])
 def test_empty_cell_shows_recorded_states(tmp_path, states, label):
-    rows = [(f'AS-{i + 1}', 'MRSA', 'Crude extract', s) for i, s in enumerate(states)]
+    rows = [(('AS-1', 'SYNTHETIC-CASE-002', 'AS-3')[i], 'MRSA', 'Crude extract', s) for i, s in enumerate(states)]
     t, r, a = _fixture(tmp_path, rows)
     p = prepare(t, r, a, 'A06', 'test', layouts=_profiles(tmp_path))
     cell = {(x['group'], x['target']): x for x in p['plot']}['No 16S sequence', 'MRSA']
@@ -45,9 +46,9 @@ def test_empty_cell_shows_recorded_states(tmp_path, states, label):
 
 
 def test_no_label_outside_the_four_states(tmp_path):
-    rows = [('AS-1', 'MRSA', 'Crude extract', '+'), ('AS-2', 'MRSA', 'Crude extract', '−'), ('AS-3', 'MRSA', 'Crude extract', 'n.t.'),
-            ('AS-1', 'E. coli', 'Crude extract', ''), ('AS-2', 'Candida albicans', 'Crude extract', '−'),
-            ('AS-2', 'Candida auris', 'Crude extract', '+'), ('AS-3', 'Foulbrood 818', 'Fraction', '-')]
+    rows = [('AS-1', 'MRSA', 'Crude extract', '+'), ('SYNTHETIC-CASE-002', 'MRSA', 'Crude extract', '−'), ('AS-3', 'MRSA', 'Crude extract', 'n.t.'),
+            ('AS-1', 'E. coli', 'Crude extract', ''), ('SYNTHETIC-CASE-002', 'Candida albicans', 'Crude extract', '−'),
+            ('SYNTHETIC-CASE-002', 'Candida auris', 'Crude extract', '+'), ('AS-3', 'Foulbrood 818', 'Fraction', '-')]
     t, r, a = _fixture(tmp_path, rows)
     prof = _profiles(tmp_path)
     for kind in ('A02', 'A06'):
@@ -85,7 +86,7 @@ def test_profiles_reproduce_the_previous_per_collection_rules():
 
 
 def test_a_user_layout_file_sets_the_focal_group(tmp_path):
-    roster = [dict(strain='AS-1', genus='Streptomyces', group='Focal'), dict(strain='AS-2', genus='Nocardia', group='Other')]
-    t, r, a = _fixture(tmp_path, [('AS-1', 'MRSA', 'Crude extract', '90'), ('AS-2', 'MRSA', 'Crude extract', '10')], roster)
+    roster = [dict(strain='AS-1', genus='Streptomyces', group='Focal'), dict(strain='SYNTHETIC-CASE-002', genus='Nocardia', group='Other')]
+    t, r, a = _fixture(tmp_path, [('AS-1', 'MRSA', 'Crude extract', '90'), ('SYNTHETIC-CASE-002', 'MRSA', 'Crude extract', '10')], roster)
     p = prepare(t, r, a, 'A01', 'test', layouts=_profiles(tmp_path, focal_group='Focal'))
-    assert {x['strain']: x['row'] for x in p['plot']} == {'AS-1': 'Streptomyces', 'AS-2': 'Other'}
+    assert {x['strain']: x['row'] for x in p['plot']} == {'AS-1': 'Streptomyces', 'SYNTHETIC-CASE-002': 'Other'}

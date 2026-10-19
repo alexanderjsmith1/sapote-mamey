@@ -1,4 +1,4 @@
-import csv, os, shutil, subprocess
+import csv, os, shutil, subprocess, sys
 from pathlib import Path
 import pytest
 ROOT=Path(__file__).resolve().parents[1]
@@ -15,7 +15,7 @@ def render_case(tmp_path):
         for key in ['REF_A','REF_B','QUERY_A','REF_C','OUTGROUP_REF']:w.writerow([key,key+' [plant-associated] (NR_123456.1)','plant-associated','plant','US'])
     def run(**env):
         target=tmp_path/'figure'
-        cp=subprocess.run([r,str(ROOT/'tools/ggtree_rect_heatmap.R'),str(tree),str(meta),str(target),'QUERY_A'],capture_output=True,text=True,env=dict(os.environ,SAPOTE_PYTHON=shutil.which('python3'),**env),timeout=120)
+        cp=subprocess.run([r,str(ROOT/'tools/ggtree_rect_heatmap.R'),str(tree),str(meta),str(target),'QUERY_A'],capture_output=True,text=True,env=dict(os.environ,SAPOTE_PYTHON=sys.executable,**env),timeout=120)
         return cp,target
     return run,meta,tree
 

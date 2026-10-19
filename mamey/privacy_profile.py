@@ -281,8 +281,21 @@ def read_public_file_hold(root: Path, relative: str, *, max_bytes: int = 65536) 
     return data, identity
 
 
+
+def _public_file_hold_tree_files(root: Path):
+    """Walk absence-proof candidates without suppressing unreadable directories."""
+    def unreadable(error):
+        raise PrivacyProfileError("FILE_HOLD_SCAN_UNREADABLE") from error
+    for base, directories, files in os.walk(root, followlinks=False, onerror=unreadable):
+        for name in directories:
+            relative = (Path(base) / name).relative_to(root).as_posix()
+            _file_hold_path(root, relative, directory=True)
+        for name in files:
+            yield Path(base) / name
+
+
 def inspect_public_file_holds(root: str | Path, policy: PublicExportPolicy, *,
-                              require_source_match: bool) -> tuple[tuple[PublicExportFileBinding, ...], frozenset[str]]:
+                              require_source_match: bool, scan_all_files: bool = False) -> tuple[tuple[PublicExportFileBinding, ...], frozenset[str]]:
     """Preflight every selector. Missing namespace is explicit minimal-source absence."""
     root = _file_hold_root(root)
     bindings = []
@@ -306,11 +319,14 @@ def inspect_public_file_holds(root: str | Path, policy: PublicExportPolicy, *,
                     _file_hold_path(root, ancestor.as_posix(), directory=True)
                     break
                 ancestor = ancestor.parent
-            continue
-        parent = _file_hold_path(root, parent_relative, directory=True)
-        present.add(hold.hold_id)
+            if not scan_all_files:
+                continue
+        else:
+            parent = _file_hold_path(root, parent_relative, directory=True)
+            present.add(hold.hold_id)
         matches = []
-        for candidate in sorted(parent.glob(hold.glob)):
+        candidates = _public_file_hold_tree_files(root) if scan_all_files else parent.glob(hold.glob)
+        for candidate in sorted(candidates):
             relative = candidate.relative_to(root).as_posix()
             sha, identity = hash_public_file_hold(root, relative)
             locator = hashlib.sha256(relative.encode("utf-8")).hexdigest()
@@ -394,6 +410,42 @@ def public_file_hold_findings(root: str | Path, policy: PublicExportPolicy) -> l
         return [str(exc) if isinstance(exc, PrivacyProfileError) else "FILE_HOLD_CHECK_UNREADABLE"]
 
 
+
+def public_file_hold_prior_omission(root: str | Path, policy: PublicExportPolicy) -> dict[str, Any] | None:
+    """Admit an exact prior unresolved omission, never publication authority.
+
+    No receipt means the caller must use the original held-file preflight. A
+    receipt requires intact namespaces, exact current policy records and no
+    held locator/content anywhere in this tree, including renamed copies.
+    """
+    root = _file_hold_root(root)
+    receipt_path = root / PUBLIC_FILE_HOLD_RECEIPT
+    if not receipt_path.exists() and not receipt_path.is_symlink():
+        return None
+    if public_file_hold_findings(root, policy):
+        raise PrivacyProfileError("FILE_HOLD_PRIOR_OMISSION_INVALID")
+    found, present = inspect_public_file_holds(
+        root, policy, require_source_match=False, scan_all_files=True)
+    if found:
+        raise PrivacyProfileError("FILE_HOLD_PRIOR_CONTENT_PRESENT")
+    document = load_public_file_hold_receipt(root)
+    admitted = present | frozenset(hold.hold_id for hold in policy.file_holds
+        if any(part in policy.excluded_root_names for part in Path(hold.parent).parts)
+        or any(hold.parent == relative or hold.parent.startswith(relative + "/")
+               for relative in policy.excluded_relative_paths))
+    expected = {
+        "schema": "sapote.public_export_file_holds.v1",
+        "disposition": "PUBLIC_EXPORT_HOLD_UNRESOLVED_AUTHORITY",
+        "records": sorted(({"hold_id": hold.hold_id, "source_sha256": hold.sha256,
+                            "relative_path_sha256": hold.relative_path_sha256}
+                           for hold in policy.file_holds if hold.hold_id in admitted),
+                          key=lambda item: item["hold_id"]),
+    }
+    if not admitted or document != expected:
+        raise PrivacyProfileError("FILE_HOLD_PRIOR_RECEIPT_STALE")
+    return document
+
+
 def verify_public_file_hold_omissions(source: str | Path, stage: str | Path,
                                       policy: PublicExportPolicy) -> tuple[frozenset[str], list[str]]:
     """Bind declared omissions independently to the current immutable source."""
@@ -402,6 +454,14 @@ def verify_public_file_hold_omissions(source: str | Path, stage: str | Path,
         if (source == stage or source.is_relative_to(stage) or stage.is_relative_to(source)
                 or _file_hold_identity(source.stat())[:2] == _file_hold_identity(stage.stat())[:2]):
             raise PrivacyProfileError("FILE_HOLD_ROOTS_OVERLAP")
+        prior = public_file_hold_prior_omission(source, policy)
+        if prior is not None:
+            if public_file_hold_prior_omission(stage, policy) != prior:
+                raise PrivacyProfileError("FILE_HOLD_SOURCE_RECEIPT_MISMATCH")
+            if public_file_hold_prior_omission(source, policy) != prior:
+                raise PrivacyProfileError("FILE_HOLD_SOURCE_IDENTITY_DRIFT")
+            # The current source already omits these files: no new path omission.
+            return frozenset(), []
         bindings = resolve_public_file_holds(source, policy)
         receipt_path = stage / PUBLIC_FILE_HOLD_RECEIPT
         if not bindings:

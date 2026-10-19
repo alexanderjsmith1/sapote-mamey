@@ -38,6 +38,43 @@ The scanner keys on specific filenames. Contract changes require corresponding s
 - `--emit-md PATH`: also write the report to a file (a `DISCOVERY.md` you can commit).
 - `--depth N`: bound recursion (default 6); a package dir stops descent (its subdirs aren't packages).
 
+Optional governed discovery requires `--source-collection-registry`, its exact
+`--expected-source-collection-registry-sha256`, and a logical `--source-root-id`.
+Request `--emit-source-catalog-json` and `--emit-source-catalog-tsv` together. Both
+catalog paths must be fresh, distinct, and free of symlink ancestors; choose new
+names for each scan. The standalone `python -m mamey.workspace_source_discovery
+scan` command uses the same fresh-pair policy and refuses an occupied pair before
+scanning. This deliberately replaces the older behavior that overwrote catalog files.
+
+The complete selected output roster is checked before discovery. Report/catalog
+path collisions and a report that aliases the selected registry, including a
+hardlink, are refused. `--emit-md` retains ordinary report replacement and requires
+an existing parent. The report and both catalog formats are serialized first; an
+existing report is staged and replaced only after both fresh catalog files succeed.
+An ordinary publication failure preserves the previous report and attempts to
+remove only files created by this invocation. Any failed or ownership-changed
+cleanup is attached to the original error. An absent report is created exclusively
+as the final fresh output.
+
+Existing reports are replaced with a new file inode. Permission mode is copied;
+ownership, ACLs and extended attributes are not explicitly copied. Other hardlinks
+retain the previous file. Directory permissions govern replacement, which can
+succeed where a direct write to the old report would fail. Confirm these file
+metadata semantics before adopting this report replacement behavior.
+
+The shared byte publisher also rejects parent traversal, symlink ancestors and
+casefolded duplicate or ancestor output slots when no report replacement is
+requested. Its callers must satisfy that roster policy. Tools that resolve their
+output roots before publication retain their existing resolving contract.
+
+An incomplete governed scan writes its diagnostic outputs and returns exit 3.
+Only `PASS_COMPLETE` catalogs can pass report-source preflight. Output publication
+errors fail without a success marker. Interruption can leave a partial set or a
+staging file, and console failure after file commit does not undo committed files.
+Retain the diagnostic and inspect the actual output roster before retrying with
+fresh catalog names. Use one writer and stable input/output paths. The registry
+alias guard is not a complete inventory of every source file in a workspace.
+
 ### Next-action ranker
 Pure function of the scanned state — `_suggest(packages, context)`:
 `validate` (non-passing gates) → `ingest-blastp` (worklist-only) → `render-all-figures` (no figures)
@@ -105,7 +142,7 @@ suffix to the package contract so `discover`/`validate` can see it.
 
 Capabilities are top-level filename/directory-presence flags. An empty `gold_figures` directory or `bgc_blastp_panel` name can mark a layer present. Figure counts inspect only a subset of PNG locations; Mode B counts physical verdict-file lines minus one, not verified cards or CSV records; BLASTp counts directory entries, not admitted queries. Existing SVGs, different figure directories or a full finished card can be invisible to these proxies. They are navigation hints, not evidence of completion, freshness, coverage, visual QA or scientific acceptance. Preserve strain / full node-or-contig / region / BGC alias in actual locus reports.
 
-Version drift compares parsed package engine versions to `--current` or the newest discovered value; a stale flag is not authorization to rerun or mutate a sealed source. Suggestions are strings, not executed commands or complete invocations. `--emit-md` directly replaces the named file and needs its parent to exist; the ordinary discovery report lacks a source/hash receipt (`:177–211,255–280`). The optional source catalog separately requires an explicit registry hash and source-root ID; catalog inclusion still does not grant evidence authority.
+Version drift compares parsed package engine versions to `--current` or the newest discovered value; a stale flag is not authorization to rerun or mutate a sealed source. Suggestions are strings, not executed commands or complete invocations. `--emit-md` follows the staged replacement contract above and needs its parent to exist; the ordinary discovery report lacks a source/hash receipt. The optional source catalog separately requires an explicit registry hash and source-root ID; catalog inclusion still does not grant evidence authority.
 
 The figure module map is a navigation list, not proof that every renderer imports one policy or uses the same palette/output format. Not all figures emit raw CSVs, and generated source tables can be aggregates or derived metrics. There is no universal automatic figure count or guarantee that every numbered panel exists after a run. Consult [the current catalog](FIGURE_CATALOG.md), [reproducibility limits](FIGURE_REPRODUCIBILITY.md), and [optional figure tool contracts](OPTIONAL_FIGURE_FACTORY_TOOLS.md).
 

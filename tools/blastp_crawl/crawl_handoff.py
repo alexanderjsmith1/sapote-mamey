@@ -362,7 +362,7 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("pack", help="build a handoff folder and zip")
     p.add_argument("--out", required=True, help="parent folder for the handoff (outside the bundle)")
-    p.add_argument("--lanes", default="", help="comma list of strains, e.g. AS-1,AS-2 (default: every lane with work)")
+    p.add_argument("--lanes", default="", help="comma list of strains, e.g. SYNTHETIC-DEMO-A,SYNTHETIC-DEMO-B (default: every lane with work)")
     p.add_argument("--max-lanes", type=int, default=4, help="concurrency hook cap on the other machine (default 4)")
     p.add_argument("--name", default="", help="folder name (default BLASTP_HANDOFF_<date>)")
     p.add_argument("--allow-live", action="store_true", help="pack even while a lane is running")

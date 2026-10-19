@@ -2,6 +2,8 @@ import csv
 import json
 from pathlib import Path
 
+import pytest
+
 from mamey.tab_reconcile import build_tab_reconciliation
 
 
@@ -9,8 +11,7 @@ def test_tab_reconcile_bgc028_as760_fixture(tmp_path):
     antismash = Path('/mnt/data/AS-760.zip')
     package = Path('/mnt/data/AS-760_PATCHED_SapoteMamey_v9.7.229_engine1.9.109_Complete_Package.zip')
     if not antismash.exists() or not package.exists():
-        # Allows source tree tests to run outside the ChatGPT fixture environment.
-        return
+        pytest.skip("external AS-760 antiSMASH/package fixture archives are not present")
     summary = build_tab_reconciliation(
         antismash, tmp_path, bgc='BGC028', package=package
     )

@@ -177,6 +177,13 @@ def _refuse_foreign_bytecode():
         # the bytecode this branch exists to distrust.
         unbound = _dirs_holding_bytecode(cache_root)
         if unbound:
+            if sys.dont_write_bytecode:
+                # -B suppresses writes, not reads: untrusted .pyc could still execute.
+                # Preserve immutable evidence and refuse rather than auto-purging it.
+                sys.stderr.write(
+                    "BYTECODE_WRITES_DISABLED: unbound bytecode requires cleanup in a working copy.\n"
+                    "  -B/PYTHONDONTWRITEBYTECODE preserves this tree; no cache was removed or marked.\n")
+                raise SystemExit(2)
             _purge_bytecode(cache_root, quiet=True)
             still = _dirs_holding_bytecode(cache_root)
             if still:
@@ -194,6 +201,8 @@ def _refuse_foreign_bytecode():
                 "  so their bytecode could not be trusted and was removed before import.\n"
                 "  Only derived bytecode was deleted; this run recompiles it.\n"
                 % (len(unbound), "y" if len(unbound) == 1 else "ies"))
+        if sys.dont_write_bytecode:
+            return  # No .pyc to bind and imports cannot create any; preserve the tree.
         try:                        # clean first run: mark before imports create bytecode
             os.makedirs(os.path.dirname(marker), exist_ok=True)
             with open(marker, "w", encoding="utf-8") as handle:

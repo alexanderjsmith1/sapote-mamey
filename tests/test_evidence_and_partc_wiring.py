@@ -1,6 +1,10 @@
-"""v9.7.229: evidence-presence bar (EVIDENCE_GAP) + Part C section wiring (§4/§5/§7/§16/§21/§27 grounded
-from the cohort tables) + is_private AS-public flip. Hermetic fixtures."""
+"""Evidence presence, supplied-fact section rendering and privacy regressions.
+
+Imported cohort admission is held separately; section fixtures are fabricated
+renderer inputs, not evidence that an unbound table is admitted.
+"""
 import csv, os, tempfile, sys, pathlib
+import pytest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from mamey.modeb_structure_gate import lint_card
 from mamey.modeb_template_emitter import _precompute_facts, _section_body
@@ -32,16 +36,30 @@ def _pc_fixture(root):
       [["AS-1","BGC001","NODE_1","ctg1_5","AMP-binding.1","DAWQCATIDK","Gln","high","","x"]])
     return LOC
 
-def test_partc_sections_ground_from_tables():
+def test_unbound_cohort_table_import_is_held():
     with tempfile.TemporaryDirectory() as root:
         loc = _pc_fixture(root)
-        f = _precompute_facts(root, loc, strain="AS-1", bgc_id="BGC001")
-        assert "grounded" in _section_body(4, f, {})    # roles census
-        assert "grounded" in _section_body(5, f, {})    # architecture
-        assert "grounded" in _section_body(7, f, {})    # resistance
-        assert "grounded" in _section_body(16, f, {})   # substrate table
-        assert "Gln" in _section_body(16, f, {})        # real substrate value
-        assert "never a phenotype" in _section_body(7, f, {})  # discipline preserved
+        with pytest.raises(ValueError, match="COHORT_PREFILL_SOURCE_BINDING_UNAVAILABLE"):
+            _precompute_facts(root, loc, strain="AS-1", bgc_id="BGC001")
+
+
+def test_partc_sections_render_supplied_facts():
+    # Presentation-only fixture. No cohort reader/admission path is bypassed.
+    f = {
+        "pc_roles": "ACP / acyl carrier×4", "pc_archetype": "hybrid NRPS-PKS",
+        "pc_archetype_note": "", "pc_domain_string": "KS-AT-C-A",
+        "pc_module_count": "3", "pc_module_types": "PKS;NRPS",
+        "pc_resistance": "Beta_lactamase_fold",
+        "pc_substrates": [{"strain": "AS-1", "bgc_id": "BGC001", "node_region": "NODE_1",
+            "locus_tag": "ctg1_5", "domain": "AMP-binding.1", "stachelhaus_signature": "DAWQCATIDK",
+            "substrate": "Gln", "confidence": "high", "substrate_class_or_alts": "", "provenance": "fabricated"}],
+    }
+    assert "grounded" in _section_body(4, f, {})    # roles census
+    assert "grounded" in _section_body(5, f, {})    # architecture
+    assert "grounded" in _section_body(7, f, {})    # resistance
+    assert "grounded" in _section_body(16, f, {})   # substrate table
+    assert "Gln" in _section_body(16, f, {})        # fabricated supplied substrate
+    assert "never a phenotype" in _section_body(7, f, {})  # discipline preserved
 
 def test_unknown_figure_identity_defaults_private():
     from mamey.cohort_figures import is_private

@@ -141,10 +141,30 @@ def audit(package_dir: str | Path, *, strict: bool = False,
     if parse_errors:
         errors.append({"kind": "receipt_parse_errors", "count": parse_errors})
 
+    phase_outcomes: dict[str, dict] = {}
     for phase, rows in sorted(by_phase.items()):
-        statuses = {str(r.get("status") or "").upper() for r in rows}
-        started = "START" in statuses
-        closed = bool(statuses & TERMINAL_STATUSES)
+        # Preserve receipt file order. Flat logs provide no run/attempt identity;
+        # an earlier terminal cannot close a later START, and repeated starts
+        # cannot be collapsed into an adopted attempt.
+        ordered = [str(r.get("status") or "").upper() for r in rows]
+        statuses = set(ordered)
+        starts = [i for i, status in enumerate(ordered) if status == "START"]
+        terminals = [i for i, status in enumerate(ordered) if status in TERMINAL_STATUSES]
+        started = bool(starts)
+        closed = any(i > starts[-1] for i in terminals) if started else bool(terminals)
+        ambiguous = len(starts) > 1 or (started and any(i < starts[0] for i in terminals))
+        successful = (not ambiguous and len(terminals) == 1
+                      and ordered[terminals[0]] == "END"
+                      and all(status in {"START", "END"} for status in ordered))
+        phase_outcomes[phase] = {"closed": closed, "started": started,
+                                 "successful": successful, "statuses": sorted(statuses)}
+        if ambiguous:
+            item = {"kind": "phase_attempt_identity_unverified", "phase": phase,
+                    "ordered_statuses": ordered}
+            if phase in required:
+                errors.append(item)
+            else:
+                warnings.append(item)
         if started and not closed:
             item = {"kind": "started_without_terminal_receipt", "phase": phase,
                     "statuses": sorted(statuses)}
@@ -163,11 +183,18 @@ def audit(package_dir: str | Path, *, strict: bool = False,
             warnings.append({"kind": "timing_phase_without_receipt", "phase": name,
                              "timing_status": status})
             continue
-        if status == "COMPLETE" and name in required:
-            statuses = {str(r.get("status") or "").upper() for r in by_phase[name]}
-            if "START" in statuses and not (statuses & TERMINAL_STATUSES):
-                errors.append({"kind": "complete_timing_phase_missing_terminal_receipt",
-                               "phase": name, "receipt_statuses": sorted(statuses)})
+        if status == "COMPLETE":
+            outcome = phase_outcomes[name]
+            if not outcome["successful"]:
+                kind = ("complete_timing_phase_missing_terminal_receipt"
+                        if outcome["started"] and not outcome["closed"] else
+                        "complete_timing_phase_without_successful_terminal_receipt")
+                item = {"kind": kind, "phase": name,
+                        "receipt_statuses": outcome["statuses"]}
+                if name in required:
+                    errors.append(item)
+                else:
+                    warnings.append(item)
 
     if strict:
         errors.extend(warnings)

@@ -4,7 +4,7 @@
 A recurring defect class in this workspace is "the data exists but the tool
 can't find it": a strain's antiSMASH result ZIP and its sealed Mamey package are
 scattered across many folders (`strain_data/<strain>/antiSMASH/`,
-top-level `Antismash/`, `mamey_packages/`, `Mamey Complete v*/`), so an
+top-level `Antismash/`, `mamey_packages/`, `Package Outputs v*/`), so an
 individual tool that only globs one home reports "no data" while the data is
 sitting one directory over. This module is the single, shared resolver every
 reader-side tool should call instead of ad-hoc globbing.
@@ -51,6 +51,8 @@ __all__ = [
     "resolve_mamey_package",
     "strain_data_home",
     "zip_has_antismash_json",
+    "package_home_patterns",
+    "package_home_directories",
 ]
 
 
@@ -87,7 +89,7 @@ def resolve_antismash_zip(strain: str, root: str = ".", flavor: str | None = Non
       3. ``Antismash/<strain>.zip``                             (flat top-level home)
       4. ``Antismash/**/<strain>.zip``                     (nested under the top-level home)
       5. any ``*<strain>*.zip`` under the sealed-package homes (``mamey_packages/``,
-         ``Mamey Complete*/``, plus any ``MAMEY_PACKAGE_HOMES`` env globs) that contains
+         ``Package Outputs*/``, plus any ``MAMEY_PACKAGE_HOMES`` env globs) that contains
          an antiSMASH result JSON — a *fallback*, tried newest-first by parsed package
          version (a raw result ZIP always outranks it)
 
@@ -154,13 +156,13 @@ def _package_flavor(basename: str) -> str | None:
     m = _PKG_FLAVOR_RE.search(basename)
     return m.group(1) if m else None
 
-# Sealed-package homes, searched recursively. ``Mamey Complete*`` (no version suffix
+# Sealed-package homes, searched recursively. ``Package Outputs*`` (no version suffix
 # required) also covers flat per-strain homes that superseded the versioned folders;
 # requiring the ``v*`` suffix made the resolver silently prefer older seals (verified
 # field failure, 2026-09-01). Additional workspace-specific homes come from the
 # ``MAMEY_PACKAGE_HOMES`` environment variable (``os.pathsep``-separated glob patterns,
 # absolute or root-relative) — the engine source stays free of workspace locators.
-_PACKAGE_HOMES = ("mamey_packages", "Mamey Complete*")
+_PACKAGE_HOMES = ("mamey_packages", "Package Outputs*")
 
 
 def _package_homes() -> tuple[str, ...]:
@@ -171,6 +173,27 @@ def _package_homes() -> tuple[str, ...]:
         if h:
             homes.append(h)
     return tuple(homes)
+
+
+def package_home_patterns() -> tuple[str, ...]:
+    """Neutral built-ins first, then explicit custom patterns in declared order."""
+    return _package_homes()
+
+
+def package_home_directories(root: str = ".") -> tuple[str, ...]:
+    """Existing selected home directories; no implicit legacy-name discovery."""
+    result = []; seen = set()
+    for pattern in _package_homes():
+        for directory in _matched_homes(root, pattern):
+            if not os.path.isdir(directory):
+                continue
+            try:
+                state = os.stat(directory); key = (state.st_dev, state.st_ino)
+            except OSError:
+                key = ("realpath", os.path.realpath(directory))
+            if key not in seen:
+                seen.add(key); result.append(directory)
+    return tuple(result)
 
 
 # One estate walk per (root, homes) instead of a recursive glob per call: package homes
@@ -194,8 +217,8 @@ def _package_zip_index(root: str) -> list[str]:
         return cached
     zips: list[str] = []
     # Dedup by (st_dev, st_ino): on case-insensitive filesystems (macOS APFS) a built-in
-    # glob ("Mamey Complete*") and a case-variant MAMEY_PACKAGE_HOMES entry ("MAMEY
-    # COMPLETE") resolve the SAME physical directory under two path strings, and
+    # glob ("Package Outputs*") and an explicitly configured case-variant entry
+    # (neutral example: "PACKAGE OUTPUTS") can resolve the SAME physical directory under two path strings, and
     # os.path.realpath does not canonicalize case — so a string-keyed walk double-indexes
     # every package (the newest ZIP then shadows itself into superseded_packages).
     # Inode identity is filesystem-honest for case twins, symlinks, and hardlinks alike.
@@ -255,14 +278,14 @@ def _package_engine_key(path: str):
 
 
 def resolve_mamey_package(strain: str, root: str = ".", flavor: str | None = None) -> str | None:
-    """Return the newest (highest-version) sealed Mamey Complete package ZIP for
+    """Return the newest (highest-version) sealed Mamey package ZIP for
     *strain*, searching the known package homes.
 
     Recognised names (both historical spellings):
       ``<strain>_SapoteMamey_v*_..._Complete_Package.zip``
       ``<strain>_Mamey_v*_..._Complete_Package.zip``
 
-    Homes searched (recursively): ``mamey_packages/``, ``Mamey Complete*/``, plus any
+    Homes searched (recursively): ``mamey_packages/``, ``Package Outputs*/``, plus any
     ``MAMEY_PACKAGE_HOMES`` environment globs (``os.pathsep``-separated).
     With an owner authority row, admitted assembly metrics use engine then bundle
     version. Without a row, highest parsed bundle version wins; ties use path sort.

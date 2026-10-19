@@ -15,25 +15,15 @@ near-zero slope both mean stalling.
 
 Run: python3 "tools/blastp_monitoring/plot_crawl_cumulative.py"
 """
+import argparse
 import datetime
 import importlib.util
 import os
 import sys
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
 ROOT = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
 PLOT_DIR = os.environ.get("SAPOTE_BLASTP_PLOT_DIR", os.path.join(ROOT, "blastp_plots"))
 OUT = os.path.join(PLOT_DIR, "crawl_plots")
-
-# import load_fetches from the sibling recent-plot module (single source of truth for ledger parsing)
-spec = importlib.util.spec_from_file_location("pcr", os.path.join(PLOT_DIR, "plot_crawl_recent.py"))
-pcr = importlib.util.module_from_spec(spec)
-os.chdir(ROOT)  # load_fetches uses BR="Blastp RESULTS" relative to cwd
-spec.loader.exec_module(pcr)
-
 
 def cumulative(fetches):
     """-> (times, cum_total, cum_nr, cum_cl) as running sums by fetch time."""
@@ -87,8 +77,20 @@ def _refuse_output_inside_bundle(path):
     except OutputInsideBundle as e:
         sys.exit(f"{e}\n  The plot folder is SAPOTE_BLASTP_PLOT_DIR, else SAPOTE_WORKSPACE_ROOT/blastp_plots.")
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
+    parser.parse_known_args(argv)
     _refuse_output_inside_bundle(OUT)  # before any reading or plotting
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    # Code comes from the shipped sibling, not the operator output directory.
+    sibling = os.path.join(os.path.dirname(os.path.abspath(__file__)), "plot_crawl_recent.py")
+    spec = importlib.util.spec_from_file_location("pcr", sibling)
+    pcr = importlib.util.module_from_spec(spec)
+    os.chdir(ROOT)  # the sibling reads Blastp RESULTS relative to the workspace
+    spec.loader.exec_module(pcr)
     fetches = pcr.load_fetches()
     if not fetches:
         sys.exit("no fetched rows found")

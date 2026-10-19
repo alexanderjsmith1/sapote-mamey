@@ -218,6 +218,25 @@
             "--no-header",
             "--no-summary"
         ]
+    },
+    {
+      "id": "ripper_synthetic_input_semantics",
+      "input": "tests/fixtures/ripper_semantic/synthetic_single_record.gbk",
+      "input_sha256": "6ed16d94cf6053cd84e37bbc0e9a95cda695f4a5bab4449d0a160b60e2c8d703",
+      "kind": "pytest",
+      "expected_exit_code": 0,
+      "expected_outcome": "SYNTHETIC_INPUT_SEMANTICS_ONLY_NO_UPSTREAM_EXECUTION",
+      "command": [
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_ripper_local_semantics.py",
+        "-q",
+        "--no-header",
+        "--no-summary",
+        "-p",
+        "no:cacheprovider"
+      ]
     }
   ],
   "legitimate_volatile_fields": {

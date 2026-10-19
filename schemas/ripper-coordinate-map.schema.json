@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Declared RiPPER coordinate map; not execution or membership proof",
+  "type": "object",
+  "required": [
+    "evidence_sha256",
+    "local_plan_sha256",
+    "source_genbank_sha256",
+    "query_fasta_sha256",
+    "subject_cds_sha256",
+    "schema_version",
+    "mapping_origin",
+    "mappings"
+  ],
+  "properties": {
+    "evidence_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "local_plan_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_genbank_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "query_fasta_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "subject_cds_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schema_version": {
+      "const": "ripper-coordinate-map/1"
+    },
+    "mapping_origin": {
+      "enum": [
+        "synthetic_fixture",
+        "operator_supplied"
+      ]
+    },
+    "mappings": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "required": [
+          "enzyme_accession",
+          "FastaID",
+          "PPSerial",
+          "sequence_sha256",
+          "window_sequence_sha256",
+          "window_start_1based",
+          "window_end_inclusive",
+          "local_start_1based",
+          "local_end_inclusive",
+          "strand"
+        ],
+        "properties": {
+          "enzyme_accession": {
+            "type": "string",
+            "minLength": 1
+          },
+          "FastaID": {
+            "type": "string",
+            "minLength": 1
+          },
+          "PPSerial": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$"
+          },
+          "sequence_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "window_sequence_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "window_start_1based": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "window_end_inclusive": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "local_start_1based": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "local_end_inclusive": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "strand": {
+            "type": "integer",
+            "enum": [
+              -1,
+              1
+            ]
+          }
+        }
+      }
+    }
+  },
+  "description": "Cross-field hashes, integer/bool distinction, geometry, identity, translation and ambiguity are enforced by ripper_coordinate_binding.py, not this structural schema alone."
+}

@@ -1,4 +1,4 @@
-"""BLACK_CHERRY_4_427: tools/ingest_field_collection.py normalizes the field-collection workbook's
+"""regression_review_4_427: tools/ingest_field_collection.py normalizes the field-collection workbook's
 Isolate Index sheet into a per-strain collection-metadata TSV. Real CLI subprocess; builds a tiny
 xlsx fixture with openpyxl (skips cleanly if openpyxl is absent)."""
 from pathlib import Path

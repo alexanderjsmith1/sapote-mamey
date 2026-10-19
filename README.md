@@ -295,10 +295,16 @@ python mamey_run.py inspect path/to/antismash_result.zip
 python mamey_run.py run --strain EXAMPLE \
   --input-zip path/to/antismash_result.zip \
   --taxonomy 'Genus sp.' --source 'recorded isolation source' \
-  --mode gold --outdir runs/
-python mamey_run.py validate runs/EXAMPLE/package
+  --mode gold --json-evidence bounded --brief none --locus-maps off \
+  --reference-completion off --require-workbook --outdir runs/
+python mamey_run.py validate runs/EXAMPLE/package --workbook-strict
 python mamey_run.py explain runs/EXAMPLE/package
 ```
+
+This first run requests tables and a workbook, defers the brief and locus maps, and turns
+reference-completion searches off. `--require-workbook` fails the run if workbook production
+fails; `--workbook-strict` makes missing or invalid workbook content fail validation. Optional
+searches and figures are separate follow-on work.
 
 Before you interpret anything, read the run status, the issue log and the output paths.
 Validation checks package structure and the encoded evidence gates. It does not establish
@@ -379,7 +385,7 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.451 / engine 1.9.176 · build 20261015v97451a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.453 / engine 1.9.176 · build 20261018v97453a · release profile: CODE (see RELEASE_MANIFEST.md)*
 
 ## Choose a task by name
 

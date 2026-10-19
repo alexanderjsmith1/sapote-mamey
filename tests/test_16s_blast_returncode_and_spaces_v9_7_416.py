@@ -12,7 +12,7 @@ cannot open a path containing a SPACE. Reproduced with this project's own binari
     blastn      -db  "<...>/space test/blastdb/tag"   rc=3, 0 bytes on stdout
 
 Nearly every folder in the workspace these tools were written in has a space in it — `16S
-Database/`, `AS Strain Master/`, `September 6 2026/`, `September 7 2026/EXTERNAL_16S_2026-09/` —
+Database/`, `Report Home/`, `September 6 2026/`, `September 7 2026/EXTERNAL_16S_2026-09/` —
 so the failure is the ORDINARY case. Unchecked, each one renders as a result:
 
   * `phylo_16s_panel.rank_references` returns `[]`, and the panel is written with its queries and

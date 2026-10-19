@@ -176,7 +176,7 @@ def test_a2_b1_orphan_makes_validate_fail(tmp_path):
     """KNOWN-BAD: a strain present in A2_Strain_Registry but dropped from B1_BGC_Master
     appends to consistency_errors. It previously left status=PASS (exit 0); WB-02 fails it."""
     p = _build_master(str(tmp_path / "orphan.xlsx"),
-                      a2_strains=["AS-001", "AS-002"], b1_strains=["AS-001"])
+                      a2_strains=["AS-971", 'SYNTHETIC-CASE-002'], b1_strains=["AS-971"])
     r = validate(p)
     assert r["consistency_errors"], r
     assert r["status"] == "FAIL", (
@@ -189,7 +189,7 @@ def test_control_consistent_master_passes(tmp_path):
     """Control: the same structure with matching A2/B1 strain sets has no consistency
     errors and must still PASS — the fix must not fail a well-formed master."""
     p = _build_master(str(tmp_path / "ok.xlsx"),
-                      a2_strains=["AS-001"], b1_strains=["AS-001"])
+                      a2_strains=["AS-971"], b1_strains=["AS-971"])
     r = validate(p)
     assert r["column_errors"] == [], r["column_errors"]
     assert r["consistency_errors"] == [], r["consistency_errors"]

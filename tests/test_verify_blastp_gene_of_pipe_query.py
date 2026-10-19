@@ -9,7 +9,7 @@ import scripts.verify_blastp as V
 
 
 def test_gene_from_gene_equals_key_in_middle():
-    q = "AS-168|BGC005|slot=core|role=core|gene=ctg13_21|node=NODE_13|region=region002|reason=biosynthetic"
+    q = 'SYNTHETIC-CASE-005|BGC005|slot=core|role=core|gene=ctg13_21|node=NODE_13|region=region002|reason=biosynthetic'
     assert V._gene_of(q) == "ctg13_21"
 
 

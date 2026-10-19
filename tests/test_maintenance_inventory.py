@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import shlex
 import stat
 import subprocess
 import sys
@@ -363,5 +364,12 @@ def test_release_preparation_declares_both_maintenance_outputs():
     workflow = load("release_workflow")
     assert set(inventory.OUTPUTS) <= set(workflow.preparation_outputs(ROOT))
     shell = (ROOT / "tools/release_cut.sh").read_text()
-    assert "python3 tools/gen_tools_inventory.py --maintenance >/dev/null" in shell
-    assert "python3 tools/gen_tools_inventory.py --maintenance --check >/dev/null" in shell
+    calls = [line for line in shell.splitlines()
+             if line.lstrip().startswith('"$PYTHON" tools/gen_tools_inventory.py --maintenance')]
+    assert len(calls) == 2, 'maintenance generation and its read-only check must both remain'
+    commands = [shlex.split(line.split('>', 1)[0]) for line in calls]
+    assert commands == [
+        ['$PYTHON', 'tools/gen_tools_inventory.py', '--maintenance'],
+        ['$PYTHON', 'tools/gen_tools_inventory.py', '--maintenance', '--check'],
+    ]
+    assert all('>/dev/null' in line for line in calls)

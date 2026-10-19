@@ -21,6 +21,8 @@ dependencies = [
 # Optional comparative/scanner stack. No reference data or external binaries included.
 addons = ["pyrodigal>=3.7", "pyfastani>=0.6", "pyswrd>=0.3", "pyopal", "scoring_matrices", "biopython>=1.83,<2.0", "archspec", "pyhmmer", "pyskani", "pyfamsa", "pytrimal", "pytantan", "pyrodigal-gv", "gb-io", "pyfastx", "dendropy", "taxopy"]
 # Figure / plot tools; optional for the core extraction workflow.
+# pyshp supplies the shapefile import for local collection-map basemaps.
+# No tested PyShp version interval is claimed; record the selected environment version.
 # DNA Features Viewer and pyCirclize back the lazy diagram/atlas renderers; those
 # native routes also require Bio.SeqIO. Reuse the existing [bio] version policy.
 # No API version interval has yet been validated for the two plotting libraries.
@@ -30,7 +32,7 @@ addons = ["pyrodigal>=3.7", "pyfastani>=0.6", "pyswrd>=0.3", "pyopal", "scoring_
 #   returns SKIPPED_NO_DEPS on ImportError, so that one figure silently no-ops if absent.
 # scipy: cohort clustermap ordering has a count-order fallback;
 #   tools/cluster_relate.py requires scipy for its dendrogram.
-figures = ["matplotlib>=3.7,<4.0", "numpy>=1.24", "pandas>=2.0,<3.1", "networkx>=3.0,<4.0", "scipy>=1.10,<2.0", "dna-features-viewer", "pycirclize", "biopython>=1.83,<2.0"]
+figures = ["pyshp", "matplotlib>=3.7,<4.0", "numpy>=1.24", "pandas>=2.0,<3.1", "networkx>=3.0,<4.0", "scipy>=1.10,<2.0", "dna-features-viewer", "pycirclize", "biopython>=1.83,<2.0"]
 # Governed DOCX/PDF authoring and render verification. ReportLab remains core.
 # Install with: pip install '.[documents]'
 documents = ["python-docx>=1.2,<2.0", "lxml>=5.0,<7.0", "pypdf>=5.0,<7.0", "Pillow>=10.0,<13.0", "markdown>=3.4,<4.0"]  # markdown backs tools/build_chat_export.py HTML+PDF; absent -> SKIPS with a message (CLAUDE_409_optional_deps_guard)
@@ -42,7 +44,11 @@ bio = ["biopython>=1.83,<2.0"]
 # Back-compat alias: ijson moved to main deps; keeps `pip install '.[json]'` working.
 json = ["ijson>=3.2.0,<4.0"]
 # Convenience: figures + bio + render + documents + slides in one shot. `pip install '.[all]'`
-all = ["matplotlib>=3.7,<4.0", "numpy>=1.24", "pandas>=2.0,<3.1", "networkx>=3.0,<4.0", "scipy>=1.10,<2.0", "dna-features-viewer", "pycirclize", "biopython>=1.83,<2.0", "cairosvg>=2.7,<3.0", "python-docx>=1.2,<2.0", "lxml>=5.0,<7.0", "pypdf>=5.0,<7.0", "Pillow>=10.0,<13.0", "markdown>=3.4,<4.0", "python-pptx>=1.0,<2.0"]
+all = ["pyshp", "matplotlib>=3.7,<4.0", "numpy>=1.24", "pandas>=2.0,<3.1", "networkx>=3.0,<4.0", "scipy>=1.10,<2.0", "dna-features-viewer", "pycirclize", "biopython>=1.83,<2.0", "cairosvg>=2.7,<3.0", "python-docx>=1.2,<2.0", "lxml>=5.0,<7.0", "pypdf>=5.0,<7.0", "Pillow>=10.0,<13.0", "markdown>=3.4,<4.0", "python-pptx>=1.0,<2.0"]
+# Test runner/build frontend and PDF/process inspection used by the test suite.
+# Kept separate from core and user-facing [all]; install with pip install '.[test]'.
+# Package versions are recorded by CI; no newly validated version interval is claimed.
+test = ["pytest", "build", "pdfplumber", "psutil"]
 # Back-compat alias: PyYAML moved to core deps (above). Kept so `pip install '.[dev]'` still resolves.
 dev = ["PyYAML>=6.0,<7.0"]
 # SVG->PNG conversion so locus-map SVGs embed in the compiled Boss-Ready PDF (compile_report._svg_to_png).
@@ -87,4 +93,4 @@ markers = [
 [tool.sapote]
 # Single source of truth for the curated BUNDLE version.
 # (engine version lives in [project].version above)
-bundle_version = "9.7.451"
+bundle_version = "9.7.453"

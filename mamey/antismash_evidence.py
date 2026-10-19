@@ -1,4 +1,5 @@
 from __future__ import annotations
+from .source_context import source_archive as snapshot_zip, bound_source
 import json, re, zipfile, os, statistics, sys
 from mamey.fragment_ceiling import apply_to_bgc as _apply_fragment_ceiling
 from decimal import Decimal
@@ -296,7 +297,7 @@ def extract_gbk_pfam_hits(zip_path: str | Path) -> dict[str, list[dict]]:
     except ImportError:
         return hits
 
-    with zipfile.ZipFile(zip_path) as zf:
+    with snapshot_zip(zip_path) as zf:
         from .parsers import is_macos_cruft  # PARSE-P03 (deferred: parsers imports this module)
         gbk_names = [n for n in regular_file_names(zf)
                      if n.lower().endswith(".gbk") and "region" in n.lower() and not is_macos_cruft(n)]
@@ -711,7 +712,7 @@ def _run_record_extractors(zip_path, handlers):
                "handlers": [fn.__name__ for fn, _ in handlers],
                "files": [], "archive_errors": []}
     try:
-        with zipfile.ZipFile(zip_path) as zf:
+        with snapshot_zip(zip_path) as zf:
             from .parsers import is_macos_cruft
             names = [n for n in regular_file_names(zf)
                      if n.lower().endswith(".json") and not is_macos_cruft(n)]
@@ -931,7 +932,18 @@ def _parse_txt_evidence(zf, names: list[str], evidence: dict) -> None:
             and ("clusterblast" in n.lower() or "mibig" in n.lower())]
     for name in txts:
         evidence["txt_files"].append(name)
-        text = _read_text(zf, name)
+        item = {"source": name, "state": "PENDING"}
+        evidence.setdefault("txt_parse_receipt", []).append(item)
+        # Reuse the existing member byte/ratio guard; do not widen it for TXT.
+        from .parsers import _guarded_read_bytes, GbkSizeGuardRefusal
+        try:
+            text = _guarded_read_bytes(zf, name).decode("utf-8")
+        except GbkSizeGuardRefusal:
+            item.update(state="HELD_RESOURCE", reason="MEMBER_BYTE_OR_RATIO_GUARD")
+            continue
+        except (OSError, zipfile.BadZipFile, RuntimeError, UnicodeDecodeError) as exc:
+            item.update(state="READ_FAILED", reason=type(exc).__name__)
+            continue
         _, region, region_key = _region_key_from_name(name)
         compounds = []
         mibigs = re.findall(r"BGC\d{7,}\.\d+|BGC\d{7,}", text)
@@ -1007,6 +1019,13 @@ def _parse_txt_evidence(zf, names: list[str], evidence: dict) -> None:
         if best and best.get("label"):
             compounds.insert(0, str(best["label"]))
 
+        if not (block_records or significant_hits or mibigs):
+            item["state"] = ("NO_HITS_TEXT_UNVALIDATED" if
+                             re.search(r"no (?:significant )?hits", text, flags=re.I)
+                             else "UNSUPPORTED_OR_EMPTY")
+            # A named TXT member alone is not an observed KCB comparator.
+            continue
+        item["state"] = "OBSERVATIONS_EXTRACTED"
         is_knownclusterblast = "knownclusterblast" in name.lower()
         rec = {
             "source": name,
@@ -1442,6 +1461,34 @@ def _parse_json_full(zf, name: str, evidence: dict) -> None:
                     "source": name, "path": path, "value": str(val)[:500]})
 
 
+def _source_parse_completeness(evidence):
+    """Separate read/extraction state from absence of biology or upstream completion."""
+    txt = evidence.get("txt_parse_receipt", [])
+    txt_states = {row["state"] for row in txt}
+    txt_state = ("SOURCE_UNAVAILABLE" if not txt else
+                 "INCOMPLETE" if txt_states - {"OBSERVATIONS_EXTRACTED", "NO_HITS_TEXT_UNVALIDATED"} else
+                 "UNVALIDATED_NO_HITS_TEXT" if "NO_HITS_TEXT_UNVALIDATED" in txt_states else
+                 "OBSERVATIONS_EXTRACTED_BEST_EFFORT")
+    records = evidence.get("record_extraction", {})
+    files = records.get("files", [])
+    requested = bool(evidence.get("record_extras_requested") or evidence.get("tigrfam_requested"))
+    if not requested:
+        json_state = "NOT_REQUESTED"
+    elif (evidence.get("json_errors") or evidence.get("json_skipped") or records.get("archive_errors")
+          or any(row.get("status") != "READ_COMPLETE" or row.get("error_counts") for row in files)):
+        json_state = "INCOMPLETE"
+    elif not files:
+        json_state = "SOURCE_UNAVAILABLE"
+    elif evidence.get("schema_warnings") or any(row.get("records_seen") == 0 for row in files):
+        json_state = "SCHEMA_OR_EMPTY_UNCERTIFIED"
+    else:
+        json_state = "READ_COMPLETE_FOR_SELECTED_PATHS"
+    return {"schema": "antismash_source_completeness_v1", "txt_state": txt_state,
+            "json_state": json_state, "txt_members": txt,
+            "biological_absence": "NOT_ESTABLISHED", "upstream_search_completion": "NOT_ESTABLISHED",
+            "scope": "Selected local reads/extractions; not all-schema or scientific completeness"}
+
+
 def parse_antismash_evidence(zip_path: str | Path,
                               json_mode: str = JSON_MODE_DEFAULT,
                               want_tigrfam: bool = False,
@@ -1482,7 +1529,7 @@ def parse_antismash_evidence(zip_path: str | Path,
             "bounded mode requested but ijson is not installed; "
             "fell back to off. Install ijson for streaming JSON evidence.")
 
-    with zipfile.ZipFile(zip_path) as zf:
+    with snapshot_zip(zip_path) as zf:
         names = regular_file_names(zf)
         # v9.7.409 (DEEP_AUDIT2_antismash_parse, fix seed 2): remember whether the archive actually
         # carries region GBKs, so the schema sentinel below can distinguish "a genome that truly has
@@ -1578,6 +1625,7 @@ def parse_antismash_evidence(zip_path: str | Path,
         evidence.setdefault("schema_warnings", []).append(_warn)
         print(_warn, file=sys.stderr)
 
+    evidence["source_completeness"] = _source_parse_completeness(evidence)
     return evidence
 
 

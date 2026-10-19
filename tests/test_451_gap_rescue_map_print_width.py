@@ -202,45 +202,71 @@ def test_spread_labels_centres_a_crowded_run_and_keeps_spacing():
     assert xs[0] >= 0.0 and xs[-1] <= 10.0 and all(b - a >= 1.0 - 1e-9 for a, b in zip(xs, xs[1:]))
 
 
-def _drawn_texts(monkeypatch, fn):
+@pytest.fixture
+def _inspected_figures(monkeypatch):
+    """Keep inspected figures alive only through this test's assertions."""
     import matplotlib.pyplot as plt
-    figs = []
-    monkeypatch.setattr(plt, "close", lambda fig=None: figs.append(fig))
+    from matplotlib.figure import Figure
+    from matplotlib._pylab_helpers import Gcf
+    real_close = plt.close
+    existing = set(Gcf.get_all_fig_managers())
+    existing_figures = {manager.canvas.figure for manager in existing}
+    figures = []
+
+    def capture_close(fig=None):
+        if isinstance(fig, Figure) and fig not in existing_figures:
+            figures.append(fig)
+        else:
+            real_close(fig)
+
+    try:
+        with monkeypatch.context() as patch:
+            patch.setattr(plt, "close", capture_close)
+            yield figures
+    finally:
+        owned = set(figures)
+        owned.update(manager.canvas.figure for manager in Gcf.get_all_fig_managers()
+                     if manager not in existing and manager.canvas.figure not in existing_figures)
+        for fig in owned:
+            real_close(fig)
+
+
+def _drawn_texts(fn, figs):
     res = fn()
     fig = [f for f in figs if f is not None][-1]
     return res, [t.get_text() for a in fig.axes for t in a.texts]
 
 
-def test_no_drawn_label_ends_in_an_underscore_and_names_stay_whole(monkeypatch, tmp_path):
+def test_no_drawn_label_ends_in_an_underscore_and_names_stay_whole(monkeypatch, tmp_path, _inspected_figures):
     # Integrator 12 Oct read "Ctg3_" and "Ctg3_ 18" on the Saccharothrix map: the strings are whole (Ctg3_18,
     # "Ctg3_18-like 58%"); Arial's underscore at 60 degrees only looks like a break. This pins the strings.
-    res, texts = _drawn_texts(monkeypatch, lambda: _draw35(monkeypatch, tmp_path, "double")[0])
+    res, texts = _drawn_texts(lambda: _draw35(monkeypatch, tmp_path, "double")[0], _inspected_figures)
     labels = [t for t in texts if t.startswith("Ctg3")]
     assert labels and not any(t.rstrip().endswith("_") for t in labels)
     assert "Ctg3_18" in labels and any(t.startswith("Ctg3_18-like ") for t in labels)
 
 
-def test_row_label_is_drawn_as_given_and_wrapped_in_the_gutter(monkeypatch, tmp_path):
+def test_row_label_is_drawn_as_given_and_wrapped_in_the_gutter(monkeypatch, tmp_path, _inspected_figures):
     shown = "Saccharothrix coeruleofusca JCM 3313 [GCF_014648515.1]"
     monkeypatch.setattr(glm, "reference_genes", lambda _p: (REF35, REF35_LEN))
     prots, rows, core = _two_records()
-    res, texts = _drawn_texts(monkeypatch, lambda: glm.draw_locus_map(
+    res, texts = _drawn_texts(lambda: glm.draw_locus_map(
         tmp_path / "BGC0001853.gbk", rows, [], prots, [core], core, LONG_LABEL, "largimycin", tmp_path / "rl.png",
-        print_width="double", row_label=shown))
+        print_width="double", row_label=shown), _inspected_figures)
     row = [t for t in texts if "[GCF_014648515.1]" in t]
     assert len(row) == 1 and "\n" in row[0] and row[0].replace("\n", " ") == shown
     assert not any(t == LONG_LABEL for t in texts)
     assert res["min_font_pt"] >= 8.0 and res["text_overlaps"] == 0
 
 
-def test_shared_match_notes_go_to_the_footnote_at_print_width(monkeypatch, tmp_path):
+def test_shared_match_notes_go_to_the_footnote_at_print_width(monkeypatch, tmp_path, _inspected_figures):
     monkeypatch.setattr(glm, "reference_genes", lambda _p: (REF, REF_LEN))
     prots, rows, core, names = _genome(0)
     rows[1] = dict(rows[1], best_protein="p0")   # reference gene 2 is matched by strain gene p0, which matches gene 1 too
     for width, on_map in (("double", False), (None, True)):
-        res, texts = _drawn_texts(monkeypatch, lambda: glm.draw_locus_map(
+        res, texts = _drawn_texts(lambda: glm.draw_locus_map(
             tmp_path / "BGC0000000.gbk", rows, [], prots, [core], core, "AS-0", "madurastatin",
-            tmp_path / f"n_{width}.png", print_width=width))
+            tmp_path / f"n_{width}.png", print_width=width), _inspected_figures)
         assert any(t.startswith("matches 2 reference genes") for t in texts) is on_map
         if width:
             assert "each matches 2 reference genes (core_0)" in res["footnote"]

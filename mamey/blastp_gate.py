@@ -21,9 +21,11 @@ import csv
 import fnmatch
 import glob
 import hashlib
+import io
 import json
 import os
 import sys
+import tempfile
 from datetime import date
 from pathlib import Path
 
@@ -298,24 +300,33 @@ def _referenced_rekey_source_index(package: str | Path) -> tuple[dict, list]:
                 f"BLASTP_REKEY_RECEIPT_HOLD: malformed quarantine binding in {name!r}"
             )
         quarantine_path = Path(package) / "blastp_quarantine" / quarantine_name
-        if _source_sha256(quarantine_path) != quarantine_sha:
-            raise BlastpDiscoveryError(
-                f"BLASTP_REKEY_RECEIPT_HOLD: quarantine hash disagrees with {name!r}"
-            )
         try:
-            with quarantine_path.open(newline="", encoding="utf-8") as handle:
-                for row in csv.DictReader(handle):
-                    source_file = str(row.get("source_file") or "")
-                    source_sha = str(row.get("source_file_sha256") or "").lower()
-                    resolved = str(row.get("resolved_bgc") or "").strip()
-                    held = held_by_source.setdefault(
-                        (source_file, source_sha), {"current_bgcs": set(), "hold_reasons": {}}
+            # Hash and parse one captured stream. Large quarantines spill to a private
+            # temporary file rather than requiring a second source read or unbounded RAM.
+            with tempfile.SpooledTemporaryFile(max_size=1024 * 1024, mode="w+b") as snapshot:
+                digest = hashlib.sha256()
+                with quarantine_path.open("rb") as source:
+                    for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                        digest.update(chunk)
+                        snapshot.write(chunk)
+                if digest.hexdigest() != quarantine_sha:
+                    raise BlastpDiscoveryError(
+                        f"BLASTP_REKEY_RECEIPT_HOLD: quarantine hash disagrees with {name!r}"
                     )
-                    if resolved and ";" not in resolved:
-                        held["current_bgcs"].add(resolved)
-                    reason = str(row.get("reason") or "").strip()
-                    if reason:
-                        held["hold_reasons"][reason] = held["hold_reasons"].get(reason, 0) + 1
+                snapshot.seek(0)
+                with io.TextIOWrapper(snapshot, newline="", encoding="utf-8") as handle:
+                    for row in csv.DictReader(handle):
+                        source_file = str(row.get("source_file") or "")
+                        source_sha = str(row.get("source_file_sha256") or "").lower()
+                        resolved = str(row.get("resolved_bgc") or "").strip()
+                        held = held_by_source.setdefault(
+                            (source_file, source_sha), {"current_bgcs": set(), "hold_reasons": {}}
+                        )
+                        if resolved and ";" not in resolved:
+                            held["current_bgcs"].add(resolved)
+                        reason = str(row.get("reason") or "").strip()
+                        if reason:
+                            held["hold_reasons"][reason] = held["hold_reasons"].get(reason, 0) + 1
         except (OSError, csv.Error) as exc:
             raise BlastpDiscoveryError(
                 f"BLASTP_REKEY_RECEIPT_HOLD: cannot read quarantine for {name!r} "
@@ -451,6 +462,11 @@ def ingested(package: str | Path) -> dict:
     out: dict[str, set] = {}
     # 1. authoritative: the ledger
     ledger = read_ingest_ledger(package)
+    from .blastp_physical_binding import PhysicalBindingHold, validate_managed_generations
+    try:
+        validate_managed_generations(Path(package), ledger)
+    except PhysicalBindingHold as exc:
+        raise BlastpDiscoveryError(f"BLASTP_PHYSICAL_RECEIPT_HOLD: {exc}") from exc
     for channel, bgcs in ledger.items():
         for bgc, receipt in bgcs.items():
             # Five-part guarded ledgers mark zero-admission/all-quarantined sources incomplete.

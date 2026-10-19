@@ -1,7 +1,7 @@
 """v9.7.410 hostile audit (round 4) — private cohort ids written with a non-ASCII hyphen survived
 the public-tier redactor: `AJS‑12` (U+2011), `AJS–12` (en dash), `AS-​999` (zero-width space next
-to the hyphen), `AS&#45;999`. AJS is unconditionally private (mamey.cohort_figures.is_private), so
-this was a live leak vector for any prose that went through a word processor."""
+to the hyphen), `AS&#45;999`. These are private-shaped detector controls; the exact public AJS327 reference below
+is retained separately and is not a synthetic declaration."""
 from __future__ import annotations
 
 import sys

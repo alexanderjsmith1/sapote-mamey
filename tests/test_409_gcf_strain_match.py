@@ -14,6 +14,12 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # unused when run against a tree
 from tools import bigscape_ingest_to_mamey as I  # noqa: E402  (adjust sys.path to the tree under test)
 
+if __package__ in (None, ""):
+    from _synthetic_identity_fixture import synthetic_namespace_id
+else:
+    from tests._synthetic_identity_fixture import synthetic_namespace_id
+_FORMAT_CASE_1 = synthetic_namespace_id('AS', width=2, case_index=80)
+
 
 def test_wgs_accession_contig_now_parses():
     # THE FIX: NCBI WGS accession contig (no NODE_ token) must yield a locator, not None.
@@ -25,9 +31,10 @@ def test_wgs_accession_contig_now_parses():
 
 def test_spades_node_contig_unchanged():
     # Regression guard: cov-independent NODE_ canonicalisation is byte-identical to .408.
-    _s, loc, _m = I.parse_locator("/x/AS-40_NODE_402_length_4883_cov_73.020183.region001.gbk")
+    _s, loc, _m = I.parse_locator(f"/x/{_FORMAT_CASE_1}_NODE_402_length_4883_cov_73.020183.region001.gbk")
+    assert _s == _FORMAT_CASE_1
     assert loc == "NODE_402_length_4883.region001"
-    _s2, loc2, _m2 = I.parse_locator("/x/AS-40_NODE_402_length_4883_cov_73.20183.region001.gbk")
+    _s2, loc2, _m2 = I.parse_locator(f"/x/{_FORMAT_CASE_1}_NODE_402_length_4883_cov_73.20183.region001.gbk")
     assert loc2 == "NODE_402_length_4883.region001"
 
 

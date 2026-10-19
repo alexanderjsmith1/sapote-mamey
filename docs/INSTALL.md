@@ -53,6 +53,23 @@ check the diagnostics of the command you want to use. If HMM evidence or another
 channel is unavailable, it stays recorded as missing; a fallback does not count as that scan
 having run.
 
+Local Shapefile basemaps use the `pyshp` distribution, imported as `shapefile`.
+It is included in the optional `figures` extra and the `all` convenience extra.
+For `tools/collection_site_map.py`, GeoJSON and no-basemap inputs do not need this
+reader. Its Shapefile route requires supplied local `.shp`, `.shx`, `.dbf` and
+`.prj` components with the documented geographic WGS84 coordinates; it performs
+no projection conversion or basemap download. `tools/collection_map.py` always
+requires local Shapefile basemaps and has its own input contract; do not assume
+it performs the same CRS checks as `collection_site_map`.
+
+Doctor reports only module-spec discovery through `find_spec`; a discoverable
+`shapefile` module is not a verified import, parsed Shapefile or rendered map.
+Offline setup needs a compatible `pyshp` wheel in the selected figure dependency
+pool. No tested PyShp version interval is currently claimed. Verify an actual
+import and a small Shapefile read/write case in the intended environment before
+claiming that route is ready. A best-effort optional installer or successful core
+installation does not establish map readiness.
+
 For the [Strain slides builder](STRAIN_SLIDES.md), install its separate optional extra from this bundle root:
 
 ```bash
@@ -64,9 +81,25 @@ It adds the PowerPoint/plotting dependencies, not a PDF converter or reference d
 **Offline install.** First obtain a complete, compatible wheelhouse: build requirements,
 dependencies, and any extras you want. Then, from the bundle root:
 
+This Bash subshell clears inherited pip settings before the core-only editable
+install, so build-dependency children inherit the controlled configuration too:
+
 ```bash
-python -m pip install --no-index --find-links /path/to/wheels -e .
+(
+  while IFS= read -r pip_env_name; do
+    case "$pip_env_name" in PIP_*) unset -v "$pip_env_name" ;; esac
+  done < <(compgen -e)
+  export PIP_CONFIG_FILE=/dev/null
+  python -m pip --isolated install --no-index --find-links /path/to/wheels -e .
+)
 ```
+
+For the bootstrap's test-dependency and all-extras attempt, use the same selected
+active environment with `PYTHON="$(command -v python)" bash bootstrap.sh --wheels
+/path/to/wheels`. Read its `ALL_EXTRAS` or `CORE_ONLY` result: a successful core
+fallback does not admit all extras. Both routes require complete compatible
+build/transitive wheels. Direct URL metadata and arbitrary backend network use
+need separate review; pip configuration controls are not an OS network sandbox.
 
 If you have the separate Sapote add-on archive, follow its inventory and platform requirements.
 Its optional installer is `bash bundle_support/install_sapote_addons.sh`; still check the core
@@ -89,13 +122,13 @@ python tools/audit_documents_wheelhouse.py --wheelhouse ../document_wheels \
   --output ../review_output/documents_wheelhouse_new.json
 ```
 
-The default target is the current Python; `--python` selects another interpreter by path. The audit invokes that interpreter's pip once per direct requirement with dry-run, no-index and binary-only flags. It does not install the dependencies. Each row reports that separate resolver return code, not a verified joint installation or complete wheel inventory. Already installed packages can satisfy a resolver check; there is no `--ignore-installed` in this command. A per-row `PASS` therefore does not prove a matching wheel is present in the chosen directory or that the complete profile and its transitive dependencies can be installed together into a fresh environment. Retain an independently reviewed compatible wheel inventory and complete selected-install result before describing an environment as usable.
+The default target is the current Python; `--python` selects another interpreter by path. The audit invokes that interpreter's pip for each direct requirement and once for the complete profile together. Every resolution uses `--dry-run --ignore-installed --no-index --only-binary=:all:`, so already installed packages cannot satisfy these resolver checks. It does not install dependencies. The report uses schema `sapote-documents-wheelhouse-audit-1.1` and records `joint_resolution` separately from the per-requirement rows. Aggregate `PASS` requires all direct resolutions and the joint resolution to succeed, plus no failed mapped import check when requested. A per-row pass alone does not establish a compatible complete profile. Even joint success is a resolver result, not an installation or workflow test; retain an independently reviewed wheel inventory and actual selected-install result before describing an environment as usable.
 
-Use the governed version-bound profile for this offline check. Custom `--profile` files are only lightly parsed; URL/direct-reference requirements can be forwarded to pip despite `--no-index`, and `#` fragments are stripped as comments. The report's assigned `NO_INDEX_LOCAL_BINARY_WHEELS_ONLY` label is not an independent network-containment check. Do not use unreviewed remote/direct-reference requirements in an offline task.
+Use the governed version-bound profile for this offline check. Custom `--profile` files and direct API requirements accept distribution names with optional version clauses only. URLs, direct references, local paths, markers, extras and requirement-file directives are refused before resolution; this grammar is deliberately narrower than PEP 508. Full-line comments and whitespace-separated inline comments are supported. The resolver is invoked with `--isolated` and `PIP_CONFIG_FILE` set to the platform null device. Review wheel metadata independently: neither these pip controls nor the assigned `NO_INDEX_LOCAL_BINARY_WHEELS_ONLY` label establishes an operating-system network sandbox.
 
-After an independently authorized offline install, `--check-imports` additionally checks imports in the selected interpreter for the six mapped distribution names. These checks do not verify installed versions or renderer behavior. A custom unmapped distribution receives `NOT_MAPPED`, which does not fail the overall report; inspect every row rather than treating aggregate `PASS` as full import coverage. No PDF, Word or image is rendered by this helper.
+After an independently authorized offline install, `--check-imports` additionally checks imports in the selected interpreter for the six mapped distribution names. These checks inspect the currently installed environment, not the prospective wheel installation; they do not verify candidate wheel versions or renderer behavior. A custom unmapped distribution receives `NOT_MAPPED`, which does not fail the overall report; inspect every row rather than treating aggregate `PASS` as full import coverage. No PDF, Word or image is rendered by this helper.
 
-The optional `--output` creates missing parent directories and directly replaces the selected JSON file, including on an audit failure. It does not guard source/output overlap or publish atomically; select a new receipt outside the profile, interpreter and wheel inputs. Without `--output`, JSON is printed to stdout. Normal aggregate `PASS` returns zero and `FAIL` returns one; a receipt-write failure can instead raise without the normal stdout result and leave a partial file. Preserve original inputs and partial receipts; retry to a new path after correcting the problem. The report records requirement strings, selected paths and short resolver/import tails, but no wheel/profile/interpreter content hashes or full dependency plan. Retain those evidence bindings separately. Source: `tools/audit_documents_wheelhouse.py:24–175`.
+The optional `--output` creates missing parent directories and directly replaces the selected JSON file, including on an audit failure. It does not guard source/output overlap or publish atomically; select a new receipt outside the profile, interpreter and wheel inputs. Without `--output`, JSON is printed to stdout. Normal aggregate `PASS` returns zero and `FAIL` returns one; a receipt-write failure can instead raise without the normal stdout result and leave a partial file. Preserve original inputs and partial receipts; retry to a new path after correcting the problem. The report records requirement strings, selected paths and short resolver/import tails, but no wheel/profile/interpreter content hashes or full dependency plan. Retain those evidence bindings separately. Source: `tools/audit_documents_wheelhouse.py` (`validate_requirement`, `audit_requirements` and `main`).
 
 ## 4. Confirm the local version and environment
 
@@ -104,7 +137,7 @@ Run `doctor` only in an editable working installation after checking its
 against preserved code evidence or an occupied `runs/_doctor_probe` path.
 
 ```bash
-python mamey_run.py start
+python -B mamey_run.py start --no-doctor
 python mamey_run.py doctor
 python tools/sync_version.py --check
 ```
@@ -114,13 +147,15 @@ environment; it is not an analysis or a release approval.
 
 ## Doctor scope and write probe
 
-`doctor` reports selected dependency names, executable discovery, dataset status and bundle-file presence. Finding a module does not prove it imports or that its workflow produces valid output. Its Python diagnostic uses an older threshold than the current installation requirement; follow the selected bundle's declared Python minimum. Missing optional items and warnings remain relevant even when the command returns success. Verify the specific tool/data/renderer route you need rather than treating a “ready” line as end-to-end admission.
+`doctor` reports selected dependency names, executable discovery, dataset status and bundle-file presence. The Python check requires 3.12 or newer, matching `pyproject.toml`. Module discoverability and executable discovery do not prove a workflow produces valid output. Placement/R companion discovery requires regular executable files, but does not establish their version, architecture or valid output. Missing optional items and warnings remain relevant even when the command returns success. Verify the specific tool/data/renderer route you need rather than treating a “ready” line as end-to-end admission.
 
 This command performs a write test beneath the bundle directory, using `runs/_doctor_probe/probe.txt`; `start` also runs it unless `--no-doctor` is supplied. It is not a purely read-only environment check. An occupied or symlink probe path is refused without touching its contents; a symlink `runs/` is also refused. Probe directory and file creation are exclusive. Cleanup removes only paths created by that invocation whose filesystem identity still matches, including a newly created `runs/` only when empty. A pre-existing `runs/` is preserved. Use an authorized editable working installation rather than preserved code evidence. The test checks the bundle's `runs/` location, not an arbitrary destination supplied to a later workflow.
 
+For orientation, `python -B mamey_run.py start --no-doctor` skips the doctor probe and disables launcher cache writes on a cache-free tree. Untrusted/source-drift bytecode is refused without removal; valid bound caches may still be read. Normal bytecode-enabled mode can write the provenance marker or purge unbound caches, and explicit `--purge-bytecode` remains mutating. These controls do not suppress writes by doctor or other handlers. Verify integrated startup/import effects before describing an invocation as fully read-only; the launcher boundary alone is insufficient.
+
 Keep the original bundle and source evidence intact. After a failed write probe, preserve its diagnostic text and inspect any residual probe path before retrying; do not remove a pre-existing directory merely to make the check pass. The reserved probe is created exclusively, with cleanup limited to paths created by that invocation; concurrent adversarial filesystem mutation is not a supported execution model.
 
-Sources: `mamey/cli.py:4744–4865`; the current installation/runtime requirement remains authoritative.
+Sources: `mamey/cli.py` (`doctor_command`, `_start_command`, `_placement_and_r_companion_status`) and `mamey_run.py` (`_refuse_foreign_bytecode`); the current installation/runtime requirement remains authoritative.
 
 ## 5. Inspect and run an input
 

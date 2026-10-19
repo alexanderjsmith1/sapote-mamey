@@ -178,7 +178,9 @@ class TimingRecorder:
         the head of each phase but (for most phases) no END — so an END-pairing model recovers
         almost nothing. The phases run sequentially, so each phase's elapsed is the gap from its
         START to the NEXT phase's START (the last phase runs to the final/terminal receipt).
-        Uses the monotonic timestamp (mono_ns). Returns phases populated. Never raises."""
+        Uses the monotonic timestamp (mono_ns). Elapsed boundaries are inferred; a START
+        alone does not establish completion. Repeated starts remain attempt-unverified.
+        Returns phases populated. Never raises."""
         if self.phases:
             return 0
         import json as _j
@@ -208,11 +210,13 @@ class TimingRecorder:
             phase_starts: list[tuple[str, int, str]] = []   # (phase, mono_ns, status)
             seen = set()
             end_mono_by_phase: dict[str, int] = {}
+            phase_rows: dict[str, list[str]] = {}
             last_mono = int(rows[-1]["mono_ns"])
             for r in rows:
                 phase = r["phase"]
                 status = (r.get("status") or "").upper()
                 mono = int(r["mono_ns"])
+                phase_rows.setdefault(phase, []).append(status)
                 if status in ("END", "TIMEOUT", "ERROR", "SKIP", "SKIPPED"):
                     end_mono_by_phase[phase] = mono
                 if phase in seen:
@@ -232,10 +236,26 @@ class TimingRecorder:
                 # skip the synthetic terminal marker row itself as a "phase"
                 if phase in TERMINALS or status in TERMINALS:
                     continue
+                observed = phase_rows[phase]
+                starts = [j for j, value in enumerate(observed) if value == "START"]
+                terminals = [(j, value) for j, value in enumerate(observed)
+                             if value in {"END", "ERROR", "TIMEOUT", "SKIP", "SKIPPED"}]
+                failures = {value for _, value in terminals if value != "END"}
+                if len(starts) > 1 or (starts and any(j < starts[0] for j, _ in terminals)):
+                    outcome = "ATTEMPT_ROSTER_UNVERIFIED"
+                elif failures:
+                    # An observed failure/skip must never become COMPLETE via a later END.
+                    outcome = next(iter(failures)) if len(failures) == 1 else "OUTCOME_UNVERIFIED"
+                elif (len(terminals) == 1 and terminals[0][1] == "END"
+                      and all(value in {"START", "END"} for value in observed)):
+                    outcome = "COMPLETE"
+                else:
+                    outcome = "OUTCOME_UNVERIFIED"
                 ordered.append(PhaseTiming(
                     name=phase, start_monotonic_ns=mono, end_monotonic_ns=end,
-                    elapsed_seconds=elapsed,
-                    status="COMPLETE" if status in ("START", "END") else (status or "COMPLETE"),
+                    elapsed_seconds=elapsed, status=outcome,
+                    notes="observed=" + ",".join(observed)
+                          + "; elapsed inferred from sequential receipt boundaries; run identity unverified",
                 ))
             self.phases = ordered
             return len(ordered)

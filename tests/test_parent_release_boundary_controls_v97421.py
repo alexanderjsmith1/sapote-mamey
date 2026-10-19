@@ -1,6 +1,7 @@
 """Adversarial controls for candidate transaction recovery and release profiles."""
 import importlib.util
 import json
+import shlex
 from pathlib import Path
 
 import pytest
@@ -68,6 +69,10 @@ def test_release_receipt_and_runner_require_all_configured_test_groups():
     spec.loader.exec_module(helper)
     assert '--run-slow' in helper.COMMAND_TAIL
     assert '--run-network' in helper.COMMAND_TAIL
-    command = next(line for line in (ROOT / 'tools/release_cut.sh').read_text().splitlines()
-                   if 'if ! PYTHONPATH=. python3 -m pytest' in line)
-    assert '--run-slow' in command and '--run-network' in command
+    commands = [line for line in (ROOT / 'tools/release_cut.sh').read_text().splitlines()
+                if line.lstrip().startswith('if ! PYTHONPATH=. "$PYTHON" -m pytest')]
+    assert len(commands) == 1, 'the final full-suite failure must remain a blocking branch'
+    words = shlex.split(commands[0].split('>', 1)[0])
+    assert words[:4] == ['if', '!', 'PYTHONPATH=.', '$PYTHON']
+    assert words[4:] == helper.COMMAND_TAIL
+    assert '--run-slow' in words and '--run-network' in words

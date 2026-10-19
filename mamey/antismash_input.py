@@ -34,6 +34,7 @@ organism name is a record label, not a taxonomic assertion.
 """
 
 from __future__ import annotations
+from .source_context import source_archive as snapshot_zip, bound_source
 
 import os
 import re
@@ -43,6 +44,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 from .parsers import GbkSizeGuardRefusal, _gbk_size_guard, _guarded_read_bytes
 from .ziputil import duplicate_member_names, nonregular_file_names, regular_file_names
+from .archive_snapshot import ArchiveSnapshot, archive_label_path
 
 __all__ = ["AntismashInput", "identify", "is_antismash_archive", "detect_strictness"]
 
@@ -338,15 +340,17 @@ def is_antismash_archive(path: str) -> bool:
 
 def identify(path: str) -> AntismashInput:
     """Inspect an archive and report what it is. Never raises; check ``.warnings``."""
-    result = AntismashInput(path=path)
-    if not os.path.isfile(path):
+    path = bound_source(path)
+    label = str(archive_label_path(path))
+    result = AntismashInput(path=label)
+    if not isinstance(path, ArchiveSnapshot) and not os.path.isfile(path):
         result.warnings.append("file does not exist")
         return result
-    if not zipfile.is_zipfile(path):
+    if not isinstance(path, ArchiveSnapshot) and not zipfile.is_zipfile(path):
         result.warnings.append("not a ZIP archive")
         return result
     try:
-        with zipfile.ZipFile(path) as zf:
+        with snapshot_zip(path) as zf:
             names = regular_file_names(zf)
             nonregular = nonregular_file_names(zf)
             duplicates = duplicate_member_names(zf)
@@ -390,7 +394,7 @@ def identify(path: str) -> AntismashInput:
                 result.organism, result.organism_source = organism, "gbk_organism"
                 result.lineage = lineage
             else:
-                from_name = _organism_from_filename(path)
+                from_name = _organism_from_filename(label)
                 if from_name:
                     result.organism, result.organism_source = from_name, "filename"
                 else:
@@ -400,7 +404,7 @@ def identify(path: str) -> AntismashInput:
                 parts = [p.strip() for p in lineage.split(";") if p.strip()]
                 result.phylum = parts[2] if len(parts) > 2 else (parts[-1] if parts else "")
                 result.is_actinomycete = ("Actinomycetota" in lineage) or ("Actinobacteria" in lineage)
-            result.suggested_strain_id = _suggest_strain_id(result.organism, path)
+            result.suggested_strain_id = _suggest_strain_id(result.organism, label)
     except zipfile.BadZipFile:
         result.warnings.append("corrupt ZIP archive")
     except Exception as exc:  # never let intake crash on a user's file

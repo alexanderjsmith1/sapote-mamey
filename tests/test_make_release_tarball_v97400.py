@@ -7,6 +7,9 @@ import hashlib
 import os
 import subprocess
 import sys
+import shutil
+
+import pytest
 
 TOOL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                     "tools", "make_release_tarball.sh")
@@ -47,7 +50,13 @@ def test_spaced_outdir_sidecar_verifies_with_shasum_c(tmp_path):
     recorded = sha_file.read_text().split(None, 1)[1].strip()
     assert recorded == src.name + ".tar.gz", (
         "sidecar must record the RELATIVE tarball name (space-safe, portable): %r" % recorded)
-    chk = subprocess.run(["shasum", "-c", sha_file.name], cwd=str(out),
+    if shutil.which("sha256sum"):
+        checker = ["sha256sum"]
+    elif shutil.which("shasum"):
+        checker = ["shasum", "-a", "256"]
+    else:
+        pytest.skip("neither sha256sum nor shasum is installed")
+    chk = subprocess.run([*checker, "-c", sha_file.name], cwd=str(out),
                          capture_output=True, text=True, timeout=120)
     assert chk.returncode == 0, "shasum -c must verify the sidecar in place: " + chk.stdout + chk.stderr
 

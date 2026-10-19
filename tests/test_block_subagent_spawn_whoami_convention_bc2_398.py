@@ -48,9 +48,18 @@ def test_whoami_still_recognizes_legacy_sessions_convention(tmp_path):
     assert bss.whoami(str(p), "sid-1") == "Example Lane"
 
 
-def test_whoami_does_not_hardcode_a_workspace_specific_literal():
-    src = (HOOKS_DIR / "block_subagent_spawn.py").read_text(encoding="utf-8")
-    assert "Color folders" not in src
+def test_whoami_uses_state_owner_with_distinct_and_misleading_parents(tmp_path):
+    """The direct STATE owner determines identity; parent names cannot supply it.
+
+    All transcript records here are fabricated; no real session payload is loaded.
+    """
+    for index, parent in enumerate(("arbitrary_parent", "Parent With Spaces", "sessions/Decoy Lane")):
+        p = tmp_path / f"invented_{index}.jsonl"
+        _write_fake_transcript(p, f"/invented/{parent}/Sea Green/STATE.md")
+        assert bss.whoami(str(p), "sid-test") == "Sea Green"
+    p = tmp_path / "not_state.jsonl"
+    _write_fake_transcript(p, "/invented/Decoy Lane/Sea Green/NOT_STATE.md")
+    assert bss.whoami(str(p), "sid-test") in (None, "?")
 
 
 def test_end_to_end_ban_actually_fires_for_a_real_convention_workhorse_transcript(tmp_path, monkeypatch):

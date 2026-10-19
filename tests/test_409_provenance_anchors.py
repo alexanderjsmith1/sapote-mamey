@@ -68,7 +68,7 @@ def test_old_bare_bgc_id_export_fails(tmp_path):
     """The shape the pre-patch cli.py per-gene export wrote: bare bgc_id, no anchor.
     The gate must FAIL it (this is the real bug the lane fixes at the source)."""
     csv_text = "bgc_id,query_gene,subject_gene,pct_identity\nBGC001,ctg1_5,mibigX,88.0\n"
-    problems = _check(tmp_path, "AS-40_4A2_ClusterBlast_per_gene.csv", csv_text)
+    problems = _check(tmp_path, "SYNTHETIC-CASE-012_4A2_ClusterBlast_per_gene.csv", csv_text)
     assert problems, "a bare-bgc_id per-gene export must fail the provenance gate"
     joined = " ".join(problems)
     assert "strain" in joined and "region" in joined
@@ -78,18 +78,18 @@ def test_new_anchored_export_passes(tmp_path):
     """The shape the patched emitters write: strain, assembly_locator, contig, region, bgc_id, ..."""
     csv_text = (
         "strain,assembly_locator,contig,region,bgc_id,query_gene,pct_identity\n"
-        "AS-40,NODE_402 region001 (BGC001),NODE_402,region001,BGC001,ctg1_5,88.0\n"
+        "SYNTHETIC-CASE-012,NODE_402 region001 (BGC001),NODE_402,region001,BGC001,ctg1_5,88.0\n"
     )
-    assert _check(tmp_path, "AS-40_4A2_ClusterBlast_per_gene.csv", csv_text) == []
+    assert _check(tmp_path, "SYNTHETIC-CASE-012_4A2_ClusterBlast_per_gene.csv", csv_text) == []
 
 
 def test_new_cds_table_shape_passes(tmp_path):
     """gene_context.py _cds_table after the patch: strain/assembly_locator/region + bgc_id,contig."""
     csv_text = (
         "strain,assembly_locator,region,bgc_id,contig,locus_tag,order\n"
-        "AS-40,NODE_1 region002 (BGC002),region002,BGC002,NODE_1,ctg1_11,1\n"
+        "SYNTHETIC-CASE-012,NODE_1 region002 (BGC002),region002,BGC002,NODE_1,ctg1_11,1\n"
     )
-    assert _check(tmp_path, "AS-40_cds_table.csv", csv_text) == []
+    assert _check(tmp_path, "SYNTHETIC-CASE-012_cds_table.csv", csv_text) == []
 
 
 # =============================================================== CHECKER Defect A (banner)
@@ -103,9 +103,9 @@ def test_defect_a_banner_hidden_header_passes(tmp_path):
     csv_text = (
         "# provenance,Mamey deterministic extraction,class-level hypothesis,only,--\n"
         "strain,rank,bgc_id,contig,region\n"
-        "AS-40,1,BGC001,NODE_402,region001\n"
+        "SYNTHETIC-CASE-012,1,BGC001,NODE_402,region001\n"
     )
-    problems = _check(tmp_path, "AS-40_8a_fig_domain_data.csv", csv_text)
+    problems = _check(tmp_path, "SYNTHETIC-CASE-012_8a_fig_domain_data.csv", csv_text)
     assert problems == [], f"banner-led CSV should pass once the banner is skipped; got {problems}"
 
 
@@ -116,7 +116,7 @@ def test_defect_a_still_needs_a_bgc_id_column(tmp_path):
         "bgc_id,query_gene\n"
         "BGC001,ctg1_5\n"
     )
-    problems = _check(tmp_path, "AS-40_bad_after_banner.csv", csv_text)
+    problems = _check(tmp_path, "SYNTHETIC-CASE-012_bad_after_banner.csv", csv_text)
     assert problems, "a real bare-bgc_id table behind a banner must still fail"
 
 
@@ -126,7 +126,7 @@ def test_defect_b_activity_lead_split_columns_pass(tmp_path):
     bgc_alias. Pristine .408: full_node_or_contig is not a recognised contig synonym -> RED."""
     csv_text = (
         "strain,exact_locus,full_node_or_contig,region,bgc_alias\n"
-        "AS-40,AULB01000055.1 region001,AULB01000055.1,region001,BGC044\n"
+        "SYNTHETIC-CASE-012,AULB01000055.1 region001,AULB01000055.1,region001,BGC044\n"
     )
     assert _check(tmp_path, "ACTIVITY_LEAD_GENE_ANCHORS.csv", csv_text) == []
 
@@ -136,16 +136,16 @@ def test_defect_b_region_key_hmm_shape_passes(tmp_path):
     the anchor columns are added by the emitter, the table passes."""
     csv_text = (
         "strain,assembly_locator,contig,region_key,bgc_id,domain_name\n"
-        "AS-40,NODE_1 region001 (BGC001),NODE_1,NODE_1_r1,BGC001,PKS_KS\n"
+        "SYNTHETIC-CASE-012,NODE_1 region001 (BGC001),NODE_1,NODE_1_r1,BGC001,PKS_KS\n"
     )
-    assert _check(tmp_path, "AS-40_3_antismash_hmm.csv", csv_text) == []
+    assert _check(tmp_path, "SYNTHETIC-CASE-012_3_antismash_hmm.csv", csv_text) == []
 
 
 def test_defect_b_cohort_roster_node_contig_passes(tmp_path):
     """Cohort roster uses a `node/contig` column plus `region`."""
     csv_text = (
         "strain,node/contig,region,bgc_id\n"
-        "AS-40,NODE_9,region003,BGC009\n"
+        "SYNTHETIC-CASE-012,NODE_9,region003,BGC009\n"
     )
     assert _check(tmp_path, "G15_rare_bgc_roster_data.csv", csv_text) == []
 

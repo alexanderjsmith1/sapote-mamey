@@ -27,6 +27,12 @@ for _p in (_ROOT, os.path.join(_ROOT, "deliverable_tools")):
 
 D = importlib.import_module("_bigscape_data")
 
+if __package__ in (None, ""):
+    from _synthetic_identity_fixture import synthetic_namespace_id
+else:
+    from tests._synthetic_identity_fixture import synthetic_namespace_id
+_FORMAT_CASE_1 = synthetic_namespace_id('AS', width=3, case_index=820)
+
 
 def _label(path, organism):
     return D.strain_of(path, organism)[0]
@@ -51,6 +57,6 @@ def test_dot_organism_reference_does_not_leak_accession():
 
 def test_as_and_sid_labels_unchanged():
     # the AS/SID branches run before the reference branch and must be untouched by the fix
-    assert D.strain_of("/x/AS-696_NODE_25_length_90404_cov_51.797192.region001.gbk", "") == ("AS-696", "AS")
+    assert D.strain_of(f"/x/{_FORMAT_CASE_1}_NODE_25_length_90404_cov_51.797192.region001.gbk", "") == (f"{_FORMAT_CASE_1}", "AS")
     assert D.strain_of("/x/SID8384_NODE_1_length_1000_cov_5.0.region001.gbk", "")[0] == "SID8384"
     assert D.strain_of("/x/SID8384_NODE_1_length_1000_cov_5.0.region001.gbk", "")[1] == "SID"

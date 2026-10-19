@@ -13,12 +13,12 @@ or SOURCE_CHECKSUMS as source-final inputs/outputs.
 
 Examples:
   python tools/generated_surface_ownership.py --phase source-generated \
-      --assert-input none --assert-final module_manifest,tools_inventory
+      --assert-input none --assert-final module_manifest,tools_inventory,file_atlas
   python tools/generated_surface_ownership.py --phase source-final \
-      --assert-input module_manifest,tools_inventory \
-      --assert-final module_manifest,tools_inventory,version_build,release_manifest
+      --assert-input module_manifest,tools_inventory,file_atlas \
+      --assert-final module_manifest,tools_inventory,file_atlas,version_build,release_manifest
   python tools/generated_surface_ownership.py --phase tier-final \
-      --assert-input module_manifest,tools_inventory,version_build,release_manifest \
+      --assert-input module_manifest,tools_inventory,file_atlas,version_build,release_manifest \
       --assert-final tier_manifest,source_checksums
 """
 from __future__ import annotations
@@ -44,8 +44,15 @@ SURFACES = {
         "outputs": ("docs/TOOLS_INVENTORY.generated.md", "docs/BUNDLE_CAPABILITIES.md"),
         "owner": "tools/gen_tools_inventory.py",
         "owner_paths": ("tools/gen_tools_inventory.py",),
-        "trigger": "tools/*.py or tools/*.sh membership, or rendered first-line summary changes",
+        "trigger": "visible tools/**/*.py, tools/**/*.sh or bootstrap.sh membership, or rendered opening source paragraph changes",
         "validator": "tools/gen_tools_inventory.py --check",
+    },
+    "file_atlas": {
+        "outputs": ("docs/FILE_ATLAS.csv", "docs/FILE_ATLAS.md"),
+        "owner": "tools/file_atlas.py --out docs/FILE_ATLAS.csv --md docs/FILE_ATLAS.md",
+        "owner_paths": ("tools/file_atlas.py", "tools/gen_tools_inventory.py", "mamey/csv_safety.py"),
+        "trigger": "visible mamey/tools Python source membership/content, test references, shell or gate-registry invocations change",
+        "validator": "tools/file_atlas.py --check",
     },
     "version_build": {
         "outputs": ("BUILD_STAMP.txt", "TAG", "CITATION.cff"),
@@ -81,16 +88,16 @@ SURFACES = {
 PHASES = {
     "source-generated": {
         "inputs": (),
-        "final_outputs": ("module_manifest", "tools_inventory"),
+        "final_outputs": ("module_manifest", "tools_inventory", "file_atlas"),
         "description": "Regenerate only source inventories whose declared triggers fired.",
     },
     "source-final": {
-        "inputs": ("module_manifest", "tools_inventory"),
-        "final_outputs": ("module_manifest", "tools_inventory", "version_build", "release_manifest"),
+        "inputs": ("module_manifest", "tools_inventory", "file_atlas"),
+        "final_outputs": ("module_manifest", "tools_inventory", "file_atlas", "version_build", "release_manifest"),
         "description": "Freeze final source surfaces; per-tier membership and checksums remain deferred.",
     },
     "tier-final": {
-        "inputs": ("module_manifest", "tools_inventory", "version_build", "release_manifest"),
+        "inputs": ("module_manifest", "tools_inventory", "file_atlas", "version_build", "release_manifest"),
         "final_outputs": ("tier_manifest", "source_checksums"),
         "description": "Finalize one staged tier; SOURCE_CHECKSUMS is last after TIER_MANIFEST and staged edits.",
     },

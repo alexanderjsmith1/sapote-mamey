@@ -785,8 +785,11 @@ def _best_state(observations: Iterable[EvidenceObservation]) -> tuple[str, int, 
         return "ABSENT", 0, "UNVERIFIED"
     best = max(rows, key=lambda obs: BINDING_SCORE[obs.binding_state])
     count = sum(obs.record_count for obs in rows)
-    freshness = "CURRENT" if any(obs.freshness_state == "CURRENT" for obs in rows) else (
-        "STALE" if rows and all(obs.freshness_state == "STALE" for obs in rows) else "UNVERIFIED"
+    # Binding and freshness must describe the same evidence cohort. A current
+    # unbound/conflicting artifact cannot refresh an older locus-bound source.
+    bound_rows = [obs for obs in rows if obs.binding_state == best.binding_state]
+    freshness = "CURRENT" if any(obs.freshness_state == "CURRENT" for obs in bound_rows) else (
+        "STALE" if all(obs.freshness_state == "STALE" for obs in bound_rows) else "UNVERIFIED"
     )
     return best.binding_state, count, freshness
 

@@ -1,3 +1,47 @@
+# v9.7.453 — unsealed cut candidate · build 20261018v97453a
+
+Build 20261018v97453a; engine 1.9.176 (unchanged).
+
+This cut carries the October 17 improvement campaign on top of sealed v9.7.452 (CODE zip 8c57b2e3…fcd), plus four cut fixes. The later Source166/nf-core integration batch and the BGC machinery-tree prototype are not included. The engine stays 1.9.176: scores, thresholds and routing rules are unchanged. The scoring and rules files change only in comments and a policy ID that no code reads. The other engine changes refuse bad inputs that were admitted before; they do not change results for good inputs.
+
+- **Analysis inputs are read from one bound snapshot.** A new opt-in captured-intake route records the exact bytes of an antiSMASH ZIP once and reads every member from that recorded copy, so a ZIP that changes mid-run cannot mix two versions. Readers moved to the source-binding path include the parsers, antiSMASH evidence, NRPS predictions, the KS scan and RG-GMCI. A FASTA whose contig ID names two different sequences is refused. The captured route covers intake only; gold analysis, Mode B, RG-GMCI, resume and batch use the existing route.
+- **Neutral public names replace internal code names.** Package homes default to `mamey_packages` and `Package Outputs*`; `MAMEY_PACKAGE_HOMES` still adds more. Historical rule labels in shipped data become neutral IDs (the inventory bottom-tier policy is now `inventory-bottom-tier-v1`); its routing is unchanged. See `docs/CODE_NAME_MIGRATION.md`.
+- **Test identifiers have one role table and an optional registry guard.** `tools/identifier_source_roles.py` validates one source-site role table for tests and staged artifacts. `tools/synthetic_id_registry_guard.py` and `tools/verify_export_registry.py` can check declared test identities against an explicitly supplied local registry before export. Ordinary CODE cuts do not need that registry, and a pass is not release clearance.
+- **RiPPER is an optional, experimental adapter.** Eleven `tools/ripper_*` files and nine docs plan, bind and inspect RiPPER runs. Nothing runs upstream code by default; execution needs an explicit opt-in. RiPPER results are not imported into packages, scores or reports.
+- **Completed render packets are checked from one admitted generation.** Packet QA reads only regular files inside the selected artifact root, re-validates the receipt and output roster just before writing reports, and never overwrites an existing `RENDER_QC.md` or `RENDER_QC.tsv`. See `docs/COMPLETED_RENDER_PACKET_QA.md`.
+- **Release and report tooling is tighter.** Release partitions prepare the font cache explicitly (`tools/_release_font_cache.py`). Report paths get an advisory claim-safety scope check (`hooks/claim_safety_scope.py`). Saved protein-space coordinates without native-chain admission carry a conservative disclosure (`tools/protein_pcoa_annotations.py`). Evidence, BLASTp, Mode B gene-first, output-transaction and privacy-profile modules also change in this campaign. About 380 test files are new or updated.
+- **Stabilize the MLSA workflow test fixture.** The functional-tool-stub fixture's disk observation is deterministic, so host free-space variation no longer looks like a workflow failure. The production disk guard and its refusal test are unchanged.
+- **Keep cohort tests importable in isolated partitions.** Fixture and precompute-helper imports are package-qualified; test assertions are unchanged.
+- **Preserve holds when recutting CODE exports.** A recut from an extracted CODE zip accepts the exact prior-omission receipt only after checking current policy bindings, safe namespaces, and that the held content and its locators are absent. The original held-file removal route and the independent tier derivation are kept.
+- **Import smoke runs on Python 3.13 and beside fontconfig.** The font-cache mkdir proof accepts Python 3.13's `pathlib._local` as well as 3.12's `pathlib`; the bundle supports Python 3.12 and later. The font bootstrap gives `XDG_CACHE_HOME` its own folder, so fontconfig no longer writes into the single-file Matplotlib cache. Both checks stay as strict as before. The partitioned-cut tests give each fixture cut 900 s instead of 180 s, because each one now also runs import smoke.
+- **Prepare an engineering CODE build.** Identity and generated release metadata are refreshed by the documented cut workflow. Source and extracted-archive results are recorded with the cut, not in this entry.
+
+- Accretion-justified: mamey/source_context.py — per-run source binding for readers moved to the bound-snapshot path (parsers, antiSMASH evidence, NRPS predictions, KS scan, RG-GMCI); no global patching of open().
+- Accretion-justified: mamey/archive_snapshot.py — bounded, immutable in-memory ZIP snapshot whose reads come from the recorded bytes; shared by antiSMASH input, strain identity and the intake session; no disk staging, discovery or network.
+- Accretion-justified: mamey/intake_session.py — opt-in captured intake session; source binding is recorded separately from scientific certainty; intake only.
+- Accretion-justified: mamey/captured_run.py — opt-in single-run transaction for the captured route; no unbound source and no early master publication.
+- Accretion-justified: mamey/captured_batch.py — explicit all-or-nothing batch of captured runs, run in sequence with one cumulative private master.
+- Accretion-justified: mamey/captured_harness.py — opt-in direct-archive intake harness used by tools/intake_harness.py and the captured batch.
+- Accretion-justified: mamey/captured_intake_cli.py — CLI slice for captured intake; publishes intake JSON, never a full package.
+- Accretion-justified: mamey/capture_completion.py — exact local completion bindings for captured runs; receipts are evidence, not snapshot capabilities.
+- Accretion-justified: mamey/capture_governance.py — bounded per-invocation exclusions for captured runs; JSON receipts store digests only.
+
+This is an engineering build candidate. Sealing, publication and hosted Linux validation are not established by this entry.
+
+# v9.7.452 — unsealed cut candidate · build 20261016v97452a
+
+Build 20261016v97452a; engine 1.9.176 (unchanged).
+
+- **Evidence admission preserves identity and prior outputs.** Tightens explicit physical-identity and receipt binding, channel separation, query snapshots, source/output alias checks and quarantine preservation across the selected existing workflows.
+- **Completion reports reflect observed work.** Queue and cohort checks refuse incomplete requests and corrupt history; timing records retain observed outcome and attempt uncertainty.
+- **Archives and release checks bind their inputs.** Hardens required content and identity checks, checksum portability, archive preservation and exact-identity seal-plan generation. Generated plans do not authorize release execution.
+- **Discovery and generated documentation remain accountable.** Tightens discovery publication and provenance, requires the tools/capabilities pair, applies 13 source-only documentation corrections, removes a duplicated stale introductory identity and regenerates the affected wiki and maintenance outputs through the normal owners.
+- **Portability and resource controls are clearer.** Includes reviewed R system-dependency installation configuration, workspace temporary directories, portable checksum commands and nonfinite resource-limit refusal. Actual Linux installation and runtime remain unverified.
+
+- Accretion-justified: mamey/blastp_physical_binding.py — shared admission of explicit physical-identity assertions and retained output receipts for existing ingest and gate callers; reuses exact_identity adapters, preserves raw evidence and holds contradictory or unbound generations. It performs no sequence analysis, cross-version identity inference or real-data re-key.
+
+Qualification disclosure: 32 engineering cards passed an exact sealed-base combined replay with 1,868 distinct passes and 1 known skip. The first 12 documentation cards completed exact composition and 12 normal-owner steps. D05 then applied exactly on that proposal and passed four additional catalog/maintenance owner checks. All 13 remain source-only documentation corrections, not additional runtime-verified cards. These counts do not certify the final versioned source, the archive, a configured full suite or release acceptance. Optional utility modules, optional software inventory expansion, figure proposals and real-data re-key remain excluded.
+
 # v9.7.451 — unsealed cut candidate · build 20261015v97451a
 
 Build 20261012v97451a; engine 1.9.176.

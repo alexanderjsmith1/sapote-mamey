@@ -79,7 +79,7 @@ def test_cohort_unique_domain_signal_across_packages():
         inv2 = [{"BGC_ID": "BGC001", "Products": "T1PKS", "Length_kb": 40, "KCB_top": ""}]
         tri2 = [{"BGC_ID": "BGC001", "Novelty_auto": "40", "Lead_tier_auto": "High", "RGGMCI_support": ""}]
         dom2 = [{"bgc_id": "BGC001", "domain": "PKS_KS", "pfam_acc": "PF00109"}]
-        p2 = _pkg(root, "AS-2", inv2, tri2, [], dom2)
+        p2 = _pkg(root, "SYNTHETIC-CASE-002", inv2, tri2, [], dom2)
 
         rows = N.build([p1, p2])
         r1 = next(r for r in rows if r["strain"] == "AS-1")

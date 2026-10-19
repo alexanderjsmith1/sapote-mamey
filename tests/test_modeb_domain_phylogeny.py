@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """Tests for mamey/modeb_domain_phylogeny.py (P360-002) — surface _4D into the Mode-B card.
 
 Covers: package-only mode (what the emitter uses — no tree_root), the deficit paths
@@ -28,7 +29,7 @@ def _w(path, header, rows, delim=","):
 def package(tmp_path):
     pkg = tmp_path / "package"
     pkg.mkdir()
-    S = "AS-705"
+    S = "SYNTHETIC-CASE-020"
     _w(pkg / f"{S}_2_inventory.csv", ["bgc_id", "products"], [["BGC018", "T1PKS"], ["BGC048", "transAT-PKS"]])
     _w(pkg / f"{S}_4D_two_proof_rescue.csv",
        ["strain", "contig_a", "contig_b", "verdict", "interpretation", "rggmci_confidence",
@@ -62,7 +63,7 @@ def test_absent_no_row_for_bgc(package):
 def test_absent_no_4d_file(tmp_path):
     pkg = tmp_path / "package"
     pkg.mkdir()
-    _w(pkg / "AS-705_2_inventory.csv", ["bgc_id"], [["BGC001"]])
+    _w(pkg / "SYNTHETIC-CASE-020_2_inventory.csv", ["bgc_id"], [["BGC001"]])
     out = dp.domain_phylogeny(pkg, "BGC001")
     assert "NOT produced here" in out
     assert "not a biological negative" in out
@@ -114,7 +115,7 @@ def test_all_weak_gives_no_candidate_line(tmp_path):
 
 
 def test_tree_root_enrichment(package, tmp_path):
-    S = "AS-705"
+    S = "SYNTHETIC-CASE-020"
     root = tmp_path / "master"
     (root / S / "PKS_KS_tree_2026-08-10").mkdir(parents=True)
     _w(root / S / "PKS_KS_tree_2026-08-10" / f"{S}_KS_fragment_candidates.tsv",

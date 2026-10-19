@@ -27,7 +27,7 @@ def _make_master(path, findings_rows, n_strains=24, n_bgc=100):
     b1 = wb.create_sheet("B1_BGC_Master")
     b1.append(["bgc_uid"])
     for i in range(n_bgc):
-        b1.append([f"AS-900:BGC{i}"])
+        b1.append(["AS-900:BGC{}".format(i)])
     f = wb.create_sheet("Cross_Strain_Findings")
     f.append(["#", "finding", "value"])
     for r in findings_rows:

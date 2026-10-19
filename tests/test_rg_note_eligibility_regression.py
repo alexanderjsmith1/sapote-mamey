@@ -1,4 +1,4 @@
-"""BLACK_CHERRY_377: the RG-GMCI rationale note (`rg_note` in triage_bgcs) must reflect the SAME
+"""regression_review_377: the RG-GMCI rationale note (`rg_note` in triage_bgcs) must reflect the SAME
 rescue-eligibility gate (functional_rescue_class != ACCESSORY_ONLY) that governs the numeric
 rescue_bonus/effective_penalty -- not just take support[0] unconditionally. Two failure shapes:
 

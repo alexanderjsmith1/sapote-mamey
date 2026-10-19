@@ -22,6 +22,8 @@ Usage:
     python mamey_run.py validate ./runs/H3C3/package
 """
 from __future__ import annotations
+from .source_context import source_size as _source_size, source_exists as _source_exists
+from .source_context import source_zipfile as _source_zipfile
 import logging as _logging
 import warnings as _warnings
 from contextlib import suppress as _suppress
@@ -63,7 +65,7 @@ from .models import RunContext, MameyRun
 from .bioactivity_metadata import BioactivityMetadataError, normalize_bioactivity
 from .antismash_input import identify as identify_antismash_input
 from .parsers import (
-    GbkSizeGuardRefusal, parse_bgcs_from_zip, assembly_metrics_from_zip,
+    FastaIdentityConflict, GenbankIdentityConflict, GbkSizeGuardRefusal, parse_bgcs_from_zip, assembly_metrics_from_zip,
     extract_antismash_version, extract_cds_features,
     extract_contig_sequences, extract_domain_features,
     parse_antismash_evidence_status,
@@ -319,6 +321,13 @@ def _parse_evidence_with_budget(input_zip, json_mode, budget, stage):
     This guard wraps the status parser, including its separate record passes;
     it is not the main walker's matched-leaf cap. Return behavior is unchanged.
     """
+    from .source_context import active as _active_source
+    _frame = _active_source()
+    if _frame is not None:
+        from .intake_session import EvidenceOptions
+        _frame.bound = _frame.session.parse_evidence(EvidenceOptions(json_mode, True, False, budget))
+        _frame.working = _frame.session.working_evidence(_frame.bound)
+        return _frame.working, _frame.working["json_mode"]
     requested = json_mode
     budget_state = "DISABLED" if budget <= 0 else "NOT_APPLICABLE"
     if json_mode == "bounded" and budget > 0:
@@ -706,12 +715,17 @@ def _label_is_accession(strain_id: str) -> bool:
 def _input_zip_sha256(path) -> str | None:
     """SHA-256 of the source antiSMASH ZIP, for self-contained manifest provenance.
 
-    GOLDENROD .384: the manifest already records ``input_zip`` (the path) but not its
+    release_review .384: the manifest already records ``input_zip`` (the path) but not its
     content digest, so dedup / "which bytes went in" could not be answered from the
     manifest alone. Returns the 64-char hex digest, or ``None`` if the path is empty,
     missing, or unreadable (backward-compatible: old packages simply carry ``null``).
     Streamed in 1 MiB chunks; one pass over the ZIP, once per strain (not per BGC).
     """
+    from .source_context import bound_source as _bound_source
+    from .archive_snapshot import ArchiveSnapshot as _CapturedSource
+    _selected = _bound_source(path)
+    if isinstance(_selected, _CapturedSource):
+        return _selected.input_sha256
     p = str(path) if path else ""
     if not p or not _os.path.exists(p):
         return None
@@ -943,7 +957,7 @@ def _emit_cohort_sources(package_dir: Path, strain_id: str, mode: str, input_zip
         return
     try:
         from .domain_level import run_domain_level
-        _src = input_zip if (input_zip and _os.path.exists(str(input_zip))) else None
+        _src = input_zip if (input_zip and _source_exists(input_zip)) else None
         _rec = run_domain_level(package_dir, source_antismash=_src,
                                 outdir=Path(package_dir) / "cohort_source")
         _n = len(_rec.get("files", []))
@@ -991,10 +1005,10 @@ def _phase_environment(
     _timer = TimingRecorder(
         strain_id=strain_id, mode=mode, mamey_version=_mv,
         workflow_version=__version__, chatgpt_safe=(brief == "none"),
-        input_zip_bytes=(_os.path.getsize(input_zip) if input_zip and _os.path.exists(str(input_zip)) else None),
+        input_zip_bytes=(_source_size(input_zip) if input_zip and _source_exists(input_zip) else None),
     )
     _phase_receipt(package_dir, "environment", "END",
-                   chatgpt_safe=(brief == "none"), input_zip_bytes=(_os.path.getsize(input_zip) if input_zip and _os.path.exists(str(input_zip)) else None))
+                   chatgpt_safe=(brief == "none"), input_zip_bytes=(_source_size(input_zip) if input_zip and _source_exists(input_zip) else None))
     _label_accession = _label_is_accession(strain_id)
     if _label_accession:
         # v9.7.229 naming convention: derive Genus_species_Designation from the organism record rather
@@ -1083,7 +1097,7 @@ def _verify_sealed_receipt(zip_path: Path, external_path: Path) -> bool:
     except OSError:
         return False
     try:
-        with zipfile.ZipFile(zip_path) as zf:
+        with _source_zipfile(zip_path) as zf:
             names = [n for n in regular_file_names(zf)
                      if n == "gate_validation.json" or n.endswith("/gate_validation.json")]
             if not names:
@@ -1113,6 +1127,12 @@ def _phase_package_seal(
     run_one_strain (terminal-status computation and the returned summary dict),
     so both must round-trip through the return tuple.
     """
+    from .source_context import active as _active_source, public_value as _public_value
+    _frame = _active_source()
+    if _frame is not None:
+        from .captured_run import normalize_staged_metadata
+        normalize_staged_metadata(_frame)
+        issues[:] = _public_value(issues)
     _phase_receipt(package_dir, "package_seal", "START")
     _stage("writing manifest + checksums")
     # v9.7.367 CANDIDATE (Indigo2 §1+§2, the review lane-ruled 2026-08-15): drain silent-degradation
@@ -1146,6 +1166,7 @@ def _phase_package_seal(
     # are identical) — so the computed status is unchanged from the base and NO new gold-path
     # blocking is introduced. The only real change is that the receipt is now written before the ZIP.
     _enrich_result = validate_package(package_dir, enrichment_check=True)
+    _enrich_result = _public_value(_enrich_result)
     _enrich_missing = _enrich_result.get("missing_required_suffixes", [])
     _enrich_only_missing = [s for s in _enrich_missing if s in ("OPEN_ME_FIRST.html", "manifest_short.json")]
     if _enrich_only_missing:
@@ -1445,11 +1466,12 @@ def run_one_strain(
         }
     try:
         assembly = assembly_metrics_from_zip(input_zip)
-    except GbkSizeGuardRefusal as exc:
+    except (GbkSizeGuardRefusal, FastaIdentityConflict, GenbankIdentityConflict) as exc:
         # A non-empty FASTA subset is not an assembly. Refuse at intake before
         # parsing, scans, package sealing, or master-workbook publication.
+        _channel = "GENBANK" if isinstance(exc, GenbankIdentityConflict) else "FASTA"
         _issue = (
-            f"FASTA_INPUT_REFUSED: {exc}. The archive's FASTA set was rejected as "
+            f"{_channel}_INPUT_REFUSED: {exc}. The archive's {_channel} set was rejected as "
             "incomplete; no package was written. Remove the unsafe member only if "
             "the resulting archive is intentionally complete, or supply a complete "
             "antiSMASH output archive."
@@ -1482,7 +1504,11 @@ def run_one_strain(
     # audit P1: bounded json-evidence streams large JSONs (ijson) and is the one step that can stall on a
     # big strain. Run it under a wall-clock budget; on overrun, fall back to off (TXT-only) instead of
     # hanging. Budget via MAMEY_BOUNDED_BUDGET_S (default 300s); 0 disables the guard.
-    _budget = int(_os.environ.get("MAMEY_BOUNDED_BUDGET_S", "300"))
+    from .source_context import active as _budget_frame
+    _captured_budget = _budget_frame()
+    _budget = (_captured_budget.execution_options["status_budget_seconds"]
+               if _captured_budget is not None and _captured_budget.execution_options is not None
+               else int(_os.environ.get("MAMEY_BOUNDED_BUDGET_S", "300")))
     _phase_receipt(package_dir, "antismash_parse", "START")
     _stage("parsing antiSMASH KCB/RiQ evidence")
     antismash_evidence, json_mode = _parse_evidence_with_budget(
@@ -1500,6 +1526,9 @@ def run_one_strain(
                                             core_snapshot_out=_rggmci_core_snapshot)
     # Refuse an empty parse before feature extraction, source scans or RGGMCI.
     # Archive recognition alone cannot prove that any region yielded a record.
+    from .source_context import active as _active_source
+    if _active_source() is not None:
+        _active_source().region_count = len(bgcs)
     _source_region_gbks = _count_antismash_region_gbks(input_zip)
     if not bgcs:
         _reason = (
@@ -1727,7 +1756,7 @@ def run_one_strain(
                 return []
             member = b.source_gbk
             try:
-                with _zf_lm.ZipFile(input_zip) as _z:
+                with _source_zipfile(input_zip) as _z:
                     # source_gbk may be a full path inside the zip or a bare name
                     _name = next((n for n in regular_file_names(_z)
                                   if n == member or n.endswith("/" + member)
@@ -1875,6 +1904,13 @@ def run_one_strain(
             residue_scope=rggmci_residue_scope, residue_work_dir=rggmci_residue_work_dir,
             completion_work_dir=rggmci_completion_work_dir)
         source_scans.rggmci.setdefault("wrapper_context", {}).update(distribution="mamey")
+        from .source_context import active as _rg_frame
+        if _rg_frame() is not None:
+            _frame = _rg_frame()
+            if source_scans.rggmci.get("input", {}).get("antismash_zip_sha256") != _frame.source_sha256:
+                raise ValueError("CAPTURED_RUN_RG_SOURCE_BINDING_MISMATCH")
+            from .intake_session import encode as _encode_capture
+            source_scans.rggmci["wrapper_context"]["captured_source"] = json.loads(_encode_capture(_frame.receipt()))
         _rc = source_scans.rggmci.get("reference_completion") or {}
         _stage(f"RG-GMCI reference-guided completion: {_rc.get('completion_tier')}"
                + (f" ({_rc.get('aligner')} --{_rc.get('sensitivity')}; {len(_rc.get('cores') or [])} edge regions "
@@ -2241,7 +2277,7 @@ def run_one_strain(
         except Exception as _npe:  # fail-open: never break the package over an add-on
             _phase_receipt(package_dir, "nrps_predictions", "ERROR", reason=str(_npe))
         _cb_dir = None
-        with _zf.ZipFile(input_zip) as _z:
+        with _source_zipfile(input_zip) as _z:
             _cb = [n for n in regular_file_names(_z)
                    if "clusterblast" in n.split("/") and n.endswith(".txt")]
             if _cb:
@@ -2373,6 +2409,12 @@ def run_one_strain(
             # --require-workbook re-raise above.
             _release_master_workbook_lock(_master_lock)
 
+    from .source_context import active as _active_source, public_value as _public_value
+    if _active_source() is not None:
+        from .captured_run import normalize_staged_metadata
+        normalize_staged_metadata(_active_source())
+        _per_wb_status = _public_value(_per_wb_status)
+        _master_wb_status = _public_value(_master_wb_status)
     # --- Render deterministic strain brief (extraction-layer; GENUINELY non-blocking) ---
     # v9.7.88 Finding L: with seal-first ON (default), the brief render is DEFERRED to after the
     # core is sealed (see the post-seal block below). The old path (render here, before the seal,
@@ -2455,7 +2497,9 @@ def run_one_strain(
     _emit_deep_data(package_dir, strain_id, mode, issues=issues)
 
     # Auto-emit single-strain gold figures (gold mode only; non-blocking).
-    _emit_gold_figures(package_dir, strain_id, mode, issues=issues)
+    from .source_context import active as _active_source
+    if _active_source() is None:
+        _emit_gold_figures(package_dir, strain_id, mode, issues=issues)
 
     # A-05 (WAC/DSM audit): the --brief none step writes NO_FIGURES_RENDERED.md EARLY, before the
     # collection/gold figure paths run. Nothing cleared it, so a sealed package could carry the
@@ -2880,7 +2924,8 @@ def run_one_strain(
     # status.
     try:
         from . import figures_smoke as _figures_smoke
-        _smoke_res = _figures_smoke.generate(package_dir)
+        _smoke_res = ({"figures": 0, "skipped_reason": "captured run profile excludes rendering"}
+                      if _active_source() is not None else _figures_smoke.generate(package_dir))
         if _smoke_res.get("figures"):
             emit(f"  smoke_figures: {_smoke_res['figures']} png(s) "
                   f"-> {_smoke_res['out']}")
@@ -2896,7 +2941,8 @@ def run_one_strain(
     # <package>/figure_factory when a Figure Factory Next config is present, and
     # returns a typed skip (never a crash) when its config or declared inputs are
     # absent. The sealed core is already written above and is untouched.
-    _auto_emit_figure_factory(package_dir, source_dir=package_dir)
+    if _active_source() is None:
+        _auto_emit_figure_factory(package_dir, source_dir=package_dir)
 
     # v9.7.409 (CLAUDE post_seal_checksums lane): fold the checksum-exempt post-seal deliverables into a
     # tracked post_seal_checksums.txt so a later `validate` catches injection/swap/delete there. Non-blocking.
@@ -2916,6 +2962,9 @@ def run_one_strain(
         for issue in issues:
             emit(f"  [ISSUE] {issue}")
 
+    if _active_source() is not None:
+        _per_wb_status = _active_source().output_status(_per_wb_status)
+        _master_wb_status = _active_source().output_status(_master_wb_status)
     # MMW-1: WORKBOOK_STATUS — always printed, never silent
     emit(f"  WORKBOOK_STATUS:", f"    per_strain_workbook: {_per_wb_status.get('state', 'UNKNOWN')}", sep="\n")
     if _per_wb_status.get('state') == 'PRODUCED':
@@ -3108,7 +3157,7 @@ def _package_source_locator_evidence(run: MameyRun, package_dir: Path) -> None:
     evidence_root = package_dir / "source_locator_evidence"
     evidence_root.mkdir(parents=True, exist_ok=True)
     import zipfile
-    with zipfile.ZipFile(run.context.input_zip) as zf:
+    with _source_zipfile(run.context.input_zip) as zf:
         names = set(regular_file_names(zf))
         for bgc in cited:
             original = str(getattr(bgc, "source_kcb_file"))
@@ -3860,11 +3909,14 @@ def _write_package(run: MameyRun, package_dir: Path,
     # (render-all-figures -> domain-level) can re-open it for aSModule_count detail; the sealed
     # gene-context alone has no aSModule features and yields 0. Path dependency, not embedded data.
     manifest_data["input_zip"] = Path(run.context.input_zip).name
-    # GOLDENROD .384: record the source ZIP's SHA-256 next to its path so dedup and
+    # release_review .384: record the source ZIP's SHA-256 next to its path so dedup and
     # provenance are self-contained from the manifest (path proves which file; digest
     # proves which bytes). None if the ZIP is unavailable at seal time.
     _input_digest = _input_zip_sha256(run.context.input_zip)
     manifest_data["input_zip_sha256"] = _input_digest
+    from .source_context import active as _active_source
+    if _active_source() is not None:
+        manifest_data["captured_source"] = _active_source().receipt()
     if _input_digest is None:
         _digest_issue = (
             "INPUT_ZIP_SHA256_UNAVAILABLE: source bytes could not be hashed at package "
@@ -4271,6 +4323,17 @@ def _completion_mode(args) -> str:
 
 
 def run_command(args) -> int:
+    if (not getattr(args, "capture_policy", None) and (getattr(args, "capture_resume", False)
+            or getattr(args, "capture_batch_policy", None) or getattr(args, "capture_expected_sha256", None))):
+        _refuse("CAPTURED_RUN_POLICY_REQUIRED_FOR_CAPTURE_OPTIONS")
+        return 2
+    if getattr(args, "capture_policy", None):
+        from .captured_run import run as _captured_run
+        return _captured_run(args, _run_command_legacy)
+    return _run_command_legacy(args)
+
+
+def _run_command_legacy(args) -> int:
     # v9.7.152: capped-session timeout profile (assistant-neutral). Keyed on the same
     # `chatgpt_safe` dest as before so all existing call sites and tests are unaffected;
     # only the operator-facing name and notice changed. --chatgpt-safe still works as a
@@ -4818,7 +4881,7 @@ def _placement_and_r_companion_status(env=None):
             cands.append(_P(w))
         if conda_env:
             cands.append(root / "miniconda3" / "envs" / conda_env / "bin" / name)
-        hit = next((c for c in cands if c.exists()), None)
+        hit = next((c for c in cands if c.is_file() and _os.access(c, _os.X_OK)), None)
         (found if hit else missing).append(name)
     return found, missing
 
@@ -4841,12 +4904,10 @@ def doctor_command(args) -> int:
 
     # Python version
     major, minor = sys.version_info[:2]
-    if (major, minor) >= (3, 10):
+    if (major, minor) >= (3, 12):
         ok.append(f"Python {major}.{minor} ✓")
-    elif (major, minor) >= (3, 8):
-        warn.append(f"Python {major}.{minor} — 3.10+ recommended (3.8+ works)")
     else:
-        fail.append(f"Python {major}.{minor} — 3.8+ required")
+        fail.append(f"Python {major}.{minor} — 3.12+ required (see pyproject.toml and docs/INSTALL.md)")
 
     # Required deps
     for mod, label in [("openpyxl", "openpyxl (workbooks)"), ("zipfile", "zipfile (stdlib)")]:
@@ -4882,6 +4943,7 @@ def doctor_command(args) -> int:
         ("Bio", "biopython", "optional for core (GBK shim in use if absent) — but REQUIRED for `mamey triage-raw` AND `blastp-online` (parses NCBI BLAST XML). The bundled wheel is cp312/manylinux x86_64 only, so on macOS/arm64 or other Pythons it will NOT install offline — `pip install biopython` (needs network)"),
         ("numpy", "numpy", "optional; required for figures (pip install numpy; https://numpy.org, BSD)"),
         ("matplotlib", "matplotlib", "optional; required for figures (pip install matplotlib; https://matplotlib.org, PSF-based licence)"),
+        ("shapefile", "pyshp (shapefile basemaps)", "optional for core and GeoJSON/no-basemap collection_site_map; required for local Shapefile maps (install selected bundle extra: python -m pip install -e '.[figures]'; https://github.com/GeospatialPython/pyshp, MIT licence)"),
         ("pytest", "pytest", "optional; required to run the test suite (pip install pytest; https://pytest.org, MIT)"),
     ]:
         # v9.7.405 (WAC-01375 item 11): every add-on line names the package, the official project
@@ -4889,7 +4951,7 @@ def doctor_command(args) -> int:
         # user installs and accepts the third-party terms; `mamey doctor` only verifies presence.
         # Tested versions live in docs/EXTERNAL_TOOL_INVENTORY.md / the offline wheelhouse, not here.
         if _have(mod):
-            ok.append(f"{label} ✓")
+            ok.append(f"{label} ✓" + ("; module spec discoverable (find_spec); import and Shapefile parsing unverified" if mod == "shapefile" else ""))
         else:
             warn.append(f"{label} absent — {hint}; not shipped in the bundle — install it yourself and re-run `mamey doctor`")
 
@@ -4949,7 +5011,7 @@ def doctor_command(args) -> int:
         import zipfile
         for z in zips[:5]:
             try:
-                with zipfile.ZipFile(z) as zf:
+                with _source_zipfile(z) as zf:
                     names = regular_file_names(zf)
                     if any(n.endswith(".gbk") or n.endswith(".json") for n in names):
                         as_zips.append(z.name)
@@ -6297,6 +6359,8 @@ def build_parser():
         version=f"Mamey {__version__} / Sapote-Mamey {BUNDLE_VERSION}",
     )
     sub = p.add_subparsers(dest="command")
+    from .captured_intake_cli import register as _register_captured_intake
+    _register_captured_intake(sub)
 
     gx = sub.add_parser("gecco-crosscheck", help="Optional external GECCO 0.11 class-level second opinion")
     gx.add_argument("--package", required=True)
@@ -6366,7 +6430,7 @@ def build_parser():
                    help="Evidence strength for --source: accession (deposited record) | table "
                         "(authoritative strain table) | filename (inferred from a file/folder "
                         "label) | asserted (person-supplied, no on-disk trace; default). "
-                        "Batch: pipe-separated. Descriptive only — never changes a score or gate.")
+                        "One value applies to the run, including every input in a batch; pipe-separated provenance values are not accepted. Descriptive only — never changes a score or gate.")
     r.add_argument("--release", default=None, choices=["PUBLIC", "PRIVATE"],
                    help="Optional release override. Omitted: PRIVATE unless an exact public privacy-profile "
                         "assignment is supplied. PRIVATE always wins. PUBLIC is explicit operator authority "
@@ -6469,6 +6533,10 @@ def build_parser():
                    ))
     r.add_argument("--hmm-scan", action="store_true", dest="hmm_scan",
                    help="Run the optional registry-backed pyHMMER domain pass; missing database or dependency is recorded as HMM_SCAN_UNAVAILABLE, never as a negative hit.")
+    r.add_argument("--capture-policy", help="Opt-in captured run policy JSON; requires explicit input/output limits")
+    r.add_argument("--capture-expected-sha256", help="Independently expected source version for opt-in captured single run")
+    r.add_argument("--capture-resume", action="store_true", help="Skip only exactly matching captured completion/source/options/policy/code/output bindings")
+    r.add_argument("--capture-batch-policy", choices=["all-or-nothing"], help="Explicit captured batch publication policy; requires batch resource limits")
     r.set_defaults(func=run_command)
 
     # --- validate ---
@@ -6685,7 +6753,7 @@ def build_parser():
                         help="RUN BiG-SCAPE 2.x on a package/cohort's region GBKs -> cohort DB "
                              "(+ chained matrix/clinker widgets). Post-seal, non-blocking.")
     bs_src = bs.add_mutually_exclusive_group(required=True)
-    bs_src.add_argument("--package", help="A single sealed Mamey Complete_Package dir/zip")
+    bs_src.add_argument("--package", help="A single sealed Mamey package directory or ZIP")
     bs_src.add_argument("--runs-dir", dest="runs_dir",
                         help="Cohort dir containing <ID>/package/ (or sealed zips)")
     bs_src.add_argument("--input-gbk-dir", dest="input_gbk_dir",
@@ -7723,7 +7791,7 @@ def build_parser():
     tr.add_argument("--antismash", required=True,
                     help="Raw antiSMASH ZIP or extracted antiSMASH output directory")
     tr.add_argument("--package", default=None,
-                    help="Optional sealed Mamey complete-package ZIP or package directory for BGC↔region mapping")
+                    help="Optional sealed Sapote-Mamey package ZIP or package directory for BGC↔region mapping")
     tr.add_argument("--bgc", default=None, help="Mamey BGC id, e.g. BGC028; requires --package unless --node is also provided")
     tr.add_argument("--node", default=None, help="antiSMASH node/contig id or substring")
     tr.add_argument("--region", default=None, help="antiSMASH region, e.g. region001 or 1")
@@ -8140,7 +8208,7 @@ def build_parser():
     mr.add_argument("--scope", default="top", choices=["all", "top", "leads", "pending"],
                     help="Which BGCs (default: top N by Corrected_rank)")
     mr.add_argument("--from-precompute", default=None, dest="from_precompute",
-                    help="cohort precompute dir — pre-fill §8/§11/§14 (and more) from the cohort tables, joined on assembly_locator (Part C)")
+                    help="unavailable until imported cohort facts are bound to the selected source; omit this flag for package-backed templates")
     _add_template_sources(mr)
     mr.set_defaults(func=modeb_round_command)
 

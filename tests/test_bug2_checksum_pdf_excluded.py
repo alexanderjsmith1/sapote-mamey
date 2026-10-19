@@ -10,15 +10,15 @@ from mamey.packaging import is_checksum_excluded
 
 
 def test_post_seal_pdfs_excluded():
-    assert is_checksum_excluded("AS-74_8_strain_brief.pdf") is True
+    assert is_checksum_excluded("SYNTHETIC-CASE-021_8_strain_brief.pdf") is True
     assert is_checksum_excluded("AS-123_8_strain_brief.pdf") is True
     assert is_checksum_excluded("package_PRINT_FIGURE_PACK.pdf") is True
 
 
 def test_data_bearing_files_still_checked():
     # data/analysis artifacts must stay IN the checksum set
-    for keep in ("AS-74_2_inventory.csv", "AS-74_5_workbook.xlsx",
-                 "manifest.json", "AS-74_compiled_report.md",
+    for keep in ("SYNTHETIC-CASE-021_2_inventory.csv", "SYNTHETIC-CASE-021_5_workbook.xlsx",
+                 "manifest.json", "SYNTHETIC-CASE-021_compiled_report.md",
                  "gold_figures/F01_data.csv"):
         assert is_checksum_excluded(keep) is False
 

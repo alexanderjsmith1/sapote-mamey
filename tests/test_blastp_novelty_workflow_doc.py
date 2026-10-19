@@ -13,7 +13,7 @@ import pytest
 
 def _doc():
     for base in (Path(__file__).resolve().parents[1] / "payload" / "docs",   # in the card
-                 Path(__file__).resolve().parents[2] / "docs"):               # folded into bundle
+                 Path(__file__).resolve().parents[1] / "docs"):               # folded into bundle
         p = base / "BLASTP_NOVELTY_WORKFLOW.md"
         if p.exists():
             return p.read_text(encoding="utf-8")

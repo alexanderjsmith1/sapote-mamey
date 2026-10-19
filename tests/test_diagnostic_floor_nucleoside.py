@@ -39,7 +39,7 @@ def test_kcb_dark_nucleoside_floored_with_t43nuc():
 
 def test_nucleoside_stays_bottom_without_scans():
     """No scan layer -> the diagnostic can't be read -> NOT floored to a lead tier (the bug being guarded).
-    AQUARIUS_01: the bottom tier is now class-gated — a nucleoside is a specialized (non-housekeeping)
+    inventory_review_01: the bottom tier is now class-gated — a nucleoside is a specialized (non-housekeeping)
     class, so its un-floored bottom is 'Low', not 'Inventory'. The guarded property is unchanged: without
     the T43-NUC diagnostic it does not reach Medium+."""
     recs = triage_bgcs([_bgc("BGC008", ["nucleoside", "other"], "Streptomyces sp. M56 chromosome")])

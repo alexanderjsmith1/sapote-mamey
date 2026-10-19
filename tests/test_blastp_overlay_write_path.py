@@ -52,7 +52,30 @@ def _make_package(tmp_path: pathlib.Path) -> pathlib.Path:
                        for v in _CLUSTERBLAST_IDS]
         }}},
     }
+    # Declared synthetic current authority for the full-node panel claims below.
+    # These are fixture identities, not a reconstruction of held real strain data.
+    contig = "NODE_67_length_41143_cov_68"
+    identity = {"bgc_id": "BGC043", "contig": contig,
+                "antismash_region": "region001"}
+    manifest["strain_id"] = "AS-971"
+    manifest["bgcs"][0].update(identity)
     (pkg / "manifest.json").write_text(json.dumps(manifest))
+    with (pkg / "AS-971_2b_bgc_crosswalk.csv").open("w", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=list(identity))
+        writer.writeheader()
+        writer.writerow(identity)
+    cds = [{"locus_tag": locus, "aa_length": aa, "contig": contig,
+            "start": index * 3000, "end": index * 3000 + aa * 3, "strand": 1}
+           for index, (locus, aa, pid) in enumerate(_NR_ROWS)]
+    (pkg / "AS-971_gene_context.jsonl").write_text(
+        json.dumps({"bgc_id": "BGC043", "cds": cds}) + "\n")
+    with (pkg / "AS-971_cds_table.csv").open("w", newline="") as stream:
+        fields = ["strain", "bgc_id", "contig", "region", "locus_tag", "length_aa"]
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows({"strain": "AS-971", "bgc_id": "BGC043", "contig": contig,
+                          "region": "region001", "locus_tag": locus, "length_aa": aa}
+                         for locus, aa, pid in _NR_ROWS)
     return pkg
 
 
@@ -71,7 +94,7 @@ def _make_hit_table(tmp_path: pathlib.Path) -> pathlib.Path:
     with p.open("w", newline="") as fh:
         w = csv.writer(fh)
         for locus, aa, pid in _NR_ROWS:
-            qid = (f"AS-696|BGC043|slot=1|role=core|gene={locus}"
+            qid = (f"AS-971|BGC043|slot=1|role=core|gene={locus}"
                    f"|node=NODE_67_length_41143_cov_68|region=region001"
                    f"|coords=1-100|aa={aa}|reason=halogenase")
             # query, subject, %id, alnlen, mismatch, gapopen, qs, qe, ss, se, evalue, bits, %pos
@@ -92,7 +115,7 @@ def test_without_package_arg_the_guard_falls_back_to_clusterblast(tmp_path):
     """Regression pin for the pre-.239 behaviour: workbook-only ingest leaves the guard disarmed."""
     from mamey.blastp_ingest import ingest_blastp
     pkg = _make_package(tmp_path)
-    res = ingest_blastp(_make_master(tmp_path), "AS-696", _make_hit_table(tmp_path))
+    res = ingest_blastp(_make_master(tmp_path), "AS-971", _make_hit_table(tmp_path))
     assert res["rows"] == len(_NR_ROWS)
     assert not (pkg / "blastp_online").exists(), "no overlay should be written without --package"
     med, armed, _ = _median_and_armed(pkg)
@@ -103,7 +126,7 @@ def test_without_package_arg_the_guard_falls_back_to_clusterblast(tmp_path):
 def test_package_arg_writes_the_overlay_the_readers_expect(tmp_path):
     from mamey.blastp_ingest import ingest_blastp, _OVERLAY_COLS
     pkg = _make_package(tmp_path)
-    res = ingest_blastp(_make_master(tmp_path), "AS-696", _make_hit_table(tmp_path), package=str(pkg))
+    res = ingest_blastp(_make_master(tmp_path), "AS-971", _make_hit_table(tmp_path), package=str(pkg))
 
     overlay = pkg / "blastp_online" / "BGC043_online_blastp.csv"
     assert overlay.exists(), "ingest-blastp --package must write the nr overlay"
@@ -124,7 +147,7 @@ def test_overlay_arms_the_novelty_guard(tmp_path):
     """The point of the whole patch: after ingest, nr wins over ClusterBlast."""
     from mamey.blastp_ingest import ingest_blastp
     pkg = _make_package(tmp_path)
-    ingest_blastp(_make_master(tmp_path), "AS-696", _make_hit_table(tmp_path), package=str(pkg))
+    ingest_blastp(_make_master(tmp_path), "AS-971", _make_hit_table(tmp_path), package=str(pkg))
     med, armed, ctx = _median_and_armed(pkg)
     assert med == 99.9, f"nr median expected 99.9, got {med} (ClusterBlast leaked through?)"
     assert armed is True, "nr median >= 90.0 must arm NOVELTY_CONTRADICTION"
@@ -136,7 +159,7 @@ def test_genome_explore_reads_the_same_overlay(tmp_path):
     from mamey.blastp_ingest import ingest_blastp
     from mamey import genome_explore
     pkg = _make_package(tmp_path)
-    ingest_blastp(_make_master(tmp_path), "AS-696", _make_hit_table(tmp_path), package=str(pkg))
+    ingest_blastp(_make_master(tmp_path), "AS-971", _make_hit_table(tmp_path), package=str(pkg))
     man = json.loads((pkg / "manifest.json").read_text())
     med, n, _ms = genome_explore._conservation_median(pkg, man, "BGC043")
     assert med == 99.9 and n == 4
@@ -150,11 +173,32 @@ def test_only_rank_1_hits_land_and_unknown_bgcs_are_skipped(tmp_path):
     ht = tmp_path / "hits2.csv"
     with ht.open("w", newline="") as fh:
         w = csv.writer(fh)
-        good = "AS-696|BGC043|slot=1|role=core|gene=ctg66_5|node=NODE_67|region=region001|aa=420"
+        good = "AS-971|BGC043|slot=1|role=core|gene=ctg66_5|node=NODE_67_length_41143_cov_68|region=region001|aa=420"
         w.writerow([good, "WP_1.1", "100.000", 420, 0, 0, 1, 420, 1, 420, "0.0", 800, "100.000"])
         w.writerow([good, "WP_2.1", "40.000", 420, 0, 0, 1, 420, 1, 420, "1e-5", 100, "40.000"])
         w.writerow(["orphan_query_no_bgc", "WP_3.1", "99.0", 100, 0, 0, 1, 100, 1, 100, "0.0", 200, "99.0"])
-    ingest_blastp(_make_master(tmp_path), "AS-696", ht, package=str(pkg))
+    ingest_blastp(_make_master(tmp_path), "AS-971", ht, package=str(pkg))
     rows = list(csv.DictReader((pkg / "blastp_online" / "BGC043_online_blastp.csv").open()))
     assert len(rows) == 1 and rows[0]["pct_identity"] == "100.000", "only hit_rank 1 is mirrored"
     assert not list((pkg / "blastp_online").glob("*orphan*")), "unresolvable BGC must not create a file"
+
+
+def test_short_node_claim_stays_held_with_complete_fixture_authority(tmp_path):
+    """Retain the original short token as a negative physical-admission control."""
+    import hashlib
+    from mamey.blastp_ingest import ingest_blastp
+    pkg = _make_package(tmp_path)
+    source = tmp_path / "short_node.csv"
+    with source.open("w", newline="") as stream:
+        writer = csv.writer(stream)
+        query = "AS-971|BGC043|slot=1|role=core|gene=ctg66_5|node=NODE_67|region=region001|aa=420"
+        writer.writerow([query, "WP_1.1", "100.000", 420, 0, 0, 1, 420, 1, 420, "0.0", 800, "100.000"])
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    ingest_blastp(_make_master(tmp_path), "AS-971", source, package=str(pkg))
+    assert not (pkg / "blastp_online" / "BGC043_online_blastp.csv").exists()
+    receipts = list((pkg / "blastp_ingest_receipts").glob("*_receipt.json"))
+    assert len(receipts) == 1
+    receipt = json.loads(receipts[0].read_text())
+    assert receipt["admitted_total"] == 0
+    assert receipt["quarantined_by_reason"]["QUERY_NODE_UNVERIFIABLE"] == 1
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == source_sha

@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 from __future__ import annotations
 
 import tempfile
@@ -12,10 +13,10 @@ class PriorReportCorpusTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "atlas.md"
             path.write_text(
-                "# Atlas\n\n## Rank 016: AS-705 BGC004 - comparator title\n\nOld interpretation.\n"
-                "\n## Rank 271: AS-705 BGC013 - another title\n\nMore old interpretation.\n"
+                "# Atlas\n\n## Rank 016: SYNTHETIC-CASE-020 BGC004 - comparator title\n\nOld interpretation.\n"
+                "\n## Rank 271: SYNTHETIC-CASE-020 BGC013 - another title\n\nMore old interpretation.\n"
             )
-            rows = parse_module_source(path, "V7_RANKED_ATLAS_MARKDOWN", "AS-705")
+            rows = parse_module_source(path, "V7_RANKED_ATLAS_MARKDOWN", "SYNTHETIC-CASE-020")
             self.assertEqual(set(rows), {"BGC004", "BGC013"})
             self.assertEqual(rows["BGC004"]["source_rank"], "016")
             self.assertIn("Old interpretation", rows["BGC004"]["content_markdown"])
@@ -25,11 +26,11 @@ class PriorReportCorpusTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "modeb.md"
             path.write_text(
-                "# Compilation\n\n## Mode B — BGC001 (NODE_1_length_99_cov_1) — AS-705\n"
+                "# Compilation\n\n## Mode B — BGC001 (NODE_1_length_99_cov_1) — SYNTHETIC-CASE-020\n"
                 "\n### §1 Identity\n\nPreliminary.\n"
             )
             rows = parse_module_source(
-                path, "PRELIMINARY_MODE_B_COMPILATION_MARKDOWN", "AS-705"
+                path, "PRELIMINARY_MODE_B_COMPILATION_MARKDOWN", "SYNTHETIC-CASE-020"
             )
             self.assertEqual(rows["BGC001"]["source_locator_text"], "NODE_1_length_99_cov_1")
 
@@ -38,14 +39,14 @@ class PriorReportCorpusTests(unittest.TestCase):
             path = Path(tmp) / "modeb.md"
             path.write_text(
                 "# Compilation\n\n"
-                "## Mode B — BGC022 (NODE_32_length_60747_cov_53) — AS-760\n\n"
+                "## Mode B — BGC022 (NODE_32_length_60747_cov_53) — SYNTHETIC-CASE-023\n\n"
                 "### §1 Identity\n\nPolyene hypothesis.\n\n"
-                "<!-- MODE B TEMPLATE | bgc: BGC022 | node: NODE_32_length_60747_cov_53 | strain: AS-760 -->\n"
+                "<!-- MODE B TEMPLATE | bgc: BGC022 | node: NODE_32_length_60747_cov_53 | strain: SYNTHETIC-CASE-023 -->\n"
                 "\n### 3.16  BGC023\n\nTerpene hypothesis.\n"
-                "<!-- MODE B TEMPLATE | bgc: BGC023 | node: NODE_34_length_60065_cov_57 | strain: AS-760 -->\n"
+                "<!-- MODE B TEMPLATE | bgc: BGC023 | node: NODE_34_length_60065_cov_57 | strain: SYNTHETIC-CASE-023 -->\n"
             )
             rows = parse_module_source(
-                path, "PRELIMINARY_MODE_B_COMPILATION_MARKDOWN", "AS-760"
+                path, "PRELIMINARY_MODE_B_COMPILATION_MARKDOWN", "SYNTHETIC-CASE-023"
             )
             self.assertIn("Polyene hypothesis", rows["BGC022"]["content_markdown"])
             self.assertNotIn("BGC023", rows["BGC022"]["content_markdown"])
@@ -53,14 +54,14 @@ class PriorReportCorpusTests(unittest.TestCase):
 
     def test_consistency_gate_rejects_foreign_structural_card(self):
         content = (
-            "## Mode B — BGC022 (NODE_32) — AS-760\n"
+            "## Mode B — BGC022 (NODE_32) — SYNTHETIC-CASE-023\n"
             "### 3.16 BGC023\n"
-            "<!-- MODE B TEMPLATE | bgc: BGC023 | node: NODE_34 | strain: AS-760 -->\n"
+            "<!-- MODE B TEMPLATE | bgc: BGC023 | node: NODE_34 | strain: SYNTHETIC-CASE-023 -->\n"
         )
         issues = module_consistency_issues(
             content,
             expected_alias="BGC022",
-            expected_strain="AS-760",
+            expected_strain="SYNTHETIC-CASE-023",
             expected_source_locator="NODE_32",
         )
         self.assertIn("FOREIGN_COMPACT_BGC_CARD_PRESENT", issues)
@@ -69,13 +70,13 @@ class PriorReportCorpusTests(unittest.TestCase):
 
     def test_consistency_gate_rejects_foreign_template_strain(self):
         content = (
-            "## Mode B — BGC022 (NODE_32) — AS-760\n"
-            "<!-- MODE B TEMPLATE | bgc: BGC022 | node: NODE_32 | strain: AS-705 -->\n"
+            "## Mode B — BGC022 (NODE_32) — SYNTHETIC-CASE-023\n"
+            "<!-- MODE B TEMPLATE | bgc: BGC022 | node: NODE_32 | strain: SYNTHETIC-CASE-020 -->\n"
         )
         issues = module_consistency_issues(
             content,
             expected_alias="BGC022",
-            expected_strain="AS-760",
+            expected_strain="SYNTHETIC-CASE-023",
             expected_source_locator="NODE_32",
         )
         self.assertEqual(issues, ["FOREIGN_MODE_B_TEMPLATE_STRAIN"])
@@ -83,9 +84,9 @@ class PriorReportCorpusTests(unittest.TestCase):
     def test_strain_mismatch_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "atlas.md"
-            path.write_text("## Rank 001: AS-421 BGC001 - title\n")
+            path.write_text("## Rank 001: SYNTHETIC-CASE-013 BGC001 - title\n")
             with self.assertRaisesRegex(ValueError, "strain mismatch"):
-                parse_module_source(path, "V7_RANKED_ATLAS_MARKDOWN", "AS-705")
+                parse_module_source(path, "V7_RANKED_ATLAS_MARKDOWN", "SYNTHETIC-CASE-020")
 
 
 if __name__ == "__main__":

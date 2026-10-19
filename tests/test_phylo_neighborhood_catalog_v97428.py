@@ -9,8 +9,8 @@ def test_build_groups_prefers_owner_and_falls_back_to_inferred(tmp_path):
     required = tmp_path / "required.tsv"
     required.write_text("strain\treference_species\nAS-1\tStreptomyces alpha\n")
     near = tmp_path / "near.tsv"
-    near.write_text("as_query\tnearest_type_strain\tpatristic_dist\nAS-1_x\tStreptomyces wrong NR 1\t0.1\nAS-2_x\tStreptomyces beta NR 2\t0.2\n")
-    placements = [{"p":[[1,0,1,0,0]],"n":["AS_1_x"]},{"p":[[2,0,1,0,0]],"n":["AS_2_x"]}]
+    near.write_text('as_query\tnearest_type_strain\tpatristic_dist\nAS-1_x\tStreptomyces wrong NR 1\t0.1\nAS-972_x\tStreptomyces beta NR 2\t0.2\n')
+    placements = [{"p":[[1,0,1,0,0]],"n":["AS_1_x"]},{"p":[[2,0,1,0,0]],"n":['AS_972_x']}]
     groups, ledger = catalog.build_groups(required, near, placements)
     assert sorted(groups) == ["Streptomyces alpha", "Streptomyces beta"]
     assert [r["grouping_authority"] for r in ledger] == ["owner_closest_type", "inferred_nearest_reference"]

@@ -26,7 +26,7 @@ def test_unsafe_strain_ids_are_refused(bad):
         validate_strain_id(bad)
 
 
-@pytest.mark.parametrize("good", ["AS-40", "SID10815", "Nocardia_fusca", "GCF_000123.1", "T-01.v2"])
+@pytest.mark.parametrize("good", ['SYNTHETIC-CASE-012', "SID10815", "Nocardia_fusca", "GCF_000123.1", "T-01.v2"])
 def test_safe_strain_ids_pass(good):
     from mamey.strain_identity import validate_strain_id
     assert validate_strain_id(good) == good
@@ -48,7 +48,7 @@ def test_run_refuses_traversal_strain_id_and_writes_nothing(tmp_path):
 
 
 # H1 — single-digit private prefix bypassed the non-overridable leak guard --------------------------
-@pytest.mark.parametrize("sid", [(synthetic_namespace_id('AJS', width=1, case_index=8, separator=True)), "AJS9", (synthetic_namespace_id('AJS', width=2, case_index=87, separator=True)), "AJS-327", "PENDING-3"])
+@pytest.mark.parametrize("sid", [(synthetic_namespace_id('AJS', width=1, case_index=8, separator=True)), synthetic_namespace_id('AJS', width=1, case_index=8, separator=False), (synthetic_namespace_id('AJS', width=2, case_index=87, separator=True)), synthetic_namespace_id('AJS', width=3, case_index=918, separator=True), synthetic_namespace_id('PENDING', width=None, case_index=37)])
 def test_public_override_refused_for_every_private_prefix_width(sid):
     from mamey.dedup_and_guard import resolve_release
     release, refused = resolve_release(sid, "PUBLIC")

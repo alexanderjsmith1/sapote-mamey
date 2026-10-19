@@ -41,9 +41,9 @@ def _mini_package(root: Path, sid: str):
 
 def test_generate_extended_produces_figures(tmp_path):
     root = tmp_path / "runs"
-    for sid in ("AS-001", "AS-002"):
+    for sid in ("SYNTHETIC-CASE-001", "SYNTHETIC-CASE-002"):
         _mini_package(root, sid)
-    assert set(_discover_strains(str(root))) == {"AS-001", "AS-002"}
+    assert set(_discover_strains(str(root))) == {"SYNTHETIC-CASE-001", "SYNTHETIC-CASE-002"}
     r = generate_extended(str(root), str(tmp_path / "figs"))
     assert r["figures"] >= 8, f"expected most figures to render, got {r['figures']}: {r['errors']}"
     assert (tmp_path / "figs" / "fig9_domain_cooccur.png").exists()
@@ -55,7 +55,7 @@ def test_generate_extended_never_raises_on_empty(tmp_path):
 
 
 def test_strain_bar_width_scales_for_dense_cohort_without_dropping_members():
-    assert _strain_bar_width(["AS-001", "AS-002"]) == 9.0
+    assert _strain_bar_width(["SYNTHETIC-CASE-001", "SYNTHETIC-CASE-002"]) == 9.0
     dense = [f"AS-{i:03d}" for i in range(50)]
     assert _strain_bar_width(dense) == pytest.approx(20.5)
 

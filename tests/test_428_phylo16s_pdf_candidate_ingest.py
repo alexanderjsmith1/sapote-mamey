@@ -29,8 +29,8 @@ def test_pdf_collection_group_unions_surfaced_by_queries():
     con.executemany(
         "INSERT INTO strain_meta VALUES (?,?,?,?)",
         [
-            ("REC:AA000001", "surfaced_by_as_strains", "AS-1,AS-2", "blast_pdf_harvest"),
-            ("REC:AA000002", "surfaced_by_as_strains", "AS-2,AS-3", "blast_pdf_harvest"),
+            ("REC:AA000001", "surfaced_by_as_strains", "AS-1,SYNTHETIC-CASE-002", "blast_pdf_harvest"),
+            ("REC:AA000002", "surfaced_by_as_strains", "SYNTHETIC-CASE-002,AS-3", "blast_pdf_harvest"),
         ],
     )
     _, merged = build.resolve_strains(con)
@@ -38,7 +38,7 @@ def test_pdf_collection_group_unions_surfaced_by_queries():
     assert con.execute(
         "SELECT value FROM strain_meta WHERE strain_uid LIKE 'GROUP:%' "
         "AND key='surfaced_by_as_strains'"
-    ).fetchone() == ("AS-1,AS-2,AS-3",)
+    ).fetchone() == ("AS-1,AS-3,SYNTHETIC-CASE-002",)
 
 
 def test_pdf_designation_without_collection_id_does_not_merge():

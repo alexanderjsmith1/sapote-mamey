@@ -3,8 +3,8 @@ targets.
 
 `deliverable_tools/build_modeb_compilation.py` writes, per strain and unconditionally, to BOTH
 `<MAMEY_DATA_ROOT>/strain_data/<STRAIN>/` and the dated
-`<MAMEY_DATA_ROOT>/strain_data/modeb_compilation_2026-08-05/` — and `strain_data` is a symlink to
-the canonical home (`AS Strain Master`). It accepted no output flag at all, so there was no way to
+`<MAMEY_DATA_ROOT>/strain_data/modeb_compilation_2026-08-05/` — and the historical report alias (editorial display `report_alias`) was a symlink to
+the canonical home (shown editorially as `Canonical Report Home`). It accepted no output flag at all, so there was no way to
 run it without overwriting real deliverables in place.
 
 This is the same defect class as the `surface-leads --out` fix that landed in `.412`, but with a
@@ -17,6 +17,9 @@ larger blast radius on three counts, all observed:
     unguarded run leaves a stale PDF beside a rewritten MD/DOCX with nothing recording it.
 
 Scope: output-location only. The compiled content is unchanged; the default targets are unchanged.
+
+Neutral historical display paths are editorial descriptions, not original receipt literals;
+exact originals are retained by the maintainer outside CODE. Tests use the current strain_data API.
 """
 import importlib.util
 import os

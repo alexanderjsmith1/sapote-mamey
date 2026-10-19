@@ -13,12 +13,11 @@ match found in sorted order without checking for a second, genuinely distinct ma
 class of silent-ambiguity gap already redesigned this round in deliverable_markdown_reminder.py
 and link_check.py. v3 now refuses (returns None, warns to stderr) when two or more distinct
 candidates exist, and dedups symlink aliases to the same physical directory by (st_dev, st_ino)
-first -- matching the live symlink condition (`strain_data` -> `AS Strain Master`) that already
-caused a real false-ambiguity bug in link_check.py's own v3 redesign this round. Checked live:
-that particular symlink does NOT create ambiguity for save_transcript's own discovery (neither
-`AS Strain Master/` nor `strain_data/` owns a `<color>/STATE.md` for any real color), but the
-dedup is included anyway as the same defensive precedent, since it is a shared live-workspace
-condition rather than something specific to one hook.
+first. The neutral example `report_alias -> Canonical Report Home` illustrates the
+same-directory condition. These display names are editorial examples, not original live
+path literals; exact historical naming is retained in the maintainer's external crosswalk.
+Neither example report path is assumed to own `<color>/STATE.md`. The tests below create
+separate synthetic chat homes and exercise both deduplication and genuine ambiguity.
 
 Deliberately uses only synthetic folder/color names.
 """
@@ -110,8 +109,8 @@ def test_two_genuinely_distinct_candidates_refuse_rather_than_pick_first_sorted(
 
 
 def test_symlink_alias_to_the_same_directory_is_not_a_second_candidate(tmp_path, monkeypatch):
-    """A symlink aliasing the SAME physical directory (the live condition already caught in
-    link_check.py's own v3 redesign this round: strain_data -> AS Strain Master) must be
+    """A synthetic alias pointing to a distinct canonical path for the SAME physical directory
+    (`alias_to_home -> Some Chat Home`) must be
     deduped by (st_dev, st_ino), not counted as a second, distinct candidate."""
     real_home = tmp_path / "Some Chat Home"
     color_dir = real_home / "Sea Green"

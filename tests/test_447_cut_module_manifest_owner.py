@@ -18,7 +18,7 @@ def source_refresh_fragment(source):
     return source[first:last]
 
 
-def execute_owner_fragment(tmp_path, *, writer_present=True, writer_fails=False, inventory_fails=None):
+def execute_owner_fragment(tmp_path, *, writer_present=True, writer_fails=False, inventory_fails=None, owner_fails=None):
     (tmp_path/'tools').mkdir()
     if writer_present:
         (tmp_path/'tools/check_module_accretion.py').write_text('# mocked owner, never executed\n')
@@ -30,7 +30,8 @@ cd -- "$1"
 VER=fixture STAMP=fixture
 say(){ printf '%s\n' "$*"; }
 die(){ printf 'ABORT: %s\n' "$*" >&2; exit 1; }
-python3(){
+PYTHON=fixture_python
+fixture_python(){
   # NUL framing preserves argv boundaries, including the spaces in python -c.
   printf '%s\\0' "$#" "$@" >> invocation.log
   if [[ "$1" == tools/gen_tools_inventory.py ]]; then
@@ -45,6 +46,7 @@ python3(){
     [[ "${WRITER_FAIL:-0}" == 0 ]] || { printf 'mock owner refused incomplete scan\n' >&2; return 2; }
     [[ "$2" == --write ]] || return 2
   fi
+  [[ "${OWNER_FAIL:-}" != "$1" ]] || { printf 'mock generated owner refused\n' >&2; return 2; }
   return 0
 }
 '''+body+'''
@@ -55,7 +57,7 @@ printf 'synthetic phase completed\n'
 ''')
     import os
     environment = dict(os.environ, WRITER_FAIL='1' if writer_fails else '0',
-                       INVENTORY_FAIL=inventory_fails or '')
+                       INVENTORY_FAIL=inventory_fails or '', OWNER_FAIL=owner_fails or '')
     result = subprocess.run(['bash',str(script),str(tmp_path)],env=environment,text=True,capture_output=True)
     fields = (tmp_path/'invocation.log').read_bytes().split(b'\0')
     assert fields.pop() == b'', 'unterminated invocation log'
@@ -79,8 +81,10 @@ def test_module_owner_invoked_after_other_source_generators_before_integrity(tmp
         ['tools/gen_command_catalog.py'],
         ['tools/generate_deliverables_menu.py', '--apply'],
         ['tools/gen_tools_inventory.py'],
-        ['tools/gen_tools_inventory.py', '--maintenance'],
         ['tools/check_module_accretion.py', '--write'],
+        ['tools/file_atlas.py', '--out', 'docs/FILE_ATLAS.csv', '--md', 'docs/FILE_ATLAS.md'],
+        ['tools/gen_tools_inventory.py', '--maintenance'],
+        ['tools/generated_surface_ownership.py', '--root', '.', '--phase', 'source-generated', '--assert-input', 'none', '--assert-final', 'module_manifest,tools_inventory,file_atlas'],
         ['source_integrity'],
     ]
     assert 'synthetic phase completed' in result.stdout
@@ -104,7 +108,14 @@ def test_refusing_inventory_aborts_before_module_owner_and_integrity(tmp_path, i
     if inventory_fails == 'maintenance':
         inventory_call.append('--maintenance')
     assert calls[-1] == inventory_call
-    assert ['tools/check_module_accretion.py', '--write'] not in calls
+    # Maintenance captures the fresh module manifest and atlas. Ordinary inventory
+    # precedes both owners; failure at either boundary must still prevent integrity.
+    if inventory_fails == 'ordinary':
+        assert ['tools/check_module_accretion.py', '--write'] not in calls
+    else:
+        assert ['tools/check_module_accretion.py', '--write'] in calls
+        assert ['tools/file_atlas.py', '--out', 'docs/FILE_ATLAS.csv', '--md', 'docs/FILE_ATLAS.md'] in calls
+    assert not any(call[0] == 'tools/generated_surface_ownership.py' for call in calls)
     assert ['source_integrity'] not in calls
     assert 'mock inventory refused' in result.stderr
     assert 'synthetic phase completed' not in result.stdout
@@ -127,3 +138,81 @@ def test_authored_head_accepts_owner_selected_final_build_without_writing(tmp_pa
     assert remaining == before['CHANGELOG.md'].decode().split('\n', 1)[1]
     assert 'build=20261004v97447b' in proposed[tmp_path/'BUILD_STAMP.txt']
     assert {name:(tmp_path/name).read_bytes() for name in names} == before
+
+
+@pytest.mark.parametrize('owner', ['tools/file_atlas.py', 'tools/generated_surface_ownership.py'])
+def test_new_source_owner_refusal_never_reaches_integrity(tmp_path,owner):
+    result,calls=execute_owner_fragment(tmp_path,owner_fails=owner)
+    assert result.returncode!=0 and calls[-1][0]==owner
+    assert ['source_integrity'] not in calls
+    assert 'synthetic phase completed' not in result.stdout
+    assert 'mock generated owner refused' in result.stderr
+
+def _static_preparation_contract():
+    """Read the actual declaration without importing owners or invoking a cut."""
+    import ast
+    import re
+    from types import SimpleNamespace
+    tree = ast.parse((ROOT/'tools/release_workflow.py').read_text())
+    nodes = [node for node in tree.body if
+             (isinstance(node, ast.Assign) and any(isinstance(target, ast.Name)
+              and target.id in {'GENERATED_FILES', 'INTEGRITY_FILES'} for target in node.targets))
+             or (isinstance(node, ast.FunctionDef) and node.name == 'preparation_outputs')]
+    assert len(nodes) == 3
+    namespace = dict(Path=Path, ast=ast, re=re,
+                     support=SimpleNamespace(ValidationRefused=ValueError))
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), '<actual preparation declaration>', 'exec'), namespace)
+    return namespace
+
+
+def test_preparation_outputs_include_reference_version_rule_targets():
+    import ast
+    import re
+    namespace = _static_preparation_contract()
+    tree = ast.parse((ROOT/'tools/sync_version.py').read_text())
+    comprehensions = [node for node in ast.walk(tree) if isinstance(node, ast.ListComp)
+                      and isinstance(node.elt, ast.Tuple)
+                      and isinstance(node.elt.elts[0], ast.JoinedStr)
+                      and any(isinstance(part, ast.Constant) and part.value == 'docs/reference/'
+                              for part in node.elt.elts[0].values)]
+    assert len(comprehensions) == 1
+    # Evaluate only the actual bounded rule expression with fabricated versions.
+    rules = eval(compile(ast.Expression(body=comprehensions[0]), '<actual reference rule>', 'eval'),
+                 dict(re=re, ENGINE='0.0.0', BUNDLE='0.0.0'))
+    targets = {row[0] for row in rules}
+    assert targets == {'docs/reference/01_Math_Reference_VolI.md',
+                       'docs/reference/02_Math_Reference_VolII.md',
+                       'docs/reference/03_Plumbing_Reference.md'}
+    assert all((ROOT/path).is_file() for path in targets)
+    assert targets <= set(namespace['preparation_outputs'](ROOT))
+
+
+def test_preparation_mutation_guard_still_refuses_unexpected_reference_path():
+    import ast
+    import copy
+    from types import SimpleNamespace
+    namespace = _static_preparation_contract()
+    tree = ast.parse((ROOT/'tools/_release_workflow.py').read_text())
+    mutation = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                    and node.name == 'mutation_rows')
+    owner = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'Workflow')
+    execute = next(node for node in owner.body if isinstance(node, ast.FunctionDef) and node.name == 'execute')
+    guards = [node for node in ast.walk(execute) if isinstance(node, ast.If)
+              and any(isinstance(value, ast.Constant) and value.value == 'undeclared source mutation'
+                      for statement in node.body for value in ast.walk(statement))]
+    assert len(guards) == 1
+    wrapper = ast.parse('def apply_guard(record, declared):\n    return record\n').body[0]
+    wrapper.body.insert(0, copy.deepcopy(guards[0]))
+    module = ast.fix_missing_locations(ast.Module(body=[mutation, wrapper], type_ignores=[]))
+    exec(compile(module, '<actual mutation guard>', 'exec'), namespace)
+    declared = SimpleNamespace(source_changes=namespace['preparation_outputs'](ROOT))
+    known = 'docs/reference/01_Math_Reference_VolI.md'
+    unexpected = 'docs/reference/unexpected_generated_volume.md'
+    assert unexpected not in declared.source_changes
+    rows = namespace['mutation_rows']({known: 'old'}, {known: 'new'})
+    record = namespace['apply_guard']({'status': 'PASS', 'source_changes': rows}, declared)
+    assert record['status'] == 'PASS'
+    rows = namespace['mutation_rows']({known: 'old'}, {known: 'new', unexpected: 'unexpected'})
+    record = namespace['apply_guard']({'status': 'PASS', 'source_changes': rows}, declared)
+    assert record['status'] == 'FAILED'
+    assert record['reason'] == 'undeclared source mutation'

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cut preflight: refuse release-root review artifacts and purge working-copy bytecode.
+# Cut preflight: refuse release-root review/default-device artifacts and purge working-copy bytecode.
 # Source these functions; this file performs no work when sourced or invoked alone.
 # Purging is for an explicitly selected disposable cut working copy, never source evidence.
 
@@ -12,6 +12,15 @@ sapote_assert_no_review_root() {
       return 1
     fi
   done
+  sapote_assert_no_default_r_device_outputs "$root"
+}
+
+# Reuse the tracked-policy owner solely as a read-only root debris guard.
+# Membership remains unchanged; adjudication/preservation belongs to the owner.
+sapote_assert_no_default_r_device_outputs() {
+  local root="${1:?source or disposable stage required}" policy
+  policy="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tracked_file_policy.py" || return 1
+  "${PYTHON:-python3}" -B "$policy" --check-default-r-device-outputs "$root"
 }
 
 sapote_purge_cut_bytecode() {

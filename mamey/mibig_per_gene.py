@@ -4,6 +4,7 @@ This is deliberately separate from generic ClusterBlast.  It preserves the
 MIBiG channel as similarity/capacity evidence and never changes novelty scores.
 """
 from __future__ import annotations
+from .source_context import source_zipfile as _source_zipfile
 
 import re
 import zipfile
@@ -111,7 +112,7 @@ def parse_mibig_gene_map(zip_path: str | Path, bgcs: list[Any]) -> dict[str, Any
     recognizable_query: dict[str, set[str]] = {}
     reference_rows = []
     parse_errors = 0
-    with zipfile.ZipFile(zip_path) as zf:
+    with _source_zipfile(zip_path) as zf:
         for name in regular_file_names(zf):
             low = name.lower()
             if "knownclusterblast/" not in low or not low.endswith(".txt"):

@@ -216,36 +216,29 @@ def write_4d_csv(rows, out_path, strain_id=""):
             "the review lane adjudicates; judgment deferred")
     order = {"TWO_PROOF_RESCUE": 0, "MULTI_CHANNEL_HOLD": 1, "LOGIC_EVIDENCE_HOLD": 2, "KS_CLADE_ONLY": 3,
              "RGGMCI_ONLY": 4, "WEAK": 5}
-    # AUDIT_374: write to a sibling .tmp then os.replace into place, so a crash mid-write
-    # (this is a real production-invoked deliverable write from cli.py::_write_package(), called
-    # inside a bare try/except that swallows the exception) never leaves _4D_two_proof_rescue.csv
-    # truncated-but-present on disk with no signal that anything went wrong. Self-contained (no
-    # cross-module import) because this file also runs standalone (see __main__ below), where a
-    # relative `.packaging` import would fail.
+    # Reuse the bundle's unique sibling staging owner. Preserve final replacement policy
+    # and every serialized row; a predictable foreign out_path + '.tmp' is never touched.
     out_path = str(out_path)
-    tmp = out_path + ".tmp"
     try:
-        with open(tmp, "w", newline="") as fh:
-            w = _SafeDictWriter(fh, fieldnames=cols)
-            w.writeheader()
-            for r in sorted(rows, key=lambda x: order.get(x["verdict"], 9)):
-                r2 = dict(r); r2["strain"] = strain_id
-                r2["claim_note"] = note + "; " + _LEGACY_OVERLAP_NOTE if r2.pop("_overlap_column_absent", False) else note
-                r2["interpretation"] = _INTERP.get((r2.get("verdict") or "").strip(), "")
-                if r2.get("rule_policy") == "nonks_position_v1" and r2.get("second_proof_channel") == "INTACT_RELATIVE_POSITION":
-                    r2["interpretation"] = ("complementary HIGH linkage candidate + position CONSISTENT; adjudication required" if r2.get("verdict") == "TWO_PROOF_RESCUE" else "position veto; retain as contradicted candidate" if r2.get("verdict") == "POSITION_VETO" else "position insufficient; independent proof unresolved")
-                r2.setdefault("rule_policy", "ks_clade_v2")
-                r2.setdefault("second_proof_channel", "KS_CLADE" if r2.get("ks_clade_id") else "NONE")
-                r2.setdefault("independent_proof_state", "PRESENT" if r2.get("ks_clade_id") else "NOT_OBSERVED")
-                r2.setdefault("position_verdict", "NOT_READ")
-                r2.setdefault("kcb_role", "SUPPORTING_ONLY; never independent second proof")
-                r2["two_proof_logic_version"] = "nonks_position_v1" if r2.get("rule_policy") == "nonks_position_v1" else TWO_PROOF_LOGIC_VERSION
-                w.writerow(r2)
-    except BaseException:
-        if os.path.exists(tmp):
-            os.remove(tmp)
-        raise
-    os.replace(tmp, out_path)
+        from .packaging import atomic_open
+    except ImportError:  # direct-script console fallback already adds the bundle root
+        from mamey.packaging import atomic_open
+    with atomic_open(out_path, "w", newline="") as fh:
+        w = _SafeDictWriter(fh, fieldnames=cols)
+        w.writeheader()
+        for r in sorted(rows, key=lambda x: order.get(x["verdict"], 9)):
+            r2 = dict(r); r2["strain"] = strain_id
+            r2["claim_note"] = note + "; " + _LEGACY_OVERLAP_NOTE if r2.pop("_overlap_column_absent", False) else note
+            r2["interpretation"] = _INTERP.get((r2.get("verdict") or "").strip(), "")
+            if r2.get("rule_policy") == "nonks_position_v1" and r2.get("second_proof_channel") == "INTACT_RELATIVE_POSITION":
+                r2["interpretation"] = ("complementary HIGH linkage candidate + position CONSISTENT; adjudication required" if r2.get("verdict") == "TWO_PROOF_RESCUE" else "position veto; retain as contradicted candidate" if r2.get("verdict") == "POSITION_VETO" else "position insufficient; independent proof unresolved")
+            r2.setdefault("rule_policy", "ks_clade_v2")
+            r2.setdefault("second_proof_channel", "KS_CLADE" if r2.get("ks_clade_id") else "NONE")
+            r2.setdefault("independent_proof_state", "PRESENT" if r2.get("ks_clade_id") else "NOT_OBSERVED")
+            r2.setdefault("position_verdict", "NOT_READ")
+            r2.setdefault("kcb_role", "SUPPORTING_ONLY; never independent second proof")
+            r2["two_proof_logic_version"] = "nonks_position_v1" if r2.get("rule_policy") == "nonks_position_v1" else TWO_PROOF_LOGIC_VERSION
+            w.writerow(r2)
     return out_path
 
 

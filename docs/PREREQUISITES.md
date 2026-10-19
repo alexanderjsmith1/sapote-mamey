@@ -1,4 +1,4 @@
-# PREREQUISITES — Sapote–Mamey v9.7.451
+# PREREQUISITES — Sapote–Mamey v9.7.453
 
 Start with [INSTALL](INSTALL.md) or the [complete walkthrough](MASTER_WALKTHROUGH.md). The package metadata in [pyproject.toml](../pyproject.toml) defines the supported Python version, core requirements and extras. Use the [README tool table](../README.md#tool-downloads-and-licenses) for upstream downloads and licenses.
 
@@ -12,7 +12,7 @@ Core installation is `python -m pip install -e .`. It declares openpyxl, ijson, 
 
 | Extra | Use |
 |---|---|
-| `figures` | Matplotlib, NumPy, pandas, NetworkX and SciPy for plotting and network/cluster views |
+| `figures` | Matplotlib, NumPy, pandas, NetworkX and SciPy for plotting and network/cluster views; pyshp (`shapefile`) for local Shapefile basemaps |
 | `documents` | Word/PDF and image-processing support used by document workflows |
 | `slides` | python-pptx, Matplotlib, NumPy and Pillow for the [Strain slides builder](STRAIN_SLIDES.md) and protein PCoA panels; PDF conversion remains a separate step |
 | `bio` | Biopython-backed parsing and workflows that require Bio APIs |
@@ -21,6 +21,25 @@ Core installation is `python -m pip install -e .`. It declares openpyxl, ijson, 
 | `all` | Convenience figure/document/slide/bio/render stack. It does not include the separate `addons` stack, RDKit, external binaries or datasets. |
 
 For example: `python -m pip install -e '.[figures,documents,bio]'`. Some parsing paths have a built-in GBK shim, but this does not imply every biological workflow works without Biopython.
+
+## Local collection map dependencies
+
+Local Shapefile basemaps use the `pyshp` distribution, imported as `shapefile`.
+It is included in the optional `figures` extra and the `all` convenience extra.
+For `tools/collection_site_map.py`, GeoJSON and no-basemap inputs do not need this
+reader. Its Shapefile route requires supplied local `.shp`, `.shx`, `.dbf` and
+`.prj` components with the documented geographic WGS84 coordinates; it performs
+no projection conversion or basemap download. `tools/collection_map.py` always
+requires local Shapefile basemaps and has its own input contract; do not assume
+it performs the same CRS checks as `collection_site_map`.
+
+Doctor reports only module-spec discovery through `find_spec`; a discoverable
+`shapefile` module is not a verified import, parsed Shapefile or rendered map.
+Offline setup needs a compatible `pyshp` wheel in the selected figure dependency
+pool. No tested PyShp version interval is currently claimed. Verify an actual
+import and a small Shapefile read/write case in the intended environment before
+claiming that route is ready. A best-effort optional installer or successful core
+installation does not establish map readiness.
 
 ## External tools and data
 

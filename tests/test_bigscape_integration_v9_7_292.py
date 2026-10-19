@@ -32,7 +32,7 @@ def test_canon_locator_is_cov_independent():
 
 def test_load_triage_realistic_strainless_board():
     d = tempfile.mkdtemp()
-    tb = os.path.join(d, "AS-705_4_triage_board.csv")
+    tb = os.path.join(d, "SYNTHETIC-CASE-020_4_triage_board.csv")
     with open(tb, "w") as fh:
         # real column order; NO strain column; Assembly_Locator is the display trap
         fh.write("Rank,Assembly_Locator,BGC_ID,Contig,Node_ID,antiSMASH_Region\n")
@@ -61,10 +61,10 @@ def _build_db(path):
         "create table distance(record_a_id integer, record_b_id integer, distance real);")
     c.execute("insert into run(id) values (1)")
     rows = [
-        (1, "AS-705_NODE_275_length_8783_cov_79.456007.region001.gbk"),  # KNOWN fam, strain A
-        (2, "AS-810_NODE_9_length_200_cov_40.5.region002.gbk"),          # KNOWN fam, strain B
+        (1, "SYNTHETIC-CASE-020_NODE_275_length_8783_cov_79.456007.region001.gbk"),  # KNOWN fam, strain A
+        (2, "SYNTHETIC-CASE-024_NODE_9_length_200_cov_40.5.region002.gbk"),          # KNOWN fam, strain B
         (3, "BGC0000271.gbk"),                                           # MIBiG ref
-        (4, "AS-705_NODE_402_length_4883_cov_73.020183.region001.gbk"),  # NOVEL fam, leading-zero cov
+        (4, "SYNTHETIC-CASE-020_NODE_402_length_4883_cov_73.020183.region001.gbk"),  # NOVEL fam, leading-zero cov
     ]
     for gid, p in rows:
         c.execute("insert into gbk(id,path) values (?,?)", (gid, p))
@@ -80,15 +80,15 @@ def _build_db(path):
 
 
 def _triage_and_cards(root):
-    tb = os.path.join(root, "AS-705_4_triage_board.csv")
+    tb = os.path.join(root, "SYNTHETIC-CASE-020_4_triage_board.csv")
     with open(tb, "w") as fh:
         fh.write("Rank,Assembly_Locator,BGC_ID,Contig,Node_ID,antiSMASH_Region\n")
         fh.write("1,x,BGC025,NODE_275_length_8783_cov_79.456007,NODE_275_length_8783_cov_79,region001\n")
         # triage carries the ENGINE-CORRUPTED cov here; DB carries the correct one -> must still join
         fh.write("5,x,BGC039,NODE_402_length_4883_cov_73.20183,NODE_402_length_4883_cov_73,region001\n")
     cards = os.path.join(root, "cards"); os.makedirs(cards, exist_ok=True)
-    for n, b in [("AS-705_BGC025_ModeB.md", "# c\n\n## §8 Comparator/KCB interpretation\n\nk.\n\n## §9 x\n"),
-                 ("AS-705_BGC039_ModeB.md", "# c\n\n## §8 Comparator/KCB interpretation\n\nk.\n\n## §9 x\n")]:
+    for n, b in [("SYNTHETIC-CASE-020_BGC025_ModeB.md", "# c\n\n## §8 Comparator/KCB interpretation\n\nk.\n\n## §9 x\n"),
+                 ("SYNTHETIC-CASE-020_BGC039_ModeB.md", "# c\n\n## §8 Comparator/KCB interpretation\n\nk.\n\n## §9 x\n")]:
         open(os.path.join(cards, n), "w").write(b)
     return tb, cards
 
@@ -104,10 +104,10 @@ def test_end_to_end_real_triage_shape():
         ingest.main()
     finally:
         sys.argv = argv
-    known = open(os.path.join(cards, "AS-705_BGC025_ModeB.md")).read()
-    novel = open(os.path.join(cards, "AS-705_BGC039_ModeB.md")).read()
-    # KNOWN card joined (this is the 0->N regression) with co-member AS-810
-    assert "**KNOWN**" in known and "AS-810" in known, known
+    known = open(os.path.join(cards, "SYNTHETIC-CASE-020_BGC025_ModeB.md")).read()
+    novel = open(os.path.join(cards, "SYNTHETIC-CASE-020_BGC039_ModeB.md")).read()
+    # KNOWN card joined (this is the 0->N regression) with co-member SYNTHETIC-CASE-024
+    assert "**KNOWN**" in known and "SYNTHETIC-CASE-024" in known, known
     # NOVEL card joined DESPITE the triage cov being corrupted vs the DB cov
     assert "**NO_MIBIG_MEMBER**" in novel, novel
     assert known.count(ingest.BEGIN) == 1
@@ -119,21 +119,21 @@ def test_from_tsv_path_states_comembers_unavailable():
     tsv = os.path.join(d, "AS_per_BGC_annotation.tsv")
     with open(tsv, "w") as fh:
         fh.write("strain\tlocator\tantismash_class\tfamily_status\tMIBiG_family_anchors\tnearest_MIBiG\tnearest_distance\n")
-        fh.write("AS-705\tNODE_11_length_51215_cov_55.161915.region001\tphenazine\tKNOWN\t"
+        fh.write("SYNTHETIC-CASE-020\tNODE_11_length_51215_cov_55.161915.region001\tphenazine\tKNOWN\t"
                  "BGC0002010 (streptophenazine B)\tBGC0002010 (streptophenazine B)\t0.318\n")
     tb, cards = _triage_and_cards(d)
     # add a BGC004 card + triage row matching the TSV locator
     with open(tb, "a") as fh:
         fh.write("2,x,BGC004,NODE_11_length_51215_cov_55.161915,NODE_11_length_51215_cov_55,region001\n")
-    open(os.path.join(cards, "AS-705_BGC004_ModeB.md"), "w").write(
+    open(os.path.join(cards, "SYNTHETIC-CASE-020_BGC004_ModeB.md"), "w").write(
         "# c\n\n## §8 Comparator/KCB interpretation\n\nk.\n\n## §9 x\n")
     argv = sys.argv[:]
-    sys.argv = ["x", "--from-tsv", tsv, "--strain", "AS-705", "--triage", tb, "--cards-dir", cards, "--cutoff", "0.5"]
+    sys.argv = ["x", "--from-tsv", tsv, "--strain", "SYNTHETIC-CASE-020", "--triage", tb, "--cards-dir", cards, "--cutoff", "0.5"]
     try:
         ingest.main()
     finally:
         sys.argv = argv
-    txt = open(os.path.join(cards, "AS-705_BGC004_ModeB.md")).read()
+    txt = open(os.path.join(cards, "SYNTHETIC-CASE-020_BGC004_ModeB.md")).read()
     assert "**KNOWN**" in txt and "streptophenazine B" in txt
     assert "unavailable from the portable export" in txt, "TSV path must be honest about co-members"
     print("PASS test_from_tsv_path_states_comembers_unavailable")

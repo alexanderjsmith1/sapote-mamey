@@ -27,13 +27,15 @@ def validate_evidence_registry(path: str | Path, *, profile=None) -> dict:
     delimiter = "\t" if registry_path.suffix.lower() == ".tsv" else ","
     try:
         with registry_path.open(encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle, delimiter=delimiter)
+            reader = csv.DictReader(handle, delimiter=delimiter, strict=True)
             headers = tuple(reader.fieldnames or ())
+            if any(not isinstance(header, str) or not header.strip() for header in headers) or len(headers) != len(set(headers)):
+                raise EvidenceRegistryError("absent, blank or duplicate registry headers")
             missing = [header for header in REQUIRED_HEADERS if header not in headers]
             if missing:
                 raise EvidenceRegistryError(f"missing required headers: {', '.join(missing)}")
             rows = list(reader)
-    except OSError as exc:
+    except (OSError, UnicodeError, csv.Error) as exc:
         raise EvidenceRegistryError(f"cannot read evidence registry {registry_path}: {exc}") from exc
     if not rows:
         raise EvidenceRegistryError("evidence registry must contain at least one data row")
@@ -42,6 +44,8 @@ def validate_evidence_registry(path: str | Path, *, profile=None) -> dict:
     materials: dict[str, dict] = {}
     assay_rows: list[tuple[int, dict]] = []
     for number, row in enumerate(rows, start=2):
+        if None in row or any(value is None for value in row.values()):
+            raise EvidenceRegistryError(f"row {number}: registry row width differs from headers")
         for header in REQUIRED_HEADERS:
             if not str(row.get(header) or "").strip():
                 raise EvidenceRegistryError(f"row {number}: blank {header}")
@@ -78,12 +82,28 @@ def validate_evidence_registry(path: str | Path, *, profile=None) -> dict:
             raise EvidenceRegistryError(f"row {number}: assay material_id has no material record")
         if material["strain_id"].strip() != row["strain_id"].strip():
             raise EvidenceRegistryError(f"row {number}: assay strain_id differs from its material record")
+        if material["material_level"].strip() != row["material_level"].strip():
+            raise EvidenceRegistryError(f"row {number}: assay material_level differs from its material record")
     for material_id, row in materials.items():
         parent = row["parent_material_id"].strip()
         if parent and parent != "ROOT" and parent not in materials:
             raise EvidenceRegistryError(f"material {material_id!r}: parent_material_id has no material record")
         if row["material_level"].strip() in {"flash_fraction", "hplc_fraction"} and parent in {"", "ROOT"}:
             raise EvidenceRegistryError(f"material {material_id!r}: fraction requires a non-root parent_material_id")
+        if parent in materials and materials[parent]["strain_id"].strip() != row["strain_id"].strip():
+            raise EvidenceRegistryError(f"material {material_id!r}: parent strain_id differs from its material record")
+    # Material derivation is a directed ancestry, not a general graph. Cycles
+    # would allow a fraction to be its own source, even with valid row IDs.
+    complete: set[str] = set()
+    for material_id in materials:
+        path: set[str] = set()
+        current = material_id
+        while current in materials and current not in complete:
+            if current in path:
+                raise EvidenceRegistryError(f"material {material_id!r}: cyclic parent_material_id lineage")
+            path.add(current)
+            current = materials[current]["parent_material_id"].strip()
+        complete.update(path)
     return {
         "status": "PASS", "record_count": len(rows), "strain_count": len(by_strain),
         "material_count": len(materials), "assay_record_count": len(assay_rows),

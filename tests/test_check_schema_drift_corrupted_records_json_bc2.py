@@ -56,7 +56,7 @@ def test_corrupted_records_json_is_surfaced_and_fails_closed(tmp_path):
 
 def test_valid_records_json_still_passes_cleanly(tmp_path):
     valid = '{"records": [{"bgc_id": "BGC003", "kcb_top": "BGC0002460.3 | loonamycin"}]}'
-    pkg = _mk_pkg(tmp_path, "AS-2", [], records_json_text=valid)
+    pkg = _mk_pkg(tmp_path, "SYNTHETIC-CASE-002", [], records_json_text=valid)
     r = _run(pkg)
     assert "records.json integrity" not in r.stdout
     assert r.returncode == 0

@@ -235,21 +235,29 @@ def test_reused_pid_does_not_inherit_descendant_ownership(monkeypatch):
 
 def test_cleanup_races_and_term_timeout_are_retained(monkeypatch):
     tree = rv._OwnedProcessTree(12345)
-    monkeypatch.setattr(tree, 'refresh', lambda: {12345:(1,12345,0,'fixture')})
-    def gone(*args):
-        raise ProcessLookupError('fixture already exited')
+    state = {'live': True, 'clock': 0, 'waits': 0}
+    monkeypatch.setattr(rv, '_process_snapshot', lambda: {12345:(1,12345,0,'fixture')} if state['live'] else {})
+    def tick():
+        state['clock'] += 1
+        return state['clock']
+    monkeypatch.setattr(rv.time, 'monotonic', tick)
+    monkeypatch.setattr(rv.time, 'sleep', lambda _: None)
+    def gone(pid, sig):
+        if sig == rv.signal.SIGKILL: state['live'] = False
+        raise ProcessLookupError('fixture concurrent exit')
     monkeypatch.setattr(rv.os, 'kill', gone)
     monkeypatch.setattr(rv.os, 'killpg', gone)
     class Process:
         pid = 12345
+        def poll(self): return None if state['live'] else 0
         def wait(self, timeout=None):
-            if timeout is not None:
-                raise subprocess.TimeoutExpired('fixture', timeout)
-            return 0
+            state['waits'] += 1
+            raise subprocess.TimeoutExpired('fixture', timeout)
     assert tree.stop(Process()) is None
-    assert len(tree.cleanup_events) == 5
-    assert {row['status'] for row in tree.cleanup_events} == {'ALREADY_EXITED','TERM_WAIT_EXPIRED_ESCALATING_TO_KILL'}
+    statuses = {row['status'] for row in tree.cleanup_events}
+    assert {'ALREADY_EXITED', 'TERM_WAIT_EXPIRED_ESCALATING_TO_KILL'} <= statuses
     assert {row.get('signal') for row in tree.cleanup_events if row['status']=='ALREADY_EXITED'} == {'SIGTERM','SIGKILL'}
+    assert state['waits'] == 1 and not state['live'] and tree.last_owned == {}
 
 
 def test_resolver_preserves_relative_venv_symlink_and_validates_target(tmp_path, monkeypatch):

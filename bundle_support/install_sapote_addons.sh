@@ -76,7 +76,7 @@ echo "[sapote-addons] pooled $n_wheels wheel(s); offline first; online fallback=
 # wheels (scipy/pandas/matplotlib/logomaker, ~83 MB) were not attached this session.
 CORE_PKGS="pyrodigal pyfastani pyswrd pyopal scoring_matrices biopython archspec pytest ijson \
   pyhmmer pyskani pyfamsa pytrimal pytantan pyrodigal-gv gb-io pyfastx dendropy taxopy"
-FIGURE_PKGS="numpy matplotlib scipy pandas logomaker pycirclize dna-features-viewer"
+FIGURE_PKGS="pyshp numpy matplotlib scipy pandas logomaker pycirclize dna-features-viewer"
 
 # Install into the interpreter that the verification step below imports from. Outside a virtual
 # environment, refuse unless the operator explicitly allows overriding system Python protections.
@@ -133,7 +133,8 @@ for m, stage in core:
     except Exception as e:
         print(f"  FAIL {m:12s} -> {e}"); ok = False
 # FIGURES — optional; report presence, never fail the install
-for m, stage in [("numpy","figures/math"), ("matplotlib","figure rendering"),
+for m, stage in [("shapefile","local Shapefile basemaps (pyshp)"),
+                 ("numpy","figures/math"), ("matplotlib","figure rendering"),
                  ("pandas","figure data"), ("pycirclize","genome atlas"),
                  ("dna_features_viewer","gene-arrow diagrams")]:
     try:

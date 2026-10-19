@@ -105,6 +105,37 @@ def test_parse_alignment_xml_carries_bgc_id(tmp_path):
     assert enrich["Query_2"]["bgc_id"] == "BGC010"
 
 
+
+def _physical_package_fixture(pkg):
+    """Synthetic current authority for the two nodes asserted by XML_FULL_TITLE.
+
+    Region001 and membership below are declared test metadata, not a biological
+    source-generation or original-query-sequence claim. Raw XML/CSV stay intact.
+    """
+    import csv
+    import json
+    records = [
+        ("BGC003", "NODE_107_length_51000_cov_12.3", "ctg107_3", 410),
+        ("BGC010", "NODE_55_length_9000_cov_8.1", "ctg55_9", 200),
+    ]
+    identities = [{"bgc_id": bgc, "contig": contig, "antismash_region": "region001"}
+                  for bgc, contig, gene, length in records]
+    (pkg / "manifest.json").write_text(json.dumps({"strain_id": "AS-TEST", "bgcs": identities}))
+    with (pkg / "AS-TEST_2b_bgc_crosswalk.csv").open("w", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=["bgc_id", "contig", "antismash_region"])
+        writer.writeheader(); writer.writerows(identities)
+    contexts = [{"bgc_id": bgc, "cds": [{"locus_tag": gene, "aa_length": length,
+                 "contig": contig, "start": 0, "end": length * 3, "strand": 1}]}
+                for bgc, contig, gene, length in records]
+    (pkg / "AS-TEST_gene_context.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in contexts))
+    with (pkg / "AS-TEST_cds_table.csv").open("w", newline="") as stream:
+        fields = ["strain", "bgc_id", "contig", "region", "locus_tag", "length_aa"]
+        writer = csv.DictWriter(stream, fieldnames=fields); writer.writeheader()
+        writer.writerows({"strain": "AS-TEST", "bgc_id": bgc, "contig": contig,
+                          "region": "region001", "locus_tag": gene, "length_aa": length}
+                         for bgc, contig, gene, length in records)
+
 def test_ingest_with_xml_arms_overlay(tmp_path):
     """End to end: B5 rows bind, write_nr_overlay writes one file per recovered BGC.
     Fail-before: bgcs == 0 and overlay {'bgcs': 0, 'genes': 0}, no files."""
@@ -112,6 +143,7 @@ def test_ingest_with_xml_arms_overlay(tmp_path):
     xml = _write(tmp_path, "aln.xml", XML_FULL_TITLE)
     pkg = tmp_path / "package"
     pkg.mkdir()
+    _physical_package_fixture(pkg)
     res = bi.ingest_blastp(_master(tmp_path), "AS-TEST", csv, xml, top_n=10, package=pkg)
     assert res["rows"] == 3
     assert res["bgcs"] == 2

@@ -88,3 +88,7 @@ check_figure_provenance	WIRED	Figure renderer-stamp check; imported by tests/tes
 bigscape_region_binding_check	WIRED	BiG-SCAPE staged-region vs package-inventory binding gate; exercised by tests/test_452_bigscape_region_binding_check.py
 _min_text_check	WIRED	printed-size text floor read back from figure PDFs; exercised by tests/test_m5_452_min_text_8pt.py and the R figure-card tests
 blastp_tag_position_audit	WIRED	BLASTp tag-to-protein binding audit; exercised by tests/test_451_blastp_tag_position_audit.py; never edits its inputs
+paper_reference_audit	WIRED	Offline DOCX citation/reference/callout key checker; exercised by tests/test_452_paper_reference_audit.py; operator-run report, no publication approval
+synthetic_id_registry_guard	WIRED	Explicit registry/list/guard admission: release_cut.sh -> make_public_tier.sh -> verify_export_registry.py; pytest tests/test_synthetic_id_registry_guard.py.
+verify_export_registry	WIRED	Explicit bound registry preflight invoked by tools/make_public_tier.sh; selection forwarded from release_cut.sh; existing export-preflight regression tests.
+identifier_source_roles	WIRED	shared source/staged test-role audit; make_public_tier.sh and exact source-role controls

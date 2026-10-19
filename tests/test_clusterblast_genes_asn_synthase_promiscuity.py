@@ -1,4 +1,4 @@
-"""BLACK_CHERRY_377 regression: `_CORE_DOMAIN_HINTS` in mamey/clusterblast_genes.py must not
+"""regression_review_377 regression: `_CORE_DOMAIN_HINTS` in mamey/clusterblast_genes.py must not
 trust a bare 'Asn_synthase' domain hit as unconditional CORE evidence.
 
 Ground truth already established elsewhere in THIS codebase: `mamey/bgc_decomp.py` deliberately

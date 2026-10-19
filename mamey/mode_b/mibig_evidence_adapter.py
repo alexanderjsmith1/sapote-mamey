@@ -109,19 +109,33 @@ def gene_first_rows(
         raise MibigExtensionHold("MIBIG_EXTENSION_IDENTITY_HOLD: locus does not resolve uniquely")
     locus = loci[0]
     genes = con.execute(
-        "SELECT g.*,s.state,s.hit_row_count FROM gene g JOIN gene_channel_state s USING(gene_key) "
+        "SELECT g.*,s.state,s.hit_row_count,s.locus_key AS state_locus_key FROM gene g LEFT JOIN gene_channel_state s USING(gene_key) "
         "WHERE g.locus_key=? ORDER BY g.gene_order,g.locus_tag", (locus["locus_key"],)
     ).fetchall()
-    if not genes or set(protein_roster) != {row["locus_tag"] for row in genes}:
+    if not genes or len(genes) != len(protein_roster) or set(protein_roster) != {row["locus_tag"] for row in genes}:
         raise MibigExtensionHold("MIBIG_EXTENSION_IDENTITY_HOLD: protein roster gene set mismatch")
     rows = []
     for gene in genes:
         if protein_roster[gene["locus_tag"]] != gene["protein_sha256"]:
             raise MibigExtensionHold("MIBIG_EXTENSION_IDENTITY_HOLD: protein hash mismatch")
-        bindings = Counter(row[0] for row in con.execute(
+        # The LEFT JOIN retains genes with missing state rows as explicit holds.
+        # A vocabulary declaration and file hash do not prove internal joins or
+        # counts. Only the extension's two supported observation states map to
+        # this reader's BOUND/MISSING output vocabulary; other states stay held.
+        if gene["state_locus_key"] != locus["locus_key"]:
+            raise MibigExtensionHold("MIBIG_EXTENSION_STATE_HOLD: missing or conflicting gene channel locus")
+        hits = con.execute(
             "SELECT reference_binding_state FROM mibig_hit WHERE gene_key=?", (gene["gene_key"],)
-        ) if row[0] != "BOUND_EXISTING_REFERENCE_PRODUCT")
-        observed = gene["hit_row_count"] > 0
+        ).fetchall()
+        count = gene["hit_row_count"]
+        if type(count) is not int or count < 0 or count != len(hits):
+            raise MibigExtensionHold("MIBIG_EXTENSION_STATE_HOLD: hit count mismatch")
+        observed = count > 0
+        expected_state = ("MIBIG_HIT_OBSERVED" if observed else
+                          "NO_MIBIG_HIT_REPORTED_IN_CURRENT_PACKAGE")
+        if gene["state"] != expected_state:
+            raise MibigExtensionHold("MIBIG_EXTENSION_STATE_HOLD: unsupported or contradictory channel state")
+        bindings = Counter(row[0] for row in hits if row[0] != "BOUND_EXISTING_REFERENCE_PRODUCT")
         note = (
             f"{gene['hit_row_count']} current-package manifest-bound MIBiG row(s); "
             f"external-reference holds={json.dumps(dict(bindings), sort_keys=True)}; {CLAIM_CEILING}"

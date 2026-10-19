@@ -69,9 +69,9 @@ def test_real_batch_with_a_broken_input_exits_one(tmp_path):
                 data = b"LOCUS       broken\nthis is not a GenBank record\n//\n"
             dst.writestr(info, data)
     out = tmp_path / "out"
-    env = {k: v for k, v in os.environ.items() if k != "PYTHONDONTWRITEBYTECODE"}
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     result = subprocess.run(
-        [sys.executable, str(HARNESS), "--inputs", str(broken.parent), "--outdir", str(out),
+        [sys.executable, "-B", str(HARNESS), "--inputs", str(broken.parent), "--outdir", str(out),
          "--registry", str(out / "reg.csv"), "--metrics", str(out / "met.csv")],
         cwd=ROOT, env=env, capture_output=True, text=True, timeout=900)
     # "RUN_FAILED" alone also matches the summary's "RUN_FAILED 0"; require a non-zero count (.452).

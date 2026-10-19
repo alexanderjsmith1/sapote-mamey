@@ -2,6 +2,7 @@
 
 Builds throwaway package fixtures in tmp_path (a dir with a manifest_short.json is a package),
 then asserts the coverage grid, the engine-drift/stale detection, and the next-action ranker.
+Every subject is fabricated and carries a reserved SYNTHETIC name.
 Pure stdlib fixtures; no sealed packages or network needed.
 """
 import json
@@ -33,38 +34,38 @@ def _mk_pkg(root, strain, engine, *, figures=False, mode_b=False, blastp=False,
 
 
 def test_finds_packages_and_coverage_grid(tmp_path):
-    _mk_pkg(tmp_path, "AS-001", "1.9.111", figures=True, mode_b=True, blastp=True, report=True)
-    _mk_pkg(tmp_path, "AS-002", "1.9.111", worklist=True)  # blastp pending; nothing else
+    _mk_pkg(tmp_path, "SYNTHETIC-DISCOVER-A", "1.9.111", figures=True, mode_b=True, blastp=True, report=True)
+    _mk_pkg(tmp_path, "SYNTHETIC-DISCOVER-B", "1.9.111", worklist=True)  # blastp pending; nothing else
     rep = discover.run(tmp_path, max_depth=6)
     pkgs = {p["strain"]: p for p in rep["packages"]}
-    assert set(pkgs) == {"AS-001", "AS-002"}
+    assert set(pkgs) == {"SYNTHETIC-DISCOVER-A", "SYNTHETIC-DISCOVER-B"}
     # fully-covered package
-    a1 = pkgs["AS-001"]["caps"]
+    a1 = pkgs["SYNTHETIC-DISCOVER-A"]["caps"]
     assert a1["figures"] and a1["mode_b"] and a1["blastp"] and a1["report"]
     # worklist-only package: BLASTp pending (⧗), not ingested; no figures/mode-b
-    a2 = pkgs["AS-002"]["caps"]
+    a2 = pkgs["SYNTHETIC-DISCOVER-B"]["caps"]
     assert a2["blastp_worklist_only"] and not a2["blastp"]
     assert not a2["figures"] and not a2["mode_b"]
     # next-action ranker surfaces the pending BLASTp worklist
     assert any("ingest-blastp" in a for a in rep["next_actions"])
     # counts are reported (not just present/absent)
-    assert pkgs["AS-001"]["counts"]["mode_b"] == 1   # one verdict row written by the fixture
-    assert pkgs["AS-002"]["counts"]["mode_b"] == 0
+    assert pkgs["SYNTHETIC-DISCOVER-A"]["counts"]["mode_b"] == 1   # one verdict row written by the fixture
+    assert pkgs["SYNTHETIC-DISCOVER-B"]["counts"]["mode_b"] == 0
 
 
 def test_stale_detection_uses_newest_engine_as_reference(tmp_path):
-    _mk_pkg(tmp_path, "AS-100", "1.9.111", figures=True, mode_b=True, blastp=True, report=True)
-    _mk_pkg(tmp_path, "AS-101", "1.9.112", figures=True, mode_b=True, blastp=True, report=True)
+    _mk_pkg(tmp_path, "SYNTHETIC-DISCOVER-C", "1.9.111", figures=True, mode_b=True, blastp=True, report=True)
+    _mk_pkg(tmp_path, "SYNTHETIC-DISCOVER-D", "1.9.112", figures=True, mode_b=True, blastp=True, report=True)
     rep = discover.run(tmp_path, max_depth=6)
     assert rep["engine_ref"] == "1.9.112"
     stale = {p["strain"]: p["stale"] for p in rep["packages"]}
-    assert stale["AS-100"] is True   # older engine -> re-run candidate
-    assert stale["AS-101"] is False  # newest -> current
+    assert stale["SYNTHETIC-DISCOVER-C"] is True   # older engine -> re-run candidate
+    assert stale["SYNTHETIC-DISCOVER-D"] is False  # newest -> current
     assert any("engine drift" in a for a in rep["next_actions"])
 
 
 def test_current_override_marks_all_stale(tmp_path):
-    _mk_pkg(tmp_path, "AS-200", "1.9.111", figures=True, mode_b=True, blastp=True, report=True)
+    _mk_pkg(tmp_path, "SYNTHETIC-DISCOVER-E", "1.9.111", figures=True, mode_b=True, blastp=True, report=True)
     rep = discover.run(tmp_path, max_depth=6, current="1.9.200")
     assert rep["engine_ref"] == "1.9.200"
     assert all(p["stale"] for p in rep["packages"])
@@ -73,7 +74,7 @@ def test_current_override_marks_all_stale(tmp_path):
 # NB: name avoids the conftest slow-hint substrings ("figure"/"cohort_fig") — this test is
 # instant (no rendering) and belongs in the fast partition.
 def test_multi_package_suggests_cohort_deck(tmp_path):
-    for s in ("AS-300", "AS-301"):
+    for s in ("SYNTHETIC-DISCOVER-F", "SYNTHETIC-DISCOVER-G"):
         _mk_pkg(tmp_path, s, "1.9.111", figures=True, mode_b=True, blastp=True, report=True)
     rep = discover.run(tmp_path, max_depth=6)
     assert any("cohort-figures" in a for a in rep["next_actions"])

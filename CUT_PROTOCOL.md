@@ -80,7 +80,99 @@ This is the ritual the Patch Chat follows. It is binding on the Patch Chat, not 
    per tier, with real numbers. No "should be fine." If a fix landed in only some tiers, that is the
    single most important line in the handback and goes at the top.
 
+## Current registry and interpreter inputs
+
+Inspect the executable entry points before preparing a disposable cut source:
+`bash tools/release_cut.sh --help` and
+`SELECTED_PYTHON -B tools/release_workflow.py cut --help`.
+The shell route takes VERSION SOURCE OUTPUT and an optional LETTER. The resumable
+Python route takes explicit `--version`, `--date`, `--source`, and `--out`, plus
+its recorded stage options. A cut command performs source preparation and tests;
+its help output and a passing registry snapshot do not authorize that operation.
+
+Select one installed Python 3.12+ executable. For the shell route, set `PYTHON`
+to that executable; the fallback is `python3` on PATH. For direct workflow calls,
+pass the same invocation path with `--python`. Preserve its virtual-environment
+locator rather than substituting the resolved base executable. A command string
+such as `python -O` is not an executable selection. Compatibility, package
+availability and pytest identity are separate observations; availability alone
+is not a validated environment or accepted release.
+
+The registry diagnostic is optional for ordinary CODE cuts, including direct
+tier builds, monolithic and partitioned workflows. With no registry options,
+it records `NOT_REQUESTED` / `NOT_RUN`; it performs no metadata discovery and
+grants no synthetic-role or disclosure clearance. Private-content, personal-path,
+codename, roster/exclusion, contig, source-integrity, test and seal gates still apply.
+The standalone `verify_export_registry.py` diagnostic keeps its HOLD behavior
+without explicit metadata.
+
+If any registry option is supplied, all four selections are required:
+
+- `--synthetic-registry`: absolute path to the selected external TSV metadata.
+- `--synthetic-registry-sha256`: SHA256 of those exact metadata bytes.
+- `--synthetic-guard-sha256`: SHA256 of the selected source's
+  `tools/synthetic_id_registry_guard.py`.
+- `--synthetic-allowlist-sha256`: SHA256 of that source's
+  `tools/test_synthetic_ids.txt`.
+
+The guard and allowlist paths are fixed to the selected source; they are not
+private-data discovery options. Digest strings must contain 64 hexadecimal
+characters. Do not copy a historical digest into a new source selection or
+expand the synthetic list to hide a genuine/public identifier collision.
+
+For an explicitly authorized selected-source/metadata diagnostic, replace all
+six assignments below with the actual available paths and digests. This
+`_registry` invocation is admission only; it does not start a cut:
+
+```bash
+CUT_PYTHON=/absolute/path/to/installed/python
+CUT_SOURCE=/absolute/path/to/selected/disposable/source
+REGISTRY_TSV=/absolute/path/to/selected/metadata.tsv
+REGISTRY_SHA256=ACTUAL_64_HEX_DIGEST
+GUARD_SHA256=ACTUAL_64_HEX_DIGEST
+ALLOWLIST_SHA256=ACTUAL_64_HEX_DIGEST
+"$CUT_PYTHON" -B "$CUT_SOURCE/tools/release_workflow.py" _registry \
+  --source "$CUT_SOURCE" --python "$CUT_PYTHON" \
+  --synthetic-registry "$REGISTRY_TSV" \
+  --synthetic-registry-sha256 "$REGISTRY_SHA256" \
+  --synthetic-guard-sha256 "$GUARD_SHA256" \
+  --synthetic-allowlist-sha256 "$ALLOWLIST_SHA256"
+```
+
+Admission returns 0 for a bound snapshot pass, 1 for failure and 2 for a hold/refusal.
+Diagnostics remain redacted. The pass binds only the selected metadata/guard/list
+snapshot; fixture roles, public-tier disclosure, source completeness and release
+acceptance remain separate. Partial selection, changed bytes or an unavailable
+interpreter is a hold to resolve against the owner, not a reason to choose a
+nearby file automatically. Omitting all four options records a diagnostic that
+was not requested, never a passing registry snapshot. Selected and not-requested
+states are bound into workflow context, commands and external inputs; resume
+and independent verification cannot switch that selection. Retain old failed
+roots; changed workflow/source definitions require a fresh validation lineage. Source and staged-artifact checks must retain the same
+selection; later source or metadata changes require new admission/validation.
+
+Unset ambient `PYTEST_ADDOPTS` before an authorized cut; the shell route refuses
+it rather than silently changing the test profile. Do not set `CUT_TIERS` to an
+empty or whitespace-only value. Omit it for the documented CODE default or
+supply an explicit supported tier selection. The partitioned workflow currently
+admits CODE only. A successful default test partition is not the configured
+slow/network release profile or artifact validation.
+
+`--skip-tests` is only the structured external-receipt route described above;
+a log or typed pass count cannot replace its absolute receipt and expected
+SHA256. Partitioned mode cannot use that option. Resolve dependency, process
+monitoring, disk/RSS or generated-metadata holds with the named owner while
+preserving the failed attempt. An optional-R readiness qualifier is not a
+completed native-R check. On interruption, retain the actual process handle and
+terminal receipt, preserve partial outputs, and use only the matching recorded
+resume/retry contract. No manual cleanup of original evidence follows from a
+failed prerequisite. Save the current state, partial transcript, file inventory
+and next action under the approved session policy.
+
 ## The version bump (do not freehand)
+
+Run the steps below from the selected `"$CUT_SOURCE"`; Python helpers use
+the same `"$CUT_PYTHON"` chosen above.
 
 Bundle and engine version independently. Bump only what changed:
 
@@ -97,26 +189,26 @@ generated block" failures that look alarming but are just sequencing, not real d
 3. Set `BUILD_STAMP.txt`'s `version=` / `build=` lines to match — **before** the next step; several
    restated files pull their build-stamp string from `BUILD_STAMP.txt`, not directly from
    `pyproject.toml`, so this has to land first or `sync_version` will write a stale stamp everywhere.
-4. `python3 tools/sync_version.py` (bare invocation — **there is no `--apply` flag; the tool writes
+4. `"$CUT_PYTHON" tools/sync_version.py` (bare invocation — **there is no `--apply` flag; the tool writes
    by default and only `--check` makes it check-only and refuse to write**).
-5. `python3 -c "import sys; sys.path.insert(0,'tools'); import sync_version as sv; sv.sync_build_stamp_patch(check=False)"`
+5. `"$CUT_PYTHON" -c "import sys; sys.path.insert(0,'tools'); import sync_version as sv; sv.sync_build_stamp_patch(check=False)"`
    — derives `BUILD_STAMP.txt`'s `patch=` line from the CHANGELOG head you just wrote.
-6. `python3 tools/render_bootstrap_contract.py --apply` — the explicit generator step can confirm the owner output. Current sync_version already delegates
+6. `"$CUT_PYTHON" tools/render_bootstrap_contract.py --apply` — the explicit generator step can confirm the owner output. Current sync_version already delegates
    bootstrap regeneration before its anchored writes; do not describe it as regex-only.
    This owner renders AGENTS generated blocks, its CLAUDE mirror and BOOTSTRAP_FILE_AUDIT.
    Then regenerate every other version-bearing generated surface with
-   `python3 tools/gen_command_catalog.py`, `python3 tools/generate_deliverables_menu.py --apply`,
-   and `python3 tools/gen_tools_inventory.py`; `release_cut.sh` performs all four regenerations.
+   `"$CUT_PYTHON" tools/gen_command_catalog.py`, `"$CUT_PYTHON" tools/generate_deliverables_menu.py --apply`,
+   and `"$CUT_PYTHON" tools/gen_tools_inventory.py`; `release_cut.sh` performs all four regenerations.
 7. Refresh the source-stage `TIER_MANIFEST.txt` and `SOURCE_CHECKSUMS_SHA256.txt`, then run the full
    suite once to measure the stale-manifest baseline. Run `gen_release_manifest.py --fixed-point`
    with that run's measured pass/skip counts, refresh source integrity again, and run the complete
    suite a second time. The second run must be green. Bind only that complete green log with
-   `python3 tools/gen_release_manifest.py --apply --pytest-log <path to final green log>`, then
+   `"$CUT_PYTHON" tools/gen_release_manifest.py --apply --pytest-log <path to final green log>`, then
    refresh source integrity once more. The first run is a convergence seed and never authorizes a
    package; `release_cut.sh` performs this sequence automatically.
 8. Re-run `sync_version --check`, `render_bootstrap_contract --check`, and `gen_release_manifest
    --check` — all three green before proceeding.
-9. Run `python3 tools/verify_release_identity.py --root . --strict-membership`; the cut must
+9. Run `"$CUT_PYTHON" tools/verify_release_identity.py --root . --strict-membership`; the cut must
    refuse any tracked file omitted from `TIER_MANIFEST.txt`, even when every listed checksum passes.
 
 `sync_version.py` owns all three `TAG` identity lines: bundle, engine, and build stamp. Do not
@@ -125,19 +217,38 @@ identity gate independently verifies the assembled artifact afterward.
 
 ## The cut
 
+Select the interpreter and source as described in
+[Current registry and interpreter inputs](#current-registry-and-interpreter-inputs).
+For an ordinary CODE cut, use `REGISTRY_ARGS=()` and omit the four registry
+options on every route, including resume and verification. Only when the
+diagnostic is requested, fill the following array with the four exact selections:
+
 ```bash
-cd <cutsrc>
+cd "$CUT_SOURCE"
+REGISTRY_ARGS=()  # Ordinary CODE cut: no registry diagnostic requested.
+# Only for a requested diagnostic, replace the empty array above with:
+# REGISTRY_ARGS=(
+#   --synthetic-registry "$REGISTRY_TSV"
+#   --synthetic-registry-sha256 "$REGISTRY_SHA256"
+#   --synthetic-guard-sha256 "$GUARD_SHA256"
+#   --synthetic-allowlist-sha256 "$ALLOWLIST_SHA256"
+# )
 
 # Preferred: release_cut.sh runs and captures the configured full suite itself.
-RELEASE_DATE=<YYYYMMDD> bash tools/release_cut.sh <bundle-version> . <OUT> <build-letter>
+PYTHON="$CUT_PYTHON" RELEASE_DATE=<YYYYMMDD> bash tools/release_cut.sh <bundle-version> . <OUT> <build-letter> ${REGISTRY_ARGS[@]+"${REGISTRY_ARGS[@]}"}
+
+# Optional partitioned route; select the same interpreter and registry inputs.
+"$CUT_PYTHON" -B tools/release_workflow.py cut --python "$CUT_PYTHON" \
+  --version <bundle-version> --date <YYYYMMDD> --letter <build-letter> \
+  --source "$CUT_SOURCE" --out <OUT> ${REGISTRY_ARGS[@]+"${REGISTRY_ARGS[@]}"}
 
 # External-validation route: bind the exact prepared tree at the later receipt-verification boundary,
 # produce observed full-suite evidence and receipt outside <cutsrc>; any later source mutation invalidates the binding.
-python3 tools/verify_external_validation_receipt.py --root . --emit-tree-sha256
+"$CUT_PYTHON" tools/verify_external_validation_receipt.py --root . --emit-tree-sha256
 PYTEST_RECEIPT=/absolute/path/external-validation-receipt.json \
 PYTEST_RECEIPT_SHA256=<sha256-of-receipt> \
-RELEASE_DATE=<YYYYMMDD> \
-  bash tools/release_cut.sh <bundle-version> . <OUT> <build-letter> --skip-tests
+PYTHON="$CUT_PYTHON" RELEASE_DATE=<YYYYMMDD> \
+  bash tools/release_cut.sh <bundle-version> . <OUT> <build-letter> --skip-tests ${REGISTRY_ARGS[@]+"${REGISTRY_ARGS[@]}"}
 ```
 
 The normal driver exports `SKIP_INTIER_PYTEST=1` before invoking the tier builder, even when it
@@ -177,7 +288,7 @@ gates above never see it. Build it only from a fresh extraction of the sealed ZI
 tool, then prove it carries exactly the sealed files:
 
 ```bash
-python3 -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" <sealed.zip> <tmp>/<bundle-dir-name>
+"$CUT_PYTHON" -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" <sealed.zip> <tmp>/<bundle-dir-name>
 bash tools/make_verified_code_tarball.sh <tmp>/<bundle-dir-name> <OUT> <sealed.zip> <selected-SEAL_RECEIPT.json>
 ```
 
@@ -204,8 +315,101 @@ Changed scope and unresolved limitations: <specific records>
 
 > **Before zipping any tier**, always run both generators to derive manifests from source-of-truth:
 > ```bash
-> python3 tools/gen_release_manifest.py --root . --apply   # RELEASE_MANIFEST.md
-> python3 tools/render_bootstrap_contract.py --apply       # docs/BOOTSTRAP_FILE_AUDIT.md
-> python3 tools/sync_version.py --check                    # confirm no drift
+> "$CUT_PYTHON" tools/gen_release_manifest.py --root . --apply   # RELEASE_MANIFEST.md
+> "$CUT_PYTHON" tools/render_bootstrap_contract.py --apply       # docs/BOOTSTRAP_FILE_AUDIT.md
+> "$CUT_PYTHON" tools/sync_version.py --check                    # confirm no drift
 > ```
 > Never hand-edit `RELEASE_MANIFEST.md` build stamps — they drift within one cut. The generators exist; use them.
+
+
+## Custom private-vocabulary coverage
+
+Ordinary CODE cuts do not require an operator's private vocabulary or strain registry.
+A successful public audit reports generic configured checks separately from custom literal
+coverage. With no configured private literals, custom coverage is `NOT_EVALUATED`; that is
+not private-vocabulary or universal privacy clearance. An empty supplied profile has the
+same vocabulary status. A selected valid profile still enforces its private identifiers
+across shipped text, tests, detector code and the existing archive-policy surfaces.
+Invalid profiles and actual private payload/path/readability/integrity findings still refuse.
+
+Select an external profile directly with `tools/public_release_audit.py TREE
+--privacy-profile PROFILE --report-json`, or the direct tier builder's documented
+`--privacy-profile PROFILE` option. Keep the real profile outside distributed CODE.
+The high-level release-cut/workflow does not currently forward that profile option;
+do not infer coverage from a file merely existing nearby or from a default PASS.
+A maintainer assertion that specified private words are absent needs an explicit external
+Source/artifact check tied to the exact resulting hashes and declared scan scope.
+
+This partial cleanup holds package-home/default-discovery and historical routing-policy-ID
+migration separately. Existing configured-home support and numerical scoring are unchanged.
+Held files can still contain historical deployment words; this proposal does not establish
+complete name removal. Preserve genuine strain names, public examples, public package
+formats and strain-to-class associations. Do not embed, encode or reconstruct private words
+inside CODE to simulate an absence check. Regenerate governed metadata and validate the
+actual integrated source/artifact before acceptance.
+
+## Controlled import evidence v2
+
+The complete static `mamey`/`tools` roster retains every Python file and its
+production or test/fixture role. Production modules run in both declared orders;
+CSV setters additionally run in both reload orders. The v2 worker and controller
+receipts retain every module outcome, raw operation, source origin, CSV check and
+losslessly encoded before/after module-search path. Receipt verification requires
+current source, environment, machinery, resource policy and complete ordered
+coverage. Old v1 evidence does not satisfy this changed contract.
+
+`PASS` means every required import passed. `READY_WITH_OPTIONAL_UNAVAILABLE` is a
+separate visible ready state: only exact pinned vendored ijson YAJL/CFFI backend
+modules may have `OPTIONAL_UNAVAILABLE` outcomes, with exact exception identity,
+origin and dependency-absence evidence. These outcomes remain in every worker and
+root summary and are never relabelled PASS. The pinned pure-Python JSON backend
+must pass fixed valid, incomplete, malformed and trailing-garbage JSON capability checks at its natural roster
+position. Unexpected exceptions, unknown vendor/dependency bytes, unavailable
+explicitly selected backends or DLLs, protected operations, altered global state,
+failed fallback or incomplete coverage remain HOLD. Installed `ijson.common`
+bytes and vendored common bytes are separately pinned because their actual code
+is different in the supported environment. Source and extracted CODE evidence
+are independently verified; the owner consumer preserves the exact ready state.
+
+A source/tools priority change is admissible only inside the leading approved
+root block with unchanged foreign tail and identical concrete FileFinder module
+and package origins. Reordered namespace portions additionally require disjoint
+concrete leaves and unambiguous resources. Collisions, nested symlinks, unreadable
+namespace trees, foreign priority changes and unsupported path entries remain
+HOLD. Unsupported entries in an initial or unchanged before/after path state
+also require HOLD; complete diagnostics retain their typed markers and raw
+path tables. Strict verification refuses PASS or ready claims for those states.
+Existing local-helper pinning is preserved. Raw path changes and their
+replayable proof remain recorded even when equivalence is established.
+
+When the roster declares Matplotlib imports, a separate dependency-only process
+prepares a fresh private font cache under the report output. It uses the selected
+Python runtime, pinned helper, installed dependency/font inputs and fixed data-only
+CLI. It cannot read project source contents, write source, access the network or
+write admission evidence. One explicit pre-guard exception loads the bound internal font-cache machinery
+helper under a distinct machinery-only alias. Its ordinary project module names
+remain unpreloaded and present in the complete production roster; their first
+ordinary execution, including any dependency import, runs under the installed
+guards and is accounted. Ordinary cached modules continue to reload under the
+guard. No other ordinary project module or Matplotlib module
+is preloaded. Workers validate the prepared cache using standard-library code and retain the existing thread/process/network/source-write guards. The
+controller and selected interpreter must have matching executable, version and
+prefix identities; a mismatch refuses before bootstrap rather than substituting
+a runtime.
+
+The production OS profile grants only the prepared cache directory's literal
+creation/write probe, with no permission to write children or change attributes.
+Admission separately proves an unchanged existing-directory probe plus denied
+child creation, native cache-content writes and directory-mode changes. A worker
+may accept only the pinned Matplotlib cache chooser's `Path.mkdir(exist_ok=True)`
+call on that exact owned nonsymlink mode-0700 directory, raw mode 0777/no dir-fd,
+with EEXIST and identical device/inode/mode/owner/link-count/size/timestamps. Its
+raw mkdir event and complete proof remain visible. Every other operation stays
+blocking. Invalid bootstrap/cache admission refuses before imports; terminal
+cache drift produces HOLD. Receipt relocation preserves original request and
+manifest bytes/hashes and uses the helper's explicit current-evidence envelope;
+no cache validation reads fall back to the original output.
+
+These are import-readiness checks. Full configured-suite, metadata, archive,
+extracted-artifact, owner sealing and hosted portability requirements remain
+separate release gates.

@@ -99,7 +99,7 @@ def test_append_omitting_requested_strain_logs_no_rows_instead_of_rendering_old_
     page_before = first[0].read_bytes()
     prior_split_files = {path: path.read_bytes() for path in (out / "_ledger_by_strain").rglob("*.tsv")}
     assert prior_split_files
-    # This current source has no AS-900 rows. Its old BGC002 remains only in the retained split.
+    # This current source omits the requested fixture strain; old BGC002 is retained only in the prior split.
     _write_ledger(ledger, [_gene("other", C1, 1, strain=OTHER)])
     current_source = ledger.read_bytes()
 

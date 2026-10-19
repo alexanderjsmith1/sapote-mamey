@@ -1,10 +1,8 @@
-"""Bundle code carries no real isolate IDs, and T06 label nudges come from the figure-side cohort table.
+"""Optional source identifier diagnostics; names alone require no universal admission.
 
-Codex's T06 card named four isolates (two of them not in tools/test_synthetic_ids.txt) in a comment inside the
-embedded R script, next to label nudges that the tool in fact reads from the cohort table's nudge_x/nudge_y
-columns. The nudge values belong to the figure's input table, never to bundle code. Single-digit placeholders
-(AS-1 ... AS-9) used in docstrings and examples are not isolate IDs; any AS ID of two or more digits in code must
-be one of the listed synthetic IDs.
+Exact role semantics remain testable through the diagnostic helper. Genuine names and
+strain/class associations alone are permitted. This scanner grants neither synthetic
+identity nor publication authority. T06 label nudges remain figure-side behavior.
 """
 import csv
 import json
@@ -16,20 +14,34 @@ from pathlib import Path
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _identifier_role_policy import reviewed_public_sites
+POLICY = Path(__file__).with_name("reviewed_public_reference_sites.json")
+
 ROOT = Path(__file__).resolve().parents[1]
 SYNTHETIC = {l.strip() for l in (ROOT / 'tools/test_synthetic_ids.txt').read_text().splitlines()
              if l.strip() and not l.startswith('#')}
 
 
-def test_bundle_code_holds_no_non_synthetic_isolate_ids():
+def _unreviewed_code_ids(root, allowed, policy_path):
     found = {}
     for top in ('tools', 'mamey', 'deliverable_tools'):
-        for p in (ROOT / top).rglob('*'):
+        for p in (root / top).rglob('*'):
             if p.is_file() and p.suffix in ('.py', '.R', '.sh'):
-                ids = set(re.findall(r'\bAS-\d{2,}\b', p.read_text(errors='replace'))) - SYNTHETIC
+                raw = p.read_bytes()
+                text = raw.decode(errors='replace')
+                public = reviewed_public_sites(root, p, raw, policy_path)
+                ids = set()
+                for match in re.finditer(r'\bAS-\d{2,}\b', text):
+                    start = len(text[:match.start()].encode())
+                    end = len(text[:match.end()].encode())
+                    if match[0] not in allowed and (start, end) not in public:
+                        ids.add(match[0])
                 if ids:
-                    found[str(p.relative_to(ROOT))] = sorted(ids)
-    assert not found, found
+                    found[str(p.relative_to(root))] = sorted(ids)
+    return found
+
+
 
 
 def test_t06_label_nudges_are_read_from_the_cohort_table(tmp_path):

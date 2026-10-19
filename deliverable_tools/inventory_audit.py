@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inventory Audit (AQUARIUS_01) — make sure nothing important slips through the class-gated bottom tier.
+"""Inventory Audit (inventory bottom-tier policy) — make sure nothing important slips through the class-gated bottom tier.
 
 the Developer or User asked for this as a safety net for the Inventory-tier reform: the reform reserves the Inventory
 tier for housekeeping classes and moves specialized/antimicrobial-capable BGCs to the new 'Low' tier.
@@ -104,7 +104,7 @@ def audit(boards_glob: str, outdir: pathlib.Path):
     md = outdir / "INVENTORY_AUDIT.md"
     total_low = sum(to_low.values()); total_inv = sum(remains_inv.values())
     with open(md, "w") as fh:
-        fh.write(f"# Inventory Audit — AQUARIUS_01 class-gated bottom tier\n\n")
+        fh.write(f"# Inventory Audit — inventory bottom-tier policy class-gated bottom tier\n\n")
         fh.write(f"_generated {datetime.date.today()} · boards={len(boards)} · "
                  f"engine allow-list = {len(HOUSEKEEPING_INVENTORY_CLASSES)} classes_\n\n")
         fh.write(f"- current 'Inventory' rows reviewed: **{n_inv}**\n")
@@ -130,14 +130,14 @@ def _default_boards_glob():
 
     The old default hardcoded ``mamey_packages/`` — a home that can be absent — so a
     defaults run silently audited ZERO boards and still exited 0 (resolver-bypass audit
-    finding 3, 2026-09-01). Homes tried, in order: ``mamey_packages``, ``Mamey Complete*``,
+    finding 3, 2026-09-01). Homes tried, in order: ``mamey_packages``, ``Package Outputs*``,
     then any ``MAMEY_PACKAGE_HOMES`` env globs (``os.pathsep``-separated). First home with
     matches wins — homes are NOT unioned, so a strain present in two homes is not
     double-counted. Returns (glob_pattern, n_matches); pattern may match zero if no home does.
     """
     root = os.environ.get("SAPOTE_WORKSPACE_ROOT", os.getcwd())
-    homes = ["mamey_packages", "Mamey Complete*"]
-    homes += [h.strip() for h in os.environ.get("MAMEY_PACKAGE_HOMES", "").split(os.pathsep) if h.strip()]
+    from mamey.strain_data_home import package_home_patterns
+    homes = package_home_patterns()
     last = os.path.join(root, homes[0], "*", "package", "*_4_triage_board.csv")
     for home in homes:
         pat = os.path.join(root, home, "*", "package", "*_4_triage_board.csv")

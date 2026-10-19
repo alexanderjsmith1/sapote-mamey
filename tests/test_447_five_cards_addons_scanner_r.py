@@ -17,7 +17,7 @@ def test_r_package_availability_typed(monkeypatch,rc,state):
     calls=[]
     def probe(command,**kwargs):
         calls.append(command); assert kwargs['timeout']==10
-        return SimpleNamespace(returncode=rc, stdout="SAPOTE_R_MISSING:ggtree\n" if rc==10 else "")
+        return SimpleNamespace(returncode=rc, stdout="SAPOTE_R_MISSING:ggtree\n" if rc==10 else "SAPOTE_R_READY:ggtree\n" if rc==0 else "")
     monkeypatch.setattr(optional_r.subprocess,'run',probe)
     assert optional_r.r_package_status(('ggtree',), executable='fakeR')[0]==state
     assert 'requireNamespace("ggtree"' in calls[0][-1]

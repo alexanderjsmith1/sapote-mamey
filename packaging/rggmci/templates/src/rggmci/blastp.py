@@ -110,9 +110,7 @@ def emit_fasta(zip_path: str | Path, result: dict[str, Any], out_dir: str | Path
                proteins_per_file: int = 20, max_residues: int = 85000, **select: Any) -> dict[str, Any]:
     """Write query FASTA files, a manifest (JSON and TSV) and HOW_TO_BLASTP.md into `out_dir`."""
     out = Path(out_dir)
-    if (out / MANIFEST).exists():
-        raise FileExistsError(f"{out / MANIFEST} exists; choose an empty folder so earlier queries stay intact")
-    out.mkdir(parents=True, exist_ok=True)
+    _admit_output_directory(out)
     genome = _token(genome or Path(zip_path).stem)
     pairs, rows = select_proteins(zip_path, result, **select)
     files = []
@@ -124,7 +122,8 @@ def emit_fasta(zip_path: str | Path, result: dict[str, Any], out_dir: str | Path
             r["query_header"] = fasta_header(genome, r)[1:]
             r["fasta_file"] = name
             text += wrap_fasta(">" + r["query_header"], r["sequence"])
-        (out / name).write_text(text)
+        with (out / name).open("x") as handle:
+            handle.write(text)
         files.append({"file": name, "proteins": len(batch), "residues": sum(r["aa_len"] for r in batch)})
     keep = ("rggmci_confidence", "rggmci_score", "contig_a", "contig_b", "edge_a", "edge_b",
             "products_a", "products_b", "both_at_contig_ends")
@@ -137,11 +136,13 @@ def emit_fasta(zip_path: str | Path, result: dict[str, Any], out_dir: str | Path
         "proteins": [{k: v for k, v in r.items() if k != "sequence"} for r in rows],
         "files": files,
     }
-    (out / MANIFEST).write_text(json.dumps(manifest, indent=1) + "\n")
+    with (out / MANIFEST).open("x") as handle:
+        handle.write(json.dumps(manifest, indent=1) + "\n")
     cols = ["fasta_file", "query_header", "bgc_id", "node_id", "antismash_region", "locus_tag", "selection_role",
             "gene_kind", "antismash_product", "aa_len", "bp_to_contig_end", "pairs"]
     _tsv(out / "blastp_manifest.tsv", cols, rows)
-    (out / "HOW_TO_BLASTP.md").write_text(HOW_TO.format(n=len(rows), f=len(files)))
+    with (out / "HOW_TO_BLASTP.md").open("x") as handle:
+        handle.write(HOW_TO.format(n=len(rows), f=len(files)))
     return manifest
 
 
@@ -167,8 +168,19 @@ BLASTp results are sequence similarity. They do not show that two fragments are 
 """
 
 
+def _admit_output_directory(out: Path) -> None:
+    """Reject stale/partial output before writing; publish each file exclusively.
+
+    Stable ordinary parent directories and no concurrent directory replacement
+    are required. A failed partial run is retained; retry in a fresh directory.
+    """
+    if out.is_symlink() or (out.exists() and (not out.is_dir() or any(out.iterdir()))):
+        raise FileExistsError(f"{out} is occupied or linked; choose a new or empty ordinary folder")
+    out.mkdir(parents=True, exist_ok=True)
+
+
 def _tsv(path: Path, cols: list[str], rows: list[dict]) -> None:
-    with open(path, "w", newline="") as fh:
+    with open(path, "x", newline="") as fh:
         w = SafeDictWriter(fh, fieldnames=cols, delimiter="\t", extrasaction="ignore")
         w.writeheader()
         for r in rows:
@@ -193,17 +205,26 @@ def blastp_layer(manifest_path: str | Path, hit_tables: Iterable[str | Path] = (
     xml: dict[str, dict[str, Any]] = {}
     for x in xml2s:
         xml.update(parse_xml2(x))
-    if hits and xml:
-        hits = merge_hit_xml(hits, xml)
-    key = lambda qid: (parse_query_id(qid).get("bgc_id"), parse_query_id(qid).get("gene"))
-    wanted = {(p["bgc_id"], parse_query_id(p["query_header"]).get("gene")) for p in m["proteins"]}
-    table_best = {key(q): r for q, r in best_hits_by_query(hits).items()}
-    xml_by = {key(q): v for q, v in xml.items()}
+    # Bind the complete emitted header before the shared parser's fallback merge.
+    # BGC aliases and gene tags are routinely reused in other genomes/loci.
+    key = lambda qid: parse_query_id(qid)["query_id"]
+    headers = [key(p["query_header"]) for p in m["proteins"]]
+    if any(not h for h in headers) or len(headers) != len(set(headers)):
+        raise ValueError("RGGMCI_MANIFEST_QUERY_MISSING_OR_DUPLICATE")
+    wanted = set(headers)
     unmapped = sorted({q for q in [h.query_id for h in hits] + list(xml) if key(q) not in wanted})
+    hits = [h for h in hits if key(h.query_id) in wanted]
+    xml = {q: value for q, value in xml.items() if key(q) in wanted}
+    xml_by = {key(q): v for q, v in xml.items()}
+    # Keep the shared accession enrichment, but provide only the exact query's XML.
+    # Even two admitted queries can reuse an alias/gene on different loci.
+    hits = [merge_hit_xml([h], {h.query_id: xml_by[key(h.query_id)]})[0]
+            if key(h.query_id) in xml_by else h for h in hits]
+    table_best = {key(q): r for q, r in best_hits_by_query(hits).items()}
 
     prot_rows: list[dict] = []
     for p in m["proteins"]:
-        k = (p["bgc_id"], parse_query_id(p["query_header"]).get("gene"))
+        k = key(p["query_header"])
         xq = xml_by.get(k)
         xhits = sorted(xq["hits"], key=lambda h: -(h.get("bitscore") or 0)) if xq else []
         if excl:
@@ -265,7 +286,7 @@ def blastp_layer(manifest_path: str | Path, hit_tables: Iterable[str | Path] = (
 
 def write_layer(layer: dict[str, Any], out_dir: str | Path) -> None:
     out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=True)
+    _admit_output_directory(out)
     pc = ["bgc_id", "node_id", "antismash_region", "locus_tag", "selection_role", "gene_kind", "antismash_product",
           "aa_len", "blastp_status", "top_identity", "top_query_coverage", "top_evalue", "top_subject", "top_organism",
           "top_title", "top_organisms", "pairs"]
@@ -274,4 +295,5 @@ def write_layer(layer: dict[str, Any], out_dir: str | Path) -> None:
         "proteins", "with_hits", "no_hits", "not_in_results", "median_top_identity")] + [
         "organisms_with_homologs_of_both", "shared_organisms"]
     _tsv(out / "blastp_pairs.tsv", qc, layer["pairs"])
-    (out / "blastp_layer.json").write_text(json.dumps(layer, indent=1, default=str) + "\n")
+    with (out / "blastp_layer.json").open("x") as handle:
+        handle.write(json.dumps(layer, indent=1, default=str) + "\n")

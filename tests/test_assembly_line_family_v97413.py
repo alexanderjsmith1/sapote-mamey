@@ -47,13 +47,13 @@ def test_assembly_line_widget_exposes_discover_and_all():
 def test_discover_finds_every_strain_with_the_modules_table(tmp_path):
     """discover() keys on the same table the reader needs, so --all cannot over-promise."""
     m = _load("assembly_line_widget")
-    for s in ("AS-001", "AS-002"):
+    for s in ("SYNTHETIC-CASE-001", "SYNTHETIC-CASE-002"):
         d = tmp_path / s / "package"
         d.mkdir(parents=True)
         (d / f"{s}_3_antismash_modules.csv").write_text("x\n", encoding="utf-8")
     (tmp_path / "AS-003" / "package").mkdir(parents=True)      # no table -> must not appear
     found = m.discover(str(tmp_path))
-    assert set(found) == {"AS-001", "AS-002"}, f"discover() returned {sorted(found)}"
+    assert set(found) == {"SYNTHETIC-CASE-001", "SYNTHETIC-CASE-002"}, f"discover() returned {sorted(found)}"
 
 
 def test_cli_assembly_line_widget_accepts_all():

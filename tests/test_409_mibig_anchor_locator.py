@@ -25,6 +25,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # tree root, if run from lane
 from tools import bigscape_mibig_anchors as A  # noqa: E402  (point sys.path at the tree under test)
 
+if __package__ in (None, ""):
+    from _synthetic_identity_fixture import synthetic_namespace_id
+else:
+    from tests._synthetic_identity_fixture import synthetic_namespace_id
+_FORMAT_CASE_1 = synthetic_namespace_id('AS', width=2, case_index=80)
+
 
 # --------------------------------------------------------------------------- parse_strain (core fix)
 
@@ -43,8 +49,8 @@ def test_rif_wgs_accession_contig_now_binds():
 
 def test_spades_node_contig_unchanged():
     # Regression guard: AS-/SID over SPAdes NODE_ contigs is byte-identical to v9.7.408.
-    strain, locator = A.parse_strain("/x/AS-40_NODE_402_length_4883_cov_73.020183.region001.gbk")
-    assert strain == "AS-40"
+    strain, locator = A.parse_strain(f"/x/{_FORMAT_CASE_1}_NODE_402_length_4883_cov_73.020183.region001.gbk")
+    assert strain == f"{_FORMAT_CASE_1}"
     assert locator == "NODE_402_length_4883_cov_73.020183.region001"
     s2, l2 = A.parse_strain("/x/SID12_NODE_7_length_100_cov_5.5.region003.gbk")
     assert s2 == "SID12"

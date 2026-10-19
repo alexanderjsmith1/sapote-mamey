@@ -1,5 +1,6 @@
 """test_exclusion_gate_integration.py — end-to-end proof that a hard-excluded strain
 cannot validate as a GOVERNED sealed package (AMBER_EXCLUSION_HARDENING, .353 candidate).
+The exclusion states below come from the bound authored cohort-pack fixture, not empirical subjects.
 
 The 12 unit tests in test_exclusion_gate.py exercise the gate module in isolation. This
 integration test drives the real ``validate.validate_package`` over a minimal on-disk sealed
@@ -12,7 +13,7 @@ both make ``validate_package`` report ``exclusion_gate == FAIL`` and overall
 ``status == FAIL``, with AS-920 named in the offenders.
 
 Fail-closed: on the pre-fix .352 validator there is no ``exclusion_gate`` key at all, so the
-``== "FAIL"`` assertions fail. A clean AS-40 control package must report the gate as PASS, so
+``== "FAIL"`` assertions fail. A clean SYNTHETIC-CONTROL-A control package must report the gate as PASS, so
 the gate is not merely always-FAIL.
 
 stdlib + pytest + openpyxl (a shipped dep). No network, no engine run.
@@ -52,7 +53,7 @@ def test_excluded_strain_package_fails_validation(tmp_path):
     pkg = _make_package(
         tmp_path / "AS-920_package",
         strain_id="AS-920",
-        master_rows=[["AS-40", "AS-40_BGC1", "NRPS"],
+        master_rows=[["SYNTHETIC-CONTROL-A", "SYNTHETIC-CONTROL-A_BGC1", "NRPS"],
                      ["AS-920", "AS-920_BGC3", "RiPP"]],  # excluded strain leaked into master
     )
     result = validate.validate_package(str(pkg))
@@ -76,10 +77,10 @@ def test_clean_governed_package_passes_the_exclusion_gate(tmp_path):
     # proving the gate is discriminating rather than always-FAIL. (Overall status may still
     # be FAIL/JUDGMENT_PENDING on other completeness gates — we only assert the exclusion gate.)
     pkg = _make_package(
-        tmp_path / "AS-40_package",
-        strain_id="AS-40",
-        master_rows=[["AS-40", "AS-40_BGC1", "NRPS"],
-                     ["AS-696", "AS-696_BGC2", "PKS"]],
+        tmp_path / "SYNTHETIC-CONTROL-A_package",
+        strain_id="SYNTHETIC-CONTROL-A",
+        master_rows=[["SYNTHETIC-CONTROL-A", "SYNTHETIC-CONTROL-A_BGC1", "NRPS"],
+                     ["SYNTHETIC-CONTROL-B", "SYNTHETIC-CONTROL-B_BGC2", "PKS"]],
     )
     result = validate.validate_package(str(pkg))
     assert result.get("exclusion_gate") == "PASS", \

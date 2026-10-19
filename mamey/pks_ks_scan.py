@@ -18,6 +18,7 @@ too. The channel emits `KS_CLADE_LINK` candidates only; promotion requires the R
 guided linkage, not nucleotide joining. Judgment deferred.
 """
 from __future__ import annotations
+from .source_context import source_zipfile as _source_zipfile
 
 try:  # pragma: no cover - import shape depends on package vs direct-script use
     from .console import emit
@@ -137,7 +138,7 @@ def run_pks_ks_scan(input_zip, bgcs=None, threshold=DEFAULT_THRESHOLD):
         raise ValueError(f"KS containment threshold must be a finite number in [0, 1]; got {threshold!r}")
     doms = []
     try:
-        with zipfile.ZipFile(input_zip) as zf:
+        with _source_zipfile(input_zip) as zf:
             for n in _regions(zf):
                 t = zf.read(n).decode("utf-8", "replace")
                 r = re.search(r"\.region(\d+)\.gbk$", n, re.I)

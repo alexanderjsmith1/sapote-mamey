@@ -30,13 +30,159 @@ from _release_workflow import Stage, Workflow
 from release_validate import Outcome, retries
 
 
+class RegistryRefused(support.ValidationRefused):
+    """Typed, redacted high-level registry admission; never a disclosure decision."""
+    def __init__(self, state, message):
+        super().__init__(message)
+        self.state = state
+        self.code = 1 if state == 'FAIL' else 2
+
+
+def registry_selection(source: Path, args) -> dict | None:
+    """Bind only four explicit options; no inherited selection or local discovery."""
+    values = {name: getattr(args, 'synthetic_' + name, None)
+              for name in ('registry', 'registry_sha256', 'guard_sha256', 'allowlist_sha256')}
+    if all(value is None for value in values.values()):
+        return None
+    if not all(values.values()):
+        raise RegistryRefused('HOLD', 'registry admission HOLD: supply all four explicit synthetic registry/guard/list options')
+    registry = Path(values['registry'])
+    if not registry.is_absolute():
+        raise RegistryRefused('HOLD', 'registry admission HOLD: the explicit metadata path must be absolute')
+    for name in ('registry_sha256', 'guard_sha256', 'allowlist_sha256'):
+        if re.fullmatch('[0-9a-fA-F]{64}', values[name]) is None:
+            raise RegistryRefused('HOLD', 'registry admission HOLD: selected digests must be 64 hexadecimal characters')
+    selected = {'registry_path': str(registry), **{name: values[name].lower()
+                for name in ('registry_sha256', 'guard_sha256', 'allowlist_sha256')}}
+    expected = {'guard_sha256': 'synthetic_id_registry_guard.py',
+                'allowlist_sha256': 'test_synthetic_ids.txt', 'helper_sha256': 'verify_export_registry.py'}
+    for field, filename in expected.items():
+        path = source / 'tools' / filename
+        if not path.is_file() or path.is_symlink():
+            raise RegistryRefused('HOLD', 'registry admission HOLD: selected source helper/guard/list is unavailable; reconcile its owner first')
+        digest = support.sha256_file(path)
+        if field in selected and digest != selected[field]:
+            raise RegistryRefused('HOLD', 'registry admission HOLD: selected source guard/list digest mismatch')
+        selected[field] = digest
+    return selected
+
+
+def registry_options(selected: dict | None) -> tuple[str, ...]:
+    """Forward the same declared source/metadata choices to every caller boundary."""
+    if selected is None:
+        return ()
+    return tuple(value for flag, key in (
+        ('--synthetic-registry', 'registry_path'),
+        ('--synthetic-registry-sha256', 'registry_sha256'),
+        ('--synthetic-guard-sha256', 'guard_sha256'),
+        ('--synthetic-allowlist-sha256', 'allowlist_sha256')) for value in (flag, selected[key]))
+
+
+def registry_context(selected: dict | None) -> dict:
+    """Keep expected digests in the stage definition, without printing a locator."""
+    if selected is None:
+        return {'state': 'NOT_REQUESTED', 'diagnostic_status': 'NOT_RUN',
+                'selected_hashes_verified': False, 'fixture_role_clearance': 'NOT_EVALUATED',
+                'source_disclosure_clearance': 'NOT_EVALUATED'}
+    return {name: value for name, value in selected.items() if name != 'registry_path'} | {
+        'registry_locator_sha256': hashlib.sha256(selected['registry_path'].encode()).hexdigest(),
+        'state': 'SELECTED', 'diagnostic_status': 'REQUESTED',
+        'scope': 'explicit selected synthetic-list snapshot only',
+        'fixture_role_clearance': 'HOLD', 'source_disclosure_clearance': 'HOLD'}
+
+
+def registry_inputs(selected: dict | None) -> tuple[dict, ...]:
+    """External metadata stays in place; generic workflow checks it before/after stages."""
+    if selected is None:
+        return ()
+    return ({'path': selected['registry_path'], 'sha256': selected['registry_sha256']},)
+
+
+def selected_interpreter(python: str) -> tuple[Path, dict]:
+    """Match the exporter compatibility response without resolving a venv prefix."""
+    try:
+        locator = support.resolve_interpreter(python)
+        probe = subprocess.run([str(locator), '-B', '-c',
+            'import sys; supported = sys.version_info >= (3, 12); sys.stdout.write("SAPOTE_EXPORT_PYTHON_3_12_PLUS" if supported else ""); raise SystemExit(0 if supported else 2)'],
+            capture_output=True, text=True, timeout=5)
+        if probe.returncode != 0 or probe.stdout != 'SAPOTE_EXPORT_PYTHON_3_12_PLUS':
+            raise ValueError('compatibility response refused')
+    except (OSError, ValueError, subprocess.SubprocessError):
+        raise RegistryRefused('HOLD', 'registry admission HOLD: select one installed compatible Python3.12+ executable') from None
+    return locator, {'locator_sha256': hashlib.sha256(str(locator).encode()).hexdigest(),
+                     'binary_sha256': support.sha256_file(locator),
+                     'compatibility_response': 'SAPOTE_EXPORT_PYTHON_3_12_PLUS'}
+
+
+def registry_preflight(source: Path, selected: dict | None, python: str) -> tuple[dict, int]:
+    """Run only a selected diagnostic; absence grants no synthetic-role clearance."""
+    if selected is None:
+        return {'schema': 'sapote.high-level-registry-admission.v1',
+                'state': 'NOT_REQUESTED', 'diagnostic_status': 'NOT_RUN',
+                'selected': registry_context(None), 'selected_hashes_verified': False,
+                'fixture_role_clearance': 'NOT_EVALUATED',
+                'source_disclosure_clearance': 'NOT_EVALUATED'}, 0
+    source = source.resolve(strict=True)
+    for field, filename in (('helper_sha256', 'verify_export_registry.py'),
+                            ('guard_sha256', 'synthetic_id_registry_guard.py'),
+                            ('allowlist_sha256', 'test_synthetic_ids.txt')):
+        path = source / 'tools' / filename
+        if not path.is_file() or path.is_symlink() or support.sha256_file(path) != selected[field]:
+            raise RegistryRefused('HOLD', 'registry admission HOLD: selected source/stage helper, guard or list changed')
+    before = partitions.source_digest(source)
+    locator, interpreter = selected_interpreter(python)
+    environment = partitions.test_environment(source, workflow_environment(str(locator), source))
+    command = [str(locator), '-B', str(source / 'tools/verify_export_registry.py'),
+               '--root', str(source), '--registry', selected['registry_path'],
+               '--registry-sha256', selected['registry_sha256'], '--guard-sha256', selected['guard_sha256'],
+               '--allowlist-sha256', selected['allowlist_sha256']]
+    try:
+        process = subprocess.run(command, cwd=source, env=environment, capture_output=True,
+                                 text=True, timeout=30)
+        data = json.loads(process.stderr.strip())
+    except (OSError, ValueError, subprocess.SubprocessError):
+        raise RegistryRefused('HOLD', 'registry admission HOLD: selected owner invocation or redacted result contract refused') from None
+    if not isinstance(data, dict):
+        raise RegistryRefused('HOLD', 'registry admission HOLD: selected owner result contract refused')
+    state = data.get('state')
+    code = {'PASS_BOUND_SNAPSHOT': 0, 'FAIL': 1, 'HOLD': 2}.get(state)
+    count = data.get('collision_count', 0)
+    if (process.stdout or data.get('schema') != 'sapote.export-registry-preflight.v1'
+            or code is None or process.returncode != code or type(count) is not int or count < 0
+            or (state == 'PASS_BOUND_SNAPSHOT' and count)
+            or (state in {'PASS_BOUND_SNAPSHOT', 'FAIL'} and any(data.get(key) != selected[key]
+                for key in ('registry_sha256', 'guard_sha256', 'allowlist_sha256')))):
+        raise RegistryRefused('HOLD', 'registry admission HOLD: selected owner result contract refused')
+    if partitions.source_digest(source) != before:
+        raise RegistryRefused('HOLD', 'registry admission HOLD: source/stage changed during admission')
+    # Never echo child stderr, issues, registry paths or row identities. Expected
+    # selections are marked verified only after a positive bounded owner result.
+    record = {'schema': 'sapote.high-level-registry-admission.v1', 'state': state,
+              'selected': registry_context(selected), 'selected_hashes_verified': state == 'PASS_BOUND_SNAPSHOT',
+              'source_tree_sha256': before,
+              'environment_sha256': hashlib.sha256(support.canonical_json(environment)).hexdigest(),
+              'interpreter': interpreter, 'collision_count': count, 'fixture_role_clearance': 'HOLD', 'source_disclosure_clearance': 'HOLD'}
+    return record, code
+
+
+def require_registry_preflight(source, selected, python):
+    record, code = registry_preflight(source, selected, python)
+    if code:
+        raise RegistryRefused(record['state'], 'registry admission ' + record['state'] + ': preserve selected bindings; resolve the guard finding without exemptions')
+    return record
+
+
 INTEGRITY_FILES = ('TIER_MANIFEST.txt', 'SOURCE_CHECKSUMS_SHA256.txt')
 GENERATED_FILES = ('pyproject.toml', 'BUILD_STAMP.txt', 'CHANGELOG.md', 'mamey/__init__.py',
                    'AGENTS.md', 'CLAUDE.md', 'README.md', 'MODULE_MANIFEST.txt',
                    'docs/BOOTSTRAP_FILE_AUDIT.md', 'docs/COMMAND_CATALOG.generated.md',
                    'docs/DELIVERABLE_MENU.md', 'docs/DELIVERABLE_MENU_v97146.md',
                    'docs/TOOLS_INVENTORY.generated.md', 'docs/BUNDLE_CAPABILITIES.md',
-                   'docs/MAINTENANCE_INVENTORY.generated.json', 'docs/MAINTENANCE_INVENTORY.generated.md')
+                   'docs/MAINTENANCE_INVENTORY.generated.json', 'docs/MAINTENANCE_INVENTORY.generated.md',
+                   'docs/FILE_ATLAS.csv', 'docs/FILE_ATLAS.md',
+                   'docs/reference/01_Math_Reference_VolI.md',
+                   'docs/reference/02_Math_Reference_VolII.md',
+                   'docs/reference/03_Plumbing_Reference.md')
 
 
 def preparation_outputs(source: Path) -> tuple[str, ...]:
@@ -62,17 +208,19 @@ def preparation_outputs(source: Path) -> tuple[str, ...]:
     return tuple(sorted(paths))
 
 
-def plan(source: Path, version: str, date: str, letter: str, files: int) -> tuple[Stage, ...]:
+def plan(source: Path, version: str, date: str, letter: str, files: int, registry: dict | None = None) -> tuple[Stage, ...]:
     """Declare exact source mutations and retain separate source/artifact validation."""
     base = ('{PYTHON}', '{SOURCE}/tools/release_workflow.py', '_step', '--source', '{SOURCE}',
-            '--out', '{OUT}', '--files-per-partition', str(files))
+            '--out', '{OUT}', '--python', '{PYTHON}', '--files-per-partition', str(files), *registry_options(registry))
     def step(name, **kwargs):
         argv = (*base, '--step', name)
         return Stage(name, argv, retry_argv=(*argv, '--retry-reason', '{RETRY_REASON}'), **kwargs)
     def shell(name, phase, **kwargs):
         return Stage(name, ('/usr/bin/env', 'RELEASE_WORKFLOW_PHASE='+phase, 'RELEASE_DATE='+date,
-            'CUT_TIERS=code', 'bash', '{SOURCE}/tools/release_cut.sh', version, '{SOURCE}', '{OUT}/packages', letter), **kwargs)
+            'CUT_TIERS=code', 'bash', '{SOURCE}/tools/release_cut.sh', version, '{SOURCE}', '{OUT}/packages', letter, *registry_options(registry)), **kwargs)
     return (
+        Stage('registry-preflight', ('{PYTHON}', '{SOURCE}/tools/release_workflow.py', '_registry',
+              '--source', '{SOURCE}', '--python', '{PYTHON}', *registry_options(registry))),
         shell('prepare', 'prepare', source_changes=preparation_outputs(source)),
         shell('integrity-baseline', 'integrity', source_changes=INTEGRITY_FILES),
         step('imports-precheck', output_trees=('imports-precheck',)),
@@ -89,8 +237,9 @@ def plan(source: Path, version: str, date: str, letter: str, files: int) -> tupl
     )
 
 
-def run_partitions(source: Path, output: Path, files: int, *, baseline=False, reason=None):
+def run_partitions(source: Path, output: Path, files: int, *, baseline=False, reason=None, python: str | None = None):
     """Yield the measured result; resume requires the outer explicit disposition."""
+    selected_python = sys.executable if python is None else python
     resume = output.exists()
     retry = {}
     if resume:
@@ -105,7 +254,7 @@ def run_partitions(source: Path, output: Path, files: int, *, baseline=False, re
         for entry in record.get('partitions', []):
             if entry.get('status') not in {expected, 'PENDING'}:
                 retry[entry['plan']['id']] = reason
-    runner = partitions.PartitionRunner(source, output, sys.executable, files_per_partition=files, baseline=baseline)
+    runner = partitions.PartitionRunner(source, output, selected_python, files_per_partition=files, baseline=baseline)
     result = runner.run(resume=resume, retry=retry)
     yield Outcome(('RELEASE BASELINE: ' if baseline else 'RELEASE PARTITIONS: ') + result['status'])
     return result
@@ -116,31 +265,33 @@ def checked(command: list[str], source: Path):
     subprocess.run(command, cwd=source, check=True)
 
 
-def verified_final(source: Path, output: Path, admission: Path):
+def verified_final(source: Path, output: Path, admission: Path, *, python: str | None = None):
     """Re-admit the actual environment and verify the final partition evidence."""
+    selected_python = sys.executable if python is None else python
     return partitions.verified_counts(source, output/'final/partition.json',
-        support.sha256_file(output/'final/partition.json'), python=sys.executable, admission_output=admission)
+        support.sha256_file(output/'final/partition.json'), python=selected_python, admission_output=admission)
 
 
-def run_import_stage(source: Path, output: Path):
+def run_import_stage(source: Path, output: Path, *, python: str | None = None):
     """Keep every controlled import attempt; a held roster cannot advance a cut."""
+    selected_python = sys.executable if python is None else python
     attempt = output/uuid.uuid4().hex
     attempt.mkdir(parents=True)
-    environment = workflow_environment(sys.executable,source)
-    report = imports.run_import_smoke(source, attempt/'smoke', sys.executable, env=environment)
+    environment = workflow_environment(selected_python,source)
+    report = imports.run_import_smoke(source, attempt/'smoke', selected_python, env=environment)
     receipt = attempt/'smoke/import-smoke.json'
     reference = {'path':receipt.relative_to(output).as_posix(),'sha256':support.sha256_file(receipt)}
     support.atomic_json(output/'current.json',{'schema':'sapote-mamey.workflow-import-stage.v1',
                                              'status':report['status'],'receipt':reference})
-    contract.require(report['status']=='PASS', 'complete import roster is '+report['status']+'; inspect '+str(receipt))
+    contract.require(report['status'] in imports.IMPORT_READY_STATES, 'complete import roster is '+report['status']+'; inspect '+str(receipt))
     imports.verify_import_receipt(source,receipt,reference['sha256'],report['environment_identity_sha256'],env=environment)
-    yield Outcome('CONTROLLED IMPORT STAGE: PASS — '+str(output/'current.json'))
+    yield Outcome('CONTROLLED IMPORT STAGE: '+report['status']+' — '+str(output/'current.json'))
 
 
 def verify_current_imports(source: Path, output: Path, admission: Path, *, python: str | None = None):
     """Fresh environment admission precedes consumption of the exact active import record."""
     current = json.loads((output/'current.json').read_text())
-    contract.require(current.get('schema')=='sapote-mamey.workflow-import-stage.v1' and current.get('status')=='PASS',
+    contract.require(current.get('schema')=='sapote-mamey.workflow-import-stage.v1' and current.get('status') in imports.IMPORT_READY_STATES,
                      'current complete import stage is not PASS')
     receipt, _ = partitions.read_artifact(output,current.get('receipt'))
     selected_python = sys.executable if python is None else python
@@ -148,13 +299,15 @@ def verify_current_imports(source: Path, output: Path, admission: Path, *, pytho
     environment = support.admit_environment(selected_python,output=admission,env=partitions.test_environment(source,consumer_env))
     contract.require(environment['status']=='READY','current import-consumer environment refused')
     summary = imports.verify_import_receipt(source,receipt,current['receipt']['sha256'],environment['identity_sha256'],env=consumer_env)
+    contract.require(summary['status']==current['status'],'current import status differs from verified receipt')
     support.atomic_json(admission/'import-verification.json',{'status':'VERIFIED_IMPORTS',
                        'receipt_sha256':current['receipt']['sha256'],'summary':summary})
     return summary
 
 
-def artifact_stage(source: Path, output: Path, files: int, reason: str | None):
+def artifact_stage(source: Path, output: Path, files: int, reason: str | None, registry: dict | None = None, *, python: str | None = None):
     """Verify and extract the exact built ZIP, then independently test its full roster."""
+    selected_python = sys.executable if python is None else python
     root = output/'artifact'; receipt = root/'artifact.json'; extracted = root/'source'
     archives = list((output/'packages/code').glob('*.zip'))
     contract.require(len(archives) == 1, 'CODE artifact is missing or ambiguous')
@@ -194,16 +347,17 @@ def artifact_stage(source: Path, output: Path, files: int, reason: str | None):
     record = json.loads(receipt.read_text())
     contract.require(record['archive_sha256'] == support.sha256_file(archive)
         and record['extracted_source_sha256'] == partitions.source_digest(extracted), 'extracted artifact drift')
-    checked([sys.executable, 'tools/check_release_manifest.py', '--root', '.', '--quiet'], extracted)
-    checked([sys.executable, 'tools/verify_release_identity.py', '--strict-membership'], extracted)
+    require_registry_preflight(extracted, registry, selected_python)
+    checked([selected_python, 'tools/check_release_manifest.py', '--root', '.', '--quiet'], extracted)
+    checked([selected_python, 'tools/verify_release_identity.py', '--strict-membership'], extracted)
     current = root/'imports/current.json'
-    if not current.is_file() or json.loads(current.read_text()).get('status')!='PASS':
-        yield from run_import_stage(extracted, root/'imports')
-    import_summary = verify_current_imports(extracted,root/'imports',root/'import-admissions'/uuid.uuid4().hex)
-    result = yield from run_partitions(extracted, root/'validation', files, reason=reason)
+    if not current.is_file() or json.loads(current.read_text()).get('status') not in imports.IMPORT_READY_STATES:
+        yield from run_import_stage(extracted, root/'imports', python=selected_python)
+    import_summary = verify_current_imports(extracted,root/'imports',root/'import-admissions'/uuid.uuid4().hex, python=selected_python)
+    result = yield from run_partitions(extracted, root/'validation', files, reason=reason, python=selected_python)
     record.update(status='EXTRACTED_SUITE_PASS', partition_receipt={
         'path':'validation/partition.json', 'sha256':support.sha256_file(root/'validation/partition.json')},
-        summary=result['totals'], import_safety={'status':'PASS','summary':import_summary,
+        summary=result['totals'], import_safety={'status':import_summary['status'],'summary':import_summary,
                                                'current_sha256':support.sha256_file(current)})
     support.atomic_json(receipt, record)
 
@@ -213,29 +367,29 @@ def execute_step(args):
     source = args.source.resolve(); output = args.out.resolve(); name = args.step
     directory = output/name
     if name in {'imports-precheck','imports-final'}:
-        yield from run_import_stage(source,directory)
+        yield from run_import_stage(source,directory, python=args.python)
         return
     if name in {'baseline', 'final'}:
-        yield from run_partitions(source, directory, args.files_per_partition, baseline=name == 'baseline', reason=args.retry_reason)
+        yield from run_partitions(source, directory, args.files_per_partition, baseline=name == 'baseline', reason=args.retry_reason, python=args.python)
         return
     if name == 'artifact':
-        yield from artifact_stage(source, output, args.files_per_partition, args.retry_reason)
+        yield from artifact_stage(source, output, args.files_per_partition, args.retry_reason, registry_selection(source, args), python=args.python)
         return
     # A retried non-partition step keeps each admission/log under its own UUID.
     attempt = directory/uuid.uuid4().hex
     attempt.mkdir(parents=True)
     if name == 'convergence':
         receipt = output/'baseline/partition.json'
-        checked([sys.executable, 'tools/gen_release_manifest.py', '--fixed-point', '--partition-baseline', str(receipt),
+        checked([args.python, 'tools/gen_release_manifest.py', '--python', args.python, '--fixed-point', '--partition-baseline', str(receipt),
             '--partition-receipt-sha256', support.sha256_file(receipt), '--partition-admission', str(attempt/'admission')], source)
     elif name == 'manifest-check':
         receipt = output/'final/partition.json'
-        checked([sys.executable, 'tools/gen_release_manifest.py', '--check', '--partition-receipt', str(receipt),
+        checked([args.python, 'tools/gen_release_manifest.py', '--python', args.python, '--check', '--partition-receipt', str(receipt),
             '--partition-receipt-sha256', support.sha256_file(receipt), '--partition-admission', str(attempt/'admission')], source)
     elif name == 'prepackage':
         yield Outcome('gate: recheck partition evidence immediately before package construction')
-        counts, _ = verified_final(source, output, attempt/'admission')
-        import_summary = verify_current_imports(source,output/'imports-final',attempt/'import-admission')
+        counts, _ = verified_final(source, output, attempt/'admission', python=args.python)
+        import_summary = verify_current_imports(source,output/'imports-final',attempt/'import-admission', python=args.python)
         support.atomic_json(attempt/'verified.json', {'status':'VERIFIED', 'main_passed':counts['passed'],
             'skipped_including_collection':counts['skipped'],'import_safety':import_summary})
     else:
@@ -246,23 +400,28 @@ def execute_step(args):
 def workflow_environment(python: str, source: Path) -> dict[str, str]:
     """Normalize orchestration switches; the stage definition binds these choices."""
     env = dict(os.environ)
+    contract.require(not env.get("PYTEST_ADDOPTS"),
+                     "PYTEST_ADDOPTS overrides the release test profile; unset it and retry before source preparation.")
     for key in ('RELEASE_WORKFLOW_RESUME', 'RELEASE_WORKFLOW_RETRY', 'RELEASE_PYTEST_MODE',
                 'RELEASE_DATE', 'RELEASE_PARTITION_FILES', 'CUT_TIERS', 'RELEASE_WORKFLOW_PHASE',
                 'SHLVL', 'OLDPWD', '_'):
         env.pop(key, None)
     env['PWD'] = str(source.resolve(strict=True))
-    interpreter_bin = str(support.resolve_interpreter(python).parent)
+    selected_python = support.resolve_interpreter(python)
+    env['PYTHON'] = str(selected_python)
+    interpreter_bin = str(selected_python.parent)
     env['PATH'] = os.pathsep.join([interpreter_bin, *[entry for entry in env.get('PATH','').split(os.pathsep)
                                                    if entry != interpreter_bin]])
     return env
 
 
-def cut_context(version: str, date: str, letter: str, files: int) -> dict:
+def cut_context(version: str, date: str, letter: str, files: int, registry: dict | None = None) -> dict:
     """Keep release identity and unresolved adoption requirements in the root record."""
     return {'profile':'configured-full-suite-partitioned-cut', 'bundle_version':version,
         'date':date, 'letter':letter, 'files_per_partition':files,
         'build_stamp':date+'v'+version.replace('.', '')+letter, 'seal_status':'NOT_RUN',
-        'linux_py312_ci':'NOT_RUN_LOCALLY', 'import_safety':'REQUIRED_COMPLETE_SOURCE_AND_ARTIFACT'}
+        'linux_py312_ci':'NOT_RUN_LOCALLY', 'import_safety':'REQUIRED_COMPLETE_SOURCE_AND_ARTIFACT',
+        'registry_selection':registry_context(registry)}
 
 
 def parse_args(argv=None):
@@ -278,29 +437,51 @@ def parse_args(argv=None):
     verify.add_argument('--sha256', required=True)
     verify.add_argument('--admission', required=True, type=Path)
     verify.add_argument('--python', default=sys.executable)
+    registry = subs.add_parser('_registry', help='Explicit redacted registry admission only; no source mutation')
+    registry.add_argument('--source', type=Path, required=True)
+    registry.add_argument('--python', default=sys.executable)
     step = subs.add_parser('_step')
     step.add_argument('--step', choices=['imports-precheck','baseline','convergence','imports-final',
                                        'final','manifest-check','prepackage','artifact'], required=True)
     step.add_argument('--retry-reason')
+    step.add_argument('--python', default=sys.executable)
     for sub in (cut, step, verify):
         sub.add_argument('--source', type=Path, required=True); sub.add_argument('--out', type=Path, required=True)
         sub.add_argument('--files-per-partition', type=int, default=20)
+    for sub in (cut, step, verify, registry):
+        sub.add_argument('--synthetic-registry', type=Path, help='Optional diagnostic: select this external TSV and all three digest options; never discovered. Omit all four for NOT_REQUESTED/NOT_RUN')
+        sub.add_argument('--synthetic-registry-sha256')
+        sub.add_argument('--synthetic-guard-sha256')
+        sub.add_argument('--synthetic-allowlist-sha256')
     return parser.parse_args(argv)
 
 
 def command_events(args):
     """Stream ordered command outcomes, including refusals after prior progress."""
     try:
+        if args.operation == '_registry':
+            source = args.source.resolve(strict=True)
+            record, code = registry_preflight(source, registry_selection(source, args), args.python)
+            yield Outcome(json.dumps(record, sort_keys=True), code, stderr=True)
+            return
         if args.operation == '_step':
             yield from execute_step(args)
             return
         if args.operation == 'verify':
             record_path = args.out/'workflow.json'
             contract.require(support.sha256_file(record_path) == args.sha256, 'workflow root SHA-256 mismatch')
-            recorded = json.loads(record_path.read_text())['context']
-            context = cut_context(recorded['bundle_version'], recorded['date'], recorded['letter'], recorded['files_per_partition'])
-            stages = plan(args.source.resolve(strict=True), recorded['bundle_version'], recorded['date'], recorded['letter'], recorded['files_per_partition'])
-            workflow = Workflow(args.source, args.out, stages, args.python, env=workflow_environment(args.python, args.source), context=context)
+            root_record = json.loads(record_path.read_text())
+            recorded = root_record.get('context') if isinstance(root_record, dict) else None
+            if not isinstance(recorded, dict):
+                raise RegistryRefused('HOLD', 'registry admission HOLD: workflow selection missing or legacy record is unbound')
+            selected = registry_selection(args.source.resolve(strict=True), args)
+            if recorded.get('registry_selection') != registry_context(selected):
+                raise RegistryRefused('HOLD', 'registry admission HOLD: workflow selection differs or legacy record is unbound')
+            require_registry_preflight(args.source.resolve(strict=True), selected, args.python)
+            require_registry_preflight(args.out.resolve()/'artifact/source', selected, args.python)
+            context = cut_context(recorded['bundle_version'], recorded['date'], recorded['letter'], recorded['files_per_partition'], selected)
+            stages = plan(args.source.resolve(strict=True), recorded['bundle_version'], recorded['date'], recorded['letter'], recorded['files_per_partition'], selected)
+            workflow = Workflow(args.source, args.out, stages, args.python, env=workflow_environment(args.python, args.source), context=context, inputs=registry_inputs(selected))
             checked_record = workflow.verify(args.sha256, args.admission)
             verify_current_imports(args.source.resolve(),args.out/'imports-final',args.admission/'source-imports', python=args.python)
             verify_current_imports(args.out.resolve()/'artifact/source',args.out/'artifact/imports',args.admission/'artifact-imports', python=args.python)
@@ -314,12 +495,17 @@ def command_events(args):
         contract.require(args.seal_target is None or not (args.seal_target.exists() or args.seal_target.is_symlink()),
                          'seal target is occupied; no overwrite is allowed')
         source = args.source.resolve(strict=True)
-        stages = plan(source, args.version, args.date, args.letter, args.files_per_partition)
+        selected = registry_selection(source, args)
+        require_registry_preflight(source, selected, args.python)
+        stages = plan(source, args.version, args.date, args.letter, args.files_per_partition, selected)
         workflow = Workflow(source, args.out, stages, args.python, env=workflow_environment(args.python, source),
-            context=cut_context(args.version, args.date, args.letter, args.files_per_partition))
+            context=cut_context(args.version, args.date, args.letter, args.files_per_partition, selected),
+            inputs=registry_inputs(selected))
         result = yield from workflow.iter_run(resume=args.resume, retry=retries(args.retry))
         yield Outcome('RELEASE WORKFLOW: '+result['status']+' — '+str(args.out/'workflow.json')
                       + '\nAll declared stages completed; owner adoption and portability remain held. No seal or push performed.')
+    except RegistryRefused as exc:
+        yield Outcome('RELEASE WORKFLOW: '+str(exc), exc.code, stderr=True)
     except (ValueError, OSError, subprocess.SubprocessError, zipfile.BadZipFile) as exc:
         yield Outcome('RELEASE WORKFLOW: REFUSED: '+str(exc), 2, stderr=True)
 

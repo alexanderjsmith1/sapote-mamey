@@ -19,6 +19,7 @@ class below. Exclusions are DOCUMENTED and explicit — never a silent omission:
 """
 from __future__ import annotations
 
+import logging
 import re
 import sys
 import sys as _sys
@@ -53,6 +54,55 @@ _RELEASE_ARTIFACT_RE = re.compile(r"(?:SHA256SUMS[^/]*\.txt|cut_[^/]*_log\.txt)$
 # root-level files only (no "/" in the relative path) so a nested, real source ZIP is governed
 # like any other file; the release-cut's own single output ZIP (always root-level) is unaffected.
 _ROOT_LEVEL_ZIP_RE = re.compile(r"\.zip$")
+
+
+
+# Root-only default R device output names are dirty-source evidence, not an
+# integrity exclusion. Keep them tracked until the owner preserves/adjudicates
+# them; source/stage/export guards refuse them without deleting any bytes.
+_R_DEVICE_ROOT_RE = re.compile(
+    r"(?:Rplots\.(?:pdf|ps|svg)|Rplot[0-9]{3,}\.(?:pdf|ps|svg|png|jpe?g|tiff?|bmp))",
+    re.IGNORECASE,
+)
+
+
+def is_default_r_device_output(rel: str) -> bool:
+    """Reserve only root default-device names; named/nested figure assets remain governed."""
+    rel = rel.replace("\\", "/")
+    if rel.startswith("./"):
+        rel = rel[2:]
+    return "/" not in rel and _R_DEVICE_ROOT_RE.fullmatch(rel) is not None
+
+
+def root_default_r_device_outputs(root) -> list[str]:
+    """List reserved root entries without reading/following them or changing their bytes."""
+    import os
+    import pathlib
+    import stat
+    r = pathlib.Path(root)
+    mode = r.lstat().st_mode
+    if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
+        raise OSError("default-device guard requires a nonsymlink directory root")
+    with os.scandir(r) as entries:
+        return sorted(entry.name for entry in entries if is_default_r_device_output(entry.name))
+
+
+def check_default_r_device_outputs(root) -> int:
+    try:
+        names = root_default_r_device_outputs(root)
+    except OSError as exc:
+        logging.getLogger(__name__).error(
+            "REFUSED: root default R device output scan incomplete: %s; supply an existing nonsymlink directory root",
+            type(exc).__name__,
+        )
+        return 2
+    if names:
+        logging.getLogger(__name__).error(
+            "REFUSED: root default R device output present: %s; preserve/adjudicate before export; no bytes removed",
+            ", ".join(names),
+        )
+        return 2
+    return 0  # A successful library guard is silent; callers own their result surface.
 
 
 def is_tracked(rel: str) -> bool:
@@ -107,7 +157,9 @@ def _emit_manifest(root: str, tier: str, version: str, stamp: str) -> int:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "--check-default-r-device-outputs":
+        raise SystemExit(check_default_r_device_outputs(sys.argv[2]))
     if len(sys.argv) >= 6 and sys.argv[1] == "--emit-manifest":
         raise SystemExit(_emit_manifest(*sys.argv[2:6]))
-    sys.stderr.write("usage: tracked_file_policy.py --emit-manifest <root> <tier> <version> <stamp>\n")
+    sys.stderr.write("usage: tracked_file_policy.py --emit-manifest <root> <tier> <version> <stamp> OR --check-default-r-device-outputs <root>\n")
     raise SystemExit(2)

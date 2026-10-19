@@ -26,7 +26,7 @@ def test_matrix_excludes_saccharide_but_keeps_napaa():
 
 def test_matrix_drops_all_zero_columns():
     rows = [{"strain": "AS-1", "NRPS": 5, "PKS": 0, "other": 2},
-            {"strain": "AS-2", "NRPS": 3, "PKS": 0, "other": 1}]
+            {"strain": "SYNTHETIC-CASE-002", "NRPS": 3, "PKS": 0, "other": 1}]
     strains, classes, matrix = build_class_matrix(rows)
     assert "PKS" not in classes  # all-zero column dropped
     assert "NRPS" in classes
@@ -43,7 +43,7 @@ def test_matrix_values_preserved():
 def test_matrix_preserves_missing_separately_from_observed_zero():
     rows = [
         {"strain": "AS-1", "NRPS": 5, "PKS": "", "RiPP": 0},
-        {"strain": "AS-2", "NRPS": 3, "PKS": 2, "RiPP": 1},
+        {"strain": "SYNTHETIC-CASE-002", "NRPS": 3, "PKS": 2, "RiPP": 1},
     ]
     _, classes, matrix = build_class_matrix(rows)
     assert matrix[0][classes.index("PKS")] is None
@@ -53,7 +53,7 @@ def test_matrix_preserves_missing_separately_from_observed_zero():
 def test_matrix_treats_malformed_count_as_missing_not_zero():
     rows = [
         {"strain": "AS-1", "NRPS": "not-a-count"},
-        {"strain": "AS-2", "NRPS": 2},
+        {"strain": "SYNTHETIC-CASE-002", "NRPS": 2},
     ]
     _, classes, matrix = build_class_matrix(rows)
     assert matrix[0][classes.index("NRPS")] is None
@@ -133,8 +133,15 @@ def test_281_row_geometry_requires_a_browser_raster():
     assert int(height_in * screen_dpi) <= _BROWSER_SAFE_MAX_EDGE_PX  # screen raster fits the browser
 
 
+def _merge_child_page_text_observations(request, observations):
+    parent_guard = getattr(request.config, "_page_text_ratchet", None)
+    if parent_guard is not None:
+        parent_guard.seen_dirty.update(observations["seen_dirty"])
+        parent_guard.seen_clean.update(observations["seen_clean"])
+
+
 @pytest.mark.slow
-def test_large_cohort_emits_screen_raster(tmp_path):
+def test_large_cohort_emits_screen_raster(tmp_path, request):
     import openpyxl
     wb = openpyxl.Workbook(); wb.active.title = "A1"
     b2 = wb.create_sheet("B2_Product_Class_Matrix")
@@ -145,8 +152,68 @@ def test_large_cohort_emits_screen_raster(tmp_path):
         b2.cell(r, 1).value = f"AS-{r:03d}"
         b2.cell(r, 2).value = (r % 4); b2.cell(r, 3).value = (r % 3); b2.cell(r, 4).value = (r % 2)
     mp = str(tmp_path / "big.xlsx"); wb.save(mp)
-    res = render_cohort_class_heatmap(mp, tmp_path / "b.png", tmp_path / "b.csv")
+    # This fixture's native raster workspace is large even after its Figure dies.
+    # Give that workspace a process lifetime; the parent still checks real outputs.
+    import inspect, json, pickle, subprocess, sys
+    from pathlib import Path
+    import matplotlib
+    matplotlib.use("Agg")
+    settings = tmp_path / "renderer_rc.pickle"
+    with settings.open("wb") as handle:
+        pickle.dump(dict(matplotlib.rcParams), handle)
+    receipt = tmp_path / "renderer_result.json"
+    root = Path(inspect.getfile(render_cohort_class_heatmap)).resolve().parents[1]
+    worker = r'''
+import importlib.util, json, pickle, sys
+from pathlib import Path
+root, workbook, png, csv, settings, receipt = map(Path, sys.argv[1:])
+sys.path.insert(0, str(root))
+import matplotlib
+matplotlib.use("Agg")
+with settings.open("rb") as handle:
+    matplotlib.rcParams.update(pickle.load(handle))
+# Retain the same source-bound figure-text guard as the parent pytest session.
+spec = importlib.util.spec_from_file_location("figure_page_text_ratchet", root / "tests/figure_page_text_ratchet.py")
+ratchet = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(ratchet)
+guard = ratchet.PageTextRatchet(ratchet.load_known_sites())
+ratchet.install(guard)
+from mamey.cohort_class_heatmap import render_cohort_class_heatmap
+result = render_cohort_class_heatmap(str(workbook), png, csv)
+receipt.write_text(json.dumps(result), encoding="utf-8")
+receipt.with_suffix(".guard.json").write_text(json.dumps({
+    "seen_dirty": sorted(guard.seen_dirty), "seen_clean": sorted(guard.seen_clean),
+}), encoding="utf-8")
+'''
+    rendered = subprocess.run(
+        [sys.executable, "-B", "-c", worker, str(root), mp,
+         str(tmp_path / "b.png"), str(tmp_path / "b.csv"), str(settings), str(receipt)],
+        cwd=root, capture_output=True, text=True, timeout=120,
+    )
+    assert rendered.returncode == 0, rendered.stdout + rendered.stderr
+    res = json.loads(receipt.read_text(encoding="utf-8"))
+    child_guard = json.loads(receipt.with_suffix(".guard.json").read_text(encoding="utf-8"))
+    _merge_child_page_text_observations(request, child_guard)
     assert res["browser_raster"] is not None
     assert res["browser_raster"]["dpi"] < _PUBLICATION_DPI
     assert (tmp_path / "b_SCREEN.png").exists()
     assert res["independent_gates"]["browser_visual_review"] == "REQUIRED"
+
+
+def test_child_page_text_observations_preserve_dirty_veto_and_clean_reporting(request, monkeypatch):
+    from figure_page_text_ratchet import PageTextRatchet
+    mixed = "mamey/cohort_class_heatmap.py::render_cohort_class_heatmap"
+    child_clean = "mamey/render_brief.py::fig_landscape"
+    existing_dirty = "mamey/locus_map.py::render_locus_map"
+    parent = PageTextRatchet({mixed, child_clean, existing_dirty})
+    parent.seen_clean.add(mixed)
+    parent.seen_dirty.add(existing_dirty)
+    monkeypatch.setattr(request.config, "_page_text_ratchet", parent, raising=False)
+    _merge_child_page_text_observations(request, {
+        "seen_dirty": [mixed], "seen_clean": [child_clean],
+    })
+    assert isinstance(parent.seen_dirty, set) and isinstance(parent.seen_clean, set)
+    assert parent.seen_dirty == {existing_dirty, mixed}
+    assert parent.seen_clean == {mixed, child_clean}
+    assert mixed not in parent.cleared_sites()
+    assert parent.cleared_sites() == [child_clean]

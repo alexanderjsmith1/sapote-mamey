@@ -73,7 +73,7 @@ def _run_two_strains(tmp_path: Path, monkeypatch, lines: list[str]) -> Path:
                         lambda results, outdir, logger=None: {"status": "STUBBED", "figure_count": 0})
     monkeypatch.setattr(cli, "emit", lambda *a, **k: lines.append(" ".join(str(x) for x in a)))
     monkeypatch.delenv("MAMEY_FIGURE_FACTORY_CONFIG", raising=False)
-    zips = [str(tmp_path / "AS_001.zip"), str(tmp_path / "AS_002.zip")]  # never opened by the stub
+    zips = [str(tmp_path / "AS_001.zip"), str(tmp_path / "SYNTHETIC-CASE-002.zip")]  # never opened by the stub
     results = cli.run_batch(zips, str(outdir), "gold", None, [], [])
     assert len(results) == 2
     return outdir
@@ -92,7 +92,7 @@ def test_two_strain_run_writes_the_ledger_csv(tmp_path: Path, monkeypatch) -> No
     # Exceptional + High only, ranked tier-first then AF desc.
     assert [(r["strain"], r["BGC_ID"], r["Lead_tier_auto"]) for r in rows] == [
         ("AS_001", "BGC002", "Exceptional"),
-        ("AS_002", "BGC010", "High"),
+        ("SYNTHETIC_CASE_002", "BGC010", "High"),
         ("AS_001", "BGC001", "High"),
     ]
     assert [r["Cohort_rank"] for r in rows] == ["1", "2", "3"]
@@ -151,7 +151,7 @@ def test_helper_typed_skip_on_single_board(tmp_path: Path) -> None:
 
 def test_helper_mixed_engine_caution_and_determinism(tmp_path: Path) -> None:
     _write_package(str(tmp_path), "AS_001", "Mamey v1.9.118", _rows_a())
-    _write_package(str(tmp_path), "AS_002", "Mamey v1.9.200", _rows_b())
+    _write_package(str(tmp_path), "SYNTHETIC-CASE-002", "Mamey v1.9.200", _rows_b())
     lines: list[str] = []
     first = _auto_emit_cohort_leads_ledger(tmp_path, logger=lines.append)
     assert first["status"] == "EMITTED" and first["mixed_engine"] is True
@@ -170,7 +170,7 @@ def test_helper_never_raises(tmp_path: Path, monkeypatch) -> None:
     """A broken ledger module degrades to a typed, announced skip -- never a crash."""
     import mamey.cohort_leads_ledger as _cll
     _write_package(str(tmp_path), "AS_001", "Mamey v1.9.118", _rows_a())
-    _write_package(str(tmp_path), "AS_002", "Mamey v1.9.118", _rows_b())
+    _write_package(str(tmp_path), "SYNTHETIC-CASE-002", "Mamey v1.9.118", _rows_b())
 
     def _boom(_runs):
         raise RuntimeError("synthetic ledger failure")

@@ -28,28 +28,75 @@ PUBLICATION_RASTER_DPI = 300
 from .manifest_schema import read_manifest_field
 from .cross_strain_figures import build_cross_strain_figures
 from . import figure_policy as _figure_policy
-from .figure_save import save_figure
-import numpy as np
-try:
-    import matplotlib; matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as mp
-    from matplotlib.colors import LogNorm
-    _HAVE_MPL = True
-except ImportError as _e:  # figure deps are optional; fail with a clear message, not a traceback
-    _HAVE_MPL = False
-    _MPL_ERR = str(_e)
+# Plotting imports can initialize logging, caches and optional dependency trees.
+# Resolve them only for an explicit plot call or dependency-attribute lookup.
+_PLOT_DEPS_INITIALIZED = False
+_SCIPY_DEPS_INITIALIZED = False
 
-    def _require_mpl():
-        raise RuntimeError(
-            "Figure generation needs matplotlib. Install the figures extra: "
-            "`pip install -e '.[figures]'` (or `.[all]`). "
-            f"(import error: {_MPL_ERR})")
-try:
-    from scipy.cluster.hierarchy import linkage, leaves_list
-    _HAS_SCIPY = True
-except Exception:                       # scipy is optional; clustermap falls back to count-ordering
-    _HAS_SCIPY = False
+
+def _load_numpy():
+    if "np" not in globals():
+        import numpy
+        globals()["np"] = numpy
+    return globals()["np"]
+
+
+def _load_plot_dependencies():
+    global np, matplotlib, plt, mp, LogNorm, _HAVE_MPL, _MPL_ERR, save_figure
+    global _PLOT_DEPS_INITIALIZED
+    if _PLOT_DEPS_INITIALIZED:
+        return
+    _load_numpy()
+    if "save_figure" not in globals():
+        from .figure_save import save_figure
+    try:
+        if "matplotlib" not in globals():
+            import matplotlib
+            matplotlib.use("Agg")
+        if "plt" not in globals():
+            import matplotlib.pyplot as plt
+        if "mp" not in globals():
+            import matplotlib.patches as mp
+        if "LogNorm" not in globals():
+            from matplotlib.colors import LogNorm
+        globals().setdefault("_HAVE_MPL", True)
+    except ImportError as exc:
+        globals().setdefault("_HAVE_MPL", False)
+        globals().setdefault("_MPL_ERR", str(exc))
+    _PLOT_DEPS_INITIALIZED = True
+
+
+def _require_mpl():
+    raise RuntimeError(
+        "Figure generation needs matplotlib. Install the figures extra: "
+        "`pip install -e '.[figures]'` (or `.[all]`). "
+        f"(import error: {_MPL_ERR})")
+
+
+def __getattr__(name):
+    global _SCIPY_DEPS_INITIALIZED
+    # Keep the existing dependency aliases and boolean availability flags usable.
+    if name == "np":
+        return _load_numpy()
+    if name in {"matplotlib", "plt", "mp", "LogNorm", "_HAVE_MPL", "_MPL_ERR"}:
+        _load_plot_dependencies()
+    elif name == "save_figure":
+        from .figure_save import save_figure
+        globals()[name] = save_figure
+    elif name in {"_HAS_SCIPY", "linkage", "leaves_list"}:
+        if not _SCIPY_DEPS_INITIALIZED:
+            try:
+                from scipy.cluster.hierarchy import linkage, leaves_list
+            except Exception:  # preserve optional SciPy failure/fallback semantics
+                globals().setdefault("_HAS_SCIPY", False)
+            else:
+                globals().setdefault("_HAS_SCIPY", True)
+                globals().setdefault("linkage", linkage)
+                globals().setdefault("leaves_list", leaves_list)
+            _SCIPY_DEPS_INITIALIZED = True
+    if name in globals():
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 def _loadj(p):   # B1: context-managed json load — no leaked handle (was _loadj(p) in a per-strain loop)
     with open(p, encoding="utf-8") as _f:
@@ -68,6 +115,7 @@ _COHORT_STYLE = {
 def _with_cohort_style(function):
     @wraps(function)
     def styled(*args, **kwargs):
+        _load_plot_dependencies()
         if not _HAVE_MPL:
             return function(*args, **kwargs)
         with matplotlib.rc_context(_COHORT_STYLE):
@@ -2041,6 +2089,7 @@ BATCHES={1:batch1,2:batch2}
 
 # ---------------- BATCH 3: similarity & co-occurrence ----------------
 def _strain_profiles(S, order):
+    _load_numpy()  # this math helper is also callable without a plot
     # P12-residual (G09): Oxidoreductase/Aminotransferase/Transporter/Regulator are separate genes,
     # never aSDomain architecture tokens -> always-zero dims. Same fix as figs_multi (.202); this second
     # copy in _strain_profiles was missed then. Restrict to tokens domain_arch can carry.

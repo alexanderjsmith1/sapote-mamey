@@ -185,5 +185,27 @@ def safe_extract_all(z: zipfile.ZipFile, dest: Path | str) -> None:
                     "unsafe portable zip member file/directory collision: "
                     f"{blocker.filename} blocks {member.filename}"
                 )
+
+    # The destination may already contain files. A later member blocked by an
+    # existing file/directory must be refused before earlier members are written,
+    # just like conflicts between two members of this archive.
+    if dest_abs.exists() and not dest_abs.is_dir():
+        raise ValueError(f"unsafe existing zip destination collision: {dest_abs}")
+    for member, target in resolved_members:
+        parent = target.parent
+        while parent == dest_abs or dest_abs in parent.parents:
+            if parent.exists() and not parent.is_dir():
+                raise ValueError(
+                    f"unsafe existing zip file/directory collision: {parent} blocks {member.filename}"
+                )
+            if parent == dest_abs:
+                break
+            parent = parent.parent
+        if target.exists():
+            mode = target.stat().st_mode
+            if member.is_dir() != stat.S_ISDIR(mode):
+                raise ValueError(f"unsafe existing zip file/directory collision: {member.filename}")
+            if not member.is_dir() and not stat.S_ISREG(mode):
+                raise ValueError(f"unsafe existing non-regular zip target: {member.filename}")
     for member in members:
         z.extract(member, dest_abs)

@@ -18,7 +18,7 @@ def _scans(bid):  # give the BGC a class trigger so its pre-floor tier reaches >
 
 def test_tiny_truncated_ripp_fragment_floored():
     r = triage_bgcs([_bgc("BGC001", "Full-contig", 3.7)], scans=_scans("BGC001"))[0]
-    # AQUARIUS_01: the bottom tier is class-gated — a RiPP (lanthipeptide) is specialized, so the
+    # inventory_review_01: the bottom tier is class-gated — a RiPP (lanthipeptide) is specialized, so the
     # fragment floor caps it at 'Low' (specialized-but-unevaluable), not 'Inventory' (housekeeping).
     # The guarded property is unchanged: the fragment is capped at the bottom, never floated to a lead tier.
     assert r.lead_tier == "Low"

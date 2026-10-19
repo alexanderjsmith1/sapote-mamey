@@ -5,7 +5,7 @@ from mamey.genus_appendix import run, _genus_of, _match, AF_KEYWORDS, AB_KEYWORD
 
 def test_genus_parse():
     assert _genus_of("Streptomyces sp.") == "Streptomyces"
-    assert _genus_of("Amycolatopsis sp. AS-846") == "Amycolatopsis"
+    assert _genus_of('Amycolatopsis sp. SYNTHETIC-CASE-026') == "Amycolatopsis"
     assert _genus_of("") == "Unknown"
     assert _genus_of("uncultured bacterium") == "Unknown"
 

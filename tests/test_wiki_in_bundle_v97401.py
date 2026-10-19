@@ -27,7 +27,7 @@ def test_sidebar_version_stamped_and_current_v97401():
 
 
 def test_no_workspace_locators_v97401():
-    bad = re.compile(r"AS Strain Master|Claude_Alex_2026|alexander" r"smith")
+    bad = re.compile(r"/Users/[^/\s]+/|/home/[^/\s]+/")
     hits = [p.name for p in WIKI.glob("*.md") if bad.search(p.read_text(encoding="utf-8", errors="replace"))]
     assert not hits, f"workspace locators/personal identifiers in: {hits}"
 

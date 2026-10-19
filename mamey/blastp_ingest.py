@@ -35,6 +35,9 @@ import stat
 import uuid
 from typing import Iterable, Sequence
 from .xlsx_determinism import atomic_save_workbook_safely as _save_wb_safely
+from .blastp_physical_binding import (
+    PhysicalAdmission, PhysicalBindingHold, physical_csv_rows, generation_marker,
+)
 
 
 # External rollup importers historically repeated this positional schema in two tools and
@@ -284,7 +287,8 @@ def _non_numeric_hit_columns(raw: list[str]) -> list[str]:
     return bad
 
 
-def parse_hit_table(csv_path: str | Path, numeric_policy: str = "reject") -> list[dict]:
+def parse_hit_table(csv_path: str | Path, numeric_policy: str = "reject", *,
+                    source_rows: list[int] | None = None) -> list[dict]:
     """Read headerless 12/13-column outfmt 10; reject the whole malformed input.
 
     Empty/comment-only results are valid. Missing optional positives are blank, and
@@ -292,6 +296,7 @@ def parse_hit_table(csv_path: str | Path, numeric_policy: str = "reject") -> lis
     query identity, provenance, or biological validity of the supplied measurements.
     """
     rows: list[dict] = []
+    accepted_source_rows: list[int] = []
     line = 0
     try:
         with open(csv_path, newline="", encoding="utf-8-sig") as fh:
@@ -301,14 +306,22 @@ def parse_hit_table(csv_path: str | Path, numeric_policy: str = "reject") -> lis
                 raise BlastpHitTableError("BLASTP_HIT_TABLE_INVALID: upstream error document")
             fh.seek(0)
             reader = csv.reader(fh, strict=True)
+            previous_line = 0
             for raw in reader:
                 line = reader.line_num
+                source_line = previous_line + 1
+                previous_line = line
                 if not raw or raw[0].lstrip().startswith("#"):
                     continue
                 if len(raw) not in (12, 13):
                     raise BlastpHitTableError(
                         f"BLASTP_HIT_TABLE_INVALID: row ending at line {line} "
                         f"has {len(raw)} columns; expected 12 or 13"
+                    )
+                if any((ord(ch) < 32 and ch != "\x00") or ord(ch) == 127
+                       for value in raw[:2] for ch in value):
+                    raise BlastpHitTableError(
+                        f"BLASTP_HIT_TABLE_INVALID: unsafe query/subject control character at line {line}"
                     )
                 raw = [value.strip() for value in raw]
                 if not raw[0] or not raw[1] or any("\x00" in value for value in raw):
@@ -329,6 +342,8 @@ def parse_hit_table(csv_path: str | Path, numeric_policy: str = "reject") -> lis
                 # QUARANTINE that row with a typed reason instead of rejecting the whole input.
                 if bad and numeric_policy == "flag" and len(bad) < 8:
                     rec = dict(zip(_CSV_COLS, raw)); rec["_bad_numeric"] = ",".join(bad); rows.append(rec)
+                    if source_rows is not None:
+                        accepted_source_rows.append(source_line)
                     continue
                 if bad:
                     looks_like_header = len(bad) >= 8
@@ -340,11 +355,15 @@ def parse_hit_table(csv_path: str | Path, numeric_policy: str = "reject") -> lis
                            % (", ".join(bad), line))
                     )
                 rows.append(dict(zip(_CSV_COLS, raw)))
+                if source_rows is not None:
+                    accepted_source_rows.append(source_line)
     except (OSError, UnicodeError, csv.Error) as exc:
         raise BlastpHitTableError(
             f"BLASTP_HIT_TABLE_INVALID: unreadable or malformed CSV near line {line} "
             f"({type(exc).__name__})"
         ) from exc
+    if source_rows is not None:
+        source_rows.extend(accepted_source_rows)
     return rows
 
 
@@ -403,7 +422,8 @@ def parse_alignment_xml(xml_path: str | Path) -> dict[str, dict]:
         # query FASTA used a space-delimited defline (`>ctg107_3 gene=ctg107_3 BGC=BGC003 ...`) --
         # NCBI truncates the HitTable query_id at the first space, dropping `BGC=`. Carry the
         # BGC id parsed off the full title so build_b5_rows can recover it.
-        rec = {"query_title": qtitle, "query_len": qlen, "node": node, "contig": contig,
+        rec = {"query_title": qtitle, "query_source_id": qid,
+               "query_len": qlen, "node": node, "contig": contig,
                "bgc_id": parse_bgc_id(qtitle), "subjects": subjects}
         claim = (qid, title_key, rec)
         for key in (title_key, qid):
@@ -458,7 +478,8 @@ def _load_enrichment(xml_path: str | Path | None) -> tuple[dict, str]:
 
 def build_b5_rows(strain: str, csv_path: str | Path, xml_path: str | Path | None = None,
                   top_n: int = 10, source: str = "NCBI web-BLASTp",
-                  enrich_status: dict | None = None, numeric_policy: str = "reject") -> list[dict]:
+                  enrich_status: dict | None = None, numeric_policy: str = "reject", *,
+                  physical_queries: list[dict] | None = None) -> list[dict]:
     """Build B5_BLASTp_Hits rows from a HitTable CSV (+ optional XML). Ranks hits per query gene
     by CSV order (NCBI returns best-first), capped at top_n. Never raises on a missing XML.
 
@@ -468,14 +489,16 @@ def build_b5_rows(strain: str, csv_path: str | Path, xml_path: str | Path | None
     HitTable MUST pass an explicit ``source`` (e.g. "EBI (uniprotkb_bacteria)") or every such row
     is silently mislabeled NCBI in B5_BLASTp_Hits, contradicting blastp_ebi.py's own documented
     claim-safety requirement that every EBI-transport card carry transport=EBI provenance."""
-    raw = parse_hit_table(csv_path, numeric_policy=numeric_policy)
+    source_rows: list[int] = []
+    raw = parse_hit_table(csv_path, numeric_policy=numeric_policy,
+                          source_rows=source_rows if physical_queries is not None else None)
     enrich, xml_status = _load_enrichment(xml_path)
     if enrich_status is not None:
         enrich_status["xml"] = xml_status
     today = _dt.date.today().isoformat()
     per_query_rank: dict[str, int] = {}
     rows: list[dict] = []
-    for h in raw:
+    for raw_index, h in enumerate(raw):
         qid = h["query_id"]
         per_query_rank[qid] = per_query_rank.get(qid, 0) + 1
         rank = per_query_rank[qid]
@@ -484,7 +507,8 @@ def build_b5_rows(strain: str, csv_path: str | Path, xml_path: str | Path | None
         enr = enrich.get(qid, {})
         # Source-only claims: never add the selected strain as if it were evidence.
         declared = _query_strain_claims({"query_id": qid,
-                                        "query_gene": enr.get("query_title", "")})
+                                        "query_gene": enr.get("query_title", ""),
+                                        "query_locus": enr.get("query_source_id", "")})
         if len(declared) > 1 or any(value != strain for value in declared):
             raise BlastpBindingConflict(
                 f"QUERY_STRAIN_CONFLICT: source queries declare {sorted(declared)!r}, "
@@ -505,6 +529,11 @@ def build_b5_rows(strain: str, csv_path: str | Path, xml_path: str | Path | None
                 f"XML_HITTABLE_BGC_CONFLICT: query {qid!r}: HitTable id says {_csv_bgc}, "
                 f"XML query-title says {_xml_bgc}; refusing to bind by precedence")
         bgc_id = _csv_bgc or _xml_bgc
+        if physical_queries is not None:
+            physical_queries.append({"query_id": qid,
+                "query_title": enr.get("query_title", ""),
+                "query_source_id": enr.get("query_source_id", ""),
+                "source_row_number": source_rows[raw_index]})
         rows.append({
             "_bad_numeric": h.get("_bad_numeric", ""),
             "strain": strain,
@@ -586,6 +615,7 @@ _TROVE_ALIASES = {
 _STRAIN_ALIASES = ("query_strain", "strain", "strain_id")
 _BGC_ALIASES = ("query_bgc", "bgc_id", "BGC_ID")
 _QUERY_ALIASES = ("query_locus", "query_id", "query_gene", "gene", "locus_tag")
+_QUERY_ASSERTION_ALIASES = _QUERY_ALIASES + ("query_title", "query_source_id")
 _GUARD_REASONS = (
     "FOREIGN_STRAIN", "FOREIGN_BGC", "NONCURRENT_LOCUS",
     "LOCUS_ABSENT_FROM_CURRENT_PACKAGE", "LOCUS_AMBIGUOUS_IN_CURRENT_PACKAGE",
@@ -619,16 +649,15 @@ def _sha256(path: Path) -> str:
 
 
 def _atomic_write_text(path: Path, text: str) -> None:
-    """Write to a temp sibling then atomically replace (mirrors packaging.py's
-    ``_atomic_write_text``). An interrupted plain write here (kill -9, disk full, crash) can leave
-    a truncated quarantine/receipt/ledger/overlay/top10-store file; a truncated JSON ledger is then
-    read back by `read_ingest_ledger()`'s `except (OSError, json.JSONDecodeError): return {}` as an
-    EMPTY ledger, silently erasing every previously-ingested channel's admitted/quarantined
-    bookkeeping rather than surfacing the corruption -- exactly the file the BLASTp completeness
-    gate trusts to know what has already been ingested."""
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    tmp.replace(path)
+    """Reuse the bundle's unique-temp text owner for guard, ledger and journal writes.
+
+    A pre-existing predictable .tmp path must never redirect a metadata write
+    into raw evidence. Failure cleanup and replacement belong to atomic_open;
+    this is not a concurrent-directory-mutation or power-loss guarantee.
+    """
+    from .packaging import atomic_open
+    with atomic_open(path, encoding="utf-8") as stream:
+        stream.write(text)
 
 
 _FILESET_TXN_DIR = ".blastp_fileset_transactions"
@@ -1011,7 +1040,7 @@ def _query_strain_claims(row: dict) -> set[str]:
     """
     claims = {str(row[name]).strip() for name in _STRAIN_ALIASES
               if row.get(name) is not None and str(row[name]).strip()}
-    for name in _QUERY_ALIASES:
+    for name in _QUERY_ASSERTION_ALIASES:
         raw = str(row.get(name) or "").strip()
         parts = [part.strip() for part in raw.split("|")]
         if len(parts) >= 2 and parts[0] and _BGC_RE.fullmatch(parts[1]):
@@ -1154,11 +1183,15 @@ def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strai
                            sources: list[dict], admitted: dict[str, int],
                            quarantined: list[dict],
                            rekey_summary: dict | None = None, *,
-                           preflight_only: bool = False) -> tuple[str, str]:
+                           preflight_only: bool = False,
+                           physical_binding: dict | None = None) -> tuple[str, str]:
     """Render/check immutable guard artifacts before publication, then optionally write."""
     source_rows = sorted(sources, key=lambda r: (r["bgc"], r["file"], r["sha256"]))
+    token_data = {"channel": channel, "kind": kind, "sources": source_rows}
+    if physical_binding is not None:
+        token_data["physical_binding"] = physical_binding
     token_payload = json.dumps(
-        {"channel": channel, "kind": kind, "sources": source_rows},
+        token_data,
         sort_keys=True, separators=(",", ":"),
     ).encode("utf-8")
     token = hashlib.sha256(token_payload).hexdigest()[:16]
@@ -1206,6 +1239,8 @@ def _write_guard_artifacts(package: Path, channel: str, kind: str, package_strai
     }
     if rekey_summary is not None:
         receipt["locus_rekey"] = rekey_summary
+    if physical_binding is not None:
+        receipt["physical_binding"] = physical_binding
     rpath = rdir / f"{channel}_{kind}_{token}_receipt.json"
     rtext = json.dumps(receipt, indent=2, sort_keys=True) + "\n"
     if rpath.exists() and rpath.read_text(encoding="utf-8") != rtext:
@@ -1237,6 +1272,7 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
     pkg = Path(package)
     _recover_fileset_transactions(pkg)
     package_strain = _package_strain(pkg, strain)
+    physical = PhysicalAdmission(pkg, package_strain)
     if rekey_by_locus:
         current_by_locus = _current_locus_rekey_index(pkg)
         # The explicit migration mode is governed by the CDS table alone.  Build the
@@ -1305,6 +1341,7 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
                 unmatched_bgc_directories += 1
                 continue
             source_sha = _sha256(src)
+            physical.source(src, source_sha)
             source_file = str(src.relative_to(troot))
             file_destinations: set[str] = set()
             # A Swiss-Prot top-10 table (*_top10_local.csv) holds several rows per gene. Within one
@@ -1314,7 +1351,7 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
             if not rekey_by_locus:
                 # Preserve the strict path's all-rejected stale-overlay cleanup behavior.
                 planned_rows.setdefault(bgc, {})
-            for row_number, r in enumerate(csv.DictReader(src.open(newline="", encoding="utf-8")), 2):
+            for row_number, r in enumerate(physical_csv_rows(src), 2):
                 if rekey_by_locus:
                     keys, reason = _validate_rekey_ingest_row(
                         r, package_strain, bgc, current_by_locus,
@@ -1327,6 +1364,11 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
                 else:
                     keys, reason = _validate_ingest_row(r, package_strain, bgc, current)
                     destination_bgc = bgc
+                physical_result, physical_reason = physical.check(
+                    r, destination_bgc, keys.get("query_locus", ""), source_file,
+                    source_sha, row_number, reason,
+                )
+                reason = reason or physical_reason
                 if reason:
                     rejected.append(_quarantine_row(
                         reason, channel, package_strain, destination_bgc, keys, source_file,
@@ -1468,18 +1510,26 @@ def ingest_blastp_trove(package: str | Path, trove_dir: str | Path, channel: str
         "resolution_counts": dict(sorted(rekey_counts.items())),
         "admitted_current_bgcs": dict(sorted(written.items())),
     } if rekey_by_locus else None)
+    affected_outputs = set(overlay_payloads) | overlay_deletions | {
+        outdir / f"{row['bgc']}_online_blastp.csv" for row in physical.asserted_rows
+    }
+    physical_binding = physical.prepare(overlay_payloads, overlay_deletions, affected_outputs)
+    _preflight_ingest_ledger(outdir, channel, set(written) | {
+        row["destination_bgc"] for row in rejected}, physical)
     _write_guard_artifacts(
         pkg, channel, "overlay", package_strain, sources, written, rejected,
-        rekey_summary, preflight_only=True,
+        rekey_summary, preflight_only=True, physical_binding=physical_binding,
     )
+    physical.verify_unchanged()
     _commit_text_file_set(pkg, overlay_payloads, overlay_deletions)
 
     quarantine_path, receipt_path = _write_guard_artifacts(
         pkg, channel, "overlay", package_strain, sources, written, rejected,
-        rekey_summary,
+        rekey_summary, physical_binding=physical_binding,
     )
     _update_ingest_ledger(
         outdir, channel, written, rejected, package_strain, sources, receipt_path,
+        physical_binding=physical_binding,
     )
     return {"package": str(pkg), "channel": channel, "bgcs_written": written,
             "genes": sum(written.values()), "quarantined": len(rejected),
@@ -1514,9 +1564,26 @@ def _load_ingest_ledger(ledger_path: Path) -> dict:
     return data
 
 
+def _preflight_ingest_ledger(store_dir: Path, channel: str, bgcs: set[str],
+                             physical: PhysicalAdmission) -> None:
+    """Validate known ledger-write preconditions before any table/workbook write."""
+    led = store_dir / "_ingest_ledger.json"
+    data = _load_ingest_ledger(led)
+    current_channel = data.get(channel, {})
+    if not isinstance(current_channel, dict):
+        raise BlastpIngestLedgerError("BLASTP_INGEST_LEDGER_HOLD: target channel must be an object")
+    for bgc in bgcs:
+        previous = current_channel.get(bgc)
+        if not isinstance(previous, dict):
+            continue  # legacy non-record entries were not generation assertions
+        generation_marker(previous, bgc)
+    if led.exists():
+        physical.source(led, _sha256(led))
+
+
 def _update_ingest_ledger(store_dir: Path, channel: str, written: dict,
                           rejected: list[dict], strain: str, sources: list[dict],
-                          receipt_path: str) -> None:
+                          receipt_path: str, physical_binding: dict | None = None) -> None:
     """Record admitted and quarantined counts separately; zero-admission is incomplete."""
     led = store_dir / "_ingest_ledger.json"
     data = _load_ingest_ledger(led)
@@ -1532,6 +1599,8 @@ def _update_ingest_ledger(store_dir: Path, channel: str, written: dict,
             source_by_bgc.setdefault(bgc, []).append(source["sha256"])
     for bgc in sorted(set(written) | set(rejected_by_bgc)):
         admitted = int(written.get(bgc, 0))
+        previous = ch.get(bgc, {})
+        generations = dict(previous.get("physical_generations", {})) if isinstance(previous, dict) else {}
         ch[bgc] = {
             "strain": strain,
             "admitted_rows": admitted,
@@ -1540,6 +1609,19 @@ def _update_ingest_ledger(store_dir: Path, channel: str, written: dict,
             "source_sha256": sorted(source_by_bgc.get(bgc, [])),
             "receipt": Path(receipt_path).name,
         }
+        if physical_binding is not None:
+            for path in physical_binding["deleted_outputs"]:
+                generations.pop(path, None)
+            for path, sha in physical_binding["output_sha256"].items():
+                if Path(path).name.split("_", 1)[0] == bgc:
+                    generations[path] = {"receipt": Path(receipt_path).name,
+                        "receipt_sha256": _sha256(Path(receipt_path)), "sha256": sha}
+        if generations:
+            # Source admission can move to a different store/round while these
+            # immutable per-output generation proofs remain current.
+            ch[bgc]["physical_binding_policy"] = (physical_binding["policy"]
+                if physical_binding is not None else previous["physical_binding_policy"])
+            ch[bgc]["physical_generations"] = generations
     led.parent.mkdir(parents=True, exist_ok=True)
     _atomic_write_text(led, json.dumps(data, indent=2, sort_keys=True) + "\n")
 
@@ -1586,6 +1668,7 @@ def install_channel_top10(package: str | Path, trove_dir: str | Path, channel: s
     pkg = Path(package)
     _recover_fileset_transactions(pkg)
     package_strain = _package_strain(pkg, strain)
+    physical = PhysicalAdmission(pkg, package_strain)
     current = _current_locus_lengths(pkg)
     store = pkg / CHANNEL_STORE[channel]
     troot = Path(trove_dir)
@@ -1620,11 +1703,17 @@ def install_channel_top10(package: str | Path, trove_dir: str | Path, channel: s
             if src is None:
                 continue
             source_sha = _sha256(src)
+            physical.source(src, source_sha)
             source_file = str(src.relative_to(troot))
             sources.append({"bgc": bgc, "file": source_file, "sha256": source_sha})
             rows: list[dict] = []
-            for row_number, r in enumerate(csv.DictReader(src.open(newline="", encoding="utf-8")), 2):
+            for row_number, r in enumerate(physical_csv_rows(src), 2):
                 keys, reason = _validate_ingest_row(r, package_strain, bgc, current)
+                physical_result, physical_reason = physical.check(
+                    r, bgc, keys.get("query_locus", ""), source_file, source_sha,
+                    row_number, reason,
+                )
+                reason = reason or physical_reason
                 if reason:
                     rejected.append(_quarantine_row(
                         reason, channel, package_strain, bgc, keys, source_file,
@@ -1664,18 +1753,26 @@ def install_channel_top10(package: str | Path, trove_dir: str | Path, channel: s
             w.writerow({k: r.get(k, "") for k in _TOP10_COLS})
         store_payloads[store / f"{bgc}_top10.csv"] = _buf.getvalue()
 
+    affected_outputs = set(store_payloads) | store_deletions | {
+        store / f"{row['bgc']}_top10.csv" for row in physical.asserted_rows
+    }
+    physical_binding = physical.prepare(store_payloads, store_deletions, affected_outputs)
+    _preflight_ingest_ledger(pkg / "blastp_online", channel, set(written) | {
+        row["destination_bgc"] for row in rejected}, physical)
     _write_guard_artifacts(
         pkg, channel, "top10", package_strain, sources, written, rejected,
-        preflight_only=True,
+        preflight_only=True, physical_binding=physical_binding,
     )
+    physical.verify_unchanged()
     _commit_text_file_set(pkg, store_payloads, store_deletions)
 
     quarantine_path, receipt_path = _write_guard_artifacts(
         pkg, channel, "top10", package_strain, sources, written, rejected,
+        physical_binding=physical_binding,
     )
     _update_ingest_ledger(
         pkg / "blastp_online", channel, written, rejected, package_strain, sources,
-        receipt_path,
+        receipt_path, physical_binding=physical_binding,
     )
     return {"package": str(pkg), "channel": channel, "store": str(store),
             "bgcs": sum(1 for n in written.values() if n > 0),
@@ -1843,8 +1940,8 @@ def _is_self_hit(sciname, pct_identity, self_binomial, hit_rank=None) -> bool:
     return rank == 1 and _finite_evidence_number(pct_identity, "pct_identity") >= 99.0
 
 
-def write_nr_overlay(package: str | Path, rows: list[dict]) -> dict:
-    """Write one <BGC>_online_blastp.csv per BGC into <package>/blastp_online/ from
+def _plan_nr_overlay(package: str | Path, rows: list[dict]) -> tuple[dict[Path, str], dict]:
+    """Plan one <BGC>_online_blastp.csv per BGC into <package>/blastp_online/ from
     ingested B5 rows. Best hit per query gene only (hit_rank == 1). Fail-open: rows with
     no resolvable BGC are skipped, never invented. Returns {bgcs, genes, outdir}.
 
@@ -1859,7 +1956,10 @@ def write_nr_overlay(package: str | Path, rows: list[dict]) -> dict:
     was being armed with a biased subset. Higher bitscore wins on a locus_tag collision.
     """
     pkg = Path(package)
-    _recover_fileset_transactions(pkg)
+    pending = pkg / _FILESET_TXN_DIR
+    if pending.exists() and any(pending.iterdir()):
+        raise BlastpFileSetCommitError(
+            "BLASTP_FILESET_RECOVERY_HOLD: pending transaction requires recovery before manual admission")
     outdir = pkg / "blastp_online"
     dom_by_lt = _domains_by_locus(pkg)
 
@@ -1941,14 +2041,104 @@ def write_nr_overlay(package: str | Path, rows: list[dict]) -> dict:
         w.writeheader()
         w.writerows(recs)
         overlay_payloads[outdir / f"{bgc}_online_blastp.csv"] = _buf.getvalue()
-    _commit_text_file_set(pkg, overlay_payloads)
     _self_mode = ("not_applicable" if not _self
                   else ("binomial_confirmed" if _has_sciname else "rank1_heuristic_no_xml"))
-    return {"bgcs": len(per_bgc), "genes": genes, "outdir": str(outdir),
+    return overlay_payloads, {"bgcs": len(per_bgc), "genes": genes, "outdir": str(outdir),
             "self_hits_excluded": self_excluded,
             "self_hits_excluded_heuristic": self_excluded_heuristic,
             "self_exclusion_mode": _self_mode,
             "self_exclusion_xml_available": _has_sciname}
+
+
+def _refuse_manual_source_aliases(sources: Iterable[Path], targets: Iterable[Path]) -> None:
+    """Refuse overlapping raw inputs/destinations before the first write."""
+    from .blastp_physical_binding import refuse_source_aliases
+    refuse_source_aliases(sources, targets)
+
+
+def _manual_generation_preflight(package: Path, physical: PhysicalAdmission,
+                                 payloads: dict[Path, str], plan: dict) -> dict | None:
+    affected = set(payloads) | {
+        package / "blastp_online" / f"{row['bgc']}_online_blastp.csv"
+        for row in physical.asserted_rows if row["bgc"]}
+    binding = physical.prepare(payloads, set(), affected)
+    if binding is not None:
+        _preflight_ingest_ledger(package / "blastp_online", "nr_manual",
+            set(plan["admitted_by_bgc"]) | {row["destination_bgc"]
+                for row in plan["quarantined"]}, physical)
+    # The historical manual receipt listed the CSV alone. Add used XML evidence
+    # only in the new physical namespace; old no-assertion receipts keep bytes.
+    if binding is not None:
+        plan["sources"] = plan["physical_sources"]
+    targets = set(payloads)
+    if plan["quarantined"] or binding is not None:
+        qpath, rpath = _write_guard_artifacts(package, "nr_manual", plan["kind"], plan["strain"],
+            plan["sources"], plan["admitted_by_bgc"], plan["quarantined"],
+            preflight_only=True, physical_binding=binding)
+        targets.update((Path(qpath), Path(rpath)))
+    if binding is not None:
+        targets.add(package / "blastp_online" / "_ingest_ledger.json")
+    _refuse_manual_source_aliases(plan.get("raw_input_paths", []), targets)
+    physical.verify_unchanged()
+    return binding
+
+
+def _publish_manual_generation(package: Path, physical: PhysicalAdmission,
+                                payloads: dict[Path, str], plan: dict,
+                                binding: dict | None) -> tuple[str, str]:
+    physical.verify_unchanged()
+    _commit_text_file_set(package, payloads)
+    qpath = rpath = ""
+    if plan["quarantined"] or binding is not None:
+        qpath, rpath = _write_guard_artifacts(package, "nr_manual", plan["kind"],
+            plan["strain"], plan["sources"], plan["admitted_by_bgc"],
+            plan["quarantined"], physical_binding=binding)
+    if binding is not None:
+        _update_ingest_ledger(package / "blastp_online", "nr_manual",
+            plan["admitted_by_bgc"], plan["quarantined"], plan["strain"],
+            plan["sources"], rpath, physical_binding=binding)
+    return qpath, rpath
+
+
+def write_nr_overlay(package: str | Path, rows: list[dict]) -> dict:
+    """Plan and publish the existing B5 overlay, retaining physical generations.
+
+    Direct B5 callers' display contig is never promoted to a raw physical
+    assertion; other explicit query fields remain visible. CSV/XML ingest passes
+    its separately retained original claims through the guarded owner below.
+    """
+    pkg = Path(package)
+    # Direct in-memory B5 writers retain the existing recovery-before-validation
+    # contract. CSV/XML admission uses the separate planner and raw-input checks.
+    _recover_fileset_transactions(pkg)
+    man = _read_optional_package_manifest(pkg) or {}
+    strain = str(man.get("strain_id") or man.get("strain") or "").strip()
+    physical = PhysicalAdmission(pkg, strain, legacy_depth="DIRECT_B5_ADMISSION_UNVALIDATED")
+    source_sha = hashlib.sha256(json.dumps(rows, sort_keys=True,
+        separators=(",", ":")).encode("utf-8")).hexdigest()
+    counts: dict[str, int] = {}
+    for i, row in enumerate(rows, 1):
+        bgc = str(row.get("BGC_ID") or "").strip()
+        declared = _query_strain_claims(row)
+        if len(declared) > 1 or strain and any(value != strain for value in declared):
+            raise PhysicalBindingHold("QUERY_STRAIN_CONFLICT: direct overlay source claims contradict selected identity")
+        original = {key: value for key, value in row.items() if key not in {"contig", "Contig"}}
+        _, reason = physical.check(original,
+            bgc, _manual_locus(row.get("query_locus", "")),
+            "<direct B5 rows>", source_sha, i,
+            legacy_depth="UNBOUND_QUERY_NO_TAG_LENGTH_CHECK" if not bgc else None)
+        if reason:
+            raise PhysicalBindingHold(reason + ": direct overlay physical assertions held")
+        if bgc:
+            counts[bgc] = counts.get(bgc, 0) + 1
+    sources = [{"bgc": "*", "file": "<direct B5 rows>", "sha256": source_sha,
+                "destination_bgcs": sorted(counts)}]
+    plan = {"kind": "overlay", "strain": strain, "sources": sources,
+            "physical_sources": sources, "admitted_by_bgc": counts, "quarantined": []}
+    payloads, summary = _plan_nr_overlay(pkg, rows)
+    binding = _manual_generation_preflight(pkg, physical, payloads, plan)
+    _publish_manual_generation(pkg, physical, payloads, plan, binding)
+    return summary
 
 
 _B5_KEY_COLS = ("strain", "query_locus", "subject_acc", "hit_rank", "q_start", "q_end")
@@ -1966,7 +2156,10 @@ def _manual_locus(qid: str) -> str:
     return re.sub(r"^BGC\d+[_|]", "", (qid or "").split("|")[-1]).strip()
 
 
-def _manual_binding_guard(package: Path, strain: str, rows: list[dict], csv_path: Path) -> tuple[list[dict], dict]:
+def _manual_binding_guard(package: Path, strain: str, rows: list[dict], csv_path: Path, *,
+                           physical: PhysicalAdmission | None = None,
+                           physical_queries: list[dict] | None = None,
+                           publication_plan: dict | None = None) -> tuple[list[dict], dict]:
     """v9.7.412 (DEEP_AUDIT2_blastp_ingest F1/F2/F3/F5-F7): the manual `ingest-blastp` overlay path
     applied NONE of the trove path's guards, so a wrong-BGC, phantom-BGC or physically impossible row
     wrote straight into <package>/blastp_online/ -- the file authored_verify / genome_explore trust for
@@ -1979,6 +2172,10 @@ def _manual_binding_guard(package: Path, strain: str, rows: list[dict], csv_path
     man_strain = str(man.get("strain_id") or "").strip()
     if man_strain and strain and man_strain != strain:
         raise ValueError(f"--strain {strain!r} conflicts with package manifest strain_id {man_strain!r}; refusing to ingest")
+    physical = physical if physical is not None else PhysicalAdmission(package, strain)
+    if physical_queries is not None and len(physical_queries) != len(rows):
+        raise PhysicalBindingHold("BLASTP_SOURCE_SCHEMA_HOLD: original query collector is misaligned")
+    has_context = True
     try:
         current = _current_locus_lengths(package)
     except ValueError:
@@ -1987,19 +2184,22 @@ def _manual_binding_guard(package: Path, strain: str, rows: list[dict], csv_path
         if (_package_matches(package, "*gene_context.jsonl")
                 or _package_matches(package, "*gene_by_gene_all_bgcs.csv")):
             raise
-        return rows, {"binding_validated": False, "quarantined": 0, "admitted": len(rows), "quarantine": "", "receipt": ""}
+        has_context = False
+        current = {}
+        physical.legacy_depth = "UNVALIDATED_LEGACY_NO_CURRENT_CONTEXT"
     sha = _sha256(csv_path)
+    physical.source(csv_path, sha)
     admitted: list[dict] = []; quarantined: list[dict] = []; admitted_by_bgc: dict[str, int] = {}
     for i, row in enumerate(rows, 1):
         bgc = (row.get("BGC_ID") or "").strip()
-        if not bgc:
-            admitted.append(row); continue  # unbound rows are already skipped by write_nr_overlay
         locus = _manual_locus(row.get("query_locus", ""))
         cur_aa = current.get(bgc, {}).get(locus)
         keys = {"query_strain": strain, "query_bgc": bgc, "query_locus": locus,
                 "query_aa_length": str(row.get("query_len") or ""), "current_aa_length": str(cur_aa or "")}
         reason = ""
-        if bgc not in current:
+        if not has_context or not bgc:
+            pass  # unbound rows still cannot enter an overlay; legacy depth stays explicit
+        elif bgc not in current:
             reason = "FOREIGN_BGC"
         elif cur_aa is None:
             reason = "NONCURRENT_LOCUS"
@@ -2029,17 +2229,43 @@ def _manual_binding_guard(package: Path, strain: str, rows: list[dict], csv_path
                         reason = "HIT_LONGER_THAN_QUERY"  # allow gapped alignments up to 2x; 999999 vs 300 is impossible
                 except (TypeError, ValueError):
                     reason = "NONNUMERIC_FIELD"
+        original = (physical_queries[i - 1] if physical_queries is not None
+                    else {key: value for key, value in row.items()
+                          if key not in {"contig", "Contig"} and not str(key).startswith("_")})
+        declared = _query_strain_claims(original)
+        if len(declared) > 1 or any(value != strain for value in declared):
+            reason = reason or "FOREIGN_STRAIN"
+        source_row = int(original.get("source_row_number", i))
+        physical_result, physical_reason = physical.check(original, bgc, locus,
+            csv_path.name, sha, source_row, reason,
+            legacy_depth="UNBOUND_QUERY_NO_TAG_LENGTH_CHECK" if not bgc else None)
+        reason = reason or physical_reason
         if reason:
-            quarantined.append(_quarantine_row(reason, "nr_manual", strain, bgc, keys, csv_path.name, sha, i,
-                                               {k: v for k, v in row.items() if not str(k).startswith("_")}))
+            source_row_data = {k: v for k, v in row.items() if not str(k).startswith("_")}
+            if physical_result["assertions"]:
+                source_row_data["original_query_claims"] = original
+            quarantined.append(_quarantine_row(reason, "nr_manual", strain, bgc, keys, csv_path.name, sha,
+                                               source_row if physical_result["assertions"] else i,
+                                               source_row_data))
         else:
-            admitted.append(row); admitted_by_bgc[bgc] = admitted_by_bgc.get(bgc, 0) + 1
+            admitted.append(row)
+            if bgc:
+                admitted_by_bgc[bgc] = admitted_by_bgc.get(bgc, 0) + 1
     qpath = rpath = ""
-    if quarantined:
-        qpath, rpath = _write_guard_artifacts(package, "nr_manual", "hittable", strain,
-                                              [{"bgc": "*", "file": csv_path.name, "sha256": sha}],
-                                              admitted_by_bgc, quarantined)
-    return admitted, {"binding_validated": True, "quarantined": len(quarantined), "admitted": len(admitted),
+    sources = [{"bgc": "*", "file": csv_path.name, "sha256": sha}]
+    plan = {"kind": "hittable", "strain": strain, "sources": sources,
+            "physical_sources": sources, "admitted_by_bgc": admitted_by_bgc,
+            "quarantined": quarantined, "raw_input_paths": [csv_path]}
+    if publication_plan is not None:
+        publication_plan.update(plan)
+    else:
+        # Standalone guard callers publish admission artifacts only, after
+        # checking retained-output migration; they do not rewrite any overlay.
+        binding = _manual_generation_preflight(package, physical, {}, plan)
+        if quarantined or binding is not None:
+            qpath, rpath = _write_guard_artifacts(package, "nr_manual", "hittable", strain,
+                plan["sources"], admitted_by_bgc, quarantined, physical_binding=binding)
+    return admitted, {"binding_validated": has_context, "quarantined": len(quarantined), "admitted": len(admitted),
                       "quarantine": qpath, "receipt": rpath}
 
 def _b5_key(row: dict) -> tuple:
@@ -2086,21 +2312,54 @@ def ingest_blastp(master_path: str | Path, strain: str, csv_path: str | Path,
     from .master_workbook import CANONICAL_V1_HEADERS as _SHEET_HEADERS, _append_row_by_header
 
     _xml_status: dict = {}
+    physical = PhysicalAdmission(Path(package), strain) if package else None
+    physical_queries: list[dict] = []
+    publication_plan: dict = {}
+    xml_source: Path | None = None
+    raw_input_paths = [Path(csv_path)]
+    if xml_path and Path(xml_path).exists():
+        raw_input_paths.append(Path(xml_path))
+    _refuse_manual_source_aliases(raw_input_paths, [Path(master_path)])
+    if physical is not None:
+        try:
+            physical.source(Path(csv_path), _sha256(Path(csv_path)))
+            if xml_path and Path(xml_path).exists():
+                xml_source = Path(xml_path)
+                physical.source(xml_source, _sha256(xml_source))
+        except OSError as exc:
+            raise BlastpHitTableError("BLASTP_HIT_TABLE_INVALID: source bytes unavailable before admission") from exc
     # v9.7.412: under a package the binding guard quarantines defective rows (numeric_policy="flag");
     # without one the parser keeps its whole-input rejection.
     rows = build_b5_rows(strain, csv_path, xml_path, top_n=top_n, source=source,
-                         enrich_status=_xml_status, numeric_policy="flag" if package else "reject")
+                         enrich_status=_xml_status, numeric_policy="flag" if package else "reject",
+                         physical_queries=physical_queries if package else None)
     if package:
-        rows, _guard = _manual_binding_guard(Path(package), strain, rows, Path(csv_path))
+        rows, _guard = _manual_binding_guard(Path(package), strain, rows, Path(csv_path),
+            physical=physical, physical_queries=physical_queries, publication_plan=publication_plan)
+        physical_sources = [{**item, "source_kind": "original_query_csv",
+                             "destination_bgcs": sorted(publication_plan["admitted_by_bgc"])}
+                            for item in publication_plan["sources"]]
+        if xml_source is not None:
+            physical_sources.append({"bgc": "*", "file": xml_source.name,
+                "sha256": physical.raw_sources[xml_source], "source_kind": "optional_query_xml",
+                "xml_status": _xml_status.get("xml", "absent"),
+                "destination_bgcs": sorted(publication_plan["admitted_by_bgc"])})
+        publication_plan["physical_sources"] = physical_sources
+        publication_plan["raw_input_paths"] = raw_input_paths
+        overlay_payloads, overlay = _plan_nr_overlay(Path(package), rows)
+        physical_binding = _manual_generation_preflight(Path(package), physical,
+            overlay_payloads, publication_plan)
     else:
         _guard = {"binding_validated": False, "quarantined": 0, "admitted": len(rows), "quarantine": "", "receipt": ""}
+        overlay = None
     from .xlsx_determinism import guard_workbook_size as _guard_xlsx  # v9.7.410: inflation cap before a full load
     _guard_xlsx(master_path)
     try:
         wb = openpyxl.load_workbook(master_path)
     except Exception as _exc:  # v9.7.409 (BC hostile audit H15): a garbage --master traced back from openpyxl's zip validator
         raise SystemExit(f"ingest-blastp: master workbook unreadable ({type(_exc).__name__}: {_exc}): {master_path}")
-    if "B5_BLASTp_Hits" not in wb.sheetnames:
+    created_b5 = "B5_BLASTp_Hits" not in wb.sheetnames
+    if created_b5:
         ws = wb.create_sheet("B5_BLASTp_Hits")
         ws.append(_SHEET_HEADERS["B5_BLASTp_Hits"])
     ws = wb["B5_BLASTp_Hits"]
@@ -2114,12 +2373,23 @@ def ingest_blastp(master_path: str | Path, strain: str, csv_path: str | Path,
     skipped = len(rows) - len(fresh)
     for r in fresh:
         _append_row_by_header(ws, r)
-    _save_wb_safely(wb, master_path)
+    if physical is not None:
+        physical.verify_unchanged()
+    # A duplicate-only import must retain the original workbook bytes.
+    # Package publication below still runs to repair a missing overlay/receipt.
+    if fresh or created_b5:
+        _save_wb_safely(wb, master_path)
 
     # The overlay is written from ALL parsed rows, not just the fresh ones: it is a
     # merge-by-locus_tag view (write_nr_overlay), so re-ingesting a round is a no-op there
     # and a first ingest after a partial failure still repairs the file.
-    overlay = write_nr_overlay(package, rows) if package else None
+    if physical is not None:
+        qpath, rpath = _publish_manual_generation(Path(package), physical,
+            overlay_payloads, publication_plan, physical_binding)
+        _guard.update(quarantine=qpath, receipt=rpath)
+        if physical_binding is not None:
+            _guard["physical_asserted_rows"] = len(physical.asserted_rows)
+            _guard["physical_generation_bound"] = True
     return {
         "rows": len(fresh),
         "duplicates_skipped": skipped,

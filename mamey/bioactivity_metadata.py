@@ -73,7 +73,7 @@ def _validate_canonical(value: Mapping[str, Any]) -> dict[str, Any]:
         raise BioactivityMetadataError("BIOACTIVITY_LEGACY_SHAPE_HOLD", "unknown schema version")
     result = deepcopy(dict(value))
     for key, accepted in (("metadata_state", METADATA_STATES), ("observation_state", OBSERVATION_STATES), ("usage_scope", USAGE_SCOPES)):
-        if result.get(key) not in accepted:
+        if not isinstance(result.get(key), str) or result[key] not in accepted:
             raise BioactivityMetadataError("BIOACTIVITY_LEGACY_SHAPE_HOLD", f"unknown {key}")
     if not isinstance(result["assays"], list):
         raise BioactivityMetadataError("BIOACTIVITY_LEGACY_SHAPE_HOLD", "assays must be a list")
@@ -81,6 +81,18 @@ def _validate_canonical(value: Mapping[str, Any]) -> dict[str, Any]:
         raise BioactivityMetadataError("BIOACTIVITY_LEGACY_SHAPE_HOLD", "NOT_SUPPLIED cannot carry assays")
     if result["usage_scope"] == "EXAMPLE_ONLY":
         raise BioactivityMetadataError("BIOACTIVITY_EXAMPLE_ONLY_HOLD", "example-only metadata is not admitted to production")
+    # These states explicitly declare mutually exclusive observation outcomes.
+    # A shape-valid object must not carry a contradictory positive/negative call.
+    required_observation = {
+        "NOT_SUPPLIED": "NOT_OBSERVED",
+        "MEASURED_NEGATIVE": "NEGATIVE",
+        "MEASURED_POSITIVE": "POSITIVE",
+    }.get(result["metadata_state"])
+    if required_observation is not None and result["observation_state"] != required_observation:
+        raise BioactivityMetadataError("BIOACTIVITY_LEGACY_SHAPE_HOLD", "metadata and observation states conflict")
+    # This strain-context schema has no governed locus/product-linkage admission.
+    if result["compound_linkage"] != "NOT_ESTABLISHED":
+        raise BioactivityMetadataError("BIOACTIVITY_LEGACY_SHAPE_HOLD", "compound linkage requires a separate governed workflow")
     if result.get("receipt_locator") is not None:
         result["receipt_locator"] = validate_receipt_locator(result["receipt_locator"])
     result.setdefault("warnings", [])

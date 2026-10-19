@@ -52,6 +52,28 @@ Rscript tools/ggtree_rect_heatmap.R figures/panel_display.nwk \
 
 The caption identifies the display tip count, pruned outgroup count, mismatch/shared-column limits, query retention, and membership ledger. After drawing, the receipt is verified again; a separate `.render_receipt.json` binds the PDF, PNG, session information, analysis tree, display receipt, renderer, checker, and gate wrapper. Existing bound render outputs are refused. If final binding fails, generated graphics remain unverified and no render receipt authorizes them.
 
+## Page title choice and source replay
+
+`tools/ggtree_rect_heatmap.R` draws the pagination heading Page i of n only when
+`GG_PAGE_TITLE` is exactly `1`. The default is off: unset, empty, `0`, `true` and
+other values do not enable it. This switch controls the pagination heading, not
+scientific titles, captions, root policy or biological acceptance. Pagination is
+still recorded in `<prefix>.pages.json`, with the actual title choice in its
+root-level Boolean `page_titles` field.
+
+When exporting a replay through `tools/export_tree_figure_source_package.py`,
+that actual Boolean `page_titles` value takes precedence over a conflicting
+`render_environment.GG_PAGE_TITLE` in the display summary. The generated helper
+exports the frozen choice, so ambient environment opt-in does not silently change
+it. For legacy records with an absent or non-Boolean `page_titles`, the fallback
+uses the display summary's recorded render environment: only the literal string
+`1` enables titles; other or missing values become off. Inspect the selected page
+sidecar and generated helper rather than inferring the choice from a filename.
+
+This choice is a display/replay parameter. It does not prove that all exported
+inputs are admitted, pages were visually reviewed, or the figure meets every
+house rule. Keep the export and validation limits below.
+
 ## Add deposited source labels before collapsing
 
 ```bash

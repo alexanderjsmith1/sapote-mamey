@@ -132,8 +132,10 @@ def run_queue(strains: list[str], runs_dir: str, out_root: str, activity_csv: st
     if resume and os.path.exists(ledger_path):
         try:
             ledger = json.loads(Path(ledger_path).read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            ledger = {}
+        except json.JSONDecodeError as exc:
+            raise ValueError("DELIVERABLE_QUEUE_LEDGER_INVALID_JSON: preserve ledger before recovery") from exc
+        if not isinstance(ledger, dict) or any(not isinstance(rec, dict) for rec in ledger.values()):
+            raise ValueError("DELIVERABLE_QUEUE_LEDGER_INVALID_SHAPE: preserve ledger before recovery")
     done_states = {"DETERMINISTIC_DONE"}
     current_source_args_sha256 = _source_args_sha256(sources)
     for s in strains:
@@ -161,9 +163,11 @@ def run_queue(strains: list[str], runs_dir: str, out_root: str, activity_csv: st
                "deterministic_done": sum(1 for r in requested_records if r.get("status") == "DETERMINISTIC_DONE"),
                "blocked": sum(1 for r in requested_records if r.get("status") == "BLASTP_BLOCKED"),
                "incomplete": sum(1 for r in requested_records if r.get("status") == "DETERMINISTIC_INCOMPLETE"),
+               "no_package": sum(1 for r in requested_records if r.get("status") == "NO_PACKAGE"),
                "ledger": ledger_path}
     emit(f"[queue] DONE: {summary['deterministic_done']}/{summary['total']} deterministic-complete; "
-          f"{summary['blocked']} BLASTp-blocked; {summary['incomplete']} incomplete. "
+          f"{summary['blocked']} BLASTp-blocked; {summary['incomplete']} incomplete; "
+          f"{summary['no_package']} missing packages. "
           f"Ledger -> {ledger_path}", flush=True)
     return summary
 
@@ -175,4 +179,6 @@ def deliverable_queue_command(args) -> int:
                         ledger_path=getattr(args, "ledger", None),
                         resume=not getattr(args, "no_resume", False),
                         sources=sources_from_args(args))
-    return 1 if summary["incomplete"] else 0
+    return 1 if (summary["incomplete"] or summary.get("blocked", 0)
+                 or summary.get("no_package", 0) or not summary.get("total", 0)
+                 or summary.get("deterministic_done", 0) != summary.get("total", 0)) else 0

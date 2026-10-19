@@ -17,10 +17,12 @@ case "$low" in
   *.md|*.csv|*.txt|*.tsv|*.docx) : ;;
   *) exit 0 ;;
 esac
-case "$low" in
-  *"as strain master"*) : ;;
-  *) exit 0 ;;   # only report artefacts under the canonical home
-esac
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCOPE_ARGS=(--path "$FP" --root "$ROOT")
+[ -n "${SAPOTE_DELIVERABLE_ROOT:-}" ] && SCOPE_ARGS+=(--report-root "$SAPOTE_DELIVERABLE_ROOT")
+if ! PYTHONDONTWRITEBYTECODE=1 "$PY" "$HOOK_DIR/claim_safety_scope.py" "${SCOPE_ARGS[@]}"; then
+  exit 0
+fi
 case "$low" in
   *"patches for next cut"*|*"/scratchpad"*|*"_provenance"*|*"guardrail"*|*"claim_safety"*) exit 0 ;;
 esac

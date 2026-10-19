@@ -2,7 +2,8 @@
 
 AMBER_EXCLUSION_HARDENING (.353 candidate). Proves that a hard-excluded strain id
 (governed_excluded() == {AS-920}) is refused at the governed output boundary, while
-a governed-legitimate strain (AS-922, decontam strain-of-record) and clean tables pass.
+a fixture-governed control and clean tables pass. These authored controls
+do not declare an empirical subject's exclusion status.
 """
 import csv
 
@@ -14,14 +15,14 @@ from mamey import exclusion_gate, exclusions
 # ── in-memory rows ────────────────────────────────────────────────────────────
 def test_clean_rows_pass():
     rows = [["strain", "bgc_id", "class"],
-            ["AS-40", "AS-40_BGC1", "NRPS"],
-            ["AS-696", "AS-696_BGC2", "PKS"]]
+            ["SYNTHETIC-CONTROL-A", "SYNTHETIC-CONTROL-A_BGC1", "NRPS"],
+            ["SYNTHETIC-CONTROL-B", "SYNTHETIC-CONTROL-B_BGC2", "PKS"]]
     assert exclusion_gate.scan_rows(rows) == set()
 
 
 def test_injected_as260_row_is_caught():
     rows = [["strain", "bgc_id", "class"],
-            ["AS-40", "AS-40_BGC1", "NRPS"],
+            ["SYNTHETIC-CONTROL-A", "SYNTHETIC-CONTROL-A_BGC1", "NRPS"],
             ["AS-920", "AS-920_BGC3", "RiPP"]]  # <-- injected excluded strain
     assert exclusion_gate.scan_rows(rows) == {"AS-920"}
 
@@ -38,7 +39,7 @@ def test_boundary_ids_do_not_false_positive():
 
 
 def test_as683_is_governed_and_does_not_trip_the_governed_gate():
-    # SSOT: AS-922 was ratified INTO governed (decontam strain-of-record).
+    # The explicitly bound synthetic cohort pack marks this control as governed.
     assert "AS-922" not in exclusions.governed_excluded()
     assert exclusion_gate.scan_rows([["AS-922", "AS-922_BGC1"]]) == set()
 
@@ -55,7 +56,7 @@ def test_gate_fails_on_csv_with_injected_as260(tmp_path):
     with board.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["strain", "bgc_id", "tier"])
-        w.writerow(["AS-40", "AS-40_BGC1", "Lead"])
+        w.writerow(["SYNTHETIC-CONTROL-A", "SYNTHETIC-CONTROL-A_BGC1", "Lead"])
         w.writerow(["AS-920", "AS-920_BGC3", "Lead"])  # leak
     result = exclusion_gate.gate_governed_outputs([board])
     assert result["status"] == "FAIL"
@@ -67,7 +68,7 @@ def test_gate_passes_on_clean_csv(tmp_path):
     with board.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["strain", "bgc_id", "tier"])
-        w.writerow(["AS-40", "AS-40_BGC1", "Lead"])
+        w.writerow(["SYNTHETIC-CONTROL-A", "SYNTHETIC-CONTROL-A_BGC1", "Lead"])
         w.writerow(["AS-922", "AS-922_BGC1", "Lead"])  # governed-legit
     result = exclusion_gate.gate_governed_outputs([board])
     assert result["status"] == "PASS"
@@ -81,7 +82,7 @@ def test_gate_fails_on_xlsx_with_injected_as260(tmp_path):
     ws = wb.active
     ws.title = "BGC_Master"
     ws.append(["strain", "bgc_id", "tier"])
-    ws.append(["AS-40", "AS-40_BGC1", "Lead"])
+    ws.append(["SYNTHETIC-CONTROL-A", "SYNTHETIC-CONTROL-A_BGC1", "Lead"])
     ws.append(["AS-920", "AS-920_BGC3", "Lead"])  # injected leak into a governed sheet
     xlsx = tmp_path / "project_master.xlsx"
     wb.save(xlsx)
@@ -102,7 +103,7 @@ def test_assert_strain_governable_refuses_as260():
 
 def test_assert_strain_governable_allows_governed_strains():
     exclusion_gate.assert_strain_governable("AS-922")  # governed
-    exclusion_gate.assert_strain_governable("AS-40")   # normal
+    exclusion_gate.assert_strain_governable("SYNTHETIC-CONTROL-A")   # normal
 
 
 # ── integration: the WIRED update_master_workbook guard refuses AS-920 ─────────

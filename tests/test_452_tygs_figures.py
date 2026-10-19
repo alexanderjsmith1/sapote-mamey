@@ -10,7 +10,7 @@ TSV = ("comp_type\tquery_genome\tsubject_genome\tdigital_ddh_d0\tconfidence_inte
        "digital_ddh_d6\tconfidence_interval_d6\tpercent_gc_diff\n"
        "U vs. T\t'AS-1.fna'\tStreptomyces alpha DSM 1\t90\t[88 - 92]\t30.5\t[28.1 - 33.0]\t90\t[88 - 92]\t0.2\n"
        "U vs. T\t'AS-1.fna'\tStreptomyces beta DSM 2\t90\t[88 - 92]\t72.0\t[69.0 - 74.8]\t90\t[88 - 92]\t0.1\n"
-       "U vs. U\t'AS-1.fna'\t'AS-2.fna'\t90\t[88 - 92]\t99.0\t[98 - 99.5]\t90\t[88 - 92]\t0.0\n")
+       "U vs. U\t'AS-1.fna'\t'SYNTHETIC-CASE-002.fna'\t90\t[88 - 92]\t99.0\t[98 - 99.5]\t90\t[88 - 92]\t0.0\n")
 
 
 def test_tsv_parse_and_user_vs_type(tmp_path):

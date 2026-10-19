@@ -16,7 +16,7 @@ LINEAGE_OSCIL = "Bacteria;Cyanobacteria;Oscillatoriophycideae;Oscillatoria"
     (LINEAGE_PAENI, "paenibacillus"),
     (LINEAGE_OSCIL, "oscillatoria"),
     ("Streptomyces", "streptomyces"),          # binomial path unchanged
-    ("Streptomyces sp. AS-162", "streptomyces"),
+    ('Streptomyces sp. SYNTHETIC-CASE-004', "streptomyces"),
     ("Candidatus Streptomyces", "streptomyces"),
 ])
 def test_genus_from_lineage_or_binomial(tax, genus):

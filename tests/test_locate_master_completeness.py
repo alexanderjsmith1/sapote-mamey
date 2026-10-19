@@ -9,14 +9,14 @@ from mamey.cohort_deliverable import _locate_master
 def _make(d, name, n_strains, mtime):
     wb = Workbook(); ws = wb.active; ws.title = "A2_Strain_Registry"; ws.append(["strain_id"])
     for i in range(n_strains):
-        ws.append([f"AS-{100+i}"])
+        ws.append([f"SYNTHETIC-CASE-MASTER-{100+i}"])
     p = Path(d) / name; wb.save(p); os.utime(p, (mtime, mtime)); return p
 
 
 def test_picks_complete_master_over_alpha_last_partial(tmp_path):
     now = time.time()
     _make(tmp_path, "Mamey_Master.xlsx", 9, now - 100)                       # complete, older
-    _make(tmp_path, "Mamey_v1.9.111_Master_After_AS-421.xlsx", 5, now - 50)  # partial
+    _make(tmp_path, 'Mamey_v1.9.111_Master_After_SYNTHETIC-CASE-013.xlsx', 5, now - 50)  # partial
     _make(tmp_path, "Mamey_v1.9.111_Master_After_SYNTHETIC_REFERENCE_01.xlsx", 4, now - 10)  # alpha-last, newest, fewest
     picked = _locate_master(tmp_path, None)
     assert picked is not None and picked.name == "Mamey_Master.xlsx"

@@ -87,10 +87,10 @@ def run_operation(args) -> Outcome:
     """Produce exactly one result, preserving the operation's refusal status."""
     try:
         if args.operation == "import-smoke":
-            from _release_import_smoke import run_import_smoke
+            from _release_import_smoke import run_import_smoke, IMPORT_READY_STATES
             report = run_import_smoke(args.source, args.out, args.python)
             return Outcome("CONTROLLED IMPORT SMOKE: " + report["status"] + " — "
-                           + str(args.out / "import-smoke.json"), 0 if report["status"] == "PASS" else 2)
+                           + str(args.out / "import-smoke.json"), 0 if report["status"] in IMPORT_READY_STATES else 2)
         if args.operation == "verify-import":
             from _release_import_smoke import verify_import_receipt
             from _release_partition_runner import test_environment

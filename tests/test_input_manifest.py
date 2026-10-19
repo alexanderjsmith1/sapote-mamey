@@ -25,10 +25,10 @@ def _mk(d, name, content):
 
 def test_manifest_pins_sha256_and_gap_exits_3(tmp_path):
     ins = tmp_path / "inputs"; ins.mkdir()
-    _mk(ins, "AS-100.fna", ">x\nACGT\n")
-    _mk(ins, "AS-200.fna", ">y\nTTTT\n")
+    _mk(ins, "AS-971.fna", ">x\nACGT\n")
+    _mk(ins, 'SYNTHETIC-CASE-008.fna', ">y\nTTTT\n")
     denom = tmp_path / "denom.txt"
-    denom.write_text("AS-100\nAS-200\nAS-300\n")  # AS-300 missing -> gap
+    denom.write_text('AS-971\nSYNTHETIC-CASE-008\nAS-973\n')  # authored missing-key control -> gap
     out = tmp_path / "out"
     r = subprocess.run([PY, str(TOOL), "--label", "T", "--out", str(out),
                         "--inputs", str(ins), "--key-mode", "strain",
@@ -36,17 +36,17 @@ def test_manifest_pins_sha256_and_gap_exits_3(tmp_path):
     assert r.returncode == 3, r.stderr
     man = (out / "T_INPUT_MANIFEST.tsv").read_text()
     assert "sha256" in man.splitlines()[0]
-    # a real sha256 for AS-100.fna is present
-    h = hashlib.sha256((ins / "AS-100.fna").read_bytes()).hexdigest()
+    # the digest of the helper-authored four-base input is present
+    h = hashlib.sha256((ins / "AS-971.fna").read_bytes()).hexdigest()
     assert h in man
     cov = (out / "T_COVERAGE_REPORT.md").read_text()
-    assert "AS-300" in cov and "GAP" in cov
+    assert "AS-973" in cov and "GAP" in cov
 
 
 def test_full_coverage_exits_0(tmp_path):
     ins = tmp_path / "inputs"; ins.mkdir()
-    _mk(ins, "AS-100.fna", ">x\nACGT\n")
-    denom = tmp_path / "denom.txt"; denom.write_text("AS-100\n")
+    _mk(ins, "AS-971.fna", ">x\nACGT\n")
+    denom = tmp_path / "denom.txt"; denom.write_text("AS-971\n")
     out = tmp_path / "out"
     r = subprocess.run([PY, str(TOOL), "--label", "T", "--out", str(out),
                         "--inputs", str(ins), "--key-mode", "strain",

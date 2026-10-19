@@ -87,7 +87,7 @@ def test_ocr_require_fails_when_ocr_is_unavailable(tmp_path, monkeypatch):
     _complete(tmp_path, "fig_png_only")
     monkeypatch.setattr(qc.shutil, "which", lambda _name: None)
     assert qc.main([str(tmp_path), "--ocr", "require"]) == 2
-    assert qc.main([str(tmp_path), "--ocr", "auto"]) == 0
+    assert qc.main([str(tmp_path), "--out", str(tmp_path / "auto_qa"), "--ocr", "auto"]) == 0
 
 
 @pytest.mark.parametrize("stdout,returncode,expected", [

@@ -413,6 +413,11 @@ def parse_blast_xml(xml_text: str, batch: list[tuple[str, str]], top_n: int = 6)
         records = list(NCBIXML.parse(io.StringIO(xml_text)))
     except Exception:
         return out
+    # A READY response must conserve the submitted query census. A truncated
+    # prefix must not receive the single-query no-hit exemption, and extra
+    # source records must not be silently clipped to the requested batch.
+    if len(records) != len(batch):
+        return out
     for idx, rec in enumerate(records):
         if idx >= len(batch):
             break
@@ -555,6 +560,10 @@ def run_batch_online(batch: list[tuple[str, str]], *, database: str = "nr",
                 xml = _post({"CMD": "Get", "RID": rid, "FORMAT_TYPE": "XML",
                              "ALIGNMENTS": "3", "DESCRIPTIONS": "3"})
                 _hits = parse_blast_xml(xml, batch)
+                if len(_hits) != len(batch):
+                    return OnlineResult(ok=False, rid=rid, reason=(
+                        f"BLASTP_QUERY_CENSUS_HOLD: {len(_hits)} parsed query records "
+                        f"for {len(batch)} submitted proteins; no completed batch admitted"))
                 if _zero_alignment_batch(_hits):
                     return OnlineResult(ok=False, rid=rid, reason=(
                         f"zero alignments for ALL {len(_hits)} queries in this batch — refusing to "
@@ -639,7 +648,11 @@ def run_batches_online(batches: list[list[tuple[str, str]]], *, database: str = 
                     xml = _post({"CMD": "Get", "RID": rid, "FORMAT_TYPE": "XML",
                                  "ALIGNMENTS": "3", "DESCRIPTIONS": "3"})
                     _hits = parse_blast_xml(xml, batch)
-                    if _zero_alignment_batch(_hits):
+                    if len(_hits) != len(batch):
+                        results[idx] = OnlineResult(ok=False, rid=rid, reason=(
+                            f"BLASTP_QUERY_CENSUS_HOLD: {len(_hits)} parsed query records "
+                            f"for {len(batch)} submitted proteins; no completed batch admitted"))
+                    elif _zero_alignment_batch(_hits):
                         results[idx] = OnlineResult(ok=False, rid=rid, reason=(
                             f"zero alignments for ALL {len(_hits)} queries in this batch — refusing "
                             f"to record them as tested-negatives (v9.7.250 guard). Re-run at "

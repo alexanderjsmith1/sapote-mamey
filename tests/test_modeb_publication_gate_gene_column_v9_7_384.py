@@ -1,4 +1,5 @@
-"""v9.7.384 (BLACK_CHERRY-384-01): §4 publication gate resolves the gene column by header.
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
+"""v9.7.384 (regression_review-384-01): §4 publication gate resolves the gene column by header.
 
 Regression guard. `.383` narrowed the §4 named-match gene-tag extraction from a whole-row search
 to `matrix_gene_tag(row[0])` (column 0 only). A matrix that leads with the mandated identity
@@ -27,8 +28,8 @@ def test_identity_led_matrix_is_not_falsely_flagged_duplicate():
         "Intro.\n\n" + _HEADING + "\n\n"
         "| strain | node | region | BGC | gene | nr accession | organism | identity |\n"
         "|---|---|---|---|---|---|---|---|\n"
-        "| AS-846 | NODE_9 | region001 | BGC005 | ctg9_18 | WP_1 | Nocardia | 90% |\n"
-        "| AS-846 | NODE_9 | region001 | BGC005 | ctg9_19 | WP_2 | Nocardia | 85% |\n"
+        "| SYNTHETIC-CASE-026 | NODE_9 | region001 | BGC005 | ctg9_18 | WP_1 | Nocardia | 90% |\n"
+        "| SYNTHETIC-CASE-026 | NODE_9 | region001 | BGC005 | ctg9_19 | WP_2 | Nocardia | 85% |\n"
         "#### Next subsection\nother\n"
     )
     assert "PUBLICATION_GENE_TABLE_DUPLICATE" not in _codes(s4)
@@ -40,8 +41,8 @@ def test_identity_led_matrix_with_a_real_repeat_still_flags_duplicate():
         "Intro.\n\n" + _HEADING + "\n\n"
         "| strain | node | region | BGC | gene | nr accession | organism | identity |\n"
         "|---|---|---|---|---|---|---|---|\n"
-        "| AS-846 | NODE_9 | region001 | BGC005 | ctg9_18 | WP_1 | Nocardia | 90% |\n"
-        "| AS-846 | NODE_9 | region001 | BGC005 | ctg9_18 | WP_2 | Nocardia | 85% |\n"
+        "| SYNTHETIC-CASE-026 | NODE_9 | region001 | BGC005 | ctg9_18 | WP_1 | Nocardia | 90% |\n"
+        "| SYNTHETIC-CASE-026 | NODE_9 | region001 | BGC005 | ctg9_18 | WP_2 | Nocardia | 85% |\n"
         "#### Next subsection\nother\n"
     )
     assert "PUBLICATION_GENE_TABLE_DUPLICATE" in _codes(s4)

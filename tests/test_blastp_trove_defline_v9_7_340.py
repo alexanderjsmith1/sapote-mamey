@@ -5,14 +5,14 @@ from mamey.blastp_ingest import _gene_from_query, ingest_blastp_trove, blastp_st
 
 def test_gene_equals_fast_path_unchanged():
     # standard panels carry gene= — must be byte-identical to before the fix
-    assert _gene_from_query("AS-705|BGC004|gene=ctg66_8|aa=420") == "ctg66_8"
+    assert _gene_from_query("SYNTHETIC-CASE-020|BGC004|gene=ctg66_8|aa=420") == "ctg66_8"
     assert _gene_from_query("something|gene=ctg1_1|x") == "ctg1_1"
 
 
 def test_pipe_defline_without_gene_recovers_locus():
     # the trove format ingest-blastp-trove introduces — the bug the card is about
-    assert _gene_from_query("AS-421|BGC041|ctg66_8|3116") == "ctg66_8"
-    assert _gene_from_query("AS-421 BGC041 ctg162_3 3116") == "ctg162_3"
+    assert _gene_from_query("SYNTHETIC-CASE-013|BGC041|ctg66_8|3116") == "ctg66_8"
+    assert _gene_from_query("SYNTHETIC-CASE-013 BGC041 ctg162_3 3116") == "ctg162_3"
     assert _gene_from_query("ctg9_12") == "ctg9_12"
 
 

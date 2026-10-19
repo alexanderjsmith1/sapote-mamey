@@ -38,7 +38,7 @@ def _write(tmp_path, obj):
 @pytest.mark.parametrize("bad_value", ["sp.", "spp.", ".", "", "   "])
 def test_placeholder_or_empty_value_is_rejected(tmp_path, bad_value):
     m = _mod()
-    path = _write(tmp_path, {"AS-678": bad_value})
+    path = _write(tmp_path, {'SYNTHETIC-CASE-018': bad_value})
     with pytest.raises(SystemExit):
         m.load_taxonomy_map(path)
 
@@ -46,13 +46,13 @@ def test_placeholder_or_empty_value_is_rejected(tmp_path, bad_value):
 @pytest.mark.parametrize("ok_value", ["Nocardia sp.", "not verified", "Streptomyces", "Micromonospora sp."])
 def test_real_taxonomy_and_explicit_uncertainty_pass(tmp_path, ok_value):
     m = _mod()
-    path = _write(tmp_path, {"AS-678": ok_value})
-    assert m.load_taxonomy_map(path) == {"AS-678": ok_value}
+    path = _write(tmp_path, {'SYNTHETIC-CASE-018': ok_value})
+    assert m.load_taxonomy_map(path) == {'SYNTHETIC-CASE-018': ok_value}
 
 
 def test_one_bad_entry_fails_the_whole_map(tmp_path):
     # a good entry does not excuse a placeholder sibling; the map is all-or-nothing
     m = _mod()
-    path = _write(tmp_path, {"AS-1": "Nocardia sp.", "AS-2": "sp."})
+    path = _write(tmp_path, {"AS-1": "Nocardia sp.", 'SYNTHETIC-CASE-002': "sp."})
     with pytest.raises(SystemExit):
         m.load_taxonomy_map(path)

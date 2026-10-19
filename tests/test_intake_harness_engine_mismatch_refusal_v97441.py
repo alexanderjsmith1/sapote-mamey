@@ -53,7 +53,7 @@ def test_real_read_json_extracts_mamey_version_from_a_synthetic_manifest(tmp_pat
     namespace = {}
     exec(text[start:end], namespace)  # noqa: S102 -- the function body only, no mamey import
     manifest = tmp_path / "manifest_short.json"
-    manifest.write_text(json.dumps({"mamey_version": "1.9.154", "strain": "AS-188"}))
+    manifest.write_text(json.dumps({"mamey_version": "1.9.154", "strain": 'SYNTHETIC-CASE-006'}))
     result = namespace["_read_json"](str(manifest))
     assert result["mamey_version"] == "1.9.154"
 

@@ -34,7 +34,7 @@ def test_failing_figure_is_refused_no_png_v97401(tmp_path):
 
 def test_clean_figure_still_renders_v97401(tmp_path):
     tree = tmp_path / "good.treefile"
-    tree.write_text("(Nocardia_AS-188_bumblebee:0.01,Nocardia_iowensis:0.01,Rhodococcus_OUTGROUP:0.02);\n")
+    tree.write_text('(Nocardia_AS-971_bumblebee:0.01,Nocardia_iowensis:0.01,Rhodococcus_OUTGROUP:0.02);\n')
     out = tmp_path / "out.png"
     r = _run(tree, out)
     assert r.returncode == 0, r.stderr

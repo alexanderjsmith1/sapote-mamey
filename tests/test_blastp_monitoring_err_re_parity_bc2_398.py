@@ -61,6 +61,6 @@ def test_shared_patterns_still_match_common_signals():
 def test_a_clean_log_line_matches_neither():
     last_returns_re = _load_err_re(_LAST_RETURNS)
     health_re = _load_err_re(_HEALTH)
-    clean = "fetched 40 hits for AS-188 BGC012"
+    clean = "fetched 40 hits for SYNTHETIC-CASE-006 BGC012"
     assert not last_returns_re.search(clean)
     assert not health_re.search(clean)

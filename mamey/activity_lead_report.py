@@ -33,7 +33,7 @@ AB_PREFIXES = (
     "T43-LAN", "T43-LASSO", "T43-THA", "T43-PHO", "T43-AMC",
     "T43-BLA", "T43-GPA", "T43-BLT",
 )
-TIER_ORDER = {"exceptional": 5, "high": 4, "medium": 3, "low": 2, "inventory": 1}  # v9.7.409 A2 (AQUARIUS_01): Low ranks strictly above Inventory; matches package_addons.py
+TIER_ORDER = {"exceptional": 5, "high": 4, "medium": 3, "low": 2, "inventory": 1}  # v9.7.409 A2 (inventory_review_01): Low ranks strictly above Inventory; matches package_addons.py
 BOUNDARY_ORDER = {"interior": 3, "full-contig": 2, "edge": 1}
 
 OUTPUT_COLUMNS = [

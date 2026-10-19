@@ -65,8 +65,13 @@ def test_direct_bioassay_r_stamps(tmp_path):
     assert len(list(out.glob('*.pdf')))==1
 
 @pytest.mark.skipif(shutil.which("Rscript") is None, reason="needs R: Rscript not on PATH (see bundle_support/install_r_figure_packages.R)")
-def test_page_final_preview_keeps_stamp(tmp_path,monkeypatch):
-    fixture=module('stamp_page_fixture','test_m5_452_pcoa_page_defaults.py');ppr=fixture.ppr
+def test_page_native_artwork_keeps_stamp(tmp_path,monkeypatch):
+    fixture=module('stamp_page_fixture','test_m5_452_pcoa_page_defaults.py')
+    spec=importlib.util.spec_from_file_location('native_page_driver',ROOT/'tools/protein_pcoa_render.py')
+    ppr=importlib.util.module_from_spec(spec);spec.loader.exec_module(ppr);fixture.ppr=ppr
+    ds=importlib.util.spec_from_file_location('tools.protein_pcoa_page_docs',ROOT/'tools/protein_pcoa_page_docs.py')
+    docs=importlib.util.module_from_spec(ds);ds.loader.exec_module(docs)
+    monkeypatch.setitem(sys.modules,'tools.protein_pcoa_page_docs',docs)
     root=fixture.make_kit(tmp_path,[('SYN-970',2.5,2.5,95.0),('SYN-971',.5,.5,30.0)])
     which=shutil.which;run=subprocess.run;replaced=[]
     monkeypatch.setattr(shutil,'which',lambda cmd,*a,**k: 'synthetic-preview' if cmd=='qlmanage' else which(cmd,*a,**k))
@@ -80,9 +85,9 @@ def test_page_final_preview_keeps_stamp(tmp_path,monkeypatch):
         return run(cmd,*a,**k)
     monkeypatch.setattr(subprocess,'run',preview)
     assert fixture.page(root)==0
-    assert replaced
+    assert not replaced, "native artwork must not be replaced by a PDF review preview"
     out=root/'out';prefix=out/'PAGE_KS_query_PCOA_TRIMAP'
-    assert_stamped([Path(str(prefix)+ext) for ext in ('.png','.pdf','.svg')],'protein_pcoa_page')
+    assert_stamped([Path(str(prefix)+ext) for ext in ('.png','_plot_only.png','.pdf','.svg')],'protein_pcoa_page')
     assert_stamped(list((out/'fit_trials_KS').glob('*.pdf')),'protein_pcoa_page')
 
 @pytest.mark.parametrize('renderer',['matplotlib',pytest.param('r',marks=pytest.mark.skipif(shutil.which("Rscript") is None, reason="needs R: Rscript not on PATH (see bundle_support/install_r_figure_packages.R)"))])

@@ -78,12 +78,19 @@ is already occupied. Then confirm:
 
 ```bash
 python --version
-python mamey_run.py start
+python -B mamey_run.py start --no-doctor
 python mamey_run.py doctor
 ```
 
-Python must be 3.12 or newer. `start` reports which program is loaded; `doctor` reports its
-capabilities. Neither one analyzes your strain. Optional capabilities can stay missing if your
+Python must be 3.12 or newer. `start --no-doctor` reports which program is loaded without the
+doctor probe; plain `start` also invokes `doctor`. `doctor` reports selected capabilities and
+performs the write probe described above. In normal bytecode-enabled mode, the launcher can
+write its provenance marker or clear unbound caches before dispatch. With `-B` or
+`PYTHONDONTWRITEBYTECODE=1`, the revised launcher skips the marker on a cache-free tree and
+refuses untrusted bytecode without purging it. This does not make doctor or other writing
+commands read-only; the commands in this run workflow belong in an authorized writable
+installation. Explicit `--purge-bytecode` remains a request to remove caches. Neither command
+analyzes your strain. Optional capabilities can stay missing if your
 task does not use them. If something fails, save the actual error instead of reinstalling
 repeatedly.
 
@@ -113,12 +120,13 @@ Replace `EXAMPLE` and `Genus sp.` with your label and verified taxonomy:
 python mamey_run.py run --strain EXAMPLE \
   --input-zip "$INPUT" --taxonomy 'Genus sp.' --source 'not supplied' \
   --mode gold --json-evidence bounded --brief none --locus-maps off \
+  --reference-completion off --require-workbook \
   --release PRIVATE --outdir "$WORK/runs/first_bounded"
 ```
 
 What this produces: many files, not one report. Tables, workbook, receipts, optional rendered
 outputs, and a portable package ZIP. The file count varies with the input and settings; a
-package can hold a few hundred entries. Ask for an inventory and size summary. The brief and locus maps are deliberately deferred in this command. Gold does
+package can hold a few hundred entries. Ask for an inventory and size summary. The brief and locus maps are deliberately deferred, and reference-completion searches are off. This command requires workbook production; a failure is not a completed table handoff. Gold does
 not author a Mode B card. `PRIVATE` is just the output tag; it says nothing about whether the
 source genome is published.
 
@@ -144,15 +152,18 @@ Copy the package path the run printed. With the example above:
 
 ```bash
 PACKAGE="$WORK/runs/first_bounded/EXAMPLE/package"
-python mamey_run.py validate "$PACKAGE"
+python mamey_run.py validate "$PACKAGE" --workbook-strict
 python mamey_run.py explain "$PACKAGE"
 python mamey_run.py list-bgcs "$PACKAGE"
 ```
 
 The validator checks encoded rules. It does not confirm that every requested output exists,
 that JSON evidence is exhaustive, or that interpretation is finished. Read the main result and
-`WORKBOOK_CONTENT` separately: even `--workbook-strict` can report `SKIP` for an absent workbook.
-Confirm any required workbook path/current receipt independently; see the [inspector and validator scope](SOPs/SOP-01_Intake_RawAntiSMASH_vs_MameyPackage.md#inspector-and-validator-scope). Now go to
+`WORKBOOK_CONTENT` separately. Without `--workbook-strict`, an absent workbook reports `SKIP`
+and does not fail the workbook branch. With `--workbook-strict`, no matching
+`*_5_workbook.xlsx` reports `FAIL_WORKBOOK_MISSING` and exits nonzero. When the workbook is a
+required deliverable, add `--workbook-strict` to the validation command and confirm the expected
+workbook path/current receipt independently; see the [inspector and validator scope](SOPs/SOP-01_Intake_RawAntiSMASH_vs_MameyPackage.md#inspector-and-validator-scope). Now go to
 [Read your results](READING_YOUR_RESULTS.md) to open the workbook and the status files.
 
 ## When something goes wrong

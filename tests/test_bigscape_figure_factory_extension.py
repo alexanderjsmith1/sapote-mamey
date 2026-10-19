@@ -13,6 +13,13 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 from mamey.interactive_figures import bigscape_extension as module  # noqa: E402
 
+if __package__ in (None, ""):
+    from _synthetic_identity_fixture import synthetic_namespace_id
+else:
+    from tests._synthetic_identity_fixture import synthetic_namespace_id
+_FORMAT_CASE_1 = synthetic_namespace_id('AS', width=2, case_index=80)
+_FORMAT_CASE_2 = synthetic_namespace_id('AS', width=3, case_index=800)
+
 
 def _hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -21,7 +28,7 @@ def _hash(path: Path) -> str:
 def _db(path: Path) -> None:
     connection = sqlite3.connect(path)
     connection.executescript(
-        """
+        f"""
         CREATE TABLE run (id INTEGER PRIMARY KEY,label TEXT,config_hash TEXT,cutoffs TEXT,input_dir TEXT,output_dir TEXT,mibig_version TEXT);
         CREATE TABLE gbk (id INTEGER PRIMARY KEY,path TEXT,organism TEXT,description TEXT);
         CREATE TABLE bgc_record (id INTEGER PRIMARY KEY,gbk_id INTEGER,product TEXT);
@@ -29,10 +36,10 @@ def _db(path: Path) -> None:
         CREATE TABLE bgc_record_family (record_id INTEGER,family_id INTEGER);
         INSERT INTO run VALUES (1,'selected','cfg-one','0.3,0.5,0.7','in','out','3.1');
         INSERT INTO run VALUES (2,'other','cfg-two','0.5','in2','out2',NULL);
-        INSERT INTO gbk VALUES (1,'/job/AS-74_NODE_1.region001.gbk','.', 'NODE_1');
-        INSERT INTO gbk VALUES (2,'/job/AS-747_NODE_2.region001.gbk','.', 'NODE_2');
+        INSERT INTO gbk VALUES (1,'/job/{_FORMAT_CASE_1}_NODE_1.region001.gbk','.', 'NODE_1');
+        INSERT INTO gbk VALUES (2,'/job/{_FORMAT_CASE_2}_NODE_2.region001.gbk','.', 'NODE_2');
         INSERT INTO gbk VALUES (3,'/refs/BGC0000001.gbk','MIBiG','reference');
-        INSERT INTO gbk VALUES (4,'/job/AS-74_NODE_3.region001.gbk','.', 'NODE_3');
+        INSERT INTO gbk VALUES (4,'/job/{_FORMAT_CASE_1}_NODE_3.region001.gbk','.', 'NODE_3');
         INSERT INTO bgc_record VALUES (1,1,'NRPS');
         INSERT INTO bgc_record VALUES (2,2,'NRPS');
         INSERT INTO bgc_record VALUES (3,3,'NRPS');
@@ -54,9 +61,9 @@ def _db(path: Path) -> None:
 def _bridge(path: Path) -> None:
     path.write_text(
         "strain\tbgc_id\tlocator\tbgc_class\tboundary_state\thost_cohort\n"
-        "AS-74\tBGC001\tNODE_1.region001\tNRPS\tInterior\tbee\n"
-        "AS-747\tBGC002\tNODE_2.region001\tNRPS\tEdge\twasp\n"
-        "AS-74\tBGC003\tNODE_3.region001\tterpene\tFull-contig\tbee\n",
+        f"{_FORMAT_CASE_1}\tBGC001\tNODE_1.region001\tNRPS\tInterior\tbee\n"
+        f"{_FORMAT_CASE_2}\tBGC002\tNODE_2.region001\tNRPS\tEdge\twasp\n"
+        f"{_FORMAT_CASE_1}\tBGC003\tNODE_3.region001\tterpene\tFull-contig\tbee\n",
         encoding="utf-8",
     )
 
@@ -64,7 +71,7 @@ def _bridge(path: Path) -> None:
 def _leads(path: Path) -> None:
     path.write_text(
         "strain\tbgc_id\tlocator\tlead_state\n"
-        "AS-74\tBGC001\tNODE_1.region001\tDECLARED_LEAD\n",
+        f"{_FORMAT_CASE_1}\tBGC001\tNODE_1.region001\tDECLARED_LEAD\n",
         encoding="utf-8",
     )
 
@@ -99,9 +106,9 @@ class BigscapeFigureFactoryExtensionTests(unittest.TestCase):
     self.assertEqual(receipt["reconciliation"]["exact_bridge_matches"], 3)
     self.assertEqual(receipt["reconciliation"]["exact_lead_matches"], 1)
     text = (tmp_path / "out" / "gcf-str_plotted_data.csv").read_text()
-    self.assertIn("AS-74", text)
-    self.assertIn("AS-747", text)
-    self.assertIn("AS-74,", text)  # AS-74 remains separate; it is not selected from AS-747.
+    self.assertIn(f"{_FORMAT_CASE_1}", text)
+    self.assertIn(f"{_FORMAT_CASE_2}", text)
+    self.assertIn(f"{_FORMAT_CASE_1},", text)  # constructed parser case 1 remains separate; it is not selected from the longer constructed parser case.
     source = json.loads((tmp_path / "out" / "gcf-ovr_source.json").read_text())
     self.assertEqual(source["run_receipt"]["database_run_pk"], 1)
     self.assertEqual(source["run_receipt"]["sqlite_mode"], "mode=ro; PRAGMA query_only=ON")
@@ -134,7 +141,7 @@ class BigscapeFigureFactoryExtensionTests(unittest.TestCase):
     table = tmp_path / "families.tsv"
     table.write_text(
         "cutoff\tfamily_id\trun_id\tnormalized_cutoff\tqualified_family_id\tgcf_namespace\tn_strains\tstrains\tn_members\tbin\tdominant_product\tcontains_MIBiG\tmembers_locators\n"
-        "0.5\t10\t1\t0.5\tbigscape-gcf:v1/run/1/cutoff/0.5/family/10\trun_id=1;cutoff=0.5\t2\tAS-74,AS-747\t2\tNRPS\tNRPS\tno\tAS-74:NODE_1.region001;AS-747:NODE_2.region001\n",
+        f"0.5\t10\t1\t0.5\tbigscape-gcf:v1/run/1/cutoff/0.5/family/10\trun_id=1;cutoff=0.5\t2\t{_FORMAT_CASE_1},{_FORMAT_CASE_2}\t2\tNRPS\tNRPS\tno\t{_FORMAT_CASE_1}:NODE_1.region001;{_FORMAT_CASE_2}:NODE_2.region001\n",
         encoding="utf-8",
     )
     manifest = tmp_path / "RUN_MANIFEST.json"
@@ -158,14 +165,14 @@ class BigscapeFigureFactoryExtensionTests(unittest.TestCase):
   def test_bridge_requires_full_exact_key_and_is_one_to_one(self):
     tmp_path = self.tmp_path
     bad = tmp_path / "bad.tsv"
-    bad.write_text("strain\tlocator\nAS-74\tNODE_1.region001\n", encoding="utf-8")
+    bad.write_text(f"strain\tlocator\n{_FORMAT_CASE_1}\tNODE_1.region001\n", encoding="utf-8")
     with self.assertRaisesRegex(ValueError, "missing required exact-key"):
         module._bridge(bad)
     duplicate = tmp_path / "dup.tsv"
     duplicate.write_text(
         "strain\tbgc_id\tlocator\tbgc_class\tboundary_state\thost_cohort\n"
-        "AS-74\tBGC001\tNODE_1.region001\tNRPS\tInterior\tbee\n"
-        "AS-74\tBGC999\tNODE_1.region001\tNRPS\tEdge\tbee\n",
+        f"{_FORMAT_CASE_1}\tBGC001\tNODE_1.region001\tNRPS\tInterior\tbee\n"
+        f"{_FORMAT_CASE_1}\tBGC999\tNODE_1.region001\tNRPS\tEdge\tbee\n",
         encoding="utf-8",
     )
     with self.assertRaisesRegex(ValueError, "not one-to-one"):

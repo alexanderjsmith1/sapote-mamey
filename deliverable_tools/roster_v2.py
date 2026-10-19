@@ -42,7 +42,7 @@ except Exception as _exc:  # pragma: no cover - standalone use without mamey
 _INV_VER_RE = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
 
 
-def _inventory_freshness_key(p):
+def _inventory_freshness_key(p, search_root=None):
     """Bundle-version freshness for an inventory path: the newest parseable
     ``vX.Y.Z`` among sibling ``*Complete_Package.zip`` names in the strain dir
     (covers versionless per-strain homes), else the newest version token in the
@@ -59,7 +59,7 @@ def _inventory_freshness_key(p):
     except OSError:
         pass
     if best == (-1, -1, -1):
-        for m in _INV_VER_RE.finditer(os.path.relpath(p, ROOT)):
+        for m in _INV_VER_RE.finditer(os.path.relpath(p, ROOT if search_root is None else search_root)):
             t = tuple(int(x) for x in m.groups())
             if t > best: best = t
     return best
@@ -68,20 +68,30 @@ def _inventory_freshness_key(p):
 def resolve_inventory(strain):
     """Pick the canonical *_2_inventory.csv for a strain: newest bundle version
     first (sibling-package or path token), then home preference, then mtime."""
-    cands = []
-    for p in glob.glob(f"{ROOT}/**/{strain}_2_inventory.csv", recursive=True):
-        if "old" in os.path.relpath(p, ROOT).split(os.sep): continue
-        cands.append(p)
+    from mamey.strain_data_home import package_home_directories
+    preferred_roots = package_home_directories(ROOT)
+    # Preserve the ordinary workspace fallback and add explicitly selected external homes.
+    candidates = {}
+    for base in (ROOT, *preferred_roots):
+        for p in glob.glob(os.path.join(base, "**", strain + "_2_inventory.csv"), recursive=True):
+            if "old" in os.path.relpath(p, base).split(os.sep):
+                continue
+            key = os.path.realpath(p)
+            preferred = base != ROOT
+            if key not in candidates or preferred:
+                candidates[key] = (p, base, preferred)
+    cands = [value[0] for value in candidates.values()]
+    context = {value[0]: value[1:] for value in candidates.values()}
     def score(p):
         s = 0
-        if "mamey_packages" in p or "mamey complete" in p.lower(): s += 100
+        if context[p][1]: s += 100
         if "/package/" in p: s += 20
         if any(x in p for x in ("_audit","thesis_capture","paper_source_pool","older_data")): s -= 40
         return s
     def _mtime(p):
         try: return os.path.getmtime(p)
         except OSError: return 0.0
-    for c in sorted(cands, key=lambda p: (_inventory_freshness_key(p), score(p), _mtime(p)), reverse=True):
+    for c in sorted(cands, key=lambda p: (_inventory_freshness_key(p, context[p][0]), score(p), _mtime(p)), reverse=True):
         try:
             hdr = next(csv.reader(open(c)))
             if {"Products","KCB_top"}.issubset(set(hdr)): return c

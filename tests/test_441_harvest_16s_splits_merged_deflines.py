@@ -77,7 +77,7 @@ def test_sequence_lines_are_never_touched(src):
 
 def test_source_seam_present_if_patch_applied():
     """If run beside a patched tools/harvest_16s.py, assert the seam is really there."""
-    p = pathlib.Path(__file__).resolve().parent / "tools" / "harvest_16s.py"
+    p = pathlib.Path(__file__).resolve().parents[1] / "tools" / "harvest_16s.py"
     if not p.exists():
         pytest.skip("patched harvest_16s.py not beside this test; logic tests above still apply")
     src = p.read_text()

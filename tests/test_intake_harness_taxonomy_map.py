@@ -36,15 +36,15 @@ def test_load_taxonomy_map_returns_empty_dict_for_none():
 def test_load_taxonomy_map_reads_valid_json(tmp_path):
     ih = _load_intake_harness()
     p = tmp_path / "taxmap.json"
-    p.write_text(json.dumps({"AS-677": "Saccharopolyspora sp.", "AS-678": "Nocardia sp."}))
+    p.write_text(json.dumps({'SYNTHETIC-CASE-017': "Saccharopolyspora sp.", 'SYNTHETIC-CASE-018': "Nocardia sp."}))
     result = ih.load_taxonomy_map(str(p))
-    assert result == {"AS-677": "Saccharopolyspora sp.", "AS-678": "Nocardia sp."}
+    assert result == {'SYNTHETIC-CASE-017': "Saccharopolyspora sp.", 'SYNTHETIC-CASE-018': "Nocardia sp."}
 
 
 def test_load_taxonomy_map_rejects_non_object_json(tmp_path):
     ih = _load_intake_harness()
     p = tmp_path / "taxmap.json"
-    p.write_text(json.dumps(["AS-677", "Saccharopolyspora sp."]))  # a list, not an object
+    p.write_text(json.dumps(['SYNTHETIC-CASE-017', "Saccharopolyspora sp."]))  # a list, not an object
     with pytest.raises(SystemExit):
         ih.load_taxonomy_map(str(p))
 
@@ -52,7 +52,7 @@ def test_load_taxonomy_map_rejects_non_object_json(tmp_path):
 def test_load_taxonomy_map_rejects_non_string_values(tmp_path):
     ih = _load_intake_harness()
     p = tmp_path / "taxmap.json"
-    p.write_text(json.dumps({"AS-677": 12345}))  # value must be a string
+    p.write_text(json.dumps({'SYNTHETIC-CASE-017': 12345}))  # value must be a string
     with pytest.raises(SystemExit):
         ih.load_taxonomy_map(str(p))
 

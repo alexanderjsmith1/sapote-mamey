@@ -5,6 +5,7 @@ from __future__ import annotations
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
+from tracked_file_policy import root_default_r_device_outputs  # noqa: E402
 
 import argparse
 import ctypes
@@ -29,6 +30,16 @@ class ArchiveTransactionError(RuntimeError):
     def __init__(self, code: str, reason: str, *, committed: bool = False) -> None:
         self.code, self.reason, self.committed = code, reason, committed
         super().__init__(f"{code}: {reason}")
+
+
+class ArchiveReceiptPublicationError(ArchiveTransactionError):
+    """Neither receipt channel accepted a complete record; direct callers receive it."""
+    def __init__(self, record: dict, exit_code: int) -> None:
+        super().__init__("ARCHTXN-RECEIPT-001", "receipt_channels_unavailable",
+                         committed=record.get("committed") is True)
+        self.receipt_record = record
+        self.commit_uncertain = record.get("status") == "COMMIT_STATE_HOLD"
+        self.exit_code = exit_code if type(exit_code) is int and 1 <= exit_code <= 255 else 1
 
 
 @dataclass(frozen=True)
@@ -140,6 +151,8 @@ def _safe_name(name: str) -> str:
 def _inventory_bound_stage(binding: StageRootBinding) -> list[Member]:
     _assert_stage_root_identity(binding)
     root = binding.resolved
+    if root_default_r_device_outputs(root):
+        _fail("ARCHTXN-STAGE-001", "root_default_r_device_output")
     rows: list[Member] = []
     def traversal_error(error):
         raise ArchiveTransactionError("ARCHTXN-STAGE-001", "stage_traversal_unverified") from error
@@ -399,8 +412,71 @@ def capability_probe(destination_parent: Path) -> None:
             raise ArchiveTransactionError("ARCHTXN-TXN-004", "probe_cleanup_unverified")
 
 
-def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, postcommit_fsync: Callable[[int], None] | None = None) -> ArchiveReceipt:
+
+def _record_ownership_probe_failure(state: dict, phase: str, error: BaseException) -> None:
+    # A failed observation is evidence of uncertainty, never evidence of no commit.
+    outcome = ("BINDING_UNAVAILABLE" if isinstance(error, KeyError) else
+               "PATH_NOT_OBSERVED" if isinstance(error, FileNotFoundError) else "IO_UNVERIFIED")
+    observation = {"phase": phase, "outcome": outcome}
+    number = getattr(error, "errno", None)
+    if type(number) is int:
+        observation["errno"] = number
+    state.setdefault("ownership_probe_failures", []).append(observation)
+
+def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, postcommit_fsync: Callable[[int], None] | None = None, expected_test_source_sha256: str | None = None) -> ArchiveReceipt:
+    # Keep publication state outside the inner try/finally so its first cleanup
+    # interruption, and failures before temporary creation, retain typed outcomes.
+    state = {"committed": False, "attempted": False, "cleanup_complete": False}
+    try:
+        return _finalize_archive_transaction(stage_root, output_dir, archive_name, state,
+                                            postcommit_fsync=postcommit_fsync, expected_test_source_sha256=expected_test_source_sha256)
+    except (Exception, KeyboardInterrupt, SystemExit) as exc:
+        committed = state["committed"]
+        uncertain = state["attempted"] and not committed
+        if uncertain:
+            try:
+                observed = state["final_path"].lstat()
+                owned = state["owned_file_identity"]
+                if (stat.S_ISREG(observed.st_mode) and observed.st_ino != 0 and
+                        (observed.st_dev, observed.st_ino) == (owned.st_dev, owned.st_ino)):
+                    committed, uncertain = True, False
+            except (OSError, KeyError) as probe_error:
+                _record_ownership_probe_failure(state, "outer_commit_recovery", probe_error)
+        interrupted = isinstance(exc, (KeyboardInterrupt, SystemExit)) or getattr(exc, "interrupted", False)
+        if isinstance(exc, ArchiveTransactionError):
+            error = exc
+        else:
+            error = ArchiveTransactionError("ARCHTXN-TXN-004", "archive_operation_failed")
+        if committed or uncertain:
+            error.code = "ARCHTXN-TXN-006"
+            error.reason = ("postcommit_interrupted" if interrupted else "postcommit_operation_failed") if committed else "commit_state_unverified"
+            error.commit_details = {"archive_name": state.get("final_name"),
+                                    "archive_path": str(state.get("final_path")),
+                                    "expected_sha256": state.get("digest"),
+                                    "expected_size_bytes": state.get("size")}
+        elif interrupted:
+            error.code, error.reason = "ARCHTXN-TXN-004", "archive_interrupted"
+        error.committed, error.commit_uncertain, error.interrupted = committed, uncertain, interrupted
+        if state.get("ownership_probe_failures"):
+            error.ownership_probe_failures = list(state["ownership_probe_failures"])
+        error.cleanup_state = ("OWNED_TEMP_REMOVED" if state["cleanup_complete"] else
+                               "CLEANUP_UNVERIFIED" if "owned_directory" in state else "NOT_CREATED")
+        code = getattr(exc, "exit_code", getattr(exc, "code", None))
+        error.exit_code = (130 if isinstance(exc, KeyboardInterrupt) else
+                           code if type(code) is int and 1 <= code <= 255 else 1)
+        error.args = (f"{error.code}: {error.reason}",)
+        if error is exc:
+            raise
+        raise error from exc
+
+
+def _finalize_archive_transaction(stage_root: Path, output_dir: Path, archive_name: str, state: dict, *, postcommit_fsync: Callable[[int], None] | None = None, expected_test_source_sha256: str | None = None) -> ArchiveReceipt:
     final_name = _canonical_basename(archive_name)
+    state["final_name"] = final_name
+    if expected_test_source_sha256 is not None:
+        if (type(expected_test_source_sha256) is not str or len(expected_test_source_sha256)!=64 or
+                any(char not in "0123456789abcdef" for char in expected_test_source_sha256)):
+            _fail("ARCHTXN-TXN-004", "source_role_snapshot_digest_invalid")
     try:
         stage_binding = _bind_stage_root(stage_root)
     except ArchiveTransactionError:
@@ -411,6 +487,7 @@ def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, p
     if not output_dir.is_dir():
         _fail("ARCHTXN-ARG-001", "output_directory_not_directory")
     final_path = output_dir / final_name
+    state["final_path"] = final_path
     if final_path.exists() or final_path.is_symlink():
         _fail("ARCHTXN-TXN-001", "final_destination_exists")
     capability_probe(output_dir)
@@ -420,20 +497,32 @@ def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, p
         raise
     except OSError as exc:
         raise ArchiveTransactionError("ARCHTXN-STAGE-001", "stage_inventory_unverified") from exc
+    if expected_test_source_sha256 is not None:
+        from identifier_source_roles import test_source_snapshot
+        try:
+            observed_test_source = test_source_snapshot(members, final_inventory=True)
+        except (ValueError, TypeError, KeyError) as snapshot_error:
+            raise ArchiveTransactionError("ARCHTXN-TXN-004", "source_role_snapshot_unverified") from snapshot_error
+        if observed_test_source != expected_test_source_sha256:
+            _fail("ARCHTXN-TXN-004", "source_role_snapshot_drift")
     # A private, exclusively created directory owns the staging name. Neither a
     # predictable sibling file nor another transaction's partial archive is opened.
     owned_directory = Path(tempfile.mkdtemp(prefix=".archtxn-", dir=output_dir))
     temporary = owned_directory / "archive.tmp"
     owned_identity = owned_directory.stat()
+    state["owned_directory"] = owned_directory
     srcfd = dstfd = -1
     committed = False
+    commit_attempted = False
     try:
         with temporary.open("xb") as owned_file:
             _write_archive(stage_binding, owned_file, members)
             owned_file.flush()
             os.fsync(owned_file.fileno())
             owned_file_identity = os.fstat(owned_file.fileno())
+            state["owned_file_identity"] = owned_file_identity
         size, digest = audit_archive(temporary, members)
+        state.update(size=size, digest=digest)
         _assert_stage_unchanged(stage_binding, members)
         if _sha_path(temporary) != (size, digest):
             _fail("ARCHTXN-ZIP-011", "temporary_archive_changed_after_audit")
@@ -445,8 +534,11 @@ def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, p
         srcfd = os.open(temporary if platform.system() == "Windows" else owned_directory, os.O_RDONLY)
         dstfd = os.open(output_dir, os.O_RDONLY)
         try:
+            commit_attempted = True
+            state["attempted"] = True
             commit_noreplace(srcfd, temporary.name, dstfd, final_name)
         except FileExistsError:
+            state["attempted"] = False  # Known no-replace refusal is not an uncertain commit.
             # v9.7.405 (G1): the LOST-RACE path had no typed refusal. The early preflight above
             # only proves the destination was free when the transaction STARTED; a concurrent
             # writer can claim it during the write/audit/hash window, and no-replace is what
@@ -460,6 +552,7 @@ def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, p
             # Same code as the preflight: both are "the final destination is taken".
             _fail("ARCHTXN-TXN-001", "final_destination_claimed_before_commit")
         committed = True
+        state["committed"] = True
         final_size, final_digest = _sha_path(final_path)
         if (final_size, final_digest) != (size, digest):
             _fail("ARCHTXN-TXN-006", "postcommit_identity_unverified", committed=True)
@@ -478,7 +571,36 @@ def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, p
                 (owned_identity.st_dev, owned_identity.st_ino)):
             raise OSError("owned temporary directory identity changed before cleanup")
         shutil.rmtree(owned_directory)
+        state["cleanup_complete"] = True
         return ArchiveReceipt("COMMITTED", None, None, final_name, len(members), digest, size, "TEMP_REMOVED_BY_COMMIT")
+    except (KeyboardInterrupt, SystemExit) as exc:
+        # An interruption must not turn an unacknowledged commit into exit-zero success.
+        # The signal can arrive after the atomic operation but before our flag assignment.
+        uncertain = commit_attempted and not committed
+        if uncertain:
+            try:
+                observed = final_path.lstat()
+                if (stat.S_ISREG(observed.st_mode) and observed.st_ino != 0 and
+                        (observed.st_dev, observed.st_ino) ==
+                        (owned_file_identity.st_dev, owned_file_identity.st_ino)):
+                    committed, uncertain = True, False
+            except OSError as probe_error:
+                _record_ownership_probe_failure(state, "interrupted_commit_recovery", probe_error)
+        error = ArchiveTransactionError(
+            "ARCHTXN-TXN-006" if committed or uncertain else "ARCHTXN-TXN-004",
+            "postcommit_interrupted" if committed else
+            "commit_interrupted_state_unverified" if uncertain else "archive_interrupted",
+            committed=committed,
+        )
+        error.commit_uncertain = uncertain
+        error.interrupted = True
+        code = getattr(exc, "code", None)
+        error.exit_code = (130 if isinstance(exc, KeyboardInterrupt) else
+                           code if type(code) is int and 1 <= code <= 255 else 1)
+        if committed or uncertain:
+            error.commit_details = {"archive_name": final_name, "archive_path": str(final_path),
+                                    "expected_sha256": digest, "expected_size_bytes": size}
+        raise error from exc
     except ArchiveTransactionError as exc:
         if committed:
             exc.committed = True
@@ -494,28 +616,86 @@ def finalize_archive(stage_root: Path, output_dir: Path, archive_name: str, *, p
                                     "expected_sha256": digest, "expected_size_bytes": size}
         raise error from exc
     finally:
+        cleanup_interrupt = None
         for descriptor in (srcfd, dstfd):
             if descriptor >= 0:
                 try:
                     os.close(descriptor)
                 except OSError as close_exc:
                     sys.stderr.write(f"WARN: descriptor cleanup failed: {type(close_exc).__name__}\n")
-        # Clean only this transaction's unchanged private directory.
-        if owned_directory.exists() and not owned_directory.is_symlink():
-            try:
-                current = owned_directory.stat()
-                if (current.st_dev, current.st_ino) != (owned_identity.st_dev, owned_identity.st_ino):
-                    raise OSError("owned temporary directory identity changed")
-                shutil.rmtree(owned_directory)
-            except OSError as cleanup_exc:
-                # Best-effort cleanup inside `finally`: raising here would replace whatever real
-                # error is already propagating. It must not be SILENT either — a temporary
-                # archive left behind in the release output directory is operator-visible debris
-                # that the next run's preflight will trip over, and the original code discarded
-                # that fact with a bare `pass`. Warn and continue.
-                sys.stderr.write(
-                    f"WARN: temporary archive not removed: {temporary.name}: "
-                    f"{type(cleanup_exc).__name__}\n")
+                except (KeyboardInterrupt, SystemExit) as interrupt:
+                    cleanup_interrupt = interrupt
+        # A first cleanup interruption cannot override committed-state reporting.
+        # Never delete a replacement directory or symlink under our former name.
+        try:
+            if owned_directory.exists() and not owned_directory.is_symlink():
+                try:
+                    current = owned_directory.stat()
+                    if (current.st_dev, current.st_ino) != (owned_identity.st_dev, owned_identity.st_ino):
+                        raise OSError("owned temporary directory identity changed")
+                    shutil.rmtree(owned_directory)
+                    state["cleanup_complete"] = True
+                except OSError as cleanup_exc:
+                    sys.stderr.write(
+                        f"WARN: temporary archive not removed: {temporary.name}: "
+                        f"{type(cleanup_exc).__name__}\n")
+        except (KeyboardInterrupt, SystemExit) as interrupt:
+            cleanup_interrupt = interrupt
+        if cleanup_interrupt is not None:
+            raise cleanup_interrupt
+
+
+def _write_receipt_line(stream, record: dict) -> None:
+    payload = json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n"
+    offset = 0
+    while offset < len(payload):
+        written = stream.write(payload[offset:])
+        if type(written) is not int or not 0 < written <= len(payload) - offset:
+            raise OSError("receipt_stream_made_no_verified_progress")
+        offset += written
+    stream.flush()
+
+
+def _publish_receipt(record: dict, exit_code: int) -> int:
+    if record.get("status") != "COMMITTED" and not (type(exit_code) is int and 1 <= exit_code <= 255):
+        exit_code = 1
+    committed_channel = record.get("status") in {"COMMITTED", "COMMITTED_HOLD", "COMMIT_STATE_HOLD"}
+    primary = sys.stdout if committed_channel else sys.stderr
+    try:
+        _write_receipt_line(primary, record)
+        return exit_code
+    except (Exception, KeyboardInterrupt, SystemExit) as exc:
+        code = getattr(exc, "code", exit_code)
+        failure_code = (130 if isinstance(exc, KeyboardInterrupt) else
+                        code if type(code) is int and 1 <= code <= 255 else 1)
+        if not committed_channel:
+            return failure_code  # Never repurpose stdout for a precommit refusal.
+        held = dict(record)
+        if held.get("status") == "COMMITTED":
+            held.update(status="COMMITTED_HOLD", committed=True,
+                        error_code="ARCHTXN-RECEIPT-001", reason_code="receipt_publication_failed")
+        held["receipt_error_code"] = "ARCHTXN-RECEIPT-001"
+        held["receipt_delivery"] = "PRIMARY_STREAM_FAILED"
+        try:
+            _write_receipt_line(sys.stderr, held)
+        except (Exception, KeyboardInterrupt, SystemExit) as fallback_error:
+            held["receipt_delivery"] = "BOTH_CHANNELS_UNAVAILABLE"
+            held["primary_failure_kind"] = ("INTERRUPTED" if isinstance(exc, KeyboardInterrupt) else
+                                             "EXIT_REQUEST" if isinstance(exc, SystemExit) else "WRITE_OR_FLUSH_FAILED")
+            held["fallback_failure_kind"] = ("INTERRUPTED" if isinstance(fallback_error, KeyboardInterrupt) else
+                                              "EXIT_REQUEST" if isinstance(fallback_error, SystemExit) else "WRITE_OR_FLUSH_FAILED")
+            code = 130 if isinstance(fallback_error, KeyboardInterrupt) else failure_code
+            raise ArchiveReceiptPublicationError(held, code) from None
+        return failure_code
+
+
+def _publication_exit(record: dict, exit_code: int) -> int:
+    try:
+        return _publish_receipt(record, exit_code)
+    except ArchiveReceiptPublicationError as error:
+        # Direct publisher callers get typed delivery evidence. The CLI handles that
+        # failure as a nonzero status; an unavailable channel cannot carry another record.
+        return error.exit_code
 
 
 def _main(argv: Iterable[str] | None = None) -> int:
@@ -523,23 +703,28 @@ def _main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--stage-root", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--archive-name", required=True)
+    parser.add_argument("--expected-test-source-sha256", default=None)
     args = parser.parse_args(argv)
     try:
-        receipt = finalize_archive(Path(args.stage_root), Path(args.output_dir), args.archive_name)
+        options = ({"expected_test_source_sha256": args.expected_test_source_sha256}
+                   if args.expected_test_source_sha256 else {})
+        receipt = finalize_archive(Path(args.stage_root), Path(args.output_dir), args.archive_name, **options)
     except ArchiveTransactionError as exc:
-        # Typed refusal on stderr; stdout stays reserved for the committed-archive receipt so a
-        # caller can parse one stream without the other. sys.stderr.write rather than
-        # print(file=...) because the ratchet counts print( by AST and cannot see file=.
-        record = {"status": "COMMITTED_HOLD" if exc.committed else "REFUSED",
-                  "committed": exc.committed, "error_code": exc.code, "reason_code": exc.reason}
-        if exc.committed:
+        uncertain = getattr(exc, "commit_uncertain", False)
+        record = {"status": "COMMITTED_HOLD" if exc.committed else "COMMIT_STATE_HOLD" if uncertain else "REFUSED",
+                  "committed": None if uncertain else exc.committed,
+                  "error_code": exc.code, "reason_code": exc.reason}
+        if getattr(exc, "interrupted", False):
+            record["interrupted"] = True
+        if hasattr(exc, "cleanup_state"):
+            record["cleanup_state"] = exc.cleanup_state
+        if hasattr(exc, "ownership_probe_failures"):
+            record["ownership_probe_failures"] = exc.ownership_probe_failures
+        if exc.committed or uncertain:
             record.update(getattr(exc, "commit_details", {}))
-            sys.stdout.write(json.dumps(record, sort_keys=True) + "\n")
-        else:
-            sys.stderr.write(json.dumps(record, sort_keys=True) + "\n")
-        return 1
-    sys.stdout.write(receipt.as_json() + "\n")
-    return 0
+        code = getattr(exc, "exit_code", 1)
+        return _publication_exit(record, code if type(code) is int and 1 <= code <= 255 else 1)
+    return _publication_exit(dict(receipt.__dict__), 0)
 
 
 if __name__ == "__main__":

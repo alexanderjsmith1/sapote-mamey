@@ -1,7 +1,13 @@
 """SCHEMA-P02 (v9.7.326+): the public-scaffold private-strain-ID guard must catch the real
 private prefixes, not just 3-digit AS. The old default AS-\\d{3} missed the 2-digit strains
-(AS-40/AS-74), 4-digit AS, and AJS-/PENDING- entirely — a public-tier leak in scaffold specs.
+(two-digit detector controls), 4-digit AS, and AJS-/PENDING- entirely — a public-tier leak in scaffold specs.
 """
+
+from tests._synthetic_identity_fixture import synthetic_namespace_id
+_TWO_A = synthetic_namespace_id("AS", width=2, case_index=80, separator=True)
+_TWO_B = synthetic_namespace_id("AS", width=2, case_index=81, separator=True)
+_THREE = synthetic_namespace_id("AS", width=3, case_index=821, separator=True)
+
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from mamey.directed_pks_study import private_identifier_hits
@@ -13,13 +19,13 @@ def _hit_values(obj):
 
 def test_catches_two_digit_and_four_digit_AS_and_ajs_pending():
     # each was MISSED by the old AS-\d{3} default
-    for sid in ("AS-40", "AS-74", "AS-1234", "AJS-9", "AJS-123", "PENDING-1", "PENDING-004"):
+    for sid in (f'{_TWO_A}', f'{_TWO_B}', "AS-1234", "AJS-9", "AJS-123", "PENDING-1", "PENDING-004"):
         assert private_identifier_hits({"strain_id": sid}), f"{sid} not flagged as private"
 
 
-def test_still_catches_three_digit_AS_705():
+def test_still_catches_three_digit_canary():
     # the existing contract must not regress
-    assert private_identifier_hits({"strain_id": "AS-705"})
+    assert private_identifier_hits({"strain_id": f'{_THREE}'})
 
 
 def test_placeholder_and_public_and_cassette_ids_stay_clean():

@@ -53,14 +53,14 @@ def _minimal_db(path):
     c.execute("insert into run(id) values (1)")
     # two strain BGCs + one MIBiG ref, all in one family (=> KNOWN)
     gbks = [(1, "AS-101_NODE_1_length_9_cov_1.region001.gbk"),
-            (2, "AS-102_NODE_2_length_9_cov_2.region001.gbk"),
+            (2, "SYNTHETIC-CASE-003_NODE_2_length_9_cov_2.region001.gbk"),
             (3, "BGC0000001.gbk")]
     c.executemany("insert into gbk(id,path) values (?,?)", gbks)
     for rid, gid in [(1, 1), (2, 2), (3, 3)]:
         c.execute("insert into bgc_record(id,gbk_id,nt_start,nt_stop,product) values (?,?,0,100,'NRPS')", (rid, gid))
     # a second, MIBiG-free family (=> NOVEL) with the same two strains
     c.execute("insert into gbk(id,path) values (4,'AS-101_NODE_9_length_9_cov_1.region002.gbk')")
-    c.execute("insert into gbk(id,path) values (5,'AS-102_NODE_9_length_9_cov_2.region002.gbk')")
+    c.execute("insert into gbk(id,path) values (5,'SYNTHETIC-CASE-003_NODE_9_length_9_cov_2.region002.gbk')")
     c.execute("insert into bgc_record(id,gbk_id,nt_start,nt_stop,product) values (4,4,0,100,'halogenated')")
     c.execute("insert into bgc_record(id,gbk_id,nt_start,nt_stop,product) values (5,5,0,100,'halogenated')")
     # cds + hsp for record 4 (domain content)

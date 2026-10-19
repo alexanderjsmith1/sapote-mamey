@@ -16,6 +16,20 @@
 # Exit code 0 = clean (and for code/cohort, audited 0 AS leaks). Non-zero = refused to ship.
 set -euo pipefail
 
+if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
+  cat <<'HELP'
+Usage: make_public_tier.sh code SOURCE OUTPUT [--privacy-profile PROFILE]
+Optional registry diagnostic: omit all four --synthetic-* options for
+NOT_REQUESTED/NOT_RUN; no synthetic-role or disclosure clearance follows.
+If any is supplied, require --synthetic-registry ABSOLUTE_TSV,
+--synthetic-registry-sha256, --synthetic-guard-sha256 and
+--synthetic-allowlist-sha256 with exact SHA256 bindings. Selected FAIL/HOLD
+remains fatal before staging. No registry is discovered or copied.
+The configured tests, private-content and source-integrity gates still apply.
+HELP
+  exit 0
+fi
+
 # Every `python3` below is a CHILD process, and `-B` does not cross a subprocess boundary — it is
 # a CPython flag, not an environment variable. Without this export those children write .pyc into
 # whatever tree they import from, INCLUDING the staged tier they are here to build. That is not
@@ -27,7 +41,30 @@ export PYTHONDONTWRITEBYTECODE=1
 # v9.7.410: every Python call below honours $PYTHON so the cut can run under the bundle interpreter
 # (env/.venv312) when the PATH `python3` is a system build without PyYAML — otherwise the version-sync
 # gate below fails for the wrong reason. Default stays `python3` for existing invocations.
-PYTHON="${PYTHON:-python3}"
+# BEGIN EXPORTER PYTHON LOCATOR
+# Bind the caller-selected executable before any source/stage cwd change.
+# Keep the lexical virtualenv prefix; resolving its symlink would select the base runtime.
+EXPORT_PYTHON_CHOICE="${PYTHON:-python3}"
+if [ "$(type -t "$EXPORT_PYTHON_CHOICE" || true)" != "file" ] || ! PYTHON="$(command -v "$EXPORT_PYTHON_CHOICE")"; then
+  echo "REFUSED [EXPORT-PYTHON-001]: selected Python executable not found; set PYTHON to one installed executable file before staging: $EXPORT_PYTHON_CHOICE" >&2
+  exit 2
+fi
+case "$PYTHON" in
+  /*) ;;
+  *) PYTHON="$PWD/$PYTHON" ;;
+esac
+# Remove only /./ components; retain .. and virtualenv symlink prefixes.
+while [[ "$PYTHON" == */./* ]]; do PYTHON="${PYTHON//\/.\///}"; done
+if [ ! -f "$PYTHON" ] || [ ! -x "$PYTHON" ]; then
+  echo "REFUSED [EXPORT-PYTHON-001]: selected Python is not an executable file; set PYTHON to one installed executable, not a shell command: $EXPORT_PYTHON_CHOICE" >&2
+  exit 2
+fi
+export PYTHON
+if ! EXPORT_PYTHON_PROBE="$("$PYTHON" -c 'import sys; supported = sys.version_info >= (3, 12); sys.stdout.write("SAPOTE_EXPORT_PYTHON_3_12_PLUS" if supported else ""); raise SystemExit(0 if supported else 2)')" || [ "$EXPORT_PYTHON_PROBE" != "SAPOTE_EXPORT_PYTHON_3_12_PLUS" ]; then
+  echo "REFUSED [EXPORT-PYTHON-002]: Python 3.12+ required; the selected executable did not pass compatibility verification. Select a compatible installed interpreter with PYTHON before staging." >&2
+  exit 2
+fi
+# END EXPORTER PYTHON LOCATOR
 
 TIER="${1:?tier: code|clean|cohort|merged|public}"; SRC="${2:?source dir}"; OUT="${3:?output dir}"
 shift 3
@@ -53,8 +90,32 @@ if [ "$TIER" != "code" ] && [ "${SAPOTE_ENABLE_DISABLED_TIERS:-0}" != "1" ]; the
   exit 2
 fi
 PRIVACY_PROFILE=""
+SYNTHETIC_REGISTRY=""
+SYNTHETIC_REGISTRY_SHA256=""
+SYNTHETIC_GUARD_SHA256=""
+SYNTHETIC_ALLOWLIST_SHA256=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --synthetic-registry)
+      if [[ $# -lt 2 || -z "$2" || "$2" == --* || -n "$SYNTHETIC_REGISTRY" ]]; then
+        echo 'HOLD: missing or duplicate --synthetic-registry selection' >&2; exit 2
+      fi
+      SYNTHETIC_REGISTRY="$2"; shift 2;;
+    --synthetic-guard-sha256)
+      if [[ $# -lt 2 || -z "$2" || "$2" == --* || -n "$SYNTHETIC_GUARD_SHA256" ]]; then
+        echo 'HOLD: missing or duplicate --synthetic-guard-sha256 selection' >&2; exit 2
+      fi
+      SYNTHETIC_GUARD_SHA256="$2"; shift 2;;
+    --synthetic-allowlist-sha256)
+      if [[ $# -lt 2 || -z "$2" || "$2" == --* || -n "$SYNTHETIC_ALLOWLIST_SHA256" ]]; then
+        echo 'HOLD: missing or duplicate --synthetic-allowlist-sha256 selection' >&2; exit 2
+      fi
+      SYNTHETIC_ALLOWLIST_SHA256="$2"; shift 2;;
+    --synthetic-registry-sha256)
+      if [[ $# -lt 2 || -z "$2" || "$2" == --* || -n "$SYNTHETIC_REGISTRY_SHA256" ]]; then
+        echo 'HOLD: missing or duplicate --synthetic-registry-sha256 selection' >&2; exit 2
+      fi
+      SYNTHETIC_REGISTRY_SHA256="$2"; shift 2;;
     --privacy-profile)
       PRIVACY_PROFILE="${2:?--privacy-profile requires a sapote_privacy_profile_v1 path}"
       shift 2
@@ -69,14 +130,42 @@ if [ -n "$PRIVACY_PROFILE" ] && [ ! -f "$PRIVACY_PROFILE" ]; then
   echo "FATAL: --privacy-profile is not a readable file: $PRIVACY_PROFILE" >&2
   exit 2
 fi
-# BEGIN PUBLIC AS PRIVACY PREFLIGHT
-# Fail before staging when inherited environment requests obsolete permissive
-# settings. A private merged scaffold remains separate from a public cut.
-if [ "$TIER" != "merged" ] && { [ "${AS_SCRUB:-1}" != "1" ] || [ "${AS_GUARD_RETIRED:-0}" != "0" ]; }; then
-  echo "REFUSED: public tiers require AS_SCRUB=1 and AS_GUARD_RETIRED=0 (check-only private-ID audit)." >&2
-  exit 2
+# BEGIN EXPLICIT SYNTHETIC REGISTRY PREFLIGHT
+# Optional snapshot diagnostic; any requested option retains all strict bindings.
+if [[ -n "$SYNTHETIC_REGISTRY$SYNTHETIC_REGISTRY_SHA256$SYNTHETIC_GUARD_SHA256$SYNTHETIC_ALLOWLIST_SHA256" ]]; then
+  if [[ -z "$SYNTHETIC_REGISTRY" || -z "$SYNTHETIC_REGISTRY_SHA256" || -z "$SYNTHETIC_GUARD_SHA256" || -z "$SYNTHETIC_ALLOWLIST_SHA256" ]]; then
+    printf '%s\n' '{"schema":"sapote.export-registry-preflight.v1","state":"HOLD","issues":["ALL_FOUR_EXPLICIT_OPTIONS_REQUIRED"]}' >&2
+    exit 2
+  fi
+  "$PYTHON" "$SRC/tools/verify_export_registry.py" --root "$SRC" \
+    --registry "$SYNTHETIC_REGISTRY" --registry-sha256 "$SYNTHETIC_REGISTRY_SHA256" \
+    --guard-sha256 "$SYNTHETIC_GUARD_SHA256" --allowlist-sha256 "$SYNTHETIC_ALLOWLIST_SHA256" || { PREFLIGHT_STATUS=$?; exit "$PREFLIGHT_STATUS"; }
+else
+  printf '%s\n' '{"schema":"sapote.export-registry-preflight.v1","state":"NOT_REQUESTED","diagnostic_status":"NOT_RUN","selected_hashes_verified":false,"fixture_role_clearance":"NOT_EVALUATED","source_disclosure_clearance":"NOT_EVALUATED"}' >&2
 fi
-# END PUBLIC AS PRIVACY PREFLIGHT
+# END EXPLICIT SYNTHETIC REGISTRY PREFLIGHT
+# BEGIN TEST SOURCE SNAPSHOT
+# Names and strain/class associations alone require no occurrence admission.
+# Bind the tested generation independently of the optional identifier-role diagnostics.
+SOURCE_TEST_ROLE_SHA256=""
+verify_staged_test_snapshot() {
+  local snapshot
+  snapshot="$("$PYTHON" - "$SRC" "$STAGE" <<'PYSNAPSHOT'
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(sys.argv[1])/'tools'))
+from finalize_public_archive import inventory_stage
+from identifier_source_roles import test_source_snapshot, write_line
+write_line(sys.stdout,test_source_snapshot(inventory_stage(Path(sys.argv[2])),final_inventory=True)+"\n")
+PYSNAPSHOT
+)" || return 2
+  if [ -n "$SOURCE_TEST_ROLE_SHA256" ] && [ "$snapshot" != "$SOURCE_TEST_ROLE_SHA256" ]; then
+    echo "REFUSED: staged test-source bytes or namespace changed after selection" >&2
+    return 2
+  fi
+  SOURCE_TEST_ROLE_SHA256="$snapshot"
+}
+# END TEST SOURCE SNAPSHOT
 # v9.7.382 (Codex due-diligence): the documented direct path did not export BUILD_STAMP, so the old
 # `date`-default invented a stamp that disagreed with the staged BUILD_STAMP.txt build= line and made
 # check_release_manifest refuse the cut. Derive the default from the SOURCE BUILD_STAMP.txt; fail loudly
@@ -151,6 +240,8 @@ fail_on_backup_debris() {
     echo "Adjudicate it in the source tree; the tier builder will not silently delete evidence." >&2
     exit 7
   fi
+  sapote_assert_no_default_r_device_outputs "$STAGE" \
+    || { echo "FATAL: root R device debris in stage; preserved for owner review." >&2; exit 7; }
 }
 
 # --- 0. version-sync gate (v9.7.97): refuse to cut a tree whose version restatements have drifted.
@@ -248,52 +339,10 @@ PYSTAMP
 fi
 
 
-# --- 2. scrub embedded AS strain IDs (code/cohort/clean only; merged keeps them) ------
-# v9.7.95: re-enabled. The maintained CAS-safe redactor scrubs private AS-/AJS-/PENDING- IDs to
-# AS-XXX across the staged tree (comments/strings/docs only for .py via tokenizer; full text for
-# md/csv/etc.), skipping the whitelist (checksums/manifest/synthetic-ID allowlist) and verifying
-# cassette stable-IDs are untouched. --as-only keeps public SID (Chevrette 2019) intact; the clean
-# tier leaves SID alone by design (SID is public). Without this the leak audit refuses every public tier,
-# because real cohort IDs live in code comments, docs, and the CHANGELOG. merged keeps real IDs.
-# v9.7.219 (PI decision, the release owner, 2026-07-06): the AS-series cohort is PUBLIC — the
-# Hymenoptera paper publishes strain/genus/host/16S/accession for all AS strains, and BGC content is not
-# meaningful additional disclosure. The AS-ID scrub is therefore DEACTIVATED by default, so real AS IDs
-# (incl. the folded Master_Strain_Table) survive into the public tier. Tier structure is UNCHANGED — all
-# four tiers still cut and cross-tier parity still holds (public == redact(private), redact now identity
-# for AS). Machinery RETAINED and reversible: set AS_SCRUB=1 to re-arm the scrub for a future private cohort.
-# v9.7.364 (PI instruction, the Developer or User 2026-08-12): the AS_SCRUB *rewriting* machinery is REMOVED, not
-# merely left deactivated.
-#
-# SCOPE OF THE REMOVAL, stated exactly, because two different controls shared one flag name:
-#   * REMOVED  -- the AS-ID *scrub*: the pass that REWROTE real AS-#### identifiers to placeholders
-#                 in the staged tree. Inert at AS_SCRUB=0 since v9.7.219, and a switch that is never
-#                 on is a switch nobody tests -- it read as a live control while doing nothing.
-#   * RETAINED -- the AS-ID *leak audit* (`_as_leak` / the `--check-only` pass further down): the
-#                 read-only control that REPORTS unpublished identifiers found in a staged tier and
-#                 can fail the cut. It rewrites nothing.
-#
-# The distinction is the whole point. A scrub MUTATES the release; an audit OBSERVES it. Deleting a
-# mutation nobody runs removes dead weight. Deleting the observation would remove a safety net, which
-# is not what was approved -- and the audit is the only thing that would notice if a genuinely private
-# identifier ever entered a public tier. Identifier disclosure was never the real exposure anyway
-# (AS ids are public; 16S is on GenBank) -- the exposure is unpublished genome FINDINGS in prose,
-# which no identifier control of either kind has ever caught. `tools/redact_public_tier.py` is
-# RETAINED and stays reusable for a future genuinely-private cohort. It had been inert at AS_SCRUB=0 since v9.7.219 (PI decision, cohort public), and a
-# switch that is never on is a switch nobody tests -- it read as a live control while doing nothing.
-# AS identifiers are public (16S on GenBank). The real exposure is unpublished genome FINDINGS in
-# prose, which no identifier scrub ever caught. `tools/redact_public_tier.py` is RETAINED and stays
-# reusable for a future genuinely-private cohort.
-
-# v9.7.390 public-candidate correction: a public tier must be free of project-cohort identifiers
-# regardless of whether an older disclosure decision retired the AS leak flag. The redactor is the
-# maintained content-rewrite SSOT and skips tests, executable Python, and explicit synthetic/public
-# exceptions. Python genericization requires reviewed source patches because string literals may
-# be executable data. This documentation/configuration transform is unconditional for every
-# non-private tier; AS_SCRUB cannot disable it.
-if [ "$TIER" != "merged" ]; then
-  "$PYTHON" "$STAGE/tools/redact_public_tier.py" --tree "$STAGE" --walk --as-only \
-    || { echo "FATAL: public-tree cohort-identifier redaction failed" >&2; exit 1; }
-fi
+# --- 2. preserve genuine names and scientific meanings --------------------
+# The current policy permits strain names and strain-to-BGC-class associations.
+# Explicit private payloads and portable operator policy still govern the staged audit.
+# The identifier redactor remains available as an explicit utility, not a cut transform.
 
 # v9.7.364 (PI instruction, the Developer or User 2026-08-12): the SID uniformity scrub is REMOVED.
 # Its own v9.7.250 comment block (kept in git history) recorded that the scrub was simultaneously
@@ -325,14 +374,7 @@ if [ "$TIER" != "merged" ] && [ -f "$SRC/tools/release_denylist.txt" ]; then
 fi
 
 # --- 3. leak audit — refuse to ship if anything survives --------------------
-# M5 privacy policy: research AS data is excluded from public releases. These
-# controls perform check-only detection; they never rewrite scientific records.
-# Public exceptions and documented synthetic IDs remain owned by the detector.
-AS_GUARD_RETIRED="${AS_GUARD_RETIRED:-0}"
-AS_SCRUB="${AS_SCRUB:-1}"
-_as_leak() {
-  echo "$1" >&2; FAIL=1
-}
+# Actual private payloads, personal paths and explicit policy literals remain checked.
 FAIL=0
 # v9.7.442 (candidate, a session): assembly contig names are a SEPARATE disclosure class from
 # strain identifiers and this audit has never been able to see them. The two PI decisions that retired
@@ -376,36 +418,6 @@ _contig_leak_scan() {
 }
 _contig_leak_scan
 if [ "$TIER" != "merged" ]; then
-  # Non-test files: any AS/AJS/PENDING strain ID is a leak (XXX-redacted placeholders excepted).
-  # v9.7.88: matches the scrubber's refined pattern — hyphenated AS-/AJS- (2-4 digits) OR DASHLESS
-  # AS + 3-4 digits (covers dashless AS-NNN). It deliberately does NOT match dashless AJS (AJS327 is a public
-  # MIBiG organism), 2-digit dashless (AS15 is public), or the LAS-NNN compound-name tail. The
-  # synthetic-ID allowlist file is excluded separately.
-  if [ "$AS_SCRUB" = "1" ] && ! "$PYTHON" "$SRC/tools/redact_public_tier.py" --tree "$STAGE" --walk --check-only --as-only >/tmp/_public_tier_private_id_check.log 2>&1; then
-    head -20 /tmp/_public_tier_private_id_check.log >&2
-    _as_leak "private AS/AJS/PENDING identifiers survived in non-test files (redactor SSOT)"
-  fi
-  # v9.7.88 root-cause fix (audit F-1): tests/ is NO LONGER exempt from the leak audit. The
-  # redaction scrub skips tests/ (so the in-tier pytest gate stays passable), which is exactly
-  # how real cohort strains shipped in public tiers (the v9.7.86 and v9.7.87 leaks). Tests may
-  # contain ONLY documented synthetic IDs (tools/test_synthetic_ids.txt); any AS/AJS/PENDING ID in
-  # a test that is not on that allowlist fails the cut. This closes the class instead of swapping
-  # one number at a time. The allowlist is verified against the real cohort list out-of-band.
-  SYN="$SRC/tools/test_synthetic_ids.txt"
-  if [ -d "$STAGE/tests" ]; then
-    TEST_IDS="$(grep -rhIoE '\b(AS|AJS|as|ajs)-?[0-9]{2,}|\bPENDING-[A-Z0-9]+' "$STAGE/tests" 2>/dev/null | sort -u || true)"
-    while IFS= read -r tid; do
-      [ -z "$tid" ] && continue
-      # redacted placeholders are always fine
-      case "$tid" in AS-XXX|AJS-XXX|PENDING-XXX) continue;; esac
-      # uppercase + normalise dashless asNNN/ajsNNN -> AS-NNN/AJS-NNN for the allowlist comparison
-      norm="$(printf '%s' "$tid" | tr 'a-z' 'A-Z' | sed -E 's/^(AS|AJS)([0-9])/\1-\2/')"
-      if ! grep -qxF "$norm" "$SYN" 2>/dev/null; then
-        echo "  (was: non-synthetic strain ID in tests/: $tid, not in tools/test_synthetic_ids.txt)" >&2
-        _as_leak "non-synthetic strain ID in tests/: $tid"
-      fi
-    done <<< "$TEST_IDS"
-  fi
   if [ -d "$STAGE/private" ]; then echo "LEAK: private/ present in $TIER tier" >&2; FAIL=1; fi
   for d in NOTES_FOR_ALEX.md SESSION_HANDOFF.md FREEZE_TRIAGE.md PRE_RELEASE_READTHROUGH_LEDGER.md; do
     if [ -e "$STAGE/$d" ]; then echo "LEAK: internal working doc $d present in $TIER tier" >&2; FAIL=1; fi
@@ -435,8 +447,7 @@ fi
 
 # Do not expand an empty array under `set -u`: macOS's bundled Bash treats
 # that as an unbound variable.  Define these helpers immediately before the
-# first audit call, after the staged tree has already been stripped and
-# redacted.  The no-profile compatibility path remains ordinary CLI handling.
+# first audit call, after the staged tree has already been stripped.  The no-profile compatibility path remains ordinary CLI handling.
 public_release_audit_stage() {
   local audit_flag="${1:-}"
   if [ -n "$PRIVACY_PROFILE" ] && [ -n "$audit_flag" ]; then
@@ -461,9 +472,8 @@ verify_code_tier_derivation() {
   fi
 }
 
-# Independent post-transformation gate. This checks the staged tree, not the source tree, and
-# fails on internal future-work material, residual non-test cohort identifiers in content or
-# paths, private data roots, workspace paths, and the existing identity denylist controls.
+# Independent staged content gate: private data roots, internal material, personal paths
+# and explicit private literals still refuse; names alone do not establish disclosure.
 if [ "$TIER" != "merged" ]; then
   # The policy lives in the optional, user-owned privacy profile.  It is read
   # from the source/operator location and never copied into the staged public
@@ -473,6 +483,9 @@ if [ "$TIER" != "merged" ]; then
     || { echo "REFUSED: public-export policy could not safely exclude staged internal roots." >&2; exit 1; }
   public_release_audit_stage \
     || { echo "REFUSED: staged $TIER tree failed the public-release content audit." >&2; exit 1; }
+  # Freeze after intentional policy omissions and before any in-tier tests.
+  verify_staged_test_snapshot \
+    || { echo "REFUSED: staged test source snapshot unavailable" >&2; exit 1; }
 fi
 
 # --- 3-pre0. VERSION-SYNC GATE: stale self-describing engine-version literals fail the cut ----------
@@ -546,16 +559,13 @@ find "$STAGE" -type f \( -name '*.pyc' -o -name '*.pyo' -o -name '.DS_Store' \) 
 fail_on_backup_debris
 echo "scrubbed build caches; backup/editor debris gate: PASS"
 
-# Some suite gates intentionally regenerate documentation inventories from the staged tree.
-# After removing pytest's synthetic-ID cache, reapply the documentation-only privacy transform
-# and audit so generated public surfaces cannot reintroduce cohort identifiers. Executable Python
-# remains byte-identical.
+# Recheck generated public surfaces and the selected test generation after pytest/cache cleanup.
 if [ "$TIER" != "merged" ]; then
-  "$PYTHON" "$STAGE/tools/redact_public_tier.py" --tree "$STAGE" --walk --as-only \
-    || { echo "FATAL: post-pytest documentation redaction failed" >&2; exit 1; }
   public_release_audit_stage \
     || { echo "REFUSED: post-pytest staged tree failed the public-release content audit." >&2; exit 1; }
-  echo "  post-pytest documentation privacy gate: PASS"
+  echo "  post-pytest content privacy gate: PASS"
+  verify_staged_test_snapshot \
+    || { echo "REFUSED: final staged test-source bytes or namespace changed after pytest" >&2; exit 1; }
 fi
 
 # --- 3a. emit per-tier membership manifest (sorted path list) for cross-tier diffing ---
@@ -606,39 +616,20 @@ if [ -n "$CKF" ]; then
   echo "regenerated SOURCE_CHECKSUMS over final staged tree ($(wc -l < "$CKD/SOURCE_CHECKSUMS_SHA256.txt") files)"
 fi
 
-# --- 3c. fail-closed invariant: no unpublished AS-### IDs in a public tier ---
-# Public cuts require the check-only invariant. Historical disclosure rulings
-# do not authorize inclusion of a user's current private research inputs.
-if [ "$TIER" != merged ] && [ "$AS_SCRUB" = "1" ]; then
-  ( cd "$STAGE" && { "$PYTHON" -m pytest tests/test_no_unpublished_ids_in_public_tier.py -q -p no:cacheprovider 2>/dev/null || "$PYTHON" tools/redact_public_tier.py --tree . --walk --check-only --as-only; } ) \
-    || { echo "FATAL: public-tier unpublished-ID invariant FAILED for $TIER" >&2; exit 5; }
-elif [ "$TIER" != merged ]; then
-  echo "FATAL: public-tier private-ID audit unexpectedly disabled" >&2; exit 5
+# --- 3c. final content audit: explicit private payloads, no name-only admission ---
+if [ "$TIER" != merged ]; then
+  public_release_audit_stage \
+    || { echo "FATAL: final public content audit FAILED for $TIER" >&2; exit 5; }
 fi
 
-# --- 3d. tier-derivation parity gate (v9.7.97): the public tier must be an exact redaction-view
-# of the private source. verify_tier_derivation imports the live redaction SSOT and confirms
-# public == redact(private) for every shared content file — catching any file that diverged from
-# pure redaction (the class of drift the inlined-copy version used to miss). Scoped to code ONLY:
-# code is a pure single-function redaction-view (redact_public_tier.py --as-only).
-#
-# v9.7.408: the paragraph that stood here described a SID anonymization pass run by the sid tier and
-# a matching SID->SID-XXX sed scrub in the clean tier. Neither exists. The SID uniformity scrub was
-# REMOVED at v9.7.364 (see the note at the top of section 2) because it was destructive and
-# ineffective, and every redact_public_tier.py call in this script passes --as-only, which leaves
-# SID alone by design — SID is public (Chevrette 2019). The comment outlived its code by two cuts and
-# was live enough to send a v9.7.408 design review down the wrong path before the code was read.
-# A comment that describes deleted behaviour is a check that stopped checking, in prose.
-#
-# The surviving reason this gate is scoped to code alone: clean removes worked outputs on top of the
-# base redaction, so it is not a pure redact-view of merged and the derivation check cannot model it.
-# Parity for the other tiers is covered by the leak audit and the redaction-correctness checks
-# elsewhere in this script.
+# --- 3d. source/stage text parity after declared metadata and payload omissions ---
+# Preserve genuine labels and meanings. Missing or changed selected text remains drift.
+# Clean removes additional worked outputs, so this bounded parity check is code-tier only.
 if [ "$TIER" = code ] && [ -f "$SRC/tools/verify_tier_derivation.py" ]; then
   if verify_code_tier_derivation; then
-    echo "  tier-derivation parity gate: OK (public == redact(private))"
+    echo "  tier-derivation parity gate: OK (public text == source text after declared omissions)"
   else
-    echo "FATAL: $TIER tier is NOT an exact redaction-view of the private source — run" >&2
+    echo "FATAL: $TIER tier differs from the selected source text — run" >&2
     echo "  python3 tools/verify_tier_derivation.py . <staged-tier>   # to see the drifting files" >&2
     exit 6
   fi
@@ -694,29 +685,120 @@ mkdir -p "$OUT"
 # public tiers it may legitimately not ship tools/ at all. Sourcing it from the stage also means
 # a tier could archive itself with a copy of the tool it is shipping, which is the wrong
 # direction of trust. "$0"'s directory is the tool that was actually invoked and tested.
+# BEGIN SOURCE ROLE FINALIZER HANDOFF
+if [ "$TIER" != "merged" ] && [ -z "${SOURCE_TEST_ROLE_SHA256:-}" ]; then
+  echo "HOLD: final staged test-source byte snapshot was not verified; no archive construction" >&2
+  exit 11
+fi
+# END SOURCE ROLE FINALIZER HANDOFF
 ARCHTXN_TOOL="$(cd "$(dirname "$0")" && pwd)/finalize_public_archive.py"
 if [ ! -f "$ARCHTXN_TOOL" ]; then
   echo "FATAL: archive finalizer missing beside make_public_tier.sh: $ARCHTXN_TOOL" >&2
   exit 10
 fi
-ARCHTXN_ERR="$(mktemp "${TMPDIR:-/tmp}/archtxn.XXXXXX")"
-if ! PYTHONPATH="$(dirname "$(dirname "$ARCHTXN_TOOL")")" "$PYTHON" "$ARCHTXN_TOOL" \
-      --stage-root "$STAGE" --output-dir "$OUT" --archive-name "$NAME" \
-      >/dev/null 2>"$ARCHTXN_ERR"; then
-  # Distinguish the two refusal classes rather than collapsing them. Only a claimed destination
-  # is the .401 exit-9 case; a build or member-audit failure is a different fault and must not
-  # be reported as a concurrent writer, or the operator debugs the wrong thing. The finalizer's
-  # own typed refusal is always echoed through — swallowing it would hide the error_code that
-  # says which of the frozen ARCHTXN-* conditions fired.
-  cat "$ARCHTXN_ERR" >&2
-  if grep -q 'ARCHTXN-TXN-001' "$ARCHTXN_ERR"; then
-    rm -f "$ARCHTXN_ERR"
-    echo "REFUSED: release archive path was claimed before commit; preserved existing path: $ARCHIVE" >&2
-    exit 9
-  fi
-  rm -f "$ARCHTXN_ERR"
-  echo "REFUSED: final archive transaction did not commit an audited archive; no object created." >&2
+ARCHTXN_CAPTURE="$(mktemp -d "${TMPDIR:-/tmp}/archtxn-capture.XXXXXX")"
+# Keep receipt evidence outside the tree being archived, and preserve all captures.
+if ! "$PYTHON" - "$ARCHTXN_CAPTURE" "$STAGE" <<'PYCAPTURE'
+import pathlib, sys
+capture, stage = map(pathlib.Path, sys.argv[1:])
+raise SystemExit(0 if capture.is_dir() and not capture.is_symlink() and
+                 not capture.resolve().is_relative_to(stage.resolve()) else 1)
+PYCAPTURE
+then
+  echo "REFUSED: receipt capture must be an ordinary directory outside the final stage; select TMPDIR accordingly. Retained: $ARCHTXN_CAPTURE" >&2
   exit 10
 fi
-rm -f "$ARCHTXN_ERR"
-echo "OK  $TIER  ->  $ARCHIVE  (v${VERSION}, leak-audited: $([ "$TIER" = merged ] && echo 'n/a (private)' || echo '0 private/unpublished AS strain IDs (allowlist-aware; synthetic AS-9xx and public enterocin AS-48 are permitted by design)'))"
+ARCHTXN_ERR="$ARCHTXN_CAPTURE/receipt.stderr"
+ARCHTXN_OUT="$ARCHTXN_CAPTURE/receipt.stdout"
+if ! ( set -o noclobber
+  PYTHONPATH="$(dirname "$(dirname "$ARCHTXN_TOOL")")" "$PYTHON" "$ARCHTXN_TOOL" \
+      --stage-root "$STAGE" --output-dir "$OUT" --archive-name "$NAME" \
+      --expected-test-source-sha256 "${SOURCE_TEST_ROLE_SHA256:-}" \
+      >"$ARCHTXN_OUT" 2>"$ARCHTXN_ERR"
+); then
+  if [ -f "$ARCHTXN_ERR" ] && [ ! -L "$ARCHTXN_ERR" ]; then cat "$ARCHTXN_ERR" >&2; fi
+  if { [ -f "$ARCHTXN_OUT" ] && [ ! -L "$ARCHTXN_OUT" ] && [ -s "$ARCHTXN_OUT" ]; } ||
+     { [ -f "$ARCHTXN_ERR" ] && [ ! -L "$ARCHTXN_ERR" ] && grep -Eq '"status"[[:space:]]*:[[:space:]]*"(COMMITTED_HOLD|COMMIT_STATE_HOLD)"' "$ARCHTXN_ERR"; }; then
+    if [ -f "$ARCHTXN_OUT" ] && [ ! -L "$ARCHTXN_OUT" ]; then cat "$ARCHTXN_OUT" >&2; fi
+    echo "HOLD: finalizer failure receipt requires commit/durability review; preserved final path if present: $ARCHIVE; capture: $ARCHTXN_CAPTURE" >&2
+    exit 11
+  fi
+  if [ -f "$ARCHTXN_ERR" ] && [ ! -L "$ARCHTXN_ERR" ] && grep -q 'ARCHTXN-TXN-001' "$ARCHTXN_ERR"; then
+    echo "REFUSED: release archive path was claimed before commit; preserved existing path: $ARCHIVE; capture: $ARCHTXN_CAPTURE" >&2
+    exit 9
+  fi
+  if [ -e "$ARCHIVE" ] || [ -L "$ARCHIVE" ]; then
+    echo "HOLD: final path is present after finalizer failure; commitment is unverified; preserved path: $ARCHIVE; capture: $ARCHTXN_CAPTURE" >&2
+    exit 11
+  fi
+  echo "REFUSED: finalizer did not report commitment; no final archive path observed; retained capture: $ARCHTXN_CAPTURE" >&2
+  exit 10
+fi
+# Exit zero alone does not prove a receipt was completely delivered or bind its object.
+if ! "$PYTHON" - "$ARCHTXN_OUT" "$ARCHIVE" "$NAME" <<'PYRECEIPT'
+import hashlib, json, os, pathlib, re, stat, sys
+try:
+    receipt_path, archive_path = map(pathlib.Path, sys.argv[1:3])
+    if receipt_path.is_symlink() or not receipt_path.is_file() or receipt_path.stat().st_size > 1048576:
+        raise ValueError("receipt shape")
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result: raise ValueError("duplicate receipt key")
+            result[key] = value
+        return result
+    record = json.loads(receipt_path.read_text(encoding="utf-8"), object_pairs_hook=unique)
+    if (set(record) != {"status","error_code","reason_code","final_name","member_count","archive_sha256","archive_bytes","cleanup_state"} or
+            record["status"] != "COMMITTED" or record["error_code"] is not None or record["reason_code"] is not None or
+            record["final_name"] != sys.argv[3] or record["cleanup_state"] != "TEMP_REMOVED_BY_COMMIT" or
+            type(record["member_count"]) is not int or record["member_count"] < 0 or
+            type(record["archive_bytes"]) is not int or record["archive_bytes"] <= 0 or
+            not isinstance(record["archive_sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", record["archive_sha256"]) is None):
+        raise ValueError("receipt contract")
+    observed = archive_path.lstat()
+    if not stat.S_ISREG(observed.st_mode) or observed.st_size != record["archive_bytes"]:
+        raise ValueError("archive shape")
+    # Size, byte count and digest must describe one opened regular object generation.
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+    descriptor = os.open(archive_path, flags)
+    try:
+        before = os.fstat(descriptor)
+        def identity(value):
+            return (value.st_dev, value.st_ino, stat.S_IFMT(value.st_mode))
+        def generation(value):
+            return (identity(value), value.st_size, value.st_mtime_ns, value.st_ctime_ns)
+        if (not stat.S_ISREG(before.st_mode) or before.st_ino <= 0 or
+                identity(before) != identity(observed) or
+                generation(before) != generation(observed) or
+                before.st_size != record["archive_bytes"]):
+            raise ValueError("opened archive binding")
+        digest = hashlib.sha256()
+        byte_count = 0
+        while True:
+            block = os.read(descriptor, 1048576)
+            if not block:
+                break
+            byte_count += len(block)
+            if byte_count > record["archive_bytes"]:
+                raise ValueError("archive grew during read")
+            digest.update(block)
+        after = os.fstat(descriptor)
+        selected = archive_path.lstat()
+        if (byte_count != record["archive_bytes"] or
+                generation(after) != generation(before) or
+                not stat.S_ISREG(selected.st_mode) or
+                generation(selected) != generation(after) or
+                digest.hexdigest() != record["archive_sha256"]):
+            raise ValueError("archive generation or digest changed")
+    finally:
+        os.close(descriptor)
+except (OSError, ValueError, TypeError, KeyError, KeyboardInterrupt, SystemExit):
+    raise SystemExit(1)
+PYRECEIPT
+then
+  echo "HOLD: finalizer success receipt is missing, incomplete, contradictory or object-unbound; preserved final path if present: $ARCHIVE; retained capture: $ARCHTXN_CAPTURE" >&2
+  exit 11
+fi
+
+echo "Receipt capture retained: $ARCHTXN_CAPTURE" >&2
+echo "OK  $TIER  ->  $ARCHIVE  (v${VERSION}, leak-audited: $([ "$TIER" = merged ] && echo 'n/a (private)' || echo '0 unresolved identifier-policy findings in executed gates; synthetic declarations and exact public references have separate scopes'))"

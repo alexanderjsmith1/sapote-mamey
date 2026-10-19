@@ -46,10 +46,21 @@ done
 _gte_dir="$(cd -P "$(dirname "$_gte_src")" && pwd)"
 
 : "${PROJECT_ROOT:=$(cd -P "${_gte_dir}/.." && pwd)}"
+case "$PROJECT_ROOT" in /*) ;; *) PROJECT_ROOT="$PWD/$PROJECT_ROOT" ;; esac
 : "${PHYLO_ENV:=${PROJECT_ROOT}/miniconda3/envs/phylo}"
 : "${GTOTREE_HOME:=${PROJECT_ROOT}/Tools/GToTree-1.8.19}"
 : "${GTOTREE_GTDB_DIR:=${PROJECT_ROOT}/gtotree_gtdb}"
 : "${GTOTREE_HMM_SETS:=${PHYLO_ENV}/share/gtotree/hmm_sets}"
+# Bind caller-relative overrides before a later workflow changes directory.
+# Preserve lexical symlink/.. semantics; missing directories remain diagnosable.
+for _gte_name in PHYLO_ENV GTOTREE_HOME GTOTREE_GTDB_DIR GTOTREE_HMM_SETS MAMEY_DATA_ROOT Pfam_data_dir; do
+    _gte_value="${!_gte_name-}"
+    case "$_gte_value" in
+        ""|/*) ;;
+        *) printf -v "$_gte_name" '%s' "$PWD/$_gte_value" ;;
+    esac
+done
+unset _gte_name _gte_value
 export PROJECT_ROOT
 
 # phylo_preflight.py and phylo_postflight.py may need a governed external-data root that is
@@ -115,7 +126,19 @@ gtotree_preflight() {
     if [ ! -f "${GToTree_HMM_dir}/Actinobacteria.hmm" ]; then
         echo "  MISSING: Actinobacteria.hmm not in ${GToTree_HMM_dir}" >&2; missing=1
     fi
-    local ver; ver="$(GToTree -v 2>&1 | head -1 | tr -d '\r')"
+    local ver version_status=0
+    if command -v GToTree >/dev/null 2>&1; then
+        ver="$(GToTree -v 2>&1)" || version_status=$?
+        ver="${ver%%$'\n'*}"
+        ver="${ver%$'\r'}"
+        if [ "$version_status" -ne 0 ]; then
+            echo "  FAILED: GToTree version probe failed (exit $version_status): $ver" >&2
+            echo "  Next: repair the selected GToTree environment or select compatible GTOTREE_HOME/PHYLO_ENV paths before running a tree." >&2
+            missing=1
+        fi
+    else
+        ver="NOT MEASURED: GToTree not on PATH"
+    fi
     case "$ver" in
         *v2.*)
             # v2 has no 138-gene Actinobacteria set: its 46 prepackaged sets are GTDB r232

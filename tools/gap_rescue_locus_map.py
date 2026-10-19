@@ -800,10 +800,65 @@ def context_contigs(rows, prots, drawn, core_contig, flank=CONTEXT_FLANK, max_ro
     return out
 
 
+def named_ambiguous_contexts(identities, label, prots, regions, rows, drawn, core_contig, flank=CONTEXT_FLANK):
+    """Explicit review-only contigs; no new matches, ribbons, split calls, or rescue counts."""
+    shown = {prots[pid]["contig"] for _, pid, _ in drawn} | {core_contig}
+    windows, records = {}, []
+    for identity in identities or ():
+        parts = identity.split(" / ")
+        if len(parts) != 4 or any(not p.strip() or p != p.strip() or p == "IDENTITY_HOLD" for p in parts):
+            raise ValueError("NAMED_CONTIG_IDENTITY_HOLD: need strain / full contig / region / BGC alias")
+        strain, node, region, alias = parts
+        if strain != label:
+            raise ValueError("NAMED_CONTIG_IDENTITY_HOLD: strain does not match this genome")
+        matches = [r for r in regions if r.get("identity") == identity]
+        if region == "NO_ANTISMASH_REGION" and alias == "NO_BGC_ALIAS":
+            contig = node
+            if any(r.get("contig") == contig for r in regions):
+                raise ValueError("NAMED_CONTIG_IDENTITY_HOLD: contig has an antiSMASH region")
+            identity_state = "NO_CALLED_REGION_IN_SUPPLIED_INPUT"
+        elif len(matches) == 1:
+            contig = matches[0]["contig"]
+            if contig != node:
+                raise ValueError("NAMED_CONTIG_IDENTITY_HOLD: region identity node differs from its contig")
+            identity_state = "EXACT_REGION_RECORD"
+        else:
+            raise ValueError("NAMED_CONTIG_IDENTITY_HOLD: exact region identity missing or conflicting")
+        if contig in windows:
+            raise ValueError("NAMED_CONTIG_DUPLICATE: select each contig once")
+        if contig in shown:
+            raise ValueError("NAMED_CONTIG_ALREADY_DRAWN: explicit context is for undrawn contigs")
+        genes = sorted((p for p in prots.values() if p["contig"] == contig), key=lambda p: p["start"])
+        if not genes:
+            raise ValueError("NAMED_CONTIG_IDENTITY_HOLD: contig has no genome proteins")
+        candidates = []
+        for r in rows:
+            pid = r.get("best_protein")
+            if r.get("status") != "MISSING_FOUND_AMBIGUOUS" or pid not in prots or prots[pid]["contig"] != contig:
+                continue
+            if matches and not (prots[pid]["end"] > matches[0]["start"] and prots[pid]["start"] < matches[0]["end"]):
+                continue
+            if not r.get("best_locus") or r["best_locus"] != prots[pid]["tag"]:
+                raise ValueError("NAMED_CONTIG_PROTEIN_BINDING_HOLD: protein id and locus disagree")
+            candidates.append((pid, r))
+        if not candidates:
+            raise ValueError("NAMED_CONTIG_EVIDENCE_HOLD: no existing ambiguous candidate on this contig")
+        ids = {pid for pid, _ in candidates}
+        positions = [i for i, p in enumerate(genes) if any(p is prots[pid] for pid in ids)]
+        window = genes[max(0, min(positions) - flank):max(positions) + flank + 1]
+        windows[contig] = (min(p["start"] for p in window), max(p["end"] for p in window), len(candidates))
+        records.append({"identity": identity, "contig": contig, "identity_state": identity_state,
+                        "display_state": "AMBIGUOUS", "role": "REVIEW_CONTEXT", "window_bp": list(windows[contig][:2]),
+                        "candidates": [{"reference_gene": r.get("name", ""), "protein": pid, "locus_tag": r["best_locus"],
+                                        "status": r["status"], "partner_verdict": r.get("partner_verdict", ""),
+                                        "identity_pct_raw": r.get("best_identity_pct")} for pid, r in candidates]})
+    return windows, records
+
+
 def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name, out_png, out_pdf=None, pdf_pages=None,
                    partner=None, pair_note="", partner_rows=None, link_label="RG-GMCI link", link_colour=LINK,
                    anchor=None, context_partners=False, gene_names=None, other_refs=None, print_width=None,
-                   row_label=None, trim_kb=None, panel=False, key=True):
+                   row_label=None, trim_kb=None, panel=False, key=True, named_contigs=None):
     """rows, splits: gap_directed_rescue tables (dicts; strings or typed). prots, regions, core: its genome structures.
     partner: a second region (same keys as core) for an RG-GMCI pair map. Fragment A (the core) is turned so its contig
     end faces right, fragment B so its contig end faces left, with a link marker between them. The marker is
@@ -879,6 +934,11 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
     # opt-in context rows: a contig holding a match this map does not draw, shown so the reader can see what sits
     # around that match. Never a rescue: nothing here enters `drawn`, `not_drawn` or any caption count.
     ctx = context_contigs(rows, prots, drawn, core_contig) if (context_partners and not partner) else {}
+    if named_contigs and partner:
+        raise ValueError("NAMED_CONTIG_PAIR_HOLD: a pair map retains its two-region scope")
+    named_ctx, named_records = named_ambiguous_contexts(named_contigs, label, prots, regions, rows, drawn, core_contig)
+    named_by_contig = {r["contig"]: r for r in named_records}
+    ctx.update(named_ctx)
     for c in ctx:
         by_contig.setdefault(c, [])
         order.append(c)
@@ -1235,7 +1295,11 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
                 # only the part holding the core region is called the core; another part of the core contig is named by
                 # its own region, or by none
                 who = "core, " + core["identity"].split(" / ")[-1] if in_core else (alias or "no antiSMASH region")
-            if s["contig"] in ctx:
+            if s["contig"] in named_by_contig:
+                identity_parts = named_by_contig[s["contig"]]["identity"].split(" / ")
+                node = identity_parts[1]
+                who = identity_parts[2] + " / " + identity_parts[3] + "\nAMBIGUOUS"
+            elif s["contig"] in ctx:
                 who += "\ncontext only, not a rescue"
             if s["contig"] in secondary:
                 who += "\nsecondary (35-50%)"
@@ -1243,7 +1307,7 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
                 who += "\nsingle-gene find"
             s["caption"] = f"{node}{' (' + extra + ')' if extra else ''}\n{who}"
             shown = s["caption"]
-            if level >= 2:   # shrink step 2: the contig name only, cut to 14 characters, and the region on one line
+            if level >= 2 and s["contig"] not in named_by_contig:   # shrink step 2: the contig name only, cut to 14 characters, and the region on one line
                 shown = f"{node[:14]}\n{who.split(chr(10))[0]}"
             t = ax.text((a + b) / 2, ylab, shown, ha="center", va="top",
                         fontsize=fs(7.2), color="#374151", linespacing=1.3)
@@ -1462,6 +1526,8 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
            "blastp_named": sorted(prots[p]["tag"] for p in named_here),
            "key_classes": key_classes(named_here)[0], "key_class_unclear": key_classes(named_here)[1],
            "trim_kb": trim, "reference_kb": {"full": round(ref_full_len, 3), "shown": round(ref_len, 3)}}
+    if named_records:
+        out["named_contig_contexts"] = named_records
     if W is not None:   # receipt fields for the print-width gate
         out.update({"print_width_in": W, "saved_width_in": round(float(tight_w), 3),
                     "min_font_pt": round(res["min_font_pt"], 2),

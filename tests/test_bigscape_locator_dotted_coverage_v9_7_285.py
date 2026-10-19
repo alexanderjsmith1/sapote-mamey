@@ -11,7 +11,7 @@ _bcs = importlib.util.module_from_spec(spec); spec.loader.exec_module(_bcs)
 
 
 def test_dotted_coverage_locator_parses_to_node_region():
-    fn = "AS-311_NODE_107_length_28859_cov_19.006984.region001.gbk"
+    fn = "SYNTHETIC-CASE-009_NODE_107_length_28859_cov_19.006984.region001.gbk"
     m = _bcs.LOCATOR.search(fn)
     assert m is not None, "regex failed on dotted coverage"
     node, region = m.group(1), m.group(2)
@@ -20,6 +20,6 @@ def test_dotted_coverage_locator_parses_to_node_region():
 
 
 def test_undotted_coverage_still_parses_identically():
-    fn = "AS-311_NODE_5_length_120000_cov_42.region002.gbk"
+    fn = "SYNTHETIC-CASE-009_NODE_5_length_120000_cov_42.region002.gbk"
     m = _bcs.LOCATOR.search(fn)
     assert m and m.group(1) == "NODE_5_length_120000_cov_42" and m.group(2) == "region002"

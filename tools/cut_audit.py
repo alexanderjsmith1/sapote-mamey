@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -64,29 +65,52 @@ def verify(args) -> int:
     tree = os.path.abspath(args.tree)
     ok = True
 
+    # A sealed-tree audit requires both checks. Omission of the archive check is
+    # intentional only when neither archive argument was selected.
+    try:
+        root = Path(tree).resolve(strict=True)
+        if not root.is_dir():
+            raise ValueError("sealed tree is not a directory")
+        required = [root / "SOURCE_CHECKSUMS_SHA256.txt", root / "tools/sync_version.py"]
+        if bool(args.zip) != bool(args.sha256):
+            raise ValueError("--zip and --sha256 must be supplied together")
+        for path in required:
+            if path.is_symlink() or not path.resolve().is_relative_to(root):
+                raise ValueError(f"required tree artifact is linked or escapes its root: {path}")
+        if args.zip:
+            required.extend([Path(args.zip), Path(args.sha256)])
+        for path in required:
+            if not path.is_file() or path.stat().st_size == 0:
+                raise ValueError(f"required artifact is missing, empty or nonregular: {path}")
+            with path.open("rb") as handle:
+                handle.read(1)
+    except (OSError, ValueError) as exc:
+        sys.stdout.write(f"[required] {exc} -> FAIL\n\nVERIFY: FAIL  ({tree})\n")
+        return 1
+
     # 1. SOURCE_CHECKSUMS integrity
-    sums = os.path.join(tree, "SOURCE_CHECKSUMS_SHA256.txt")
-    if os.path.exists(sums):
-        rc, out = _run(["shasum", "-a", "256", "-c", "SOURCE_CHECKSUMS_SHA256.txt"], cwd=tree)
-        n_ok = out.count(": OK")
-        n_bad = out.count("FAILED")
-        sys.stdout.write((f"[checksums] {n_ok} OK, {n_bad} FAILED  -> {'PASS' if rc == 0 and n_bad == 0 else 'FAIL'}") + "\n")
-        ok = ok and rc == 0 and n_bad == 0
+    if (checker := shutil.which("sha256sum")):
+        command = [checker, "-c", "SOURCE_CHECKSUMS_SHA256.txt"]
+    elif (checker := shutil.which("shasum")):
+        command = [checker, "-a", "256", "-c", "SOURCE_CHECKSUMS_SHA256.txt"]
     else:
-        sys.stdout.write(("[checksums] SOURCE_CHECKSUMS_SHA256.txt not found -> SKIP") + "\n")
+        sys.stdout.write("[checksums] sha256sum or shasum unavailable -> FAIL\n")
+        return 1
+    rc, out = _run(command, cwd=tree)
+    n_ok = out.count(": OK")
+    n_bad = out.count("FAILED")
+    checksum_ok = rc == 0 and n_bad == 0 and n_ok > 0
+    sys.stdout.write((f"[checksums] {n_ok} OK, {n_bad} FAILED  -> {'PASS' if checksum_ok else 'FAIL'}") + "\n")
+    ok = ok and checksum_ok
 
     # 2. version-sync drift gate
-    vs = os.path.join(tree, "tools", "sync_version.py")
-    if os.path.exists(vs):
-        rc, out = _run([args.python, "tools/sync_version.py", "--check"], cwd=tree)
-        _vline = (out.strip().splitlines() or ["(no output)"])[-1][:120]
-        sys.stdout.write((f"[version ] {_vline}  -> {'PASS' if rc == 0 else 'FAIL'}") + "\n")
-        ok = ok and rc == 0
-    else:
-        sys.stdout.write(("[version ] tools/sync_version.py not found -> SKIP") + "\n")
+    rc, out = _run([args.python, "tools/sync_version.py", "--check"], cwd=tree)
+    _vline = (out.strip().splitlines() or ["(no output)"])[-1][:120]
+    sys.stdout.write((f"[version ] {_vline}  -> {'PASS' if rc == 0 else 'FAIL'}") + "\n")
+    ok = ok and rc == 0
 
     # 3. sealed-zip hash (optional)
-    if args.zip and args.sha256:
+    if args.zip:
         want = None
         with open(args.sha256) as fh:
             for line in fh:
@@ -106,6 +130,8 @@ def verify(args) -> int:
         else:
             sys.stdout.write((f"[zip     ] {os.path.basename(args.zip)} not listed in {args.sha256} -> FAIL") + "\n")
             ok = False
+    else:
+        sys.stdout.write("[zip     ] not selected -> SKIP (optional)\n")
 
     sys.stdout.write((f"\nVERIFY: {'PASS' if ok else 'FAIL'}  ({tree})") + "\n")
     return 0 if ok else 1

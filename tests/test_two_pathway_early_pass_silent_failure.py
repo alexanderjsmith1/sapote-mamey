@@ -1,4 +1,4 @@
-"""Regression (BLACK_CHERRY wave 20, base .384): the v9.7.384 INDIGO fix narrowed the bare
+"""Regression (regression_review wave 20, base .384): the v9.7.384 INDIGO fix narrowed the bare
 `except` INSIDE mamey/two_pathway.py::two_pathway_by_bgc() so a genuine read/parse failure now
 propagates instead of being silently reported as a success receipt with bgcs_evaluated=0.
 

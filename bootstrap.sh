@@ -34,15 +34,53 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-PY="${PYTHON:-python3}"
+BUNDLE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve caller-relative wheel paths before anchoring installation to this source.
+if [ -n "$WHEELS" ]; then
+  if [ ! -d "$WHEELS" ]; then
+    echo "offline wheel directory not found: $WHEELS" >&2
+    exit 2
+  fi
+  WHEELS="$(cd "$WHEELS" && pwd)"
+fi
+
+# Bind the selected executable before cd, preserving a virtualenv symlink path.
+PY_CHOICE="${PYTHON:-python3}"
+if ! PY="$(command -v "$PY_CHOICE")"; then
+  echo "selected Python executable not found: $PY_CHOICE; set PYTHON to an installed Python 3.12+ environment" >&2
+  exit 2
+fi
+case "$PY" in
+  /*) ;;
+  *) PY="$PWD/$PY" ;;
+esac
+if [ ! -f "$PY" ] || [ ! -x "$PY" ]; then
+  echo "selected Python executable not found: $PY_CHOICE; supply one executable file, not a shell command" >&2
+  exit 2
+fi
+# Refuse unsupported interpreters before any package-manager mutation.
+if ! "$PY" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 12) else 2)'; then
+  echo "Python 3.12+ required; select an installed compatible interpreter with PYTHON (see docs/INSTALL.md)" >&2
+  exit 2
+fi
 echo "==> python: $("$PY" --version)"
+
+# Build-dependency pip children may omit --isolated and inherit exported PIP_*.
+# Clear ambient settings before creating our own PIP_ARGS/PIP_COMMAND arrays.
+if [ -n "$WHEELS" ]; then
+  while IFS= read -r offline_pip_env_name; do
+    case "$offline_pip_env_name" in
+      PIP_*) unset -v "$offline_pip_env_name" ;;
+    esac
+  done < <(compgen -e)
+fi
 
 PIP_ARGS=(--upgrade)
 # A-02: ship the declared build requirements and their transitive dependencies so
 # `pip install -e .` resolves setuptools>=68 + wheel under build
 # isolation in a fresh no-network venv (py3.13 ships no setuptools). The bundled wheels/ dir is
 # always on --find-links, so build dependencies resolve both online and offline.
-BUNDLED_WHEELS="$(cd "$(dirname "$0")" && pwd)/wheels"
+BUNDLED_WHEELS="$BUNDLE_ROOT/wheels"
 if [ -d "$BUNDLED_WHEELS" ]; then
   echo "==> bundled build wheels: $BUNDLED_WHEELS"
   PIP_ARGS+=(--find-links "$BUNDLED_WHEELS")
@@ -56,16 +94,38 @@ if [ -n "$WHEELS" ]; then
   PIP_ARGS+=(--no-index --find-links "$WHEELS")
 fi
 
-echo "==> installing mamey + test deps"
-"$PY" -m pip install "${PIP_ARGS[@]}" pytest
-# editable install of the package itself (reads pyproject in the current dir)
-"$PY" -m pip install "${PIP_ARGS[@]}" -e ".[all]" || {
+# Offline mode ignores ambient pip settings for this process and its descendants.
+PIP_COMMAND=("$PY" -m pip)
+if [ -n "$WHEELS" ]; then
+  export PIP_CONFIG_FILE=/dev/null
+  PIP_COMMAND+=(--isolated)
+fi
+
+# Check the selected environment before any package installation is attempted.
+if ! "${PIP_COMMAND[@]}" --version; then
+  echo "bootstrap HOLD: pip is unavailable or cannot start in selected Python: $PY. Next: select or repair a Python 3.12+ environment with pip using an approved package source (see docs/INSTALL.md). No package installation was attempted." >&2
+  exit 2
+fi
+
+cd "$BUNDLE_ROOT"
+echo "==> installing mamey + test deps from $BUNDLE_ROOT"
+if ! "${PIP_COMMAND[@]}" install "${PIP_ARGS[@]}" pytest; then
+  echo "bootstrap HOLD: test dependency installation failed. Next: inspect the pip error above and verify this selected environment and complete compatible test wheel pool." >&2
+  exit 1
+fi
+INSTALL_SCOPE="ALL_EXTRAS"
+# Editable install and smoke test are pinned to the directory containing this script.
+"${PIP_COMMAND[@]}" install "${PIP_ARGS[@]}" -e ".[all]" || {
   echo "   (editable install of .[all] failed — falling back to core deps only)"
-  "$PY" -m pip install "${PIP_ARGS[@]}" -e "."
+  if ! "${PIP_COMMAND[@]}" install "${PIP_ARGS[@]}" -e "."; then
+    echo "bootstrap HOLD: core installation failed. Next: inspect the pip error above and verify the selected environment and compatible core/build wheels." >&2
+    exit 1
+  fi
+  INSTALL_SCOPE="CORE_ONLY"
 }
 
 echo "==> smoke test"
-"$PY" -m pytest tests/test_version_sync.py -q || { echo "version-sync smoke test FAILED"; exit 1; }
+"$PY" -m pytest tests/test_version_sync.py -q || { echo "version-sync smoke test FAILED. Next: inspect version-sync diagnostics for this selected source before claiming readiness." >&2; exit 1; }
 
 cat <<'EOF'
 
@@ -73,5 +133,8 @@ cat <<'EOF'
     conda create -n sapote -c bioconda -c conda-forge hmmer diamond blast python=3.12
     conda activate sapote
 
-bootstrap done.
 EOF
+echo "bootstrap done: $INSTALL_SCOPE (version-sync smoke passed; selected workflows still need their own checks)."
+if [ "$INSTALL_SCOPE" = "CORE_ONLY" ]; then
+  echo "Next: resolve the optional pip error above and retry the selected extras in this same Python; an offline retry needs a complete compatible extras wheel pool."
+fi

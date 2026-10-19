@@ -1,3 +1,4 @@
+# All constructed fixture subjects, match/assay values and biological scenarios in this module are fabricated regression inputs, not experimental evidence.
 """Tests for tools/evidence_bundle.py (P360-001 / Idea D) — deterministic reader-side bundle.
 
 Exercises the deficit semantics: PRESENT (file + row), ABSENT_NO_ROWS (file, no matching row),
@@ -27,13 +28,13 @@ def _write(path: Path, header: list[str], rows: list[list]):
 def package(tmp_path):
     pkg = tmp_path / "package"
     pkg.mkdir()
-    S = "AS-705"
+    S = "SYNTHETIC-CASE-020"
     # inventory: two BGCs
     _write(pkg / f"{S}_2_inventory.csv", ["bgc_id", "products", "contig", "edge_status"],
            [["BGC018", "T1PKS", "NODE_58", "loose"], ["BGC048", "transAT-PKS", "NODE_216", "complete"]])
     # convergence: only BGC018 has a row
     _write(pkg / f"{S}_3_mibig_convergence.csv", ["bgc_id", "compound", "pct_identity"],
-           [["BGC018", "nystatin", "77"]])
+           [["BGC018", "fabricated-family-alpha", "77"]])
     # per-gene clusterblast: BGC048 has two gene hits
     _write(pkg / f"{S}_4A2_ClusterBlast_per_gene.csv", ["bgc_id", "query_gene", "subject_gene", "pct_identity"],
            [["BGC048", "ctg1_1", "refA", "88"], ["BGC048", "ctg1_2", "refB", "80"]])
@@ -50,7 +51,7 @@ def package(tmp_path):
 
 def test_bundle_assembles_channels(package):
     b = eb.build_evidence_bundle(package)
-    assert b["strain"] == "AS-705"
+    assert b["strain"] == "SYNTHETIC-CASE-020"
     assert b["bgc_count"] == 2
     assert set(b["bgcs"]) == {"BGC018", "BGC048"}
 
@@ -91,7 +92,7 @@ def test_claim_safety_and_write(package, tmp_path):
     assert any("ABSENT_NO_FILE" in c for c in b["claim_safety"])
     out = eb.write_evidence_bundle(b, tmp_path / "out")
     assert out["bgc_count"] == 2
-    md = (tmp_path / "out" / "AS-705_evidence_bundle.md").read_text()
+    md = (tmp_path / "out" / "SYNTHETIC-CASE-020_evidence_bundle.md").read_text()
     assert "Evidence Summary — BGC018" in md and "Two-proof rescue" in md
 
 
@@ -101,9 +102,9 @@ def test_not_a_package_raises(tmp_path):
 
 
 # ── BB16 evidence-join extensions (folded 2026-08-11) ────────────────────────────────────────
-def _mk_pkg(tmp_path, conv_family="nystatin", graded_family=None, manifest=None, empty_col=False):
+def _mk_pkg(tmp_path, conv_family="fabricated-family-alpha", graded_family=None, manifest=None, empty_col=False):
     pkg = tmp_path / "package"; pkg.mkdir()
-    S = "AS-424"
+    S = "SYNTHETIC-CASE-014"
     _write(pkg / f"{S}_2_inventory.csv", ["bgc_id", "products"], [["BGC001", "T1PKS"]])
     conv_rows = [["BGC001", conv_family, "" if empty_col else "60"]]
     _write(pkg / f"{S}_3_mibig_convergence.csv", ["bgc_id", "compound", "pct_identity"], conv_rows)
@@ -116,19 +117,19 @@ def _mk_pkg(tmp_path, conv_family="nystatin", graded_family=None, manifest=None,
 
 
 def test_channels_agree_disagree(tmp_path):
-    pkg = _mk_pkg(tmp_path, conv_family="aureonuclemycin", graded_family="chelocardin")
+    pkg = _mk_pkg(tmp_path, conv_family="fabricated-family-beta", graded_family="fabricated-family-gamma")
     b = eb.build_evidence_bundle(pkg)
     assert b["bgcs"]["BGC001"]["channels_agree"] == "DISAGREE"
 
 
 def test_channels_agree_agree(tmp_path):
-    pkg = _mk_pkg(tmp_path, conv_family="zorbamycin", graded_family="zorbamycin")
+    pkg = _mk_pkg(tmp_path, conv_family="fabricated-family-delta", graded_family="fabricated-family-delta")
     b = eb.build_evidence_bundle(pkg)
     assert b["bgcs"]["BGC001"]["channels_agree"] == "AGREE"
 
 
 def test_channels_one_channel_only(tmp_path):
-    pkg = _mk_pkg(tmp_path, conv_family="nystatin", graded_family=None)  # no graded file
+    pkg = _mk_pkg(tmp_path, conv_family="fabricated-family-alpha", graded_family=None)  # no graded file
     b = eb.build_evidence_bundle(pkg)
     assert b["bgcs"]["BGC001"]["channels_agree"] == "ONE_CHANNEL_ONLY"
 

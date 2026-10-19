@@ -1,6 +1,9 @@
 """A sealed-looking directory basename must be handled as data, not tar options."""
 import hashlib
 import os
+import shutil
+
+import pytest
 import subprocess
 import sys
 import tarfile
@@ -27,6 +30,12 @@ def test_leading_dash_bundle_basename_is_not_tar_option(tmp_path):
     with tarfile.open(archive, "r:gz") as tar:
         assert "-fixture/payload.txt" in tar.getnames()
     assert sidecar.read_text().split()[0] == hashlib.sha256(archive.read_bytes()).hexdigest()
-    check = subprocess.run(["shasum", "-c", "--", sidecar.name], cwd=out,
+    if shutil.which("sha256sum"):
+        checker = ["sha256sum"]
+    elif shutil.which("shasum"):
+        checker = ["shasum", "-a", "256"]
+    else:
+        pytest.skip("neither sha256sum nor shasum is installed")
+    check = subprocess.run([*checker, "-c", "--", sidecar.name], cwd=out,
                            capture_output=True, text=True, timeout=30)
     assert check.returncode == 0, check.stdout + check.stderr
