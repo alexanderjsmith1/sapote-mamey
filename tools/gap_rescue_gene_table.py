@@ -412,14 +412,18 @@ def genome_cds(zip_path) -> tuple[dict, dict]:
         from Bio import SeqIO
     except ImportError:  # biopython absent: the bundle's GenBank shim reads the same records
         from mamey._gbk_shim import SeqIO
+    from mamey import parsers
     z = zipfile.ZipFile(zip_path)
     gbk = next(n for n in z.namelist() if n.endswith(".gbk") and ".region" not in n and not Path(n).name.startswith("._"))
     cds, products = {}, {}
     for rec in SeqIO.parse(io.StringIO(z.read(gbk).decode(errors="replace")), "genbank"):
+        # the engine's contig name: Biopython's rec.id drops a 0 right after the point of a SPAdes coverage
+        # (cov_28.095673 reads cov_28.95673), so the core contig of the run would not be found
+        cid = parsers._record_contig_id(rec)
         for f in rec.features:
             q = f.qualifiers
             if f.type == "region":
-                products[(rec.id, int(q.get("region_number", ["0"])[0]))] = "; ".join(q.get("product", []))
+                products[(cid, int(q.get("region_number", ["0"])[0]))] = "; ".join(q.get("product", []))
             if f.type != "CDS":
                 continue
             doms = []
@@ -431,7 +435,7 @@ def genome_cds(zip_path) -> tuple[dict, dict]:
                 if m:
                     doms.append(f"{m.group(1)} ({m.group(2)})")
             cds[q.get("locus_tag", [""])[0]] = {
-                "contig": rec.id, "start": int(f.location.start) + 1, "end": int(f.location.end),
+                "contig": cid, "start": int(f.location.start) + 1, "end": int(f.location.end),
                 "strand": "+" if (f.location.strand or 1) > 0 else "−", "aa": len(q.get("translation", [""])[0]),
                 "role": q.get("gene_kind", [""])[0], "domains": "; ".join(dict.fromkeys(doms)),
                 "smcog": smcog(q.get("gene_functions", []))}

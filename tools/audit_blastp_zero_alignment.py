@@ -103,6 +103,11 @@ def audit_overlay(path: pathlib.Path, min_run: int, near_id: float) -> dict:
             "longest_run": best, "flank_pct_id": flank, "suspect": suspect}
 
 
+def _emit_shared_1(f, r) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(f"  {f.name}: {r['error']}", file=sys.stderr)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -128,7 +133,7 @@ def main() -> int:
         for f in files:
             r = audit_xml(f)
             if "error" in r:
-                emit(f"  {f.name}: {r['error']}", file=sys.stderr)
+                _emit_shared_1(f, r)
                 errored.append(f.name)  # v9.7.409 A9 (G1): an unreadable file is NOT a tested-negative
                 continue
             tot_q += r["queries"]; tot_z += r["zero_hit"]
@@ -163,7 +168,7 @@ def main() -> int:
     for f in files:
         r = audit_overlay(f, a.min_run, a.near_id)
         if "error" in r:
-            emit(f"  {f.name}: {r['error']}", file=sys.stderr)
+            _emit_shared_1(f, r)
             errored.append(f.name)  # v9.7.409 A9: same PARTIAL rule as the XML branch
             continue
         tag = "SUSPECT" if r["suspect"] else "ok"

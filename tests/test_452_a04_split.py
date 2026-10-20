@@ -35,12 +35,12 @@ def test_three_panels_printed(tmp_path):
     cli("A04",ROOT/"tools/bioassay_a04.R",args+["--out",str(out)])
     pdf=next(out.glob("*.pdf"));sizes=[];page=PdfReader(pdf).pages[0]
     text=page.extract_text(visitor_text=lambda t,cm,tm,font,size:sizes.append(size*math.hypot(tm[0]*cm[0]+tm[1]*cm[2],tm[0]*cm[1]+tm[1]*cm[3])) if t.strip() else None)
-    assert float(page.mediabox.width)==504
+    assert float(page.mediabox.width)==518.4   # 7.2 in, the double-column width (card 018c0f08_453_bioassay_print_width_and_centering)
     assert all(t in text for t in ("C. albicans","C. auris","(not recorded)"))
     code="import json,pdfplumber,sys;p=pdfplumber.open(sys.argv[1]).pages[0];print(json.dumps(p.chars))"
     chars=json.loads(subprocess.run([os.environ.get("PDF_CHECK_PYTHON",sys.executable),"-c",code,str(pdf)],check=True,capture_output=True,text=True).stdout)
     assert sizes and min(sizes)>=7.95
-    assert all(-.2<=c["x0"] and c["x1"]<=504.2 for c in chars)
+    assert all(-.2<=c["x0"] and c["x1"]<=518.6 for c in chars)
 
 @pytest.mark.skipif(shutil.which("Rscript") is None, reason="needs R: Rscript not on PATH (see bundle_support/install_r_figure_packages.R)")
 def test_default_pooled_pixels_unchanged(tmp_path):

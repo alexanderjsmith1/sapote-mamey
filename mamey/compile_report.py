@@ -1010,12 +1010,17 @@ def write_narrative(package_dir: str | Path, section_key: str,
             "section": section_key}
 
 
+def _emit_shared_1(pkg, sys) -> None:
+    """Same line emitted at 3 call sites in this file; one emission site."""
+    emit(f'ERROR: not a directory: {pkg}', file=sys.stderr)
+
+
 def write_narrative_command(args) -> int:
     """CLI entry: `mamey write-narrative <pkg> --section <key> --file <input.md>`."""
     import sys
     pkg = Path(args.package_dir).resolve()
     if not pkg.is_dir():
-        emit(f"ERROR: not a directory: {pkg}", file=sys.stderr)
+        _emit_shared_1(pkg, sys)
         return 1
     in_path = Path(args.file)
     if not in_path.exists():
@@ -1280,11 +1285,14 @@ def compile_report_command(args) -> int:
     from .postseal_output import output_file, package_binding
     pkg = Path(args.package_dir).expanduser().resolve()
     if not pkg.is_dir():
-        emit(f"ERROR: not a directory: {pkg}", file=sys.stderr)
+        _emit_shared_1(pkg, sys)
         return 1
-    # Validate the original before copying; a snapshot never launders tampering.
+    sealed = any((pkg / marker).exists() or (pkg / marker).is_symlink() for marker in
+                 ("checksums_sha256.txt", "seal_status.json", "SEAL_RECEIPT.md"))
+    # Validate the original before copying; a snapshot never launders tampering. A sealed original
+    # is read, never written: its package_status.json must not be refreshed by a reader (v9.7.454).
     from .validate import validate_package
-    checked = validate_package(pkg)
+    checked = validate_package(pkg, write_status_receipt=not sealed)
     tamper = []
     if str(checked.get("identity_binding", "PASS")).upper().startswith(("FAIL", "ERROR")):
         tamper.append(f"identity_binding ({checked.get('identity_binding_detail', '')})")
@@ -1297,8 +1305,6 @@ def compile_report_command(args) -> int:
     if tamper:
         raise SystemExit("compile-report: REFUSED — original package validation failed (" +
                          " | ".join(tamper) + f"); run `mamey validate {pkg}` and repair before compiling a report")
-    sealed = any((pkg / marker).exists() or (pkg / marker).is_symlink() for marker in
-                 ("checksums_sha256.txt", "seal_status.json", "SEAL_RECEIPT.md"))
     if not sealed:
         # This is the construction-time API. It is allowed to build the report
         # inside a mutable package before its final manifest/checksums are frozen.
@@ -1358,7 +1364,7 @@ def _compile_report_from_reader_view(args) -> int:
     import sys, re
     pkg = Path(args.package_dir).resolve()
     if not pkg.is_dir():
-        emit(f"ERROR: not a directory: {pkg}", file=sys.stderr)
+        _emit_shared_1(pkg, sys)
         return 1
     # v9.7.409 (BC hostile audit H14): the compiled report was built from packages whose manifest identity
     # had been swapped and whose triage board had been deleted — `gate_validation.json` still said PASS from
@@ -1368,7 +1374,10 @@ def _compile_report_from_reader_view(args) -> int:
     # partial fixture packages and pre-seal trees legitimately lack them and the existing contract allows
     # compiling those.
     from .validate import validate_package as _validate_now
-    _v = _validate_now(Path(getattr(args, "_postseal_source_package", pkg)))
+    # The sealed original (_postseal_source_package) is checked read-only; a preseal working package keeps
+    # the construction-time status write (v9.7.454).
+    _v = _validate_now(Path(getattr(args, "_postseal_source_package", pkg)),
+                       write_status_receipt=not hasattr(args, "_postseal_source_package"))
     _tamper = []
     if str(_v.get("identity_binding", "PASS")).upper().startswith(("FAIL", "ERROR")):
         _tamper.append(f"identity_binding ({_v.get('identity_binding_detail', '')})")

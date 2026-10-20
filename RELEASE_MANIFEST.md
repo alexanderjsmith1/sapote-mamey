@@ -1,11 +1,11 @@
-# Sapote-Mamey Bundle Release Manifest — v9.7.453 CODE archive
+# Sapote-Mamey Bundle Release Manifest — v9.7.454 CODE archive
 
-**Cut/build date:** 2026-10-18
+**Cut/build date:** 2026-10-19
 **Artifact status:** validated CODE archive  
-**Bundle version:** `sapote-mamey-v9.7.453`  
-**Authoritative bundle version:** `9.7.453`  
+**Bundle version:** `sapote-mamey-v9.7.454`  
+**Authoritative bundle version:** `9.7.454`  
 **Engine:** Mamey v1.9.176  
-**Build stamp:** 20261018v97453a  
+**Build stamp:** 20261019v97454a  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
@@ -21,9 +21,9 @@ No additional release tiers are included in this CODE archive.
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (21328 passed, 286 skipped; receipt-bound log) |
+| Full pytest suite | PASS (21397 passed, 286 skipped; receipt-bound log) |
 | Focused verification | New portable adapter, identity, containment and clinker regressions pass; exact counts recorded in external candidate receipts |
-| Strict repository health | PASS (1268 observed direct print calls; enforced ceiling 1268; owner-approved UP from 1250, 2026-10-14; no waiver) |
+| Strict repository health | PASS (1240 observed direct print calls; enforced ceiling 1240; lowered from 1268 by the print-call paydown, then +1 for the new chitin genome census tool; no waiver) |
 | Version synchronization | PASS |
 | Generated module, tool, command, and deliverable inventories | PASS |
 | R source parsing | PASS (all bundled R sources parsed); synthetic single/grouped tree-track PDF pages inspected; live experimental integration remains separate |
@@ -48,11 +48,11 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20261018v97453a`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20261019v97454a`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
-| `sync_version --check` | PASS (engine 1.9.176, bundle 9.7.453) |
+| `sync_version --check` | PASS (engine 1.9.176, bundle 9.7.454) |
 
-All tracked version anchors at v9.7.453 / Mamey 1.9.176.
-`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.453.
+All tracked version anchors at v9.7.454 / Mamey 1.9.176.
+`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.454.

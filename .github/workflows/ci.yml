@@ -45,7 +45,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libcurl4-openssl-dev libxml2-dev libfontconfig1-dev libfreetype-dev \
-            libharfbuzz-dev libfribidi-dev libpng-dev libjpeg-dev libtiff5-dev \
+            libharfbuzz-dev libfribidi-dev libpng-dev libjpeg-dev libtiff5-dev libwebp-dev \
             libuv1-dev libcairo2-dev   # fs (for yulab.utils, ggfun, aplot) needs libuv; gdtools (for ggtree) needs cairo
       - name: R figure packages
         run: Rscript bundle_support/install_r_figure_packages.R
@@ -53,14 +53,20 @@ jobs:
       # No third-party reference data is redistributed (v9.7.362), so the dataset-dependent
       # tests SKIP here by design. That is the contract, not a gap: see docs/EXTERNAL_DATA.md.
       - name: Test suite
-        run: pytest -q
+        # -B and PYTHONDONTWRITEBYTECODE: pytest must not write __pycache__ while collecting, or the bundle runner
+        # refuses later tests with BYTECODE_WRITES_DISABLED (CUT_PROTOCOL.md step 4; the cut runs the same way).
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -B -m pytest -q -p no:cacheprovider
 
       - name: Configured full suite (explicit manual opt-in)
         if: github.event_name == 'workflow_dispatch' && inputs.run_configured_suite
         run: python -B -m pytest -q -p no:cacheprovider --run-slow --run-network
 
       - name: Public suite (hermetic release invariants)
-        run: pytest -m public -q
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -B -m pytest -m public -q -p no:cacheprovider
 
       - name: Wheel builds and imports clean
         run: |

@@ -9,9 +9,12 @@ from_dir <- if (!is.na(from_i) && from_i < length(args)) args[from_i + 1] else N
 if (!is.na(from_i) && (is.na(from_dir) || startsWith(from_dir, "--")))
   stop("--from needs a directory of package archives; refusing to fall back to an online install")
 offline <- !is.na(from_dir)
-# .452: every package the shipped R scripts load (tests/test_452_ci_installs_r.py keeps this list complete).
-cran <- c("ggplot2","dplyr","tidyr","scales","patchwork","ape","ggrepel","aplot","ggtext","svglite","jsonlite","readr","systemfonts","xml2")
+# .452: every package the shipped R scripts load, including R code embedded in Python tools
+# (tests/test_452_ci_installs_r.py keeps this list complete).
+cran <- c("ggplot2","dplyr","tidyr","scales","patchwork","ape","ggrepel","aplot","ggtext","svglite","jsonlite","readr","systemfonts","xml2","ragg","png")
 bioc <- c("ggtree","treeio")
+# .454: not on CRAN; installed from the author's repository (MIT). Used by tools/bgc_class_groups.py.
+github <- c(ggchicklet = "hrbrmstr/ggchicklet")
 have <- function(p) requireNamespace(p, quietly = TRUE)
 check_only <- "--check" %in% commandArgs(trailingOnly = TRUE)
 if (!check_only && !offline) {
@@ -19,6 +22,8 @@ if (!check_only && !offline) {
   if (length(miss)) install.packages(miss, repos = "https://cloud.r-project.org")
   bm <- bioc[!vapply(bioc, have, TRUE)]
   if (length(bm)) { if (!have("BiocManager")) install.packages("BiocManager", repos = "https://cloud.r-project.org"); BiocManager::install(bm, ask = FALSE, update = FALSE) }
+  gm <- names(github)[!vapply(names(github), have, TRUE)]
+  if (length(gm)) { if (!have("remotes")) install.packages("remotes", repos = "https://cloud.r-project.org"); for (g in gm) remotes::install_github(github[[g]], upgrade = "never") }
 } else if (!check_only) {
   if (!dir.exists(from_dir)) stop("--from directory not found: ", from_dir)
   archives <- list.files(from_dir, pattern = "\\.(tar\\.gz|zip)$", full.names = TRUE)
@@ -46,7 +51,7 @@ if (!check_only && !offline) {
   if (length(failed)) message("Not installed from --from (missing dependencies or build errors): ",
                               paste(basename(failed), collapse = ", "))
 }
-for (p in c(cran, bioc)) cat(sprintf("%-10s %s\n", p, if (have(p)) as.character(packageVersion(p)) else "MISSING"))
+for (p in c(cran, bioc, names(github))) cat(sprintf("%-10s %s\n", p, if (have(p)) as.character(packageVersion(p)) else "MISSING"))
 
-missing <- c(cran, bioc)[!vapply(c(cran, bioc), have, TRUE)]
+missing <- c(cran, bioc, names(github))[!vapply(c(cran, bioc, names(github)), have, TRUE)]
 if (length(missing)) quit(status=2)

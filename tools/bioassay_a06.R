@@ -15,7 +15,7 @@ p<-ggplot(d,aes(target,pct,fill=group))+
  scale_fill_manual(values=cols,labels=group_lab)+scale_x_discrete(labels=target_lab)+
  scale_y_continuous(limits=c(-8,100),breaks=seq(0,100,25),labels=function(x)paste0(x,"%"),expand=expansion(mult=c(0,.02)))+
  geom_hline(yintercept=0,colour="#C9CED6",linewidth=.3)+
- labs(x=NULL,y="Isolates with strong activity\n(≥80% inhibition, crude extract)",fill=NULL)+house()+
+ labs(x=NULL,y=paste0("Isolates with strong activity\n(≥80% inhibition, ",switch(cfg$material,"Fraction"="fractions","HPLC fraction"="HPLC fractions","crude extract"),")"),fill=NULL)+house()+
  theme(legend.position="top",panel.grid.major.x=element_blank(),legend.margin=margin(0,0,0,0),legend.box.spacing=unit(2,"pt"),axis.text.x.bottom=element_markdown(size=8,margin=margin(t=1)))+guides(fill=guide_legend(nrow=1))
 if (isTRUE(cfg$bar_labels)) {
   p<-p+geom_text(aes(label=label,y=ifelse(is.na(pct),0,pct)+2),position=dodge,angle=90,hjust=0,size=PT,family=PUB_FONT)+

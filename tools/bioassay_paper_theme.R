@@ -17,10 +17,28 @@ house <- function() theme_pub(base=9) + theme(text=element_text(size=8),
   legend.key.spacing.y=unit(4,"pt"),legend.key.spacing.x=unit(5,"pt"))
 
 genlab <- function(x) ifelse(x=="Unassigned",prof$unassigned_label,ifelse(x %in% c("Other genera",prof$plain_rows),x,paste0("<i>",x,"</i>")))
+PRINT_WIDTH_IN <- 7.2    # DOUBLE_COLUMN publication width (docs/FIGURE_STYLE.md, "Publication artwork gate")
+EDGE_IN <- 0.15          # white space kept on every side; equal left and right, so the content is centered
+.ink_margins <- function(file) {   # white space (inches at the probe resolution) around everything drawn
+  a <- png::readPNG(file); ink <- (a[,,1] < .92) | (a[,,2] < .92) | (a[,,3] < .92)
+  cols <- which(colSums(ink) > 0); rows <- which(rowSums(ink) > 0)
+  c(t=min(rows) - 1, r=ncol(a) - max(cols), b=nrow(a) - max(rows), l=min(cols) - 1)
+}
 save_candidate <- function(p,w,h) {
+  # Every panel is saved at the house double-column width. The plot margins are set so the drawn content
+  # (axis labels, legends, strips, bar counts) sits EDGE_IN from each side of the page: three probe renders
+  # measure the white space, and the margins are corrected by the difference.
+  w <- PRINT_WIDTH_IN; dpi <- 150; mar <- c(t=8, r=10, b=8, l=8)
+  for (i in 1:3) {
+    probe <- tempfile(fileext=".png")
+    ggsave(probe, p + theme(plot.margin=margin(mar["t"],mar["r"],mar["b"],mar["l"])), width=w, height=h, dpi=dpi, bg="white")
+    m <- .ink_margins(probe) / dpi * 72.27; unlink(probe)   # points
+    mar <- mar + (EDGE_IN * 72.27 - m)
+  }
+  p <- p + theme(plot.margin=margin(mar["t"],mar["r"],mar["b"],mar["l"]))
   ggsave(paste0(cfg$stem,".png"),p,width=w,height=h,dpi=600,bg="white")
   ggsave(paste0(cfg$stem,".svg"),p,width=w,height=h,bg="white",device=svglite::svglite)
   .pub_pdf(p,paste0(cfg$stem,".pdf"),w,h)
   sapote_stamp_files_required(paste0(cfg$stem,c(".png",".pdf",".svg")), paste0("bioassay_",tolower(cfg$kind)))
-  writeLines(jsonlite::toJSON(list(width_in=w,height_in=h,minimum_text_pt=8,dpi=600),auto_unbox=TRUE),paste0(cfg$stem,"_PRINT_SIZE.json"))
+  writeLines(jsonlite::toJSON(list(width_in=w,height_in=h,minimum_text_pt=8,dpi=600,edge_in=EDGE_IN),auto_unbox=TRUE),paste0(cfg$stem,"_PRINT_SIZE.json"))
 }

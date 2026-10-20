@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**521 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**524 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -89,6 +89,7 @@
 | `bioassay_a03.py` | A03 portable bioassay paper renderer. |
 | `bioassay_a04.py` | A04 portable bioassay paper renderer. |
 | `bioassay_a06.py` | A06 portable bioassay paper renderer. |
+| `bioassay_a07.py` | A07 portable bioassay paper renderer: every fraction, Candida against MRSA. |
 | `bioassay_admitted_observations.py` | Bring admitted per-well bioassay tables into the Figure Factory observation table, and derive the best-value table the paper activity renderers read. |
 | `bioassay_plate_map.py` | Map source-plate wells to destination wells with an explicit geometry profile. |
 | `bioassay_to_activity_channel.py` | bioassay_to_activity_channel — emit MEASURED fraction-screen data as Sapote-Mamey `bioactivity_metadata_v1` objects (docs/BIOACTIVITY_METADATA_CONTRACT.md), one per strain, for `mamey_run.py run --bioactivity-json <json>`. STRAIN-LEVEL, EXTRACT-LEVEL ONLY: inhibition%/tiers go in free-form assays[]; no BGC is credited; capacity != production; the engine treats it as score-neutral context. |
@@ -210,6 +211,7 @@
 | `check_schema_drift.py` | check_schema_drift.py  (candidate patch G1) |
 | `check_tier_parity.py` | fail-closed parity gate across the four release tiers. |
 | `check_tygs_coverage.py` | Check that every TYGS top-N type strain is either in an isolate's panel or logged as an issue. |
+| `chitin_genome_census.py` | tools/chitin_genome_census.py -- whole-genome chitin/GlcNAc domain census, one row per genome. |
 | `chitin_isolate_vs_references.py` | chitin_isolate_vs_references — chitin-active gene content of each sequenced isolate against the reference genomes of its genus, one row per isolate (catalog figure type K01). |
 | `chitin_reference_eval.py` | tools/chitin_reference_eval.py -- operator front door for the whole-genome chitin/GlcNAc reference-capacity evaluation (mamey/chitin_reference_eval.py). |
 | `chitinase_hmm_confirm.py` | tools/chitinase_hmm_confirm.py -- HMMER confirmation pass for chitinolytic capacity. |
@@ -355,6 +357,7 @@
 | `palette_distance_report.py` | Colour-difference report for the genus colours one figure set uses (CIEDE2000, sRGB D65), optionally also as seen with colour-vision deficiencies. |
 | `panel_receipt_to_aux.py` | Export explicit query accessions from a panel receipt to a new auxiliary TSV. |
 | `panel_split.py` | Split a panel into reference and query FASTAs using its explicit tip-role table. |
+| `paper_cohort_registry.py` | Build a strain roster with an evidence map: which sources list each strain, and what data exist where. |
 | `paper_reference_audit.py` | Offline DOCX citation, reference and caption audit. |
 | `parked_card_audit.py` | flag patch-pool cards that silently fell out of the cut cadence. |
 | `patch_packet_preflight.py` | Fail closed when a patch packet contains workspace, cache, or evidence bloat. |

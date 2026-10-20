@@ -35,7 +35,8 @@ def test_default_ci_retains_fast_partition_and_declared_linux_python():
     data=workflow();job=data['jobs']['test']
     assert job['runs-on']=='ubuntu-latest'
     assert job['strategy']['matrix']['python-version']==['3.12']
-    assert any(s.get('run')=='pytest -q' for s in job['steps'])
+    # v9.7.454: the default step runs without bytecode writes (python -B, no cache provider), as the cut does.
+    assert any(s.get('run')=='python -B -m pytest -q -p no:cacheprovider' for s in job['steps'])
 
 
 @pytest.mark.parametrize('mutation',['missing_input','missing_network','automatic_run'])

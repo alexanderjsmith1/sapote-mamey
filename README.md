@@ -255,6 +255,41 @@ distribution you use.
 | [ggtree](https://bioconductor.org/packages/release/bioc/html/ggtree.html) | R tree visualization | Artistic-2.0 |
 | [patchwork](https://patchwork.data-imaginist.com/) | R composite layouts | MIT |
 | [svglite](https://svglite.r-lib.org/) | SVG output for R renderers using ggplot2's SVG device | GPL-2.0-or-later |
+| Other R packages loaded by the shipped R scripts: ggrepel (non-overlapping labels), ggtext, ape, treeio, aplot, dplyr, tidyr, readr, jsonlite, ragg (PNG output), png (reads a rendered PNG to center bioassay panels), and ggchicklet (rounded bars; installed from its author's GitHub, not CRAN) | `bundle_support/install_r_figure_packages.R` installs these together with the packages above; [Rscript](https://www.r-project.org/) runs every R renderer | ggrepel GPL-3; ggtext GPL-2; ape GPL-2 or GPL-3; treeio and aplot Artistic-2.0; dplyr, tidyr, readr, jsonlite and ggchicklet MIT; ragg MIT; png GPL-2 or GPL-3 (from each package's installed DESCRIPTION) |
+| [Poppler utilities](https://poppler.freedesktop.org/) (`pdftotext`, `pdfinfo`, `pdffonts`, `pdfimages`) | Checking compiled report PDFs: text, fonts, images and page counts | See upstream COPYING |
+| [Google Chrome or Chromium](https://www.chromium.org/getting-involved/download-chromium/), headless | Printing HTML locus reading pages, clinker views and class heatmaps to PDF or PNG | See upstream terms for the browser you install |
+| [wkhtmltopdf](https://wkhtmltopdf.org/) | One optional HTML-to-PDF fallback for briefs and chat exports | See upstream |
+| [Graphviz](https://graphviz.org/download/) (`dot`) | Drawing workflow and cause-map diagrams | See upstream |
+| [IQ-TREE 3](https://iqtree.github.io/) (`iqtree3`) | Recognised alongside IQ-TREE 2 for genome-marker trees | See upstream |
+| [CheckM2](https://github.com/chklovski/CheckM2) | Optional genome completeness and contamination checks in planned tree runs and clade decontamination | See upstream |
+| [DeepBGC](https://github.com/Merck/deepbgc) | Optional companion BGC caller in the companion-tool registry; one activity adapter uses its Pfam random-forest model | MIT (installed package metadata) |
+| [BiG-SLiCE](https://github.com/medema-group/bigslice) | Optional queries against a BiG-SLiCE database (`tools/bigslice_query.py`) | See upstream |
+| [cblaster](https://github.com/gamcil/cblaster) | Optional homologous gene-cluster search, registered as a companion tool | See upstream |
+| [RiPPER](https://github.com/streptomyces/ripper) | Optional, experimental RiPP discovery adapter (`tools/ripper_*`); nothing runs without explicit opt-in | See upstream |
+| [TriMap](https://github.com/eamid/trimap) | Optional alternative embedding for protein-space figures | Apache-2.0 (installed package metadata) |
+| [SPAdes](https://github.com/ablab/spades) | Not run by the bundle; contig names in SPAdes style (`NODE_…_length_…`) are parsed from assemblies made upstream | See upstream |
+| [Swift](https://www.swift.org/install/) (`swiftc`, macOS) | Optional on-device text recognition in `tools/figure_render_qc.py` | Apache-2.0 for the Swift toolchain; see upstream |
+| [curl](https://curl.se/) | Web requests in the BLASTp crawl tools and the NCBI 16S search helper | curl license (MIT-style) |
+| [pyGenomeViz](https://github.com/moshi4/pyGenomeViz) | Optional scriptable BGC locus figures (SVG/PDF), registered as a companion tool | See upstream |
+| [GTDB-Tk](https://github.com/Ecogenomics/GTDBTk) | On request only: genome taxonomy against GTDB; needs the ~100 GB GTDB reference database and network access to fetch it | See upstream |
+| [CORASON](https://github.com/nselem/corason) | Optional query-centred conserved-gene-core locus comparison; the registry pins a reviewed source and never installs or runs it | See upstream |
+| [NPLinker](https://nplinker.github.io/nplinker/latest/) | Optional linking of genome-side families with your own MS observations; links need separate review | See upstream |
+| [PRISM](https://prism.adapsyn.com/) | Optional class-level genome interpretation through its web service; no product prediction is adopted | See upstream terms |
+| [GNPS / MASST](https://ccms-ucsd.github.io/GNPSDocumentation/toolindex/) | Optional MS/MS networking and similarity that you run; Mamey submits nothing | See upstream terms |
+| [SIRIUS / CANOPUS](https://v6.docs.sirius-ms.io/) | Optional compound-class annotation of your MS/MS data; genome hypotheses are not CANOPUS predictions | See upstream terms |
+
+Python libraries the optional workflows import, and the extra that installs each (licenses are listed in
+[Third-Party Licenses](docs/THIRD_PARTY_LICENSES.md)):
+
+| Extra | Libraries |
+|---|---|
+| `figures` | matplotlib, numpy, pandas, scipy, networkx, pyshp, dna-features-viewer, pycirclize, Biopython |
+| `documents` | python-docx, lxml, pypdf, Pillow, markdown |
+| `slides` | python-pptx, matplotlib, numpy, Pillow |
+| `render` | CairoSVG |
+| `addons` | pyrodigal, pyfastani, pyswrd, pyhmmer, pyskani and the other `pyproject.toml` add-ons |
+| `test` | pytest, build, pdfplumber, psutil |
+| not in any extra; install only if wanted | pypdfium2 (PDF page images for interactive-figure bridges), certifi (extra TLS certificates for reference-metadata lookups in `tools/resolve_reference_metadata.py`), diamond4py (in-process DIAMOND alignment), RDKit (structure drawing, above) |
 
 Core Python dependencies install with `python -m pip install -e .`:
 [openpyxl](https://pypi.org/project/openpyxl/) (MIT),
@@ -279,6 +314,24 @@ when the resource asks for attribution.
 | [MIBiG](https://mibig.secondarymetabolites.org/) | Experimentally supported reference biosynthetic clusters and their metadata | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): attribution is required. Cite MIBiG, link the license when redistributing adapted content, and identify changes. |
 | [UniProt / Swiss-Prot](https://www.uniprot.org/help/downloads) | Reviewed protein-reference evidence | [CC BY 4.0](https://www.uniprot.org/help/license/) applies to copyrightable database content: attribution is required. UniProt also notes that patents or other third-party rights may apply to some records. |
 | [NCBI BLAST databases](https://www.ncbi.nlm.nih.gov/books/NBK62345/) | nr, ClusteredNR, RefSeq protein, and 16S reference searches | [BLAST software is public domain](https://blast.ncbi.nlm.nih.gov/doc/blast-help/developerinfo.html). Treat database content separately: retain the exact database name/date and record-level source identifiers, cite the contributing resources, and review the notices supplied with the selected database. |
+
+### Online services
+
+Some optional workflows contact these services. The core extraction runs offline. Sending sequences to a
+public service discloses them to that service. The BLASTp submission commands refuse to upload without `--confirm-public-sequence-upload`.
+
+| Service | Used for | Notes |
+|---|---|---|
+| [antiSMASH web server](https://antismash.secondarymetabolites.org/) | Producing the antiSMASH result ZIP that Mamey reads; links in package reports | Submitted by the user; Mamey does not upload genomes |
+| [MIBiG downloads](https://dl.secondarymetabolites.org/) | Fetching MIBiG reference records (`tools/fetch_mibig_reference.py`) | Record the MIBiG release used |
+| [NCBI BLAST web service](https://blast.ncbi.nlm.nih.gov/) | `blastp-online`, `auto-blastp` and the BLASTp crawl tools (nr, ClusteredNR) | Uploads selected protein sequences; requires `--confirm-public-sequence-upload` |
+| [EMBL-EBI BLAST service](https://www.ebi.ac.uk/Tools/sss/ncbiblast/) | Fallback BLASTp route (`mamey/blastp_ebi.py`) when NCBI is unreachable; one job per protein | Uploads selected protein sequences |
+| [NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/) (`eutils.ncbi.nlm.nih.gov`) | Sequence and metadata lookups for references, 16S searches and alignment helpers | Follow NCBI's usage policy and rate limits |
+| [NCBI Datasets](https://www.ncbi.nlm.nih.gov/datasets/) | Reference-genome and metadata retrieval (CLI listed above) | Retrieved records keep their source terms |
+| [NP Atlas](https://www.npatlas.org/) | Optional natural-product reference records (see the NP Atlas workflow) | Record the release used |
+| [TYGS](https://tygs.dsmz.de/) (DSMZ) | Type-strain genome comparisons; the bundle reads TYGS result tables you download | Submitted by the user |
+| [BacDive](https://bacdive.dsmz.de/) (DSMZ) | Strain metadata looked up by culture-collection number | Used for display metadata only |
+| [GTDB](https://gtdb.ecogenomic.org/) | Taxonomy and marker references for genome trees (via GToTree) | Record the GTDB release used |
 
 Keep database versions and hashes with the analysis. Installing the Python package does not
 download these databases or install the external binaries. Run
@@ -385,7 +438,7 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.453 / engine 1.9.176 · build 20261018v97453a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.454 / engine 1.9.176 · build 20261019v97454a · release profile: CODE (see RELEASE_MANIFEST.md)*
 
 ## Choose a task by name
 

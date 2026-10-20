@@ -85,11 +85,11 @@ d$position <- NA_real_; boxes <- list()
 for (i in seq_along(genera)) {
   ix <- which(d$genus == genera[i] & d$role == "reference"); ix <- ix[order(d$value[ix],d$strain[ix])]
   d$position[d$genus == genera[i] & d$role %in% c("isolate", "comparator")] <- i
-  if (has_role && length(ix)) {   # fixed jitter from each genome's ID: reproducible, and no rank-ordered slope that reads as a trend
-    # (a genus with no public genomes keeps its isolate diamond and draws no points or box)
+  if (length(ix)) {   # fixed jitter from each genome's ID: reproducible, and no rank-ordered slope that reads as a trend
+    # (with or without a role column; a genus with no public genomes keeps its isolate diamond and draws no points or box)
     h <- sapply(d$strain[ix], function(z) { u <- utf8ToInt(z); sum(u * seq_along(u) * 7919) %% 1000 }) / 999
     d$position[ix] <- i - 0.2 + 0.4 * h
-  } else if (length(ix)) d$position[ix] <- i + if(length(ix)>1) seq(-0.22,0.22,length.out=length(ix)) else 0
+  }
   v <- d$value[ix]
   if(length(v)>=3) {
     q <- quantile(v,c(0.25,0.5,0.75),type=7,names=FALSE); iq <- q[3]-q[1]
@@ -110,6 +110,7 @@ if(length(boxes)) {
   geom_segment(data=b,aes(x=median,xend=median,y=y-0.225,yend=y+0.225),inherit.aes=FALSE,colour=PUB_INK)
  write.table(b,paste0(cfg$out,"_box_summary.tsv"),sep="\t",quote=FALSE,row.names=FALSE)
 }
+write.table(d[,c("strain","genus","role","value","position")],paste0(cfg$out,"_point_positions.tsv"),sep="\t",quote=FALSE,row.names=FALSE)
 n_ref <- sapply(genera,function(g)sum(d$genus==g & d$role %in% c("reference","comparator")))
 if (has_role) {
   iso <- d[d$role=="isolate",]
@@ -139,8 +140,8 @@ if (has_role) {
                     segment.size=.3,box.padding=.25,point.padding=.3)
   ylab <- paste0("<i>",genera,"</i> ",ifelse(n_ref>0,paste0("(n = ",n_ref,")"),"(no public genomes)"))
 } else {
-  p <- p + geom_point(size=2,colour=PUB_INK)
-  ylab <- paste0(genera," (n = ",sapply(genera,function(g)sum(d$genus==g)),")")
+  p <- p + geom_point(size=1,colour="#9AA3AE")   # same reference points and italic genus labels as the role path
+  ylab <- paste0("<i>",genera,"</i> (n = ",sapply(genera,function(g)sum(d$genus==g)),")")
 }
 p <- p +
  scale_y_reverse(breaks=seq_along(genera),labels=ylab,

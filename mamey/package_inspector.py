@@ -107,6 +107,12 @@ def classify_antismash_zip(names: list[str]) -> dict[str, object]:
 # B4: inspect — preview an antiSMASH ZIP
 # ---------------------------------------------------------------------------
 
+
+def _emit_shared_1(report_lines) -> None:
+    """Same line emitted at 3 call sites in this file; one emission site."""
+    emit(*report_lines, sep='\n')
+
+
 def inspect_command(args) -> int:
     """Preview what Mamey sees in an antiSMASH ZIP before running.
 
@@ -216,7 +222,7 @@ def inspect_command(args) -> int:
         batches = math.ceil(len(gbk_regions) / 20)
         report_lines.extend([f'\n  ⚠  {len(gbk_regions)} BGCs is a large strain (~{batches} judgment batches).', f'     Run gold directly (command above); sequence Mode B authoring across ~{batches} batches after the package validates.'])
 
-    emit(*report_lines, sep="\n")
+    _emit_shared_1(report_lines)
     return 0
 
 
@@ -277,6 +283,11 @@ def _explain_lead_label(lead, strain, rows, board_hold):
         return "IDENTITY_HOLD (lead identity conflicts with native board)"
 
 
+def _emit_shared_2(pkg) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(f'ERROR: not a directory: {pkg}', file=sys.stderr)
+
+
 def explain_command(args) -> int:
     """Print a plain-language summary of an existing Mamey result package.
 
@@ -285,7 +296,7 @@ def explain_command(args) -> int:
     """
     pkg = Path(args.package_dir).resolve()
     if not pkg.is_dir():
-        emit(f"ERROR: not a directory: {pkg}", file=sys.stderr)
+        _emit_shared_2(pkg)
         return 1
 
     # Load manifest_short (preferred) or fall back to manifest.json
@@ -385,7 +396,7 @@ def explain_command(args) -> int:
 
     report_lines.append("\n  " + guidance(policy, strain_id))
 
-    emit(*report_lines, sep="\n")
+    _emit_shared_1(report_lines)
     return 0
 
 
@@ -517,7 +528,7 @@ def list_bgcs_command(args) -> int:
     """
     pkg = Path(args.package_dir).resolve()
     if not pkg.is_dir():
-        emit(f"ERROR: not a directory: {pkg}", file=sys.stderr)
+        _emit_shared_2(pkg)
         return 1
 
     boards = sorted(pkg.glob("*_4_triage_board.csv"))
@@ -544,5 +555,5 @@ def list_bgcs_command(args) -> int:
         # Identity is the first line, unabridged; scores are routing priors.
         report_lines.extend([row['exact_locus'], f"  Products: {row['products']} | Boundary: {row['boundary']} | AB: {row['ab_score']:.0f} | AF: {row['af_score']:.0f} | Lead tier: {row['lead_tier']}"])
     report_lines.extend(['\n  Tip: --axis ab|af sorts by score | --json for machine-readable output | --top N to limit'])
-    emit(*report_lines, sep="\n")
+    _emit_shared_1(report_lines)
     return 0

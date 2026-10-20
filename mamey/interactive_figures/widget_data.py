@@ -635,6 +635,11 @@ def run(
     return result
 
 
+def _emit_shared_1(result) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(json.dumps(result, indent=2))
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description="Emit the AS widget-data aggregate from sealed Mamey packages."
@@ -666,7 +671,7 @@ def main(argv: list[str] | None = None) -> int:
         scope=args.scope,
         acknowledge_mixed_antismash_profile=args.acknowledge_mixed_antismash_profile,
     )
-    emit(json.dumps(result, indent=2))
+    _emit_shared_1(result)
     return 0 if result["validation"] == "PASS" else 1
 
 
@@ -682,7 +687,7 @@ def interactive_figures_command(args: argparse.Namespace) -> int:
         acknowledge_mixed_antismash_profile=getattr(
             args, "acknowledge_mixed_antismash_profile", False),
     )
-    emit(json.dumps(result, indent=2))
+    _emit_shared_1(result)
     return 0 if result["validation"] == "PASS" else 1
 
 

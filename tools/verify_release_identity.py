@@ -236,6 +236,11 @@ def _root_marker_errors(root: Path) -> list[str]:
     return []
 
 
+def _emit_shared_1(payload) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(json.dumps(payload, indent=2))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=str(_BUNDLE_ROOT))  # v9.7.409: sane default, not CWD
@@ -252,7 +257,7 @@ def main(argv: list[str] | None = None) -> int:
     if marker_errors:
         payload = {"status": "FAIL", "truth": {}, "tier_zips_checked": 0, "errors": marker_errors}
         if ns.json:
-            emit(json.dumps(payload, indent=2))
+            _emit_shared_1(payload)
         else:
             emit(f"release identity: FAIL (root {root})")
             for e in marker_errors:
@@ -274,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
                "tier_zips_checked": tier_count, "errors": errors,
                "membership_advisories": [] if ns.strict_membership else membership}
     if ns.json:
-        emit(json.dumps(payload, indent=2))
+        _emit_shared_1(payload)
     else:
         lines = [f"release identity: {payload['status']} (bundle v{truth['bundle']} / engine {truth['engine']} · build {truth['build']})"]
         lines.extend(f"  FAIL: {e}" for e in errors)

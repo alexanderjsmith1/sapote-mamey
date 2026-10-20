@@ -7,7 +7,8 @@ PENDING_JUDGMENT per strain, because a claim-safe narrative is a judgment task, 
 Per strain: (1) BLASTp gate — auto-ingest available channels, then verify clear (or record BLOCKED);
 (2) emit Mode B cards (all subsections); (3) lead-pages, af-dossier, reference-dark, good-guesses;
 (4) compile-report (deterministic sections + auto-filled blastp_evidence/fermentation). Idempotent:
-a strain marked DONE in the ledger is skipped on re-run.
+a strain marked DONE in the ledger is skipped on re-run only while its package bytes, delivered outputs and
+run context still match the DONE record (v9.7.454).
 
 CLAIM CEILING: deterministic capacity/evidence layers only; narratives await judgment; class-level.
 """
@@ -42,6 +43,32 @@ def _source_args_sha256(sources: dict | None) -> str:
     """Bind queue resume to the Mode B source arguments without storing their paths."""
     raw = json.dumps(source_argv(sources), ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+def _tree_sha256(root: str) -> str:
+    """Digest of every regular file's relative path and bytes under root (empty when root is absent)."""
+    h = hashlib.sha256()
+    base = Path(root)
+    if base.is_dir():
+        for f in sorted(p for p in base.rglob("*") if p.is_file() and "__pycache__" not in p.parts):
+            h.update(f.relative_to(base).as_posix().encode("utf-8") + b"\0")
+            h.update(hashlib.sha256(f.read_bytes()).hexdigest().encode("ascii") + b"\n")
+    return h.hexdigest()
+
+
+def _resume_binding(strain: str, runs_dir: str, out_root: str, activity_csv: str | None) -> dict:
+    """What a DONE record must still match to be skipped (v9.7.454): the package bytes, the delivered
+    outputs' bytes and the run context, not only the source-argument strings. A changed input at the same
+    path, a deleted or edited output, or a different activity table makes the strain run again."""
+    activity = ""
+    if activity_csv and os.path.isfile(activity_csv):
+        activity = hashlib.sha256(Path(activity_csv).read_bytes()).hexdigest()
+    context = json.dumps({"runs_dir": os.path.abspath(runs_dir), "out_root": os.path.abspath(out_root),
+                          "activity_csv": os.path.abspath(activity_csv) if activity_csv else None,
+                          "activity_sha256": activity}, sort_keys=True)
+    return {"package_sha256": _tree_sha256(os.path.join(runs_dir, strain, "package")),
+            "outputs_sha256": _tree_sha256(os.path.join(out_root, strain, "sapote")),
+            "context_sha256": hashlib.sha256(context.encode("utf-8")).hexdigest()}
+
 
 def _run(mod_args: list[str], env=None) -> tuple[int, str]:
     """Invoke mamey via the bundle-pinned runner (not `-m mamey`); returns (rc, tail)."""
@@ -139,13 +166,20 @@ def run_queue(strains: list[str], runs_dir: str, out_root: str, activity_csv: st
     done_states = {"DETERMINISTIC_DONE"}
     current_source_args_sha256 = _source_args_sha256(sources)
     for s in strains:
+        rerun_reason = ""
         if (resume and ledger.get(s, {}).get("status") in done_states
                 and ledger[s].get("source_args_sha256") == current_source_args_sha256):
-            emit(f"[queue] {s}: skip (already {ledger[s]['status']})", flush=True)
-            continue
-        emit(f"[queue] {s}: processing…", flush=True)
+            binding = _resume_binding(s, runs_dir, out_root, activity_csv)
+            if all(ledger[s].get(key) == value for key, value in binding.items()):
+                emit(f"[queue] {s}: skip (already {ledger[s]['status']}; package, outputs and context unchanged)", flush=True)
+                continue
+            changed = [key for key, value in binding.items() if ledger[s].get(key) != value]
+            rerun_reason = f" ({', '.join(changed)} differ from the DONE record)"
+        emit(f"[queue] {s}: processing…{rerun_reason}", flush=True)
         rec = process_strain(s, runs_dir, out_root, activity_csv, sources=sources)
         rec["source_args_sha256"] = current_source_args_sha256
+        if rec.get("status") in done_states:
+            rec.update(_resume_binding(s, runs_dir, out_root, activity_csv))
         ledger[s] = rec
         # v9.7.374 fix: this file is the ONLY resumability bookkeeping this queue has (see module
         # docstring: "a strain marked DONE in the ledger is skipped on re-run"). A direct write_text()

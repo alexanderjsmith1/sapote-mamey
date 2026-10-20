@@ -1,7 +1,7 @@
 source(Sys.getenv("BIOASSAY_THEME"))
 d$group <- factor(d$group,levels=rev(cfg$groups))
 d$target <- factor(d$target,levels=unique(d$target))
-d$material <- factor(d$material,levels=c("Crude extract","Fraction"),labels=c("Crude extracts","Fractions"))
+d$material <- factor(d$material,levels=c("Crude extract","Fraction","HPLC fraction"),labels=c("Crude extracts","Fractions","HPLC fractions"))
 d$block <- factor(d$block,levels=c("Human pathogen panel","Foulbrood"))
 d$txt <- ifelse(!is.na(d$pct)&d$pct>=55,"white",PUB_INK)
 tl <- function(x) {x <- sub("Foulbrood ","P. larvae\n",x); sub("Candida ","C. ",x)}

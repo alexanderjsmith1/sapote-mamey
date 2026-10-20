@@ -16,6 +16,6 @@ p <- ggplot(b,aes(x=n,y=row,fill=activity_class))+geom_col(width=.74,colour="whi
   scale_fill_manual(values=setNames(c("#12355B","#4A7FB5","#9DBEDF","#E3E8EF"),lev),drop=FALSE)+
   scale_y_discrete(labels=genlab)+scale_x_continuous(breaks=c(1,10,25,50,100),expand=c(0,0))+
   coord_transform(x="sqrt",xlim=c(0,max(n$n)*1.5),expand=FALSE)+
-  labs(x="Isolates tested, crude extracts (square-root scale)",y=NULL,fill=NULL)+house()+
+  labs(x=paste0("Isolates tested, ",switch(cfg$material,"Fraction"="fractions","HPLC fraction"="HPLC fractions","crude extracts")," (square-root scale)"),y=NULL,fill=NULL)+house()+
   theme(legend.position="top",panel.grid.major.y=element_blank())+guides(fill=guide_legend(nrow=2,byrow=TRUE))
 save_candidate(p,5.6,max(3.6,1.7+length(order)*.19))

@@ -163,6 +163,11 @@ def _load_receipt(receipt_path: Path) -> dict[str, Any]:
     return data
 
 
+def _emit_shared_1(bgc_id, _gate_exc) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(f'  STRUCTURE: {bgc_id} — gate UNAVAILABLE ({type(_gate_exc).__name__}); card treated as UNVERIFIED, not clean', file=sys.stderr)
+
+
 def ingest_receipt(
     package_dir: str | Path,
     receipt_path: str | Path,
@@ -309,9 +314,7 @@ def ingest_receipt(
                 # crashed is an UNVERIFIED card, not a clean one; route it to the existing
                 # structure-invalid skip instead of recording it.
                 n_errors = 1
-                emit(f"  STRUCTURE: {bgc_id} — gate UNAVAILABLE "
-                      f"({type(_gate_exc).__name__}); card treated as UNVERIFIED, not clean",
-                      file=sys.stderr)
+                _emit_shared_1(bgc_id, _gate_exc)
         if n_errors and not force_structure:
             skipped_structure_invalid.append((bgc_id, n_errors))
             continue
@@ -549,9 +552,7 @@ def auto_detect_ingest(package_dir: str | Path,
                 # is an unverified card; the session-start recovery sweep must not silently
                 # promote orphan cards it could not lint.
                 n_errors = 1
-                emit(f"  STRUCTURE: {bgc_id} — gate UNAVAILABLE "
-                      f"({type(_gate_exc).__name__}); card treated as UNVERIFIED, not clean",
-                      file=sys.stderr)
+                _emit_shared_1(bgc_id, _gate_exc)
         if n_errors and not force_structure:
             summary["skipped_structure_invalid"].append((bgc_id, n_errors))
             continue
@@ -1119,6 +1120,11 @@ def lint_card_in_package(package_dir: str | Path, bgc_id: str,
             }]
 
 
+def _emit_shared_2(e) -> None:
+    """Same line emitted at 3 call sites in this file; one emission site."""
+    emit(f'ERROR: {e}', file=sys.stderr)
+
+
 def emit_modeb_template_command(args) -> int:
     """CLI: mamey emit-modeb-template --package <pkg> --bgc <BGC_ID>
                               | --package <pkg> --batch [--scope all|top|leads|pending] [--top-n N]
@@ -1197,7 +1203,7 @@ def emit_modeb_template_command(args) -> int:
             from . import modeb_template_emitter as _emit
             card = _emit.emit_card_template(pkg, bgc, contract=_contract, sources=sources)
         except FileNotFoundError as e:
-            emit(f"ERROR: {e}", file=sys.stderr)
+            _emit_shared_2(e)
             return 1
         out = getattr(args, "out", None)
         if out:
@@ -1214,7 +1220,7 @@ def emit_modeb_template_command(args) -> int:
         from . import modeb_template_emitter as _emit
         res = _emit.emit_batch(pkg, contract=_contract, scope=scope, top_n=top_n, sources=sources)
     except FileNotFoundError as e:
-        emit(f"ERROR: {e}", file=sys.stderr)
+        _emit_shared_2(e)
         return 1
     if res.get("skipped_reason"):
         emit(f"ERROR: {res['skipped_reason']}", file=sys.stderr)
@@ -2460,6 +2466,11 @@ def validate_finished_review_request_command(args) -> int:
     return 0 if result["status"] == "READY_FOR_OWNER_REVIEW" else 3
 
 
+def _emit_shared_3(report_lines) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(*report_lines, sep='\n')
+
+
 def ingest_receipts_command(args) -> int:
     """CLI: mamey ingest-receipts --package <dir> [--receipt <file.json>]
                                   [--auto-detect | --card <file.md>] [--master <wb.xlsx>]
@@ -2552,7 +2563,7 @@ def ingest_receipts_command(args) -> int:
         # v9.7.152 (AS-XXX Bug 1): loud, actionable warning for recognizable
         # near-miss filenames that were skipped — prevents silent
         # 'scanned: N, recorded: 0' with no diagnostic.
-        emit(*report_lines, sep="\n")
+        _emit_shared_3(report_lines)
         recovery_diagnostics = []
         if summary.get("skipped_misnamed"):
             recovery_diagnostics.extend([
@@ -2597,7 +2608,7 @@ def ingest_receipts_command(args) -> int:
         summary = ingest_receipt(pkg, Path(receipt).resolve(), master,
                                   force_structure=force_structure)
     except (FileNotFoundError, ValueError) as e:
-        emit(f"ERROR: {e}", file=sys.stderr)
+        _emit_shared_2(e)
         return 1
 
     report_lines = []
@@ -2635,7 +2646,7 @@ def ingest_receipts_command(args) -> int:
         _workbook_status = "  workbook E1:       not updated (no --master given)"
     _advisory = _persistence_advisory(summary)
     report_lines.extend([_workbook_status, *([_advisory] if _advisory else [])])
-    emit(*report_lines, sep="\n")
+    _emit_shared_3(report_lines)
     if summary.get("skipped_identity_mismatch"):
         return 5
     return 3 if summary.get("skipped_structure_invalid") else 0

@@ -2,7 +2,7 @@
 
 *Choose by label, name, or plain-language request. This document is generated from `mamey/data/deliverables_registry.json`; do not edit it by hand.*
 
-**Bundle:** Sapote-Mamey v9.7.453  
+**Bundle:** Sapote-Mamey v9.7.454  
 **Engine:** Mamey 1.9.176  
 **Required exact-locus display:** `strain / full node-or-contig / region / BGC alias`
 

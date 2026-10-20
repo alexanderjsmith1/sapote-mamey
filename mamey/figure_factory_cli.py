@@ -12,6 +12,11 @@ import sys as _sys
 from .console import emit
 
 
+def _emit_shared_1(result) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(json.dumps(result, indent=2))
+
+
 def _codex_heatmaps_command(args) -> int:
     """Lazy wrapper for the optional Codex Figure Factory heatmap profile."""
     from .interactive_figures.codex_heatmap_pack import build_codex_heatmap_pack
@@ -42,7 +47,7 @@ def _codex_heatmaps_command(args) -> int:
         emit(f"ERROR: codex-heatmaps could not read matrix CSV: {exc}",
              file=_sys.stderr, flush=True)
         return 1
-    emit(json.dumps(result, indent=2))
+    _emit_shared_1(result)
     return 0 if result.get("status") == "PASS" else 1
 
 
@@ -54,7 +59,7 @@ def _codex_figure_catalog_command(args) -> int:
         family=getattr(args, "family", None),
         status=getattr(args, "status", None),
     )
-    emit(json.dumps(result, indent=2))
+    _emit_shared_1(result)
     return 0 if result.get("status") == "PASS" else 1
 
 

@@ -651,6 +651,11 @@ def render_verify_md(report, summary):
     return "\n".join(L)
 
 
+def _emit_shared_1(out) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(out)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Pre-authoring cross-channel evidence reconciliation ledger.")
     ap.add_argument("--package", required=True, help="sealed Mamey package directory")
@@ -687,7 +692,7 @@ def main():
         if a.out:
             atomic_write_text(a.out, out); emit(f"wrote {a.out}")
         else:
-            emit(out)
+            _emit_shared_1(out)
         if vsummary.get("error") or vsummary.get("n_unaddressed_block", 0) > 0:
             sys.exit(1)
         return
@@ -710,7 +715,7 @@ def main():
         atomic_write_text(a.out, out)
         emit(f"wrote {a.out}")
     else:
-        emit(out)
+        _emit_shared_1(out)
 
     if a.strict and summary.get("n_with_block", 0) > 0:
         sys.exit(1)

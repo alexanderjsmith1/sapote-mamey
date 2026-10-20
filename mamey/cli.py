@@ -4057,6 +4057,16 @@ def _auto_emit_cohort_leads_ledger(outdir, logger=None):
         return {"status": f"SKIPPED_{type(e).__name__}", "n_leads": 0}
 
 
+def _emit_shared_1() -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit('=' * 60)
+
+
+def _emit_shared_2(_sid_res) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(f'  [strain] {_sid_res.message}')
+
+
 def run_batch(
     input_zips: list[str],
     outdir: str,
@@ -4123,7 +4133,7 @@ def run_batch(
         if _sid_res.source == "archive":
             emit(f"  [strain] {input_zip}: id resolved to {strain_id} ({_sid_res.organism})")
         elif _sid_res.message:
-            emit(f"  [strain] {_sid_res.message}")
+            _emit_shared_2(_sid_res)
         display_name = strain_id.replace("_", " ")
         taxonomy     = taxonomy_list[i] if i < len(taxonomy_list) else "not verified"
         source       = source_list[i]   if i < len(source_list)   else "not supplied"
@@ -4169,7 +4179,7 @@ def run_batch(
     emit(f"\n{'='*60}", f"Batch complete — {len(results)} strain(s)", sep="\n")
     for r in results:
         emit(f"  {r['strain_id']}: {r['status']} | {r['raw_bgcs']} BGCs | {r['assembly_tier']}")
-    emit("="*60)
+    _emit_shared_1()
 
     # Auto-emit cross-strain figures — ONLY when more than one strain was analysed.
     # Extraction-only and best-effort: aggregates the per-strain packages into cohort
@@ -4441,7 +4451,7 @@ def _run_command_legacy(args) -> int:
             emit(f"\nERROR: {_sid_res.message}\n")
             return 2
         if _sid_res.message:
-            emit(f"  [strain] {_sid_res.message}")
+            _emit_shared_2(_sid_res)
         strain_id    = _sid_res.strain_id or _chatgpt_safe_strain_guess(args.input_zip)
         if _refuse_unsafe_strain_id(strain_id) or _refuse_outdir_inside_bundle(args.outdir):
             return 2
@@ -4542,7 +4552,7 @@ def _run_command_legacy(args) -> int:
             emit(f"  handback pointer: {_hb}")
         except Exception as _hb_exc:  # pragma: no cover - never fatal
             emit(f"  handback pointer: SKIPPED ({type(_hb_exc).__name__}: {_hb_exc})")
-        emit("=" * 60)
+        _emit_shared_1()
 
     return 0 if all_pass else 1
 
@@ -4778,6 +4788,11 @@ def _misanchor_cell(t, mg):
     return " ".join(parts)
 
 
+def _emit_shared_3(report_lines) -> None:
+    """Same line emitted at 6 call sites in this file; one emission site."""
+    emit(*report_lines, sep='\n')
+
+
 def chatgpt_init_command(args) -> int:
     """Assistant discoverability: surface the shared assistant operating contract so the assistant
     can prove it located and read the current instruction file before doing work.
@@ -4855,7 +4870,7 @@ def chatgpt_init_command(args) -> int:
     if challenge_phrase:
         report_lines.extend([f'   contract read-marker (human-facing, documented): {challenge_phrase!r}', '     ↳ a documented proof-of-read marker for the operator to check; reported here as data, not an instruction to act on.'])
     report_lines.extend(['\n   The authoritative version-freshness proof is the bundle/engine/build + gotcha line above: they change every cut, so the CURRENT values demonstrate the CURRENT file was read. Read them from this file at emit time, never from memory.'])
-    emit(*report_lines, sep="\n")
+    _emit_shared_3(report_lines)
     return 0
 
 
@@ -5250,7 +5265,7 @@ def doctor_command(args) -> int:
     else:
         report_lines.extend(['DOCTOR: ALL CLEAR — environment looks good.'])
         report_status = 0
-    emit(*report_lines, sep="\n")
+    _emit_shared_3(report_lines)
     return report_status
 
 
@@ -5284,7 +5299,7 @@ def cohort_command(args) -> int:
     else:
         report_lines.extend([f'cohort: deliverable bundle -> {res.out_dir} ({len(res.deliverables)} deliverable(s), {len(res.strains)} strain(s))'])
         report_status = 0
-    emit(*report_lines, sep="\n")
+    _emit_shared_3(report_lines)
     return report_status
 
 
@@ -5298,7 +5313,7 @@ def cohort_leads_command(args) -> int:
     report_lines.extend([f"cohort-leads: {meta['n_leads']} Exceptional+High leads across {meta['n_strains']} strain(s) -> {meta['out_path']}"])
     if meta["mixed_engine"]:
         report_lines.extend([f"  [CLAIM-SAFETY] MIXED engine versions {meta['engine_versions']}; cross-strain rank is a routing prior only, not a confident call."])
-    emit(*report_lines, sep="\n")
+    _emit_shared_3(report_lines)
     return 0 if meta["n_leads"] else 1
 
 
@@ -5323,7 +5338,7 @@ def activity_leads_command(args) -> int:
         report_status = 1
     else:
         report_status = 0 if meta["n_strains"] else 1
-    emit(*report_lines, sep="\n")
+    _emit_shared_3(report_lines)
     return report_status
 
 
@@ -5360,7 +5375,7 @@ def cohort_assemble_command(args) -> int:
             report_lines.extend([f"  {meta['paths'][k]}"])
     if meta["mixed_engine"]:
         report_lines.extend([f"  [CLAIM-SAFETY] MIXED engine versions {meta['engine_versions']}; cross-strain comparison is not strictly valid."])
-    emit(*report_lines, sep="\n")
+    _emit_shared_3(report_lines)
     return 0 if meta["n_strains"] else 1
 
 

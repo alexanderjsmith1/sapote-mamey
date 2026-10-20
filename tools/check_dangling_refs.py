@@ -197,6 +197,16 @@ def scan_tools(root: pathlib.Path, strict_paths: bool = False):
     return out
 
 
+def _emit_shared_1(tok) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(f'  {tok}')
+
+
+def _emit_shared_2(f) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(f'       referenced in {f}')
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", default=".")
@@ -228,9 +238,9 @@ def main(argv=None):
             else:
                 emit(f"{len(d)} dangling examples/ target(s):")
                 for tok in sorted(d):
-                    emit(f"  {tok}")
+                    _emit_shared_1(tok)
                     for f in sorted(d[tok]):
-                        emit(f"       referenced in {f}")
+                        _emit_shared_2(f)
         if "tools" in results:
             d = results["tools"]
             if not d:
@@ -238,9 +248,9 @@ def main(argv=None):
             else:
                 emit(f"{len(d)} dangling tool/module-name reference(s):")
                 for tok in sorted(d):
-                    emit(f"  {tok}")
+                    _emit_shared_1(tok)
                     for f in sorted(d[tok]):
-                        emit(f"       referenced in {f}")
+                        _emit_shared_2(f)
     return 1 if any_dangling else 0
 
 

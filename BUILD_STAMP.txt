@@ -1,5 +1,5 @@
-version=9.7.453
-build=20261018v97453a
+version=9.7.454
+build=20261019v97454a
 engine=1.9.176
-patch=Analysis inputs are read from one bound snapshot.; Neutral public names replace internal code names.; Test identifiers have one role table and an optional registry guard.; RiPPER is an optional, experimental adapter.; Completed render packets are checked from one admitted generation.; Release and report tooling is tighter.; Stabilize the MLSA workflow test fixture.; Keep cohort tests importable in isolated partitions.
+patch=The README names everything the code depends on.; The R installer covers every package the figures load.; GitHub CI runs pytest without writing bytecode.; compile-report reads a sealed package read-only.; The deliverable queue resumes only when nothing changed.; The paper bioassay figures are drawn by the bundle.; Bioassay tests follow those renderer cards.; Gene tables keep contig names exactly.
 tier=code

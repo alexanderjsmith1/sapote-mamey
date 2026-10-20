@@ -5,14 +5,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_R = {"base", "stats", "utils", "grDevices", "graphics", "grid", "methods", "tools", "parallel", "compiler",
-          "splines", "BiocManager"}
+          "splines", "BiocManager", "remotes"}  # BiocManager and remotes are the installer's own bootstrap tools
 
 
 def _installer_packages():
     s = (ROOT / "bundle_support" / "install_r_figure_packages.R").read_text(encoding="utf-8")
     cran = re.search(r'^cran <- c\(([^)]*)\)', s, re.M).group(1)
     bioc = re.search(r'^bioc <- c\(([^)]*)\)', s, re.M).group(1)
-    return set(re.findall(r'"([^"]+)"', cran + bioc))
+    github = re.search(r'^github <- c\(([^)]*)\)', s, re.M)
+    names = set(re.findall(r'"([^"]+)"', cran + bioc))
+    if github:
+        names |= set(re.findall(r'([A-Za-z][A-Za-z0-9.]*)\s*=\s*"', github.group(1)))
+    return names
 
 
 def _shipped_r_packages():
@@ -27,6 +31,21 @@ def _shipped_r_packages():
         pkgs |= set(re.findall(r'\b(?:library|require)\(\s*([A-Za-z][A-Za-z0-9.]*)\s*\)', s))
         code = re.sub(r'"[^"\n]*"|\'[^\'\n]*\'', '""', s)          # string contents (e.g. XPath "ancestor::g") are not code
         pkgs |= set(re.findall(r'(?<![\w/.])([A-Za-z][A-Za-z0-9.]*)::(?!:)', code))
+    # v9.7.454: R code embedded in Python tools (string constants passed to Rscript -e or written to a script).
+    import ast
+    for p in list(ROOT.glob("tools/**/*.py")) + list(ROOT.glob("mamey/**/*.py")) + list(ROOT.glob("deliverable_tools/**/*.py")):
+        if "tests" in p.relative_to(ROOT).parts or "_vendor" in p.parts:
+            continue
+        try:
+            tree = ast.parse(p.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str) and re.search(r"\blibrary\(|ggplot2::|\bRscript\b|suppressPackageStartupMessages", node.value):
+                s = node.value
+                pkgs |= set(re.findall(r'\b(?:library|require)\(\s*["\']?([A-Za-z][A-Za-z0-9.]*)["\']?\s*\)', s))
+                code = re.sub(r'"[^"\n]*"|\'[^\'\n]*\'', '""', s)
+                pkgs |= set(re.findall(r'(?<![\w/.])([A-Za-z][A-Za-z0-9.]*)::(?!:)', code))
     return pkgs - BASE_R
 
 
@@ -40,5 +59,16 @@ def test_ci_installs_r_and_packages_before_the_suite():
     test_job = wf.split("\n  gates:")[0]
     i_setup, i_inst, i_suite = (test_job.find("r-lib/actions/setup-r@"),
                                 test_job.find("Rscript bundle_support/install_r_figure_packages.R"),
-                                test_job.find("run: pytest -q"))
+                                test_job.find("run: python -B -m pytest -q"))
     assert -1 not in (i_setup, i_inst, i_suite) and i_setup < i_inst < i_suite
+
+
+def test_ci_pytest_steps_never_write_bytecode():
+    """v9.7.454: without -B / PYTHONDONTWRITEBYTECODE the parent pytest writes __pycache__ during collection and the
+    bundle runner refuses later tests (BYTECODE_WRITES_DISABLED; 29 failures on the .453 push)."""
+    wf = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    runs = re.findall(r"run: (.*\bpytest\b.*)", wf)
+    assert runs, "no pytest step found in ci.yml"
+    assert all("python -B -m pytest" in r for r in runs), runs
+    assert wf.count('PYTHONDONTWRITEBYTECODE: "1"') >= 2
+

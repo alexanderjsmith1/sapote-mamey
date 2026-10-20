@@ -34,7 +34,7 @@ import re
 import csv
 import hashlib
 import io
-import json
+import json, re
 import logging
 import math
 import os
@@ -605,7 +605,8 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
     if n_unknown:
         spec["legend"]["iso_unknown"] = f"{label_text} ({n_unknown:,} {unit}, {sun} strains): best {mt} identity unavailable"
     if getattr(a, "source_style", None):   # M5_452_pcoa_source_style
-        spec["source_style"] = dict(genus=a.source_style, ref_fill=a.source_style_fill, mibig_fill="#3a78b5")
+        spec["source_style"] = dict(genus=a.source_style, ref_fill=a.source_style_fill, mibig_fill=a.mibig_fill,
+                                     ref_outline=a.source_style_outline, mibig_outline=a.mibig_outline)
     if a.mid_below is not None:
         spec["legend"]["iso_mid"] = (f"{label_text} ({nmd:,} {unit}, {smd} strains): best {mt} match "
                                      f"{a.label_below:.0f}–{a.mid_below:.0f}% identity")
@@ -1073,6 +1074,15 @@ def main(argv=None) -> int:
     ap.add_argument("--italic-labels", action="store_true", help="page mode: canvas labels in italic (species names)")
     ap.add_argument("--caption-note", help="page mode: one study-design sentence appended to the written caption (checked by caption_guard)")
     ap.add_argument("--reference-label", help="page mode: legend text for the grey reference points (e.g. reference genomes, n = 1,705 (cluster centroids; query genomes excluded))")
+    ap.add_argument("--source-style-fill", metavar="HEX", default=None,
+                    help="with --source-style: fill for the genus's reference points; default is the genus colour in "
+                         "mamey/data/genus_palette.json")
+    ap.add_argument("--mibig-fill", metavar="HEX", default=None,
+                    help="with --source-style: fill for the MIBiG triangles (default #D9D9D9, pale grey); choose a colour far from the genus fill")
+    ap.add_argument("--source-style-outline", metavar="HEX", default=None,
+                    help="with --source-style: outline of the genus's points (default: the fill colour, i.e. no dark rim)")
+    ap.add_argument("--mibig-outline", metavar="HEX", default=None,
+                    help="with --source-style: outline of the MIBiG triangles (default #A6A6A6)")
     ap.add_argument("--require-axis-metadata", action="store_true",
                     help="require finite supplied axis annotations; does not verify their definition or fit execution")
     a = ap.parse_args(argv)
@@ -1081,7 +1091,18 @@ def main(argv=None) -> int:
             ap.error("--source-style draws single panels with the R renderer (no --page, no --renderer matplotlib)")
         a.panel = a.panel or ["references=__no_cohort__"]
         pal = json.loads((_ROOT / "mamey" / "data" / "genus_palette.json").read_text())
-        a.source_style_fill = pal["default"].get(a.source_style, pal["fallback"])
+        for flag, v in (("--source-style-fill", a.source_style_fill), ("--mibig-fill", a.mibig_fill),
+                        ("--source-style-outline", a.source_style_outline), ("--mibig-outline", a.mibig_outline)):
+            if v is not None and not re.fullmatch(r"#[0-9A-Fa-f]{6}", v):
+                ap.error(f"{flag} needs a colour like #14325C, got {v!r}")
+        if a.source_style_fill is None:
+            a.source_style_fill = pal["default"].get(a.source_style, pal["fallback"])
+        if a.mibig_fill is None:   # paper-ready default (owner ruling 15 Oct, Fig. 7 option F): pale grey MIBiG behind the genus
+            a.mibig_fill = "#D9D9D9"
+        a.source_style_outline = a.source_style_outline or a.source_style_fill   # no dark outline: black rims read as black dots
+        a.mibig_outline = a.mibig_outline or "#A6A6A6"
+    elif any(v is not None for v in (a.source_style_fill, a.mibig_fill, a.source_style_outline, a.mibig_outline)):
+        ap.error("--source-style-fill, --mibig-fill, --source-style-outline and --mibig-outline apply only with --source-style")
     elif not a.cohort_table or not a.panel:
         ap.error("--cohort-table and --panel are required unless --source-style")
     if a.page and a.renderer == "matplotlib":

@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.453 stamp=20261018v97453a
+# TIER_MANIFEST tier=code version=9.7.454 stamp=20261019v97454a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -1792,6 +1792,7 @@
 ./tests/test_452_f1_metadata_omission.py
 ./tests/test_452_f1_publisher_consumers.py
 ./tests/test_452_f1_report_edges.py
+./tests/test_452_f3b_no_role_jitter.py
 ./tests/test_452_fetch_reference_local_error_not_outage.py
 ./tests/test_452_figure_batch_basename_collisions.py
 ./tests/test_452_figure_options_list.py
@@ -1807,6 +1808,7 @@
 ./tests/test_452_gcf_isolate_double_underscore.py
 ./tests/test_452_gcf_tree_print_width.py
 ./tests/test_452_gene_local_names.py
+./tests/test_452_gene_table_contig_id.py
 ./tests/test_452_gene_window_contig_coverage_rewrite.py
 ./tests/test_452_genus_composition_figures.py
 ./tests/test_452_genus_palette_attine.py
@@ -1872,12 +1874,15 @@
 ./tests/test_452_page_docs_csv_safety.py
 ./tests/test_452_palette_distance_report.py
 ./tests/test_452_panel_figure_letters_guard.py
+./tests/test_452_paper_flow_diagrams.py
 ./tests/test_452_paper_reference_audit.py
 ./tests/test_452_paper_reference_source_binding.py
 ./tests/test_452_partition_tmpdir.py
 ./tests/test_452_partner_support_distinct_proteins.py
 ./tests/test_452_patch_apply_not_checked.py
+./tests/test_452_pcoa_caption_plural.py
 ./tests/test_452_pcoa_record_id_keeps_coverage_zero.py
+./tests/test_452_pcoa_source_style_colour_options.py
 ./tests/test_452_phylo_hold_cli_status.py
 ./tests/test_452_phylo_manifest_templates.py
 ./tests/test_452_pipeline_required_stage_status.py
@@ -1965,6 +1970,11 @@
 ./tests/test_452_x34_consumer_boundary.py
 ./tests/test_452_x34_final_entrypoints.py
 ./tests/test_452_zero_region_ordinal_rejected.py
+./tests/test_453_bioassay_a07_and_a03_labels.py
+./tests/test_454_compile_report_readonly_validation.py
+./tests/test_454_deliverable_queue_resume_binds_bytes.py
+./tests/test_454_readme_dependency_coverage.py
+./tests/test_455_paper_cohort_registry.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_absent_median_is_not_a_zero_v97438.py
 ./tests/test_activity_decision_tree_portable.py
@@ -2809,6 +2819,7 @@
 ./tests/test_log_release_v9_7_115.py
 ./tests/test_logging_setup.py
 ./tests/test_m5_452_b04_reference_row_labels.py
+./tests/test_m5_452_chitin_genome_census.py
 ./tests/test_m5_452_class_renderers_palette_fallback.py
 ./tests/test_m5_452_k01_references_only.py
 ./tests/test_m5_452_min_text_8pt.py
@@ -2816,6 +2827,8 @@
 ./tests/test_m5_452_pcoa_page_defaults.py
 ./tests/test_m5_452_pcoa_source_style.py
 ./tests/test_m5_452_pub_layout_notes_8pt.py
+./tests/test_m5_452_public_genome_families_axis_breaks.py
+./tests/test_m5_452_public_genome_families_overflow_pages.py
 ./tests/test_m5_452_q01_input_gbk_first.py
 ./tests/test_m5_audit_diagnostic_repairs.py
 ./tests/test_m5_companion_probe_alignment.py
@@ -3772,6 +3785,8 @@
 ./tools/bioassay_a04.py
 ./tools/bioassay_a06.R
 ./tools/bioassay_a06.py
+./tools/bioassay_a07.R
+./tools/bioassay_a07.py
 ./tools/bioassay_admitted_observations.py
 ./tools/bioassay_paper_theme.R
 ./tools/bioassay_plate_map.py
@@ -3894,6 +3909,7 @@
 ./tools/check_schema_drift.py
 ./tools/check_tier_parity.py
 ./tools/check_tygs_coverage.py
+./tools/chitin_genome_census.py
 ./tools/chitin_isolate_vs_references.py
 ./tools/chitin_reference_eval.py
 ./tools/chitinase_hmm_confirm.py
@@ -4053,6 +4069,7 @@
 ./tools/palette_distance_report.py
 ./tools/panel_receipt_to_aux.py
 ./tools/panel_split.py
+./tools/paper_cohort_registry.py
 ./tools/paper_reference_audit.py
 ./tools/parked_card_audit.py
 ./tools/patch_packet_preflight.py

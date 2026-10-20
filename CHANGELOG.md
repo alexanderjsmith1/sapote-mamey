@@ -1,3 +1,49 @@
+# v9.7.454 — unsealed cut candidate · build 20261019v97454a
+
+Build 20261019v97454a; engine 1.9.176 (unchanged).
+
+Builds on the v9.7.453 cut (CODE zip 0a5c8079…3149), which was pushed to GitHub but not sealed. The engine stays 1.9.176: scores, thresholds and routing rules are unchanged. The engine edits change only:
+- whether a report rewrites a sealed package's status file;
+- when the deliverable queue may skip a finished strain;
+- how the paper bioassay figures are drawn;
+- where duplicate terminal-output calls live.
+
+- **The README names everything the code depends on.** It adds rows for 22 tools, among them nine R packages including ggrepel, RiPPER, DeepBGC, CheckM2, Poppler, headless Chrome and the companion-registry tools. It also adds a table of Python libraries by extra, and an Online services table that says which services receive uploaded sequences. A new guard test fails the cut when code imports a library, runs a program, loads an R package or contacts a web host the README does not name, or when a tool in the companion registry is missing from the README.
+- **The R installer covers every package the figures load.** `ragg` is added from CRAN and `ggchicklet` from its author's GitHub. GitHub CI installs `libwebp-dev` for ragg. The installer's completeness test now also reads R code embedded in Python tools.
+- **GitHub CI runs pytest without writing bytecode.** The default and public test steps use `python -B -m pytest -p no:cacheprovider` with `PYTHONDONTWRITEBYTECODE=1`, as the cut does, so the bundle runner no longer refuses tests with BYTECODE_WRITES_DISABLED.
+- **compile-report reads a sealed package read-only.** Validation of a sealed original no longer rewrites its `package_status.json`. A new test checks this with the real validator, on success, on refusal and on a repeated run. A pre-seal working package keeps its construction-time status write.
+- **The deliverable queue resumes only when nothing changed.** A DONE strain is skipped only while its package bytes, delivered outputs and run context (including the activity table's bytes) match the DONE record. Ledger records from earlier versions are rerun rather than trusted.
+- **The paper bioassay figures are drawn by the bundle.** Five renderer cards, signed off by the owner on 19 Oct:
+  - material labels on every axis and a host-group legend for the bee profile;
+  - HPLC fractions as their own material, never pooled with flash fractions;
+  - every panel saved at the 7.2 in double-column width and centered;
+  - no panel for an unnamed *Candida* screen in the moss and attine profiles;
+  - A07, which draws every fraction, and A03 point labels by genus.
+  Re-rendering all 25 panels of the three papers from this source, with the papers' own inputs, gives the same SVG and PNG files as the panels placed in the drafts. The one exception is two labels 0.01 px apart in one panel, drawn from an earlier version of the input table.
+- **Bioassay tests follow those renderer cards.** The A04 page-width test expects 7.2 in. The A04 pooled-pixel fixture uses the new label settings, so labels clear their points. The A01 moss-target test no longer expects the unnamed-*Candida* panel.
+- **Gene tables keep contig names exactly.** `tools/gap_rescue_gene_table.py` read contig names through Biopython's record id. That id drops a 0 that follows the decimal point of a SPAdes coverage, so `cov_28.095673` became `cov_28.95673`. The table now uses the engine's contig name.
+- **More of the papers' figure tools ship in the bundle.**
+  - The region-protein-by-genus plot without role jitter (f3b).
+  - The paper flow diagrams.
+  - Overflow pages and data-led axis breaks for the public genome families plot (B04).
+  - A plural fix in the PCoA page caption.
+  - Source-style colour options for the PCoA renderer. These are renderer options; figures are unchanged by default.
+  - A new chitin genome census tool, whose table the chitin isolate-versus-references panel reads.
+- **Fewer direct terminal-output calls.** 29 duplicate emission sites were folded into per-file helpers, with byte-identical output. The strict-health ceiling goes from 1,268 to 1,239, then to 1,240 for the census tool's one output site.
+- **A strain roster with an evidence map.** The new `tools/paper_cohort_registry.py` builds, from a workspace spec, the union of the tables that list a study's strains. For each strain it shows which table lists it and where its 16S, genome, antiSMASH, package, TYGS, ANI, bioassay, BLASTp, tree and card data are stored. It finds the zips and packages through the bundle's own resolver. Every disagreement between sources is listed, and none is resolved. The tool has no terminal-output site.
+
+Not in this cut:
+- **Deferred to .455, with the reason:**
+  - the PCoA multi-set grid (it collides with this version's page provenance binding, and no placed figure uses it);
+  - PCoA admission after clustering (the admission code was redesigned);
+  - the BLASTp identity figures card (the tool's data model changed);
+  - T06 label nudges (its hygiene test flags two leak-scanner tools);
+  - 18 cards that are partly present.
+- **Dropped:**
+  - placement group suffixes (tip labels carry names only, the owner's 14 Oct rule);
+  - the attine bioassay profile card (it would change the placed Attine panels).
+
+Linux CI: GitHub CI on the v9.7.453 push (main f64f656) failed 106 tests. These cards address about 48 of them (bytecode refusals and missing R packages). About 28 remain open, from Linux text fitting and from imports in child processes, and need a Linux run to diagnose.
 # v9.7.453 — unsealed cut candidate · build 20261018v97453a
 
 Build 20261018v97453a; engine 1.9.176 (unchanged).

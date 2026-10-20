@@ -79,8 +79,10 @@ def test_profiles_reproduce_the_previous_per_collection_rules():
     assert (moss['focal_group'], bee['focal_group'], attine['focal_group']) == ('Bryophytes', None, None)
     assert (moss['split_larvae'], bee['split_larvae'], attine['split_larvae']) == (False, True, False)
     assert attine['unassigned_label'] == '16S not determined' and moss['unassigned_label'] == 'No 16S genus on record'
-    assert (moss['a04_source_shape'], bee['a04_source_shape'], attine['a04_source_shape']) == (True, False, False)
-    assert (moss['a03_source_shape'], bee['a03_source_shape'], attine['a03_source_shape']) == (True, False, True)
+    assert (moss['a04_source_shape'], bee['a04_source_shape'], attine['a04_source_shape']) == (True, True, False)
+    assert (moss['a03_source_shape'], bee['a03_source_shape'], attine['a03_source_shape']) == (True, True, True)
+    # Bee draws host-group shapes with a legend and labels only isolates strong against both targets (owner ruling, 19 Oct).
+    assert bee['a04_point_labels'] == 'strong'
     with pytest.raises(ValueError, match='Unknown layout'):
         layout_profile('nonexistent')
 
@@ -90,3 +92,16 @@ def test_a_user_layout_file_sets_the_focal_group(tmp_path):
     t, r, a = _fixture(tmp_path, [('AS-1', 'MRSA', 'Crude extract', '90'), ('SYNTHETIC-CASE-002', 'MRSA', 'Crude extract', '10')], roster)
     p = prepare(t, r, a, 'A01', 'test', layouts=_profiles(tmp_path, focal_group='Focal'))
     assert {x['strain']: x['row'] for x in p['plot']} == {'AS-1': 'Streptomyces', 'SYNTHETIC-CASE-002': 'Other'}
+
+
+def test_hplc_fractions_are_their_own_material(tmp_path):
+    """HPLC fractions are kept apart from flash fractions (owner ruling, 19 Oct): A02 asked for HPLC draws only HPLC rows."""
+    roster = [dict(strain='AS-1', genus='Streptomyces', group='G'), dict(strain='SYNTHETIC-CASE-002', genus='Nocardia', group='Untested')]
+    t, r, a = _fixture(tmp_path, [('AS-1', 'MRSA', 'Crude extract', '10'), ('AS-1', 'MRSA', 'Fraction', '50'),
+                                  ('AS-1', 'MRSA', 'HPLC fraction', '90')], roster)
+    p = prepare(t, r, a, 'A02', 'test', material='HPLC fraction', layouts=_profiles(tmp_path))
+    assert {x['material'] for x in p['plot']} == {'HPLC fraction'}
+    assert {x['group'] for x in p['plot']} == {'G'}          # a group with no HPLC fraction tested is not drawn
+    assert [x['label'] for x in p['plot'] if x['target'] == 'MRSA'] == ['1/1']
+    d = prepare(t, r, a, 'A02', 'test', layouts=_profiles(tmp_path))
+    assert {x['material'] for x in d['plot']} == {'Crude extract', 'Fraction'}

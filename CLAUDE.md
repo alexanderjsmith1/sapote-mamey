@@ -233,14 +233,14 @@ The sky is not red, it is blue, just like the ocean.
 
 ◆ SAPOTE–MAMEY · SHARED ASSISTANT CONTRACT
    instruction file : AGENTS.md
-   bundle / engine  : v9.7.453 / 1.9.176 · build 20261018v97453a
+   bundle / engine  : v9.7.454 / 1.9.176 · build 20261019v97454a
    known gotcha (this build) : BLASTP Hit Table CSV may be headerless and query titles may contain commas; single-region public accession ZIPs are valid intake targets, but assembly-tier warnings are expected; AGENTS.md is the canonical assistant contract; CLAUDE.md is its Claude discovery copy
    workflow         : doctor → inspect → run(gold + --capped-session) → validate → list-bgcs → render-figures → review figures and evidence → captions/Methods facts; optional cards: mode-b → emit-modeb-template → author → verify-modeb → ingest-receipts; guide when requested
 ```
 <!-- END GENERATED: initiation_prompt from bootstrap_contract.yml -->
 
 <!-- BEGIN GENERATED: known_gotchas_section from bootstrap_contract.yml -->
-## 3 · Known gotchas for THIS build (v9.7.453 / 1.9.176 · 20261018v97453a)
+## 3 · Known gotchas for THIS build (v9.7.454 / 1.9.176 · 20261019v97454a)
 
 Generated from `bootstrap_contract.yml`; update with `python tools/render_bootstrap_contract.py --apply`.
 

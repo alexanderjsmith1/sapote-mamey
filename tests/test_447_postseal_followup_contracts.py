@@ -30,7 +30,7 @@ def package(tmp_path,sealed=False):
 @pytest.mark.parametrize('sealed',[False,True])
 def test_internal_preseal_report_and_external_sealed_reader_both_reach_workflow(tmp_path,monkeypatch,sealed):
     p=package(tmp_path,sealed);before={f.name:f.read_bytes() for f in p.iterdir()}
-    monkeypatch.setattr(validate,'validate_package',lambda *a:{'identity_binding':'PASS','manifest_parse':'PASS','checksum_integrity':'PASS'})
+    monkeypatch.setattr(validate,'validate_package',lambda *a,**_kw:{'identity_binding':'PASS','manifest_parse':'PASS','checksum_integrity':'PASS'})
     mocked_report_engine(monkeypatch)
     args=SimpleNamespace(package_dir=str(p),out=None,no_figures=True,pdf=False,strict=False,toc_depth=1)
     assert cr.compile_report_command(args)==0
@@ -53,7 +53,7 @@ def test_validation_refusal_keeps_field_and_validate_command(tmp_path,monkeypatc
     if case=='identity':result.update(identity_binding='FAIL',identity_binding_detail='synthetic identity conflict')
     if case=='checksum':result.update(checksum_integrity='FAIL',checksum_errors=['missing synthetic board'])
     if case=='manifest':result['manifest_parse']='FAIL'
-    monkeypatch.setattr(validate,'validate_package',lambda *a:result)
+    monkeypatch.setattr(validate,'validate_package',lambda *a,**_kw:result)
     with pytest.raises(SystemExit) as error:cr.compile_report_command(SimpleNamespace(package_dir=str(p)))
     message=str(error.value)
     field={'identity':'identity_binding','checksum':'checksum_integrity','manifest':'manifest_parse'}[case]
@@ -68,7 +68,7 @@ def test_original_hostile_reader_assertions_with_mocked_engine_boundary(tmp_path
     spec=importlib.util.spec_from_file_location('legacy_hostile_reader',ROOT/'tests/test_hostile_gates_round4_v97409.py')
     legacy=importlib.util.module_from_spec(spec);spec.loader.exec_module(legacy)
     mocked_report_engine(monkeypatch)
-    def validation(p):
+    def validation(p, **_kw):
         manifest=json.loads((p/'manifest.json').read_text())
         return {'identity_binding':'PASS' if manifest.get('strain_id')=='TEST-01' else 'FAIL',
                 'identity_binding_detail':'synthetic identity fixture', 'manifest_parse':'PASS',
@@ -115,7 +115,7 @@ def test_summary_reading_guard_is_retained_in_pdf_caption_receipt(tmp_path):
 def test_dangling_seal_marker_cannot_select_mutable_construction_route(tmp_path,monkeypatch):
     p=package(tmp_path)
     (p/'checksums_sha256.txt').symlink_to(p/'missing-checksum-target')
-    monkeypatch.setattr(validate,'validate_package',lambda *a:{'identity_binding':'PASS','manifest_parse':'PASS','checksum_integrity':'PASS'})
+    monkeypatch.setattr(validate,'validate_package',lambda *a,**_kw:{'identity_binding':'PASS','manifest_parse':'PASS','checksum_integrity':'PASS'})
     def forbidden(*a,**kw):raise AssertionError('mutable builder must not run')
     monkeypatch.setattr(cr,'build_report',forbidden)
     with pytest.raises(ValueError,match='POSTSEAL_PACKAGE_SYMLINK'):
@@ -126,7 +126,7 @@ def test_dangling_seal_marker_cannot_select_mutable_construction_route(tmp_path,
 
 def test_mutable_workflow_report_is_not_hidden_by_stale_external_reader(tmp_path,monkeypatch):
     p=package(tmp_path)
-    monkeypatch.setattr(validate,'validate_package',lambda *a:{'identity_binding':'PASS','manifest_parse':'PASS','checksum_integrity':'PASS'})
+    monkeypatch.setattr(validate,'validate_package',lambda *a,**_kw:{'identity_binding':'PASS','manifest_parse':'PASS','checksum_integrity':'PASS'})
     mocked_report_engine(monkeypatch)
     old=postseal_output.output_file(p,'compile-report','TEST-01_compiled_report.md')
     old.parent.mkdir(parents=True);old.write_text('# obsolete unbound reader\n')

@@ -447,6 +447,31 @@ def render_md(ctx, results, order):
     return "\n".join(lines) + "\n"
 
 
+def _emit_shared_1(pkg) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(f'ERROR: package dir not found: {pkg}', file=sys.stderr)
+
+
+def _emit_shared_2(results, ctx) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(json.dumps({'strain': ctx['strain'], 'steps': results, 'mandatory_incomplete': ctx['mandatory_incomplete']}, indent=2))
+
+
+def _emit_shared_3(md) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(md)
+
+
+def _emit_shared_4(out) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(f'[ledger] {out}')
+
+
+def _emit_shared_5(out, e) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(f'[ledger] could not write {out}: {e}', file=sys.stderr)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Mandatory Sapote workflow driver / gate.")
     ap.add_argument("--package", required=True, help="sealed Mamey package dir")
@@ -458,26 +483,25 @@ def main():
 
     pkg = a.package
     if not os.path.isdir(pkg):
-        emit(f"ERROR: package dir not found: {pkg}", file=sys.stderr)
+        _emit_shared_1(pkg)
         return 2
 
     ctx, results, order = run(pkg, a.deliverables, a.strict)
     md = render_md(ctx, results, order)
 
     if a.json:
-        emit(json.dumps({"strain": ctx["strain"], "steps": results,
-                          "mandatory_incomplete": ctx["mandatory_incomplete"]}, indent=2))
+        _emit_shared_2(results, ctx)
     else:
-        emit(md)
+        _emit_shared_3(md)
 
     out = a.ledger_out or os.path.join(pkg, f"{ctx['strain']}_SAPOTE_WORKFLOW_LEDGER.md")
     try:
         with open(out, "w", encoding="utf-8") as fh:
             fh.write(md)
         if not a.json:
-            emit(f"[ledger] {out}")
+            _emit_shared_4(out)
     except Exception as e:
-        emit(f"[ledger] could not write {out}: {e}", file=sys.stderr)
+        _emit_shared_5(out, e)
 
     if a.strict and ctx["mandatory_incomplete"]:
         emit(f"STRICT FAIL: {len(ctx['mandatory_incomplete'])} mandatory step(s) incomplete: "
@@ -492,24 +516,23 @@ def workflow_command(args) -> int:
     import os as _os
     pkg = args.package
     if not _os.path.isdir(pkg):
-        emit(f"ERROR: package dir not found: {pkg}", file=sys.stderr)
+        _emit_shared_1(pkg)
         return 2
     ctx, results, order = run(pkg, getattr(args, "deliverables", None), bool(getattr(args, "strict", False)))
     md = render_md(ctx, results, order)
     if getattr(args, "as_json", False):
-        emit(json.dumps({"strain": ctx["strain"], "steps": results,
-                          "mandatory_incomplete": ctx["mandatory_incomplete"]}, indent=2))
+        _emit_shared_2(results, ctx)
     else:
-        emit(md)
+        _emit_shared_3(md)
     out = getattr(args, "ledger_out", None) or _os.path.join(
         pkg, f"{ctx['strain']}_SAPOTE_WORKFLOW_LEDGER.md")
     try:
         with open(out, "w", encoding="utf-8") as fh:
             fh.write(md)
         if not getattr(args, "as_json", False):
-            emit(f"[ledger] {out}")
+            _emit_shared_4(out)
     except OSError as e:
-        emit(f"[ledger] could not write {out}: {e}", file=sys.stderr)
+        _emit_shared_5(out, e)
     if getattr(args, "strict", False) and ctx["mandatory_incomplete"]:
         emit("STRICT FAIL: mandatory step(s) incomplete: "
               + ", ".join(ctx["mandatory_incomplete"]), file=sys.stderr)

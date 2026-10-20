@@ -456,6 +456,11 @@ def load_taxonomy_map(path):
     return taxonomy_map
 
 
+def _emit_shared_1(name, exc) -> None:
+    """Same line emitted at 2 call sites in this file; one emission site."""
+    emit(f'  - {name:40} RUN_FAILED ({exc})')
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--inputs", nargs="+", required=True, help="dir of zips and/or individual zips")
@@ -575,7 +580,7 @@ def main():
                                  "changed, or requires --resume; use a fresh reviewed outdir/registry")
             kind, izip, cb, org = detect_and_stage(zp, stage_root, name)
         except (OSError, ValueError, zipfile.BadZipFile) as exc:
-            emit(f"  - {name:40} RUN_FAILED ({exc})")
+            _emit_shared_1(name, exc)
             met_rows.append({"strain": name, "batch": a.batch_label, "status": "RUN_FAILED",
                              "engine_wall_s": "", "engine_peak_mb": "", "rescue_wall_s": "", "n_regions": ""})
             append_rows(a.metrics, [met_rows[-1]], _MET_HDR)
@@ -652,7 +657,7 @@ def main():
             if _run_binding(zp, name, a, _engine_binding()) != binding:
                 raise ValueError("COMPLETION_BINDING_CHANGED: source/options/engine changed during run")
         except (OSError, ValueError) as exc:
-            emit(f"  - {name:40} RUN_FAILED ({exc})")
+            _emit_shared_1(name, exc)
             reg_rows.pop()
             met_rows[-1]["status"] = "RUN_FAILED"
             append_rows(a.metrics, [met_rows[-1]], _MET_HDR)

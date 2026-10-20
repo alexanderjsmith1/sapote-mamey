@@ -50,6 +50,11 @@ def label_selection_metadata(q: float) -> dict:
                 label_rule=f"distance to the nearest reference/MIBiG point > p{percentile} of reference/MIBiG nearest-neighbour distances")
 
 
+def _plural(word: str) -> str:
+    """Plural for a legend label: a label that is already plural ("bee and wasp isolates") is kept as it is."""
+    return word if word.endswith("s") else word + "s"
+
+
 def caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -> str:
     lays = rec["page"]; who = rec["legend"]["iso_low"].split(",")[0]
     per = sorted(rec["cohort_genomes"].values()); G = len(per)
@@ -58,7 +63,7 @@ def caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -
     parts = [f"**{rec['title']}.** "
              + " and ".join(f"{LAYOUT_NAME[l][0].upper() + LAYOUT_NAME[l][1:] if k == 0 else LAYOUT_NAME[l]} (**{'abcdefgh'[k]}**)"
                             for k, l in enumerate(lays))
-             + f" of the same points: {n_q:,} {who}s from {G} genomes (one point per protein; "
+             + f" of the same points: {n_q:,} {_plural(who)} from {G} genomes (one point per protein; "
              + (f"{per[0]}–{per[-1]} per genome, median {statistics.median(per):g}" if G > 1 else f"{per[0]} proteins")
              + f"), {rec['n_ref_centroids']:,} reference cluster centroids representing {rec['n_ref']:,} proteins from "
              + f"{rec['n_reference_genomes']:,} reference genomes, and {rec['n_mibig_centroids']:,} MIBiG cluster centroids representing "
@@ -67,7 +72,7 @@ def caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -
         parts.append(f"Reference and MIBiG proteins were clustered at {rec['approx_id']}% identity before ordination; a centroid is "
                      "drawn with area proportional to the number of proteins it represents.")
     lo, md = rec["label_below"], rec["mid_below"]
-    parts.append(f"{who[0].upper() + who[1:]}s are coloured by the identity of their best match to any reference or MIBiG protein: "
+    parts.append(f"{_plural(who[0].upper() + who[1:])} are coloured by the identity of their best match to any reference or MIBiG protein: "
                  f"dark red, < {lo:.0f}% ({n_lo:,}); light orange, {lo:.0f}–{md:.0f}% ({n_md:,}); open circles, ≥ {md:.0f}% ({n_hi:,}); they are "
                  "drawn over the reference and MIBiG points, which can lie hidden beneath them.")
     if n_unknown:

@@ -22,7 +22,8 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDA = ('Candida albicans', 'Candida auris', 'Candida (species not named)')
 LARVAE = ('Foulbrood 19118-1', 'Foulbrood 818')
-MATERIALS = ('Crude extract', 'Fraction')
+MATERIALS = ('Crude extract', 'Fraction', 'HPLC fraction')
+MATERIAL_STEM = {'Crude extract': 'crude', 'Fraction': 'fraction', 'HPLC fraction': 'hplc_fraction'}
 LAYOUTS = ROOT / 'mamey/data/bioassay_layouts.json'
 QUALITATIVE = ('+', '−')
 
@@ -109,7 +110,8 @@ def prepare(table, roster_path, aliases_path, kind, layout, material='Crude extr
     if any(k in roster for k in aliases):
         raise ValueError('Roster must use canonical isolate identifiers')
     mapping = target_map(kind, profile)
-    materials = MATERIALS if kind == 'A02' else (material,)
+    # A02 draws crude extracts and fractions together; HPLC fractions get their own A02.
+    materials = (('HPLC fraction',) if material == 'HPLC fraction' else ('Crude extract', 'Fraction')) if kind == 'A02' else (material,)
     buckets = defaultdict(list)
     seen = set()
     raw_rows = []
@@ -186,7 +188,37 @@ def prepare(table, roster_path, aliases_path, kind, layout, material='Crude extr
                                      n_qual_positive=sum('+' in _states(r) for r in missing),
                                      n_qual_negative=sum('−' in _states(r) for r in missing),
                                      block='Foulbrood' if target.startswith(('P. larvae','Foulbrood')) else 'Human pathogen panel'))
+    if kind == 'A02' and materials == ('HPLC fraction',):
+        # An HPLC-only grid leaves out groups with no HPLC fraction tested, instead of drawing an unlabeled row of n.t.
+        tested = {r['group'] for r in plot if r['n_tested']}
+        plot = [r for r in plot if r['group'] in tested]
     return dict(plot=plot, pooled=pooled, raw=raw_rows, used=used_rows)
+
+def prepare_fractions(table, roster_path, aliases_path, layout, material='Fraction', layouts=None):
+    """A07: one point per fraction (one fraction-plate well), best Candida (any species) against best MRSA.
+    The table has one row per strain, fraction, organism and material: strain, fraction, organism, material, best_pct."""
+    profile = layout_profile(layout, layouts)
+    roster = {r['strain']: r for r in read(roster_path, ('strain', 'genus', 'group'))}
+    aliases = json.loads(Path(aliases_path).read_text())
+    vals, raw_rows = defaultdict(dict), []
+    for i, r in enumerate(read(table, ('strain', 'fraction', 'organism', 'material', 'best_pct')), 2):
+        strain = aliases.get(r['strain'], r['strain'])
+        if strain not in roster or r['material'] != material:
+            continue
+        v = numeric(r['best_pct'])
+        if v is None:
+            continue
+        target = 'Candida sp.' if r['organism'] in CANDIDA else r['organism'] if r['organism'] == 'MRSA' else None
+        if target is None:
+            continue
+        raw_rows.append(dict(source_row=i, source_strain=r['strain'], strain=strain, fraction=r['fraction'], organism=r['organism'],
+                             material=r['material'], best_pct=r['best_pct']))
+        k = (strain, r['fraction'])
+        vals[k][target] = max(v, vals[k].get(target, -1e9))
+    plot = [dict(strain=s, fraction=f, genus=roster[s]['genus'], group=roster[s]['group'], material=material,
+                 x=v['Candida sp.'], y=v['MRSA']) for (s, f), v in sorted(vals.items()) if 'Candida sp.' in v and 'MRSA' in v]
+    used = sorted({r['strain'] for r in plot})
+    return dict(plot=plot, pooled=[], raw=raw_rows, used=[dict(roster[s], source_strains=s) for s in used])
 
 def cli(kind, r_script, argv=None):
     import argparse
@@ -201,12 +233,14 @@ def cli(kind, r_script, argv=None):
     p.add_argument('--prepare-only',action='store_true')
     p.add_argument('--palette-set',default='default')
     p.add_argument('--bar-labels',action='store_true',help='A06: also print strong/tested above each bar (default: n tested under each bar only)')
+    p.add_argument('--point-labels',choices=('default','genus'),default='default',help='A03: genus = keep every genus and label every isolate that has a 16S genus')
     a=p.parse_args(argv)
     if sha(a.table)!=a.table_sha256 or sha(a.lock)!=a.lock_sha256:
         raise ValueError('Bound input hash mismatch')
     if a.out.exists(): raise FileExistsError(a.out)
     profile=layout_profile(a.layout,a.layout_config)
-    result=prepare(a.table,a.roster,a.aliases,kind,a.layout,a.material,a.layout_config)
+    result=(prepare_fractions(a.table,a.roster,a.aliases,a.layout,a.material,a.layout_config) if kind=='A07'
+            else prepare(a.table,a.roster,a.aliases,kind,a.layout,a.material,a.layout_config))
     if not result['plot']: raise ValueError('No eligible plotted rows')
     a.out.mkdir(parents=True)
     for key,name in [('plot','plot_data.tsv'),('pooled','ASSAY_STATES.tsv'),('raw','SOURCE_ROWS.tsv'),('used','ISOLATES_USED.tsv')]:
@@ -219,14 +253,14 @@ def cli(kind, r_script, argv=None):
     for r in result['used']:
         colors.setdefault(r['genus'],palette['fallback'])
     config=dict(kind=kind,layout=a.layout,profile=profile,material=a.material,data=str((a.out/'plot_data.tsv').resolve()),
-                stem=str((a.out/f'{kind}_{a.layout}_{"crude" if a.material=="Crude extract" else "fraction"}').resolve()),
+                stem=str((a.out/f'{kind}_{a.layout}_{MATERIAL_STEM[a.material]}').resolve()),
                 palette=colors,fallback=palette['fallback'],theme=str(ROOT/'tools/sapote_pub_layout.R'),
-                groups=list(dict.fromkeys(r['group'] for r in result['used'])),dpi=600,bar_labels=a.bar_labels)
+                groups=list(dict.fromkeys(r['group'] for r in result['used'])),dpi=600,bar_labels=a.bar_labels,point_labels=a.point_labels)
     (a.out/'render_config.json').write_text(json.dumps(config,indent=2))
     inputs=[a.table,a.roster,a.aliases,a.lock,palette_path,Path(a.layout_config or LAYOUTS),Path(r_script),Path(__file__),ROOT/'tools/sapote_pub_layout.R',ROOT/'tools/bioassay_paper_theme.R',Path(__file__).parents[1]/'tools'/f'bioassay_{kind.lower()}.py']
     receipt=dict(kind=kind,layout=a.layout,material=a.material,status='PREPARED',inputs=[dict(path=str(x.resolve()),sha256=sha(x)) for x in inputs],
                  claim_scope='Single-replicate preliminary strain-level screening; no BGC attribution.',minimum_font_pt=8,
-                 material_colors={'Crude extract':'#C0973F','Fraction':'#7E5AA2'},source_rows=len(result['raw']),plotted_rows=len(result['plot']))
+                 material_colors={'Crude extract':'#C0973F','Fraction':'#7E5AA2','HPLC fraction':'#7E5AA2'},source_rows=len(result['raw']),plotted_rows=len(result['plot']))
     (a.out/'RUN_INFO.json').write_text(json.dumps(receipt,indent=2))
     pooled_a04 = kind == 'A04' and profile.get('a04_pool_candida')
     candida = ('Candida targets are shown separately: C. albicans, C. auris, and screens recorded only as Candida '
@@ -237,7 +271,8 @@ def cli(kind, r_script, argv=None):
     labels = {'strong': ' Labelled points: isolates with at least 80% inhibition of both targets.',
               'none': ' Points are not labelled; per-isolate values are in plot_data.tsv.',
               'nonzero': ' Labelled points: every isolate not at 0% inhibition of both targets.'}.get(profile.get('a04_point_labels'), '') if kind == 'A04' else ''
-    (a.out/'CAPTION.md').write_text('Single-replicate preliminary screening at 48 h. Best numeric inhibition per isolate and material; 384-well data use only the bound 120 µg/mL selection. ' + candida + ' P. larvae pools strains 19118-1 and 818 where displayed as one target. Strong activity is ≥80%. Missing or qualitative entries are not numeric negatives. Activity is measured at strain level and is not attributed to a BGC.' + labels + '\n')
+    per = 'Each point is one fraction (one fraction-plate well); ' if kind == 'A07' else ''
+    (a.out/'CAPTION.md').write_text('Single-replicate preliminary screening at 48 h. ' + per + 'Best numeric inhibition per isolate and material; 384-well data use only the bound 120 µg/mL selection. ' + candida + ' P. larvae pools strains 19118-1 and 818 where displayed as one target. Strong activity is ≥80%. Missing or qualitative entries are not numeric negatives. Activity is measured at strain level and is not attributed to a BGC.' + labels + '\n')
     if not a.prepare_only:
         render(a.out,r_script)
     return result

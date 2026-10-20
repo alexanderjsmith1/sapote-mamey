@@ -44,7 +44,7 @@ def test_actual_reader_commands_preserve_all_package_bytes(tmp_path,monkeypatch,
 def test_compile_twice_external_snapshot_and_waiver_writes_never_touch_package(tmp_path,monkeypatch):
     p=package(tmp_path);before=route.package_binding(p)
     import mamey.validate as valid,mamey.blastp_gate as bg,mamey.claim_safety_gate as cs
-    monkeypatch.setattr(valid,'validate_package',lambda p:{'identity_binding':'PASS','manifest_parse':'PASS','checksum_integrity':'PASS'})
+    monkeypatch.setattr(valid,'validate_package',lambda p,**_kw:{'identity_binding':'PASS','manifest_parse':'PASS','checksum_integrity':'PASS'})
     def gate(source,strain,**kw):
         assert Path(source)==p and kw['waiver'] is None
         return {'blocked':True,'message':'synthetic gap','missing':[]}
