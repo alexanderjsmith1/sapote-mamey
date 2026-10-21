@@ -8,9 +8,11 @@ the review lane's two-proof rule (C06), operationalized:
         AND functional_rescue_class != ACCESSORY_ONLY
         AND (functional_rescue_class == 'COMPLEMENTARY'
              OR (complementary_disjoint_refs >= 3 AND overlapping_subject_refs == 0))  # .377
-  * KS-clade proof present       = the pair's two contigs co-occur in one _4B cross-contig KS_CLADE_LINK clade
+  * KS-clade proof present       = the pair's two contigs co-occur in one _4B cross-contig KS clade (every
+                                   cross-contig clade counts, including those flagged ITERATIVE/SAME-GENE_SPLIT)
   * VERDICT:
-      TWO_PROOF_RESCUE   both proofs present  -> corroborated candidate (strongest; for human adjudication)
+      TWO_PROOF_RESCUE   both proofs present on a HIGH pair -> corroborated candidate (strongest; for human
+                         adjudication). A MODERATE pair with both proofs stays RGGMCI_ONLY (owner ruling, 20 Oct).
       MULTI_CHANNEL_HOLD RG-GMCI ranked HIGH/MODERATE but complementarity proof NOT met, AND KS-clade present
                          -> two HOMOLOGY channels concordant, complementarity still owed -> advisory HOLD, NOT a rescue
       RGGMCI_ONLY        logic proof only     -> tailoring/NRPS rescue KS can't see (e.g. no shared KS)
@@ -143,9 +145,11 @@ def two_proof_join(rggmci_4a_csv, ks_scan):
                 conf = (row.get("rggmci_confidence") or "").strip()
                 shared = cidx.get(ca, set()) & cidx.get(cb, set())
                 ks = bool(shared)
-                if logic and ks:
+                if logic and ks and conf == "HIGH_RG_GMCI_RESCUE":
                     v = "TWO_PROOF_RESCUE"
                 elif logic:
+                    # Owner ruling 20 Oct (.455): a rescue needs a HIGH pair on both routes. A MODERATE pair with
+                    # both proofs stays RGGMCI_ONLY; its shared KS clade is still recorded in ks_clade_id.
                     v = "RGGMCI_ONLY"
                 elif ks and conf in HIGH:
                     # .368: RG-GMCI ranked this pair HIGH/MODERATE but the complementarity (logic) proof did
@@ -211,7 +215,8 @@ _INTERP = {
 def write_4d_csv(rows, out_path, strain_id=""):
     cols = ["strain", "contig_a", "contig_b", "verdict", "interpretation", "rggmci_confidence", "rggmci_score",
             "functional_rescue_class", "ks_clade_id", "bgc_a", "bgc_b", "two_proof_logic_version", "claim_note", "rule_policy", "identity_a", "identity_b",
-            "second_proof_channel", "independent_proof_state", "position_verdict", "position_reference", "kcb_role"]
+            "second_proof_channel", "independent_proof_state", "position_verdict", "position_reference", "kcb_role",
+            "core_completion"]
     note = ("two-proof candidate for adjudication; homology-guided linkage, NOT a merge or nucleotide join; "
             "the review lane adjudicates; judgment deferred")
     order = {"TWO_PROOF_RESCUE": 0, "MULTI_CHANNEL_HOLD": 1, "LOGIC_EVIDENCE_HOLD": 2, "KS_CLADE_ONLY": 3,
@@ -230,14 +235,20 @@ def write_4d_csv(rows, out_path, strain_id=""):
             r2 = dict(r); r2["strain"] = strain_id
             r2["claim_note"] = note + "; " + _LEGACY_OVERLAP_NOTE if r2.pop("_overlap_column_absent", False) else note
             r2["interpretation"] = _INTERP.get((r2.get("verdict") or "").strip(), "")
-            if r2.get("rule_policy") == "nonks_position_v1" and r2.get("second_proof_channel") == "INTACT_RELATIVE_POSITION":
+            if r2.get("rule_policy") in ("nonks_position_v1", "class_routed_v1") and r2.get("second_proof_channel") == "INTACT_RELATIVE_POSITION":
                 r2["interpretation"] = ("complementary HIGH linkage candidate + position CONSISTENT; adjudication required" if r2.get("verdict") == "TWO_PROOF_RESCUE" else "position veto; retain as contradicted candidate" if r2.get("verdict") == "POSITION_VETO" else "position insufficient; independent proof unresolved")
+            if r2.get("rule_policy") == "class_routed_v1" and r2.get("second_proof_channel") == "CORE_COMPLETION":
+                r2["interpretation"] = ("complementary HIGH linkage candidate + class core completed across the pieces; adjudication required"
+                                        if r2.get("verdict") == "TWO_PROOF_RESCUE" else "veto: duplicated core gene or far-apart complete relative; retain as contradicted candidate"
+                                        if r2.get("verdict") == "POSITION_VETO" else "core completion not shown; independent proof unresolved")
             r2.setdefault("rule_policy", "ks_clade_v2")
             r2.setdefault("second_proof_channel", "KS_CLADE" if r2.get("ks_clade_id") else "NONE")
             r2.setdefault("independent_proof_state", "PRESENT" if r2.get("ks_clade_id") else "NOT_OBSERVED")
             r2.setdefault("position_verdict", "NOT_READ")
             r2.setdefault("kcb_role", "SUPPORTING_ONLY; never independent second proof")
-            r2["two_proof_logic_version"] = "nonks_position_v1" if r2.get("rule_policy") == "nonks_position_v1" else TWO_PROOF_LOGIC_VERSION
+            r2.setdefault("core_completion", "")
+            r2["two_proof_logic_version"] = (r2["rule_policy"] if r2.get("rule_policy") in ("nonks_position_v1", "class_routed_v1")
+                                             else TWO_PROOF_LOGIC_VERSION)
             w.writerow(r2)
     return out_path
 

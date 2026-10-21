@@ -26,6 +26,9 @@ networkx>=3.0,<4.0        # BiG-SCAPE GCF-network figure (mamey/bigscape_figures
 scipy>=1.10,<2.0          # cohort clustermap ordering (mamey/cohort_figures.py) +
                           # tools/cluster_relate.py. SOFT: falls back to count-ordering
                           # (_HAS_SCIPY=False) if absent. Also in the [figures]/[all] extras.
+scikit-learn>=1.3,<2.0    # t-SNE companion layout (tools/protein_pcoa_ordinate.py tsne).
+                          # SOFT: that step refuses with a message if absent; nothing is
+                          # substituted. Also in the [figures]/[all] extras.
 
 # Biopython — REQUIRED for the online BLASTp channel (mamey blastp-online / blastp-round) and
 # the HMM domain walk, which the Mode B §4 authoring prompt now directs lead-card authors to run.

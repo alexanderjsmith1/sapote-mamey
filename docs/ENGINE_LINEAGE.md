@@ -1369,3 +1369,15 @@ Also in 1.9.176:
 - Assembly-line outputs and post-seal package snapshots are admitted fail-closed.
 
 Packages from 1.9.175 and 1.9.176 are not directly poolable for two-proof verdicts, hybrid grades or terminus states. Existing outputs are not rewritten.
+
+## Engine 1.9.177 — bundle 9.7.455, unsealed candidate
+
+The split-cluster second proof is routed by class (`class_routed_v1`, now the default in `two-proof-rescue` and the in-run `_4D` table). A pair with a KS domain on either member uses the KS clade. A pair whose non-KS core is observed uses core completion, and TWO_PROOF_RESCUE then needs completion, a HIGH call and the existing logic gate. A CONFLICT or APART_CLOSE position vetoes the rescue. A CONSISTENT position alone never promotes a pair. `_4D` gains one column, `core_completion`. `two-proof-rescue` accepts `--input-zip`, and the in-run `_4D` reads the run's input ZIP.
+
+Also in 1.9.177:
+- TWO_PROOF_RESCUE needs a HIGH RG-GMCI pair on both routes. A MODERATE pair with both proofs stays RGGMCI_ONLY and keeps its KS clade ID.
+- `assembly_sanity_check` flags an assembly above 12 Mb as INFLATED_ASSEMBLY_SUSPECT, with its own warning text.
+- Cross-strain figures read a blank, NA or unbound count as missing, not zero, and do not draw it.
+- `doctor` and the external-data status add consumer-readiness fields for NP Atlas, read from the files the resolver loads. `provisioned` keeps its meaning.
+
+`_4D` is advisory: RG-GMCI scores, ranks, thresholds and package determinism fields are unchanged. Packages from 1.9.176 and 1.9.177 are not directly poolable for `_4D` two-proof verdicts. Existing outputs are not rewritten.

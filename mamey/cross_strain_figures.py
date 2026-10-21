@@ -131,6 +131,11 @@ def _num(x, default: float = 0.0) -> float:
     return float(x)
 
 
+def _is_missing(x) -> bool:
+    """A blank or NA cell is missing evidence, never an observed zero."""
+    return x is None or str(x).strip().lower() in {"", "na", "n/a", "nan", "none", "unbound"}
+
+
 def _int(x, default: int = 0) -> int:
     return int(round(_num(x, default)))
 
@@ -396,9 +401,16 @@ def build_cross_strain_figures(rg_dir: str | Path, out_dir: str | Path, ab_dir: 
 
     # Normalize summary row labels.
     for r in summary:
-        r.setdefault("fragmentation_loss", round(_num(r.get("raw_bgcs")) - _num(r.get("corrected_bgcs")), 3))
+        # Loss exists only when both counts do; a missing corrected count is not a loss of every BGC.
+        if _is_missing(r.get("raw_bgcs")) or _is_missing(r.get("corrected_bgcs")):
+            r.setdefault("fragmentation_loss", "")
+        else:
+            r.setdefault("fragmentation_loss", round(_num(r.get("raw_bgcs")) - _num(r.get("corrected_bgcs")), 3))
         r.setdefault("display", r.get("strain") or r.get("instance_id") or "unknown")
-        r.setdefault("high_plus_moderate", _num(r.get("high_pairs")) + _num(r.get("moderate_pairs")))
+        if _is_missing(r.get("high_pairs")) or _is_missing(r.get("moderate_pairs")):
+            r.setdefault("high_plus_moderate", "")
+        else:
+            r.setdefault("high_plus_moderate", _num(r.get("high_pairs")) + _num(r.get("moderate_pairs")))
 
     # Summary-level figures.
     for key, title, xlabel, reverse in [
@@ -417,8 +429,12 @@ def build_cross_strain_figures(rg_dir: str | Path, out_dir: str | Path, ab_dir: 
         ("priority_good_geometry_references", "Best-priority pair good-geometry references by strain", "Good-geometry references", False),
     ]:
         if summary and key in summary[0]:
-            rows = sorted([{**r, "display": r.get("strain") or r.get("instance_id")} for r in summary], key=lambda r: _num(r.get(key)), reverse=reverse)
-            _emit(figs, out_dir, f"fig_{len(figs)+1:02d}_{key}_by_strain", rows, title,
+            # Strains with no value are left off the bar chart (drawing them would show a 0 bar
+            # for missing evidence); an observed 0 is still drawn. The caption says how many.
+            rows = sorted([{**r, "display": r.get("strain") or r.get("instance_id")} for r in summary
+                           if not _is_missing(r.get(key))], key=lambda r: _num(r.get(key)), reverse=reverse)
+            caption = title if len(rows) == len(summary) else f"{title} ({len(rows)} of {len(summary)} strains have a value)"
+            _emit(figs, out_dir, f"fig_{len(figs)+1:02d}_{key}_by_strain", rows, caption,
                   lambda stem, rows=rows, title=title, xlabel=xlabel, key=key: _barh(rows, stem, title, xlabel, "display", key))
 
     if _has_computable_boundary_counts(summary):
@@ -428,9 +444,14 @@ def build_cross_strain_figures(rg_dir: str | Path, out_dir: str | Path, ab_dir: 
               lambda stem, rows=rows: _stacked_barh(rows, stem, "BGC boundary composition by strain", "BGC count", "strain", ["interior_bgcs", "edge_bgcs", "full_contig_bgcs"]))
 
     if summary and {"high_pairs", "moderate_pairs"}.issubset(summary[0].keys()):
-        rows = sorted(summary, key=lambda r: _num(r.get("high_pairs")) + _num(r.get("moderate_pairs")))
+        # A strain missing either count has no stacked bar; a missing count is not a zero segment.
+        rows = sorted([r for r in summary if not _is_missing(r.get("high_pairs")) and not _is_missing(r.get("moderate_pairs"))],
+                      key=lambda r: _num(r.get("high_pairs")) + _num(r.get("moderate_pairs")))
+        caption = "HIGH rescue and MODERATE candidate counts by strain."
+        if len(rows) != len(summary):
+            caption = f"HIGH rescue and MODERATE candidate counts by strain ({len(rows)} of {len(summary)} strains have both values)."
         _emit(figs, out_dir, f"fig_{len(figs)+1:02d}_high_moderate_pairs_by_strain", rows,
-              "HIGH rescue and MODERATE candidate counts by strain.",
+              caption,
               lambda stem, rows=rows: _stacked_barh(rows, stem, "RG-GMCI HIGH/MODERATE burden by strain", "Pair count", "strain", ["high_pairs", "moderate_pairs"]))
 
     if summary and "assembly_tier" in summary[0]:
@@ -441,6 +462,8 @@ def build_cross_strain_figures(rg_dir: str | Path, out_dir: str | Path, ab_dir: 
               lambda stem, rows=rows: _bar(rows, stem, "Assembly tier counts", "Strain instances", "label", "count"))
         groups = defaultdict(list)
         for r in summary:
+            if _is_missing(r.get("pairs_total")):
+                continue  # no pair count is not a strain with zero pairs
             groups[r.get("assembly_tier") or "unknown"].append(_num(r.get("pairs_total")))
         rows2 = [{"assembly_tier": k, "pairs_total": v} for k, vals in groups.items() for v in vals]
         _emit(figs, out_dir, f"fig_{len(figs)+1:02d}_pairs_total_by_assembly_tier", rows2,
@@ -455,8 +478,10 @@ def build_cross_strain_figures(rg_dir: str | Path, out_dir: str | Path, ab_dir: 
         ("reference_record_count", "pairs_total", "Reference records vs total RG-GMCI pairs", "Reference records", "Total RG-GMCI pairs"),
     ]:
         if summary and {xk, yk}.issubset(summary[0].keys()):
-            _emit(figs, out_dir, f"fig_{len(figs)+1:02d}_{xk}_vs_{yk}", summary, title,
-                  lambda stem, xk=xk, yk=yk, title=title, xlabel=xlabel, ylabel=ylabel: _scatter(summary, stem, title, xlabel, ylabel, xk, yk, "strain", 8))
+            pts = [r for r in summary if not _is_missing(r.get(xk)) and not _is_missing(r.get(yk))]
+            caption = title if len(pts) == len(summary) else f"{title} ({len(pts)} of {len(summary)} strains have both values)"
+            _emit(figs, out_dir, f"fig_{len(figs)+1:02d}_{xk}_vs_{yk}", pts, caption,
+                  lambda stem, pts=pts, xk=xk, yk=yk, title=title, xlabel=xlabel, ylabel=ylabel: _scatter(pts, stem, title, xlabel, ylabel, xk, yk, "strain", 8))
 
     # Ranked-pair figures.
     if ranked:

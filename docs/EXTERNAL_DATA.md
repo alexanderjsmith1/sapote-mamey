@@ -1,8 +1,8 @@
 # External data — what this bundle does NOT ship, and how to provision it
 
 Before any `doctor` example below, read the [write-probe boundary](INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
-untouched. The current diagnostic can overwrite or remove its probe file.
+Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
+untouched and report the hold; the diagnostic refuses an occupied probe location.
 
 Run engine examples from the selected bundle directory containing `pyproject.toml` and `mamey_run.py`, using its compatible activated Python interpreter; bind external inputs separately.
 

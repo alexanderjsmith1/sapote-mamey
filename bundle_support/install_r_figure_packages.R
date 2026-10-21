@@ -11,19 +11,39 @@ if (!is.na(from_i) && (is.na(from_dir) || startsWith(from_dir, "--")))
 offline <- !is.na(from_dir)
 # .452: every package the shipped R scripts load, including R code embedded in Python tools
 # (tests/test_452_ci_installs_r.py keeps this list complete).
-cran <- c("ggplot2","dplyr","tidyr","scales","patchwork","ape","ggrepel","aplot","ggtext","svglite","jsonlite","readr","systemfonts","xml2","ragg","png")
+cran <- c("ggplot2","dplyr","tidyr","scales","patchwork","ape","ggrepel","aplot","ggtext","svglite","jsonlite","systemfonts","xml2","ragg","png")
 bioc <- c("ggtree","treeio")
-# .454: not on CRAN; installed from the author's repository (MIT). Used by tools/bgc_class_groups.py.
-github <- c(ggchicklet = "hrbrmstr/ggchicklet")
+# Optional: not on CRAN (MIT). tools/bgc_class_groups.py draws rounded bars with it and plain bars without it.
+# Fetched as a source archive pinned to one commit, not through the GitHub API, which refuses anonymous tokens
+# (HTTP 401 on CI). A failed optional install is reported, never fatal.
+github <- c(ggchicklet = "https://codeload.github.com/hrbrmstr/ggchicklet/tar.gz/64c468dd0900153be1690dbfc5cfb35710da8183")
 have <- function(p) requireNamespace(p, quietly = TRUE)
+# Figure groups. Only "core" is required by default; each other group adds one figure family, and a missing one is
+# reported, not fatal. --require trees,bioassay (or --require all) makes those groups required too.
+# Keep in step with R_FIGURE_GROUPS in mamey/optional_r.py (tests/test_456_r_figure_groups.py checks both).
+groups <- list(
+  core     = c("ggplot2","ggtext","jsonlite","scales","dplyr","patchwork","ggrepel","svglite","systemfonts","xml2"),
+  trees    = c("ape","ggtree","treeio","aplot"),
+  bioassay = c("tidyr","png"),
+  extras   = c("ragg","ggchicklet"))
+req_i <- match("--require", args)
+required <- if (!is.na(req_i) && req_i < length(args)) strsplit(args[req_i + 1], ",", fixed = TRUE)[[1]] else character()
+if ("all" %in% required) required <- names(groups)
+required <- unique(c("core", required))
+unknown <- setdiff(required, names(groups))
+if (length(unknown)) stop("--require: unknown group(s): ", paste(unknown, collapse = ", "), "; groups are ", paste(names(groups), collapse = ", "))
 check_only <- "--check" %in% commandArgs(trailingOnly = TRUE)
 if (!check_only && !offline) {
   miss <- cran[!vapply(cran, have, TRUE)]
   if (length(miss)) install.packages(miss, repos = "https://cloud.r-project.org")
   bm <- bioc[!vapply(bioc, have, TRUE)]
-  if (length(bm)) { if (!have("BiocManager")) install.packages("BiocManager", repos = "https://cloud.r-project.org"); BiocManager::install(bm, ask = FALSE, update = FALSE) }
+  if (length(bm)) tryCatch({ if (!have("BiocManager")) install.packages("BiocManager", repos = "https://cloud.r-project.org")
+                             BiocManager::install(bm, ask = FALSE, update = FALSE) },
+                           error = function(e) message("Bioconductor packages not installed: ", conditionMessage(e)))
   gm <- names(github)[!vapply(names(github), have, TRUE)]
-  if (length(gm)) { if (!have("remotes")) install.packages("remotes", repos = "https://cloud.r-project.org"); for (g in gm) remotes::install_github(github[[g]], upgrade = "never") }
+  for (g in gm) tryCatch({ tgz <- tempfile(fileext = ".tar.gz"); download.file(github[[g]], tgz, mode = "wb")
+                           install.packages(tgz, repos = NULL, type = "source") },
+                         error = function(e) message("optional package ", g, " not installed: ", conditionMessage(e)))
 } else if (!check_only) {
   if (!dir.exists(from_dir)) stop("--from directory not found: ", from_dir)
   archives <- list.files(from_dir, pattern = "\\.(tar\\.gz|zip)$", full.names = TRUE)
@@ -51,7 +71,8 @@ if (!check_only && !offline) {
   if (length(failed)) message("Not installed from --from (missing dependencies or build errors): ",
                               paste(basename(failed), collapse = ", "))
 }
-for (p in c(cran, bioc, names(github))) cat(sprintf("%-10s %s\n", p, if (have(p)) as.character(packageVersion(p)) else "MISSING"))
+for (g in names(groups)) for (p in groups[[g]])
+  cat(sprintf("%-9s %-12s %s\n", g, p, if (have(p)) as.character(packageVersion(p)) else if (g %in% required) "MISSING" else "not installed (optional)"))
 
-missing <- c(cran, bioc, names(github))[!vapply(c(cran, bioc, names(github)), have, TRUE)]
+missing <- unlist(lapply(required, function(g) groups[[g]][!vapply(groups[[g]], have, TRUE)]))
 if (length(missing)) quit(status=2)

@@ -1,7 +1,15 @@
-"""Explicit alternative second-proof policy; no default scientific promotion.
+"""Second-proof policies for split-cluster candidates, routed by cluster class.
 
-Position CONSISTENT can corroborate an already complementary HIGH link for a
-positively observed non-KS class. KCB complementarity remains supporting only.
+The ketosynthase-clade proof applies to polyketide clusters only. For a pair with a positively observed non-KS core
+and no KS on either side, `class_routed_v1` takes biosynthetic logic as the second proof: the two pieces together
+complete their class core, which neither completes alone. A single-copy marker complete on both pieces (CONFLICT) or a
+far-apart complete relative (APART_CLOSE) vetoes; the intact-relative position is recorded as a check on homology.
+`nonks_position_v1` keeps the earlier rule (position CONSISTENT corroborates). KCB complementarity remains supporting
+only.
+
+Policies: `class_routed_v1` (default) routes by class and computes the position reading from the antiSMASH archive
+when no scorecard is supplied; `nonks_position_v1` reads a supplied scorecard only; `ks_clade_v2` is the KS-clade
+proof alone (the earlier default, kept for reproduction).
 """
 from __future__ import annotations
 import json
@@ -11,9 +19,12 @@ from .companion_evidence import contig_key, identity_text, publication, read_man
 from .postseal_output import sha256_file
 from .rescue_two_proof import two_proof_join, write_4d_csv, _logic_proof, _short
 
-DEFAULT_POLICY = 'ks_clade_v2'
+KS_POLICY = 'ks_clade_v2'
 POSITION_POLICY = 'nonks_position_v1'
-POLICIES = (DEFAULT_POLICY, POSITION_POLICY)
+CLASS_ROUTED_POLICY = 'class_routed_v1'
+DEFAULT_POLICY = CLASS_ROUTED_POLICY
+POLICIES = (CLASS_ROUTED_POLICY, KS_POLICY, POSITION_POLICY)
+POSITION_POLICIES = (POSITION_POLICY, CLASS_ROUTED_POLICY)
 # Rescue labels need both members bound to the current manifest; otherwise the row is held.
 RESCUE_VERDICTS = ('TWO_PROOF_RESCUE', 'RGGMCI_ONLY')
 UNBOUND_HOLD = 'UNBOUND_MEMBER_HOLD'
@@ -105,7 +116,7 @@ def apply_policy(rows, manifest, scorecards=(), policy=DEFAULT_POLICY):
                     row['identity_' + side] = (f"IDENTITY_HOLD: bgc_{side} {bid!r} absent from the manifest; "
                                                f"held from {row['verdict']}")
             row['verdict'] = UNBOUND_HOLD
-        if policy == POSITION_POLICY and a in bgcs and b in bgcs:
+        if policy in POSITION_POLICIES and a in bgcs and b in bgcs:
             states = [class_state(bgcs[x], domains.get(x)) for x in (a, b)]
             # One side can hold accessory genes; positive non-KS core on either
             # side is sufficient, but any observed KS keeps the KS protocol.
@@ -114,7 +125,23 @@ def apply_policy(rows, manifest, scorecards=(), policy=DEFAULT_POLICY):
             pos = score.get('layers_verdict', 'NOT_READ')
             row['position_verdict'] = pos
             row['position_reference'] = score.get('relative', '')
-            if eligible:
+            core = score.get('completes_core', '')
+            row['core_completion'] = core if isinstance(core, str) else ''
+            if eligible and policy == CLASS_ROUTED_POLICY:
+                # Non-KS proof 2 = biosynthetic logic: together the pieces complete their class core, which neither
+                # completes alone. A duplicated single-copy marker (CONFLICT) or a far-apart complete relative
+                # (APART_CLOSE) still vetoes; the position reading is recorded as a check on homology.
+                row['second_proof_channel'] = 'CORE_COMPLETION'
+                if pos in ('APART_CLOSE', 'CONFLICT'):
+                    row['verdict'] = 'POSITION_VETO'
+                    row['independent_proof_state'] = 'CONTRADICTED'
+                elif row['core_completion'].strip():
+                    row['independent_proof_state'] = 'PRESENT'
+                    if _logic_proof(row) and row.get('rggmci_confidence') == 'HIGH_RG_GMCI_RESCUE':
+                        row['verdict'] = 'TWO_PROOF_RESCUE'
+                else:
+                    row['independent_proof_state'] = 'NOT_READ_OR_UNRESOLVED'
+            elif eligible:
                 row['second_proof_channel'] = 'INTACT_RELATIVE_POSITION'
                 if pos in ('APART_CLOSE', 'CONFLICT'):
                     row['verdict'] = 'POSITION_VETO'
@@ -132,7 +159,14 @@ def apply_policy(rows, manifest, scorecards=(), policy=DEFAULT_POLICY):
         result.append(row)
     return result
 
-def recompute(package, policy=DEFAULT_POLICY, scorecard=None, out=None):
+def archive_scorecards(rows, manifest, input_zip):
+    """Position/marker readings computed from the antiSMASH archive for the candidate pairs in `rows`."""
+    from .split_evidence_layers import scorecards_from_archive
+    pairs = [(r.get('bgc_a'), r.get('bgc_b')) for r in rows if r.get('bgc_a') and r.get('bgc_b')]
+    return scorecards_from_archive(input_zip, manifest['strain_id'], manifest['bgcs'], pairs)
+
+
+def recompute(package, policy=DEFAULT_POLICY, scorecard=None, out=None, input_zip=None):
     manifest = read_manifest(package)
     candidates = list(Path(package).glob('*_4A_RGGMCI_ranked_pairs.csv'))
     if len(candidates) != 1:
@@ -140,6 +174,10 @@ def recompute(package, policy=DEFAULT_POLICY, scorecard=None, out=None):
     scores = table(scorecard, ['strain', 'identity_a', 'identity_b', 'layers_verdict', 'relative']) if scorecard else []
     scans = manifest.get('source_scans') or {}
     rows, _, _ = two_proof_join(candidates[0], scans.get('pks_ks_scan') or {})
+    position_source = 'SCORECARD' if scorecard else 'NOT_READ'
+    if policy == CLASS_ROUTED_POLICY and not scorecard and input_zip:
+        scores = archive_scorecards(rows, manifest, input_zip)
+        position_source = 'ARCHIVE'
     rows = apply_policy(rows, manifest, scores, policy)
     with publication(package, 'two-proof-rescue', out) as (stage, binding):
         write_4d_csv(rows, stage / (manifest['strain_id'] + '_4D_two_proof_rescue.csv'), manifest['strain_id'])
@@ -147,6 +185,8 @@ def recompute(package, policy=DEFAULT_POLICY, scorecard=None, out=None):
             'package_binding': binding, 'rggmci_sha256': sha256_file(candidates[0]),
             'scorecard_path': str(Path(scorecard).resolve()) if scorecard else None,
             'scorecard_sha256': sha256_file(scorecard) if scorecard else None,
+            'position_source': position_source,
+            'input_zip_sha256': sha256_file(input_zip) if (input_zip and position_source == 'ARCHIVE') else None,
             'ks_scan_state': 'AVAILABLE' if scans.get('pks_ks_scan') else 'NOT_PROVIDED',
             'claim_ceiling': 'class-level linkage candidate for adjudication; no merge, production or activity claim',
             'default_unchanged': policy == DEFAULT_POLICY})

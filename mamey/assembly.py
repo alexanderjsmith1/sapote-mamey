@@ -38,13 +38,20 @@ def _contig_gc(seq: str) -> float | None:
 # GenBank submission — one plasmid, one scaffold, one WGS record — not a small genome.
 # Deliberately generous (3.0 Mb) so a genuinely small actinobacterium is not flagged.
 ACTINOMYCETE_MIN_BP = 3_000_000
+# The matching ceiling. Check (c) below is the only other upper bound, and it needs a
+# caller-supplied expected_size_bp that run_one_strain never passes, so before this constant an
+# assembly of any size above the floor raised nothing. 12 Mb sits above the cohort band noted for
+# the floor and equals GENOME_WARN in tools/assembly_qc_check.py, the operator-only QC tool that
+# already treats an oversized genome as the co-assembly tell; the engine and that tool now agree.
+ACTINOMYCETE_MAX_BP = 12_000_000
 # a single record this far below the floor is a truncated/partial submission, not an assembly
 PARTIAL_SUBMISSION_MAX_CONTIGS = 5
 
 
 def assembly_sanity_check(seqs: dict[str, str], *, expected_gc: float | None = None,
                           expected_size_bp: tuple[int, int] | None = None,
-                          min_genome_bp: int | None = ACTINOMYCETE_MIN_BP) -> dict:
+                          min_genome_bp: int | None = ACTINOMYCETE_MIN_BP,
+                          max_genome_bp: int | None = ACTINOMYCETE_MAX_BP) -> dict:
     """PC-A2 (v9.7.101): non-blocking contamination / assembly-sanity check.
 
     Two VERY_POOR drafts passed as MAMEY_COMPLETE with no flag despite clear assembly
@@ -55,7 +62,9 @@ def assembly_sanity_check(seqs: dict[str, str], *, expected_gc: float | None = N
           contaminated drafts were 7-12%);
       (c) assembly size is outside an expected genus range (if one is given);
       (d) AMBER-03-3: assembly size is far below the actinomycete floor, with no prior
-          needed — the partial-GenBank-submission case.
+          needed — the partial-GenBank-submission case;
+      (e) assembly size is above the actinomycete ceiling, with no prior needed — the
+          duplicated, binned or mixed-assembly case, whose BGC count is inflated.
 
     Non-blocking by design: returns flags + the measured stats for the analyst to judge.
     expected_gc / expected_size_bp are optional taxon priors; when absent, the dispersion
@@ -68,6 +77,7 @@ def assembly_sanity_check(seqs: dict[str, str], *, expected_gc: float | None = N
     next to congeners of 9.75 Mb / 34 BGCs and 7.38 Mb / 29 BGCs. Its BGC count is a
     property of a ~19%-complete submission, not a measurement of the organism.
     Pass min_genome_bp=None to disable (e.g. a deliberate plasmid/contig-level run).
+    Pass max_genome_bp=None to disable the ceiling (e.g. a deliberate multi-genome bin).
     """
     flags: list[str] = []
     per_contig = {name: _contig_gc(s) for name, s in seqs.items() if s}
@@ -106,10 +116,16 @@ def assembly_sanity_check(seqs: dict[str, str], *, expected_gc: float | None = N
             partial_submission = True
             flags.append("PARTIAL_SUBMISSION_SUSPECT")
 
+    # (e) the opposite error to (d): a record far ABOVE the band. Oversize alone is not proof of
+    # contamination; it says the BGC count may be above the organism's true value.
+    if max_genome_bp and genome_bp and genome_bp > max_genome_bp:
+        flags.append("INFLATED_ASSEMBLY_SUSPECT")
+
     return {
         "flags": sorted(set(flags)),
         "partial_submission_suspect": partial_submission,
         "min_genome_bp": min_genome_bp,
+        "max_genome_bp": max_genome_bp,
         "overall_gc": overall_gc,
         "per_contig_gc_sd": round(gc_sd, 2) if gc_sd is not None else None,
         "genome_bp": genome_bp,
@@ -118,7 +134,9 @@ def assembly_sanity_check(seqs: dict[str, str], *, expected_gc: float | None = N
                          "GC/size deviation from a taxon prior suggests possible contamination or "
                          "co-assembly; a size far below the actinomycete floor suggests a partial "
                          "GenBank submission, whose BGC count is a property of the submission and "
-                         "not of the organism; the analyst decides — extraction is unaffected."),
+                         "not of the organism; a size above the ceiling suggests a duplicated or "
+                         "mixed assembly, whose BGC count may be inflated; the analyst decides — "
+                         "extraction is unaffected."),
     }
 
 def corrected_bgc_count(interior: int, edge: int, full_contig: int) -> float:

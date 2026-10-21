@@ -1,8 +1,8 @@
 # Public release — user guide
 
 Before any `doctor` example below, read the [write-probe boundary](INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
-untouched. The current diagnostic can overwrite or remove its probe file.
+Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
+untouched and report the hold; the diagnostic refuses an occupied probe location.
 
 > **Current-tree status.** This CODE archive records its validation results in the release manifest. [`pyproject.toml`](../pyproject.toml) and the synced package identity define its canonical bundle version; [`RELEASE_MANIFEST.md`](../RELEASE_MANIFEST.md) defines its current release status.
 

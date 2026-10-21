@@ -8,6 +8,8 @@ The optional `gap-rescue` command runs after validation and requires separately 
 
 `tools/protein_pcoa_compare.py` consumes an existing protein PCoA kit and a cohort table. Its denominator uses cohort members represented in the kit's canonical per-set tables before set selection. It records denominator membership and hashes contributing tables, including unselected sets. Genome-level tests are primary; protein-level tests are secondary and pairwise p-values are raw, exploratory values. Similarity and position do not establish activity or resistance.
 
+`tools/locus_rarity_by_genus.py` asks how common one antiSMASH region is among the genomes of each genus. It reads a `protein_pcoa_ordinate.py extract` kit, searches the region's proteins against every non-MIBiG region protein of the kit (DIAMOND, ≥ 50 % identity over ≥ 70 % of the query gene by default) and counts, per genus, the genomes with a region matching ≥ 50 % of the genes, ≥ 50 % of the core genes and ≥ 30 % of the core genes (core = antiSMASH gene_kind biosynthetic or biosynthetic-additional). Public references and SID genomes are counted in separate columns. Denominators come from the kit, or from `--genome-table` so that genomes with no region are counted. A match is sequence similarity, not product identity or production.
+
 `tools/pcoa_bgc_explorer.py` adds an offline rotatable three-axis view of the same coordinates. Rotation changes the display, not the scores or point membership. Points without identity values retain a separate symbol. Supplied metadata and disagreements are recorded rather than silently inferred.
 
 Use [figure house rules](FIGURE_HOUSE_RULES.md) and [figure style](FIGURE_STYLE.md) for exports. Inspect the actual rendered page and keep its caption, methods, source bindings and denominator together. Tools and command availability are listed by the generated [command catalog](COMMAND_CATALOG.generated.md) and [tools inventory](TOOLS_INVENTORY.generated.md).
@@ -137,3 +139,11 @@ is blank for other quantiles so a legacy reader cannot mistake a nondefault cuto
 Readers of new tables should use the two canonical appended fields; a default-only reader can
 continue to use `threshold_p95` at 0.95. Historical tables/COMPLETE packets are never rewritten.
 For an old caption record with no quantile field, the historical 0.95 default is retained.
+
+## t-SNE companion panel
+
+`protein_pcoa_ordinate.py tsne --kit KIT --set S` fits t-SNE on the same identity distances as `ordinate`. It reads them from the retained `allvsall.tsv.gz`, checks the SHA-256 and ID order bound in `RUN_<SET>.json`, and refuses a mismatch. A kit without a retained table needs `--allvsall PATH`, and the sidecar then records the binding as `SUPPLIED_NOT_BOUND_BY_RUN`.
+
+The defaults are perplexity 40 and seed 20261019. The step writes `out_<SET>/TSNE_<SET>.tsv` (columns `id`, `TSNE1`, `TSNE2`) and the exact sidecar `TSNE_<SET>.json`, which `protein_pcoa_render.py --page pcoa,tsne --embedding-table S=…/TSNE_<SET>.tsv` reads. Existing outputs are refused. The step needs scikit-learn and scipy; if either is missing it refuses, and no other method is substituted. Admission is an estimate of the dense-matrix size against `--rss-limit-bytes`. This step does not run in the watched ordinate worker.
+
+The sidecar records two scores. Trustworthiness at k = 10 measures how well near neighbours are kept. The Spearman ρ between input and plotted distance, over 200,000 seeded random pairs, measures how well the global order is kept. Use PCoA for distances between groups. t-SNE keeps near neighbours, but cluster sizes, gaps and placement on the page are not distances. Positions in either panel are sequence similarity only.

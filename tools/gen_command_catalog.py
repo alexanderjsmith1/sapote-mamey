@@ -58,7 +58,7 @@ GROUPS: list[tuple[str, str, tuple[str, ...]]] = [
     ("Workflow, receipts, catalogs", "Status, lookups and explicit maintenance actions. "
      "Check each command's write boundary before invoking it.",
      ("workflow", "deliverables", "deliverable-queue", "ingest-receipts", "validate-finished-review-request", "list-bgcs", "literature", "lookup", "search",
-      "triage-raw", "wheelhouse", "list", "clean", "add-strain")),
+      "triage-raw", "wheelhouse", "list", "clean", "add-strain", "strain-master")),
     ("Compatibility and maintainer commands", "Retained for existing scripts and specialized maintenance. "
      "They are not additional onboarding paths.",
      ("chatgpt-init", "codex-figure-catalog", "codex-figure-sets", "codex-figure-sources",

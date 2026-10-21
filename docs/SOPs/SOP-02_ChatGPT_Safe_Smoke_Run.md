@@ -1,8 +1,8 @@
 # SOP-02 — ChatGPT-Safe Capped-Session Run
 
 Before any `doctor` example below, read the [write-probe boundary](../INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
-untouched. The current diagnostic can overwrite or remove its probe file.
+Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
+untouched and report the hold; the diagnostic refuses an occupied probe location.
 
 Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
 

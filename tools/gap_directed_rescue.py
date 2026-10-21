@@ -23,7 +23,7 @@ genes).
 
 Split-gene check. The table above keeps one best genome protein per reference gene and needs 50% coverage, so a gene
 broken by the assembly shows only its larger piece; the other piece reads as "no match". The check reads every hit
-again, before those filters: a reference gene is SPLIT_ACROSS_CONTIG_ENDS when two proteins on different contigs each
+again, before the one-best-protein and coverage filters (the 30% identity floor still applies): a reference gene is SPLIT_ACROSS_CONTIG_ENDS when two proteins on different contigs each
 cover >= 40 residues of it, neither covers 80% or more, their reference stretches overlap by <= 20 residues and
 together cover >= 50% of it, and each piece's open end faces a contig end within 300 bp (the piece covering the
 reference's start ends at a contig end; the piece covering its end starts at one). Each split gets a call:
@@ -86,8 +86,10 @@ except ImportError:  # bare-script run: bundle root is one level up
     from mamey.path_safety import assert_output_outside_bundle
 
 # The gene table, the split-gene check, the partner checks, reference discovery and their thresholds live in
-# mamey/ref_completion.py, shared with RG-GMCI's reference-guided completion and the standalone rggmci package, so the
-# tool and the engine run one implementation. This tool keeps its loaders, its DIAMOND calls and its figure.
+# mamey/ref_completion.py, shared with RG-GMCI's reference-guided completion and the standalone rggmci package. The
+# tool and the engine still differ: DIAMOND mode (ultra-sensitive here, sensitive in the engine), alignment limits
+# (the engine sets e <= 1e-5 and no target cap), reference choice (KnownClusterBlast rank 1 here, the best-ranked
+# held MIBiG hit in the engine) and the partner rule. This tool keeps its loaders, its DIAMOND calls and its figure.
 from mamey import ref_completion as _rc  # noqa: E402
 from mamey.ref_completion import (BIOSYNTHETIC_KINDS, CLEAR_ID, CLEAR_RATIO, CONCENTRATION,  # noqa: E402,F401
                                   DISCOVERY_MAX_KB, DISCOVERY_MIN_COV, DISCOVERY_MIN_ID, DISCOVERY_MIN_PROTEINS,
@@ -555,9 +557,10 @@ def main(argv=None) -> int:
                                                                "draw, as context only (redraw only)")
     ap.add_argument("--other-maps", action="store_true", help="label strain genes that another reference matched in a "
                                                              "sibling run of the same region (redraw only)")
-    ap.add_argument("--print-width", choices=("double", "single", "none"), default="double",
+    ap.add_argument("--print-width", choices=("double", "single", "page6.0", "page6.5", "none"), default="double",
                     help="draw the map at a journal column width with all text >= 8 pt: double = 7.2 in (default), "
-                         "single = 3.5 in; none = the 13.5 in screen layout of earlier maps, unchanged")
+                         "single = 3.5 in, page6.0 / page6.5 = a 6.0 or 6.5 in text column; none = the 13.5 in screen "
+                         "layout of earlier maps, unchanged")
     ap.add_argument("--trim-kb", type=float, help="with --redraw: crop both rows to the matched genes plus this margin "
                     "(kb) on each side; the title and footnote say so. Default: no crop")
     ap.add_argument("--panel", action="store_true", help="with --redraw and a print width: draw the map as a panel of a "

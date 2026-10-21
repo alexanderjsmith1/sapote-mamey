@@ -74,6 +74,7 @@ applies to the exact installed/redistributed distribution. Recorded permissive l
 
 - **networkx** — BiG-SCAPE GCF-network figure (`mamey/bigscape_figures.py`); soft-guarded (`SKIPPED_NO_DEPS`). License: BSD-3-Clause. Installed from PyPI; not redistributed here.
 - **scipy** — cohort clustermap ordering (`mamey/cohort_figures.py`, `tools/cluster_relate.py`); soft-guarded (falls back to count-ordering). License: BSD-3-Clause. Installed from PyPI; not redistributed here.
+- **scikit-learn** — t-SNE companion layout (`tools/protein_pcoa_ordinate.py tsne`); soft-guarded (the step refuses with a message; nothing is substituted). License: BSD-3-Clause. Installed from PyPI; not redistributed here.
 
 ## External bioinformatics tools (operator-installed, invoked-only — not bundled, not linked)
 

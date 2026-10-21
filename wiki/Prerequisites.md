@@ -1,5 +1,5 @@
 <!-- Mirror of docs/PREREQUISITES.md, made by tools/sync_wiki_mirrors.py. Edit the source, then run: python3 tools/sync_wiki_mirrors.py --apply -->
-# PREREQUISITES — Sapote–Mamey v9.7.454
+# PREREQUISITES — Sapote–Mamey v9.7.455
 
 Start with [INSTALL](../docs/INSTALL.md) or the [complete walkthrough](../docs/MASTER_WALKTHROUGH.md). The package metadata in [pyproject.toml](../pyproject.toml) defines the supported Python version, core requirements and extras. Use the [README tool table](../README.md#tool-downloads-and-licenses) for upstream downloads and licenses.
 
@@ -52,16 +52,32 @@ The ReportLab-based PDF path is part of core dependencies. Alternate document ro
 
 ## R figure stack
 
-Use R >= 4.3 for the R figure workflows. The installer checks every package the shipped R scripts load: `ggplot2`, `dplyr`, `tidyr`, `scales`, `patchwork`, `ape`, `ggrepel`, `aplot`, `ggtext`, `svglite`, `jsonlite`, `readr`, `systemfonts`, `xml2` (CRAN) and `ggtree`, `treeio` (Bioconductor). GitHub CI installs R and runs it, so the R figure tests run there. Install that base set with `Rscript bundle_support/install_r_figure_packages.R`; `--check` reports readiness for its listed packages without installing.
+Use R >= 4.3 for the R figure workflows. One script installs the R packages: `bundle_support/install_r_figure_packages.R`. The packages come in four groups. Only the core group is required. Each other group adds one family of figures, and you can skip it if you do not draw those figures.
 
-Two of these packages serve specific renderers: **`svglite`** supplies the SVG device used by the figure workflows, and **`aplot`** is loaded by `tools/ggtree_rect_heatmap.R`. Install them in the same R library the renderer uses. To check just those two before choosing those renderers:
+| Group | Packages | What it adds | Required? |
+|---|---|---|---|
+| `core` | `ggplot2`, `ggtext`, `jsonlite`, `scales`, `dplyr`, `patchwork`, `ggrepel`, `svglite`, `systemfonts`, `xml2` | Every R figure. The shared minimum-text check uses `svglite`, `systemfonts` and `xml2`. | Yes |
+| `trees` | `ape`, `ggtree`, `treeio`, `aplot` | Phylogenetic tree figures. `ggtree` and `treeio` come from Bioconductor and need system libraries (cairo, libuv), so this is the slowest group to install. | No |
+| `bioassay` | `tidyr`, `png` | Bioassay panels. | No |
+| `extras` | `ragg`, `ggchicklet` | PNG output for the genus-composition figures (`ragg`), and rounded bars in the BGC class-group chart (`ggchicklet`). Without `ggchicklet`, that chart draws plain square bars with the same data, labels and colors. | No |
 
 ```bash
-Rscript -e 'p <- c("svglite", "aplot"); ok <- vapply(p, requireNamespace, logical(1), quietly=TRUE); print(ok); if (!all(ok)) quit(status=2)'
+Rscript bundle_support/install_r_figure_packages.R                     # core required; tries every other group
+Rscript bundle_support/install_r_figure_packages.R --require trees     # also fail if a tree package is missing
+Rscript bundle_support/install_r_figure_packages.R --require all       # every group required (what GitHub CI uses)
+Rscript bundle_support/install_r_figure_packages.R --check             # report only; installs nothing
 ```
 
-This namespace check establishes package availability only; verify a small actual SVG/rectangular output for the selected renderer before scaling up. For an offline machine, download the package source archives yourself and run `--from <dir>`; no third-party package source ships in the bundle, and source builds still need their system dependencies. Missing packages produce a nonzero exit. `python mamey_run.py doctor` reports
-whether `Rscript` is found; a missing package surfaces as an R error at render time, never as a figure.
+What happens when something is missing:
+- **A core package:** the installer exits with status 2. Fix this before drawing any R figure.
+- **A package in another group:** the installer lists it as `not installed (optional)` and still succeeds. Only that group's figures are unavailable; everything else works.
+- **With `--require <group>`:** a missing package in that group is listed as `MISSING`, and the installer exits with status 2.
+
+`python mamey_run.py doctor` prints one line per group: ready, or which packages are missing, which figures that affects, and the command that fixes it.
+
+`ggchicklet` is not on CRAN. The installer fetches its author's source archive, pinned to one commit, from `codeload.github.com`. No GitHub account or token is needed.
+
+For an offline machine, download the package source archives yourself and run `--from <dir>`. No third-party package source ships in the bundle, and source builds still need their system dependencies. A package check shows only that the package loads; render a small figure of the type you need before scaling up.
 
 ## Offline and architecture-specific installation
 

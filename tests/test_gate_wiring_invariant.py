@@ -185,6 +185,7 @@ def test_orphan_detection_fires_when_a_reference_is_removed(tmp_path):
 # fails the test, forcing the call rather than letting it drift.
 _UNIT_TESTED_OPERATOR_GATES = {
     "check_tygs_coverage": "TYGS panel coverage report (.448); unit-tested, run while building tree panels, not a cut gate",
+    "assembly_qc_check": "operator assembly QC report; its 12 Mb warning value is read by test_assembly_size_ceiling (.455), not a cut gate",
     # figure_check: reclassified WIRED in .401 (figure_check_render_wiring) — now
     # hooked into tools/render_clean_tree.py before any figure render, so it is no longer
     # operator-only (the check_module_accretion .321 path, as the .400 note prescribed).

@@ -1,6 +1,6 @@
 # Tools Inventory (generated)
 
-**524 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
+**527 tools** in `tools/`. Generated from each tool's docstring by `tools/gen_tools_inventory.py` — do not edit by hand. Check this list BEFORE writing a new tool.
 
 > **This is the INTERNAL script catalog** (the `tools/` helpers shipped with the engine). For the **external tool stack** the workflow depends on — antiSMASH, BiG-SCAPE, IQ-TREE, GToTree, BLAST+, SPAdes and their versions/citations — see `docs/EXTERNAL_TOOL_INVENTORY.md`.
 
@@ -37,6 +37,7 @@
 | `add_xstrain_sheets.py` | Append or refresh the three deterministic cross-strain workbook sheets. |
 | `ani_caption_check.py` | Check that a caption/table names ANI versus AAI honestly and flags boundary values. |
 | `antismash_bigscape_join.py` | - reconcile antiSMASH per-BGC output with BiG-SCAPE GCF families. |
+| `antismash_input_genome.py` | Write the genome an antiSMASH run was given, as nucleotide FASTA, from its result ZIP. |
 | `antismash_strictness_census.py` | say which antiSMASH detection strictness each result used, before anyone compares region counts across genomes. |
 | `apply_dapr_boards.py` | re-apply the Sapote-layer DAPR judgment boards (C1/C2) to a workbook. |
 | `archive_leak_scan.py` | private-ID leak guard for the *contents* of committed archives. |
@@ -325,6 +326,7 @@
 | `lead_propagation_gate.py` | does every triage-board lead reach every lead-listing surface? |
 | `llm_trustworthiness.py` | "Is the LLM being trustworthy right now?"  (candidate module, v1 — F02 rework) |
 | `locator_reconciliation.py` | verify a Mode B card's header fields match the canonical triage row for that BGC. Sprint-1 idea from the ChatGPT patch chat. |
+| `locus_rarity_by_genus.py` | tools/locus_rarity_by_genus.py -- how rare is one antiSMASH region (a locus) among the genomes of each genus? |
 | `locus_reading_pages.py` | locus_reading_pages.py: one locus-reading page per antiSMASH region, every gene with every evidence layer. |
 | `log_release.py` | append one row to RELEASES_LOG.md for the current build (idempotent). |
 | `make_public_tier.sh` | cut a clean release tier from the working tree, deterministically. |
@@ -383,6 +385,7 @@
 | `phylo_refset.py` | build a RIGHT-SIZED, DE-DUPLICATED 16S reference set for phylogenetic placement. |
 | `phylo_roster.py` | number the strains in a tree or panel, and edit them by number. |
 | `phylo_sequence_admission.py` | Fail-closed admission gate for 16S placement and whole-genome tree inputs. |
+| `pks_piece_map.py` | tools/pks_piece_map.py -- where along each large reference PKS protein do one genome's protein pieces sit? |
 | `pks_product_class.py` | - predict polyketide product class from per-module reductive loops. |
 | `placement_display.py` | Render a placement run in a new output directory, preserving every input tip. |
 | `placement_figure.py` | a paper-ready companion figure from a phylogenetic-placement grafted tree. |

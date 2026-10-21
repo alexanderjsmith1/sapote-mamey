@@ -17,7 +17,13 @@ it is not a version banner, scientific validation or installation approval.
 ## DIAMOND clustering
 
 Protein PCoA keeps its existing `--cluster-work-root` option and whole-worker
-monitor. Only DIAMOND's clustering cwd and file arguments use the shared disposable
+monitor. Without the option, clustering scratch goes under the attempt's own
+`RESOURCE_ATTEMPT` folder, beside the receipts that own it, so a run writes nothing
+outside its output kit. If that folder's path is not shell-safe (for example it
+contains a space), the resolved system temporary root is used instead. The receipt's
+`cluster_workspace.root_source` records which (`EXPLICIT`, `ATTEMPT_RECEIPT_DEFAULT`,
+`SYSTEM_TEMP_FALLBACK_ATTEMPT_PATH_NOT_SHELL_SAFE`). The free-disk watch on the
+scratch filesystem is unchanged. Only DIAMOND's clustering cwd and file arguments use the shared disposable
 workspace. Scientific arguments, thresholds, feature construction, similarity and
 ordination are unchanged. Bounded streamed copies bind original and consumed bytes.
 The original attempt retains its cluster diagnostics, copied table and source hashes.

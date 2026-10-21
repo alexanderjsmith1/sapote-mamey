@@ -43,7 +43,7 @@ from .ziputil import regular_file_names
 
 K = 5
 MIN_KS_AA = 100                    # a KS domain is ~400 aa; a shorter slice is an unusable stub
-DEFAULT_THRESHOLD = 0.40           # top of the stable plateau (BB sweep); a proposal, not a constant
+DEFAULT_THRESHOLD = 0.40           # top of the stable plateau (BB sweep); fixed, with no command-line option
 NEAR_IDENTICAL = 0.75              # containment >=0.75 across contigs -> iterative / same-gene split flag
 
 # .366 (C12, phylogeny-lane sign-off 2026-08-12): partition the single-linkage pass by antiSMASH KS

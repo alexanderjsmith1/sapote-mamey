@@ -18,6 +18,9 @@ house <- function() theme_pub(base=9) + theme(text=element_text(size=8),
 
 genlab <- function(x) ifelse(x=="Unassigned",prof$unassigned_label,ifelse(x %in% c("Other genera",prof$plain_rows),x,paste0("<i>",x,"</i>")))
 PRINT_WIDTH_IN <- 7.2    # DOUBLE_COLUMN publication width (docs/FIGURE_STYLE.md, "Publication artwork gate")
+# A collection's print_width_in (bioassay_layouts.json) is the text column its paper places figures in, so 8 pt text
+# prints at 8 pt; a 7.2 in figure placed in a 6.0 in column printed its text near 6.7 pt (the owner, 19 Oct, ruling 155).
+if (!is.null(prof$print_width_in)) PRINT_WIDTH_IN <- as.numeric(prof$print_width_in)
 EDGE_IN <- 0.15          # white space kept on every side; equal left and right, so the content is centered
 .ink_margins <- function(file) {   # white space (inches at the probe resolution) around everything drawn
   a <- png::readPNG(file); ink <- (a[,,1] < .92) | (a[,,2] < .92) | (a[,,3] < .92)

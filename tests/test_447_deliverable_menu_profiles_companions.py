@@ -97,7 +97,7 @@ def test_metabolomics_missing_parser_and_unbound_source_are_truthful(tmp_path,mo
 
 def test_nonks_route_preserves_default_and_explicit_vetoes(tmp_path):
     parsed=build_parser().parse_args(['two-proof-rescue','--package','p'])
-    assert parsed.policy == 'ks_clade_v2'
+    assert parsed.policy == 'class_routed_v1'
     text=item('E08')['summary']
     for needed in ['nonks_position_v1','CONSISTENT','APART_CLOSE','CONFLICT','typed uncertainty','supporting evidence only']:
         assert needed in text

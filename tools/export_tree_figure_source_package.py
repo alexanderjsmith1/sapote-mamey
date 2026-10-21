@@ -147,7 +147,9 @@ def main():
         replay_env['GG_PAGE_TITLE'] = '1' if replay_env.get('GG_PAGE_TITLE') == '1' else '0'
     allowed = {'GG_STRIPS','GG_ITALIC','GG_STRIP1_TITLE','GG_STRIP2_TITLE','GG_STRIP_KIND','GG_BLANK_MISSING',
                'GG_FOCAL_FACE','GG_FOCAL_BAND','GG_FIT_LABELS','GG_FIG_WIDTH','GG_PRINT_WIDTH',
-               'GG_SUPPORT_MIN','GG_PAGE_TITLE','GG_CAPTION_MD','GG_ACTIVITY_SPEC','GG_ACTIVITY_PALETTE','SAPOTE_GEOGRAPHY_LEVEL'}
+               'GG_SUPPORT_MIN','GG_PAGE_TITLE','GG_CAPTION_MD','GG_ACTIVITY_SPEC','GG_ACTIVITY_PALETTE','SAPOTE_GEOGRAPHY_LEVEL',
+               'GG_SUPPORT_MAX','GG_SCALE_OFFSET',  # m5_452 tree display options
+               'GG_SUPPORT_POS','GG_SUPPORT_UNPLACED','GG_SCALE_PAGES'}  # their v2 settings (v9.7.455 lane)
     replay_exports = '\n'.join('export '+key+'='+q(str(value)) for key,value in sorted(replay_env.items()) if key in allowed)
     (out/helper_name).write_text(f"""#!/bin/sh
 set -eu

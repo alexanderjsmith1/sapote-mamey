@@ -174,7 +174,7 @@ def test_nonks_explicit_position_policy(fixture,pos,expected):
     result=N.apply_policy([row],f.manifest,[score(f,pos)],N.POSITION_POLICY)[0]
     assert result['verdict']==expected and result['rule_policy']==N.POSITION_POLICY
     assert result['identity_a']==score(f)['identity_a'] and 'SUPPORTING_ONLY' in result['kcb_role']
-    assert N.apply_policy([row],f.manifest,[score(f,pos)])[0]['verdict']=='RGGMCI_ONLY'
+    assert N.apply_policy([row],f.manifest,[score(f,pos)],N.KS_POLICY)[0]['verdict']=='RGGMCI_ONLY'
 
 @pytest.mark.parametrize('case',['moderate','no_logic','ks_present','unknown_class','no_relative','kcb_only'])
 def test_nonks_no_unearned_promotion(fixture,case):
@@ -296,5 +296,8 @@ def test_nonks_alternative_never_changes_default_join(fixture):
     promoted=N.apply_policy(before,f.manifest,[score(f)],N.POSITION_POLICY)
     assert promoted[0]['verdict']=='TWO_PROOF_RESCUE'
     assert before[0]['verdict']=='RGGMCI_ONLY'
-    after=N.apply_policy(before,f.manifest,policy=N.DEFAULT_POLICY)[0]
+    after=N.apply_policy(before,f.manifest,policy=N.KS_POLICY)[0]
     assert after['verdict']=='RGGMCI_ONLY' and after['independent_proof_state']=='NOT_OBSERVED'
+    # the class-routed default promotes nothing without a position reading
+    routed=N.apply_policy(before,f.manifest)[0]
+    assert routed['verdict']=='RGGMCI_ONLY' and routed['position_verdict']=='NOT_READ'

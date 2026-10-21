@@ -217,4 +217,13 @@ def status() -> dict[str, dict]:
             "upstream": ds.upstream,
             "licence": ds.licence,
         }
+        if key == "npatlas":
+            # `provisioned` above is the raw-file probe. The consumer reads different, normalized
+            # files, so report what it can actually load as well; the two can disagree.
+            from .npatlas_resolver import consumer_readiness
+            ready = consumer_readiness()
+            out[key].update({"consumer_ready": ready["named_compounds"] > 0,
+                             "consumer_references": ready["files"],
+                             "consumer_named_compounds": ready["named_compounds"],
+                             "consumer_unreadable": ready["unreadable"]})
     return out

@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.454 stamp=20261019v97454a
+# TIER_MANIFEST tier=code version=9.7.455 stamp=20261019v97455a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -192,6 +192,7 @@
 ./docs/CORASON_WORKFLOW.md
 ./docs/CUSTOM_PRIVACY_TIERS.md
 ./docs/DAPR_CLASS_FRAMEWORK.md
+./docs/DATA_HOME.md
 ./docs/DEFINITIVE_BGC_RANKER.md
 ./docs/DELIVERABLE_CONTRACT.md
 ./docs/DELIVERABLE_MANIFEST_TEMPLATE.md
@@ -1165,9 +1166,11 @@
 ./mamey/source_provenance.py
 ./mamey/source_scans.py
 ./mamey/split_detector.py
+./mamey/split_evidence_layers.py
 ./mamey/stage2_overlay.py
 ./mamey/strain_data_home.py
 ./mamey/strain_identity.py
+./mamey/strain_master.py
 ./mamey/strain_modeb.py
 ./mamey/structured_domain_motif_extension.py
 ./mamey/tab_reconcile.py
@@ -1974,7 +1977,15 @@
 ./tests/test_454_compile_report_readonly_validation.py
 ./tests/test_454_deliverable_queue_resume_binds_bytes.py
 ./tests/test_454_readme_dependency_coverage.py
+./tests/test_455_class_routed_second_proof.py
+./tests/test_455_npatlas_status_reports_consumer_readiness.py
 ./tests/test_455_paper_cohort_registry.py
+./tests/test_455_protein_tsne_companion.py
+./tests/test_455_runner_build_id_and_shadow_warning.py
+./tests/test_455_runner_unreadable_result_is_held.py
+./tests/test_455_strain_master.py
+./tests/test_455_two_proof_needs_high.py
+./tests/test_456_r_figure_groups.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_absent_median_is_not_a_zero_v97438.py
 ./tests/test_activity_decision_tree_portable.py
@@ -1996,6 +2007,7 @@
 ./tests/test_antimicrobial_recall_v9_7_121.py
 ./tests/test_antismash_coordinate_observability.py
 ./tests/test_antismash_hmm_table.py
+./tests/test_antismash_input_genome.py
 ./tests/test_antismash_input_recognition.py
 ./tests/test_antismash_profile.py
 ./tests/test_antismash_profile_ambiguity_codex_v97442.py
@@ -2016,6 +2028,7 @@
 ./tests/test_assembly_line.py
 ./tests/test_assembly_line_family_v97413.py
 ./tests/test_assembly_sanity_pca2.py
+./tests/test_assembly_size_ceiling.py
 ./tests/test_atlas_reference_patterns.py
 ./tests/test_atomic_json_writer_owner_v97396.py
 ./tests/test_atomic_save.py
@@ -2419,6 +2432,7 @@
 ./tests/test_cross_strain_denominator_audit_ambiguous_window_bc2.py
 ./tests/test_cross_strain_denominator_audit_v9_7_116.py
 ./tests/test_cross_strain_denominator_audit_wide_drift_bc2_401.py
+./tests/test_cross_strain_figures_missing_is_not_zero_v97443.py
 ./tests/test_cross_strain_theme_hook.py
 ./tests/test_cross_strain_threads.py
 ./tests/test_crosswalk_hardening_v97244.py
@@ -2830,6 +2844,11 @@
 ./tests/test_m5_452_public_genome_families_axis_breaks.py
 ./tests/test_m5_452_public_genome_families_overflow_pages.py
 ./tests/test_m5_452_q01_input_gbk_first.py
+./tests/test_m5_452_tree_display_options.py
+./tests/test_m5_455_locus_rarity_by_genus.py
+./tests/test_m5_455_pcoa_cluster_root_default.py
+./tests/test_m5_455_pks_piece_map.py
+./tests/test_m5_455_tree_replay_settings.py
 ./tests/test_m5_audit_diagnostic_repairs.py
 ./tests/test_m5_companion_probe_alignment.py
 ./tests/test_m5_epa_resource_binding.py
@@ -3728,6 +3747,7 @@
 ./tools/add_xstrain_sheets.py
 ./tools/ani_caption_check.py
 ./tools/antismash_bigscape_join.py
+./tools/antismash_input_genome.py
 ./tools/antismash_strictness_census.py
 ./tools/apply_dapr_boards.py
 ./tools/archive_leak_scan.py
@@ -4036,6 +4056,7 @@
 ./tools/lead_propagation_gate.py
 ./tools/llm_trustworthiness.py
 ./tools/locator_reconciliation.py
+./tools/locus_rarity_by_genus.py
 ./tools/locus_reading_pages.py
 ./tools/log_release.py
 ./tools/make_public_tier.sh
@@ -4097,6 +4118,7 @@
 ./tools/phylo_refset.py
 ./tools/phylo_roster.py
 ./tools/phylo_sequence_admission.py
+./tools/pks_piece_map.py
 ./tools/pks_product_class.py
 ./tools/placement_display.py
 ./tools/placement_figure.py

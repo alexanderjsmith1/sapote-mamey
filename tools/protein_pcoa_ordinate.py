@@ -23,6 +23,11 @@ Subcommands (run in order; each refuses to overwrite its own outputs):
            distance = 1 - identity/100 of the best hit either way, 1 with no hit (e > 1e-3); classical PCoA, three axes,
            % = eigenvalue / trace of the centred matrix.
   nearest  --set S   each cohort protein's best hit among ALL reference and MIBiG sequences of the set (not only centroids).
+  tsne     --set S   t-SNE companion layout (default perplexity 40, seed 20261019) fitted on the same distances as
+           ordinate, read from the retained allvsall.tsv.gz (ordinate --keep-allvsall) or an explicit --allvsall table.
+           Writes out_<SET>/TSNE_<SET>.tsv (id, TSNE1, TSNE2) and its exact sidecar TSNE_<SET>.json, which
+           protein_pcoa_render.py --page pcoa,tsne reads. The sidecar also records local (trustworthiness, k = 10) and
+           global (Spearman rho of input vs plotted distance) scores. Needs scikit-learn; nothing is substituted.
 
 Ordinate uses fresh attempts and a watched Python worker; --preflight requires an explicit receipt directory.
 Resource defaults are configurable engineering limits, not scientific thresholds.
@@ -623,6 +628,87 @@ def cmd_nearest(a):
     return dict(set=T, cohort_proteins=len(iso), below_70=sum(1 for i in iso if best.get(i, ("", 0.0))[1] < 70))
 
 
+# ---------------------------------------------------------------- tsne
+TSNE_PERPLEXITY = 40.0   # run 7 KS, P450, HALO: best neighbour preservation of the layouts compared (owner proposal, 455)
+TSNE_SEED = 20261019
+TSNE_SCORE_PAIRS = 200_000
+
+
+def cmd_tsne(a):
+    """Fit t-SNE on the set's own all-vs-all distances; write the table and exact sidecar the renderer reads.
+
+    Admission is an estimate of the dense-matrix footprint against --rss-limit-bytes; this step does not run in the
+    watched ordinate worker. Positions are sequence similarity only."""
+    try:
+        import numpy as np
+        from scipy.stats import spearmanr
+        from sklearn import __version__ as sklearn_version
+        from sklearn.manifold import TSNE, trustworthiness
+    except ImportError as exc:
+        raise OrdinateRefusal(f"tsne needs scikit-learn and scipy ({exc.name} is missing); nothing is substituted")
+    kit = Path(a.kit); T = a.set; out = kit / f"out_{T}"
+    dest = Path(a.out_dir) if a.out_dir else out
+    table, sidecar = dest / f"TSNE_{T}.tsv", dest / f"TSNE_{T}.json"
+    refuse_existing(table, sidecar)
+    pcoa = out / f"PCOA_{T}.tsv"
+    ids = [r["id"] for r in read_tsv(pcoa)]
+    run_path = out / f"RUN_{T}.json"
+    kept = (json.loads(run_path.read_text()).get("retained_allvsall") if run_path.exists() else None)
+    order_sha = hashlib.sha256(("\n".join(ids) + "\n").encode()).hexdigest()
+    if a.allvsall:
+        hits, binding = Path(a.allvsall), "SUPPLIED_NOT_BOUND_BY_RUN"
+    elif kept:
+        hits, binding = out / kept["relative_path"], "RUN_RETAINED_ALLVSALL"
+        if _resources.digest(hits)["sha256"] != kept["sha256"]:
+            raise OrdinateRefusal(f"{hits} differs from the SHA-256 bound in {run_path.name}")
+        if order_sha != kept["id_order_sha256"]:
+            raise OrdinateRefusal(f"{pcoa.name} id order differs from the order bound to the retained all-vs-all")
+    else:
+        raise OrdinateRefusal(f"no retained all-vs-all for {T}: run ordinate --keep-allvsall, or pass --allvsall")
+    n = len(ids)
+    if not 0 < a.perplexity < n:
+        raise OrdinateRefusal(f"perplexity {a.perplexity:g} must be above 0 and below the {n} points")
+    need = n * n * 28   # float32 matrix plus the float64 copies made by the fit and the scores (estimate)
+    if need > 0.8 * a.rss_limit_bytes:
+        raise OrdinateRefusal(f"{n} points need about {need:,} bytes, above 80% of --rss-limit-bytes {a.rss_limit_bytes:,}")
+    before = _resources.digest(hits)
+    D = distance_matrix(hits, ids)
+    started = time.time()
+    Y = TSNE(n_components=2, metric="precomputed", init="random", perplexity=a.perplexity,
+             random_state=a.seed, n_jobs=a.threads).fit_transform(D)
+    seconds = round(time.time() - started, 1)
+    if _resources.digest(hits) != before:
+        raise OrdinateRefusal(f"{hits} changed during the fit")
+    rng = np.random.default_rng(a.seed)
+    i, j = rng.integers(0, n, TSNE_SCORE_PAIRS), rng.integers(0, n, TSNE_SCORE_PAIRS)
+    keep = i != j; i, j = i[keep], j[keep]
+    rho = float(spearmanr(D[i, j], np.sqrt(((Y[i] - Y[j]) ** 2).sum(1))).statistic)
+    k = min(10, (n - 1) // 2)
+    trust = float(trustworthiness(D, Y, n_neighbors=k, metric="precomputed"))
+    dest.mkdir(parents=True, exist_ok=True)
+    with open(table, "x", newline="") as fh:
+        w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
+        w.writerow(["id", "TSNE1", "TSNE2"])
+        w.writerows([pid, f"{y[0]:.5f}", f"{y[1]:.5f}"] for pid, y in zip(ids, Y))
+    record = dict(
+        set=T, points=n,
+        coordinates_sha256=_resources.digest(table)["sha256"],
+        tsne=dict(version=f"scikit-learn {sklearn_version}", seed=a.seed,
+                  parameters=dict(perplexity=a.perplexity, metric="precomputed", init="random", n_components=2,
+                                  threads=a.threads)),
+        input=dict(allvsall=str(hits), allvsall_sha256=before["sha256"], binding=binding,
+                   pcoa_table=str(pcoa), pcoa_sha256=_resources.digest(pcoa)["sha256"], id_order_sha256=order_sha),
+        scores=dict(trustworthiness=round(trust, 4), trustworthiness_k=k, spearman_global=round(rho, 4),
+                    spearman_pairs=int(keep.sum()), pair_seed=a.seed),
+        seconds=seconds,
+        reading="Positions are sequence similarity only. t-SNE keeps near neighbours; cluster sizes, gaps and "
+                "placement on the page are not distances.")
+    with open(sidecar, "x") as fh:
+        json.dump(record, fh, indent=1, allow_nan=False)
+        fh.write("\n")
+    return dict(set=T, tsne_table=str(table), sidecar=str(sidecar), points=n, scores=record["scores"])
+
+
 def main(argv=None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if args[:1] == ["--_ordinate-worker"]:
@@ -655,16 +741,23 @@ def main(argv=None) -> int:
     o.add_argument("--preflight", action="store_true", help="stream metadata/counts only; requires an explicit fresh receipt destination")
     o.add_argument("--resource-receipt-dir", help="fresh explicit diagnostic directory for --preflight only")
     o.add_argument("--attempt-root", help="output kit root; out_<SET> must not exist (source kit is read-only)")
-    o.add_argument("--cluster-work-root", help="existing shell-safe directory for fresh cluster-only scratch; default resolved system temp root")
+    o.add_argument("--cluster-work-root", help="existing shell-safe directory for fresh cluster-only scratch; default the attempt's own RESOURCE_ATTEMPT folder "
+                        "(the resolved system temp root only when that path is not shell-safe; recorded as root_source)")
     o.add_argument("--rss-limit-bytes", type=int, default=_resources.DEFAULT_RSS)
     o.add_argument("--min-free-disk-bytes", type=int, default=_resources.DEFAULT_DISK)
     o.add_argument("--timeout-seconds", type=float, default=_resources.DEFAULT_TIMEOUT)
     n = sub.add_parser("nearest", parents=[common]); n.add_argument("--set", required=True)
+    t = sub.add_parser("tsne", parents=[common]); t.add_argument("--set", required=True)
+    t.add_argument("--perplexity", type=float, default=TSNE_PERPLEXITY)
+    t.add_argument("--seed", type=int, default=TSNE_SEED)
+    t.add_argument("--allvsall", help="hit table (qseqid, sseqid, pident; .gz allowed) when the kit has no retained all-vs-all")
+    t.add_argument("--out-dir", help="folder for TSNE_<SET>.tsv/.json (default out_<SET>); existing outputs are refused")
+    t.add_argument("--rss-limit-bytes", type=int, default=_resources.DEFAULT_RSS)
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:
         result = {"extract": cmd_extract, "pfam": cmd_pfam, "card": cmd_card, "ordinate": cmd_ordinate,
-                  "nearest": cmd_nearest}[a.cmd](a)
+                  "nearest": cmd_nearest, "tsne": cmd_tsne}[a.cmd](a)
     except (OrdinateRefusal, OSError, zipfile.BadZipFile, UnicodeError) as exc:
         _LOG.error("REFUSED: %s", exc)
         return 2

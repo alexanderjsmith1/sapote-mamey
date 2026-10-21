@@ -1,8 +1,8 @@
 # Troubleshooting a Sapote–Mamey run
 
 Before any `doctor` example below, read the [write-probe boundary](INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
-untouched. The current diagnostic can overwrite or remove its probe file.
+Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
+untouched and report the hold; the diagnostic refuses an occupied probe location.
 
 Start with the symptom below. Keep the failed attempt, exact command and error message. Change one thing at a time and use a new output folder for a replacement run. An error is useful evidence; repeatedly rerunning over the same folder makes it harder to diagnose.
 

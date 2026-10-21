@@ -7,14 +7,14 @@
 #   - the T06 x range comes from the data (and keeps the 98.65% line in view), not a fixed 95-100%;
 #   - genus colours come from mamey/data/genus_palette.json.
 # Args: data.tsv palette.json outdir widthA widthB
-suppressPackageStartupMessages({ library(ggplot2); library(dplyr); library(readr); library(ggrepel); library(ggtext); library(jsonlite) })
+suppressPackageStartupMessages({ library(ggplot2); library(dplyr); library(ggrepel); library(ggtext); library(jsonlite) })
 here <- dirname(normalizePath(sub("--file=", "", grep("--file=", commandArgs(FALSE), value = TRUE))))
 source(file.path(here, "sapote_pub_layout.R"))
 source(file.path(here, "sapote_stamp_required.R"))
 a <- commandArgs(TRUE); data <- a[1]; pal_file <- a[2]; out <- a[3]; WA <- as.numeric(a[4]); WB <- as.numeric(a[5])
 KEY <- if (length(a) >= 6 && nzchar(a[6])) a[6] else "Genus (16S rRNA)"
 PT <- 8
-d <- read_tsv(data, show_col_types = FALSE, col_types = cols(.default = "c")) %>%
+d <- read.delim(data, colClasses = "character", na.strings = c("", "NA"), check.names = FALSE, quote = "\"") %>%
   mutate(across(c(d4, d4_ci_low, d4_ci_high, similarity_16s), as.numeric)) %>% arrange(d4)
 pj <- fromJSON(pal_file); pal_all <- unlist(pj$default)
 PSET <- if (length(a) >= 7) a[7] else ""

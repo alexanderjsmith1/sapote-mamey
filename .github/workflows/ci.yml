@@ -48,7 +48,8 @@ jobs:
             libharfbuzz-dev libfribidi-dev libpng-dev libjpeg-dev libtiff5-dev libwebp-dev \
             libuv1-dev libcairo2-dev   # fs (for yulab.utils, ggfun, aplot) needs libuv; gdtools (for ggtree) needs cairo
       - name: R figure packages
-        run: Rscript bundle_support/install_r_figure_packages.R
+        # --require all: CI installs every figure group so every R figure test runs; users need only the core group.
+        run: Rscript bundle_support/install_r_figure_packages.R --require all
 
       # No third-party reference data is redistributed (v9.7.362), so the dataset-dependent
       # tests SKIP here by design. That is the contract, not a gap: see docs/EXTERNAL_DATA.md.

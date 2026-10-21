@@ -9,7 +9,7 @@ ones.
 
 How, for one pair and one MIBiG cluster both regions already match in KnownClusterBlast:
 1. Every protein of each region is aligned against the cluster's proteins (DIAMOND blastp, >= 30% identity,
-   e <= 1e-10, the settings of the gap-rescue screen).
+   e <= 1e-10; the gap-rescue screen itself uses >= 30% identity over 50% coverage at e <= 1e-5).
 2. Each side is placed on the cluster on its own, best bitscore first. Every residue of a region protein and every
    residue of a cluster protein is used once, and an alignment counts only if it adds >= RESIDUE_MIN_NEW residues on
    both. So a PKS module is placed where it matches best, not against every similar module of the reference.

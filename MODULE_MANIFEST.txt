@@ -287,7 +287,7 @@ mamey/modeb_template_emitter.py	modeb_template_emitter.py — canonical §1–§
 mamey/models.py	Mamey data models.
 mamey/native_workspace.py	Bounded native working paths; no subprocess, science, installation or discovery.
 mamey/nominal_length.py	mamey/nominal_length.py — BGC length reporting + nominal-length normalization (DRAFT v9.7.104).
-mamey/nonks_second_proof.py	Explicit alternative second-proof policy; no default scientific promotion.
+mamey/nonks_second_proof.py	Second-proof policies for split-cluster candidates, routed by cluster class.
 mamey/npatlas_provision.py	mamey/npatlas_provision.py — user-provisioned NP Atlas ingestion (v9.7.405, punch-card B7).
 mamey/npatlas_resolver.py	NP Atlas compound-reference resolver (v9.7.186 — NP Atlas incorporation).
 mamey/npatlas_structure.py	npatlas_structure.py — resolve a compound *name* to its known chemical STRUCTURE
@@ -371,9 +371,11 @@ mamey/source_context.py	Per-run source binding for explicitly migrated readers; 
 mamey/source_provenance.py	source_provenance.py — how strongly is this strain's isolation source evidenced?
 mamey/source_scans.py	Source-derived scanning engine — all pattern dictionaries and scan functions.
 mamey/split_detector.py	Contig-end split detector v2 — with discriminating filters to cut false positives.
+mamey/split_evidence_layers.py	Independent evidence layers for one candidate split pair, read from the antiSMASH result archive.
 mamey/stage2_overlay.py	Attach hash-bound scientific-review overlays to a locator-first report cohort.
 mamey/strain_data_home.py	strain_data_home.py — canonical per-strain data-home resolver for Sapote-Mamey.
 mamey/strain_identity.py	strain_identity.py — a strain ID must be an identity, not an accession.
+mamey/strain_master.py	strain_master.py — create, fill and check a User Strain Master (docs/DATA_HOME.md).
 mamey/strain_modeb.py	FULL STRAIN SAPOTE — strain-level Mode B generator
 mamey/structured_domain_motif_extension.py	Index saved Mamey structured exports. No original antiSMASH parser or new scan.
 mamey/tab_reconcile.py	antiSMASH tab reconciliation for one BGC/region.

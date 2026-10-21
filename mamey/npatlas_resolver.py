@@ -138,6 +138,38 @@ def _load_index() -> dict[str, dict[str, Any]]:
     return idx
 
 
+def consumer_readiness() -> dict[str, Any]:
+    """What this resolver can actually load, read fresh (no process cache).
+
+    Lists the reference files it would use, the number of distinct named compounds they hold, and
+    any file that exists but cannot be parsed. `external_data.status()` reports this beside its own
+    filename probe, which looks for a different (raw) file."""
+    files: list[str] = []
+    unreadable: list[str] = []
+    names: set[str] = set()
+    seen: set[str] = set()
+    for d in _npatlas_dirs():
+        for fn in _REF_FILES:
+            p = d / fn
+            if not p.exists():
+                continue
+            key = str(p.resolve())
+            if key in seen:
+                continue
+            seen.add(key)
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, ValueError) as exc:
+                unreadable.append(f"{p} ({type(exc).__name__})")
+                continue
+            files.append(str(p))
+            for c in (data.get("compounds", []) if isinstance(data, dict) else []):
+                nm = str(c.get("name", "")).strip().lower() if isinstance(c, dict) else ""
+                if nm:
+                    names.add(nm)
+    return {"files": files, "named_compounds": len(names), "unreadable": unreadable}
+
+
 def npatlas_available() -> bool:
     """True if the NP Atlas add-on resolved any references (for status reporting / receipts)."""
     return len(_load_index()) > 0

@@ -370,7 +370,9 @@ NOTE_WRAP = 140  # footnote characters per line
 # Print widths (bundle docs/FIGURE_STYLE.md, publication artwork gate): SINGLE_COLUMN 3.5 in and DOUBLE_COLUMN 7.2 in,
 # every plot label at least 8 pt at that width, and no touching or overlapping labels (house rule 10). The 13.5 in screen
 # layout drew 6-7.5 pt text, which printed near 3.7 pt on a 7.2 in page. print_width=None keeps that layout exactly.
-PRINT_WIDTHS = {"single": 3.5, "double": 7.2}
+PRINT_WIDTHS = {"single": 3.5, "double": 7.2,
+                # the text column of the thesis papers: a map placed there at 7.2 in printed its 8 pt text at 6.7-7.2 pt
+                "page6.0": 6.0, "page6.5": 6.5}
 MIN_PRINT_PT = 8.0
 PRINT_NAME_CHARS = 26   # a BLASTp name is cut to this many characters at print width; the gene table keeps it whole
 PRINT_DRIFT = 2.0       # an unmatched-gene label may sit at most this many label spacings from its gene; otherwise it is
@@ -867,7 +869,8 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
     the same part of the reference, which is not a rescue. anchor: the reference gene both rows are centred on
     (anchor_gene). context_partners: add a context row for each off-region match this map does not draw (see
     context_contigs). Off by default; it changes nothing that is drawn, ribboned or counted.
-    print_width: None (the 13.5 in screen layout, unchanged), "single" (3.5 in) or "double" (7.2 in). At a print width
+    print_width: None (the 13.5 in screen layout, unchanged), "single" (3.5 in), "double" (7.2 in), "page6.0" or "page6.5"
+    (6.0 or 6.5 in, the text column of the thesis papers). At a print width
     the map is drawn at that width with every text item at least 8 pt; matched-gene labels are all kept, unmatched-gene
     labels fill the free space by function class and the rest are counted in the footnote (the gene table lists every
     gene); the finished drawing is checked for touching text and refused (GAP_RESCUE_MAP_TEXT_OVERLAP) before any
@@ -883,7 +886,7 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
     accession alone (short_panel); the gene table keeps the product. key: False leaves out the identity colour bar and
     the gene-class legend, for a figure that prints one shared key; panel only. The scale bar is always drawn."""
     if print_width is not None and print_width not in PRINT_WIDTHS:
-        raise ValueError(f"print_width must be None, 'single' or 'double', not {print_width!r}")
+        raise ValueError(f"print_width must be None or one of {sorted(PRINT_WIDTHS)}, not {print_width!r}")
     if panel and print_width is None:
         raise ValueError("GAP_RESCUE_MAP_PANEL: panel needs a print width ('single' or 'double')")
     if not key and not panel:
@@ -1057,7 +1060,9 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
         else:
             off = 0.0
     xmin, xmax = min(0.0, off) - 0.6, max(ref_len, end + off) + 0.6
-    Y_V, Y_A = (1.5 if panel else 2.3), 0.0   # a panel keeps a shorter ribbon band
+    # a panel used a shorter ribbon band (1.5); the owner, 19 Oct (Attine Fig. 5a, Moss Fig. 5): "stretch out (lengthen) the
+    # ribbons. make the mibig and isolate loci farther from each other" -> panels now use the full band of the screen map
+    Y_V, Y_A = 2.3, 0.0
     gene_names, other_refs = gene_names or {}, other_refs or {}
     W = PRINT_WIDTHS.get(print_width)       # None: the 13.5 in screen layout, unchanged
     fs = (lambda v: v) if W is None else (lambda v: max(MIN_PRINT_PT, v))

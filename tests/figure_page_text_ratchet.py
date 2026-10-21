@@ -40,7 +40,6 @@ FROZEN_KNOWN_SITES = frozenset({
     "mamey/master_figure_atlas.py::_save",
     "mamey/render_brief.py::_text_page",
     "mamey/render_brief.py::fig_landscape",
-    "mamey/render_brief.py::new_page",
     "tools/cluster_alignment.py::render",
 })
 

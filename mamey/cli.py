@@ -2135,14 +2135,17 @@ def run_one_strain(
         # share one sentence. The old message said "possible contamination or co-assembly" for
         # every flag — wrong, and misleading, for a partial GenBank submission.
         _size_flags = [f for f in _sanity["flags"] if f.startswith("PARTIAL_")]
-        _gc_flags = [f for f in _sanity["flags"] if not f.startswith("PARTIAL_")]
+        _inflated_flags = [f for f in _sanity["flags"] if f == "INFLATED_ASSEMBLY_SUSPECT"]
+        _gc_flags = [f for f in _sanity["flags"]
+                     if not f.startswith("PARTIAL_") and f != "INFLATED_ASSEMBLY_SUSPECT"]
+        _size_warn = ""
         if _size_flags:
             _floor = _sanity.get("min_genome_bp") or 0
             _what = ("looks like a PARTIAL GenBank submission (one or a few records), not a small "
                      "genome" if _sanity.get("partial_submission_suspect")
                      else "is far below the actinomycete floor")
-            emit(f"  [WARN] {'/'.join(_size_flags)}: {_sanity['genome_bp']:,} bp in "
-                  f"{_sanity['n_contigs']} record(s) — {_what}.")
+            _size_warn = (f"  [WARN] {'/'.join(_size_flags)}: {_sanity['genome_bp']:,} bp in "
+                          f"{_sanity['n_contigs']} record(s) — {_what}.")
             issues.append(
                 f"{'/'.join(_size_flags)}: {_sanity['genome_bp']:,} bp in "
                 f"{_sanity['n_contigs']} record(s) — below the ~{_floor:,} bp actinomycete floor; "
@@ -2152,6 +2155,19 @@ def run_one_strain(
                 f"the full assembly (all records / the GCF_ assembly, not a single accession) "
                 f"before using it as a comparator."
             )
+        if _inflated_flags:
+            _ceiling = _sanity.get("max_genome_bp") or 0
+            _size_warn = (f"  [WARN] INFLATED_ASSEMBLY_SUSPECT: {_sanity['genome_bp']:,} bp in "
+                          f"{_sanity['n_contigs']} record(s) — above the actinomycete ceiling.")
+            issues.append(
+                f"INFLATED_ASSEMBLY_SUSPECT: {_sanity['genome_bp']:,} bp in "
+                f"{_sanity['n_contigs']} record(s) — above the ~{_ceiling:,} bp actinomycete "
+                f"ceiling. A duplicated, binned or mixed assembly inflates the BGC count, so this "
+                f"count may be above the organism's true value. Non-blocking; analyst to review "
+                f"the assembly before comparing its BGC count across strains."
+            )
+        if _size_warn:
+            emit(_size_warn)
         if _gc_flags:
             issues.append(
                 f"{'/'.join(_gc_flags)}: per-contig GC sd={_sanity['per_contig_gc_sd']}% "
@@ -3531,13 +3547,21 @@ def _write_package(run: MameyRun, package_dir: Path,
         if _ksscan_4d:
             _rows_4d, _sum_4d, _cnt_4d = two_proof_join(
                 str(package_dir / f"{strain}_4A_RGGMCI_ranked_pairs.csv"), _ksscan_4d)
-            # Record the unchanged default policy and full locked identities.
+            # Record the default (class-routed) policy and full locked identities.
             from dataclasses import asdict as _4d_asdict
             from .nonks_second_proof import apply_policy as _4d_policy
-            _rows_4d = _4d_policy(_rows_4d, {
+            _manifest_4d = {
                 "strain_id": strain, "bgcs": [_4d_asdict(b) for b in run.bgcs],
                 "source_scans": {"domain_architecture": getattr(ss, "domain_architecture", {})},
-            })
+            }
+            # Class routing: positions for non-KS pairs come from the run's own archive (advisory; never a join).
+            from .nonks_second_proof import archive_scorecards as _4d_scores
+            try:
+                _scores_4d = _4d_scores(_rows_4d, _manifest_4d, run.context.input_zip)
+            except Exception as _score_exc:  # unreadable records leave positions NOT_READ, never fail packaging
+                run.issues.append(f"TWO_PROOF_POSITION_NOT_READ: {type(_score_exc).__name__}: {_score_exc}")
+                _scores_4d = []
+            _rows_4d = _4d_policy(_rows_4d, _manifest_4d, _scores_4d)
             write_4d_csv(_rows_4d, str(package_dir / f"{strain}_4D_two_proof_rescue.csv"), strain)
     except Exception as _two_proof_exc:  # advisory join; never fail packaging
         _two_proof_issue = (
@@ -4789,9 +4813,75 @@ def _misanchor_cell(t, mg):
 
 
 def _emit_shared_3(report_lines) -> None:
-    """Same line emitted at 6 call sites in this file; one emission site."""
+    """Same line emitted at 7 call sites in this file; one emission site."""
     emit(*report_lines, sep='\n')
 
+
+def strain_master_command(args) -> int:
+    """User Strain Master (docs/DATA_HOME.md): init, adopt, submit, verify, apply, status, store,
+    check, where.
+
+    Writes happen only inside the master root, and for an accepted record edit only in a record
+    home named in the master's settings. init/adopt need an explicit --master; the others also read
+    SAPOTE_STRAIN_MASTER. A refusal prints its code and exits 2; a failing check exits 1. Output
+    reuses this file's shared emission site, so no new print site is added.
+    """
+    import csv as _csv
+    import zipfile
+    from . import strain_master as sm
+    from .strain_data_home import strain_master_record
+    try:
+        a = args.action
+        if a in ("init", "adopt"):
+            if not args.master:
+                raise sm.StrainMasterError(f"NO_MASTER: {a} needs --master <folder>")
+            if a == "init":
+                made = sm.init_master(args.master, name=args.name, raw_stores=args.raw_store, bundle_version=BUNDLE_VERSION)
+                out = [f"created {len(made)} files in {os.path.abspath(args.master)}", *made]
+            else:
+                out = ["wrote " + sm.adopt_master(args.master, name=args.name, raw_stores=args.raw_store,
+                                                 bundle_version=BUNDLE_VERSION)]
+        elif a == "submit":
+            if args.manifest:
+                with open(args.manifest, newline="", encoding="utf-8") as fh:
+                    items = [dict(r) for r in _csv.DictReader(fh, delimiter="\t")]
+            else:
+                items = [{"src": f, "what": args.what, "name": args.as_name if len(args.files) == 1 else None,
+                          "builder": args.builder, "member": args.member, "intro": args.intro} for f in args.files]
+            out = [json.dumps(sm.submit(items, submitter=args.chat, topic=args.topic or "", summary=args.summary or "",
+                                        reproduce=args.check, kind=args.kind, target=args.target,
+                                        changeset=args.changeset, master=args.master), indent=1)]
+        elif a == "verify":
+            if args.accept == args.ret:
+                raise sm.StrainMasterError("NEED_ARGS: verify needs exactly one of --accept or --return")
+            out = [json.dumps(sm.verify(args.id, verifier=args.chat, accept=args.accept, checks=args.checks or "",
+                                        notes=args.notes or "", master=args.master), indent=1)]
+        elif a == "apply":
+            out = [json.dumps(sm.apply_submission(args.id, chat=args.chat, master=args.master), indent=1)]
+        elif a == "status":
+            out = ["\t".join(sm.LEDGER_COLUMNS)] + ["\t".join(r.get(c) or "" for c in sm.LEDGER_COLUMNS)
+                                                   for r in sm.inbox_status(args.master)]
+        elif a == "store":
+            if not (args.files and args.target and args.what):
+                raise sm.StrainMasterError("NEED_ARGS: store needs a file, --target and --what")
+            out = [json.dumps(sm.store(f, args.target, args.what, master=args.master, name=args.as_name,
+                                       member=args.member, builder=args.builder, create=args.create_folder,
+                                       intro=args.intro, dry_run=args.dry_run), indent=1) for f in args.files]
+        elif a == "check":
+            report = sm.check(args.master, layout_file=args.layout, config_file=args.config)
+            _emit_shared_3(sm.check_report_lines(report))
+            return 1 if report["result"] == "FAIL" else 0
+        else:
+            if not args.data_type:
+                raise sm.StrainMasterError("NEED_ARGS: where needs --type")
+            out = [json.dumps(strain_master_record(args.data_type, strain=args.strain, master=args.master,
+                                                   flavor=args.flavor), indent=1)]
+    except (sm.StrainMasterError, OSError, zipfile.BadZipFile, KeyError, ValueError) as exc:
+        _emit_shared_3([f"REFUSED {exc}" if isinstance(exc, sm.StrainMasterError)
+                        else f"REFUSED {type(exc).__name__}: {exc}"])
+        return 2
+    _emit_shared_3(out)
+    return 0
 
 def chatgpt_init_command(args) -> int:
     """Assistant discoverability: surface the shared assistant operating contract so the assistant
@@ -5162,9 +5252,9 @@ def doctor_command(args) -> int:
             + " — set SAPOTE_WORKSPACE_ROOT to the workspace holding miniconda3/envs/{blast,placement}, "
               "or put them on PATH (docs/EPA_NG_PLACEMENT_WORKFLOW.md, docs/PREREQUISITES.md). "
               "Placement trees and R figures are NOT MEASURED without them.")
-    from .optional_r import r_package_status
-    _r_state, _r_reason, _r_path = r_package_status()
-    (ok if _r_state == "READY" else warn).append(_r_reason)
+    from .optional_r import r_group_report
+    for _r_ok, _r_line in r_group_report():
+        (ok if _r_ok else warn).append(_r_line)
     from .wheelhouse import resolve_hmm_database
     if not resolve_hmm_database().get("path"):
         warn.append("Scanner HMM absent — provide your Pfam-A.hmm, then run "
@@ -6354,7 +6444,7 @@ def two_proof_policy_command(args):
     import sys
     from .nonks_second_proof import recompute
     try:
-        rows = recompute(args.package, args.policy, args.scorecard, args.out)
+        rows = recompute(args.package, args.policy, args.scorecard, args.out, getattr(args, "input_zip", None))
         emit(f"Two-proof reader: {len(rows)} pairs; policy={args.policy}; adjudication required")
         return 0
     except (ValueError, OSError) as exc:
@@ -6394,7 +6484,9 @@ def build_parser():
     mx.set_defaults(func=export_metabolomics_command)
     nx = sub.add_parser("two-proof-rescue", help="External two-proof reader with explicit recorded alternative non-KS position policy")
     nx.add_argument("--package", required=True)
-    nx.add_argument("--policy", choices=["ks_clade_v2", "nonks_position_v1"], default="ks_clade_v2")
+    nx.add_argument("--policy", choices=["class_routed_v1", "ks_clade_v2", "nonks_position_v1"], default="class_routed_v1",
+                    help="class_routed_v1 (default): KS clade for pairs with a KS domain; class-core completion for other classes, where a duplicated single-copy marker or a far-apart complete relative vetoes the pair")
+    nx.add_argument("--input-zip", default=None, help="antiSMASH archive the package was built from; class_routed_v1 reads positions from it when no --scorecard is given")
     nx.add_argument("--scorecard", default=None, help="TSV with exact strain and identity_a/identity_b, layers_verdict, relative")
     nx.add_argument("--out", default=None)
     nx.set_defaults(func=two_proof_policy_command)
@@ -7149,6 +7241,50 @@ def build_parser():
     gr.add_argument("--mibig-names", default=None, help="MIBiG compound-name index (default: $SAPOTE_MIBIG_NAMES, registry)")
     gr.add_argument("--pfam", default=None, help="pressed Pfam-A.hmm (default: $SAPOTE_PFAM_HMM, $RGGMCI_PFAM_HMM, registry)")
     gr.set_defaults(func=gap_rescue_command)
+
+    # --- strain-master: the user's data home (docs/DATA_HOME.md) ---
+    sm = sub.add_parser("strain-master",
+                        help="User Strain Master (docs/DATA_HOME.md): init or adopt a master; submit a result to "
+                             "its inbox, verify it (a different chat), apply it; status; check the master; where "
+                             "a data type lives. Writes only inside the master and its named record homes.")
+    sm.add_argument("action", choices=["init", "adopt", "submit", "verify", "apply", "status", "store", "check", "where"])
+    sm.add_argument("files", nargs="*", help="submit/store: files to copy (left in place)")
+    sm.add_argument("--master", default=None, help="master root (except init/adopt, default: $SAPOTE_STRAIN_MASTER)")
+    sm.add_argument("--name", default=None, help="init/adopt: the master's display name")
+    sm.add_argument("--raw-store", action="append", default=[],
+                    help="init/adopt: a raw-data home searched when the master holds nothing for a strain (repeatable)")
+    sm.add_argument("--chat", default=None, help="submit/verify/apply: your id, e.g. a chat id")
+    sm.add_argument("--kind", default="import", choices=["import", "record-edit"], help="submit: what is submitted")
+    sm.add_argument("--topic", default=None, help="submit: a few words; part of the submission id")
+    sm.add_argument("--target", default=None,
+                    help="submit/store: folder, e.g. '03 Genomes/ANI', or an output kind such as mamey_package")
+    sm.add_argument("--summary", default=None, help="submit: what this is and why it belongs in the master")
+    sm.add_argument("--check", action="append", default=[],
+                    help="submit: a count or claim the verifier must reproduce (repeatable)")
+    sm.add_argument("--changeset", default=None,
+                    help="submit --kind record-edit: TSV with file, key_column, key, field, old, new, ruling")
+    sm.add_argument("--manifest", default=None,
+                    help="submit: TSV with columns src, what (and optional folder, name, builder, member, intro)")
+    sm.add_argument("--what", default=None, help="submit/store: one line on what the file is")
+    sm.add_argument("--builder", default=None, help="submit/store: the script or tool that made the file")
+    sm.add_argument("--member", default=None, help="submit/store: copy this member of a ZIP file")
+    sm.add_argument("--as", dest="as_name", default=None, help="submit/store: file name in the master (one file)")
+    sm.add_argument("--intro", default=None, help="submit/store: one line on what a new folder holds")
+    sm.add_argument("--id", default=None, help="verify/apply: the submission id")
+    sm.add_argument("--accept", action="store_true", help="verify: accept")
+    sm.add_argument("--return", dest="ret", action="store_true", help="verify: return with the findings")
+    sm.add_argument("--checks", default=None,
+                    help="verify: what was run, numbered by checklist item, e.g. '2 ok: ...; 3 ok: ...; 4 ok: ...; 6 ok: ...'")
+    sm.add_argument("--notes", default=None, help="verify: findings or reasons")
+    sm.add_argument("--create-folder", action="store_true", help="store: create --target if the layout allows it")
+    sm.add_argument("--dry-run", action="store_true", help="store: report what would happen and write nothing")
+    sm.add_argument("--layout", default=None, help="check: preview against this LAYOUT.md instead of the master's")
+    sm.add_argument("--config", default=None, help="check: preview with this strain_master.json instead of the master's")
+    sm.add_argument("--type", dest="data_type", default=None, help="where: a folder name, area path or output kind")
+    sm.add_argument("--strain", default=None, help="where: strain ID")
+    sm.add_argument("--flavor", default=None, choices=["strict", "relaxed", "loose"],
+                    help="where: antiSMASH flavor for the raw-store fallback")
+    sm.set_defaults(func=strain_master_command)
 
     # --- signoff (FA4): analysis sign-off QC gate (advisory; exit 0) ---
     sg = sub.add_parser("signoff",

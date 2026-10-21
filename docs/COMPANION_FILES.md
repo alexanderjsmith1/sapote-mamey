@@ -29,7 +29,8 @@ If compatible wheels are absent, offline installation of missing dependencies is
 |---|---|---|
 | Run Mamey on a strain | that strain's **antiSMASH result ZIP** (region GBKs + clusterblast/ subclusterblast/ knownclusterblast/ txt) | "I need the antiSMASH output ZIP for <strain> — please attach it." |
 | Gemini two-strain comparison S5/S6 (per-BGC similarity, comparator recovery) | **two antiSMASH ZIPs** (strain A + strain B) | "I have the pipeline; I need both strains' antiSMASH ZIPs to compare." |
-| Gemini S1/S2 (proteome + whole-genome ANI) | **two whole-genome FASTAs** (`.fasta`/`.fna`) | "ANI needs the genome FASTA assemblies for both strains — please attach them." |
+| Gemini S1/S2 (proteome + whole-genome ANI) | **two whole-genome FASTAs** (`.fasta`/`.fna`) | First check the strains' antiSMASH ZIPs: the genome is inside (next row). Only if neither ZIP is at hand: "ANI needs the genome FASTA assemblies for both strains — please attach them." |
+| Genome FASTA for any tool or web service (TYGS, GTDB-Tk, ANI, GToTree) | the strain's **antiSMASH result ZIP**: antiSMASH keeps the genome it was given under `input/` (`.fna` or `.gbk`) | Nothing to ask: `python tools/antismash_input_genome.py --zip <ZIP> --out <folder>` writes `<name>.fasta` and a manifest. |
 | DIAMOND fast-path (optional speed) | a prebuilt **`diamond` binary** on PATH (NOT vendored; see DIAMOND_STATUS.md) | "DIAMOND isn't attached; I'll use the proven pyswrd backend unless you provide the binary." |
 | KCB / MIBiG reference comparison | the relevant **MIBiG cluster ZIP(s)** or reference antiSMASH archive | "I need the MIBiG reference ZIP for <accession> to compare against." |
 | Master-workbook cross-strain work | the **Master Hub .xlsx** | "Please attach the master workbook so I can update/read the cross-strain sheets." |

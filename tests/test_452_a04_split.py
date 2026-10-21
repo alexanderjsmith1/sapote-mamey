@@ -11,6 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def inputs(tmp_path,split):
     profile=dict(next(v for k,v in json.loads(LAYOUTS.read_text()).items() if not k.startswith("_")))
     for k in ("a04_pool_candida", "a04_candida_axis_label"): profile.pop(k, None)   # these tests cover the split and pooled defaults
+    for k in ("print_width_in", "a04_text_pt", "a04_point_size", "a04_axis_ticks", "a04_height_in", "a04_label_column"): profile.pop(k, None)   # the default print size
     profile.update(split_candida=split,a04_source_shape=False,unassigned_label="Unassigned")
     profile.pop("a04_point_labels",None)   # the pixel comparison is of the earlier label rule (default "all")
     cfg=tmp_path/"profiles.json";cfg.write_text(json.dumps({"synthetic":profile}))

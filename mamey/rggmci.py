@@ -68,7 +68,8 @@ RGGMCI_MAX_HUB_DEGREE = 4
 # independent loci). It was computable from data already parsed onto ClusterBlastReference.subjects, but
 # was dropped before output, so a split call rested on the score alone and needed manual KCB-TXT reading
 # to confirm. This block computes the tiling per shared reference and aggregates it per pair. It is
-# OBSERVATIONAL ONLY in this cut — it adds evidence fields, it does not change score or confidence.
+# It adds evidence fields and never changes the score. One verdict changes confidence: OVERLAPPING_PARALOG
+# demotes a HIGH or MODERATE pair to LOW_SHARED_REFERENCE_SIGNAL (the subject-tiling gate further down this file).
 # A minimum of this many subject hits on EACH side is required before a reference is allowed to report a
 # COMPLEMENTARY_DISJOINT tiling verdict (one-gene-vs-one-gene is too thin to call complementary).
 ST_MIN_SUBJECTS_PER_SIDE = 2
@@ -417,9 +418,9 @@ def _r2_strong_ref_gate(confidence: str, strong_supporting_references: int) -> t
     """R2 (v9.7.61): Require strong_supporting_references ≥ 1 as a co-condition for HIGH,
     alongside the existing good_geometry_references ≥ 2 requirement.
 
-    strong_supporting_references counts references where BOTH sides of the pair independently
-    scored HIGH_RG_GMCI_RESCUE on the per-reference scoring (i.e. per-reference confidence was
-    HIGH, not just MODERATE or LOW). A pair with good geometry but zero strong references means
+    strong_supporting_references counts references on which the pair's own per-reference score
+    reaches RGGMCI_SCORE_HIGH. There is no separate score for each region; the score belongs to
+    the pair on that one reference. A pair with good geometry but zero strong references means
     the geometry came from references that only weakly supported either side individually —
     consistent with conserved domain convergence rather than genuine co-cluster rescue.
 
@@ -1264,8 +1265,8 @@ def compute_rggmci(bgcs: list[BGCRecord], reference_map: dict[str, Any],
         # showing disjoint complementary tiling, (b) no shared reference showing the contigs co-hitting the
         # same subject genes, and (c) substantive tiling on both sides (>= ST_MIN_AGG_SUBJECTS_PER_SIDE
         # distinct subject genes aggregated per side). OVERLAPPING_PARALOG when shared subjects dominate
-        # (same machinery, two loci). Otherwise INSUFFICIENT_SUBJECT_DATA. Observational only — no effect on
-        # score/confidence in this cut.
+        # (same machinery, two loci). Otherwise INSUFFICIENT_SUBJECT_DATA. No effect on the score; an
+        # OVERLAPPING_PARALOG verdict demotes the pair's confidence to LOW below.
         cd = acc["complementary_disjoint_refs"]
         ov = acc["overlapping_subject_refs"]
         n_a_side = len(acc["agg_a_only_subjects"])

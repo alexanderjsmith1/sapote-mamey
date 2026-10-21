@@ -1,8 +1,8 @@
 # Sapote–Mamey Operational Reference
 
 Before any `doctor` example below, read the [write-probe boundary](../INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
-untouched. The current diagnostic can overwrite or remove its probe file.
+Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
+untouched and report the hold; the diagnostic refuses an occupied probe location.
 
 Operational examples below use the bundle-local launcher. Run them with the selected compatible interpreter from the directory containing `pyproject.toml` and `mamey_run.py`; follow the current task/profile and input bindings in `AGENTS.md`. An installed console/module entry point is supported, but does not by itself select this bundle.
 
@@ -13,7 +13,7 @@ Operational examples below use the bundle-local launcher. Run them with the sele
 > current source checking before reuse. Execute only the user's selected authorized operation.
 
 ## Workflow, Protocols, and Standard Operating Procedures
-**Bundle v9.7.454 · Engine 1.9.176**
+**Bundle v9.7.455 · Engine 1.9.177**
 Hamilton, Ontario
 
 *Sourced from: `docs/HOW_TO_USE.md`, `docs/GUIDE/01_User_Manual.md`, `docs/GUIDE/02_Quick_Guide.md`, `docs/SINGLE_STRAIN_QUICKSTART.md`, `docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md`, `docs/ONLINE_BLASTP_PROTOCOL.md`, `docs/BERT_MODE_PROTOCOL.md`, `docs/LITERATURE_SEARCH_PROTOCOL.md`, `docs/RELEASE_CHECKLIST_v9.md`. All content from source files; no inference.*
@@ -57,7 +57,7 @@ renaming a Linux/x86_64 wheel to make it appear compatible with another machine.
 
 ```bash
 python mamey_run.py doctor                          # pre-flight: Python, deps, permissions, bundle integrity
-python3 tools/sync_version.py --check # → engine 1.9.176, bundle 9.7.454
+python3 tools/sync_version.py --check # → engine 1.9.177, bundle 9.7.455
 PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -p no:cacheprovider --run-slow --run-network  # configured full suite
 ```
 
@@ -671,7 +671,7 @@ Class A = CONFIRM + SARP. Class B = one strong axis only. Class C = KCB or weake
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.454. Historical run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.455. Historical run facts retain their original version labels.*
 
 ---
 
@@ -743,7 +743,7 @@ The following is a retained v9.7.246 sequence, with the doctor invocation correc
 ```bash
 # 1. Environment and bundle integrity
 python3 mamey_run.py doctor
-python3 tools/sync_version.py --check # → engine 1.9.176, bundle 9.7.454
+python3 tools/sync_version.py --check # → engine 1.9.177, bundle 9.7.455
 
 # 2. Documentation anchors
 python3 tools/check_monolith_freshness.py          # exit 1 on stale anchor or retired doctrine
@@ -816,8 +816,8 @@ The v9.7.246 fabrication passed claim-safety, evidence-presence, citation, and p
 
 ---
 
-*Version synchronized at cut time · Bundle v9.7.454. Historical v4 section labels and run facts retain their original version labels.*
+*Version synchronized at cut time · Bundle v9.7.455. Historical v4 section labels and run facts retain their original version labels.*
 
 ## Version reference
 
-Current archive naming example: `sapote-mamey-v9.7.454-CODE-20261019v97454a.zip`. Bind the actual supplied archive and hash before extracting.
+Current archive naming example: `sapote-mamey-v9.7.455-CODE-20261019v97455a.zip`. Bind the actual supplied archive and hash before extracting.

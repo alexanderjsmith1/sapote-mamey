@@ -24,5 +24,5 @@ def test_nonzero_labels_draw_leader_lines(tmp_path):
 def test_leader_rule_covers_strong_and_nonzero_only():
     r = (ROOT / "tools" / "bioassay_a04.R").read_text()
     assert 'segment.colour=if(lab_mode %in% c("strong","nonzero"))"#6B7483" else NA' in r
-    for knob in ("box.padding", "point.padding", "force", "max.iter"):
-        assert f'{knob}=if(lab_mode %in% c("strong","nonzero"))' in r
+    for knob in ("box.padding", "point.padding", "force", "max.iter"):   # box.padding and force scale with the text size: (if(...) a else b)*TPT/8
+        assert (f'{knob}=if(lab_mode %in% c("strong","nonzero"))' in r or f'{knob}=(if(lab_mode %in% c("strong","nonzero"))' in r), knob

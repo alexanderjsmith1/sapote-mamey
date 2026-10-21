@@ -1,3 +1,30 @@
+# v9.7.455 — unsealed cut candidate · build 20261019v97455a
+
+Build 20261019v97455a; engine 1.9.177.
+
+Builds on the sealed v9.7.454 (CODE zip 873e0755…1614). The engine moves to 1.9.177 because the split-cluster second proof changes its default and three engine outputs gain fields. RG-GMCI scores, ranks and thresholds are unchanged.
+
+- **The split-cluster second proof is routed by class, by default.** A pair with a KS domain keeps the KS-clade route. Other classes use core completion: the two pieces together complete a class core that neither completes alone. A duplicated single-copy marker or a far-apart complete relative vetoes the pair, and a matching position alone never promotes it. The readings come from the run's own antiSMASH archive through the new `mamey/split_evidence_layers.py`, a port of the RG-GMCI benchmark scorecard. `_4D` gains a `core_completion` column, and `two-proof-rescue` accepts `--input-zip`. `ks_clade_v2` and `nonks_position_v1` stay selectable. The 50-gene and 70% values were set on the lineage benchmark and are not validated on held-out data.
+- **A two-proof rescue needs a HIGH pair on both routes.** Before, the KS route accepted a MODERATE pair as TWO_PROOF_RESCUE while the class-routed route needed HIGH. A MODERATE pair with both proofs now stays RGGMCI_ONLY and keeps its KS clade ID. This can only lower a verdict.
+- **R figure packages come in groups; only the core group is required.** `core` serves every R figure. `trees` (ape, ggtree, treeio, aplot), `bioassay` (tidyr, png) and `extras` (ragg, ggchicklet) each add one figure family; a missing one is reported, not fatal, and `--require <group>` or `--require all` makes it required. GitHub CI uses `--require all`, so every R test still runs. `doctor` prints one line per group with the missing packages and the fix. ggchicklet now comes from a source archive pinned to one commit, with no GitHub API call; the .454 CI run failed on that call (HTTP 401) before pytest started. Without it, the class-group chart draws plain bars instead of rounded ones. The TYGS script no longer needs readr (its figures are byte-identical). `docs/PREREQUISITES.md` lists the groups in one table.
+- **Missing is not zero in cross-strain figures.** A blank, NA or unbound count no longer becomes 0 in the fragmentation-loss, HIGH/MODERATE, by-strain and assembly-tier charts. Missing values are left undrawn, and observed zeros are still drawn.
+- **The assembly check has a ceiling.** `assembly_sanity_check` flags an assembly above 12 Mb as INFLATED_ASSEMBLY_SUSPECT, with its own warning, matching the operator QC tool.
+- **NP Atlas readiness reads the right files.** `doctor` and the external-data status add consumer-readiness fields read from the two `*_npatlas_ref.json` files the resolver loads. `provisioned` keeps its meaning.
+- **The BLASTp runner stops re-downloading an unreadable result.** A READY request whose result cannot be read is counted on disk. After three failures it is held as `unsure`, the raw responses are kept, and the count survives a restart. Transport errors do not count.
+- **The genome inside an antiSMASH ZIP can be written out.** The new `tools/antismash_input_genome.py` writes the `input/` genome as FASTA. `docs/COMPANION_FILES.md` no longer tells assistants to ask for genome files the ZIP already holds.
+- **t-SNE beside PCoA.** `tools/protein_pcoa_ordinate.py tsne` fits the t-SNE layout inside the bundle (perplexity 40, seed 20261019 by default) and writes the table and sidecar the renderer credits. scikit-learn joins the figures extra.
+- **Docs say what the code does.** Sixteen docs no longer claim `doctor` can overwrite its probe file; it refuses an occupied one. The Encyclopedia Volume XII worked example states capacity only. One intake directive links `prompts/FULL_RUN_PROFILE.md`. A wiki page no longer credits an assistant by name.
+- **Figure routes.** The b03 comparator figure gains a label option. Bioassay A01 uses a linear axis for small rows, and the bioassay columns and A04 panel are sized for print. The BLASTp by-genome figure puts the genus key under panel A, and the by-class full grid gets a row gap. Locus maps draw longer ribbons and use set page widths.
+- **PCoA scratch stays in the attempt folder.** Clustering scratch goes under the attempt's resource folder unless `--cluster-work-root` is given.
+- **Tree display options v3.** It replaces v2 and replays its three v2 settings. The page title stays opt-in, as in .454.
+- **Two new tools.** `tools/locus_rarity_by_genus.py` counts locus rarity within each genus, keeping public genomes and SID apart. `tools/pks_piece_map.py` maps PKS pieces across contigs.
+- **The strain data home has a written contract.** `mamey/strain_master.py` reads and writes the user's strain master through the bundle's safe CSV writers.
+- **Comments say what the code does.** Eight comments and help texts were corrected, among them subject tiling (it can lower confidence), the strong-support count, the class-routed help, and the gap-rescue tool versus the engine.
+- **Tests.** The runner's build line and shadow-package warning have tests. A figure-text known site that now renders clean is removed from the list, and the ratchet keeps it out.
+- Accretion-justified: mamey/split_evidence_layers.py — the RG-GMCI benchmark scorecard (single-copy-marker conflict and intact-relative position) moved into the bundle so the class-routed second proof reads the run's own archive; report-only layers, no scores changed.
+
+Held for later: the BLASTp known-compound tier fix (needs an old-versus-new comparison on real packages first) and the DAPR board locator hold (awaiting a ruling).
+
 # v9.7.454 — unsealed cut candidate · build 20261019v97454a
 
 Build 20261019v97454a; engine 1.9.176 (unchanged).

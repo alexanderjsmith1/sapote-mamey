@@ -34,7 +34,9 @@ def test_invalid_nonks_domain_count_is_refused(fixture,invalid):
     row={**f.rgg,'verdict':'RGGMCI_ONLY','ks_clade_id':''}
     with pytest.raises(ValueError,match='DOMAIN_COUNT_INVALID'):
         N.apply_policy([row],f.manifest,[score(f)],N.POSITION_POLICY)
-    assert N.apply_policy([row],f.manifest,policy=N.DEFAULT_POLICY)[0]['verdict']=='RGGMCI_ONLY'
+    assert N.apply_policy([row],f.manifest,policy=N.KS_POLICY)[0]['verdict']=='RGGMCI_ONLY'
+    with pytest.raises(ValueError,match='DOMAIN_COUNT_INVALID'):  # the class-routed default reads the count and refuses it
+        N.apply_policy([row],f.manifest,policy=N.DEFAULT_POLICY)
 
 
 def test_unparseable_region_bytes_refuse_before_publication(fixture):

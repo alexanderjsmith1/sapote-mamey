@@ -1,11 +1,11 @@
 # What It Does and Limitations
 
-*Current to bundle v9.7.454 · engine Mamey 1.9.176. Documentation
+*Current to bundle v9.7.455 · engine Mamey 1.9.177. Documentation
 only — confers no scientific, release, or publication authority; class-level hypotheses,
 judgment deferred.*
 
 A candid internal assessment of Sapote-Mamey's demonstrated strengths and known limitations,
-condensed from Codex's forty-strengths / forty-limitations review for the wiki. **Strength**
+condensed from a forty-strengths / forty-limitations review. **Strength**
 means a capability or design choice that has produced genuine scientific, interpretive,
 reproducibility, or communication value. **Limitation** does not necessarily mean a bug — it
 may be an unavoidable boundary of genome mining, an architectural debt, a data-coverage gap, or
@@ -312,7 +312,7 @@ conserved type-II-PKS-associated neighborhood, aligned across biosynthetic, regu
 transport, and resistance-like components — a comparison target, not a metabolite-identity
 assignment.
 
-Planned next, per Codex's expansion note:
+Planned next:
 
 1. **A standard per-locus clinker folder** (`<strain>__<node>__<region>__<alias>/clinker/`)
    holding a pairwise-best-comparator page, a cohort/type-family page, and a MIBiG/characterized-

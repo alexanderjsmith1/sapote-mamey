@@ -565,6 +565,31 @@ def record_response(rid, xml, ledger_row):
     return attempt, evidence
 
 
+# A READY result whose body arrives but cannot be admitted (seen: "Hit missing required result
+# field") fails the same way on every download. After this many such downloads the row is held
+# for the operator instead of being fetched again at every check and after every restart.
+MAX_UNREADABLE_DOWNLOADS = 3
+
+
+def unreadable_downloads(rid) -> int:
+    """Downloads of `rid` whose body was saved but could not be admitted, counted from the
+    per-attempt receipts in xml/ so the count survives a restart. A receipt that cannot itself be
+    read is counted as a failed download (the hold is the cautious side)."""
+    pattern = re.compile(re.escape(rid) + r"-[0-9a-f]{32}\.admission\.json")
+    n = 0
+    for p in XMLDIR.glob(f"{rid}-*.admission.json"):
+        if not pattern.fullmatch(p.name):
+            continue
+        try:
+            receipt = json.loads(p.read_text())
+        except (OSError, ValueError):
+            n += 1
+            continue
+        if isinstance(receipt, dict) and receipt.get("read_failure") is True:
+            n += 1
+    return n
+
+
 def retrieval_admitted(key, row):
     """Legacy/mismatched retrieved statuses are not certified completion."""
     try:
@@ -836,8 +861,12 @@ def _run_lane(args):
                     save_ledger(led); fetched += 1; del inflight[rid]
                     log(f"  READY  {key} RID {rid}: {len(rows)} rows staged [{fetched} fetched]")
                 except Exception as e:
+                    # A transport failure may be transient; a body that arrived but cannot be
+                    # admitted is counted toward the hold below.
+                    read_failure = evidence is not None and not isinstance(e, TransportUnverified)
                     if evidence is not None and attempt is not None:
                         evidence["status"] = "UNVERIFIED"
+                        evidence["read_failure"] = read_failure
                         for state in evidence.get("query_states", []):
                             state["status"] = "UNVERIFIED"
                         evidence["error"] = f"{type(e).__name__}: {str(e)[:120]}"
@@ -847,6 +876,14 @@ def _run_lane(args):
                     led[key]["note"] = f"retrieval unverified: {type(e).__name__}: {str(e)[:120]}"
                     save_ledger(led)
                     log(f"  fetch ERROR {rid} {key}: {str(e)[:150]}")
+                    tries = unreadable_downloads(rid) if read_failure and attempt is not None else 0
+                    if tries >= MAX_UNREADABLE_DOWNLOADS:
+                        led[key]["status"] = "unsure"
+                        led[key]["note"] = (f"result unreadable after {tries} downloads: {type(e).__name__}: "
+                                            f"{str(e)[:100]}; raw responses kept in xml/; operator to check")
+                        save_ledger(led); del inflight[rid]; poll_errs.pop(rid, None); failed += 1
+                        log(f"  HELD   {key} RID {rid}: result unreadable after {tries} downloads; "
+                            f"left for the operator")
             elif st in ("UNKNOWN",):
                 # expired or failed RID; mark for resubmit next run
                 led[key]["status"] = "expired"; led[key]["note"] = "RID UNKNOWN"; save_ledger(led)

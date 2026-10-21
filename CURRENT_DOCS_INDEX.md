@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.454 · engine 1.9.176 · build 20261019v97454a
+# Current Docs Index — v9.7.455 · engine 1.9.177 · build 20261019v97455a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -10,6 +10,7 @@ or receive it through their supported instruction mechanism.
 
 Each listed entry starts with its status: `current` (follow it for new work), `reference` (background, specifications or dated examples; check current code before relying on a number) or `experimental` (report-only, not a release gate). An unlisted document has no current-navigation declaration. Check its explicit lifecycle, owning source and the maintenance inventory; unlisted status alone does not establish that it is historical or safe to follow.
 
+- `current` [Data home](docs/DATA_HOME.md): where results live, the inbox route into the User Strain Master, how to find data before making any, and the self-check.
 - `current` [Choose a task](docs/USER_TASK_ROUTER.md): named human requests, required inputs, owning guides and completion evidence; [JSON routes](docs/USER_TASK_ROUTER.json) for assistants.
 
 ## Operating guides

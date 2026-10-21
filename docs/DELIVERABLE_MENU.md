@@ -2,8 +2,8 @@
 
 *Choose by label, name, or plain-language request. This document is generated from `mamey/data/deliverables_registry.json`; do not edit it by hand.*
 
-**Bundle:** Sapote-Mamey v9.7.454  
-**Engine:** Mamey 1.9.176  
+**Bundle:** Sapote-Mamey v9.7.455  
+**Engine:** Mamey 1.9.177  
 **Required exact-locus display:** `strain / full node-or-contig / region / BGC alias`
 
 > Similarity is not identity; capacity is not production; missing or unbound evidence is not biological absence. Gate success verifies encoded checks, not biological identity, activity, novelty, acceptance, or publication readiness.
@@ -192,7 +192,7 @@ Run `gecco-crosscheck --package <package> --zip <original-antismash.zip>` only a
 
 *How does a recorded alternative policy treat a non-KS linkage hypothesis?*
 
-`two-proof-rescue --package <package>` keeps ks_clade_v2 as its default. Explicitly select `--policy nonks_position_v1 --scorecard <bound-scorecard.tsv>` to evaluate the alternative non-KS rule. Eligible complementary HIGH pairs require positively observed non-KS class evidence and an independently bound CONSISTENT positional reading; APART_CLOSE or CONFLICT vetoes admission. Missing or unresolved independent evidence remains typed uncertainty; KnownClusterBlast is supporting evidence only. The policy is recorded in each advisory row and receipt; fresh outputs default to external sibling post_seal/two-proof-rescue. See [companion class evidence](COMPANION_CLASS_EVIDENCE.md).
+`two-proof-rescue --package <package>` defaults to class_routed_v1: the KS clade for polyketide pairs, and for other classes core completion across the pair (a duplicated single-copy marker or a far-apart complete relative vetoes), computed from the archive given with `--input-zip`. `--policy ks_clade_v2` reproduces the earlier KS-only rule; `--policy nonks_position_v1 --scorecard <bound-scorecard.tsv>` reads a supplied scorecard. Eligible complementary HIGH pairs require positively observed non-KS class evidence and an independently bound CONSISTENT positional reading; APART_CLOSE or CONFLICT vetoes admission. Missing or unresolved independent evidence remains typed uncertainty; KnownClusterBlast is supporting evidence only. The policy is recorded in each advisory row and receipt; fresh outputs default to external sibling post_seal/two-proof-rescue. See [companion class evidence](COMPANION_CLASS_EVIDENCE.md).
 
 - **Delivery class:** `POST_SEAL_JUDGMENT`
 - **Commands:** `two-proof-rescue`

@@ -212,13 +212,26 @@ def shell_safe_path(path):
     return _native_workspace.shell_safe_path(path, refusal=ResourceRefusal)
 
 
-def cluster_workspace_policy(a, info, limits):
-    """Explicit directory only; default temp root is resolved for macOS aliases."""
+def cluster_workspace_policy(a, info, limits, default_root=None):
+    """Cluster scratch root. An explicit --cluster-work-root is used as given (a refused explicit root is never
+    replaced). Otherwise the attempt's own receipt folder (default_root, resolved for aliases) when its path is
+    shell-safe, so scratch stays beside the attempt that owns it. Otherwise (no default_root, or a receipt path with
+    spaces or other refused characters) the resolved system temp root. The choice is recorded as root_source."""
     if not (info["reference"] or info["mibig"]):
         return None
     explicit = getattr(a, "cluster_work_root", None)
-    root = shell_safe_path(explicit if explicit is not None else
-                           Path(tempfile.gettempdir()).resolve(strict=True))
+    root = None
+    if explicit is not None:
+        root, source = shell_safe_path(explicit), "EXPLICIT"
+    elif default_root is not None:
+        try:
+            root, source = shell_safe_path(Path(default_root).resolve(strict=True)), "ATTEMPT_RECEIPT_DEFAULT"
+        except ResourceRefusal:
+            root, source = None, "SYSTEM_TEMP_FALLBACK_ATTEMPT_PATH_NOT_SHELL_SAFE"
+    else:
+        source = "SYSTEM_TEMP_DEFAULT"
+    if root is None:
+        root = shell_safe_path(Path(tempfile.gettempdir()).resolve(strict=True))
     if not root.is_dir():
         raise ResourceRefusal("cluster work root must be an existing directory")
     observed = root.stat()
@@ -229,7 +242,7 @@ def cluster_workspace_policy(a, info, limits):
     free = shutil.disk_usage(root).free
     if free < limits["min_free_disk_bytes"] + required:
         raise ResourceRefusal("cluster work filesystem lacks estimated growth plus free-disk floor")
-    return {"root": str(root), "device": observed.st_dev, "inode": observed.st_ino,
+    return {"root": str(root), "root_source": source, "device": observed.st_dev, "inode": observed.st_ino,
             "estimated_disk_bytes": required, "estimate_not_guarantee": True,
             "free_bytes_observed": free,
             "monitor_min_free_bytes": max(limits["min_free_disk_bytes"], free - math.ceil(required / 0.8)),
@@ -382,7 +395,7 @@ def coordinate(a, script):
         free = shutil.disk_usage(receipt).free
         if free < limits["min_free_disk_bytes"] + e["estimated_disk_bytes"]:
             raise ResourceRefusal("estimated scratch growth plus free-disk floor is unavailable")
-        workspace = cluster_workspace_policy(a, info, limits)
+        workspace = cluster_workspace_policy(a, info, limits, default_root=receipt)
         sources = source_bindings(script)
         admitted = dict(base, state="CLUSTER_STAGE_ADMITTED" if cluster_first else "ADMITTED", counts=info, estimate=e, inputs=inputs, sources=sources,
                         cluster_workspace=workspace)

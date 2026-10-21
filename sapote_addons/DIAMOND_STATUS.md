@@ -1,8 +1,8 @@
 # Optional DIAMOND backend for `compare`
 
 Before any `doctor` example below, read the [write-probe boundary](../docs/INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
-untouched. The current diagnostic can overwrite or remove its probe file.
+Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
+untouched and report the hold; the diagnostic refuses an occupied probe location.
 
 DIAMOND is an optional acceleration backend. It is not required for the `compare` command when an executable pyswrd installation or Biopython is available, and it is not installed by `bundle_support/install_sapote_addons.sh`.
 

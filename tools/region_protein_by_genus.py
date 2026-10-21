@@ -45,8 +45,10 @@ def print_height(n_rows, requested=None):
 FIELDS = ["strain", "genus", "amino_acids", "missing_CDS_lengths"]
 # comparators: named public genomes drawn as labelled points (no box), e.g. the nearest genera of an isolate placed only
 # to family. name is set in italics and strain_label in roman; open = yes draws an open symbol (e.g. a fragmented
-# assembly, explained in the caption). They count in the row's n and never in its box.
-COMPARATOR_FIELDS = ["name", "strain_label", "open"]
+# assembly, explained in the caption). They count in the row's n and never in its box. label = no draws the point without
+# a label (several fragmented assemblies within a few thousand amino acids cannot all be labelled at 8 pt; the caption
+# names them). Optional; default yes.
+COMPARATOR_FIELDS = ["name", "strain_label", "open", "label"]
 
 def validate(rows):
     preflight = preflight_chart_data(rows, chart_kind="scatter", numeric_fields=["amino_acids"])
@@ -123,14 +125,16 @@ if (has_role) {
   if (nrow(cmp)) {
     cmp <- cmp[order(cmp$genus, cmp$value), ]
     cmp$strain_label[is.na(cmp$strain_label)] <- ""
-    ctier <- ave(cmp$value, cmp$genus, FUN = function(v) seq_along(v))
-    cmp$nudge <- ifelse(ctier %% 2 == 1, cfg$label_offset, -cfg$label_offset)
-    cmp$lab <- ifelse(nzchar(cmp$strain_label), sprintf('italic("%s")~"%s"', cmp$name, cmp$strain_label),
-                      sprintf('italic("%s")', cmp$name))
+    if (is.null(cmp$label)) cmp$label <- "yes"
+    cmpl <- cmp[cmp$label != "no", ]                  # label = no: point drawn, label left to the caption
+    ctier <- ave(cmpl$value, cmpl$genus, FUN = function(v) seq_along(v))
+    cmpl$nudge <- ifelse(ctier %% 2 == 1, cfg$label_offset, -cfg$label_offset)
+    cmpl$lab <- ifelse(nzchar(cmpl$strain_label), sprintf('italic("%s")~"%s"', cmpl$name, cmpl$strain_label),
+                       sprintf('italic("%s")', cmpl$name))
     p <- p + geom_point(data=cmp,shape=21,size=2.4,stroke=.6,colour=PUB_SUB,
                         fill=ifelse(cmp$open=="yes","white",PUB_SUB)) +
-      geom_text_repel(data=cmp,aes(label=lab),parse=TRUE,size=cfg$min_text_pt/.pt,family=PUB_FONT,colour=PUB_SUB,
-                      seed=7,nudge_y=cmp$nudge,direction="x",min.segment.length=0,segment.colour="#6B7483",
+      geom_text_repel(data=cmpl,aes(label=lab),parse=TRUE,size=cfg$min_text_pt/.pt,family=PUB_FONT,colour=PUB_SUB,
+                      seed=7,nudge_y=cmpl$nudge,direction="x",min.segment.length=0,segment.colour="#6B7483",
                       segment.size=.3,box.padding=.25,point.padding=.3)
   }
   p <- p + geom_point(data=d[d$role=="reference",],size=1,colour="#9AA3AE") +
@@ -218,7 +222,8 @@ def main(argv=None):
         cols = FIELDS + (["role"] if rows and "role" in rows[0] else [])   # optional role: isolate, reference, comparator
         if any(r.get("role") == "comparator" for r in rows):
             cols += COMPARATOR_FIELDS
-            rows = [{**r, "strain_label": r.get("strain_label") or "", "open": r.get("open") or "no"} for r in rows]
+            rows = [{**r, "strain_label": r.get("strain_label") or "", "open": r.get("open") or "no",
+                     "label": r.get("label") or "yes"} for r in rows]
         w = SafeDictWriter(f,fieldnames=cols,delimiter="\t"); w.writeheader()
         w.writerows([{k:r[k] for k in cols} for r in rows])
     cfg = dict(data=str(data.resolve()),out=str((a.out/TOOL).resolve()),bundle_layout=str(dependencies[0]),

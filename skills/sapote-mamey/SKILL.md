@@ -18,8 +18,8 @@ description: >-
 # Sapote–Mamey
 
 Before any `doctor` example below, read the [write-probe boundary](../../docs/INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
-untouched. The current diagnostic can overwrite or remove its probe file.
+Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
+untouched and report the hold; the diagnostic refuses an occupied probe location.
 
 Read `AGENTS.md` and `docs/ASSISTANT_GOVERNANCE.md`. Run the local startup command only
 for an authorized execution task; inspection and audit can remain entirely static.

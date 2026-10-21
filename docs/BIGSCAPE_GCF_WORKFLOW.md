@@ -1,8 +1,8 @@
 # BiG-SCAPE GCF workflow — resumable, source-preserving companion analysis
 
 Before any `doctor` example below, read the [write-probe boundary](INSTALL.md#doctor-scope-and-write-probe).
-Use an editable working installation; if `runs/_doctor_probe` is occupied, leave it
-untouched. The current diagnostic can overwrite or remove its probe file.
+Use an editable working installation. If `runs/_doctor_probe` is occupied, leave it
+untouched and report the hold; the diagnostic refuses an occupied probe location.
 
 **Authority:** read `docs/LLM_COMPANION_TOOL_PROTOCOL.md` first. This is the active BiG-SCAPE
 runbook. Cohort-specific guides and older version addenda do not override it.

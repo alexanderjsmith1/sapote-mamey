@@ -242,11 +242,63 @@ if (is.finite(sup_min)) {
   .nd <- p$data[!p$data$isTip, ]
   .nd$sup <- suppressWarnings(as.numeric(sub("/.*$", "", .nd$label)))
   .nd <- .nd[is.finite(.nd$sup) & .nd$sup >= sup_min, ]
+  # m5_452 GG_SUPPORT_MAX: values at or above it stay blank (e.g. 100 for "100 unlabelled"); unset = unchanged.
+  sup_max <- suppressWarnings(as.numeric(Sys.getenv("GG_SUPPORT_MAX")))
+  if (is.finite(sup_max)) .nd <- .nd[.nd$sup < sup_max, ]
+  # m5_452 GG_SUPPORT_POS: where each number sits. "left" (default) = sealed placement, up and left of the node.
+  # "right" = just right of the node, centred between its child branches. "auto" = per node, the first of five places whose
+  # text box crosses no line: right, up-left (sealed), down-left, up-right, down-right. Lines = branches, node verticals and the
+  # dotted tip-label leaders. Box size from the text at print size; tips drawn >= 0.18 in apart, so the height estimate is
+  # generous. A node with no clear place keeps the place with fewest crossings and is reported as SUPPORT_LABEL_COLLISION.
+  sup_pos <- Sys.getenv("GG_SUPPORT_POS", "left")
+  .places <- list(right = c(-0.12, 0.5), left = c(1.15, -0.35), left_below = c(1.15, 1.35),
+                  right_above = c(-0.12, -0.35), right_below = c(-0.12, 1.35))           # hjust, vjust
+  .side <- rep(if (sup_pos == "right") "right" else "left", nrow(.nd))
+  if (sup_pos == "auto" && nrow(.nd)) {
+    .pd <- p$data; .xu <- xr * (1 + hexp) / .panel_in; .yu <- 1 / 0.18
+    .ch <- .pd[.pd$parent != .pd$node, ]; .tp <- .pd[.pd$isTip, ]
+    .seg <- rbind(
+      data.frame(x0 = .pd$x[match(.ch$parent, .pd$node)], x1 = .ch$x, y0 = .ch$y, y1 = .ch$y),                         # branches
+      do.call(rbind, lapply(split(.ch, .ch$parent), function(k)                                                      # node verticals
+        data.frame(x0 = .pd$x[.pd$node == k$parent[1]], x1 = .pd$x[.pd$node == k$parent[1]], y0 = min(k$y), y1 = max(k$y)))),
+      data.frame(x0 = .tp$x, x1 = max(.tp$x) + lab_off, y0 = .tp$y, y1 = .tp$y))                                     # tip leaders
+    grDevices::pdf(NULL)
+    .wh <- t(vapply(as.character(round(.nd$sup)), function(t) { g <- grid::textGrob(t, gp = grid::gpar(fontsize = lsize * 72.27 / 25.4))
+      c(grid::convertWidth(grid::grobWidth(g), "inches", TRUE), grid::convertHeight(grid::grobHeight(g), "inches", TRUE)) }, numeric(2)))
+    invisible(grDevices::dev.off())
+    .hits <- function(bx) sum(pmax(.seg$x0, .seg$x1) >= bx[1] & pmin(.seg$x0, .seg$x1) <= bx[2] &
+                              pmax(.seg$y0, .seg$y1) >= bx[3] & pmin(.seg$y0, .seg$y1) <= bx[4])
+    .clash <- rep(FALSE, nrow(.nd))
+    for (i in seq_len(nrow(.nd))) {
+      w <- (.wh[i, 1] + 0.03) * .xu; h <- (.wh[i, 2] + 0.03) * .yu; x <- .nd$x[i]; y <- .nd$y[i]
+      hk <- vapply(.places, function(hv) { x0 <- x - hv[1] * w; y0 <- y - hv[2] * h; .hits(c(x0, x0 + w, y0, y0 + h)) }, numeric(1))
+      .side[i] <- names(hk)[which.min(hk)]                                       # first place with the fewest crossings
+      if (min(hk) > 0) cat("SUPPORT_LABEL_COLLISION: node", .nd$node[i], "support", round(.nd$sup[i]), "crosses", min(hk), "line(s)\n")
+      .clash[i] <- min(hk) > 0
+    }
+    # m5_452 GG_SUPPORT_UNPLACED=omit: a number with no clear place is not drawn; its value and clade (first and last tip label
+    # in drawing order) are printed as SUPPORT_NOT_DRAWN for the caption. Default (unset or "draw"): drawn at the fewest crossings.
+    if (Sys.getenv("GG_SUPPORT_UNPLACED", "draw") == "omit" && any(.clash)) {
+      .kids <- split(.pd$node[.pd$parent != .pd$node], .pd$parent[.pd$parent != .pd$node])
+      .tips_of <- function(k) { out <- c(); todo <- k
+        while (length(todo)) { h <- todo[1]; todo <- todo[-1]; ch <- .kids[[as.character(h)]]
+          if (is.null(ch)) out <- c(out, h) else todo <- c(todo, ch) }
+        out }
+      for (i in which(.clash)) {
+        tt <- .pd[.pd$node %in% .tips_of(.nd$node[i]), ]; tt <- tt[order(-tt$y), ]
+        nm <- md$disp_plain[match(tt$label[c(1, nrow(tt))], md$tip)]
+        cat("SUPPORT_NOT_DRAWN:", round(.nd$sup[i]), "| clade from", nm[1], "to", nm[2], "|", nrow(tt), "tips\n")
+      }
+      .nd <- .nd[!.clash, ]; .side <- .side[!.clash]
+    }
+    cat("SUPPORT_POS auto:", paste0(round(.nd$sup), "=", .side, collapse = " "), "\n")
+  }
+  .nd$hj <- vapply(.side, function(s) .places[[s]][1], numeric(1)); .nd$vj <- vapply(.side, function(s) .places[[s]][2], numeric(1))
   # White backing, no border: branch lines behind a number cannot cut through it (seen on crowded basal nodes).
-  if (nrow(.nd)) p <- p + geom_label(data = .nd, aes(x = x, y = y, label = round(sup)), inherit.aes = FALSE,
-                                     hjust = 1.15, vjust = -0.35, size = lsize, colour = "grey25",
+  if (nrow(.nd)) p <- p + geom_label(data = .nd, aes(x = x, y = y, label = round(sup), hjust = hj, vjust = vj), inherit.aes = FALSE,
+                                     size = lsize, colour = "grey25",
                                      fill = "white", border.colour = NA, label.padding = grid::unit(0.04, "lines"))
-  cat("SUPPORT_LABELS:", nrow(.nd), "nodes >=", sup_min, "\n")
+  cat("SUPPORT_LABELS:", nrow(.nd), "nodes >=", sup_min, if (is.finite(sup_max)) paste("and <", sup_max) else "", "\n")
 }
 band_col <- Sys.getenv("GG_FOCAL_BAND")
 if (nzchar(band_col) && any(md$focal)) {
@@ -370,9 +422,15 @@ for (i in seq_along(page_groups)) {
       layer$data <- layer$data[layer$data$y >= min(ys)-0.5 & layer$data$y <= top,,drop=FALSE]
     layer
   })
-  pp <- pp + coord_cartesian(ylim=c(bottom, top), clip="on", expand=FALSE) +
-    geom_treescale(width=sb_len, x=max(0.04*xr, (.scale_w_in/2+0.12)*xr*(1+hexp)/.panel_in-sb_len/2), y=min(ys)-0.95,
-                   fontsize=lsize, linesize=0.4, offset=0.12)
+  # m5_452 GG_SCALE_OFFSET: scale-bar label distance from its line (tree y units; default 0.12 as sealed). A short bar
+  # under a longer label ran through the label (Fig. 5 Actinomadura, 0.05); a larger offset lifts the label clear.
+  scale_offset <- suppressWarnings(as.numeric(Sys.getenv("GG_SCALE_OFFSET", "0.12"))); if (!is.finite(scale_offset)) scale_offset <- 0.12
+  # m5_452 GG_SCALE_PAGES=last: on a multi-page tree the scale bar is drawn on the last page only (on earlier pages the root lines run
+  # through its corner; seen on the 76-genome Fig. 5 tree). Default (unset or "all"): every page, as sealed.
+  pp <- pp + coord_cartesian(ylim=c(bottom, top), clip="on", expand=FALSE)
+  if (Sys.getenv("GG_SCALE_PAGES", "all") != "last" || i == page_count)
+    pp <- pp + geom_treescale(width=sb_len, x=max(0.04*xr, (.scale_w_in/2+0.12)*xr*(1+hexp)/.panel_in-sb_len/2), y=min(ys)-0.95,
+                   fontsize=lsize, linesize=0.4, offset=scale_offset)
   page_strip <- function(g) {
     g$data <- g$data[as.character(g$data$tip) %in% shown,,drop=FALSE]
     g + coord_cartesian(ylim=c(bottom, top), clip="on", expand=FALSE) + theme(legend.position="none")

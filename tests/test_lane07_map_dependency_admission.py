@@ -132,7 +132,7 @@ def test_site_map_logging_has_no_new_counted_terminal_site(tmp_path):
     control.write_text('print("count this site")\n')
     positive=module.check_print_calls([control],tmp_path)
     assert positive.detail.split()[0]=="1"
-    assert module.PRINT_WARN_THRESHOLD==1240
+    assert module.PRINT_WARN_THRESHOLD==1241
 
 
 def test_doctor_optional_check_is_spec_discovery_not_import(monkeypatch):

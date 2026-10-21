@@ -108,6 +108,14 @@ Prefer domain sequences from:
 A named-compound reference provides a comparison label, not a product call for
 the AS/SID BGC.
 
+## First check: do the pieces tile the reference protein?
+
+`tools/pks_piece_map.py` is the quick first check before a KS tree. It aligns one genome's proteins to each large protein of a reference cluster (an antiSMASH-annotated MIBiG GenBank; DIAMOND, every HSP) and maps each piece of at least 85 % identity onto the reference's aSModule spans.
+- **TILED:** the pieces line up end to end with at most 10 aa of overlap, so their order along the gene can be read. The tool also lists the gaps (and whether they fall at contig ends) and the contigs that carry the end of one reference protein and the start of the next.
+- **OVERLAPPING:** the pieces match several places. This is usually module resemblance at lower identity, so the order cannot be read from the matches, and the KS placement below is the method to use.
+
+No contigs are joined; linkage needs long reads or PCR across the breaks.
+
 ## Placing fragments on a reference module order
 
 A giant modular type I PKS in a draft genome often breaks into many small contigs. Each piece hits the same

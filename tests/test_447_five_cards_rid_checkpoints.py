@@ -34,7 +34,7 @@ def test_repeated_bad_fetch_keeps_same_rid_and_raw_evidence(tmp_path, monkeypatc
     monkeypatch.setattr(mod, 'fetch_xml2', lambda rid: '<html>temporarily unavailable</html>')
     assert mod.cmd_run(args(hours=.12)) == 0
     row = next(iter(mod.load_ledger().values()))
-    assert row['status'] == 'retrieval_unverified'
+    assert row['status'] == 'unsure'  # .455: held after MAX_UNREADABLE_DOWNLOADS unreadable results, not fetched again
     assert ncbi.submits == ['a']
     assert len(list(mod.XMLDIR.glob('RID000-*.xml'))) > 2
     receipt=json.loads((mod.XMLDIR/'RID000-admission.json').read_text())

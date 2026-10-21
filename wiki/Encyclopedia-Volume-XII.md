@@ -1299,19 +1299,19 @@ BGC027 (CP050177.1 · region027) (azoxy): MeOH/aqueous extraction; ¹H NMR for N
 
 #### Layperson's Guide to BGCs in *S. liangshanensis*
 
-**BGC010 (CP050177.1 · region010) (Top AB score, highest novelty):** This cluster has the most unusual chemistry in the genome — a tiny recipe with almost no resemblance to anything in the database, which means it could make something completely new. The only enzyme we can identify is a fatty acid-building enzyme. Two export pumps suggest whatever it makes is actively pushed out of the cell, which is a sign of something bioactive.
+**BGC010 (CP050177.1 · region010) (Top AB score, highest novelty):** This small cluster has almost no resemblance to anything in the reference database, so its product cannot be predicted from known clusters. The only enzyme with a clear match is a fatty acid-building enzyme. Two genes look like export pumps. These features make it worth a closer look; they do not show what it makes, or that it is active.
 
-**BGC026 (CP050177.1 · region026) (Top AF score — antifungal priority):** This is the most exciting antifungal lead. The cluster makes an HSAF-class compound — the same family as heat-stable antifungal factor, a compound that kills fungi by disrupting their membrane chemistry in a way that's completely different from most antifungals. The HSAF mechanism is clinically unexploited. High confidence: two independent lines of evidence (the T43-PTM diagnostic trigger and KCB similarity to a known HSAF-family reference) point to the same compound class.
+**BGC026 (CP050177.1 · region026) (Top AF score — antifungal priority):** This is the top antifungal-priority lead by score. Two independent lines of evidence (the T43-PTM diagnostic trigger and KCB similarity to a known HSAF-family reference) point to the same class: the cluster has the genetic capacity for an HSAF-class compound, the family of heat-stable antifungal factor. Similarity is not identity, and production has not been tested.
 
-**BGC009 (CP050177.1 · region009) (Second AB score — hedamycin-class):** This large cluster resembles hedamycin — an antibiotic that works by inserting itself between the rungs of bacterial DNA and blocking it from being read. The machinery is a complete type-II polyketide synthase (a two-component enzyme system that builds aromatic ring systems) plus extra decorating enzymes that add sugars. Produces a visually distinctive coloured product.
+**BGC009 (CP050177.1 · region009) (Second AB score — hedamycin-class):** This large cluster resembles the hedamycin cluster (hedamycin is an antibiotic that inserts itself into DNA). The machinery is a complete type-II polyketide synthase (a two-component enzyme system that builds aromatic ring systems) plus decorating enzymes that add sugars. That is capacity for a hedamycin-like aromatic polyketide; no product has been observed.
 
-**BGC031 (CP050177.1 · region031) (Halogenated NRPS hybrid):** This cluster has a tryptophan-halogenase — the same kind of enzyme that puts chlorine on tryptophan in the rebeccamycin antibiotic pathway. Here, the halogenated amino acid feeds into an NRPS peptide assembly line. The halogen makes the final compound more potent against biological targets.
+**BGC031 (CP050177.1 · region031) (Halogenated NRPS hybrid):** This cluster has a tryptophan-halogenase — the same kind of enzyme that puts chlorine on tryptophan in the rebeccamycin antibiotic pathway. Here, a halogenated amino acid could feed an NRPS peptide assembly line. In some known compounds a halogen adds potency; whether that applies here is not known.
 
-**BGC040 (CP050177.1 · region040) (Halogenated PKS):** A large polyketide assembly line with a second type of halogenase (less specific than BGC031 (CP050177.1 · region031)) plus two sugar-attaching enzymes. The sugars are likely key for antibiotic activity — sugar moieties help antibiotics bind to their bacterial targets.
+**BGC040 (CP050177.1 · region040) (Halogenated PKS):** A large polyketide assembly line with a second type of halogenase (less specific than BGC031 (CP050177.1 · region031)) plus two sugar-attaching enzymes. In many known polyketide antibiotics, attached sugars matter for activity; that is context from other clusters, not evidence for this one.
 
-**BGC027 (CP050177.1 · region027) (Azoxy compound — rare chemistry):** This is genuinely rare. The three enzymes azdH + azdO + vlmB together make an N=N(O) bond — an azoxy crosslink. Very few bacteria make this kind of chemistry. The ecological role is unclear but chemically this compound class includes antitumour agents.
+**BGC027 (CP050177.1 · region027) (Azoxy compound — rare chemistry):** This is uncommon. Genes matching azdH, azdO and vlmB are the kind that form an N=N(O) bond (an azoxy link) in characterized pathways. Few bacterial clusters carry this set. Some known azoxy compounds are antitumor agents; nothing here shows what this cluster makes.
 
-**BGC007 (CP050177.1 · region007) (Second novel unresolved cluster):** Similar situation to BGC010 (CP050177.1 · region010) — minimal biosynthetic evidence (one fatty acid enzyme), high novelty, active export. Two unresolved novel clusters in one genome is a finding in itself.
+**BGC007 (CP050177.1 · region007) (Second novel unresolved cluster):** Similar situation to BGC010 (CP050177.1 · region010): minimal biosynthetic evidence (one fatty acid enzyme), little resemblance to known clusters, and export-pump genes. Two such unresolved clusters in one genome are worth following up.
 
 **BGC012 (CP050177.1 · region012) (RiPP-like with DUF692):** A small cluster with an enzyme (DUF692) whose function is not fully known, found in a few RiPP pathways. Missing the maturation enzyme that would process the precursor peptide. Lower priority until the maturation gap is resolved.
 
@@ -1325,7 +1325,7 @@ BGC027 (CP050177.1 · region027) (azoxy): MeOH/aqueous extraction; ¹H NMR for N
 
 **0 T1 resistance (informational):** No class-concordant self-protection determinant detected across the genome. This is not a call of non-production; it removes the strongest within-cluster corroborating signal.
 
-**0 T4 bldA-gated BGCs (informational):** All BGCs accessible in liquid culture — a practical advantage.
+**0 T4 bldA-gated BGCs (informational):** No BGC carries the bldA (TTA codon) gating signal. That removes one known barrier to expression; it does not show that any BGC is expressed in liquid culture.
 
 **UMED MATURATION_GAP (BGC012 (CP050177.1 · region012)):** Disclosed in Mode B §8 and in this section. BGC012 (CP050177.1 · region012) should not be treated as a production-confirmed cluster until the maturation enzyme is identified.
 

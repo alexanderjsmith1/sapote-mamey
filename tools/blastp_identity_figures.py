@@ -363,7 +363,9 @@ def by_genome(genomes, region, best, colours, measure, db, out: Path, bar_counts
     groups = _order(genomes, per)
     xs, order, x = _positions(groups)
     width = min(7.0, max(3.6, 0.36 * (x + 1) + 1.4))
-    fig, (a, b) = plt.subplots(2, 1, figsize=(width, 6.6), gridspec_kw={"height_ratios": [1.35, 1], "hspace": 0.62})
+    # the genus key sits under panel A (its colours mark panel A's points and the strain names), so the canvas is
+    # taller than the 6.6 in of the earlier layout by the room that key needs
+    fig, (a, b) = plt.subplots(2, 1, figsize=(width, 7.2), gridspec_kw={"height_ratios": [1.35, 1], "hspace": 0.62})
     for i, s in zip(xs, order):
         v = per[s]; col = colours[genus[s]]
         a.boxplot(v, positions=[i], widths=0.6, showfliers=False, medianprops=dict(color="black", lw=0.9), boxprops=dict(color=col, lw=0.8),
@@ -400,16 +402,46 @@ def by_genome(genomes, region, best, colours, measure, db, out: Path, bar_counts
     leg_b = b.legend(ncol=4 if width >= 4.5 else 2, fontsize=8, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.47),
                      title="Identity band", title_fontsize=8)
     b.add_artist(leg_b)
-    b.legend(handles=_legend_handles(plt, order, genus, colours), ncol=4 if width >= 4.5 else 2, frameon=False, loc="upper center",
-             bbox_to_anchor=(0.5, -0.70 if width >= 4.5 else -0.84), prop={"style": "italic", "size": 8}, markerscale=0.8)
     if len(groups) > 1:
         labels = _block_labels(a, groups, xs, x, 1.03, "bottom")
         fig.canvas.draw()
         label_height = max(t.get_window_extent().height for t in labels) / fig.dpi
         fig.subplots_adjust(top=1 - (label_height + 0.22) / fig.get_figheight())
+    # genus key directly under panel A's strain names (the owner, 19 Oct: "the legend for 4a is below the data of 4b and
+    # hard to find"); the identity-band key directly under panel B's. Both are anchored to the measured bottom of the
+    # strain names, and the gap between the panels and the bottom margin are widened until each key fits inside the
+    # canvas without touching the panel below it.
+    rend = fig.canvas.get_renderer()
+    leg_a = a.legend(handles=_legend_handles(plt, order, genus, colours), ncol=4 if width >= 4.5 else 2, frameon=False,
+                     loc="upper center", bbox_to_anchor=(0.5, -0.3), prop={"style": "italic", "size": 8}, markerscale=0.8)
+    a.add_artist(leg_a)
+    hspace, bottom = 0.62, 0.11
+
+    def anchor(ax, leg):
+        box = ax.get_window_extent(rend)
+        tick_bottom = min(t.get_window_extent(rend).y0 for t in ax.get_xticklabels())
+        leg.set_bbox_to_anchor((0.5, (tick_bottom - box.y0 - 0.06 * fig.dpi) / box.height), transform=ax.transAxes)
+
+    for _ in range(40):
+        a.get_gridspec().update(hspace=hspace)   # the gridspec's own hspace overrides subplots_adjust(hspace=...)
+        fig.subplots_adjust(bottom=bottom)
+        fig.canvas.draw()
+        anchor(a, leg_a); anchor(b, leg_b)
+        fig.canvas.draw()
+        b_top = max([t.get_window_extent(rend).y1 for t in b.texts] + [b.get_window_extent(rend).y1])
+        gap_ok = leg_a.get_window_extent(rend).y0 - b_top >= 0.12 * fig.dpi
+        foot_ok = leg_b.get_window_extent(rend).y0 >= 0.04 * fig.dpi
+        if gap_ok and foot_ok:
+            break
+        if not gap_ok:
+            hspace += 0.06
+        if not foot_ok:
+            bottom += 0.015
+    else:
+        raise RuntimeError("by-genome: the genus and identity-band keys do not fit; widen the canvas")
     png = out / "BLASTP_IDENTITY_BY_GENOME.png"
     for p in (png, png.with_suffix(".pdf")):
-        fig.savefig(p, dpi=600, bbox_inches="tight", metadata=savefig_metadata(p, TOOL))
+        fig.savefig(p, dpi=600, bbox_inches="tight", bbox_extra_artists=[leg_a, leg_b, *a.texts, *b.texts], metadata=savefig_metadata(p, TOOL))
     plt.close(fig)
     allv = [y for s in order for y in per[s]]
     rows = ["block\tstrain\tgenus\tgenes_with_hit\tgenes_in_regions\tmedian\tshare_below_90\tshare_below_70\tshare_below_50"]
@@ -450,9 +482,14 @@ def by_class(genomes, core, best, colours, measure, db, out: Path, omit=(), prin
     shown = [c for c in CLASSES if c not in set(omit)]
     ncols = 2 if grid == "auto" and len(shown) in (3, 4) else 1
     nrows = (len(shown) + ncols - 1) // ncols
-    height = 8.4 if ncols == 2 else 3.0 * len(shown) + 1.2
+    # In a two-column grid the strain names sit under the bottom panel of each column. When the panels do not fill the
+    # grid (3 panels), one column's bottom panel is in the top row and its names need the wide 0.9 gap. When they fill
+    # it (4 panels), every name is on the bottom row: the gap was empty space (Attine Fig. S11, 19 Oct), so it is
+    # narrowed and the canvas made shorter by the same amount, keeping the figure inside the page.
+    ragged = len(shown) % ncols != 0
+    height = (8.4 if ragged else 7.4) if ncols == 2 else 3.0 * len(shown) + 1.2
     fig, matrix = plt.subplots(nrows, ncols, figsize=(width, height), sharex=True,
-                               gridspec_kw={"hspace": 0.9 if ncols == 2 else 0.42}, squeeze=False)
+                               gridspec_kw={"hspace": (0.9 if ragged else 0.42) if ncols == 2 else 0.42}, squeeze=False)
     axes = list(matrix.flat)[:len(shown)]
     for unused in list(matrix.flat)[len(shown):]:
         unused.set_visible(False)
