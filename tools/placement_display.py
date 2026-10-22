@@ -775,6 +775,9 @@ def main(argv=None):
                         default="withloc",
                         help="publication styles use the same organism / isolate / source / accession grammar for queries and references")
     parser.add_argument("--print-width", type=float, default=7.2, help="Printed page width in inches; minimum text 8 pt, maximum height 9 inches.")
+    parser.add_argument("--page-height", type=float, default=9.0,
+                        help="maximum page height in inches (default 9.0). A tree taller than one page is split over pages of this height; "
+                             "7.2 with --print-width 9.6 gives the landscape page.")
     parser.add_argument("--figure-width", type=float, default=0.0,
                         help="render width in inches; 0 chooses from tip count and label length")
     parser.add_argument("--label-room", type=float, default=0.0,
@@ -1039,6 +1042,8 @@ def main(argv=None):
                                               args.max_nt, args.min_cols)
         if not 4 <= args.print_width <= 40:
             raise ValueError("PRINT_WIDTH_INVALID")
+        if not 4 <= args.page_height <= 9.4:
+            raise ValueError("PAGE_HEIGHT_INVALID")
         if args.figure_width and args.figure_width != args.print_width:
             raise ValueError("FIGURE_WIDTH_MUST_EQUAL_PRINT_WIDTH")
         if args.figure_width and not 4 <= args.figure_width <= 40:
@@ -1057,7 +1062,7 @@ def main(argv=None):
                    GG_BLANK_MISSING=('1' if args.omit_unsourced or split_activity else '0'),
                    GG_FOCAL_FACE=('bold' if args.isolate_emphasis in {'bold', 'bold-band'} else os.environ.get('GG_FOCAL_FACE', 'plain')),
                    GG_FOCAL_BAND=('#FFF1C4' if args.isolate_emphasis == 'bold-band' else ''),
-                   GG_FIT_LABELS='1', GG_PRINT_WIDTH=str(args.print_width), GG_ACTIVITY_SPEC=json.dumps(activity_strips),
+                   GG_FIT_LABELS='1', GG_PRINT_WIDTH=str(args.print_width), GG_PAGE_HEIGHT=str(args.page_height), GG_ACTIVITY_SPEC=json.dumps(activity_strips),
                    GG_CAPTION_MD=('1' if args.label_style == 'short' and not args.methods else ''),
                    GG_ITALIC='1', GG_FIGID=args.fig_id or args.name, GG_METHODS=caption)
         if root_record.get("locked_outgroup_accession"):

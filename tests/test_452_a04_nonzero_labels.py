@@ -15,7 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def run(tmp_path):
     profile = dict(json.loads(LAYOUTS.read_text())["attine"])
     for k in ("a04_pool_candida", "a04_candida_axis_label"): profile.pop(k, None)
-    profile.update(split_candida=True, a04_source_shape=False, unassigned_label="Unassigned")
+    profile.update(split_candida=True, a04_source_shape=False, unassigned_label="Unassigned", a04_point_labels="nonzero")   # this file tests the nonzero mode itself; the attine profile uses "either" since card 472
+    for k in ("a04_label_max", "a04_legend_compact"): profile.pop(k, None)
     cfg = tmp_path / "profiles.json"; cfg.write_text(json.dumps({"synthetic": profile}))
     table, roster, aliases, lock = (tmp_path / n for n in ("assay.tsv", "roster.tsv", "aliases.json", "lock.json"))
     aliases.write_text("{}"); lock.write_text("{}")
@@ -42,4 +43,5 @@ def test_every_point_off_the_origin_is_labelled(tmp_path):
 
 def test_profiles():
     prof = json.loads(LAYOUTS.read_text())
-    assert prof["attine"]["a04_point_labels"] == "nonzero" and prof["moss"]["a04_point_labels"] == "strong"
+    # owner, 21 Oct (card 472, Attine Fig. S19): attine labels isolates strong against either target; moss keeps strong
+    assert prof["attine"]["a04_point_labels"] == "either" and prof["moss"]["a04_point_labels"] == "strong"

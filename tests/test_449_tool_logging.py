@@ -70,7 +70,7 @@ def test_gene_table_completion_message_is_logged_and_visible(tmp_path, monkeypat
     core = 'SYNTHETIC / NODE_1_length_900_cov_1 / region001 / BGC001'
     monkeypatch.setattr(gap_directed_rescue, 'load_genome', lambda *a: ({}, [{'identity': core}]))
     monkeypatch.setattr(mod, 'edge_shares', lambda *a: {})
-    monkeypatch.setattr(mod, 'write_gene_table', lambda *a: {'rows': 3})
+    monkeypatch.setattr(mod, 'write_gene_table', lambda *a, **k: {'rows': 3})
     (tmp_path/'gap_rescue_receipt.json').write_text(json.dumps({'label': 'fixture', 'core': core}))
     (tmp_path/'gap_rescue.tsv').write_text('name\n')
     assert mod.main(['--run', str(tmp_path), '--zip', 'fixture.zip', '--reference', 'fixture.gbk']) == 0

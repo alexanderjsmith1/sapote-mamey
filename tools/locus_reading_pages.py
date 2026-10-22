@@ -18,7 +18,9 @@ Inputs, one source each:
   every gene's layers       a gene annotation ledger: one row per CDS with the columns in LEDGER_COLUMNS
   gene tables and maps      a gene-table inventory (one row per pair; its png column is resolved against
                             --gene-table-root) and, beside each pair's map, gap_rescue.tsv and gap_rescue_split_genes.tsv
-  GECCO clusters            a table with strain, contig_full, type, start, end, average_p, relation
+  GECCO clusters            a table with strain, contig_full, type, start, end, average_p, relation; contig_full is
+                            matched to the ledger by the same exact-then-unique NODE_n_length_L rule as the gene tables;
+                            an ambiguous name is a hold only when the cluster overlaps the page's region, else skipped
   MIBiG entries             MIBiG JSON records, one per BGC, for compound names, producer and recorded bioactivity
   hand assessments          <assessments>/<stem>.md, used in place of the automatic summary when present
   checked literature        <refs>/<stem>.tsv (pmid, citation, doi, reports), used when present
@@ -154,6 +156,68 @@ def ledger_by_strain(ledger, ledger_dir, cache):
     return split
 
 
+def _contig_candidates(ledger_contigs):
+    """-> a function from a contig name in a supplied table to the ledger contigs it can mean: the exact name when the
+    ledger has it, else every ledger contig with the same NODE_n_length_L alias (some tables rewrite the coverage
+    suffix of SPAdes names; GECCO writes cov_9.12345 for cov_9.012345), else none."""
+    key = lambda c: m.group(1) if (m := re.match(r"(NODE_\d+_length_\d+)_", c)) else c
+    byk = defaultdict(list)
+    for c in ledger_contigs:
+        byk[key(c)].append(c)
+    known = set(ledger_contigs)
+    return lambda c: [c] if c in known else byk.get(key(c), [])
+
+
+def contig_resolver(ledger_contigs):
+    """-> a function from a contig name in a supplied table to the ledger's contig name.
+
+    Exact full contig identity wins; the NODE_n_length_L alias is used when it names exactly one ledger contig. An alias
+    naming two ledger contigs is an identity hold. A name with no match is returned unchanged."""
+    candidates = _contig_candidates(list(ledger_contigs))
+
+    def resolve(c):
+        cs = candidates(c)
+        if len(cs) > 1:
+            raise ValueError(f"LOCUS_PAGE_CONTIG_IDENTITY_HOLD: {c} matches {', '.join(sorted(cs))}")
+        return cs[0] if cs else c
+    return resolve
+
+
+def _overlaps(g, lo, hi) -> bool:
+    """True when a GECCO row's span meets [lo, hi], or when its span cannot be read (it cannot be ruled out)."""
+    try:
+        return int(g["start"]) <= hi and int(g["end"]) >= lo
+    except (KeyError, TypeError, ValueError):
+        return True
+
+
+def page_gecco(gecco_all, strain, order, ledger_contigs, region):
+    """The GECCO rows of one page: this strain's clusters on the page's contigs (`order`), matched by _contig_candidates.
+    Each returned row is a copy whose contig_full is the ledger's name; the supplied table is not changed.
+
+    region is (core contig, first base, last base) of the page's own antiSMASH region. A cluster whose name could mean
+    two ledger contigs is an identity hold only when one of them is the core contig and the cluster overlaps the region;
+    any other such cluster is left off the page with a logged warning. Call it while planning, before pages are written."""
+    candidates = _contig_candidates(list(ledger_contigs))
+    core, lo, hi = region
+    shown = set(order)
+    out = []
+    for g in gecco_all:
+        if g["strain"] != strain:
+            continue
+        cs = candidates(g["contig_full"])
+        if len(cs) == 1:
+            if cs[0] in shown:
+                out.append({**g, "contig_full": cs[0]})
+        elif len(cs) > 1:
+            if core in cs and _overlaps(g, lo, hi):
+                raise ValueError(f"LOCUS_PAGE_CONTIG_IDENTITY_HOLD: GECCO {g['contig_full']} matches "
+                                 f"{', '.join(sorted(cs))} and overlaps {core} {lo}-{hi}")
+            _OUT.warning("GECCO cluster on %s skipped for the page of %s %s-%s: its name matches %s and it does not "
+                         "overlap the region", g["contig_full"], core, lo, hi, ", ".join(sorted(cs)))
+    return out
+
+
 def select_rows(genes_by_contig, bgc, pairs, gr_by_pair, sp_by_pair):
     """-> (rows, contig order, extra contigs): the region's CDS with 3 flanking CDS on each side, then every contig the
     gene table or split check points to (whole contig up to 20 kb; else the matched CDS and 2 on each side)."""
@@ -174,18 +238,10 @@ def select_rows(genes_by_contig, bgc, pairs, gr_by_pair, sp_by_pair):
                 m = re.search(r"/ (\S+)", r.get(k, ""))
                 if m and m.group(1) != core:
                     extra[m.group(1)].add(r.get(lk, ""))
-    # Exact full contig identity wins. Some tables rewrite the coverage suffix;
-    # normalized aliases may be used only when they identify one ledger contig.
-    key = lambda c: m.group(1) if (m := re.match(r"(NODE_\d+_length_\d+)_", c)) else c
-    byk = defaultdict(list)
-    for c in genes_by_contig:
-        byk[key(c)].append(c)
+    resolve = contig_resolver(genes_by_contig)
     merged = defaultdict(set)
     for c, v in extra.items():
-        candidates = [c] if c in genes_by_contig else byk.get(key(c), [])
-        if len(candidates) > 1:
-            raise ValueError(f"LOCUS_PAGE_CONTIG_IDENTITY_HOLD: {c} matches {', '.join(sorted(candidates))}")
-        resolved = candidates[0] if candidates else c
+        resolved = resolve(c)
         if resolved != core:
             merged[resolved] |= v
     extra = merged
@@ -829,13 +885,18 @@ def _build_pages(opts, out, search_context, built, output_paths):
                 genes[r["contig"]].append(r)
             for gs in genes.values():
                 gs.sort(key=lambda g: int(g["start"]))
-            plan = []
+            plan, gecco_by_bgc = [], {}
             for arow in regions:
                 bgc = arow["BGC_ID"]
                 if opts.bgc and bgc != opts.bgc:
                     continue
                 pairs = pairs_by.get((strain, bgc), [])
                 rows, order, _ = select_rows(genes, bgc, pairs, gr_by_pair, sp_by_pair)
+                if rows:   # GECCO identity holds fire here, before any page of the strain is written
+                    span = [int(g["start"]) for g in genes.get(order[0], []) if g["bgc"] == bgc] + \
+                           [int(g["end"]) for g in genes.get(order[0], []) if g["bgc"] == bgc]
+                    gecco_by_bgc[bgc] = page_gecco(gecco_all, strain, order, list(genes),
+                                                   (order[0], min(span), max(span)))
                 plan.append((arow, bgc, pairs, rows, order))
             need = {r["locus_tag"] for *_, rows, _ in plan for r in rows
                     if r["L2b_bind"] == "NOT_SEARCHED" or r["mibig_queried"].startswith("no")}
@@ -855,7 +916,7 @@ def _build_pages(opts, out, search_context, built, output_paths):
                 if not rows:
                     lw.writerow([strain, bgc, ident, "NO_LEDGER_ROWS", 0, len(pairs), "", ""])
                     continue
-                gecco = [g for g in gecco_all if g["strain"] == strain and g["contig_full"] in order]
+                gecco = gecco_by_bgc[bgc]
                 conv = sorted(conv_all.get(bgc, []), key=lambda r: (-int(r["distinct_query_genes"]),
                                                                     -float(r["median_pct_identity"] or 0)))
                 kcb = arow.get("KCB_top", "")

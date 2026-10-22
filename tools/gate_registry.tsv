@@ -21,6 +21,7 @@ check_chatgpt_next_paths	OPERATOR_ONLY	ChatGPT handback QA helper; validates exa
 assembly_qc_check	OPERATOR_ONLY	per-strain assembly QC; run during analysis, not a release invariant
 check_deliverable_suite	OPERATOR_ONLY	operator deliverable spot-check; not part of the cut
 mamey_package_qa_v2	OPERATOR_ONLY	package QA helper; superseded by wired gates for release
+manuscript_qa	OPERATOR_ONLY	read-only QA report on a Word deliverable (citations, spelling, italics, print scale); run by hand on each paper round, not a release invariant
 schema_deployed_audit	OPERATOR_ONLY	one-off deployed-schema diff; manual diagnostic
 check_dangling_refs	WIRED	dangling examples/-ref guard + path-qualified strict scan (--strict-paths, G01): pytest tests/test_no_dangling_tool_paths_v97239.py
 encyclopedia_reground_check	OPERATOR_ONLY	advisory doc-currency checker; run pre-cut by hand, not a build gate

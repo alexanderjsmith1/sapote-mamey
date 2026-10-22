@@ -257,6 +257,7 @@ distribution you use.
 | [svglite](https://svglite.r-lib.org/) | SVG output for R renderers using ggplot2's SVG device | GPL-2.0-or-later |
 | Other R packages loaded by the shipped R scripts: ggrepel (non-overlapping labels), ggtext, ape, treeio, aplot, dplyr, tidyr, jsonlite, ragg (PNG output), png (reads a rendered PNG to center bioassay panels), and ggchicklet (optional; rounded bars in the class-group figure, plain bars without it; not on CRAN, so the installer fetches its author's source archive from codeload.github.com, pinned to one commit) | `bundle_support/install_r_figure_packages.R` installs these together with the packages above; [Rscript](https://www.r-project.org/) runs every R renderer | ggrepel GPL-3; ggtext GPL-2; ape GPL-2 or GPL-3; treeio and aplot Artistic-2.0; dplyr, tidyr, jsonlite and ggchicklet MIT; ragg MIT; png GPL-2 or GPL-3 (from each package's installed DESCRIPTION) |
 | [Poppler utilities](https://poppler.freedesktop.org/) (`pdftotext`, `pdfinfo`, `pdffonts`, `pdfimages`) | Checking compiled report PDFs: text, fonts, images and page counts | See upstream COPYING |
+| `qlmanage` (macOS Quick Look, built in) | PNG preview of protein-space grid pages, rendered from the checked PDF; skipped when absent (the PDF and SVG are still written) | Part of macOS |
 | [Google Chrome or Chromium](https://www.chromium.org/getting-involved/download-chromium/), headless | Printing HTML locus reading pages, clinker views and class heatmaps to PDF or PNG | See upstream terms for the browser you install |
 | [wkhtmltopdf](https://wkhtmltopdf.org/) | One optional HTML-to-PDF fallback for briefs and chat exports | See upstream |
 | [Graphviz](https://graphviz.org/download/) (`dot`) | Drawing workflow and cause-map diagrams | See upstream |
@@ -438,7 +439,7 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.455 / engine 1.9.177 · build 20261019v97455a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.456 / engine 1.9.177 · build 20261021v97456a · release profile: CODE (see RELEASE_MANIFEST.md)*
 
 ## Choose a task by name
 

@@ -13,7 +13,7 @@
   "No 16S sequence": "#C9D0D9", "No 16S genus on record": "#C9D0D9"
  },
  "sets": {
-  "moss": {"Streptomyces": "#0F4C5C"},
+  "moss": {"Streptomyces": "#0F4C5C", "Pseudonocardia": "#F28E2B"},
   "attine": {"Pseudonocardiaceae bacterium": "#33AA88", "Pseudonocardiaceae": "#33AA88", "Phytohabitans": "#2E86AB",
              "Brachybacterium": "#00CED1", "Mycobacterium": "#5C4B8A", "Microlunatus": "#9370DB", "Microbacterium": "#56B4E9",
              "Gordonia": "#881111", "Dietzia": "#FF6F91", "Citrobacter": "#006655", "Arboricoccus": "#9922DD",

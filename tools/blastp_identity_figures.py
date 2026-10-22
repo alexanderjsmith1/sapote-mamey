@@ -312,7 +312,7 @@ class BlockLabelDoesNotFit(ValueError):
     """An unbreakable title cannot fit its block at the required print size."""
 
 
-def _block_labels(ax, groups, xs, x, y, va):
+def _block_labels(ax, groups, xs, x, y, va, bold=False):
     from matplotlib.font_manager import FontProperties
     fig = ax.figure
     fig.canvas.draw()
@@ -343,16 +343,19 @@ def _block_labels(ax, groups, xs, x, y, va):
         if current:
             lines.append(current)
         text = ax.text((left + right) / 2, y, "\n".join(lines), transform=ax.get_xaxis_transform(),
-                       ha="center", va=va, fontsize=8, color="#333", parse_math=False)
+                       ha="center", va=va, fontsize=8, color="#333", parse_math=False,
+                       fontweight="bold" if bold else "normal")
         text.set_gid("block-title")
         text._block_bounds = (left, right)
         texts.append(text)
     return texts
 
 
-def by_genome(genomes, region, best, colours, measure, db, out: Path, bar_counts: bool = False) -> list[str]:
+def by_genome(genomes, region, best, colours, measure, db, out: Path, bar_counts: bool = False, block_labels: str = "above") -> list[str]:
     """Panel A: identity per genome. Panel B: share of genes per identity band. The genes-with-a-hit counts go to
-    the numbers table and the caption; drawing them above panel B's bars is opt-in (bar_counts)."""
+    the numbers table and the caption; drawing them above panel B's bars is opt-in (bar_counts).
+    block_labels: "above" (default) titles each block of genomes once, above panel A; "below" titles the blocks in bold
+    under the genome names of both panels, with each key moved down below them."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -402,7 +405,11 @@ def by_genome(genomes, region, best, colours, measure, db, out: Path, bar_counts
     leg_b = b.legend(ncol=4 if width >= 4.5 else 2, fontsize=8, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.47),
                      title="Identity band", title_fontsize=8)
     b.add_artist(leg_b)
-    if len(groups) > 1:
+    below = {a: [], b: []}
+    if len(groups) > 1 and block_labels == "below":
+        for ax in (a, b):
+            below[ax] = _block_labels(ax, groups, xs, x, -0.3, "top", bold=True)
+    elif len(groups) > 1:
         labels = _block_labels(a, groups, xs, x, 1.03, "bottom")
         fig.canvas.draw()
         label_height = max(t.get_window_extent().height for t in labels) / fig.dpi
@@ -420,6 +427,11 @@ def by_genome(genomes, region, best, colours, measure, db, out: Path, bar_counts
     def anchor(ax, leg):
         box = ax.get_window_extent(rend)
         tick_bottom = min(t.get_window_extent(rend).y0 for t in ax.get_xticklabels())
+        if below[ax]:                              # bold block titles sit just under the genome names, the key under them
+            for t in below[ax]:
+                t.set_y((tick_bottom - box.y0 - 0.05 * fig.dpi) / box.height)
+            fig.canvas.draw()
+            tick_bottom = min(t.get_window_extent(rend).y0 for t in below[ax])
         leg.set_bbox_to_anchor((0.5, (tick_bottom - box.y0 - 0.06 * fig.dpi) / box.height), transform=ax.transAxes)
 
     for _ in range(40):
@@ -543,8 +555,10 @@ def by_class(genomes, core, best, colours, measure, db, out: Path, omit=(), prin
     handles = _legend_handles(plt, order, genus, colours)
     blocks = len(groups) > 1
     if ncols == 2:
+        # key hangs below the figure (upper center at y = 0), clear of the block titles under the bottom panels; the
+        # tight bounding box at save time takes it in (Moss Fig. S4, 20 Oct: the lower-center key ran into a block title)
         fig.legend(handles=handles, ncol=max(1, min(len(handles), 3)), frameon=False,
-                   loc="lower center", bbox_to_anchor=(0.5, 0.01), prop={"style": "italic", "size": 8})
+                   loc="upper center", bbox_to_anchor=(0.5, -0.01), prop={"style": "italic", "size": 8})
     else:
         axes[-1].legend(handles=handles, ncol=len(handles) if not blocks else min(len(handles), 3), frameon=False, loc="upper center",
                         bbox_to_anchor=(0.5, -0.42 if blocks else -0.3), prop={"style": "italic", "size": 8})
@@ -584,6 +598,8 @@ def main(argv=None) -> int:
     ap.add_argument("--query-index", type=Path, help="tools/blastp_query_index.py output: protein_sha256 per result")
     ap.add_argument("--grid", choices=("auto", "column"), default="auto", help="by-class: use two columns for three or four panels; column restores the vertical stack")
     ap.add_argument("--bar-counts", action="store_true", help="by-genome: print genes-with-a-hit / region genes above panel B's bars (off by default; the counts are in the numbers table)")
+    ap.add_argument("--genus-colour", action="append", default=[], metavar="GENUS=#RRGGBB", help="repeatable; colour for one genus")
+    ap.add_argument("--block-labels", choices=("above", "below"), default="above", help="by-genome: block titles once above panel A (default), or bold under the genome names of both panels")
     ap.add_argument("--print-width", type=float, default=7.2, help="by-class: printed width in inches (7.2 double column; larger for a landscape page); text stays 8 pt at that width")
     ap.add_argument("--omit-class", action="append", default=[], choices=CLASSES, help="by-class: leave a class off the figure (repeatable); its rows stay in the numbers table")
     ap.add_argument("--extra-csv-list", type=Path, help="checked path/sha256/bytes TSV; exclusive with --extra-csv")
@@ -601,6 +617,11 @@ def main(argv=None) -> int:
     if clash:
         raise SystemExit(f"{a.out} already holds {clash}; nothing overwritten")
     colours = genus_colours(a.palette_set)
+    for spec in a.genus_colour:                    # one genus recoloured so a figure matches the rest of its paper
+        g, _, hx = spec.partition("=")
+        if not (hx.startswith("#") and len(hx) == 7):
+            raise SystemExit(f"--genus-colour wants GENUS=#RRGGBB, got {spec!r}")
+        colours[g.strip()] = hx
     genomes = read_genomes(a.genomes, root)
     region, core, index = read_genes(genomes)
     extra = [r["path"] for r in extra_records]
@@ -610,7 +631,7 @@ def main(argv=None) -> int:
     best = per_gene(values, a.measure)
     made = []
     if a.figure in ("both", "by-genome"):
-        made += by_genome(genomes, region, best, colours, a.measure, a.db, a.out, bar_counts=a.bar_counts)
+        made += by_genome(genomes, region, best, colours, a.measure, a.db, a.out, bar_counts=a.bar_counts, block_labels=a.block_labels)
     if a.figure in ("both", "by-class"):
         made += by_class(genomes, core, best, colours, a.measure, a.db, a.out, omit=a.omit_class, print_width=a.print_width, grid=a.grid)
     with open(a.out / "GENE_VALUES.tsv", "w", newline="") as fh:

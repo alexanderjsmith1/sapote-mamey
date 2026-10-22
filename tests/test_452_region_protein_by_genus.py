@@ -59,7 +59,7 @@ def test_render_and_no_overwrite(tmp_path):
         assert artifact['sha256']==hashlib.sha256((tmp_path/'out'/artifact['path']).read_bytes()).hexdigest()
     assert Path(receipt['execution']['command'][0]).is_absolute()
     assert receipt['min_text']['smallest_pt']>=8
-    assert receipt['min_text']['page_width_in']==7.2
+    assert abs(receipt['min_text']['page_width_in']-7.2)<=0.01   # Linux cairo rounds the page to whole points (7.194 in)
     assert (tmp_path/'out/region_protein_by_genus.png').read_bytes().find(b'Sapote-Mamey')>=0
     box=(tmp_path/'out/region_protein_by_genus_box_summary.tsv').read_text().splitlines()
     assert box[1].split('\t')==['1','1.5','2','2.5','1','3']

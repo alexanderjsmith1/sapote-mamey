@@ -4,7 +4,7 @@
 > Historical section counts, role assignments and examples below cannot replace a current profile.
 > When instructions disagree, preserve evidence, identify the conflict, and do not expand authority.
 
-# Sapote-Mamey / Mamey Execution Prompt — v9.7.455
+# Sapote-Mamey / Mamey Execution Prompt — v9.7.456
 
 **Role:** Mamey deterministic extraction/scoring layer.  
 **Active controller:** `docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md`  
@@ -291,4 +291,4 @@ when useful. Do not invent extra work or repeat a mandatory historical eight-pat
 
 ---
 
-*Sapote-Mamey Bundle v9.7.455 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md | Prompt provenance only: this footer does not establish the loaded candidate release profile*
+*Sapote-Mamey Bundle v9.7.456 | Active controller: docs/SAPOTE_MAMEY_BUNDLE_MONOLITH.md | Prompt provenance only: this footer does not establish the loaded candidate release profile*

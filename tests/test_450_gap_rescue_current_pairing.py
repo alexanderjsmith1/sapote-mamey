@@ -102,7 +102,7 @@ def test_fresh_table_does_not_pair_old_map_when_current_map_is_not_drawn(pairing
     receipt = _analyse(b, figure=mode != "disabled")
     assert len(b.map_calls) == (0 if mode == "disabled" else 1)
     assert len(b.table_calls) == 1 and b.pair_calls == []
-    assert b.writer_calls[0][1] == {"pair_map": False}
+    assert b.writer_calls[0][1] == {"pair_map": False, "prots": b.f.prots}
     assert receipt["map_outputs"] == []
     assert json.loads((b.f.out / "gap_rescue_receipt.json").read_text())["map_outputs"] == []
     assert {path: path.read_bytes() for path in _old_maps_and_pairs(b)} == _old_maps_and_pairs(b)
@@ -135,7 +135,7 @@ def test_successful_current_map_and_table_pair_even_when_redraw_is_identical(pai
     _admit_current_draw(b, monkeypatch, same_bytes)
     receipt = _analyse(b, figure=True)
     assert len(b.map_calls) == len(b.table_calls) == len(b.pair_calls) == 1
-    assert b.writer_calls[0][1] == {"pair_map": True}
+    assert b.writer_calls[0][1] == {"pair_map": True, "prots": b.f.prots}
     assert receipt["core"] == b.f.core_id
     assert receipt["map_outputs"] == [
         {"path": path.name, "sha256": hashlib.sha256(payload).hexdigest(), "bytes": len(payload)}
@@ -169,7 +169,7 @@ def test_admitted_current_map_does_not_override_table_render_failure(pairing, mo
         receipt = _analyse(b, figure=True)
         assert len(receipt["map_outputs"]) == 2
         assert [Path(path).name for path in b.results[0]["files"]] == ["gene_table.tsv", "gene_table_counts.tsv"]
-    assert b.writer_calls[0][1] == {"pair_map": True}
+    assert b.writer_calls[0][1] == {"pair_map": True, "prots": b.f.prots}
     assert b.pair_calls == []
     for name in ("map_and_table.png", "map_and_table.pdf"):
         assert (b.f.out / name).read_bytes() == b.previous[b.f.out / name]
@@ -188,6 +188,8 @@ def test_standalone_saved_map_replay_preserves_legacy_default_pairing(pairing, m
                            "--reference", str(b.f.reference)]) == 0
     assert b.f.calls == before_stage_calls
     assert len(b.table_calls) == len(b.pair_calls) == 1
-    assert b.writer_calls[0][1] == {}, "Standalone replay retains the default saved-map pairing contract"
+    # No pairing keyword: the default saved-map pairing is kept. The only keyword is the proteins for the gene-table
+    # positions (card 018c0f08_456_gap_rescue_gene_table_positions).
+    assert b.writer_calls[0][1] == {"prots": b.f.prots}, "Standalone replay retains the default saved-map pairing contract"
     assert {path: path.read_bytes() for path in b.admitted_maps} == b.admitted_maps
     assert {Path(path).name for path in b.results[0]["files"]} >= {"map_and_table.png", "map_and_table.pdf"}

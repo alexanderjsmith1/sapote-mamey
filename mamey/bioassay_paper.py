@@ -255,7 +255,7 @@ def cli(kind, r_script, argv=None):
     config=dict(kind=kind,layout=a.layout,profile=profile,material=a.material,data=str((a.out/'plot_data.tsv').resolve()),
                 stem=str((a.out/f'{kind}_{a.layout}_{MATERIAL_STEM[a.material]}').resolve()),
                 palette=colors,fallback=palette['fallback'],theme=str(ROOT/'tools/sapote_pub_layout.R'),
-                groups=list(dict.fromkeys(r['group'] for r in result['used'])),dpi=600,bar_labels=a.bar_labels,point_labels=a.point_labels)
+                groups=sorted({r['group'] for r in result['used']}),dpi=600,bar_labels=a.bar_labels,point_labels=a.point_labels)
     (a.out/'render_config.json').write_text(json.dumps(config,indent=2))
     inputs=[a.table,a.roster,a.aliases,a.lock,palette_path,Path(a.layout_config or LAYOUTS),Path(r_script),Path(__file__),ROOT/'tools/sapote_pub_layout.R',ROOT/'tools/bioassay_paper_theme.R',Path(__file__).parents[1]/'tools'/f'bioassay_{kind.lower()}.py']
     receipt=dict(kind=kind,layout=a.layout,material=a.material,status='PREPARED',inputs=[dict(path=str(x.resolve()),sha256=sha(x)) for x in inputs],
@@ -270,7 +270,8 @@ def cli(kind, r_script, argv=None):
                else 'Candida sp. pools C. albicans, C. auris and unnamed Candida where displayed.')
     labels = {'strong': ' Labelled points: isolates with at least 80% inhibition of both targets.',
               'none': ' Points are not labelled; per-isolate values are in plot_data.tsv.',
-              'nonzero': ' Labelled points: every isolate not at 0% inhibition of both targets.'}.get(profile.get('a04_point_labels'), '') if kind == 'A04' else ''
+              'nonzero': ' Labelled points: every isolate not at 0% inhibition of both targets.',
+              'either': ' Labelled points: every isolate with at least 80% inhibition of either target.'}.get(profile.get('a04_point_labels'), '') if kind == 'A04' else ''
     per = 'Each point is one fraction (one fraction-plate well); ' if kind == 'A07' else ''
     (a.out/'CAPTION.md').write_text('Single-replicate preliminary screening at 48 h. ' + per + 'Best numeric inhibition per isolate and material; 384-well data use only the bound 120 µg/mL selection. ' + candida + ' P. larvae pools strains 19118-1 and 818 where displayed as one target. Strong activity is ≥80%. Missing or qualitative entries are not numeric negatives. Activity is measured at strain level and is not attributed to a BGC.' + labels + '\n')
     if not a.prepare_only:

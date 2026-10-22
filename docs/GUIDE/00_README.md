@@ -1,6 +1,6 @@
 # User guides and reference reading
 
-*Included with bundle v9.7.455 / engine Mamey 1.9.177. Packaging version; content scope is described below.*
+*Included with bundle v9.7.456 / engine Mamey 1.9.177. Packaging version; content scope is described below.*
 
 Start with the [task router](../USER_TASK_ROUTER.md) for the question, required inputs and completion limit.
 Its [JSON companion](../USER_TASK_ROUTER.json) presents the same routes for assistants.

@@ -31,6 +31,8 @@ def test_save_pub_internal_notes_are_at_least_8pt(tmp_path):
                       f'save_pub(p, "FIG_TEST", "{tmp_path / "pub.md"}", "{tmp_path / "int.md"}", w = 7.2, h_body = 3, outdir = "{tmp_path / "out"}")\n')
     r = subprocess.run(["Rscript", str(script)], capture_output=True, text=True, env={"LANG": "en_US.UTF-8", "LC_ALL": "en_US.UTF-8",
                        "PATH": __import__("os").environ["PATH"], "HOME": str(tmp_path),
-                       "PYTHONDONTWRITEBYTECODE": "1"})  # hermetic: no bytecode from any Python the child starts (J5 owner hold #219)
+                       "PYTHONDONTWRITEBYTECODE": "1",  # hermetic: no bytecode from any Python the child starts (J5 owner hold #219)
+                       # R finds its packages through these; CI installs them into R_LIBS_USER, not the system library.
+                       **{k: v for k, v in __import__("os").environ.items() if k in ("R_LIBS", "R_LIBS_USER", "R_LIBS_SITE")}})
     assert r.returncode == 0, r.stderr
     assert smallest_pt(tmp_path / "out" / "FIG_TEST.pdf") >= 7.95

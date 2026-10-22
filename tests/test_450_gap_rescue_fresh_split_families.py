@@ -94,7 +94,7 @@ def test_fresh_split_table_receives_locus_tag_family_aliases(fresh_saved_split, 
     expected = {key: value.get("family", "") for key, value in f.prots.items()}
     expected.update({value["tag"]: value.get("family", "") for value in f.prots.values()})
     assert args[6] == expected
-    assert args[7:] == ("Explicit reference", {}) and kwargs == {"pair_map": False}
+    assert args[7:] == ("Explicit reference", {}) and kwargs == {"pair_map": False, "prots": f.prots}
     with (f.out / "gene_table.tsv").open(newline="") as stream:
         actual = list(csv.DictReader(stream, delimiter="\t"))
     assert len(actual) == 1
@@ -215,7 +215,7 @@ def test_replay_table_uses_shared_unambiguous_family_lookup(fresh_saved_split, m
     assert args[:1] == (f.out,) and args[3:6] == (f.core_id, "SYNTHETIC", f.reference)
     assert args[6] == {"q000001": "A", "q000002": "B", "saved_piece_a": "A", "saved_piece_b": "B"}
     assert args[7:] == ("Explicit reference", {}, {"saved_piece_a", "saved_piece_b"})
-    assert kwargs == {} and f.calls == []
+    assert kwargs == {"prots": f.prots} and f.calls == []
 
 
 @pytest.mark.parametrize("kind", ["generated_id", "repeated_tag"])

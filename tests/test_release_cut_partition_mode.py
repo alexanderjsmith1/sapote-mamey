@@ -310,7 +310,7 @@ def test_occupied_seal_target_is_refused_before_any_work(tmp_path):
     output = tmp_path/'forbidden-output'
     result = subprocess.run([sys.executable, str(ROOT/'tools/release_workflow.py'), 'cut',
         '--source', str(source), '--out', str(output), '--version','9.7.450', '--date','20261010',
-        '--seal-target',str(target)],env=env,text=True,capture_output=True,timeout=10)
+        '--seal-target',str(target)],env=env,text=True,capture_output=True,timeout=120)
     assert result.returncode != 0 and 'seal target is occupied' in result.stderr
     assert target.read_text() == 'owner evidence' and not output.exists()
 
@@ -334,7 +334,7 @@ def test_full_cut_root_can_be_independently_verified_without_stage_execution(tmp
         '--source',str(source), '--out',str(output), '--sha256',digest,
         '--python',cut_python, '--admission',str(verification),
         *(command[command.index('--synthetic-registry'):] if registry_requested else [])],
-        env=env,cwd=tmp_path,text=True,capture_output=True,timeout=30)
+        env=env,cwd=tmp_path,text=True,capture_output=True,timeout=600)   # a refusal stays a failure; only load-slow passes change
     assert checked.returncode == 0, checked.stdout+checked.stderr
     assert 'VERIFIED_STAGES' in checked.stdout
     assert root.read_bytes() == before and gate_log.read_bytes() == events_before

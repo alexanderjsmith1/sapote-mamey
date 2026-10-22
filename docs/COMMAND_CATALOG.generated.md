@@ -1,6 +1,6 @@
 # Command catalog (generated)
 
-*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.455 · engine 1.9.177. Do not edit by hand; `--check` fails the build when stale.*
+*Generated from the live argparse tree of `mamey.cli` by `tools/gen_command_catalog.py` — bundle v9.7.456 · engine 1.9.177. Do not edit by hand; `--check` fails the build when stale.*
 
 Every command is invoked as `python mamey_run.py <command> …` from the extracted bundle root (the bundle-local launcher, so an older installed copy cannot shadow it). Most post-seal commands take `--package <sealed package dir>`; `run` is the only command that creates a package. Claim-safety: every output is a class-level hypothesis with judgment deferred.
 
@@ -168,7 +168,7 @@ _Status, lookups and explicit maintenance actions. Check each command's write bo
 | `literature` | Full-abstract lookup / search over the in-bundle PubMed corpus |
 | `triage-raw` | Guided PRE-EXTRACTION genome triage: KCB front page + scanner evidence + rare-motif scan + split-detector + bgc_walk on the priority regions, in one pass, directly on a raw antiSMASH ZIP/dir (see docs/Sapote_Mamey_ROADMAP.md). For sealed-package novelty/divergence correctness checks after extraction, see `mamey explore`. |
 | `wheelhouse` | Manage the Wheelhouse lab-data store (strains, scanners, validations) |
-| `strain-master` | User Strain Master (docs/DATA_HOME.md): init or adopt a master; submit a result to its inbox, verify it (a different chat), apply it; status; check the master; where a data type lives. Writes only inside the master and its named record homes. |
+| `strain-master` | Strain Master (docs/DATA_HOME.md): init or adopt a master; submit a result to its inbox, verify it (a different chat), apply it; status; check the master; where a data type lives. Writes only inside the master and its named record homes. |
 
 ## Compatibility and maintainer commands
 

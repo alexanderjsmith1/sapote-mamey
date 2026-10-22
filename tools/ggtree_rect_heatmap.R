@@ -403,7 +403,9 @@ if (!is.finite(cap_w) || cap_w < 1) stop("CAPTION_WRAP_INVALID")
 caption_lines <- if (nzchar(mth)) strwrap(caption_text, width=cap_w) else character()
 caph <- if (length(caption_lines)) length(caption_lines)*0.14+0.25 else 0
 if (caph > 4) stop("CAPTION_TOO_LONG_FOR_PRINT_PAGE")
-rows_per_page <- max(1L, floor((9 - caph - 1.3) / 0.18))
+page_h_max <- suppressWarnings(as.numeric(Sys.getenv("GG_PAGE_HEIGHT", "9")))
+if (!is.finite(page_h_max) || page_h_max < 4 || page_h_max > 9.4) stop("PAGE_HEIGHT_INVALID")
+rows_per_page <- max(1L, floor((page_h_max - caph - 1.3) / 0.18))
 page_groups <- split(rev(tip_order), ceiling(seq_along(tip_order)/rows_per_page))
 page_count <- length(page_groups)
 page_plots <- list()
@@ -474,16 +476,19 @@ for (i in seq_along(page_groups)) {
   # Publication default: pagination belongs in the sidecar; draw only on explicit opt-in.
   if (identical(Sys.getenv("GG_PAGE_TITLE"), "1"))
   final <- final + plot_annotation(title=sprintf("Page %d of %d",i,page_count), theme=theme(plot.title=element_text(size=8)))
-  h_total <- min(9, body_h+caph+0.2)
+  h_total <- min(page_h_max, body_h+caph+0.2)
   page_plots[[i]] <- final
   page_prefix <- if (page_count > 1) paste0(out,"_page",i) else out
   ggsave(paste0(page_prefix,".pdf"),final,width=w,height=h_total,limitsize=FALSE)
+  # GG_SVG=1: also write <page>.svg with svglite. R's pdf device prints every hyphen-minus (U+002D) as a minus sign (U+2212) in the PDF,
+  # so an ID such as "XX-1" reads "XX\u22121"; the SVG keeps U+002D and can be printed to PDF by a browser.
+  if (identical(Sys.getenv("GG_SVG"), "1")) ggsave(paste0(page_prefix,".svg"),final,device=svglite::svglite,width=w,height=h_total,limitsize=FALSE)
   ggsave(paste0(page_prefix,".png"),final,width=w,height=h_total,dpi=300,limitsize=FALSE)
   page_files <- c(page_files,paste0(page_prefix,c(".pdf",".png")))
   page_rows[[i]] <- list(page=i,tips=shown,width_in=w,height_in=h_total,minimum_font_pt=min_pt,pdf=basename(paste0(page_prefix,".pdf")),png=basename(paste0(page_prefix,".png")))
 }
 if (page_count > 1) {
-  grDevices::pdf(paste0(out,".pdf"),width=w,height=9,onefile=TRUE)
+  grDevices::pdf(paste0(out,".pdf"),width=w,height=page_h_max,onefile=TRUE)
   for (figure in page_plots) print(figure)
   invisible(grDevices::dev.off())
   if (!file.copy(paste0(out,"_page1.png"),paste0(out,".png"),overwrite=FALSE)) stop("PAGE_PREVIEW_EXISTS")

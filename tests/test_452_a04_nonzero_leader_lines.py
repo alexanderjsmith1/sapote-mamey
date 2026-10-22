@@ -4,6 +4,7 @@ several labels sit in the cluster near the origin; without a line a label can re
 import pytest
 import shutil
 import importlib.util
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +24,9 @@ def test_nonzero_labels_draw_leader_lines(tmp_path):
 
 def test_leader_rule_covers_strong_and_nonzero_only():
     r = (ROOT / "tools" / "bioassay_a04.R").read_text()
-    assert 'segment.colour=if(lab_mode %in% c("strong","nonzero"))"#6B7483" else NA' in r
-    for knob in ("box.padding", "point.padding", "force", "max.iter"):   # box.padding and force scale with the text size: (if(...) a else b)*TPT/8
-        assert (f'{knob}=if(lab_mode %in% c("strong","nonzero"))' in r or f'{knob}=(if(lab_mode %in% c("strong","nonzero"))' in r), knob
+    # Leader modes: "strong" and "nonzero", plus "either" where card 472 adds it. A knob may be wrapped by a multiplier
+    # (card 465: BIOASSAY_REPEL_PAD; text-size scaling *TPT/8), so the rule is found anywhere in the knob's expression.
+    modes = r'c\("strong",(?:"either",)?"nonzero"\)'
+    assert re.search(r'segment\.colour=if\(lab_mode %in% ' + modes + r'\)"#6B7483" else NA', r)
+    for knob in ("box.padding", "point.padding", "force", "max.iter"):
+        assert re.search(re.escape(knob) + r'=.{0,90}?if\(lab_mode %in% ' + modes + r'\)', r), knob

@@ -1,4 +1,4 @@
-"""v9.7.455 data-home card: User Strain Master init, inbox, store, check and lookup.
+"""v9.7.455 data-home card: Strain Master init, inbox, store, check and lookup.
 
 Every fixture is a fake master built in tmp_path. Strain IDs are synthetic and built at runtime.
 Fail-before for every test: on the .454 source, ``mamey.strain_master`` does not exist and

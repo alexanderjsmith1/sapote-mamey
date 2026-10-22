@@ -261,3 +261,27 @@ else:
     altered = dict(result, attempt_id="synthetic-wrong-attempt")
     with pytest.raises(render.RenderRefusal):
         render.admit_resource_run(out, "SYNTHETIC_REFERENCE", altered, bindings[1], [], [], {})
+
+
+def test_disk_floor_leaves_room_for_other_writers(kit, monkeypatch):
+    """v9.7.456: the worker's disk floor no longer sits at 'free at start minus this run's growth', which another
+    program writing a few MB tripped (DISK_LIMIT in 0.6 s on a busy machine). It leaves 1 GiB for other writers and
+    never goes below min_free_disk_bytes."""
+    free = 50_000_000_000
+    monkeypatch.setattr(resource.shutil, "disk_usage", lambda path: SimpleNamespace(total=2 * free, used=free, free=free))
+    seen = {}
+    def watch(command, **kwargs):
+        seen.update(kwargs)
+        raise resource.ValidationRefused("stop after capturing the floor")
+    monkeypatch.setattr(resource, "run_watched", watch)
+    with pytest.raises(resource.ResourceRefusal):
+        resource.coordinate(options(kit), ROOT / "tools/protein_pcoa_ordinate.py")
+    assert resource.OTHER_WRITERS_ALLOWANCE_BYTES == 1 << 30
+    assert 2_000_000_000 <= seen["min_disk"] <= free - resource.OTHER_WRITERS_ALLOWANCE_BYTES
+    # the hard floor still holds when the allowance would go below it
+    tight = 2_500_000_000
+    monkeypatch.setattr(resource.shutil, "disk_usage", lambda path: SimpleNamespace(total=2 * tight, used=tight, free=tight))
+    seen.clear()
+    with pytest.raises(resource.ResourceRefusal):
+        resource.coordinate(options(kit), ROOT / "tools/protein_pcoa_ordinate.py")
+    assert seen.get("min_disk", 2_000_000_000) == 2_000_000_000

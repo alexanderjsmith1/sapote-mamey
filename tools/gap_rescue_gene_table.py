@@ -11,7 +11,8 @@ Reader-side and NON-SCORING. One row per reference gene, in reference order:
   strain protein is the best match for several reference genes, and when the tool called a reference gene split
   across contig ends (or found only a weaker split candidate).
 
-Writes, into the run folder: gene_table.tsv (always), gene_table.png/.pdf (with matplotlib), and map_and_table.png
+Writes, into the run folder: gene_table.tsv (always; it also gives each strain protein's contig, start, end and strand),
+gene_table.png/.pdf (with matplotlib), and map_and_table.png
 (the map above the table) and map_and_table.pdf (page 1 the map, page 2 the table) when gap_rescue.png/.pdf exist and
 Pillow and pypdf are installed. A missing optional library skips that output with a message; it never fails a run.
 
@@ -45,7 +46,59 @@ _OUT = _get_logger(__name__)
 # These are saved full-protein lengths; their ratio is not alignment coverage.
 COLS = ["CDS", "Size (aa)", "Protein family (antiSMASH)", "Reference gene", "Reference size (aa)", "Local/reference size ratio",
         "Reference annotation", "Identity (%)", "Location"]
+# Where each strain protein lies, from the genome records the run read: the full contig name, 1-based start, inclusive
+# end and strand (+ or U+2212 −, as the genes-in-the-window table writes it; a parser expecting ASCII - must map it).
+# gap_directed_rescue.load_genome records a CDS with no strand as +, as the window table does, and this table inherits
+# that. gene_table.tsv only; the drawn table keeps COLS. A split row lists both pieces joined by " + ", as its CDS cell
+# does; its strand cell reads "piece 1 +; piece 2 −", because the CSV formula guard quotes a cell that starts with +.
+# Positions are bound by locus tag (the CDS cell), never by the run's own protein id (q000001...), which shifts when a
+# replay reads a re-annotated zip. A tag that is missing, held by two CDS, or whose protein length or contig disagrees
+# with the saved run leaves the cells blank, and Position note says why (POSITION_HOLD). Blank, with no note, when not
+# found or when no genome proteins were given.
+POSITION_COLS = ["Contig", "Start", "End", "Strand", "Position note"]
 FLAG = {"SUPPORTED": "", "PARALOG_FAMILY": "; paralog family", "SINGLE_GENE": "; single gene"}
+
+
+def gene_positions(prots: dict | None) -> dict:
+    """Locus tag -> its position cells plus "_aa" (protein length), from load_genome's proteins (0-based start,
+    exclusive end, strand 1 or -1). A tag held by two or more CDS maps to {"_hold": reason}."""
+    by_tag = {}
+    for p in (prots or {}).values():
+        s = p.get("strand")
+        by_tag.setdefault(p.get("tag", ""), []).append({
+            "Contig": p.get("contig", ""), "Start": str(int(p["start"]) + 1), "End": str(int(p["end"])),
+            "Strand": "+" if s == 1 else ("−" if s == -1 else ""), "Position note": "", "_aa": len(p.get("aa") or "")})
+    return {tag: ps[0] if len(ps) == 1 else {"_hold": f"{tag} is the locus tag of {len(ps)} CDS in this genome"}
+            for tag, ps in by_tag.items() if tag}
+
+
+def _bound_position(tag: str, positions: dict, saved_len="", saved_contig="") -> dict:
+    """POSITION_COLS cells for one locus tag; blank cells with a POSITION_HOLD note when the tag is missing, repeated,
+    or its protein length or contig disagrees with the saved run."""
+    blank = dict.fromkeys(POSITION_COLS, "")
+    p = positions.get(tag)
+    if p is None:
+        return {**blank, "Position note": f"POSITION_HOLD: {tag} is not a locus tag of this genome"}
+    if "_hold" in p:
+        return {**blank, "Position note": f"POSITION_HOLD: {p['_hold']}"}
+    n = _len(saved_len)
+    if n and p["_aa"] and int(n) != p["_aa"]:
+        return {**blank, "Position note": f"POSITION_HOLD: {tag} is {p['_aa']} aa in this genome, {n} aa in the saved run"}
+    if saved_contig and _contig_key(saved_contig) != _contig_key(p["Contig"]):
+        return {**blank, "Position note": f"POSITION_HOLD: {tag} is on contig {p['Contig']} in this genome, "
+                                          f"contig {saved_contig} in the saved run"}
+    return {c: p[c] for c in POSITION_COLS}
+
+
+def _identity_contig(identity: str) -> str:
+    """The full contig of a saved identity "strain / contig / region / BGC" (or "strain / contig (note)"); "" if none."""
+    parts = (identity or "").split(" / ")
+    return parts[1].split(" (")[0].strip() if len(parts) >= 2 else ""
+
+
+def _display_cells(row: dict) -> list:
+    """The drawn table's cells of one row, in COLS order (position cells are in the TSV only)."""
+    return [row.get(k, "") for k in COLS]
 
 
 
@@ -210,10 +263,11 @@ def edge_shares(rows, prots: dict, core: dict | None) -> dict:
 
 
 def table_rows(rows, splits, core_identity: str, families: dict, annotations: dict, edge: dict | None = None,
-               known_tags=None) -> list[dict]:
+               known_tags=None, positions: dict | None = None) -> list[dict]:
     """One dict per reference gene (COLS keys). `rows` are the gap-rescue table rows (gap_rescue.tsv); `families` maps
     a strain protein (best_protein id or best_locus tag) to its family; `known_tags` are this genome's locus tags, so a
-    split whose pieces are not both in it is not shown as one."""
+    split whose pieces are not both in it is not shown as one. With `positions` (gene_positions), each dict also has the
+    POSITION_COLS keys."""
     rows = sorted(rows, key=lambda r: int(r.get("reference_gene") or 0))
     core_bgc = core_identity.split(" / ")[-1] if core_identity else "core"
     cc = [r.get("best_contig") for r in rows if r.get("status") == "PRESENT_IN_CORE"]
@@ -256,6 +310,16 @@ def table_rows(rows, splits, core_identity: str, families: dict, annotations: di
                         "Reference annotation": annotations.get(r.get("name", "")) or r.get("reference_product", ""),
                         "Identity (%)": f"{_num(x.get('piece1_identity_pct'))} / {_num(x.get('piece2_identity_pct'))}",
                         "Location": "split across " + " + ".join(_piece(x, k) for k in ("piece1", "piece2"))})
+            if positions is not None:
+                # each piece is checked against the contig of its saved region identity (audit F02)
+                pieces = [_bound_position(x.get(k + "_locus", ""), positions, "", _identity_contig(x.get(k + "_region_identity", "")))
+                          for k in ("piece1", "piece2")]
+                for c in POSITION_COLS[:4]:
+                    vals = [p[c] for p in pieces]
+                    out[-1][c] = ("" if not all(vals) else "; ".join(f"piece {n} {v}" for n, v in enumerate(vals, 1))
+                                  if c == "Strand" else " + ".join(vals) if all(p["Contig"] for p in pieces) else "")
+                out[-1]["Position note"] = "; ".join(f"piece {n}: {p['Position note']}"
+                                                     for n, p in enumerate(pieces, 1) if p["Position note"])
             continue
         found = r.get("status") != "MISSING_NOT_FOUND" and bool(r.get("best_locus"))
         loc = _location(r, core_bgc, core_contig)
@@ -282,6 +346,9 @@ def table_rows(rows, splits, core_identity: str, families: dict, annotations: di
                     "Reference annotation": annotations.get(r.get("name", "")) or r.get("reference_product", ""),
                     "Identity (%)": _num(r.get("best_identity_pct")) if found else "",
                     "Location": loc})
+        if positions is not None:
+            out[-1].update(_bound_position(r["best_locus"], positions, r.get("best_len_aa"), r.get("best_contig", ""))
+                           if found else dict.fromkeys(POSITION_COLS, ""))
     return out
 
 
@@ -297,7 +364,7 @@ def _draw(table: list[dict], title: str, label: str, png: Path, pdf: Path, capti
     heads = [f"CDS\n({label})", "Size (aa)", "Protein family (antiSMASH)", "Reference gene", "Reference\nsize (aa)",
              "Local/ref.\nsize ratio", "Reference annotation", "Identity\n(%)", f"In\n{label}"]
     widths, wraps = [0.085, 0.05, 0.17, 0.08, 0.065, 0.075, 0.185, 0.06, 0.24], [12, 6, 27, 14, 6, 6, 30, 6, 38]
-    cells = [[textwrap.fill(str(v), w) for v, w in zip(row.values(), wraps)] for row in table]
+    cells = [[textwrap.fill(str(v), w) for v, w in zip(_display_cells(row), wraps)] for row in table]
     nlines = [max(c.count("\n") + 1 for c in row) for row in cells]
     cap = textwrap.fill(caption, 175) if caption else ""
     cap_h = 0.22 * (cap.count("\n") + 1) + 0.1 if cap else 0.0
@@ -354,16 +421,19 @@ def pair_with_map(out: Path) -> list[Path]:
 
 
 def write_gene_table(out, rows, splits, core_identity: str, label: str, reference, families: dict,
-                     ref_name: str = "", edge: dict | None = None, known_tags=None, *, pair_map: bool = True) -> dict:
+                     ref_name: str = "", edge: dict | None = None, known_tags=None, *, pair_map: bool = True,
+                     prots: dict | None = None) -> dict:
     """Write table outputs; returns {"rows": n, "files": [...]}, counts and captions.
 
     pair_map keeps saved-map pairing for standalone replay by default. A fresh caller
     must explicitly admit a successfully rendered current map before pairing it.
+    prots (load_genome's proteins) fills the TSV's POSITION_COLS; without it they are blank.
     """
     out = Path(out)
-    table = table_rows(rows, splits, core_identity, families, reference_annotations(reference), edge, known_tags)
+    table = table_rows(rows, splits, core_identity, families, reference_annotations(reference), edge, known_tags,
+                       gene_positions(prots) if prots else None)
     with open(out / "gene_table.tsv", "w", newline="") as fh:
-        w = _SafeDictWriter(fh, fieldnames=COLS, delimiter="\t", lineterminator="\n")
+        w = _SafeDictWriter(fh, fieldnames=COLS + POSITION_COLS, delimiter="\t", lineterminator="\n")
         w.writeheader(); w.writerows(table)
     files = [out / "gene_table.tsv"]
     core_bgc = core_identity.split(" / ")[-1] if core_identity else "core"
@@ -712,7 +782,7 @@ def main(argv=None) -> int:
                          + "; check --zip and the saved run receipt")
     res = write_gene_table(a.run, rows, splits, receipt["core"], receipt["label"], a.reference, fams,
                            a.reference_name or receipt.get("reference_name", ""), edge_shares(rows, prots, core),
-                           known_tags)
+                           known_tags, prots=prots)
     _OUT.info(f"[gap_rescue_gene_table] {res['rows']} rows -> {a.run}")
     return 0
 

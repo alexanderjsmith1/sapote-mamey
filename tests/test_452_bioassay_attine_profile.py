@@ -12,7 +12,8 @@ def test_attine_profile_matches_moss_presentation_keys():
     for k in ("split_candida", "axis_title_ink", "a04_pool_candida", "a04_candida_axis_label"):
         assert k in att, k
         assert att[k] == moss[k], k
-    # point labels differ by the owner's ruling (13 Oct): attine labels every isolate off the origin, moss the strong ones
-    assert att["a04_point_labels"] == "nonzero" and moss["a04_point_labels"] == "strong"
+    # point labels differ by the owner's rulings: attine labels isolates strong against either target (21 Oct, card 472;
+    # earlier every isolate off the origin), moss the ones strong against both
+    assert att["a04_point_labels"] == "either" and moss["a04_point_labels"] == "strong"
     # collection-specific keys stay the attine profile's own
     assert att["focal_group"] is None and att["a04_source_shape"] is False

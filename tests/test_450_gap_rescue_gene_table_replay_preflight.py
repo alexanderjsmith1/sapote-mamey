@@ -43,7 +43,7 @@ def _prepare(tmp_path, monkeypatch, rows, *, include_core=True):
         edge_calls.append((got_rows, got_proteins, got_core))
         return {"gene_a": 75}
 
-    def write_gene_table(*args):
+    def write_gene_table(*args, **kwargs):
         table_calls.append(args)
         return {"rows": len(args[1]), "files": []}
 

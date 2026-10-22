@@ -34,7 +34,8 @@ def test_full_profile_requires_explicit_manual_scope():
 def test_default_ci_retains_fast_partition_and_declared_linux_python():
     data=workflow();job=data['jobs']['test']
     assert job['runs-on']=='ubuntu-latest'
-    assert job['strategy']['matrix']['python-version']==['3.12']
+    # v9.7.456: 3.13, the cut's Python; a 3.12 test Python started from Rscript loaded Ubuntu's own libpython3.12.
+    assert job['strategy']['matrix']['python-version']==['3.13']
     # v9.7.454: the default step runs without bytecode writes (python -B, no cache provider), as the cut does.
     assert any(s.get('run')=='python -B -m pytest -q -p no:cacheprovider' for s in job['steps'])
 

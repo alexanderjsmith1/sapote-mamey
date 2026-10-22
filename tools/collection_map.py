@@ -9,6 +9,8 @@ Inputs, all explicit:
 Layout: a dot marks each site on the map (size by isolates); a leader line runs to a pie in a side column (west or
 east of the sites' median longitude, ordered north to south), with the site's label and isolate counts beside it.
 Pie area is proportional to the site's isolates.
+  --layout on-map  instead: the map fills the width and each pie sits on its own site, labels placed clear of
+                   every pie and label. Optional sites column 'note' adds one line under a site's counts.
   --mark pie     slices by genus (16S rRNA)
   --mark circle  slices by group (isolation source) Text is held at 8 pt at the print width (default 7.2 in). Refuses: an isolate whose site
 has no coordinates (named), a site outside the map extent, duplicate isolates or sites, and an output that exists.
@@ -94,6 +96,12 @@ def main(argv=None) -> int:
                     "ends at a map border rather than a bare edge")
     ap.add_argument("--legend-title", help="key title (default 'Genus (16S rRNA)' for pies, 'Isolation source' for circles)")
     ap.add_argument("--dpi", type=int, default=600)
+    ap.add_argument("--genus-colour", action="append", default=[], metavar="GENUS=#RRGGBB",
+                    help="repeatable; colour for one genus, so a map can match the other figures of the same paper")
+    ap.add_argument("--layout", choices=["columns", "on-map"], default="columns",
+                    help="columns: dots on the map, pies in side columns (default). on-map: the map fills the width and "
+                         "each site's pie sits on the site itself, with its label placed beside it clear of other pies "
+                         "and labels (a leader line only when the label has to move away)")
     a = ap.parse_args(argv)
     try:
         return run(a)
@@ -145,6 +153,11 @@ def run(a) -> int:
     gorder = [g for g in first if g in shown] + sorted((g for g in shown if g not in first and g not in ("Other genera", NO_GENUS)), key=lambda g: -shown[g])
     gorder += [g for g in ("Other genera", NO_GENUS) if g in shown and g not in gorder]
     gcol, fallback = palette(a.palette_set)
+    for spec in a.genus_colour:
+        g, _, hx = spec.partition("=")
+        if not (hx.startswith("#") and len(hx) == 7):
+            raise ValueError(f"--genus-colour wants GENUS=#RRGGBB, got {spec!r}")
+        gcol[g.strip()] = hx
     gcol = {g: ("#8C96A6" if g == "Other genera" else "#DDE2E8" if g == NO_GENUS else gcol.get(g, fallback)) for g in gorder}
     groups = list(dict.fromkeys((a.group_order.split(",") if a.group_order else []) + sorted({r["group"] for r in iso})))
     groups = [g for g in groups if any(r["group"] == g for r in iso)]
@@ -166,6 +179,12 @@ def run(a) -> int:
             t += "\n" + ", ".join(f"{gc[g]} {g.lower()}" for g in groups if gc[g])
         return t
     texts = {s: site_text(s) for s in by_site}
+    for s in by_site:                                # optional sites column 'note': one more line under the counts
+        if where[s].get("note"):
+            texts[s] += "\n" + where[s]["note"]
+    if a.layout == "on-map":
+        return run_on_map(a, plt, matplotlib, outs, iso, where, by_site, texts, gorder, gcol, groups, grcol,
+                          (lo0, lo1, la0, la1), px, py, map_w, map_h)
     probe = plt.figure(figsize=(W, 2)); pr = probe.canvas.get_renderer()
     text_w = max(probe.text(0, 0, t, fontsize=MIN_PT, linespacing=1.15).get_window_extent(pr).width for t in texts.values()) / probe.dpi
     plt.close(probe)
@@ -226,6 +245,98 @@ def run(a) -> int:
             tx = cx - (rmax_in + 0.08) / unit if side == "W" else cx + (rmax_in + 0.08) / unit
             ax.text(tx, yb, texts[s], ha="right" if side == "W" else "left", va="center", fontsize=MIN_PT, color=INK,
                     linespacing=1.15, zorder=6)
+    return finish(a, plt, fig, ax, outs, iso, by_site, where, gorder, gcol, groups, grcol, H, (lo0, lo1, la0, la1))
+
+
+def run_on_map(a, plt, matplotlib, outs, iso, where, by_site, texts, gorder, gcol, groups, grcol, extent, px, py, map_w, map_h) -> int:
+    """--layout on-map: the map fills the print width; each pie sits on its site, sized by isolates (area). Labels are
+    tried at eight positions round their pie (east first), then farther out with a leader line, and must clear every
+    pie, every other label and the figure edge."""
+    from matplotlib.patches import Polygon, Wedge, Circle
+    lo0, lo1, la0, la1 = extent
+    W = a.print_width
+    unit = W / map_w                                   # inches per projected degree
+    map_h_in = map_h * unit
+    leg_h = 0.3 + 0.2 * math.ceil(len(gorder if a.mark == "pie" else groups) / 3)
+    H = map_h_in + leg_h + 0.06
+    fig = plt.figure(figsize=(W, H))
+    ax = fig.add_axes([0, leg_h / H, 1, map_h_in / H])
+    ax.set_xlim(0, map_w); ax.set_ylim(0, map_h); ax.set_aspect("equal"); ax.axis("off")
+    for _, pts in read_polygons(a.basemap, extent):
+        ax.add_patch(Polygon([(px(x), py(y)) for x, y in pts], closed=True, fc=LAND, ec=LAND_EDGE, lw=0.5, zorder=1))
+    if a.frame:
+        ax.add_patch(matplotlib.patches.Rectangle((0, 0), map_w, map_h, fill=False, ec="#6B7483", lw=0.5, zorder=2))
+    nmax = max(len(v) for v in by_site.values())
+    rpie = {s: a.max_radius_in / unit * math.sqrt(len(v) / nmax) for s, v in by_site.items()}
+    site_xy = {s: (px(where[s]["lon"]), py(where[s]["lat"])) for s in by_site}
+    # optional sites columns pie_dx_in / pie_dy_in move a pie off its site (inches), so close sites do not touch;
+    # a move of 0.08 in or more gets a dot on the true site and a thin line to the pie
+    def nudge(s, k):
+        v = (where[s].get(k) or "").strip()
+        return float(v) / unit if v else 0.0
+    xy = {s: (site_xy[s][0] + nudge(s, "pie_dx_in"), site_xy[s][1] + nudge(s, "pie_dy_in")) for s in by_site}
+    for s1 in by_site:
+        for s2 in by_site:
+            if s1 < s2 and math.dist(xy[s1], xy[s2]) < rpie[s1] + rpie[s2] + 0.03 / unit:
+                raise ValueError(f"pies touch: {s1} and {s2}; lower --max-radius-in or move one with pie_dx_in/pie_dy_in")
+    for s in by_site:
+        if math.dist(xy[s], site_xy[s]) * unit >= 0.08:
+            ax.add_patch(Circle(site_xy[s], 0.025 / unit, fc=INK, ec="white", lw=0.3, zorder=4))
+            d = math.dist(xy[s], site_xy[s]); ux, uy = (xy[s][0] - site_xy[s][0]) / d, (xy[s][1] - site_xy[s][1]) / d
+            ax.plot([site_xy[s][0], xy[s][0] - ux * rpie[s]], [site_xy[s][1], xy[s][1] - uy * rpie[s]], color="#6B7483", lw=0.5, zorder=3)
+    for s, rows in by_site.items():
+        x, y = xy[s]
+        if a.mark == "pie":
+            cnt = Counter(rr["genus_shown"] for rr in rows); order, colours = gorder, gcol
+        else:
+            cnt = Counter(rr["group"] for rr in rows); order, colours = groups, grcol
+        start = 90.0
+        for g in order:
+            if cnt[g]:
+                sweep = 360.0 * cnt[g] / len(rows)
+                ax.add_patch(Wedge((x, y), rpie[s], start - sweep, start, fc=colours[g], ec="white", lw=0.4, zorder=5))
+                start -= sweep
+        ax.add_patch(Circle((x, y), rpie[s], fc="none", ec="#6B7483", lw=0.5, zorder=6))
+    fig.canvas.draw(); rend = fig.canvas.get_renderer()
+    to_px = ax.transData.transform
+    def circle_hits(bb, cx, cy, r):                  # display-space bbox against a circle in data units
+        (X, Y), (X2, _) = to_px((cx, cy)), to_px((cx + r, cy)); R = X2 - X + 2
+        nx, ny = min(max(X, bb.x0), bb.x1), min(max(Y, bb.y0), bb.y1)
+        return (nx - X) ** 2 + (ny - Y) ** 2 < R * R
+    fbb = ax.get_window_extent(rend)
+    dirs = [(1, 0, "left", "center"), (-1, 0, "right", "center"), (0.7, 0.7, "left", "bottom"), (-0.7, 0.7, "right", "bottom"),
+            (0.7, -0.7, "left", "top"), (-0.7, -0.7, "right", "top"), (0, 1, "center", "bottom"), (0, -1, "center", "top")]
+    placed = []
+    for s in sorted(by_site, key=lambda s: -len(by_site[s])):
+        x, y = xy[s]; done = False
+        for extra in (0.06, 0.3, 0.55, 0.8, 1.1):
+            for dx, dy, ha, va in dirs:
+                d = rpie[s] + extra / unit
+                t = ax.text(x + dx * d, y + dy * d, texts[s], ha=ha, va=va, fontsize=MIN_PT, color=INK, linespacing=1.15,
+                            zorder=8, bbox=dict(fc="white", ec="none", alpha=0.8, pad=1.0))
+                bb = t.get_window_extent(rend).expanded(1.02, 1.04)
+                ok = (bb.x0 >= fbb.x0 and bb.x1 <= fbb.x1 and bb.y0 >= fbb.y0 and bb.y1 <= fbb.y1
+                      and not any(circle_hits(bb, *xy[o], rpie[o]) for o in by_site)
+                      and not any(bb.overlaps(p) for p in placed))
+                if ok:
+                    placed.append(bb); done = True
+                    if extra > 0.1:
+                        ax.plot([x + dx * rpie[s], x + dx * (d - 0.03 / unit)], [y + dy * rpie[s], y + dy * (d - 0.03 / unit)],
+                                color="#6B7483", lw=0.5, zorder=7)
+                    break
+                t.remove()
+            if done:
+                break
+        if not done:
+            raise ValueError(f"no free label position for site {s}")
+    return finish(a, plt, fig, ax, outs, iso, by_site, where, gorder, gcol, groups, grcol, H, extent)
+
+
+def finish(a, plt, fig, ax, outs, iso, by_site, where, gorder, gcol, groups, grcol, H, extent) -> int:
+    """Legend, 8-pt and overlap checks, outputs. Shared by both layouts."""
+    from matplotlib.patches import Patch
+    W = a.print_width
+    lo0, lo1, la0, la1 = extent
     if a.mark == "pie":
         handles = [Patch(fc=gcol[g], ec="#999" if g == NO_GENUS else gcol[g], label=g) for g in gorder]
         title = "Genus (16S rRNA)"
@@ -264,7 +375,7 @@ def run(a) -> int:
                 w.writerow([s, where[s]["label"], f"genus:{g}", c])
     sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
     outs[3].write_text(json.dumps({"tool": "collection_map", "mark": a.mark, "print_width_in": W, "height_in": round(H, 3),
-                                   "extent": [lo0, lo1, la0, la1], "isolates": len(iso), "sites": len(by_site), "legend_title": title, "frame": bool(a.frame),
+                                   "extent": [lo0, lo1, la0, la1], "layout": a.layout, "isolates": len(iso), "sites": len(by_site), "legend_title": title, "frame": bool(a.frame),
                                    "inputs": [{"path": str(p), "sha256": sha(p)} for p in [a.isolates, a.sites, *a.basemap]]},
                                   indent=1) + "\n")
     print(f"[collection_map] {len(iso)} isolates at {len(by_site)} sites -> {outs[0]}")

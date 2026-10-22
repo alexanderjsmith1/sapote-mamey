@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-# OPERATOR_ONLY: package QA helper, run by hand during analysis. Superseded by the wired release gates
-# (see tools/gate_registry.tsv). Not a release gate; not wired into the cut.
+# OPERATOR_ONLY: per-batch package completeness check, run by hand during analysis. It is not a release
+# gate and is not wired into the cut (release gates are in tools/gate_registry.tsv). It is still current:
+# mamey/legacy_feature_gate.py lists it as the active "Executable Completeness Gate", so do not retire it.
 """
 mamey_package_qa_v2.py — Mamey per-strain package completeness validator
 Sapote–Mamey pipeline (engine version stamped at runtime)

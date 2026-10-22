@@ -25,6 +25,10 @@ from mamey import native_workspace as _native_workspace
 
 SCHEMA = "sapote-mamey.protein-pcoa-resource.v1"
 DEFAULT_RSS = 3_800_000_000
+# The disk watch reads the whole filesystem's free space, so other programs' writes count against a run. A floor of
+# "free at start minus this run's growth" stopped small runs (DISK_LIMIT in 0.6 s) whenever another program wrote a few
+# MB. The floor now leaves this much room for other writers; min_free_disk_bytes stays the hard floor under it.
+OTHER_WRITERS_ALLOWANCE_BYTES = 1 << 30
 DEFAULT_DISK = 2_000_000_000
 DEFAULT_TIMEOUT = 900
 THREAD_ENVIRONMENT_KEYS = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
@@ -245,7 +249,8 @@ def cluster_workspace_policy(a, info, limits, default_root=None):
     return {"root": str(root), "root_source": source, "device": observed.st_dev, "inode": observed.st_ino,
             "estimated_disk_bytes": required, "estimate_not_guarantee": True,
             "free_bytes_observed": free,
-            "monitor_min_free_bytes": max(limits["min_free_disk_bytes"], free - math.ceil(required / 0.8)),
+            "monitor_min_free_bytes": max(limits["min_free_disk_bytes"],
+                                          free - math.ceil(required / 0.8) - OTHER_WRITERS_ALLOWANCE_BYTES),
             "input_copy_ceiling_bytes": info["fasta_bytes"] + info["records"]}
 
 
@@ -423,7 +428,8 @@ def coordinate(a, script):
                               cwd=receipt, log=receipt / "worker.log", env=env,
                               rss_limit=limits["rss_limit_bytes"],
                               min_disk=(limits["min_free_disk_bytes"] if cluster_first else
-                                  max(limits["min_free_disk_bytes"], free - math.ceil(e["estimated_disk_bytes"] / 0.8))),
+                                  max(limits["min_free_disk_bytes"],
+                                      free - math.ceil(e["estimated_disk_bytes"] / 0.8) - OTHER_WRITERS_ALLOWANCE_BYTES)),
                               timeout=limits["timeout_seconds"], poll_interval=0.2,
                               additional_disk_floors=(() if workspace is None else
                                   ((Path(workspace["root"]), workspace["monitor_min_free_bytes"]),)))

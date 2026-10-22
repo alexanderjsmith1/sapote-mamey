@@ -63,7 +63,7 @@ from __future__ import annotations
 import os as _os, sys as _sys  # resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from _console import emit  # noqa: E402
-from gap_rescue_locus_map import draw_locus_map, load_gene_names, load_other_references  # noqa: E402
+from gap_rescue_locus_map import draw_locus_map, load_gecco, load_gene_names, load_other_references  # noqa: E402
 
 import argparse
 import hashlib
@@ -405,7 +405,7 @@ def analyse_region(label, prots, regions, core, reference, ref_name, source, out
         from gap_rescue_gene_table import edge_shares, protein_families, write_gene_table
         fams = protein_families(prots)
         write_gene_table(out, rows, splits, core["identity"], label, reference, fams, ref_name or desc,
-                         edge_shares(rows, prots, core), pair_map=bool(receipt["map_outputs"]))
+                         edge_shares(rows, prots, core), pair_map=bool(receipt["map_outputs"]), prots=prots)
     return receipt
 
 
@@ -429,7 +429,7 @@ def apply_adjudication(rows, folder: Path):
 def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | None = None, anchor=None,
            gene_names=None, context_rows=False, other_maps=False, print_width="double", row_label=None,
            trim_kb=None, panel=False, key=True, named_contigs=None, genome_zip=None,
-           genome_zip_parse_sha256=None) -> dict:
+           genome_zip_parse_sha256=None, gecco=None, scale_bar_up=False) -> dict:
     """Redraw an earlier run's figure from its saved tables (no DIAMOND). panel, key: see draw_locus_map."""
     import csv
     named_inputs = []
@@ -488,12 +488,16 @@ def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | Non
                           other_refs=load_other_references(folder, core["identity"]) if other_maps else None,
                           print_width=print_width, row_label=row_label, trim_kb=trim_kb,
                           **({"panel": True, "key": key} if panel else {}),
-                          **({"named_contigs": named_contigs} if named_contigs else {}))
+                          **({"named_contigs": named_contigs} if named_contigs else {}),
+                          **({"gecco": gecco} if gecco else {}), **({"scale_bar_up": True} if scale_bar_up else {}))
+    if gecco:   # what the GECCO track drew and how its genes bound to this genome
+        (out / "gecco_track.json").write_text(json.dumps(drawn.get("gecco", {}), indent=1) + "\n")
     if panel:   # the footnote is off the page: keep it beside the map for the caption
         (out / "gap_rescue_footnote.txt").write_text(drawn["footnote"].rstrip(".") + ".\n")
         # the classes this map fills, for one shared key across the panels (tools/gap_rescue_panel_figure.py)
         (out / "gap_rescue_key.json").write_text(json.dumps(
-            {"classes": drawn["key_classes"], "class_unclear": drawn["key_class_unclear"], "key": key}, indent=1) + "\n")
+            {"classes": drawn["key_classes"], "class_unclear": drawn["key_class_unclear"], "key": key,
+             **({"gecco": True} if gecco else {})}, indent=1) + "\n")
     if named_contigs:
         if any(not Path(x["path"]).is_file() or hashlib.sha256(Path(x["path"]).read_bytes()).hexdigest() != x["sha256"] for x in named_inputs + named_sources):
             raise ValueError("NAMED_CONTIG_INPUT_CHANGED: preserve partial render as incomplete")
@@ -576,6 +580,12 @@ def main(argv=None) -> int:
                          "Exact 'strain / full contig / regionNNN / BGC###', or explicitly "
                          "'strain / full contig / NO_ANTISMASH_REGION / NO_BGC_ALIAS' for a contig without a region. "
                          "Requires a fresh --out; preserves statuses/counts and adds no reference ribbons")
+    ap.add_argument("--gecco-genes", type=Path, help="redraw only: GECCO *.genes.tsv of this genome; draws a GECCO track "
+                    "(per-gene probability) under the strain row")
+    ap.add_argument("--gecco-clusters", type=Path, help="with --gecco-genes: GECCO *.clusters.tsv of this genome; a line "
+                    "under the track spans the drawn genes of each GECCO cluster")
+    ap.add_argument("--scale-bar-up", action="store_true", help="redraw only: put the 5 kb bar on the contig-caption line, "
+                    "at the right, when it touches no caption")
     ap.add_argument("--hits", type=Path)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--sensitivity", default=SENSITIVITY_DEFAULT,
@@ -587,6 +597,10 @@ def main(argv=None) -> int:
         raise SystemExit("--named-contig needs --redraw; it does not run or alter the rescue analysis")
     if a.named_contig and not a.out:
         raise SystemExit("--named-contig needs a fresh --out")
+    if (a.gecco_genes or a.gecco_clusters or a.scale_bar_up) and not a.redraw:
+        raise SystemExit("--gecco-genes, --gecco-clusters and --scale-bar-up are redraw options; add --redraw")
+    if a.gecco_clusters and not a.gecco_genes:
+        raise SystemExit("--gecco-clusters needs --gecco-genes")
     if a.no_key and not a.panel:
         raise SystemExit("--no-key is for a figure panel; add --panel")
     if a.panel and (not a.redraw or a.print_width == "none"):
@@ -605,7 +619,9 @@ def main(argv=None) -> int:
                    a.context_rows, a.other_maps,
                    None if a.print_width == "none" else a.print_width, a.row_label, a.trim_kb, a.panel, not a.no_key,
                    **({"named_contigs": a.named_contig, "genome_zip": a.zip,
-                       "genome_zip_parse_sha256": parsed_zip_sha256} if a.named_contig else {}))
+                       "genome_zip_parse_sha256": parsed_zip_sha256} if a.named_contig else {}),
+                   gecco=load_gecco(a.gecco_genes, a.gecco_clusters, prots, a.label) if a.gecco_genes else None,
+                   scale_bar_up=a.scale_bar_up)
         except ValueError as exc:
             if a.named_contig and str(exc).startswith("NAMED_CONTIG_"):
                 _say(f"[gap_directed_rescue] HOLD: {exc}")

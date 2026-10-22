@@ -5,9 +5,21 @@ lab_mode <- if (is.null(prof$a04_point_labels)) "all" else prof$a04_point_labels
 d$label <- switch(lab_mode,
   all = ifelse(d$genus!="Unassigned" & (cfg$material=="Fraction" | d$x>=10 | d$y>=10),d$strain,""),
   strong = ifelse(d$x>=80 & d$y>=80,d$strain,""),     # strong (>=80%) against both targets; leader lines below
+  either = ifelse(d$x>=80 | d$y>=80,d$strain,""),     # card 472 (owner, 21 Oct, Attine Fig. S19: "the long arrows are very awkward"): strong against either target
   none = rep("",nrow(d)),
   nonzero = ifelse(d$x>0 | d$y>0,d$strain,""),    # every isolate not at 0% against both targets, any genus
-  stop("a04_point_labels must be all, strong, nonzero or none"))
+  stop("a04_point_labels must be all, strong, either, nonzero or none"))
+# a04_label_max (card 472; owner, 21 Oct, Moss Fig. S10a: "omit 4 of them and state that the full data is in a table"):
+# when more points qualify for a label, keep the ones strongest against both targets (highest of the two lower values,
+# then the higher, then strain), and say how many were labelled; the full list is in the paper's table.
+if (!is.null(prof$a04_label_max)) {
+  k <- which(d$label != "")
+  if (length(k) > as.integer(prof$a04_label_max)) {
+    keep <- k[order(-pmin(d$x[k], d$y[k]), -pmax(d$x[k], d$y[k]), d$strain[k])][seq_len(as.integer(prof$a04_label_max))]
+    d$label[setdiff(k, keep)] <- ""
+    message(sprintf("a04 labels: %d of %d qualifying points labelled (a04_label_max)", length(keep), length(k)))
+  }
+}
 suffix <- switch(cfg$material,"Fraction"="fractions","HPLC fraction"="HPLC fractions","crude extract")
 # a04_point_size / a04_text_pt / a04_axis_ticks (bioassay_layouts.json): a collection with few isolates can draw larger
 # points and text and an axis line with tick marks (the owner, 19 Oct, Attine Figs. S4a/S4b: "make the data points and text
@@ -51,16 +63,27 @@ p <- ggplot(d,aes(x,y,fill=genus))+
   geom_vline(xintercept=80,colour="#C9D0D9",linewidth=.3,linetype="dashed")+
   geom_point(aes(shape=group),size=PSIZE,colour=PUB_INK,stroke=.35)+
   # leader lines and wider spacing for the labelled subsets, so a label in a cluster points at its own point
-  geom_text_repel(aes(label=label),size=TPT/ggplot2::.pt,family=PUB_FONT,seed=11,max.overlaps=Inf,max.time=60,
-                  segment.colour=if(lab_mode %in% c("strong","nonzero"))"#6B7483" else NA,segment.size=.25,min.segment.length=0,point.size=PSIZE,   # point.size = the drawn point size, so labels clear the points
+  geom_text_repel(aes(label=label),size=TPT/ggplot2::.pt,family=PUB_FONT,seed=as.integer(Sys.getenv("BIOASSAY_REPEL_SEED","11")),max.overlaps=Inf,max.time=60,
+                  segment.colour=if(lab_mode %in% c("strong","either","nonzero"))"#6B7483" else NA,segment.size=.25,min.segment.length=0,point.size=PSIZE,   # point.size = the drawn point size, so labels clear the points
                   
-                  box.padding=(if(lab_mode %in% c("strong","nonzero")).5 else .2)*TPT/8,point.padding=if(lab_mode %in% c("strong","nonzero")).35 else .15,
+                  box.padding=as.numeric(Sys.getenv("BIOASSAY_REPEL_PAD","1"))*(if(lab_mode %in% c("strong","nonzero")).5 else .2)*TPT/8,point.padding=as.numeric(Sys.getenv("BIOASSAY_REPEL_PAD","1"))*if(lab_mode %in% c("strong","either","nonzero")).35 else .15,
                   force=(if(lab_mode %in% c("strong","nonzero"))3 else 1)*TPT/8,max.iter=if(lab_mode %in% c("strong","nonzero"))50000 else 10000)+
   scale_shape_manual(values=shapes,name=if(is.null(prof$group_axis_label))"Source" else prof$group_axis_label)+scale_fill_manual(values=pal,labels=genlab,name="Genus (16S rRNA)")+
   scale_x_continuous(limits=c(min(-5,d$x-4),max(112,d$x+4)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
   scale_y_continuous(limits=c(min(-5,d$y-4),max(112,d$y+4)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
   labs(x=paste0("Best inhibition of ",if(is.null(prof$a04_candida_axis_label))"Candida sp." else prof$a04_candida_axis_label,", ",suffix),y=paste("Best inhibition of MRSA,",suffix))+house()+
   guides(fill=guide_legend(ncol=if (TPT > 8) 2 else 3,byrow=TRUE,order=1,override.aes=list(shape=21)),shape=guide_legend(nrow=1,order=2))   # larger text: two legend columns fit the width
+# a04_legend_compact (card 472; owner, 21 Oct, Moss Fig. S10b: "Try to get the Genus and Source group keys to take up 1 line
+# each"): with this many genera or fewer, the genus key is one line with its title on the left, like the source key; with
+# more, the title sits above the keys and the keys pack in four columns instead of spreading across the page.
+if (!is.null(prof$a04_legend_compact)) {
+  ng <- length(unique(d$genus))
+  p <- p + guides(fill = if (ng <= as.integer(prof$a04_legend_compact))
+                    guide_legend(nrow=1, title.position="left", order=1, override.aes=list(shape=21))
+                  else guide_legend(ncol=4, byrow=TRUE, title.position="top", order=1, override.aes=list(shape=21)),
+                  shape=guide_legend(nrow=1, title.position="left", order=2)) +
+    theme(legend.box="vertical", legend.box.just="left")
+}
 if(!isTRUE(prof$a04_source_shape))p<-p+guides(shape="none")
 if (TPT != 8) p <- p + theme(text=element_text(size=TPT),axis.text=element_text(size=TPT),
                              axis.text.x.bottom=element_markdown(size=TPT),axis.text.y.left=element_markdown(size=TPT),   # house() sets these by name

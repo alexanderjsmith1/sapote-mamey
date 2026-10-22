@@ -16,6 +16,12 @@ Outputs are three 160-dpi PNGs (`fig_bgc_size_by_type.png`, `fig_count_vs_size_f
 
 The count-versus-size panel is titled “BGC count and BGC size (kb) by class: correlation with assembly fragmentation”. It describes what is plotted; the earlier title, “opposite biases bracket the truth”, was withdrawn because counts and kb cannot bound one quantity. Full individual-locus discussion requires strain / full node-or-contig / region / BGC alias; this summary does not supply that mapping.
 
+## Unit label and supplied tables
+
+`--unit` sets the unit in every axis label and panel title (default `kb`, so the default figures are unchanged).
+
+`--table PATH` draws a supplied long TSV instead of reading a banked cohort. It needs the columns `strain`, `bgc_class` and a numeric value column (`--value-column`, default `core_aa_total`), and optionally `genus`. It draws one stacked bar per strain by class, in the order the strains first appear, with classes ordered PKS, NRPS, RiPP, Terpene, Other and then any others. The figure is `--print-width` inches wide (default 6.5), has 8 pt text and no title, and writes `fig_size_by_class_table.png`, `.svg` and `_data.tsv`. `--value-scale` multiplies the values (for example 0.001 to plot thousands). A missing column, a non-numeric value, or a negative or non-finite value is refused. The values and their meaning come from the table; the figure does not compute them.
+
 ## Historical cohort narrative, retained for provenance
 
 The following original text contains redacted strain labels, point correlations, percentage estimates and claims about “real biology.” Its denominator, source inventory, receipt and cohort version are not bound here and were not reanalysed. It is retained verbatim as a historical statement, **not current guidance or verified result**. The “upper/lower frame,” causal interpretation and class-leader conclusions are held. Current user guidance is the source-scoped contract above.

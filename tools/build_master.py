@@ -1,5 +1,5 @@
 """
-DEPRECATED — frozen cohort one-off. NOT the canonical master-workbook builder.
+LEGACY base-workbook step. NOT the canonical master-workbook builder, but still in use: do not delete.
 
 This script builds a master workbook from five banked per-strain JSON files using a hardcoded
 cohort layout and the legacy *descriptive*, TitleCase sheet/column scheme (Gene_*, BGC_Scan_Profile,
@@ -10,8 +10,10 @@ headers, stamped H3 = v1.1). It is what the documented `mamey_run.py run --maste
 `mamey/workbook_schema_check.py` validates against (the validator now derives its column contract directly
 from master_workbook.CANONICAL_V1_HEADERS, so the two cannot drift).
 
-Keep this script only for reproducing the original banked-cohort workbook. Do not point new work at it,
-and do not use its output with the schema validator — it will (correctly) fail the coded-scheme check.
+It is still a live step: `tools/build_workbook.py --full` runs it as step 2 of 6 (base workbook from
+banked per-strain data), and docs/user_guides/operational_reference.md documents that order. Retire it
+only together with a change to that route. New single-strain work uses `mamey_run.py run --master`.
+Do not use its output with the schema validator; it will (correctly) fail the coded-scheme check.
 See docs/MASTER_SCHEMA_FROZEN_v1_1.md.
 """
 

@@ -21,8 +21,10 @@ COL <- c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = "black", iso_mid = "#d660
 FILL <- c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = "#b2182b", iso_mid = "#f4a582", iso_high = "white", iso_unknown = "white")
 panel <- function(sp) {
   pts <- as.data.frame(lapply(sp$points, unlist), stringsAsFactors = FALSE); pts$layer <- factor(pts$layer, levels = lv); pts <- pts[order(pts$layer), ]
-  pts$ps <- ifelse(pts$layer %in% c("ref", "mibig"), 0.17 * sqrt(3 + 1.5 * sqrt(pts$size)), 1.25)
+  rps <- if (is.null(page$ref_point_scale)) 1 else as.numeric(page$ref_point_scale)   # --ref-point-scale (opt-in)
+  pts$ps <- ifelse(pts$layer %in% c("ref", "mibig"), rps * 0.17 * sqrt(3 + 1.5 * sqrt(pts$size)), 1.25)
   labs <- unlist(page$legend)[lv]
+  if (isTRUE(page$legend_slot)) labs <- sub(", best", ",\nbest", labs, fixed = TRUE)   # 018c0f08_458: legend in a grid slot, two lines
   g <- ggplot(pts, aes(x, y)) +
     geom_point(aes(colour = layer, fill = layer, shape = layer, size = ps, alpha = layer), stroke = 0.35, show.legend = TRUE) + scale_size_identity() +
     scale_colour_manual(values = COL, labels = labs, breaks = lv, drop = FALSE, name = NULL) +
@@ -38,21 +40,39 @@ panel <- function(sp) {
           legend.text = element_text(size = fs), legend.key.height = unit(10, "pt"))
   lab <- if (length(sp$labels$label)) as.data.frame(lapply(sp$labels, unlist), stringsAsFactors = FALSE) else NULL
   if (!is.null(lab) && nrow(lab)) {   # placed labels: leader from the point edge (sx, sy) to the label anchor (x, y)
-    g <- g + geom_segment(data = lab, aes(x = sx, y = sy, xend = x, yend = y), inherit.aes = FALSE, colour = page$leader_colour, linewidth = .25) +
-      geom_text(data = lab, aes(x = x, y = y, label = label, hjust = hjust, vjust = vjust, fontface = face), inherit.aes = FALSE,
-                size = fs / .pt)
+    g <- g + geom_segment(data = lab, aes(x = sx, y = sy, xend = x, yend = y), inherit.aes = FALSE, colour = page$leader_colour, linewidth = .25)
+    if (isTRUE(page$label_box)) {   # 018c0f08_458 --label-over-reference: text on a borderless white box so it reads over grey/blue centroids
+      g <- g + geom_label(data = lab, aes(x = x, y = y, label = label, hjust = hjust, vjust = vjust, fontface = face), inherit.aes = FALSE,
+                          size = fs / .pt, fill = grDevices::adjustcolor("white", alpha.f = 0.85), label.size = 0,
+                          label.padding = unit(0.8, "pt"), label.r = unit(0, "pt"))
+    } else {
+      g <- g + geom_text(data = lab, aes(x = x, y = y, label = label, hjust = hjust, vjust = vjust, fontface = face), inherit.aes = FALSE,
+                         size = fs / .pt)
+    }
+  }
+  if (grepl("^t-SNE", sp$xlab)) {   # t-SNE axes carry no tick numbers: t-SNE coordinates have no units or scale (candidate card)
+    g <- g + theme(axis.text = element_blank(), axis.ticks = element_blank())
   }
   mt_floor(g, fs)
 }
 ps <- lapply(page$panels, panel)
+if (!is.null(page$tags) && length(ps) > 1) {   # m5_452_protein_pcoa_multiset_grid: one legend per grid page, from the panel with the most point
+  keep <- which.max(sapply(page$panels, function(sp) length(unique(unlist(sp$points$layer)))))   # kinds (a set without a tier would split it)
+  ps[-keep] <- lapply(ps[-keep], function(g) g + guides(colour = "none", fill = "none", shape = "none", alpha = "none"))
+}
+nr <- ceiling(length(page$panels) / page$ncol); extra_in <- 1.0
+if (isTRUE(page$legend_slot) && length(ps) < nr * page$ncol) {   # 018c0f08_458 --legend-in-empty-slot: the shared legend fills the first empty slot
+  ps <- c(ps, list(guide_area())); extra_in <- 0.15
+}
 pg <- wrap_plots(ps, ncol = page$ncol) + plot_layout(guides = "collect") +
-  plot_annotation(tag_levels = "a") & theme(legend.position = "bottom", legend.direction = "vertical", legend.justification = "left",
+  plot_annotation(tag_levels = if (is.null(page$tags)) "a" else list(unlist(page$tags))) & theme(   # m5_452_protein_pcoa_multiset_grid: page$tags continue the letters across grid pages
+                                            legend.position = "bottom", legend.direction = "vertical", legend.justification = "left",
                                             plot.tag = element_text(face = "bold", size = fs))
-nr <- ceiling(length(page$panels) / page$ncol)
+if (isTRUE(page$legend_slot)) pg <- pg & theme(legend.key.spacing.y = unit(5, "pt"))   # 018c0f08_458: two-line entries kept apart
 if (isTRUE(page$probe)) {   # M5_452 trial PDF at the final size, no gates (the renderer reads the panel frames from it)
-  mt_probe(pg, prefix, mt$print_width, page$panel_height * nr + 1.0, list(min_text_pt = fs, print_width = mt$print_width))
+  mt_probe(pg, prefix, mt$print_width, page$panel_height * nr + extra_in, list(min_text_pt = fs, print_width = mt$print_width))
 } else {
-  rec <- mt_save(pg, prefix, mt$print_width, page$panel_height * nr + 1.0, list(min_text_pt = fs, print_width = mt$print_width, dpi = 600, min_panel_frac = 0.2))
+  rec <- mt_save(pg, prefix, mt$print_width, page$panel_height * nr + extra_in, list(min_text_pt = fs, print_width = mt$print_width, dpi = 600, min_panel_frac = 0.2))
   ggsave(paste0(prefix, ".svg"), pg, width = mt$print_width, height = rec$height_in)
   ggsave(paste0(prefix, "_plot_only.png"), pg, width = mt$print_width, height = rec$height_in, dpi = 300, bg = "white")
 }

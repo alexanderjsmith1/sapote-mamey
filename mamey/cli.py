@@ -4818,7 +4818,7 @@ def _emit_shared_3(report_lines) -> None:
 
 
 def strain_master_command(args) -> int:
-    """User Strain Master (docs/DATA_HOME.md): init, adopt, submit, verify, apply, status, store,
+    """Strain Master (docs/DATA_HOME.md): init, adopt, submit, verify, apply, status, store,
     check, where.
 
     Writes happen only inside the master root, and for an accepted record edit only in a record
@@ -4850,7 +4850,9 @@ def strain_master_command(args) -> int:
                           "builder": args.builder, "member": args.member, "intro": args.intro} for f in args.files]
             out = [json.dumps(sm.submit(items, submitter=args.chat, topic=args.topic or "", summary=args.summary or "",
                                         reproduce=args.check, kind=args.kind, target=args.target,
-                                        changeset=args.changeset, master=args.master), indent=1)]
+                                        changeset=args.changeset, master=args.master, tree_src=args.tree_src,
+                                        tree_dest=args.tree_dest or "", exclude=args.exclude, link=args.link,
+                                        replace=args.replace, replaces=args.replaces), indent=1)]
         elif a == "verify":
             if args.accept == args.ret:
                 raise sm.StrainMasterError("NEED_ARGS: verify needs exactly one of --accept or --return")
@@ -7243,10 +7245,10 @@ def build_parser():
     gr.set_defaults(func=gap_rescue_command)
 
     # --- strain-master: the user's data home (docs/DATA_HOME.md) ---
-    sm = sub.add_parser("strain-master",
-                        help="User Strain Master (docs/DATA_HOME.md): init or adopt a master; submit a result to "
-                             "its inbox, verify it (a different chat), apply it; status; check the master; where "
-                             "a data type lives. Writes only inside the master and its named record homes.")
+    _sm_help = ("Strain Master (docs/DATA_HOME.md): init or adopt a master; submit a result to "
+                "its inbox, verify it (a different chat), apply it; status; check the master; where "
+                "a data type lives. Writes only inside the master and its named record homes.")
+    sm = sub.add_parser("strain-master", help=_sm_help, description=_sm_help)
     sm.add_argument("action", choices=["init", "adopt", "submit", "verify", "apply", "status", "store", "check", "where"])
     sm.add_argument("files", nargs="*", help="submit/store: files to copy (left in place)")
     sm.add_argument("--master", default=None, help="master root (except init/adopt, default: $SAPOTE_STRAIN_MASTER)")
@@ -7254,7 +7256,8 @@ def build_parser():
     sm.add_argument("--raw-store", action="append", default=[],
                     help="init/adopt: a raw-data home searched when the master holds nothing for a strain (repeatable)")
     sm.add_argument("--chat", default=None, help="submit/verify/apply: your id, e.g. a chat id")
-    sm.add_argument("--kind", default="import", choices=["import", "record-edit"], help="submit: what is submitted")
+    sm.add_argument("--kind", default="import", choices=["import", "import-tree", "record-edit", "record-replace"],
+                    help="submit: what is submitted")
     sm.add_argument("--topic", default=None, help="submit: a few words; part of the submission id")
     sm.add_argument("--target", default=None,
                     help="submit/store: folder, e.g. '03 Genomes/ANI', or an output kind such as mamey_package")
@@ -7263,6 +7266,16 @@ def build_parser():
                     help="submit: a count or claim the verifier must reproduce (repeatable)")
     sm.add_argument("--changeset", default=None,
                     help="submit --kind record-edit: TSV with file, key_column, key, field, old, new, ruling")
+    sm.add_argument("--tree-src", default=None, help="submit --kind import-tree: the folder to copy with its subfolders")
+    sm.add_argument("--tree-dest", default=None, help="submit --kind import-tree: subfolder of --target to copy into")
+    sm.add_argument("--exclude", action="append", default=[],
+                    help="submit --kind import-tree: a folder name to leave out (repeatable)")
+    sm.add_argument("--link", action="store_true",
+                    help="submit --kind import-tree: hard-link instead of copying (same volume only)")
+    sm.add_argument("--replace", action="store_true",
+                    help="submit --kind import-tree: files already in the target move to Superseded/ on apply")
+    sm.add_argument("--replaces", default=None,
+                    help="submit --kind record-replace: the record table the one file replaces")
     sm.add_argument("--manifest", default=None,
                     help="submit: TSV with columns src, what (and optional folder, name, builder, member, intro)")
     sm.add_argument("--what", default=None, help="submit/store: one line on what the file is")

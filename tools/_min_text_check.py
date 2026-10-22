@@ -173,6 +173,48 @@ def pdf_axis_panels(pdf, ncol):
     return frames
 
 
+def pdf_axis_panels_grid(pdf, nrow, ncol, n_panels):
+    """m5_452_protein_pcoa_multiset_grid: panel frames (x0, x1, y0, y1) in PDF points for a page of n_panels drawn row by row in an
+    nrow x ncol grid (top row first, left to right), from the black axis lines (theme_classic). Per page column, the long horizontal
+    black segments (> 30% of the column width) are the x axes of that column's panels, top to bottom; each is paired with the longest
+    vertical black segment starting at its left end (the y axis). Returns [] unless exactly n_panels frames are found."""
+    from pypdf import PdfReader
+    width = float(PdfReader(str(pdf)).pages[0].mediabox.width); colw = width / ncol
+    segs = pdf_stroke_segments(pdf, (0.0, 0.0, 0.0), tol=0.02); cells = {}
+    for c in range(ncol):
+        inside = [s for s in segs if c * colw <= (s[0] + s[2]) / 2 < (c + 1) * colw]
+        hor = sorted((s for s in inside if abs(s[1] - s[3]) < 0.01 and abs(s[2] - s[0]) > 0.3 * colw), key=lambda s: -s[1])
+        ver = [s for s in inside if abs(s[0] - s[2]) < 0.01]
+        for r, h in enumerate(hor[:nrow]):
+            x0, x1, y = min(h[0], h[2]), max(h[0], h[2]), h[1]
+            vs = [v for v in ver if abs(v[0] - x0) < 1.0 and abs(min(v[1], v[3]) - y) < 1.0]
+            if vs:
+                v = max(vs, key=lambda v: abs(v[3] - v[1])); cells[(r, c)] = (x0, x1, y, max(v[1], v[3]))
+    frames = [cells[(i // ncol, i % ncol)] for i in range(n_panels) if (i // ncol, i % ncol) in cells]
+    return frames if len(frames) == n_panels else []
+
+
+def page_label_faults_frames(pdf, frames, max_leader_in, leader_rgb, tol=0.25):
+    """m5_452_protein_pcoa_multiset_grid: as page_label_faults, but each text box or leader is assigned to the panel frame whose centre is
+    nearest (grid pages have panels in rows as well as columns). Returns {panel index: [fault, ...]}."""
+    centre = [((f[0] + f[1]) / 2, (f[2] + f[3]) / 2) for f in frames]
+    near = lambda x, y: min(range(len(frames)), key=lambda k: (centre[k][0] - x) ** 2 + (centre[k][1] - y) ** 2)
+    faults = {k: [] for k in range(len(frames))}
+    bx = sorted(set(pdf_text_boxes(pdf)), key=lambda r: r[1])
+    for i, (t1, a0, a1, b0, b1) in enumerate(bx):
+        for t2, c0, c1, d0, d1 in bx[i + 1:]:
+            if c0 >= a1 - tol:
+                break
+            if d0 < b1 - tol and b0 < d1 - tol:
+                for k in {near((a0 + a1) / 2, (b0 + b1) / 2), near((c0 + c1) / 2, (d0 + d1) / 2)}:
+                    faults[k].append(f"overlap: {t1} | {t2}")
+    for x0, y0, x1, y1 in pdf_stroke_segments(pdf, leader_rgb):
+        length = math.hypot(x1 - x0, y1 - y0) / 72
+        if length > max_leader_in + 0.005:
+            faults[near((x0 + x1) / 2, (y0 + y1) / 2)].append(f"leader {length:.2f} in > {max_leader_in} in")
+    return faults
+
+
 def page_label_faults(pdf, ncol, max_leader_in, leader_rgb, tol=0.25):
     """M5_452 page, read from the drawn PDF: per page column (one panel per column) the overlapping upright text pairs and the label
     leaders (stroked leader_rgb segments) longer than max_leader_in inches (+0.005 in for rounding). Returns {column: [fault, ...]}."""

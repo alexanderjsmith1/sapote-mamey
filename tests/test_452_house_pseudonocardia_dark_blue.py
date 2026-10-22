@@ -19,10 +19,18 @@ PAL = json.loads((HERE / "mamey" / "data" / "genus_palette.json").read_text())
 NEIGHBOURS = ("Streptomyces", "Kribbella", "Amycolatopsis")
 
 
+# Owner ruling 223 (20 Oct), after seeing both colours side by side: the Moss paper keeps Pseudonocardia orange.
+# It is the one set allowed to override the house dark blue (card 018c0f08_461).
+SET_OVERRIDES = {"moss": "#F28E2B"}
+
+
 def test_house_pseudonocardia_is_dark_blue_in_every_set():
     assert PAL["default"]["Pseudonocardia"] == "#14325C"
     for name, s in PAL.get("sets", {}).items():
-        assert "Pseudonocardia" not in s, f"set {name} overrides the house Pseudonocardia colour"
+        if name in SET_OVERRIDES:
+            assert s.get("Pseudonocardia") == SET_OVERRIDES[name], f"set {name} must pin Pseudonocardia {SET_OVERRIDES[name]}"
+        else:
+            assert "Pseudonocardia" not in s, f"set {name} overrides the house Pseudonocardia colour"
     assert PAL["sets"]["attine"]["Taibaiella"] == "#73112E"
 
 

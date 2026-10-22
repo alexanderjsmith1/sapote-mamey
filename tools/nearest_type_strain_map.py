@@ -70,23 +70,23 @@ def text_colour(hex_colour,min_contrast=4.5):
     return '#%02x%02x%02x'%tuple(round(v*max(f,0)) for v in rgb)
 
 
-def draw(tree,anchors,counts,width=7.2,floor=8,tip_dots=False):
+def draw(tree,anchors,counts,width=7.2,floor=8,tip_dots=False,row_in=.17):
     plt=print_setup(width,floor)
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
     from matplotlib.ticker import MaxNLocator
     tips=tree.get_terminals();hosts=sorted({host for tip,host in counts})
-    host_colors=[PALETTE[k] for k in ('gold','teal','coral','muted','navy')]
+    host_colors=[PALETTE[k] for k in (('gold','teal','coral','navy') if len(hosts)<=4 else ('gold','teal','coral','muted','navy'))]
     if len(hosts)>len(host_colors):raise ValueError('HOST_PALETTE_LIMIT: at most five host labels')
     palette=dict(zip(hosts,host_colors))
-    # layout in inches: one 0.17 in row per tip, then the axis labels, then the legends with only the rows they need
+    # layout in inches: one row per tip (0.17 in unless --row-height), then the axis labels, then the legends with only the rows they need
     fallback=raw_fallback(anchors)
     shown={}
     for r in anchors.values():
         shown['Other genera' if r['color']==fallback else r['genus']]=r['color']
     other=sorted({r['genus'] for r in anchors.values() if r['color']==fallback})
     leg_rows=max(-(-len(shown)//3),len(hosts))
-    rows_in=len(tips)*.17;axis_in=.45;leg_in=.5+leg_rows*.19;top_in=.12
+    rows_in=len(tips)*row_in;axis_in=.45;leg_in=.5+leg_rows*.19;top_in=.12
     height=max(3.8,top_in+rows_in+axis_in+leg_in)
     bottom=(axis_in+leg_in)/height;h=rows_in/height
     fig=plt.figure(figsize=(width,height));treeax=fig.add_axes([.06,bottom,.23,h]);namesax=fig.add_axes([.31,bottom,.44,h]);barax=fig.add_axes([.78,bottom,.19,h])
@@ -132,10 +132,13 @@ def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     for arg in ('tree','anchors','isolate-map','out'):p.add_argument('--'+arg,required=True,type=Path)
     p.add_argument('--palette-set',default='default');p.add_argument('--print-width',type=float,default=7.2);p.add_argument('--min-text-pt',type=float,default=8)
+    p.add_argument('--row-height',type=float,default=.17,help='inches per tip row (default 0.17); at least 0.14 so 8 pt names do not touch')
     p.add_argument('--tip-dots',action='store_true',help='also draw a genus-coloured dot at each tip (off: the coloured name carries the genus)')
-    a=p.parse_args(argv);output_preflight(a.out)
+    a=p.parse_args(argv)
+    if not .14<=a.row_height<=.4:raise ValueError('ROW_HEIGHT_RANGE: 0.14 to 0.4 in')
+    output_preflight(a.out)
     tree,anchors,counts,n,present=load(a.tree,a.anchors,a.isolate_map,a.palette_set)
-    fig,bars,host_colors=draw(tree,anchors,counts,a.print_width,a.min_text_pt,a.tip_dots)
+    fig,bars,host_colors=draw(tree,anchors,counts,a.print_width,a.min_text_pt,a.tip_dots,a.row_height)
     info=dict(type_marker_source='supplied NCBI fromtype column' if present else 'column absent; no type markers',palette_set=a.palette_set,
               isolate_rows=n,host_bar_sum=sum(r['isolates'] for r in bars),host_colors=host_colors,
               other_genera=getattr(fig,'_other_genera',[]),

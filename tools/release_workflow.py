@@ -104,7 +104,7 @@ def selected_interpreter(python: str) -> tuple[Path, dict]:
         locator = support.resolve_interpreter(python)
         probe = subprocess.run([str(locator), '-B', '-c',
             'import sys; supported = sys.version_info >= (3, 12); sys.stdout.write("SAPOTE_EXPORT_PYTHON_3_12_PLUS" if supported else ""); raise SystemExit(0 if supported else 2)'],
-            capture_output=True, text=True, timeout=5)
+            capture_output=True, text=True, timeout=60)   # a cold interpreter start on a busy machine can exceed 5 s
         if probe.returncode != 0 or probe.stdout != 'SAPOTE_EXPORT_PYTHON_3_12_PLUS':
             raise ValueError('compatibility response refused')
     except (OSError, ValueError, subprocess.SubprocessError):
@@ -138,7 +138,7 @@ def registry_preflight(source: Path, selected: dict | None, python: str) -> tupl
                '--allowlist-sha256', selected['allowlist_sha256']]
     try:
         process = subprocess.run(command, cwd=source, env=environment, capture_output=True,
-                                 text=True, timeout=30)
+                                 text=True, timeout=300)   # 30 s is too short on a machine busy with a cut; a refusal is still a refusal
         data = json.loads(process.stderr.strip())
     except (OSError, ValueError, subprocess.SubprocessError):
         raise RegistryRefused('HOLD', 'registry admission HOLD: selected owner invocation or redacted result contract refused') from None

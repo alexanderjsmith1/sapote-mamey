@@ -106,7 +106,7 @@ def test_rendered_caption_explains_ratio_and_tsv_heading_without_rendering(tmp_p
     assert captured["caption"] == result["caption"] + " " + explanation
     with (tmp_path / "gene_table.tsv").open() as handle:
         reader = csv.DictReader(handle, delimiter="\t")
-        assert reader.fieldnames == gt.COLS
+        assert reader.fieldnames == gt.COLS + gt.POSITION_COLS   # gene positions follow in the TSV only
         row = next(reader)
     assert row["Local/reference size ratio"] == "0.10"
     assert "Size ratio" not in row

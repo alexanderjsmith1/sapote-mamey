@@ -4,7 +4,7 @@
 
 ---
 
-You have the Sapote–Mamey v9.7.455 bundle and one or more antiSMASH genome-mining ZIP(s).
+You have the Sapote–Mamey v9.7.456 bundle and one or more antiSMASH genome-mining ZIP(s).
 Use this template only for an explicitly authorized diagnosis run, not merely because files
 were attached. Bind the selected strain inputs and follow `AGENTS.md` and
 `docs/ASSISTANT_GOVERNANCE.md`; this template does not grant network, external messaging, release

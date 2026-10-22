@@ -1,3 +1,65 @@
+# v9.7.456 — unsealed cut candidate · build 20261021v97456a
+
+Build 20261021v97456a; engine 1.9.177.
+
+Builds on the sealed v9.7.455 (CODE zip 42d06b36…1096). The engine stays 1.9.177: no card changes RG-GMCI scores, ranks, thresholds or engine outputs.
+
+- **Strain Master parity.** The bundle's user Strain Master gains the working master's tools:
+  - `import-tree` copies a folder with its subfolders, with `--tree-dest`, `--exclude`, `--link` (hard links) and `--replace` (older files move to `Superseded/`);
+  - `record-replace` replaces a whole record table, refused if the table changed since submission;
+  - subfolder READMEs are listed in the parent README;
+  - the self-check confirms that copies match their sources.
+
+  Imports check the whole write plan before any write. They refuse symlinked path components and any path that resolves outside the master, and a refused import can be retried. Backups are created exclusively and never overwrite an existing file. The user-facing name is "Strain Master"; `strain_master.json`, the module and the `strain-master` command are unchanged, so existing masters keep working.
+- **Protein-space pages.** One rebased card brings in four things:
+  - explicit point labels (`--label-ids`);
+  - labels by region alias (`--label-regions`);
+  - low-identity labels;
+  - multi-set grids zoomed to the isolates.
+
+  In grid mode, coordinates go through the same one-to-one admission as single pages, so a repeated ID is refused. Grid captions count proteins with unknown identity separately and describe axis values by what is known about them. The native R PNG is kept; a Quick Look preview, when made, is a separate review-only file. `--ref-point-scale` is a new opt-in option, and figures are unchanged without it.
+- **Gap-rescue maps and tables.**
+  - The gene table records gene positions, and every piece of a split gene is checked against its own saved contig.
+  - The map can draw a GECCO track. GECCO calls join by exact contig name, or by a contig-length alias only when that alias is unique on both sides; anything else is left unjoined and counted.
+  - Locus pages match GECCO by contig.
+  - Maps title GenBank references by name.
+- **Figure layout.**
+  - The collection map can place pies on their sites.
+  - BLASTp group labels are bold and below the panels.
+  - Nearest-type maps get row height and a four-host palette.
+  - Panel keys fit the page width.
+  - Placement pages get height control and landscape pages.
+  - A new genome-tree renderer, `tools/render_max4_tree.R`, works at 8 pt and stamps its output. It needs `phangorn`, which joins the `trees` R group.
+  - Multi-reference comparison maps get an aligned layout and italic binomials. A comparison row shows the record's accession, not a strain token that looks like one.
+  - Moss figures draw *Pseudonocardia* orange.
+- **Bioassay figures.**
+  - Groups are passed to the renderers in alphabetical order, so a group keeps one shape across figures; the owner ruled on this change of default.
+  - A07 reads its label seed and an x-axis limit from the environment.
+  - A04 reads its seed and a padding multiplier, and gains a label limit, a compact legend and an "either" label mode.
+
+  Unset options leave every figure as before.
+- **Size profiles.** `tools/build_size_profile.py` takes a unit label and a supplied table, and draws at print size.
+- **Manuscript QA.** The new tool `tools/manuscript_qa.py` checks a manuscript's citations against its reference list.
+- **CI and tests.**
+  - The CI test job runs Python 3.13. A step proves that R can start that Python with pypdf and Biopython.
+  - CI installs Arial-metric fonts, and a step checks which font R matches.
+  - Page-width checks allow half a point.
+  - One R test keeps R's library path.
+  - Two release-workflow probe deadlines are longer (5 s → 60 s, 30 s → 300 s); a refusal is still a refusal.
+  - The watched PCoA worker's disk floor leaves 1 GiB for other programs' writes; the hard floor is unchanged.
+- **Housekeeping.**
+  - The retired `tools/build_master_figure_atlas.py` stub is removed.
+  - The headers of `tools/build_master.py` and `tools/mamey_package_qa_v2.py` now say they are still in use.
+  - The release manifest records 1241 print calls, which is also the ceiling.
+
+Known limits, for .457:
+- PCoA label inputs are read before they are bound. An explicitly empty label list falls back to automatic labels, and conflicting label keys take the last row. Single panels can ignore region aliases. Grid captions do not state a non-default quantile.
+- Grid pages do not record their R execution evidence.
+- Manuscript QA can accept a coauthor's reference for a citation.
+- A locus page shows unassignable GECCO evidence as "no recorded cluster".
+- A Strain Master import that crashes partway can leave a partial install; a retry completes it.
+
+Held for later: the BLASTp known-compound tier fix (needs an old-versus-new comparison on real packages first) and the DAPR board locator hold (awaiting a ruling).
 # v9.7.455 — unsealed cut candidate · build 20261019v97455a
 
 Build 20261019v97455a; engine 1.9.177.

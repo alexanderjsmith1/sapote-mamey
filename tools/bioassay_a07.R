@@ -12,11 +12,11 @@ p <- ggplot(d,aes(x,y,fill=genus))+
   geom_hline(yintercept=80,colour="#C9D0D9",linewidth=.3,linetype="dashed")+
   geom_vline(xintercept=80,colour="#C9D0D9",linewidth=.3,linetype="dashed")+
   geom_point(aes(shape=group),size=1.8,colour=PUB_INK,stroke=.3,alpha=.9)+
-  geom_text_repel(aes(label=label),size=PT,family=PUB_FONT,seed=11,max.overlaps=Inf,max.time=120,segment.colour="#6B7483",
-                  segment.size=.25,min.segment.length=0,point.size=1.8,box.padding=.45,point.padding=.3,force=6,max.iter=1e6)+
+  geom_text_repel(aes(label=label),size=PT,family=PUB_FONT,seed=as.integer(Sys.getenv("BIOASSAY_A07_REPEL_SEED","11")),max.overlaps=Inf,max.time=120,segment.colour="#6B7483",
+                  segment.size=.25,min.segment.length=0,point.size=1.8,box.padding=as.numeric(Sys.getenv("BIOASSAY_REPEL_PAD","1"))*.45,point.padding=as.numeric(Sys.getenv("BIOASSAY_REPEL_PAD","1"))*.3,force=6,max.iter=1e6)+
   scale_shape_manual(values=shapes,name=if(is.null(prof$group_axis_label))"Source" else prof$group_axis_label)+
   scale_fill_manual(values=pal,labels=genlab,name="Genus (16S rRNA)")+
-  scale_x_continuous(limits=c(min(-5,d$x-4),max(112,d$x+4)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
+  scale_x_continuous(limits=c(min(-5,d$x-4),max(as.numeric(Sys.getenv("BIOASSAY_A07_XMAX","112")),d$x+4)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
   scale_y_continuous(limits=c(min(-5,d$y-4),max(112,d$y+4)),breaks=seq(0,100,25),labels=function(v)paste0(v,"%"))+
   labs(x=paste0("Best inhibition of ",if(is.null(prof$a04_candida_axis_label))"Candida sp." else prof$a04_candida_axis_label,", ",suffix),
        y=paste("Best inhibition of MRSA,",suffix))+house()+

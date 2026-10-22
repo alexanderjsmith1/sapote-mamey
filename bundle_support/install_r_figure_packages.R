@@ -11,7 +11,7 @@ if (!is.na(from_i) && (is.na(from_dir) || startsWith(from_dir, "--")))
 offline <- !is.na(from_dir)
 # .452: every package the shipped R scripts load, including R code embedded in Python tools
 # (tests/test_452_ci_installs_r.py keeps this list complete).
-cran <- c("ggplot2","dplyr","tidyr","scales","patchwork","ape","ggrepel","aplot","ggtext","svglite","jsonlite","systemfonts","xml2","ragg","png")
+cran <- c("ggplot2","dplyr","tidyr","scales","patchwork","ape","phangorn","ggrepel","aplot","ggtext","svglite","jsonlite","systemfonts","xml2","ragg","png")
 bioc <- c("ggtree","treeio")
 # Optional: not on CRAN (MIT). tools/bgc_class_groups.py draws rounded bars with it and plain bars without it.
 # Fetched as a source archive pinned to one commit, not through the GitHub API, which refuses anonymous tokens
@@ -23,7 +23,7 @@ have <- function(p) requireNamespace(p, quietly = TRUE)
 # Keep in step with R_FIGURE_GROUPS in mamey/optional_r.py (tests/test_456_r_figure_groups.py checks both).
 groups <- list(
   core     = c("ggplot2","ggtext","jsonlite","scales","dplyr","patchwork","ggrepel","svglite","systemfonts","xml2"),
-  trees    = c("ape","ggtree","treeio","aplot"),
+  trees    = c("ape","ggtree","treeio","aplot","phangorn"),
   bioassay = c("tidyr","png"),
   extras   = c("ragg","ggchicklet"))
 req_i <- match("--require", args)

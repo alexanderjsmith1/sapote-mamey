@@ -16,6 +16,8 @@ fig_strain_class_size_heatmap.png. Adds the Size_By_Type sheet to --workbook whe
 Usage:
   python tools/build_size_profile.py --banked-dir cohort --workbook Master.xlsx --out-dir figures
   python tools/build_size_profile.py --out-dir figures --replot   # re-draw from fig_bgc_size_by_type_data.csv
+  python tools/build_size_profile.py --table core_aa.tsv --value-column core_aa_total --value-scale 0.001 \\
+      --unit 'core biosynthetic protein (thousand aa)' --out-dir figures   # supplied strain x class table, 8 pt, no title
 """
 import os as _os, sys as _sys  # v9.7.407: resolve the tools-local emitter from any cwd
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -129,7 +131,7 @@ def write_sheet(workbook, strains, sids, cols, siz, cnt):
     ws.freeze_panes='C2'
     atomic_save(wb, workbook)
 
-def plot_all(out_dir, strains, sids, cols, siz, cnt):
+def plot_all(out_dir, strains, sids, cols, siz, cnt, unit='kb'):
     import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt, numpy as np
     PAL=['#2E86AB','#E59866','#7FB069','#B07AA1','#C0392B','#F1C40F','#16A085','#7F8C8D']
     lc=[math.log10(max(strains[s].get('contigs',1) or 1,1)) for s in sids]
@@ -138,7 +140,7 @@ def plot_all(out_dir, strains, sids, cols, siz, cnt):
     for i,c in enumerate(cols):
         v=np.array([siz[s][c] for s in sids]); ax.bar(x,v,bottom=bottom,width=0.84,color=PAL[i%len(PAL)],label=c); bottom+=v
     ax.set_xticks(x); ax.set_xticklabels(sids,rotation=90,fontsize=5); ax.set_xlim(-0.6,len(sids)-0.4)
-    ax.set_ylabel('total BGC size (kb)'); ax.spines[['top','right']].set_visible(False)
+    ax.set_ylabel(f'total BGC size ({unit})'); ax.spines[['top','right']].set_visible(False)
     ax.set_title('Total BGC nucleotide content per strain by type\nstrains ordered by contig count (most contiguous at left)',fontsize=11,weight='bold')
     ax.legend(ncol=8,fontsize=7.5,frameon=False,loc='upper center',bbox_to_anchor=(0.5,-0.18))
     plt.tight_layout(); plt.savefig(os.path.join(out_dir,'fig_bgc_size_by_type.png'),dpi=160,bbox_inches='tight'); plt.close()
@@ -146,15 +148,15 @@ def plot_all(out_dir, strains, sids, cols, siz, cnt):
     rows=[(c,_pearson(lc,[cnt[s][c] for s in sids]),_pearson(lc,[siz[s][c] for s in sids])) for c in cols]; rows.sort(key=lambda r:r[1])
     fig,(a1,a2)=plt.subplots(1,2,figsize=(11,4.6)); y=np.arange(len(rows)); h=0.38
     a1.barh(y+h/2,[r[1] for r in rows],h,color='#C0392B',label='count vs fragmentation')
-    a1.barh(y-h/2,[r[2] for r in rows],h,color='#2E86AB',label='size (kb) vs fragmentation')
+    a1.barh(y-h/2,[r[2] for r in rows],h,color='#2E86AB',label=f'size ({unit}) vs fragmentation')
     a1.set_yticks(y); a1.set_yticklabels([r[0] for r in rows],fontsize=9); a1.axvline(0,color='#444',lw=0.9)
     a1.set_xlabel('correlation with fragmentation (log10 contigs)'); a1.spines[['top','right']].set_visible(False)
-    a1.set_title(FRAGMENTATION_PANEL_TITLE,fontsize=10,weight='bold'); a1.legend(fontsize=8,frameon=False,loc='lower right')
+    a1.set_title(FRAGMENTATION_PANEL_TITLE.replace('(kb)', f'({unit})'),fontsize=10,weight='bold'); a1.legend(fontsize=8,frameon=False,loc='lower right')
     tc=[sum(cnt[s].values()) for s in sids]; ts=[sum(siz[s].values()) for s in sids]; a2b=a2.twinx()
     a2.scatter(lc,tc,s=22,c='#C0392B',alpha=0.7); a2b.scatter(lc,ts,s=22,c='#2E86AB',alpha=0.7,marker='s')
     for v,c,axx in [(tc,'#C0392B',a2),(ts,'#2E86AB',a2b)]:
         m,b=np.polyfit(lc,v,1); xs=np.array([min(lc),max(lc)]); axx.plot(xs,m*xs+b,c=c,lw=1.2)
-    a2.set_xlabel('log10 contig count'); a2.set_ylabel(f'BGC count (r={_pearson(lc,tc):+.2f})',color='#C0392B'); a2b.set_ylabel(f'BGC size kb (r={_pearson(lc,ts):+.2f})',color='#2E86AB')
+    a2.set_xlabel('log10 contig count'); a2.set_ylabel(f'BGC count (r={_pearson(lc,tc):+.2f})',color='#C0392B'); a2b.set_ylabel(f'BGC size {unit} (r={_pearson(lc,ts):+.2f})',color='#2E86AB')
     a2.set_title('Whole-genome: count vs size vs fragmentation',fontsize=10,weight='bold'); a2.spines[['top']].set_visible(False); a2b.spines[['top']].set_visible(False)
     plt.tight_layout(); plt.savefig(os.path.join(out_dir,'fig_count_vs_size_fragmentation.png'),dpi=160); plt.close()
     # 3) size heatmap (strain x class)
@@ -165,9 +167,68 @@ def plot_all(out_dir, strains, sids, cols, siz, cnt):
     for i in range(len(sids)):
         for j in range(len(cols)):
             if M[i,j]>0: ax.text(j,i,int(M[i,j]),ha='center',va='center',fontsize=4.5,color='black' if M[i,j]<M.max()*0.6 else 'white')
-    ax.set_title('Per-strain BGC size (kb) by class\nstrains ordered by contig count (most contiguous at top)',fontsize=10,weight='bold')
-    plt.colorbar(im,ax=ax,shrink=0.4,label='BGC size (kb)')
+    ax.set_title(f'Per-strain BGC size ({unit}) by class\nstrains ordered by contig count (most contiguous at top)',fontsize=10,weight='bold')
+    plt.colorbar(im,ax=ax,shrink=0.4,label=f'BGC size ({unit})')
     plt.tight_layout(); plt.savefig(os.path.join(out_dir,'fig_strain_class_size_heatmap.png'),dpi=160); plt.close()
+
+TABLE_CLASS_ORDER = ['PKS', 'NRPS', 'RiPP', 'Terpene', 'Other']
+TABLE_PALETTE = ['#2E86AB', '#E59866', '#7FB069', '#B07AA1', '#7F8C8D', '#C0392B', '#F1C40F', '#16A085']
+
+
+def read_table(path, value_column, scale=1.0):
+    """Long TSV with strain, bgc_class and a numeric value column (optional genus); strain order is first appearance."""
+    with open(path, newline='', encoding='utf-8') as fh:
+        rows = list(csv.DictReader(fh, delimiter='\t'))
+    if not rows:
+        raise SystemExit(f'REFUSED: {path} has no rows')
+    for need in ('strain', 'bgc_class', value_column):
+        if need not in rows[0]:
+            raise SystemExit(f'REFUSED: {path} has no {need!r} column')
+    sids, genus, classes, siz = [], {}, [], defaultdict(Counter)
+    for r in rows:
+        try:
+            v = float(r[value_column])
+        except (TypeError, ValueError):
+            raise SystemExit(f'REFUSED: non-numeric {value_column!r} for {r["strain"]} / {r["bgc_class"]}: {r[value_column]!r}')
+        if not math.isfinite(v) or v < 0:
+            raise SystemExit(f'REFUSED: {value_column!r} must be finite and >= 0 ({r["strain"]} / {r["bgc_class"]})')
+        if r['strain'] not in sids:
+            sids.append(r['strain'])
+        genus.setdefault(r['strain'], (r.get('genus') or '').strip())
+        if r['bgc_class'] not in classes:
+            classes.append(r['bgc_class'])
+        siz[r['strain']][r['bgc_class']] += v * scale
+    cols = [c for c in TABLE_CLASS_ORDER if c in classes] + [c for c in classes if c not in TABLE_CLASS_ORDER]
+    return sids, genus, cols, siz
+
+
+def plot_table(out_dir, sids, genus, cols, siz, unit, print_width=6.5, stem='fig_size_by_class_table'):
+    """One stacked bar per strain by class at print size: 8 pt text, no title (the caption carries the reading)."""
+    import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt, numpy as np
+    plt.rcParams.update({'font.size': 8, 'svg.fonttype': 'none', 'pdf.fonttype': 42,
+                         'font.family': ['Arial', 'Helvetica', 'DejaVu Sans'],
+                         'mathtext.fontset': 'custom', 'mathtext.it': 'Arial:italic', 'mathtext.rm': 'Arial'})
+    fig, ax = plt.subplots(figsize=(print_width, print_width * 0.55))
+    x = np.arange(len(sids)); bottom = np.zeros(len(sids))
+    for i, c in enumerate(cols):
+        v = np.array([siz[s][c] for s in sids], float)
+        ax.bar(x, v, bottom=bottom, width=0.66, color=TABLE_PALETTE[i % len(TABLE_PALETTE)], label=c, linewidth=0)
+        bottom += v
+    labels = [f'{s}\n$\\it{{{genus[s]}}}$' if genus.get(s) else s for s in sids]
+    ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=8); ax.set_xlim(-0.6, len(sids) - 0.4)
+    ax.tick_params(axis='y', labelsize=8)
+    ax.set_ylabel(unit, fontsize=8); ax.spines[['top', 'right']].set_visible(False)
+    ax.legend(fontsize=8, frameon=False, loc='upper left', bbox_to_anchor=(1.0, 1.0), title='Class', title_fontsize=8)
+    fig.tight_layout()
+    for ext in ('png', 'svg'):
+        fig.savefig(os.path.join(out_dir, f'{stem}.{ext}'), dpi=300)
+    plt.close(fig)
+    with atomic_open(os.path.join(out_dir, f'{stem}_data.tsv'), 'w', newline='') as f:
+        w = _SafeWriter(f, delimiter='\t', lineterminator='\n'); w.writerow(['strain', 'genus'] + cols + ['total'])
+        for s in sids:
+            w.writerow([s, genus.get(s, '')] + [round(siz[s][c], 3) for c in cols] + [round(sum(siz[s][c] for c in cols), 3)])
+    return [os.path.join(out_dir, f'{stem}.{e}') for e in ('png', 'svg')]
+
 
 @_bank_reader_scope
 def main():
@@ -175,7 +236,18 @@ def main():
     ap.add_argument('--banked-dir', default='cohort'); ap.add_argument('--workbook', default=None)
     ap.add_argument('--out-dir', default='figures'); ap.add_argument('--include-saccharide', action='store_true')
     ap.add_argument('--replot', action='store_true')
-    a=ap.parse_args(); _bank_read_guard(getattr(a, "banked_dir", None)); os.makedirs(a.out_dir, exist_ok=True)
+    ap.add_argument('--unit', default='kb', help='axis unit label (default kb, the region nucleotide measure)')
+    ap.add_argument('--table', help='supplied long TSV (strain, bgc_class, value column, optional genus): draw it by class instead of reading a banked cohort')
+    ap.add_argument('--value-column', default='core_aa_total', help='numeric column of --table')
+    ap.add_argument('--value-scale', type=float, default=1.0, help='multiply --table values (e.g. 0.001 for thousands)')
+    ap.add_argument('--print-width', type=float, default=6.5, help='--table figure width in inches (text is 8 pt)')
+    a=ap.parse_args()
+    if a.table:
+        os.makedirs(a.out_dir, exist_ok=True)
+        sids, genus, cols, siz = read_table(a.table, a.value_column, a.value_scale)
+        outs = plot_table(a.out_dir, sids, genus, cols, siz, a.unit, a.print_width)
+        emit(f'  size-by-class table: {len(sids)} strains x {len(cols)} classes ({a.unit}) -> ' + ', '.join(outs)); return
+    _bank_read_guard(getattr(a, "banked_dir", None)); os.makedirs(a.out_dir, exist_ok=True)
     csv_path=os.path.join(a.out_dir,'fig_bgc_size_by_type_data.csv')
     if a.replot:
         rows=list(csv.reader(open(csv_path))); cols=rows[0][2:]
@@ -184,10 +256,10 @@ def main():
         siz=defaultdict(Counter); cnt=defaultdict(Counter)
         for r in rows[1:]:
             for j,c in enumerate(cols): siz[r[0]][c]=float(r[2+j])
-        plot_all(a.out_dir, strains, sids, cols, siz, cnt); emit('  replotted from CSV (count panels need full data)'); return
+        plot_all(a.out_dir, strains, sids, cols, siz, cnt, a.unit); emit('  replotted from CSV (count panels need full data)'); return
     strains, sids, cols, siz, cnt = compute(a.banked_dir, a.include_saccharide)
     write_csv(csv_path, strains, sids, cols, siz)
-    plot_all(a.out_dir, strains, sids, cols, siz, cnt)
+    plot_all(a.out_dir, strains, sids, cols, siz, cnt, a.unit)
     if a.workbook and os.path.exists(a.workbook):
         write_sheet(a.workbook, strains, sids, cols, siz, cnt); emit(f'  Size_By_Type sheet added to {os.path.basename(a.workbook)}')
     emit(f'  size-by-type: {len(sids)} strains x {len(cols)} classes; figures + CSV in {a.out_dir}')

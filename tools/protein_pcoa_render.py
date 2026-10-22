@@ -15,7 +15,7 @@ What is drawn:
     identity first), then the strains whose points lie farthest from any reference/MIBiG point; each label sits on the
     strain's most isolated point of the same fill; a panel with N or fewer cohort points labels every point;
   * otherwise distance only: a point is labelled when its distance to the nearest reference/MIBiG point exceeds the
-    --quantile of the background's own nearest-neighbour distances; same-strain points close together share a label
+    --quantile of the background's own nearest-neighbor distances; same-strain points close together share a label
     ("x n"); more than --number-above labels are numbered, with the key in LABELS_<SET>_<PANEL>.tsv.
 Points whose origin is in --drop-origins and strains in --exclude-strain are not drawn (they stay in the ordination).
 
@@ -396,6 +396,23 @@ def identity_measurement(raw):
 
 
 def choose_labels(cohort_pts, background, *, label_below=70.0, top_strains=0, q=0.95, number_above=30, span=None):
+    if LABEL_IDS:   # locus pages: one label per listed protein (e.g. its gene number), no cap, nothing else labeled
+        bg_nn = nn_dist(background, background, k_self=True) if len(background) > 1 else []
+        groups = [[i] for i, p in enumerate(cohort_pts) if (p.get("row") or {}).get("id") in LABEL_IDS]
+        return groups, [LABEL_IDS[(cohort_pts[g[0]].get("row") or {}).get("id")] for g in groups], quantile(bg_nn, q), False
+    if REGION_TEXT:   # ruling 75: only proteins below --label-below get a label, one per region, lowest identity first
+        bg_nn = nn_dist(background, background, k_self=True) if len(background) > 1 else []
+        byreg = {}
+        for i, p in enumerate(cohort_pts):
+            if p["pid"] is not None and p["pid"] < label_below:
+                byreg.setdefault(((p.get("row") or {}).get("origin", ""), p["strain"]), []).append(i)
+        groups = sorted(byreg.values(), key=lambda g: (min(cohort_pts[k]["pid"] for k in g), g[0]))[:LABEL_MAX[0]]
+        return groups, [_group_text(cohort_pts, g) for g in groups], quantile(bg_nn, q), False
+    return _choose_labels_distance(cohort_pts, background, label_below=label_below, top_strains=top_strains, q=q,
+                                   number_above=number_above, span=span)
+
+
+def _choose_labels_distance(cohort_pts, background, *, label_below=70.0, top_strains=0, q=0.95, number_above=30, span=None):
     """cohort_pts: list of dict(x, y, strain, pid (float or None)). background: list of (x, y).
     span: the plot span the 1.5% same-strain grouping distance is taken from. Pass the span of EVERY point in the kit
     (all cohorts, excluded strains included), as the v5 script does; when None it falls back to this panel's points.
@@ -532,7 +549,47 @@ def render_matplotlib(spec: dict, out_prefix: Path) -> None:
     plt.close(fig)
 
 
+def _cnt(n, plural: str) -> str:
+    """'1 protein', '3 proteins': a count with its unit in the right number (candidate card)."""
+    return f"{n:,} " + (plural[:-1] if n == 1 and plural.endswith("s") else plural)
+
+
 # ---------------------------------------------------------------- driver
+
+REGION_TEXT = {}   # region_file -> reader label, e.g. "NRPS (balhimycin-type)", from --label-low-identity (ruling 75)
+REGION_ID = {}     # region_file -> "strain / full node / region / BGC alias" (optional identity column of --label-low-identity)
+LABEL_MAX = [4]     # --label-max: at most this many labels per panel in --label-low-identity mode
+REGION_LABELS = {}   # region_file -> alias (e.g. "BGC013"), from --label-regions; empty = label by strain (default)
+LABEL_IDS = {}   # point id -> text, from --label-ids (locus pages, ruling 169): label exactly these points, every one of them
+
+
+def _group_text(cp, g, short=None):
+    """Label for one outlier group: the region alias when --label-regions is given (the most common alias in the group,
+    one region: 'BGC013 x3'; two: 'BGC004, BGC013'; three or more: '14 loci x17'); otherwise the strain (or its short name), as
+    before. The LABELS table beside each page lists every labeled protein with its region file."""
+    n = f" x{len(g)}" if len(g) > 1 else ""
+    if LABEL_IDS:   # --label-ids: the listed text for this point (pages, grids and single panels alike)
+        t = LABEL_IDS.get((cp[g[0]].get("row") or {}).get("id"))
+        if t is not None:
+            return t
+    if REGION_TEXT:   # ruling 75: class and reference type, never an alias or a count
+        tx = [REGION_TEXT.get((cp[k].get("row") or {}).get("origin", "")) for k in g]
+        tx = [x for x in tx if x]
+        return max(sorted(set(tx)), key=tx.count) if tx else ((cp[g[0]].get("row") or {}).get("region_product") or "region").split("+")[0]
+    if REGION_LABELS:
+        al = [REGION_LABELS.get((cp[k].get("row") or {}).get("origin", "")) for k in g]
+        al = [x for x in al if x]
+        if al:
+            order = sorted(set(al), key=lambda x: (-al.count(x), x))
+            if len(order) == 1:
+                return order[0] + n
+            if len(order) == 2:
+                return ", ".join(order)
+            return f"{len(order)} loci" + n
+    st = cp[g[0]]["strain"]
+    return (short or {}).get(st, st) + n
+
+
 def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label_text, titles, out: Path, renderer: str,
                 *, drop_origins: set[str] | None = None, forced_groups=None, spec_only: bool = False, layout: str | None = None,
                 keep_k: int | None = None):
@@ -569,10 +626,10 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
         groups = groups[:keep_k]; numbered = len(groups) > a.number_above
     short = ({r["strain"]: r.get("short") or r["strain"] for r in read_tsv(Path(a.label_names))} if getattr(a, "label_names", None) else {})
     if short and not numbered:   # short canvas label (house rule 6 name goes to the LABELS key)
-        texts = [short.get(cpts[g[0]]["strain"], cpts[g[0]]["strain"]) + (f" x{len(g)}" if len(g) > 1 else "") for g in groups]
+        texts = [_group_text(cpts, g, short) for g in groups]
     elif forced_groups is not None or keep_k is not None:
         texts = ([str(n) for n in range(1, len(groups) + 1)] if numbered
-                 else [cpts[g[0]]["strain"] + (f" x{len(g)}" if len(g) > 1 else "") for g in groups])
+                 else [_group_text(cpts, g) for g in groups])
     low = [p["pid"] is not None and p["pid"] < a.label_below for p in cpts]
     mid = [not lw and a.mid_below is not None and p["pid"] is not None and p["pid"] < a.mid_below for p, lw in zip(cpts, low)]
     unknown = [p["pid"] is None for p in cpts]
@@ -597,8 +654,8 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
                 ylab=({"trimap": "TriMap 2", "tsne": "t-SNE 2"}.get(layout or getattr(a, "layout", "pcoa"))
                       or (f"PCoA 2 ({pct[1]:.1f}%)" if pct is not None else "PCoA 2")),
                 legend=dict(ref=f"reference genomes ({n_ref:,} {unit})", mibig=f"MIBiG ({n_mib:,} {unit})",
-                            iso_low=f"{label_text} ({nlo:,} {unit}, {slo} strains): best {mt} match < {a.label_below:.0f}% identity",
-                            iso_high=f"{label_text} ({nhi:,} {unit}, {shi} strains): best {mt} match >= {top:.0f}% identity"),
+                            iso_low=f"{label_text} ({_cnt(nlo, unit)}, {_cnt(slo, 'strains')}): best {mt} match < {a.label_below:.0f}% identity",
+                            iso_high=f"{label_text} ({_cnt(nhi, unit)}, {_cnt(shi, 'strains')}): best {mt} match >= {top:.0f}% identity"),
                 points=points, mid_fill=tint(colour),
                 labels=[dict(x=sum(cpts[k]["x"] for k in g) / len(g), y=sum(cpts[k]["y"] for k in g) / len(g), label=t)
                         for g, t in zip(groups, texts)])
@@ -608,7 +665,7 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
         spec["source_style"] = dict(genus=a.source_style, ref_fill=a.source_style_fill, mibig_fill=a.mibig_fill,
                                      ref_outline=a.source_style_outline, mibig_outline=a.mibig_outline)
     if a.mid_below is not None:
-        spec["legend"]["iso_mid"] = (f"{label_text} ({nmd:,} {unit}, {smd} strains): best {mt} match "
+        spec["legend"]["iso_mid"] = (f"{label_text} ({_cnt(nmd, unit)}, {_cnt(smd, 'strains')}): best {mt} match "
                                      f"{a.label_below:.0f}–{a.mid_below:.0f}% identity")
     assert_no_banned_figure_text([spec["tag"], spec["xlab"], spec["ylab"], *spec["legend"].values(), *texts],
                                  figure_id=f"{s}_{panel}")
@@ -718,7 +775,7 @@ def _segments_cross(p, q):
     return d1 * d2 < 0 and d3 * d4 < 0
 
 
-def place_labels_pt(targets, texts, obstacles, rect, blocked, *, font_size, italic, max_leader_pt, pad=1.5, step=1.5):
+def place_labels_pt(targets, texts, obstacles, rect, blocked, *, font_size, italic, max_leader_pt, pad=1.5, step=1.5, leader_clear_pt=None, leader_avoid=None, target_groups=None, wrap_type=False):
     """M5_452 P2/P3: bee Fig. S9 label placement (bee kit plot_pcoa.py place_labels, lines 62-65), in print points on the final page:
     for each label in rank order, anchor points on rings around its target (3 pt to max_leader_pt from the point edge, step pt apart,
     16 directions, nearest ring first); keep the first label box that lies inside the panel rectangle and covers no point (any layer),
@@ -731,30 +788,48 @@ def place_labels_pt(targets, texts, obstacles, rect, blocked, *, font_size, ital
     boxes, segs, out = list(blocked), [], []
     angles = [k * math.pi / 8 for k in range(16)]
     radii = [3.0 + step * n for n in range(int((max_leader_pt - 3.0) / step) + 1)]
-    for (tx, ty, tr), text in zip(targets, texts):
-        w = _font_length(text, face, font_size); best = None
+    for n_, ((tx, ty, tr), text0) in enumerate(zip(targets, texts)):
+      best = None
+      # 018c0f08_458 wrap_type: a "class (X-type)" label with no one-line spot is tried again on two lines, the type below the class
+      for text in ([text0] + ([text0.replace(" (", "\n(", 1)] if wrap_type and " (" in text0 else [])):
+        lines = text.split("\n")
+        w = max(_font_length(t_, face, font_size) for t_ in lines); h = 0.93 * font_size + (len(lines) - 1) * 1.2 * font_size
         for r in radii:
-            for th in angles:
-                c, s = math.cos(th), math.sin(th)
-                ax, ay = tx + (tr + r) * c, ty + (tr + r) * s
-                hj = 0.0 if c > 0.38 else (1.0 if c < -0.38 else 0.5); vj = 0.0 if s > 0.38 else (1.0 if s < -0.38 else 0.5)
-                b = (ax - hj * w - pad, ax + (1 - hj) * w + pad, ay - vj * h - pad, ay + (1 - vj) * h + pad)
-                if b[0] < rect[0] or b[1] > rect[1] or b[2] < rect[2] or b[3] > rect[3]:
-                    continue
-                dx = np.maximum(np.maximum(b[0] - X, 0.0), X - b[1]); dy = np.maximum(np.maximum(b[2] - Y, 0.0), Y - b[3])
-                if np.any(dx * dx + dy * dy < R * R):
-                    continue
-                seg = (tx + tr * c, ty + tr * s, ax, ay)
-                if any(_boxes_overlap(b, o) or _segment_hits_box(seg, o) for o in boxes) or any(_segment_hits_box(q, b) for q in segs):
-                    continue
-                if any(_segments_cross(seg, q) for q in segs):
-                    continue
-                best = dict(anchor=(ax, ay), seg=seg, hjust=hj, vjust=vj, box=b, leader_pt=r); break
-            if best:
-                break
-        out.append(best)
+              for th in angles:
+                  c, s = math.cos(th), math.sin(th)
+                  ax, ay = tx + (tr + r) * c, ty + (tr + r) * s
+                  hj = 0.0 if c > 0.38 else (1.0 if c < -0.38 else 0.5); vj = 0.0 if s > 0.38 else (1.0 if s < -0.38 else 0.5)
+                  b = (ax - hj * w - pad, ax + (1 - hj) * w + pad, ay - vj * h - pad, ay + (1 - vj) * h + pad)
+                  if b[0] < rect[0] or b[1] > rect[1] or b[2] < rect[2] or b[3] > rect[3]:
+                      continue
+                  dx = np.maximum(np.maximum(b[0] - X, 0.0), X - b[1]); dy = np.maximum(np.maximum(b[2] - Y, 0.0), Y - b[3])
+                  if np.any(dx * dx + dy * dy < R * R):
+                      continue
+                  seg = (tx + tr * c, ty + tr * s, ax, ay)
+                  if any(_boxes_overlap(b, o) or _segment_hits_box(seg, o) for o in boxes) or any(_segment_hits_box(q, b) for q in segs):
+                      continue
+                  if any(_segments_cross(seg, q) for q in segs):
+                      continue
+                  if leader_clear_pt is not None and leader_avoid is not None and len(leader_avoid):
+                      # 018c0f08_458: a leader passes no other below-threshold (dark) cohort point closer than leader_clear_pt,
+                      # so it cannot be read as pointing at the wrong protein
+                      AX, AY, AR = leader_avoid[:, 0], leader_avoid[:, 1], leader_avoid[:, 2]
+                      vx, vy = seg[2] - seg[0], seg[3] - seg[1]; L2 = vx * vx + vy * vy or 1e-9
+                      tt = np.clip(((AX - seg[0]) * vx + (AY - seg[1]) * vy) / L2, 0.0, 1.0)
+                      dd = np.hypot(seg[0] + tt * vx - AX, seg[1] + tt * vy - AY)
+                      own = np.hypot(AX - tx, AY - ty) < 0.5
+                      if target_groups is not None and leader_avoid.shape[1] > 3:   # proteins of the labeled region itself are fine
+                          own = own | (leader_avoid[:, 3] == target_groups[n_])
+                      if np.any((dd < AR + leader_clear_pt) & ~own):
+                          continue
+                  best = dict(anchor=(ax, ay), seg=seg, hjust=hj, vjust=vj, box=b, leader_pt=r, text=text); break
+              if best:
+                  break
         if best:
-            boxes.append(best["box"]); segs.append(best["seg"])
+            break
+      out.append(best)
+      if best:
+          boxes.append(best["box"]); segs.append(best["seg"])
     return out
 
 
@@ -966,7 +1041,7 @@ def build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, la
         title_w = _font_length(b["spec"]["tag"], "Arial-BoldMT", fs)
         blocked = [(rx0, rx0 + title_w * 1.04 + 4.0, ry1 - 2.0 * fs, ry1)]   # annotate(hjust = -0.04, vjust = 1.4) top-left title
         cp = b["cpts"]; groups = b["all_groups"]
-        texts = [b["short"].get(cp[g[0]]["strain"], cp[g[0]]["strain"]) + (f" x{len(g)}" if len(g) > 1 else "") for g in groups]
+        texts = [_group_text(cp, g, b["short"]) for g in groups]
         # page labels are always names (FIGURE_HOUSE_RULES rule 6): no numbered labels in page mode, whatever the outlier count
         targets = [(tx(sum(cp[k]["x"] for k in g) / len(g)), ty(sum(cp[k]["y"] for k in g) / len(g)), point_radius_pt(1.25)) for g in groups]
         italic = bool(getattr(a, "italic_labels", False))   # species names in italic
@@ -1042,6 +1117,226 @@ def build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, la
     return receipt
 
 
+def build_grid_page(a, entries, cohorts, admitted, colours, labels, titles, out, drop_origins, page_no, letters, ncol):
+    '''m5_452_protein_pcoa_multiset_grid: one page of several protein SETS in an nrow x ncol grid (row by row), one layout (--page pcoa,
+    trimap or tsne; the embedding coordinates come from each set's --embedding-table), each set its own
+    ordination and axes, one shared legend, panel letters given by `letters` (they continue across pages). Same bee Fig. S9 print style,
+    label rule and placement as build_page; the PDF read-back assigns faults to panels by position (rows and columns). The shared legend
+    names no reference genome count (it differs per set); the caption gives each set's counts. entries: [dict(s, rows, near, run, meta)].'''
+    if not getattr(a, "min_text_pt", None):
+        raise RenderRefusal("--page-grid needs --min-text-pt (the page is always saved through the min-text gate)")
+    if len(a.panel) != 1:
+        raise RenderRefusal("--page-grid draws one cohort panel per set; pass exactly one --panel")
+    import numpy as np
+    from tools._min_text_check import enforce as _mt_enforce, pdf_axis_panels_grid as _grid_panels, page_label_faults_frames as _faults_f
+    name, cs = a.panel[0].split("=", 1); cohort_set = set(cs.split(",")); P = len(entries); nrow = math.ceil(P / ncol)
+    full = [build_panel(a, e["s"], e["rows"], e["near"], e["run"], cohorts, name, cohort_set, colours.get(name, PALETTE[0]),
+                        labels.get(name, f"{name} isolates"), titles, out, "r", drop_origins=drop_origins, spec_only=True, layout=a.page,
+                        keep_k=None) for e in entries]
+    genome_no = {}
+    for strain, coh in cohorts.items():
+        if coh in cohort_set and strain not in genome_no:
+            genome_no[strain] = len(genome_no) + 1
+    legend = page_legend(a, full[0]["spec"]["legend"], None)
+    n_ref_genomes = []
+    for b, e in zip(full, entries):
+        cs_ = {p["strain"] for p in b["cpts"]}
+        n_ref_genomes.append(len({r["strain"] for r in e["meta"] if r.get("strain") and r.get("source") not in ("isolate", "MIBiG")
+                                  and r["strain"] not in cs_}))
+    lims, zoom_log = [], []
+    zoom = getattr(a, "zoom_cohort", None)
+    for b in full:
+        xs = [p["x"] for p in b["spec"]["points"]]; ys = [p["y"] for p in b["spec"]["points"]]
+        dx, dy = (max(xs) - min(xs)) or 1.0, (max(ys) - min(ys)) or 1.0
+        if zoom is None:
+            lims.append(dict(xlim=[min(xs) - PAGE_EXPAND["x"][0] * dx, max(xs) + PAGE_EXPAND["x"][1] * dx],
+                             ylim=[min(ys) - PAGE_EXPAND["y"][0] * dy, max(ys) + PAGE_EXPAND["y"][1] * dy]))
+            continue
+        # 018c0f08_458_pcoa_grid_zoom_to_isolates (owner, 19 Oct: "zoom in on the concentrated areas"): the window is the box of
+        # every cohort point, padded by --zoom-cohort x the full data span on each side and clipped to the full padded range.
+        # Every cohort point stays on the panel; reference and MIBiG centroids outside the window are not drawn and are counted.
+        cx = [p["x"] for p in b["cpts"]]; cy = [p["y"] for p in b["cpts"]]
+        x0 = max(min(cx) - zoom * dx, min(xs) - PAGE_EXPAND["x"][0] * dx); x1 = min(max(cx) + zoom * dx, max(xs) + PAGE_EXPAND["x"][1] * dx)
+        y0 = max(min(cy) - zoom * dy, min(ys) - PAGE_EXPAND["y"][0] * dy); y1 = min(max(cy) + zoom * dy, max(ys) + PAGE_EXPAND["y"][1] * dy)
+        lims.append(dict(xlim=[x0, x1], ylim=[y0, y1]))
+        inside = lambda p: x0 <= p["x"] <= x1 and y0 <= p["y"] <= y1
+        hidden = {}
+        for p in b["spec"]["points"]:
+            if not inside(p):
+                hidden[p["layer"]] = hidden.get(p["layer"], 0) + 1
+        if any(k.startswith("iso") for k in hidden):
+            raise RenderRefusal(f"zoom window hides cohort points: {hidden}")
+        b["spec"]["points_all"] = b["spec"]["points"]   # totals in the receipt and caption still count every centroid
+        b["spec"]["points"] = [p for p in b["spec"]["points"] if inside(p)]
+        zoom_log.append(dict(pad_frac=zoom, xlim=[x0, x1], ylim=[y0, y1], drawn=len(b["spec"]["points"]), hidden_centroids=hidden,
+                             full_xrange=[min(xs), max(xs)], full_yrange=[min(ys), max(ys)]))
+    prefix = out / f"PAGE_GRID_{name}_{a.page.upper()}_page{page_no}"
+    trials = out / f"fit_trials_grid_page{page_no}"; trials.mkdir(exist_ok=True)
+    col = lambda pts, k: [p[k] for p in pts]
+
+    def draw(labs, probe, tag=""):
+        stamp = uuid.uuid4().hex; pre = (trials / f"{prefix.name}_{tag}") if probe else prefix
+        page = dict(stamp=stamp, probe=probe, ncol=ncol, panel_height=getattr(a, "panel_height", None) or 3.6, tags=list(letters), italic_labels=bool(getattr(a, "italic_labels", False)),
+                    legend=legend, leader_colour="#555555", label_box=bool(getattr(a, "label_over_reference", False)),
+                    legend_slot=bool(getattr(a, "legend_in_empty_slot", False)),
+                    **({"ref_point_scale": a.ref_point_scale} if getattr(a, "ref_point_scale", None) else {}),
+                    panels=[dict(tag=b["spec"]["tag"], xlab=b["spec"]["xlab"], ylab=b["spec"]["ylab"], **lims[c],
+                                 points={k: col(b["spec"]["points"], k) for k in ("x", "y", "layer", "size")},
+                                 labels={k: [l[k] for l in labs[c]] for k in ("x", "y", "label", "hjust", "vjust", "sx", "sy", "face")})
+                            for c, b in enumerate(full)],
+                    min_text=dict(min_text_pt=a.min_text_pt, print_width=a.print_width,
+                                  helper=str(_ROOT / "tools" / "sapote_min_text.R"), layout=str(_ROOT / "tools" / "sapote_pub_layout.R")))
+        spec_path = out / f".page_grid{page_no}_{stamp}.json"; spec_path.write_text(json.dumps(page))
+        try:
+            r = subprocess.run(["Rscript", str(_ROOT / "tools" / "protein_pcoa_page.R"), str(spec_path), str(pre), stamp],
+                               capture_output=True, text=True)
+        finally:
+            spec_path.unlink(missing_ok=True)
+        if r.returncode == 0:
+            done = Path(str(pre) + ".stamp")
+            if not done.exists() or done.read_text().strip() != stamp:
+                raise RenderRefusal(f"page renderer did not confirm stamp for {pre.name}")
+            done.unlink()
+        return pre, r, page
+
+    # 1. label-free trial page at the final size: panel rectangles (pt) from the drawn axis lines, row by row
+    pre, r, _ = draw([[] for _ in range(P)], True, "geometry")
+    if r.returncode != 0:
+        raise RenderRefusal(f"trial page failed for {prefix.name}: {r.stderr.strip()[-600:]}")
+    rects = _grid_panels(f"{pre}.pdf", nrow, ncol, P)
+    if len(rects) != P:
+        raise RenderRefusal(f"{pre.name}: found {len(rects)} panel axis frames, expected {P}")
+    # 2. bee greedy placement per panel, in print points (as build_page)
+    from tools._min_text_check import _font_length
+    placed, fs = [], float(a.min_text_pt)
+    italic = bool(getattr(a, "italic_labels", False))
+    for c, b in enumerate(full):
+        rx0, rx1, ry0, ry1 = rects[c]; (xl0, xl1), (yl0, yl1) = lims[c]["xlim"], lims[c]["ylim"]
+        tx = lambda x: rx0 + (x - xl0) / (xl1 - xl0) * (rx1 - rx0); ty = lambda y: ry0 + (y - yl0) / (yl1 - yl0) * (ry1 - ry0)
+        pts = b["spec"]["points"]
+        over_ref = bool(getattr(a, "label_over_reference", False))   # 018c0f08_458: labels may sit on grey/blue centroids (white box)
+        obst = np.array([(tx(p["x"]), ty(p["y"]), point_radius_pt(1.25 if p["layer"].startswith("iso") else
+                         0.17 * math.sqrt(3 + 1.5 * math.sqrt(p["size"])))) for p in pts
+                         if not over_ref or p["layer"].startswith("iso")])
+        title_w = _font_length(b["spec"]["tag"], "Arial-BoldMT", fs)
+        blocked = [(rx0, rx0 + title_w * 1.04 + 4.0, ry1 - 2.0 * fs, ry1)]
+        cp = b["cpts"]; groups = b["all_groups"]
+        texts = [_group_text(cp, g, b["short"]) for g in groups]
+        if REGION_TEXT:   # 018c0f08_458: a region's proteins can lie far apart; the leader goes to its lowest-identity protein, not the mean
+            anchor = [min(g, key=lambda k: (cp[k]["pid"] if cp[k]["pid"] is not None else 1e9)) for g in groups]
+            targets = [(tx(cp[k]["x"]), ty(cp[k]["y"]), point_radius_pt(1.25)) for k in anchor]
+        else:
+            targets = [(tx(sum(cp[k]["x"] for k in g) / len(g)), ty(sum(cp[k]["y"] for k in g) / len(g)), point_radius_pt(1.25)) for g in groups]
+        res = place_labels_pt(targets, texts, obst, (rx0, rx1, ry0, ry1), blocked, font_size=fs, italic=italic,
+                              max_leader_pt=LEADER_MAX_IN * 72, leader_clear_pt=(2.0 if over_ref else None),
+                              leader_avoid=np.array([(tx(p["x"]), ty(p["y"]), point_radius_pt(1.25),
+                                                      next((gi for gi, g in enumerate(groups) for k in g if cp[k]["x"] == p["x"] and cp[k]["y"] == p["y"]), -1))
+                                                     for p in pts if p["layer"] == "iso_low"]).reshape(-1, 4),
+                              target_groups=list(range(len(groups))), wrap_type=over_ref)
+        dx_ = lambda X: xl0 + (X - rx0) / (rx1 - rx0) * (xl1 - xl0); dy_ = lambda Y: yl0 + (Y - ry0) / (ry1 - ry0) * (yl1 - yl0)
+        placed.append([dict(rank=n, text=(q.get("text", t) if q else t), res=q, face="italic" if italic else "plain", x=dx_(q["anchor"][0]) if q else None, y=dy_(q["anchor"][1]) if q else None,
+                            sx=dx_(q["seg"][0]) if q else None, sy=dy_(q["seg"][1]) if q else None)
+                       for n, (t, q) in enumerate(zip(texts, res), 1)])
+    # 3. final page through the full gate; the PDF is read back and a fault drops that panel's last placed label (as build_page)
+    final_log = []; sets = [e["s"] for e in entries]
+    for attempt in range(12):
+        labs = [[dict(x=l["x"], y=l["y"], label=l["text"], hjust=l["res"]["hjust"], vjust=l["res"]["vjust"], sx=l["sx"], sy=l["sy"],
+                      face=l["face"])
+                 for l in pl if l["res"]] for pl in placed]
+        pre, r, page = draw(labs, False)
+        bad = set()
+        if r.returncode != 0:
+            msg = r.stderr.strip()[-600:]
+            if "MIN_TEXT_DOES_NOT_FIT" not in msg:
+                raise RenderRefusal(f"page renderer failed for {prefix.name}: {msg}")
+            bad = {c for c, pl in enumerate(placed) if any(l["res"] and l["text"] in msg for l in pl)} or {c for c in range(P) if labs[c]}
+            final_log.append(dict(labelled={sets[c]: len(labs[c]) for c in range(P)}, refused=msg[-300:]))
+        else:
+            try:
+                _mt_enforce(f"{prefix}.pdf", a.min_text_pt)
+            except RuntimeError as exc:
+                raise RenderRefusal(str(exc)) from None
+            f = _faults_f(f"{prefix}.pdf", rects, LEADER_MAX_IN, LEADER_RGB)
+            bad = {c for c, v in f.items() if v}
+            final_log.append(dict(labelled={sets[c]: len(labs[c]) for c in range(P)}, faults={sets[c]: v[:8] for c, v in f.items() if v}))
+            if not bad:
+                break
+        if not any(labs[c] for c in bad):
+            raise RenderRefusal(f"MIN_TEXT_DOES_NOT_FIT: {prefix.name} fails with no labels left to drop: {final_log[-1]}")
+        for c in bad:
+            last = max((l for l in placed[c] if l["res"]), key=lambda l: l["rank"], default=None)
+            if last:
+                last["res"] = None; last["dropped"] = "PDF read-back fault"
+    else:
+        raise RenderRefusal(f"{prefix.name}: no passing page after 12 final draws: {final_log[-3:]}")
+    assert_no_banned_figure_text(svg_visible_text(Path(f"{prefix}.svg").read_text()), figure_id=prefix.name)
+    # Audit F24: the native R raster is the delivered artwork and is bound as on single pages; a Quick Look preview of the
+    # checked PDF, when available, goes to a separate review-only file and never replaces it.
+    raster_artifacts = page_raster_artifacts(prefix, a.print_width)
+    preview = None
+    if shutil.which("qlmanage"):   # review-only PNG preview rendered from the checked PDF
+        tmp = out / f".ql_{page['stamp']}"; tmp.mkdir()
+        # 018c0f08_458: qlmanage -s sets the LONGER side; a page taller than wide got under 600 dpi with print_width * 600
+        import re as _re_mb
+        _mb = _re_mb.search(rb"/MediaBox\s*\[\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)", Path(f"{prefix}.pdf").read_bytes())
+        _long_in = max(float(_mb.group(3)) - float(_mb.group(1)), float(_mb.group(4)) - float(_mb.group(2))) / 72 if _mb else a.print_width
+        subprocess.run(["qlmanage", "-t", "-s", str(int(round(max(_long_in, a.print_width) * 600))), "-o", str(tmp), f"{prefix}.pdf"],
+                       capture_output=True)
+        ql = tmp / f"{prefix.name}.pdf.png"
+        if ql.exists():
+            shutil.move(str(ql), f"{prefix}_preview.png")
+            preview = dict(**file_binding(Path(f"{prefix}_preview.png")), role="REVIEW_ONLY_PDF_PREVIEW", producer="qlmanage")
+        shutil.rmtree(tmp, ignore_errors=True)
+    from mamey.figure_stamp import stamp_file
+    for ext in (".png", ".pdf", ".svg"):
+        stamp_file(Path(str(prefix) + ext), "protein_pcoa_page")
+    names = ({r["strain"]: r["display"] for r in read_tsv(Path(a.label_names))} if getattr(a, "label_names", None) else {})
+    with open(out / f"LABELS_GRID_{name}_{a.page.upper()}_page{page_no}.tsv", "w", newline="") as fh:
+        w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
+        w.writerow(["panel", "set", "outlier_rank", "drawn", "label_text", "leader_in", "genome_number", "strain", "display_name", "region_file",
+                    "locus_tag", "nearest_identity_pct", "fill", "x", "y", "distance_to_nearest_background", "threshold_p95"])
+        for c, b in enumerate(full):
+            for l, g in zip(placed[c], b["all_groups"]):
+                for k in g:
+                    p = b["cpts"][k]
+                    w.writerow([letters[c], sets[c], l["rank"], "yes" if l["res"] else ("no: " + l.get("dropped", f"no free spot within {LEADER_MAX_IN} in")),
+                                l["text"].replace("\n", " "), f"{l['res']['leader_pt'] / 72:.3f}" if l["res"] else "", genome_no.get(p["strain"], ""), p["strain"],
+                                names.get(p["strain"], ""), p["row"].get("origin", ""), p["row"].get("locus_tag", ""),
+                                f"{p['pid']:.1f}" if p["pid"] is not None else "", "solid" if b["low"][k] else ("light" if b["mid"][k] else "open"),
+                                f"{p['x']:.5f}", f"{p['y']:.5f}", f"{b['dist'][k]:.5f}", f"{b['threshold']:.5f}"])
+    panels = []
+    for c, (b, e) in enumerate(zip(full, entries)):
+        panels.append(dict(letter=letters[c], set=e["s"], title=titles.get(e["s"], (e["s"], e["s"], "proteins"))[0],
+                           cohort_genomes={st: sum(1 for p in b["cpts"] if p["strain"] == st) for st in dict.fromkeys(p["strain"] for p in b["cpts"])},
+                           n_ref_centroids=sum(1 for p in b["spec"].get("points_all", b["spec"]["points"]) if p["layer"] == "ref"),
+                           n_mibig_centroids=sum(1 for p in b["spec"].get("points_all", b["spec"]["points"]) if p["layer"] == "mibig"), n_reference_genomes=n_ref_genomes[c],
+                           approx_id=e["run"].get("approx_id"), pct_axes=(e["run"].get("pct_axes") or [None, None])[:2] if a.page == "pcoa" else [None, None],
+                           axis_metadata=b.get("axis_metadata") if a.page == "pcoa" else None,   # admitted definition state (audit F23)
+                           distance=e["run"].get("distance"), embedding=embedding_meta(e.get("emb"), [a.page]),
+                           labels=dict(outlier_groups=len(b["all_groups"]), outlier_points=sum(len(g) for g in b["all_groups"]),
+                                       labelled=sum(1 for l in placed[c] if l["res"]), threshold=b["threshold"], numbered=False,
+                                       longest_leader_in=max((l["res"]["leader_pt"] / 72 for l in placed[c] if l["res"]), default=0.0)),
+                           **b["counts"]))
+    receipt = dict(grid=True, page_no=page_no, sets=sets, letters=list(letters), nrow=nrow, ncol=ncol, panel=name, page=[a.page],
+                   stamp=page["stamp"], style="bee Fig. S9 print (render_pcoa_print.R values), multi-set grid", staged=".452",
+                   label_rule=(f"ruling 75: proteins below {a.label_below:g}% best identity, one label per BGC region (lowest identity first), "
+                               f"at most {LABEL_MAX[0]} per panel; text = antiSMASH class and characterized-cluster type from --label-low-identity"
+                               if REGION_TEXT else
+                               "every protein listed in --label-ids, labeled with its text (locus page)" if LABEL_IDS else
+                               "bee Fig. S9 outliers per panel (distance to the nearest reference/MIBiG point > p95 of reference/MIBiG "
+                               "nearest-neighbor distances; bee plot_pcoa.py lines 105-116)"),
+                   label_mode=("low_identity" if REGION_TEXT else "ids" if LABEL_IDS else "distance"), label_max=LABEL_MAX[0],
+                   region_identity=dict(REGION_ID),
+                   placement=f"bee greedy placement (plot_pcoa.py place_labels, lines 62-65) in print points, leaders <= {LEADER_MAX_IN} in; "
+                             "labels cover no point, label, leader or panel title",
+                   genome_numbers=genome_no, prefix=prefix.name, panels=panels, leader_max_in=LEADER_MAX_IN, panel_rects_pt=rects,
+                   limits=lims, zoom=zoom_log or None, panel_height_in=getattr(a, "panel_height", None) or 3.6,
+                   final_draws=final_log, legend=legend, quantile=a.quantile, label_below=a.label_below,
+                   mid_below=a.mid_below, min_text=page["min_text"], raster_artifacts=raster_artifacts, preview=preview)
+    (out / f"page_grid_{name}_{a.page}_page{page_no}.json").write_text(json.dumps(receipt, indent=1))
+    return receipt
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--kit", required=True, help="folder with out_<SET>/PCOA_<SET>.tsv")
@@ -1068,9 +1363,30 @@ def main(argv=None) -> int:
                     help="saved coordinates only: pcoa uses kit PC1/PC2; trimap/tsne use --embedding-table; no embedding fit is executed")
     ap.add_argument("--embedding-table", action="append", default=[], help="SET=TSV with id and TRIMAP1/TRIMAP2 or TSNE1/TSNE2 (layout trimap/tsne)")
     ap.add_argument("--label-names", help="TSV: strain, display (house rule 6 name) for the LABELS key table")
+    ap.add_argument("--label-low-identity", help="TSV: region_file, text; label only proteins below --label-below, one label per region with this text (ruling 75)")
+    ap.add_argument("--leader-max-in", type=float, default=None, help="longest label leader at print size in inches (default 0.35)")
+    ap.add_argument("--zoom-cohort", type=float, default=None, metavar="PAD",
+                    help="with --page-grid: zoom each panel to the box of the cohort points, padded by PAD x the full data span "
+                         "(e.g. 0.06); reference/MIBiG centroids outside are not drawn and are counted in the receipt")
+    ap.add_argument("--label-over-reference", action="store_true",
+                    help="with --page-grid: labels may cover reference/MIBiG centroids (drawn on a white box); never cohort points, labels or leaders")
+    ap.add_argument("--ref-point-scale", type=float, default=None, metavar="X",
+                    help="grid pages: draw reference and MIBiG points X times their default size (default 1; sparse sets read better at 2)")
+    ap.add_argument("--legend-in-empty-slot", action="store_true",
+                    help="with --page-grid: when the last row has an empty slot, the shared legend goes there (two-line entries)")
+    ap.add_argument("--panel-height", type=float, default=None, help="with --page-grid: panel height in inches (default 3.6)")
+    ap.add_argument("--label-max", type=int, default=4, help="with --label-low-identity: at most this many labels per panel")
+    ap.add_argument("--label-ids", help="TSV: id, text; label exactly these points with this text, all of them (locus pages)")
+    ap.add_argument("--label-regions", help="TSV: region_file, alias; label outlier groups by region alias (plain text) instead of strain")
     ap.add_argument("--min-text-pt", type=float, default=None, help="floor for every text item at print size (enables the 8 pt gate)")
     ap.add_argument("--print-width", type=float, default=7.2, help="declared print width in inches for the min-text gate")
     ap.add_argument("--page", help="saved layouts side by side on one R page (e.g. pcoa,trimap); default 8 pt floor")
+    ap.add_argument("--set-kit", action="append", default=[], metavar="SET=PATH",
+                    help="this set's ordination kit, when it is not --kit (repeatable; e.g. a set ordinated in its own run); its "
+                         "out_<SET> tables and <SET>_META.tsv are read and bound from PATH (m5_452_protein_pcoa_multiset_grid)")
+    ap.add_argument("--page-grid", metavar="RxC",
+                    help="with --page pcoa: draw several --set per page in an R x C grid (row by row; e.g. 2x2), each set its own ordination "
+                         "and axes, one shared legend, panel letters continuing across pages (m5_452_protein_pcoa_multiset_grid)")
     ap.add_argument("--italic-labels", action="store_true", help="page mode: canvas labels in italic (species names)")
     ap.add_argument("--caption-note", help="page mode: one study-design sentence appended to the written caption (checked by caption_guard)")
     ap.add_argument("--reference-label", help="page mode: legend text for the grey reference points (e.g. reference genomes, n = 1,705 (cluster centroids; query genomes excluded))")
@@ -1086,6 +1402,19 @@ def main(argv=None) -> int:
     ap.add_argument("--require-axis-metadata", action="store_true",
                     help="require finite supplied axis annotations; does not verify their definition or fit execution")
     a = ap.parse_args(argv)
+    if getattr(a, "leader_max_in", None):
+        globals()["LEADER_MAX_IN"] = a.leader_max_in
+    if getattr(a, "label_low_identity", None):
+        REGION_TEXT.clear(); LABEL_MAX[0] = a.label_max
+        _rt = read_tsv(Path(a.label_low_identity))
+        REGION_TEXT.update({r["region_file"]: r["text"] for r in _rt})
+        REGION_ID.update({r["region_file"]: r["identity"] for r in _rt if r.get("identity")})
+    if getattr(a, "label_ids", None):
+        LABEL_IDS.clear()
+        LABEL_IDS.update({r["id"]: r["text"] for r in read_tsv(Path(a.label_ids))})
+    if getattr(a, "label_regions", None):
+        REGION_LABELS.clear()
+        REGION_LABELS.update({r["region_file"]: r["alias"] for r in read_tsv(Path(a.label_regions))})
     if a.source_style:   # M5_452_pcoa_source_style
         if a.page or a.renderer == "matplotlib":
             ap.error("--source-style draws single panels with the R renderer (no --page, no --renderer matplotlib)")
@@ -1111,6 +1440,14 @@ def main(argv=None) -> int:
         a.mid_below = 85.0 if a.mid_below is None else a.mid_below
         a.min_text_pt = a.min_text_pt or 8.0
         a.italic_labels = a.italic_labels or bool(a.label_names)
+    if a.page_grid:   # m5_452_protein_pcoa_multiset_grid
+        import re as _re
+        if a.page not in ("pcoa", "trimap", "tsne"):
+            ap.error("--page-grid draws one layout per page: use --page pcoa, --page trimap or --page tsne")
+        m_ = _re.fullmatch(r"([1-9])x([1-9])", a.page_grid)
+        if not m_:
+            ap.error("--page-grid takes RxC, e.g. 2x2")
+        a.grid_rows, a.grid_cols = int(m_.group(1)), int(m_.group(2))
     if a.mid_below is not None and a.mid_below <= a.label_below:
         ap.error("--mid-below must be above --label-below")
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -1122,6 +1459,10 @@ def main(argv=None) -> int:
             raise RenderRefusal(str(exc)) from exc
         out = Path(a.out)
         kit = Path(a.kit)
+        set_kits = {k: Path(v) for k, v in (x.split("=", 1) for x in a.set_kit)}   # m5_452_protein_pcoa_multiset_grid: per-set kit
+        if set(set_kits) - set(a.set or []):
+            raise RenderRefusal(f"--set-kit names sets not drawn: {sorted(set(set_kits) - set(a.set or []))} (name each with --set)")
+        kit_of = lambda s: set_kits.get(s, kit)
         sets = a.set or sorted(p.stem[len("PCOA_"):] for p in kit.glob("out_*/PCOA_*.tsv"))
         if not sets:
             raise RenderRefusal(f"{kit}: no out_<SET>/PCOA_<SET>.tsv")
@@ -1130,20 +1471,21 @@ def main(argv=None) -> int:
             raise RenderRefusal(f"{out} is not empty; choose a new folder (delivered figures are never overwritten)")
         out.mkdir(parents=True, exist_ok=True)
         input_paths = [Path(a.cohort_table)] if a.cohort_table else []
-        input_paths.extend(Path(p) for p in (a.drop_origins, a.set_names, a.label_names) if p)
+        input_paths.extend(Path(p) for p in (a.drop_origins, a.set_names, a.label_names, getattr(a, "label_regions", None),
+                                         getattr(a, "label_low_identity", None)) if p)
         emb_tables = dict(x.split("=", 1) for x in a.embedding_table)
         if (a.layout != "pcoa" or (a.page and a.page != "pcoa")) and set(emb_tables) != set(sets):
             raise RenderRefusal("--layout trimap/tsne needs one --embedding-table per drawn --set")
         for embedding_table in emb_tables.values():
             input_paths.extend([Path(embedding_table), Path(embedding_table).with_suffix(".json")])
         for s in sets:
-            directory = kit / f"out_{s}"
+            directory = kit_of(s) / f"out_{s}"
             input_paths.extend(directory / f"{prefix}_{s}.{suffix}" for prefix, suffix in
                                (("PCOA", "tsv"), ("NEAREST", "tsv"), ("RUN", "json")))
             if a.page:   # M5_452 P4: the legend states the reference genome count, read from the kit metadata
-                if not (kit / f"{s}_META.tsv").is_file():
-                    raise RenderRefusal(f"--page needs {kit / (s + '_META.tsv')} (the legend states the reference genome count)")
-                input_paths.append(kit / f"{s}_META.tsv")
+                if not (kit_of(s) / f"{s}_META.tsv").is_file():
+                    raise RenderRefusal(f"--page needs {kit_of(s) / (s + '_META.tsv')} (the legend states the reference genome count)")
+                input_paths.append(kit_of(s) / f"{s}_META.tsv")
         # This inspected source is an input to definition provenance, not a fitter run.
         axis_source_path = _ROOT / "tools" / "protein_pcoa_ordinate.py"
         input_paths.append(axis_source_path)
@@ -1154,17 +1496,17 @@ def main(argv=None) -> int:
         runs = {}
         a._axis_metadata_by_set = {}
         for s in sets:
-            run_path = kit / f"out_{s}" / f"RUN_{s}.json"
+            run_path = kit_of(s) / f"out_{s}" / f"RUN_{s}.json"
             try:
                 metadata = read_bound_json(run_path, admitted[run_path.absolute()])
                 if not isinstance(metadata, dict):
                     raise RenderRefusal(f"{run_path}: expected a metadata object")
                 axis_metadata(metadata, required=a.require_axis_metadata)
-                resource_chain = admit_resource_run(kit / f"out_{s}", s, metadata, admitted[run_path.absolute()],
+                resource_chain = admit_resource_run(kit_of(s) / f"out_{s}", s, metadata, admitted[run_path.absolute()],
                                    input_paths, input_bindings, admitted)
                 source_binding = admitted[axis_source_path.absolute()]
                 a._axis_metadata_by_set[s] = bound_axis_metadata(
-                    metadata, admitted[(kit / f"out_{s}" / f"PCOA_{s}.tsv").absolute()],
+                    metadata, admitted[(kit_of(s) / f"out_{s}" / f"PCOA_{s}.tsv").absolute()],
                     source_binding, read_bound_bytes(axis_source_path, source_binding),
                     admitted[run_path.absolute()], bool(resource_chain))
                 runs[s] = metadata
@@ -1203,9 +1545,9 @@ def main(argv=None) -> int:
                 "protein_pcoa_page.R", "protein_pcoa_page_docs.py", "figure_render_qc.py", "caption_guard.py",
                 "sapote_min_text.R", "sapote_pub_layout.R", "sapote_stamp_required.R", "sapote_figure_theme.R", "stamp_figure.py", "_min_text_check.py"))
         producer_bindings = [file_binding(p) for p in producer_paths]
-        receipts = []
+        receipts = []; grid_entries = []
         for s in sets:
-            f = kit / f"out_{s}" / f"PCOA_{s}.tsv"
+            f = kit_of(s) / f"out_{s}" / f"PCOA_{s}.tsv"
             if not f.exists():
                 raise RenderRefusal(f"{f} missing")
             rows = read_tsv(f, expected_binding=admitted[f.absolute()])
@@ -1218,8 +1560,16 @@ def main(argv=None) -> int:
                 read_bound_bytes(nf, nearest_binding)
                 near = {}
             run = runs[s]
+            if a.page and a.page_grid:   # collected; drawn below, R x C sets per page
+                mp = kit_of(s) / f"{s}_META.tsv"
+                if a.page != "pcoa":   # TriMap / t-SNE grid: this set's coordinates from its --embedding-table (as build_page)
+                    ep = Path(emb_tables[s]); key = "TRIMAP" if a.page == "trimap" else "TSNE"
+                    rows = embedding_coordinates(ep, rows, key, admitted[ep.absolute()])
+                grid_entries.append(dict(s=s, rows=rows, near=near, run=run, emb=emb_tables.get(s),
+                                         meta=read_tsv(mp, expected_binding=admitted[mp.absolute()])))
+                continue
             if a.page:
-                mp = kit / f"{s}_META.tsv"
+                mp = kit_of(s) / f"{s}_META.tsv"
                 receipts.append(build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, labels, titles, out,
                                            drop_origins, read_tsv(mp, expected_binding=admitted[mp.absolute()])))
                 continue
@@ -1231,6 +1581,12 @@ def main(argv=None) -> int:
                 receipts.append(build_panel(a, s, rows, near, run, cohorts, name, set(cs.split(",")),
                                             colours.get(name, PALETTE[i % len(PALETTE)]), labels.get(name, f"{name} isolates"),
                                             titles, out, renderer, drop_origins=drop_origins))
+        if grid_entries:
+            per = a.grid_rows * a.grid_cols; letters = "abcdefghijklmnopqrstuvwxyz"
+            for k in range(0, len(grid_entries), per):
+                chunk = grid_entries[k:k + per]
+                receipts.append(build_grid_page(a, chunk, cohorts, admitted, colours, labels, titles, out, drop_origins, k // per + 1,
+                                                letters[k:k + len(chunk)], min(a.grid_cols, len(chunk))))
         if input_bindings != [file_binding(p) for p in input_paths]:
             raise RenderRefusal("render inputs changed during drawing; retain outputs as an incomplete attempt")
         if producer_bindings != [file_binding(p) for p in producer_paths]:
@@ -1252,9 +1608,16 @@ def main(argv=None) -> int:
             names = ({r["strain"]: r["display"] for r in
                       read_tsv(names_path, expected_binding=admitted[names_path.absolute()])} if names_path else {})
             stamp_date = subprocess.run(["date", "-u", "+%Y-%m-%d %H:%M:%SZ"], capture_output=True, text=True).stdout.strip()
+            from tools.protein_pcoa_page_docs import write_grid_page_docs
             page_docs = []
             for rec in receipts:
-                mp = kit / f"{rec['set']}_META.tsv"
+                if rec.get("grid"):   # m5_452_protein_pcoa_multiset_grid: one document set per grid page
+                    metas = {e: kit_of(e) / f"{e}_META.tsv" for e in rec["sets"]}
+                    page_docs.append(write_grid_page_docs(out, rec, render,
+                                                          {e: read_tsv(p, expected_binding=admitted[p.absolute()]) for e, p in metas.items()},
+                                                          names, a.caption_note, stamp_date))
+                    continue
+                mp = kit_of(rec['set']) / f"{rec['set']}_META.tsv"
                 docs = write_page_docs(out, rec, render, read_tsv(mp, expected_binding=admitted[mp.absolute()]), names, a.caption_note, stamp_date)
                 page_docs.append(docs)
             qc = check_page_docs(out, _ROOT, page_docs)

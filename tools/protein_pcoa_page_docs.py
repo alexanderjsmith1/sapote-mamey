@@ -63,7 +63,7 @@ def caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -
     parts = [f"**{rec['title']}.** "
              + " and ".join(f"{LAYOUT_NAME[l][0].upper() + LAYOUT_NAME[l][1:] if k == 0 else LAYOUT_NAME[l]} (**{'abcdefgh'[k]}**)"
                             for k, l in enumerate(lays))
-             + f" of the same points: {n_q:,} {_plural(who)} from {G} genomes (one point per protein; "
+             + f" of the same points: {n_q:,} {_plural(who)} from {_n(G, 'genome')} (one point per protein; "
              + (f"{per[0]}–{per[-1]} per genome, median {statistics.median(per):g}" if G > 1 else f"{per[0]} proteins")
              + f"), {rec['n_ref_centroids']:,} reference cluster centroids representing {rec['n_ref']:,} proteins from "
              + f"{rec['n_reference_genomes']:,} reference genomes, and {rec['n_mibig_centroids']:,} MIBiG cluster centroids representing "
@@ -72,8 +72,8 @@ def caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -
         parts.append(f"Reference and MIBiG proteins were clustered at {rec['approx_id']}% identity before ordination; a centroid is "
                      "drawn with area proportional to the number of proteins it represents.")
     lo, md = rec["label_below"], rec["mid_below"]
-    parts.append(f"{_plural(who[0].upper() + who[1:])} are coloured by the identity of their best match to any reference or MIBiG protein: "
-                 f"dark red, < {lo:.0f}% ({n_lo:,}); light orange, {lo:.0f}–{md:.0f}% ({n_md:,}); open circles, ≥ {md:.0f}% ({n_hi:,}); they are "
+    parts.append(f"{_plural(who)[0].upper() + _plural(who)[1:]} are colored by the identity of their best match to any reference or MIBiG protein: "
+                 f"dark red, < {lo:.0f}% ({n_lo:,}); light orange, {lo:.0f}–{md:.0f}% ({n_md:,}); open, ≥ {md:.0f}% ({n_hi:,}); they are "
                  "drawn over the reference and MIBiG points, which can lie hidden beneath them.")
     if n_unknown:
         parts.append(f"Open diamonds show {n_unknown:,} proteins with unavailable best-reference/MIBiG identity; "
@@ -114,7 +114,7 @@ def caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -
     fit = "; ".join(f"{v['labelled']} of {v['outlier_groups']} in **{'abcdefgh'[k]}**" for k, v in enumerate(rec["labels"].values()))
     selection = label_selection_metadata(rec.get("quantile", 0.95))
     rule = (f"outlier proteins, those farther from every reference and MIBiG point than {selection['quantile'] * 100:g}% of reference and MIBiG points are from "
-            "their nearest neighbour (outliers of one genome lying close together share one label)")
+            "their nearest neighbor (outliers of one genome lying close together share one label)")
     if numbered:
         key = sorted({(int(r["genome_number"]), r["strain"]) for r in drawn})
         parts.append(f"Numbers mark {rule}; each number is one genome, the same in every panel. Outlier groups labelled: {fit}; the "
@@ -127,7 +127,7 @@ def caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -
                      f"{rec['leader_max_in']} in at print size and are listed in LABELS_{rec['set']}_{rec['panel']}_PAGE.tsv. Labels: "
                      + "; ".join(f"*{t}*, {_italic_name(names.get(s, s))}" for t, s in key) + ".")
     else:
-        parts.append(f"No outlier protein is labelled ({fit} outlier groups). Selection rule: {rule}.")
+        parts.append(f"No outlier protein is labeled ({fit} outlier groups). Selection rule: {rule}.")
     if note:
         parts.append(note.strip())
     parts.append("Proximity in a panel reflects sequence identity of these proteins only and does not establish product identity or "
@@ -170,7 +170,7 @@ def write_page_docs(out: Path, rec: dict, render: dict, meta: list[dict], names:
              f"{json.dumps(rec.get('identity_missingness', {}))}",
              "", "## Labels", f"- rule: {rec['label_rule']}", f"- placement: {rec['placement']}"]
     for k, (lay, v) in enumerate(rec["labels"].items()):
-        lines.append(f"- panel {'abcdefgh'[k]} ({lay}): {v['labelled']} of {v['outlier_groups']} outlier groups labelled ({v['outlier_points']} outlier "
+        lines.append(f"- panel {'abcdefgh'[k]} ({lay}): {v['labelled']} of {_n(v['outlier_groups'], 'outlier group')} labeled ({v['outlier_points']} outlier "
                      f"points; threshold {v['threshold']:.5g}); longest leader {v['longest_leader_in']:.3f} in; numbered: {v['numbered']}")
     lines += ["", "## Gates", f"- 8 pt floor read back from the PDF: {mt['status']} ({mt['text_runs']} text runs, smallest {mt['smallest_pt']} pt)",
               f"- PDF read-back (overlapping text, leaders > {rec['leader_max_in']} in): final draws {json.dumps(rec['final_draws'])}",
@@ -182,6 +182,132 @@ def write_page_docs(out: Path, rec: dict, render: dict, meta: list[dict], names:
         lines.append(f"- `{b.get('path')}` {b.get('sha256', b.get('state', ''))}")
     meth.write_text("\n".join(lines) + "\n")
     return dict(caption=cap, methods=meth, genomes=gen, print_width_in=rec["min_text"]["print_width"])
+
+
+def _n(n, word: str) -> str:
+    """'1 genome', '2 genomes' (candidate card)."""
+    return f"{n:,} {word}" + ("" if n == 1 else "s")
+
+
+def grid_caption_text(rec: dict, labels: list[dict], names: dict, note: str | None) -> str:
+    """m5_452_protein_pcoa_multiset_grid: caption for a multi-set grid page, written from its receipt: one shared statement of the points,
+    tiers and label rule, then each panel's set, counts and axes."""
+    who = rec["legend"]["iso_low"].split(",")[0]; lo, md = rec["label_below"], rec["mid_below"]
+    lay = rec["page"][0]; lname = LAYOUT_NAME[lay]
+    parts = [f"**{lname[0].upper() + lname[1:]} of " + "; ".join(f"(**{p['letter']}**) {p['title']}" for p in rec["panels"]) + ".** "
+             f"Each panel is its own {'ordination' if lay == 'pcoa' else 'embedding'} of one protein set: {_plural(who)} (one point per protein) among reference cluster centroids and "
+             "MIBiG cluster centroids from characterized clusters."]
+    if any(p.get("approx_id") for p in rec["panels"]):
+        parts.append(f"Reference and MIBiG proteins were clustered at {rec['panels'][0]['approx_id']}% identity before ordination; a centroid is "
+                     "drawn with area proportional to the number of proteins it represents.")
+    parts.append(f"{_plural(who)[0].upper() + _plural(who)[1:]} are colored by the identity of their best match to any reference or MIBiG protein: dark red, "
+                 f"< {lo:.0f}%; light orange, {lo:.0f}–{md:.0f}%; open, ≥ {md:.0f}%; they are drawn over the reference and MIBiG points, "
+                 "which can lie hidden beneath them.")
+    if any(p.get("n_unknown") for p in rec["panels"]):
+        parts.append("Open diamonds show proteins with unavailable best-reference/MIBiG identity; missing, nonnumeric and nonfinite values "
+                     "remain separate from the measured identity tiers.")
+    for p in rec["panels"]:
+        per = sorted(p["cohort_genomes"].values()); G = len(per)
+        n_unk = p.get("n_unknown", 0); n_hi = p.get("n_high", p["n_cohort_points"] - p["n_low"] - p["n_mid"] - n_unk)
+        em = p.get("embedding") or {}
+        ax = (_grid_axis_text(p)
+              if p.get("pct_axes") and p["pct_axes"][0] is not None else
+              (f"; unitless embedding coordinates ({lname} {em['version']}, seed {em['seed']})" if em.get("version") and em.get("seed") is not None
+               else ("; unitless embedding coordinates" if lay != "pcoa" else "")))
+        who_n = _plural(who) if p['n_cohort_points'] != 1 else (who[:-1] if who.endswith("proteins") else who)
+        parts.append(f"(**{p['letter']}**) {p['title']}: {p['n_cohort_points']:,} {who_n} from {_n(G, 'genome')}"
+                     + (f" ({per[0]}–{per[-1]} per genome, median {statistics.median(per):g})" if G > 1 else "")
+                     + f"; {p['n_ref_centroids']:,} reference centroids representing {p['n_ref']:,} proteins from {p['n_reference_genomes']:,} reference "
+                     f"genomes; {p['n_mibig_centroids']:,} MIBiG centroids representing {p['n_mibig']:,} proteins; tiers {p['n_low']:,} / "
+                     f"{p['n_mid']:,} / {n_hi:,}" + (f"; identity unavailable for {n_unk:,} (open diamonds)" if n_unk else "") + f"{ax}; " + (f"{p['labels']['labelled']} of {_n(p['labels']['outlier_groups'], 'low-identity region')} labeled."
+                     if rec.get("label_mode") == "low_identity" else
+                     f"{p['labels']['labelled']} of {_n(p['labels']['outlier_groups'], 'outlier group')} labeled."))
+    rule = ("outlier proteins, those farther from every reference and MIBiG point than 95% of reference and MIBiG points are from their "
+            "nearest neighbor (outliers of one genome lying close together share one label)")
+    drawn = [r for r in labels if r["drawn"] == "yes"]
+    if rec.get("label_mode") == "low_identity":   # ruling 75
+        ids = rec.get("region_identity") or {}
+        parts.append(f"Labels mark the gene cluster region of each protein below {rec['label_below']:g}% identity, one label per region and at "
+                     f"most {rec['label_max']} per panel, giving the region's antiSMASH class and, before “-type”, the characterized MIBiG "
+                     "cluster most of its genes match gene by gene; a class alone means no characterized cluster matched closely enough. "
+                     f"Proteins at {rec['label_below']:g}% identity or above are not labeled.")
+        if drawn:
+            key = sorted({(r["label_text"], ids.get(r["region_file"], r["region_file"])) for r in drawn}, key=lambda x: x[1])
+            parts.append("Labeled regions: " + "; ".join(f"{t}, {i}" for t, i in key) + ".")
+        undrawn = [r for r in labels if r["drawn"] != "yes"]
+        if undrawn:
+            parts.append(f"{_n(len(undrawn), 'label')} had no free position within {rec['leader_max_in']} in at print size and "
+                         f"{'is' if len(undrawn) == 1 else 'are'} listed in LABELS_GRID_{rec['panel']}_{rec['page'][0].upper()}_page{rec['page_no']}.tsv.")
+        if not drawn and not undrawn:
+            parts.append(f"No protein on this page is below {rec['label_below']:g}% identity.")
+    elif drawn:
+        key = sorted({(r["label_text"].split(" x")[0], r["strain"]) for r in drawn})
+        parts.append(f"Labels mark {rule}; the others had no free label position within {rec['leader_max_in']} in at print size and are listed "
+                     f"in LABELS_GRID_{rec['panel']}_{rec['page'][0].upper()}_page{rec['page_no']}.tsv. Labels: "
+                     + "; ".join(f"*{t}*, {_italic_name(names.get(s, s))}" for t, s in key) + ".")
+    else:
+        parts.append("No outlier protein is labeled.")
+    if note:
+        parts.append(note.strip())
+    parts.append("Proximity in a panel reflects sequence identity of these proteins only and does not establish product identity or "
+                 "biosynthetic activity.")
+    return f"# {rec['prefix']}\n\n" + " ".join(parts) + "\n"
+
+
+def _grid_axis_text(p: dict) -> str:
+    """Axis annotation of one grid panel, worded by its admitted definition state as on single pages (audit F23): a
+    source-bound native ratio is named as such; anything else is a supplied annotation of unverified definition, never
+    "variance explained". Values are shown as recorded, without clipping or renormalization."""
+    metadata = p.get("axis_metadata") or {}
+    values = metadata.get("pct_axes") or p["pct_axes"]
+    display = f"axis 1, {values[0]:.1f}%; axis 2, {values[1]:.1f}%"
+    if (metadata.get("definition") or {}).get("state") == "NATIVE_COORDINATE_SOURCE_BOUND":
+        return f"; axes, native eigenvalue/signed-trace ratios ({display}; not conventional variance explained)"
+    return f"; axes, supplied percentage annotations ({display}; definition and fit execution unverified)"
+
+
+def write_grid_page_docs(out: Path, rec: dict, render: dict, metas: dict, names: dict, note: str | None, date: str) -> dict:
+    """m5_452_protein_pcoa_multiset_grid: caption, METHODS and one GENOMES_USED per set for a grid page (as write_page_docs)."""
+    try:
+        from mamey.csv_safety import SafeWriter as _SafeWriter
+    except ImportError:
+        import os as _cs_os, sys as _cs_sys
+        _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
+        from mamey.csv_safety import SafeWriter as _SafeWriter
+    labels = _read(out / f"LABELS_GRID_{rec['panel']}_{rec['page'][0].upper()}_page{rec['page_no']}.tsv")
+    cap = out / f"{rec['prefix']}_CAPTION.md"; meth = out / f"METHODS_{rec['prefix']}.md"
+    cap.write_text(grid_caption_text(rec, labels, names, note))
+    num = rec["genome_numbers"]
+    for p in rec["panels"]:
+        cohort = p["cohort_genomes"]; refs: dict[str, list] = {}
+        for r in metas[p["set"]]:
+            if r.get("strain") and r.get("source") not in ("isolate", "MIBiG") and r["strain"] not in cohort:
+                refs.setdefault(r["strain"], [r.get("source", ""), 0])[1] += 1
+        with open(out / f"GENOMES_USED_{p['set']}.tsv", "w", newline="") as fh:
+            w = _SafeWriter(fh, delimiter="\t", lineterminator="\n"); w.writerow(["genome", "role", "genome_number", "display_name", "proteins_in_set"])
+            for s in sorted(cohort, key=lambda s: num.get(s, 10 ** 9)):
+                w.writerow([s, "cohort", num.get(s, ""), names.get(s, ""), cohort[s]])
+            for s, (src, n) in sorted(refs.items()):
+                w.writerow([s, f"reference ({src})", "", "", n])
+    mt = json.loads((out / f"{rec['prefix']}_min_text_check.json").read_text())
+    lines = [f"# METHODS: {rec['prefix']} (written {date} by tools/protein_pcoa_page_docs.py)", "",
+             f"Figure: `{rec['prefix']}.pdf` (vector, source artwork; {rec['min_text']['print_width']} in wide), `.svg`, `.png` (preview "
+             f"rendered from the checked PDF). Grid {rec['nrow']} x {rec['ncol']}, panels {', '.join(p['letter'] + ' ' + p['set'] for p in rec['panels'])}. "
+             f"Caption: `{cap.name}`. Labels: `LABELS_GRID_{rec['panel']}_{rec['page'][0].upper()}_page{rec['page_no']}.tsv`. Genomes: `GENOMES_USED_<set>.tsv`.",
+             "", "## Labels", f"- rule: {rec['label_rule']}", f"- placement: {rec['placement']}"]
+    for p in rec["panels"]:
+        v = p["labels"]
+        lines.append(f"- panel {p['letter']} ({p['set']}): {v['labelled']} of {_n(v['outlier_groups'], 'outlier group')} labeled ({v['outlier_points']} "
+                     f"outlier points; threshold {v['threshold']:.5g}); longest leader {v['longest_leader_in']:.3f} in")
+    lines += ["", "## Gates", f"- 8 pt floor read back from the PDF: {mt['status']} ({mt['text_runs']} text runs, smallest {mt['smallest_pt']} pt)",
+              f"- PDF read-back (overlapping text, leaders > {rec['leader_max_in']} in), per panel by position: final draws {json.dumps(rec['final_draws'])}",
+              "- tools/caption_guard.py and tools/figure_render_qc.py --ocr require: see QC_SUMMARY.json in this folder",
+              "", "## Command", "```", "tools/protein_pcoa_render.py " + " ".join(_cli(render["args"])), "```",
+              "", "## Software", f"- {json.dumps(render.get('rendering_runtime', {}))}", "", "## Inputs and outputs (sha256)"]
+    for b in render.get("inputs", []) + render.get("outputs", []):
+        lines.append(f"- `{b.get('path')}` {b.get('sha256', b.get('state', ''))}")
+    meth.write_text("\n".join(lines) + "\n")
+    return dict(caption=cap, methods=meth, print_width_in=rec["min_text"]["print_width"])   # .455 page QA reads one common width
 
 
 def check_page_docs(out: Path, root: Path, docs: dict | list[dict]) -> dict:

@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
-"""One AS locus against its best reference loci (MIBiG clusters, or reference-genome antiSMASH regions), KnownClusterBlast style: the locus on the top row, each reference on
-its own row below, genes colored by correspondence, no ribbons.
+"""One AS locus against its best reference loci (MIBiG clusters, or reference-genome antiSMASH regions): the locus on the
+top row, each reference on its own row below, genes colored by correspondence.
+
+Default layout (ruling 234, --layout aligned): every row on one kb scale, anchored on the top-ranked reference. Each
+locus contig is placed under the top-reference genes it matches (bitscore-weighted median offset of its matched gene midpoints, reversed
+when the bitscore-weighted strand vote disagrees), so unmatched reference genes show as gaps in the locus row; thin
+ribbons join matched pairs between the locus and the top reference; every other reference is placed by the same rule
+against the locus genes as placed. The caption goes to CAPTION.md, not onto the plot. --layout side-by-side keeps the
+earlier KnownClusterBlast-style drawing (contigs side by side, no ribbons).
 
 The locus is the antiSMASH region plus the partner contigs its gap rescue SUPPORTED (the same contigs the single
 reference comparison draws), each contig a separate segment on one row, never joined. A partner contig contributes its
@@ -66,6 +73,24 @@ def locus(prots, regions, rescue, label, bgc=None):
     return segs
 
 
+_INSD = r"(?<![A-Za-z])([A-Z]{1,2}\d{5,8}|[A-Z]{4,6}\d{8,10})(?:\.\d+)?"
+
+
+def display_id(acc):
+    """The accession shown in a reference-genome row label. A region file is named '<genome zip stem>__<record>.regionNNN';
+    the record part after '__' gives the accession. A stem accession is kept only when it shares that record's letter
+    prefix, so a WGS master (FMHI00000000) still labels its contig (FMHI01000018); a stem token with another prefix is a
+    strain designation (HH130630, EC080619, CB00851), not an accession. Card 3918f93e_456_comparison_row_accession."""
+    head, _, tail = acc.partition("__")
+    t = re.search(_INSD, tail) if tail else None
+    if not t:
+        m = re.search(_INSD, acc) or re.search(r"([A-Z]{1,6}_?\d{5,}(?:\.\d+)?)", acc)
+        return m.group(1) if m else acc
+    pre = lambda s: re.match(r"[A-Z]+", s).group(0)
+    same = [h.group(1) for h in re.finditer(_INSD, head) if pre(h.group(1)) == pre(t.group(1))]
+    return same[0] if same else t.group(1)
+
+
 def compound_keys(name):
     """The names one compound goes by, lowercased: 'X (ABBR)', 'X' and 'ABBR' are one compound (MIBiG writes
     ethylenediaminesuccinic acid hydroxyarginine three ways). A bracketed word counts as an abbreviation only when it
@@ -110,13 +135,28 @@ def colors(n):
 
 
 def organism(gbk):
-    """The ORGANISM line of a GenBank file ('' when absent)."""
+    """The row name of a GenBank file: its ORGANISM line; when that is empty or '.', the DEFINITION up to the first
+    comma, minus a trailing contig or scaffold token (deposited text only); '' when neither is present. Without the
+    fallback every genome with an empty ORGANISM line shared one name and was merged into one row."""
+    org, defn, in_def = "", [], False
     for line in open(gbk, errors="replace"):
+        if line.startswith("DEFINITION"):
+            in_def = True
+            defn.append(line[10:].strip())
+            continue
+        if in_def and line.startswith("            "):
+            defn.append(line.strip())
+            continue
+        in_def = False
         if line.startswith("  ORGANISM"):
-            return line.split("ORGANISM", 1)[1].strip()
+            org = line.split("ORGANISM", 1)[1].strip()
         if line.startswith("FEATURES"):
             break
-    return ""
+    if org and org != ".":
+        return org
+    d = " ".join(defn).split(",")[0].strip().rstrip(".").strip()
+    d = re.sub(r"\s+(contig|scaffold|node|ctg)[\s_:-]*\S*$", "", d, flags=re.I).strip()
+    return "" if d == "." else d
 
 
 def region_db(gbk_dir, work):
@@ -167,7 +207,7 @@ def build(zip_path, label, rescue, mibig_db, mibig_dir, mibig_names=None, gene_l
         if not any(prots[q].get("kind") in rc.BIOSYNTHETIC_KINDS for q, *_ in pairs):  # the discovery rule: transport or
             skipped.append((acc, "no biosynthetic locus gene among the matches"))           # regulator matches alone don't count
             continue
-        keys = compound_keys(organism(Path(mibig_dir) / f"{acc}.gbk") if ref_gbk_dir else rlc.compound_name(acc, mibig_names) or acc)
+        keys = compound_keys((organism(Path(mibig_dir) / f"{acc}.gbk") or acc) if ref_gbk_dir else rlc.compound_name(acc, mibig_names) or acc)
         known = next((grp for grp in seen if grp[0] & keys), None)
         if known is not None:  # the group takes this entry's names too, so 'X', 'X (ABBR)' and 'ABBR' chain together
             known[0].update(keys)
@@ -185,11 +225,8 @@ def build(zip_path, label, rescue, mibig_db, mibig_dir, mibig_names=None, gene_l
     out_refs = []
     for acc, pairs, also in refs:
         genes, desc = gdr.load_reference(Path(mibig_dir) / f"{acc}.gbk")
-        name = organism(Path(mibig_dir) / f"{acc}.gbk") if ref_gbk_dir else rlc.compound_name(acc, mibig_names)
-        import re as _re
-        m_acc = (_re.search(r"(?<![A-Za-z])([A-Z]{1,2}\d{5,8}|[A-Z]{4,6}\d{8,10})(?:\.\d+)?", acc)  # an INSD accession, not a
-                 or _re.search(r"([A-Z]{1,6}_?\d{5,}(?:\.\d+)?)", acc)) if ref_gbk_dir else None    # strain designation
-        out_refs.append({"accession": acc, "display_id": m_acc.group(1) if m_acc else acc, "compound": name, "description": desc, "also": also,
+        name = (organism(Path(mibig_dir) / f"{acc}.gbk") or acc) if ref_gbk_dir else rlc.compound_name(acc, mibig_names)
+        out_refs.append({"accession": acc, "display_id": display_id(acc) if ref_gbk_dir else acc, "compound": name, "description": desc, "also": also,
                          "genes": genes, "pairs": pairs, "gbk": str((Path(mibig_dir) / f"{acc}.gbk").resolve())})
     return {"label": label, "bgc": bgc or rescue.name.split("_vs_")[0], "segments": segs, "regions": regions,
             "zip": str(zip_path),
@@ -357,6 +394,328 @@ def draw(m, out, width_in=16.0, label_band=1.0):
     return col
 
 
+GENE_GRAY, GENE_EDGE, BACKBONE = "#d6dcdf", "#405664", "#a8b5bc"  # the colors draw() uses
+RIBBON_ALPHA = .19  # mamey.figures.locus_comparison ribbons: gene-group color, alpha .19, no edge
+
+
+def _vote(pairs, qstrand, rstrand):
+    """+1 when the bitscore-weighted strands of the pairs agree, else -1."""
+    return 1 if sum(b * (1 if qstrand(q) == rstrand(i) else -1) for q, i, _, b in pairs) >= 0 else -1
+
+
+def _wmedian(values, weights):
+    """The weighted median: the smallest value at which the running weight reaches half the total. With rearranged
+    genes the big core genes (high bitscore) set the offset rather than a run of small tailoring genes."""
+    vw = sorted(zip(values, weights))
+    half, run = sum(w for _, w in vw) / 2, 0.0
+    for v, w in vw:
+        run += w
+        if run >= half:
+            return v
+    return vw[-1][0]
+
+
+def _crop(genes, matched, pad=2):
+    """The genes from the first to the last matched one, plus pad genes each side."""
+    pos = [k for k, x in enumerate(genes) if x["i"] in matched]
+    return genes[max(0, min(pos) - pad):max(pos) + pad + 1], len(pos) and (min(pos) > pad or max(pos) < len(genes) - pad - 1)
+
+
+def _place(genes, o, off):
+    """{gene index: (left, right, drawn strand)} for genes turned by o (+1/-1) and shifted by off (bp)."""
+    return {x["i"]: (min(o * x["start"], o * x["end"]) + off, max(o * x["start"], o * x["end"]) + off, o * x["strand"])
+            for x in genes}
+
+
+def aligned_layout(m, lane_gap=1500, side_gap=3000):
+    """Ruling 234: every row on one bp scale, anchored on the top-ranked reference.
+
+    The top reference is drawn as deposited, turned only so the region contig reads forward. A locus contig is placed
+    against a placed reference row: turned to agree with its matches there (bitscore-weighted strand vote) and shifted
+    by the bitscore-weighted median offset of its matched gene midpoints, so each locus gene sits over its partner and unmatched reference
+    genes leave a gap. A reference row is placed the same way against the locus genes already placed. Placement runs
+    in rank order: contigs matching the top reference first; then each further reference through the placed contigs it
+    matches in at least rc.DISCOVERY_MIN_PROTEINS pairs (one shared gene cannot carry a row); then any contig still
+    unplaced against the highest-ranked placed row it matches. A contig matching no placed row goes after the right end,
+    as deposited, and the remaining rows are placed against it. Contigs whose placed spans would overlap go on separate
+    lanes."""
+    prots, segs, refs = m["prots"], m["segments"], m["refs"]
+    seg_of = {q: k for k, (_, qs) in enumerate(segs) for q in qs}
+    mid = lambda a, b: (a + b) / 2
+    gmap = [{x["i"]: x for x in r["genes"]} for r in refs]
+    crops = [_crop(r["genes"], {i for _, i, *_ in r["pairs"]}) for r in refs]
+    core = [x for x in refs[0]["pairs"] if seg_of[x[0]] == 0] or refs[0]["pairs"]
+    o0 = _vote(core, lambda q: prots[q]["strand"], lambda i: gmap[0][i]["strand"])
+    off0 = -min(min(o0 * x["start"], o0 * x["end"]) for x in crops[0][0])
+    refpl = {0: {"place": _place(crops[0][0], o0, off0), "orientation": o0, "offset_bp": round(off0),
+                 "pairs_used": len(refs[0]["pairs"])}}
+    qx, segpl = {}, {}
+
+    def place_seg(k, j):
+        pl = refpl[j]["place"]
+        pk = [x for x in refs[j]["pairs"] if seg_of[x[0]] == k and x[1] in pl]
+        if not pk:
+            return False
+        s = _vote(pk, lambda q: prots[q]["strand"], lambda i: pl[i][2])
+        res = [mid(*pl[i][:2]) - s * mid(prots[q]["start"], prots[q]["end"]) for q, i, *_ in pk]
+        off = _wmedian(res, [b for *_, b in pk])
+        for q in segs[k][1]:
+            p = prots[q]
+            qx[q] = (min(s * p["start"], s * p["end"]) + off, max(s * p["start"], s * p["end"]) + off, s * p["strand"])
+        segpl[k] = {"anchored": True, "placed_by": refs[j]["accession"], "placed_by_rank": j + 1, "pairs_used": len(pk),
+                    "orientation": s, "offset_bp": round(off), "max_residual_bp": round(max(abs(r - off) for r in res))}
+        return True
+
+    def place_ref(j, min_pairs=1):
+        g = gmap[j]
+        pr = [x for x in refs[j]["pairs"] if x[0] in qx]
+        if len(pr) < max(1, min_pairs):
+            return False
+        o = _vote(pr, lambda q: qx[q][2], lambda i: g[i]["strand"])
+        off = _wmedian([mid(*qx[q][:2]) - o * mid(g[i]["start"], g[i]["end"]) for q, i, *_ in pr], [b for *_, b in pr])
+        refpl[j] = {"place": _place(crops[j][0], o, off), "orientation": o, "offset_bp": round(off), "pairs_used": len(pr)}
+        return True
+
+    for k in range(len(segs)):
+        place_seg(k, 0)
+    changed = True
+    while changed:
+        changed = False
+        for j in range(1, len(refs)):
+            if j not in refpl and place_ref(j, rc.DISCOVERY_MIN_PROTEINS):  # one shared gene cannot carry a row
+                changed = True
+        for k in range(len(segs)):
+            if k not in segpl and any(place_seg(k, j) for j in sorted(refpl)):
+                changed = True
+    hi = max([v[1] for p in refpl.values() for v in p["place"].values()] + [v[1] for v in qx.values()])
+    for k in range(len(segs)):  # a contig matching no drawn row: after the right end, as it is
+        if k not in segpl:
+            qs = segs[k][1]
+            off = hi + side_gap - min(prots[q]["start"] for q in qs)
+            for q in qs:
+                qx[q] = (prots[q]["start"] + off, prots[q]["end"] + off, prots[q]["strand"])
+            hi = max(qx[q][1] for q in qs)
+            segpl[k] = {"anchored": False, "placed_by": "", "placed_by_rank": None, "pairs_used": 0, "orientation": 1,
+                        "offset_bp": round(off)}
+    for j in range(1, len(refs)):
+        if j not in refpl and not place_ref(j):
+            refpl[j] = {"place": {}, "orientation": 0, "offset_bp": None, "pairs_used": 0}
+    seg_rows = [dict(k=k, heading=segs[k][0], contig=prots[segs[k][1][0]]["contig"],
+                     pairs_to_top=sum(1 for x in refs[0]["pairs"] if seg_of[x[0]] == k), **segpl[k]) for k in range(len(segs))]
+    lanes = []  # the first lane with room, contigs taken left to right
+    for row in sorted(seg_rows, key=lambda r: min(qx[q][0] for q in segs[r["k"]][1])):
+        a = min(qx[q][0] for q in segs[row["k"]][1])
+        b = max(qx[q][1] for q in segs[row["k"]][1])
+        lane = next((j for j, end in enumerate(lanes) if a > end + lane_gap), len(lanes))
+        if lane == len(lanes):
+            lanes.append(b)
+        else:
+            lanes[lane] = b
+        row.update(lane=lane, span_bp=[round(a), round(b)])
+    rows = [dict(ref=refs[j], cropped=bool(crops[j][1]), **refpl[j]) for j in range(1, len(refs))]
+    return {"top": dict(ref=refs[0], cropped=bool(crops[0][1]), **refpl[0]), "segments": seg_rows, "qx": qx, "rows": rows,
+            "n_lanes": max(1, len(lanes))}
+
+
+def draw_aligned(m, lay, out, width_in=9.6, dpi=300, italic_binomial=False):
+    """The ruling-234 drawing: locus contigs placed under the top reference's genes, ribbons between them, every
+    reference row on the same kb scale. No caption on the plot; CAPTION.md carries it. All text at least 8 pt."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import FancyArrow, Polygon
+    prots, segs = m["prots"], m["segments"]
+    qx, top, rows = lay["qx"], lay["top"], lay["rows"]
+    order = [q for _, qs in segs for q in qs]
+    matched = [q for q in order if any(q == p[0] for r in m["refs"] for p in r["pairs"])]
+    col = dict(zip(matched, colors(len(matched))))
+    n_locus = len(order)
+    # geometry in inches: y data units are inches, so arrow heights do not depend on the row count
+    left, right = 2.75, .15
+    lane_h, ribbon_h, title_h, scale_h = .44, .62, .34, .34
+    def _name(r):
+        nm = (r["compound"] or r["description"]).strip()
+        nm = nm if len(nm) <= 60 else nm[:59].rstrip(" ,-(") + "…"
+        return f"{nm} [{r['display_id']}]" if m["source"] != "MIBiG 4.0 clusters" else f"{r['accession']}: {nm}"
+    n_bold = max(len(textwrap.wrap(_name(r), 27)[:3]) for r in m["refs"])
+    pitch = .22 + .15 * n_bold
+    n_l = lay["n_lanes"]
+    ys_lane = [scale_h + pitch * len(rows) + ribbon_h + j * lane_h for j in range(n_l)]
+    y_top = scale_h + pitch * len(rows)
+    ys_rows = [scale_h + pitch * (len(rows) - 1 - k) for k in range(len(rows))]
+    axh = ys_lane[-1] + lane_h
+    H = axh + title_h
+    W = width_in
+    fig = plt.figure(figsize=(W, H))
+    ax = fig.add_axes([left / W, 0, (W - left - right) / W, axh / H])
+    allx = [v for p in (top["place"], qx) for v in p.values()] + [v for r in rows for v in r["place"].values()]
+    lo, hi = min(v[0] for v in allx), max(v[1] for v in allx)
+    pad = (hi - lo) * .01
+    ax.set_xlim((lo - pad) / 1000, (hi + pad) / 1000)
+    ax.set_ylim(0, axh)
+    ax.axis("off")
+    kb_per_in = (hi - lo + 2 * pad) / 1000 / (W - left - right)
+    hl = .07 * kb_per_in
+
+    def arrow(s, e, st, yy, c):
+        s, e = s / 1000, e / 1000
+        ax.add_patch(FancyArrow(s if st > 0 else e, yy, (e - s) * st, 0, width=.10, head_width=.18,
+                                head_length=min((e - s) * .35, hl), length_includes_head=True, facecolor=c,
+                                edgecolor=GENE_EDGE, lw=.5, zorder=3))
+
+    def track(place, yy, colour_of):
+        a, b = min(v[0] for v in place.values()), max(v[1] for v in place.values())
+        ax.plot([a / 1000, b / 1000], [yy, yy], color=BACKBONE, lw=.8, zorder=2)
+        for i, (s, e, st) in place.items():
+            arrow(s, e, st, yy, colour_of(i))
+    # ribbons: locus gene to its partner in the top reference (house style: gene color, alpha .19, no edge)
+    g0 = {x["i"]: x for x in top["ref"]["genes"]}
+    lane_of = {q: ys_lane[r["lane"]] for r in lay["segments"] for q in segs[r["k"]][1]}
+    for q, i, *_ in top["ref"]["pairs"]:
+        if i in top["place"] and q in qx:
+            a0, a1, _ = qx[q]
+            b0, b1, _ = top["place"][i]
+            ya, yb = lane_of[q] - .07, y_top + .07
+            ax.add_patch(Polygon([(a0 / 1000, ya), (a1 / 1000, ya), (b1 / 1000, yb), (b0 / 1000, yb)],
+                                 facecolor=col.get(q, GENE_GRAY), alpha=RIBBON_ALPHA, edgecolor="none", zorder=1))
+    # locus contigs, labels above (outward, never in ribbon space)
+    labels = []
+    for r in lay["segments"]:
+        qs = segs[r["k"]][1]
+        yy = ys_lane[r["lane"]]
+        track({q: qx[q] for q in qs}, yy, lambda q: col.get(q, GENE_GRAY))
+        a, b = min(qx[q][0] for q in qs), max(qx[q][1] for q in qs)
+        txt = r["heading"] + (" · reversed" if r.get("orientation", 1) < 0 else "") + ("" if r["placed_by_rank"] == 1 else f" · placed by row {r['placed_by_rank'] + 1}" if r["anchored"] else " · no match in row 2")
+        labels.append(ax.text((a + b) / 2000, yy + .12, txt, ha="center", va="bottom", fontsize=8, color="#2b2b2b"))
+    rg = {x[1]: x[0] for x in top["ref"]["pairs"]}
+    track(top["place"], y_top, lambda i: col.get(rg.get(i), GENE_GRAY))
+    for r, yy in zip(rows, ys_rows):
+        if r["place"]:
+            grp = {i: q for q, i, *_ in r["ref"]["pairs"]}
+            track(r["place"], yy, lambda i, grp=grp: col.get(grp.get(i), GENE_GRAY))
+    fig.canvas.draw()
+    rnd = fig.canvas.get_renderer()
+    axbb = ax.get_window_extent(rnd)
+    for t in labels:  # a label past the plot edge is pinned to that edge; one that touches a neighbour steps up
+        bb = t.get_window_extent(rnd)
+        if bb.x0 < axbb.x0:
+            t.set_ha("left"); t.set_x(ax.get_xlim()[0])
+        elif bb.x1 > axbb.x1:
+            t.set_ha("right"); t.set_x(ax.get_xlim()[1])
+    for k, t in enumerate(labels):
+        for u in labels[:k]:
+            if t.get_window_extent(rnd).overlaps(u.get_window_extent(rnd)):
+                t.set_y(t.get_position()[1] + .15)
+
+    def heading(yy, bold, sub, italic=False):
+        yf = yy / H
+        fig.text((left - .1) / W, yf + .006, textwrap.fill(bold, 27, max_lines=3, placeholder=" …"), ha="right",
+                 va="bottom", fontsize=9, weight="bold", color="#163344", linespacing=1.05, fontstyle="italic" if italic else "normal")
+        fig.text((left - .1) / W, yf - .006, sub, ha="right", va="top", fontsize=8, color="#2b2b2b")
+
+    name = _name
+
+    def stat(r):
+        ids = [p for _, _, p, _ in r["pairs"]]
+        return f"{len(r['pairs'])} of {n_locus} genes · median {statistics.median(ids):.0f}% id."
+    heading(statistics.mean(ys_lane), f"{m['label']} {m['bgc']} locus",
+            f"{len(segs)} contig{'s' if len(segs) > 1 else ''} · {n_locus} genes")
+    def ref_heading(yy, r, s):
+        # card 471: house rule, genus and species in italics. The binomial is the bold line; the rest of the deposited
+        # name, the accession and the match count go on the plain line below. MIBiG rows keep their compound headings.
+        nm = (r["compound"] or r["description"]).strip()
+        words = nm.split()
+        if italic_binomial and m["source"] != "MIBiG 4.0 clusters" and len(words) >= 2 and words[0][:1].isupper():
+            rest = " ".join(words[2:])
+            heading(yy, " ".join(words[:2]), (f"{rest} [{r['display_id']}]" if rest else f"[{r['display_id']}]") + "\n" + s, italic=True)
+        else:
+            heading(yy, name(r), s)
+    ref_heading(y_top, top["ref"], stat(top["ref"]))
+    for r, yy in zip(rows, ys_rows):
+        ref_heading(yy, r["ref"], stat(r["ref"]) if r["place"] else "not placed: no match on a placed contig")
+    fig.text(.012, 1 - .06 / H, f"{m['label']} {m['bgc']} placed on its best "
+             f"{'MIBiG' if m['source'].startswith('MIBiG') else 'reference-genome'} matches", fontsize=10, weight="bold",
+             color="#163344", va="top")
+    span_kb = (hi - lo) / 1000
+    sb = 10 ** math.floor(math.log10(max(span_kb / 6, .1)))
+    sb = m["scale_kb"] = next(k * sb for k in (5, 2, 1) if k * sb <= span_kb / 5)
+    ax.plot([lo / 1000, lo / 1000 + sb], [.2, .2], color="#172f40", lw=1.2)
+    ax.text(lo / 1000 + sb / 2, .16, f"{sb:g} kb", ha="center", va="top", fontsize=8)
+    fig.canvas.draw()
+    for t in fig.texts + ax.texts:
+        bb = t.get_window_extent(rnd)
+        if t.get_text().strip() and (bb.x0 < 0 or bb.y0 < 0 or bb.x1 > fig.bbox.width or bb.y1 > fig.bbox.height):
+            raise ValueError(f"text outside the figure: {t.get_text()[:40]!r} {tuple(round(v) for v in bb.extents)} in {fig.bbox.width:.0f}x{fig.bbox.height:.0f} px")
+        if t.get_text().strip() and t.get_fontsize() < 8:
+            raise ValueError(f"text under 8 pt: {t.get_text()[:40]!r}")
+    m["text_overlaps"] = text_overlaps(fig.texts + ax.texts, rnd)
+    out.mkdir(parents=True, exist_ok=True)
+    for ext in ("png", "pdf", "svg"):
+        fig.savefig(out / f"comparison.{ext}", dpi=dpi)
+    plt.close(fig)
+    m["aligned_layout"] = {
+        "rule": "ruling 234: anchored on the top-ranked reference; bitscore-weighted median offset of matched gene midpoints; bitscore-weighted strand vote; rows placed in rank order, a row through contigs only with >= DISCOVERY_MIN_PROTEINS shared genes",
+        "width_in": W, "height_in": round(H, 2), "lanes": lay["n_lanes"],
+        "top_reference": {"accession": top["ref"]["accession"], "orientation": top["orientation"]},
+        "segments": [{k: v for k, v in r.items() if k != "k"} for r in lay["segments"]],
+        "other_references": [{"accession": r["ref"]["accession"], "orientation": r["orientation"], "offset_bp": r["offset_bp"],
+                              "pairs_used": r["pairs_used"]} for r in rows]}
+    (out / "CAPTION.md").write_text(f"# {m['label']} {m['bgc']}: reference-genome comparison, aligned\n\n"
+                                    + aligned_caption(m, lay) + "\n")
+    return col
+
+
+def aligned_caption(m, lay):
+    """The caption for draw_aligned, written to CAPTION.md (never on the plot)."""
+    segs, top, rows = m["segments"], lay["top"], lay["rows"]
+    node = lambda h: h.split(" · ")[0]
+    r0 = top["ref"]
+    nm0 = f"{(r0['compound'] or r0['description']).strip()} [{r0['display_id']}]"
+    unit = "compound" if m["source"].startswith("MIBiG") else "organism"
+    if len(segs) > 1:
+        others = [node(h) for h, _ in segs[1:]]
+        locus = (f"the antiSMASH region on {node(segs[0][0])} and the {str(len(others)) + ' contigs' if len(others) > 1 else 'contig'} "
+                 f"the gap rescue linked to it ({', '.join(others)})")
+    else:
+        locus = f"the antiSMASH region on {node(segs[0][0])}"
+    ident = []
+    for r in lay["segments"]:
+        alias = r["heading"].split(" · ")[-1]  # the segment's own BGC alias, so a contig with two regions names the right one
+        reg = next((x["identity"] for x in m["regions"] if x["contig"] == r["contig"] and x["identity"].endswith(f"/ {alias}")), None)
+        ident.append(reg if reg else f"{m['label']} / {r['contig']} / no antiSMASH region / no BGC alias")
+    loose = [node(r["heading"]) for r in lay["segments"] if not r["anchored"]]
+    via = [f"{node(r['heading'])} by row {r['placed_by_rank'] + 1}" for r in lay["segments"] if r["anchored"] and r["placed_by_rank"] != 1]
+    rev = [node(r["heading"]) for r in lay["segments"] if r.get("orientation", 1) < 0]
+    unplaced = [r["ref"].get("display_id", r["ref"]["accession"]) for r in rows if not r["place"]]
+    sb = m.get("scale_kb")
+    return (f"{m['label']} {m['bgc']} compared with its {len(m['refs'])} best-matching {m['source']}, all rows on one kb scale. "
+            f"Top row: the {m['label']} {m['bgc']} locus, {locus} (contigs drawn: {'; '.join(ident)}). Second row: the top-ranked match, {nm0}. "
+            f"Each {m['label']} contig is placed under the genes of the top-ranked match that its proteins match: it is shifted "
+            "by the median offset between the midpoints of its matched gene pairs, weighted by bitscore, and drawn reversed when the "
+            "bitscore-weighted strands of those pairs disagree"
+            + (f" ({', '.join(rev)} reversed)" if rev else "") + ". "
+            "Contigs whose placed spans would overlap are drawn on separate lanes. "
+            "This placement follows the reference; the contigs are not joined in the assembly, and their order is not known from it. "
+            + (f"A contig with no match in the top-ranked region is placed by the same rule against the highest-ranked "
+               f"row already placed that it matches, counting rows from the top ({'; '.join(via)}); its label names that row. A "
+               f"row is placed through contigs only when it shares at least {rc.DISCOVERY_MIN_PROTEINS} matched genes with them. " if via else "")
+            + (f"Contigs that match no row placed from the top-ranked region ({', '.join(loose)}) are drawn at the right end in "
+               f"their deposited orientation, with no position implied; the rows below that match them are placed against them. " if loose else "")
+            + f"Shaded bands join each {m['label']} gene to its matched gene in the top-ranked region. "
+            f"An empty stretch of the top row over a gray reference gene means no {m['label']} gene matched that gene. "
+            f"Rows below: further {m['source']}, ranked by the number of locus genes they match, then by summed bitscore, "
+            f"one row per {unit}. Each is placed by the same rule against the {m['label']} genes as placed: shifted by the bitscore-weighted "
+            "median offset of its matched gene midpoints and reversed when the strand vote disagrees. "
+            + (f"Rows {', '.join(unplaced)} have no match on a placed contig and are not drawn. " if unplaced else "")
+            + "Genes of the same color are matched protein pairs (DIAMOND blastp, ultra-sensitive; at least "
+            f"{rc.DISCOVERY_MIN_ID:.0f}% identity over at least {rc.DISCOVERY_MIN_COV:.0f}% of the {m['label']} protein; one pair per "
+            "gene within each region). Gray genes have no match in that row. Each reference is shown from its first to its last "
+            "matched gene, plus two genes each side. Row labels give the deposited name with the accession in brackets, the "
+            "number of matched locus genes and their median identity. A matched gene is a best protein hit, not orthology, "
+            "function or product."
+            + (f" Scale bar: {sb:g} kb." if sb else ""))
+
+
 def text_overlaps(texts, renderer, skip=()):
     """Pairs of visible texts whose drawn boxes overlap by more than a pixel, each named by its first 40 characters."""
     skip = {id(t) for t in skip}
@@ -494,6 +853,7 @@ def write(m, out):
            "thresholds": {"min_identity_pct": rc.DISCOVERY_MIN_ID, "min_query_coverage_pct": rc.DISCOVERY_MIN_COV,
                           "min_genes": rc.DISCOVERY_MIN_PROTEINS, "search": "DIAMOND blastp ultra-sensitive, max-target-seqs 500"},
            "diamond_hits": m["n_hits"], "text_overlaps": m.get("text_overlaps", []),
+           "layout": m.get("aligned_layout", {"rule": "side by side (pre-ruling-234 layout)"}),
            "skipped_references": [{"accession": x, "why": w} for x, w in m.get("skipped", [])],
            "sources": [{"path": str(Path(p).resolve()), "sha256": rlc.sha_file(p)} for p in m["sources"]]
            + [{"path": r["gbk"], "sha256": rlc.sha_file(r["gbk"])} for r in m["refs"]]}
@@ -512,17 +872,26 @@ if __name__ == "__main__":
     ap.add_argument("--mibig-names")
     ap.add_argument("--gene-labels")
     ap.add_argument("--top", type=int, default=4)
+    ap.add_argument("--layout", choices=("aligned", "side-by-side"), default="aligned",
+                    help="aligned (ruling 234, default): contigs placed under the top reference's genes, ribbons, "
+                         "CAPTION.md; side-by-side: the earlier KnownClusterBlast-style drawing")
+    ap.add_argument("--width-in", type=float, default=9.6, help="aligned layout print width (9.6 landscape or 6.5)")
+    ap.add_argument("--italic-binomial", action="store_true", help="aligned layout: reference headings give the genus and "
+                    "species in italics, with the rest of the deposited name and the accession on the line below (card 471)")
     a = ap.parse_args()
     m = build(a.zip, a.label, Path(a.rescue) if a.rescue else None, a.mibig_db, a.mibig_dir, a.mibig_names, a.gene_labels,
               a.top, ref_gbk_dir=a.ref_gbk_dir, bgc=a.bgc)
     if not m["refs"]:
         sys.exit("no reference matches two or more locus genes")
-    for band in (1.0, 1.3, 1.6, 1.9, 2.3):  # the smallest label band the rotated labels fit
-        try:
-            draw(m, Path(a.out), label_band=band)
-            break
-        except ValueError as e:
-            if "title band" not in str(e):
-                raise
+    if a.layout == "aligned":
+        draw_aligned(m, aligned_layout(m), Path(a.out), width_in=a.width_in, italic_binomial=a.italic_binomial)
+    else:
+        for band in (1.0, 1.3, 1.6, 1.9, 2.3):  # the smallest label band the rotated labels fit
+            try:
+                draw(m, Path(a.out), label_band=band)
+                break
+            except ValueError as e:
+                if "title band" not in str(e):
+                    raise
     write(m, Path(a.out))
     emit(f"{len(m['refs'])} references drawn")

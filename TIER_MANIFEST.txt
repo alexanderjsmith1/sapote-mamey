@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.455 stamp=20261019v97455a
+# TIER_MANIFEST tier=code version=9.7.456 stamp=20261021v97456a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -1980,12 +1980,24 @@
 ./tests/test_455_class_routed_second_proof.py
 ./tests/test_455_npatlas_status_reports_consumer_readiness.py
 ./tests/test_455_paper_cohort_registry.py
+./tests/test_455_pcoa_label_ids.py
+./tests/test_455_pcoa_label_low_identity.py
+./tests/test_455_pcoa_labels_by_region_alias.py
 ./tests/test_455_protein_tsne_companion.py
 ./tests/test_455_runner_build_id_and_shadow_warning.py
 ./tests/test_455_runner_unreadable_result_is_held.py
+./tests/test_455_size_profile_table_unit.py
 ./tests/test_455_strain_master.py
 ./tests/test_455_two_proof_needs_high.py
+./tests/test_456_gap_rescue_gene_table_positions.py
+./tests/test_456_locus_page_gecco_contig_rewrite.py
+./tests/test_456_manuscript_qa.py
+./tests/test_456_pcoa_grid_embedding_and_unknown_tier.py
 ./tests/test_456_r_figure_groups.py
+./tests/test_456_strain_master_parity.py
+./tests/test_459_gap_map_gecco_track.py
+./tests/test_462_panel_key_fits_page_width.py
+./tests/test_466_multi_reference_aligned_layout.py
 ./tests/test_ab_diagnostic_triggers.py
 ./tests/test_absent_median_is_not_a_zero_v97438.py
 ./tests/test_activity_decision_tree_portable.py
@@ -2840,6 +2852,7 @@
 ./tests/test_m5_452_overlap_check_columns.py
 ./tests/test_m5_452_pcoa_page_defaults.py
 ./tests/test_m5_452_pcoa_source_style.py
+./tests/test_m5_452_protein_pcoa_multiset_grid.py
 ./tests/test_m5_452_pub_layout_notes_8pt.py
 ./tests/test_m5_452_public_genome_families_axis_breaks.py
 ./tests/test_m5_452_public_genome_families_overflow_pages.py
@@ -3862,7 +3875,6 @@
 ./tools/build_lead_detail.py
 ./tools/build_lead_tiers.py
 ./tools/build_master.py
-./tools/build_master_figure_atlas.py
 ./tools/build_master_figures.py
 ./tools/build_metabolomics_readiness.py
 ./tools/build_mibig_index.py
@@ -4067,6 +4079,7 @@
 ./tools/mamey_intake.py
 ./tools/mamey_package_qa_v2.py
 ./tools/mamey_pipeline.py
+./tools/manuscript_qa.py
 ./tools/marker_candidate_search.py
 ./tools/materialize_strain_data.py
 ./tools/md_to_docx.sh
@@ -4182,6 +4195,7 @@
 ./tools/render_deliverable_pdf.py
 ./tools/render_gcf_synteny_tree.py
 ./tools/render_locus_comparison.py
+./tools/render_max4_tree.R
 ./tools/render_placement_COLOR_STRIPS.R
 ./tools/render_screening_exploration.R
 ./tools/render_siderophore_atlas.py

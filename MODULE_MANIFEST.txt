@@ -375,7 +375,7 @@ mamey/split_evidence_layers.py	Independent evidence layers for one candidate spl
 mamey/stage2_overlay.py	Attach hash-bound scientific-review overlays to a locator-first report cohort.
 mamey/strain_data_home.py	strain_data_home.py — canonical per-strain data-home resolver for Sapote-Mamey.
 mamey/strain_identity.py	strain_identity.py — a strain ID must be an identity, not an accession.
-mamey/strain_master.py	strain_master.py — create, fill and check a User Strain Master (docs/DATA_HOME.md).
+mamey/strain_master.py	strain_master.py — create, fill and check a Strain Master (docs/DATA_HOME.md).
 mamey/strain_modeb.py	FULL STRAIN SAPOTE — strain-level Mode B generator
 mamey/structured_domain_motif_extension.py	Index saved Mamey structured exports. No original antiSMASH parser or new scan.
 mamey/tab_reconcile.py	antiSMASH tab reconciliation for one BGC/region.

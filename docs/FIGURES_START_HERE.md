@@ -1,6 +1,6 @@
 # Make and review Mamey figures
 
-Sapote–Mamey v9.7.455 · Mamey engine 1.9.177
+Sapote–Mamey v9.7.456 · Mamey engine 1.9.177
 
 Whatever route you take, the figure must meet the [figure house rules](FIGURE_HOUSE_RULES.md).
 

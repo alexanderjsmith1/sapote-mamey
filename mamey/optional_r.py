@@ -11,7 +11,7 @@ TREE_RENDER_PACKAGES = ('ape', 'ggtree', 'ggplot2', 'aplot', 'treeio', 'patchwor
 # loads svglite, systemfonts and xml2. Each other group adds one figure family; a missing one is not an error.
 R_FIGURE_GROUPS = {
     'core': ('ggplot2', 'ggtext', 'jsonlite', 'scales', 'dplyr', 'patchwork', 'ggrepel', 'svglite', 'systemfonts', 'xml2'),
-    'trees': ('ape', 'ggtree', 'treeio', 'aplot'),
+    'trees': ('ape', 'ggtree', 'treeio', 'aplot', 'phangorn'),
     'bioassay': ('tidyr', 'png'),
     'extras': ('ragg', 'ggchicklet'),
 }

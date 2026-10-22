@@ -17,7 +17,7 @@ Public API
     strain_master_root(master=None)          -> str | None
     strain_master_record(data_type, strain=None, master=None) -> dict
 
-A User Strain Master (docs/DATA_HOME.md) is a user-chosen folder, named by ``--master`` or the
+A Strain Master (docs/DATA_HOME.md) is a user-chosen folder, named by ``--master`` or the
 ``SAPOTE_STRAIN_MASTER`` environment variable, never by a path in this source. When one is
 configured, ``strain_data_home`` looks there first and then in the legacy homes below.
 
@@ -388,14 +388,14 @@ def strain_data_home(strain: str, root: str = ".", flavor: str | None = None,
           "mamey_package":        <path or None>,
           "superseded_packages":  [older package paths the newest one outranked],
           "canonical_dir":        "strain_data/<strain>",
-          "strain_master":        None, or what the User Strain Master holds,
+          "strain_master":        None, or what the Strain Master holds,
           "antismash_source_kind": strain_master | raw_result | canonical_<flavor> | package_embedded
                                   | AMBIGUOUS_FLAVOR | None,
           "canonical_antismash":  {flavor: path} found in the flavored canonical home,
           "resolved_from":        {"antismash_zip": "strain_master" | "legacy" | None, ...},
         }
 
-    User Strain Master first: when *master* (or ``SAPOTE_STRAIN_MASTER``) names a master, a
+    Strain Master first: when *master* (or ``SAPOTE_STRAIN_MASTER``) names a master, a
     README-registered antiSMASH ZIP or sealed package in that master's folder for the kind wins,
     and the legacy homes are the fallback. With no master configured, every legacy key is
     resolved exactly as before and ``strain_master`` is None.
@@ -527,7 +527,7 @@ def _manifest_matches_authority(path: str, strain: str, authority: dict, flavor:
 
 
 # ---------------------------------------------------------------------------------------------
-# User Strain Master, reader side (docs/DATA_HOME.md). Writing, init and the self-check live in
+# Strain Master, reader side (docs/DATA_HOME.md). Writing, init and the self-check live in
 # mamey/strain_master.py. Nothing here writes. The master root comes from the caller or from
 # SAPOTE_STRAIN_MASTER; this source names no path.
 # ---------------------------------------------------------------------------------------------
@@ -670,7 +670,7 @@ def _master_candidate(master: str | None) -> tuple[str | None, str | None]:
 
 
 def strain_master_root(master: str | None = None) -> str | None:
-    """The configured User Strain Master as an absolute directory, or None (not set, or not a folder)."""
+    """The configured Strain Master as an absolute directory, or None (not set, or not a folder)."""
     return _master_candidate(master)[1]
 
 
@@ -776,7 +776,7 @@ def _raw_store_lookup(strain: str, store: str, root: str, flavor: str | None) ->
 
 def strain_master_record(data_type: str, strain: str | None = None, master: str | None = None,
                          flavor: str | None = None, scan_limit: int = 50_000_000) -> dict:
-    """Where *data_type* lives in the User Strain Master, and what its README records.
+    """Where *data_type* lives in the Strain Master, and what its README records.
 
     *data_type* is a folder name (``ANI``, ``Mode B cards``), a path (``03 Genomes/ANI``) or an
     output kind (``mamey_package``). With *strain*, also returns the registered files whose name
@@ -869,7 +869,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Resolve a strain's canonical data home.")
     ap.add_argument("strains", nargs="+", help="strain IDs, e.g. AS-XXX AS-XXX")
     ap.add_argument("--root", default=".", help="workspace root (default: .)")
-    ap.add_argument("--master", default=None, help=f"User Strain Master (default: ${STRAIN_MASTER_ENV})")
+    ap.add_argument("--master", default=None, help=f"Strain Master (default: ${STRAIN_MASTER_ENV})")
     ap.add_argument("--type", default=None, help="data type to look up in the master, e.g. ANI or mamey_package")
     args = ap.parse_args()
     for s in args.strains:

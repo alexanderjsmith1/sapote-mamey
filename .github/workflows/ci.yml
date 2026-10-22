@@ -18,7 +18,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12"]
+        # 3.13, the Python the cut runs on. Ubuntu 24.04 ships its own libpython3.12, and R's launcher puts the system
+        # library path first, so a 3.12 test Python started from Rscript loaded the system library and could not import
+        # pypdf or Biopython (.455 CI: 24 R-renderer tests). See the "R reaches the test Python" step below.
+        python-version: ["3.13"]
     steps:
       - uses: actions/checkout@v4
 
@@ -46,10 +49,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libcurl4-openssl-dev libxml2-dev libfontconfig1-dev libfreetype-dev \
             libharfbuzz-dev libfribidi-dev libpng-dev libjpeg-dev libtiff5-dev libwebp-dev \
-            libuv1-dev libcairo2-dev   # fs (for yulab.utils, ggfun, aplot) needs libuv; gdtools (for ggtree) needs cairo
+            libuv1-dev libcairo2-dev fonts-liberation   # fs (for yulab.utils, ggfun, aplot) needs libuv; gdtools (for ggtree) needs cairo
+          # fonts-liberation: the R figures set text in Arial and measure it with systemfonts before saving. The runner has no
+          # Arial; fontconfig maps Arial to Liberation Sans, which has the same character widths. Without it the fallback font
+          # is wider and the 8 pt overlap and fit checks refuse labels that fit on the M3 (.455 CI: 17 tests).
       - name: R figure packages
         # --require all: CI installs every figure group so every R figure test runs; users need only the core group.
         run: Rscript bundle_support/install_r_figure_packages.R --require all
+      - name: R measures text in Arial metrics
+        run: |
+          Rscript -e 'f <- systemfonts::match_fonts("Arial")$path; cat("Arial ->", f, "\n"); quit(status = !grepl("Liberation|Arial", f, ignore.case = TRUE))'
+      - name: R reaches the test Python
+        # The R renderers start Python for page stamps and tree gates. Prove that route in seconds, not 50 minutes in.
+        env:
+          SAPOTE_PYTHON: ${{ env.pythonLocation }}/bin/python
+        run: |
+          Rscript -e 'py <- Sys.getenv("SAPOTE_PYTHON"); quit(status = system2(py, c("-c", shQuote("import sys, pypdf, Bio; print(\"R -> Python\", sys.version.split()[0], sys.prefix)"))))'
 
       # No third-party reference data is redistributed (v9.7.362), so the dataset-dependent
       # tests SKIP here by design. That is the contract, not a gap: see docs/EXTERNAL_DATA.md.

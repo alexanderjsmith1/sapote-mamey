@@ -37,6 +37,7 @@ KEY_PT = 8          # every key text
 GAP_IN = 0.12       # vertical gap between panels
 KEY_COLS = 4
 LEGEND_TITLE = "Genes not in the reference, by protein-search name"
+GECCO_KEY_H = 0.62  # extra key height for the GECCO probability bar, when any map draws a GECCO track
 TOL_IN = 0.01
 
 
@@ -72,9 +73,9 @@ def union_key(keys) -> tuple[list[str], bool]:
     return [c for c in glm.CLASS_ORDER if c in seen], any(k.get("class_unclear") for k in keys)
 
 
-def key_height(n_handles: int) -> float:
-    """Height of the shared key in inches: the colour bar and a legend of KEY_COLS columns under its title."""
-    rows = max(1, math.ceil(n_handles / KEY_COLS))
+def key_height(n_handles: int, cols: int = KEY_COLS) -> float:
+    """Height of the shared key in inches: the colour bar and a legend of `cols` columns under its title."""
+    rows = max(1, math.ceil(n_handles / cols))
     return 0.45 + 0.15 * rows
 
 
@@ -93,7 +94,19 @@ def split_pages(n: int, letters: str, pages: str | None):
     return out
 
 
-def draw_page(maps, idx, letters, width_in, with_key, classes, unclear):
+def draw_page(maps, idx, letters, width_in, with_key, classes, unclear, gecco=False, show_letters=True):
+    """Draw one page. The gene-class legend starts 2.45 in from the left; at a 6.5 in page four columns of long
+    labels ("biosynthetic core", "class unclear") run off the right edge, so fewer columns are tried until the
+    legend ends inside the page. Text size never changes."""
+    import matplotlib.pyplot as plt
+    for cols in range(KEY_COLS, 0, -1):
+        fig, H, fits = _draw_page(maps, idx, letters, width_in, with_key, classes, unclear, gecco, cols, show_letters)
+        if fits or cols == 1:
+            return fig, H
+        plt.close(fig)
+
+
+def _draw_page(maps, idx, letters, width_in, with_key, classes, unclear, gecco, cols, show_letters=True):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -109,7 +122,7 @@ def draw_page(maps, idx, letters, width_in, with_key, classes, unclear):
     handles = [Patch(fc=glm.CLASS_FILL[c], ec="#333333", lw=0.6, label=c) for c in classes]
     if unclear:
         handles.append(Patch(fc="white", ec="#333333", lw=0.6, ls="--", label="class unclear"))
-    kh = key_height(len(handles)) if with_key else 0.0
+    kh = key_height(len(handles), cols) + (GECCO_KEY_H if gecco else 0.0) if with_key else 0.0
     H = sum(hs) + GAP_IN * (len(imgs) - 1) + kh
     fig = plt.figure(figsize=(width_in, H), dpi=DPI)
     y = H
@@ -117,7 +130,8 @@ def draw_page(maps, idx, letters, width_in, with_key, classes, unclear):
         w = im.width / DPI
         y -= h
         ax = fig.add_axes([0, y / H, w / width_in, h / H]); ax.imshow(im, interpolation="none"); ax.axis("off")
-        fig.text(0.02 / width_in, (y + h - 0.05) / H, letters[i], fontsize=LETTER_PT, weight="bold", va="top")
+        if show_letters:
+            fig.text(0.02 / width_in, (y + h - 0.05) / H, letters[i], fontsize=LETTER_PT, weight="bold", va="top")
         y -= GAP_IN
     if with_key:
         cax = fig.add_axes([0.35 / width_in, (kh - 0.22) / H, 1.8 / width_in, 0.12 / H])
@@ -125,15 +139,25 @@ def draw_page(maps, idx, letters, width_in, with_key, classes, unclear):
                                          cmap=LinearSegmentedColormap.from_list("id", list(glm.IDENTITY_RAMP))),
                           cax=cax, orientation="horizontal")
         cb.set_label("Protein identity (%)", fontsize=KEY_PT, labelpad=2); cb.ax.tick_params(labelsize=KEY_PT)
+        if gecco:   # a second bar under the identity bar: GECCO per-gene probability, ramp read from the map module
+            gax = fig.add_axes([0.35 / width_in, (kh - 0.22 - GECCO_KEY_H) / H, 1.8 / width_in, 0.12 / H])
+            gb = fig.colorbar(ScalarMappable(norm=Normalize(*glm.GECCO_RANGE),
+                                             cmap=LinearSegmentedColormap.from_list("gecco", list(glm.GECCO_RAMP))),
+                              cax=gax, orientation="horizontal")
+            gb.outline.set_linewidth(0.6)
+            gb.set_label("GECCO per-gene probability", fontsize=KEY_PT, labelpad=2); gb.ax.tick_params(labelsize=KEY_PT)
         if handles:
-            fig.legend(handles=handles, loc="lower left", bbox_to_anchor=(2.45 / width_in, 0.02 / H), ncol=KEY_COLS,
-                       fontsize=KEY_PT, frameon=False, title=LEGEND_TITLE, title_fontsize=KEY_PT, alignment="left",
-                       handlelength=1.6, columnspacing=1.0)
-    return fig, H
+            leg = fig.legend(handles=handles, loc="lower left", bbox_to_anchor=(2.45 / width_in, 0.02 / H), ncol=cols,
+                             fontsize=KEY_PT, frameon=False, title=LEGEND_TITLE, title_fontsize=KEY_PT,
+                             alignment="left", handlelength=1.6, columnspacing=1.0)
+            fig.canvas.draw()
+            right_in = leg.get_window_extent().x1 / fig.dpi
+            return fig, H, right_in <= width_in - 0.02
+    return fig, H, True
 
 
 def compose(folders, out: Path, letters="abcdefgh", pages=None, width_in=7.2, max_page_height=10.0,
-            overview=False) -> dict:
+            overview=False, show_letters=True) -> dict:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -154,8 +178,12 @@ def compose(folders, out: Path, letters="abcdefgh", pages=None, width_in=7.2, ma
         if w > width_in + TOL_IN:
             raise PanelFigureError(f"GAP_RESCUE_PANEL_FIGURE: {f.name} is {w:.2f} in wide, wider than the "
                                    f"{width_in} in print width; redraw it at the print width, never shrink")
+    if not show_letters and len(maps) != 1:
+        # a figure of several panels needs its letters; only a one-map figure may leave the letter off
+        raise PanelFigureError("GAP_RESCUE_PANEL_FIGURE: --no-letter is for a single map; panels need letters")
     groups = split_pages(len(maps), letters, pages)
     classes, unclear = union_key([k for *_, k in maps])
+    gecco = any(k.get("gecco") for *_, k in maps)
     out = Path(out)
     pdf_path = out.with_suffix(".pdf")
     page_pngs = ([out.with_name(out.name + ".png")] if len(groups) == 1 else
@@ -167,7 +195,7 @@ def compose(folders, out: Path, letters="abcdefgh", pages=None, width_in=7.2, ma
             raise PanelFigureError(f"GAP_RESCUE_PANEL_FIGURE: {p} exists; choose a new --out")
     figs = []
     for gi, g in enumerate(groups):
-        fig, H = draw_page(maps, g, letters, width_in, gi == len(groups) - 1, classes, unclear)
+        fig, H = draw_page(maps, g, letters, width_in, gi == len(groups) - 1, classes, unclear, gecco, show_letters)
         if H > max_page_height + TOL_IN:
             plt.close(fig)
             for f, _ in figs:
@@ -187,7 +215,7 @@ def compose(folders, out: Path, letters="abcdefgh", pages=None, width_in=7.2, ma
                             metadata=glm.savefig_metadata(png, "gap_rescue_panel_figure"))
                 plt.close(fig)
         if over_png:
-            fig, over_h = draw_page(maps, list(range(len(maps))), letters, width_in, True, classes, unclear)
+            fig, over_h = draw_page(maps, list(range(len(maps))), letters, width_in, True, classes, unclear, gecco)
             fig.savefig(over_png, dpi=DPI, facecolor="white",
                         metadata=glm.savefig_metadata(over_png, "gap_rescue_panel_figure"))
             plt.close(fig)
@@ -195,7 +223,7 @@ def compose(folders, out: Path, letters="abcdefgh", pages=None, width_in=7.2, ma
             "panels": [{"letter": letters[i], "folder": str(f), "map_sha256": _sha(png),
                         "key_sha256": _sha(f / "gap_rescue_key.json"), "classes": k.get("classes", []),
                         "class_unclear": bool(k.get("class_unclear"))} for i, (f, png, k) in enumerate(maps)],
-            "key_classes": classes, "key_class_unclear": unclear,
+            "key_classes": classes, "key_class_unclear": unclear, "gecco_key": gecco,
             "identity_ramp": list(glm.IDENTITY_RAMP), "identity_range": list(glm.IDENTITY_RANGE),
             "pages": [{"letters": "".join(letters[i] for i in g), "height_in": round(H, 3), "png": str(p)}
                       for g, (_, H), p in zip(groups, figs, page_pngs)],
@@ -216,9 +244,12 @@ def main(argv=None):
     ap.add_argument("--max-page-height", type=float, default=10.0, help="refuse a page taller than this (default 10 in)")
     ap.add_argument("--overview", action="store_true", help="with --pages: also write every panel on one tall PNG "
                     "for screen viewing (not a print page)")
+    ap.add_argument("--no-letter", action="store_true", help="a single map drawn as a figure of its own: no panel letter "
+                    "(refused for more than one map)")
     a = ap.parse_args(argv)
     try:
-        info = compose(a.maps, Path(a.out), a.letters, a.pages, a.print_width, a.max_page_height, a.overview)
+        info = compose(a.maps, Path(a.out), a.letters, a.pages, a.print_width, a.max_page_height, a.overview,
+                       show_letters=not a.no_letter)
     except PanelFigureError as e:
         raise SystemExit(str(e))
     print(f"[gap_rescue_panel_figure] {len(info['panels'])} panels on {len(info['pages'])} page(s); key classes: "

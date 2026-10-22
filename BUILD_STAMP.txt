@@ -1,5 +1,5 @@
-version=9.7.455
-build=20261019v97455a
+version=9.7.456
+build=20261021v97456a
 engine=1.9.177
-patch=The split-cluster second proof is routed by class, by default.; A two-proof rescue needs a HIGH pair on both routes.; R figure packages come in groups; only the core group is required.; Missing is not zero in cross-strain figures.; The assembly check has a ceiling.; NP Atlas readiness reads the right files.; The BLASTp runner stops re-downloading an unreadable result.; The genome inside an antiSMASH ZIP can be written out.
+patch=Strain Master parity.; Protein-space pages.; Gap-rescue maps and tables.; Figure layout.; Bioassay figures.; Size profiles.; Manuscript QA.; CI and tests.
 tier=code

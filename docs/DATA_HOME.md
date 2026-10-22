@@ -1,6 +1,6 @@
 # Data home: where results live, how they get there, how to find them
 
-Every result a paper or report relies on lives in one folder: the user's **User Strain Master**.
+Every result a paper or report relies on lives in one folder: the user's **Strain Master**.
 The bundle ships the commands that create it, fill it, check it and read it.
 Any person or assistant follows the same route, so everyone finds the same file.
 
@@ -9,7 +9,7 @@ Any person or assistant follows the same route, so everyone finds the same file.
 | Home | What belongs there | Who writes |
 |---|---|---|
 | The bundle | Code, docs and shipped reference seeds. Never study data. Post-seal output never goes inside a sealed bundle. | Release owner, at a cut |
-| User Strain Master | A byte copy of every record and result a paper uses, each with its SHA-256 and original path. | Only `strain-master apply`, after a different chat's `verify` |
+| Strain Master | A byte copy of every record and result a paper uses, each with its SHA-256 and original path. | Only `strain-master apply`, after a different chat's `verify` |
 | Record homes | The tables where records are edited (strain metadata, hosts, exclusions, rulings). The master holds copies of them. | An accepted record edit through the inbox, with a backup and a CHANGELOG line |
 | Raw stores | Large raw inputs filed once and never edited: antiSMASH ZIPs of record, genome FASTA, sealed packages too large to copy. Named in the master's settings. | Intake, once |
 | Asset registry | Machine-level tool assets: HMM sets, BLAST and MIBiG databases, conda environments. Not study data. | Whoever installs the asset |
@@ -89,8 +89,27 @@ The verifier's checklist:
 - `verify` refuses the submitter as verifier. To accept, `--checks` must number what was run for items 2, 3, 4 and 6, and items 1 and 5 must pass.
 - `verify --return --checks "<what was run>" --notes "<why>"` sends a submission to `00 Inbox/Returned/`.
 - A record edit is submitted with `--kind record-edit --changeset <tsv>` (columns `file`, `key_column`, `key`, `field`, `old`, `new`, `ruling`). Every file must sit in a record home named in the settings. `apply` changes a cell only if it still holds the old value and its key matches one row, keeps a `.bak_<time>_inbox` copy, and writes a CHANGELOG line. The re-copied record is then submitted as an import.
+- A whole replacement for one record table, for row changes a cell edit cannot express, is submitted with `--kind record-replace --replaces <record table> <new file>`. The table must sit in a record home. Its SHA-256 and size at submission are booked in `TARGET.tsv`. `apply` refuses with `RECORD_CHANGED` if the table changed since, keeps a `.bak_<time>_inbox` copy, writes the new bytes into the same file (hard links stay shared) and writes one CHANGELOG line.
+- Every `.bak_<time>_inbox` copy is a new file. When that name is taken, by an earlier copy in the same minute or by anything else, the next free name (`_2`, `_3`, …) is used; an existing file or link at that name is never written through.
 - `store` alone is the step `apply` uses. It is refused unless the settings set `"direct_store": true`, which a single-person master may choose.
 - The ledger, `00 Inbox/INBOX_LEDGER.tsv`, has one row per submission: id, submitted, submitter, kind, topic, target, files, status (SUBMITTED, ACCEPTED, RETURNED, APPLIED), verifier, verified, checks, findings, applied, changelog.
+- A submission id is the minute, the submitter and the topic. A second submission with the same id is refused (`SUBMISSION_EXISTS`); wait a minute or change the topic. A ledger that already holds a duplicated id resolves it to its live row, not a WITHDRAWN one. WITHDRAWN rows (written by a master's own inbox script) are kept in `00 Inbox/Returned/`.
+
+## Copying a folder with its subfolders
+
+```bash
+python mamey_run.py strain-master submit --kind import-tree --chat <your id> --topic "gap rescue <strain ID>" \
+  --target "04 Gene clusters/Gap rescue" --tree-src <folder> [--tree-dest <subfolder>] \
+  [--exclude <folder name> ...] [--link] [--replace] --summary "<what and why>"
+```
+
+- `submit` walks the folder. It leaves out hidden names, `~$` lock files, `*.bak*` backups, symlinks and every folder named by `--exclude`. Each file is staged under `00 Inbox/<id>/tree/` with a MANIFEST.tsv row. An empty tree is refused. A `Superseded/` folder inside the tree is refused; leave it out with `--exclude Superseded`.
+- `apply` places each file through `store` into `<target>/<tree-dest>/<its subfolder>`. Folders deeper than the area subfolder are free under the layout. Each new folder gets a README and a line in its parent's README.
+- A file already in the target with different bytes is refused, and nothing is applied, unless the submission was made with `--replace`. The old copy then moves to `Superseded/` beside it, as `store` does. A file already there with the same bytes is left as it is.
+- `apply` checks the whole write plan before it writes anything: every destination, the folders on the way to it, every README that gets a row and every `Superseded/` path. A symlink anywhere below the master root, or a path that resolves outside it, is refused with `OUTSIDE_ROOT`. A refusal leaves the master and the staged files as they were, so the same submission can be applied once the cause is fixed.
+- `--link` stages and stores hard links instead of copies, for large trees on the same volume. Across volumes it is refused (`LINK_ACROSS_VOLUMES`). The submission holds a `LINKED` marker. The README still records each SHA-256 and origin. Edit neither copy.
+- A folder in the tree that carries its own `README.md` keeps it as a byte copy, never appended to. That folder's files are listed in the parent folder's README under a section ``### `<name>/` (its own README.md is a byte copy; listing added by inbox <id>)``. The tree's own top-level `README.md` needs `--tree-dest`, so it never replaces the target folder's README.
+- A folder's own rows and new-folder lines always go above its first byte-copy section, so the check reads them as the folder's own.
 
 ## The record of each file
 
@@ -117,7 +136,10 @@ The verifier's checklist:
 4. every README with a `| File | SHA-256 |` table lists exactly the files on disk, with matching SHA-256 (FAIL);
 5. each CHANGELOG entry still matches its file, so a copy changed by hand is caught (FAIL);
 6. inbox bookkeeping: every submission has a ledger row, no one verified their own, nothing ACCEPTED waits a day or more, each row's folder is where its status says (FAIL);
-7. every path in backticks in a README exists (WARN).
+7. every path in backticks in a README exists (WARN);
+8. copies match their sources: a README row whose original file still exists has its SHA-256 (WARN, because a source may move on; re-import the copy through the inbox).
+
+A byte-copy section ``### `<name>/` (its own README.md is a byte copy ...)`` is read as the record table of that subfolder. The byte-copied README itself is not read as a record table or for paths.
 
 It prints one line per check and `RESULT: PASS`, `PASS with warnings` or `FAIL`. It exits 1 on FAIL.
 `--layout <file>` and `--config <file>` preview a proposed layout or settings without writing them.

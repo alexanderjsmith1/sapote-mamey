@@ -144,8 +144,7 @@
 | `build_inventory_table.py` | Improved BGC inventory deliverable: ONE document, two views of the same BGCs. View A  serial  - antiSMASH region order (region001, region002, ...), exactly how antiSMASH lists them. View B  by class - same BGCs grouped by headline class, ranked within class by AB capacity. Auto-generatable per strain from the inventory + triage board. Claim-safe; node/contig on every row. Usage: python3 build_inventory_table.py <package_dir> <strain> [--out <path.md>] |
 | `build_lead_detail.py` | per-lead BGC detail extractor for the Sapote judgment layer. |
 | `build_lead_tiers.py` | re-derive lead tiers with self-protection as an orthogonal second axis. |
-| `build_master.py` | DEPRECATED — frozen cohort one-off. NOT the canonical master-workbook builder. |
-| `build_master_figure_atlas.py` | DEPRECATED alias, retired v9.7.213-audit. |
+| `build_master.py` | LEGACY base-workbook step. NOT the canonical master-workbook builder, but still in use: do not delete. |
 | `build_master_figures.py` | Build boss-ready master figure atlas from a Sapote–Mamey workbook. |
 | `build_metabolomics_readiness.py` | deterministic writer for the Metabolomics Readiness (MR) deliverable. |
 | `build_mibig_index.py` | auto-extract a provenance-tagged architecture-signature INDEX from a MIBiG 4.0 JSON dump (+ protein FASTA for a size proxy). |
@@ -337,6 +336,7 @@
 | `mamey_intake.py` | one-command intake for Mamey package outputs. |
 | `mamey_package_qa_v2.py` | Mamey per-strain package completeness validator Sapote–Mamey pipeline (engine version stamped at runtime) |
 | `mamey_pipeline.py` | single-entry Lab Office pipeline (the "working program" cohesion piece). |
+| `manuscript_qa.py` | Read-only quality check of a Word (.docx) manuscript; writes a Markdown report and a TSV. |
 | `marker_candidate_search.py` | find NCBI comparator genomes for an AS strain by BLASTing 1-2 reliable markers, and turn the hits into a bounded candidate panel. |
 | `materialize_strain_data.py` | one-time staging tool for the canonical per-strain data home. |
 | `md_to_docx.sh` | md_to_docx.sh IN.md [OUT.docx] — Word deliverable via pandoc (no LaTeX required). |
@@ -347,7 +347,7 @@
 | `modeb_card_diff.py` | Report current-package facts that would change a stored Mode B card. |
 | `modeb_card_guard.py` | Mode-B CARD GUARD — the check that would have caught 2026-08-17. |
 | `modeb_evidence_gate.py` | deterministic Mode B evidence-governance gate (v9.7.354). |
-| `multi_reference_comparison.py` | One AS locus against its best reference loci (MIBiG clusters, or reference-genome antiSMASH regions), KnownClusterBlast style: the locus on the top row, each reference on its own row below, genes colored by correspondence, no ribbons. |
+| `multi_reference_comparison.py` | One AS locus against its best reference loci (MIBiG clusters, or reference-genome antiSMASH regions): the locus on the top row, each reference on its own row below, genes colored by correspondence. |
 | `multi_reference_comparison_strain.py` | Draw the multi-reference comparison for every BGC of one strain, with one DIAMOND search for the whole strain. |
 | `nearest_type_strain_map.py` | Draw a supplied anchor tree and supplied isolate assignments; no nearest search. |
 | `neighbour_panel_candidates.py` | Build one isolate's genome-neighbourhood candidate panel from three evidence sources. |
