@@ -71,7 +71,7 @@ scientific acceptance. Report actual files, skipped outputs, findings and unreso
 FABRICATION_CHECK or completeness assertion. Source paths/hashes stay in place with one candidate.
 
 <!-- Historical source text follows. -->
-**Version:** v9.7.456 | **Bundle:** sapote-mamey-v9.7.456 | **For:** ChatGPT (single-model or dual-model with Claude)
+**Version:** v9.7.457 | **Bundle:** sapote-mamey-v9.7.457 | **For:** ChatGPT (single-model or dual-model with Claude)
 
 ---
 

@@ -37,7 +37,7 @@ def pdf_text(pdf):
 
 
 @pytest.mark.skipif(shutil.which("Rscript") is None, reason="Rscript not installed")
-@pytest.mark.parametrize("tool", ["T01", "T06"])
+@pytest.mark.parametrize("tool", ["T01", pytest.param("T06", marks=pytest.mark.needs_arial)])
 def test_legend_title_option_is_drawn_and_recorded(tmp_path, tool):
     r, out = render(tmp_path, tool, "--legend-title", TITLE)
     assert r.returncode == 0, r.stdout + r.stderr
@@ -46,7 +46,7 @@ def test_legend_title_option_is_drawn_and_recorded(tmp_path, tool):
 
 
 @pytest.mark.skipif(shutil.which("Rscript") is None, reason="Rscript not installed")
-@pytest.mark.parametrize("tool", ["T01", "T06"])
+@pytest.mark.parametrize("tool", ["T01", pytest.param("T06", marks=pytest.mark.needs_arial)])
 def test_default_title_is_unchanged(tmp_path, tool):
     r, out = render(tmp_path, tool)
     assert r.returncode == 0, r.stdout + r.stderr

@@ -429,7 +429,7 @@ def apply_adjudication(rows, folder: Path):
 def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | None = None, anchor=None,
            gene_names=None, context_rows=False, other_maps=False, print_width="double", row_label=None,
            trim_kb=None, panel=False, key=True, named_contigs=None, genome_zip=None,
-           genome_zip_parse_sha256=None, gecco=None, scale_bar_up=False) -> dict:
+           genome_zip_parse_sha256=None, gecco=None, scale_bar_up=False, mibig_gecco_dir=None) -> dict:
     """Redraw an earlier run's figure from its saved tables (no DIAMOND). panel, key: see draw_locus_map."""
     import csv
     named_inputs = []
@@ -482,6 +482,17 @@ def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | Non
         (out / "gene_names_binding.json").write_text(json.dumps(
             {"strain": label, "names_bound": len(gene_names), "names_unbound": gene_names.names_unbound,
              "binding": gene_names.binding}, indent=1) + "\n")
+    ref_gecco = None
+    if mibig_gecco_dir:   # GECCO of the reference record itself: <BGC>/<BGC>.genes.tsv beside the MIBiG GenBank name
+        from gap_rescue_locus_map import load_reference_gecco, reference_genes
+        stem = Path(receipt["reference"]).stem
+        rg = Path(mibig_gecco_dir) / stem / f"{stem}.genes.tsv"
+        if not rg.is_file():
+            raise SystemExit(f"--mibig-gecco-dir has no GECCO table for {stem} ({rg})")
+        rc = rg.with_name(f"{stem}.clusters.tsv")
+        ref_gecco = load_reference_gecco(rg, rc if rc.is_file() else None, reference_genes(Path(mibig_dir) / receipt["reference"])[0])
+        ref_gecco["binding"].update(reference=stem, genes_tsv=str(rg.resolve()),
+                                    genes_sha256=hashlib.sha256(rg.read_bytes()).hexdigest())
     drawn = draw_locus_map(Path(mibig_dir) / receipt["reference"], rows, splits, prots, regions, core, label,
                           receipt.get("reference_name", ""), out / "gap_rescue.png", out / "gap_rescue.pdf", anchor=anchor,
                           context_partners=context_rows, gene_names=gene_names,
@@ -489,7 +500,10 @@ def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | Non
                           print_width=print_width, row_label=row_label, trim_kb=trim_kb,
                           **({"panel": True, "key": key} if panel else {}),
                           **({"named_contigs": named_contigs} if named_contigs else {}),
-                          **({"gecco": gecco} if gecco else {}), **({"scale_bar_up": True} if scale_bar_up else {}))
+                          **({"gecco": gecco} if gecco else {}), **({"scale_bar_up": True} if scale_bar_up else {}),
+                          **({"ref_gecco": ref_gecco} if ref_gecco else {}))
+    if ref_gecco:   # what the reference GECCO track drew and how the GECCO genes bound to the reference genes
+        (out / "gecco_reference_track.json").write_text(json.dumps(drawn.get("ref_gecco", {}), indent=1) + "\n")
     if gecco:   # what the GECCO track drew and how its genes bound to this genome
         (out / "gecco_track.json").write_text(json.dumps(drawn.get("gecco", {}), indent=1) + "\n")
     if panel:   # the footnote is off the page: keep it beside the map for the caption
@@ -497,7 +511,7 @@ def redraw(folder: Path, prots, regions, label, mibig_dir: Path, out: Path | Non
         # the classes this map fills, for one shared key across the panels (tools/gap_rescue_panel_figure.py)
         (out / "gap_rescue_key.json").write_text(json.dumps(
             {"classes": drawn["key_classes"], "class_unclear": drawn["key_class_unclear"], "key": key,
-             **({"gecco": True} if gecco else {})}, indent=1) + "\n")
+             **({"gecco": True} if (gecco or ref_gecco) else {})}, indent=1) + "\n")
     if named_contigs:
         if any(not Path(x["path"]).is_file() or hashlib.sha256(Path(x["path"]).read_bytes()).hexdigest() != x["sha256"] for x in named_inputs + named_sources):
             raise ValueError("NAMED_CONTIG_INPUT_CHANGED: preserve partial render as incomplete")
@@ -561,7 +575,10 @@ def main(argv=None) -> int:
                                                                "draw, as context only (redraw only)")
     ap.add_argument("--other-maps", action="store_true", help="label strain genes that another reference matched in a "
                                                              "sibling run of the same region (redraw only)")
-    ap.add_argument("--print-width", choices=("double", "single", "page6.0", "page6.5", "none"), default="double",
+    ap.add_argument("--map-height", type=float, default=None,
+                    help="canvas height in inches for the full map (default 6.2); larger values stretch the map "
+                         "vertically at the same width, for crowded maps")
+    ap.add_argument("--print-width", choices=("double", "single", "page6.0", "page6.5", "landscape", "none"), default="double",
                     help="draw the map at a journal column width with all text >= 8 pt: double = 7.2 in (default), "
                          "single = 3.5 in, page6.0 / page6.5 = a 6.0 or 6.5 in text column; none = the 13.5 in screen "
                          "layout of earlier maps, unchanged")
@@ -584,6 +601,8 @@ def main(argv=None) -> int:
                     "(per-gene probability) under the strain row")
     ap.add_argument("--gecco-clusters", type=Path, help="with --gecco-genes: GECCO *.clusters.tsv of this genome; a line "
                     "under the track spans the drawn genes of each GECCO cluster")
+    ap.add_argument("--mibig-gecco-dir", type=Path, help="redraw only: folder of GECCO runs on the MIBiG GenBank files "
+                    "(<BGC>/<BGC>.genes.tsv, optional <BGC>/<BGC>.clusters.tsv); draws a GECCO track under the reference row")
     ap.add_argument("--scale-bar-up", action="store_true", help="redraw only: put the 5 kb bar on the contig-caption line, "
                     "at the right, when it touches no caption")
     ap.add_argument("--hits", type=Path)
@@ -593,12 +612,17 @@ def main(argv=None) -> int:
     ap.add_argument("--no-figure", action="store_true")
     ap.add_argument("--no-gene-table", action="store_true", help="skip gene_table.* and map_and_table.*")
     a = ap.parse_args(argv)
+    if a.map_height is not None:
+        if not (4.0 <= a.map_height <= 20.0):
+            ap.error("--map-height must be between 4 and 20 inches")
+        import gap_rescue_locus_map as _glm
+        _glm.MAP_HEIGHT_IN = a.map_height
     if a.named_contig and not a.redraw:
         raise SystemExit("--named-contig needs --redraw; it does not run or alter the rescue analysis")
     if a.named_contig and not a.out:
         raise SystemExit("--named-contig needs a fresh --out")
-    if (a.gecco_genes or a.gecco_clusters or a.scale_bar_up) and not a.redraw:
-        raise SystemExit("--gecco-genes, --gecco-clusters and --scale-bar-up are redraw options; add --redraw")
+    if (a.gecco_genes or a.gecco_clusters or a.scale_bar_up or a.mibig_gecco_dir) and not a.redraw:
+        raise SystemExit("--gecco-genes, --gecco-clusters, --mibig-gecco-dir and --scale-bar-up are redraw options; add --redraw")
     if a.gecco_clusters and not a.gecco_genes:
         raise SystemExit("--gecco-clusters needs --gecco-genes")
     if a.no_key and not a.panel:
@@ -621,7 +645,7 @@ def main(argv=None) -> int:
                    **({"named_contigs": a.named_contig, "genome_zip": a.zip,
                        "genome_zip_parse_sha256": parsed_zip_sha256} if a.named_contig else {}),
                    gecco=load_gecco(a.gecco_genes, a.gecco_clusters, prots, a.label) if a.gecco_genes else None,
-                   scale_bar_up=a.scale_bar_up)
+                   scale_bar_up=a.scale_bar_up, mibig_gecco_dir=a.mibig_gecco_dir)
         except ValueError as exc:
             if a.named_contig and str(exc).startswith("NAMED_CONTIG_"):
                 _say(f"[gap_directed_rescue] HOLD: {exc}")

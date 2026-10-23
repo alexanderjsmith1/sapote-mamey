@@ -33,7 +33,9 @@ out_prefix <- args[2]
 profile    <- if (length(args) >= 3) toupper(args[3]) else "SINGLE_COLUMN"
 title      <- if (length(args) >= 4) args[4] else "Evidence readiness by channel"
 
-source(file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])),
+script_path <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value=TRUE)[1])
+if (!file.exists(script_path)) script_path <- gsub("~+~", " ", script_path, fixed=TRUE)
+source(file.path(dirname(script_path),
                  "sapote_figure_theme.R"))
 
 # ---- read the sidecar --------------------------------------------------------------------------

@@ -14,6 +14,7 @@ def put(path, rows):
     return path
 
 
+@pytest.mark.needs_arial
 def test_label_column_and_part_labels(tmp_path):
     if not shutil.which("Rscript"): pytest.skip("Rscript unavailable")
     g = put(tmp_path / "g.tsv", [dict(strain="SYN-991", genus="Synthgenusa", block="Synthgenusa", label="<i>Synthgenusa alpha</i> SYN 1\\n[SYN_000001.1] [Type]"),

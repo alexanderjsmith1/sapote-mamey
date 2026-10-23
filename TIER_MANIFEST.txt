@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.456 stamp=20261021v97456a
+# TIER_MANIFEST tier=code version=9.7.457 stamp=20261023v97457a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -269,6 +269,7 @@
 ./docs/LOCUS_MAP_V8.md
 ./docs/MAINTENANCE_INVENTORY.generated.json
 ./docs/MAINTENANCE_INVENTORY.generated.md
+./docs/MANUSCRIPT_REVISION_WORKFLOW.md
 ./docs/MARKER_CATALOG.generated.json
 ./docs/MARKER_CATALOG.generated.md
 ./docs/MASTER_SCHEMA_FROZEN_v1_1.md
@@ -1343,6 +1344,7 @@
 ./tests/fixtures/figure_factory_cli_v97449.py.txt
 ./tests/fixtures/figure_page_text_known_sites.txt
 ./tests/fixtures/gap_rescue_brevicatena_rows.json
+./tests/fixtures/locus_rarity_actinomadura_208_entries.tsv
 ./tests/fixtures/m5_452_overlap_two_column_key_v2.pdf
 ./tests/fixtures/make_m5_452_overlap_two_column_key_v2.py
 ./tests/fixtures/micromonospora_humida_JAFEUC01.zip
@@ -1978,12 +1980,16 @@
 ./tests/test_454_deliverable_queue_resume_binds_bytes.py
 ./tests/test_454_readme_dependency_coverage.py
 ./tests/test_455_class_routed_second_proof.py
+./tests/test_455_external_receipt_final_summary.py
+./tests/test_455_input_genome_sequence_preservation.py
 ./tests/test_455_npatlas_status_reports_consumer_readiness.py
 ./tests/test_455_paper_cohort_registry.py
 ./tests/test_455_pcoa_label_ids.py
 ./tests/test_455_pcoa_label_low_identity.py
 ./tests/test_455_pcoa_labels_by_region_alias.py
 ./tests/test_455_protein_tsne_companion.py
+./tests/test_455_receipt_format_refusal.py
+./tests/test_455_receipt_record_admission.py
 ./tests/test_455_runner_build_id_and_shadow_warning.py
 ./tests/test_455_runner_unreadable_result_is_held.py
 ./tests/test_455_size_profile_table_unit.py
@@ -1995,6 +2001,31 @@
 ./tests/test_456_pcoa_grid_embedding_and_unknown_tier.py
 ./tests/test_456_r_figure_groups.py
 ./tests/test_456_strain_master_parity.py
+./tests/test_457_codex_bigslice_overview.py
+./tests/test_457_codex_bioassay_paper_set.py
+./tests/test_457_codex_core_aa_by_class.py
+./tests/test_457_codex_family_network_page.py
+./tests/test_457_codex_in_vivo_paired_dose.py
+./tests/test_457_codex_palette_edge_options.py
+./tests/test_457_codex_placement_tree_pages.py
+./tests/test_457_codex_region_identity_dotplot.py
+./tests/test_457_codex_september_routes.py
+./tests/test_457_comparison_map_pages.py
+./tests/test_457_gate_stem_aware_finds_bundle_tools.py
+./tests/test_457_gecco_cohort_report.py
+./tests/test_457_gecco_report_summary_per_mb.py
+./tests/test_457_hplc_and_novel_active_figures.py
+./tests/test_457_locus_figure_pages.py
+./tests/test_457_locus_map_height.py
+./tests/test_457_locus_map_html_entity_labels.py
+./tests/test_457_locus_protein_space_pages.py
+./tests/test_457_manuscript_revision_kit.py
+./tests/test_457_needs_arial_marker.py
+./tests/test_457_pcoa_page_legend_no_mibig.py
+./tests/test_457_pdf_text_matrix.py
+./tests/test_457_region_protein_shared_comparator_row.py
+./tests/test_457_rscript_space_paths.py
+./tests/test_457_tree_and_ddh_figure_options.py
 ./tests/test_459_gap_map_gecco_track.py
 ./tests/test_462_panel_key_fits_page_width.py
 ./tests/test_466_multi_reference_aligned_layout.py
@@ -2118,6 +2149,7 @@
 ./tests/test_bigscape_prep_exclusions_v97412.py
 ./tests/test_bigscape_product_parking_tokens_v97442.py
 ./tests/test_bigscape_reference_strain_resolution_v97412.py
+./tests/test_bigscape_seeded.py
 ./tests/test_bigscape_strain_token_match.py
 ./tests/test_bigscape_widget_mibig_row_v9_7_417.py
 ./tests/test_bigscape_widget_strain_collapse_v9_7_416.py
@@ -2862,6 +2894,9 @@
 ./tests/test_m5_455_pcoa_cluster_root_default.py
 ./tests/test_m5_455_pks_piece_map.py
 ./tests/test_m5_455_tree_replay_settings.py
+./tests/test_m5_456_family_rarity_by_window.py
+./tests/test_m5_456_locus_rarity_by_assembly.py
+./tests/test_m5_456_region_presence_survey.py
 ./tests/test_m5_audit_diagnostic_repairs.py
 ./tests/test_m5_companion_probe_alignment.py
 ./tests/test_m5_epa_resource_binding.py
@@ -3719,6 +3754,10 @@
 ./tests/test_workspace_source_discovery.py
 ./tests/test_write_narrative_and_toc.py
 ./tests/test_write_package_profile.py
+./tests/test_y02_gecco_directory.py
+./tests/test_y02_j7_schema.py
+./tests/test_y02_multi_reference_gecco.py
+./tests/test_y02_spec_batch.py
 ./tests/test_zip_hygiene_allowlist.py
 ./tests/test_zip_hygiene_allowlist_wiring.py
 ./tests/test_zip_nonregular_member_intake_v97401.py
@@ -3733,10 +3772,12 @@
 ./tools/_bankio.py
 ./tools/_console.py
 ./tools/_embedding_replay.py
+./tools/_figure_route_common.py
 ./tools/_gtotree_runtime.py
 ./tools/_gtotree_runtime_probe.py
 ./tools/_gtotree_versions.py
 ./tools/_maintenance_inventory.py
+./tools/_manuscript_revision_docx.py
 ./tools/_map_export.py
 ./tools/_min_text_check.py
 ./tools/_mlsa_resources.py
@@ -3806,6 +3847,8 @@
 ./tools/bigscape_prep.py
 ./tools/bigscape_public_family_counts.py
 ./tools/bigscape_region_binding_check.py
+./tools/bigscape_seeded.py
+./tools/bigslice_overview_figure.py
 ./tools/bigslice_query.py
 ./tools/bind_panel_metadata.py
 ./tools/bioassay_a01.R
@@ -3821,8 +3864,10 @@
 ./tools/bioassay_a07.R
 ./tools/bioassay_a07.py
 ./tools/bioassay_admitted_observations.py
+./tools/bioassay_paper_set.py
 ./tools/bioassay_paper_theme.R
 ./tools/bioassay_plate_map.py
+./tools/bioassay_route_records.py
 ./tools/bioassay_to_activity_channel.py
 ./tools/blastp_campaign.py
 ./tools/blastp_channel_triage.py
@@ -3970,9 +4015,11 @@
 ./tools/collection_site_map.py
 ./tools/comparator_discovery.py
 ./tools/comparator_select.py
+./tools/comparison_map_pages.py
 ./tools/compilation_gate.py
 ./tools/compile_figure_owner_review.py
 ./tools/corason_adapter.py
+./tools/core_aa_by_class.py
 ./tools/cross_strain_denominator_audit.py
 ./tools/cut_audit.py
 ./tools/cut_preflight.sh
@@ -3984,6 +4031,7 @@
 ./tools/domain_prevalence.py
 ./tools/domain_prevalence_widget.py
 ./tools/edge_fasta_export.py
+./tools/edge_plot_data.py
 ./tools/emit_modeb_template_full50.py
 ./tools/emit_release_sums.sh
 ./tools/encyclopedia_reground_check.py
@@ -3995,6 +4043,8 @@
 ./tools/export_tree_figure_source_package.py
 ./tools/extract_cluster.py
 ./tools/extract_module_core_domains.py
+./tools/family_network_page.py
+./tools/family_rarity_by_window.py
 ./tools/fetch_mibig_reference.py
 ./tools/fetch_reference_cluster.py
 ./tools/figure_check.py
@@ -4021,6 +4071,7 @@
 ./tools/gate_mutation_table.tsv
 ./tools/gate_registry.tsv
 ./tools/gate_stem_aware.py
+./tools/gecco_cohort_report.py
 ./tools/gen_command_catalog.py
 ./tools/gen_cut_receipt.py
 ./tools/gen_figure_options.py
@@ -4050,8 +4101,10 @@
 ./tools/handoff_gate.py
 ./tools/harvest_16s.py
 ./tools/hooks/pre-push
+./tools/hplc_trace_panels.py
 ./tools/hub_merge.py
 ./tools/identifier_source_roles.py
+./tools/in_vivo_paired_dose.py
 ./tools/ingest_blastp_rollups.py
 ./tools/ingest_field_collection.py
 ./tools/ingest_package.py
@@ -4068,6 +4121,8 @@
 ./tools/lead_propagation_gate.py
 ./tools/llm_trustworthiness.py
 ./tools/locator_reconciliation.py
+./tools/locus_figure_pages.py
+./tools/locus_protein_space_pages.py
 ./tools/locus_rarity_by_genus.py
 ./tools/locus_reading_pages.py
 ./tools/log_release.py
@@ -4080,8 +4135,10 @@
 ./tools/mamey_package_qa_v2.py
 ./tools/mamey_pipeline.py
 ./tools/manuscript_qa.py
+./tools/manuscript_revision.py
 ./tools/marker_candidate_search.py
 ./tools/materialize_strain_data.py
+./tools/max4_tree_figure.py
 ./tools/md_to_docx.sh
 ./tools/md_to_pdf.sh
 ./tools/merge_workbooks.py
@@ -4095,6 +4152,7 @@
 ./tools/nearest_type_strain_map.py
 ./tools/neighbour_panel_candidates.py
 ./tools/next_evidence_actions.html
+./tools/novel_and_active_figure.py
 ./tools/npatlas_provision.py
 ./tools/nrps_substrate.py
 ./tools/omitted_tips_receipt.py
@@ -4138,6 +4196,7 @@
 ./tools/placement_root_variants.py
 ./tools/placement_stamp.py
 ./tools/placement_to_docx.py
+./tools/placement_tree_pages.py
 ./tools/plan_gtotree_iqtree.py
 ./tools/plot_examples.py
 ./tools/preflight_zip_hygiene.py
@@ -4174,6 +4233,8 @@
 ./tools/refresh_literature_atlas.py
 ./tools/regen_modeb_contract_docs.py
 ./tools/region_edge_totals.py
+./tools/region_identity_dotplot.py
+./tools/region_presence_survey.py
 ./tools/region_protein_by_genus.py
 ./tools/region_protein_references.py
 ./tools/region_protein_totals.py
@@ -4189,13 +4250,18 @@
 ./tools/remediate_phantom_locus.py
 ./tools/render_activity_lead_reports.py
 ./tools/render_all.py
+./tools/render_bigslice_overview.R
 ./tools/render_bootstrap_contract.py
+./tools/render_class_counts.R
+./tools/render_class_heatmap.R
 ./tools/render_clean_tree.py
 ./tools/render_dapr_boards.py
 ./tools/render_deliverable_pdf.py
 ./tools/render_gcf_synteny_tree.py
 ./tools/render_locus_comparison.py
 ./tools/render_max4_tree.R
+./tools/render_nonstrep_counts.R
+./tools/render_pairwise_16s.R
 ./tools/render_placement_COLOR_STRIPS.R
 ./tools/render_screening_exploration.R
 ./tools/render_siderophore_atlas.py
@@ -4251,6 +4317,7 @@
 ./tools/scope_cluster.py
 ./tools/seal_sweep.py
 ./tools/seed_reference_library.py
+./tools/september_figure.py
 ./tools/session_checklist.py
 ./tools/session_cost_audit.py
 ./tools/signoff_check.py

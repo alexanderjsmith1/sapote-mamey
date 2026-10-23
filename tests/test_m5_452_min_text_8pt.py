@@ -95,6 +95,7 @@ def _b02_inputs(tmp_path, ncls=46, nstrain=6):
 
 
 @needs_r
+@pytest.mark.needs_arial
 def test_b02_two_digit_counts_refuse_then_fit_as_rows(tmp_path):
     spec = importlib.util.spec_from_file_location("b02", ROOT / "tools/bgc_classes_per_genome.py")
     m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)

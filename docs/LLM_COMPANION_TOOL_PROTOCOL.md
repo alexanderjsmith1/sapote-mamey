@@ -194,3 +194,31 @@ look clean; exclude it by explicit completed run ID.
 
 Older cohort-specific notes and versioned addenda are historical evidence only. If an old example
 conflicts with this protocol, this protocol wins and the conflict must be reported for repair.
+
+## Reproducible BiG-SCAPE 2.0.3 launcher
+
+Use the Python environment containing BiG-SCAPE and numpy. Set the process hash seed
+**before** Python starts; changing it inside an interpreter does not fix string hashes.
+The launcher seeds numpy and Python random before importing BiG-SCAPE, matching the
+reported 2.0.3 main-process affinity-propagation route. No upstream code is modified.
+
+```bash
+PYTHONHASHSEED=0 python tools/bigscape_seeded.py --hash-seed 0 \
+  --numpy-seed 0 --random-seed 0 --receipt <fresh-run>/seed_receipt.json \
+  -- cluster <reviewed-local-arguments>
+```
+
+A missing, random or mismatched hash seed refuses execution unless `--allow-unseeded`
+is explicitly supplied. That override is recorded and gives no reproducibility assurance.
+All three seed options accept integers 0–4294967295. The receipt parent must exist;
+existing receipts are refused. Receipts record actual/requested hash seed, both RNG seeds,
+override, argv, interpreter, dependency versions and exit status/error. A crash or forced
+termination can leave STARTING; receipt creation is not proof of completed clustering.
+Receipt paths and arguments must contain no credentials. No TSV/CSV is emitted.
+
+The caller still owns input hashes, Pfam/reference versions, resource admission, logs and
+the completion checks above. This opt-in route does not alter existing pipeline commands.
+A zero exit does not establish database integrity or scientific validity. Reproducibility
+is limited to matched software, inputs, parameters and runtime; family IDs remain run-specific.
+Tests use a synthetic external entry point for draws/receipt control. Real dependency
+help smoke is skipped if BiG-SCAPE is absent; it does not reproduce clustering.

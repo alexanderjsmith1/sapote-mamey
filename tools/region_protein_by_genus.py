@@ -12,6 +12,7 @@ import math
 import platform
 from pathlib import Path
 import shutil
+import re
 import subprocess
 import sys
 
@@ -129,6 +130,11 @@ if (has_role) {
     cmpl <- cmp[cmp$label != "no", ]                  # label = no: point drawn, label left to the caption
     ctier <- ave(cmpl$value, cmpl$genus, FUN = function(v) seq_along(v))
     cmpl$nudge <- ifelse(ctier %% 2 == 1, cfg$label_offset, -cfg$label_offset)
+    # a row shared with an isolate: every comparator label goes to the side the isolate labels do not start on, so the
+    # two label layers (repelled separately) cannot meet,
+    # in two staggered tiers below the row (alternating by value)
+    shared <- cmpl$genus %in% iso$genus
+    cmpl$nudge[shared] <- ifelse(ctier[shared] %% 2 == 1, -cfg$label_offset, -2 * cfg$label_offset)
     cmpl$lab <- ifelse(nzchar(cmpl$strain_label), sprintf('italic("%s")~"%s"', cmpl$name, cmpl$strain_label),
                        sprintf('italic("%s")', cmpl$name))
     p <- p + geom_point(data=cmp,shape=21,size=2.4,stroke=.6,colour=PUB_SUB,
@@ -143,13 +149,16 @@ if (has_role) {
                     seed=7,nudge_y=iso$nudge,direction="x",min.segment.length=0,segment.colour="#6B7483",
                     segment.size=.3,box.padding=.25,point.padding=.3)
   ylab <- paste0("<i>",genera,"</i> ",ifelse(n_ref>0,paste0("(n = ",n_ref,")"),"(no public genomes)"))
+  # room for the staggered comparator tiers under a shared row (ggrepel drops a label that falls outside the panel)
+  extra <- if (nrow(cmp) && any(cmp$genus %in% iso$genus)) 2 * cfg$label_offset else 0
 } else {
+  extra <- 0
   p <- p + geom_point(size=1,colour="#9AA3AE")   # same reference points and italic genus labels as the role path
   ylab <- paste0("<i>",genera,"</i> (n = ",sapply(genera,function(g)sum(d$genus==g)),")")
 }
 p <- p +
  scale_y_reverse(breaks=seq_along(genera),labels=ylab,
-                 limits=c(length(genera)+0.75,0.25)) +
+                 limits=c(length(genera)+0.75+extra,0.25)) +
  labs(y=NULL,x="Protein encoded in predicted regions, thousand amino acids\n(saccharide-only regions excluded)")
 cfg$rows <- length(genera)
 mt_save(p,cfg$out,cfg$print_width,cfg$print_height,cfg)
@@ -184,6 +193,21 @@ def read_r_runtime(path):
             or not runtime.get("packages", {}).get("ggplot2", {}).get("version")):
         raise ValueError("missing executed R/ggplot2 runtime receipt")
     return runtime
+
+
+def labels_not_drawn(rows, svg_text):
+    """Labels the figure must carry (every isolate; every comparator whose label is not 'no') that are absent from the
+    drawn SVG text. A comparator label is italic name + roman strain label, written as separate text runs, so its strain
+    label (or its name when it has none) is the part looked for."""
+    import html
+    drawn = " | ".join(html.unescape(t) for t in re.findall(r">([^<]*)</text>", svg_text))
+    want = []
+    for r in rows:
+        if r.get("role") == "isolate":
+            want.append(r["strain"])
+        elif r.get("role") == "comparator" and (r.get("label") or "yes") != "no":
+            want.append((r.get("strain_label") or "").strip() or r["name"])
+    return [w for w in want if w not in drawn]
 
 
 def main(argv=None):
@@ -239,6 +263,9 @@ def main(argv=None):
     if result.returncode: raise RuntimeError(result.stdout+result.stderr)
     runtime = read_r_runtime(a.out/"R_RUNTIME.json")
     check = enforce(a.out/(TOOL+".pdf"),a.min_text_pt)
+    missing = labels_not_drawn(rows, (a.out/(TOOL+"_text_check.svg")).read_text())
+    if missing:   # ggrepel drops a label that falls outside the panel without an error; the min-text check cannot see it
+        raise RuntimeError(f"LABEL_NOT_DRAWN: {missing}; outputs kept as an incomplete attempt")
     for ext in [".png",".pdf"]: stamp_file(a.out/(TOOL+ext),TOOL)
     shutil.copyfile(a.out/(TOOL+"_text_check.svg"),a.out/(TOOL+".svg"))
     stamp_file(a.out/(TOOL+".svg"),TOOL)

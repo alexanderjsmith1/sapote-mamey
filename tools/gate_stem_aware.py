@@ -16,6 +16,11 @@ import re
 import sys
 
 from _console import emit
+# Run as a script (the R renderer does), sys.path starts at tools/, so `from tools.<name>` below could not find the bundle's
+# own tools package unless the caller had set PYTHONPATH. Put the bundle root first so the check works from any directory.
+_BUNDLE_ROOT = str(Path(__file__).resolve().parent.parent)
+if _BUNDLE_ROOT not in sys.path:
+    sys.path.insert(0, _BUNDLE_ROOT)
 import logging
 _LOG = logging.getLogger(__name__)
 

@@ -44,6 +44,7 @@ def _unreviewed_code_ids(root, allowed, policy_path):
 
 
 
+@pytest.mark.needs_arial
 def test_t06_label_nudges_are_read_from_the_cohort_table(tmp_path):
     if not shutil.which('Rscript'):
         pytest.skip('Rscript not installed')

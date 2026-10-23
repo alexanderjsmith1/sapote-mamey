@@ -37,7 +37,9 @@ ann_path   <- if (length(args) >= 3 && nzchar(args[3])) args[3] else NA_characte
 outgroup   <- if (length(args) >= 4 && nzchar(args[4])) args[4] else NA_character_
 profile    <- if (length(args) >= 5) toupper(args[5]) else "SINGLE_COLUMN"
 
-source(file.path(dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])),
+script_path <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value=TRUE)[1])
+if (!file.exists(script_path)) script_path <- gsub("~+~", " ", script_path, fixed=TRUE)
+source(file.path(dirname(script_path),
                  "sapote_figure_theme.R"))
 
 # ---- read -------------------------------------------------------------------------------------

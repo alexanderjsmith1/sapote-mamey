@@ -82,14 +82,16 @@ def records(data: bytes, member: str) -> tuple[str, list[tuple[str, str]]]:
     except ImportError:
         if fmt == "genbank":
             from mamey._gbk_shim import parse_genbank_text
-            out = [(r.id, str(r.seq).upper()) for r in parse_genbank_text(text)]
+            out = [(r.id, str(r.seq).upper()) for r in parse_genbank_text(text, require_sequence=True)]
         else:
             out = _fasta_records(text)
     else:
         out = [(r.id, str(r.seq).upper()) for r in SeqIO.parse(io.StringIO(text), fmt)]
-    # A record with no real bases (empty, or the all-N placeholder a sequence-less GenBank record becomes) is not
-    # written: it would be a FASTA that looks like an assembly and holds none.
-    return fmt, [(i, s) for i, s in out if s.strip("N")]
+    # Explicit N bases belong to the submitted assembly. A sequence-less
+    # record is different: refuse the file rather than exporting a subset.
+    if any(not sequence for _, sequence in out):
+        raise ValueError("input genome contains an empty sequence record")
+    return fmt, out
 
 
 def extract(zip_path: Path, out: Path) -> list:

@@ -7,6 +7,28 @@ import argparse, json, math, sys
 from pypdf import PdfReader
 
 
+def _visit_drawn_text(page, visitor):
+    """Bind buffered visitor text to the last text-show matrix, not a pre-Tm memo.
+
+    pypdf may report buffered text at Tf/ET/position changes with a stale
+    memo matrix. Its operand visitor exposes the matrix at Tj/TJ instead.
+    Copy it: extractor matrices are mutable. Keep font decoding in pypdf.
+    """
+    shown = None
+
+    def before(op, operands, cm, tm):
+        nonlocal shown
+        if op in (b"Tj", b"TJ", b"'", b'"'):
+            shown = (list(cm), list(tm))
+
+    def visit(text, cm, tm, font, size):
+        if text and text.strip() and shown is not None:
+            cm, tm = shown
+        visitor(text, cm, tm, font, size)
+
+    page.extract_text(visitor_text=visit, visitor_operand_before=before)
+
+
 def text_sizes(pdf):
     sizes = []
     for page in PdfReader(pdf).pages:
@@ -15,7 +37,7 @@ def text_sizes(pdf):
                 a, b, c, d = (cm[0] * tm[0] + cm[2] * tm[1], cm[1] * tm[0] + cm[3] * tm[1],
                               cm[0] * tm[2] + cm[2] * tm[3], cm[1] * tm[2] + cm[3] * tm[3])
                 sizes.append((round(font_size * math.sqrt(abs(a * d - b * c)), 3), text.strip()[:40]))
-        page.extract_text(visitor_text=visit)
+        _visit_drawn_text(page, visit)
     return sizes
 
 
@@ -90,7 +112,7 @@ def pdf_text_boxes(pdf):
             start = runs[-1][6]
         x0 = start + (_font_length(text[:lead], bf, size) if lead else 0.0)
         runs.append([text.strip(), x0, x0 + _font_length(text.strip(), bf, size), yb, size, ca * e + ce, start + _font_length(text, bf, size)])
-    page.extract_text(visitor_text=visit)
+    _visit_drawn_text(page, visit)
     lines = []
     for r in sorted(runs, key=lambda r: (round(r[3], 1), r[1])):
         # M5_452 overlap_check_columns: join only runs that do not overlap (gap >= -0.25 pt). The old window (-0.5 em .. +0.5 em) also

@@ -54,13 +54,14 @@ def edge_counts(zip_path):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--as-plot-data",type=Path,help="also write the public_genome_families two-part adapter TSV")
     ap.add_argument("--zips", nargs="+", type=Path, required=True)
     ap.add_argument("--genomes", required=True, type=Path, help="TSV: strain, genus (one row per ZIP)")
     ap.add_argument("--region-table", type=Path, help="tools/region_table_one_setting.py output to cross-check region counts")
     ap.add_argument("--out", required=True, type=Path, help="new TSV; <out>_RUN_INFO.json is written beside it")
     a = ap.parse_args(argv)
     info_path = a.out.with_name(a.out.stem + "_RUN_INFO.json")
-    for p in (a.out, info_path):
+    for p in (a.out, info_path, *([a.as_plot_data] if a.as_plot_data else [])):
         if p.exists():
             raise FileExistsError(f"refusing to overwrite {p}")
     genus = {r["strain"]: r["genus"] for r in read_tsv(a.genomes, ["strain", "genus"])}
@@ -86,7 +87,13 @@ def main(argv=None):
         w = _SafeDictWriter(fh, fieldnames=COLUMNS, delimiter="\t", lineterminator="\n")
         w.writeheader()
         w.writerows(rows)
+    if a.as_plot_data:
+        from tools.edge_plot_data import convert
+        from tools._figure_route_common import write_table
+        write_table(a.as_plot_data,convert(rows,[{'strain':s,'genus':genus[s]} for s in sorted(genus)]),
+                    ['strain','genus','families','in_public','not_in_public'])
     info_path.write_text(json.dumps({
+        "plot_data": {"path":str(a.as_plot_data.resolve()),"sha256":sha(a.as_plot_data)} if a.as_plot_data else None,
         "tool": "region_edge_totals", "mamey_version": MAMEY_VERSION, "rule": RULE, "on_edge_statuses": list(ON_EDGE),
         "region_table": str(a.region_table.resolve()) if a.region_table else None,
         "region_table_sha256": sha(a.region_table) if a.region_table else None,

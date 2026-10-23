@@ -1,4 +1,4 @@
-# Current Docs Index — v9.7.456 · engine 1.9.177 · build 20261021v97456a
+# Current Docs Index — v9.7.457 · engine 1.9.177 · build 20261023v97457a
 
 Start with [README](README.md), then [Your first analysis](docs/MASTER_WALKTHROUGH.md).
 For an existing package use [Read your results](docs/READING_YOUR_RESULTS.md).
@@ -56,6 +56,8 @@ Each listed entry starts with its status: `current` (follow it for new work), `r
 - `current` [Methods implementation template](docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md) and
   [reporting checklist](docs/METHODS_REPORTING_CHECKLIST.md): prospective, claim-safe manuscript authoring aids;
   their presence does not assert that a study or module was run.
+- `current` [Manuscript revision workflow](docs/MANUSCRIPT_REVISION_WORKFLOW.md): notes, reviewer findings and answers in one
+  Word ledger; asks-only rounds; staged edits checked, applied and logged with `tools/manuscript_revision.py`.
 - `current` [Mode B authoring](wiki/Mode-B-Gene-First-and-48-Section-Manual.md): use the selected machine-readable
   profile and its emitted template; legacy section counts do not replace a named current profile.
 - `current` [Mode B contract current50 v2](docs/MODEB_CURRENT50_V2_CONTRACT.md): the 50-section card with GECCO (§22), the contigs rescued into the BGC (§26), literature with relevance (§48–§49) and the data evidence table last (§50); `emit-modeb-template --contract current50_v2` and `verify-modeb --contract current50_v2`.

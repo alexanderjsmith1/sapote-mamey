@@ -11,7 +11,7 @@ if (!is.na(from_i) && (is.na(from_dir) || startsWith(from_dir, "--")))
 offline <- !is.na(from_dir)
 # .452: every package the shipped R scripts load, including R code embedded in Python tools
 # (tests/test_452_ci_installs_r.py keeps this list complete).
-cran <- c("ggplot2","dplyr","tidyr","scales","patchwork","ape","phangorn","ggrepel","aplot","ggtext","svglite","jsonlite","systemfonts","xml2","ragg","png")
+cran <- c("ggplot2","dplyr","tidyr","scales","patchwork","ape","phangorn","ggrepel","aplot","ggtext","svglite","jsonlite","systemfonts","xml2","ragg","png","readxl")
 bioc <- c("ggtree","treeio")
 # Optional: not on CRAN (MIT). tools/bgc_class_groups.py draws rounded bars with it and plain bars without it.
 # Fetched as a source archive pinned to one commit, not through the GitHub API, which refuses anonymous tokens
@@ -25,7 +25,7 @@ groups <- list(
   core     = c("ggplot2","ggtext","jsonlite","scales","dplyr","patchwork","ggrepel","svglite","systemfonts","xml2"),
   trees    = c("ape","ggtree","treeio","aplot","phangorn"),
   bioassay = c("tidyr","png"),
-  extras   = c("ragg","ggchicklet"))
+  extras   = c("ragg","ggchicklet","readxl"))
 req_i <- match("--require", args)
 required <- if (!is.na(req_i) && req_i < length(args)) strsplit(args[req_i + 1], ",", fixed = TRUE)[[1]] else character()
 if ("all" %in% required) required <- names(groups)

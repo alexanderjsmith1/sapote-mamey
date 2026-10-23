@@ -63,7 +63,6 @@ UNSTAMPED_RENDERERS = {
     "tools/ggtree_placement.R",
     "tools/ggtree_placement_bioassay.R",
     "tools/ggtree_placement_hostcolour.R",
-    "tools/multi_reference_comparison.py",
     "tools/phylo_place.py",
     "tools/placement_figure.py",
     "tools/plot_examples.py",

@@ -8,6 +8,7 @@ import pytest
 ROOT=Path(__file__).resolve().parents[1]
 TOOL=ROOT/'tools/taxonomy_T05_figures.py'
 @pytest.mark.parametrize('layout',['bee','moss'])
+@pytest.mark.needs_arial
 def test_printed_layout_stamp_numbers(tmp_path,layout):
     if not shutil.which('Rscript'): pytest.skip('Rscript not installed')
     cohort=tmp_path/'cohort.tsv'; data=tmp_path/'data.tsv'

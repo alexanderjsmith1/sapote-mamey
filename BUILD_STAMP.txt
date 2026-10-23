@@ -1,5 +1,5 @@
-version=9.7.456
-build=20261021v97456a
+version=9.7.457
+build=20261023v97457a
 engine=1.9.177
-patch=Strain Master parity.; Protein-space pages.; Gap-rescue maps and tables.; Figure layout.; Bioassay figures.; Size profiles.; Manuscript QA.; CI and tests.
+patch=Locus and protein-space pages.; Trees and bioassay figures.; GECCO.; Rarity and presence.; Manuscript revision kit.; Receipt verifiers.; BiG-SCAPE and R.; Min-text check.
 tier=code

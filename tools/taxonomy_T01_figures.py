@@ -53,8 +53,14 @@ def number(value, name, optional=False):
     return v
 
 def run(args):
-    palette_path=ROOT/'mamey/data/genus_palette.json'
+    palette_path=getattr(args,'palette_json',None) or ROOT/'mamey/data/genus_palette.json'
     config=json.loads(palette_path.read_text())
+    if not isinstance(config.get('default'),dict) or not isinstance(config.get('sets'),dict) or not isinstance(config.get('fallback'),str):
+        raise ValueError('palette JSON must use the bundle default/sets/fallback schema')
+    supplied=list(config['default'].values())+[config['fallback']]+[v for d in config['sets'].values() for v in d.values()]
+    import re
+    if any(not isinstance(v,str) or not re.fullmatch(r'#[0-9a-fA-F]{6}',v) for v in supplied):
+        raise ValueError('palette colours must be six-digit hex')
     colours=dict(config['default']); colours.update(config['sets'].get(args.palette_set or '',{}))
     cohort=read_table(args.cohort, {'strain','genus','block'})
     required={'strain'} | ({'similarity'} if 'T01'=='T01' else {'d4','d4_ci_low','d4_ci_high','type_strain'} if 'T01'=='T05' else {'d4','similarity'})
@@ -144,6 +150,7 @@ def run(args):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--palette-json',type=Path,help='bundle-schema palette JSON; input is hashed, never installed')
     parser.add_argument('--cohort',type=Path,required=True)
     parser.add_argument('--data',type=Path,required=True)
     parser.add_argument('--x-min',type=float,default=None,help='left end of the similarity axis (default: one whole percent below the lowest value, at least 94.75)')

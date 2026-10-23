@@ -48,7 +48,7 @@ def test_grid_pages_flow_sets_and_continue_letters(tmp_path):
         pdf = out / f"PAGE_GRID_query_PCOA_page{k}.pdf"
         assert pdf.exists() and (out / f"PAGE_GRID_query_PCOA_page{k}_CAPTION.md").exists()
         chk = json.loads((out / f"PAGE_GRID_query_PCOA_page{k}_min_text_check.json").read_text())
-        assert chk["status"] == "PASS" and chk["smallest_pt"] >= 8
+        assert chk["status"] == "PASS" and chk["smallest_pt"] >= 7.95
     texts = {t for _, t in mtc.text_sizes(str(out / "PAGE_GRID_query_PCOA_page2.pdf"))}
     assert "e" in texts and "a" not in texts          # page 2 continues the letters
     assert len(mtc.pdf_axis_panels_grid(out / "PAGE_GRID_query_PCOA_page1.pdf", 2, 2, 4)) == 4

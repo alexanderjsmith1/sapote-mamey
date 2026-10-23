@@ -38,6 +38,7 @@ def key_rows(pdf):
 
 
 @pytest.mark.skipif(shutil.which("Rscript") is None, reason="Rscript not installed")
+@pytest.mark.needs_arial
 def test_six_genera_make_two_rows_of_three(tmp_path):
     r, out = render(tmp_path, "--legend-columns", "3", "--print-width", "7.2")
     assert r.returncode == 0, r.stderr[-2000:]
@@ -45,6 +46,7 @@ def test_six_genera_make_two_rows_of_three(tmp_path):
 
 
 @pytest.mark.skipif(shutil.which("Rscript") is None, reason="Rscript not installed")
+@pytest.mark.needs_arial
 def test_two_columns_make_three_rows(tmp_path):
     r, out = render(tmp_path, "--legend-columns", "2", "--print-width", "7.2")
     assert r.returncode == 0, r.stderr[-2000:]
@@ -57,6 +59,7 @@ def test_zero_columns_refused(tmp_path):
 
 
 @pytest.mark.skipif(shutil.which("Rscript") is None, reason="Rscript not installed")
+@pytest.mark.needs_arial
 def test_default_key_keeps_four_rows(tmp_path):
     r, out = render(tmp_path)
     assert r.returncode == 0, r.stderr[-2000:]

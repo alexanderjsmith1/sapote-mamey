@@ -68,8 +68,38 @@ IDENTITY_RANGE = (30, 100)
 # A dark line under the strip spans the drawn genes inside a GECCO cluster. The panel figure reads these for its key.
 GECCO_RAMP = ("#FFFFFF", "#4B5563")
 GECCO_RANGE = (0.0, 1.0)
+# Canvas height in inches for the full y range (7.3 data units). A taller canvas, same width, spreads the reference row,
+# ribbons, genome row and gene labels apart vertically (owner, 21 Oct, maduropeptin: "the loci could be stretched
+# vertically significantly"); text sizes and the 8 pt check are unchanged. gap_directed_rescue --map-height sets it.
+MAP_HEIGHT_IN = 6.2
 GECCO_BOX_H = 0.16          # strip height, data units (rows are H = 0.32 tall)
 GECCO_MIN_OVERLAP = 0.5     # a GECCO gene scores a strain gene when it covers at least half of the strain gene
+
+
+def draw_gecco_strip(ax, place, probabilities, clusters, y0, height=GECCO_BOX_H):
+    """Existing GECCO strip grammar, shared by single- and multi-reference maps.
+
+    place maps gene keys to displayed (start, end, strand). Clusters carry
+    their already-bound gene keys. Coordinate transforms belong to callers.
+    """
+    from matplotlib.colors import LinearSegmentedColormap, Normalize
+    from matplotlib.patches import Rectangle
+    ramp = LinearSegmentedColormap.from_list("gecco", list(GECCO_RAMP))
+    norm = Normalize(*GECCO_RANGE)
+    result = {"boxes": 0, "cluster_spans": []}
+    for key, (start, end, _) in place.items():
+        if key in probabilities:
+            ax.add_patch(Rectangle((start, y0), end - start, height,
+                                   fc=ramp(norm(probabilities[key])), ec="#6B7280", lw=0.3, zorder=2))
+            result["boxes"] += 1
+    for cluster in clusters:
+        inside = [place[key] for key in cluster["genes"] if key in place]
+        if inside:
+            ax.plot([min(v[0] for v in inside), max(v[1] for v in inside)],
+                    [y0 - 0.05, y0 - 0.05], color="#111827", lw=1.2, solid_capstyle="butt", zorder=2)
+            result["cluster_spans"].append({"cluster_id": cluster["cluster_id"], "type": cluster.get("type", ""),
+                                           "average_p": round(cluster["average_p"], 3), "genes_drawn": len(inside)})
+    return result
 
 
 def _node(contig: str) -> str:
@@ -133,6 +163,32 @@ def load_gecco(genes_tsv, clusters_tsv, prots, strain=None):
                                                  "strain_genes_unscored": unbound, "gecco_genes_read": len(genes),
                                                  "gecco_clusters_read": len(clusters), "gecco_clusters_joined": len(cl),
                                                  "gecco_contigs_not_joined": len(unjoined)}}
+
+
+def load_reference_gecco(genes_tsv, clusters_tsv, ref):
+    """GECCO 0.11 tables of the reference record itself (a MIBiG GenBank file run through GECCO) -> per-gene probability for
+    the reference row, keyed by the reference gene's position k in `ref`. GECCO numbers the record's proteins rather than
+    reusing locus tags, so each reference gene takes the GECCO gene that covers the largest share of it (coordinates in base
+    pairs, 1-based inclusive in GECCO), when that share is at least GECCO_MIN_OVERLAP. The file must describe one record."""
+    import csv
+    genes = list(csv.DictReader(open(genes_tsv), delimiter="\t"))
+    clusters = list(csv.DictReader(open(clusters_tsv), delimiter="\t")) if clusters_tsv else []
+    records = {g["sequence_id"] for g in genes} | {c["sequence_id"] for c in clusters}
+    if len(records) > 1:
+        raise ValueError(f"REFERENCE_GECCO_RECORDS: {genes_tsv} holds {len(records)} records; one reference record expected")
+    spans = [(min(int(g["start"]), int(g["end"])) - 1, max(int(g["start"]), int(g["end"])), float(g["average_p"])) for g in genes]
+    p, unbound = {}, 0
+    for k, g in enumerate(ref):
+        lo, hi = round(g["s"] * 1000), round(g["e"] * 1000)
+        best = max(((min(hi, e) - max(lo, s)) / max(1, hi - lo), pr) for s, e, pr in spans) if spans else (0.0, None)
+        if best[0] >= GECCO_MIN_OVERLAP:
+            p[k] = best[1]
+        else:
+            unbound += 1
+    cl = [{"cluster_id": c["cluster_id"], "start": int(c["start"]) - 1, "end": int(c["end"]), "type": c.get("type", ""),
+           "average_p": float(c["average_p"])} for c in clusters]
+    return {"p": p, "clusters": cl, "binding": {"reference_genes_scored": len(p), "reference_genes_unscored": unbound,
+                                                 "gecco_genes_read": len(genes), "gecco_clusters_read": len(clusters)}}
 
 
 def key_classes(named_here) -> tuple[list[str], bool]:
@@ -208,7 +264,8 @@ def _blastp_label(row, other=None, name_chars=NAME_CHARS) -> str:
     """A grey label for a strain gene with no match to this map's reference. The percentage always says what it is
     measured against: `nr` = mean identity of the top 10 NCBI nr hits; `<name> ref` = identity to a gene of another
     reference cluster that a different map of the same region matched (other = (short name, identity))."""
-    name = (row.get("top10_consensus_name") or "").strip() if row else ""
+    from html import unescape
+    name = unescape((row.get("top10_consensus_name") or "").strip()) if row else ""
     name = name or "unnamed protein"   # a hit with no usable consensus name (12 Oct: was "no BLASTp name")
     if len(name) > name_chars:
         name = name[:name_chars - 1].rstrip() + "…"
@@ -441,7 +498,7 @@ NOTE_WRAP = 140  # footnote characters per line
 # Print widths (bundle docs/FIGURE_STYLE.md, publication artwork gate): SINGLE_COLUMN 3.5 in and DOUBLE_COLUMN 7.2 in,
 # every plot label at least 8 pt at that width, and no touching or overlapping labels (house rule 10). The 13.5 in screen
 # layout drew 6-7.5 pt text, which printed near 3.7 pt on a 7.2 in page. print_width=None keeps that layout exactly.
-PRINT_WIDTHS = {"single": 3.5, "double": 7.2,
+PRINT_WIDTHS = {"single": 3.5, "double": 7.2, "landscape": 9.0,   # landscape: a map on its own landscape page (9.0 in text width of a landscape letter page)
                 # the text column of the thesis papers: a map placed there at 7.2 in printed its 8 pt text at 6.7-7.2 pt
                 "page6.0": 6.0, "page6.5": 6.5}
 MIN_PRINT_PT = 8.0
@@ -611,7 +668,7 @@ def drop_scale_bar_if_crowded(fig, ax, rend, cax, sb_line, sb_text, y0, y1, fig_
     if lo < y0 + 0.05:
         y0 = lo - 0.15
         ax.set_ylim(y0, y1)
-        fig.set_size_inches(fig_w, 6.2 * (y1 - y0) / 7.3)
+        fig.set_size_inches(fig_w, MAP_HEIGHT_IN * (y1 - y0) / 7.3)
     return y0
 
 
@@ -640,7 +697,7 @@ def place_class_legend(fig, ax, rend, cax, handles, xmin, xmax, ybar, y0, y1, fi
             break
         y0 = lb.y0 - 0.15
         ax.set_ylim(y0, y1)
-        fig.set_size_inches(fig_w, 6.2 * (y1 - y0) / 7.3)
+        fig.set_size_inches(fig_w, MAP_HEIGHT_IN * (y1 - y0) / 7.3)
     return y0
 
 
@@ -932,7 +989,7 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
                    partner=None, pair_note="", partner_rows=None, link_label="RG-GMCI link", link_colour=LINK,
                    anchor=None, context_partners=False, gene_names=None, other_refs=None, print_width=None,
                    row_label=None, trim_kb=None, panel=False, key=True, named_contigs=None, gecco=None,
-                   scale_bar_up=False):
+                   scale_bar_up=False, ref_gecco=None):
     """rows, splits: gap_directed_rescue tables (dicts; strings or typed). prots, regions, core: its genome structures.
     partner: a second region (same keys as core) for an RG-GMCI pair map. Fragment A (the core) is turned so its contig
     end faces right, fragment B so its contig end faces left, with a link marker between them. The marker is
@@ -957,6 +1014,8 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
     not drawn (it is returned as before, for the caption), and a reference gene with no gene name is labelled by its
     accession alone (short_panel); the gene table keeps the product. key: False leaves out the identity colour bar and
     the gene-class legend, for a figure that prints one shared key; panel only. The scale bar is always drawn.
+    ref_gecco: None (default, unchanged) or load_reference_gecco(...): the same GECCO track for the reference record, drawn
+    under the reference row; the ribbons then start below it.
     gecco: None (default, unchanged) or load_gecco(...): a GECCO track under the strain row (per-gene probability boxes
     and a line under the genes of each GECCO cluster); the strain-gene labels move down by the strip's height.
     scale_bar_up: False (default, unchanged) or True: the 5 kb bar sits on the line of the contig captions, at the
@@ -1149,16 +1208,18 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
         """Draw the whole map on a canvas fig_w inches wide. -> (fig, ax, rend, result dict); nothing is saved.
         level (print width only) is how far the map is shrunk to fit: 1 = no unmatched-gene names, 2 = also short
         segment captions, 3 = also a wrapped row label (a narrower left gutter)."""
-        fig, ax = plt.subplots(figsize=(fig_w, 6.2))
+        fig, ax = plt.subplots(figsize=(fig_w, MAP_HEIGHT_IN))
         ax.set_xlim(xmin, xmax); ax.set_ylim(-3.6, 3.7); ax.axis("off")
         fig.canvas.draw()
         rend = fig.canvas.get_renderer()
         inv = ax.transData.inverted()
         omitted = {"reference": 0, "strain": 0}
         cmap = LinearSegmentedColormap.from_list("id", list(IDENTITY_RAMP)); norm = Normalize(*IDENTITY_RANGE)
+        rg_y1 = Y_V - H / 2 - 0.06; rg_y0 = rg_y1 - GECCO_BOX_H          # reference GECCO strip, when drawn
+        rib_top = (rg_y0 - 0.12) if ref_gecco else (Y_V - H / 2)
         for k, pid, ident in drawn:
             a, b, _ = xpos[pid]; g = ref[k]
-            ax.add_patch(Polygon([(g["s"], Y_V - H / 2), (g["e"], Y_V - H / 2), (b + off, Y_A + H / 2), (a + off, Y_A + H / 2)],
+            ax.add_patch(Polygon([(g["s"], rib_top), (g["e"], rib_top), (b + off, Y_A + H / 2), (a + off, Y_A + H / 2)],
                                  closed=True, fc=cmap(norm(ident)), ec="none", alpha=0.85, zorder=1))
         ax.plot([0, ref_len], [Y_V, Y_V], color=LINE, lw=0.8, zorder=2)
         # labels at 60 degrees are parallel lines: keep their anchors far enough apart that neighbours cannot touch
@@ -1169,6 +1230,15 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
             if g.get("_out"):
                 continue
             _arrow(ax, g["s"], g["e"], Y_V, g["strand"], colour.get(k, GREY))
+        ref_gecco_drawn = {"boxes": 0, "cluster_spans": []}
+        if ref_gecco:
+            ref_place = {k: (g["s"], g["e"], g["strand"]) for k, g in enumerate(ref) if not g.get("_out")}
+            clusters = [dict(c, genes=[k for k, g in enumerate(ref) if not g.get("_out")
+                                      and c["start"] <= (g["s"] + g["e"]) * 500 <= c["end"]])
+                        for c in ref_gecco["clusters"]]
+            ref_gecco_drawn = draw_gecco_strip(ax, ref_place, ref_gecco["p"], clusters, rg_y0)
+            ax.text(xmin - 0.4, (rg_y0 + rg_y1) / 2 - 0.02, "GECCO", fontsize=fs(8), va="center", ha="right",
+                    color="#374151", clip_on=False)
 
         def ref_label(k, g, lx, mx):
             if lx - mx > 0.05 or mx - lx > 0.05:  # a label pushed sideways keeps a thin lead to its gene
@@ -1265,22 +1335,12 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
                 _arrow(ax, a + off, b + off, Y_A, st, colour.get(k, GREY) if k is not None else GREY)
         gecco_drawn = {"boxes": 0, "cluster_spans": []}
         if gecco:
-            from matplotlib.patches import Rectangle
-            gmap = LinearSegmentedColormap.from_list("gecco", list(GECCO_RAMP)); gnorm = Normalize(*GECCO_RANGE)
             gy1 = Y_A - H / 2 - 0.06; gy0 = gy1 - GECCO_BOX_H
-            for pid, (a, b, _) in xpos.items():
-                if pid in gecco["p"]:
-                    ax.add_patch(Rectangle((a + off, gy0), b - a, GECCO_BOX_H, fc=gmap(gnorm(gecco["p"][pid])),
-                                           ec="#6B7280", lw=0.3, zorder=2))
-                    gecco_drawn["boxes"] += 1
-            for c in gecco["clusters"]:
-                inside = [xpos[pid] for pid in xpos if prots[pid]["contig"] == c["contig"]   # the joined genome contig, not a node number (audit F01)
-                          and c["start"] <= (prots[pid]["start"] + prots[pid]["end"]) / 2 <= c["end"]]
-                if inside:
-                    x0c, x1c = min(v[0] for v in inside) + off, max(v[1] for v in inside) + off
-                    ax.plot([x0c, x1c], [gy0 - 0.05, gy0 - 0.05], color="#111827", lw=1.2, solid_capstyle="butt", zorder=2)
-                    gecco_drawn["cluster_spans"].append({"cluster_id": c["cluster_id"], "type": c["type"],
-                                                         "average_p": round(c["average_p"], 3), "genes_drawn": len(inside)})
+            place = {pid: (a + off, b + off, st) for pid, (a, b, st) in xpos.items()}
+            clusters = [dict(c, genes=[pid for pid in xpos if prots[pid]["contig"] == c["contig"]
+                                      and c["start"] <= (prots[pid]["start"] + prots[pid]["end"]) / 2 <= c["end"]])
+                        for c in gecco["clusters"]]
+            gecco_drawn = draw_gecco_strip(ax, place, gecco["p"], clusters, gy0)
             ax.text(xmin - 0.4, (gy0 + gy1) / 2 - 0.02, "GECCO", fontsize=fs(8), va="center", ha="right", color="#374151",
                     clip_on=False)
         # labels at 60 degrees are parallel lines: keep their anchors far enough apart that neighbours cannot touch
@@ -1531,10 +1591,10 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
         else:
             y0, y1 = ybar - (0.75 if key else 0.35), top + 0.5
         ax.set_ylim(y0, y1)
-        fig.set_size_inches(fig_w, 6.2 * (y1 - y0) / 7.3)  # grow the page, never squeeze the text
+        fig.set_size_inches(fig_w, MAP_HEIGHT_IN * (y1 - y0) / 7.3)  # grow the page, never squeeze the text
         if not key:   # a panel without its own key: the figure prints one shared colour bar and class legend
             res = {"footnote": footnote, "note_pos": note_pos, "named_here": named_here, "omitted": omitted,
-                   "rows_y": (Y_V, Y_A), "cax": None, "gecco_drawn": gecco_drawn, "scale_bar_moved_up": moved_up}
+                   "rows_y": (Y_V, Y_A), "cax": None, "gecco_drawn": gecco_drawn, "ref_gecco_drawn": ref_gecco_drawn, "scale_bar_moved_up": moved_up}
             return fig, ax, rend, res
         if W is None:
             cax = ax.inset_axes([xmin + 0.1, ybar - 0.07, 0.2 * (xmax - xmin), 0.14], transform=ax.transData)
@@ -1559,7 +1619,7 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
             elif handles:
                 y0 = place_class_legend(fig, ax, rend, cax, handles, xmin, xmax, ybar, y0, y1, fig_w, per_in, fs)
         res = {"footnote": footnote, "note_pos": note_pos, "named_here": named_here, "omitted": omitted,
-               "rows_y": (Y_V, Y_A), "cax": cax, "gecco_drawn": gecco_drawn, "scale_bar_moved_up": moved_up}
+               "rows_y": (Y_V, Y_A), "cax": cax, "gecco_drawn": gecco_drawn, "ref_gecco_drawn": ref_gecco_drawn, "scale_bar_moved_up": moved_up}
         return fig, ax, rend, res
 
     if W is None:
@@ -1643,6 +1703,8 @@ def draw_locus_map(ref_gbk, rows, splits, prots, regions, core, label, ref_name,
            "trim_kb": trim, "reference_kb": {"full": round(ref_full_len, 3), "shown": round(ref_len, 3)}}
     if gecco:
         out["gecco"] = dict(res.get("gecco_drawn", {}), binding=gecco.get("binding", {}))
+    if ref_gecco:
+        out["ref_gecco"] = dict(res.get("ref_gecco_drawn", {}), binding=ref_gecco.get("binding", {}))
     if scale_bar_up:
         out["scale_bar_moved_up"] = bool(res.get("scale_bar_moved_up"))
     if named_records:

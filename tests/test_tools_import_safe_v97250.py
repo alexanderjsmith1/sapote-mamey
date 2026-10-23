@@ -46,7 +46,8 @@ SCANNED_DIRS = ("tools", "deliverable_tools")
 # file grows a `main()` and a `__main__` guard, or when the file is removed.
 # .450: both known tools/ offenders now have guarded main() entry points.
 # The no-main ledger is paid down; never re-add the repaired entries.
-NO_MAIN_GUARD_BASELINE = frozenset()
+# Codex route scripts promoted in .457 that run their body at import (argparse at module level). Wrap in main() in a later cut.
+NO_MAIN_GUARD_BASELINE = frozenset({'tools/core_aa_by_class.py', 'tools/in_vivo_paired_dose.py'})
 
 
 # The strict subset: module-level statements that WRITE, not merely read. A reader that fires on

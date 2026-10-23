@@ -27,6 +27,10 @@ _SKIP_NAMES = {".DS_Store"}
 _SKIP_SUFFIXES = {".pyc", ".pyo"}
 _SUMMARY_RE = re.compile(r"\bin\s+\d+(?:\.\d+)?s\b")
 
+_SUMMARY_COUNTS_RE = re.compile(
+    r"\b(?:\d+\s+(?:passed|skipped|xfailed|xpassed|failed|errors?|warnings?)|no tests ran)\b"
+)
+
 
 class ReceiptRefused(ValueError):
     """Typed fail-closed receipt refusal."""
@@ -99,9 +103,9 @@ def _resolve_artifact(receipt: Path, root: Path, block: object, label: str) -> P
 def _read_identity(path: Path, declared_count: object) -> list[str]:
     nodeids = [line.rstrip("\n") for line in path.read_text(encoding="utf-8").splitlines()]
     _require(bool(nodeids), "test identity artifact is empty")
-    _require(all(nodeids), "test identity artifact contains a blank node ID")
+    _require(all(nodeid.strip() for nodeid in nodeids), "test identity artifact contains a blank node ID")
     _require(len(nodeids) == len(set(nodeids)), "test identity artifact contains duplicate node IDs")
-    _require(isinstance(declared_count, int) and declared_count == len(nodeids),
+    _require(type(declared_count) is int and declared_count == len(nodeids),
              "test identity count does not match the identity artifact")
     return nodeids
 
@@ -116,8 +120,10 @@ def _read_outcomes(path: Path) -> tuple[dict[str, str], dict[str, int]]:
     result: dict[str, str] = {}
     counts = {name: 0 for name in OUTCOMES}
     for row in rows:
+        _require(None not in row and all(value is not None for value in row.values()),
+                 "test result artifact rows must have exactly two cells")
         nodeid, outcome = row["nodeid"], row["outcome"]
-        _require(bool(nodeid), "test result artifact contains a blank node ID")
+        _require(bool(nodeid.strip()), "test result artifact contains a blank node ID")
         _require(nodeid not in result, f"duplicate result node ID: {nodeid}")
         _require(outcome in counts, f"unsupported test outcome {outcome!r} for {nodeid}")
         result[nodeid] = outcome
@@ -128,7 +134,9 @@ def _read_outcomes(path: Path) -> tuple[dict[str, str], dict[str, int]]:
 def _log_counts(path: Path) -> dict[str, int]:
     summary = None
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        if _SUMMARY_RE.search(line) and re.search(r"\b\d+\s+passed\b", line):
+        # A later errors-only, failure-only or empty-run summary supersedes an
+        # earlier pass. Never select a summary merely because it has passes.
+        if _SUMMARY_RE.search(line) and _SUMMARY_COUNTS_RE.search(line):
             summary = line
     _require(summary is not None, "pytest log has no final pytest summary line")
     counts = {}
@@ -157,9 +165,10 @@ def verify_receipt(
     _require(sha256_file(receipt_path) == expected_receipt_sha256, "receipt SHA-256 mismatch")
     try:
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ReceiptRefused(f"receipt is not valid JSON: {exc}") from exc
 
+    _require(isinstance(receipt, dict), "receipt must be a JSON object")
     _require(receipt.get("schema") == SCHEMA, f"receipt schema must be {SCHEMA}")
     _require(receipt.get("status") == "PASS", "receipt status must be PASS")
 
@@ -179,7 +188,8 @@ def verify_receipt(
     _require(len(argv) >= 2 and argv[1:] == COMMAND_TAIL,
              "execution.argv must be an interpreter followed by the exact configured full-suite command")
     _require(execution.get("cwd") == ".", "execution.cwd must be '.'")
-    _require(execution.get("exit_code") == 0, "execution.exit_code must be 0")
+    _require(type(execution.get("exit_code")) is int and execution["exit_code"] == 0,
+             "execution.exit_code must be integer 0")
     for key in ("python_version", "pytest_version", "platform"):
         _require(isinstance(execution.get(key), str) and execution[key].strip(),
                  f"execution.{key} is required")
@@ -205,9 +215,10 @@ def verify_receipt(
     declared_counts = receipt.get("results")
     _require(isinstance(declared_counts, dict), "results block is required")
     for name in OUTCOMES:
-        _require(declared_counts.get(name) == observed_counts[name],
+        _require(type(declared_counts.get(name)) is int and declared_counts[name] == observed_counts[name],
                  f"results.{name} does not match the per-node result artifact")
-    _require(declared_counts.get("total") == len(nodeids), "results.total does not match exact identity count")
+    _require(type(declared_counts.get("total")) is int and declared_counts["total"] == len(nodeids),
+             "results.total must be an integer matching the exact identity count")
     _require(observed_counts["failed"] == 0 and observed_counts["errors"] == 0,
              "external validation contains failed or error outcomes")
     _require(observed_counts["passed"] > 0, "external validation contains no passing tests")

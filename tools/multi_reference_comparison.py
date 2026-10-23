@@ -41,6 +41,7 @@ except ModuleNotFoundError:
     _cs_sys.path.insert(0, _cs_os.path.dirname(_cs_os.path.dirname(_cs_os.path.abspath(__file__))))
     from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
 from _console import emit  # noqa: E402
+import gap_rescue_locus_map as glm  # noqa: E402
 
 
 def locus(prots, regions, rescue, label, bgc=None):
@@ -173,7 +174,7 @@ def region_db(gbk_dir, work):
 
 
 def build(zip_path, label, rescue, mibig_db, mibig_dir, mibig_names=None, gene_labels=None, top=6, genome=None,
-          ref_gbk_dir=None, bgc=None, hits=None, min_fraction=0.0):
+          ref_gbk_dir=None, bgc=None, hits=None, min_fraction=0.0, explicit_reference_roster=False):
     """mibig_db/mibig_dir: the MIBiG protein database and GenBank folder. With ref_gbk_dir, the references are that
     folder's antiSMASH region GenBank files instead (one row per organism)."""
     prots, regions = genome or gdr.load_genome(Path(zip_path), label)
@@ -383,12 +384,14 @@ def draw(m, out, width_in=16.0, label_band=1.0):
     m["text_overlaps"] = text_overlaps(fig.texts + ax.texts, rnd, skip=[l for _, l in labs])
     out.mkdir(parents=True, exist_ok=True)
     for ext in ("png", "pdf", "svg"):
-        fig.savefig(out / f"comparison.{ext}", dpi=180)
+        path = out / f"comparison.{ext}"
+        fig.savefig(path, dpi=180, metadata=glm.savefig_metadata(path, "multi_reference_comparison"))
     # the slide copy: no title and no caption (the slide carries both), cropped to the drawing
     for t in fig.texts:
         if t.get_text() in (cap,) or t.get_text().endswith("matches") and t.get_fontsize() >= 17:
             t.set_visible(False)
-    fig.savefig(out / "slide.png", dpi=180, bbox_inches="tight", pad_inches=.15)
+    fig.savefig(out / "slide.png", dpi=180, bbox_inches="tight", pad_inches=.15,
+                metadata=glm.savefig_metadata(out / "slide.png", "multi_reference_comparison"))
     plt.close(fig)
     (out / "caption.txt").write_text(caption(m, rows, segx) + "\n")
     return col
@@ -418,6 +421,8 @@ def _wmedian(values, weights):
 def _crop(genes, matched, pad=2):
     """The genes from the first to the last matched one, plus pad genes each side."""
     pos = [k for k, x in enumerate(genes) if x["i"] in matched]
+    if not pos:
+        return [], False
     return genes[max(0, min(pos) - pad):max(pos) + pad + 1], len(pos) and (min(pos) > pad or max(pos) < len(genes) - pad - 1)
 
 
@@ -517,13 +522,462 @@ def aligned_layout(m, lane_gap=1500, side_gap=3000):
             "n_lanes": max(1, len(lanes))}
 
 
-def draw_aligned(m, lay, out, width_in=9.6, dpi=300, italic_binomial=False):
+def aligned_span_bp(lay):
+    """(lo, hi) in bp of everything an aligned layout draws: the top reference, the locus contigs and every placed row."""
+    allx = [v for p in (lay["top"]["place"], lay["qx"]) for v in p.values()] + [v for r in lay["rows"] for v in r["place"].values()]
+    return min(v[0] for v in allx), max(v[1] for v in allx)
+
+
+PLOT_MARGINS_IN = (2.75, .15)  # draw_aligned: heading column on the left, a small margin on the right
+
+
+def scale_bar_kb(span_kb):
+    """The scale bar for a drawn span: the largest 5, 2 or 1 times a power of ten that fits five times in the span."""
+    sb = 10 ** math.floor(math.log10(max(span_kb / 6, .1)))
+    return next(k * sb for k in (5, 2, 1) if k * sb <= span_kb / 5)
+
+
+def _table(path, required):
+    with Path(path).open() as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        headers = reader.fieldnames or []
+        if len(headers) != len(set(headers)) or not set(required) <= set(headers):
+            raise ValueError(f"invalid table columns: {path}; required {required}")
+        rows = list(reader)
+    if any(None in row or any(value is None for value in row.values()) for row in rows):
+        raise ValueError(f"ragged table: {path}")
+    return rows
+
+
+def _gecco_files(directory, accession):
+    """Explicit index resolves assembly accessions; no substring or genus inference."""
+    directory = Path(directory)
+    index = directory / "INDEX.tsv"
+    if index.exists():
+        entries = _table(index, ["accession", "genes", "clusters", "coordinate_system"])
+        matches = [row for row in entries if row["accession"] == accession]
+        if len(matches) > 1:
+            raise ValueError(f"ambiguous GECCO accession: {accession}")
+        if not matches:
+            return None
+        row = matches[0]
+        genes = directory / row["genes"]
+        clusters = directory / row["clusters"] if row["clusters"] else None
+        coordinate_system = row["coordinate_system"]
+    else:
+        if Path(accession).name != accession or accession in (".", ".."):
+            raise ValueError("unsafe accession")
+        candidates = list(directory.glob(f"{accession}/*.genes.tsv")) + list(directory.glob(f"{accession}.genes.tsv"))
+        if len(candidates) > 1:
+            raise ValueError(f"ambiguous GECCO genes: {accession}; supply INDEX.tsv")
+        if not candidates:
+            return None
+        genes = candidates[0]
+        candidate = genes.with_name(genes.name.replace(".genes.tsv", ".clusters.tsv"))
+        clusters = candidate if candidate.exists() else None
+        coordinate_system = "genome"
+    if coordinate_system not in ("genome", "region"):
+        raise ValueError(f"unknown GECCO coordinate system: {coordinate_system}")
+    if not genes.is_file() or (clusters and not clusters.is_file()):
+        raise ValueError(f"declared GECCO input unavailable: {accession}")
+    return genes, clusters, coordinate_system
+
+
+def _seqio():
+    """Bio.SeqIO for the rich GenBank qualifiers the GECCO strips read; refuse, never degrade, when Biopython is absent."""
+    try:
+        from Bio import SeqIO
+    except ImportError as exc:
+        raise RuntimeError("GECCO strips on multi-reference maps read rich GenBank qualifiers and require optional Biopython") from exc
+    return SeqIO
+
+
+def _region_coordinates(ref, coordinate_system):
+    SeqIO = _seqio()
+    record = SeqIO.read(ref["gbk"], "genbank")
+    offset = 0
+    if coordinate_system == "genome":
+        info = record.annotations.get("structured_comment", {}).get("antiSMASH-Data", {})
+        if "Orig. start" not in info:
+            raise ValueError(f"genome GECCO needs antiSMASH Orig. start: {ref['gbk']}; declare region coordinates explicitly")
+        offset = int(info["Orig. start"])
+    return record.id, offset
+
+
+def saved_gene_id_binding(proteins, genes, clusters):
+    """GECCO genbank_cds source: exact supplied protein_id/locus-tag binding."""
+    by_id = {}
+    for gene in genes:
+        by_id.setdefault(gene["protein_id"], []).append(gene)
+    mapped, probabilities = {}, {}
+    for key, protein in proteins.items():
+        matches = by_id.get(protein["tag"], [])
+        if len(matches) > 1:
+            raise ValueError("ambiguous GECCO locus-tag identity")
+        if matches:
+            gene = matches[0]
+            value = float(gene["average_p"])
+            if not math.isfinite(value) or not 0 <= value <= 1:
+                raise ValueError("invalid GECCO probability")
+            probabilities[key] = value
+            mapped[key] = gene
+    bound = []
+    for cluster in clusters:
+        c = dict(cluster, start=int(cluster["start"]), end=int(cluster["end"]), average_p=float(cluster["average_p"]))
+        c["genes"] = [key for key, gene in mapped.items() if gene["sequence_id"] == cluster["sequence_id"]
+                      and c["start"] <= (int(gene["start"]) + int(gene["end"])) / 2 <= c["end"]]
+        bound.append(c)
+    return {"p": probabilities, "clusters": bound,
+            "binding": {"mapping_mode": "genbank_cds_exact_locus_tag", "drawn_probabilities": len(probabilities)}}
+
+
+def producer_gecco_binding(rows, genome, region_file, proteins, genes, clusters):
+    """Replay producer-accepted CDS mappings; never recompute their shorter-gene rule."""
+    selected = [r for r in rows if r["genome"] == genome and r["region_file"] == region_file]
+    if proteins and not selected:
+        raise ValueError("producer CDS map rows unavailable for region")
+    tags = {}
+    for key, protein in proteins.items():
+        tag = protein["tag"]
+        if tag in tags:
+            raise ValueError("ambiguous CDS tag in producer mapping target")
+        tags[tag] = key
+    by_id = {}
+    for gene in genes:
+        by_id.setdefault(gene["protein_id"], []).append(gene)
+    probabilities, mapped, seen = {}, {}, {}
+    duplicate_rows = 0
+    for row in selected:
+        tag = row["antismash_locus_tag"]
+        if tag not in tags:
+            continue
+        if tag in seen:
+            if seen[tag] == row:
+                duplicate_rows += 1
+                continue
+            raise ValueError("conflicting producer CDS mapping within region")
+        seen[tag] = dict(row)
+        accepted = row["accepted_ge_50pct"]
+        if accepted not in ("yes", "no", "no GECCO gene overlaps"):
+            raise ValueError("invalid producer acceptance state")
+        share = float(row["overlap_share_of_shorter"])
+        if not math.isfinite(share) or not 0 <= share <= 1:
+            raise ValueError("invalid producer overlap share")
+        if accepted != "yes":
+            continue
+        if share < .5:
+            raise ValueError("producer acceptance contradicts shorter-gene overlap")
+        matches = by_id.get(row["gecco_protein_id"], [])
+        if len(matches) != 1:
+            raise ValueError("unbound/ambiguous producer GECCO protein")
+        gene = matches[0]
+        p = float(row["gecco_average_p"])
+        if not math.isfinite(p) or not 0 <= p <= 1 or not math.isclose(p, float(gene["average_p"]), rel_tol=1e-9, abs_tol=1e-12):
+            raise ValueError("producer probability disagrees with GECCO table")
+        if any(int(row[k]) != int(gene[g]) for k, g in [("gecco_start", "start"), ("gecco_end", "end")]):
+            raise ValueError("producer GECCO coordinates disagree with table")
+        probabilities[tags[tag]] = p
+        mapped[tags[tag]] = gene
+    bound_clusters = []
+    for cluster in clusters:
+        c = dict(cluster, start=int(cluster["start"]), end=int(cluster["end"]), average_p=float(cluster["average_p"]))
+        c["genes"] = [key for key, gene in mapped.items() if gene["sequence_id"] == cluster["sequence_id"]
+                      and c["start"] <= (int(gene["start"]) + int(gene["end"])) / 2 <= c["end"]]
+        bound_clusters.append(c)
+    return {"p": probabilities, "clusters": bound_clusters,
+            "binding": {"mapping_mode": "producer_accepted_shorter_gene_overlap", "overlap_denominator": "shorter_gene",
+                        "map_rows_in_region": len(selected), "identical_duplicate_rows": duplicate_rows,
+                        "distinct_CDS_rows": len(seen), "drawn_probabilities": len(probabilities)}}
+
+
+def attach_gecco(model, directory, overlap_map=None):
+    """Bind saved probabilities to CDSs using the existing GECCO overlap loader.
+
+    An explicit Pyrodigal map overrides coordinate matching per accession/CDS.
+    Ties, duplicate keys and nonfinite/out-of-range probabilities refuse.
+    Missing tables and available but unscored genes are separate states.
+    """
+    if not Path(directory).is_dir():
+        raise ValueError(f"GECCO directory unavailable: {directory}")
+    mapping = _table(overlap_map, []) if overlap_map else []
+    producer_map = bool(mapping and "overlap_share_of_shorter" in mapping[0])
+    if overlap_map:
+        required = (["genome", "region_file", "antismash_locus_tag", "gecco_protein_id", "gecco_start", "gecco_end",
+                     "overlap_share_of_shorter", "accepted_ge_50pct", "gecco_average_p"] if producer_map else
+                    ["accession", "cds_id", "gecco_protein_id", "overlap_fraction"])
+        mapping = _table(overlap_map, required)
+    tracks, bindings = {}, []
+    def bind(path):
+        record = {"path": str(Path(path).resolve()), "sha256": rlc.sha_file(path)}
+        if record not in bindings:
+            bindings.append(record)
+        if path not in model.setdefault("sources", []):
+            model["sources"].append(path)
+    if overlap_map:
+        bind(overlap_map)
+    if (Path(directory) / "INDEX.tsv").exists():
+        bind(Path(directory) / "INDEX.tsv")
+    rows = [("query", model["label"], model["prots"], None)]
+    for ref in model["refs"]:
+        accession = ref.get("gecco_accession", ref["accession"])
+        rows.append((ref["accession"], accession, None, ref))
+    for key, accession, prots, ref in rows:
+        files = _gecco_files(directory, accession)
+        if files is None:
+            tracks[key] = {"state": "NOT_RUN", "note": "GECCO not run", "p": {}, "clusters": []}
+            continue
+        genes_path, clusters_path, coordinate_system = files
+        bind(genes_path)
+        if clusters_path:
+            bind(clusters_path)
+        genes = _table(genes_path, ["sequence_id", "protein_id", "start", "end", "average_p"])
+        for gene in genes:
+            value = float(gene["average_p"])
+            if not math.isfinite(value) or not 0 <= value <= 1:
+                raise ValueError(f"invalid GECCO probability: {genes_path}")
+        if ref:
+            contig, offset = _region_coordinates(ref, coordinate_system)
+            SeqIO = _seqio()
+            record = SeqIO.read(ref["gbk"], "genbank")
+            cds = [f for f in record.features if f.type == "CDS" and "translation" in f.qualifiers]
+            tags = {i: (f.qualifiers.get("locus_tag") or f.qualifiers.get("protein_id") or [f"g{i:03d}"])[0]
+                    for i, f in enumerate(cds, 1)}
+            prots = {g["i"]: {"tag": tags.get(g["i"], g["id"]), "contig": contig,
+                               "start": g["start"] + offset, "end": g["end"] + offset} for g in ref["genes"]}
+        by_id = {}
+        for gene in genes:
+            by_id.setdefault(gene["protein_id"], []).append(gene)
+        if ref and ref.get("gecco_source") == "genbank_cds":
+            data = saved_gene_id_binding(prots, genes,
+                                         _table(clusters_path, ["sequence_id", "cluster_id", "start", "end", "average_p"])
+                                         if clusters_path else [])
+            data["state"] = "AVAILABLE"
+            tracks[key] = data
+            continue
+        if ref and ref.get("gecco_source") == "fasta_pyrodigal" and not producer_map:
+            raise ValueError("producer accepted shorter-gene map required for fasta_pyrodigal source")
+        data = glm.load_gecco(genes_path, clusters_path, prots, accession)
+        if producer_map and ref:
+            relevant = [r for r in mapping if r["genome"] == accession and r["region_file"] == Path(ref["gbk"]).name]
+            if ref.get("gecco_source") == "fasta_pyrodigal" or relevant:
+                data = producer_gecco_binding(mapping, accession, Path(ref["gbk"]).name, prots, genes,
+                                              _table(clusters_path, ["sequence_id", "cluster_id", "start", "end", "average_p"])
+                                              if clusters_path else [])
+                data["state"] = "AVAILABLE"
+                tracks[key] = data
+                continue
+        explicit = [row for row in mapping if not producer_map and row["accession"] == accession]
+        if explicit:
+            # Pyrodigal sequence names can differ from CDS record names. Bind cluster
+            # coordinates to the saved GECCO genes, using the explicit map as the join.
+            data["clusters"] = [dict(row, contig=row["sequence_id"], start=int(row["start"]),
+                                     end=int(row["end"]), average_p=float(row["average_p"]))
+                                for row in (_table(clusters_path, ["sequence_id", "cluster_id", "start", "end", "average_p"])
+                                            if clusters_path else [])]
+            tags = {p["tag"]: q for q, p in prots.items()}
+            used = set()
+            data["p"] = {}
+            for row in explicit:
+                cds = row["cds_id"]
+                # A genome-wide overlap table can legitimately include CDSs outside this region.
+                if cds not in tags:
+                    continue
+                if cds in used:
+                    raise ValueError(f"duplicate CDS overlap: {accession}/{cds}")
+                used.add(cds)
+                overlap = float(row["overlap_fraction"])
+                if not math.isfinite(overlap) or not 0 <= overlap <= 1:
+                    raise ValueError("invalid CDS-to-GECCO overlap")
+                if overlap < glm.GECCO_MIN_OVERLAP:
+                    continue
+                matches = by_id.get(row["gecco_protein_id"], [])
+                if len(matches) != 1:
+                    raise ValueError(f"unbound or ambiguous GECCO protein: {row['gecco_protein_id']}")
+                data["p"][tags[cds]] = float(matches[0]["average_p"])
+            # Cluster membership follows mapped GECCO gene positions, not shifted CDS coordinates.
+            for cluster in data["clusters"]:
+                cluster["genes"] = [tags[row["cds_id"]] for row in explicit
+                                    if row["cds_id"] in tags and tags[row["cds_id"]] in data["p"]
+                                    and any(g["sequence_id"] == cluster["contig"] and
+                                            cluster["start"] <= (int(g["start"]) + int(g["end"])) / 2 <= cluster["end"]
+                                            for g in by_id.get(row["gecco_protein_id"], []))]
+        else:
+            for cluster in data["clusters"]:
+                cluster["genes"] = [q for q, protein in prots.items() if protein["contig"] == cluster["contig"]
+                                    and cluster["start"] <= (protein["start"] + protein["end"]) / 2 <= cluster["end"]]
+        data["state"] = "AVAILABLE"
+        data["binding"]["mapping_mode"] = "explicit_CDS_overlap" if explicit else "coordinate_overlap"
+        data["binding"]["drawn_probabilities"] = len(data["p"])
+        tracks[key] = data
+    model["gecco_tracks"] = tracks
+    model["gecco_bindings"] = bindings
+    return tracks
+
+
+def draw_with_fallback(model, layout, out, width_in=6.5, landscape_width_in=9.6, **kwargs):
+    """Retry only a recognized fit failure at the declared wider width; no font shrink."""
+    if not math.isfinite(landscape_width_in) or landscape_width_in < width_in:
+        raise ValueError("landscape width must be finite and >= requested width")
+    import matplotlib.pyplot as plt
+    try:
+        result = draw_aligned(model, layout, out, width_in=width_in, **kwargs)
+        model["landscape_fallback"] = False
+        return result
+    except ValueError as error:
+        plt.close("all")
+        if landscape_width_in == width_in or not any(word in str(error) for word in
+                                                    ("does not fit", "text outside the figure", "text overlaps")):
+            raise
+        result = draw_aligned(model, layout, out, width_in=landscape_width_in, **kwargs)
+        model["landscape_fallback"] = True
+        return result
+
+
+def spec_plans(spec):
+    """Validate J3 region-list schema; one query and its declared nonquery rows per plan."""
+    spec = Path(spec).resolve()
+    rows = _table(spec, ["region_file", "label", "accession", "role", "identity", "sha256"])
+    regions = spec.parent / "regions"
+    seen, hashes = set(), {}
+    grouped = any(row.get("locus", "") for row in rows)
+    if grouped and any(not row.get("locus", "") for row in rows):
+        raise ValueError("partly blank SPEC locus groups")
+    for row in rows:
+        file = (regions / row["region_file"]).resolve()
+        if not file.is_relative_to(regions.resolve()) or not file.is_file():
+            raise ValueError(f"unavailable/escaping region_file: {row['region_file']}")
+        key = (row.get("locus", ""), row["region_file"])
+        if key in seen:
+            raise ValueError("duplicate region_file within SPEC locus")
+        seen.add(key)
+        if file not in hashes:
+            hashes[file] = rlc.sha_file(file)
+        if hashes[file] != row["sha256"]:
+            raise ValueError(f"region sha256 mismatch: {file}")
+        if row["role"] not in ("query", "public", "mibig", "reference"):
+            raise ValueError(f"unknown SPEC role: {row['role']}")
+        row["path"] = str(file)
+    groups = {}
+    for row in rows:
+        groups.setdefault(row.get("locus", ""), []).append(row)
+    plans = []
+    for locus_id, group in groups.items():
+        queries = [row for row in group if row["role"] == "query"]
+        references = [row for row in group if row["role"] != "query"]
+        if not queries or not references or (grouped and len(queries) != 1):
+            raise ValueError("SPEC needs query and reference rows; grouped input needs one query per locus")
+        for query in queries:
+            ident = query["identity"].split(" / ")
+            if len(ident) != 4 or not all(ident) or (grouped and query["identity"] != locus_id):
+                raise ValueError("query needs complete four-part identity matching SPEC locus")
+            plans.append({"query": query, "references": references, "spec": str(spec), "sha256": rlc.sha_file(spec),
+                          "locus": locus_id, "producer_grouped": grouped and "genes_present" in query})
+    return plans
+
+
+def complete_spec_rows(model, plan):
+    """Keep every declared SPEC row, including unplaced/held references.
+
+    Missing placement is an admission state, not a claim of biological absence.
+    """
+    model["explicit_spec_roster"] = True
+    selected = {ref["accession"] for ref in model["refs"]}
+    skipped = dict(model.get("skipped", []))
+    for row in plan["references"]:
+        accession = Path(row["path"]).stem
+        if accession not in selected:
+            genes, description = gdr.load_reference(Path(row["path"]))
+            model["refs"].append({"accession": accession, "display_id": row["accession"],
+                                  "compound": row["label"], "description": description, "also": [],
+                                  "genes": genes, "pairs": [], "gbk": row["path"],
+                                  "not_placed_reason": skipped.get(accession, "below discovery admission threshold")})
+    return model
+
+
+def run_spec(args):
+    plans = spec_plans(args.spec)
+    if not args.dry_run and any(plan["producer_grouped"] for plan in plans):
+        raise ValueError("PRODUCER_SAVED_PAIRS_REQUIRED: aggregate counts cannot establish alignment; native35/50 re-search is not a substitute")
+    out = Path(args.out)
+    if out.exists() and any(out.iterdir()):
+        raise ValueError("SPEC output must be fresh or empty")
+    if args.layout != "aligned":
+        raise ValueError("SPEC requires aligned layout")
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "SPEC_PLAN.json").write_text(json.dumps(plans, indent=1) + "\n")
+    if args.dry_run:
+        emit(f"Validated {len(plans)} query comparisons; no search or rendering")
+        return plans
+    import tempfile
+    for plan in plans:
+        query = plan["query"]
+        strain, contig, region, alias = query["identity"].split(" / ")
+        genes, _ = gdr.load_reference(query["path"])
+        SeqIO = _seqio()
+        record = SeqIO.read(query["path"], "genbank")
+        cds = [f for f in record.features if f.type == "CDS" and "translation" in f.qualifiers]
+        tags = {i: (f.qualifiers.get("locus_tag") or f.qualifiers.get("protein_id") or [f"g{i:03d}"])[0]
+                for i, f in enumerate(cds, 1)}
+        prots = {str(g["i"]): dict(g, tag=tags[g["i"]], contig=contig) for g in genes}
+        core = {"contig": contig, "identity": query["identity"], "start": min(g["start"] for g in genes),
+                "end": max(g["end"] for g in genes)}
+        with tempfile.TemporaryDirectory() as temporary:
+            for ref in plan["references"]:
+                (Path(temporary) / Path(ref["path"]).name).symlink_to(ref["path"])
+            model = build(query["path"], strain, None, None, None, top=len(plan["references"]),
+                          genome=(prots, [core]), ref_gbk_dir=temporary, bgc=alias, explicit_reference_roster=True)
+            if not model["refs"]:
+                raise ValueError(f"no qualifying reference matches for {query['identity']}")
+            complete_spec_rows(model, plan)
+            by_stem = {Path(row["path"]).stem: row for row in plan["references"]}
+            for ref in model["refs"]:
+                original = by_stem[ref["accession"]]
+                ref["gbk"] = original["path"]
+                ref["gecco_accession"] = (Path(original["region_file"]).stem.split("__", 1)[0]
+                                           if plan["producer_grouped"] else original["accession"])
+                ref["gecco_source"] = original.get("gecco_source", "")
+                ref["compound"] = original["label"]
+        if not model["refs"]:
+            raise ValueError(f"no qualifying reference matches for {query['identity']}")
+        model["sources"].append(Path(args.spec))
+        if args.gecco_dir:
+            # SPEC query CDS coordinates are region-local, whereas isolate GECCO
+            # tables normally use whole-contig coordinates. Translate only the
+            # binding copy, never the alignment or figure coordinates.
+            files = _gecco_files(args.gecco_dir, strain)
+            offset = 0
+            if files and files[2] == "genome":
+                _, offset = _region_coordinates({"gbk": query["path"]}, "genome")
+            original = model["prots"]
+            model["prots"] = {q: dict(protein, start=protein["start"] + offset, end=protein["end"] + offset)
+                              for q, protein in original.items()}
+            try:
+                attach_gecco(model, args.gecco_dir, args.gecco_map)
+            finally:
+                model["prots"] = original
+        destination = out / Path(query["region_file"]).stem
+        draw_with_fallback(model, aligned_layout(model), destination, width_in=args.width_in,
+                           landscape_width_in=args.landscape_width_in, italic_binomial=args.italic_binomial,
+                           kb_per_in=args.kb_per_in, scale_kb=args.scale_bar_kb)
+        write(model, destination)
+    return plans
+
+
+def draw_aligned(m, lay, out, width_in=9.6, dpi=300, italic_binomial=False, kb_per_in=None, scale_kb=None):
     """The ruling-234 drawing: locus contigs placed under the top reference's genes, ribbons between them, every
-    reference row on the same kb scale. No caption on the plot; CAPTION.md carries it. All text at least 8 pt."""
+    reference row on the same kb scale. No caption on the plot; CAPTION.md carries it. All text at least 8 pt.
+
+    kb_per_in fixes the scale (kb per inch of plot width), so maps drawn with the same value and the same width_in
+    share one kb scale: the span starts at the left edge and the rest of the width stays empty. A map wider than the
+    plot width at that scale is refused (ValueError). scale_kb fixes the scale bar length."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.patches import FancyArrow, Polygon
+    if not math.isfinite(width_in) or width_in <= sum(PLOT_MARGINS_IN):
+        raise ValueError("invalid print width")
+    if kb_per_in is not None and (not math.isfinite(kb_per_in) or kb_per_in <= 0):
+        raise ValueError("kb_per_in must be positive and finite")
     prots, segs = m["prots"], m["segments"]
     qx, top, rows = lay["qx"], lay["top"], lay["rows"]
     order = [q for _, qs in segs for q in qs]
@@ -531,14 +985,21 @@ def draw_aligned(m, lay, out, width_in=9.6, dpi=300, italic_binomial=False):
     col = dict(zip(matched, colors(len(matched))))
     n_locus = len(order)
     # geometry in inches: y data units are inches, so arrow heights do not depend on the row count
-    left, right = 2.75, .15
+    left, right = PLOT_MARGINS_IN
     lane_h, ribbon_h, title_h, scale_h = .44, .62, .34, .34
+    gecco_on = "gecco_tracks" in m
+    if gecco_on:
+        lane_h += .28
+        ribbon_h += .28
+        scale_h += .25
     def _name(r):
         nm = (r["compound"] or r["description"]).strip()
         nm = nm if len(nm) <= 60 else nm[:59].rstrip(" ,-(") + "…"
         return f"{nm} [{r['display_id']}]" if m["source"] != "MIBiG 4.0 clusters" else f"{r['accession']}: {nm}"
     n_bold = max(len(textwrap.wrap(_name(r), 27)[:3]) for r in m["refs"])
     pitch = .22 + .15 * n_bold
+    if gecco_on:
+        pitch += .30
     n_l = lay["n_lanes"]
     ys_lane = [scale_h + pitch * len(rows) + ribbon_h + j * lane_h for j in range(n_l)]
     y_top = scale_h + pitch * len(rows)
@@ -548,13 +1009,19 @@ def draw_aligned(m, lay, out, width_in=9.6, dpi=300, italic_binomial=False):
     W = width_in
     fig = plt.figure(figsize=(W, H))
     ax = fig.add_axes([left / W, 0, (W - left - right) / W, axh / H])
-    allx = [v for p in (top["place"], qx) for v in p.values()] + [v for r in rows for v in r["place"].values()]
-    lo, hi = min(v[0] for v in allx), max(v[1] for v in allx)
+    lo, hi = aligned_span_bp(lay)
     pad = (hi - lo) * .01
-    ax.set_xlim((lo - pad) / 1000, (hi + pad) / 1000)
+    if kb_per_in:  # a shared scale: the plot width at kb_per_in, anchored on the left
+        x1 = (lo - pad) / 1000 + kb_per_in * (W - left - right)
+        if (hi + pad) / 1000 > x1 + 1e-9:
+            plt.close(fig)
+            raise ValueError(f"span {(hi - lo) / 1000:.1f} kb does not fit {W - left - right:.2f} in at {kb_per_in:g} kb per inch")
+        ax.set_xlim((lo - pad) / 1000, x1)
+    else:
+        ax.set_xlim((lo - pad) / 1000, (hi + pad) / 1000)
+        kb_per_in = (hi - lo + 2 * pad) / 1000 / (W - left - right)
     ax.set_ylim(0, axh)
     ax.axis("off")
-    kb_per_in = (hi - lo + 2 * pad) / 1000 / (W - left - right)
     hl = .07 * kb_per_in
 
     def arrow(s, e, st, yy, c):
@@ -578,6 +1045,32 @@ def draw_aligned(m, lay, out, width_in=9.6, dpi=300, italic_binomial=False):
             ya, yb = lane_of[q] - .07, y_top + .07
             ax.add_patch(Polygon([(a0 / 1000, ya), (a1 / 1000, ya), (b1 / 1000, yb), (b0 / 1000, yb)],
                                  facecolor=col.get(q, GENE_GRAY), alpha=RIBBON_ALPHA, edgecolor="none", zorder=1))
+    if gecco_on:
+        drawn = []
+        def gecco_track(key, place, yy):
+            track_data = m["gecco_tracks"][key]
+            if track_data["state"] != "AVAILABLE":
+                ax.text(ax.get_xlim()[0], yy - .20, track_data["note"], fontsize=8, va="top", color="#374151")
+                drawn.append({"row": key, "state": track_data["state"], "boxes": 0})
+                return
+            transformed = {key: (a / 1000, b / 1000, strand) for key, (a, b, strand) in place.items()}
+            result = glm.draw_gecco_strip(ax, transformed, track_data["p"], track_data["clusters"], yy - .25, height=.10)
+            if not result["boxes"]:
+                note = "GECCO: no scored CDS overlap" if place else "GECCO available; row not placed"
+                ax.text(ax.get_xlim()[0], yy - .20, note, fontsize=8, va="top", color="#374151")
+            drawn.append(dict(result, row=key, state="AVAILABLE"))
+        for lane, yy in enumerate(ys_lane):
+            qs = [q for segment in lay["segments"] if segment["lane"] == lane for q in segs[segment["k"]][1]]
+            gecco_track("query", {q: qx[q] for q in qs}, yy)
+        for ref_row, yy in [(top, y_top)] + list(zip(rows, ys_rows)):
+            gecco_track(ref_row["ref"]["accession"], ref_row["place"], yy)
+        m["gecco_drawn"] = drawn
+        # One shared probability key, using the existing strip renderer and ramp.
+        key_start = ax.get_xlim()[0] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * .55
+        key_step = (ax.get_xlim()[1] - ax.get_xlim()[0]) * .025
+        key_place = {i: (key_start + i * key_step, key_start + (i + 1) * key_step, 1) for i in range(10)}
+        glm.draw_gecco_strip(ax, key_place, {i: i / 9 for i in range(10)}, [], .19, height=.10)
+        ax.text(key_start, .12, "GECCO probability 0–1", fontsize=8, va="top")
     # locus contigs, labels above (outward, never in ribbon space)
     labels = []
     for r in lay["segments"]:
@@ -625,20 +1118,24 @@ def draw_aligned(m, lay, out, width_in=9.6, dpi=300, italic_binomial=False):
         # name, the accession and the match count go on the plain line below. MIBiG rows keep their compound headings.
         nm = (r["compound"] or r["description"]).strip()
         words = nm.split()
-        if italic_binomial and m["source"] != "MIBiG 4.0 clusters" and len(words) >= 2 and words[0][:1].isupper():
+        # a genus is one capitalised word of letters and the next word starts in lower case; a strain label or a
+        # database name in the first place ('ISO-2 BGC042', 'MIBiG BGC0001') stays upright
+        binomial = len(words) >= 2 and words[0].isalpha() and words[0][:1].isupper() and words[0][1:].islower() \
+            and words[1][:1].islower()
+        if italic_binomial and m["source"] != "MIBiG 4.0 clusters" and binomial:
             rest = " ".join(words[2:])
             heading(yy, " ".join(words[:2]), (f"{rest} [{r['display_id']}]" if rest else f"[{r['display_id']}]") + "\n" + s, italic=True)
         else:
             heading(yy, name(r), s)
     ref_heading(y_top, top["ref"], stat(top["ref"]))
     for r, yy in zip(rows, ys_rows):
-        ref_heading(yy, r["ref"], stat(r["ref"]) if r["place"] else "not placed: no match on a placed contig")
-    fig.text(.012, 1 - .06 / H, f"{m['label']} {m['bgc']} placed on its best "
-             f"{'MIBiG' if m['source'].startswith('MIBiG') else 'reference-genome'} matches", fontsize=10, weight="bold",
+        ref_heading(yy, r["ref"], stat(r["ref"]) if r["place"] else "not placed; see receipt")
+    title = (f"{m['label']} {m['bgc']}: reference comparison" if m.get("explicit_spec_roster") else
+             f"{m['label']} {m['bgc']} placed on its best {'MIBiG' if m['source'].startswith('MIBiG') else 'reference-genome'} matches")
+    fig.text(.012, 1 - .06 / H, title, fontsize=10, weight="bold",
              color="#163344", va="top")
-    span_kb = (hi - lo) / 1000
-    sb = 10 ** math.floor(math.log10(max(span_kb / 6, .1)))
-    sb = m["scale_kb"] = next(k * sb for k in (5, 2, 1) if k * sb <= span_kb / 5)
+    sb = m["scale_kb"] = scale_kb or scale_bar_kb((hi - lo) / 1000)
+    m["kb_per_in"] = kb_per_in
     ax.plot([lo / 1000, lo / 1000 + sb], [.2, .2], color="#172f40", lw=1.2)
     ax.text(lo / 1000 + sb / 2, .16, f"{sb:g} kb", ha="center", va="top", fontsize=8)
     fig.canvas.draw()
@@ -649,19 +1146,28 @@ def draw_aligned(m, lay, out, width_in=9.6, dpi=300, italic_binomial=False):
         if t.get_text().strip() and t.get_fontsize() < 8:
             raise ValueError(f"text under 8 pt: {t.get_text()[:40]!r}")
     m["text_overlaps"] = text_overlaps(fig.texts + ax.texts, rnd)
+    if m["text_overlaps"]:
+        plt.close(fig)
+        raise ValueError(f"text overlaps: {m['text_overlaps']}")
     out.mkdir(parents=True, exist_ok=True)
     for ext in ("png", "pdf", "svg"):
-        fig.savefig(out / f"comparison.{ext}", dpi=dpi)
+        path = out / f"comparison.{ext}"
+        fig.savefig(path, dpi=dpi, metadata=glm.savefig_metadata(path, "multi_reference_comparison"))
     plt.close(fig)
     m["aligned_layout"] = {
         "rule": "ruling 234: anchored on the top-ranked reference; bitscore-weighted median offset of matched gene midpoints; bitscore-weighted strand vote; rows placed in rank order, a row through contigs only with >= DISCOVERY_MIN_PROTEINS shared genes",
-        "width_in": W, "height_in": round(H, 2), "lanes": lay["n_lanes"],
+        "width_in": W, "height_in": round(H, 2), "lanes": lay["n_lanes"], "kb_per_in": round(kb_per_in, 4),
         "top_reference": {"accession": top["ref"]["accession"], "orientation": top["orientation"]},
         "segments": [{k: v for k, v in r.items() if k != "k"} for r in lay["segments"]],
         "other_references": [{"accession": r["ref"]["accession"], "orientation": r["orientation"], "offset_bp": r["offset_bp"],
                               "pairs_used": r["pairs_used"]} for r in rows]}
     (out / "CAPTION.md").write_text(f"# {m['label']} {m['bgc']}: reference-genome comparison, aligned\n\n"
-                                    + aligned_caption(m, lay) + "\n")
+                                    + aligned_caption(m, lay)
+                                    + ("\n\nGECCO strips show saved per-gene average probabilities (white to dark gray, 0–1); "
+                                       "dark lines span genes in saved GECCO clusters. Unscored CDSs have no box. "
+                                       "Rows without a table read ‘GECCO not run’; a supplied table with no bound scores is "
+                                       "reported separately. No GECCO inference is run by this renderer.\n"
+                                       if gecco_on else "\n"))
     return col
 
 
@@ -688,7 +1194,9 @@ def aligned_caption(m, lay):
     rev = [node(r["heading"]) for r in lay["segments"] if r.get("orientation", 1) < 0]
     unplaced = [r["ref"].get("display_id", r["ref"]["accession"]) for r in rows if not r["place"]]
     sb = m.get("scale_kb")
-    return (f"{m['label']} {m['bgc']} compared with its {len(m['refs'])} best-matching {m['source']}, all rows on one kb scale. "
+    roster = (f"the {len(m['refs'])} declared SPEC reference rows" if m.get("explicit_spec_roster") else
+              f"its {len(m['refs'])} best-matching {m['source']}")
+    return (f"{m['label']} {m['bgc']} compared with {roster}, all placed rows on one kb scale. "
             f"Top row: the {m['label']} {m['bgc']} locus, {locus} (contigs drawn: {'; '.join(ident)}). Second row: the top-ranked match, {nm0}. "
             f"Each {m['label']} contig is placed under the genes of the top-ranked match that its proteins match: it is shifted "
             "by the median offset between the midpoints of its matched gene pairs, weighted by bitscore, and drawn reversed when the "
@@ -706,7 +1214,7 @@ def aligned_caption(m, lay):
             f"Rows below: further {m['source']}, ranked by the number of locus genes they match, then by summed bitscore, "
             f"one row per {unit}. Each is placed by the same rule against the {m['label']} genes as placed: shifted by the bitscore-weighted "
             "median offset of its matched gene midpoints and reversed when the strand vote disagrees. "
-            + (f"Rows {', '.join(unplaced)} have no match on a placed contig and are not drawn. " if unplaced else "")
+            + (f"Rows {', '.join(unplaced)} are not placed; admission and placement states are retained in the receipt. " if unplaced else "")
             + "Genes of the same color are matched protein pairs (DIAMOND blastp, ultra-sensitive; at least "
             f"{rc.DISCOVERY_MIN_ID:.0f}% identity over at least {rc.DISCOVERY_MIN_COV:.0f}% of the {m['label']} protein; one pair per "
             "gene within each region). Gray genes have no match in that row. Each reference is shown from its first to its last "
@@ -839,7 +1347,7 @@ def write(m, out):
         w.writerow(["rank", "accession", "name", "locus_genes_matched", "locus_genes", "median_identity_pct", "bitscore_sum", "reference_genes", "same_compound_entries"])
         for k, r in enumerate(m["refs"], 1):
             w.writerow([k, r["accession"], r["compound"], len(r["pairs"]), n_locus,
-                        f"{statistics.median(p for _, _, p, _ in r['pairs']):.1f}", f"{sum(b for *_, b in r['pairs']):.0f}", len(r["genes"]), ";".join(r["also"])])
+                        f"{statistics.median(p for _, _, p, _ in r['pairs']):.1f}" if r["pairs"] else "", f"{sum(b for *_, b in r['pairs']):.0f}", len(r["genes"]), ";".join(r["also"])])
     with open(out / "pairs.tsv", "w", newline="") as fh:
         w = _SafeWriter(fh, delimiter="\t", lineterminator="\n")
         w.writerow(["accession", "locus_tag", "contig", "reference_gene_index", "reference_gene_name", "identity_pct", "bitscore"])
@@ -852,18 +1360,29 @@ def write(m, out):
                         for (h, qs), o in zip(m["segments"], m.get("segment_orientation", [1] * len(m["segments"])))],
            "thresholds": {"min_identity_pct": rc.DISCOVERY_MIN_ID, "min_query_coverage_pct": rc.DISCOVERY_MIN_COV,
                           "min_genes": rc.DISCOVERY_MIN_PROTEINS, "search": "DIAMOND blastp ultra-sensitive, max-target-seqs 500"},
+           "landscape_fallback": m.get("landscape_fallback", False),
+           "gecco": m.get("gecco_drawn"), "gecco_bindings": m.get("gecco_bindings", []),
            "diamond_hits": m["n_hits"], "text_overlaps": m.get("text_overlaps", []),
            "layout": m.get("aligned_layout", {"rule": "side by side (pre-ruling-234 layout)"}),
+           "reference_selection": "explicit SPEC roster" if m.get("explicit_spec_roster") else "ranked discovery matches",
+           "reference_states": [{"accession": r["accession"], "pairs": len(r["pairs"]),
+                                 "not_placed_reason": r.get("not_placed_reason")} for r in m["refs"]],
            "skipped_references": [{"accession": x, "why": w} for x, w in m.get("skipped", [])],
            "sources": [{"path": str(Path(p).resolve()), "sha256": rlc.sha_file(p)} for p in m["sources"]]
            + [{"path": r["gbk"], "sha256": rlc.sha_file(r["gbk"])} for r in m["refs"]]}
     (out / "receipt.json").write_text(json.dumps(rec, indent=1) + "\n")
 
 
-if __name__ == "__main__":
+def main(argv=None):
     ap = argparse.ArgumentParser()
-    for a in ("--zip", "--label", "--out"):
-        ap.add_argument(a, required=True)
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--zip")
+    ap.add_argument("--label")
+    ap.add_argument("--gecco-dir", help="GECCO tables directory; optional INDEX.tsv: accession, genes, clusters, coordinate_system")
+    ap.add_argument("--gecco-map", help="TSV: accession, cds_id, gecco_protein_id, overlap_fraction (>=0.5)")
+    ap.add_argument("--spec", help="J3-format SPEC.tsv; one comparison per query row")
+    ap.add_argument("--dry-run", action="store_true", help="validate --spec and bind all region files, without search or rendering")
+    ap.add_argument("--landscape-width-in", type=float, default=9.6, help="one wider retry after a layout-fit refusal")
     ap.add_argument("--rescue", help="<BGC>_vs_<ref> gap-rescue folder: adds its SUPPORTED partner contigs")
     ap.add_argument("--bgc", help="the BGC alias, when there is no gap-rescue folder")
     ap.add_argument("--mibig-db", help="MIBiG protein DIAMOND database (.dmnd)")
@@ -875,16 +1394,33 @@ if __name__ == "__main__":
     ap.add_argument("--layout", choices=("aligned", "side-by-side"), default="aligned",
                     help="aligned (ruling 234, default): contigs placed under the top reference's genes, ribbons, "
                          "CAPTION.md; side-by-side: the earlier KnownClusterBlast-style drawing")
-    ap.add_argument("--width-in", type=float, default=9.6, help="aligned layout print width (9.6 landscape or 6.5)")
+    ap.add_argument("--width-in", type=float, default=6.5, help="aligned layout print width (6.5 default; wider fallback uses --landscape-width-in)")
     ap.add_argument("--italic-binomial", action="store_true", help="aligned layout: reference headings give the genus and "
                     "species in italics, with the rest of the deposited name and the accession on the line below (card 471)")
-    a = ap.parse_args()
+    ap.add_argument("--kb-per-in", type=float, help="aligned layout: fix the kb scale (kb per inch of plot width) so "
+                    "maps drawn with one value and one --width-in share a scale; tools/comparison_map_pages.py sets it per batch")
+    ap.add_argument("--scale-bar-kb", type=float, help="aligned layout: fix the scale bar length in kb")
+    a = ap.parse_args(argv)
+    if a.gecco_map and not a.gecco_dir:
+        ap.error("--gecco-map needs --gecco-dir")
+    if a.spec:
+        return run_spec(a)
+    if a.dry_run:
+        ap.error("--dry-run needs --spec")
+    if not a.zip or not a.label:
+        ap.error("--zip and --label required without --spec")
+    if a.gecco_dir and a.layout != "aligned":
+        ap.error("GECCO tracks require --layout aligned")
     m = build(a.zip, a.label, Path(a.rescue) if a.rescue else None, a.mibig_db, a.mibig_dir, a.mibig_names, a.gene_labels,
               a.top, ref_gbk_dir=a.ref_gbk_dir, bgc=a.bgc)
     if not m["refs"]:
         sys.exit("no reference matches two or more locus genes")
+    if a.gecco_dir:
+        attach_gecco(m, a.gecco_dir, a.gecco_map)
     if a.layout == "aligned":
-        draw_aligned(m, aligned_layout(m), Path(a.out), width_in=a.width_in, italic_binomial=a.italic_binomial)
+        draw_with_fallback(m, aligned_layout(m), Path(a.out), width_in=a.width_in,
+                           landscape_width_in=a.landscape_width_in, italic_binomial=a.italic_binomial,
+                           kb_per_in=a.kb_per_in, scale_kb=a.scale_bar_kb)
     else:
         for band in (1.0, 1.3, 1.6, 1.9, 2.3):  # the smallest label band the rotated labels fit
             try:
@@ -895,3 +1431,7 @@ if __name__ == "__main__":
                     raise
     write(m, Path(a.out))
     emit(f"{len(m['refs'])} references drawn")
+
+
+if __name__ == "__main__":
+    main()

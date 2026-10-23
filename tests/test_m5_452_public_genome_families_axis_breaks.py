@@ -15,6 +15,7 @@ def put(path, rows):
     return path
 
 
+@pytest.mark.needs_arial
 def test_ticks_cover_a_79_family_axis(tmp_path):
     if not shutil.which("Rscript"): pytest.skip("Rscript unavailable")
     g = put(tmp_path / "g.tsv", [dict(strain=f"SYN-{i}", genus="Synthgenusa", block="Synthgenusa") for i in range(3)])

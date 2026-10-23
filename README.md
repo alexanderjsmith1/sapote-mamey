@@ -222,11 +222,12 @@ distribution you use.
 | [Python](https://www.python.org/downloads/) | Required runtime, Python 3.12 or newer | [PSF License and bundled notices](https://docs.python.org/3/license.html) |
 | [antiSMASH](https://github.com/antismash/antismash#installation) | Generate the input results; a supplied result ZIP avoids a local antiSMASH installation | AGPL-3.0-or-later |
 | [NCBI BLAST+](https://www.ncbi.nlm.nih.gov/books/NBK279690/) | Local protein/nucleotide searches and 16S routing; not needed merely to export FASTA or use the web runner | [NCBI public-domain software notice](https://blast.ncbi.nlm.nih.gov/doc/blast-help/developerinfo.html) |
-| [BiG-SCAPE 2](https://github.com/medema-group/BiG-SCAPE) | Optional gene-cluster family analysis | AGPL-3.0 |
+| [BiG-SCAPE 2](https://github.com/medema-group/BiG-SCAPE) | Optional gene-cluster family analysis; the seeded launcher `tools/bigscape_seeded.py` imports its `big_scape` Python module | AGPL-3.0 |
 | [GECCO](https://github.com/zellerlab/GECCO) | Optional independent BGC predictions; [integration and supplied-result guidance](docs/companion_tools.md#gecco) | GPL-3.0-or-later; model/data terms separately |
 | [HMMER](https://github.com/EddyRivasLab/hmmer) | Profile searches and pressed Pfam preparation for relevant companion workflows | [BSD-3-Clause](https://github.com/EddyRivasLab/hmmer/blob/master/LICENSE) |
 | [clinker](https://github.com/gamcil/clinker#installation) | Optional gene-cluster comparison views | MIT |
 | [DIAMOND](https://github.com/bbuchfink/diamond) | Optional accelerated local protein comparisons | GPL-3.0 |
+| [BLAST+ `tblastn`](https://blast.ncbi.nlm.nih.gov/doc/blast-help/) | Optional translated search of a region's proteins against genomes, used by `tools/region_presence_survey.py` | Public domain (US government work) |
 | [GToTree](https://github.com/AstrobioMike/GToTree) | Optional genome-marker phylogeny workflow | [MIT](https://github.com/AstrobioMike/GToTree); dependencies retain their own licenses |
 | [Barrnap](https://github.com/tseemann/barrnap) | Optional rRNA annotation for marker workflows; [the bundled planner prints a recipe](docs/BARRNAP.md) | GPL-3.0; reference data retain their own terms |
 | [SeqKit](https://github.com/shenwei356/seqkit) | Optional FASTA/FASTQ inspection and sequence-file preparation | MIT |
@@ -255,7 +256,7 @@ distribution you use.
 | [ggtree](https://bioconductor.org/packages/release/bioc/html/ggtree.html) | R tree visualization | Artistic-2.0 |
 | [patchwork](https://patchwork.data-imaginist.com/) | R composite layouts | MIT |
 | [svglite](https://svglite.r-lib.org/) | SVG output for R renderers using ggplot2's SVG device | GPL-2.0-or-later |
-| Other R packages loaded by the shipped R scripts: ggrepel (non-overlapping labels), ggtext, ape, treeio, aplot, dplyr, tidyr, jsonlite, ragg (PNG output), png (reads a rendered PNG to center bioassay panels), and ggchicklet (optional; rounded bars in the class-group figure, plain bars without it; not on CRAN, so the installer fetches its author's source archive from codeload.github.com, pinned to one commit) | `bundle_support/install_r_figure_packages.R` installs these together with the packages above; [Rscript](https://www.r-project.org/) runs every R renderer | ggrepel GPL-3; ggtext GPL-2; ape GPL-2 or GPL-3; treeio and aplot Artistic-2.0; dplyr, tidyr, jsonlite and ggchicklet MIT; ragg MIT; png GPL-2 or GPL-3 (from each package's installed DESCRIPTION) |
+| Other R packages loaded by the shipped R scripts: ggrepel (non-overlapping labels), ggtext, ape, treeio, aplot, dplyr, tidyr, jsonlite, scales (axis and label formatting), readxl (reads the non-Streptomyces count inputs), ragg (PNG output), png (reads a rendered PNG to center bioassay panels), and ggchicklet (optional; rounded bars in the class-group figure, plain bars without it; not on CRAN, so the installer fetches its author's source archive from codeload.github.com, pinned to one commit) | `bundle_support/install_r_figure_packages.R` installs these together with the packages above; [Rscript](https://www.r-project.org/) runs every R renderer | ggrepel GPL-3; ggtext GPL-2; ape GPL-2 or GPL-3; treeio and aplot Artistic-2.0; dplyr, tidyr, jsonlite and ggchicklet MIT; ragg MIT; png GPL-2 or GPL-3 (from each package's installed DESCRIPTION) |
 | [Poppler utilities](https://poppler.freedesktop.org/) (`pdftotext`, `pdfinfo`, `pdffonts`, `pdfimages`) | Checking compiled report PDFs: text, fonts, images and page counts | See upstream COPYING |
 | `qlmanage` (macOS Quick Look, built in) | PNG preview of protein-space grid pages, rendered from the checked PDF; skipped when absent (the PDF and SVG are still written) | Part of macOS |
 | [Google Chrome or Chromium](https://www.chromium.org/getting-involved/download-chromium/), headless | Printing HTML locus reading pages, clinker views and class heatmaps to PDF or PNG | See upstream terms for the browser you install |
@@ -439,7 +440,7 @@ Code is released under the MIT License (`LICENSE`), © 2026 Alexander J. Smith. 
 - [Files, storage and handoff](docs/FILES_STORAGE_AND_HANDOFF.md)
 
 ---
-*Current bundle: sapote-mamey-v9.7.456 / engine 1.9.177 · build 20261021v97456a · release profile: CODE (see RELEASE_MANIFEST.md)*
+*Current bundle: sapote-mamey-v9.7.457 / engine 1.9.177 · build 20261023v97457a · release profile: CODE (see RELEASE_MANIFEST.md)*
 
 ## Choose a task by name
 

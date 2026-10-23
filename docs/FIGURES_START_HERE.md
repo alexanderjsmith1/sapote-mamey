@@ -1,6 +1,6 @@
 # Make and review Mamey figures
 
-Sapote–Mamey v9.7.456 · Mamey engine 1.9.177
+Sapote–Mamey v9.7.457 · Mamey engine 1.9.177
 
 Whatever route you take, the figure must meet the [figure house rules](FIGURE_HOUSE_RULES.md).
 
@@ -28,6 +28,8 @@ Use `python3 mamey_run.py render-all-figures --package <working-package-copy>` f
 | A manuscript comparison from a master workbook | A checked workbook with strain registry and BGC master sheets | Export `figure_ready/` tables, then follow a [named figure recipe](../prompts/figure_prompts/_INDEX.md). The recipes are specifications, not an automatic renderer. |
 | A custom aggregate evidence-coverage bar chart | Counted metrics TSV plus an explicit cohort manifest | [Aggregate evidence guide](FIGURE_FACTORY_NEXT.md). This specialized route does not read BLASTp databases itself. |
 | BLASTp similarity of region genes to public proteins, per genome or per core class | Per-gene BLASTp result CSVs, plus a genome table (strain, genus, block, gene-context path) | `python3 tools/blastp_identity_figures.py --help`: `--measure top1|top10`, `--db best|nr|clustered`. Genus colours come from `mamey/data/genus_palette.json`. |
+| HPLC UV chromatograms: one representative run per strain as a lettered multi-panel figure, or every run of a strain as supplement pages | Native detector arrays (`<run_id>.npz` with its channel proof) and run metadata (`<run_id>.json`), plus a run table naming strain, run, sample label, acquisition time and material | `python3 tools/hplc_trace_panels.py panels --help` or `pages --help`. Folders and channel colours are arguments. Native points are drawn without smoothing; one material per figure, named in the file name. |
+| Isolates novel by 16S and active in a bioassay, as a tile table | One TSV row per isolate: 16S identity, GenBank strain count, dDDH, and `<target>\|crude` and `<target>\|fraction` best inhibition | `python3 tools/novel_and_active_figure.py --help`. `--material crude_extract`, `fraction`, or `side_by_side` (separate columns, never one value). n.t. and blank stay distinct. |
 | A tree or BiG-SCAPE gene-cluster-family panel | Bound tree/database, tips or regions, and matching metadata | [Tree figure grammar](TREE_FIGURE_GRAMMAR.md) or [BiG-SCAPE walkthrough](BIGSCAPE_COHORT_WALKTHROUGH.md). Do not derive host metadata from a strain ID. |
 
 Use the bundle's `mamey_run.py` entry point from the extracted code root so the
@@ -208,6 +210,19 @@ file that belongs to another figure. Run `tools/figure_render_qc.py` on the fold
 ## Selected assay values on an existing tree
 
 Use [Tree assay track rendering](TREE_ASSAY_TRACK_RENDERING.md) for exact tip crosswalks and hash-bound, explicitly selected Figure Factory BIOASSAY tracks. The synthetic example runs without project data.
+
+## Genome tree with at most four references per isolate
+
+Use `tools/max4_tree_figure.py` with an existing IQ-TREE tree. It does not infer a tree. Check first that the run finished: the `.contree` exists and the log says "Total wall-clock time".
+
+1. `metadata` builds the tip table. Reference rows come from NCBI records (`--ncbi-json` or `--ncbi-jsonl`). The label is the deposited organism and strain, then ` [Type]` only when NCBI Assembly says "assembly from type material", then the accession in brackets. Source and country are copied as deposited, and an empty field stays empty. Isolate rows come from `--queries`. Owner corrections go in `--overrides` with a reason. Looked-up values go in `--fill-blank` with their evidence, and they never replace a deposited value. Every edit is logged in `<out>_changes.tsv`. Tips with no deposited source or country are listed in the receipt, so the caption can name them.
+2. `render` draws the table with `tools/render_max4_tree.R`. Options come from a JSON spec or `--set KEY=VALUE`. They cover rooting (midpoint by default, an outgroup tip, or an outgroup used for rooting and then left off), a shortened long branch, support labels, the no-metadata switch, color strips from a groups table, genus-colored tip dots from the bundle genus palette, and isolate labels colored by host group. Text below 8 pt is refused. After drawing, the tool reads the smallest text size back from the PDF and writes `<stem>_receipt.json` with every option and the SHA-256 of each input and output.
+
+The renderer header lists every option. `--max-refs-per-query 4` refuses a table with more than four references for one isolate when an `anchor` column names each reference's isolate.
+
+## dDDH with the closest type strain
+
+`tools/taxonomy_T05_figures.py` draws one row per isolate. `--highlight-genus GENUS=RRGGBB` sets one genus color over the bundle palette. Optional data columns `ref_name`, `ref_strain` and `ref_accession` give the reference label as the deposited name and strain, with the accession in brackets below. An optional cohort column `label_md` replaces an isolate label. `--legend-title`, `--legend-rows`, `--x-max`, `--design-width` and `--design-height` set the rest of the panel.
 
 ## Numeric completeness for the reference plot set
 `tools/plot_examples.py` needs nonempty strain_summary.csv, class_prevalence.csv and class_by_strain.csv with their actual headers and a bound, unique isolate roster. Every plotted N50 must be finite and positive for the log axis, and the loss/count fields must be finite source-derived values. A workbook header/structural PASS does not establish that these values exist. A missing A3 correction value leaves corrected count and fragmentation loss uncomputed; do not substitute zero. Resolve those holds before this three-figure reference run. Other recipes may handle missingness explicitly, but must report any admitted subset and its denominator.

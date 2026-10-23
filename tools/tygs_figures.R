@@ -8,7 +8,9 @@
 #   - genus colours come from mamey/data/genus_palette.json.
 # Args: data.tsv palette.json outdir widthA widthB
 suppressPackageStartupMessages({ library(ggplot2); library(dplyr); library(ggrepel); library(ggtext); library(jsonlite) })
-here <- dirname(normalizePath(sub("--file=", "", grep("--file=", commandArgs(FALSE), value = TRUE))))
+script_path <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value=TRUE)[1])
+if (!file.exists(script_path)) script_path <- gsub("~+~", " ", script_path, fixed=TRUE)
+here <- dirname(normalizePath(script_path, mustWork=TRUE))
 source(file.path(here, "sapote_pub_layout.R"))
 source(file.path(here, "sapote_stamp_required.R"))
 a <- commandArgs(TRUE); data <- a[1]; pal_file <- a[2]; out <- a[3]; WA <- as.numeric(a[4]); WB <- as.numeric(a[5])

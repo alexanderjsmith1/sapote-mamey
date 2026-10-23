@@ -1,11 +1,11 @@
-# Sapote-Mamey Bundle Release Manifest — v9.7.456 CODE archive
+# Sapote-Mamey Bundle Release Manifest — v9.7.457 CODE archive
 
-**Cut/build date:** 2026-10-21
+**Cut/build date:** 2026-10-23
 **Artifact status:** validated CODE archive  
-**Bundle version:** `sapote-mamey-v9.7.456`  
-**Authoritative bundle version:** `9.7.456`  
+**Bundle version:** `sapote-mamey-v9.7.457`  
+**Authoritative bundle version:** `9.7.457`  
 **Engine:** Mamey v1.9.177  
-**Build stamp:** 20261021v97456a  
+**Build stamp:** 20261023v97457a  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
@@ -21,9 +21,9 @@ No additional release tiers are included in this CODE archive.
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (21621 passed, 286 skipped; receipt-bound log) |
+| Full pytest suite | PASS (21896 passed, 291 skipped; receipt-bound log) |
 | Focused verification | New portable adapter, identity, containment and clinker regressions pass; exact counts recorded in external candidate receipts |
-| Strict repository health | PASS (1241 observed direct print calls; enforced ceiling 1241; lowered from 1268 by the print-call paydown, then +1 for the new chitin genome census tool and +1 for the new antiSMASH input-genome tool, then -1 observed when the retired figure-atlas stub was removed, then +1 net from the .456 renderer cards; no waiver) |
+| Strict repository health | PASS (1242 observed direct print calls; enforced ceiling 1242; lowered from 1268 by the print-call paydown, then +1 for the new chitin genome census tool and +1 for the new antiSMASH input-genome tool, then -1 observed when the retired figure-atlas stub was removed, then +1 net from the .456 renderer cards; then +1 net in .457 for the multi-reference comparison dry-run report (flagged for the owner); no waiver) |
 | Version synchronization | PASS |
 | Generated module, tool, command, and deliverable inventories | PASS |
 | R source parsing | PASS (all bundled R sources parsed); synthetic single/grouped tree-track PDF pages inspected; live experimental integration remains separate |
@@ -48,11 +48,11 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20261021v97456a`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20261023v97457a`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
-| `sync_version --check` | PASS (engine 1.9.177, bundle 9.7.456) |
+| `sync_version --check` | PASS (engine 1.9.177, bundle 9.7.457) |
 
-All tracked version anchors at v9.7.456 / Mamey 1.9.177.
-`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.456.
+All tracked version anchors at v9.7.457 / Mamey 1.9.177.
+`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.457.

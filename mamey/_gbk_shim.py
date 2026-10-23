@@ -120,8 +120,12 @@ def _parse_features(text: str) -> list[_Feature]:
     return features
 
 
-def parse_genbank_text(text: str) -> list[_Record]:
-    """Parse GenBank records from text. Returns list of _Record."""
+def parse_genbank_text(text: str, *, require_sequence: bool = False) -> list[_Record]:
+    """Parse GenBank records; optionally refuse records without ORIGIN bases.
+
+    The default retains the established LOCUS-length placeholder behavior.
+    Genome exporters opt in so a missing sequence is never synthesized.
+    """
     records = []
     entries = re.split(r'\n//\s*', text)
     
@@ -138,6 +142,8 @@ def parse_genbank_text(text: str) -> list[_Record]:
         # Sequence
         origin_m = re.search(r'^ORIGIN\s*\n(.*)', entry, re.MULTILINE | re.DOTALL)
         seq = re.sub(r'[^a-zA-Z]', '', origin_m.group(1)) if origin_m else ''
+        if not seq and require_sequence:
+            raise ValueError(f"GBK_SHIM_NO_SEQUENCE: record {rec_id!r} has no ORIGIN sequence")
         if not seq:
             len_m = re.search(r'^LOCUS\s+\S+\s+(\d+)\s+bp', entry, re.MULTILINE)
             if len_m:

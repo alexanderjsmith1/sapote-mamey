@@ -13,13 +13,13 @@ R_FIGURE_GROUPS = {
     'core': ('ggplot2', 'ggtext', 'jsonlite', 'scales', 'dplyr', 'patchwork', 'ggrepel', 'svglite', 'systemfonts', 'xml2'),
     'trees': ('ape', 'ggtree', 'treeio', 'aplot', 'phangorn'),
     'bioassay': ('tidyr', 'png'),
-    'extras': ('ragg', 'ggchicklet'),
+    'extras': ('ragg', 'ggchicklet', 'readxl'),
 }
 R_GROUP_ADDS = {
     'core': 'every R figure',
     'trees': 'phylogenetic tree figures',
     'bioassay': 'bioassay panels',
-    'extras': 'genus-composition PNGs (ragg) and rounded class-group bars (ggchicklet)',
+    'extras': 'genus-composition PNGs (ragg), rounded class-group bars (ggchicklet) and the non-Streptomyces count figure (readxl)',
 }
 
 

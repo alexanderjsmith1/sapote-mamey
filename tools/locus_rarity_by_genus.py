@@ -14,8 +14,19 @@ INPUT
     --query-region F     the locus's region file name as in META `region` (e.g. NODE_14_..._cov_19.48.region001.gbk).
     --alias TEXT         the locus alias for the identity line (e.g. "neoabyssomicin B/abyssomicin (BGC0001694)").
     --exclude S          further strains left out of the targets (repeatable).
-    --genome-table TSV   optional denominators: strain, source (isolate / reference_held / SID_held), genus. Without it,
-                         denominators are the kit's strains (a genome with no region at all is then not counted).
+    --genome-table TSV   optional denominators: strain, source (isolate / reference_held / SID_held), genus, and optionally
+                         assembly_accession and total_bp (used to count by assembly). Without it, denominators are the kit's
+                         strains (a genome with no region at all is then not counted).
+    --count-by B         assembly (default) or entry: what the main count and denominator columns count. Both are always
+                         reported in the *_by_assembly and *_by_entry columns.
+
+COUNTING BY ASSEMBLY (v1.1.0; the M5 duplicate-assembly rule of 21 Oct 2026)
+    A genome collection can hold one assembly several times: CP053892 and CP053892.1, a WGS id and its GCA, GCF and GCA forms,
+    a complete-genome CP/AP entry and the GCA entry of the same genome, or local re-assemblies. Each strain gets an assembly
+    key: its assembly_accession, else its own id when that is a GCA/GCF accession, else its own id (GCF folded to GCA, version
+    dropped in every case). Then strains of one genus with identical total_bp are merged into one key. A key counts once
+    in each role (public reference, SID, isolate); a key passes a threshold when any of its strains does.
+    ASSEMBLY_KEYS.tsv lists every strain's key and the rule that set it. Without total_bp only the id rules apply.
 
 METHOD (the J1 v3 method)
     Query genes: every CDS of the locus region in the kit. Core genes: those with gene_kind biosynthetic or
@@ -29,7 +40,7 @@ METHOD (the J1 v3 method)
     Listed: the query genus, any genus with a counted genome, and any genus whose best region matches >= 25 % of genes.
 
 OUTPUT (--out DIR, must not exist)
-    TARGET_REGIONS.tsv, TOP5_PUBLIC_REFERENCE.tsv (SID out), TOP5_REFERENCE.tsv (public + SID), TOP3_AS.tsv,
+    ASSEMBLY_KEYS.tsv, TARGET_REGIONS.tsv, TOP5_PUBLIC_REFERENCE.tsv (SID out), TOP5_REFERENCE.tsv (public + SID), TOP3_AS.tsv,
     RARITY_BY_GENUS.tsv, QUERY_GENES.tsv, LOCUS.txt, RECEIPT.json (kit file sha256, DIAMOND version, rule, counts).
 
 Homology only: a matched gene set is sequence similarity, not product identity or production.
@@ -60,7 +71,7 @@ except ImportError:  # bare-script run: bundle root is one level up
 
 _LOG = logging.getLogger("locus_rarity_by_genus")   # operator messages go through logging (repo_health print_calls)
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 CORE_KINDS = ("biosynthetic", "biosynthetic-additional")
 ROLE = {"isolate": "AS", "reference_held": "reference", "SID_held": "SID"}
 
@@ -103,8 +114,53 @@ def write_tsv(path, rows, cols):
         w.writeheader(); w.writerows(rows)
 
 
-def rarity_table(rows, n_genes, n_core, query_genus, totals):
-    """rows: target-region dicts (role, genus, target_strain, genes_matched, core_genes_matched)."""
+def fold_accession(acc):
+    """GCF_ folded to GCA_, trailing version dropped: GCF_000001.2 -> GCA_000001, CP053892.1 -> CP053892."""
+    a = acc.strip().replace("GCF_", "GCA_")
+    head, dot, tail = a.rpartition(".")
+    return head if dot and tail.isdigit() else a
+
+
+def assembly_keys(entries):
+    """entries: dicts with strain, genus and optional assembly_accession / total_bp. Returns {strain: (key, rule)}."""
+    key, rule = {}, {}
+    for e in entries:
+        acc = (e.get("assembly_accession") or "").strip(); s = e["strain"]
+        if acc:
+            key[s], rule[s] = fold_accession(acc), "assembly_accession"
+        elif s.startswith(("GCA_", "GCF_")):
+            key[s], rule[s] = fold_accession(s), "own GCA/GCF id"
+        else:
+            key[s], rule[s] = "id:" + fold_accession(s), "own id"
+    parent = {}
+    def find(k):
+        while parent.get(k, k) != k:
+            k = parent[k]
+        return k
+    first = {}
+    for e in entries:                                  # same genus + identical total length = one assembly
+        bp = (e.get("total_bp") or "").strip()
+        if not bp or bp == "0":
+            continue
+        slot, k = (e["genus"], bp), key[e["strain"]]
+        if slot not in first:
+            first[slot] = k; continue
+        a, b = find(first[slot]), find(k)
+        if a != b:
+            keep, drop = sorted((a, b), key=lambda x: (x.startswith("id:"), x))
+            parent[drop] = keep
+    return {s: (find(k), rule[s] + ("" if find(k) == k else f"; merged with {find(k)} (identical total_bp in genus)"))
+            for s, k in key.items()}
+
+
+BASES = ("assembly", "entry")
+
+
+def rarity_table(rows, n_genes, n_core, query_genus, totals, keys, count_by="assembly"):
+    """rows: target-region dicts (role, genus, target_strain, genes_matched, core_genes_matched).
+    totals: genus -> role -> set of strains (denominators). keys: strain -> assembly key."""
+    def cnt(strains, basis):
+        return len({keys.get(s, (s,))[0] for s in strains}) if basis == "assembly" else len(strains)
     hit = {k: defaultdict(lambda: defaultdict(set)) for k in ("all50", "core50", "core30")}
     best = defaultdict(lambda: defaultdict(float))
     for r in rows:
@@ -117,18 +173,25 @@ def rarity_table(rows, n_genes, n_core, query_genus, totals):
             best[g][k] = max(best[g][k], v)
             if role == "reference": best[g][k + "_pub"] = max(best[g][k + "_pub"], v)
     out, f = [], (lambda x: f"{x:.3f}")
-    for g in sorted(totals):
+    for g in sorted(set(totals) | set(hit["all50"]) | set(hit["core30"])):
         n = {k: (len(hit[k][g]["reference"]), len(hit[k][g]["SID"]), len(hit[k][g]["AS"])) for k in hit}
         if not (any(sum(v) for v in n.values()) or g == query_genus or best[g]["all"] >= 0.25):
             continue
-        row = {"genus": g, "core_genes_in_locus": n_core}
-        for k, lbl in (("all50", "ge50pct_genes"), ("core50", "ge50pct_core_genes"), ("core30", "ge30pct_core_genes")):
-            row[f"genomes_with_region_{lbl}_public"] = n[k][0]; row[f"genomes_with_region_{lbl}_SID"] = n[k][1]
-            row[f"genomes_with_region_{lbl}_ref_SID"] = n[k][0] + n[k][1]
-        row.update(public_genomes=totals[g]["reference"], SID_genomes=totals[g]["SID"],
-                   ref_SID_genomes=totals[g]["reference"] + totals[g]["SID"],
-                   AS_strains_with_region_ge50pct=n["all50"][2], AS_strains_with_region_ge50pct_core=n["core50"][2],
-                   AS_strains_with_region_ge30pct_core=n["core30"][2], other_AS_strains_in_genus=totals[g]["AS"],
+        row = {"genus": g, "core_genes_in_locus": n_core, "count_basis": count_by}
+        for basis in BASES:                            # both bases always reported; the main columns follow --count-by
+            sfx = f"_by_{basis}"
+            for k, lbl in (("all50", "ge50pct_genes"), ("core50", "ge50pct_core_genes"), ("core30", "ge30pct_core_genes")):
+                pub, sid = cnt(hit[k][g]["reference"], basis), cnt(hit[k][g]["SID"], basis)
+                both = cnt(hit[k][g]["reference"] | hit[k][g]["SID"], basis)
+                for s, v in (("public", pub), ("SID", sid), ("ref_SID", both)):
+                    row[f"genomes_with_region_{lbl}_{s}{sfx}"] = v
+                    if basis == count_by: row[f"genomes_with_region_{lbl}_{s}"] = v
+            den = (cnt(totals[g]["reference"], basis), cnt(totals[g]["SID"], basis), cnt(totals[g]["reference"] | totals[g]["SID"], basis))
+            for s, v in zip(("public_genomes", "SID_genomes", "ref_SID_genomes"), den):
+                row[s + sfx] = v
+                if basis == count_by: row[s] = v
+        row.update(AS_strains_with_region_ge50pct=n["all50"][2], AS_strains_with_region_ge50pct_core=n["core50"][2],
+                   AS_strains_with_region_ge30pct_core=n["core30"][2], other_AS_strains_in_genus=len(totals[g]["AS"]),
                    best_fraction_matched_in_genus=f(best[g]["all"]), best_fraction_matched_in_genus_public=f(best[g]["all_pub"]),
                    best_core_fraction_matched_in_genus=f(best[g]["core"]) if n_core else "",
                    best_core_fraction_matched_in_genus_public=f(best[g]["core_pub"]) if n_core else "")
@@ -140,8 +203,11 @@ RARITY_COLS = ["genus", "core_genes_in_locus"] + [f"genomes_with_region_{l}_{s}"
                                                    for s in ("public", "SID", "ref_SID")] + \
     ["public_genomes", "SID_genomes", "ref_SID_genomes", "AS_strains_with_region_ge50pct", "AS_strains_with_region_ge50pct_core",
      "AS_strains_with_region_ge30pct_core", "other_AS_strains_in_genus", "best_fraction_matched_in_genus",
-     "best_fraction_matched_in_genus_public", "best_core_fraction_matched_in_genus", "best_core_fraction_matched_in_genus_public"]
-TARGET_COLS = ["target_strain", "role", "genus", "target_region_file", "region_product", "genes_matched", "genes_in_locus",
+     "best_fraction_matched_in_genus_public", "best_core_fraction_matched_in_genus", "best_core_fraction_matched_in_genus_public",
+     "count_basis"] + [f"{c}_by_{b}" for b in BASES for c in
+                       [f"genomes_with_region_{l}_{s}" for l in ("ge50pct_genes", "ge50pct_core_genes", "ge30pct_core_genes")
+                        for s in ("public", "SID", "ref_SID")] + ["public_genomes", "SID_genomes", "ref_SID_genomes"]]
+TARGET_COLS = ["target_strain", "assembly_key", "role", "genus", "target_region_file", "region_product", "genes_matched", "genes_in_locus",
                "fraction_matched", "mean_identity_pct", "core_genes_matched", "core_genes_in_locus", "core_fraction_matched"]
 
 
@@ -199,20 +265,28 @@ def run(a):
                          fraction_matched=f"{len(hits) / n:.3f}", mean_identity_pct=f"{statistics.mean(hits.values()):.1f}",
                          core_genes_matched=cm, core_genes_in_locus=nc, core_fraction_matched=f"{cm / nc:.3f}" if nc else ""))
     rows.sort(key=lambda r: (-r["genes_matched"], -float(r["mean_identity_pct"]), r["target_strain"], r["target_region_file"]))
-    totals = defaultdict(lambda: defaultdict(int))
+    totals = defaultdict(lambda: defaultdict(set))
     if a.genome_table:
-        gt = read_tsv(a.genome_table); denom = "GENOME_TABLE"
-        for r in gt:
-            if r["source"] in ROLE and r["strain"] not in excluded: totals[r["genus"]][ROLE[r["source"]]] += 1
+        entries = [r for r in read_tsv(a.genome_table) if r["source"] in ROLE]; denom = "GENOME_TABLE"
     else:
         denom = "KIT_STRAINS"
-        for strain, (src, genus) in {r["strain"]: (r["source"], r["genus"]) for r in meta if r["source"] in ROLE}.items():
-            if strain not in excluded: totals[genus][ROLE[src]] += 1
+        entries = [dict(strain=s, source=src, genus=g) for s, (src, g) in
+                   {r["strain"]: (r["source"], r["genus"]) for r in meta if r["source"] in ROLE}.items()]
+    known = {e["strain"] for e in entries}
+    entries += [dict(strain=s, source=r["source"], genus=r["genus"]) for (s, _), r in region_of.items() if s not in known]
+    keys = assembly_keys(entries)
+    for e in entries:
+        if e["strain"] not in excluded and e["strain"] in known: totals[e["genus"]][ROLE[e["source"]]].add(e["strain"])
+    for r in rows: r["assembly_key"] = keys[r["target_strain"]][0]
+    write_tsv(os.path.join(a.out, "ASSEMBLY_KEYS.tsv"),
+              [dict(strain=e["strain"], role=ROLE[e["source"]], genus=e["genus"], assembly_key=keys[e["strain"]][0],
+                    rule=keys[e["strain"]][1], in_denominators="yes" if e["strain"] in known and e["strain"] not in excluded else "no")
+               for e in entries], ["strain", "role", "genus", "assembly_key", "rule", "in_denominators"])
     write_tsv(os.path.join(a.out, "TARGET_REGIONS.tsv"), rows, TARGET_COLS)
     write_tsv(os.path.join(a.out, "TOP5_PUBLIC_REFERENCE.tsv"), [r for r in rows if r["role"] == "reference"][:5], TARGET_COLS)
     write_tsv(os.path.join(a.out, "TOP5_REFERENCE.tsv"), [r for r in rows if r["role"] in ("reference", "SID")][:5], TARGET_COLS)
     write_tsv(os.path.join(a.out, "TOP3_AS.tsv"), [r for r in rows if r["role"] == "AS"][:3], TARGET_COLS)
-    write_tsv(os.path.join(a.out, "RARITY_BY_GENUS.tsv"), rarity_table(rows, n, nc, qgenus, totals), RARITY_COLS)
+    write_tsv(os.path.join(a.out, "RARITY_BY_GENUS.tsv"), rarity_table(rows, n, nc, qgenus, totals, keys, a.count_by), RARITY_COLS)
     write_tsv(os.path.join(a.out, "QUERY_GENES.tsv"),
               [dict(query_id=r["id"], locus_tag=r["locus_tag"], length_aa=len(seqs[r["id"]]), gene_kind=r["subtype"],
                     core_gene="yes" if r["id"] in core else "no") for r in query],
@@ -225,7 +299,10 @@ def run(a):
     receipt = dict(tool="locus_rarity_by_genus", version=__version__, utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
                    kit={"REGION_CDS.faa": sha256(faa), "REGION_CDS_META.tsv": sha256(mtsv)},
                    genome_table=(dict(path=a.genome_table, sha256=sha256(a.genome_table)) if a.genome_table else None),
-                   denominators=denom, diamond=version, query=dict(strain=a.query_strain, region=a.query_region, alias=a.alias,
+                   denominators=denom, count_by=a.count_by,
+                   counted=dict(entries=sum(len(v) for g in totals.values() for v in g.values()),
+                                assemblies=len({(role, keys[s][0]) for g in totals.values() for role, v in g.items() for s in v})),
+                   diamond=version, query=dict(strain=a.query_strain, region=a.query_region, alias=a.alias,
                    genus=qgenus, genes=n, core_genes=nc), excluded=sorted(excluded),
                    rule=dict(min_identity=a.min_identity, min_query_cover=a.min_query_cover, evalue=1e-5, mode="--more-sensitive",
                              core_gene_kinds=list(CORE_KINDS), MIBiG="left out of targets"),
@@ -242,6 +319,8 @@ def main(argv=None) -> int:
     ap.add_argument("--exclude", action="append", default=[]); ap.add_argument("--genome-table")
     ap.add_argument("--out", required=True); ap.add_argument("--diamond"); ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--min-identity", type=float, default=50.0); ap.add_argument("--min-query-cover", type=float, default=70.0)
+    ap.add_argument("--count-by", choices=BASES, default="assembly",
+                    help="what the main count columns count (default assembly); both are always reported")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     try:

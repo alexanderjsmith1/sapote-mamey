@@ -33,7 +33,9 @@ figure_id  <- if (length(args) >= 3 && nzchar(args[3])) args[3] else sub("_data$
 profile    <- if (length(args) >= 4) toupper(args[4]) else "SINGLE_COLUMN"
 title_arg  <- if (length(args) >= 5) args[5] else NA_character_
 
-here <- dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1]))
+script_path <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value=TRUE)[1])
+if (!file.exists(script_path)) script_path <- gsub("~+~", " ", script_path, fixed=TRUE)
+here <- dirname(script_path)
 source(file.path(here, "sapote_figure_theme.R"))
 
 manifest_path <- file.path(here, "FIGURE_R_MANIFEST.tsv")

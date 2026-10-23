@@ -20,6 +20,7 @@ def setup(tmp_path, label2="3 genomes|sequenced", photo_missing=False):
     return t
 
 
+@pytest.mark.needs_arial
 def test_renders_at_print_width_8pt(tmp_path):
     t = setup(tmp_path); out = tmp_path / "wf"
     assert m.main(["--stages", str(t), "--root", str(tmp_path), "--out", str(out)]) == 0

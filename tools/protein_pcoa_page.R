@@ -16,13 +16,15 @@ if (!identical(page$stamp, stamp)) stop("stamp mismatch: refusing to draw a spec
 source(page$min_text$layout); source(page$min_text$helper)
 page <- .pg$page; prefix <- .pg$prefix; stamp <- .pg$stamp; mt <- page$min_text; fs <- mt$min_text_pt
 lv <- c("ref", "mibig", "iso_low", "iso_mid", "iso_high")
+if (is.null(page$legend$mibig)) lv <- setdiff(lv, "mibig")   # no MIBiG point on the page: no MIBiG key
 if (!is.null(page$legend$iso_unknown)) lv <- c(lv, "iso_unknown")
 COL <- c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = "black", iso_mid = "#d6604d", iso_high = "#d6604d", iso_unknown = "#555555")
 FILL <- c(ref = "#b5b5b5", mibig = "#3a78b5", iso_low = "#b2182b", iso_mid = "#f4a582", iso_high = "white", iso_unknown = "white")
 panel <- function(sp) {
   pts <- as.data.frame(lapply(sp$points, unlist), stringsAsFactors = FALSE); pts$layer <- factor(pts$layer, levels = lv); pts <- pts[order(pts$layer), ]
   rps <- if (is.null(page$ref_point_scale)) 1 else as.numeric(page$ref_point_scale)   # --ref-point-scale (opt-in)
-  pts$ps <- ifelse(pts$layer %in% c("ref", "mibig"), rps * 0.17 * sqrt(3 + 1.5 * sqrt(pts$size)), 1.25)
+  cps <- if (is.null(page$cohort_point_scale)) 1 else as.numeric(page$cohort_point_scale)   # --cohort-point-scale (opt-in)
+  pts$ps <- ifelse(pts$layer %in% c("ref", "mibig"), rps * 0.17 * sqrt(3 + 1.5 * sqrt(pts$size)), 1.25 * cps)
   labs <- unlist(page$legend)[lv]
   if (isTRUE(page$legend_slot)) labs <- sub(", best", ",\nbest", labs, fixed = TRUE)   # 018c0f08_458: legend in a grid slot, two lines
   g <- ggplot(pts, aes(x, y)) +

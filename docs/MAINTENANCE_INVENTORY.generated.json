@@ -2,13 +2,13 @@
   "counts": {
     "command": 119,
     "companion": 22,
-    "document": 510,
+    "document": 511,
     "generated": 21,
     "optional-hook": 8,
-    "tool": 527
+    "tool": 550
   },
   "document_lifecycles": {
-    "CURRENT_NAVIGATION_DECLARED": 134,
+    "CURRENT_NAVIGATION_DECLARED": 135,
     "ENGINEERING_RECORD": 35,
     "GENERATED_OR_MANAGED_SURFACE": 22,
     "OPTIONAL_GUIDE": 4,
@@ -17,9 +17,9 @@
   },
   "inputs": [
     {
-      "bytes": 20548,
+      "bytes": 20785,
       "path": "CURRENT_DOCS_INDEX.md",
-      "sha256": "62637dc9cfe793e793eb3a285f33660f0a782bc53d8c74b01e3ab2cf0effa68e"
+      "sha256": "273d7a7a31b91ac57f1d39ae92ab866d24b2f534e16b0f22e7a949c4d27ee1e6"
     },
     {
       "bytes": 7937,
@@ -34,7 +34,7 @@
     {
       "bytes": 15037,
       "path": "docs/EXTERNAL_TOOL_INVENTORY.md",
-      "sha256": "d7bc9db4c88c0826fb60ceb0e749a837bc2cd1b75c5cdb5f6839eb9a22620dd3"
+      "sha256": "2b23d9c9f743f3ec02060b6b94368c587b3c3296cbf5bd056b52c701869a6d2c"
     },
     {
       "bytes": 89685,
@@ -44,17 +44,17 @@
     {
       "bytes": 57712,
       "path": "docs/GUIDE/01_User_Manual.md",
-      "sha256": "e269d7b7ce1d21e8141845d15b7a94a3bd7c28f91245908b0b5d68ce3a6353b4"
+      "sha256": "483b6191219b243fa370a27fbf2aa0c470ff09303e90f217182ee59eba6a09de"
     },
     {
       "bytes": 26462,
       "path": "docs/GUIDE/02_Quick_Guide.md",
-      "sha256": "13c39ed8ada6fdef6525500a44a9d91d387d7c033272df1a645ece721ec17d28"
+      "sha256": "b98e581b69c995c554ad344cad8721265751d7ca0f2f2179cf2b3d2643ff8f1e"
     },
     {
       "bytes": 100661,
       "path": "docs/GUIDE/06_Concepts_QandA.md",
-      "sha256": "f59b7f0c3da5fc33d0b2519bd2c0a11f41cc060c6e0bb0a498959ad235a08ea0"
+      "sha256": "4270bc830be371dd640ef9fe725d9a4361aa6bb3cd5e2acd61832fccb6da8618"
     },
     {
       "bytes": 8605,
@@ -62,9 +62,9 @@
       "sha256": "34af5d71eaea8ebfdec7f373238d492746213eabe4a5425dfefd135e61329ada"
     },
     {
-      "bytes": 10071,
+      "bytes": 10144,
       "path": "docs/PREREQUISITES.md",
-      "sha256": "222b55dfde4195086619b882d79575b121a266b1fae2f07ebbe89b8f8e7083d0"
+      "sha256": "e3ddd7e49283b375d0f02aea344e739be043a236e770422cfa9cc13533ce9d44"
     },
     {
       "bytes": 4349,
@@ -2395,9 +2395,9 @@
       "path": "CHANGELOG.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 66058,
+        "bytes": 69278,
         "path": "CHANGELOG.md",
-        "sha256": "04add196e2d0bf2028b2ce97dc18f0c4966ad67b39f135c5d35d7889f516f114"
+        "sha256": "808443f067998ec7e96c4d2176d49742527975f4c42f0d23b2992d5abe60733e"
       }
     },
     {
@@ -2439,9 +2439,9 @@
       "path": "CURRENT_DOCS_INDEX.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 20548,
+        "bytes": 20785,
         "path": "CURRENT_DOCS_INDEX.md",
-        "sha256": "62637dc9cfe793e793eb3a285f33660f0a782bc53d8c74b01e3ab2cf0effa68e"
+        "sha256": "273d7a7a31b91ac57f1d39ae92ab866d24b2f534e16b0f22e7a949c4d27ee1e6"
       }
     },
     {
@@ -3337,7 +3337,7 @@
       "source": {
         "bytes": 7110,
         "path": "docs/CLAUDE_CHATGPT_HANDOFF_PROTOCOL.md",
-        "sha256": "b876b51d6fcfde0692615e98c0b22f99cc12da77e113facfea1a779929f9b585"
+        "sha256": "558dafa4544b0ec27be55b5056fa46bd8a7d7fed7390445a986e4d94132d20b9"
       }
     },
     {
@@ -4045,7 +4045,7 @@
       "source": {
         "bytes": 15037,
         "path": "docs/EXTERNAL_TOOL_INVENTORY.md",
-        "sha256": "d7bc9db4c88c0826fb60ceb0e749a837bc2cd1b75c5cdb5f6839eb9a22620dd3"
+        "sha256": "2b23d9c9f743f3ec02060b6b94368c587b3c3296cbf5bd056b52c701869a6d2c"
       }
     },
     {
@@ -4139,9 +4139,9 @@
       "path": "docs/FIGURES_START_HERE.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 20123,
+        "bytes": 23262,
         "path": "docs/FIGURES_START_HERE.md",
-        "sha256": "e126329e4858d5307358fa95fe1be1a254f099b9b0d1e504b0eb39ddf543f685"
+        "sha256": "28f7de4cc256e3ca1f8724581a904cb1b5cd9746ea5d606c23eb605b5d82bb7f"
       }
     },
     {
@@ -4441,7 +4441,7 @@
       "source": {
         "bytes": 1946,
         "path": "docs/GUIDE/00_README.md",
-        "sha256": "5f6fc57a4b3adc246f57b1e55b1ca673e4b0d6239bc1994f4504e86de69595bc"
+        "sha256": "9ff43c23f96dfb94959e10a186acb22a57e3188eaed1711bae2f630fa86e3fe0"
       }
     },
     {
@@ -4457,7 +4457,7 @@
       "source": {
         "bytes": 57712,
         "path": "docs/GUIDE/01_User_Manual.md",
-        "sha256": "e269d7b7ce1d21e8141845d15b7a94a3bd7c28f91245908b0b5d68ce3a6353b4"
+        "sha256": "483b6191219b243fa370a27fbf2aa0c470ff09303e90f217182ee59eba6a09de"
       }
     },
     {
@@ -4473,7 +4473,7 @@
       "source": {
         "bytes": 26462,
         "path": "docs/GUIDE/02_Quick_Guide.md",
-        "sha256": "13c39ed8ada6fdef6525500a44a9d91d387d7c033272df1a645ece721ec17d28"
+        "sha256": "b98e581b69c995c554ad344cad8721265751d7ca0f2f2179cf2b3d2643ff8f1e"
       }
     },
     {
@@ -4521,7 +4521,7 @@
       "source": {
         "bytes": 100661,
         "path": "docs/GUIDE/06_Concepts_QandA.md",
-        "sha256": "f59b7f0c3da5fc33d0b2519bd2c0a11f41cc060c6e0bb0a498959ad235a08ea0"
+        "sha256": "4270bc830be371dd640ef9fe725d9a4361aa6bb3cd5e2acd61832fccb6da8618"
       }
     },
     {
@@ -4553,7 +4553,7 @@
       "source": {
         "bytes": 4877,
         "path": "docs/HOW_TO_USE.md",
-        "sha256": "efa03ca78591d72e6f8658938852346bb267b13093bd104f8379125d548ceec8"
+        "sha256": "c4bfbaab29faf367b2f78af08da5135c1496074e26b84d8f1d1e163d2ebd62c5"
       }
     },
     {
@@ -4775,9 +4775,9 @@
       "path": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 12831,
+        "bytes": 14554,
         "path": "docs/LLM_COMPANION_TOOL_PROTOCOL.md",
-        "sha256": "d43acc827ffe716883b7bc6e249029731211f9ae3bb1de09e781d348309ece52"
+        "sha256": "7d8f9ced719a1b536fd71c51a7809758e29f3264dcdab540dd36108411168e27"
       }
     },
     {
@@ -4807,9 +4807,9 @@
       "path": "docs/LOCUS_AND_PCOA_TOOLS.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 23148,
+        "bytes": 27143,
         "path": "docs/LOCUS_AND_PCOA_TOOLS.md",
-        "sha256": "bab855daa9fbc1b3480d5db4fc45f5d584434703eae0049476456bf61976e80b"
+        "sha256": "9c5c0ed726c011d3052f78f29d694647871829a824f1a11aca8226a432aab5c9"
       }
     },
     {
@@ -4871,6 +4871,22 @@
       ],
       "path": "docs/MAINTENANCE_INVENTORY.generated.md",
       "regeneration_rule": "Use the linked generated owner; edit only its maintained inputs or explicitly maintained prose."
+    },
+    {
+      "id": "document:docs/MANUSCRIPT_REVISION_WORKFLOW.md",
+      "kind": "document",
+      "lifecycle": "CURRENT_NAVIGATION_DECLARED",
+      "linked_from_current_index": true,
+      "owner_paths": [
+        "docs/MANUSCRIPT_REVISION_WORKFLOW.md"
+      ],
+      "path": "docs/MANUSCRIPT_REVISION_WORKFLOW.md",
+      "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
+      "source": {
+        "bytes": 12139,
+        "path": "docs/MANUSCRIPT_REVISION_WORKFLOW.md",
+        "sha256": "d6006b2a50f3623428df9a797911d76fd4644defa66cc81ff81fc6552d2ad40f"
+      }
     },
     {
       "generated_owner_id": "generated:marker_catalog",
@@ -5873,7 +5889,7 @@
       "source": {
         "bytes": 23917,
         "path": "docs/PLAYBOOK.md",
-        "sha256": "6fac7e480b17220e4952280fa3b7843639a9f017baff36fe41ed966f5b1f96e9"
+        "sha256": "83b1a30bb0e9627e0956272009b8fa9f35209c1c1c67dfc1d1619e85014695a5"
       }
     },
     {
@@ -5935,9 +5951,9 @@
       "path": "docs/PREREQUISITES.md",
       "regeneration_rule": "Edit this maintained document; regenerate maintenance navigation. Semantic currentness needs content review.",
       "source": {
-        "bytes": 10071,
+        "bytes": 10144,
         "path": "docs/PREREQUISITES.md",
-        "sha256": "222b55dfde4195086619b882d79575b121a266b1fae2f07ebbe89b8f8e7083d0"
+        "sha256": "e3ddd7e49283b375d0f02aea344e739be043a236e770422cfa9cc13533ce9d44"
       }
     },
     {
@@ -6145,7 +6161,7 @@
       "source": {
         "bytes": 13007,
         "path": "docs/RELEASE_CHECKLIST_v9.md",
-        "sha256": "ad0aee3c789f302b49574c62f07d7e5864c637202b775d878dfe6a5a5c4bb108"
+        "sha256": "088d20856412312a491526ff9a976cf523806a891fcae56278d2c11e6dcdc158"
       }
     },
     {
@@ -7057,7 +7073,7 @@
       "source": {
         "bytes": 272,
         "path": "docs/TIER_NOTE_CODE.md",
-        "sha256": "0860c391903005c07af3f68f71e63e106580b5e08151737ff94bf6b6b90e66d4"
+        "sha256": "78e75a35039d609a287ec5e1636055af56b86883cfddab819e7fd2f31ca1967c"
       }
     },
     {
@@ -7073,7 +7089,7 @@
       "source": {
         "bytes": 7000,
         "path": "docs/TIER_SET_EXPLAINER.md",
-        "sha256": "8c187529036a7fb5b096c2aabd03fab0ff8f6e81c0e8344a324822f1c9d08e1b"
+        "sha256": "47cf9e57e39fbba3e05f156420491d819045bc465d674c7974fe949f8303e38a"
       }
     },
     {
@@ -7865,7 +7881,7 @@
       "source": {
         "bytes": 7684,
         "path": "docs/development/METHODS_IMPLEMENTATION_SOURCE_MAP.md",
-        "sha256": "bb6867ee1a0255a44a407b505c520bf96462e0625ca2c53b89f6468b5b20535d"
+        "sha256": "2740fcdf6f0c08711eb2d2d4dc8a92d7d75bd521ab64bfd3afa77afc08c5b216"
       }
     },
     {
@@ -8905,7 +8921,7 @@
       "source": {
         "bytes": 33287,
         "path": "docs/reference/01_Math_Reference_VolI.md",
-        "sha256": "b61e4268bc2485b6f9ca0e479a4969efe99c46963e05ba7a7f3c475b4c20edc9"
+        "sha256": "6a2b3981363ab1e0b0bfee2b81795a69fef5a692a56f9e21b709b4d955be9099"
       }
     },
     {
@@ -8921,7 +8937,7 @@
       "source": {
         "bytes": 161576,
         "path": "docs/reference/02_Math_Reference_VolII.md",
-        "sha256": "4e546ec458f6658c9f8c79158a9994c92ffdad007cc3a55553c8e7871e465de7"
+        "sha256": "9172ccd2bb79d722e9ee2e584e273af17dbd9ccf37bec2bb3f2addfe68aff466"
       }
     },
     {
@@ -8937,7 +8953,7 @@
       "source": {
         "bytes": 147587,
         "path": "docs/reference/03_Plumbing_Reference.md",
-        "sha256": "8b92d34ddc6ea7e3f5fb51c8d6bbeb84ad2093ec10e744488e1d15ff82bcc731"
+        "sha256": "95084b40acffc8ef8c0e56d71adaa2074ea321d1f9dabf0127d0d836b5ce14c2"
       }
     },
     {
@@ -9017,7 +9033,7 @@
       "source": {
         "bytes": 7266,
         "path": "docs/reference/METHODS_TECHNICAL_APPENDIX.md",
-        "sha256": "066471c67205f7e13f0c87488045debacd1648e78c071b813e8dfdc4c0bae1c8"
+        "sha256": "d31467d93fdb3085916c700affbca3108d9e1e1e7a11b02f97b20178054e3d37"
       }
     },
     {
@@ -9305,7 +9321,7 @@
       "source": {
         "bytes": 2314,
         "path": "docs/standalone/CHATGPT_BATCH_PROTOCOL.md",
-        "sha256": "61d2e141d9313fbb16a14759190e5dc0e24b3a1a5ad449a007873cab7d7d907f"
+        "sha256": "d0ea9aa2560008e51c0a565b07cbd548943b11991e00cd273e3881747f71df80"
       }
     },
     {
@@ -9337,7 +9353,7 @@
       "source": {
         "bytes": 2306,
         "path": "docs/standalone/RUN_MAMEY_IN_CHATGPT.md",
-        "sha256": "8bc3688d7b828457d6e016e1773ca0006d57558e2db08f417a70e4d1700d1a67"
+        "sha256": "827fe5f137019b9c5ff88a2a28092c7cf848e80feec7b7595c30135f1db97cc2"
       }
     },
     {
@@ -9353,7 +9369,7 @@
       "source": {
         "bytes": 8447,
         "path": "docs/templates/MANUSCRIPT_METHODS_IMPLEMENTATION_TEMPLATE.md",
-        "sha256": "2c94e3d27640b3cc9ea0d330c456c0588db878b9370363eeb8d9dcb08b9b8884"
+        "sha256": "8c3d5454859695ec13c05d951442925b3908f03dbb1932cf236563fd754396c8"
       }
     },
     {
@@ -9577,7 +9593,7 @@
       "source": {
         "bytes": 114915,
         "path": "docs/user_guides/comprehensive_glossary.md",
-        "sha256": "3f0f50f9fbf8804d838c900f51efb788bbedfc1c15d103edf752cbd6e592ecf8"
+        "sha256": "7dd2d163694b592a821a74b96330e8827c57edfbe1aa0da735e4e668d01dd389"
       }
     },
     {
@@ -9641,7 +9657,7 @@
       "source": {
         "bytes": 59881,
         "path": "docs/user_guides/operational_reference.md",
-        "sha256": "0cbb146340d1fcf3ff3f79dcc59ba07ad0b1a42062d857d83ff8fb653abe4c51"
+        "sha256": "511fb73c20b8c25c85cb1e60080794873ce1f61fa572b434f33b2d91224a99ef"
       }
     },
     {
@@ -9657,7 +9673,7 @@
       "source": {
         "bytes": 3204,
         "path": "docs/user_guides/sapote_kernel_guide.md",
-        "sha256": "107e5ac047acd150d7faefb6c4beed81723616747777e1b2a33d54a42f449698"
+        "sha256": "b71afeddce201cdbcec77bc116cc7c9a34922881085e1a68d8799d37415e3ded"
       }
     },
     {
@@ -9833,7 +9849,7 @@
       "source": {
         "bytes": 5466,
         "path": "wiki/Audience-Start-Paths.md",
-        "sha256": "bdc1006543bb48a0bec2057ad9bab43ff74e42ea9115f48ae725b949e8e73d94"
+        "sha256": "14fcbbce0e96085768bf157fccaa06a2d149400a2f6874415af008f5a64365a7"
       }
     },
     {
@@ -10177,7 +10193,7 @@
       "source": {
         "bytes": 9087,
         "path": "wiki/Encyclopedia.md",
-        "sha256": "dd989ffbfdcffcbbb39d8f80fe278c8ae0f2f31c962abc365d2beb49d8205c87"
+        "sha256": "04a80847c4bc46151c3946abbf6ffa90d4f09627b8647247af876111c5658163"
       }
     },
     {
@@ -10249,7 +10265,7 @@
       "source": {
         "bytes": 4138,
         "path": "wiki/Home.md",
-        "sha256": "106ca7de0b2a8e9d2efe59300f0f36eaefdcf13aa6e62cd4c8d35debf48488bb"
+        "sha256": "23c696e81fdd67dde2e42fe8c3ddbcd531e6f75fe0fb5009a098e25d07ea6bb9"
       }
     },
     {
@@ -10265,7 +10281,7 @@
       "source": {
         "bytes": 14478,
         "path": "wiki/Mode-B-Gene-First-and-48-Section-Manual.md",
-        "sha256": "252a19684fae60e5587615f067184fa6b0a7ae4a3ea4064103b6025b601117f1"
+        "sha256": "4c842164b01de5ab5672582298c56c566b4a1629eff99e2d84234b454fd7c8ef"
       }
     },
     {
@@ -10349,7 +10365,7 @@
       "source": {
         "bytes": 19810,
         "path": "wiki/Researcher-Recipes.md",
-        "sha256": "26da710a4f745907db2f987d1f7a002e2600746ec7238e626410421d0b9e3632"
+        "sha256": "361c71757bf018b65b7aac15be6afd20ed5e2e6b52ebf63517d19789b39067e6"
       }
     },
     {
@@ -10425,7 +10441,7 @@
       "source": {
         "bytes": 23504,
         "path": "wiki/What-It-Does-and-Limitations.md",
-        "sha256": "f680674c28d45ca736605955c44e378fd5b3064ac2bc3cb1516debacd19f0cd6"
+        "sha256": "463ae534e32c0a3e49ba576fe127aab83ef0bfeed50b847fcb075c8c98026c0f"
       }
     },
     {
@@ -10441,7 +10457,7 @@
       "source": {
         "bytes": 1416,
         "path": "wiki/_Sidebar.md",
-        "sha256": "dbdfa4e96949a80eefabafb8b48ab0b6d1d12a4759ada8d107361440707f4897"
+        "sha256": "bbfa1b216296591c41703b9352bf60c50368fd62ebd51b4aef84f95e0c996f59"
       }
     },
     {
@@ -10987,6 +11003,20 @@
       }
     },
     {
+      "id": "tool:tools/_figure_route_common.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/_figure_route_common.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 4161,
+        "path": "tools/_figure_route_common.py",
+        "sha256": "017544f7ba9e1008a1cbdc75114bef93015022c94f2d7873da175962ae6f196c"
+      }
+    },
+    {
       "id": "tool:tools/_gtotree_runtime.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -11043,6 +11073,20 @@
       }
     },
     {
+      "id": "tool:tools/_manuscript_revision_docx.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/_manuscript_revision_docx.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 2698,
+        "path": "tools/_manuscript_revision_docx.py",
+        "sha256": "304e11499a32c10572838e42dea8097d243098675dc63e76fd8d9541fe76bdb1"
+      }
+    },
+    {
       "id": "tool:tools/_map_export.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -11065,9 +11109,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 13824,
+        "bytes": 14570,
         "path": "tools/_min_text_check.py",
-        "sha256": "7f3ddcd428c8e4a56526c0aeba17e8fa95a257990908d368b03dd0521d3946c2"
+        "sha256": "0b125d59cd5b8b1140164d449c174d9336f96e8a7b8363db8f6342758f79b822"
       }
     },
     {
@@ -11373,9 +11417,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 7140,
+        "bytes": 7205,
         "path": "tools/antismash_input_genome.py",
-        "sha256": "350394e9f1cba4b0ff260f1d68f3bf755ffbb71b0932fe6e2ee84c6c7fe5b0b5"
+        "sha256": "445f85f0c3d462e68eb0e5b595af3b230252ee7d2fa991e91a5700e208315b38"
       }
     },
     {
@@ -12009,6 +12053,34 @@
       }
     },
     {
+      "id": "tool:tools/bigscape_seeded.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/bigscape_seeded.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 3242,
+        "path": "tools/bigscape_seeded.py",
+        "sha256": "6e12b9eb8717ff71c81966ff50f9d73ce6b3eb4c6513740ae93f4798231f93cb"
+      }
+    },
+    {
+      "id": "tool:tools/bigslice_overview_figure.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/bigslice_overview_figure.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 3198,
+        "path": "tools/bigslice_overview_figure.py",
+        "sha256": "4b14139a356823c0250a44d79d8d988981a60750a835024c13d91ef129dda8fc"
+      }
+    },
+    {
       "id": "tool:tools/bigslice_query.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -12135,6 +12207,20 @@
       }
     },
     {
+      "id": "tool:tools/bioassay_paper_set.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/bioassay_paper_set.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 5601,
+        "path": "tools/bioassay_paper_set.py",
+        "sha256": "0f7a76b82a47fb94d6d1bb2d3f6898668051a01f8a3cc3f4936953f87999f9c6"
+      }
+    },
+    {
       "id": "tool:tools/bioassay_plate_map.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -12146,6 +12232,20 @@
         "bytes": 7646,
         "path": "tools/bioassay_plate_map.py",
         "sha256": "0246b7b8794984f3ced51ea3337229261ac2fedabf8abb1431e474876e86b727"
+      }
+    },
+    {
+      "id": "tool:tools/bioassay_route_records.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/bioassay_route_records.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 5354,
+        "path": "tools/bioassay_route_records.py",
+        "sha256": "7e51b1ff2754e6fa587680fe6dd9ac293c5892104b8c550bd3dbc292a79240a3"
       }
     },
     {
@@ -14179,6 +14279,20 @@
       }
     },
     {
+      "id": "tool:tools/comparison_map_pages.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/comparison_map_pages.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 38861,
+        "path": "tools/comparison_map_pages.py",
+        "sha256": "765f95b7754ba154a009d479db72d8e8d9c4c02c24095459390a2e5c7ff4e757"
+      }
+    },
+    {
       "id": "tool:tools/compilation_gate.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -14218,6 +14332,20 @@
         "bytes": 68059,
         "path": "tools/corason_adapter.py",
         "sha256": "82b60cd8e3566008d698581312e0afb71fc61764dc7f0bd6bfcef092e0f50362"
+      }
+    },
+    {
+      "id": "tool:tools/core_aa_by_class.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/core_aa_by_class.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 4856,
+        "path": "tools/core_aa_by_class.py",
+        "sha256": "b63138c28afd6b4fff6c16c3b90e9db9f97f7bf2959b0a3cbd8809d1377e5dbb"
       }
     },
     {
@@ -14375,6 +14503,20 @@
       }
     },
     {
+      "id": "tool:tools/edge_plot_data.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/edge_plot_data.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 1894,
+        "path": "tools/edge_plot_data.py",
+        "sha256": "4831c00d25e0ff2b76831de93af7048c4df53e119bff44c575e7a2ed907f7702"
+      }
+    },
+    {
       "id": "tool:tools/emit_modeb_template_full50.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -14512,6 +14654,34 @@
         "bytes": 8954,
         "path": "tools/extract_module_core_domains.py",
         "sha256": "b2ccedd5a22fe0fcdd266ce02f9d7a0626e2efcc88bb580a02d371fee9ed5300"
+      }
+    },
+    {
+      "id": "tool:tools/family_network_page.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/family_network_page.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 7985,
+        "path": "tools/family_network_page.py",
+        "sha256": "6dd5158fd482a99b357012e9c9bc1ee42838097e9f9f91bdcbcd5edc7f276cf3"
+      }
+    },
+    {
+      "id": "tool:tools/family_rarity_by_window.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/family_rarity_by_window.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 16017,
+        "path": "tools/family_rarity_by_window.py",
+        "sha256": "3264ebc5235948a67fc68f7684e4f9da1714707bb13aa8658009e1400e8e6307"
       }
     },
     {
@@ -14733,9 +14903,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 45932,
+        "bytes": 47897,
         "path": "tools/gap_directed_rescue.py",
-        "sha256": "fb60bdec0c400f7e47fbfbb061fc9b82725cca1dc21b2a5c389e26cd292321d9"
+        "sha256": "76ddcf141b7c05e33d079755f1026610af912d97cfb3c223a2e04b0f407894fd"
       }
     },
     {
@@ -14775,9 +14945,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 105010,
+        "bytes": 109287,
         "path": "tools/gap_rescue_locus_map.py",
-        "sha256": "65be4012f28b0ba129cc5a4d24a6fc1a5d8d31ab090fbde01c850423795630a4"
+        "sha256": "bf0e4fc27f61651fe67340b11dccc1a7c20755b88a6663f4dd9c2b0d42a282c9"
       }
     },
     {
@@ -14817,9 +14987,23 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 10994,
+        "bytes": 11371,
         "path": "tools/gate_stem_aware.py",
-        "sha256": "d1be029ef3dac48acee2a7fd0d11e48158bd092eb5a0649e28db73dd46a34481"
+        "sha256": "16372e359d93716a756293e68ef779fc07e12afd7e59fdea371c6f32b1a9f5d7"
+      }
+    },
+    {
+      "id": "tool:tools/gecco_cohort_report.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/gecco_cohort_report.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 35690,
+        "path": "tools/gecco_cohort_report.py",
+        "sha256": "04006cfb05aae4c5e073a7bca2a46e1ea47d6bdea39826b115612a97480b5939"
       }
     },
     {
@@ -15145,6 +15329,20 @@
       }
     },
     {
+      "id": "tool:tools/hplc_trace_panels.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/hplc_trace_panels.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 27617,
+        "path": "tools/hplc_trace_panels.py",
+        "sha256": "3f4ee9493199bca17e74b4c8a00cf22eb7c9b509c8730c07d3f0b83ab20facdf"
+      }
+    },
+    {
       "id": "tool:tools/hub_merge.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -15170,6 +15368,20 @@
         "bytes": 21186,
         "path": "tools/identifier_source_roles.py",
         "sha256": "fdad29e198aaae7c40b746fbd3c6244e0beedae59e52d2d4adfecd3c0d723402"
+      }
+    },
+    {
+      "id": "tool:tools/in_vivo_paired_dose.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/in_vivo_paired_dose.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 4107,
+        "path": "tools/in_vivo_paired_dose.py",
+        "sha256": "d73e70fbd5c910d38b84913f732d851d788f516b27409ac10be6c0ef592fb880"
       }
     },
     {
@@ -15397,6 +15609,34 @@
       }
     },
     {
+      "id": "tool:tools/locus_figure_pages.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/locus_figure_pages.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 10428,
+        "path": "tools/locus_figure_pages.py",
+        "sha256": "c567057ba225ebfe8b1edb547542091a2d057c1651c56b55f3b78a4d01eb9ccd"
+      }
+    },
+    {
+      "id": "tool:tools/locus_protein_space_pages.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/locus_protein_space_pages.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 10653,
+        "path": "tools/locus_protein_space_pages.py",
+        "sha256": "f5812f6ff8fe7a5950c9f944af4c693c9952a52c32a3a0a86417f45d98fd2bc5"
+      }
+    },
+    {
       "id": "tool:tools/locus_rarity_by_genus.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -15405,9 +15645,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 15229,
+        "bytes": 20328,
         "path": "tools/locus_rarity_by_genus.py",
-        "sha256": "ad0210b915114ebb49b62c126c8ab91bfa7f79cfab83215c648ef8ab117e0079"
+        "sha256": "4e50e9decf5b604b6d276462c20b79b428525b8797005709777d3d342da1fcad"
       }
     },
     {
@@ -15565,6 +15805,20 @@
       }
     },
     {
+      "id": "tool:tools/manuscript_revision.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/manuscript_revision.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 32268,
+        "path": "tools/manuscript_revision.py",
+        "sha256": "ba350cdec5aaa51f4d364e8863148e25ee94b808f1d12114e3fcc4f0866852e8"
+      }
+    },
+    {
       "id": "tool:tools/marker_candidate_search.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -15590,6 +15844,20 @@
         "bytes": 7528,
         "path": "tools/materialize_strain_data.py",
         "sha256": "977709113758c5061d46f9836055c17f2c05377fc09a0145c4814d08a360a1e4"
+      }
+    },
+    {
+      "id": "tool:tools/max4_tree_figure.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/max4_tree_figure.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 25868,
+        "path": "tools/max4_tree_figure.py",
+        "sha256": "1367e18d74b3ef4249aa84e1318c0cd2f9e848e21c68de137bc3bf5a6e1e4927"
       }
     },
     {
@@ -15713,9 +15981,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 56440,
+        "bytes": 86733,
         "path": "tools/multi_reference_comparison.py",
-        "sha256": "0d4308a70c9f252299d7102ab111b9128d0298a3b1177e098be548aca94be27b"
+        "sha256": "23a007aa4261adbf885faca23e522387b902e4cf55724d6c514810c3cf3e0cd5"
       }
     },
     {
@@ -15758,6 +16026,20 @@
         "bytes": 17847,
         "path": "tools/neighbour_panel_candidates.py",
         "sha256": "be9ce42398b8fe063891347f8f900f4e8b3c8f743d6f3f6c52c90986f9ebafd3"
+      }
+    },
+    {
+      "id": "tool:tools/novel_and_active_figure.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/novel_and_active_figure.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 22596,
+        "path": "tools/novel_and_active_figure.py",
+        "sha256": "86497dc6fd4eb241b10640f7d923ee55ecc46bec287905606b20fa4674c74236"
       }
     },
     {
@@ -16335,6 +16617,20 @@
       }
     },
     {
+      "id": "tool:tools/placement_tree_pages.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/placement_tree_pages.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 2739,
+        "path": "tools/placement_tree_pages.py",
+        "sha256": "b1f874e8b25de38730fc0d05df2405ae9b26ba9f427bf97c7ce75d5edfceaaa4"
+      }
+    },
+    {
       "id": "tool:tools/plan_gtotree_iqtree.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -16539,9 +16835,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 110230,
+        "bytes": 111156,
         "path": "tools/protein_pcoa_render.py",
-        "sha256": "54166d33af432bfeef86e39c121be301aae120efb6c072cc8f92e01438579646"
+        "sha256": "67f99787656ff04ebf092b9a5750e69e91999ce8a368e3e3bd6639e399a51f20"
       }
     },
     {
@@ -16777,9 +17073,37 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 5216,
+        "bytes": 5810,
         "path": "tools/region_edge_totals.py",
-        "sha256": "e4b37dfc9de75d2e6b7cbd10429484bf0aa150c4fc6148b0279ceea3d85bfd8e"
+        "sha256": "e20c5b430223fb08c69861be71afc4711cc9d117deb6234d4d95cee37dd46457"
+      }
+    },
+    {
+      "id": "tool:tools/region_identity_dotplot.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/region_identity_dotplot.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 5792,
+        "path": "tools/region_identity_dotplot.py",
+        "sha256": "9837ea6543f0a8e498aec254366bc4663af6c218372aec230f54fb10f1d5c58f"
+      }
+    },
+    {
+      "id": "tool:tools/region_presence_survey.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/region_presence_survey.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 16034,
+        "path": "tools/region_presence_survey.py",
+        "sha256": "2feb6858ae32b0f67aac430f7c890fd1d272d32aaa26445c1cca7ef3bc84abe7"
       }
     },
     {
@@ -16791,9 +17115,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 15525,
+        "bytes": 17211,
         "path": "tools/region_protein_by_genus.py",
-        "sha256": "cb399366400125a0d8e5bef970e900bbe51dd0fb66226ec19a123ce73cc2124c"
+        "sha256": "7f6559e62f2042b6aa3e89197a7a985f299f2bd5911dd2bbc7e28118276d07f9"
       }
     },
     {
@@ -17113,9 +17437,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 45699,
+        "bytes": 45942,
         "path": "tools/repo_health.py",
-        "sha256": "900ff1e2b6bf8e7d04c4ec1ea60247218d7948239423371bd9d093b08d33d64f"
+        "sha256": "8aabf61b97736457a60cfd228c7b51c8d3cd690cb873e29f9cfaff8baf5e939b"
       }
     },
     {
@@ -17623,6 +17947,20 @@
       }
     },
     {
+      "id": "tool:tools/september_figure.py",
+      "kind": "tool",
+      "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
+      "owner_paths": [
+        "tools/september_figure.py"
+      ],
+      "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
+      "source": {
+        "bytes": 1785,
+        "path": "tools/september_figure.py",
+        "sha256": "5003ffbe3f26c8f0cf8f6b5d9efc1a2baafcb00871141b46081495602e97d2b8"
+      }
+    },
+    {
       "id": "tool:tools/session_checklist.py",
       "kind": "tool",
       "lifecycle": "SOURCE_DISCOVERED_REVIEW_HOLD",
@@ -17855,9 +18193,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 13262,
+        "bytes": 13948,
         "path": "tools/taxonomy_T01_figures.py",
-        "sha256": "83a7bffc8d60a049dc5109f2d2496d64c2075d679aa7afcb435a98e83c12d29a"
+        "sha256": "a2fc4fa8731578f778c24f817c2b9028e710b62048434b7478271d238cf9c50a"
       }
     },
     {
@@ -17883,9 +18221,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 12405,
+        "bytes": 15980,
         "path": "tools/taxonomy_T05_figures.py",
-        "sha256": "3c2fd1eef75ec6a5e3b94081592c2616778d616e7d2e83bae0fc25f23d3a6263"
+        "sha256": "b5372b66d96cd8933c43d2b9f5bc6cb2c4f20682a3afcf5f01260cb0f2dca45e"
       }
     },
     {
@@ -18219,9 +18557,9 @@
       ],
       "regeneration_rule": "Edit this source; regenerate tools and maintenance inventories. Discovery does not establish a supported entry point.",
       "source": {
-        "bytes": 11647,
+        "bytes": 12381,
         "path": "tools/verify_external_validation_receipt.py",
-        "sha256": "0af9f8f8a82103e4878e812195c7427fb4727619605520283d473a68594d5e6c"
+        "sha256": "66189bafd513035477f7223aded76fecf312da96e803ed3266325862f90c6011"
       }
     },
     {

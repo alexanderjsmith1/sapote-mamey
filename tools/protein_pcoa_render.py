@@ -722,20 +722,28 @@ def build_panel(a, s, rows, near, run, cohorts, panel, cohort_set, colour, label
     return receipt
 
 
-def page_legend(a, leg, n_ref_genomes=None):
-    '''Bee Fig. S9 shared-legend wording (build_pcoa_figures.py legend_handles), plus the reference genome count (M5_452 P4).'''
+def page_legend(a, leg, n_ref_genomes=None, has_mibig=True):
+    '''Bee Fig. S9 shared-legend wording (build_pcoa_figures.py legend_handles), plus the reference genome count (M5_452 P4).
+    A page with no MIBiG point in any panel (has_mibig False) has no MIBiG key, and its identity tiers say "best reference match".'''
     who = (a.panel_label[0].split("=", 1)[1] if a.panel_label else "cohort protein")
     ref = (getattr(a, "reference_label", None)
            or (f"reference genomes, n = {n_ref_genomes:,} (cluster centroids)" if n_ref_genomes else "reference genomes (cluster centroids)"))
-    out = dict(ref=ref, mibig="MIBiG characterized clusters",
-               iso_low=f"{who}, best reference/MIBiG match < {a.label_below:.0f}% identity")
+    match = "reference/MIBiG" if has_mibig else "reference"
+    out = dict(ref=ref, iso_low=f"{who}, best {match} match < {a.label_below:.0f}% identity")
+    if has_mibig:
+        out["mibig"] = "MIBiG characterized clusters"
     top = a.mid_below if a.mid_below is not None else a.label_below
     if a.mid_below is not None:
-        out["iso_mid"] = f"{who}, best reference/MIBiG match {a.label_below:.0f}–{a.mid_below:.0f}% identity"
-    out["iso_high"] = f"{who}, best reference/MIBiG match ≥ {top:.0f}% identity"
+        out["iso_mid"] = f"{who}, best {match} match {a.label_below:.0f}–{a.mid_below:.0f}% identity"
+    out["iso_high"] = f"{who}, best {match} match ≥ {top:.0f}% identity"
     if leg.get("iso_unknown"):
-        out["iso_unknown"] = f"{who}, best reference/MIBiG identity unavailable"
+        out["iso_unknown"] = f"{who}, best {match} identity unavailable"
     return out
+
+
+def _page_has_mibig(panels):
+    """True when any panel of the page holds a MIBiG point (all points, not only the zoomed ones)."""
+    return any(p["layer"] == "mibig" for b in panels for p in b["spec"].get("points_all", b["spec"]["points"]))
 
 
 def point_radius_pt(size_mm, stroke=0.35):
@@ -988,7 +996,7 @@ def build_page(a, s, rows, near, run, cohorts, emb_tables, admitted, colours, la
     cohort_strains = {p["strain"] for b in full for p in b["cpts"]}
     n_ref_genomes = len({r["strain"] for r in meta if r.get("strain") and r.get("source") not in ("isolate", "MIBiG")
                          and r["strain"] not in cohort_strains})
-    legend = page_legend(a, full[0]["spec"]["legend"], n_ref_genomes)
+    legend = page_legend(a, full[0]["spec"]["legend"], n_ref_genomes, has_mibig=_page_has_mibig(full))
     lims = []
     for b in full:
         xs = [p["x"] for p in b["spec"]["points"]]; ys = [p["y"] for p in b["spec"]["points"]]
@@ -1137,7 +1145,7 @@ def build_grid_page(a, entries, cohorts, admitted, colours, labels, titles, out,
     for strain, coh in cohorts.items():
         if coh in cohort_set and strain not in genome_no:
             genome_no[strain] = len(genome_no) + 1
-    legend = page_legend(a, full[0]["spec"]["legend"], None)
+    legend = page_legend(a, full[0]["spec"]["legend"], None, has_mibig=_page_has_mibig(full))
     n_ref_genomes = []
     for b, e in zip(full, entries):
         cs_ = {p["strain"] for p in b["cpts"]}
@@ -1180,6 +1188,7 @@ def build_grid_page(a, entries, cohorts, admitted, colours, labels, titles, out,
                     legend=legend, leader_colour="#555555", label_box=bool(getattr(a, "label_over_reference", False)),
                     legend_slot=bool(getattr(a, "legend_in_empty_slot", False)),
                     **({"ref_point_scale": a.ref_point_scale} if getattr(a, "ref_point_scale", None) else {}),
+                    **({"cohort_point_scale": a.cohort_point_scale} if getattr(a, "cohort_point_scale", None) else {}),
                     panels=[dict(tag=b["spec"]["tag"], xlab=b["spec"]["xlab"], ylab=b["spec"]["ylab"], **lims[c],
                                  points={k: col(b["spec"]["points"], k) for k in ("x", "y", "layer", "size")},
                                  labels={k: [l[k] for l in labs[c]] for k in ("x", "y", "label", "hjust", "vjust", "sx", "sy", "face")})
@@ -1372,6 +1381,9 @@ def main(argv=None) -> int:
                     help="with --page-grid: labels may cover reference/MIBiG centroids (drawn on a white box); never cohort points, labels or leaders")
     ap.add_argument("--ref-point-scale", type=float, default=None, metavar="X",
                     help="grid pages: draw reference and MIBiG points X times their default size (default 1; sparse sets read better at 2)")
+    ap.add_argument("--cohort-point-scale", type=float, default=None, metavar="X",
+                    help="grid pages: draw the cohort (isolate) points X times their default size (default 1); a locus page uses 2.5 "
+                         "so its few proteins stand out from the reference cloud")
     ap.add_argument("--legend-in-empty-slot", action="store_true",
                     help="with --page-grid: when the last row has an empty slot, the shared legend goes there (two-line entries)")
     ap.add_argument("--panel-height", type=float, default=None, help="with --page-grid: panel height in inches (default 3.6)")

@@ -87,10 +87,11 @@ testpaths = ["tests", "tools", "deliverable_tools"]
 markers = [
     "slow: slow test (matplotlib figure/plot rendering, cohort builds); deselected unless --run-slow",
     "network: needs live network; deselected unless --run-network (no test needs this today — the online-BLASTp tests are hermetic/monkeypatched — so this is future-proofing)",
+    "needs_arial: layout/fit checks that need real Arial metrics; skipped where matplotlib finds no font named Arial (a Linux runner with Liberation Sans). They run on the M3 and in the cut",
     "public: hermetic invariants safe for the public GitHub release (no cohort data, no personal paths, no network); select with `pytest -m public`",
 ]
 
 [tool.sapote]
 # Single source of truth for the curated BUNDLE version.
 # (engine version lives in [project].version above)
-bundle_version = "9.7.456"
+bundle_version = "9.7.457"

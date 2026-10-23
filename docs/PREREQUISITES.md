@@ -1,4 +1,4 @@
-# PREREQUISITES — Sapote–Mamey v9.7.456
+# PREREQUISITES — Sapote–Mamey v9.7.457
 
 Start with [INSTALL](INSTALL.md) or the [complete walkthrough](MASTER_WALKTHROUGH.md). The package metadata in [pyproject.toml](../pyproject.toml) defines the supported Python version, core requirements and extras. Use the [README tool table](../README.md#tool-downloads-and-licenses) for upstream downloads and licenses.
 
@@ -58,7 +58,7 @@ Use R >= 4.3 for the R figure workflows. One script installs the R packages: `bu
 | `core` | `ggplot2`, `ggtext`, `jsonlite`, `scales`, `dplyr`, `patchwork`, `ggrepel`, `svglite`, `systemfonts`, `xml2` | Every R figure. The shared minimum-text check uses `svglite`, `systemfonts` and `xml2`. | Yes |
 | `trees` | `ape`, `ggtree`, `treeio`, `aplot`, `phangorn` | Phylogenetic tree figures (`phangorn`: midpoint rooting in the genome-tree renderer). `ggtree` and `treeio` come from Bioconductor and need system libraries (cairo, libuv), so this is the slowest group to install. | No |
 | `bioassay` | `tidyr`, `png` | Bioassay panels. | No |
-| `extras` | `ragg`, `ggchicklet` | PNG output for the genus-composition figures (`ragg`), and rounded bars in the BGC class-group chart (`ggchicklet`). Without `ggchicklet`, that chart draws plain square bars with the same data, labels and colors. | No |
+| `extras` | `ragg`, `ggchicklet`, `readxl` | PNG output for the genus-composition figures (`ragg`), and rounded bars in the BGC class-group chart (`ggchicklet`), and the readxl-based non-Streptomyces count figure (`readxl`). Without `ggchicklet`, that chart draws plain square bars with the same data, labels and colors. | No |
 
 ```bash
 Rscript bundle_support/install_r_figure_packages.R                     # core required; tries every other group

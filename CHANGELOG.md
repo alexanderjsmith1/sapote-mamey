@@ -1,3 +1,44 @@
+# v9.7.457 — unsealed cut candidate · build 20261023v97457a
+
+Build 20261023v97457a; engine 1.9.177.
+
+Builds on the sealed v9.7.456 (CODE zip f2e315d1…ab92). The engine stays 1.9.177: no card changes RG-GMCI scores, ranks, thresholds or engine outputs.
+
+- **Locus and protein-space pages.**
+  - Locus figure pages and locus protein-space pages are new routes. Protein-space pages take `--cohort-point-scale`; figures are unchanged without it.
+  - Comparison maps get page output.
+  - The locus map takes a height option.
+  - Region-protein figures share one comparator row.
+  - HTML entities in locus-map labels are decoded.
+  - The PCoA legend no longer lists MIBiG.
+- **Trees and bioassay figures.**
+  - Tree and dDDH figures gain layout options.
+  - New HPLC and novel-active figure routes.
+  - `tools/render_max4_tree.R` works from a script path that contains spaces.
+- **GECCO.**
+  - New cohort report, with `--summary` and `--per-mb` outputs.
+  - Multi-reference comparison maps draw GECCO strips. Reading them needs optional Biopython and says so when it is missing.
+- **Rarity and presence.**
+  - Rarity by assembly is now the default view.
+  - New family rarity by window and a region presence survey.
+- **Manuscript revision kit.** New tools for tracking manuscript revisions.
+- **Receipt verifiers.** The external receipt verifier gains a final-summary lane, a format-refusal lane and a record-admission lane. Input genome sequences are preserved byte for byte.
+- **BiG-SCAPE and R.** BiG-SCAPE runs can be seeded for reproducible output. Rscript calls work from paths with spaces. `readxl` joins the R figure packages.
+- **Min-text check.** The PDF minimum-text checker reads a text matrix correctly. Before, some tree-figure text was read as 1 pt. The page-fit floor is a half point.
+- **Nine opt-in tools promoted.** Bioassay paper set, BiG-SLiCE overview, core amino acids by class, palette edge options, placement tree pages, region identity dot plot, family network page, in-vivo paired dose and September routes. All are opt-in. Their figure output has not had a visual parity review.
+- **CI and tests.** The stem-aware gate finds bundle tools. Arial-metric tests carry a `needs_arial` marker. The print-call ceiling is 1242, recorded in the release manifest.
+- **Generated surfaces** (tool inventory, capabilities block, maintenance inventory, file atlas, command catalog, wiki mirrors, deliverable menu) are regenerated once, at the end of the stack.
+
+Known limits, for later:
+- PCoA label inputs are read before they are bound.
+- Grid pages do not record their R execution evidence.
+- Manuscript QA can accept a coauthor's reference for a citation.
+- A locus page shows unassignable GECCO evidence as "no recorded cluster".
+- A Strain Master import that crashes partway can leave a partial install; a retry completes it.
+- One `nonstrep_counts` fixture test is skipped.
+- 17 Arial-metric tests skip on CI.
+- Three `test_452_required_identity_tokens` errors appear only when the whole suite runs in one order; they also occur on the sealed .456.
+- The multi-reference GECCO ledger (held card) is not in this cut: it runs on every region call and withholds figures when no evidence file is given.
 # v9.7.456 — unsealed cut candidate · build 20261021v97456a
 
 Build 20261021v97456a; engine 1.9.177.

@@ -30,7 +30,9 @@ out_prefix <- args[2]
 profile    <- if (length(args) >= 3) toupper(args[3]) else "DOUBLE_COLUMN"
 title_arg  <- if (length(args) >= 4) args[4] else NA_character_
 
-here <- dirname(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1]))
+script_path <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value=TRUE)[1])
+if (!file.exists(script_path)) script_path <- gsub("~+~", " ", script_path, fixed=TRUE)
+here <- dirname(script_path)
 source(file.path(here, "sapote_figure_theme.R"))
 
 REQUIRED <- c("panel", "locus_tag", "order", "start", "end", "strand", "role", "label_displayed")

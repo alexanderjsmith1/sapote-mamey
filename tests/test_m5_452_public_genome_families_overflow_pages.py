@@ -39,6 +39,7 @@ def test_tall_page_still_refused_without_overflow(tmp_path):
         m.main(args(g, d, tmp_path / "out"))
 
 
+@pytest.mark.needs_arial
 def test_overflow_pages_draws_full_width_pages(tmp_path):
     if not shutil.which("Rscript"): pytest.skip("Rscript unavailable")
     g, d = inputs(tmp_path, N_TALL)
@@ -57,6 +58,7 @@ def test_overflow_pages_draws_full_width_pages(tmp_path):
     assert info["overflow"] == "pages" and info["pages"] == pages["pages"]
 
 
+@pytest.mark.needs_arial
 def test_overflow_pages_leaves_a_fitting_page_unchanged(tmp_path):
     if not shutil.which("Rscript"): pytest.skip("Rscript unavailable")
     g, d = inputs(tmp_path, 6)
@@ -67,6 +69,7 @@ def test_overflow_pages_leaves_a_fitting_page_unchanged(tmp_path):
     assert mb["overflow"] == "none" and ma["rows"] == mb["rows"] == 6 and ma["height_in"] == mb["height_in"]
 
 
+@pytest.mark.needs_arial
 def test_row_order_input_keeps_genome_order(tmp_path):
     if not shutil.which("Rscript"): pytest.skip("Rscript unavailable")
     g, d = inputs(tmp_path, 5, reverse=True)
