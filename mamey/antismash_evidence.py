@@ -124,14 +124,18 @@ def _iter_records(zf: "zipfile.ZipFile", name: str):
 # binding that provides both `_ijson` and `ijson` plus `_HAVE_IJSON`.)
 
 # JSON evidence modes (the `run` CLI default is "bounded" — see cli.py add_argument):
-#   "off"     — do not open JSON at all. TXT clusterblast files carry KCB data,
-#               but TIGRFAM diagnostics (JSON-only) are unavailable. Fastest;
-#               safe for any genome size. Forced in capped / ChatGPT-safe runs.
+#   "off"     — the main JSON walker does not run. TXT clusterblast files carry KCB
+#               data. TIGRFAM diagnostics (JSON-only) are still read, in one separate
+#               record pass, whenever the caller asks for them; the `run` status path
+#               does, so capped sessions (which force "off") do extract them. Only the
+#               five json-evidence record kinds are skipped. Safe for any genome size.
 #   "bounded" — DEFAULT. Stream the JSON with ijson, extracting only
-#               knownclusterblast / region_to_region / RiQ / TIGRFAM keys, with a
+#               knownclusterblast / region_to_region / RiQ leaves, with a
 #               hard cap on records and bytes. Never materialises the whole
-#               document. Falls back to 'off' if ijson is unavailable, or mid-run
-#               if the stream exceeds the wall-clock budget (cli.py logs a WARN).
+#               document. TIGRFAM and the five record kinds come from the same
+#               separate record pass as in the other modes. Falls back to 'off' if
+#               ijson is unavailable, or mid-run if the stream exceeds the
+#               wall-clock budget (cli.py logs a WARN).
 #   "full"    — legacy: json.loads the whole file and flatten twice. Refuses
 #               files >80 MB. In-memory parsing can use substantially more RAM than file size.
 

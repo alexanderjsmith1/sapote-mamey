@@ -85,6 +85,7 @@ def render(tmp, monkeypatch, width, notes):
 NOTE = r"$\it{Sciscionella}$ sp."
 
 
+@pytest.mark.needs_arial  # 6 in fit depends on real Arial widths; Liberation Sans on CI is wider
 def test_long_row_note_does_not_touch_the_band_label_at_6in(tmp_path, monkeypatch):
     (rows, bands), _, sizes = render(tmp_path, monkeypatch, 6.0, {"AS-973": NOTE})
     hits = [(i, j) for i, r in enumerate(rows) for j, b in enumerate(bands) if r.overlaps(b)]
@@ -92,6 +93,7 @@ def test_long_row_note_does_not_touch_the_band_label_at_6in(tmp_path, monkeypatc
     assert min(sizes) >= m.MIN_PT
 
 
+@pytest.mark.needs_arial  # 6 in fit depends on real Arial widths; Liberation Sans on CI is wider
 def test_no_text_run_touches_another_or_leaves_the_page_at_6in(tmp_path, monkeypatch):
     """Moving the panels right must not push panel titles into each other or into the right-hand column."""
     render(tmp_path, monkeypatch, 6.0, {"AS-973": NOTE})
@@ -102,7 +104,7 @@ def test_no_text_run_touches_another_or_leaves_the_page_at_6in(tmp_path, monkeyp
     assert out == [], f"text outside the page: {out}"
 
 
-@pytest.mark.parametrize("width", [6.0, 7.2])
+@pytest.mark.parametrize("width", [pytest.param(6.0, marks=pytest.mark.needs_arial), 7.2])
 def test_figures_without_notes_keep_their_layout(tmp_path, monkeypatch, width):
     (rows, bands), x0, _ = render(tmp_path, monkeypatch, width, {})
     assert abs(x0 - 0.30) < 0.005                      # the left edge of the panels stays where it was

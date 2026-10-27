@@ -1,6 +1,6 @@
 # Audience Start Paths
 
-*Current to bundle v9.7.458 · engine Mamey 1.9.177.*
+*Current to bundle v9.7.459 · engine Mamey 1.9.177.*
 
 
 Choose the path that matches the object in front of you. All commands assume the current directory is the extracted Sapote–Mamey bundle root and use the bundle-local launcher, `python mamey_run.py`, so an older installed copy cannot shadow the bundle.

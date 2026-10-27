@@ -394,7 +394,7 @@ def store(src: str, folder: str, what: str, *, master: str | None = None, name: 
         raise StrainMasterError(f"CONFIG_INVALID: {exc}") from exc
     if not (_from_inbox or cfg.get("direct_store")):
         raise StrainMasterError("INBOX_REQUIRED: files enter this master through `strain-master submit`, a second "
-                                "reviewer's `verify`, then `import`; direct store is off in its settings")
+                                "reviewer's `verify`, then `apply`; direct store is off in its settings")
     folder = cfg["folders"].get(folder, folder).strip().strip("/")
     parts = folder.split("/")
     if parts[0] == STRAIN_MASTER_INBOX:

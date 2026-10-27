@@ -5002,6 +5002,17 @@ def _placement_and_r_companion_status(env=None):
     return found, missing
 
 
+class _CoreWarn(str):
+    """A doctor warning about a dependency that pyproject.toml lists under [project] dependencies (core).
+    It is still a plain warning string; the summary reads `.dep` so it never calls a core item optional."""
+    dep: str
+
+    def __new__(cls, dep: str, text: str):
+        obj = super().__new__(cls, text)
+        obj.dep = dep
+        return obj
+
+
 def doctor_command(args) -> int:
     """B5: mamey doctor — pre-flight environment check for new users.
 
@@ -5041,18 +5052,18 @@ def doctor_command(args) -> int:
     if _rd["present"]:
         ok.append("reportlab (Mode-B PDF/DOCX export) ✓")
     else:
-        warn.append(f"{_rd['state']}: reportlab — {_rd['detail']}")
+        warn.append(_CoreWarn("reportlab", f"{_rd['state']}: reportlab — {_rd['detail']}"))
 
     # Declared core dependency; keep the existing presence/warning severity.
     # Discoverability alone does not verify the loaded origin or parser backend.
     if _have("ijson"):
         ok.append("ijson (declared core >=3.2.0,<4.0) ✓; import discoverable, origin/backend unverified")
     else:
-        warn.append("ijson absent — declared core dependency >=3.2.0,<4.0 for bounded JSON streaming; "
+        warn.append(_CoreWarn("ijson", "ijson absent — declared core dependency >=3.2.0,<4.0 for bounded JSON streaming; "
                     "vendored sources and notices are retained at mamey/_vendor/ijson, but fallback "
                     "availability is not established by this check. Install the declared dependency "
                     "and re-run `mamey doctor` (https://github.com/ICRAR/ijson; retained ijson notice: "
-                    "BSD-3-Clause, separate YAJL notice)")
+                    "BSD-3-Clause, separate YAJL notice)"))
 
     # Optional deps
     for mod, label, hint in [
@@ -5138,7 +5149,8 @@ def doctor_command(args) -> int:
     if as_zips:
         ok.append(f"antiSMASH ZIP(s) detected in current dir: {', '.join(as_zips[:3])}")
     else:
-        warn.append("no antiSMASH ZIPs found in current directory (run from the dir containing your ZIPs, or supply --input-zip <path>)")
+        warn.append("no antiSMASH ZIPs found in the current directory — doctor only looks here and takes no ZIP path; "
+                    "run it from the directory that holds your ZIPs, or pass a path to `mamey inspect <zip>` / `mamey run --input-zip <zip>`")
 
     # Platform note
     plat = platform.system()
@@ -5361,7 +5373,14 @@ def doctor_command(args) -> int:
         report_lines.extend([f'DOCTOR: {len(fail)} blocking issue(s) — fix the ❌ items before running mamey.'])
         report_status = 1
     elif warn:
-        report_lines.extend([f'DOCTOR: PASS with {len(warn)} warning(s) — optional items only; mamey will run.'])
+        _core_warn = [w for w in warn if isinstance(w, _CoreWarn)]
+        if _core_warn:
+            _other = len(warn) - len(_core_warn)
+            report_lines.extend([f'DOCTOR: PASS with {len(warn)} warning(s) — missing core dependency: '
+                                 f'{", ".join(w.dep for w in _core_warn)} (listed in pyproject.toml); install it and re-run. '
+                                 + ('The rest are optional items.' if _other else 'No other warnings.')])
+        else:
+            report_lines.extend([f'DOCTOR: PASS with {len(warn)} warning(s) — optional items only; mamey will run.'])
         report_status = 0
     else:
         report_lines.extend(['DOCTOR: ALL CLEAR — environment looks good.'])
@@ -6940,7 +6959,8 @@ def build_parser():
                     help="Comma-separated outgroup tip label(s) = FASTA basename(s)")
     pr.add_argument("--hmm", default="Actinobacteria", help="GToTree HMM set (default: Actinobacteria)")
     pr.add_argument("--threads", type=int, default=4)
-    pr.add_argument("--parallel", type=int, default=2)
+    pr.add_argument("--parallel", type=int, default=1,
+                    help="Concurrent GToTree jobs (default 1: 4 threads, one job at a time)")
     pr.add_argument("--ani-refs", dest="ani_refs", default=None,
                     help="Optional: reference FASTA paths file for a fastANI boundary table")
     pr.add_argument("--ani-queries", dest="ani_queries", default=None,

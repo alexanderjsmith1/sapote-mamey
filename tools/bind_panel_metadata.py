@@ -200,7 +200,7 @@ def load_assembly_records(path: str | Path) -> dict[str, dict]:
 def build_reference_label(row: dict, record: dict) -> dict:
     """Return the label fields for a reference/outgroup row from its Assembly record.
 
-    label = "<organism> <strain> [Type] (<accession>)"; strain is omitted when the deposited
+    label = "<organism> <strain> [Type] [<accession>]" (house rule 6: the accession in brackets); strain is omitted when the deposited
     organism string already ends with it; [Type] only when fromtype is type material; outgroups
     carry "[Type; outgroup]" or "[outgroup]". QUERY rows are left to the owner's own labels.
     """
@@ -213,7 +213,7 @@ def build_reference_label(row: dict, record: dict) -> dict:
     tag = "Type" if typed else ""
     if (row.get("role") or "").strip().upper() == "OUTGROUP":
         tag = f"{tag}; outgroup" if tag else "outgroup"
-    label = f"{name}{' [' + tag + ']' if tag else ''} ({record['accession']})"
+    label = f"{name}{' [' + tag + ']' if tag else ''} [{record['accession']}]"
     return {"label_concise": label, "label_experiment": label,
             "reference_class": "Type" if typed else "Reference"}
 

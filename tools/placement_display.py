@@ -232,8 +232,8 @@ def _publication_reference_label(row, include_location=True, detailed=False, typ
     habitat = row.get("reference_habitat") or ""
     raw_source = (row.get("reference_source") or habitat).strip()
     category = builder._phylo_meta.normalize_isolation_source(habitat or raw_source)["display_category"]
-    location = (builder._phylo_meta.normalize_geography(
-        row.get("reference_country") or "")["display_location"] if include_location else "")
+    location = (builder._phylo_meta.label_geography(row.get("reference_country") or "")
+                if include_location else "")
     if location:
         raw_source = re.sub(rf"\s*[·-]\s*{re.escape(location)}\s*$", "", raw_source,
                             flags=re.I)
@@ -319,7 +319,7 @@ def display_rows(annotation_rows, label_style="withloc", outgroup_tip=None, type
                 raw_host = (row.get("host") or "").strip()
                 host = (raw_host if label_style == "publication-detailed" else
                         _publication_query_source(raw_host, builder))
-                region = builder._phylo_meta.normalize_geography(row.get("region") or "")["display_location"]
+                region = builder._phylo_meta.label_geography(row.get("region") or "")
                 if label_style == "publication-noloc":
                     region = ""
                 context = " · ".join(x for x in (host, region) if x)
@@ -747,9 +747,12 @@ def main(argv=None):
         help="v9.7.444 trial: replicate count behind the node supports (states them in the short caption)")
     parser.add_argument("--fit-width", action="store_true",
                         help="v9.7.444: size the label room from measured label widths so the tree fills the panel and the strips sit after the labels")
-    parser.add_argument("--geography-level", choices=("region", "country"), default="region",
-                        help="v9.7.444: 'country' draws the Location strip as the deposited country (palette field "
-                             "'country') instead of the continent bin; a country with no palette colour is refused")
+    parser.add_argument("--geography-level", choices=("deposited", "region", "country"), default="deposited",
+                        help="geography on tip labels and the Location strip. 'deposited' (default): labels carry the "
+                             "deposited geography text; the strip keeps its continent bins. 'region': labels use the "
+                             "continent bins too (the label default in older bundles; reproduces older renders). "
+                             "'country': labels and the strip use the deposited country (palette field 'country'); "
+                             "a country with no palette colour is refused")
     parser.add_argument("--layout", default="", help="Bioassay layout profile; split_candida controls separate species strips.")
     parser.add_argument("--layout-config", default="", help="Override mamey/data/bioassay_layouts.json.")
     parser.add_argument("--bioassay-material", default="Crude extract", help="Material for a canonical long bioassay table.")

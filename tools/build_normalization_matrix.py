@@ -88,6 +88,18 @@ def compute_per_strain(banked):
         rows.append(r)
     return rows
 
+NOT_MEASURABLE='not measurable'
+
+def finite_or_blank(x):
+    """A correlation as a rounded float, or '' when it is NaN or infinite (not measurable)."""
+    x=float(x)
+    return round(x,3) if np.isfinite(x) else ''
+
+def regime_of(rr):
+    """Fragmentation regime label. A NaN or infinite correlation is 'not measurable', never 'mild'."""
+    if not np.isfinite(rr): return NOT_MEASURABLE
+    return 'inflates' if rr>0.3 else 'deflates' if rr<-0.2 else 'robust' if abs(rr)<0.15 else 'mild'
+
 def derive(rows):
     """from per-strain rows -> class ranking + normalization matrix. Operates only on rows present in the
     CSV, so deleting a strain row propagates to every output."""
@@ -103,19 +115,22 @@ def derive(rows):
     for c in CLASSES:
         v=np.array([float(r[f'cls_{c}']) for r in rows])
         if v.sum()<5: continue
-        rr=float(np.corrcoef(v,lc)[0,1]) if v.std()>0 else 0.0
-        regime=('inflates' if rr>0.3 else 'deflates' if rr<-0.2 else 'robust' if abs(rr)<0.15 else 'mild')
-        ranking.append({'class':c,'n_total':int(v.sum()),'corr_fragmentation':round(rr,3),'regime':regime})
-        row={'class':c,'raw':round(rr,3)}
+        with np.errstate(all='ignore'):
+            rr=float(np.corrcoef(v,lc)[0,1]) if v.std()>0 else 0.0
+        regime=regime_of(rr)
+        ranking.append({'class':c,'n_total':int(v.sum()),'corr_fragmentation':finite_or_blank(rr),'regime':regime})
+        row={'class':c,'raw':finite_or_blank(rr)}
         for dn,dv in DEN.items():
             mask=dv>=1
             if mask.sum()<10 or v[mask].std()==0: row[dn]=''
             else:
                 ratio=v[mask]/dv[mask]
-                row[dn]=round(abs(float(np.corrcoef(ratio,lc[mask])[0,1])),3) if ratio.std()>0 and lc[mask].std()>0 else ''
+                with np.errstate(all='ignore'):
+                    cell=abs(float(np.corrcoef(ratio,lc[mask])[0,1])) if ratio.std()>0 and lc[mask].std()>0 else float('nan')
+                row[dn]=finite_or_blank(cell)
         matrix.append(row)
-    ranking.sort(key=lambda x:x['corr_fragmentation'])
-    matrix.sort(key=lambda x:-abs(x['raw']))
+    ranking.sort(key=lambda x:(x['corr_fragmentation']=='', x['corr_fragmentation'] or 0))
+    matrix.sort(key=lambda x:(x['raw']=='', -abs(x['raw'] or 0)))
     return ranking, matrix, list(DEN)
 
 def plot(ranking, matrix, dens, out):
@@ -126,8 +141,11 @@ def plot(ranking, matrix, dens, out):
     order=ranking; vals=[r['corr_fragmentation'] for r in order]; names=[r['class'] for r in order]
     col=lambda r:'#C0392B' if r>0.3 else ('#7D3C98' if r<-0.2 else ('#2E86AB' if abs(r)<0.15 else '#E59866'))
     fig,ax=plt.subplots(figsize=(7.5,6)); y=np.arange(len(order))
-    ax.barh(y,vals,color=[col(v) for v in vals],height=0.72)
-    for i,v in enumerate(vals): ax.text(v+(0.01 if v>=0 else -0.01),i,f'{v:+.2f}',va='center',ha='left' if v>=0 else 'right',fontsize=7)
+    measured=[i for i,v in enumerate(vals) if v!='']
+    ax.barh(y[measured],[vals[i] for i in measured],color=[col(vals[i]) for i in measured],height=0.72)
+    for i,v in enumerate(vals):
+        if v=='': ax.text(0.01,i,'not measurable',va='center',ha='left',fontsize=8)  # no bar: correlation undefined
+        else: ax.text(v+(0.01 if v>=0 else -0.01),i,f'{v:+.2f}',va='center',ha='left' if v>=0 else 'right',fontsize=7)
     ax.axvline(0,color='#333',lw=0.8); ax.set_yticks(y); ax.set_yticklabels(names,fontsize=8.5)
     ax.set_xlabel('corr( raw class count , log10 contig count )'); ax.set_xlim(-0.6,0.6)
     ax.set_title('BGC-class count sensitivity to assembly fragmentation',fontsize=11,weight='bold')
@@ -181,7 +199,8 @@ Generated from a {n}-strain cohort. Two figures, each fully regenerable from the
 - `normalization_per_strain.csv` — **the editable source**. One row per strain: contig count, per-class BGC
   counts (`cls_*`), and denominator counts (`den_*`). Everything else derives from this.
 - `normalization_class_ranking.csv` — data behind **fig_class_fragmentation.png** (one row per class:
-  total count, corr with fragmentation, regime).
+  total count, corr with fragmentation, regime; a blank correlation with regime `not measurable` means the
+  correlation is undefined, not mild).
 - `normalization_matrix.csv` — data behind **fig_normalization_matrix.png** (class x denominator -> |corr of
   the normalized ratio with fragmentation|; lower = more fragmentation-robust).
 

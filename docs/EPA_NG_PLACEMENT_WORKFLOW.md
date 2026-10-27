@@ -202,6 +202,14 @@ recorded genus. It does not certify the taxonomy. Reference organism labels can 
 explicit reference database's `definition` field. Conflicting definitions refuse. Reference
 collapse requires recorded taxon metadata; missing taxa are not guessed.
 
+Tip labels carry the geography as deposited, for example `Panama: Barro Colorado Island`. They are
+not binned to continents. A tip with no deposited geography gets no geography word, and none is
+inferred. The Location strip still colors by continent. `--geography-level` sets the label
+geography. `SAPOTE_GEOGRAPHY_LEVEL` does the same for `build_placement_ggtree_inputs.py`.
+`deposited` is the default. `region` puts the continent bins on the labels too; use it to
+reproduce a render from an older bundle. `country` puts the deposited country on the labels and
+the strip.
+
 Use `--aux-table` for an explicit accession table. The local `tools/panel_receipt_to_aux.py` adapter exports the selected 16S panel receipt's query accessions; it neither fetches records nor runs placement. From the selected bundle root, with its Python/bundled CSV helper available:
 
 ```bash

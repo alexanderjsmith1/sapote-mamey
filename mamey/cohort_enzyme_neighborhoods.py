@@ -163,6 +163,15 @@ def write_json(path, value, root):
     path.write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False)+'\n')
 
 
+def scope_text(pilot, n_candidates, n_controls):
+    """Receipt scope line built from the counts actually selected."""
+    controls = ('no real no-call control' if n_controls == 0 else
+                '%d real no-call control%s' % (n_controls, '' if n_controls == 1 else 's'))
+    if pilot:
+        return '%d representative candidate%s and %s' % (n_candidates, '' if n_candidates == 1 else 's', controls)
+    return 'Full candidate projection (%d candidate%s) and %s' % (n_candidates, '' if n_candidates == 1 else 's', controls)
+
+
 def build(config, output, pilot=False):
     start = time.monotonic()
     cfg = json.loads(Path(config).read_text())
@@ -306,7 +315,8 @@ def build(config, output, pilot=False):
         if len(obs)!=1:raise ValueError('EVIDENCE_INDEX_COMPATIBILITY_HOLD')
         index_checks.append(eid)
     write_json(output/'CURRENT50_APPLICABILITY.json',mapping,allowed)
-    audit={'status':'PASS','evidence_index_validated_loci':index_checks,'scope':'Five representative candidates and one real no-call' if pilot else 'Full candidate projection and five real no-call controls',
+    n_candidates=sum(r['locus']['call_state']=='OWNER_DKP_CDPS_CANDIDATE' for r in records)
+    audit={'status':'PASS','evidence_index_validated_loci':index_checks,'scope':scope_text(pilot,n_candidates,len(records)-n_candidates),
            'sources':sources,'checks':[{'exact_identity':r['exact_identity'],'counts':r['denominators'],
                        'status':'EXACT_CENSUS_ARCHITECTURE_ROSTER_PARITY_AND_PARENT_JOIN_PASS'} for r in records],
            'elapsed_seconds':time.monotonic()-start,'denominators':data['denominators']}

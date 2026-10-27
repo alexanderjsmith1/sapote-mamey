@@ -1072,7 +1072,7 @@ def figs_multi(S, order, OUT, *, f13_cohort_manifest=None,
         ax.add_patch(plt.Rectangle((j-0.5,-1.2),1,0.45,color=TCOLOR.get(tier[s],"#999"),clip_on=False))
     if npriv: ax.axvline(ndiv-0.5,color="#9a9a9a",lw=1.1,ls=(0,(4,3)))
     ax.set_ylim(len(metrics)-0.5,-1.35)
-    ax.set_title("Per-strain gene/domain census  (cells = raw counts; colour = z-score per metric;\n"
+    ax.set_title("Per-strain gene/domain census  (cells = raw counts; color = z-score per metric;\n"
                  "top strip = assembly tier)",pad=30,fontsize=11)
     cb=fig.colorbar(im,ax=ax,fraction=0.024,pad=0.012); cb.set_label("z-score (within metric)",fontsize=9)
     fname=stamp(fig,"census_zscore_heatmap"); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
@@ -1285,7 +1285,7 @@ def figs_multi(S, order, OUT, *, f13_cohort_manifest=None,
     for gi,cl in enumerate(big): ax.scatter([],[],color=pal2[gi],label=f"cluster {cl} (n={sizes[cl]})")
     ax.scatter([],[],color="#cccccc",label="other")
     ax.set_xlabel(f"PC1 ({ev[0]*100:.0f}% var)"); ax.set_ylabel(f"PC2 ({ev[1]*100:.0f}% var)")
-    ax.set_title("BGC domain space coloured by architecture cluster (top 8)",pad=12); ax.grid(alpha=0.2)
+    ax.set_title("BGC domain space colored by architecture cluster (top 8)",pad=12); ax.grid(alpha=0.2)
     ax.legend(fontsize=8,bbox_to_anchor=(1.02,1.0),loc="upper left",borderaxespad=0)
     fname=stamp(fig,"bgc_pca_by_cluster"); _save_pair(fig,f"{OUT}/{fname}.png"); plt.close(fig)
     sidecar(f"{OUT}/{fname}_data.csv",["strain","bgc_id","PC1","PC2","cluster"],[[meta[i][0],meta[i][1],round(PC[i,0],4),round(PC[i,1],4),asg[i]] for i in range(n)])
@@ -1669,7 +1669,7 @@ def build(S, order, OUT):
     bubble_matrix(classes, order,
         lambda r,s: len(by[r].get(s,[])),
         lambda r,s: (np.mean(by[r][s]) if by[r].get(s) else None),
-        "Product class \u00d7 strain — dot size = BGC count, colour = mean BGC length (kb)",
+        "Product class \u00d7 strain — dot size = BGC count, color = mean BGC length (kb)",
         "bubble_productclass_size_length", OUT, "mean length (kb)", "BGC count", cmap="plasma")
 
     # D02 rare-trigger bubble (sparse-friendly): trigger x strain, size=count, colour=count
@@ -1843,7 +1843,7 @@ def build(S, order, OUT):
                     d10.append([s,bid,c,L[(s,bid)],ys[-1]])
         ax.scatter(xs,ys,s=22,color=cpal[c],alpha=0.6,edgecolor="#333",linewidth=0.2,label=c)
     ax.set_xlabel("BGC region length (kb)"); ax.set_ylabel("domains per BGC")
-    ax.set_title("Per-BGC architecture coloured by dominant product class",pad=12); ax.grid(alpha=0.2)
+    ax.set_title("Per-BGC architecture colored by dominant product class",pad=12); ax.grid(alpha=0.2)
     ax.legend(fontsize=7.5,bbox_to_anchor=(1.02,1.0),loc="upper left",borderaxespad=0,title="product class")
     fn=stamp_d(fig,"scatter_bgc_by_class"); _save_pair(fig,f"{OUT}/{fn}.png"); plt.close(fig)
     sidecar(f"{OUT}/{fn}_data.csv",["strain","bgc_id","dominant_class","region_length_kb","total_domains"],d10)
@@ -2027,7 +2027,7 @@ def batch1(S, order, OUT):
     # so on the figure itself, because a reader who sees "high" next to a number will otherwise
     # read it as a threshold. See docs/KCB_SCORE_PROVENANCE.md for what the number actually is.
     q1,q2=(np.percentile(scores,[33,66]) if scores else (0,0))
-    bins=["no KCB hit (novel-leaning)",
+    bins=["no KCB hit",
           f"lower cohort third (<{q1:.0f})",
           f"middle cohort third ({q1:.0f}\u2013{q2:.0f})",
           f"upper cohort third (\u2265{q2:.0f})"]
@@ -2310,7 +2310,7 @@ def _run_all_g(S, order, out):
 
 CAPTIONS = {
     # ---- F-series (cross-strain heatmaps) ----
-    "census_zscore_heatmap": "Per-strain gene/domain census. Cells are raw counts; colour is the z-score of each metric across strains. The top strip encodes assembly tier.",
+    "census_zscore_heatmap": "Per-strain gene/domain census. Cells are raw counts; color is the z-score of each metric across strains. The top strip encodes assembly tier.",
     "megasynthase_heatmap": "Counts of core PKS/NRPS catalytic domains across all BGCs per strain (ketosynthase, acyltransferase, ketoreductase, condensation, adenylation, thioesterase, etc.) — the assembly-line machinery underlying polyketide and non-ribosomal peptide capacity.",
     "product_class_heatmap": "antiSMASH region product classes per strain (BGC counts). The bottom row is a computed reduced-PKS (macrolide-type) proxy — BGCs carrying the reductive PKS loop — and is not an antiSMASH class (marked *).",
     "tailoring_enzyme_heatmap": "Tailoring / accessory enzyme domain counts per strain: halogenases (introduce Cl/Br), chitinase (GH18), siderophore synthetase/reductase (iron acquisition), P450s and methyl-/glycosyltransferases (oxidation and decoration of scaffolds).",
@@ -2336,13 +2336,13 @@ CAPTIONS = {
     ),
     "domain_clustermap_top40": "REDESIGN / NOT PUBLICATION-READY. Legacy deep_data.domain_hits mixes retained annotation-token source classes and lacks the feature-type/accession provenance needed for a truthful Pfam-only view; no figure is emitted until the source-class-filter contract is satisfied.",
     "active_site_completeness": "Fraction of catalytic active-site residues confirmed present per strain (catalytic megasynthase genes; n per strain above each bar). A proxy for how intact the catalytic machinery is.",
-    "bgc_domain_pca_2d": "PCA of every BGC in domain-composition space; each point is one BGC, coloured by strain (PRIVATE strains drawn as diamonds). Proximity = similar domain architecture.",
-    "bgc_pca_by_cluster": "The same BGC PCA recoloured by architecture cluster (greedy cosine >= 0.85; top clusters), highlighting recurrent assembly-line architectures shared across strains.",
-    "strain_ordination_2d": "Strains ordinated by their mean BGC domain profile; colour = assembly tier, diamonds = PRIVATE. Separation reflects overall biosynthetic-repertoire differences.",
+    "bgc_domain_pca_2d": "PCA of every BGC in domain-composition space; each point is one BGC, colored by strain (PRIVATE strains drawn as diamonds). Proximity = similar domain architecture.",
+    "bgc_pca_by_cluster": "The same BGC PCA recolored by architecture cluster (greedy cosine >= 0.85; top clusters), highlighting recurrent assembly-line architectures shared across strains.",
+    "strain_ordination_2d": "Strains ordinated by their mean BGC domain profile; color = assembly tier, diamonds = PRIVATE. Separation reflects overall biosynthetic-repertoire differences.",
     # F single-strain panels
     "perBGC_domain_heatmap": "Single strain: per-BGC catalytic-domain composition (top BGCs by domain content), giving the within-genome biosynthetic landscape.",
     "perGene_active_site_completeness": "Single strain: active-site residue completeness for each catalytic megasynthase gene, ranked.",
-    "perBGC_cctt_resistance": "Single strain: per-BGC CCTT diagnostic-chemistry triggers (green presence) with a resistance-tier colour strip, locating rare chemistry on specific BGCs.",
+    "perBGC_cctt_resistance": "Single strain: per-BGC CCTT diagnostic-chemistry triggers (green presence) with a resistance-tier color strip, locating rare chemistry on specific BGCs.",
 
     # ---- G-series (complementary) ----
     "rare_chemistry_triggers": "Rare diagnostic-chemistry triggers per strain with the two ubiquitous triggers (halogenase, lanthipeptide) removed, so uncommon capacity (diketopiperazine/CDPS, indolocarbazole, lassopeptide, nucleoside, n-n-bond) stands out.",
@@ -2362,17 +2362,17 @@ CAPTIONS = {
     "rare_bgc_roster": "Roster of every BGC carrying a rare diagnostic trigger, with its node/contig, trigger(s) and product class. PRIVATE-strain rows are shaded. Node/contig is listed per the project's BGC-localisation convention.",
 
     # ---- D-series (dot / bubble) ----
-    "bubble_productclass_size_length": "Product class x strain bubble matrix: dot area = BGC count, colour = mean BGC length (kb). Small dark dots flag many short (often truncated) BGCs; large warm dots flag intact multi-class capacity.",
+    "bubble_productclass_size_length": "Product class x strain bubble matrix: dot area = BGC count, color = mean BGC length (kb). Small dark dots flag many short (often truncated) BGCs; large warm dots flag intact multi-class capacity.",
     "bubble_rare_triggers": "Rare diagnostic-chemistry triggers x strain as a bubble plot (dot area = BGC count) — a sparse-friendly view where single-occurrence rare chemistry reads clearly instead of vanishing in a zero-filled grid.",
-    "scatter_size_vs_domains": "Per-BGC architecture landscape: region length (kb) vs domains per BGC, one dot per BGC, coloured by strain (PRIVATE = diamonds). The upper-right tail are large, domain-rich modular clusters.",
-    "scatter_kcb_vs_size": "KCB reference-similarity (top bitscore, log) vs BGC length, coloured by boundary status. Truncated Edge/Full-contig BGCs trend toward weaker or absent hits — the caveat behind the KCB novelty bin.",
-    "scatter_raw_vs_corrected": "Strain summary: raw vs corrected BGC count (dot area = domain hits, colour = tier). Distance below the raw=corrected line shows how much fragmentation discounts the count.",
+    "scatter_size_vs_domains": "Per-BGC architecture landscape: region length (kb) vs domains per BGC, one dot per BGC, colored by strain (PRIVATE = diamonds). The upper-right tail are large, domain-rich modular clusters.",
+    "scatter_kcb_vs_size": "KCB reference-similarity (top bitscore, log) vs BGC length, colored by boundary status. Truncated Edge/Full-contig BGCs trend toward weaker or absent hits — the caveat behind the KCB novelty bin.",
+    "scatter_raw_vs_corrected": "Strain summary: raw vs corrected BGC count (dot area = domain hits, color = tier). Distance below the raw=corrected line shows how much fragmentation discounts the count.",
     "strip_kcb_per_strain": "Per-strain KCB strength distribution (one dot = one BGC with a hit; the 'no-hit' count is annotated). Shows the spread of dereplication strength, not just a summary.",
     "scatter_rarechem_vs_bgcs": "Rare-chemistry richness (distinct rare triggers) vs total BGC content per strain. Strains above the trend punch above their weight in rare chemistry relative to genome size.",
     "bubble_tailoring": "Tailoring enzyme x strain bubble matrix (dot area = domain count): halogenases, chitinase, P450, glycosyl-/methyltransferases, radical SAM, siderophore synthetase, prenyltransferase.",
     "bubble_regulators": "Regulator family x strain bubble matrix (dot area = domain count). TetR: efflux/antibiotic-responsive repressors; GntR: metabolic repressors; LysR: dual activator/repressors; MarR: multidrug-resistance regulators; sigma-70: alternative sigma factors; HTH: generic DNA-binding regulators.",
-    "scatter_bgc_by_class": "Per-BGC length vs domain count, coloured by dominant product class — the chemical-architecture landscape, showing how class relates to size/complexity.",
-    "scatter_tta_vs_modularity": "Per-BGC bldA-dependency (TTA codons) vs megasynthase modularity (PKS-KS + NRPS-C), coloured by strain. Tests whether large modular clusters are preferentially bldA-regulated.",
+    "scatter_bgc_by_class": "Per-BGC length vs domain count, colored by dominant product class — the chemical-architecture landscape, showing how class relates to size/complexity.",
+    "scatter_tta_vs_modularity": "Per-BGC bldA-dependency (TTA codons) vs megasynthase modularity (PKS-KS + NRPS-C), colored by strain. Tests whether large modular clusters are preferentially bldA-regulated.",
 }
 
 GLOSSARY = {

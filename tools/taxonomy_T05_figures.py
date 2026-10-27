@@ -10,7 +10,7 @@ Optional cohort column label_md replaces an isolate's label (markdown, e.g. a fa
 name or a second host line). Optional data columns ref_name, ref_strain, ref_accession give
 the reference label in the house rule 6 form (deposited name and strain, accession below in
 brackets); without them the type_strain text is shown. --highlight-genus GENUS=RRGGBB sets
-one genus colour over the bundle palette; --legend-title, --legend-rows, --x-max, --x-label,
+one genus color over the bundle palette; --legend-title, --legend-rows, --x-max, --x-label,
 --design-width and --design-height reach the other thesis panel settings.
 """
 from __future__ import annotations
@@ -163,7 +163,7 @@ def main():
     parser.add_argument('--merge-genus',action='append',default=[],help='display-only genus mapping FROM=TO')
     parser.add_argument('--pool-below',type=int,default=3,help='T01 minimum count before pooling as Other genera')
     parser.add_argument('--dpi',type=int,default=600)
-    parser.add_argument('--highlight-genus',action='append',default=[],help='GENUS=RRGGBB: this genus colour replaces the palette colour (repeatable)')
+    parser.add_argument('--highlight-genus',action='append',default=[],help='GENUS=RRGGBB: this genus color replaces the palette color (repeatable)')
     parser.add_argument('--legend-title',default='Genus (16S rRNA)',help='genus key title')
     parser.add_argument('--legend-rows',type=int,default=2,help='rows in the genus key')
     parser.add_argument('--x-max',type=float,default=114,help='right end of the dDDH axis (percent; room for reference labels)')

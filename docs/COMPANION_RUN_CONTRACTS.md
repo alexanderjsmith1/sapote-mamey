@@ -26,9 +26,9 @@ separate files and must be reconciled explicitly.
 
 ## Bind resource settings and approval
 
-For the default one-core genome run, specify `--threads 1 --parallel 1
---iqtree-threads 1` on `phylo-run`. Otherwise `phylo-run` defaults to
-four threads and two parallel GToTree jobs, so up to eight threads at once. Use a different budget only when it
+`phylo-run` defaults to `--threads 4 --parallel 1`: 4 threads, one job at a time.
+For a single-core genome run, specify `--threads 1 --parallel 1
+--iqtree-threads 1` on `phylo-run`. Use a different budget only when it
 matches the user's authorized plan. For a 16S preparation/placement run, bind the
 explicit `--threads` value and expected tree workload separately.
 

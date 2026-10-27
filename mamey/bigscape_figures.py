@@ -203,10 +203,10 @@ def gcf_network(db, strain, run, cutoff, evidence=None, out="gcf_network.png", l
     nx.draw_networkx_labels(G, pos, labels={n: lab.get(n, "") for n in G.nodes()}, font_size=7.2, ax=ax)
     ax.set_title(f"{strain} — strain-centric GCF subgraph of the cohort BiG-SCAPE run "
                  f"(run {run}, cutoff {cutoff})\n"
-                 f"GCF-dark = novelty-leaning; shared families are similarity, not identity",
+                 f"shared families are similarity, not identity",
                  fontsize=13, fontweight="bold")
     extra = [Patch(color="#111111", label=f"{strain} (strain hub)"),
-             Patch(color="#34495E", label="GCF-dark singletons (novel-leaning)"),
+             Patch(color="#34495E", label="GCF-dark singletons"),
              Patch(color="#F39C12", label="named leads"),
              Patch(color=MIBIG_C, label=L.assert_not_bare_reference("MIBiG-anchored family")),
              Patch(color="#27AE60", label="cohort-shared family"),

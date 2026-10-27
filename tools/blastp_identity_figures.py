@@ -23,7 +23,7 @@ Inputs
              Rows keep their block order; within a block, Streptomyces first, then genus, then descending true median.
              Genomes without bound values retain denominator rows and empty plot positions; median is unavailable.
              Optional column proteins: the genome's protein FASTA (default: <strain>_proteins.faa beside gene_context).
-  --palette-set  a per-paper colour set from mamey/data/genus_palette.json (moss, attine); default colours otherwise.
+  --palette-set  a per-paper color set from mamey/data/genus_palette.json (moss, attine); default colors otherwise.
   --binding  sequence (default): use a protein hash when available, with a tag-and-length fallback; locus tags are numbered per
              antiSMASH run (12 Oct 2026: 9,709 of 29,274 name rows carried another run's protein). With --query-index
              (tools/blastp_query_index.py), a result binds to every gene with the same protein_sha256; without a sha it
@@ -653,14 +653,15 @@ def main(argv=None) -> int:
     ap.add_argument("--measure", choices=("top10", "top1"), default="top10")
     ap.add_argument("--db", choices=tuple(CHANNELS), default="best")
     ap.add_argument("--extra-csv", action="append", default=[], help="glob of ClusteredNR top-10 result CSVs (relative to --root)")
-    ap.add_argument("--palette-set", help="per-paper colour set in mamey/data/genus_palette.json (moss, attine)")
+    ap.add_argument("--palette-set", help="per-paper color set in mamey/data/genus_palette.json (moss, attine)")
     ap.add_argument("--figure", choices=("both", "by-genome", "by-class"), default="both")
     ap.add_argument("--binding", choices=("sequence", "locus_tag"), default="sequence",
                     help="bind results to genes by protein (default) or by locus tag alone (the earlier join)")
     ap.add_argument("--query-index", type=Path, help="tools/blastp_query_index.py output: protein_sha256 per result")
     ap.add_argument("--grid", choices=("auto", "column"), default="auto", help="by-class: use two columns for three or four panels; column restores the vertical stack")
     ap.add_argument("--bar-counts", action="store_true", help="by-genome: print genes-with-a-hit / region genes above panel B's bars (off by default; the counts are in the numbers table)")
-    ap.add_argument("--genus-colour", action="append", default=[], metavar="GENUS=#RRGGBB", help="repeatable; colour for one genus")
+    ap.add_argument("--genus-color", dest="genus_colour", action="append", default=[], metavar="GENUS=#RRGGBB", help="repeatable; color for one genus")
+    ap.add_argument("--genus-colour", dest="genus_colour", action="append", default=[], help=argparse.SUPPRESS)  # earlier spelling, same option
     ap.add_argument("--block-labels", choices=("above", "below"), default="above", help="by-genome: block titles once above panel A (default), or bold under the genome names of both panels")
     ap.add_argument("--print-width", type=float, default=7.2, help="by-class: printed width in inches (7.2 double column; larger for a landscape page); text stays 8 pt at that width")
     ap.add_argument("--split-classes", type=int, default=0, metavar="N", help="by-class: draw N class panels per page, one figure per page (_p1, _p2, ...), so a tall stack prints at true size; 0 (default) draws one figure")
@@ -701,7 +702,7 @@ def main(argv=None) -> int:
     for spec in a.genus_colour:                    # one genus recoloured so a figure matches the rest of its paper
         g, _, hx = spec.partition("=")
         if not (hx.startswith("#") and len(hx) == 7):
-            raise SystemExit(f"--genus-colour wants GENUS=#RRGGBB, got {spec!r}")
+            raise SystemExit(f"--genus-color wants GENUS=#RRGGBB, got {spec!r}")
         colours[g.strip()] = hx
     genomes = read_genomes(a.genomes, root)
     region, core, index = read_genes(genomes)

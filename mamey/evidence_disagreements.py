@@ -7,7 +7,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
+import uuid
 import sqlite3
 from pathlib import Path
 from collections import Counter
@@ -203,6 +205,24 @@ class Explorer:
             rows=self.connections['MIBiG'].rows('SELECT a.*,f.member,f.sha256 source_file_sha256,r.reference_raw,r.metadata_json FROM alignment a CROSS JOIN source_file f ON f.id=a.file_id CROSS JOIN reference r ON r.id=a.reference_id WHERE a.id IN ('+','.join('?' for _ in page)+') ORDER BY a.id',page)
         return {'rows':rows,'total':len(ids),'offset':offset,'limit':25,'source':self.sources['MIBiG'],'hold':context['hold'],'denominator':context['denominator']}
 
+def write_new_file(path,text):
+    """Create `path` with `text`, refusing if it exists, and never leave partial bytes there.
+
+    The bytes go to a private temporary file beside the target. `os.link` then publishes
+    them under the final name in one step and fails with FileExistsError if that name is
+    taken, so two runs cannot overwrite each other and a failed write leaves nothing behind.
+    """
+    path=Path(path)
+    tmp=path.parent/('.'+path.name+'.'+uuid.uuid4().hex+'.tmp')
+    fd=os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o666)
+    try:
+        with os.fdopen(fd,'w',encoding='utf-8') as handle:
+            handle.write(text);handle.flush();os.fsync(handle.fileno())
+        os.link(tmp,path)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--selection',required=True,type=Path);p.add_argument('--port',type=int,default=8767);p.add_argument('--audit',type=Path)
     a=p.parse_args()
@@ -215,7 +235,11 @@ def main():
             row=next((g for g in ex.genes.values() if predicate(g) and g['id'] not in chosen),None)
             if row:chosen.append(row['id'])
         records=[ex.detail(x) for x in chosen];ex.check_stable(hashes=True)
-        a.audit.write_text(json.dumps({'summary':ex.summary,'five_records':records,'selected_ids':chosen,'status':'SOURCE_BOUND_ENGINEERING_REVIEW_ONLY'},indent=2));ex.close();return
+        text=json.dumps({'summary':ex.summary,'five_records':records,'selected_ids':chosen,'status':'SOURCE_BOUND_ENGINEERING_REVIEW_ONLY'},indent=2)
+        try:write_new_file(a.audit,text)
+        except FileExistsError:p.error('AUDIT_OUTPUT_EXISTS_CHOOSE_ADDITIVE_PATH')
+        finally:ex.close()
+        return
     html=Path(__file__).with_name('evidence_disagreements.html').read_bytes()
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):

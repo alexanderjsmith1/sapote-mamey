@@ -38,7 +38,7 @@ source paths/hashes and actual receipts. Verify actual pair results and source p
 
 ### Counting, scoring, and reconstruction formulae in the deterministic extraction engine
 
-**Version of record:** Mamey engine v1.9.177 · bundle v9.7.458
+**Version of record:** Mamey engine v1.9.177 · bundle v9.7.459
 **Author:** Alexander J. Smith
 **Status:** Source-cited methods reference with historical compilation notes and scoped corrections. A module citation locates an explanation; current behavior still needs the selected source and input state.
 

@@ -82,12 +82,12 @@ The rich GenBank source-record parser requires optional Biopython. If it is unav
 Before MAFFT, reference inference, or EPA-ng placement, prepare a TSV roster and a
 FASTA with identical unique tip IDs, then run `tools/phylo_sequence_admission.py`.
 The roster requires columns for organism, expected genus, accession, sequence hash,
-type status, isolation source, collapsed geography, sequence evidence, metadata evidence,
+type status, isolation source, deposited geography, sequence evidence, metadata evidence,
 biological sample ID and explicit admission state. A nonmissing biological sample ID
 is enforced for query rows; reference/outgroup sample cells can remain blank. Exact
 accession versions remain an operator requirement, as qualified below. The gate
-rejects short 16S fragments, cross-genus records, missing metadata, duplicate
-type-species representatives, and identical query sequences from the same biological
+rejects short 16S fragments, cross-genus records, missing accession, isolation
+source or evidence fields, duplicate type-species representatives, and identical query sequences from the same biological
 sample. Metadata may travel beside the sequence in the roster; FASTA descriptions are
 convenience labels and are never the sole authority.
 
@@ -125,7 +125,27 @@ choose a new receipt path to retain prior evidence. Failure is nonzero and may p
 a traceback rather than a typed failure receipt. Do not treat a stale JSON file from
 an earlier pass as the current outcome.
 
-The controlled display geography is `US`, `Canada`, or a continent, with `Indian
-Ocean` retained for marine records when that is the best supported location. Raw
-deposited geography remains in the evidence record. A mechanically valid admission
-does not establish species identity.
+The `geography` column holds the geography text as deposited, for example
+`Panama: Barro Colorado Island`. The gate admits it unchanged and never refuses a
+value for its wording. A passing receipt lists every tip under `tips`, with
+`geography` copied unchanged and a separate display field, `geography_region`.
+
+`geography_region` uses a ten-value list: `US`, `Canada`, `North America (other)`,
+`South America`, `Europe`, `Asia`, `Africa`, `Oceania`, `Antarctica` and
+`Indian Ocean`. It is filled in only two ways. The deposited text, or its country
+part before `:`, is already a list value. Or the country part is in the bundle's
+country table in `tools/_phylo_metadata.py`. Anything else, such as `North America`,
+`USSR`, a province name or another ocean, leaves the field blank.
+`geography_region_basis` records which case applied: `LIST_VALUE`, `COUNTRY_TABLE`,
+`NOT_DERIVED` or `NOT_RECORDED`. The display field never replaces the deposited text.
+The receipt says so in one line, `geography_note`: the deposited text is the
+record, and the region is display-only and never written back.
+
+A blank geography cell, a placeholder such as `unknown`, or an INSDC missing term
+such as `missing: lab stock` is not refused. The tip is admitted with its cell
+unchanged and an empty `geography_region`. It is also listed under
+`figure_omissions` by full name (organism, plus a `strain` cell when the roster has
+one), accession, and reason `NO_DEPOSITED_GEOGRAPHY`. Figures omit these tips. The
+reason matches `tools/omitted_tips_receipt.py`. Isolation source is still required.
+
+A mechanically valid admission does not establish species identity.

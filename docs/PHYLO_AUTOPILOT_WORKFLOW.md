@@ -81,10 +81,11 @@ that every selected record is type material. Bind supplied metadata before using
 
 Run `python mamey_run.py phylo-run --help` for the released-v1 genome list, work directory,
 outgroup and compute settings. The `--approved` flag is required for execution. ANI is optional:
-supply the corresponding reference/query genome lists if you need that comparison. Specify
-`--threads 1 --parallel 1 --iqtree-threads 1` for the default one-core policy: the
-CLI/runner defaults are four threads and two parallel GToTree jobs, so omitting these
-settings does not implement that policy. `phylo-run` writes `run_status.json` in its workdir
+supply the corresponding reference/query genome lists if you need that comparison. The
+`phylo-run` defaults are `--threads 4 --parallel 1`: 4 threads, one job at a time, which is the
+house limit. Pass `--threads 1 --parallel 1 --iqtree-threads 1` only when you want a single-core
+run. `phylo-run` always passes its `--parallel` value to the shared runner, so the runner's own
+default does not apply. `phylo-run` writes `run_status.json` in its workdir
 and does not automatically update the planner's `RUN_STATE.json`; reconcile both records
 with the same bound inputs and actual output paths. A tree alone
 does not provide ANI or a species identification.

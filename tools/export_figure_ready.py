@@ -214,6 +214,17 @@ n, finding, metric, value, claim_status (GROUNDED/FLAG/METHOD CAVEAT/PRIORITY/UN
               'class_prevalence.csv','diagnostics_long.csv','cross_strain_findings.csv','DATA_DICTIONARY.md']:
         p=os.path.join(out,f); emit(f"  {'OK ' if os.path.exists(p) else 'skip'} {f}")
 
+def _parse_args(argv):
+    """Same positional usage as before (<workbook> [out_dir]); this only adds -h/--help. Extra words are ignored, as before."""
+    import argparse
+    ap = argparse.ArgumentParser(prog='export_figure_ready.py', description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('workbook', help='master workbook (.xlsx)')
+    ap.add_argument('out_dir', nargs='?', default=None,
+                    help='output folder (default: figure_ready/ beside the workbook; must be new or empty)')
+    return ap.parse_known_args(argv)[0]
+
 if __name__=='__main__':
     if len(sys.argv)<2: emit(__doc__); sys.exit(1)
-    main(sys.argv[1], sys.argv[2] if len(sys.argv)>2 else None)
+    _a = _parse_args(sys.argv[1:])
+    main(_a.workbook, _a.out_dir)

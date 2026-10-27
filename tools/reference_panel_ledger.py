@@ -11,7 +11,9 @@ deterministic function of what antiSMASH supplied. This tool emits, per BGC, two
 Run it over the reference panel to characterize detection, then over unknown genomes to see what is detected
 and on what supplied evidence. Usage:
 
-    python3 tools/reference_panel_ledger.py <dir-of-zips> [out.csv]
+    python3 tools/reference_panel_ledger.py <dir-of-zips> <out.csv>
+
+Both paths are required. The tool exits 1 and writes nothing when no rows are produced.
 """
 from __future__ import annotations
 
@@ -94,15 +96,25 @@ def ledger_for_zip(zip_path):
     return rows
 
 
-def main():
-    if any(a in ("-h", "--help") for a in sys.argv[1:]):
-        emit("usage: python tools/reference_panel_ledger.py [SRC_DIR] [OUT_CSV]\n"
-              "  Characterize reference BGCs: OBSERVED (antiSMASH) vs COMPUTED (engine T43 markers).\n"
-              "  SRC_DIR: dir of antiSMASH/MIBiG .zip outputs (default /mnt/user-data/uploads).\n"
-              "  OUT_CSV: output path (default /mnt/user-data/outputs/reference_panel_ledger.csv).")
-        return
-    src = sys.argv[1] if len(sys.argv) > 1 else "/mnt/user-data/uploads"
-    out = sys.argv[2] if len(sys.argv) > 2 else "/mnt/user-data/outputs/reference_panel_ledger.csv"
+USAGE = ("usage: python tools/reference_panel_ledger.py SRC_DIR OUT_CSV\n"
+         "  Characterize reference BGCs: OBSERVED (antiSMASH) vs COMPUTED (engine T43 markers).\n"
+         "  SRC_DIR: directory of antiSMASH/MIBiG .zip outputs. Required; there is no default.\n"
+         "  OUT_CSV: output path to write. Required; there is no default.\n"
+         "  Exit 0: rows written. Exit 1: no rows produced (nothing written). Exit 2: bad arguments.")
+
+
+def main(argv=None):
+    args = sys.argv[1:] if argv is None else list(argv)
+    if any(a in ("-h", "--help") for a in args):
+        emit(USAGE)
+        return 0
+    if len(args) != 2:
+        sys.stderr.write("reference_panel_ledger: SRC_DIR and OUT_CSV are both required\n" + USAGE + "\n")
+        return 2
+    src, out = args
+    if not os.path.isdir(src):
+        sys.stderr.write(f"reference_panel_ledger: SRC_DIR is not a directory: {src}\n")
+        return 2
     zips = sorted(f for f in os.listdir(src) if f.endswith(".zip"))
     all_rows = []
     for zf in zips:
@@ -116,8 +128,8 @@ def main():
         except Exception as exc:  # noqa: BLE001
             emit(f"  skip {zf}: {exc}")
     if not all_rows:
-        emit("no rows produced")
-        return
+        sys.stderr.write(f"NO_ROWS: no BGC rows from {len(zips)} zip(s) in {src}; nothing written\n")
+        return 1
     cols = ["source_file", "identity", "bgc_id", "contig", "region", "obs_region_type", "obs_kcb_anchor",
             "obs_kcb_mibig_accession", "obs_kcb_protein_hits", "obs_edge_status",
             "obs_size_kb", "obs_cds_count", "obs_annotation_class", "obs_pks_ks", "obs_nrps_c", "obs_nrps_a",
@@ -128,7 +140,8 @@ def main():
         for r in all_rows:
             w.writerow({k: r.get(k, "") for k in cols})
     emit(f"wrote {len(all_rows)} BGC rows from {len(zips)} zips -> {out}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

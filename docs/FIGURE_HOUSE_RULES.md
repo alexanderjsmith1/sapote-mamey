@@ -59,4 +59,4 @@ Before renaming a known-defective receipt-bound artifact, preserve its original 
 
 Source examples: `tools/sapote_figure_theme.R`; `mamey/locus_map_v8.py`; `mamey/figure_review_queue.py`.
 
-The current v8 PNG producer requests 180 dpi (with a size-dependent safe-DPI helper), so the house-rule 300-dpi target is not established by its existence. Use the vector artifact and an independently checked delivery export where appropriate; record the presentation hold until the intended raster/export requirement is verified. Source: `mamey/locus_map_v8.py`.
+The v8 PNG producer requests 300 dpi. A size-dependent safe-DPI helper lowers that only when the canvas would pass the pixel ceiling, so check the PNG's metadata and pixel size at the intended print width before delivery. The vector SVG is written beside it. Source: `mamey/locus_map_v8.py`.

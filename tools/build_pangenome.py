@@ -153,8 +153,7 @@ approximate (a BiG-SCAPE network would refine it).
 
 ## Rarefaction
 Families accumulate {mean[0]} -> {mean[len(strains)//2]} -> {mean[-1]} at 1 / {len(strains)//2} / {len(strains)}
-strains; the curve has not plateaued (still +{mean[-1]-mean[max(0,len(strains)-10)]} families over the last 10
-strains), so additional strains are expected to keep yielding new chemistry — the collection is not saturated.
+strains (+{mean[-1]-mean[max(0,len(strains)-10)]} families over the last 10 strains).
 
 ## Most novel strains (by UNRESOLVED fraction; interpret small-genome strains with caution)
 {chr(10).join(f"- {r['strain']}: {r['novel_unresolved']}/{r['total_BGC']} = {r['novel_pct']}% novel, {r['private_families']} private families" for r in rows[:6])}

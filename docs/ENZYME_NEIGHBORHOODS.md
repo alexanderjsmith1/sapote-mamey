@@ -34,7 +34,7 @@ Missing inputs, parse failures, source tampering, mixed census bindings and rost
 - Use absolute paths for `allowed_output_root` and `pilot_receipt`. The output root must already exist. Source-entry relative paths resolve against the config directory.
 - SQLite WAL/SHM/journal files beside a database are refused.
 - Reader Python files are run after hashing. A matching hash is not a sandbox.
-- A pilot needs five distinct candidates. No-call controls are optional, and the receipt's scope text says "one" or "five" whatever was selected, so check the selected identities and counts. `source_no_call_loci` is all source loci minus candidates.
+- A pilot needs five distinct candidates. No-call controls are optional. The receipt's scope text states the candidate and control counts actually selected, and says "no real no-call control" when none was. `source_no_call_loci` is all source loci minus candidates.
 - A full build checks the pilot receipt's hash and PASS, not the pilot's builder and template hashes or its controls.
 - `SOURCE_MANIFEST.json` is not in its own hash map; record its hash separately. After partial writes, keep completed partitions in place.
 - `BUILD_AUDIT.json` PASS means the joins worked, not that current50 is complete. Missing-source, parse and hold failures exit 2; other exceptions can end the run outside those checks.

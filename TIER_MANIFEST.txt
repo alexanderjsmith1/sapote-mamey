@@ -1,4 +1,4 @@
-# TIER_MANIFEST tier=code version=9.7.458 stamp=20261026v97458a
+# TIER_MANIFEST tier=code version=9.7.459 stamp=20261027v97459a
 ./.github/workflows/ci.yml
 ./.gitignore
 ./AGENTS.md
@@ -2210,7 +2210,27 @@
 ./tests/test_458_wise_pks_oversized_is_held.py
 ./tests/test_458_workflow_strict_passes_when_complete.py
 ./tests/test_458_zip_hygiene_declared_ceiling_binds_suffix.py
+./tests/test_459_bind_panel_accession_brackets.py
+./tests/test_459_doctor_summary_and_zip_wording.py
+./tests/test_459_enzyme_neighborhoods_scope_counts.py
+./tests/test_459_evidence_disagreements_audit_write_exclusive.py
+./tests/test_459_figure_ready_tools_help.py
+./tests/test_459_figure_review_decision_import_undoes_formula_guard.py
 ./tests/test_459_gap_map_gecco_track.py
+./tests/test_459_k01_arial_markers.py
+./tests/test_459_locus_map_v8_png_300_dpi.py
+./tests/test_459_neutral_kcb_gcf_figure_wording.py
+./tests/test_459_normalization_nonfinite_correlation_not_mild.py
+./tests/test_459_pangenome_summary_no_saturation_claim.py
+./tests/test_459_phylo_admission_keeps_deposited_geography.py
+./tests/test_459_phylo_run_default_one_job.py
+./tests/test_459_prevalence_widget_channel_footer.py
+./tests/test_459_reference_panel_ledger_cli_contract.py
+./tests/test_459_registry_csv_json_parity.py
+./tests/test_459_strain_master_inbox_required_names_apply.py
+./tests/test_459_strain_slides_hcn_only_left_out.py
+./tests/test_459_tip_labels_keep_deposited_geography.py
+./tests/test_459_us_spelling_color_flags_and_help.py
 ./tests/test_462_panel_key_fits_page_width.py
 ./tests/test_466_multi_reference_aligned_layout.py
 ./tests/test_ab_diagnostic_triggers.py
@@ -2790,6 +2810,7 @@
 ./tests/test_f13_provenance_contract.py
 ./tests/test_f3_zip_resolver.py
 ./tests/test_f4_cohort_prevalence.py
+./tests/test_factory_named_profile_v97459.py
 ./tests/test_fair_cohort_analysis_no_dated_glob_v97397.py
 ./tests/test_family_map.py
 ./tests/test_fetch_mibig_reference.py
@@ -4251,6 +4272,7 @@
 ./tools/evidence_freshness.py
 ./tools/explorer_template.html
 ./tools/export_figure_ready.py
+./tools/export_registry_inventory_csv.py
 ./tools/export_tree_figure_source_package.py
 ./tools/extract_cluster.py
 ./tools/extract_module_core_domains.py

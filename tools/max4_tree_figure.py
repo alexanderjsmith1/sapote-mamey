@@ -22,8 +22,8 @@ metadata  Writes the figure metadata table the renderer reads. Rows come from an
           nor a country are listed in the receipt by full label, so the caption can name them.
 
 render    Runs tools/render_max4_tree.R with options from --spec JSON ({"options": {"width": 9.6, "root": "TIP", ...}}; keys are
-          the MAX4_* names with or without the prefix, any case) and --set KEY=VALUE. --groups, --genus-dots (colours from
-          mamey/data/genus_palette.json, --palette-set, --genus-colour GENUS=RRGGBB) and --query-groups switch on the colour
+          the MAX4_* names with or without the prefix, any case) and --set KEY=VALUE. --groups, --genus-dots (colors from
+          mamey/data/genus_palette.json, --palette-set, --genus-color GENUS=RRGGBB) and --query-groups switch on the color
           options. After drawing it reads the smallest text size back from the PDF (8 pt floor) and writes <stem>_receipt.json
           with every option and the SHA-256 of each input and output. --dry-run writes the receipt without drawing.
 """
@@ -460,9 +460,10 @@ def main(argv=None) -> int:
     r.add_argument("--set", action="append", default=[], help="KEY=VALUE renderer option (repeatable; wins over --spec)")
     r.add_argument("--prune", action="store_true", help="keep only the tips in the metadata table")
     r.add_argument("--groups", type=Path, help="colour strips table (kind, group, colour[, value_as_deposited])")
-    r.add_argument("--genus-dots", action="store_true", help="genus-coloured tip dots from the bundle genus palette")
+    r.add_argument("--genus-dots", action="store_true", help="genus-colored tip dots from the bundle genus palette")
     r.add_argument("--palette-set", choices=["moss", "attine"])
-    r.add_argument("--genus-colour", action="append", default=[], help="GENUS=RRGGBB colour for one genus (repeatable)")
+    r.add_argument("--genus-color", dest="genus_colour", action="append", default=[], metavar="GENUS=RRGGBB", help="color for one genus (repeatable)")
+    r.add_argument("--genus-colour", dest="genus_colour", action="append", default=[], help=argparse.SUPPRESS)  # earlier spelling, same option
     r.add_argument("--query-groups", type=Path, help="isolate label colours by host_group (group, colour)")
     r.add_argument("--rscript", help="Rscript executable (default: on PATH)")
     r.add_argument("--dry-run", action="store_true", help="write the receipt and command without drawing")

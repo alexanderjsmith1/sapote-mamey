@@ -348,10 +348,12 @@ def _load_ref_source_bundle(db_path):
                 cleaned[field] = _clean(value)
             bits = []
             for field in ("isolation_source", "host", "country"):
-                if cleaned[field]:
-                    value = cleaned[field]
-                    if field == "country":
-                        value = _phylo_meta.normalize_geography(value)["display_location"]
+                value = cleaned[field]
+                if value and field == "country":
+                    # Deposited text by default; continent bins only on request (SAPOTE_GEOGRAPHY_LEVEL=region).
+                    # A missing-value term gives '' and leaves no separator behind.
+                    value = _phylo_meta.label_geography(value)
+                if value:
                     bits.append(("host: " if field == "host" else "") + value)
             text = " · ".join(bits)
             structured = {

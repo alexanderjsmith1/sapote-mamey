@@ -1,6 +1,6 @@
 <!-- SUPERSEDED GLOSSARY SOURCE — NOT CANONICAL -->
 # Comprehensive glossary (retired)
 
-**Bundle v9.7.458 · Engine 1.9.177 · build 20261026v97458a**
+**Bundle v9.7.459 · Engine 1.9.177 · build 20261027v97459a**
 
 This glossary snapshot is retired and kept as a [historical record](../history/retired_458/user_guides/comprehensive_glossary.md). Do not extend it; use the [canonical glossary](../GLOSSARY.md) for current definitions.

@@ -1,11 +1,11 @@
-# Sapote-Mamey Bundle Release Manifest — v9.7.458 CODE archive
+# Sapote-Mamey Bundle Release Manifest — v9.7.459 CODE archive
 
-**Cut/build date:** 2026-10-26
+**Cut/build date:** 2026-10-27
 **Artifact status:** validated CODE archive  
-**Bundle version:** `sapote-mamey-v9.7.458`  
-**Authoritative bundle version:** `9.7.458`  
+**Bundle version:** `sapote-mamey-v9.7.459`  
+**Authoritative bundle version:** `9.7.459`  
 **Engine:** Mamey v1.9.177  
-**Build stamp:** 20261026v97458a  
+**Build stamp:** 20261027v97459a  
 **Release profile:** `CODE`
 
 This manifest identifies and summarizes validation of the source tree embedded in the CODE tier.
@@ -21,9 +21,9 @@ No additional release tiers are included in this CODE archive.
 
 | Gate | Status |
 |---|---|
-| Full pytest suite | PASS (22614 passed, 297 skipped; receipt-bound log) |
+| Full pytest suite | PASS (22770 passed, 297 skipped; receipt-bound log) |
 | Focused verification | New portable adapter, identity, containment and clinker regressions pass; exact counts recorded in external candidate receipts |
-| Strict repository health | PASS (1251 observed direct print calls; enforced ceiling 1255; no waiver. The ceiling's history is in `PRINT_WARN_THRESHOLD`, `tools/repo_health.py`.) |
+| Strict repository health | PASS (1250 observed direct print calls; enforced ceiling 1255; no waiver. The ceiling's history is in `PRINT_WARN_THRESHOLD`, `tools/repo_health.py`.) |
 | Version synchronization | PASS |
 | Generated module, tool, command, and deliverable inventories | PASS |
 | R source parsing | PASS (all bundled R sources parsed); synthetic single/grouped tree-track PDF pages inspected; live experimental integration remains separate |
@@ -48,11 +48,11 @@ fixture behavior; it does not establish scientific interpretation or owner accep
 
 ## Derived sync anchors
 
-Naming rule for any future multi-tier release: All four tiers share build stamp `20261026v97458a`. No such tier set was built here.
+Naming rule for any future multi-tier release: All four tiers share build stamp `20261027v97459a`. No such tier set was built here.
 
 | Gate | Status |
 |---|---|
-| `sync_version --check` | PASS (engine 1.9.177, bundle 9.7.458) |
+| `sync_version --check` | PASS (engine 1.9.177, bundle 9.7.459) |
 
-All tracked version anchors at v9.7.458 / Mamey 1.9.177.
-`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.458.
+All tracked version anchors at v9.7.459 / Mamey 1.9.177.
+`MAMEY_CHATGPT_EXECUTION_PROMPT.md` updated to v9.7.459.

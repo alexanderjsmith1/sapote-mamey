@@ -373,7 +373,7 @@ def fig_kcb_novelty(root, strains, out):
         known.append(sum(1 for v in ks if v >= 40))
     dark, partial, known = map(np.array, (dark, partial, known))
     fig, ax = plt.subplots(figsize=(_strain_bar_width(strains), 5.4))
-    ax.bar(strains, dark, color="#b2182b", label="KCB-dark (<1): candidate-novel", edgecolor="white")
+    ax.bar(strains, dark, color="#b2182b", label="no KCB hit (<1)", edgecolor="white")
     ax.bar(strains, partial, bottom=dark, color="#e08214", label="partial (1-40)", edgecolor="white")
     ax.bar(strains, known, bottom=dark + partial, color="#2166ac", label="known-like (>=40)", edgecolor="white")
     tot = dark + partial + known
@@ -384,7 +384,7 @@ def fig_kcb_novelty(root, strains, out):
     ax.set_ylabel("BGC count", fontsize=11)
     ax.set_ylim(0, tot.max() * 1.12)
     _finish_strain_axis(ax, strains)
-    ax.set_title("KCB novelty composition across strains", fontweight="bold", fontsize=12)
+    ax.set_title("KCB similarity composition across strains", fontweight="bold", fontsize=12)
     ax.legend(fontsize=8.5, frameon=False, loc="upper left", bbox_to_anchor=(1.01, 1.0))
     _png = os.path.join(out, "fig6_kcb_novelty.png")
     _sidecar_csv(_png, ["strain", "kcb_tier", "n_bgcs"],

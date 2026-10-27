@@ -13,11 +13,12 @@ def test_complete_16s_roster_passes_and_fragment_fails():
     assert validate([row('R1',s)],{'R1':s})['status']=='ADMISSION_PASS'
     with pytest.raises(ValueError,match='SEQUENCE_LENGTH'):validate([row('R1','A'*173)],{'R1':'A'*173})
 
-def test_genus_metadata_and_geography_fail_closed():
+def test_genus_and_metadata_fail_closed_geography_kept_as_deposited():
     s='A'*1400
     with pytest.raises(ValueError,match='GENUS_CONTRADICTION'):validate([row('R1',s,expected_genus='Nocardia')],{'R1':s})
     with pytest.raises(ValueError,match='METADATA_INCOMPLETE'):validate([row('R1',s,isolation_source='unknown')],{'R1':s})
-    with pytest.raises(ValueError,match='GEOGRAPHY_VOCABULARY'):validate([row('R1',s,geography='Yunnan Province')],{'R1':s})
+    # .459 row 20: geography outside the ten-value display list is admitted as deposited, not refused
+    assert validate([row('R1',s,geography='Yunnan Province')],{'R1':s})['tips'][0]['geography']=='Yunnan Province'
 
 def test_duplicate_type_representatives_fail():
     a,b='A'*1400,'C'*1400

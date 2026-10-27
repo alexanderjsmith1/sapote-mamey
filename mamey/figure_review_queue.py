@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import csv
 try:
-    from .csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter  # v9.7.410 CSV formula-cell guard (CLAUDE_410_csv_writer_coverage)
+    from .csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter, csv_safe_cell as _csv_safe_cell, csv_unsafe_cell as _csv_unsafe_cell  # v9.7.410 CSV formula-cell guard (CLAUDE_410_csv_writer_coverage)
 except ImportError:
-    from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter
+    from mamey.csv_safety import SafeDictWriter as _SafeDictWriter, SafeWriter as _SafeWriter, csv_safe_cell as _csv_safe_cell, csv_unsafe_cell as _csv_unsafe_cell
 import ctypes
 import errno
 import hashlib
@@ -130,6 +130,7 @@ def _load_decisions(path: Path | None) -> dict[str, tuple[str, str]]:
             )
         decisions: dict[str, tuple[str, str]] = {}
         for row in reader:
+            # Kept as written: the ID is matched to the manifest raw or in its guarded form (see _manifest_rows).
             figure_id = str(row.get("figure_id") or "").strip()
             if not figure_id:
                 continue
@@ -142,7 +143,7 @@ def _load_decisions(path: Path | None) -> dict[str, tuple[str, str]]:
                 raise FigureReviewQueueError(
                     "FIGURE_REVIEW_DECISION_INVALID", f"unsupported decision for {figure_id}"
                 )
-            decisions[figure_id] = (decision, str(row.get("decision_note") or "").strip())
+            decisions[figure_id] = (decision, _csv_unsafe_cell(str(row.get("decision_note") or "").strip()))
     return decisions
 
 
@@ -194,7 +195,13 @@ def _manifest_rows(
         data_path: Path | None = None
         if data_value:
             data, data_path = _resolve_member(figure_root, data_value, field="data")
-        decision, note = decisions.get(figure_id, ("UNREVIEWED", ""))
+        # The queue TSV writes a formula-leading ID with a guard apostrophe; accept either form, never both.
+        guarded = _csv_safe_cell(figure_id)
+        if guarded != figure_id and figure_id in decisions and guarded in decisions:
+            raise FigureReviewQueueError(
+                "FIGURE_REVIEW_DECISION_DUPLICATE", f"duplicate decision for {figure_id}"
+            )
+        decision, note = decisions.get(figure_id) or decisions.get(guarded) or ("UNREVIEWED", "")
         rows.append(
             {
                 "figure_id": figure_id,
@@ -221,7 +228,7 @@ def _manifest_rows(
                 "caption_text": caption_text,
             }
         )
-    unknown = sorted(set(decisions) - seen)
+    unknown = sorted(set(decisions) - seen - {_csv_safe_cell(figure_id) for figure_id in seen})
     if unknown:
         raise FigureReviewQueueError(
             "FIGURE_REVIEW_DECISION_ORPHAN",

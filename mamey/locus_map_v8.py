@@ -744,7 +744,7 @@ def render_bgc_v8(
     svg = out / f"{bgc_id}_locus_map.svg"
     csv_path = out / f"{bgc_id}_locus_map_data.csv"
     receipt_path = out / f"{bgc_id}_locus_map_v8_receipt.json"
-    fig.savefig(png, dpi=_safe_dpi(fig, 180), metadata={"Software": "Sapote-Mamey locus map v8"})
+    fig.savefig(png, dpi=_safe_dpi(fig, 300), metadata={"Software": "Sapote-Mamey locus map v8"})
     fig.savefig(svg, metadata={"Date": None, "Creator": "Sapote-Mamey locus map v8"})
     plt.close(fig)
 

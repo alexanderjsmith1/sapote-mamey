@@ -424,8 +424,29 @@ def validate_model(model: DocumentModel, *, require_assets: bool = False) -> Val
             match = _MODEB_HEADING.match(block.data["text"])
             if match:
                 section_numbers.append(int(match.group(1)))
-        if section_numbers != list(range(1, 49)):
-            issues.append(ValidationIssue("MODEB_SECTIONS_1_48_REQUIRED", f"observed={section_numbers}"))
+        # Header comments survive parsing as paragraph text. Use the same resolver
+        # as receipt ingestion rather than introducing a second header grammar.
+        contract_text = "\n".join(
+            block.data["text"] for block in model.blocks if block.kind == "paragraph"
+        )
+        try:
+            from .mode_b_receipt import _resolve_card_contract
+            from .modeb_structure_gate import load_contract
+            _, contract, _, findings = _resolve_card_contract(contract_text)
+            bound_contract = contract if contract is not None else load_contract()
+            expected_sections = [int(section["number"]) for section in bound_contract["sections"]]
+        except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
+            issues.append(ValidationIssue("MODEB_CONTRACT_INVALID", str(exc)))
+        else:
+            issues.extend(
+                ValidationIssue(finding["code"], finding["message"])
+                for finding in findings if finding.get("severity") == "ERROR"
+            )
+            if section_numbers != expected_sections:
+                issues.append(ValidationIssue(
+                    f"MODEB_SECTIONS_1_{len(expected_sections)}_REQUIRED",
+                    f"observed={section_numbers}",
+                ))
         h1s = [block.data["text"] for block in model.blocks if block.kind == "heading" and block.data["level"] == 1]
         if len(h1s) != 1:
             issues.append(ValidationIssue("MODEB_SINGLE_H1_REQUIRED", f"observed={len(h1s)}"))

@@ -4,4 +4,4 @@ The thirteen Encyclopedia volumes and their currency record are retired. They we
 
 For current information, read the [User Manual](User-Manual.md), the [Glossary](Glossary.md), the [Quick Guide](Quick-Guide.md) and the [Concepts Q&A](Concepts-Q-and-A.md).
 
-This pointer page is current to bundle v9.7.458 / engine Mamey 1.9.177.
+This pointer page is current to bundle v9.7.459 / engine Mamey 1.9.177.

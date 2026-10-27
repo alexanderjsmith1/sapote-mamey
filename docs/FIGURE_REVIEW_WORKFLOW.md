@@ -28,7 +28,7 @@ never replaced. Images are linked with relative locators and are never copied. K
 
 The reader takes the ID from `figure_set_id`, then `figure_id`. It takes the image from `svg`, then `png`, then `image` (SVG, PNG, JPG or JPEG), and the digest from `svg_sha256`, then `png_sha256`, then `image_sha256`, chosen separately. Give one image and its matching digest. Only that image is checked and shown. Data comes from `data_csv`, then `data`; the caption digest from `text_sha256`, then `caption_sha256`. The manifest has no schema-version check.
 
-Use figure IDs that do not start with `=`, `+`, `-` or `@`, and plain file names. The TSV escapes formula characters, and decision import does not undo it, so such an ID will not rejoin on the next import. HTML links do not URL-encode `#`, `?` or `%` in file names, so those links can break in the browser. Do not rename IDs by hand to work around this.
+Use figure IDs that do not start with `=`, `+`, `-` or `@`, and plain file names. The TSV escapes a leading formula character with an apostrophe, and decision import matches each `figure_id` to the manifest as written or in that guarded form, so such an ID still rejoins on the next import. An ID that really starts with an apostrophe keeps it. The guard apostrophe is removed from `decision_note`. Plain IDs read more easily in a spreadsheet. HTML links do not URL-encode `#`, `?` or `%` in file names, so those links can break in the browser. Do not rename IDs by hand to work around this.
 
 ## Build a queue
 
@@ -45,7 +45,7 @@ or `UNREVIEWED` in `FIGURE_REVIEW_QUEUE.tsv`. The note column is free text. To r
 queue while retaining decisions, supply the prior queue with `--decisions` and choose a new
 output directory. HTML pages contain a build-time snapshot of the decisions and notes; editing the TSV does not refresh the displayed cards or saved receipt counts. Retain the edited TSV as a new decision revision and rebuild into a fresh directory before relying on the HTML/counts as a current review surface. The page has no browser save control.
 
-Decision import requires `figure_id`, `decision`, `decision_note` columns and supports a UTF-8 BOM. It ignores blank-ID rows, trims fields and uppercases decision codes, rejects duplicate nonblank IDs and refuses unknown IDs. Whitespace-only decision cells become an empty invalid code, whereas genuinely empty cells default to `UNREVIEWED`. Retain the manifest-bound IDs unchanged and inspect row counts after import.
+Decision import requires `figure_id`, `decision`, `decision_note` columns and supports a UTF-8 BOM. It ignores blank-ID rows, trims fields and uppercases decision codes, matches `figure_id` as written or in its formula-guarded form, removes the guard apostrophe from `decision_note`, rejects duplicate nonblank IDs (including both forms of one ID) and refuses unknown IDs. Whitespace-only decision cells become an empty invalid code, whereas genuinely empty cells default to `UNREVIEWED`. Retain the manifest-bound IDs unchanged and inspect row counts after import.
 
 ## Caption and comparison requirements
 

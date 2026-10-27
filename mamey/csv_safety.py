@@ -67,6 +67,17 @@ def csv_safe_cell(value):
     return "'" + value
 
 
+def csv_unsafe_cell(value):
+    """Inverse of ``csv_safe_cell`` for reading a guarded TSV/CSV back in.
+
+    Removes the one leading "'" only when ``csv_safe_cell`` would have added it: the rest of
+    the cell starts with a formula leader and is not a lone sign or a plain signed number.
+    Any other cell, including one that merely starts with an apostrophe, is returned as is."""
+    if isinstance(value, str) and value.startswith("'") and csv_safe_cell(value[1:]) == value:
+        return value[1:]
+    return value
+
+
 class SafeDictWriter(csv.DictWriter):
     """Drop-in replacement for csv.DictWriter that neutralises formula-leading string cells
     at write time. csv.DictWriter.writerows() does NOT delegate to writerow(), so both are

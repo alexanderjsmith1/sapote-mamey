@@ -6,7 +6,7 @@ Use an editable working installation. Doctor writes a test file under `runs/_doc
 If that folder already exists, doctor leaves it untouched and reports its write check as FAIL.
 Move the folder out of `runs/` (keep it; do not delete it), then run doctor again.
 
-*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.458 / engine Mamey 1.9.177*
+*Operating guide for the Sapote–Mamey genome-mining pipeline · current to bundle v9.7.459 / engine Mamey 1.9.177*
 *Historical sections retain their stated scope*.
 
 > This Manual tells you **how to run** Sapote–Mamey and **how to read what it gives you**, in the order you actually use it. For *why each part exists and how it relates to the rest*, see the **Encyclopedia** (cross-referenced as → §Vol.Chapter). The Manual is operational; the Encyclopedia is the deep reference behind it. Term definitions live in one place, the **Glossary** ([`GLOSSARY.md`](Glossary.md); its **Core concepts** section covers the load-bearing terms). This Manual and the Encyclopedia point to it rather than redefining terms.
@@ -33,7 +33,7 @@ Mamey is the factual floor; Sapote is the interpretive ceiling. The contract bet
 ## 2 · Setup and installation
 
 Mamey parses antiSMASH output; it does not run genome detection itself.
-*(engine 1.9.177, bundle v9.7.458)*
+*(engine 1.9.177, bundle v9.7.459)*
 
 ### 2.1 · What you need
 
@@ -100,7 +100,7 @@ Reuse the setup diagnostics from §2.2; repeat `doctor` only when a changed envi
 or a specific diagnostic question calls for it. Check version consistency separately:
 
 ```bash
-python3 tools/sync_version.py --check # should report `engine 1.9.177, bundle 9.7.458`
+python3 tools/sync_version.py --check # should report `engine 1.9.177, bundle 9.7.459`
 # Developer tests are separate from first-run setup; pytest is installed separately.
 # Default pytest omits marked slow/network partitions and may skip external fixtures.
 # A green scoped test run does not establish tier integrity or release readiness.
@@ -539,4 +539,4 @@ Use [the Mode B user walkthrough](../docs/MODE_B_USER_WALKTHROUGH.md) for packag
 
 ---
 
-*Sapote–Mamey User Manual · current to bundle v9.7.458 / engine Mamey 1.9.177. Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*
+*Sapote–Mamey User Manual · current to bundle v9.7.459 / engine Mamey 1.9.177. Consolidates the former 01_User_Guide.md and 01_User_Manual.html into one task-flow-first operating manual; deep internals live in the Encyclopedia, term definitions in GLOSSARY.md.*

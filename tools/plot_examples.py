@@ -12,12 +12,17 @@ def main(argv=None):
     from _console import emit  # noqa: E402
     import sys, os, csv, math
     from collections import defaultdict
+    # -h/--help only; the positional use is unchanged, and extra words are ignored as before.
+    import argparse
+    ap = argparse.ArgumentParser(prog='plot_examples.py', description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('figure_ready_dir', nargs='?', default='figure_ready',
+                    help='folder written by tools/export_figure_ready.py (default: figure_ready)')
+    d = ap.parse_known_args(sys.argv[1:] if argv is None else argv)[0].figure_ready_dir
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
-    args = sys.argv[1:] if argv is None else argv
-    d = args[0] if args else 'figure_ready'
     def load(name):
         with open(os.path.join(d,name)) as f: return list(csv.DictReader(f))
 

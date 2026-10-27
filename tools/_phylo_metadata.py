@@ -199,18 +199,21 @@ def _country_name(value: str) -> str | None:
     return None
 
 
-def normalize_geography(location: str | None) -> dict[str, str]:
+def normalize_geography(location: str | None, level: str | None = None) -> dict[str, str]:
     """Create figure geography without inventing locality.
 
     US and Canada remain distinct. Other recognized countries become continents; an explicitly
     recorded named ocean is retained. Unrecognized deposited text remains visible so the display
     admission gate can hold it rather than silently guessing a region.
+
+    This is the strip vocabulary. Tip labels use label_geography(), which keeps the deposited text.
+    ``level`` overrides SAPOTE_GEOGRAPHY_LEVEL; only "country" changes the result.
     """
     raw = _clean(location)
     # v9.7.452: INSDC missing-value terms ("missing: control sample", "missing: lab stock", "not determined") are not places.
     if not raw or raw.split(":", 1)[0].strip().lower() in _GEO_PLACEHOLDERS:
         return {"raw": "", "display_location": "", "state": "NOT_RECORDED"}
-    if os.environ.get("SAPOTE_GEOGRAPHY_LEVEL") == "country":
+    if (os.environ.get("SAPOTE_GEOGRAPHY_LEVEL") if level is None else level) == "country":
         # v9.7.444: report the deposited country (INSDC country part, before any ':' locality), not a continent bin.
         prefix = raw.split(":", 1)[0].strip()
         return {"raw": raw, "display_location": _country_name(raw) or _country_name(prefix) or prefix,
@@ -230,6 +233,25 @@ def normalize_geography(location: str | None) -> dict[str, str]:
         if prefix in _NAMED_OCEANS:
             return {"raw": raw, "display_location": prefix, "state": "AS_RECORDED"}
     return {"raw": raw, "display_location": raw, "state": "AS_RECORDED"}
+
+
+# House rule: report geography as deposited. A tip label carries the deposited text unless the operator asks for
+# another level. SAPOTE_GEOGRAPHY_LEVEL (or placement_display.py --geography-level) chooses it:
+#   deposited (default, also when unset): the deposited text, e.g. "Panama: Barro Colorado Island".
+#   region:  the continent bins of normalize_geography(), the label default in older bundles. Reproduces older renders.
+#   country: the deposited country, the text before any ':' (also switches the strip to countries, as before).
+# A missing value or an INSDC missing term stays missing (''). Nothing is inferred. Strips are not changed here.
+LABEL_GEOGRAPHY_LEVELS = ("deposited", "region", "country")
+
+
+def label_geography(location: str | None, level: str | None = None) -> str:
+    """Geography text for a tip label: the deposited text by default; continent bins only when asked for."""
+    if level is None:
+        level = os.environ.get("SAPOTE_GEOGRAPHY_LEVEL", "").strip() or "deposited"
+    if level not in LABEL_GEOGRAPHY_LEVELS:
+        raise ValueError(f"GEOGRAPHY_LEVEL_INVALID: {level!r}; use one of {', '.join(LABEL_GEOGRAPHY_LEVELS)}")
+    geo = normalize_geography(location, level=level)
+    return geo["raw"] if level == "deposited" else geo["display_location"]
 
 
 # Strip colour only. Labels keep the deposited country (normalize_geography); a transcontinental country the owner has

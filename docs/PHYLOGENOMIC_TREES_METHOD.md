@@ -77,8 +77,8 @@ IQ-TREE internally through supported completion and final retention checks. Runn
 the historical standalone IQ-TREE command afterward would duplicate/overwrite
 inference. The shell wrapper selects Python from
 `$PROJECT_ROOT/miniconda3/envs/phylo/bin/python`; it is not an arbitrary activated
-interpreter. Its default GToTree jobs and IQ-TREE threads are four, not the default
-one-core policy. Bind the actual environment and explicit resource settings before
+interpreter. Its default GToTree jobs and IQ-TREE threads are four, not the `phylo-run`
+default of 4 threads, one job at a time. Bind the actual environment and explicit resource settings before
 considering that specialized workspace route. The portable `phylo-run` interface
 has its own defaults and preflight boundaries described in the linked guide.
 

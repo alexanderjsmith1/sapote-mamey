@@ -12,9 +12,9 @@ Concordance selects the largest `obs_size_kb` parsed region from each matching Z
 
 ## Ledger inspection and outputs
 
-The ledger tool's positional interface is `python tools/reference_panel_ledger.py <selected-zips-directory> <fresh-output.csv>`, during a separately authorized execution task. It runs local extraction/source scans, so a documentation-only review must read its source instead. Correct output columns include `obs_region_type` and `cmp_t43_markers`; there is no `obs_t43_markers` field (`tools/reference_panel_ledger.py`).
+The ledger tool's positional interface is `python tools/reference_panel_ledger.py <selected-zips-directory> <fresh-output.csv>`. Both paths are required; the tool has no workspace-specific default. It runs during a separately authorized execution task. It runs local extraction/source scans, so a documentation-only review must read its source instead. Correct output columns include `obs_region_type` and `cmp_t43_markers`; there is no `obs_t43_markers` field (`tools/reference_panel_ledger.py`).
 
-The CLI discovers only top-level `.zip` filenames, catches individual archive errors and prints `skip`, returns normally with no output when no rows exist, and directly overwrites the selected CSV when rows exist. A normal exit or a summary mentioning N ZIPs does not certify all N archives produced rows. Preserve original inputs and inspect logs, per-source rows, output counts and exact bindings. Use an existing permitted output directory and a fresh file path.
+The CLI discovers only top-level `.zip` filenames, catches individual archive errors and prints `skip`, and directly overwrites the selected CSV when rows exist. When no rows exist it prints `NO_ROWS` to stderr, exits 1 and writes nothing; a missing argument or source directory exits 2. A normal exit or a summary mentioning N ZIPs still does not certify all N archives produced rows. Preserve original inputs and inspect logs, per-source rows, output counts and exact bindings. Use an existing permitted output directory and a fresh file path.
 
 ## Fixture adoption holds
 

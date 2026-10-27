@@ -592,12 +592,13 @@ def gap_stats(D, bgc):
                    frac=len(found) / len(g) if g else 0, med=statistics.median(ids) if ids else None, adj=av)
 
 
-NO_SLIDE_TYPES = {"ectoine", "NAPAA"}
+NO_SLIDE_TYPES = {"ectoine", "NAPAA", "hydrogen-cyanide"}
 
 
 def left_out(D, bgc):
     """Why a region gets no region slide, or "" when it gets one. The owner, 3 Oct: ectoine is near universal and "does not
-    belong in our slide decks"; NAPAA and geosmin go with it; terpene and saccharide stay. antiSMASH has no geosmin
+    belong in our slide decks"; NAPAA and geosmin go with it; terpene and saccharide stay. The owner later added
+    hydrogen-cyanide-only regions, by the same antiSMASH product-type test as ectoine. antiSMASH has no geosmin
     type, so a geosmin region is a terpene-only region whose KnownClusterBlast best match is geosmin. A region with
     split-link evidence keeps its slide whatever its type: a HIGH RG-GMCI link the two-proof check does not reject, or a
     gap-rescue find on another contig that the partner checks support. The region keeps its region-table row."""
@@ -1406,7 +1407,7 @@ def landscape(prs, D, assets):
     P = [[("What the region slides hold", True, ACCENT)],
          [(f"{len(inv) - len(nos)} of {len(inv)} antiSMASH regions, strongest evidence first, then {len(D['gonly'])} "
            "GECCO-only candidates.", False, INK)],
-         [(f"{len(nos)} ectoine, NAPAA or geosmin regions have no slide of their own; each keeps its row in the region "
+         [(f"{len(nos)} ectoine, NAPAA, hydrogen-cyanide or geosmin regions have no slide of their own; each keeps its row in the region "
            "table. One with a split-link find keeps its slide.", False, MUTED)],
          [(f"{len(runs)} have a gap-rescue run against a MIBiG reference; {len(close)} of those find half or more of the "
            f"reference's genes at a median identity of {BAR:.0f}% or more.", False, INK)],
@@ -1443,7 +1444,7 @@ def region_table(prs, D, order, slide_of):
                          big.get("gcf_tightest", "") or ("singleton" if big else ""), f"{gm:.2f}" if gm is not None else ""])
         table(s, hdr, widths, body)
         s.notes_slide.notes_text_frame.text = (
-            "One row per antiSMASH region, in the order of the region slides. Slide 'none' = an ectoine, NAPAA or geosmin "
+            "One row per antiSMASH region, in the order of the region slides. Slide 'none' = an ectoine, NAPAA, hydrogen-cyanide or geosmin "
             "region with no slide of its own (no split-link find). Gap rescue = reference genes found (in the region "
             "+ clearly elsewhere) / reference genes, median identity. RG-GMCI = HIGH links the two-proof check does not reject, "
             "and MODERATE candidates. Blank = no evidence in that channel, not a negative test.")

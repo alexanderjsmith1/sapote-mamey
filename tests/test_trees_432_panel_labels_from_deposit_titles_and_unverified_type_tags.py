@@ -44,23 +44,23 @@ def test_label_from_organism_and_strain_not_deposit_title(tmp_path):
     deposit = dict(tip="GCF_000000001.1", identifier="GCF_000000001.1", role="REFERENCE", reference_class="Reference",
                    label_concise="Genus alpha strain DSM 1, whole genome shotgun sequence (GCF_000000001.1)")
     out = bpm.build_reference_label(deposit, records["GCF_000000001.1"])
-    assert out["label_concise"] == "Genus alpha DSM 1 [Type] (GCF_000000001.1)"
+    assert out["label_concise"] == "Genus alpha DSM 1 [Type] [GCF_000000001.1]"
     assert out["label_experiment"] == out["label_concise"]
     assert out["reference_class"] == "Type"
     assert "whole genome shotgun" not in out["label_concise"]
 
     nontype = dict(tip="GCF_000000002.1", identifier="GCF_000000002.1", role="REFERENCE", label_concise="x")
     out = bpm.build_reference_label(nontype, records["GCF_000000002.1"])
-    assert out["label_concise"] == "Genus sp. X-2 (GCF_000000002.1)"     # sp. kept, strain not duplicated
+    assert out["label_concise"] == "Genus sp. X-2 [GCF_000000002.1]"     # sp. kept, strain not duplicated
     assert "[Type]" not in out["label_concise"] and out["reference_class"] == "Reference"
 
     synonym = dict(tip="GCF_000000005.1", identifier="GCF_000000005.1", role="REFERENCE", label_concise="x")
     out = bpm.build_reference_label(synonym, records["GCF_000000005.1"])
-    assert out["label_concise"] == "Genus epsilon K5 (GCF_000000005.1)"   # synonym type material is not [Type]
+    assert out["label_concise"] == "Genus epsilon K5 [GCF_000000005.1]"   # synonym type material is not [Type]
 
     outgroup = dict(tip="OUT_OUTGROUP", identifier="GCF_000000009.1", role="OUTGROUP", label_concise="x")
     out = bpm.build_reference_label(outgroup, records["GCF_000000009.1"])
-    assert out["label_concise"] == "Outer beta DSM 9 [Type; outgroup] (GCF_000000009.1)"
+    assert out["label_concise"] == "Outer beta DSM 9 [Type; outgroup] [GCF_000000009.1]"
 
 
 def test_query_rows_and_unrecorded_references_are_left_alone(tmp_path):
@@ -99,9 +99,9 @@ def test_cli_rebuilds_labels_and_copies_records(tmp_path):
     lines = (out / "figure_metadata.tsv").read_text().splitlines()
     header = lines[0].split("\t")
     by = {d["identifier"]: d for d in (dict(zip(header, l.split("\t"))) for l in lines[1:])}
-    assert by["GCF_000000001.1"]["label_concise"] == "Genus alpha DSM 1 [Type] (GCF_000000001.1)"
+    assert by["GCF_000000001.1"]["label_concise"] == "Genus alpha DSM 1 [Type] [GCF_000000001.1]"
     assert by["GCF_000000001.1"]["reference_class"] == "Type"
-    assert by["GCF_000000002.1"]["label_concise"] == "Genus sp. X-2 (GCF_000000002.1)"
+    assert by["GCF_000000002.1"]["label_concise"] == "Genus sp. X-2 [GCF_000000002.1]"
     assert by["GCF_000000002.1"]["reference_class"] == "Reference"
     assert by["QRY-1"]["label_concise"] == "Genus sp. QRY-1 [Wasp; US] (PX000001)"
     assert (out / "ASSEMBLY_RECORDS_ncbi_esummary.tsv").exists()

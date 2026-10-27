@@ -88,7 +88,7 @@ def test_explicit_deposited_fields_reach_optional_renderer_metadata(tmp_path):
     assert annotation[tip]["reference_country"] == "Japan"
     assert rectangle[tip] == {
         "tip": tip,
-            "label": "Example species IFM 10428 [patient · Asia] (AB123456)",
+            "label": "Example species IFM 10428 [patient · Japan] (AB123456)",
         "category": "clinical/animal-associated",
             "source": "Asia",
         "category_raw": "patient",
@@ -110,7 +110,7 @@ def test_unmatched_reference_stays_typed_and_blank(tmp_path):
         "Example_species_AB654321_1", fields, True
     )
 
-    assert combined["AB123456"] == "patient · Asia"
+    assert combined["AB123456"] == "patient · Japan"
     assert fields["AB123456"] == {"category": "patient", "location": "Japan"}
     assert (status, category, location) == ("ACCESSION_UNMATCHED", "", "")
 

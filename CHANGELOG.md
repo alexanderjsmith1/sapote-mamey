@@ -1,3 +1,43 @@
+# v9.7.459 — unsealed cut candidate · build 20261027v97459a
+
+Build 20261027v97459a; engine 1.9.177.
+
+Builds on the sealed v9.7.458 (CODE zip, build 20261026v97458a). The engine stays 1.9.177: no card changes RG-GMCI scores, ranks, thresholds or KCB values.
+
+- **Metadata as deposited.**
+  - The 16S admission gate no longer refuses a geography that is not one of ten regions. It keeps the deposited text on each tip of its receipt and adds a separate display field, `geography_region`, filled only from an exact list value or the bundle's country table. The receipt says in one line that the deposited text is the record and the region is display-only. A tip with no deposited geography is admitted, left blank and listed for omission from figures by full name.
+  - Placement tip labels show the deposited country, not a continent.
+  - `tools/bind_panel_metadata.py` writes the accession in brackets.
+- **Defaults and help.**
+  - `phylo-run` defaults to one GToTree job of four threads (`--parallel 1`). Before, it ran two jobs of four threads at once.
+  - `doctor` no longer calls a missing core dependency optional, and its no-ZIP warning names flags that exist.
+  - The `INBOX_REQUIRED` refusal names the `strain-master apply` step. Before, it said `import`, which is not an action.
+  - `--genus-color` is the listed flag on the two figure tools that took only `--genus-colour`; the old spelling still works. Help and captions use American spelling.
+  - `tools/export_figure_ready.py --help` and `tools/plot_examples.py --help` print usage instead of a traceback.
+- **Figures.**
+  - Locus map v8 writes its PNG at 300 DPI.
+  - KCB and GCF figures use neutral wording on the plot.
+  - The pangenome summary drops a "not saturated" sentence the data did not support.
+  - The domain-prevalence widget's footer reports channel coverage from its input.
+  - Strain decks give no region slide to a region whose only call is hydrogen cyanide.
+  - The figure review queue: decision import matches a figure ID written with the spreadsheet formula guard, so IDs that start with `=`, `+`, `-` or `@` rejoin on rebuild. An ID that really starts with an apostrophe keeps it.
+- **Smaller fixes.**
+  - Enzyme neighborhoods: the receipt's scope text follows its counts.
+  - Evidence disagreements: the audit file is created exclusively, so an earlier audit is never overwritten.
+  - Normalization ranking: a non-finite correlation reads "not measurable", not "mild".
+  - The reference panel ledger has no workspace default path, and exits non-zero when it finds no rows.
+  - A comment in `mamey/antismash_evidence.py` now matches the JSON-mode code.
+  - The Mode B registry CSV is generated from the JSON, so the two cannot disagree. The exporter writes through the bundle's formula-guarded CSV writer.
+  - The document factory checks a card against the named contract in its header.
+- **CI.** The two six-inch K01 layout tests carry the `needs_arial` marker, so they skip where Arial is absent, as on Linux CI. They failed there on v9.7.458. The print-call ceiling is 1250, measured.
+- **Generated surfaces** are regenerated once, by the last card: the tool inventory, capabilities block, maintenance inventory and file atlas.
+
+Known limits, for later:
+- The register still marks SHALLOW and STUB Mode B cards COMPLETE. The fix, which also extends the seal checks to DRAFT cards, is held for its test updates.
+- v2-only literature checks at ingest are not yet run.
+- A missing isolation source still refuses a whole 16S roster. This waits on an owner ruling.
+- `test_release_cut_partition_mode` needs a real filesystem, not a sandbox.
+
 # v9.7.458 — unsealed cut candidate · build 20261026v97458a
 
 Build 20261026v97458a; engine 1.9.177.

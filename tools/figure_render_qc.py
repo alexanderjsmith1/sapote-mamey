@@ -748,7 +748,7 @@ def main(argv=None) -> int:
     ap.add_argument("--manifest", type=Path, help="TSV mapping review copies to source figures")
     ap.add_argument("--out", type=Path)
     ap.add_argument("--ocr", choices=("auto", "off", "require"), default="auto")
-    ap.add_argument("--bioassay", action="store_true", help="apply the crude/fraction/pooled labelling rule")
+    ap.add_argument("--bioassay", action="store_true", help="apply the crude/fraction/pooled labeling rule")
     ap.add_argument("--extra-rules", type=Path)
     ap.add_argument("--dpi", type=int, default=300, help="minimum raster DPI, not an exact target")
     ap.add_argument("--print-width-in", type=float, help="declared embedded width for every selected PNG; checks pixels/width independently of metadata")

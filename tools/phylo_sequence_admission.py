@@ -4,6 +4,12 @@
 This gate validates scientific input identity before inference.  It does not fetch
 records or infer missing metadata.  A successful result means the supplied roster,
 FASTA and evidence fields agree mechanically; it is not a taxonomic conclusion.
+
+Geography is admitted as deposited.  The `geography` cell is carried unchanged on each
+tip of the receipt.  `geography_region` is a separate display field from the ten-value
+list below, filled only from an exact list value or the bundle's country table, and
+blank otherwise.  A tip with no deposited geography is admitted with it blank and listed
+in `figure_omissions` by full name, so figures can omit it.
 """
 from __future__ import annotations
 
@@ -11,10 +17,19 @@ import argparse, csv, hashlib, json, re, sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # resolve the tools-local country table from any cwd
+from _phylo_metadata import _COUNTRY_TO_CONTINENT, _GEO_PLACEHOLDERS, _country_name  # noqa: E402
+
 ROLES = {"query", "reference", "outgroup"}
 TYPE_STATUS = {"type", "non_type", "not_applicable"}
-GEOGRAPHY = {"US", "Canada", "North America (other)", "South America", "Europe",
-             "Asia", "Africa", "Oceania", "Antarctica", "Indian Ocean"}
+# Display regions only, never a refusal: deposited geography is admitted unchanged (owner ruling, .459 row 20).
+GEOGRAPHY_REGIONS = ("US", "Canada", "North America (other)", "South America", "Europe",
+                     "Asia", "Africa", "Oceania", "Antarctica", "Indian Ocean")
+GEOGRAPHY = set(GEOGRAPHY_REGIONS)
+GEOGRAPHY_NOTE = ("geography is the deposited text and is the record; "
+                  "geography_region is display-only and is never written back.")
+_CONTINENT_REGION = {"North America": "North America (other)", "South America": "South America",
+                     "Europe": "Europe", "Asia": "Asia", "Africa": "Africa", "Oceania": "Oceania"}
 MISSING = {"", "na", "n/a", "not applicable", "not recorded", "unknown", "unverified"}
 REQUIRED = {"tip", "role", "organism", "expected_genus", "accession", "sequence_sha256",
             "type_status", "isolation_source", "geography", "sequence_evidence",
@@ -23,6 +38,43 @@ REQUIRED = {"tip", "role", "organism", "expected_genus", "accession", "sequence_
 
 def _missing(value: str | None) -> bool:
     return (value or "").strip().lower() in MISSING
+
+
+def geography_missing(value: str | None) -> bool:
+    """True for a blank cell, a roster placeholder, or an INSDC missing term such as "missing: lab stock"."""
+    text = (value or "").strip()
+    return _missing(text) or text.split(":", 1)[0].strip().lower() in _GEO_PLACEHOLDERS
+
+
+def geography_region(deposited: str | None) -> tuple[str, str]:
+    """Return (display region, basis) for a deposited geography; never changes the deposited text.
+
+    Basis LIST_VALUE: the deposited text, or its country part before ':', is already a list value.
+    Basis COUNTRY_TABLE: the country part is in the bundle's country table (USA -> US, Canada,
+    otherwise its continent; North America other than the US and Canada -> "North America (other)").
+    Basis NOT_DERIVED: anything else, for example "North America", "USSR", a province name or an
+    ocean outside the list. The region stays blank rather than guessed.
+    Basis NOT_RECORDED: no deposited geography; the region stays blank.
+    """
+    text = (deposited or "").strip()
+    if geography_missing(text):
+        return "", "NOT_RECORDED"
+    prefix = text.split(":", 1)[0].strip()
+    for candidate in (text, prefix):
+        for region in GEOGRAPHY_REGIONS:
+            if candidate.casefold() == region.casefold():
+                return region, "LIST_VALUE"
+    country = _country_name(prefix)
+    if country in {"USA", "Canada"}:
+        return ("US" if country == "USA" else "Canada"), "COUNTRY_TABLE"
+    region = _CONTINENT_REGION.get(_COUNTRY_TO_CONTINENT.get(country or "", ""), "")
+    return (region, "COUNTRY_TABLE") if region else ("", "NOT_DERIVED")
+
+
+def _full_name(row) -> str:
+    """Organism as given, plus a `strain` cell when the roster has one that the organism lacks."""
+    organism, strain = row["organism"].strip(), (row.get("strain") or "").strip()
+    return f"{organism} {strain}" if strain and strain not in organism else organism
 
 
 def _canonical(sequence: str) -> str:
@@ -89,6 +141,7 @@ def validate(rows, sequences, *, molecule="16S", min_length=900, max_length=2000
     if missing_cols:
         raise ValueError("ROSTER_COLUMNS: " + ",".join(sorted(missing_cols)))
     tips, species_types, seq_groups, sample_seq = set(), defaultdict(list), defaultdict(list), defaultdict(list)
+    tip_records, omissions = [], []
     for line, row in enumerate(rows, 2):
         tip = row["tip"].strip()
         role = row["role"].strip().lower()
@@ -104,11 +157,17 @@ def validate(rows, sequences, *, molecule="16S", min_length=900, max_length=2000
         expected = row["expected_genus"].strip()
         if not expected or genus.casefold() != expected.casefold():
             raise ValueError(f"GENUS_CONTRADICTION: {tip} observed={genus} expected={expected}")
-        for field in ("accession", "isolation_source", "geography", "sequence_evidence", "metadata_evidence"):
+        for field in ("accession", "isolation_source", "sequence_evidence", "metadata_evidence"):
             if _missing(row[field]):
                 raise ValueError(f"METADATA_INCOMPLETE: {tip} field={field}")
-        if row["geography"].strip() not in GEOGRAPHY:
-            raise ValueError(f"GEOGRAPHY_VOCABULARY: {tip} value={row['geography']}")
+        deposited = row["geography"].strip()          # as deposited; never binned or filled in
+        region, basis = geography_region(deposited)
+        tip_records.append({"tip": tip, "organism": organism, "accession": row["accession"].strip(),
+                            "geography": deposited, "geography_region": region,
+                            "geography_region_basis": basis})
+        if basis == "NOT_RECORDED":
+            omissions.append({"tip": tip, "name": _full_name(row), "accession": row["accession"].strip(),
+                              "reason": "NO_DEPOSITED_GEOGRAPHY"})
         status = row["type_status"].strip().lower()
         if status not in TYPE_STATUS or (role in {"reference", "outgroup"} and status == "not_applicable"):
             raise ValueError(f"TYPE_STATUS: {tip}")
@@ -146,7 +205,7 @@ def validate(rows, sequences, *, molecule="16S", min_length=900, max_length=2000
         raise ValueError("DUPLICATE_QUERY_SAME_SAMPLE_SEQUENCE: " + json.dumps(same_sample, sort_keys=True))
     exact = {h:[t for t,_,_ in vals] for h,vals in seq_groups.items() if len(vals) > 1}
     return {"status":"ADMISSION_PASS", "rows":len(rows), "molecule":molecule,
-            "exact_sequence_groups":exact,
+            "exact_sequence_groups":exact, "tips":tip_records, "figure_omissions":omissions, "geography_note":GEOGRAPHY_NOTE,
             "ceiling":"Mechanical admission only; taxonomy and metadata remain source-dependent."}
 
 

@@ -125,7 +125,7 @@ A refused `strain-master` request prints `REFUSED <CODE>: <reason>` and exits 2.
 
 - `NO_MASTER` means no master folder was found. Give `--master <folder>` or set `SAPOTE_STRAIN_MASTER` to a folder that already exists. A path that does not exist counts as no master. `init` and `adopt` need `--master` itself; they do not read the variable.
 - `SELF_VERIFY` means `verify` was given the submitter's own `--chat` id. Letter case does not make two ids different. A second reviewer runs `verify` with a different `--chat` id.
-- `INBOX_REQUIRED` is the default answer to `strain-master store`. Use `submit`, `verify` and `apply` instead; the message calls the last step `import`, and the command is `apply`. `store` runs on its own only when the master's `strain_master.json` sets `"direct_store": true`. That setting is for a single-person master.
+- `INBOX_REQUIRED` is the default answer to `strain-master store`. Use `submit`, `verify` and `apply` instead. `store` runs on its own only when the master's `strain_master.json` sets `"direct_store": true`. That setting is for a single-person master.
 
 `where` does not refuse. Without a master it exits 0 and reports `NOT_CONFIGURED` or `MASTER_NOT_FOUND` as its status.
 

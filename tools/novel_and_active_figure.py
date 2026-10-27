@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """novel_and_active_figure.py — tile table of isolates that are novel by 16S and active in a bioassay.
 
-One row per isolate. Left: a genus colour bar, the strain and genus as deposited, 16S identity to the closest type strain,
+One row per isolate. Left: a genus color bar, the strain and genus as deposited, 16S identity to the closest type strain,
 the number of GenBank strains at or above the identity threshold, and dDDH to the closest type strain. Right: one tile
 per assay target and material, holding the best inhibition (%) as a rounded integer. Tiles at or above --strong-pct are
-dark, at or above --active-pct grey, below it white with a grey edge; n.t. (no reading) is light grey with "n.t.";
+dark, at or above --active-pct gray, below it white with a gray edge; n.t. (no reading) is light gray with "n.t.";
 a blank cell stays blank. The four states are never merged. A sand tint marks the 16S cell when identity is below
 --identity-threshold and the GenBank cell when the count is --rarity-max or fewer.
 
 Input table (--table, TSV; lines starting with # are skipped), one row per isolate:
 
     strain                       isolate name as it should be printed
-    genus_as_deposited (or genus) genus as deposited; drawn italic and coloured from mamey/data/genus_palette.json
+    genus_as_deposited (or genus) genus as deposited; drawn italic and colored from mamey/data/genus_palette.json
     id16s_pct                    16S identity (%) to the closest type strain; blank = no value (printed n.a.)
     genbank_strains_ge98_65      GenBank strains at or above the threshold; blank = not computed (printed n.a.)
     dddh_d4                      dDDH d4 (%) to the closest type strain; blank = no genome or no result (left blank)
@@ -320,7 +320,7 @@ def main(argv=None) -> int:
     ap.add_argument("--active-pct", type=float, default=50)
     ap.add_argument("--strong-pct", type=float, default=80)
     ap.add_argument("--palette-set", default="", help="genus_palette.json set laid over the default (moss, attine)")
-    ap.add_argument("--genus-color", action="append", metavar="Genus=#RRGGBB", help="override one genus colour")
+    ap.add_argument("--genus-color", action="append", metavar="Genus=#RRGGBB", help="override one genus color")
     ap.add_argument("--title", default="", help="title text; must name the material (default from --material)")
     ap.add_argument("--legend-title", default="Inhibition (%), best reading:",
                     help="first legend line; name the reading time if the table holds one (e.g. 48 h)")

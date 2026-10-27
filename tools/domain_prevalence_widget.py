@@ -42,6 +42,13 @@ def main():
     open(f"{OUT}/figure_top20_all_strains.svg","w").write(svg_bar(f"Top 20 domains — all {NS} strains",topview(None,NS),NS))
     open(f"{OUT}/figure_top20_bees_wasps.svg","w").write(svg_bar(f"Top 20 domains — Bees & Wasps (n={n_bw})",topview(BEEWASP,n_bw),n_bw))
     J=lambda x:json.dumps(x,separators=(",",":"))
+    # Each channel's state is read from the ranking rows; the page claims no coverage the input does not show.
+    def chstate(ch):
+        t={k:sum(r.get("evidence",{}).get(ch,{}).get(k,0) for r in rows) for k in ("hit","nohit","mixed","missing")}
+        if not any(t.values()): return "no saved states"
+        return f'{t["hit"]} hit, {t["nohit"]} no-hit, {t["mixed"]} mixed, {t["missing"]} missing'
+    chan=("Saved states per gene-domain entry: "+"; ".join(f"{name} {chstate(ch)}" for ch,name in
+          (("nr","nr"),("cnr","ClusteredNR"),("sp","Swiss-Prot")))+" (missing = no saved state, not a no-hit).")
     tmpl=r"""<!doctype html><meta charset=utf-8><title>Domain Prevalence — Sapote AS cohort</title>
     <style>body{font:14px system-ui,sans-serif;margin:0;background:#faf8fb;color:#1a1a1a}
     header{background:#4a2540;color:#fff;padding:12px 18px}h1{font-size:17px;margin:0}.sub{opacity:.85;font-size:12px;margin-top:3px}
@@ -64,7 +71,7 @@ def main():
     <span><label>&nbsp;</label><button onclick=dl()>Download chart (SVG)</button></span></div>
     <div class=wrap><div class=panel style=flex:1.1><div id=chart></div></div>
     <div class=panel><div class=tblbox><table id=tbl><thead><tr><th>domain</th><th>ns</th><th>str</th><th>loci</th><th>nr h/n/m</th><th>sp h/n</th><th>loci (rare)</th></tr></thead><tbody></tbody></table></div></div></div>
-    <div class=note>Rarity, biosynthetic relevance and evidence are SEPARATE axes — a rare domain is a review candidate, not a novelty claim. nr/ClusteredNR are selectively searched (missing ≠ no-hit); Swiss-Prot is complete. Absent annotation ≠ absent biology; similarity ≠ function. Class-level; judgment deferred.</div>
+    <div class=note>Rarity, biosynthetic relevance and evidence are SEPARATE axes — a rare domain is a review candidate, not a novelty claim. Channel coverage: see AUDIT_RECEIPT.json. __CHAN__ Absent annotation ≠ absent biology; similarity ≠ function. Class-level; judgment deferred.</div>
     <script>
     var DATA=__DATA__,HOST=__HD__,STRAINS=__STR__,SHOST=__SH__,NS=__NS__,DESC=__DESC__,BW=["bee","wasp","bee_or_wasp"];
     var S=document.getElementById('strain');STRAINS.forEach(function(s,i){var o=document.createElement('option');o.value=i;o.text=s+' ('+SHOST[s]+')';S.add(o);});
@@ -95,7 +102,7 @@ def main():
     </script>"""
     for k,v in {"__DATA__":J(comp),"__HD__":J(hostdist),"__STR__":J(strains),"__SH__":J(strain_host),
                 "__NS__":str(NS),"__NLOCI__":str(D["scope"]["loci"]),"__NGENES__":str(D["scope"]["genes"]),
-                "__NFAM__":str(len(rows)),"__NBW__":str(n_bw),"__DESC__":J(descmap)}.items():
+                "__NFAM__":str(len(rows)),"__NBW__":str(n_bw),"__DESC__":J(descmap),"__CHAN__":html.escape(chan)}.items():
         tmpl=tmpl.replace(k,v)
     open(f"{OUT}/domain_prevalence_widget.html","w").write(tmpl)
     print(f"  widget v3 written ({len(tmpl)//1024} KB): bitmask+flat evidence; strains={NS}, bees&wasps={n_bw}")
